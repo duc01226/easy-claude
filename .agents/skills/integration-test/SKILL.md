@@ -1,6 +1,6 @@
 ---
 name: integration-test
-description: '[Testing] Use when a workflow step or the user asks for integration tests: generate them, --mode=review (one-pass 8-gate review) or --mode=verify (run with runner evidence; --fix-loop converges failures).'
+description: '[Testing] Use when a workflow step or the user asks for integration test generation, diagnosis or traceability checks. --mode=review checks test quality; --mode=verify runs tests, with optional --fix-loop.'
 ---
 
 > Codex compatibility note:
@@ -9,39 +9,30 @@ description: '[Testing] Use when a workflow step or the user asks for integratio
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - Use ask user tool to ask user.
+> - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
 > - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
 > - For workflow skills, steps follow the guided contract in `$start-workflow` (gate steps fixed; other steps may flex with a logged reason); report step-by-step evidence.
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
-<!-- REVIEW-POLICY-SOURCES:START -->
-```json
-{
-  "version": 1,
-  "defaultMode": "generate",
-  "modes": {
-    "generate": [
-      ".claude/skills/integration-test/references/integration-test-patterns.md",
-      ".claude/skills/project-skill-protocol/references/registry.md"
-    ],
-    "review": [
-      ".claude/skills/integration-test/references/mode-review.md"
-    ],
-    "verify": [
-      ".claude/skills/integration-test/references/mode-verify.md"
-    ],
-    "verify-fix-loop": [
-      ".claude/skills/integration-test/references/mode-verify.md",
-      ".claude/skills/integration-test/references/fix-loop.md"
-    ]
-  }
-}
-```
-<!-- REVIEW-POLICY-SOURCES:END -->
+## Quick Summary
 
-> **[BLOCKING] Mode routing — detect FIRST.** Explicit `--mode=review` or `--mode=verify` selects that mode; no mode is default integration-test generation (everything below, unchanged). `$integration-test --mode=review` and `$integration-test --mode=verify` are the former `/integration-test-review` and `/integration-test-verify`: those slash commands no longer exist, and each mode works called directly with no workflow. Read the mode file in full before anything else (see [Mode Dispatch](#mode-dispatch)).
+> **Review modes:** For review/audit work, standalone defaults to `--review-only` (`--report-only` alias); `--fix-loop` enables review → validate → authorized fix → fresh re-review, default cap 3. `--fix-loop --loop-owner=caller` returns a read-only pass to the caller that owns fixes/re-review. Create triage, review, validation and re-review todo tasks first; apply the carried `review-policy` contract for LOW deferral and user-approved bounded extensions. Non-review modes and terminal findings validation keep their own dispatch.
+
+**Goal:** Generate, review, diagnose and verify integration tests that protect the selected case contract through real boundaries and system-owned outcomes.
+
+**Summary:**
+
+- Select the invocation route before applying its procedure: no flag uses from-changes, from-prompt, positional review, diagnose or verify-traceability; `--mode=review` supports review-only or the shared fix-loop; `--mode=verify [--fix-loop]` owns runtime proof.
+- Resolve the case profile and package before judging coverage. Generate: owner cases → tests → full-scope traceability. Review: scope/profile → package → eight gates → validate/deduplicate → verdict/report → stop. Verify follows its reference's repeat/isolation and failure rules.
+- Preserve meaningful assertions, production fidelity, native carriers/cardinality and operation authority; blocked or unknown evidence never proves coverage.
+
+**Workflow:** Detect → find targets → gather context → execute the selected mode → report.
+
+**Key Rules:** Read the selected mode reference in full; preserve task order and evidence; defer test execution to its final proof owner. See [Mode Dispatch](#mode-dispatch) for flags, references and execution location.
+
+> **[BLOCKING] Mode routing — detect FIRST.** Explicit `--mode=review` or `--mode=verify` selects its standalone procedure; no flag selects generation. Each flagged mode works directly without a workflow. Read its reference in full before executing (see [Mode Dispatch](#mode-dispatch)). `/integration-test-review` and `/integration-test-verify` do not resolve.
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
@@ -57,10 +48,6 @@ description: '[Testing] Use when a workflow step or the user asks for integratio
 >
 > **Overlay Registry:** Exact > glob > all; derive bodies from `Name` inside the protocols directory; overlays add constraints and never waive framework gates.
 > **MUST ATTENTION READ** `.claude/skills/project-skill-protocol/references/registry.md` when resolving overlays.
-
-## Quick Summary
-
-**Goal:** Generate/review integration tests across 5 modes (from-changes · from-prompt · review · diagnose · verify-traceability) that exercise the project's actual integration boundary and assert system-owned outcomes, so each test protects a profile-owned behavior contract and fails only when protected intent breaks.
 
 ## Case Contract Profile Gate (BLOCKING)
 
@@ -85,14 +72,6 @@ A changed root, template, filename, or test directory alone does not select a na
 
 The semantic floor is identical in every profile: MUST ATTENTION retain authored expected outcomes, assertions that fail when protected intent breaks, property plus boundary coverage for universal invariants, relevant authorization and preservation cases, real production paths, repeatability, operation authority, and spec/test/code drift adjudication. The strict-default procedures and report examples later in this file are conditional on selecting that profile; adapt their evidence and output fields to a native profile without dropping these gates. Matched project overlays add constraints and cannot waive a shared skill gate.
 
-**Summary:**
-- **Testability contract:** resolve Unit/Integration/System/E2E applicability from runner/config evidence; record owner/root/data, copy-ready full/focused commands, zero-match behavior, CI/simple Windows/macOS/Linux entry, run/data identity, and repeat proof; missing applicable fields block handoff; non-applicable tiers need evidence-backed `N/A`.
-- **Test fidelity:** trace the production entry path and invariant owner; assert meaningful outcomes (including persisted fields when persistence is part of the contract), never smoke-only setup checks; wait/poll only for documented asynchronous or eventual outcomes; use supported fixtures for preconditions without bypassing the boundary under test.
-- **Traceability + conventions:** resolve the case profile first; use its owner, identities, carriers, and cardinality. The strict default uses `TestSpec`/`TechnicalSpec` and permits one business TC to map to many integration/unit tests; never impose that representation on a native profile. Search same-service tests and read `references/integration-test-patterns.md`; match local helpers/base/collection and the project’s documented domain/module organization.
-- **Main steps (MANDATORY order):** (1) FIRST — read the selected canonical case owner and resolve needed scenario coverage; only the strict default creates/updates Section 8 TCs; (2) MIDDLE — implement locally patterned tests with the selected traceability carrier; (3) FINAL — reconcile changed behavior and the full affected owner/case scope across relevant test tiers using actual executor/assertion evidence, preserving declared variants/cardinality. Every mode: Detect → Find targets → Gather context → Execute → Report. Apply the repeat policy from `integrationTestVerify.guidance` (default: two fresh no-reset runs for persistent/shared-state suites); run the named coverage task and emit zero `GAP`/`UNKNOWN` results on every workflow/git-change/user-request run.
-
-**Workflow:** Detect mode → Find targets → Gather context → Execute → Report
-
 **Key Rules:**
 
 - **AI surface?** Only if the code under test creates or changes a model call, prompt, agent, tool/MCP, retrieval or eval (see `node .claude/scripts/ai-signal-scan.cjs`): read `.claude/skills/shared/protocols/ai-engineering-gate.md`, apply `AE-6` (model mocked at one seam, property asserts, no live paid calls in default CI); otherwise skip this line.
@@ -107,23 +86,20 @@ The semantic floor is identical in every profile: MUST ATTENTION retain authored
 - Derive case count from distinct behaviors, invariants, risk, and meaningful boundaries; do not enforce an arbitrary minimum per command or endpoint
 - Follow `integrationTestVerify.guidance`; when absent, require two fresh no-reset runs for suites with persistent/shared state before declaring that scope repeatable
 
-**Source-review preparation:** `--mode=review` uses `.claude/skills/shared/review-preparation.md` once its tests/source package is resolved in `references/mode-review.md`. Generation and runtime verification do not; diagnostic loops may consume prepared child evidence.
-
 ## Mode Dispatch
 
-Detect the mode from the invocation arguments before any other work; do not load a mode file the invocation did not select.
+Select from invocation arguments; load only the selected mode's references in full before work. The Case Contract Profile Gate still applies before interpreting cases or mutating specs/tests.
 
 | Mode | Purpose | Read in full FIRST |
 | --- | --- | --- |
-| _(none)_ | Default test generation/authoring — this file (its inline `review`, `diagnose`, `verify` branches below are unchanged) | — |
-| `--mode=review [--report-only] [--prove-tests] <target>` | One evidence-backed, read-only review pass over tests, source and governing specs: eight quality gates, one round, verdict. Formerly `/integration-test-review` | `references/mode-review.md` |
-| `--mode=verify [--fix-loop] <target>` | Prove reviewed integration tests pass under the repeat/isolation policy with real runner evidence; `--fix-loop` converges failures. Formerly `/integration-test-verify` | `references/mode-verify.md` (+ `references/fix-loop.md` for `--fix-loop`) |
+| _(none)_ | Default test generation/authoring with positional review, diagnose and traceability branches | This file; positional references below when selected |
+| `--mode=review [--review-only|--fix-loop] [--prove-tests] <target>` | Review through eight quality gates; report-only default or shared fix-loop with fresh re-review | `references/mode-review.md` |
+| `--mode=verify [--fix-loop] <target>` | Runtime proof under the configured repeat/isolation policy; optional failure convergence | `references/mode-verify.md`; also `references/fix-loop.md` before any `--fix-loop` work |
 
-- **[BLOCKING]** When `--mode=review`, read `references/mode-review.md` in full FIRST; it replaces test generation for the invocation (read-only, one round, report under `tmp/reports/`), so its one-round cap and read-only rules govern. `--report-only` and `--prove-tests` are its flags; workflow invocation returns the verdict and report path to the parent without next-step prompts.
 - **[BLOCKING]** When `--mode=verify`, read `references/mode-verify.md` in full FIRST; it replaces test generation for the invocation and owns `--fix-loop` (read `references/fix-loop.md` in full before any loop work). Without `--fix-loop` the default verify pass runs exactly as documented there.
-- The positional `review` / `diagnose` / `verify` words below are lightweight positional branches of test generation; `--mode=review` and `--mode=verify` are the standalone gates. A workflow step always passes the `--mode` flag.
-- `--mode=review` and `--mode=verify` are separate invocations over existing tests; generation never chains into them on its own.
-- The frontmatter `execution-mode: subagent` describes default generation. `--mode=verify` runs INLINE in the main session (`--fix-loop` never runs as a sub-agent); `--mode=review` runs where its caller dispatches it (a read-only specialist under `workflow-review-changes`).
+- Flagged modes replace generation for the invocation and govern their own caps, flags and terminal states. Without `--fix-loop`, use the default verify pass. Review workflow calls return the verdict/report path without next-step prompts.
+- Positional `review` / `diagnose` / `verify` are generation branches. Workflow gates always use `--mode`; generation never chains into flagged review/verify on its own.
+- `execution-mode: subagent` applies to generation. Verify runs INLINE in the main session, including `--fix-loop`; review runs where its caller dispatches it, including a read-only specialist under `workflow-review-changes`.
 
 ---
 
@@ -521,7 +497,7 @@ $integration-test verify {Service}
 
 **Inside a workflow** (THIS run is a step of a `[Workflow]` row: its own phase tasks are linked to that parent row, `nested=true` — a `[Workflow]` row that merely exists in the current task list, such as an abandoned one, does not count): skip the prompt below — the workflow's own next step is the next action. **Otherwise (standalone, or only an unrelated `[Workflow]` row exists):**
 
-**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing, use ask user tool to present:
+**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing, use `ask user question tool` to present:
 
 - **"$integration-test --mode=verify (Recommended)"** — Run integration tests to verify they pass
 - **"$workflow-review-changes"** — Review all changes before committing
@@ -538,7 +514,7 @@ $integration-test verify {Service}
 | `$spec [mode=index]`                | **Derived index** — regenerable navigation catalog over the Feature Specs (never a source of truth) | After §8 changes, to refresh the bucket `INDEX.md` TC counts                          |
 | `$integration-test --mode=review` | **Reviewer** — one-pass 8-gate audit, including change coverage and real-world fidelity | Call once after generating integration tests                                                              |
 | `$integration-test --mode=verify` | **Runner** — executes tests and reports pass/fail                                    | Always call after the --mode=review pass clears                                                           |
-| `$docs-manager --mode=update`               | **Orchestrator** — calls spec [mode=sync] (Phase 4) with test traceability              | Run for full doc sync after integration test files updated                                                 |
+| `$docs-manager --mode=update`               | **Orchestrator** — routes to spec [mode=sync] for test traceability              | Run for full doc sync after integration test files updated                                                 |
 
 ## Standalone Chain
 
@@ -596,6 +572,8 @@ integration-test (you are here)
 - `real-world-fidelity-testing` — Integration, E2E and system tests exercise real boundaries; authoring, reviewing or repairing integration, E2E or system tests → .claude/skills/shared/protocols/real-world-fidelity-testing.md
 - `red-flag-stop-conditions` — Conditions that require stopping and escalating to the user; debugging or testing stalls or the risk rises → .claude/skills/shared/protocols/red-flag-stop-conditions.md
 - `repeatable-test-principle` — Same contract result across fresh runs and supported concurrency; writing or reviewing tests → .claude/skills/shared/protocols/repeatable-test-principle.md
+- `review-decision-autonomy` — Choose supported review decisions and ask before extending the round budget; running any review or audit skill or mode → .claude/skills/shared/protocols/review-decision-autonomy.md
+- `review-policy` — Review-only or a three-round fix loop with explicit extension and fresh post-fix evidence; deciding round eligibility, blocking findings or review state → .claude/skills/shared/protocols/review-policy.md
 - `source-test-drift-check` — When source behavior changes, reconcile the affected tests from evidence; code, fix, test or review work changes behavior → .claude/skills/shared/protocols/source-test-drift-check.md
 - `spec-drift-adjudication` — Decide code-wrong versus spec-stale from evidence, never silently; behavior diverges from its spec → .claude/skills/shared/protocols/spec-drift-adjudication.md
 - `spec-tests-code-triangulation` — Review spec, tests and code together for mutual consistency first; reviewing behavior that has a spec → .claude/skills/shared/protocols/spec-tests-code-triangulation.md
@@ -674,12 +652,19 @@ integration-test (you are here)
 
 <!-- /SYNC:measured-capacity-engineering:reminder -->
 
+<!-- SYNC:review-decision-autonomy:reminder -->
+
+**MUST ATTENTION** Decide supported review choices and recommendations, record the rationale, and finish without routine user questions. Keep round-limit extension, indispensable facts and actual action authority; preserve source coverage, validation, tests, read-only boundaries and budgets. Review decisions do not accept open risks or make a failed gate pass.
+
+<!-- /SYNC:review-decision-autonomy:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION** Testability contract: resolve Unit/Integration/System/E2E applicability, copy-ready full/focused commands, zero-match failures, owner/root/data, CI/simple Windows/macOS/Linux entry, unique run identity, and repeat proof before completion.
-**IMPORTANT MUST ATTENTION Goal:** Generate/review real-DI integration tests across 5 modes (from-changes · from-prompt · review · diagnose · verify-traceability) that exercise production paths and assert specific DB fields, so each test protects the selected canonical case contract, survives no-reset repeats, and fails only when protected intent breaks.
+**IMPORTANT MUST ATTENTION Goal:** Generate, review, diagnose and verify integration tests that protect the selected case contract through real boundaries and system-owned outcomes.
 
 **IMPORTANT MUST ATTENTION** Main order: (1) FIRST read the selected canonical owner and resolve required case coverage; only the strict default upserts Section 8 TCs; (2) MIDDLE implement real-path tests with the selected traceability carrier; (3) FINAL reconcile changed behavior and the full affected owner/case scope across integration + unit. Per mode: Detect → Find targets → Gather context → Execute → Report.
+**IMPORTANT MUST ATTENTION Review route:** `--mode=review [--review-only|--fix-loop] [--prove-tests]` → scope/profile → package → eight gates → validate/deduplicate → report; standalone fix-loop repairs and freshly re-reviews under the shared cap. Runtime proof belongs to `--mode=verify [--fix-loop]`; read its references before execution.
 **IMPORTANT MUST ATTENTION** Modes: `from-changes`/`from-prompt` generate; `review` audits; `diagnose` classifies failures; `verify-traceability` audits test↔spec↔feature-doc links. The flagged `--mode=review` and `--mode=verify` remain the heavier gates.
 **IMPORTANT MUST ATTENTION** Gates: real DI; owned persisted fields when applicable; synchronization matching the boundary; real use-case setup; fidelity barriers; property/mutation coverage; zero-GAP changed-file + full affected-owner case audit under the selected profile; 2 no-reset runs; review → verify → owner sync.
 
@@ -693,7 +678,7 @@ integration-test (you are here)
 - **Repeatable Test Principle:** follow the configured isolation and repeat policy; use unique data where runs share mutable state; never reset data owned by another run.
 - **Test Data Isolation:** isolate mutable data at the boundary required by the project's supported concurrency; inspect cross-cutting consumers when state unexpectedly changes.
 - **Real-World Fidelity Gate:** only test sequences, pacing, and data production can actually reach; barriers wait on a real settle signal in ARRANGE — never a widened assertion.
-- **Red Flag Stop Conditions:** escalate on low confidence, large blast radius, breaking change.
+- **Red Flag Stop Conditions:** escalate on low confidence or breaking change.
 - **Rationalization Prevention:** reject step-skipping evasions; show grep evidence, plan anyway.
 - **Incremental Persistence:** persist findings to `tmp/reports/` after each file, never in memory.
 - **Sub-Agent Return Contract:** sub-agents return only the summary shape, detail on disk.
@@ -747,3 +732,10 @@ integration-test (you are here)
 **MUST ATTENTION** Core Engineering Principles — every plan, implementation and review must be **Easy to change** (reuse first, one owner per rule, interfaces/adapters at volatile boundaries, no speculative abstraction) · **Easy to scale** (extend by addition, bounded growth, explicit boundaries, sized to the project's real profile) · **Easy to maintain** (intent-named tests that fail when the rule breaks across happy/error/edge paths; harness green locally and in CI). Before done: next change → how many edit sites? 10× → what breaks? which test goes red?
 
 <!-- /SYNC:core-engineering-principles:reminder -->
+
+
+<!-- SYNC:review-policy:reminder -->
+
+**MUST ATTENTION** Triage all targets, plan and create review/validation/fix/fresh re-review tasks first. Review-only reports without edits; fix-loop freshly reviews every repair under one fixing owner. Default cap three rounds: disclose deferred LOWs, ask and wait before a bounded extension for MEDIUM+ or failed required checks. Preserve scope, coverage and actual operation authority.
+
+<!-- /SYNC:review-policy:reminder -->

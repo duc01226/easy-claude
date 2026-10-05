@@ -1,20 +1,42 @@
 ---
 name: workflow-spec-to-pbi
 version: 3.0.0
-description: '[Workflow] Use when converting canonical feature/spec artifacts into prioritized, dependency-aware PBIs and stories.'
+description: "[Workflow] Convert existing canonical specs into a complete, dependency-ordered, prioritized, Definition-of-Ready PBI and story backlog."
 disable-model-invocation: false
 ---
+
+<!-- WORKFLOW-CALLS:START -->
+## Workflow Calls and Todo Bootstrap
+
+Read [the registry](../../../.claude/workflows.json) → `workflows.workflow-spec-to-pbi` together with this skill. Call [`/start-workflow workflow-spec-to-pbi`](../start-workflow/SKILL.md) to resolve the selected mode, pre-actions and fingerprint.
+
+**Todo FIRST:** create ALL selected occurrence tasks before triage, analysis or step execution, including conditional/optional tasks; preserve occurrence IDs, roles and barrier groups. Use native task tools or an equivalent persistent ledger. Then mark the first task `in_progress`; attach evidence before `completed`.
+Mode selection and registry loading prepare tracking; any 'first action' below means the first substantive action after this bootstrap.
+
+**Call each step skill:** read its linked SKILL.md and execute its protocol through the active host with the registry args. Reading or naming a skill alone is not execution. Required gates and core/optional flex follow the linked start-workflow Step Execution Protocol; keep this skill's quality gates, loops and evidence requirements.
+
+**Conditions:** load each occurrence's registry `applicability.when` and `skipReason` verbatim, and record its run/skip evidence through the linked start-workflow protocol. Do not silently omit a task or turn a conditional skill into an unconditional call. Declared parallel groups retain their all-return barrier.
+
+Explicit step-skill calls by mode (registry order; roles and conditions remain owned by the registry):
+
+- Mode `default`: [`/investigate`](../investigate/SKILL.md) (core) → [`/spec [mode=index]`](../spec/SKILL.md) (optional; conditional) → [`/domain-analysis`](../domain-analysis/SKILL.md) (optional; conditional) → [`/why-review`](../why-review/SKILL.md) (core) → [`/spec [mode=clarify]`](../spec/SKILL.md) (gate) → [`/scenario`](../scenario/SKILL.md) (optional; conditional) → [`/plan`](../plan/SKILL.md) (optional; conditional) → [`/plan --mode=validate`](../plan/SKILL.md) (optional; conditional) → [`/pbi --mode=refine`](../pbi/SKILL.md) (core) → [`/pbi --mode=review --type=pbi`](../pbi/SKILL.md) (gate) → [`/pbi --mode=story`](../pbi/SKILL.md) (core) → [`/pbi --mode=review --type=story`](../pbi/SKILL.md) (core) → [`/pbi --mode=challenge --reuse=pbi-review`](../pbi/SKILL.md) (core) → [`/pbi --mode=dor --reuse=pbi-review`](../pbi/SKILL.md) (gate) → [`/pbi --mode=mockup`](../pbi/SKILL.md) (optional; conditional) → [`/design-spec`](../design-spec/SKILL.md) (optional; conditional) → [`/prioritize`](../prioritize/SKILL.md) (optional; conditional) → [`/docs-manager --mode=update`](../docs-manager/SKILL.md) (core) → [`/feature-presentation`](../feature-presentation/SKILL.md) (optional; conditional) → [`/workflow-end`](../workflow-end/SKILL.md) (gate) → [`/watzup`](../watzup/SKILL.md) (core)
+<!-- workflow-mode:default fingerprint:6b349f70bb61da260e7c024332ef0e1b22f91af56e361172b7a2ca623d2fb3dc -->
+
+Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs --write` after registry edits; [`/sync-codex`](../sync-codex/SKILL.md) refreshes it before mirroring.
+<!-- WORKFLOW-CALLS:END -->
 
 ## Quick Summary
 
 **Goal:** Convert existing canonical specs into a complete, dependency-ordered, prioritized, Definition-of-Ready PBI/story backlog — no implementation — with depth proportional to the spec's size and risk.
 
-**Purpose:** For PO/BA teams that already have canonical specs (one capability or a whole bucket) and need sprint-ready PBIs, including splitting a very large spec and identifying enabling work. Use `workflow-idea-to-spec` when no spec exists yet, `workflow-idea-to-pbi` for one informal idea, `workflow-code-to-spec` to create/update specs from code, `workflow-feature` / `workflow-big-feature` to build ready PBIs.
+**Summary:** Triage/profile → investigate/freshness → domain/rationale → clarify → scenario/plan/validate → refine/review → stories/review → independent challenge/DoR → UI mockup/design-spec → prioritize → docs sync → deck → close/wrap-up. Triage selects optional work; gates remain fixed. Produce sprint-ready PBIs, including large-spec slices and attached enabling work.
+
+**Use when:** PO/BA has canonical specs for a capability or bucket. **Adjacent routes:** no spec → `workflow-idea-to-spec`; informal idea → `workflow-idea-to-pbi`; code to specs → `workflow-code-to-spec`; build ready PBIs → `workflow-feature` / `workflow-big-feature`.
 
 - **Triage first** (capability count · kinds · freshness risk · `isLargeIdea`); it selects which recommended skills run. A 1–3 capability spec with no domain change skips the plan cycle, scenario and domain analysis.
 - **Gates never flex:** coverage, spec clarity, releasable outcome, artifact review, independent challenge, DoR, UI full-flow evidence, priority propagation, docs sync, close.
 - **[BLOCKING] Tech-agnostic output:** PBI / backlog / report prose follows `spec-principles.md` §3 in the project-reference docs root (default `docs/project-reference/`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides) — implementation names appear only in evidence fields, frontmatter and Mermaid.
-- Apply `.claude/skills/shared/sdd-artifact-contract.md` (AI-SDD Mandates M1-M7), `.claude/skills/shared/releasable-pbi-contract.md` and `.claude/skills/shared/product-roadmap-contract.md`.
+- Read `.claude/skills/shared/sdd-artifact-contract.md` when applying M1-M7; `.claude/skills/shared/releasable-pbi-contract.md` when slicing actor-facing outcomes; `.claude/skills/shared/product-roadmap-contract.md` when `isLargeIdea` governs decomposition. These contracts preserve business-visible criteria, releasable journeys and embedded slice ownership.
 
 ## Canonical Input Profile
 
@@ -75,7 +97,7 @@ Skipping a step whose applicability is false, or that triage shows does no real 
 
 **Spec-hub coupling (UI PBIs):** the mockup and design-spec are companions of the interaction-intent owner the native profile or local contract declares; link them where the contract has a carrier (fallback: §6 surface and `design_spec:` / `mockup:` frontmatter). If the native spec has no interaction section or link carrier, keep the separate design spec and flag the missing relationship — never invent a numbered section.
 
-**The PBI half matches `workflow-idea-to-pbi`:** PBI review → stories → challenge → DoR → mockup → design-spec → prioritize (conditional) → docs-manager --mode=update → deck. Reuse handoffs match too: `/pbi --mode=challenge --reuse=pbi-review` and `/pbi --mode=dor --reuse=pbi-review` consume the `/pbi --mode=review --type=pbi` report while the PBI is unchanged (drop the flag after any PBI edit; standalone runs evaluate every check), and `/design-spec` reuses the mockup's Journey Report.
+**Reuse handoffs (same as `workflow-idea-to-pbi`):** `/pbi --mode=challenge --reuse=pbi-review` and `/pbi --mode=dor --reuse=pbi-review` consume the `/pbi --mode=review --type=pbi` report only while the PBI is unchanged. Drop the flag after any PBI edit; standalone runs evaluate every check. `/design-spec` reuses the mockup's Journey Report.
 
 ## Outputs
 
@@ -88,10 +110,10 @@ Paths are relative to the team-artifacts root (default `team-artifacts/`; `docsR
 
 ## Orchestration, Memory & Fix Path
 
-- **Orchestration freedom:** choose inline vs sub-agent, batching and order to minimize wall-clock and tokens at equal quality; 1–3 capabilities run inline; 10+ capabilities run in bounded capability-group batches, one report section per batch. Fixed dependencies: freshness and clarification precede decomposition; a PBI exists before it is reviewed; `/prioritize` runs once after every PBI loop finishes; `/docs-manager --mode=update` follows it; gates awaiting user answers are never parallelized; `/workflow-end` runs last. When `/prioritize` changes a rank after a mockup was built, refresh the mockup's priority badge.
-- **Memory:** one task per selected step (per capability group when batched). Create `tmp/reports/spec-to-pbi-{date}-{bucket}.md` first, append after each capability/feature, and re-read it plus `TaskList` after compaction; never hold all PBIs in memory. Sub-agent briefs make report writing their first deliverable.
+- **Orchestration:** choose inline/delegated work, batching and order through the Step Execution Protocol at equal quality. Use Triage's scale bands; each 10+ capability batch gets a report section. Preserve dependencies: freshness and clarification precede decomposition; a PBI exists before it is reviewed; `/prioritize` runs once after every PBI loop finishes; `/docs-manager --mode=update` follows it; gates awaiting user answers are never parallelized; `/workflow-end` runs last. When `/prioritize` changes a rank after a mockup was built, refresh the mockup's priority badge.
+- **Memory:** track each selected step per capability group. Write `tmp/reports/spec-to-pbi-{date}-{bucket}.md` first and append per capability/feature; after compaction re-read it and `TaskList`. Write PBIs immediately; sub-agent briefs require report writing first.
 - **Fix path:** findings are validated before fixing; fix in the owning artifact (`/pbi --mode=refine` for the PBI, `/pbi --mode=story` for stories, `/spec [mode=update]` for confirmed spec changes) and re-run the reviewer that raised it.
-- **Loop bounds:** round 1 zero open findings (Round-1 LOW closure), or round 2 zero CRITICAL/HIGH/MEDIUM with LOWs deferred; cap 3 review rounds; on no progress escalate via `AskUserQuestion`.
+- **Loop bounds:** round 1 zero open findings (LOW deferral), or round 2 zero CRITICAL/HIGH/MEDIUM with LOWs deferred; cap 3 review rounds; on no progress escalate via `ask user question tool`.
 
 ---
 
@@ -128,10 +150,17 @@ Activate with `/start-workflow workflow-spec-to-pbi` and the user's prompt as co
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** a complete, dependency-ordered, prioritized, DoR-ready PBI/story backlog from canonical specs — depth proportional to the spec, gates never skipped.
+**IMPORTANT MUST ATTENTION Goal:** Convert existing canonical specs into a complete, dependency-ordered, prioritized, Definition-of-Ready PBI/story backlog — no implementation — with depth proportional to the spec's size and risk.
+
+**MUST ATTENTION Main steps:** Triage/profile → investigate/freshness → domain/rationale → clarify → scenario/plan/validate → refine/review → stories/review → independent challenge/DoR → UI mockup/design-spec → prioritize → docs sync → deck → close/wrap-up. Triage selects optional work; gates remain fixed.
 
 - **MUST ATTENTION** triage first (scale · kinds · freshness · `isLargeIdea`) and record it; skip domain analysis, scenario and the plan cycle only with logged evidence.
 - **MUST ATTENTION** keep every gate: coverage matrix, `spec [mode=clarify]`, releasable outcome + M7, `pbi --mode=review --type=pbi`, independent `pbi --mode=challenge`, `pbi --mode=dor`, UI full-flow mock app + design-spec, priority written into every PBI's frontmatter, `docs-manager --mode=update`, `workflow-end`.
 - **MUST ATTENTION** carry native IDs as the citation spine; never mint IDs, invent sections or emit a standalone technical PBI.
 - **MUST ATTENTION** large specs carry the complete `large_idea_decomposition` block (`outcome_slices` … `deferred_work_owner`); never create a roadmap artifact by default.
 - **MUST ATTENTION** one task per selected step, report file first and appended per capability; tech-agnostic prose.
+
+| Evasion | Required action |
+| --- | --- |
+| "Small spec, skip gates" | Scale depth; preserve clarification, reviews, challenge, DoR, sync and closure. |
+| "Technical setup is a PBI" | Attach enabling work to an independently releasable actor-facing outcome. |

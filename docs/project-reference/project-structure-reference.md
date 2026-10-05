@@ -30,8 +30,6 @@ Read `.claude/docs/framework-portability.md` when changing portable framework co
 | `.claude/skills/<name>/SKILL.md` | Executing a named task contract; discover current names through the skill catalog | `.claude/scripts/scan_skills.py:127–175` |
 | `.claude/workflows.json` + `.claude/scripts/lib/workflow-manifest.cjs` | Resolving workflow occurrences, variants, roles and outcome gates | `.claude/scripts/lib/workflow-manifest.cjs:162–212` |
 | `.claude/hooks/notifications/notify.cjs` | Tracing main-session alerts and configured providers | `.claude/hooks/notifications/notify.cjs:75–171` |
-| `.claude/scripts/review-prepare.cjs` | Preparing exact local/staged/branch/named-file review targets, active skill-mode/source binding and optional OCR; read `.claude/docs/review-preparation.md` when selecting capture or adoption behavior | `.claude/scripts/lib/review-preparation.cjs:45-88,117-123` |
-| `.claude/skills/project-config/scripts/review-setup.cjs` | Inspecting or saving the OCR project preference through the canonical relocated config loader; read `.claude/skills/project-config/SKILL.md` when accepting enable/off setup | `.claude/skills/project-config/scripts/review-setup.cjs:20-39,93-97,114-174` |
 | `.claude/scripts/ai-signal-scan.cjs` | Discovering AI-feature surfaces before an AI review | `.claude/scripts/ai-signal-scan.cjs:187-215` |
 
 Workflow progression is model-driven through the resolved manifest and tracked tasks; persisted state is recovery data, not proof that an outcome gate passed. Read `.claude/skills/start-workflow/SKILL.md` when resolving execution/flex rules, and `.claude/skills/workflow-end/SKILL.md` when closing a run. Read `.claude/docs/hooks/README.md` when changing registered lifecycle behavior; use the current registrations rather than a copied hook list.
@@ -76,8 +74,6 @@ Session-scoped legacy helpers use OS-temp `ck`; project dismiss/freshness marker
 
 The root Node range is `>=18.0.0` (`package.json:12–14`); html-export requires `>=20` in `.claude/skills/html-export/package.json`. Use the selected tool’s requirement. Hooks/libraries use CommonJS `.cjs`; host-sync tooling also uses ESM `.mjs` (`hook-runner.cjs`; `run-codex-sync.mjs`). Read `.claude/scripts/README.md` when catalog/scanner PyYAML is missing: `.claude/scripts/lib/python_dependencies.py` owns the bounded global attempt, local fallback and actual-import verification. Python tooling requirements are ranges: `pyyaml>=6.0` in `.claude/scripts/requirements.txt`; graph dependencies are `tree-sitter>=0.21.0`, `tree-sitter-language-pack>=0.7.0`, `networkx>=3.0` in `.claude/scripts/code_graph/requirements.txt`. Optional conversion/export tools own separate manifests; do not present their packages as root runtime dependencies.
 
-Read `.claude/.mcp.json.example` when interpreting example MCP authentication references; its context7 API-key argument and `GOOGLE_GEMINI_API_KEY` reference do not establish an installed server. Read `.claude/docs/review-preparation.md` when selecting OCR machine policy: personal/ignored-local declarations and `CK_REVIEW_TOOL_*` restrictions are owned by `.claude/scripts/lib/review-acquisition-policy.cjs`. Tracked project groups grant no machine permission.
-
 ## Source Organization
 
 Read `docs/project-config.json` → `modules` when selecting a component; module paths are project configuration and must be corroborated by source. `.claude/hooks/` contains entry points, `hooks/lib/` shared utilities, `skills/` task contracts/local tools, `agents/` specialized roles, `scripts/` maintenance tools, `workflows.json` workflow definitions and `docs/` framework guidance. Read `docs/project-reference/docs-index-reference.md` when locating project/reference/spec documentation.
@@ -110,27 +106,6 @@ Read `docs/project-config.json` → `modules` when selecting a component; module
 | NT   | Notifications  | `.claude/hooks/notifications/` | `notify.cjs` dispatcher + 4 channel providers in `providers/` (desktop, telegram, discord, slack)                         |
 | HT   | Hook Tests     | `.claude/hooks/tests/`         | 100 suite files + 9 top-level `test-*` files + `run-all-tests.cjs` aggregate                                               |
 
-
-## Repository review responsibility
-
-`docs/project-config.json` opts this repository into supplemental OCR with user-owned groups derived from existing modules/context classes. Read `.claude/docs/review-preparation.md` when preparing targets or changing rule routing.
-
-OCR preference belongs to the loader-selected project config: omitted provider is Unset, `open-code-review` is Enabled, and `none` is Off. For a nonempty source review with valid required policy, Unset offers exactly Accept setup / Turn off OCR for this project / Skip this time. Enabled uses permitted readiness/fallback; Off suppresses later adoption prompts. Read `.claude/skills/shared/review-preparation.md` when asking as the top-level review owner, verifying a save, recapturing target/policy after a save, or propagating invocation-only `--provider-decision skip` to children and rechecks (`.claude/scripts/lib/review-preparation.cjs:84-88`; `.claude/skills/shared/review-preparation.md:17-34`).
-
-Read `.claude/skills/framework-config/SKILL.md` when an OCR preference request enters framework configuration; it routes to the same project-config helper. That helper preserves unrelated settings and validates the consent-bound candidate/readback; it never invokes or acquires OCR. Saved Enabled is a preference, not tool Ready or machine permission (`.claude/skills/project-config/scripts/review-setup.cjs:114-174`).
-
-| Primary group | Priority | Existing classifier references |
-| --- | ---: | --- |
-| tests | 50 | context classes `integration-test`, `shipped-tests` |
-| specs | 60 | context class `feature-spec` |
-| hooks | 100 | modules `hooks`, `hooks-lib` |
-| skills | 200 | module `skills` |
-| agents | 300 | module `agents` |
-| scripts | 400 | module `scripts` |
-| docs | 500 | module `docs-framework` |
-| mirrors | 600 | context class `agent-mirrors-context` |
-
-**MUST ATTENTION** preserve one primary owner per entry and every matching required convention. Tests/specs precede enclosing framework modules; unmatched paths retain `general`. These team groups do not grant machine permission. Additional `ruleDocs` is omitted. Required sources include declared active skill-mode procedures, host-selected project/spec/ADR/caller documents, selected review references and matching conventions. The host carries the same `--skill-mode` and repeated `--required-doc` union through capture, child replay and final recheck; `policySelection` exposes this choice (`.claude/scripts/lib/review-rule-policy.cjs:48-88,170-240`; `.claude/scripts/lib/review-preparation.cjs:45-64,117-123`).
 
 ## Advisory Selection and Workflow Discovery
 

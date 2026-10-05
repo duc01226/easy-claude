@@ -1,7 +1,7 @@
 ---
 name: html-export
 version: 1.0.0
-description: '[Document Processing] Use when a workflow step or the user asks for an HTML page, deck, mockup or animation export: PNG, vector PDF, MP4/GIF. --to={png|pdf|mp4|gif}.'
+description: '[Document Processing] Use when a workflow step or the user asks for HTML page, deck, mockup or animation export to PNG, vector PDF, MP4 or GIF. --to={png|pdf|mp4|gif}.'
 disable-model-invocation: false
 ---
 

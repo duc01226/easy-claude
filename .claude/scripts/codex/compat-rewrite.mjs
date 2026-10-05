@@ -9,7 +9,7 @@ const COMPATIBILITY_NOTE_LINES = [
   "> - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.",
   "> - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.",
   "> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.",
-  "> - Use ask user tool to ask user.",
+  "> - Use ask user question tool to ask user.",
   "> - Ignore Claude-specific mode-switch instructions when they appear.",
   "> - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.",
   "> - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.",
@@ -76,9 +76,9 @@ export function rewriteClaudeToolTermsForCodex(text) {
     )
     .replaceAll("`TaskCreate`", "task tracking")
     .replaceAll("`TaskList`", "the current task list")
-    .replaceAll("via `AskUserQuestion`", "using ask user tool")
-    .replaceAll("`AskUserQuestion` decision", "user decision using ask user tool")
-    .replaceAll("`AskUserQuestion`", "ask user tool")
+    .replaceAll("via `AskUserQuestion`", "using ask user question tool")
+    .replaceAll("`AskUserQuestion` decision", "user decision using ask user question tool")
+    .replaceAll("`AskUserQuestion`", "ask user question tool")
     .replaceAll("`EnterPlanMode`", "manual plan-mode switching")
     .replaceAll("`Skill` tool", "skill invocation")
     .replaceAll("`Skill`", "skill invocation")
@@ -93,8 +93,8 @@ export function rewriteClaudeToolTermsForCodex(text) {
     .replace(/\bTaskCreate:/g, "Task tracking:")
     .replace(/\bTaskCreate\b/g, "task tracking")
     .replace(/\bTaskList\b/g, "the current task list")
-    .replace(/\bvia AskUserQuestion\b/g, "using ask user tool")
-    .replace(/\bAskUserQuestion\b/g, "ask user tool")
+    .replace(/\bvia AskUserQuestion\b/g, "using ask user question tool")
+    .replace(/\bAskUserQuestion\b/g, "ask user question tool")
     .replace(/\bEnterPlanMode\b/g, "manual plan-mode switching");
 }
 

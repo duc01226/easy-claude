@@ -9,37 +9,32 @@ const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
+const { resolvePythonCommand: findPythonCommand, preparePythonYaml } = require('../lib/python-command.cjs');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..', '..');
 const SCRIPTS_DIR = path.join(REPO_ROOT, '.claude', 'scripts');
-const PYTHON_CANDIDATES = [
-  { command: 'python', baseArgs: [] },
-  { command: 'py', baseArgs: ['-3'] }
-];
 
 let pythonCommand = null;
+let yamlModulePath;
+let readinessError;
 
 function resolvePythonCommand() {
+  if (readinessError) throw readinessError;
   if (pythonCommand) return pythonCommand;
-
-  for (const candidate of PYTHON_CANDIDATES) {
-    const result = spawnSync(
-      candidate.command,
-      [...candidate.baseArgs, '-c', 'import sys, yaml; assert sys.version_info.major == 3'],
-      { cwd: REPO_ROOT, encoding: 'utf8', timeout: 10000, windowsHide: true }
-    );
-    if (!result.error && result.status === 0) {
-      pythonCommand = candidate;
-      return pythonCommand;
-    }
+  try {
+    const python = findPythonCommand({ cwd: REPO_ROOT });
+    yamlModulePath = preparePythonYaml(python, { scriptsDir: SCRIPTS_DIR, cwd: REPO_ROOT });
+    pythonCommand = python;
+    return pythonCommand;
+  } catch (error) {
+    readinessError = error;
+    throw error;
   }
-
-  throw new Error('Python 3 with PyYAML is required for the Windows stdio portability suite.');
 }
 
 function runPython(code, label, options = {}) {
   const python = resolvePythonCommand();
-  const result = spawnSync(python.command, [...python.baseArgs, '-c', code], {
+  const result = spawnSync(python.command, [...python.baseArgs, '-c', `import sys\nsys.path.insert(0, ${JSON.stringify(yamlModulePath)})\n${code}`], {
     cwd: REPO_ROOT,
     encoding: 'utf8',
     timeout: options.timeout || 30000,

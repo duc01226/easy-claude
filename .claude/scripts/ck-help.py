@@ -642,7 +642,7 @@ def show_config_guide() -> None:
     print("Builds a knowledge graph of the codebase for blast-radius analysis and smarter reviews.")
     print("- **Setup:** Python 3.10+ required; `/graph-code --mode=build` installs the rest into the hooks' environment")
     print("- **Mode:** `hooks.codeGraph.enabled` in `docs/project-config.json` — `auto` (default), `on`, `off`")
-    print("- **Skills:** `/graph-code --mode={build|query|trace|blast-radius|connect-api}`, `/graph-export`")
+    print("- **Skills:** `/graph-code --mode={build|query|trace|blast-radius|connect-api|export}`")
     print("- **Config:** frontend->backend detection via `graphConnectors` in the project config (default `docs/project-config.json`)")
     print("- Docs: `.claude/docs/code-graph-mechanism.md`")
     print()

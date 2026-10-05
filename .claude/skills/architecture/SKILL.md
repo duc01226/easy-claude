@@ -1,79 +1,78 @@
 ---
 name: architecture
 version: 1.0.0
-description: '[Architecture] Use when a workflow step or the user asks for --mode=design (solution architecture), --mode=review (compliance: layers, boundaries, CQRS, tenancy), --mode=scalability (scale grade, coupling) or --mode=full (whole-project audit).'
+description: '[Architecture] Use when a workflow step or the user asks for architecture design, compliance review, scalability grading or whole-project audit via --mode={design|review|scalability|full}.'
 ---
-
-<!-- REVIEW-POLICY-SOURCES:START -->
-```json
-{
-  "version": 1,
-  "defaultMode": null,
-  "modes": {
-    "design": [
-      ".claude/skills/architecture/references/mode-design.md",
-      ".claude/docs/engineering-foundation-catalog.md",
-      ".claude/docs/scale-technique-catalog.md",
-      ".claude/docs/scenario-stress-catalog.md",
-      ".claude/skills/shared/sub-agent-selection-guide.md",
-      ".claude/skills/project-skill-protocol/references/registry.md"
-    ],
-    "review": [
-      ".claude/skills/architecture/references/mode-review.md"
-    ],
-    "scalability": [
-      ".claude/skills/architecture/references/mode-scalability.md",
-      ".claude/skills/architecture/references/scorecard.md",
-      ".claude/docs/architecture-knowledge.md"
-    ],
-    "full": [
-      ".claude/skills/architecture/references/mode-full.md"
-    ]
-  }
-}
-```
-<!-- REVIEW-POLICY-SOURCES:END -->
-
-> **[BLOCKING] Mode routing — detect FIRST.** Explicit `--mode=design`, `--mode=review`, `--mode=scalability` or `--mode=full` selects that mode; read its reference file in full before anything else (see [Mode Dispatch](#mode-dispatch)). No mode: show the mode table below and stop — ask nothing, run nothing, never guess a mode. `/architecture --mode=design`, `--mode=review`, `--mode=scalability` and `--mode=full` are the former `/architecture-design`, `/architecture-review`, `/architecture-scalability-review` and `/architecture-review-full`: those slash commands no longer exist, and each mode works called directly with no workflow.
 
 ## Quick Summary
 
-**Goal:** One architecture skill with four independent modes — design a solution architecture, review a change for architecture compliance, grade a project's architecture and scalability, or audit a whole project — each running exactly its own contract.
+> **Review modes:** For review/audit work, standalone defaults to `--review-only` (`--report-only` alias); `--fix-loop` enables review → validate → authorized fix → fresh re-review, default cap 3. `--fix-loop --loop-owner=caller` returns a read-only pass to the caller that owns fixes/re-review. Create triage, review, validation and re-review todo tasks first; apply the carried `review-policy` contract for LOW deferral and user-approved bounded extensions. Non-review modes and terminal findings validation keep their own dispatch.
 
-**Summary:**
+**Goal:** Run the selected architecture contract to design a solution, review compliance, grade scalability, or deliver a whole-project health report with evidence-backed decisions.
 
-- Each mode is a self-contained contract in `references/mode-<x>.md`; the reference is the whole invocation contract — inputs, outputs, flags, report paths, round caps and `AskUserQuestion` behavior are that reference's, unchanged from the skill it came from.
-- `--mode=full` composes the other modes: its three face sub-agents each run `--mode=scalability` or `--mode=review` (reading that mode's reference) plus `production-readiness-review`; it never re-implements a face.
-- No mode is never an expensive default: print the table, stop.
-- After mode dispatch, capacity/scaling or cache decisions apply the measured-capacity protocol in the selected mode reference; workload evidence and business availability needs drive the next step, while each mode keeps its existing score and gates.
+**Summary:** Select the explicit `--mode` → read its complete reference → execute its own phases, evidence gates, flags and outputs → validate and hand off. No mode prints the table and stops, without questions or work. `full` composes read-only reviewer faces; other modes run independently.
+
+**Workflow:** Dispatch → load the selected contract → triage targets and plan review tasks → execute the mode → validate → hand off.
+
+**Key Rules:**
+
+- Detect `--mode` before any work; load only the selected reference in full.
+- Preserve each mode's scope, authority, scores, gates, report paths and round caps.
+- For capacity/cache decisions, apply the selected mode's measured-capacity protocol: workload evidence and business availability needs govern the next step.
 
 ## Mode Dispatch
 
-Detect the mode from the invocation arguments before any other work; do not load a mode file the invocation did not select.
+Read the named reference in full when its explicit mode is selected. No mode: show this table and stop; ask nothing, run nothing, never infer a default.
 
-| Mode | Purpose | Read in full FIRST |
+| Mode | Purpose and owned contract | Read in full FIRST |
 | --- | --- | --- |
 | _(none)_ | Show this table; ask nothing; run nothing | — |
-| `--mode=design [brief]` | Solution architecture design across backend, frontend, data, integration, deployment: ≥3 researched options per concern, ADRs, scaffold/harness handoff, user validation interview. Formerly `/architecture-design` | `references/mode-design.md` |
-| `--mode=review [scope] [--report-only]` | Architecture compliance review of a change (layers, service boundaries, CQRS, tenancy, ADRs, scalability/coupling regression): PASS/WARN/BLOCKED report. `--report-only` = read-only leaf for a caller that owns every fix. Formerly `/architecture-review` | `references/mode-review.md` |
-| `--mode=scalability [init\|audit] [scope]` | Architecture + scalability grade of a project or planned architecture: `/20` scorecard, G1-G7 gates, distributed-monolith risk, module isolation, coupling, horizontal scaling. Formerly `/architecture-scalability-review` | `references/mode-scalability.md` |
-| `--mode=full [scope]` | Whole-project architecture + scalability + production-readiness audit: three read-only faces in parallel, dedup, one consolidated report with one combined verdict. Formerly `/architecture-review-full` | `references/mode-full.md` |
+| `--mode=design [brief]` | Solution architecture across backend, frontend, data, integration and deployment; ≥3 researched options per concern, ADRs, scaffold/harness handoff and Step-12 user-validation interview | [references/mode-design.md](references/mode-design.md) |
+| `--mode=review [scope] [--report-only]` | Change compliance: 13 serial categories, PASS/WARN/BLOCKED report, Phase-5 validation and bounded review rounds. `--report-only` returns a read-only leaf report to the caller that owns fixes | [references/mode-review.md](references/mode-review.md) |
+| `--mode=scalability [init\|audit] [scope]` | Project or planned-architecture grade: ten-area `/20` scorecard, G1-G7, non-scoring TVC and advisory matrices | [references/mode-scalability.md](references/mode-scalability.md) |
+| `--mode=full [scope]` | Whole-project architecture, scalability and production-readiness audit: INLINE orchestrator, three parallel read-only faces, dedup and one consolidated report/verdict | [references/mode-full.md](references/mode-full.md) |
 
-- **[BLOCKING]** When `--mode=design`, read `references/mode-design.md` in full FIRST and follow it alone; it owns the design steps, the ADR outputs and the Step-12 user-validation interview.
-- **[BLOCKING]** When `--mode=review`, read `references/mode-review.md` in full FIRST and follow it alone; it owns `--report-only`, the 13-category review, the Phase-5 validation gate and the round caps.
-- **[BLOCKING]** When `--mode=scalability`, read `references/mode-scalability.md` in full FIRST and follow it alone; it owns the `/20` scorecard (scored from `references/scorecard.md`), the gates and the `mode=init` / `mode=audit` run types.
-- **[BLOCKING]** When `--mode=full`, read `references/mode-full.md` in full FIRST and follow it alone; it runs INLINE, fans the faces out as sub-agents and synthesizes one report.
-- The `mode=init` / `mode=audit` tokens of the scalability mode are its run type, separate from the skill-level `--mode=scalability` that selects it.
-- Modes are separate invocations: no mode chains into another except `--mode=full`, whose faces run the `scalability` and `review` modes as sub-agents.
+- `init` / `audit` (also `mode=init` / `mode=audit`) are scalability run types, separate from `--mode=scalability`. Read [references/scorecard.md](references/scorecard.md) when scoring that mode.
+- Only `full` composes modes: its children read and run the `scalability` and `review` references plus the separate `production-readiness-review` skill. Never copy or re-implement a face.
 
-**Source-review preparation:** after `review`, `full` or `scalability` resolves a concrete source set, follow `.claude/skills/shared/review-preparation.md` before source review. Use the actual skill/mode and selected required documents; inherit the parent decision, including explicit `--provider-decision skip` on children/rechecks, under the recipe’s read-only-leaf and exact-target limits. Design, no-mode help and planned architecture grading are excluded.
+<!-- SYNC:review-decision-autonomy:reminder -->
+
+**MUST ATTENTION** Decide supported review choices and recommendations, record the rationale, and finish without routine user questions. Keep round-limit extension, indispensable facts and actual action authority; preserve source coverage, validation, tests, read-only boundaries and budgets. Review decisions do not accept open risks or make a failed gate pass.
+
+<!-- /SYNC:review-decision-autonomy:reminder -->
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** run exactly one architecture mode per invocation, from its own reference, with that mode's contract unchanged.
+**IMPORTANT MUST ATTENTION Goal:** Run the selected architecture contract to design a solution, review compliance, grade scalability, or deliver a whole-project health report with evidence-backed decisions.
 
-- **MUST ATTENTION** detect the mode FIRST; read `references/mode-<x>.md` in full before any other work — why: the reference is the whole contract, and default/no-mode loads none of it.
-- **MUST ATTENTION** no mode = print the table and stop; NEVER guess a mode, ask a question or start an audit — why: `full` is an expensive whole-project run nobody asked for.
-- **MUST ATTENTION** `--mode=full` composes the other modes (face sub-agents read their references); NEVER copy a mode body into another.
-- **MUST ATTENTION** follow the mode's own gates, flags, report paths and round caps verbatim; the old slash commands no longer exist.
-- **MUST ATTENTION** for capacity decisions, model demand → reduce measured work safely → prove capacity/recovery; preserve the selected mode's contract.
+**MUST ATTENTION Main steps:** dispatch explicit mode → read its complete contract → triage targets and plan review tasks → execute the mode's phases → validate → hand off.
+
+- No mode prints the table and stops: no question, inferred mode or audit.
+- Load only the selected reference; retain its flags, gates, report paths, score semantics, authority and round caps.
+- `full` runs INLINE and composes read-only sub-agent faces; each face loads its own contract.
+- Capacity decisions follow workload → safe measured-work reduction → capacity/recovery proof, within the selected mode's contract.
+
+**Anti-Rationalization:**
+
+| Evasion | Required action |
+| --- | --- |
+| “Architecture means full audit” | Require an explicit mode; otherwise show help and stop. |
+| “The summary is enough” | Read the selected reference in full before execution. |
+| “Reuse another mode's procedure” | Follow this mode's contract; only `full` composes faces. |
+
+<!-- PROTOCOL-GUIDES:START -->
+
+> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
+
+- `review-decision-autonomy` — Choose supported review decisions and ask before extending the round budget; running any review or audit skill or mode → .claude/skills/shared/protocols/review-decision-autonomy.md
+- `review-policy` — Review-only or a three-round fix loop with explicit extension and fresh post-fix evidence; deciding round eligibility, blocking findings or review state → .claude/skills/shared/protocols/review-policy.md
+
+<!-- PROTOCOL-GUIDES:END -->
+
+
+
+<!-- SYNC:review-policy:reminder -->
+
+**MUST ATTENTION** Triage all targets, plan and create review/validation/fix/fresh re-review tasks first. Review-only reports without edits; fix-loop freshly reviews every repair under one fixing owner. Default cap three rounds: disclose deferred LOWs, ask and wait before a bounded extension for MEDIUM+ or failed required checks. Preserve scope, coverage and actual operation authority.
+
+<!-- /SYNC:review-policy:reminder -->

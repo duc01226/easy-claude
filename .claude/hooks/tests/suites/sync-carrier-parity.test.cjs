@@ -261,7 +261,7 @@ const OVERRIDE_CARRIERS = CARRIERS.map((c) => ({
 
 // --- Hybrid duplication policy (TC-PDL-034, TC-PDL-082) ------------------------------
 // The policy moved from "never reference a protocol by path" to the hybrid: skills keep guide
-// lines, hooks deliver full text, and the review-family skills, agents, references/*.md bodies and
+// lines, hooks deliver full text, and agents, references/*.md bodies and
 // reviewer prompts keep full bodies. Leaving the old prohibition anywhere in the policy sections
 // would instruct the assistant against the delivery design.
 const POLICY = 'shared-protocol-duplication-policy';
@@ -363,35 +363,28 @@ module.exports = {
             },
         },
         {
-            // Pinned carrier count (no silent cap): review-protocol-injection reaches 8 carriers =
-            // 8 converging review carriers (code-quality-review, changes-review, pbi (mode-review reference),
-            // knowledge-review, production-readiness-review, why-review, spec (mode-clarify reference),
-            // architecture (mode-full reference)). Single-pass plan --mode=review does not spawn a reviewer.
-            // (the 4 review AGENTS that once carried it are leaves now: they receive the template in their
-            // brief, and code-reviewer loads code-quality-review on demand).
-            // spec's clarify mode (the post-spec clarification gate; body in spec/references/mode-clarify.md) is the 8th carrier: it runs INLINE for
-            // its AskUserQuestion gate but performs the SAME validate→fix→fresh-full-re-review cycle as its
-            // review-family peers, so it carries the pair (double-round-trip / protocol-injection)
-            // at parity with pbi --mode=review. architecture/references/mode-full.md (the whole-project architecture-health
-            // audit) joined as the 9th skill: it is an adoption-matrix review skill (BATCHING + SEVERITY in
-            // inject_review_skill_blocks.py) that synthesizes a consolidated report, so it carries the plain
-            // review-protocol trio at parity. A 9th appearing — or one of the 8 vanishing — must surface loudly here
-            // rather than quietly widen/narrow the guarded set. After the review-group conversion the
-            // non-inline skills carry a guide line instead of the body; they still count (N5), while the
-            // inline skills keep the body.
-            name: 'COVERAGE: review-protocol-injection reaches all 8 converging carriers and carries the Triangulation protocol',
+            // Pin required identities so both lost and unexpected carriers fail.
+            name: 'COVERAGE: review-protocol-injection reaches required converging carriers and carries the Triangulation protocol',
             fn() {
                 const canon = CANON_BODY.get('review-protocol-injection');
                 const cov = coverageCarriers(CARRIERS, RPI, projectionTextFor(SKILLS_DIR, RPI), canon);
                 assertEqual(cov.problems.length, 0, `review-protocol-injection guide problems:\n  ${cov.problems.join('\n  ')}`);
                 const carriers = [...cov.body, ...cov.guided];
-                // 8 = the converging review skills (body or guide). Single-pass plan --mode=review and leaf reviewer agents do not
-                // carry it: they receive the template's rules in their brief (agent_protocol_matrix.py,
-                // review-loop orchestration exclusion), so 4 agent copies were removed on purpose.
+                const expected = [
+                    '.claude/skills/code-quality-review/SKILL.md',
+                    '.claude/skills/changes-review/SKILL.md',
+                    '.claude/skills/knowledge-review/SKILL.md',
+                    '.claude/skills/production-readiness-review/SKILL.md',
+                    '.claude/skills/why-review/SKILL.md',
+                    '.claude/skills/workflow-review-changes/SKILL.md',
+                    '.claude/skills/architecture/references/mode-full.md',
+                    '.claude/skills/pbi/references/mode-review.md',
+                    '.claude/skills/spec/references/mode-clarify.md',
+                ];
                 assertEqual(
-                    carriers.length,
-                    8,
-                    `expected 8 review-protocol-injection carriers (body or guide), found ${carriers.length} (${cov.body.length} body, ${cov.guided.length} guide)`
+                    JSON.stringify(carriers.map((c) => c.carrier).sort()),
+                    JSON.stringify(expected.sort()),
+                    'required review-protocol-injection carrier membership'
                 );
                 assertTrue(
                     canon != null && /Spec ↔ Tests ↔ Code Triangulation/.test(canon),
@@ -539,12 +532,12 @@ module.exports = {
                 assertEqual(stale.length, 0, `old prohibition still present: ${stale.join(', ')}`);
                 // And the hybrid rule is present in the policy body
                 const required = [
-                    [/converted skills carry one `PROTOCOL-GUIDES` line per protocol/, 'skills keep guides'],
-                    [/Hooks deliver the full text/, 'hooks deliver the full text'],
-                    [/if it is absent from context, read that path before acting/, 'the guide path is the fallback'],
+                    [/skill entrypoints[^\n]+carry one `PROTOCOL-GUIDES` line per applicable protocol/, 'skills keep guides'],
+                    [/Hooks deliver full text/, 'hooks deliver the full text'],
+                    [/if the text is absent from the current context, read the published file before acting/, 'the guide path is the fallback'],
                     [/Keep role-protocol `:reminder` digests in every carrier/, 'reminder digests stay'],
-                    [/Agents retain full role protocols and are never converted to guides/, 'agents keep full text'],
-                    [/Copy the complete `SYNC:review-protocol-injection` template into every fresh reviewer prompt; never substitute a read pointer/, 'reviewer prompts carry bodies inline'],
+                    [/agents retain full role protocols and are never converted to guides/, 'agents keep full text'],
+                    [/Copy the complete `SYNC:review-protocol-injection` template, with all 11 full protocol bodies, VERBATIM into every fresh reviewer prompt; never substitute guide lines, tags or a read pointer/, 'reviewer prompts carry bodies inline'],
                     [/Mode-only `references\/\*\.md` load first on mode entry and retain their SYNC bodies/, 'SYNC bodies in references/*.md stay inline'],
                 ];
                 const missing = required.filter(([re]) => !re.test(sections.policy)).map(([, label]) => label);
@@ -554,12 +547,14 @@ module.exports = {
                     const mutant = sections.policy.replace(re, '');
                     assertTrue(!re.test(mutant), `missing-clause mutant SURVIVED: ${label}`);
                 }
-                // And it names exactly the review-family skills that protocol-groups.json keeps inline
+                // Live review entrypoints use guides; overflow requires unread full sources, never omission.
                 const inline = JSON.parse(fs.readFileSync(GROUPS_PATH, 'utf8')).inlineSkills;
-                assertTrue(Array.isArray(inline) && inline.length === 4, `expected 4 inlineSkills, found ${JSON.stringify(inline)}`);
-                const unnamed = inline.filter((skill) => !sections.policy.includes(`\`${skill}\``));
-                assertEqual(unnamed.length, 0, `policy does not name inline skill(s): ${unnamed.join(', ')}`);
-                assertTrue(/four converging review skills[^\n]*retain full bodies because they exceed hook-delivery capacity/.test(sections.policy), 'policy does not say the converging review-family skills keep full bodies inline');
+                assertTrue(Array.isArray(inline) && inline.length === 0, `expected empty inlineSkills, found ${JSON.stringify(inline)}`);
+                for (const skill of ['changes-review', 'code-quality-review', 'why-review', 'workflow-review-changes']) {
+                    assertTrue(sections.policy.includes(`\`${skill}\``), `policy does not name guide-backed ${skill}`);
+                }
+                assertTrue(/Delivery overflow names the unread full sources; it never permits omission/.test(sections.policy), 'policy loses fail-closed full-source fallback');
+                assertTrue(/A guide entrypoint changes discovery, not review gates or dispatch obligations/.test(sections.policy), 'policy loses complete review obligation');
                 // And no carrier (skill, references/*.md, agent — OVERRIDE copies and prose digests included)
                 // nor a framework doc describing the policy restates the old prohibition (P27 carry-over)
                 const docs = POLICY_DOCS.filter((f) => fs.existsSync(f)).map((f) => ({ rel: path.relative(REPO, f).split(path.sep).join('/'), text: fs.readFileSync(f, 'utf8') }));
@@ -721,12 +716,8 @@ module.exports = {
             name: 'PARITY: carrierFiles() and sync-update-blocks.py find_target_files() cover the SAME file set',
             fn() {
                 const { spawnSync } = require('child_process');
-                // Same resolution order as count-drift.test.cjs — `python3` is an MS Store alias
-                // stub on Windows and exits 49, so it is deliberately not a candidate.
-                const candidates = [
-                    { command: 'python', baseArgs: [] },
-                    { command: 'py', baseArgs: ['-3'] },
-                ];
+                const { resolvePythonCommand } = require('../lib/python-command.cjs');
+                const python = resolvePythonCommand({ cwd: REPO });
                 const script =
                     'import json,sys;sys.path.insert(0,r"' +
                     path.join(REPO, '.claude', 'scripts') +
@@ -737,17 +728,14 @@ module.exports = {
                     '");m=u.module_from_spec(s);s.loader.exec_module(m);' +
                     'print(json.dumps(m.find_target_files()))';
 
-                let out = null;
-                for (const c of candidates) {
-                    const r = spawnSync(c.command, [...c.baseArgs, '-c', script], { encoding: 'utf8' });
-                    if (r.status === 0 && r.stdout) {
-                        out = r.stdout;
-                        break;
-                    }
-                }
+                const result = spawnSync(python.command, [...python.baseArgs, '-c', script], {
+                    cwd: REPO, encoding: 'utf8', timeout: 10000, windowsHide: true
+                });
                 // Fail LOUD, never skip silently: an unavailable interpreter must not read as
                 // "scopes agree" — that is the same silent-pass this test exists to prevent.
-                assertTrue(out !== null, 'could not run sync-update-blocks.py find_target_files() (tried: python, py -3)');
+                assertTrue(!result.error && result.status === 0 && Boolean(result.stdout),
+                    `could not run sync-update-blocks.py find_target_files(): ${result.error?.message || result.stderr || result.signal || result.status}`);
+                const out = result.stdout;
 
                 const rel = (p) => path.relative(REPO, p).split(path.sep).join('/');
                 const writerSet = new Set(JSON.parse(out).map(rel));

@@ -126,7 +126,7 @@ continues; if declared but malformed, their direct verifier fails closed:
 | #   | Stage           | Script                                                       | Effect                                                                                              |
 | --- | --------------- | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
 | 1   | claude-md       | `.claude/skills/ai-context-refresh/scripts/generate-claude-md.cjs --check` | Preflight `CLAUDE.md`; init missing or update marker-managed stale; a markerless root is left as written |
-| 2   | migrate         | `.claude/scripts/codex/migrate-claude-to-codex.mjs`          | Migrate Claude agents → `.codex/agents/`; mirror skills → `.agents/skills/`; setup Codex notifications |
+| 2   | migrate         | `.claude/scripts/codex/migrate-claude-to-codex.mjs`          | Refresh registry-derived workflow call blocks via `.claude/scripts/lib/workflow-skill-contract.cjs`, then migrate agents → `.codex/agents/`, mirror skills → `.agents/skills/`, and setup Codex notifications |
 | 3   | hooks           | `.claude/scripts/codex/sync-hooks.mjs`                       | Generate `.codex/hooks.json` + sync report                                                           |
 | 4   | context         | `.claude/scripts/codex/sync-context-workflows.mjs`           | Regenerate the `AGENTS.md` project projection of `CLAUDE.md`; remove the retired `.codex/CODEX_CONTEXT.md`   |
 | 5   | tests           | Runner discovers `.claude/scripts/codex/tests/*.test.{mjs,cjs}` | Run Codex tooling tests; missing or empty discovery fails |
@@ -136,7 +136,7 @@ continues; if declared but malformed, their direct verifier fails closed:
 | 9   | hooks-count-drift | `.claude/hooks/tests/run-all-tests.cjs --filter=count-drift` | Verify the `<!-- COUNT:… -->` inventory markers have not drifted from the real skill/hook/agent/workflow counts |
 | 10  | hooks-parity    | `.claude/hooks/tests/run-all-tests.cjs --filter=parity`       | Verify hook parity across the Claude/Codex/Copilot surfaces                                          |
 | 11  | hooks-doc-sync  | `.claude/hooks/tests/run-all-tests.cjs --filter=doc-sync-gate` | Verify hook documentation stays in sync with the wired hook set                                     |
-| 12  | wf-cycle        | `.claude/scripts/codex/verify-workflow-cycle-compliance.mjs` | Verify workflow sequence cycle compliance                                                            |
+| 12  | wf-cycle        | `.claude/scripts/codex/verify-workflow-cycle-compliance.mjs` | Verify workflow sequences, all-mode linked skill calls, todo-first bootstrap, roles/conditions and registry reverse pointers |
 | 13  | sk-proto        | `.claude/scripts/codex/verify-skill-protocol-compliance.mjs` | Verify skill strict-execution-contract                                                               |
 | 14  | residue         | `.claude/scripts/codex/verify-no-project-residue.mjs`        | Verify no project residue in generated and generic source artifacts                                  |
 | 15  | sdd             | `.claude/scripts/codex/verify-sdd-semantic-compliance.mjs`   | Verify AI-SDD semantic contract coverage                                                             |
@@ -180,13 +180,6 @@ node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --skip=migrate,hooks
 
 **Exit codes:** `0` all pass · `1` orchestrator failure · non-zero propagates from failing stage.
 
-<!-- PROTOCOL-GUIDES:START -->
-
-> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
-
-- `ai-discovery-doc-quality` — Agent-guide content value, authority, retention and verified discovery; writing a doc that an agent reads → .claude/skills/shared/protocols/ai-discovery-doc-quality.md
-
-<!-- PROTOCOL-GUIDES:END -->
 
 ## Closing Reminders
 
@@ -211,9 +204,3 @@ node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --skip=migrate,hooks
 
 > **[FAILS FAST]** First non-zero stage exit aborts chain. Re-run failing stage manually to debug.
 > **[REPO ROOT]** Orchestrator auto-resolves repo root from its own path. NEVER pass `--cwd`.
-
-<!-- SYNC:ai-discovery-doc-quality:reminder -->
-
-**MUST ATTENTION** AI-read guides: purpose/read-when and priorities first; retain action-changing rules, exceptions and rationale; verify triggered discovery and parser contracts. Use the content-value and semantic-disposition gate after enhancement; keep evidence in temporary reports and fix generated output at its source.
-
-<!-- /SYNC:ai-discovery-doc-quality:reminder -->

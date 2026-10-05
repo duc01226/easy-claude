@@ -192,7 +192,7 @@ const tests = [
             const quick = section(text, 'Quick Summary');
             const workflow = block(quick, 'Workflow');
             assert.match(workflow, /6\. \*\*Session Report\*\*[\s\S]*7\. \*\*Next Steps\*\*/);
-            assert.match(block(quick, 'Summary'), /\*\*Main steps in order:\*\*[\s\S]*\(7\) \*\*`AskUserQuestion` Next Steps\*\*/);
+            assert.match(block(quick, 'Summary'), /\*\*Main steps in order:\*\*[\s\S]*\(7\) \*\*`ask user question tool` Next Steps\*\*/);
             assert.match(section(text, 'Session Report (HTML)'), /Post in chat[\s\S]*Session report → <path>/);
             assert.doesNotMatch(text, /large code change[^\n]*review guide|handoff scales down/i);
         }

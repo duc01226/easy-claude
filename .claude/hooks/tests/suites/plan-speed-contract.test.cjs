@@ -12,7 +12,7 @@
  *     metadata-gated waves and verify-last final gates;
  *   - plan/references/mode-execute.md (plan --mode=execute): Step 3 = static review, Step 4 = the one verify, both once over the whole
  *     changeset; workflow-nested runs stop after implementation;
- *   - plan/references/mode-review.md: checks verify-last order and real dependency boundaries in one pass;
+ *   - plan/references/mode-review.md: checks verify-last order and real dependency boundaries in each complete pass;
  *   - the verify-last protocol reaches every owner skill and the review workflow defers its tests.
  *
  * Portability: reads only files that ship inside `.claude/`, resolved from this file's own
@@ -113,7 +113,9 @@ const tests = [
             // Then it guards both the final verification order and phase/dependency ceremony
             assert.match(text, /Verify-last \| Are tests authored with implementation and executed only after all implementation and static review\?/);
             assert.match(text, /Dependency order \| Do phases reflect real dependencies or disjoint ownership rather than ceremony\?/);
-            assert.match(text, /maximum one review round per invocation/i);
+            assert.match(text, /In review-only, run the full domain pass once and hand off/);
+            assert.match(text, /one shared three-round budget and the LOW\/extension rules/);
+            assert.match(text, /caller-owned leaves never start another loop or edit/);
         }
     },
     {
@@ -125,7 +127,7 @@ const tests = [
             assert.match(protocol, /Build[\s\S]*Review and fix, static[\s\S]*Verify once[\s\S]*Fix and re-run until green[\s\S]*Re-review only if step 4 edited anything/);
             assert.match(protocol, /Green counts only on the final tree/);
             // And the verify <-> re-review alternation is bounded, and the mutation check never uses destructive git
-            assert.match(protocol, /alternation is capped at 3 turns[^\n]*escalates via `AskUserQuestion`/);
+            assert.match(protocol, /alternation is capped at 3 turns[^\n]*escalates via `ask user question tool`/);
             assert.match(protocol, /NEVER `git checkout`, `restore`, `reset` or `stash` on the working tree/);
             // And the skills that run tests on their own initiative defer to the single verify
             assert.match(read('integration-test/SKILL.md'), /Verify-last exception[\s\S]*WRITES the tests and does NOT run them/);
@@ -139,7 +141,8 @@ const tests = [
             // And the plan skill's execute mode keeps the verify-last order in its own reference
             assert.match(read('plan/references/mode-execute.md'), /SYNC:verify-last-order/, 'plan --mode=execute must reference the verify-last protocol');
             // And the review workflow can defer its own test run to the parent's single verify
-            assert.match(read('workflow-review-changes/SKILL.md'), /`--tests=\{prove\|defer\}` \(default `prove`\)/);
+            assert.match(read('workflow-review-changes/SKILL.md'), /`--tests=prove` is default for standalone review/);
+            assert.match(read('workflow-review-changes/SKILL.md'), /`--tests=defer` keeps this review static and assigns execution to the parent's later verification step; propagate it to child reviews/);
             // And the close refuses a green run older than the last edit
             assert.match(read('workflow-end/SKILL.md'), /green run must be on the final tree/);
         }

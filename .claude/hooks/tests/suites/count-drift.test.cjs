@@ -12,6 +12,7 @@
 const path = require('path');
 const fs = require('fs');
 const { spawnSync } = require('child_process');
+const { resolvePythonCommand: findPythonCommand, preparePythonYaml } = require('../lib/python-command.cjs');
 const { isFrameworkRepo } = require('../lib/framework-repo-guard.cjs');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..', '..');
@@ -37,31 +38,21 @@ const PILOT_FILES = [
 ];
 
 let pythonCommand = null;
+let readinessError;
+let yamlModulePath;
 
 function resolvePythonCommand() {
+    if (readinessError) throw readinessError;
     if (pythonCommand) return pythonCommand;
-
-    const candidates = [
-        { command: 'python', baseArgs: [] },
-        { command: 'py', baseArgs: ['-3'] }
-    ];
-
-    for (const candidate of candidates) {
-        const result = spawnSync(candidate.command, [...candidate.baseArgs, '--version'], {
-            cwd: REPO_ROOT,
-            encoding: 'utf8',
-            timeout: 10000
-        });
-        if (!result.error && result.status === 0) {
-            pythonCommand = candidate;
-            return pythonCommand;
-        }
+    try {
+        const python = findPythonCommand({ cwd: REPO_ROOT, minMinor: 0 });
+        yamlModulePath = preparePythonYaml(python, { scriptsDir: path.dirname(SCRIPT), cwd: REPO_ROOT });
+        pythonCommand = python;
+        return pythonCommand;
+    } catch (error) {
+        readinessError = error;
+        throw error;
     }
-
-    throw new Error(
-        'Python 3 not found on PATH - required for count-drift check. ' +
-        'Tried: python, py -3.'
-    );
 }
 
 function formatPythonCommand() {
@@ -73,6 +64,7 @@ function runPython(args, label) {
     const python = resolvePythonCommand();
     const result = spawnSync(python.command, [...python.baseArgs, ...args], {
         cwd: REPO_ROOT,
+        env: { ...process.env, PYTHONPATH: [yamlModulePath, process.env.PYTHONPATH].filter(Boolean).join(path.delimiter) },
         encoding: 'utf8',
         timeout: 30000
     });

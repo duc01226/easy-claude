@@ -11,20 +11,15 @@
  *
  * Policy:
  *   - budget of three rounds (a ceiling, not a target);
- *   - round 1 blocks on every validated finding, except a LOW the caller
- *     closed under the round-1 LOW closure rule (`resolution`:
- *     'scoped-fix-verified' after a local fix passed its scoped check, or
- *     'deferred' when its fix needs new code or tests) - a LOW never buys a
- *     full review round on its own; no other tier can carry a resolution;
+ *   - round 1 blocks every finding except an explicitly deferred LOW;
+ *     every applied fix needs a fresh review of the settled target;
  *   - from round 2 only CRITICAL/HIGH/MEDIUM findings block;
  *   - failed binary gates always block, at every round;
  *   - LOW findings deferred by the severity floor remain in the record;
  *   - all review blockers may use up to three rounds; remaining blockers
- *     at round 3 escalate; no conditional extension is available;
- *   - a failing TEST gate (kind: 'test') is outside the review budget: it
- *     never extends the review budget and never escalates, so a run whose only
- *     blockers are failing tests keeps looping - past round 3 - until the
- *     tests pass (bounded physically only by MAX_RECORD_BYTES);
+ *     at round 3 escalate; no automatic extension is available;
+ *   - every failed gate remains blocking at the cap; further work needs
+ *     explicit user approval and a linked bounded run;
  *   - an explicit minRounds may require up to three rounds, but a clean
  *     review still ends as soon as that minimum is reached.
  *
@@ -41,21 +36,19 @@ const SCHEMA_VERSION = 1;
 // Bump whenever the round eligibility predicate changes.  Existing durable
 // records are intentionally invalidated rather than interpreted under a new
 // severity floor; callers must start a fresh run with the current policy.
-const POLICY_VERSION = 6;
-// Every run has three review rounds; failing test gates alone may continue.
+const POLICY_VERSION = 7;
+// Every run has three review rounds; approved extensions use a linked bounded run.
 const MAX_ROUNDS = 3;
 const HARD_MAX_ROUNDS = 3;
 const SEVERITIES = Object.freeze(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']);
 const NON_SEVERITY_STATES = Object.freeze(['NOT VERIFIABLE']);
 const LOW_FINDING_FLOOR_ROUND = 2;
-// Round-1 LOW closure: how a caller records that a validated LOW is closed
-// without another full review round. Valid only on a LOW finding.
-const LOW_RESOLUTIONS = Object.freeze(['scoped-fix-verified', 'deferred']);
+// Only LOW deferral is an accepted resolution; a fix needs fresh review.
+const LOW_RESOLUTIONS = Object.freeze(['deferred']);
 // Compatibility vocabulary for consumers; current policy grants no extension.
 const EXTENSION_SEVERITIES = Object.freeze(['CRITICAL', 'HIGH']);
-// Hard-gate kinds. A `test` gate (a suite that must actually pass) loops
-// until green with no round cap; every other binary gate is a review blocker
-// bounded by the round budget like a CRITICAL finding.
+// Every failed hard gate blocks acceptance and requires escalation at the cap.
+// Test gates retain a separate reporting kind, not an unlimited review budget.
 const TEST_GATE_KIND = 'test';
 const HARD_GATE_KINDS = Object.freeze(['binary', TEST_GATE_KIND]);
 const SEVERITY_DEFINITIONS = Object.freeze({
@@ -99,8 +92,7 @@ function validateFingerprint(value, label = 'targetFingerprint') {
 
 function validateRound(value, label = 'round') {
     // No upper bound here: the review budget (MAX_ROUNDS/HARD_MAX_ROUNDS) is
-    // enforced by evaluateRound/recordRound, while failing test gates may
-    // continue past it.
+    // enforced by evaluateRound/recordRound, with all failed gates blocking at the cap.
     if (!Number.isSafeInteger(value) || value < 1) {
         throw new Error(`${label} must be a positive integer`);
     }
@@ -213,7 +205,7 @@ function isFailingTestGate(blocker) {
 
 /**
  * Blockers bounded by the review budget: every finding plus every failed
- * non-test binary gate. Failing test gates are excluded; they loop until green.
+ * non-test binary gate. Test gates are listed separately but also block at the cap.
  */
 function reviewBlockers(blocking = []) {
     return blocking.filter(blocker => !isFailingTestGate(blocker));
@@ -230,23 +222,18 @@ function evaluateRound({ round, findings = [], hardGates = [], minRounds } = {})
     const normalizedGates = normalizeHardGates(hardGates);
     const minimum = validateMinRounds(minRounds).value;
     const blocking = blockingFindings(round, normalizedFindings, normalizedGates);
-    // A LOW is either deferred (recorded, unfixed) or closed by a scoped-checked
-    // fix — never both: from round 2 an unfixed LOW is deferred by the floor.
     const deferredLow = normalizedFindings.filter(finding => finding.severity === 'LOW' &&
-        finding.resolution !== 'scoped-fix-verified' &&
         (round >= LOW_FINDING_FLOOR_ROUND || finding.resolution === 'deferred'));
-    // Round-1 LOWs fixed locally and closed by a scoped check, not a full re-review.
-    const scopedClosedLow = normalizedFindings.filter(finding => finding.resolution === 'scoped-fix-verified');
+    const scopedClosedLow = []; // Retained return shape; scoped checks never replace fresh review.
     const minimumMet = round >= minimum;
-    const canComplete = minimumMet && blocking.length === 0;
+    const canComplete = round <= MAX_ROUNDS && minimumMet && blocking.length === 0;
     const bounded = reviewBlockers(blocking);
     const failingTestGates = blocking.filter(isFailingTestGate);
     const extensionGranted = grantsExtension(round, blocking);
     const roundBudget = MAX_ROUNDS;
     // A spent review budget with review blockers left is never a pass: the
-    // caller stops and escalates to a human. Failing test gates alone never
-    // escalate; the loop keeps fixing until the tests pass.
-    const mustEscalate = bounded.length > 0 && round >= roundBudget;
+    // caller asks the user before any linked bounded extension.
+    const mustEscalate = round > roundBudget || (blocking.length > 0 && round >= roundBudget);
     return {
         round,
         minRounds: minimum,
@@ -437,18 +424,6 @@ function invalidateState(state, targetFingerprint, now) {
     return true;
 }
 
-/**
- * True when the latest recorded round was blocked solely by failing test
- * gates. Recomputed from recorded evidence, never from the stored status.
- */
-function continuesOnFailingTests(state) {
-    const last = state.rounds[state.rounds.length - 1];
-    if (!last) return false;
-    const evaluation = evaluateRound({ round: last.round, findings: last.evaluation.findings,
-        hardGates: last.evaluation.hardGates, minRounds: state.minRounds });
-    return evaluation.testLoopContinues && reviewBlockers(evaluation.blocking).length === 0;
-}
-
 function recordRound(options) {
     return withState(options, (state, context) => {
         const now = clock(options);
@@ -456,16 +431,10 @@ function recordRound(options) {
         const targetFingerprint = validateFingerprint(options.targetFingerprint);
         const round = validateRound(options.round);
         const evaluation = evaluateRound({ round, findings: options.findings, hardGates: options.hardGates, minRounds: state.minRounds });
-        // A scoped-checked LOW fix changed the target after the full pass, so the
-        // record must name what that pass reviewed; otherwise the round would
-        // claim a full review of code the pass never saw.
         const reviewedFingerprint = options.reviewedFingerprint === undefined
             ? null : validateFingerprint(options.reviewedFingerprint, 'reviewedFingerprint');
-        if (evaluation.scopedClosedLow.length > 0 && reviewedFingerprint === null) {
-            throw new Error('reviewedFingerprint is required when a finding carries resolution scoped-fix-verified');
-        }
-        if (reviewedFingerprint !== null && reviewedFingerprint !== targetFingerprint && evaluation.scopedClosedLow.length === 0) {
-            throw new Error('reviewedFingerprint may differ from targetFingerprint only when scoped-checked LOW fixes changed the target');
+        if (reviewedFingerprint !== null && reviewedFingerprint !== targetFingerprint) {
+            throw new Error('reviewedFingerprint must match targetFingerprint; fresh review is required after every fix');
         }
         const proposedDigest = digest({ evaluation, reviewedFingerprint });
         const duplicate = state.rounds.find(item => item.valid && item.round === round && item.targetFingerprint === targetFingerprint);
@@ -478,8 +447,8 @@ function recordRound(options) {
         }
         const expected = state.roundsCompleted + 1;
         if (round !== expected) throw new Error(`Expected next round ${expected}, received ${round}`);
-        // Only failing test gates may continue beyond the three-round review cap.
-        if (round > state.maxRounds && !continuesOnFailingTests(state)) throw new Error('Review round budget exhausted');
+        // No run continues beyond its three-round review cap without a new approved run.
+        if (round > state.maxRounds) throw new Error('Review round budget exhausted; explicit user approval requires a linked bounded run');
         const record = {
             round,
             targetFingerprint,

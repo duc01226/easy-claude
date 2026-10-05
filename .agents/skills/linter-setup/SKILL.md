@@ -1,6 +1,6 @@
 ---
 name: linter-setup
-description: '[Quality] Use when a workflow step or the user asks for code quality tooling: linters, formatters, static analysis, pre-commit hooks, CI gates.'
+description: '[Quality] Use when a workflow step or the user asks for linters, formatters, type checks and static analysis in pre-commit and CI gates.'
 ---
 
 > Codex compatibility note:
@@ -9,7 +9,7 @@ description: '[Quality] Use when a workflow step or the user asks for code quali
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - Use ask user tool to ask user.
+> - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -32,8 +32,8 @@ description: '[Quality] Use when a workflow step or the user asks for code quali
 **Summary:**
 
 - **Purpose:** Research the current ecosystem per detected stack, let the user choose tools, then configure strict-by-default checks; NEVER hardcode quality-tool recommendations.
-- **Ordered path (no skip/reorder):** (1) detect stack/profile; (2) research six categories with QUERY TEMPLATES, score top 3, present 2–3 using ask user tool; (3) install/configure strict settings, document rule purpose, update `.gitignore`, ALWAYS emit `.editorconfig`; (4) wire staged-files-only <30s formatter→linter→type-check hook and document `README.md`; (5) mirror format→lint→type→static→dep-scan in CI with coverage diagnostic-only; (6) prove the hook blocks an INTENTIONAL violation; (7) ask whether to continue to `$harness-setup`.
-- **Gates:** Track each step/sub-skill with status + evidence; use ask user tool for unknown stack/CI fields, tool choices, or loosening; keep local/CI commands, config, and versions identical; line coverage stays diagnostic-only; architecture fitness is `N/A` without declared dependency directions.
+- **Ordered path (no skip/reorder):** (1) detect stack/profile; (2) research six categories with QUERY TEMPLATES, score top 3, present 2–3 via `ask user question tool`; (3) install/configure strict settings, document rule purpose, update `.gitignore`, ALWAYS emit `.editorconfig`; (4) wire staged-files-only <30s formatter→linter→type-check hook and document `README.md`; (5) mirror format→lint→type→static→dep-scan in CI with coverage diagnostic-only; (6) prove the hook blocks an INTENTIONAL violation; (7) ask whether to continue to `$harness-setup`.
+- **Gates:** Track each step/sub-skill with status + evidence; use `ask user question tool` for unknown stack/CI fields, tool choices, or loosening; keep local/CI commands, config, and versions identical; line coverage stays diagnostic-only; architecture fitness is `N/A` without declared dependency directions.
 - **Output/context:** Root tool configs, pre-commit config, CI quality gate, `.editorconfig`, and README setup; invoked after `$scaffold`, before `$harness-setup`.
 
 **Output:** Config files at project root + pre-commit hook config + CI quality gate step + `.editorconfig`.
@@ -66,7 +66,7 @@ CI Provider/Tooling: {github-actions/gitlab-ci/azure-pipelines/etc}
 Test Framework: {framework}
 ```
 
-If any critical field undetectable → ask user tool to confirm before research.
+If any critical field undetectable → `ask user question tool` to confirm before research.
 
 ---
 
@@ -89,13 +89,13 @@ For each tech stack layer detected, research these TOOL CATEGORIES using the que
 
 1. Search with the query template (WebSearch if available; otherwise apply knowledge and state confidence %).
 2. Score top 3: community adoption, release recency, CI integration ease, config complexity.
-3. Present using ask user tool: "For {category} in {language}, which tool?" — top 2–3 options with brief pros/cons.
+3. Present via `ask user question tool`: "For {category} in {language}, which tool?" — top 2–3 options with brief pros/cons.
 
 **IMPORTANT:** Confidence in current ecosystem <80% (fast-moving ecosystem, unfamiliar stack) → use WebSearch to verify before presenting options. — why: tool ecosystems churn fast; stale recommendations cargo-cult dead tools.
 
 ### Dependency-Boundary Enforcement (Architecture Fitness detail — options, not defaults)
 
-The **Architecture Fitness** category chooses **dependency-direction / module-boundary** enforcement from the `architecture --mode=design` "Arch rules / fitness" scaffold handoff. The following are **example candidates to research and evaluate for stack fit**, never mandatory installs. Research the current ecosystem, present the top 2–3 using ask user tool, and let the user confirm:
+The **Architecture Fitness** category chooses **dependency-direction / module-boundary** enforcement from the `architecture --mode=design` "Arch rules / fitness" scaffold handoff. The following are **example candidates to research and evaluate for stack fit**, never mandatory installs. Research the current ecosystem, present the top 2–3 via `ask user question tool`, and let the user confirm:
 
 | Stack family | Example dependency-boundary tools (evaluate, do NOT hardcode) |
 | ------------ | ------------------------------------------------------------ |
@@ -114,7 +114,7 @@ Add a boundary tool only when architecture declares dependency directions; other
 After user selects tools:
 
 1. Generate install command for detected package manager
-2. Generate config file with STRICTEST reasonable defaults — starting strict is easier to loosen; loosen ONLY with explicit user approval using ask user tool.
+2. Generate config file with STRICTEST reasonable defaults — starting strict is easier to loosen; loosen ONLY with explicit user approval via `ask user question tool`.
 3. Document what each enabled rule group catches and why (one line each)
 4. Generate sample config file: `.{tool}rc`, `{tool}.config.{ext}`, `pyproject.toml` section, etc.
 5. Add tool cache directories to `.gitignore`
@@ -179,7 +179,7 @@ Detect CI provider/tooling from repository files:
 - `Jenkinsfile` → Jenkins
 - `bitbucket-pipelines.yml` → Bitbucket Pipelines
 
-If not detected → ask user tool: "Which CI provider/tooling does this repository use?"
+If not detected → `ask user question tool`: "Which CI provider/tooling does this repository use?"
 
 Generate a CI job/step that:
 
@@ -210,7 +210,7 @@ After all config files generated, verify MUST ATTENTION each item:
 
 ## Next Steps
 
-ask user tool:
+`ask user question tool`:
 
 - **"$harness-setup continues (Recommended)"** — Set up feedforward guides + inferential sensors to complete the outer harness
 - **"$feature-implement"** — Skip harness inventory and begin implementation
@@ -249,17 +249,17 @@ ask user tool:
 
 **IMPORTANT MUST ATTENTION Goal:** Install a strict, stack-appropriate quality sensor layer—linter, formatter, type checker, static/dependency/architecture analysis, pre-commit, and CI—so every code change is checked locally and in CI with zero divergence before reaching main.
 
-**IMPORTANT MUST ATTENTION Main steps (in order — no skip/reorder):** (1) detect stack/profile → (2) research six categories with QUERY TEMPLATES, score top 3, present 2–3 using ask user tool → (3) install/configure strict settings, document rule purpose, update `.gitignore`, ALWAYS emit `.editorconfig` → (4) wire staged-files-only <30s formatter→linter→type-check hook and document `README.md` → (5) mirror format→lint→type→static→dep-scan in CI with coverage diagnostic-only → (6) prove the hook blocks an INTENTIONAL violation → (7) ask whether to continue to `$harness-setup`.
+**IMPORTANT MUST ATTENTION Main steps (in order — no skip/reorder):** (1) detect stack/profile → (2) research six categories with QUERY TEMPLATES, score top 3, present 2–3 via `ask user question tool` → (3) install/configure strict settings, document rule purpose, update `.gitignore`, ALWAYS emit `.editorconfig` → (4) wire staged-files-only <30s formatter→linter→type-check hook and document `README.md` → (5) mirror format→lint→type→static→dep-scan in CI with coverage diagnostic-only → (6) prove the hook blocks an INTENTIONAL violation → (7) ask whether to continue to `$harness-setup`.
 
-**IMPORTANT MUST ATTENTION Gates:** Track each step/sub-skill with status + evidence; use ask user tool for unknown stack/CI fields, tool choices, or loosening; keep local/CI commands, config, and versions identical; line coverage stays diagnostic-only; architecture fitness is `N/A` without declared dependency directions.
+**IMPORTANT MUST ATTENTION Gates:** Track each step/sub-skill with status + evidence; use `ask user question tool` for unknown stack/CI fields, tool choices, or loosening; keep local/CI commands, config, and versions identical; line coverage stays diagnostic-only; architecture fitness is `N/A` without declared dependency directions.
 
 **IMPORTANT MUST ATTENTION** use QUERY TEMPLATES in Tool Research — NEVER hardcode tool names in the research phase; research the detected stack's current ecosystem and present options — why: tool ecosystems churn fast, hardcoded names cargo-cult dead tools.
-**IMPORTANT MUST ATTENTION** present top 2-3 options per category using ask user tool — let the user pick; NEVER auto-select — why: tool choice is a team-owned decision, not the skill's.
+**IMPORTANT MUST ATTENTION** present top 2-3 options per category via `ask user question tool` — let the user pick; NEVER auto-select — why: tool choice is a team-owned decision, not the skill's.
 **IMPORTANT MUST ATTENTION** Test pre-commit only in an isolated temporary fixture: lint-specific rejection, valid success and absent-hook failure classification; preserve the working HEAD/index and clean fixture artifacts — why: an unproven gate is no gate.
 **IMPORTANT MUST ATTENTION** CI gate MUST match pre-commit hooks — if a check runs locally it runs in CI, no divergence — why: divergent local/CI checks let violations slip through one path.
 
-**MUST ATTENTION** detect the stack FIRST (`plan.md` → architecture report → tech-stack report); if a critical field is undetectable, ask user tool before research — why: every downstream tool choice depends on the stack profile.
-**MUST ATTENTION** configure with the STRICTEST reasonable defaults; loosen ONLY with explicit user approval using ask user tool — why: starting strict is easier to loosen than starting loose is to tighten.
+**MUST ATTENTION** detect the stack FIRST (`plan.md` → architecture report → tech-stack report); if a critical field is undetectable, `ask user question tool` before research — why: every downstream tool choice depends on the stack profile.
+**MUST ATTENTION** configure with the STRICTEST reasonable defaults; loosen ONLY with explicit user approval via `ask user question tool` — why: starting strict is easier to loosen than starting loose is to tighten.
 **MUST ATTENTION** ALWAYS emit a stack-agnostic `.editorconfig` and add tool cache dirs to `.gitignore` — why: editorconfig is the one truly portable cross-tool baseline; cached artifacts must never be committed.
 **MUST ATTENTION** order hooks formatter→linter→type-check, staged-files-only, <30s; defer slow checks (static analysis, full type-check) to CI — why: a slow hook gets bypassed, killing local feedback.
 **MUST ATTENTION** report line-coverage as a DIAGNOSTIC only — NEVER fail the build on a coverage %; choose profile-fit intent evidence if a test-strength sensor is warranted — why: high coverage is not evidence of assertion quality.
@@ -274,14 +274,14 @@ ask user tool:
 
 | Evasion                                          | Rebuttal                                                                                            |
 | ------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
-| "I know the best linter for this stack"          | Ecosystems churn — research current options, present 2-3 using ask user tool. Hardcoding = stale. |
+| "I know the best linter for this stack"          | Ecosystems churn — research current options, present 2-3 via `ask user question tool`. Hardcoding = stale. |
 | "Strict defaults are too aggressive, loosen now" | Start strict; loosen ONLY with explicit user approval. Easier to loosen than to tighten later.      |
 | "Hook works, no need to test it"                 | Fire an INTENTIONAL violation and confirm it blocks. Unproven gate = no gate.                       |
 | "Local checks are enough, skip CI"               | CI gate MUST mirror pre-commit. No divergence — a local-only check is bypassable.                   |
 | "Coverage % is high, gate on it"                 | Coverage is diagnostic only. Gate on mutation score; high coverage ≠ strong assertions.            |
 | "Simple stack, skip task tracking"               | Still bootstrap task tracking. Skip depth, never skip tracking.                                      |
 
-**IMPORTANT MUST ATTENTION** use QUERY TEMPLATES — NEVER hardcode tool names; present top 2-3 using ask user tool.
+**IMPORTANT MUST ATTENTION** use QUERY TEMPLATES — NEVER hardcode tool names; present top 2-3 via `ask user question tool`.
 **IMPORTANT MUST ATTENTION** prove the pre-commit hook blocks an intentional violation before declaring complete.
 **IMPORTANT MUST ATTENTION** CI gate must match pre-commit hooks — zero divergence between local and CI checks.
 

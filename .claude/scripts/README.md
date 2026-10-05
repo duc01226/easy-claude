@@ -189,7 +189,7 @@ By default, outputs YAML to stdout. Use `--output PATH` to write to a file inste
 ## doc-impact-map.cjs
 
 Routes the current code changes to the `docs/project-reference/**` docs and `docs/project-config.json`
-sections those changes can make stale. Backs the impact-scoped freshness pass in `/docs-manager --mode=update` Phase 1,
+sections those changes can make stale. Backs the impact-scoped context checks in `/docs-manager --mode=update`,
 so a post-change freshness check costs a few targeted verifications instead of a full `/scan-all`.
 
 Routing is derived from `docs/project-config.json` (`contextGroups`, `modules`, `testing`, `e2eTesting`,

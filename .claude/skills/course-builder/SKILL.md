@@ -1,7 +1,7 @@
 ---
 name: course-builder
 version: 1.0.0
-description: '[Content] Use when a workflow step or the user asks for course material: Bloom objectives, modules, lessons, exercises, assessments.'
+description: '[Content] Use when a workflow step or the user asks for course material: Bloom objectives, modules, lessons, exercises and assessments.'
 ---
 
 ## Quick Summary

@@ -8,7 +8,7 @@
 
 ## Shared quality and output ownership
 
-Read `.claude/skills/shared/protocols/ai-discovery-doc-quality.md` when drafting or reviewing any target output; it owns content value, authority, semantic retention and triggered discovery. Target Sections are evidence lenses, not a requirement to fill every heading or emit every discovery. Keep audit/coverage details in temporary reports unless they change correct action or a verified consumer requires them. Template defaults are scaffolds; trace local consumers before changing existing headings, anchors, frontmatter, registry headers or rows. Curated documents keep their declared owner and are not automatically rewritten.
+Target Sections are evidence lenses, not a requirement to fill every heading or emit every discovery. Keep audit/coverage details in temporary reports unless they change correct action or a verified consumer requires them. Template defaults are scaffolds; trace local consumers before changing existing headings, anchors, frontmatter, registry headers or rows. Curated documents keep their declared owner and are not automatically rewritten.
 
 ## Selection and Applicability
 

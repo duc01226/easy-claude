@@ -103,7 +103,7 @@ node .claude/hooks/tests/test-all-hooks.cjs   # hook tests
 node .claude/hooks/tests/run-all-tests.cjs    # all suites
 ```
 
-**Platform (Windows):** invoke Python via `py -3` or `py` — NEVER `python3` (MS Store alias exits 49). Scripts resolve `python` then `py -3` (see `count-drift.test.cjs:40-45`). macOS/Linux: use `python3`.
+**Platform:** use `python3` on macOS/Linux and `py -3` on Windows. Integration suites use `.claude/hooks/tests/lib/python-command.cjs`: POSIX probes `python3` then `python`; Windows probes `python` then `py -3`, validating Python 3 (3.10+ for graph tests). Missing PyYAML uses the bounded global attempt and local fallback owned by `.claude/scripts/lib/python_dependencies.py`.
 
 <!-- /SECTION:dev-commands -->
 
@@ -157,7 +157,7 @@ When editing files matching these path patterns, pre-read the listed context fir
 | Hooks       | <!-- COUNT:hooks -->30<!-- /COUNT -->       |
 | Agents      | <!-- COUNT:agents -->24<!-- /COUNT -->      |
 | Workflows   | <!-- COUNT:workflows -->19<!-- /COUNT -->   |
-| Shared      | <!-- COUNT:shared -->16<!-- /COUNT -->      |
+| Shared      | <!-- COUNT:shared -->15<!-- /COUNT -->      |
 | Lib modules | <!-- COUNT:lib-modules -->45<!-- /COUNT --> |
 
 ---
@@ -166,11 +166,11 @@ When editing files matching these path patterns, pre-read the listed context fir
 
 ```
 docs/adr/  (4 files)
-docs/knowledge/  (12 files)
+docs/knowledge/  (1 files)
 docs/project-reference/  (18 files)
 docs/release/  (1 files)
 docs/release-notes/  (2 files)
-docs/specs/  (17 files)
+docs/specs/  (16 files)
 docs/templates/  (1 files)
 ```
 

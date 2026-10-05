@@ -1,7 +1,7 @@
 ---
 name: fix
 version: 1.4.2
-description: '[Implementation] Use when a workflow step or the user asks for an issue to be analyzed and fixed. --target={ci|issue|logs|review|test|types|ui} scopes it.'
+description: '[Implementation] Use when a workflow step or the user asks for root-cause fixes with regression coverage. --target={ci|issue|logs|review|test|types|ui} scopes the issue.'
 disable-model-invocation: false
 ---
 
@@ -23,7 +23,7 @@ disable-model-invocation: false
 - **Purpose:** Diagnose end-to-start, fix the lowest invariant-owning layer, update regression coverage and spec/tests; NEVER patch symptoms.
 - **No-flag spine:** Root-Cause Prerequisite Gate → researcher investigation → `investigate --mode=debug` trace (`file:line`, hypothesis matrix, forward proof) → Confidence & Evidence → impact plan → 🛑 Validate-Before-Fix → owning-layer implementation → standalone test update (`/integration-test`, or justified `/test` fallback) → conditional `/spec` check → `/changes-review` for production code → `/why-review` → verify once (`/integration-test --mode=verify` or `/test` with the mutation check; fix and re-run to green; re-review only if that edited anything, `SYNC:verify-last-order`); ALWAYS follow this order.
 - **Routing:** `--target={ci|issue|logs|review|test|types|ui}` selects a self-contained branch with its own diagnosis; no flag runs the spine. Branches skip standalone §1/§2 duplication, but every direct call passes the Root-Cause Prerequisite Gate.
-- **Modes/gates:** HARD is default; fast mode requires ALL 5 trivial-bug conditions. Root-cause proof, `Confidence: X%` (`<60%` STOP), and Validate-Before-Fix are hard gates; approval may skip only when `nested=true` (a `[Workflow]` row that merely exists in `TaskList` does not count), while standalone calls own test/spec/review phases; NEVER bypass a gate.
+- **Modes/gates:** HARD is default; fast mode requires ALL 5 trivial-bug conditions. Root-cause proof, `Confidence: X%` (`<70%` STOP), and Validate-Before-Fix are hard gates; approval may skip only when `nested=true` (a `[Workflow]` row that merely exists in `TaskList` does not count), while standalone calls own test/spec/review phases; NEVER bypass a gate.
 
 **Workflow:**
 
@@ -126,7 +126,7 @@ disable-model-invocation: false
 ## ⚠️ MANDATORY: Confidence & Evidence Gate
 
 **MANDATORY IMPORTANT MUST ATTENTION** declare `Confidence: X%` with evidence list + `file:line` proof for EVERY claim.
-**95%+** recommend freely | **80-94%** with caveats | **60-79%** list unknowns | **<60% STOP — gather more evidence.**
+**95%+** recommend freely | **80-94%** with caveats | **70-79%** list unknowns | **<70% STOP — gather more evidence.**
 
 **Ultrathink** plan and start fixing these issues; follow Orchestration Protocol, Core Responsibilities, Subagents Team, Development Rules:
 <issues>$ARGUMENTS</issues>
@@ -174,7 +174,7 @@ Read `references/target-ci.md` in full FIRST (BLOCKING) — it holds this branch
    > **AI Debugging Protocol:** frame the observed symptom, trace reader → storage/projection → writer → consumer/job → producer/origin, enumerate feeder paths, record hypotheses, and prove convergence forward.
    > **MUST ATTENTION READ** `.claude/docs/AI-DEBUGGING-PROTOCOL.md` for full search, risk, and confirmation rules.
 2. Use external memory at `tmp/analysis/issue-[number].analysis.md` for structured analysis. **Re-read the ENTIRE analysis file before proposing any fix.**
-3. **🛑 Present root cause + proposed fix → `AskUserQuestion` → wait for approval before implementing.**
+3. **🛑 Present root cause + proposed fix → `ask user question tool` → wait for approval before implementing.**
 4. Implement the approved fix.
 
 > **Standalone Review Gate (non-workflow only):** any standalone production-code fix — the no-flag spine (Standalone Mode Minimum Contract above) **or** any `--target={ci|issue|logs|review|test|types|ui}` branch — adds a `/changes-review` `TaskCreate` todo as the **final changes-review gate**, placed immediately before the contract's §5 `/why-review` terminal sign-off (test-update → spec-check → changes-review → why-review → verify once). A fix touching no production code (test-only, docs-only) skips it with that reason recorded. Inside a workflow, skip — the sequence handles `/changes-review`.
@@ -198,7 +198,7 @@ The Debug Mindset, Confidence & Evidence Gate, and all SYNC gates below apply to
 5. **Write back** — append to the SAME report a `## Fix Log` row per finding: `FIXED` (files changed, test evidence) · `REJECTED` (new evidence that the finding is wrong — never final on the fixer's word: the caller re-validates it via `/why-review --validate-findings` or asks the user) · `DEFERRED` (round-2+ LOW only). The report stays the single living record the re-review reads.
 6. **Hand back** — when a reviewer's fix phase or a workflow fix step called this branch (`/changes-review` Phase 7, `/workflow-review-changes`), the caller owns re-review, spec and docs: the Standalone Mode Minimum Contract does not apply, skip the approval prompt, and never re-invoke `/changes-review`. Only a user-typed `/fix --target=review` is standalone: it presents the fix set once and ends with `/changes-review` over the fixed diff.
 
-When `nested=true` (a `[Workflow]` row that merely exists in `TaskList` does not count) or in a reviewer's fix phase, skip approval prompts; user-typed standalone, present the fix set once via `AskUserQuestion` before editing. The Debug Mindset, Confidence & Evidence Gate, the review-loop severity floor above, and all SYNC gates apply to this branch unchanged.
+When `nested=true` (a `[Workflow]` row that merely exists in `TaskList` does not count) or in a reviewer's fix phase, skip approval prompts; user-typed standalone, present the fix set once via `ask user question tool` before editing. The Debug Mindset, Confidence & Evidence Gate, the review-loop severity floor above, and all SYNC gates apply to this branch unchanged.
 
 ### `--target=logs` — log / stack-trace branch
 
@@ -218,13 +218,13 @@ If screenshots or videos are provided, use `visual analysis tooling` to describe
 
 ### Fulfill the request
 
-**Question Everything:** Use `AskUserQuestion` for probing questions about the request, constraints, and true objective. Do not assume; clarify until 100% certain.
+**Question Everything:** Use `ask user question tool` for probing questions about the request, constraints, and true objective. Do not assume; clarify until 100% certain.
 
-- Use `AskUserQuestion` to clarify any open questions.
+- Use `ask user question tool` to clarify any open questions.
 - Ask 1 question at a time; wait for answer before next question.
 - No questions → start next step.
 
-> **⚠️ Validate Before Fix (NON-NEGOTIABLE):** After root cause + plan, present findings + plan via `AskUserQuestion` and get approval BEFORE code changes; no silent fixes.
+> **⚠️ Validate Before Fix (NON-NEGOTIABLE):** After root cause + plan, present findings + plan via `ask user question tool` and get approval BEFORE code changes; no silent fixes.
 > **End-to-Start Trace Gate:** For non-trivial bugs, failed verification, stale/incorrect outputs, or behavior-changing fixes, the root-cause plan MUST ATTENTION include `Debugger Trace: End -> Start`, feeder paths, hypothesis matrix, owning layer, and forward convergence proof. If missing, STOP and run `/investigate --mode=debug` or `/investigate` before planning; the Root-Cause Prerequisite Gate re-checks trace content.
 
 ### Fix the issue
@@ -240,7 +240,7 @@ Use `investigate --mode=debug` for complex problems, and the skills catalog to a
    1.6. Confirm it contains final symptom → reader → storage/projection → writer → consumer/job → producer/origin, all feeders, hypothesis matrix, owning layer, and forward proof.
 2. Use `researcher` subagent to research root causes on the internet if needed; report back.
 3. Use `planner` subagent to create the implementation plan from reports; report back.
-4. **🛑 Present root cause + fix plan → `AskUserQuestion` → wait for user approval.**
+4. **🛑 Present root cause + fix plan → `ask user question tool` → wait for user approval.**
 5. Use `/plan --mode=execute` SlashCommand to implement plan step by step.
 6. Final Report:
 
@@ -261,7 +261,7 @@ Use `investigate --mode=debug` for complex problems, and the skills catalog to a
 
 > **The Root-Cause Prerequisite Gate and the Standalone Mode Minimum Contract above are NOT optional and NOT a question** — standalone `/fix` has already auto-run `investigate --mode=debug` (gate-enforced) → fix spine → mandatory `/integration-test` test update (or justified `/test` unit-test fallback) → conditional `/spec` check → (`/changes-review` for production code) → `/why-review` as the terminal sign-off. Do not re-ask the user whether to do those; they are the guaranteed floor.
 >
-> **AFTER that floor is met,** MUST ATTENTION use `AskUserQuestion` to offer what lies BEYOND the minimum (user decides):
+> **AFTER that floor is met,** MUST ATTENTION use `ask user question tool` to offer what lies BEYOND the minimum (user decides):
 
 - **"Proceed with full workflow (Recommended)"** — Hand off to the best-fit workflow (e.g. `workflow-bugfix`) from here to add the remaining gates the minimum spine omits — `plan --mode=validate`, `integration-test --mode=review`, `integration-test --mode=verify`, `production-readiness-review`, `security-audit`, `docs-manager --mode=update`.
 - **"/test"** — Run the full test suite to verify the fix in context.
@@ -387,8 +387,8 @@ Use `investigate --mode=debug` for complex problems, and the skills catalog to a
 
 **IMPORTANT MUST ATTENTION** Root-Cause Prerequisite Gate (BLOCKING, FIRST) — a direct `/fix` call (no-flag spine AND every `--target=` branch) MUST NOT edit code until `/investigate --mode=debug` traced THIS problem in THIS session, proven by a `TaskList` row or a written investigation report; recall is NOT evidence, a prior investigation of a DIFFERENT symptom does NOT count, and a parent workflow row alone is NOT proof its diagnosis step ran — not satisfied → run `/investigate --mode=debug` first, then resume from the planning step — why: without it the first edit lands with zero traced cause and patches the symptom site
 **IMPORTANT MUST ATTENTION** trace the symptom end-to-start to the invariant-owning layer and fix there — NEVER at the crash site — why: the crash site is a symptom; the bad state enters at a lower layer and one fix there protects all downstream consumers
-**IMPORTANT MUST ATTENTION** declare `Confidence: X%` + `file:line` proof for EVERY claim — 95%+ recommend, 80-94% caveats, 60-79% list unknowns, STOP if <60% — why: speculation patches the wrong layer and ships the disease
-**IMPORTANT MUST ATTENTION** 🛑 Validate-Before-Fix — present root cause + plan via `AskUserQuestion` and get approval BEFORE any code change (skip ONLY when `nested=true`) — why: silent fixes bypass the human gate on irreversible code change
+**IMPORTANT MUST ATTENTION** declare `Confidence: X%` + `file:line` proof for EVERY claim — 95%+ recommend, 80-94% caveats, 70-79% list unknowns, STOP if <70% — why: speculation patches the wrong layer and ships the disease
+**IMPORTANT MUST ATTENTION** 🛑 Validate-Before-Fix — present root cause + plan via `ask user question tool` and get approval BEFORE any code change (skip ONLY when `nested=true`) — why: silent fixes bypass the human gate on irreversible code change
 **IMPORTANT MUST ATTENTION** route on `--target=` FIRST — each `{ci|issue|logs|test|types|ui}` branch is self-contained (own diagnosis); no flag = full diagnose→fix spine — why: branches must not re-run §1/§2 of the standalone spine
 **IMPORTANT MUST ATTENTION** default mode HARD (full rigor) — opt out to fast mode ONLY when the bug is genuinely trivial (ALL 5 Default Mode Policy conditions met); when in doubt default hard — why: skipping diagnosis on a non-trivial bug fixes the symptom and leaves the disease
 **IMPORTANT MUST ATTENTION** standalone (not `nested=true`; a stale `[Workflow]` row alone does not count) self-assembles the spine `investigate --mode=debug → fix → /integration-test test-update (or justified /test unit-test fallback; write only) → /spec correctness check → /changes-review (production code) → /why-review → verify once (`/integration-test --mode=verify` or `/test` with the mutation check; fix and re-run to green; re-review only if that edited anything)`; invoke `/integration-test` after every standalone fix to add or update regression coverage, and use `/test` only for an evidence-backed unit-test seam — when `nested=true` SKIP the contract — but NEVER the Root-Cause Prerequisite Gate, which still demands proof the sequence's `investigate --mode=debug` step ran for this problem — why: standalone has no sequence supplying diagnosis, test updates, spec sync, or review; and a container row is not proof its diagnosis step ran

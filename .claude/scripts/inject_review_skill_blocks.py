@@ -1,6 +1,7 @@
 """Inject the P3 review-skill SYNC blocks into their adoption-matrix skills.
 
 Tags propagated (each with its `:reminder` sibling):
+  - SYNC:review-decision-autonomy       -> review/audit entrypoints and explicit review modes
   - SYNC:systematic-review-batching     -> 10 multi-file / diff reviewers
   - SYNC:severity-rubric                -> finding-emitting reviewers, scorecard/build gates, and review/fix loop orchestrators
   - SYNC:category-review-thinking        -> same 10 as batching (co-paired:
@@ -252,7 +253,40 @@ MEASURED_CAPACITY = [
     "workflow-greenfield-init", "workflow-big-feature",
 ]
 
+# Review/audit entrypoints and explicit review modes; the body is inactive in non-review modes.
+REVIEW_DECISIONS = [
+    "ai-engineering-review",
+    "architecture",
+    "changes-review",
+    "code-quality-review",
+    "domain-analysis",
+    "experience-review",
+    "integration-test",
+    "knowledge-review",
+    "performance-review",
+    "production-readiness-review",
+    "security-audit",
+    "ui-design",
+    "web-design-guidelines",
+    "why-review",
+    "workflow-architecture-audit",
+    "workflow-review-changes",
+    "plan",
+    "pbi",
+    "spec",
+    "seed-test-data",
+    "e2e-test",
+    "tech-spec",
+    "scan-codebase-health",
+    "presentation-builder",
+    "design-spec",
+    "code-simplifier",
+    "custom-agent",
+    "workflow-code-to-spec",
+]
+
 MATRIX = [
+    ("SYNC:review-decision-autonomy", REVIEW_DECISIONS),
     ("SYNC:measured-capacity-engineering", MEASURED_CAPACITY),
     ("SYNC:systematic-review-batching", BATCHING),
     ("SYNC:severity-rubric", SEVERITY),

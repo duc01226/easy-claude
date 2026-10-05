@@ -10,7 +10,7 @@ disable-model-invocation: false
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - Use ask user tool to ask user.
+> - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -39,8 +39,6 @@ disable-model-invocation: false
 3. **Bootstrap** - Require the configured config file with non-empty `project.name`; derive optional properties only from evidence.
 4. **Select Context Work** - Ensure always-on `lessons.md` and `docs-index-reference.md` independently of task-specific `referenceDocs`; run only applicable selected/evidenced scans.
 5. **Spec Work** - For selected spec work, preserve a valid native `specArtifacts` profile or use the strict TC/Section-8 default when absent. Select the spec workflow only when canonical specs exist or accepted capability scope is available.
-6. **Review** - Run the AI-discovery gate across the whole doc set (root context → docs index → every created or changed doc; Phase 4) so its fixes are reviewed, then `$changes-review`, then `$why-review` after setup changes and selected scan/spec work are complete.
-7. **Verify** - Validate the required config, declared optional sections, changed docs, selected workflow outcomes, and generated mirrors that apply to this host; re-run the AI-discovery gate only on a doc verification changed.
 8. **Graph Refresh** - Run `$graph-code --mode=build` in a background sub-agent only when graph tooling is available and the project/task needs graph coverage; otherwise record an evidence-backed skip.
 9. **Report** - List completed actions, evidence-backed skips, blockers, and remaining manual steps.
 
@@ -141,14 +139,13 @@ Minimum required task rows:
 8. Run `$ai-context-refresh` when root instructions are missing or stale; otherwise record the verified state.
 9. Resolve Codex mirrors through the completed `$ai-context-refresh` handoff only when Codex context is present or requested.
 10. Configure or review `experienceVerification` only for evidenced observable surfaces; do not invent surface commands or baselines.
-11. Run the AI-discovery gate (`SYNC:ai-discovery-doc-quality`, Phase 4 doc-set check) on every doc this run created or changed plus the root instruction file and the docs index; route each failure to its owner fix before the reviews.
-12. Call `$changes-review` after selected setup/scan/spec work.
-13. Call `$why-review` after `$changes-review`.
-14. Run focused verification for changed config, selected docs, and generated outputs; run broader harness gates only when the change plan calls for them.
-15. Spawn `Spawn background $graph-code --mode=build sub-agent` only when graph tooling is available and graph work is relevant; otherwise record the evidence-backed skip.
-16. Record the graph sub-agent outcome or skip reason.
-17. Report the configured identity, changed optional properties, applicable scan/spec outcomes, always-on context, reviews, verification, graph outcome/skip, and remaining actions.
-18. Analyze AI mistakes and reusable lessons.
+11. Call `$changes-review` after selected setup/scan/spec work.
+12. Call `$why-review` after `$changes-review`.
+13. Run focused verification for changed config, selected docs, and generated outputs; run broader harness gates only when the change plan calls for them.
+14. Spawn `Spawn background $graph-code --mode=build sub-agent` only when graph tooling is available and graph work is relevant; otherwise record the evidence-backed skip.
+15. Record the graph sub-agent outcome or skip reason.
+16. Report the configured identity, changed optional properties, applicable scan/spec outcomes, always-on context, reviews, verification, graph outcome/skip, and remaining actions.
+17. Analyze AI mistakes and reusable lessons.
 
 Keep exactly one row `in_progress`. Mark each row `completed` immediately after its evidence is recorded.
 
@@ -215,8 +212,6 @@ Run required setup in order. Only scan/spec work selected from project evidence 
 6. **Experience/E2E** — configure or review the `experienceVerification`/`e2eTesting` matrix only for evidence-backed observable surfaces. Use `$experience-review` or E2E workflows when the surface can actually run and be inspected; missing prerequisites are `ENVIRONMENT-BLOCKED`, not PASS/N/A. Never create an expected baseline from current output.
 7. **Convention classes** — run the detector only when stable `contextGroups` or convention injection is selected. Apply a write only when the configured preference or explicit request authorizes it; do not turn on injection merely because the detector found candidates. Verify a representative file with `file-conventions.cjs --lookup` when enabled.
 
-   **Review setup (selected only):** inspect the authoritative OCR preference through `$project-config` → “OCR project preference — focused route”. Configure enable/off only from an explicit owner request or accepted preference; a valid minimal project may remain Unset. Both project-config and framework-config use the same inspect/token/save/readback helper; this init route is config-only, never readiness/acquisition. When grouping is selected, delegate evidence-backed `reviewGroups` and `reviewPreparation.ruleDocs` proposals to `$project-config` section 2e.1 after classifiers and required rule sources are known. Preview representative assignments, overlaps, unmatched files and rule provenance; apply only the accepted subset with protected ID-based merge, then validate. A valid minimal project requires no groups. Scan outputs recommend policy; `$project-config` owns its accepted write. **NEVER** acquire a review tool during initialization or lifecycle hooks; explicit review preparation owns optional acquisition under machine policy. Read `.claude/skills/shared/review-preparation.md` when explaining review readiness, exact targets or fallback; absent tools preserve ordinary host review.
-
 8. **Root instructions** — run `$ai-context-refresh --mode init|update` when `CLAUDE.md` or equivalent root context is missing/stale, preserving user-authored content.
 9. **Codex mirror** — consume the `$ai-context-refresh` completion handoff when Codex files/host are present or requested; otherwise record the Codex-only step as not applicable.
 10. **Enhance** — use `$prompt-enhance` for newly created or materially updated project guidance when prompt quality warrants it.
@@ -237,7 +232,6 @@ When existing canonical specs or accepted product/capability scope selects spec 
 
 After selected setup, scan, and spec work, create and execute these final tasks in order:
 
-1. `Run the AI-discovery gate` - the Phase 4 doc-set check, run BEFORE the reviews so any doc it fixes is reviewed.
 2. `Call $changes-review` - run after all selected setup, scan, and spec work so changed config/context/artifacts are reviewed from the current diff.
 3. `Call $why-review` - run after `$changes-review` to validate rationale and avoid closing on unchallenged setup decisions.
 
@@ -272,7 +266,6 @@ For selected spec work, confirm:
 
 For selected observable-surface work, validate only declared or evidenced surfaces. Configuration is not live-review evidence; a relevant but unusable surface is `ENVIRONMENT-BLOCKED`, and first-run expectations remain `ACCEPTANCE-PENDING`.
 
-**AI-discovery gate (`SYNC:ai-discovery-doc-quality`) — across the doc set, not per file.** For every doc this run created or changed, plus the root instruction file and the docs index: purpose + critical rules on the first screen and closing reminders when long; the root context's Doc Lookup and the docs index route each question/task class to one doc through a `read <path> when <situation>` trigger; every routed path exists; each selected reference doc is reachable from the root or the index (no orphan); not-applicable docs are named once as a skip. Record each failure as a fix at its owner (`$scan --target=<key>` for a reference doc, `$project-config` then `$ai-context-refresh` for a root-context route or generated section — the Doc Lookup routes only docs selected in `referenceDocs`), never a hand-edit of a generated mirror.
 
 Run `$changes-review` and then `$why-review` after setup and selected work are complete. If no files changed, record that result without claiming a review of nonexistent changes.
 
@@ -307,13 +300,6 @@ Report:
 - Remaining manual action, especially any `$sync-codex` step that did not run.
 
 
-<!-- PROTOCOL-GUIDES:START -->
-
-> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
-
-- `ai-discovery-doc-quality` — Agent-guide content value, authority, retention and verified discovery; writing a doc that an agent reads → .claude/skills/shared/protocols/ai-discovery-doc-quality.md
-
-<!-- PROTOCOL-GUIDES:END -->
 
 ## Closing Reminders
 
@@ -324,10 +310,8 @@ Report:
 **MUST ATTENTION Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
 - **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
-- **AI-Discovery Doc Quality:** every AI-read doc leads with purpose + critical rules, ends with reminders when long, and routes to other docs by trigger to existing targets; no orphan doc.
 
 **IMPORTANT MUST ATTENTION** use `$project-init` as the unified missing-context route; lower-level skills remain implementation steps.
-**IMPORTANT MUST ATTENTION** run the AI-discovery gate across the doc set before the final reviews — root context and docs index route every selected doc by trigger, no orphan or dead route; fix each failure at its owner skill.
 **IMPORTANT MUST ATTENTION** create task-plan rows for required setup and final reviews; add scan, spec, surface, root-sync, and graph tasks only when evidence selects them.
 **IMPORTANT MUST ATTENTION** the configured project-config file and non-empty `project.name` are required; omitted optional properties are valid unless a declared property is invalid.
 **IMPORTANT MUST ATTENTION** keep absent `referenceDocs` separate from an explicit selection: absent uses the resolver baseline (possibly empty) plus evidenced capability docs; explicit arrays, including `[]`, remain exact. Always-on lessons/index inputs are ensured independently.
@@ -351,9 +335,3 @@ Report:
 | "Package names are enough to define spec scope" | Require an existing canonical owner or accepted scope before creating specs or test cases. |
 | "Graph already exists" | Select refresh from graph freshness and task relevance; do not turn graph support into a setup prerequisite. |
 | "Review is enough" | Run `$changes-review`, `$why-review`, and all applicable focused verification before reporting. |
-
-<!-- SYNC:ai-discovery-doc-quality:reminder -->
-
-**MUST ATTENTION** AI-read guides: purpose/read-when and priorities first; retain action-changing rules, exceptions and rationale; verify triggered discovery and parser contracts. Use the content-value and semantic-disposition gate after enhancement; keep evidence in temporary reports and fix generated output at its source.
-
-<!-- /SYNC:ai-discovery-doc-quality:reminder -->

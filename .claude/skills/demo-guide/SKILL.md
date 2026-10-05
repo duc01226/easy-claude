@@ -1,7 +1,7 @@
 ---
 name: demo-guide
 version: 2.3.0
-description: '[Documentation] Use when a workflow step or the user asks for a demo guide, demo script or sprint-demo walkthrough: user stories, case identities, evidence carriers.'
+description: '[Documentation] Use when a workflow step or the user asks for demo guides and sprint walkthroughs linking stories and canonical cases to runnable flows and evidence.'
 ---
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
@@ -41,7 +41,7 @@ description: '[Documentation] Use when a workflow step or the user asks for a de
 
 - **UNDERSTAND BEFORE YOU SCRIPT.** The Step 1 comprehension bar is a **[BLOCKING] gate**: until you can answer all six questions with `file:line`, you have no demo to write. — why: a demo step invented from a screen name is a demo that fails live, in front of the people it was written for.
 - **THE GUIDE OPENS WITH A COPY-PASTE-READY BACKLOG ITEM.** Before the demo guide body, the document carries a PBI block (Step 7) a developer pastes straight into the tracker: purpose/business value · overall requirements (in/out of scope) · **ALL** acceptance criteria and user stories · authorization requirements (or an explicit `None`) · estimation with **story points AND man-days** derived bottom-up per `SYNC:estimation-framework`. Its content is **sourced, never invented** — copied from the governing spec/PBI where one exists, else derived from the traced cases with the source stated. — why: the demo and the backlog record describe the same item; a developer who must re-type it by hand ends up with two different truths.
-- **Scope precedence is prompt → current context → ASK.** An explicit feature in the prompt wins; else derive from current work; else `AskUserQuestion` — NEVER invent a feature.
+- **Scope precedence is prompt → current context → ASK.** An explicit feature in the prompt wins; else derive from current work; else `ask user question tool` — NEVER invent a feature.
 - **Every case carries four parts:** setup/preconditions · numbered **step-by-step demo flow** · **expected result phrased as the discriminator** vs the old behaviour · **how the domain stores/changes data & solves the feature**. A case missing the storage/solution part is incomplete.
 - **DEMO THROUGH THE UI — the audience is a normal user / QC, not an engineer.** Every main case is staged AND observed in the product's front-end. A case whose steps or expected result need an API client, CLI, script, manual job/queue trigger, DB query, log tail, or config edit is a **🔧 technical case**: marked as such and collected in the closing `Appendix — Technical demo (non-UI)` (after the last story, before the transparency note), NEVER among the important cases to test. **Resolve the front-end rung FIRST (Step 3.1)** — a project with no front-end states `No front-end in this project — primary demo surface is {API / CLI / library / background job}`, and that surface REPLACES "front-end" throughout this rule. — why: the room believes what it watches happen in the app; a terminal-driven step proves the code to engineers and proves nothing to the stakeholders the guide was written for.
 - **PROOF IS EARNED, NEVER ASSERTED.** Every case sits on one of the four proof rungs (Step 8), and `✅ ran` is licensed **only** by a configured test/executor or explicitly approved manual-QC carrier executed this session with its command/procedure and inspected result recorded. There is no fifth rung: a case you cannot place is a **stated blocker**.
@@ -92,7 +92,7 @@ Instructions, not documentation: this skill teaches HOW to build the guide from 
 
 1. **Prompt names scope** → use it; normalize to a spec, PBI/story ID, changed files, or keywords; confirm real artifacts.
 2. **Prompt empty / only "generate demo guide"** → derive current context until signal: active task/workflow goal → `git status` + staged/unstaged `git diff` + branch → recent commits vs main → in-progress plan/spec/release-note.
-3. **No usable signal** → **STOP and `AskUserQuestion`**: *"Which feature should I generate the demo guide for?"* Offer 2-4 found candidates plus free text. NEVER pick silently.
+3. **No usable signal** → **STOP and `ask user question tool`**: *"Which feature should I generate the demo guide for?"* Offer 2-4 found candidates plus free text. NEVER pick silently.
 
 State the resolved scope and its source in one line (e.g. `Scope: <feature> — derived from branch diff (7 changed files)`).
 
@@ -116,7 +116,7 @@ For a native profile, **MUST ATTENTION** preserve owner-qualified scenario ident
 | **S0 · Point**  | One case, one bug fix, one screen                      | 1                   | Inline, case by case                      |
 | **S1 · Small**  | < 10 in-scope files, one capability                    | 1                   | Inline, case by case                      |
 
-> Thresholds match the framework's map-reduce ladder (`SYNC:systematic-review-batching`: < 10 sequential · ≥ 10 batch · > 6 categories or > 40 files hierarchical) and `/understand` tiers — why: understanding and demoing must partition the feature the same way.
+> These tiers govern demo story grouping and dispatch. Review assignments follow `SYNC:systematic-review-batching` from risk, related flows, working-set fit and delegation cost; a demo tier does not prescribe the review topology.
 
 **Tier is a SHAPE dial, not depth:** it changes group count and dispatch, but NEVER removes a case part, proof rung, or storage explanation.
 

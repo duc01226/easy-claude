@@ -11,9 +11,9 @@
  * Coverage:
  *   TC-PMM-001 — plan keeps the three merged modes, each with its mandatory read line and a reference file.
  *   TC-PMM-002 — default plan text stays free of the three mode bodies.
- *   TC-PMM-003 — the review mode keeps the one-round cap, read-only boundary, verdicts and the Goal
+ *   TC-PMM-003 — the review mode keeps default read-only and bounded fix-loop ownership, read-only boundary, verdicts and the Goal
  *                Satisfaction matrix.
- *   TC-PMM-004 — the validate mode keeps the mandatory AskUserQuestion interview and the
+ *   TC-PMM-004 — the validate mode keeps the mandatory ask user question tool interview and the
  *                plan.md-only Validation Summary.
  *   TC-PMM-005 — the old skill directories stay deleted and no workflow step references them.
  *   TC-PMM-006 — every workflow occurrence of `plan` passes a mode the skill supports.
@@ -95,6 +95,7 @@ function* walk(rel) {
 /** A line that names a removed skill but is an allowed mention. */
 function allowedMention(rel, line) {
     if (rel === '.claude/skills/plan/SKILL.md' && /former/i.test(line)) return true;
+    if (rel === '.claude/skills/plan/SKILL.md' && /do not resolve\.$/.test(line) && REMOVED.every(name => line.includes('`/' + name + '`'))) return true;
     if (rel === '.claude/skills/plan/references/mode-review.md' && line.includes('tmp/reports/' + REMOVED[0] + '-{YYMMDD}')) return true;
     return false;
 }
@@ -122,7 +123,7 @@ const tests = [
             }
             assert.match(text, /\*\*\[BLOCKING\]\*\* When `--mode=ci`, read/, 'the intake read line is BLOCKING');
             // And the removed slash commands resolve through a prominent "formerly" mapping
-            assert.match(text, /former `\/[a-z-]+`, `\/[a-z-]+` and `\/[a-z-]+`: those slash commands no longer exist/);
+            assert.match(text, /`\/plan-review`, `\/plan-validate` and `\/plan-execute` do not resolve/);
         }
     },
     {
@@ -132,7 +133,7 @@ const tests = [
             // Given the default plan skill text (what a plain /plan loads)
             const text = planSkill();
             // Then none of the mode-only contract markers appear in it
-            const reviewOnly = ['`round = 1`, `maxRounds = 1`', 'ONE ROUND MAXIMUM', '## Report Shape', 'Finding validation and verdict', '### Conditional lenses'];
+            const reviewOnly = ['## Modes and Round Ownership', '## Report and Handoff', '## Finding Validation and Verdict', '## Simplified Why-Review Pass'];
             const validateOnly = ['## Phase 0: Detect Plan Type', 'Phase 0.5: Applicability / Plan Gate', 'Follow-up rules', '### Step 4: Interview User'];
             const executeOnly = ['## Step 4: Verify (tests + mutation check, once)', '## Pre-Implementation Granularity Gate', '### Step 2 Wave Dispatch', '## Spec-Loop Gate', '## Step 5: User Approval'];
             for (const marker of [...reviewOnly, ...validateOnly, ...executeOnly]) assert.ok(!text.includes(marker), `plan/SKILL.md must not inline mode text: ${marker}`);
@@ -145,32 +146,31 @@ const tests = [
         }
     },
     {
-        name: 'TC-PMM-003 --mode=review keeps the one-round cap, the read-only boundary, the verdict set and the Goal Satisfaction matrix',
+        name: 'TC-PMM-003 --mode=review supports default read-only and bounded fix-loop ownership, verdicts and the Goal Satisfaction matrix',
         skip: SKIP,
         fn: () => {
             const text = modeReview();
-            // One round, stop after the verdict, no fixing or re-review
-            assert.match(text, /`round = 1`, `maxRounds = 1`, `minRounds = 1`/);
-            assert.match(text, /\*\*ONE ROUND MAXIMUM per invocation\.\*\*/);
-            assert.match(text, /Stop\. Do not apply fixes or re-review/);
-            assert.match(text, /Another review requires a new explicit invocation/i);
-            assert.match(text, /never edit the plan, fix findings, or start a fresh re-review inside this mode/i);
-            assert.match(text, /Read-only on plan\/source\/spec artifacts\. Write only the review report under `tmp\/reports\/`/);
-            // No convergence loop and no second review round
-            assert.doesNotMatch(text, /SYNC:double-round-trip-review|OVERRIDE:double-round-trip-review|extendable ONCE|fresh full re-review/i);
+            assert.match(text, /Standalone defaults to review-only/);
+            assert.match(text, /Review-only and caller-owned leaves keep the target read-only/);
+            assert.match(text, /one shared three-round budget and the LOW\/extension rules/);
+            assert.match(text, /caller-owned leaves never start another loop or edit/);
+            assert.match(text, /validate findings, repair at the owner, then freshly review the settled target/);
+            assert.match(text, /Review-only stops after the validated report/);
+            assert.doesNotMatch(text, /ONE ROUND MAXIMUM per invocation|Never fix the plan|Another review requires a new explicit invocation/i);
             // Every verdict and the Goal Satisfaction matrix survive
             for (const verdict of ['PASS', 'PASS_WITH_NOTES', 'CHANGES_REQUESTED', 'BLOCKED']) assert.ok(text.includes(`\`${verdict}\``), `verdict ${verdict}`);
-            assert.match(text, /\| Success Criterion \| Evidence \| Status \|/);
+            assert.match(text, /Goal Satisfaction matrix/);
             // And the parent skill states the cap at the point of dispatch
-            assert.match(planSkill(), /one-round cap and read-only rules govern/);
+            assert.match(planSkill(), /standalone defaults to `--review-only`/);
+            assert.match(planSkill(), /`--fix-loop --loop-owner=caller` returns a read-only pass/);
         }
     },
     {
-        name: 'TC-PMM-004 --mode=validate keeps the mandatory AskUserQuestion interview and the plan.md-only Validation Summary',
+        name: 'TC-PMM-004 --mode=validate keeps the mandatory ask user question tool interview and the plan.md-only Validation Summary',
         skip: SKIP,
         fn: () => {
             const text = modeValidate();
-            assert.match(text, /MUST ATTENTION use `AskUserQuestion` — NEVER auto-decide on behalf of user/);
+            assert.match(text, /MUST ATTENTION use `ask user question tool` — NEVER auto-decide on behalf of user/);
             assert.match(text, /Completing without asking ≥1 question = violation/);
             assert.match(text, /NEVER modify phase files/);
             assert.match(text, /## Validation Summary/);
@@ -307,7 +307,7 @@ const tests = [
             assert.deepEqual(offenders, [], 'replace each with `plan --mode=review` / `plan --mode=validate`');
             // The allow-list is live: each allowed mention still exists and is the only one in its file
             const formerly = planSkill().split('\n').filter(line => REMOVED.some(name => line.includes(name)));
-            assert.ok(formerly.length >= 1 && formerly.every(line => /former/i.test(line)), 'plan/SKILL.md names the removed commands only as "formerly"');
+            assert.ok(formerly.length >= 1 && formerly.every(line => allowedMention('.claude/skills/plan/SKILL.md', line)), 'plan/SKILL.md names the removed commands only as "formerly"');
         }
     },
     {
@@ -320,9 +320,9 @@ const tests = [
             assert.match(description, /^\[Planning\] Use when a workflow step or the user asks for \S/);
             assert.ok(description.length <= 250, `description is ${description.length} chars, over 250`);
             assert.match(description, /--mode=review/);
-            assert.match(description, /--mode=validate/);
-            assert.match(description, /--mode=execute/);
-            assert.match(description, /--mode=\{ci\|cro\}/);
+            assert.match(description, /\bvalidate\b/);
+            assert.match(description, /\bexecute\b/);
+            assert.match(description, /--mode=ci[^\n]*--mode=cro/);
         }
     },
     {

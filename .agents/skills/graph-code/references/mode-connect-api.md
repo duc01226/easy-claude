@@ -11,6 +11,21 @@
 - MUST ATTENTION keep claims evidence-based (`file:line`) with confidence >80% to act.
 - MUST ATTENTION keep task tracking updated as each step starts/completes.
 
+<!-- SKILL-NAV:START -->
+## Contents
+
+- How It Works
+- Zero-Config Auto-Detection
+- Auto-Run Behavior
+- Custom Config (Optional)
+- Manual Run
+- Steps (when manually invoked)
+- Matching Strategies
+- See Also
+- Related Modes
+
+<!-- SKILL-NAV:END -->
+
 ## How It Works
 
 The connector scans frontend files for HTTP calls and backend files for route definitions, normalizes URL paths, and matches them using a multi-strategy algorithm:

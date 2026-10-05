@@ -2,13 +2,13 @@
 
 Read this guide when discovering, executing or authoring framework skills. **MUST** execute through the active host; **MUST** keep canonical source ownership separate from runtime paths; **MUST** preserve required gates and report an actual missing capability with evidence.
 
-> <!-- COUNT:skills -->101<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->16<!-- /COUNT --> shared reference/protocol entries for context-aware AI assistance (`_templates/template-skill` is a source template, not a runnable skill)
+> <!-- COUNT:skills -->101<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->15<!-- /COUNT --> shared reference/protocol entries for context-aware AI assistance (`_templates/template-skill` is a source template, not a runnable skill)
 
 ## Quick Summary
 
 **Goal:** Discover, execute and author portable skills through the active host while preserving canonical ownership and required gates.
 
-**Summary:** Discover/load → execute required steps → evidence capabilities and gates → edit canonical source → regenerate mirrors. For prepared reviews, retain actual mode, active document union and full rules through capture, replay and recheck.
+**Summary:** Discover/load → execute required steps → evidence capabilities and gates → edit canonical source → regenerate mirrors. For reviews, triage the complete target, create tasks first and apply the selected review-only or shared fix-loop policy.
 
 ## Overview
 
@@ -34,6 +34,8 @@ Skill loading activates instructions; execution performs their steps through the
 2. **Activation**: Matching skills are loaded into context
 3. **Enhancement**: Skill knowledge guides the response
 
+Read `.claude/scripts/lib/workflow-skill-contract.cjs` when changing workflow registry entries or their linked invocation guidance. It owns the generated `WORKFLOW-CALLS` block in each workflow skill: every mode's ordered calls, roles, conditional labels, manifest fingerprint and todo-first bootstrap. Run `node .claude/scripts/lib/workflow-skill-contract.cjs --write` to refresh those blocks; the `sync-codex` migration stage also refreshes them before copying skills. Keep detailed quality gates and execution guidance outside the block. `verify-workflow-cycle-compliance.mjs` rejects stale source/mirror blocks and missing registry reverse pointers; changing a condition still requires checking the authored guidance for semantic drift.
+
 ## Skill Domains
 
 > Curated highlights — the full catalog has <!-- COUNT:skills -->101<!-- /COUNT --> runnable skills; the tables below list selected skills per domain, not the complete set.
@@ -54,7 +56,7 @@ Skill loading activates instructions; execution performs their steps through the
 | [Document Processing](#document-processing)       | 3      | PDF, DOCX, Markdown conversions, HTML export   |
 | [Utility](#utility)                               | 1      | Skill creation                                 |
 
-**Additional:** Shared reference/protocol entries (<!-- COUNT:shared -->16<!-- /COUNT -->: files plus the generated `protocols/` projection) -- see [Shared Protocols](#shared-protocols-sync-bodies-and-guides)
+**Additional:** Shared reference/protocol entries (<!-- COUNT:shared -->15<!-- /COUNT -->: files plus the generated `protocols/` projection) -- see [Shared Protocols](#shared-protocols-sync-bodies-and-guides)
 
 ---
 
@@ -91,10 +93,11 @@ See `frontend-patterns-reference.md` in the project-reference docs root for proj
 | Skill                     | Triggers                                                              | Description                                                                                                                                      |
 | ------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `e2e-test`                | E2E, Playwright, browser test                                         | End-to-end test authoring and maintenance                                                                                                        |
+| `e2e-demo`                | E2E demo video, screenshots, commit demo, PR demo                      | Screenshot storyboards exported to MP4/GIF with every relevant case mapped to results and timestamps                                              |
 | `experience-review`       | user experience, acceptance, baseline                                 | Exercise and inspect applicable observable output; preserve expectations until explicit acceptance                                               |
 | `spec [mode=tests]`       | test specification, QA spec, test strategy, TC-IDs, test cases        | Unified test case writer — generates TC-{FEATURE}-{NNN} specs from PBIs and feature docs                                                         |
 | `spec [mode=sync]`        | sync test specs, update dashboard, reverse sync, sync to feature docs | Dashboard sync mode — syncs TCs from feature docs Section 8 to the business spec root (sync mode retires when dashboards are removed in Phase 7) |
-| `integration-test --mode=review` | integration test review, assertion quality, test gate review, TC gate | One read-only review pass through eight quality gates covering intended, observable, repeatable and source/spec-aligned behavior                                  |
+| `integration-test --mode=review` | integration test review, assertion quality, test gate review, TC gate | Review-only or --fix-loop through eight quality gates covering intended, observable, repeatable and source/spec-aligned behavior                                  |
 | `integration-test --mode=verify` | run integration tests, verify tests pass, test runner, dotnet test    | Run integration tests after writing/reviewing them — reads project-config.json for project-specific run guidance                                 |
 
 ---
@@ -125,8 +128,7 @@ See `frontend-patterns-reference.md` in the project-reference docs root for proj
 
 | Skill                | Triggers                                                                                                                        | Description                                                                                                      |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `graph-code`         | build graph, sync graph, update graph, refresh graph after pull, who calls, what imports, tests for, graph query, trace flow, blast radius, impact analysis, connect api | Code knowledge graph via `--mode={build\|query\|trace\|blast-radius\|connect-api}`: build/update/sync (`--scope={full\|update\|sync}`, Tree-sitter + SQLite; installs the Python graph tooling on first use; refused while `hooks.codeGraph.enabled` is `off`), relationship queries, system-flow traces, blast radius of current changes, frontend-to-backend API matching |
-| `graph-export`       | export graph, JSON dump, mermaid, diagram, visualize                                                                            | Export full graph to JSON (`--format=json`) or single-file Mermaid diagram (`--format=mermaid`)                  |
+| `graph-code`         | build graph, sync graph, update graph, refresh graph after pull, who calls, what imports, tests for, graph query, trace flow, blast radius, impact analysis, connect api, export graph, JSON dump, export Mermaid, graph diagram, visualize graph | Code knowledge graph via `--mode={build\|query\|trace\|blast-radius\|connect-api\|export}`: build/update/sync (`--scope={full\|update\|sync}`, Tree-sitter + SQLite; installs the Python graph tooling on first use; refused while `hooks.codeGraph.enabled` is `off`), relationship queries, system-flow traces, blast radius of current changes, frontend-to-backend API matching, JSON exports (`--format=json`, default) and single-file Mermaid diagrams (`--format=mermaid`) |
 | `linter-setup`       | linter setup, formatter setup, pre-commit, quality gate                                                                         | Configure stack-appropriate lint/format/type-check quality tooling                                               |
 | `harness-setup`      | harness setup, quality harness, feedback sensors                                                                                | Set up feedforward guides and feedback sensors for coding workflows                                              |
 
@@ -136,7 +138,7 @@ See `frontend-patterns-reference.md` in the project-reference docs root for proj
 
 | Skill         | Triggers                           | Description                                                           |
 | ------------- | ---------------------------------- | --------------------------------------------------------------------- |
-| `plan`        | plan, strategy, approach, research, review plan, analyze plan, validate plan, execute plan | Implementation planning (includes research phase + engine references; every plan carries a task-derived Quality Gates & Concerns Checklist that review audits, validate probes and execute walks before completion); `--mode=review` one-pass plan review, `--mode=validate` critical-questions validation, `--mode=execute` code and test an existing plan |
+| `plan`        | plan, strategy, approach, research, review plan, analyze plan, validate plan, execute plan | Concise implementation planning with a task-derived Quality Gates & Concerns Checklist; `--mode=review` reviews intent, necessity, trade-offs and proof, with optional --fix-loop; `--mode=validate` critical-questions validation; `--mode=execute` code and test an existing plan |
 | `feature`     | implement, add, create, build      | Feature development                                                   |
 | `investigate` | how does, explain, trace           | Code exploration                                                      |
 
@@ -190,23 +192,9 @@ See `frontend-patterns-reference.md` in the project-reference docs root for proj
 
 ---
 
-## Review preparation and setup
-
-Read [../review-preparation.md](../review-preparation.md) when configuring review scopes, ownership groups, full rules or OCR acquisition policy.
-
-- Source-review modes of review skills use [the shared preparation recipe](../../skills/shared/review-preparation.md) at their actual source-capture boundary, including direct specialist reviews. Artifact/image/runtime/feedback-only modes retain their own path without an adoption question. Unsupported exact targets keep host scope, never a substitute local diff.
-- Only the top-level source-review owner resolves nonempty Unset once through exactly **Accept setup**, **Turn off OCR for this project**, **Skip this time**, waiting for a real human answer. No answer leaves setup-needed; Off stays quiet, Enabled tool failure falls back without re-asking. Empty targets never ask or invoke/acquire.
-- A workflow captures one parent target; each selected child replays it with its actual skill/mode, its host-selected document union, inherited `--provider-decision skip` when selected and `--acquire never`, records its separate procedure/overlay policy fingerprint and preserves parent criteria. Read-only leaves never ask/save/acquire; unresolved choice returns setup-needed to parent. Repeat skip on ALL parent/child/recheck calls; later independent reviews use the unchanged durable preference. Require the same target fingerprint and recheck every policy before accepting evidence.
-- Mode-owning canonical skills declare unconditional procedure documents in a body `REVIEW-POLICY-SOURCES` JSON block; conditional phase/project/spec/ADR/caller documents use repeated `--required-doc`. **MUST ATTENTION** reconcile the active source inventory and keep the selection identical through capture, replay and recheck; the preparation guide above owns declaration format and bounds.
-- `project-config` and `framework-config` inspect/enable/off the same project preference through the project-config-owned `review-setup.cjs` helper and exact inspect token, regardless of generic framework checkout defaults. Saved status/path/provider/readback must confirm persistence; every successful save requires fresh exact target/policy/output. The helper grants no machine permission or native readiness. `project-config` also recommends groups from existing classifiers and preserves manual or edited detected entries; `project-init` delegates selected configuration without acquiring a tool.
-- `scan` reports group/rule recommendations for the selected reference target; it does not persist review policy or acquire a provider.
-- **MUST ATTENTION** retain required coverage, full rules and existing host review gates. Target/required-policy errors block; unavailable supplemental OCR falls back visibly. Claude Code/OpenCode invoke `/changes-review`; Codex invokes `$changes-review`; all execute the same Node preparation script through the active host.
-
----
-
 ## Shared Protocols (SYNC bodies and guides)
 
-Shared protocols follow the hybrid policy (`SYNC:shared-protocol-duplication-policy`). A converted skill carries one guide line per protocol in its `PROTOCOL-GUIDES` block, and a hook delivers the full text from the generated projection `.claude/skills/shared/protocols/` (the guide path is the fallback). The four converging review-family skills (`inlineSkills` in `.claude/skills/shared/protocol-groups.json`), SYNC bodies in `references/*.md` and agents keep full `<!-- SYNC:tag -->` bodies. Single-pass `plan --mode=review` uses guides. The protocols of the `universal` group are delivered by the universal hook and carried by no skill: a skill holds no body, reminder, guide line or pointer for them. The canonical source for all SYNC content is `.claude/skills/shared/sync-inline-versions.md`.
+Shared protocols follow `SYNC:shared-protocol-duplication-policy`. Skill entrypoints, including `changes-review`, `code-quality-review`, `why-review` and `workflow-review-changes`, carry one guide line per applicable protocol in `PROTOCOL-GUIDES`. Hooks deliver full text from `.claude/skills/shared/protocols/`; when text is absent, including after delivery overflow, read its published full source before acting. The live `inlineSkills` list is empty. Agents and mode-reference SYNC bodies remain full text; every fresh reviewer prompt still receives the complete 11-body review template VERBATIM. Role reminders remain in each carrier. Universal protocols are hook-only: no skill holds their body, reminder, guide or pointer. All SYNC content is authored in `.claude/skills/shared/sync-inline-versions.md`.
 
 **Why hybrid?** A rule in context is followed more reliably than one the model must choose to read, so hooks put the full text in context when the skill loads; full bodies stay only where hook delivery cannot reach the reader or carry the text.
 
@@ -224,24 +212,6 @@ Each skill is located at `.claude/skills/{skill-name}/`:
 +-- references/        # Supporting documentation (progressive disclosure)
     |-- topic-1.md
     +-- topic-2.md
-
-.claude/skills/shared/          # SYNC canonical source (hybrid: guide lines + hook delivery, full bodies in review-family skills and agents)
-|-- affirmative-rewrite-rubric.md
-|-- e2e-quality-protocol.md
-|-- m1-m7-gates.md
-|-- product-roadmap-contract.md
-|-- protocol-groups.json       # Hook delivery groups + inlineSkills (review-family skills keeping full bodies)
-|-- protocols/                 # GENERATED projection the protocol-inject hooks deliver (build-protocol-projection.cjs)
-|-- review-preparation.md     # Exact target capture + full-rule consumption for host reviews
-|-- releasable-pbi-contract.md
-|-- sdd-artifact-contract.md
-|-- sub-agent-selection-guide.md
-|-- sync-inline-versions.md    # Single source of truth for all SYNC protocol content
-|-- tc-format.md
-|-- ui-state-capture-protocol.md
-|-- verify-convergence-loop.md
-+-- workflow-first-gate.md
-```
 
 ### SKILL.md Structure
 
@@ -274,7 +244,7 @@ Set `disable-model-invocation: true` on a skill the model must never start on it
 
 **Manual-only skills shipped here** (list them with `grep -l "^disable-model-invocation: true" .claude/skills/*/SKILL.md`):
 
-- **Command-only utilities** — `custom-agent`, `custom-prompt`, `docx-convert`, `git-developer-performance`, `graph-export`, `pdf-convert`, `playwright-cli`, `presentation-builder`, `project-help`, `release-doc`, `remotion`, `scan-codebase-health`, `skill-creator`, `sync-skills-shared-protocols`. No workflow step, agent `skills:` preload, `Skill(` call or hook starts any of them; the user runs `/name` (Claude) or `$name` (Codex). A file read by path (for example a workflow's `preActions.readFiles`) still works.
+- **Command-only utilities** — `custom-agent`, `custom-prompt`, `docx-convert`, `git-developer-performance`, `pdf-convert`, `playwright-cli`, `presentation-builder`, `project-help`, `release-doc`, `remotion`, `scan-codebase-health`, `skill-creator`, `sync-skills-shared-protocols`. No workflow step, agent `skills:` preload, `Skill(` call or hook starts any of them; the user runs `/name` (Claude) or `$name` (Codex). A file read by path (for example a workflow's `preActions.readFiles`) still works.
 - **Mirror syncs** — `sync-opencode` rewrites a generated folder, so only the user starts it. `sync-codex` is model-callable: run it once, after the `.claude/**` source is final, to regenerate `.agents/`, `.codex/` and `AGENTS.md`.
 - **Other** — `product-roadmap`. (No workflow wrapper ships manual-only: every framework workflow can be selected by the AI.)
 
@@ -327,7 +297,7 @@ Use `/skill-creator` to create a new skill:
 
 ---
 
-_Source: `.claude/skills/` | <!-- COUNT:skills -->101<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->16<!-- /COUNT --> shared reference/protocol entries (the `_templates/template-skill` source is excluded from runtime discovery)_
+_Source: `.claude/skills/` | <!-- COUNT:skills -->101<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->15<!-- /COUNT --> shared reference/protocol entries (the `_templates/template-skill` source is excluded from runtime discovery)_
 
 ## Closing Reminders
 

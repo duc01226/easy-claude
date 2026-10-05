@@ -2,6 +2,19 @@
 
 Collect-side reference for `feature-presentation`. Governs **content collection**: which artifacts enter the deck (scope resolution), which slide section each artifact type feeds (parse map), how missing artifacts are filled (gap-fill routing), and the spec-only / empty-state branches. (Rendering correctness lives in `deck-template.md`.)
 
+<!-- SKILL-NAV:START -->
+## Contents
+
+- 0. Path roots (resolve before globbing or citing any path below)
+- 1. Scope Resolution (SKILL.md Step 1)
+- 2. Per-Artifact-Type Parse Map
+- 3. Gap-Fill Routing (SKILL.md Step 2 — sub-agent)
+- 4. Branches
+- 5. Accumulation Output (handed to `deck-template.md`)
+- 6. Journey-Extraction Map (main-story flows → ordered journeys)
+
+<!-- SKILL-NAV:END -->
+
 ## 0. Path roots (resolve before globbing or citing any path below)
 
 - `{artifacts-root}` — the team-artifacts root: default `team-artifacts`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path.
@@ -36,7 +49,7 @@ If the user names specs/features, widen the in-scope set to those named artifact
 
 ### C. Standalone + no prompt — ask
 
-If invoked standalone with no prompt/scope and no resolvable `activePlan`, use ask user tool to ask which specs/ideas to present. NEVER silently guess scope.
+If invoked standalone with no prompt/scope and no resolvable `activePlan`, use `ask user question tool` to ask which specs/ideas to present. NEVER silently guess scope.
 
 ---
 

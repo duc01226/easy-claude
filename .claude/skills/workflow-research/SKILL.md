@@ -1,9 +1,35 @@
 ---
 name: workflow-research
 version: 1.0.0
-description: "[Workflow] Use when researching a topic from web sources then synthesizing. Flag: --output={synthesis|business-eval|marketing|course}."
+description: "[Workflow] Research web sources and produce a cited, reviewed deliverable. --output={synthesis|business-eval|marketing|course}."
 disable-model-invocation: false
 ---
+
+<!-- WORKFLOW-CALLS:START -->
+## Workflow Calls and Todo Bootstrap
+
+Read [the registry](../../../.claude/workflows.json) → `workflows.workflow-research` together with this skill. Call [`/start-workflow workflow-research`](../start-workflow/SKILL.md) to resolve the selected mode, pre-actions and fingerprint.
+
+**Todo FIRST:** create ALL selected occurrence tasks before triage, analysis or step execution, including conditional/optional tasks; preserve occurrence IDs, roles and barrier groups. Use native task tools or an equivalent persistent ledger. Then mark the first task `in_progress`; attach evidence before `completed`.
+Mode selection and registry loading prepare tracking; any 'first action' below means the first substantive action after this bootstrap.
+
+**Call each step skill:** read its linked SKILL.md and execute its protocol through the active host with the registry args. Reading or naming a skill alone is not execution. Required gates and core/optional flex follow the linked start-workflow Step Execution Protocol; keep this skill's quality gates, loops and evidence requirements.
+
+**Conditions:** load each occurrence's registry `applicability.when` and `skipReason` verbatim, and record its run/skip evidence through the linked start-workflow protocol. Do not silently omit a task or turn a conditional skill into an unconditional call. Declared parallel groups retain their all-return barrier.
+
+Explicit step-skill calls by mode (registry order; roles and conditions remain owned by the registry):
+
+- Mode `synthesis`: [`/web-research --chain=deep-dive`](../web-research/SKILL.md) (core) → [`/knowledge-synthesis`](../knowledge-synthesis/SKILL.md) (core) → [`/knowledge-review`](../knowledge-review/SKILL.md) (gate) → [`/workflow-end`](../workflow-end/SKILL.md) (gate) → [`/watzup`](../watzup/SKILL.md) (core)
+<!-- workflow-mode:synthesis fingerprint:7b809eaa17484de91e90130dde3c8a4e187ecaeaff3cb8ef7968d2bd4bcd15eb -->
+- Mode `business-eval`: [`/web-research --chain=deep-dive`](../web-research/SKILL.md) (core) → [`/market-analysis`](../market-analysis/SKILL.md) (core) → [`/business-evaluation`](../business-evaluation/SKILL.md) (core) → [`/knowledge-review`](../knowledge-review/SKILL.md) (gate) → [`/workflow-end`](../workflow-end/SKILL.md) (gate) → [`/watzup`](../watzup/SKILL.md) (core)
+<!-- workflow-mode:business-eval fingerprint:622a9e93b416189e82165b0b513bd8a5db7a7750c07f3e6f5118860ca132c306 -->
+- Mode `marketing`: [`/web-research --chain=deep-dive`](../web-research/SKILL.md) (core) → [`/market-analysis`](../market-analysis/SKILL.md) (core) → [`/strategy-builder`](../strategy-builder/SKILL.md) (core) → [`/knowledge-review`](../knowledge-review/SKILL.md) (gate) → [`/workflow-end`](../workflow-end/SKILL.md) (gate) → [`/watzup`](../watzup/SKILL.md) (core)
+<!-- workflow-mode:marketing fingerprint:5a96e8ce8e5fe7c6c1dccc4ff6a9a3ddeeec248a49e2dc6dffe53041739e509e -->
+- Mode `course`: [`/web-research --chain=deep-dive`](../web-research/SKILL.md) (core) → [`/course-builder`](../course-builder/SKILL.md) (core) → [`/knowledge-review`](../knowledge-review/SKILL.md) (gate) → [`/workflow-end`](../workflow-end/SKILL.md) (gate) → [`/watzup`](../watzup/SKILL.md) (core)
+<!-- workflow-mode:course fingerprint:9db24af512eba31bd575de0016c9d583ababd30a05f1829b98736ca0175031bd -->
+
+Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs --write` after registry edits; [`/sync-codex`](../sync-codex/SKILL.md) refreshes it before mirroring.
+<!-- WORKFLOW-CALLS:END -->
 
 ## Quick Summary
 
@@ -90,7 +116,7 @@ Retain this run’s source map and evidence base during synthesis, all review ro
 ## Findings & Fix Path
 
 - `/knowledge-review` is read-only. Validate each REVISE/BLOCKED finding against the evidence, then fix it at its owner. An evidence gap takes a targeted `/source-deep-dive` pass over the existing source map, or a `/web-research --chain=deep-dive` pass on the gap when the map lacks the needed sources. A synthesis defect (missing section, uncited claim, miscalibrated confidence) is fixed in the artifact through its synthesis skill. Then re-run `/knowledge-review` on the fixed artifact.
-- Loop bounds: round 1 exits on zero open findings (Round-1 LOW closure); from round 2 the bar is zero CRITICAL/HIGH/MEDIUM, with LOWs deferred and listed; cap 3 review rounds; escalate via `AskUserQuestion` when a round makes no progress.
+- Loop bounds: round 1 exits on zero open findings (LOW deferral); from round 2 the bar is zero CRITICAL/HIGH/MEDIUM, with LOWs deferred and listed; cap 3 review rounds; escalate via `ask user question tool` when a round makes no progress.
 
 <!-- PROTOCOL-GUIDES:START -->
 

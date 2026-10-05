@@ -15,10 +15,10 @@
 
 - This is BOTH spec-aware and code-aware: it reads `<spec root>/**` (the canonical Feature Specs — default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path) AND delegates to `$investigate` (plus an optional code-graph hint) for the code logic the idea touches. Spec-only or code-only discovery misses half the landscape.
 - It runs BEFORE `spec [mode=draft]` and feeds it. Its job is to decide WHETHER a new standalone spec is even the right move — the alternative is extending an existing spec, which only a spec-corpus scan can reveal.
-- It is INLINE on the main agent (NOT a sub-agent) because step 5 is a BLOCKING ask user tool scope-decision gate that only works inline. It MAY spawn sub-agents for parallel spec reads, but it orchestrates and gates inline.
+- It is INLINE on the main agent (NOT a sub-agent) because step 5 is a BLOCKING `ask user question tool` scope-decision gate that only works inline. It MAY spawn sub-agents for parallel spec reads, but it orchestrates and gates inline.
 - **Optional input `--investigation=<report path>`** — a same-run `$investigate` report the caller (or the plan) explicitly names. Step 2 reuses it instead of re-running `$investigate` and delegates only slices it does not cover. Without the input, Step 2 runs `$investigate {keywords}` as usual — never assume an earlier investigation from context you were not handed.
 - Greenfield short-circuit: when there are no specs AND no code, auto-detect it, record the reason, skip the heavy discovery, and hand off a minimal landscape — never grind through empty discovery.
-- **Main steps (0→6) — do ALL in order:** (0) frame scope = keywords/entities/bucket → (1) spec-corpus discovery = Glob all candidate specs under the spec root (default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path), read §1/§4/§5/§8, classify each EXTENDS/OVERLAPS/DEPENDS-ON/AFFECTED/UNRELATED with `file:line` → (2) code-logic discovery = `$investigate` + optional graph hint, bridge code→spec via §8 `[Source:]` → (3) gap & invariant analysis = missing features, missing TCs/user stories, system unknowns, [HARD]/§5 invariant landscape → (4) report incrementally to `plans/.../spec-discovery-{slug}.md` → (5) BLOCKING ask user tool scope gate = recommend NEW / EXTEND X / SPLIT, confirm cross-refs → (6) handoff to `domain-analysis` + `spec [mode=draft|update]`.
+- **Main steps (0→6) — do ALL in order:** (0) frame scope = keywords/entities/bucket → (1) spec-corpus discovery = Glob all candidate specs under the spec root (default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path), read §1/§4/§5/§8, classify each EXTENDS/OVERLAPS/DEPENDS-ON/AFFECTED/UNRELATED with `file:line` → (2) code-logic discovery = `$investigate` + optional graph hint, bridge code→spec via §8 `[Source:]` → (3) gap & invariant analysis = missing features, missing TCs/user stories, system unknowns, [HARD]/§5 invariant landscape → (4) report incrementally to `plans/.../spec-discovery-{slug}.md` → (5) BLOCKING `ask user question tool` scope gate = recommend NEW / EXTEND X / SPLIT, confirm cross-refs → (6) handoff to `domain-analysis` + `spec [mode=draft|update]`.
 
 **Workflow:**
 
@@ -27,7 +27,7 @@
 2. **Code-logic discovery** — reuse the `--investigation=<report path>` report when given, else `$investigate {keywords}`; plus an optional graph hint on key files when `.code-graph/graph.db` exists and the blast radius looks high-risk; bridge code→spec via §8 `[Source:]` anchors.
 3. **Gap & invariant analysis** — missing features, missing test cases / user stories, system unknowns (<80% confidence), and the existing [HARD] rules / §5 invariants the idea must respect.
 4. **Report** — write `<plans root>/{plan-dir}/research/spec-discovery-{slug}.md` (plans root default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path) incrementally (Related Specs · Related Code · Affected Specs · Gaps · Invariant Landscape · Open Questions).
-5. **Scope-decision gate (BLOCKING ask user tool)** — recommend NEW / EXTEND existing X / SPLIT into N, and confirm which existing specs to cross-reference.
+5. **Scope-decision gate (BLOCKING `ask user question tool`)** — recommend NEW / EXTEND existing X / SPLIT into N, and confirm which existing specs to cross-reference.
 6. **Handoff** — feed entities, invariants, cross-refs, and gaps into `domain-analysis` + `spec [mode=draft]`.
 
 **Key Rules:**
@@ -40,6 +40,18 @@
 # Spec Discovery — Pre-Spec Landscape Investigation
 
 ---
+
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [When to Use](#when-to-use)
+- [Phase 0: Classify Corpus & Short-Circuit](#phase-0-classify-corpus--short-circuit)
+- [Workflow](#workflow)
+- [Results Format](#results-format)
+- [Related Skills](#related-skills)
+- [Mode protocols](#mode-protocols)
+- [Prompt-Enhance Closing Anchors](#prompt-enhance-closing-anchors)
+- [Closing Reminders](#closing-reminders)
 
 ## When to Use
 
@@ -90,7 +102,7 @@ Step 1 (specs), Step 2 (code), and the invariant/test-case sweep read DIFFERENT 
 
 Rules binding this wave: each member owns a **unique artifact path** under `tmp/reports/spec-discovery-{slug}/`; no worker writes `spec-discovery-{slug}.md`. After the barrier, YOU are the sole reducer: read and validate every artifact, then synthesize the final report in section order. A missing artifact is rerun or reported, never silently replaced by a bounded summary.
 
-**SEQ — keep these OUT of the wave (each names its blocker):** the optional Step 2 graph hint (YOU run it, and only after the code member returns its key files) · Step 3 gap & invariant reconciliation (consumes all three members) · the Step 5 scope-decision gate (a BLOCKING ask user tool cannot block from inside a sub-agent) · Step 6 handoff.
+**SEQ — keep these OUT of the wave (each names its blocker):** the optional Step 2 graph hint (YOU run it, and only after the code member returns its key files) · Step 3 gap & invariant reconciliation (consumes all three members) · the Step 5 scope-decision gate (a BLOCKING `ask user question tool` cannot block from inside a sub-agent) · Step 6 handoff.
 
 Phase 0's corpus state shrinks the wave: **Specs only** → drop the code member · **Code only** → drop the corpus sweep · **Greenfield** → no wave at all (short-circuit).
 
@@ -176,9 +188,9 @@ Write `<plans root>/{plan-dir}/research/spec-discovery-{slug}.md` — plans root
 - {system unknowns, <80% confidence items}
 ```
 
-### Step 5: Scope-Decision Gate (BLOCKING ask user tool)
+### Step 5: Scope-Decision Gate (BLOCKING `ask user question tool`)
 
-> **MANDATORY MUST ATTENTION — NO EXCEPTIONS:** before any spec is authored, MUST ATTENTION use ask user tool to present the recommended scope. NEVER auto-pick — OVERLAPS detection is the whole reason this skill exists; assuming NEW silently ships duplicates.
+> **MANDATORY MUST ATTENTION — NO EXCEPTIONS:** before any spec is authored, MUST ATTENTION use `ask user question tool` to present the recommended scope. NEVER auto-pick — OVERLAPS detection is the whole reason this skill exists; assuming NEW silently ships duplicates.
 
 Recommend ONE option (with the evidence behind it) and confirm the cross-references:
 

@@ -1,3 +1,17 @@
+<!-- SKILL-NAV:START -->
+## Contents
+
+- Service Boundary Detection
+- Breaking Change Analysis
+- PR Metadata Extraction
+- Contributor Statistics
+- Version Bumping
+- Quality Validation
+- LLM-Powered Transforms
+- Full Enhanced Pipeline
+
+<!-- SKILL-NAV:END -->
+
 ## Advanced Features
 
 ### Service Boundary Detection

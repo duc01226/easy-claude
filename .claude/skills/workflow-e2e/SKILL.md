@@ -1,9 +1,29 @@
 ---
 name: workflow-e2e
 version: 1.3.0
-description: '[Workflow] Use when writing, updating and verifying E2E tests through a bounded green fix/retest loop. --source={changes|recording|update-ui|prompt|context|whole}, --visual-review={true|false}.'
+description: "[Workflow] Write, update or fix E2E tests and verify them through the configured runner in a bounded fix/retest loop."
 disable-model-invocation: false
 ---
+
+<!-- WORKFLOW-CALLS:START -->
+## Workflow Calls and Todo Bootstrap
+
+Read [the registry](../../../.claude/workflows.json) → `workflows.workflow-e2e` together with this skill. Call [`/start-workflow workflow-e2e`](../start-workflow/SKILL.md) to resolve the selected mode, pre-actions and fingerprint.
+
+**Todo FIRST:** create ALL selected occurrence tasks before triage, analysis or step execution, including conditional/optional tasks; preserve occurrence IDs, roles and barrier groups. Use native task tools or an equivalent persistent ledger. Then mark the first task `in_progress`; attach evidence before `completed`.
+Mode selection and registry loading prepare tracking; any 'first action' below means the first substantive action after this bootstrap.
+
+**Call each step skill:** read its linked SKILL.md and execute its protocol through the active host with the registry args. Reading or naming a skill alone is not execution. Required gates and core/optional flex follow the linked start-workflow Step Execution Protocol; keep this skill's quality gates, loops and evidence requirements.
+
+**Conditions:** load each occurrence's registry `applicability.when` and `skipReason` verbatim, and record its run/skip evidence through the linked start-workflow protocol. Do not silently omit a task or turn a conditional skill into an unconditional call. Declared parallel groups retain their all-return barrier.
+
+Explicit step-skill calls by mode (registry order; roles and conditions remain owned by the registry):
+
+- Mode `default`: [`/investigate`](../investigate/SKILL.md) (core) → [`/e2e-test`](../e2e-test/SKILL.md) (optional; conditional) → [`/e2e-test --mode=verify --fix-loop`](../e2e-test/SKILL.md) (gate) → [`/docs-manager --mode=update`](../docs-manager/SKILL.md) (optional; conditional) → [`/workflow-end`](../workflow-end/SKILL.md) (gate) → [`/watzup`](../watzup/SKILL.md) (optional; conditional)
+<!-- workflow-mode:default fingerprint:e6937ef861d9cbfd7aefabb299e457dd6be0c5990518f57a2202e0b8c77a5e70 -->
+
+Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs --write` after registry edits; [`/sync-codex`](../sync-codex/SKILL.md) refreshes it before mirroring.
+<!-- WORKFLOW-CALLS:END -->
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
@@ -116,7 +136,7 @@ You choose inline vs sub-agent, batching and wave layout, optimizing wall-clock 
 
 ## Fix Path & Loop Bounds
 
-Owned by `/e2e-test --mode=verify --fix-loop`; this workflow only enforces its bounds. Classify before editing, trace root cause with `/investigate --mode=debug`, fix at the owning layer with `/fix`, review the round's diff with `/changes-review`, run the Round Integrity Check, then rerun fresh over the same scope. Converge on the configured consecutive fresh green runs (default 2) within the round cap (default 3). A non-shrinking or rising failure count, a cap hit with failures open, scope shrink or test loss → `NOT-CONVERGED` and escalate via `AskUserQuestion` with exact evidence. Never weaken, skip, narrow, delete, silence or auto-accept to obtain green.
+Owned by `/e2e-test --mode=verify --fix-loop`; this workflow only enforces its bounds. Classify before editing, trace root cause with `/investigate --mode=debug`, fix at the owning layer with `/fix`, review the round's diff with `/changes-review`, run the Round Integrity Check, then rerun fresh over the same scope. Converge on the configured consecutive fresh green runs (default 2) within the round cap (default 3). A non-shrinking or rising failure count, a cap hit with failures open, scope shrink or test loss → `NOT-CONVERGED` and escalate via `ask user question tool` with exact evidence. Never weaken, skip, narrow, delete, silence or auto-accept to obtain green.
 
 <!-- PROTOCOL-GUIDES:START -->
 

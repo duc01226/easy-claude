@@ -1,6 +1,6 @@
 # `/e2e-test --mode=verify` — E2E verification reference
 
-> Loaded by `e2e-test/SKILL.md`'s Mode Dispatch when invoked as `/e2e-test --mode=verify [--fix-loop] [--visual-review={true|false}] <scope>`. This contract REPLACES E2E test authoring for the invocation: verify an existing configured E2E scope once (report-only default pass), or with `--fix-loop` converge it. It is the verify step of `workflow-e2e` and of the report-only E2E routes in the review workflows.
+> Read this reference in full for `/e2e-test --mode=verify [--fix-loop] [--visual-review={true|false}] <scope>`. Verification replaces test authoring: the default is one report-only attempt; opt-in `--fix-loop` owns convergence. `workflow-e2e` and review workflows use the same contract.
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
@@ -19,10 +19,9 @@
 
 **Summary:**
 
-- **Contract first:** resolve the fixed scope, project runner, lifecycle, auth, data, browser, evidence, scenario/invariant, and profile-selected owner/case/variant/evidence; use TC only under the strict default.
-- **Report-only gate:** inspect tests and the project's declared object/helper organization, execute the configured scope when runnable, capture exact results and readable artifacts, and apply the shared E2E quality protocol.
+- Resolve scope and project execution/profile evidence → model intent and invariant → inspect tests/shared gates → run once and read artifacts → report the verdict and owning route. Use native owner/case/variant evidence when configured; TC only under the strict default.
+- The default is report-only, with one static/runtime/visual review pass per attempt. Return `PASS`, `NOT-APPLICABLE`, `ENVIRONMENT-BLOCKED`, or `UNVERIFIED`; preserve source, tests, fixtures, scope, data and baselines.
 - **One review pass maximum:** perform one static/runtime/visual review pass per verification attempt, then report. Never start an E2E review/re-review loop; `--fix-loop` rounds are execution/fix/retest attempts, not review rounds.
-- **Honest handoff:** return `PASS`, `NOT-APPLICABLE`, `ENVIRONMENT-BLOCKED`, or `UNVERIFIED`; never repair, weaken, skip, narrow, delete, reset, or baseline-promote.
 <!-- FIX-LOOP-MODE:START -->
 - **OPTIONAL `--fix-loop` MODE (opt-in; absent flag = everything above unchanged)** — drives a configured E2E suite or human-QC journey to a truthful green result over a fixed scope: resolve visual-review applicability from the explicit request and project contract, scope, and Goal Contract → resolve the project execution contract → select or generate a test in the project's declared format → bring up the whole system → per round { run the DEFAULT pass inline (never with the flag) → run the visual gate only when applicable and required → five-way verdict → `/investigate --mode=debug` → `/fix` at the owning layer → `/changes-review` → Round Integrity Check → fresh same-scope rerun } → converge on the configured consecutive fresh green runs (default 2) within the round cap (default 3), or escalate. It is the convergence engine `workflow-e2e` calls; report-only callers NEVER pass it. Full protocol: **Mode: Fix-Loop** section.
 <!-- FIX-LOOP-MODE:END -->
@@ -52,6 +51,19 @@
 > **Mode detection (FIRST):** when the invocation carries `--fix-loop`, read and run **Mode: Fix-Loop** below before Step 0 — it wraps Steps 0–4, and each of its rounds runs them as the default pass. Without the flag, run Steps 0–4 exactly as written.
 
 <!-- FIX-LOOP-MODE:END -->
+
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Step 0 — Resolve scope and evidence contract](#step-0--resolve-scope-and-evidence-contract)
+- [Step 1 — Build the scenario and contract record](#step-1--build-the-scenario-and-contract-record)
+- [Step 2 — Inspect the existing artifacts and shared gate](#step-2--inspect-the-existing-artifacts-and-shared-gate)
+- [Step 3 — Run one report-only verification attempt](#step-3--run-one-report-only-verification-attempt)
+- [Step 4 — Report and hand off](#step-4--report-and-hand-off)
+- [Required output](#required-output)
+- [Mode: Fix-Loop (`--fix-loop`)](#mode-fix-loop---fix-loop)
+- [Mode protocols](#mode-protocols)
+- [Closing Reminders](#closing-reminders)
 
 ## Step 0 — Resolve scope and evidence contract
 
@@ -369,6 +381,8 @@ The protocols below are carried in full because only this mode needs them; the p
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Verify an existing configured E2E/browser/user-flow scope once without changing it, returning exact execution evidence and an honest quality-gate verdict that a convergence owner can safely consume.
+
+**IMPORTANT MUST ATTENTION Default route:** resolve scope/evidence → build scenario/contract → inspect artifacts/shared gates → run one report-only attempt → report and hand off. Select `--fix-loop` only when explicitly passed; its sequence and budget remain separate.
 
 **IMPORTANT MUST ATTENTION** read the project contract and shared E2E quality protocol first; resolve `specArtifacts`, preserve the fixed scope, and use native owner/case/variant/evidence or strict-default TC traceability.
 

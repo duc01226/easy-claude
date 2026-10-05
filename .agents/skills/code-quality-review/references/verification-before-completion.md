@@ -5,6 +5,21 @@ description: Use when about to claim work is complete, fixed, or passing, before
 
 # Verification Before Completion
 
+Read this reference for the matching practice routed from `SKILL.md`; read required sections before acting.
+
+## Contents
+
+- [Overview](#overview)
+- [The Iron Law](#the-iron-law)
+- [The Gate Function](#the-gate-function)
+- [Common Failures](#common-failures)
+- [Red Flags - STOP](#red-flags---stop)
+- [Rationalization Prevention](#rationalization-prevention)
+- [Key Patterns](#key-patterns)
+- [Why This Matters](#why-this-matters)
+- [When To Apply](#when-to-apply)
+- [The Bottom Line](#the-bottom-line)
+
 ## Overview
 
 Claiming work is complete without verification is dishonesty, not efficiency.

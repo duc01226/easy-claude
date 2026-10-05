@@ -7,31 +7,32 @@
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Adversarial Review Mindset](#adversarial-review-mindset-non-negotiable)
+- [Type-Specific Checklists](#type-specific-checklists---type-dispatch)
+- [M1-M7 Compliance Gate](#m1-m7-compliance-gate-blocking--applies-to-all-artifact-types)
+- [Output Format](#output-format-per---type)
+- [Validated Fix + Full Re-Review](#validated-fix--full-re-review-mandatory-when-fixes-are-applied)
+- [Bulk Multi-Artifact Sweeps](#bulk-multi-artifact-sweeps)
+- [Closing Reminders](#closing-reminders)
+
 ## Quick Summary
 
 **Goal:** Review one artifact (PBI, design spec, story, or test spec) for completeness and quality so it is evidence-backed, handoff-ready, and free of missing assumptions or acceptance gaps. For generated PBIs, prove one independently releasable actor-facing outcome with a complete full-flow surface when UI is involved.
 
-**Summary:**
+**Summary:** Review one artifact skeptically: identify/infer `--type=pbi|story|spec-tests|design` → complete all six adversarial techniques and Anti-Bias checks → read/score that type's checklist → enforce M1–M5/M7 → emit its output → validate findings and fix/re-review when needed. Required failures block; otherwise ≥50% Recommended yields PASS, less yields WARN. A generated PBI must deliver one releasable actor-facing outcome and the applicable full-flow UI surface.
 
-- **Purpose:** review ONE artifact (PBI · user story set · test spec · design spec) for completeness + quality so it ships evidence-backed and handoff-ready — no missing assumptions, no acceptance gaps. Default stance = SKEPTIC, not presence-checker: sections that exist but hold weak/untestable content are worse than missing ones — they breed false confidence.
-- **Main steps (in order):** (1) **Identify** type — dispatch on `--type={pbi|story|spec-tests|design}`, infer if omitted; (2) **Adversarial Mindset** — run ALL 6 techniques (steel-man rejected alternatives · stress-test 3 assumptions · AC-testability · pre-mortem · unseen alternatives · contrarian pass) + clear the Anti-Bias Gate before any verdict; (3) **Type checklist** — read `references/review-type-<type>.md`, score Required + Recommended; (4) **M1-M7 gate** (BLOCKING, ALL types; criteria in `.claude/skills/shared/m1-m7-gates.md`); (5) **Output** per-type template (in the same reference) (verdict + Required/Recommended tallies + coverage/AC matrix); (6) **Validated-fix + full re-review loop** — validate findings → fix only current-round blocking findings → restart until the round bar is clear (Round 1: zero open findings (Round-1 LOW closure); Round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred; binary gates always block).
-- **Type dispatch + verdict:** each `--type` has its own Required/Recommended checklist and output template — verdict = PASS (all Required + ≥50% Recommended) | WARN (all Required, <50% Recommended) | FAIL (any Required fails).
-- **M1-M7 gate (ALL types, BLOCKING):** any **M1-M5 or applicable M7** violation forces NEEDS WORK citing the mandate ID + exact section/line; criteria, carrier exemption and the M1-vs-M7 rule live in `.claude/skills/shared/m1-m7-gates.md` (read it). **M7 is judged on each business case's BODY via the demo test, NOT its prose** — a tech-free-sounding case about a consumer/sync/handler passes M1 and STILL fails M7. For `--type=spec-tests` resolve the case profile first (`references/review-type-spec-tests.md`). — why: carriers preserve auditable code links, M1 governs vocabulary, M7 governs subject matter.
-- **Validated-fix loop:** before fixing, invoke `/why-review --validate-findings <report-path>` on the review report FIRST (validate-before-fix discipline, at parity with `/plan --mode=review`) — NEVER edit the artifact to resolve findings before this gate returns CLEAN. Then fix only validated blocking findings, do not confirm-in-place, restart the FULL review (fresh `general-purpose` sub-agent — artifacts are NOT code), and loop until the current exit bar is clear (round 1: zero open findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred).
-- **PBI releaseability is a Required check:** every generated PBI MUST be one independently releasable actor-facing outcome with a complete entry-to-result journey. For UI PBIs, the review MUST also verify the page/view inventory, navigation, component inventory, applicable states, and full-flow demo surface; a technical-only PBI or single static screen FAILS.
-
-**Workflow:**
-
-1. **Identify** — What artifact type is being reviewed
-2. **Checklist** — Apply type-specific quality criteria
-3. **Verdict** — READY or NEEDS WORK with specific items
+**Workflow:** Identify → adversarial challenge → type checklist → M1-M7 compliance → output → validated-fix/full re-review until the current round bar clears.
 
 **Key Rules:**
 
-- Use type-specific checklists
-- Every NEEDS WORK item must be actionable
-- Focus on completeness — never block on stylistic preferences
-- PBI reviews MUST apply `.claude/skills/shared/releasable-pbi-contract.md`: a technical-only PBI, incomplete journey, or UI PBI without the required page/view, navigation, component, state, and demo surface is a Required-check failure.
+- Read only the resolved type's reference before scoring; preserve its output template and SHA-256 artifact identity.
+- M1–M5 or applicable M7 failure forces NEEDS WORK with mandate ID + exact section/line. M6 binds this review. For test specs, resolve the case profile and its carrier exemption first; M7 tests demoable subject matter, independently of M1 vocabulary.
+- Before any finding-driven edit, run `/why-review --validate-findings <report-path>` and wait for CLEAN. In standalone fix-loop, fix validated findings then freshly review the full artifact; choose inline work or authorized artifact specialists from risk and context. Caller-owned and review-only passes return the report.
+- Round 1 clears every open finding, including LOW; Round 2 clears CRITICAL/HIGH/MEDIUM and records deferred LOW. Binary gates always block. Follow the inlined round caps and repeated-blocker escalation below.
+- Every finding needs actionable section/line evidence and confidence; do not block on stylistic preferences. Apply the shared releasable-PBI contract: technical-only scope, incomplete journey, or missing UI page/view/navigation/component/state/demo coverage fails a Required check.
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
@@ -115,11 +116,11 @@ Use the output template in the resolved type's reference. All templates lead wit
 
 > **Protocol:** `SYNC:review-protocol-injection` (all inlined in this file).
 
-Do not spawn a fresh sub-agent just to re-review the same finding set before fixing it. If the artifact needs work, fix actionable findings first, then restart the full artifact review over the current artifact. When that restarted review uses a fresh `general-purpose` sub-agent, use the canonical Agent template from `SYNC:review-protocol-injection` above. Artifact reviews (PBI, story, design spec, test spec) are NOT code — use `subagent_type: "general-purpose"`, not `"code-reviewer"`. When constructing the Agent call prompt:
+Review-only and caller-owned passes return validated findings. Standalone fix-loop applies authorized repairs, then freshly reviews the full current artifact under the shared three-round budget. Choose inline work or authorized specialists from risk and context; delegated re-review uses a fresh artifact reviewer. When constructing that prompt:
 
 1. Copy the Agent call shape from the `SYNC:review-protocol-injection` template verbatim
 2. Set `subagent_type: "general-purpose"`
-3. Embed the full verbatim body of these SYNC blocks (inlined in this file): `SYNC:evidence-based-reasoning`, `SYNC:rationalization-prevention`, `SYNC:understand-code-first` (omit code-specific protocols like `SYNC:bug-detection`, `SYNC:design-patterns-quality`, `SYNC:fix-layer-accountability` which are not applicable to artifact files)
+3. Copy all 11 complete protocol bodies VERBATIM from the canonical template; never omit a protocol. Apply code-only concerns as N/A when the artifact has no such surface, with evidence.
 4. Set the Task as `"Run a full fresh artifact review over the current {artifact-type} after fixes were applied. Focus on: implicit assumptions, missing coverage of edge cases / error scenarios, unverified cross-references, completeness gaps only visible on second reading, whether acceptance criteria are truly testable and measurable, and regressions introduced by fixes."`
 5. Set Target Files as the explicit artifact file path(s), and name the rubric files the reviewer reads first: `.claude/skills/pbi/references/mode-review.md`, its `references/review-type-<type>.md` for the resolved type, and `.claude/skills/shared/m1-m7-gates.md`
 6. Set report path as `tmp/reports/artifact-review-rerun{N}-{date}.md`
@@ -129,7 +130,7 @@ After sub-agent returns:
 1. **Read** the sub-agent's report
 2. **Integrate** findings as `## Re-Review {N} Findings` in the main report — DO NOT filter or override
 3. **If NEEDS WORK:** fix actionable artifact findings, then restart the full artifact review from the beginning
-4. **Repeated blocker cap:** if the same blocker repeats across 2 full invocations with no progress, escalate via `AskUserQuestion`
+4. **Repeated blocker cap:** if the same blocker repeats across 2 full invocations with no progress, escalate via `ask user question tool`
 5. **Final verdict** must incorporate findings from ALL review passes that actually ran
 
 ## IMPORTANT Task Planning Notes (MUST ATTENTION FOLLOW)
@@ -141,7 +142,7 @@ After sub-agent returns:
 
 ## Bulk Multi-Artifact Sweeps
 
-> For bulk multi-artifact review (10+ artifacts at once), use `/changes-review` — its Systematic Review Protocol categorizes the set and fires parallel sub-agents.
+Inventory every artifact and its governing type, plan review tasks and coverage, then choose connected groups, inline review or authorized specialists from actual risk and context headroom. Preserve every applicable type rubric and cross-artifact interaction; there is no artifact-count threshold or forced delegation.
 
 ---
 
@@ -312,6 +313,7 @@ Speculation FORBIDDEN; prove every claim.
 2. Confidence: >80% act freely; 60-80% verify first; <60% DO NOT recommend
 3. Cross-service validation required for architectural changes
 4. Insufficient evidence is valid/expected output
+5. Review decision autonomy: choose evidence-supported review approaches, recommendations and next steps without asking the user. Record rationale and preserve every evidence gate. Read-only leaves return remedies to their owner. Only round-limit extension, indispensable facts with no defensible default, and actual missing action authority require a question; never infer consent, accept an open risk or perform an unauthorized operation.
 BLOCKED until: Evidence file path (file:line) provided; Grep search performed; 3+ similar patterns found; Confidence level stated.
 Forbidden without proof: "obviously", "I think", "should be", "probably", "this is because".
 If incomplete → output: "Insufficient evidence. Verified: [...]. Not verified: [...]."
@@ -452,41 +454,29 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:severity-rubric -->
 
-> **Severity Rubric** — Classify every finding by consequence, not by effort, reviewer preference, or how annoying the fix is. One scale applies to every review, skill, agent, workflow, and host so a tier means the same everywhere. Choose the highest credible consequence supported by evidence; do not lower a tier to make a round pass.
+> **Severity Rubric** — Use one consequence-based scale across reviews, skills, agents, workflows and hosts. Choose the highest credible tier supported by evidence; never lower it to pass a round. Effort, cost, preference, annoyance, frequency alone and round-budget pressure do not determine severity.
 >
-> **Finding vs observation (required):** An observation becomes a finding only when it names the affected user/system/data/contract, the shipped consequence, the evidence location, and the normalized tier. `INFO`, advice, preference, duplicate wording, or an unsubstantiated concern is not a finding and must not reopen a loop. If the concern might affect a required behavior or gate but evidence is incomplete, emit `NOT VERIFIABLE` with the missing evidence and keep it unresolved; never silently convert uncertainty into LOW.
+> **Finding vs observation:** admit a finding only with an affected user/system/data/contract, shipped consequence, reachable supported trigger (caller, input, state or event sequence), evidence location and confidence percentage. Assess exposure/likelihood and reversibility/detectability before assigning a tier.
 >
-> **Reachable trigger path (required):** a finding also names HOW a supported configuration reaches the defect — the caller, input, state or event sequence that drives execution or data there. A concern on a path nothing reaches (dead code, a branch its guard excludes, an impossible state) is an observation: record it as advice, never as a LOW to fix. Also never a finding: what a compiler, type checker, linter or test run for this change already reports in the review evidence; a behavior change the stated intent asks for; an issue silenced by a suppression that predates this change and states its reason (a suppression the change adds is itself reviewed); a pre-existing issue on a line the change neither touched nor made reachable. When reachability cannot be settled and the concern would be MEDIUM or higher, emit `NOT VERIFIABLE` naming what would settle it; a polish-level concern with unsettled reachability is an observation. — why: a speculative LOW admitted as a finding becomes build work in round 1.
+> **Keep as observations:** advice, preference, duplicates, unsupported concerns, unreachable paths, issues already reported by this change’s compiler/type checker/linter/tests, intended behavior changes, reasoned suppressions predating the change, and pre-existing issues neither touched nor made reachable. Review newly added suppressions. Observations/INFO do not reopen loops.
 >
-> | Severity | Action | Definition and examples |
+> | Tier | Consequence and boundary examples | Action |
 > | --- | --- | --- |
-> | CRITICAL | Block immediately; escalate | Immediate material risk if shipped: authentication/authorization or safety bypass; secrets/PII exposure; irreversible destructive action; data loss/corruption; a silent failure on a critical path. A failed binary gate is carried by the executable policy as a separate synthetic blocker, not an ordinary severity judgment. |
-> | HIGH | Must fix before PASS/merge | Material correctness or contract risk: wrong behavior on a supported path; violated business/data invariant; meaningful privacy or authority gap; breaking API/schema/compatibility change; likely harm to users/downstream systems; a missing proof for a behavior-changing fix. |
-> | MEDIUM | Must clear the current round; escalate if the fix needs an owner decision | Bounded but consequential risk: an edge case, resilience/observability/testability/maintainability gap, credible future defect, or local architectural drift — real impact, not immediate material loss. A recorded follow-up does not make an open MEDIUM a clean pass. |
-> | LOW | Record and defer; never opens another fix/re-review round from round 2 onward, never raises the round budget | Non-blocking polish with no credible present correctness, security, privacy, authority, availability, or data-integrity impact: wording/formatting, minor documentation or convention drift, optional defensive cleanup, cosmetic refinement. |
+> | CRITICAL | Immediate material security, safety or authority harm; auth bypass; secrets/PII exposure; irreversible destruction; data loss/corruption; critical-path silent failure. | Block immediately; escalate. |
+> | HIGH | Material supported-path correctness, invariant, privacy/authority, public-contract or compatibility failure; likely user/downstream harm; missing proof for a behavior-changing fix. | Fix before PASS/merge. |
+> | MEDIUM | Bounded consequential edge, resilience, observability, testability, maintainability or architectural gap; credible future defect. | Clear this round; escalate decisions needing an owner. A follow-up is not a clean pass. |
+> | LOW | Proven non-blocking polish with no credible present correctness, security, privacy, authority, availability or data-integrity impact: wording, formatting, minor docs/conventions, optional cleanup, cosmetics. | Record/defer; alone never opens another round from round 2 or increases the budget. |
 >
-> **Consequence decision tree (apply in order):** (1) A failed binary gate stays a separate hard blocker (synthetic CRITICAL in the executable helper) — never hide it behind an ordinary label. Otherwise, would shipping permit immediate material security/safety/authority harm, irreversible destruction, data loss/corruption, or a critical-path silent failure? → **CRITICAL**. (2) Does a supported path, invariant, public contract, privacy/authority boundary, compatibility promise, or behavior-changing proof fail with material impact? → **HIGH**. (3) A bounded but consequential edge, resilience, observability, testability, maintainability, or architectural gap with credible impact? → **MEDIUM**. (4) Evidence shows only non-blocking polish? → **LOW**. (5) Evidence to choose among 1–4 missing → **NOT VERIFIABLE**, not LOW. When several tiers fit, select the highest credible consequence; effort, cost, reviewer discomfort, frequency alone, proximity to the round cap, and obtaining another round never decide the tier.
+> **Consequence decision tree:** check binary gates separately, then select the first evidenced tier from CRITICAL → HIGH → MEDIUM → LOW. Missing evidence is **NOT VERIFIABLE**, not a fifth tier or a LOW fallback: name the missing proof. Unsettled reachability is NOT VERIFIABLE for potential MEDIUM+ impact and an observation for polish. Claims potentially affecting required behavior, security, privacy, authority, availability, data integrity or a gate remain evidence blockers until proved or explicitly owner-accepted with scope, rationale and residual risk. Owner acceptance does not make an open MEDIUM a clean pass or a failed gate pass.
 >
-> **Boundary examples:** auth bypass, exposed secret/PII, destructive command without an authority gate, or failed required test/generation/parity gate → **CRITICAL**; wrong supported response, broken invariant/API/schema, meaningful privacy/authority defect, or unproven behavior-changing fix → **HIGH**; bounded retry/timeout/alert/testability gap or credible maintainability drift → **MEDIUM**; typo, formatting, optional cleanup, or cosmetic suggestion proven not to affect behavior → **LOW**. A missing fact about any boundary is **NOT VERIFIABLE** until evidence or a documented residual-risk decision exists.
+> **Hard gates and rounds:** failed tests, required artifacts, security must-fix checks, generated parity and policy compliance block every round, independently of finding severity. The executable helper carries failures as synthetic CRITICAL blockers; reports name the gate and failure evidence. Default review budget is three rounds; unresolved findings or failed required checks at the cap ask the user for a bounded extension under `SYNC:review-policy`. Failed checks never pass by severity deferral.
 >
-> **Classification procedure (every finding):** (1) state the affected user, system, data, contract, or gate; (2) assess consequence if it ships; (3) assess exposure/likelihood and reversibility/detectability; (4) select the highest justified tier; (5) cite `file:line` or equivalent evidence and a confidence percentage. `NOT VERIFIABLE` is a pending evidence state, not a fifth tier and never a LOW escape hatch: if the claim could affect required behavior, security, privacy, authority, availability, data integrity, or a binary gate, it stays an open evidence blocker until resolved or explicitly owner-accepted with documented residual risk. Classify LOW only when evidence supports the absence of credible present material impact.
->
-> **Hard-gate rule:** Binary gates (tests, required artifacts, security must-fix checks, generated parity, policy compliance) are not severity-rated findings. The executable helper records a failed gate as a synthetic CRITICAL blocker so one predicate can carry it; the report still names the gate and failure evidence. A failed gate blocks at every round, even when all ordinary findings are LOW. A failed non-test gate is bounded by the three-round review cap; a failing test gate is outside the round budget and loops until the tests pass.
->
-> **Score-based skills** map their numeric scale onto these tiers — no parallel vocabulary:
->
-> - **0-2 criterion scoring** (e.g. production-readiness-review): `0` = CRITICAL/HIGH (unmet, blocks readiness), `1` = MEDIUM (partial, consequential gap), `2` = pass. A polish-only criterion is LOW, not a forced `0`.
-> - **Two-axis scoring** (e.g. performance-review, impact × likelihood): high impact + high exposure → CRITICAL/HIGH; material impact, bounded exposure → HIGH/MEDIUM; low impact and exposure → LOW. Record the axes and why the tier is the highest credible consequence.
-> - **Scorecards / `/20` grades** (e.g. `architecture --mode=scalability`): the aggregate score and verdict band are separate from finding severity. A sub-80 area is evidence to investigate, not an automatic tier; classify each underlying gap by the decision tree and keep advisory score deductions apart from blocking findings.
->
-> **Domain-vocabulary normalization (mandatory):** a skill may keep a local reporting vocabulary, but it MUST feed this same four-tier round predicate — never a second severity system:
->
-> - `BLOCKED`, `HARD FAIL`, or `FAIL` is a blocking local verdict, not an automatic CRITICAL: CRITICAL for an immediate material risk or failed binary gate, otherwise HIGH or MEDIUM with evidence, while the local block holds until the owning gate is satisfied.
-> - `WARN` is not permission to ignore: MEDIUM when consequential, LOW only when evidence shows no credible present material impact, HIGH/CRITICAL when the consequence warrants. `PASS`/compliant is not a finding.
-> - UI `P0`/`P1`/`P2`/`P3`/`P4` start as CRITICAL/HIGH/MEDIUM/LOW/LOW; override upward only on evidence of a higher shipped consequence. A P0/P1 accessibility or task-completion floor stays a blocking gate even when called a priority.
-> - Numeric SRE/readiness or impact/likelihood scores are evidence inputs, not tiers: emit the score, the consequence, and the normalized tier together. `INFO`/advisory observations are not findings unless evidence shows a material consequence.
->
-> A tier drives the gate: CRITICAL/HIGH/MEDIUM stay actionable and blocking under the round policy; all review blockers may use up to three rounds, then escalate; LOW may be tracked as a follow-up and, from round 2, never justifies another fix/re-review by itself. An owner decision may explain or schedule an open MEDIUM but never makes it a clean pass; owner acceptance never makes a failed binary gate pass and must record scope, rationale, and residual risk.
+> **Domain-vocabulary normalization and scores:**
+> - `BLOCKED`/`HARD FAIL`/`FAIL` are local blocking verdicts, not automatic CRITICAL; classify by consequence while preserving the owning gate. `WARN` can be any tier; `PASS`/compliant is not a finding. INFO/advisory remains observational unless material consequence is evidenced.
+> - UI `P0/P1/P2/P3/P4` start at CRITICAL/HIGH/MEDIUM/LOW/LOW; raise only with evidence. P0/P1 accessibility or task-completion floors remain blocking gates.
+> - Criterion `0/1/2` → CRITICAL or HIGH (unmet readiness)/MEDIUM (partial consequential gap)/pass; polish is LOW, never forced to `0`.
+> - Impact × likelihood: high impact/exposure → CRITICAL/HIGH; material impact with bounded exposure → HIGH/MEDIUM; low impact/exposure → LOW. Record both axes and justify the highest credible tier.
+> - Aggregate scorecards and `/20` verdict bands stay separate; sub-80 areas prompt investigation, not automatic severity. Keep advisory deductions separate from blockers. Emit numeric SRE/readiness or impact/likelihood scores with consequence and normalized tier.
 
 <!-- /SYNC:severity-rubric -->
 
@@ -508,13 +498,15 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 > **Trade-Off Interrogation Gate** — ALWAYS ask these THREE questions before ANY verdict, score, finding, or recommendation — about the thing under review AND about every recommendation YOU make. — why: naming a benefit without its price is an endorsement, not a review; the costliest trade-offs are the ones nobody wrote down.
 >
+> **Review/audit decisions:** apply `SYNC:review-decision-autonomy` before any user-choice or confirmation prompt below. Select the supported recommendation and record its rationale; round-limit extension, indispensable missing facts and operation authority retain their explicit boundaries.
+>
 > 1. **Is there any trade-off?** Name what it SACRIFICES. "None" / "pure win" is an unfinished analysis, NOT an answer — to claim none, state which dimensions you checked and why each is unaffected: future change cost · complexity · performance/latency · memory/cost · coupling · reversibility · migration burden · operational load · blast radius · security posture · testability · team skill/ramp · delivery time · UX.
 > 2. **Is it worth it?** Weigh gain against sacrifice EXPLICITLY — what is gained (with a metric) · what it costs · WHO pays · WHEN it comes due — then emit **WORTH IT / NOT WORTH IT / UNCLEAR**. "Better" with no metric and no cost FAILS this question. NOT WORTH IT → withdraw or replace the recommendation, never keep it as-is.
 > 3. **Is the trade-off material enough to CONFIRM WITH THE USER?** A material trade-off is the user's call, never yours. **MATERIAL** when ANY holds: irreversible / one-way door (data migration, public contract, storage format, vendor lock-in) · cost shifted onto someone else (another team, ops/on-call, future maintainer, end user) · one quality attribute traded for another (correctness↔speed, security↔convenience, latency↔cost, simplicity↔flexibility) · a boundary crossed (client↔server tier, service contract, event contract, shared library) · a high-consequence path (auth, money, data integrity, breaking change, High/Medium residual risk) · the worth-it verdict is UNCLEAR.
 >
-> **MATERIAL → STOP and confirm via `AskUserQuestion` BEFORE the verdict stands** — state the trade-off, both options, what each sacrifices, and your recommendation. **NOT material →** record it inline with a one-line justification and proceed.
+> **MATERIAL → STOP and confirm via `ask user question tool` BEFORE the verdict stands** — state the trade-off, both options, what each sacrifices, and your recommendation. **NOT material →** record it inline with a one-line justification and proceed.
 >
-> **Non-asking execution contexts — ESCALATE BY HANDOFF, never by silence.** `AskUserQuestion` reaches only the main interactive agent: a sub-agent cannot ask the user, and a terminal/verdict-only mode asks nothing by design. When you are running in such a context, the obligation is **redirected, never waived** — do ALL of: (a) complete questions 1 and 2 normally; (b) decide materiality and record it in the Trade-Off Assessment row with `confirmed? = NO — cannot ask from this context`; (c) **name the unconfirmed MATERIAL trade-off explicitly in your returned summary/verdict so the CALLER (or parent orchestrator) escalates it via `AskUserQuestion` on your behalf** — a material trade-off mentioned only inside a report file on disk is NOT a handoff; (d) do not emit an unqualified PASS — mark the verdict as carrying an unconfirmed material trade-off, so the caller's gate stays closed until the user answers. The caller inherits the escalation duty the moment it reads your return.
+> **Non-asking execution contexts — ESCALATE BY HANDOFF, never by silence.** `ask user question tool` reaches only the main interactive agent: a sub-agent cannot ask the user, and a terminal/verdict-only mode asks nothing by design. When you are running in such a context, the obligation is **redirected, never waived** — do ALL of: (a) complete questions 1 and 2 normally; (b) decide materiality and record it in the Trade-Off Assessment row with `confirmed? = NO — cannot ask from this context`; (c) **name the unconfirmed MATERIAL trade-off explicitly in your returned summary/verdict so the CALLER (or parent orchestrator) escalates it via `ask user question tool` on your behalf** — a material trade-off mentioned only inside a report file on disk is NOT a handoff; (d) do not emit an unqualified PASS — mark the verdict as carrying an unconfirmed material trade-off, so the caller's gate stays closed until the user answers. The caller inherits the escalation duty the moment it reads your return.
 >
 > This carve-out is about **reachability, not convenience**: it applies ONLY where the tool genuinely cannot reach the user (spawned sub-agent, terminal validate/verdict-only mode, non-interactive/headless run). It is NEVER a licence to skip the question, to self-approve a one-way door, or to downgrade materiality because asking is inconvenient — if you CAN ask, you MUST ask.
 >
@@ -721,9 +713,11 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:trade-off-interrogation-gate:reminder -->
 
-- **MANDATORY MUST ATTENTION ALWAYS ASK THE 3 TRADE-OFF QUESTIONS** — on the thing under review AND on every recommendation you make: (1) **what does it SACRIFICE?** name the dimensions checked (change cost · complexity · perf · coupling · reversibility · migration · ops load · blast radius · security · testability · delivery time · UX) — "none"/"pure win" is an unfinished analysis; (2) **is it worth it?** gain (with a metric) vs cost, WHO pays, WHEN → emit **WORTH IT / NOT WORTH IT / UNCLEAR**; NOT WORTH IT → withdraw or replace it; (3) **is it MATERIAL enough to confirm with the user?** irreversible/one-way door · cost shifted onto another team/ops/maintainer/user · one quality attribute traded for another · a tier/service/event/library boundary crossed · auth/money/data-integrity/breaking-change/High-or-Medium-risk path · verdict UNCLEAR → **STOP and confirm via `AskUserQuestion` BEFORE the verdict**.
+**Review/audit invocations:** follow `SYNC:review-decision-autonomy` for every decision prompt; choose supported recommendations without asking, preserve round-extension approval and actual authority.
+
+- **MANDATORY MUST ATTENTION ALWAYS ASK THE 3 TRADE-OFF QUESTIONS** — on the thing under review AND on every recommendation you make: (1) **what does it SACRIFICE?** name the dimensions checked (change cost · complexity · perf · coupling · reversibility · migration · ops load · blast radius · security · testability · delivery time · UX) — "none"/"pure win" is an unfinished analysis; (2) **is it worth it?** gain (with a metric) vs cost, WHO pays, WHEN → emit **WORTH IT / NOT WORTH IT / UNCLEAR**; NOT WORTH IT → withdraw or replace it; (3) **is it MATERIAL enough to confirm with the user?** irreversible/one-way door · cost shifted onto another team/ops/maintainer/user · one quality attribute traded for another · a tier/service/event/library boundary crossed · auth/money/data-integrity/breaking-change/High-or-Medium-risk path · verdict UNCLEAR → **STOP and confirm via `ask user question tool` BEFORE the verdict**.
 - **MANDATORY** A MATERIAL trade-off with no user confirmation can NEVER be PASS; never bury one as a Low-severity note, never decide it silently, and never let delivery or convergence pressure authorize a one-way door — an un-walked-back one-way door is the user's call, not the reviewer's.
-- **MANDATORY — a context that cannot ask escalates BY HANDOFF, never by silence.** `AskUserQuestion` reaches only the main interactive agent, so a sub-agent or a terminal/verdict-only mode cannot ask. There the duty is REDIRECTED, not waived: still name the trade-off, still decide materiality, record `confirmed? = NO — cannot ask from this context`, and **state the unconfirmed MATERIAL trade-off in your RETURNED verdict so the CALLER escalates it** (a note only in an on-disk report is not a handoff); never emit an unqualified PASS. If you CAN ask, you MUST ask.
+- **MANDATORY — a context that cannot ask escalates BY HANDOFF, never by silence.** `ask user question tool` reaches only the main interactive agent, so a sub-agent or a terminal/verdict-only mode cannot ask. There the duty is REDIRECTED, not waived: still name the trade-off, still decide materiality, record `confirmed? = NO — cannot ask from this context`, and **state the unconfirmed MATERIAL trade-off in your RETURNED verdict so the CALLER escalates it** (a note only in an on-disk report is not a handoff); never emit an unqualified PASS. If you CAN ask, you MUST ask.
 
 <!-- /SYNC:trade-off-interrogation-gate:reminder -->
 
@@ -762,37 +756,14 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 
 **IMPORTANT MUST ATTENTION Goal:** Review one artifact (PBI, design spec, story, or test spec) for completeness and quality so it is evidence-backed, handoff-ready, and free of missing assumptions or acceptance gaps. For generated PBIs, prove one independently releasable actor-facing outcome with a complete full-flow surface when UI is involved.
 
-**Protocols in force — MUST ATTENTION honor every block below (concise digest of the SYNC/shared blocks this skill carries):**
+**IMPORTANT MUST ATTENTION Main steps:** identify/infer `--type` → all six adversarial techniques + Anti-Bias Gate → selected type checklist → M1-M7 gate → per-type output → validate findings, fix current-round blockers and fully re-review. Preserve declared order; no skipping/merging without explicit user approval.
 
-- **Nested Task Creation:** Parent workflow rows never replace child phase tracking.
-- **Task Tracking External Report:** Bootstrap tasks; persist review findings to `tmp/reports/`.
-- **Evidence Based Reasoning:** No claim without cited evidence; state confidence.
-- **Understand Code First:** Read code, grep 3+ patterns before any change.
-- **Double Round Trip Review:** Validate findings, fix only current-round blocking findings, and restart the full review until the round severity bar is clear (Round 1: zero open findings; Round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred; binary gates always block).
-- **Releasable PBI Contract:** Apply `.claude/skills/shared/releasable-pbi-contract.md`; technical-only PBIs and UI PBIs represented by one isolated screen are FAIL, not WARN.
-- **Fresh Context Review:** Spawn fresh zero-memory sub-agent after each fix cycle.
-- **Review Protocol Injection:** Embed all 11 protocol bodies verbatim in sub-agent prompts.
-- **Severity Rubric:** Classify findings Critical/High/Medium/Low by consequence using `SYNC:severity-rubric`; round 1 blocks on every open validated finding (Round-1 LOW closure), round 2 blocks only CRITICAL/HIGH/MEDIUM, and LOW is recorded/deferred. Failed binary gates always block.
-- **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
-
-**IMPORTANT MUST ATTENTION** execute the main steps IN ORDER — (1) Identify type → (2) Adversarial Mindset + Anti-Bias Gate → (3) read `references/review-type-<type>.md` + score its Required/Recommended checklist → (4) M1-M7 BLOCKING gate → (5) per-type output template → (6) validated-fix + full re-review loop until the current round bar is clear (round 1: zero open findings; round 2: zero CRITICAL/HIGH/MEDIUM, with LOWs recorded as deferred); NEVER skip or merge steps without explicit user approval — why: each step catches a distinct defect class the others miss.
-**IMPORTANT MUST ATTENTION** be a SKEPTIC, not a presence-checker — run ALL 6 adversarial techniques (steel-man rejected alternatives, stress-test 3 assumptions, AC-testability, pre-mortem, unseen alternatives, contrarian pass) and clear the Anti-Bias Gate BEFORE any verdict — why: sections that exist but hold weak/untestable content create false confidence worse than missing ones.
-**IMPORTANT MUST ATTENTION** enforce the BLOCKING M1-M7 gate on ALL types — any **M1-M5 or M7** violation forces NEEDS WORK citing the mandate ID + exact section/line; NEVER pass an M1-M5/M7 violation — why: passing it makes this review itself defective.
-**IMPORTANT MUST ATTENTION** M7 (business-visibility) is judged on each case's BODY via the demo test — *"what would a stakeholder SEE change?"*; no answer → NEEDS WORK as TECHNICAL-ONLY. A `When` that is an invocation (handler runs, consumer receives, job fires, data syncs, model inspected) or a `Then` asserting schema/type/nullability/call-count FAILS M7 **even in flawless tech-free prose** — why: M1 governs vocabulary, M7 governs subject matter, and passing a case because its prose is clean is exactly how technical cases accumulate in business specs one bugfix at a time.
-**IMPORTANT MUST ATTENTION** exempt source identifiers only inside the selected profile's declared evidence carriers (`.claude/skills/shared/m1-m7-gates.md` → carrier exemption) — flag leakage in narrative/AC/scenario prose — why: carriers preserve auditable code links without making prose implementation-dependent.
-**IMPORTANT MUST ATTENTION** dispatch on `--type={pbi|story|spec-tests|design}` (infer if omitted) — apply that type's Required/Recommended checklist; verdict = PASS (all Required + ≥50% Recommended) | WARN (all Required, <50% Recommended) | FAIL (any Required fails).
-**IMPORTANT MUST ATTENTION** for `--type=design` ONLY: run journey-first checks 7–13 FIRST — evidence-grounded Journey Report (`UX-1`), design-authority record (`UX-2`), views traced to journey steps (`UX-3`), per-view information priority (`UX-4`), traceability matrix with no unserved step or orphan element (`UX-8`); cite `UX-<clause>` + section:line.
-**IMPORTANT MUST ATTENTION** for `--type=design` ONLY: run the 9-dimension UI/UX Design Principles pass — all 40 clauses (`UI-1.1`-`UI-9.4`), one dimension at a time; every finding cites `UI-<clause>` + `file:line` + `SYNC:severity-rubric` severity and folds into the existing Required/Recommended verdict; `pbi`/`story`/`spec-tests` are unaffected, and project design-system docs OUTRANK the clauses.
-**IMPORTANT MUST ATTENTION** for `--type=spec-tests`, resolve the case profile before applying identity, evidence, section, or cardinality rules; an unresolved or conflicting profile blocks the verdict — why: a native case contract must not be rejected for differing syntax or silently copied into a duplicate registry.
-**IMPORTANT MUST ATTENTION** property coverage: every universal hard rule/invariant in the selected contract section maps to a universally quantified property case and a boundary counter-case; strict default uses `[HARD]` §4/§5 property TCs, while a native profile uses its declared section and case carrier — why: example-only coverage cannot protect an invariant across its input domain.
-**IMPORTANT MUST ATTENTION** run the findings-validation gate BEFORE fixing — invoke `/why-review --validate-findings <report-path>` first; NEVER edit the artifact to resolve findings before this gate returns CLEAN — why: validate-before-fix at parity with `/plan --mode=review` prevents fixing phantom findings.
-**IMPORTANT MUST ATTENTION** fix only validated blocking findings, then restart the FULL review with a fresh `general-purpose` sub-agent (artifacts are NOT code) and loop until the current exit bar is clear (round 1: zero open findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred) — NEVER spawn a confirmation sub-agent after a bar-clearing round — why: every fix invalidates the prior verdict, but a bar-clearing pass needs no re-confirmation.
-**IMPORTANT MUST ATTENTION** cite `file:line`/section+line evidence for every finding (confidence >80% to act, <60% DO NOT recommend); every NEEDS WORK item must be actionable — why: speculation produces non-fixable findings.
-**IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting; add a final review todo task to verify work quality.
-
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.
-
-> **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
+- **Evidence and scope:** actionable section/line findings only; >80% confidence to act, <60% do not recommend. Be a skeptic about quality, not just section presence. Bootstrap child tasks even inside workflows; track synchronized status/evidence/skips and add a final review. Persist findings incrementally.
+- **Hard gates:** any M1–M5 or applicable M7 failure is NEEDS WORK with its mandate ID and section/line. M7 asks what a stakeholder would SEE change in the case body; a handler/consumer/job/sync invocation or schema/type/nullability/call-count assertion is technical-only even in clean prose. Respect the selected profile's evidence-carrier exemptions and block unresolved/conflicting profiles.
+- **Type-specific checks:** design runs journey checks 7–13 before nine focused UI dimensions/all 40 clauses, citing `UX-*`/`UI-*` + section/line + severity; project design authority wins. Other types keep their own checklists. Test-spec universal hard rules require a property case plus boundary counter-case in the selected profile's carrier (default `[HARD]` §4/§5 TCs).
+- **PBI outcome:** apply `.claude/skills/shared/releasable-pbi-contract.md`; technical-only scope, incomplete journeys and isolated UI screens fail Required checks.
+- **Fix convergence:** `/why-review --validate-findings <report-path>` must return CLEAN before edits. Fix only validated blockers, then fully restart with a fresh zero-memory `general-purpose` reviewer using the complete 11-body protocol template. Read and integrate every returned finding without filtering; final verdict includes all actual passes. Round 1: zero open findings; Round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred; binary gates always block. Follow declared caps; never spawn confirmation after clearing the bar.
+- **Dispatch:** classify PAR/SEQ and dispatch disjoint-write waves together with an all-return barrier. Preserve the nested tracking and exact embedded protocols; their full bodies govern, not this digest.
 
 **Anti-Rationalization:**
 

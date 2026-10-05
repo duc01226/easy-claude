@@ -6,7 +6,9 @@ description: '[Documentation] Use when refreshing every selected, evidence-appli
 
 ## Quick Summary
 
-**Goal:** Discover and refresh selected, evidence-applicable built-in targets and explicitly generic custom reference docs without assuming every project has every capability.
+**Goal:** Refresh selected, evidence-applicable built-in and explicitly generic custom reference docs while preserving truthful freshness and project ownership.
+
+**Summary:** Resolve config and exact selection → classify ownership and capability → run disjoint scans → reconcile results and freshness → report. Keep always-on inputs separate; unsupported capabilities and manual docs receive explicit dispositions. Graph refresh remains conditional.
 
 **Workflow:**
 
@@ -14,52 +16,41 @@ description: '[Documentation] Use when refreshing every selected, evidence-appli
 2. **Resolve** — Read always-on inputs separately and resolve the effective task-specific `referenceDocs` selection.
 3. **Filter** — Resolve exact built-in targets, selected generic custom docs, and manually owned docs; verify capability evidence for each scan.
 4. **Scan** — Run eligible targets in parallel only when their output write sets are disjoint.
-5. **Verify** — Check every result and skip; clear stale status only after all required owners are current; run the AI-discovery gate across the refreshed set.
-6. **Summarize** — Report refreshed, unchanged, skipped, blocked, and manual docs with evidence.
+5. **Summarize** — Report refreshed, unchanged, skipped, blocked, and manual docs with evidence.
 
 **Key Rules:**
 
-- The registered targets are an option catalog, not a required scan list.
-- `referenceDocs` absent resolves to no task-specific docs for a minimal project, adding only refs supported by config/repository evidence. An explicit array, including `[]`, is exact.
-- `lessons.md` and the docs index are project-init-owned always-on context inputs; they are outside task-specific selection.
-- Each built-in scanner writes only its manifest `doc`. A custom doc defaults to manual ownership; only `scanTarget: "generic"` opts it into an evidence-based generic scan. Never infer a built-in target from a basename.
-- The generic scanner writes only the exact selected filename and uses its configured `purpose` and optional `sections`. Generic docs receive conservative non-disposable repository-wide impact routing; manual docs are not auto-scanned, freshness-tracked, or impact-routed.
-- Optional capabilities that are not evidenced are skipped with the checked config/source evidence.
-- Scans update reference documentation only. Graph work or any broader setup is conditional on project capability and a separate owner.
+- Treat the target registry as options, never a required scan list; explicit `referenceDocs` arrays, including `[]`, are exact.
+- Keep project-init-owned lessons/index inputs separate and custom docs manual unless explicitly `scanTarget: "generic"`.
+- Write reference docs only; broader setup and graph work have separate owners. Scan only evidenced capabilities and exact outputs; clear staleness only after verification.
 
-## When to Use
+## When to Use or Skip
 
-- Staleness gate blocks prompts ("BLOCKED: Reference docs are stale")
-- First time initializing reference documentation for a content-bearing project
-- Periodic refresh when codebase has changed significantly
-- User runs `/scan-all` manually
+Use for a reference-doc staleness gate, initial reference population in a content-bearing project, periodic refresh after significant changes, or an explicit `/scan-all` request. First-time project setup belongs to `/docs-manager --mode=init`.
 
-## When to Skip
-
-- Empty/greenfield project without evidenced capabilities; project-init handles its always-on context and no capability scans run.
-- No selected applicable docs are stale and project-init-owned always-on inputs are current.
+Skip capability scans for empty/greenfield projects without evidence; project-init handles always-on inputs. Skip the run when no selected applicable docs are stale and always-on inputs are current.
 
 ## Execution
 
 ### 1. Validate and resolve config
 
-Resolve the configured project-config file through `.claude/hooks/lib/project-config-loader.cjs` (default `docs/project-config.json`). Absent config uses portable defaults and repository evidence. Present config requires a valid schema and non-empty `project.name`; repair invalid declared sections before relying on them. Optional capability sections may be omitted. A declared incomplete or unsupported section blocks the run.
+Resolve config through `.claude/hooks/lib/project-config-loader.cjs` (default `docs/project-config.json`). Absent config uses portable defaults and repository evidence. Present config needs a valid schema and non-empty `project.name`; omitted optional capabilities are allowed, but declared incomplete/unsupported sections block until repaired.
 
-Use `.claude/hooks/lib/session-init-helpers.cjs` to resolve the effective `referenceDocs` selection; do not copy the full registry into this skill:
+Resolve effective `referenceDocs` through `.claude/hooks/lib/session-init-helpers.cjs`, never by copying the registry:
 
-- When `referenceDocs` is absent, the resolver supplies only the portable baseline and capability references supported by config/repository evidence. A minimal project with no evidenced capability resolves to no task-specific references.
-- When `referenceDocs` is an explicit array, including `[]`, the array is the exact task-specific selection.
-- The always-on `lessons.md` and docs-index inputs are owned by project initialization and remain outside this selection. Confirm those inputs through their owner; do not append them to task-specific work.
+- Absent selection: evidence-supported baseline/capabilities only; a minimal project may resolve to no task-specific docs.
+- Explicit array, including `[]`: exact task-specific selection.
+- Project-init-owned `lessons.md` and docs-index inputs: confirm through their owner, separately from task-specific work.
 
 ### 2. Map selected docs to targets
 
-Read `.claude/skills/scan/references/targets.md`. Resolve each selected filename exactly. Built-in filenames use only their framework-owned manifest target; a custom filename with `scanTarget: "generic"` uses `/scan --target=generic-reference-doc --filename="<filename>"`; a custom filename with no target or `scanTarget: "manual"` remains under curated project ownership. Resolve the containing root from `docsRoots.projectReference.path` (default `docs/project-reference/`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it).
+**Target registry** owns filename mapping, custom-doc safety and capability gates. Read `.claude/skills/scan/references/targets.md` when mapping selected docs; resolve every filename exactly. Built-in filenames use only their framework-owned manifest target; never infer a built-in target from a custom basename; a custom filename with `scanTarget: "generic"` uses `/scan --target=generic-reference-doc --filename="<filename>"`; a custom filename with no target or `scanTarget: "manual"` remains under curated project ownership. Resolve the containing root from `docsRoots.projectReference.path` in `docs/project-config.json` (default `docs/project-reference/`).
 
 - Custom `referenceDocs` entries require `filename` and `purpose`, with optional `sections`, `templatePath`, and `scanTarget`. Config validation rejects unknown targets and unsafe paths; runtime path resolution also rejects physical symlink escapes.
-- Registered targets are optional capabilities. [BLOCKING] Before launching a built-in target, read the head of its own file `.claude/skills/scan/references/targets/<key>.md` (its `applies when` and `skip when` lines) and apply that evidence; the registry index alone does not carry the gate. Config can select a scan or guide source search, but source examples and patterns must still be verified.
-- If a selected built-in target's capability is absent, report `SKIPPED` with the config/source paths checked. Do not create a placeholder or claim the doc is refreshed. Generic scans use only their configured purpose and selected output; manual docs are not scan candidates.
+- [BLOCKING] Before launching a built-in target, read the head of `.claude/skills/scan/references/targets/<key>.md` (its `applies when` and `skip when` lines) and apply its gate; the index is insufficient. Config guides selection/search, but source examples and patterns still require verification.
+- If a selected built-in target's capability is absent, report `SKIPPED` with the config/source paths checked. Do not create a placeholder or claim the doc is refreshed. Generic scans use their configured `purpose` and optional `sections`, write only that exact filename, and retain conservative non-disposable repository-wide impact routing. Manual docs are not scanned, freshness-tracked or impact-routed.
 - Do not launch `ui-system` alongside its child targets. `scan-all` selects individual docs from the effective list; an explicitly routed UI orchestration can fan out only to applicable children.
-- Build a coverage ledger with one disposition per exact selected output: eligible, manual, skipped or blocked. Reconcile the union of assignments against that set, including nested/boundary paths; `[]` creates no task-specific scans. Deduplicate identical targets. Targets with different owned output docs may run in parallel; shared output owners run once.
+- Record one coverage-ledger disposition per exact selected output: eligible, manual, skipped or blocked. Reconcile the union of assignments against that set, including nested/boundary paths; `[]` creates no task-specific scans. Deduplicate identical targets. Run disjoint output owners in parallel and shared owners once.
 
 ### 3. Run and verify
 
@@ -71,9 +62,7 @@ Reconcile every selected output against returned reports at the all-return barri
 node -e "require('./.claude/hooks/lib/session-init-helpers.cjs').refreshScanStaleFlag()"
 ```
 
-Each changed scan output follows its target's enhancement rule. Verify that enhancement in the scan result; do not run a second hardcoded enhancement list or rewrite unchanged/skipped docs.
-
-**AI-discovery gate across the set (`SYNC:ai-discovery-doc-quality`).** Per-doc quality belongs to each scan; this run checks what no single scan sees: the docs index and root context route to every refreshed or selected doc through a `read <path> when <situation>` trigger, no route points at a missing or not-applicable doc, and no selected doc is an orphan. A routing gap is fixed by the docs-index target scan, or — for the root context — a `referenceDocs` entry via `/project-config` followed by `/ai-context-refresh`, never by hand-editing generated output.
+Each changed output follows its target's enhancement rule; verify it in the returned result. Do not run a second enhancement list or rewrite unchanged/skipped docs.
 
 ## Optional Graph Refresh
 
@@ -91,7 +80,6 @@ Report each selected target with its status, output path, and evidence-backed re
 
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
-- `ai-discovery-doc-quality` — Agent-guide content value, authority, retention and verified discovery; writing a doc that an agent reads → .claude/skills/shared/protocols/ai-discovery-doc-quality.md
 - `output-quality-principles` — Useful, readable guidance without lost conditions; writing generated docs or reports → .claude/skills/shared/protocols/output-quality-principles.md
 
 <!-- PROTOCOL-GUIDES:END -->
@@ -102,22 +90,19 @@ Report each selected target with its status, output path, and evidence-backed re
 
 <!-- /SYNC:output-quality-principles:reminder -->
 
-<!-- SYNC:ai-discovery-doc-quality:reminder -->
-
-**MUST ATTENTION** AI-read guides: purpose/read-when and priorities first; retain action-changing rules, exceptions and rationale; verify triggered discovery and parser contracts. Use the content-value and semantic-disposition gate after enhancement; keep evidence in temporary reports and fix generated output at its source.
-
-<!-- /SYNC:ai-discovery-doc-quality:reminder -->
 
 ## Closing Reminders
 
-**Protocols in force (concise digest of the SYNC/shared blocks this skill carries) — MUST ATTENTION honor each canonical body:**
+**IMPORTANT MUST ATTENTION Goal:** Refresh selected, evidence-applicable built-in and explicitly generic custom reference docs while preserving truthful freshness and project ownership.
 
-- **Output Quality:** MUST ATTENTION retain actionable guidance, conditions and consumer-required structures; move investigation bulk to temporary reports.
-- **AI-Discovery Doc Quality:** MUST ATTENTION the docs index and root context route every refreshed doc by trigger; no orphan, dead or not-applicable route.
+**IMPORTANT MUST ATTENTION Main steps:** resolve config/selection → classify ownership/capability → run disjoint scans → reconcile results/freshness → report; refresh a graph only through its conditional owner.
 
-**IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting
-**IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code
-**IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
-**IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
+- Keep exact selection and always-on inputs separate; custom docs default to manual ownership.
+- Read each target's applicability header; use evidence rather than catalog membership.
+- Reconcile every output and target quality gate before refreshing the stale flag; retain skips/blockers.
+- Track tasks before work, cite `file:line` evidence (>80% confidence to act), and finish with a consistency review. Search 3+ fitting patterns before creating code.
 
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.
+| Evasion | Required action |
+| --- | --- |
+| "Selected means applicable" | Verify the target's capability gate against config and source. |
+| "All agents returned, so clear staleness" | Reconcile each output, enhancement/retention review, operation stamp and always-on input first. |

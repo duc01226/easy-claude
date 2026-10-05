@@ -11,6 +11,20 @@
 - MUST ATTENTION keep claims evidence-based (`file:line`) with confidence >80% to act.
 - MUST ATTENTION keep task tracking updated as each step starts/completes.
 
+<!-- SKILL-NAV:START -->
+## Contents
+
+- When to Use
+- Prerequisites
+- Workflow
+- Edge Types Traced
+- CLI Reference
+- Examples
+- Anti-Patterns
+- Related Modes
+
+<!-- SKILL-NAV:END -->
+
 ## When to Use
 
 - **"What happens when X is called/created/updated?"** → `--direction downstream`

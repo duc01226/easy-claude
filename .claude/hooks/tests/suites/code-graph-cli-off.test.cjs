@@ -18,15 +18,11 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
+const { resolvePythonCommand: findPythonCommand } = require('../lib/python-command.cjs');
 const { childEnv } = require('../lib/hook-runner.cjs');
 
 const CLI_DIR = path.resolve(__dirname, '..', '..', '..', 'scripts', 'code_graph');
 const OFF_MESSAGE = 'code graph is off for this project (hooks.codeGraph)';
-const PYTHON_CANDIDATES = [
-    { command: 'python', baseArgs: [] },
-    { command: 'py', baseArgs: ['-3'] },
-    { command: 'python3', baseArgs: [] }
-];
 
 // Inherited keys that could steer the child Python or the graph CLI away from the fixture.
 const SCRUBBED_ENV_KEYS = ['PYTHONPATH', 'PYTHONHOME', 'PYTHONSTARTUP', 'PYTHONUSERBASE', 'CRG_PARSE_WORKERS', 'CRG_GIT_TIMEOUT', 'CLAUDE_PROJECT_DIR'];
@@ -43,19 +39,8 @@ function isolatedEnv(dir) {
 let resolvedPython;
 function resolvePython(env) {
     if (resolvedPython) return resolvedPython;
-    for (const candidate of PYTHON_CANDIDATES) {
-        const result = spawnSync(candidate.command, [...candidate.baseArgs, '-c', 'import sys; assert sys.version_info >= (3, 10)'], {
-            encoding: 'utf8',
-            timeout: 15000,
-            windowsHide: true,
-            env
-        });
-        if (!result.error && result.status === 0) {
-            resolvedPython = candidate;
-            return candidate;
-        }
-    }
-    throw new Error('Python 3.10 or newer (python, py -3 or python3) is required for the code-graph CLI off suite.');
+    resolvedPython = findPythonCommand({ env, minMinor: 10 });
+    return resolvedPython;
 }
 
 /** A temp project whose config sets the given graph mode and that holds an empty, never-opened graph.db. */

@@ -20,36 +20,36 @@ Connected contracts:
 
 ## Quick Summary
 
-**Goal:** Detect docs impacted by code changes, update the right docs (project + business-feature) accurately and surgically, then report checked/updated/skipped — so docs stay synchronized with code without fabrication or scratch-creation.
+**Goal:** Detect docs impacted by code changes, verify impacted docs, patch project context and route business-feature updates to their canonical owners, then report checked/updated/skipped — so docs stay synchronized with code without fabrication or scratch-creation.
 
 **Summary:**
 
-- Triage from `git diff` → map changed files to impacted doc types via `node .claude/scripts/doc-impact-map.cjs` + the section-impact mapping; fast-exit ONLY when that map routes nothing (a `.claude/**`-only diff still rots glob-derived inventory counts, so it is NOT a fast exit).
-- Never create business-feature docs from scratch (recommend `/spec`); update only the impacted sections, surgically.
+- Reuse the caller's resolved scope, or resolve the relevant diff → map changed files to impacted doc types via `node .claude/scripts/doc-impact-map.cjs` + the section-impact mapping; fast-exit ONLY when that map routes nothing (a `.claude/**`-only diff still rots glob-derived inventory counts, so it is NOT a fast exit).
+- Route business-feature writes to `/spec`; context patches stay limited to impacted sections.
 - Verify the code change before fixing any stale doc; map downstream references before removing a section.
 - No meta-log in AI-facing docs — write current actionable state only; history goes to git / `CHANGELOG.md` / the ADR root (default `docs/adr`; a `docsRoots.adr.path` entry in `docs/project-config.json` overrides the path).
 
 **Workflow:**
 
-1. **Triage** — `git diff --name-only` → categorize changed files → determine impacted doc types
+1. **Scope** — Reuse exact caller paths or resolve a relevant diff; identify impacted docs
 2. **Project Context Sync** — Verify the routed `docs/project-reference/**` docs and `docs/project-config.json` sections against the diff (see **Reference-Doc Freshness Contract**), then update `project-structure-reference.md` / `README.md` when architecture, scope, or setup changed
-3. **Business Feature Docs** — Auto-detect affected modules, check existing docs, update only impacted sections per section-impact mapping
+3. **Business Feature Docs** — Identify affected modules and intent; route updates to the spec owners
 4. **Summary Report** — Report checked, updated, skipped
 
 **Key Rules:**
 
-- **Procedure source:** this agent drives `/docs-manager --mode=update`; read `.claude/skills/docs-manager/references/mode-update.md` in full for the phase contract before acting (the preloaded `docs-manager` SKILL.md only dispatches modes)
+- **Procedure source:** this agent drives `/docs-manager --mode=update`; read `.claude/skills/docs-manager/references/mode-update.md` in full for ownership and quality requirements before acting (the preloaded `docs-manager` SKILL.md only dispatches modes)
 - NEVER create business feature docs from scratch — recommend `/spec` skill for new docs
 - NEVER auto-fix stale docs before verifying the code change — verify first, then edit
 - NEVER remove doc sections before checking downstream references — map referencing files first
 - **No meta-log in AI-facing docs** — `CLAUDE.md`, `AGENTS.md`, agent `.md`, `SKILL.md`, `.claude/docs/**` read as live instruction; write only current actionable state. NEVER narrate change-history, migration rationale, or provenance ("formerly", "removed in the … refactor", "now embedded / now lives here"). History → git / `CHANGELOG.md` / the ADR root (default `docs/adr`; a `docsRoots.adr.path` entry in `docs/project-config.json` overrides the path) / `tmp/reports/**`
 - Fast Exit: ONLY when `node .claude/scripts/doc-impact-map.cjs` routes zero docs, zero config sections, and zero unrouted files → report "No documentation impacted" and exit. A `.claude/**`- or tooling-only diff is NOT a fast exit — it rots the skill/hook/agent/workflow counts and catalogs that `CLAUDE.md`, `docs-index-reference.md`, and `project-structure-reference.md` derive by globbing
 - Freshness verdicts are evidence, not impressions — every routed doc gets `FRESH | PATCHED | RESCAN REQUIRED | UNVERIFIED`; a doc you did not check is `UNVERIFIED`, NEVER `FRESH`
-- **Stamp discipline:** Only a full `/scan --target=X` may add or move `<!-- Last scanned: -->`; an impact-scoped pass never changes it. For project-reference docs, follow Step 1.6 of `.claude/skills/docs-manager/references/mode-update.md`: update `Last verified` only when the resolved local docs-index explicitly requires it, and otherwise write no tracked stamp. Preserve explicit no-stamp paths such as `CLAUDE.md` and `.claude/**`. Record the verdict in the run report; for a doc inside the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path) ALSO record the pass in the untracked ledger with `node .claude/hooks/lib/doc-stamp-guard.cjs --record-verified <doc filename>` (filename only). Any other doc gets the report verdict and NO ledger entry — the ledger feeds the reference-doc staleness gate and tracks nothing else. The no-meta-log rule above still WINS for AI-facing instruction files.
+- **Stamp discipline:** Only a full `/scan --target=X` may add or move `<!-- Last scanned: -->`; an impact-scoped pass never changes it. For project-reference docs, follow Stamp discipline in `.claude/skills/docs-manager/references/mode-update.md`: update `Last verified` only when the resolved local docs-index explicitly requires it, and otherwise write no tracked stamp. Preserve explicit no-stamp paths such as `CLAUDE.md` and `.claude/**`. Record the verdict in the run report; for a doc inside the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path), only after a completed full owner scan record verification in the untracked ledger with `node .claude/hooks/lib/doc-stamp-guard.cjs --record-verified <doc filename>` (filename only). Any other doc gets the report verdict and NO ledger entry — the ledger feeds the reference-doc staleness gate and tracks nothing else. The no-meta-log rule above still WINS for AI-facing instruction files.
 - NEVER save a doc whose content did not really change. Verify with `node .claude/hooks/lib/doc-stamp-guard.cjs --check <doc> --candidate <file>` (exit 3 = no-op → skip the write) — why: a rewrite that moves only a date or whitespace is an unmergeable line that costs a manual merge and carries no information
-- Section-Impact Mapping: entity change → sections 3,5,6; new endpoint → sections 8,11,12; new functionality → section 15 (mandatory)
+- Derive section impact from the configured artifact profile and local references; route spec/TC/derived/demo writes to their owners, never to a context-patching assignment.
 
-> **[IMPORTANT] Goal:** Detect docs impacted by code changes, update the right docs (project + business-feature) accurately and surgically, then report checked/updated/skipped — so docs stay synchronized with code without fabrication or scratch-creation.
+> **[IMPORTANT] Goal:** Detect docs impacted by code changes, verify impacted docs, patch project context and route business-feature updates to their canonical owners, then report checked/updated/skipped — so docs stay synchronized with code without fabrication or scratch-creation.
 > **[IMPORTANT]** NEVER create business feature docs from scratch — use `/spec` skill. NEVER fabricate paths or behavior — investigate first.
 > **Evidence Gate:** Every claim requires `file:line` proof. Confidence >80% to act, <80% verify first. NEVER fabricate paths, names, or behavior.
 > **External Memory:** For complex work (scan, analysis, review), write intermediate findings to `tmp/reports/` after each phase — prevents context loss.
@@ -64,9 +64,9 @@ Connected contracts:
 
 | Change Type                                       | Doc Sections to Update                                                                                                                  |
 | ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| Entity change                                     | 3, 5, 6                                                                                                                                 |
-| New endpoint                                      | 8, 11, 12                                                                                                                               |
-| New functionality                                 | 15 (mandatory)                                                                                                                          |
+| Entity change                                     | Governing domain/invariant sections; route through `/spec`                                                                                                                                 |
+| New endpoint                                      | Changed business outcomes, permissions and coverage; route through spec owners                                                                                                                               |
+| New functionality                                 | Governing intent and case carriers; route through spec owners                                                                                                                          |
 | Architectural                                     | project-structure-reference.md                                                                                                          |
 | Config/infra                                      | README.md, getting-started.md                                                                                                           |
 | Harness (`.claude/**`, `.agents/**`, `AGENTS.md`) | `CLAUDE.md` inventory counts, `docs-index-reference.md`, `project-structure-reference.md` module registry                               |
@@ -92,8 +92,8 @@ Escalate instead of improvising: a new subsystem, a mostly-dead section, or a st
 
 ## Evidence & TC Verification
 
-- Every test case (TC-{FEATURE}-{NNN}) MUST carry `[Source: namespace/service/id]` abstract-anchor evidence; verify the anchor maps to real source via the project's provenance/reference docs — why: an unmapped anchor signals a fabricated or stale TC
-- Compare `[Trait("TestSpec", ...)]` in integration tests against TC codes in feature docs — flag discrepancies
+- Verify each case through its configured evidence carriers and provenance. Native profiles own identifiers/format; use strict-default TC/abstract-anchor conventions only when no profile is declared.
+- Resolve the project's actual executing-test annotations and coverage links against the canonical case registry; report mismatches instead of assuming a language-specific annotation.
 - ALWAYS report even when nothing needed updating — state what was checked
 
 ## Output Format
@@ -138,7 +138,7 @@ Concise — sacrifice grammar for brevity. List unresolved questions at end. ALW
 >
 > **Mandatory closers:** Confidence % stated · Assumptions listed · Open questions surfaced · Next action concrete.
 >
-> **Stop conditions:** confidence <60% on any critical decision → stop and escalate via AskUserQuestion (60-80% → verify first) · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
+> **Stop conditions:** confidence <70% on any critical decision → stop and escalate via ask user question tool (70-80% → verify first) · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
 >
 > **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
 
@@ -162,21 +162,6 @@ Concise — sacrifice grammar for brevity. List unresolved questions at end. ALW
 
 <!-- /SYNC:incremental-persistence -->
 
-<!-- SYNC:ai-discovery-doc-quality -->
-
-> **AI-Discovery Doc Quality** — Shared content-value contract for agent guides, root context, reference templates, indexes and registries. Read when authoring, scanning, enhancing or reviewing these documents. Lead with purpose and read-when trigger; preserve action-changing conditions; keep one substantive owner per rule.
->
-> 1. **Value:** Every retained section supports purpose/outcome, principle/invariant, actionable instruction, required protocol/decision sequence, exception/precondition, necessary rationale, or triggered navigation. Ask: “What decision or action would become worse if this content disappeared?” With no concrete answer, remove it or move supporting evidence to project-root `tmp/reports/` (disposable-report location); respect a configured disposable-report owner when declared.
-> 2. **Authority:** Resolve declared owners, accepted conventions, canonical contracts, public abstractions and enforcing callers/tests. Frequency, proximity and recency do not establish intended practice. Check exemplar preconditions: scope, lifecycle, transaction ownership, host compatibility and trust boundary. Distinguish required practice, permitted exception, legacy implementation, intended migration direction and unresolved behavior. Surface contradictions; never turn an observation into a mandate.
-> 3. **Guidance vs evidence:** Keep search transcripts, adoption/drift statistics, exhaustive inventories, incident chronology, repeated validation history, long copied implementations and unrelated audit findings in temporary reports. Preserve numbers that govern action: thresholds, limits, supported versions and machine values. Keep short rationale or examples when they prevent a likely mistake more efficiently than prose and navigation. No universal size, reduction, example or warning-keyword quotas; use readable sentences and visible priorities, not dense shorthand.
-> 4. **Discovery:** Write `read <path> when <situation>` and identify the owner and decision/contract/mechanism to inspect. Verify paths, commands, public APIs and symbols; prefer stable owner paths/symbols to fragile line ranges. Use live registries and supported discovery commands instead of parallel inventories. Every guide is reachable from root/index; missing or not-applicable targets are reported once, never routed as usable sources.
-> 5. **Retention:** Before substantial rewriting, inventory unique rules, protocols, exceptions/preconditions, safety/authority boundaries, lifecycle/state semantics, navigation and machine-consumed structures in the temporary report. Afterward map each to retained, consolidated into a named owner, replaced by sufficient triggered discovery, or removed with an obsolete/redundant/outside-purpose reason. A pointer replaces a rule only when reliably discoverable at the moment it matters.
-> 6. **Ownership:** Inspect heading/anchor/frontmatter/table/header/parser consumers before changes. Preserve required syntax/data. Curated registries, historical audits and durable lessons keep their separate owner contracts; scan never silently edits lessons or operating authority. Fix generated output at its source and regenerate.
-> 7. **Attention:** First screen: purpose, read-when and critical rules. Long or rule-bearing guides close with brief reminders of those priorities. For truncating hosts, put irreversible-action boundaries/routing first and measure offsets.
->
-> **Final gate:** After enhancement, review decision value, intended practice, exceptions/rationale, discovery validity, semantic dispositions, ownership and readability against the baseline. Use existing structural validators for applicable contracts; section presence or fewer words alone proves nothing. Enhancement cannot reintroduce removed report bulk. Enhance changed hand-owned guides unless the owner records a supported skip; generated guides are enhanced at source. Apply surgically to the changed scope and attention anchors. Preserve action-changing conditions, verified discovery and canonical ownership.
-
-<!-- /SYNC:ai-discovery-doc-quality -->
 
 <!-- SYNC:sequential-thinking-protocol:reminder -->
 
@@ -184,15 +169,10 @@ Concise — sacrifice grammar for brevity. List unresolved questions at end. ALW
 
 <!-- /SYNC:sequential-thinking-protocol:reminder -->
 
-<!-- SYNC:ai-discovery-doc-quality:reminder -->
-
-**MUST ATTENTION** AI-read guides: purpose/read-when and priorities first; retain action-changing rules, exceptions and rationale; verify triggered discovery and parser contracts. Use the content-value and semantic-disposition gate after enhancement; keep evidence in temporary reports and fix generated output at its source.
-
-<!-- /SYNC:ai-discovery-doc-quality:reminder -->
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Detect docs impacted by code changes, update the right docs (project + business-feature) accurately and surgically, then report checked/updated/skipped — so docs stay synchronized with code without fabrication or scratch-creation.
+**IMPORTANT MUST ATTENTION Goal:** Detect docs impacted by code changes, verify impacted docs, patch project context and route business-feature updates to their canonical owners, then report checked/updated/skipped — so docs stay synchronized with code without fabrication or scratch-creation.
 
 **IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this agent carries):**
 

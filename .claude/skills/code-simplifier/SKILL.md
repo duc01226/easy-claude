@@ -1,7 +1,7 @@
 ---
 name: code-simplifier
 version: 2.3.0
-description: '[Code Quality] Use when a workflow step or the user asks for code simplification: clarity, consistency, maintainability, behavior preserved.'
+description: '[Code Quality] Use when a workflow step or the user asks for code simplification for clarity and maintainability without changing behavior.'
 context-budget: critical
 ---
 
@@ -41,7 +41,7 @@ context-budget: critical
 3. **Analyze** — Apply simplification dimensions (see below)
 4. **Apply** — One refactoring type at a time following KISS/DRY/YAGNI
 5. **Verify** — Run related tests, confirm no behavior changes; when a caller runs the tests once, last (`SYNC:verify-last-order`, e.g. a `--tests=defer` review fix loop), verify statically instead — re-read the diff against the covering tests and run none, the caller's single verify proves them
-6. **Self-Recursive Check** — Re-run this skill's simplification analysis until the current round's exit bar is clear: Round 1 requires zero validated findings at any severity (a LOW closes by a local fix plus scoped check, or by deferral — `SYNC:review-policy`); from Round 2 onward only validated CRITICAL/HIGH/MEDIUM findings reopen the loop, while LOW findings are recorded as deferred and do not justify another cycle. Failed binary gates always block.
+6. **Self-Recursive Check** — Re-run this skill's simplification analysis until the current round's exit bar is clear: Round 1 requires zero validated findings at any severity, with no-edit LOW deferral allowed; every applied fix requires a fresh full review (`SYNC:review-policy`). From Round 2 onward only validated CRITICAL/HIGH/MEDIUM findings reopen the loop, while LOW findings are recorded as deferred and do not justify another cycle. Failed binary gates always block.
 7. **Self-Review Gate (MANDATORY when code changed)** — If this skill modified any files, self-invoke `/code-quality-review` scoped to ONLY those changed files; skip + log if nothing changed, or when the caller passed `--defer=review` (record `Self-review deferred to caller post-fix FULL review`)
 
 **Key Rules:**
@@ -238,9 +238,9 @@ Used standalone (outside a review workflow), this self-review gate is sufficient
 
 ## Next Steps
 
-> **EXEMPT** when invoked by a parent skill or workflow step, when running as a sub-agent, or under `--report-only`: return the result to the caller; skip `AskUserQuestion`.
+> **EXEMPT** when invoked by a parent skill or workflow step, when running as a sub-agent, or under `--report-only`: return the result to the caller; skip `ask user question tool`.
 
-**MANDATORY — NO EXCEPTIONS** after completing, use `AskUserQuestion`:
+**MANDATORY — NO EXCEPTIONS** after completing, use `ask user question tool`:
 
 - **"/workflow-review-changes (Recommended)"** — Review all changes before commit
 - **"/code-quality-review"** — Full code review
@@ -300,6 +300,7 @@ Rules:
 - `complexity-prevention` — Change-cost lens on complexity (Ousterhout); designing or reviewing code → .claude/skills/shared/protocols/complexity-prevention.md
 - `core-engineering-principles` — Core quality gate: easy to change, easy to scale, easy to maintain, judged by future change cost; planning, implementing or reviewing any change → .claude/skills/shared/protocols/core-engineering-principles.md
 - `design-patterns-quality` — Design quality: one owner per rule, fitted patterns, no speculative abstraction; designing or reviewing code structure → .claude/skills/shared/protocols/design-patterns-quality.md
+- `review-decision-autonomy` — Choose supported review decisions and ask before extending the round budget; running any review or audit skill or mode → .claude/skills/shared/protocols/review-decision-autonomy.md
 - `severity-rubric` — One consequence-based Critical, High, Medium, Low scale for every finding and gate; classifying a finding or deciding whether a review round passes → .claude/skills/shared/protocols/severity-rubric.md
 - `shared-protocol-duplication-policy` — Protocol copies in carriers are intentional: edit the canonical source, then propagate; editing a shared protocol or its carriers → .claude/skills/shared/protocols/shared-protocol-duplication-policy.md
 - `source-test-drift-check` — When source behavior changes, reconcile the affected tests from evidence; code, fix, test or review work changes behavior → .claude/skills/shared/protocols/source-test-drift-check.md
@@ -344,6 +345,12 @@ Rules:
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
 
 
+<!-- SYNC:review-decision-autonomy:reminder -->
+
+**MUST ATTENTION** Decide supported review choices and recommendations, record the rationale, and finish without routine user questions. Keep round-limit extension, indispensable facts and actual action authority; preserve source coverage, validation, tests, read-only boundaries and budgets. Review decisions do not accept open risks or make a failed gate pass.
+
+<!-- /SYNC:review-decision-autonomy:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Lower the cost of the next change — cut coupling, hidden state, duplicated knowledge, unclear intent — by simplifying and refining code for clarity, consistency, and maintainability without altering any observable behavior. — why: every simplification serves future change cost, not aesthetics.
@@ -359,7 +366,7 @@ Rules:
 - **Understand Code First:** read target + grep 3+ patterns (graph trace is optional advice) before writing or fixing.
 - **Design Patterns Quality:** assess abstraction and responsibility using the project's evidenced architecture; do not impose a fixed object, layer, or framework convention.
 - **Complexity Prevention:** look for evidence-backed change amplification and unclear ownership using the project's actual module boundaries.
-- **Severity Rubric:** classify findings Critical/High/Medium/Low by consequence using `SYNC:severity-rubric`; round 1 blocks on every open validated finding (Round-1 LOW closure), round 2 blocks only CRITICAL/HIGH/MEDIUM, and LOW is recorded/deferred. Failed binary gates always block.
+- **Severity Rubric:** classify findings Critical/High/Medium/Low by consequence using `SYNC:severity-rubric`; round 1 blocks on every open validated finding (LOW deferral), round 2 blocks only CRITICAL/HIGH/MEDIUM, and LOW is recorded/deferred. Failed binary gates always block.
 - **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
 
 **IMPORTANT MUST ATTENTION** apply a simplification ONLY when certain it preserves behavior — grep all usages + trace consumers (grep/read; an optional graph downstream trace may hint at more) and cite `file:line` BEFORE touching anything; if unsure → DO NOT apply. — why: an unverified "safe" rewrite silently breaks a downstream consumer.

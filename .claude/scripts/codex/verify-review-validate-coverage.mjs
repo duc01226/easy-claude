@@ -48,7 +48,8 @@ export const REVIEW_FAMILY_SKILLS = [
     'performance-review',
     'production-readiness-review',
     'knowledge-review',
-    'ai-engineering-review'
+    'ai-engineering-review',
+    'web-design-guidelines'
 ];
 
 // Finding-producing review MODES that live in a skill's mode reference instead of a skill of their own: each entry is

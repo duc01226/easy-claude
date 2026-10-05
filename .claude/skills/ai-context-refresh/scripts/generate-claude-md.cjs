@@ -134,7 +134,7 @@ function removeManagedRoutingSection(content) {
 function migrateLegacyRouting(content) {
     const legacy = [
         '1. Explicit slash command (e.g. `/plan`, `/feature-implement`) → execute it.',
-        '2. Workflow Catalog has a matching workflow → ask via `AskUserQuestion` whether to activate the workflow or run the underlying skill directly.',
+        '2. Workflow Catalog has a matching workflow → ask via `ask user question tool` whether to activate the workflow or run the underlying skill directly.',
         '3. No matching workflow AND prompt would modify files → MUST invoke `/plan <prompt>` first.',
         '4. No matching workflow AND prompt is read-only/conversational → answer directly.'
     ];

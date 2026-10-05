@@ -1,6 +1,26 @@
 # Web Interface Design Guidelines Reference
 
-Comprehensive rules for reviewing web UI code against WCAG 2.2, Core Web Vitals, and modern UX best practices.
+Read this reference before scanning UI code; apply the categories relevant to the selected surface.
+
+## Contents
+
+- [Accessibility](#1-accessibility-wcag-22-compliance)
+- [Focus & Keyboard Navigation](#2-focus--keyboard-navigation)
+- [Forms](#3-forms)
+- [Animation & Motion](#4-animation--motion)
+- [Typography](#5-typography)
+- [Content Handling](#6-content-handling)
+- [Images & Media](#7-images--media)
+- [Performance](#8-performance-core-web-vitals)
+- [Navigation & State](#9-navigation--state)
+- [Touch & Mobile](#10-touch--mobile)
+- [Layout & Safe Areas](#11-layout--safe-areas)
+- [Dark Mode & Theming](#12-dark-mode--theming)
+- [Internationalization](#13-internationalization-i18n)
+- [Hydration Safety](#14-hydration-safety-ssrssg)
+- [Interactive States](#15-interactive-states)
+- [Anti-Patterns Quick Reference](#anti-patterns-quick-reference)
+- [External References](#external-references)
 
 ---
 

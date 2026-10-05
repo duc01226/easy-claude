@@ -294,7 +294,7 @@ State it in plain team language, but keep the `file:line` anchors so anyone can 
 
 When the prompt is empty and you must derive scope, gather candidates from — in order — the active
 task/workflow goal, `git status`/`git diff`, branch-vs-main commits, and in-progress plans, specs, and release
-notes. If still ambiguous, present the top 2-4 as `AskUserQuestion` options plus free-text; never auto-pick.
+notes. If still ambiguous, present the top 2-4 as `ask user question tool` options plus free-text; never auto-pick.
 
 ## Translation notes (`--lang`)
 

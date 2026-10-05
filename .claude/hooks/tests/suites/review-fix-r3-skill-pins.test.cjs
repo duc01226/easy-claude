@@ -88,22 +88,22 @@ const tests = [
             const hits = leftoverHits(skillMarkdown());
             assert.deepEqual(hits, [], `leftover route-question wording (the route gate owns routing; keep only the Next Steps prompt): ${JSON.stringify(hits)}`);
             // And the previously stale carriers state the replacement rule or simply no longer carry the clause
-            assert.match(skillText('investigate', 'references', 'mode-debug.md'), /a direct call asks no workflow question/);
-            assert.match(skillText('production-readiness-review', 'SKILL.md'), /a direct call asks no workflow question/);
+            assert.match(skillText('investigate', 'references', 'mode-debug.md'), /Direct invocation asks no workflow question/);
+            assert.match(skillText('production-readiness-review', 'SKILL.md'), /Ask the standalone Next Steps question; parent-invoked, sub-agent and `--report-only` runs return/);
             for (const rel of [['test', 'SKILL.md'], ['security-audit', 'SKILL.md'], ['integration-test', 'SKILL.md'], ['code-simplifier', 'SKILL.md']]) {
-                assert.ok(skillText(...rel).includes('AskUserQuestion'), `${rel.join('/')} keeps its own Next Steps AskUserQuestion prompt`);
+                assert.ok(skillText(...rel).includes('ask user question tool'), `${rel.join('/')} keeps its own Next Steps ask user question tool prompt`);
             }
         })
     },
     {
         name: '[review-fix-r3] TC-RF3-002 the leftover-phrase scan fails when a stale route question returns (mutation check on the scanner, in memory)',
         ...guarded(() => {
-            const sample = [{ rel: 'x/SKILL.md', text: 'a\n**MANDATORY** validate route/decisions with the user via `AskUserQuestion` — NEVER auto-decide a workflow vs standalone run.\nb' }];
+            const sample = [{ rel: 'x/SKILL.md', text: 'a\n**MANDATORY** validate route/decisions with the user via `ask user question tool` — NEVER auto-decide a workflow vs standalone run.\nb' }];
             assert.ok(leftoverHits(sample).length >= 2, 'the old test-skill closing reminder is detected');
             for (const stale of [
                 'outside a workflow ask the user to choose `workflow-bugfix` or direct `/investigate --mode=debug`',
-                'validate workflow choice via `AskUserQuestion` — never auto-decide.',
-                '- `AskUserQuestion` — validate workflow/route decisions with the user. NEVER auto-decide complexity.',
+                'validate workflow choice via `ask user question tool` — never auto-decide.',
+                '- `ask user question tool` — validate workflow/route decisions with the user. NEVER auto-decide complexity.',
                 '## Workflow Recommendation'
             ]) assert.ok(leftoverHits([{ rel: 'x.md', text: stale }]).length >= 1, `detected: ${stale}`);
             // A legitimate Next-Steps option and the route-gate rule itself are not flagged
@@ -125,51 +125,28 @@ const tests = [
         })
     },
     {
-        name: '[review-fix-r3] TC-RF3-004 workflow-review-changes states the UI lens from the real contract (step 1 defers specialists)',
+        name: '[review-fix-r3] TC-RF3-004 review workflow owns all child fix-loops and deferred duties',
         ...guarded(() => {
-            const text = skillText('workflow-review-changes', 'SKILL.md');
-            const row = text.split('\n').find(line => line.startsWith('| `/ui-design --mode=review --report-only`'));
-            assert.ok(row, 'the UI specialist row exists');
-            assert.match(row, /step 1 runs with `--defer=specialists`, so this is the only UI lens/);
-            assert.doesNotMatch(text, /also runs inside step 1's UI dimension/, 'no claim that step 1 also runs the UI lens');
-            assert.match(text, /Step 1 `\/changes-review` gets `--report-only --defer=whole-target,specialists,/, 'step 1 really does defer specialists');
-        })
-    },
-    {
-        name: '[review-fix-r3] TC-RF3-005 the code-simplifier --defer=review deferral has an owner on every side: skill, caller-mode contract, caller, registry applicability',
-        ...guarded(() => {
-            // The skill defines the deferral and records it
-            const simplifier = skillText('code-simplifier', 'SKILL.md');
-            assert.match(simplifier, /\*\*Caller deferral\.\*\* `--defer=review` in `\$ARGUMENTS` means the caller runs a FULL review of the settled whole target after this skill returns/);
-            assert.match(simplifier, /return the exact list of files this skill changed so that review covers them/);
-            assert.match(simplifier, /Only an explicit `--defer=review` from a caller that runs a FULL review of the settled state afterwards skips it/);
-            // The contract names the duty the caller must run
-            const contract = skillText('workflow-review-changes', 'references', 'caller-mode.md');
-            const row = contract.split('\n').find(line => /^\| `review` \| `code-simplifier` \|/.test(line));
-            assert.ok(row, 'the caller-mode table lists the review deferral for code-simplifier');
-            assert.match(row, /a FULL `\/why-review` over the settled whole target after the simplifier returns/);
-            assert.match(contract, /a caller that skips or merges the owning step omits the value, so the duty stays with the skill/);
-            // The caller passes it and omits it when the owning step is skipped or merged
-            const caller = skillText('workflow-review-changes', 'SKILL.md');
-            assert.match(caller, /`\/code-simplifier --defer=review`/);
-            assert.match(caller, /If the orchestrator skips or merges step 5, it omits the flag so the simplifier reviews itself/);
-            // The registry's post-fix why-review occurrence is applicable exactly when the simplifier changed a file
-            const registry = JSON.parse(read('.claude', 'workflows.json'));
-            const sequence = registry.workflows['workflow-review-changes'].sequence;
-            const postFix = sequence.find(entry => entry.id === 'why-review');
-            assert.ok(postFix, 'the post-fix why-review occurrence exists');
-            assert.match(postFix.applicability.when, /fix step or code-simplifier changed files/, 'the owner step covers a simplifier edit');
-            assert.ok(sequence.findIndex(entry => entry.id === 'code-simplifier') < sequence.findIndex(entry => entry.id === 'why-review'), 'the simplifier runs before the post-fix review that covers it');
-            // The registry itself carries the flags as `args`: a runner that builds its tasks from the registry (not from the SKILL.md prose)
-            // must still run step 1 report-only and the simplifier with its review deferred to the post-fix why-review
-            const initialReview = sequence.find(entry => entry.id === 'initial-changes-review');
-            assert.ok(initialReview, 'the initial changes-review occurrence exists');
-            assert.equal(initialReview.args, '--report-only --defer=whole-target,specialists,tests,entities', 'step 1 carries its caller-mode flags in the registry args');
-            assert.equal(sequence.find(entry => entry.id === 'code-simplifier').args, '--defer=review', 'the simplifier occurrence carries --defer=review in the registry args');
-            assert.match(caller, /registry occurrences carry these flags as their `args`/, 'the skill states that the registry args are the flags the runner passes');
-            // And the SKILL.md mandatory step line equals the flagged manifest (the verifier compares the two)
-            assert.ok(caller.includes('**IMPORTANT MANDATORY Steps:** /changes-review --report-only --defer=whole-target,specialists,tests,entities -> /why-review --target=whole-review-target'), 'the step line names step 1 with its flags');
-            assert.ok(caller.includes('/fix --target=review -> /code-simplifier --defer=review -> /why-review'), 'the step line names the simplifier with its flag');
+            const workflow = JSON.parse(read('.claude', 'workflows.json')).workflows['workflow-review-changes'];
+            assert.equal(workflow.defaultMode, 'fix-loop');
+            const reviews = ['changes-review','why-review','architecture','domain-analysis','performance-review','integration-test','security-audit','production-readiness-review','ui-design','ai-engineering-review','experience-review'];
+            for (const mode of ['review-only','report-only']) {
+                const steps = workflow.variants[mode].sequence;
+                assert.ok(steps.length > 0);
+                assert.ok(!steps.some(step => ['fix','code-simplifier','docs-manager','scan'].includes(step.skill)));
+                for (const step of steps) if (reviews.includes(step.skill) && step.id !== 'validate-findings') assert.match(step.args, /--review-only/);
+                for (const skill of ['workflow-end', 'watzup']) assert.ok(steps.some(step => step.skill === skill && step.role === 'optional'), `${mode} retains optional ${skill} closing`);
+            }
+            for (const step of workflow.sequence) if (reviews.includes(step.skill) && step.id !== 'validate-findings') {
+                assert.match(step.args, /--fix-loop --loop-owner=caller/);
+            }
+            const initial = workflow.sequence.find(step => step.id === 'initial-changes-review');
+            assert.match(initial.args, /--defer=whole-target,specialists,tests,entities/);
+            assert.equal(workflow.sequence.find(step => step.id === 'code-simplifier').args, '--defer=review');
+            assert.match(workflow.sequence.find(step => step.id === 'why-review').applicability.when, /simplification/);
+            const caller = skillText('workflow-review-changes','references','caller-mode.md');
+            assert.match(caller, /full fresh `\/why-review` of the settled target after simplification/i);
+            assert.match(caller, /omit its deferral so the duty stays with the skill/);
         })
     },
     {
@@ -220,7 +197,7 @@ const tests = [
             assert.deepEqual(scan(files), [], 'ambient "a [Workflow] row exists" nesting rule returned');
             // Each of the four decision sites states the positive rule: nested=true, and a row that merely exists does not count
             for (const { rel, text } of files) {
-                assert.match(text, /merely exists in `TaskList`/, `${rel} states that a [Workflow] row that merely exists does not count`);
+                assert.match(text, rel === 'investigate/references/mode-debug.md' ? /an abandoned\/existing row alone does not qualify/ : /merely exists in `TaskList`/, `${rel} rejects a stale workflow row`);
                 assert.match(text, /nested=true/, `${rel} keys the skip on nested=true`);
             }
             // The skipped-steps list of plan execute is unchanged: the nested run still skips exactly Steps 3, 4 and 5

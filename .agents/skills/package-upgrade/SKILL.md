@@ -1,6 +1,6 @@
 ---
 name: package-upgrade
-description: '[Code Quality] Use when analyzing package upgrades, outdated dependencies, npm/NuGet update plans or breaking changes.'
+description: '[Code Quality] Use when analyzing npm package upgrades, outdated dependencies or breaking changes and preparing a phased upgrade plan.'
 ---
 
 > Codex compatibility note:
@@ -9,7 +9,7 @@ description: '[Code Quality] Use when analyzing package upgrades, outdated depen
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - Use ask user tool to ask user.
+> - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -19,6 +19,8 @@ description: '[Code Quality] Use when analyzing package upgrades, outdated depen
 ## Quick Summary
 
 **Goal:** Analyze npm package dependencies, research latest versions and breaking changes, and generate a phased upgrade plan.
+
+**Summary:** Inventory manifests and usage → research official version/migration evidence → assess risk and dependency order → write the phased report → obtain approval before migration → declare confidence and gaps. This skill analyzes npm packages; it does not implement upgrades.
 
 **Workflow:**
 
@@ -145,7 +147,7 @@ Document:
 
 ## PHASE 4: COMPREHENSIVE REPORT GENERATION
 
-Generate report at `ai_package_upgrade_reports/[YYYY-MM-DD]-frontend-package-upgrade-report.md`:
+Generate report at `tmp/reports/package-upgrade/[YYYY-MM-DD]-frontend-package-upgrade-report.md`:
 
 ### Report Structure
 
@@ -225,6 +227,9 @@ Before marking complete, provide:
 <!-- /SYNC:evidence-based-reasoning:reminder -->
 
 ## Closing Reminders
+
+**Goal:** Analyze npm dependencies and produce an evidence-backed phased upgrade plan.
+**MUST ATTENTION Route:** inventory manifests/usage → research official sources → assess risk/order → report → obtain migration approval → declare confidence and gaps. Keep the report under `tmp/reports/`; research is not authorization to change dependencies.
 
 **IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 

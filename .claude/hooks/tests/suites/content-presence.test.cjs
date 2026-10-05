@@ -34,7 +34,7 @@
  *               family runs/diagnoses/clears a suite identically regardless of entry point.
  *   TC-CP-010 — the test-failure fault-adjudication rules (root-cause first, triangulate the
  *               failure against spec AND source, classify SOURCE-WRONG vs TEST-WRONG, and
- *               AskUserQuestion when intended behavior is unclear) are present in EVERY
+ *               ask user question tool when intended behavior is unclear) are present in EVERY
  *               debug/fix/test-family skill, so every entry point decides WHO is at fault the
  *               same way instead of silently editing whichever side makes the suite green.
  *
@@ -182,7 +182,7 @@ const IS_FRAMEWORK_REPO = frameworkRepoGuard.isFrameworkRepo(PROJECT_DIR);
 const COMMAND_ONLY_UTILITIES = [
     'custom-agent', 'docx-convert', 'pdf-convert', 'playwright-cli',
     'presentation-builder', 'remotion', 'sync-skills-shared-protocols', 'release-doc',
-    'git-developer-performance', 'skill-creator', 'scan-codebase-health', 'graph-export',
+    'git-developer-performance', 'skill-creator', 'scan-codebase-health',
     'project-help', 'custom-prompt',
 ];
 const MODEL_CALLABLE_BY_DECISION = ['commit', 'learn', 'git-conflict-resolve', 'sync-codex'];
@@ -715,10 +715,10 @@ module.exports = {
                 assertTrue(autoGaps.length === 0, `route hook auto payload lost the mid-session guard:\n  ${autoGaps.join('\n  ')}`);
 
                 // Negative guard spans the WHOLE skill: no step may propose a route or ask the user
-                // to pick one. (Prohibitions like "do not use AskUserQuestion to choose" stay legal.)
+                // to pick one. (Prohibitions like "do not use ask user question tool to choose" stay legal.)
                 for (const [pattern, why] of [
                     [/MAY propose/, '"MAY propose" a route'],
-                    [/How to present \(AskUserQuestion/, 'an AskUserQuestion route-presentation step'],
+                    [/How to present \(ask user question tool/, 'an ask user question tool route-presentation step'],
                     [/Propose Custom Pipeline/i, 'a "Propose Custom Pipeline" step'],
                 ]) {
                     assertTrue(!pattern.test(skill),
@@ -727,7 +727,7 @@ module.exports = {
                 const section = skill.slice(skill.indexOf('## Custom Pipeline Option'),
                     skill.indexOf('### Task creation for Custom Pipeline'));
                 assertTrue(section.length > 0, 'start-workflow lost its Custom Pipeline section');
-                assertTrue(section.includes('Do NOT use `AskUserQuestion` to choose'),
+                assertTrue(section.includes('Do NOT use `ask user question tool` to choose'),
                     'start-workflow must auto-select the custom pipeline without a confirmation prompt');
 
                 // Example routes teach the model the step vocabulary: every step in a
@@ -781,7 +781,7 @@ module.exports = {
                     'ask the workflow question (below) only when YOUR route is to start a catalog workflow',
                     'it NEVER starts before the answer',
                     '**Workflow question** (every tier): only when your route is to start a catalog workflow (never for direct or custom-simple)',
-                    "use ask user tool to ask user, else plain text, then stop until the user answers",
+                    "use ask user question tool to ask user, else plain text, then stop until the user answers",
                     'the recommended one first with a one-line reason',
                     '(a) the full workflow `<id>`',
                     '(b) a slimmer custom route listing its steps, keeping every required gate',
@@ -835,7 +835,7 @@ module.exports = {
         },
         {
             // Guards the SINGLE-ASK intent: only the root route gate offers a workflow. A step skill that
-            // carries its own "use AskUserQuestion to pick a workflow" block asks a second, divergent
+            // carries its own "use ask user question tool to pick a workflow" block asks a second, divergent
             // question (and has named workflows that do not exist), overriding the gate's direct route.
             name: '[content-presence] TC-CP-017b no skill carries its own workflow-recommendation question',
             skip: IS_FRAMEWORK_REPO ? false : 'asserts the framework repo\'s own skills; an adopter\'s custom skills are theirs (framework-repo signal)',

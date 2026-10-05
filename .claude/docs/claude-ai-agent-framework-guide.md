@@ -2,7 +2,7 @@
 
 > **Purpose:** the one-page map of the portable `.claude/` framework — what it does, how the parts fit, how to use it day to day, and where each topic's detailed owner doc lives. Read it first when you adopt the framework, change it, or need to explain a hook block, a routing decision or a workflow step.
 >
-> **Framework inventory:** <!-- COUNT:hooks -->30<!-- /COUNT --> top-level hook files · <!-- COUNT:lib-modules -->45<!-- /COUNT --> hook-library modules · <!-- COUNT:skills -->101<!-- /COUNT --> skills · <!-- COUNT:workflows -->19<!-- /COUNT --> workflows · <!-- COUNT:agents -->24<!-- /COUNT --> agents · <!-- COUNT:shared -->16<!-- /COUNT --> shared reference/protocol entries.
+> **Framework inventory:** <!-- COUNT:hooks -->30<!-- /COUNT --> top-level hook files · <!-- COUNT:lib-modules -->45<!-- /COUNT --> hook-library modules · <!-- COUNT:skills -->101<!-- /COUNT --> skills · <!-- COUNT:workflows -->19<!-- /COUNT --> workflows · <!-- COUNT:agents -->24<!-- /COUNT --> agents · <!-- COUNT:shared -->15<!-- /COUNT --> shared reference/protocol entries.
 >
 > **Visual version:** `.claude/docs/claude-ai-agent-framework-guide.html` (same content, one standalone page).
 
@@ -173,7 +173,7 @@ A skill is a directory with `SKILL.md` (frontmatter `name`, `description` = `[Ca
 | Workflows (entry + lifecycle)    | 22    | `workflow-*`, `start-workflow`, `workflow-end`                       |
 | Planning & architecture          | 7     | `plan` (modes `review`, `validate`, `execute`), `scenario`, `architecture` (modes `design`, `review`, `scalability`, `full`) |
 | Implementation                   | 6     | `feature-implement`, `code-simplifier`                               |
-| Understand, fix, debug, graph    | 5     | `investigate` (mode `debug`), `understand`, `fix`, `graph-code`, `graph-export` |
+| Understand, fix, debug, graph    | 4     | `investigate` (mode `debug`), `understand`, `fix`, `graph-code` (includes export mode) |
 | Review & quality                 | 8     | `changes-review`, `why-review`, `security-audit`, `ui-design --mode=review` |
 | Testing                          | 6     | `test`, `integration-test`, `e2e-test`, `experience-review`          |
 | Specs & reference docs           | 6     | `spec` (modes `discovery`, `clarify`, `index`), `tech-spec`, `docs-manager` (modes `init`, `update`), `scan` |
@@ -185,7 +185,7 @@ A skill is a directory with `SKILL.md` (frontmatter `name`, `description` = `[Ca
 | Project setup, context & help    | 9     | `project-init`, `ai-context-refresh`, `project-skill-protocol`, `learn` |
 | Framework maintenance            | 6     | `sync-codex`, `sync-opencode`, `skill-creator`, `prompt-enhance`     |
 
-**Who can start a skill.** Most skills are model-invocable. 17 are command-only (`disable-model-invocation: true`, e.g. `sync-opencode`, `release-doc`, `product-roadmap`) — only the user starts them with `/name`. A team can hide more with a **skill profile** (`skillProfile` in `docs/project-config.json`): preset `full` · `standard` · `minimal`, plus `nameOnly`, `commandOnly` and `off` lists; `node .claude/scripts/sync-skill-profile.cjs` writes the result into `.claude/settings.json` `skillOverrides`. Hiding a skill that a workflow, agent or hook calls is refused unless `allowHidingCalledSkills: true`.
+**Who can start a skill.** Most skills are model-invocable. 15 are command-only (`disable-model-invocation: true`, e.g. `sync-opencode`, `release-doc`, `product-roadmap`) — only the user starts them with `/name`. A team can hide more with a **skill profile** (`skillProfile` in `docs/project-config.json`): preset `full` · `standard` · `minimal`, plus `nameOnly`, `commandOnly` and `off` lists; `node .claude/scripts/sync-skill-profile.cjs` writes the result into `.claude/settings.json` `skillOverrides`. Hiding a skill that a workflow, agent or hook calls is refused unless `allowHidingCalledSkills: true`.
 
 **Review-family modes.** `--fix-loop` (review → validate → fix → fresh re-review until converged; mints a review receipt) and `--report-only` (a leaf reviewer that only reports — no fixes, no questions, no nested fan-out — used when a caller owns the fixes).
 
@@ -263,7 +263,7 @@ Why hybrid: a rule already in context beats a rule the model must go read, but r
 
 ## 10. The quality chain — review, commit, pull request
 
-1. **Review** — `changes-review` or `workflow-review-changes`. Round 1 must reach zero open findings (Round-1 LOW closure: a LOW closed by scoped check or deferred is not open); from round 2 only Critical/High/Medium block; up to three review rounds, then escalate to the user.
+1. **Review** — `changes-review` or `workflow-review-changes`. Triage all changes and create review tasks first. Standalone reviews default to review-only; the review workflow defaults to fix-loop. Every applied fix needs fresh review; LOW may be deferred without edits. Default cap three rounds; LOW-only at the cap is acceptable, while Critical/High/Medium or failed required checks ask the user for a bounded extension.
 2. **Validate findings** — `why-review --validate-findings` checks every finding against evidence before any fix. It is terminal: it never recurses, so validation cannot loop.
 3. **Fix** — `fix --target=review` fixes validated findings at the owning layer and records FIXED / REJECTED / DEFERRED with reasons; an unexplained defect is traced with `investigate --mode=debug` first.
 4. **Receipt** — a converged `--fix-loop` mints a review receipt bound to the exact changeset; any later edit invalidates it.
@@ -361,11 +361,11 @@ Codex transforms `/skill` into `$skill`, `Agent` into `spawn_agent` and strips C
 | Runner                                  | Tests  | Covers                                                                 |
 | --------------------------------------- | ------ | ---------------------------------------------------------------------- |
 | `test-all-hooks.cjs` (primary gate)  | **133** | Hook behaviors, bridged suites and the count guard                     |
-| `run-all-tests.cjs` (full aggregate) | **1388** | Primary plus every `tests/suites/*.test.cjs` suite                     |
+| `run-all-tests.cjs` (full aggregate) | **1403** | Primary plus every `tests/suites/*.test.cjs` suite                     |
 | `node --test .claude/scripts/codex/tests` | —      | Mirror generators and verifiers                                        |
 | `run-codex-sync.mjs --verify-only`      | —      | Every read-only gate before a commit                                   |
 
-> Live-verified: `test-all-hooks.cjs` = 133; `run-all-tests.cjs` = 1388 discovered. Both runners fail when these numbers drift from the docs.
+> Live-verified: `test-all-hooks.cjs` = 133; `run-all-tests.cjs` = 1403 discovered. Both runners fail when these numbers drift from the docs.
 
 **Portable test contract** — shipped tests must pass in any project layout on Windows, macOS and Linux: build a temp fixture project instead of reading this repository's config or git state; blank inherited feature switches and provider keys; point `HOME`, `USERPROFILE`, `TMPDIR`, `TEMP` and `TMP` at the temp dir; name OS differences explicitly (paths, symlinks, `py -3` vs `python3`); run the full suite twice to prove repeatability.
 

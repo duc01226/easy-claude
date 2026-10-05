@@ -17,7 +17,7 @@ Expanded narrative for `skill-creator` Mode 1. Follow in order; skip a step only
 
 1. Metadata (`name` + `description`) — always in context (~100 words)
 2. SKILL.md body — loaded when the skill triggers
-3. Bundled resources — as needed by Claude (scripts run without entering context)
+3. Bundled resources — as needed by Claude (scripts can execute without loading full source; inspection and output still consume context)
 
 ## Step 1 — Understand With Concrete Examples
 
@@ -50,7 +50,7 @@ SKILL.md answers: (1) purpose in a few sentences, (2) when to use it, (3) in pra
 **Resource guidance:**
 
 - **scripts/** — prefer Node/Python over bash (bash is poorly supported on Windows). Python scripts need `requirements.txt` + `.env.example`. Write and run tests until they pass; run manually on real cases.
-- **references/** — load-as-needed docs; split large files. Keep readable conditions and necessary rationale. Avoid duplication: info lives in SKILL.md OR a reference, not both — prefer references for detail to keep SKILL.md lean.
+- **references/** — load-as-needed docs; split by task/domain, link each directly from SKILL.md with a read-when trigger, and index references longer than 100 lines near the top. Keep one owner per rule; preserve readable conditions and rationale. Read `authoring-quality.md` when choosing discovery, control, feedback, model evaluation or dependency setup.
 - **assets/** — output files only (never loaded into context): templates, icons, boilerplate, fonts.
 
 ## Step 5 — Package

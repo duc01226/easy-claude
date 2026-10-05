@@ -1,17 +1,18 @@
 /**
  * Graph-Code Modes Merge Test Suite
  *
- * The `graph-code` skill owns five code-graph roles as modes: `--mode=build` (build, update or sync the
+ * The `graph-code` skill owns six code-graph roles as modes: `--mode=build` (build, update or sync the
  * graph), `--mode=query` (relationship queries), `--mode=trace` (system-flow traces),
  * `--mode=blast-radius` (impact of the current changes) and `--mode=connect-api` (frontend-to-backend
- * API edges). Each mode body lives in `graph-code/references/mode-<x>.md`; `graph-code/SKILL.md` detects
- * the mode first and carries a BLOCKING "read the mode file in full FIRST" line per mode. The five modes
+ * API edges) and `--mode=export` (JSON snapshots or single-file Mermaid diagrams). Each mode body lives
+ * in `graph-code/references/mode-<x>.md`; `graph-code/SKILL.md` detects
+ * the mode first and carries a BLOCKING "read the mode file in full FIRST" line per mode. The six modes
  * have no skill folder of their own. The python CLI and the graph hooks are not skills and stay as they
  * are.
  *
  * Coverage:
- *   TC-GCM-001 — mode detection sits at the top of SKILL.md; each of the five modes has its BLOCKING read
- *                line and an existing reference; the removed slash commands resolve through a "former" note.
+ *   TC-GCM-001 — mode detection sits at the top of SKILL.md; each of the six modes has its BLOCKING read
+ *                line and an existing reference; each mode works directly without a workflow.
  *   TC-GCM-002 — SKILL.md carries no mode body; every mode body lives in its reference file.
  *   TC-GCM-003 — build mode keeps the tooling-install Step 0 (mode check first, stop on failure), the three
  *                scopes with the auto-detect default, the sync-then-update chain and the no-op checkout rule.
@@ -21,14 +22,16 @@
  *                connect-api mode keeps the five matching strategies and the optional connector config.
  *   TC-GCM-007 — the graph is optional: SKILL.md states the advisory block once, names the absent-graph
  *                message, and no mode reference turns the graph into a gate for other work.
- *   TC-GCM-008 — the five old skill folders stay deleted, `graph-export` stays, no workflow step names a
- *                removed skill and the called-skill profile lists the new skill.
+ *   TC-GCM-008 — the six removed graph folders stay deleted, their registry/workflow entries remain
+ *                absent, and the consolidated graph-code owner remains model-selectable.
  *   TC-GCM-009 — the debugger-trace protocol is carried by SKILL.md (guide + reminder), never by a reference.
  *   TC-GCM-010 — the description keeps the `[Code Intelligence]` tag, the 250-character limit and names
  *                every mode.
  *   TC-GCM-011 — the prompt-gate hook routes the graph build to `/graph-code --mode=build`.
  *   TC-GCM-012 — no live source names a removed skill (allow-list: the "former" lines of SKILL.md; the CLI
  *                verbs `graph-blast-radius` and `graph-connect-api` are not skill names).
+ *   TC-GCM-013 — export retains both formats, file/output selection, required Mermaid target,
+ *                graph preconditions, cross-platform execution and observable result reporting.
  *
  * Portability: every row asserts this framework repository's own skills, registry and hooks, so each is
  * skipped in any other project (framework-repo signal). Paths use node:path; nothing is OS-specific.
@@ -51,9 +54,9 @@ const read = (...parts) => fs.readFileSync(path.join(...parts), 'utf8').replace(
 const skill = () => read(SKILLS, 'graph-code', 'SKILL.md');
 const mode = name => read(SKILLS, 'graph-code', 'references', `mode-${name}.md`);
 
-const MODES = ['build', 'query', 'trace', 'blast-radius', 'connect-api'];
+const MODES = ['build', 'query', 'trace', 'blast-radius', 'connect-api', 'export'];
 // The removed skill names, assembled so this file never contains the literal tokens it guards against.
-const REMOVED = ['build', 'query', 'trace', 'blast-radius', 'connect-api'].map(suffix => 'graph' + '-' + suffix);
+const REMOVED = MODES.map(suffix => 'graph' + '-' + suffix);
 
 const LIVE_SOURCE_ROOTS = ['.claude', 'docs/specs', 'docs/project-reference', 'README.md'];
 // Generated catalogs are rebuilt from the skill folders.
@@ -80,21 +83,32 @@ function* walk(rel) {
 }
 
 const alternation = REMOVED.map(name => name.replace(/[-]/g, '\\-')).join('|');
-// A removed skill is named as a slash command, as a skill path, or as a bare backticked skill name.
+// Exact command/skill references do not include output filenames or ordinary CLI verbs.
 const SKILL_NAME_PATTERNS = [
-    new RegExp(`(?<![\\w/.\\\\-])/(?:${alternation})(?![\\w/-])`),
+    new RegExp(`(?<![\\w/.\\\\-])/(?:${alternation})(?![\\w/.\\\\-])`),
     new RegExp(`skills/(?:${alternation})\\b`),
-    new RegExp(`\`(?:${alternation})\``)
+    new RegExp(`\`(?:${alternation})\``),
+    new RegExp(`["'](?:${alternation})["']`)
 ];
 
 /** A line that names a removed skill but is an allowed mention. */
 function allowedMention(rel, line) {
-    return rel === '.claude/skills/graph-code/SKILL.md' && /former/i.test(line);
+    if (rel === '.claude/skills/graph-code/SKILL.md' && /former/i.test(line)) return true;
+    if (rel !== '.claude/scripts/code_graph/cli.py') return false;
+    // These two CLI verbs predate skill consolidation and remain part of the Python interface.
+    // Remove only their registration/dispatch tokens; another retired reference on the same line fails.
+    let rest = line;
+    for (const suffix of ['blast-radius', 'connect-api']) {
+        const name = 'graph' + '-' + suffix;
+        rest = rest.replace(new RegExp(`^(\\s*\\w+\\s*=\\s*sub\\.add_parser\\()(["'])${name}\\2(?=,\\s*aliases=\\[(["'])${suffix}\\3\\])`), '$1');
+        rest = rest.replace(new RegExp(`^(\\s*elif args\\.command in \\()(["'])${name}\\2(?=,\\s*(["'])${suffix}\\3\\):)`), '$1');
+    }
+    return rest !== line && !SKILL_NAME_PATTERNS.some(pattern => pattern.test(rest));
 }
 
 const tests = [
     {
-        name: 'TC-GCM-001 graph-code detects the mode first and gives each of the five modes a BLOCKING read-first line and a reference file',
+        name: 'TC-GCM-001 graph-code detects the mode first and gives each of the six modes a BLOCKING read-first line and a reference file',
         skip: SKIP,
         fn: () => {
             const text = skill();
@@ -105,7 +119,8 @@ const tests = [
                 assert.match(text, new RegExp(`\\*\\*\\[BLOCKING\\]\\*\\* When \`--mode=${name}\`, read \`references/mode-${name}\\.md\` in full FIRST`), `mandatory read line for ${name}`);
                 assert.ok(fs.existsSync(path.join(SKILLS, 'graph-code', 'references', `mode-${name}.md`)), `references/mode-${name}.md exists`);
             }
-            assert.match(text, /former `\/[a-z-]+`, `\/[a-z-]+`, `\/[a-z-]+`, `\/[a-z-]+` and `\/[a-z-]+`: those slash commands no longer exist/);
+            assert.match(text, /Each of the six modes works called directly with no workflow/);
+            assert.ok(!text.includes('graph' + '-export'), 'the entrypoint names the current export mode instead of a retired skill');
             // No mode and no matching intent shows the table instead of guessing
             assert.match(text, /never a guess/);
             // The Intent column holds ACTION phrases only: a prompt that merely names the graph ("show the code graph status") must not select
@@ -130,7 +145,8 @@ const tests = [
                 query: ['## Semantic Query Protocol', '## Available Query Patterns', 'status: "ambiguous"'],
                 trace: ['## Edge Types Traced', '--edge-kinds KIND1,KIND2', '**Bug/failure rule:**'],
                 'blast-radius': ['## Run the CLI Live', '**High risk:** >20 impacted nodes'],
-                'connect-api': ['## Zero-Config Auto-Detection', '## Matching Strategies', '"graphConnectors"']
+                'connect-api': ['## Zero-Config Auto-Detection', '## Matching Strategies', '"graphConnectors"'],
+                export: ['## Format Mode', '### `--format=json`', '### `--format=mermaid`', '## Implicit Edges in Export']
             };
             for (const [name, list] of Object.entries(markers)) {
                 for (const marker of list) {
@@ -167,7 +183,7 @@ const tests = [
                 assert.ok(text.includes(`\`${pattern}\``), `query pattern ${pattern}`);
             }
             for (const status of ['ok', 'ambiguous', 'not_found', 'error']) assert.ok(text.includes(`status: "${status}"`), `status ${status}`);
-            assert.match(text, /AskUserQuestion/, 'an ambiguous target is resolved with the user');
+            assert.match(text, /ask user question tool/, 'an ambiguous target is resolved with the user');
             for (const command of ['connections', 'batch-query', 'find-path', 'search']) assert.ok(text.includes(`code_graph ${command}`), `CLI ${command}`);
             assert.match(text, /Always use `--json` flag/);
         }
@@ -216,21 +232,26 @@ const tests = [
         }
     },
     {
-        name: 'TC-GCM-008 the old skill folders stay deleted, graph-export stays, no workflow step names a removed skill and the called-skill profile lists graph-code',
+        name: 'TC-GCM-008 removed graph folders and registrations stay absent while graph-code export remains model-selectable',
         skip: SKIP,
         fn: () => {
             for (const name of REMOVED) assert.ok(!fs.existsSync(path.join(SKILLS, name)), `${name} must not exist as a skill folder`);
-            assert.ok(fs.existsSync(path.join(SKILLS, 'graph-export', 'SKILL.md')), 'graph-export remains a separate skill');
+            assert.doesNotMatch(skill(), /^disable-model-invocation: true$/m, 'graph-code remains discoverable after absorbing the export utility');
+            // Intent: retirement removes every standalone skill while preserving the selectable mode owner.
+            // Failure signal: restoring a retired folder/registration or hiding graph-code fails.
+            const registry = read(REPO_ROOT, '.claude', 'scripts', 'skills_data.yaml');
+            for (const name of REMOVED) assert.doesNotMatch(registry, new RegExp(`^  name: ${name}$`, 'm'), `registry must not list ${name}`);
+            assert.match(mode('export'), /^# `\/graph-code --mode=export`/, 'graph-code owns the export contract');
             const raw = fs.readFileSync(path.join(REPO_ROOT, '.claude', 'workflows.json'), 'utf8');
             const document = JSON.parse(raw);
-            for (const name of REMOVED) assert.ok(!raw.includes(name), `workflows.json must not mention ${name}`);
+            for (const name of REMOVED) assert.ok(!raw.includes(name), `workflows.json must not invoke removed ${name}`);
             const steps = new Set();
             for (const id of Object.keys(document.workflows)) {
                 for (const manifest of resolveAllWorkflowManifests(document, id, { rootDir: REPO_ROOT })) {
                     for (const { skill: step } of manifest.occurrences) steps.add(step);
                 }
             }
-            for (const name of REMOVED) assert.ok(!steps.has(name), `no resolved workflow step runs ${name}`);
+            for (const name of REMOVED) assert.ok(!steps.has(name), `no resolved workflow step runs removed ${name}`);
             const profile = JSON.parse(read(REPO_ROOT, '.claude', 'config', 'skill-profiles.json'));
             assert.ok(profile.calledByOthers.skills.includes('graph-code'), 'calledByOthers lists graph-code');
             for (const name of REMOVED) assert.ok(!profile.calledByOthers.skills.includes(name), `calledByOthers must not list ${name}`);
@@ -259,8 +280,8 @@ const tests = [
             const description = match[1];
             assert.match(description, /^\[Code Intelligence\] Use when /);
             assert.ok(description.length <= 250, `description is ${description.length} chars, over 250`);
-            assert.match(description, /--mode=\{build\|query\|trace\|blast-radius\|connect-api\}/);
-            for (const keyword of [/build/i, /callers/i, /trac/i, /blast radius/i, /API/]) assert.match(description, keyword, `description routes ${keyword}`);
+            assert.match(description, /--mode=\{build\|query\|trace\|blast-radius\|connect-api\|export\}/);
+            for (const keyword of [/build/i, /callers/i, /trac/i, /blast radius/i, /API/, /export/i, /JSON/, /Mermaid/]) assert.match(description, keyword, `description routes ${keyword}`);
         }
     },
     {
@@ -274,9 +295,33 @@ const tests = [
         }
     },
     {
-        name: 'TC-GCM-012 no live source names a removed graph skill (the "former" lines of SKILL.md are the only allowed mention)',
+        name: 'TC-GCM-012 no live source names a removed graph skill (former mappings and preserved CLI verbs are allowed)',
         skip: SKIP,
         fn: () => {
+            // Intent: stale active command, path and utility-list references cannot silently restore retirement.
+            // Deliberate negative controls model a stale caller added by a later edit.
+            for (const name of REMOVED) {
+                for (const line of [`/${name}`, `/${name} --json`, `skills/${name}/SKILL.md`, `\`${name}\``, `'${name}'`, `"${name}"`]) {
+                    assert.ok(SKILL_NAME_PATTERNS.some(pattern => pattern.test(line)), `retirement scanner must detect ${line}`);
+                    assert.equal(allowedMention('.claude/docs/skills/README.md', line), false, 'active references have no historical exemption');
+                    assert.equal(allowedMention('.claude/scripts/code_graph/cli.py', line), false, 'Python sources retain retired skill detection');
+                }
+            }
+            const retiredExport = REMOVED[MODES.indexOf('export')];
+            for (const line of [`\`.code-graph/${retiredExport}.json\``, `default=".code-graph/${retiredExport}.json"`, `"/${retiredExport}.json"`]) {
+                assert.ok(!SKILL_NAME_PATTERNS.some(pattern => pattern.test(line)), 'an output artifact filename is not a retired command');
+            }
+            for (const suffix of ['blast-radius', 'connect-api']) {
+                const name = 'graph' + '-' + suffix;
+                for (const line of [`    cmd = sub.add_parser("${name}", aliases=["${suffix}"], help="CLI verb")`, `    elif args.command in ("${name}", "${suffix}"):`]) {
+                    assert.ok(SKILL_NAME_PATTERNS.some(pattern => pattern.test(line)), 'the quoted CLI token exercises the exception');
+                    assert.equal(allowedMention('.claude/scripts/code_graph/cli.py', line), true, 'the documented parser/dispatcher CLI verb remains valid');
+                    assert.equal(allowedMention('.claude/docs/skills/README.md', line), false, 'CLI exemption belongs only to its implementation owner');
+                    for (const stale of [`/${name}`, `skills/${name}/SKILL.md`, `"${retiredExport}"`]) {
+                        assert.equal(allowedMention('.claude/scripts/code_graph/cli.py', `${line} # ${stale}`), false, 'a preserved CLI token cannot conceal a retired skill reference');
+                    }
+                }
+            }
             const offenders = [];
             for (const root of LIVE_SOURCE_ROOTS) {
                 for (const rel of walk(root)) {
@@ -290,6 +335,36 @@ const tests = [
                 }
             }
             assert.deepEqual(offenders, [], `live sources still name a removed graph skill:\n${offenders.join('\n')}`);
+        }
+    },
+    {
+        name: 'TC-GCM-013 export preserves JSON and Mermaid artifacts, preconditions, selection and verified reporting',
+        skip: SKIP,
+        fn: () => {
+            // Intent: consolidation preserves each export branch and its action-changing conditions.
+            // Failure signal: losing a format/option/precondition or inlining execution into the root fails.
+            const text = mode('export');
+            assert.match(text, /Pick `--format` FIRST \(default `json`\)/);
+            assert.match(text, /unsupported format stops/);
+            assert.match(text, /Graph not built.*graph\.db.*absent/);
+            assert.match(text, /Python 3\.10\+/);
+            assert.match(text, /python3.*macOS\/Linux/);
+            assert.match(text, /Windows use `py -3`/);
+            for (const command of [
+                'code_graph export --json',
+                'code_graph export --files',
+                'code_graph export -o',
+                'code_graph export-mermaid <relative-path> --json',
+                'code_graph export-mermaid --file <relative-path> --json',
+                'code_graph export-mermaid <relative-path> -o'
+            ]) assert.ok(text.includes(command), `export keeps ${command}`);
+            assert.match(text, /If missing, ask for it via `ask user question tool` before running/);
+            for (const field of ['output_path', 'nodes_count', 'edges_count', 'file size', 'status: "ok"']) assert.ok(text.includes(field), `reports ${field}`);
+            assert.match(text, /graph-export\.json/);
+            assert.match(text, /path-based-unique-name/);
+            for (const kind of ['MESSAGE_BUS', 'TRIGGERS_EVENT', 'PRODUCES_EVENT', 'TRIGGERS_COMMAND_EVENT', 'API_ENDPOINT']) assert.ok(text.includes(kind), `exports ${kind}`);
+            const row = skill().split('\n').find(line => line.startsWith('| `--mode=export'));
+            assert.ok(row && row.includes('"export graph"') && row.includes('"export Mermaid"'), 'export intents route to the new mode');
         }
     }
 ];

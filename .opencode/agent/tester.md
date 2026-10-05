@@ -117,7 +117,7 @@ Connected contracts:
 >
 > **Mandatory closers:** Confidence % stated · Assumptions listed · Open questions surfaced · Next action concrete.
 >
-> **Stop conditions:** confidence <60% on any critical decision → stop and escalate via AskUserQuestion (60-80% → verify first) · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
+> **Stop conditions:** confidence <70% on any critical decision → stop and escalate via ask user question tool (70-80% → verify first) · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
 >
 > **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
 
@@ -233,15 +233,14 @@ Connected contracts:
 
 <!-- SYNC:red-flag-stop-conditions -->
 
-> **Red Flag Stop Conditions** — STOP and escalate to user via AskUserQuestion when:
+> **Red Flag Stop Conditions** — STOP and escalate to user via ask user question tool when:
 >
-> 1. Confidence drops below 60% on any critical decision
-> 2. Changes would affect >20 files (blast radius too large)
-> 3. Cross-service boundary is being crossed
-> 4. Security-sensitive code (auth, crypto, PII handling)
-> 5. Breaking change detected (interface, API contract, DB schema)
-> 6. Test coverage would decrease after changes
-> 7. Approach requires technology/pattern not in the project
+> 1. Confidence drops below 70% on any critical decision
+> 2. Cross-service boundary is being crossed
+> 3. Security-sensitive code (auth, crypto, PII handling)
+> 4. Breaking change detected (interface, API contract, DB schema)
+> 5. Test coverage would decrease after changes
+> 6. Approach requires technology/pattern not in the project
 >
 > **NEVER proceed past a red flag without explicit user approval.**
 

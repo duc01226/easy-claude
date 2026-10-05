@@ -15,12 +15,9 @@
 
 **Summary:**
 
-- **Purpose:** MUST ATTENTION derive aids only from fields mapped to canonical sources. NEVER author missing business intent or create a parallel scenario registry.
 - **Ordered run:** MUST ATTENTION read project config + required references → confirm scope/action/artifacts/destination → discover canonical owners → resolve mapped roles, IDs, carriers and test relation → assemble requested aids → stamp/write in an approved derived location, skipping unchanged content → verify source coverage, links, policy and noncanonical status; no source → stop and report.
 - **Actions:** `index` (default — regenerate derived aids) · `audit` (report derived aids stale vs source specs). Select with `action=index|audit` or the `--audit` flag; the spec-level mode is always `[mode=index]`, so the `audit` action never means the spec `audit` mode.
 - **Hard boundary:** outputs are DERIVED, regenerate from exact linked sources, and never replace or duplicate canonical owners, case registries, or project-managed indexes. Honor the project's configured authorship, section, prose, and destination rules.
-
-> **Routing:** `/spec [mode=index]` owns derived aids; the project's canonical authoring workflow owns source specs and native cases.
 
 > **[SCOPE]** Assemble only the user-requested derived index, ERD, or reimplementation guide. Resolve the configured business root from `specRoots.business.path`, using the framework config loader's fallback only when unset. Consult `spec-system-reference.md` through the configured project-reference docs root and its docs index for canonical file patterns, exclusions, ownership, and whether an index or destination is allowed. Never create a parallel spec plane or case registry.
 
@@ -49,6 +46,24 @@
 
 ---
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Scope Mapping](#scope-mapping)
+- [Step 0 — Project Context and Scope Gate (MANDATORY)](#step-0--project-context-and-scope-gate-mandatory)
+- [Step 1 — Read the Canonical Sources](#step-1--read-the-canonical-sources)
+- [Step 2 — Assemble the Derived Aids](#step-2--assemble-the-derived-aids)
+- [Step 3 — Stamp & Write](#step-3--stamp--write)
+- [Step 4 — Verify (self-check before completing)](#step-4--verify-self-check-before-completing)
+- [Ownership Boundary (NON-NEGOTIABLE)](#ownership-boundary-non-negotiable)
+- [Selective Artifact Mode](#selective-artifact-mode)
+- [Next Steps](#next-steps)
+- [Related Skills](#related-skills)
+- [Purpose](#purpose)
+- [Mode protocols](#mode-protocols)
+- [Prompt-Enhance Closing Anchors](#prompt-enhance-closing-anchors)
+- [Closing Reminders](#closing-reminders)
+
 ## Scope Mapping
 
 Use the grouping and ownership model named by the configured root and project references (for example, domain, capability, module, or a single root). Do not assume an application bucket or service-to-bucket map. Keep project-specific grouping names in project references, not in this skill.
@@ -61,7 +76,7 @@ Before reading canonical source content:
 
 1. **MUST ATTENTION** read `docs/project-config.json`, the configured docs index (default `docs/project-reference/docs-index-reference.md`), `lessons.md`, and the required spec references from the configured reference-doc root. Resolve roots, authorship, mapped sections/identities/carriers, and the allowed derived-output location.
 2. State `Reference docs read: ... | Not applicable: ...`.
-3. **MUST ATTENTION** use `AskUserQuestion` to confirm scope and output. Do not read canonical source bodies until the user confirms.
+3. **MUST ATTENTION** use `ask user question tool` to confirm scope and output. Do not read canonical source bodies until the user confirms.
 
 Confirm:
 
@@ -171,7 +186,7 @@ If a requested artifact conflicts with the project's canonical ownership or outp
 
 ## Next Steps
 
-**[BLOCKING]** After completing, use `AskUserQuestion` — DO NOT skip:
+**[BLOCKING]** After completing, use `ask user question tool` — DO NOT skip:
 
 - **"/docs-manager --mode=update (Recommended)"** — reconcile stale canonical specs and their profile-defined case/test carriers
 - **"/watzup"** — wrap up if index generation is the final step
@@ -190,7 +205,7 @@ If a requested artifact conflicts with the project's canonical ownership or outp
 
 ## Purpose
 
-`/spec [mode=index]` assembles regenerable navigation aids over the configured canonical roots. It reads only mapped fields, keeps exact owners and identities, obeys output policy, and never reverse-engineers code into a parallel spec or case layer. Code is consulted only for an explicitly requested technical relationship or build order.
+Use this mode for the [Actions](#quick-summary) above; the [Ownership Boundary](#ownership-boundary-non-negotiable) governs every output. Code may resolve only explicitly requested technical relationships or build order, never missing canonical business intent or cases.
 
 ---
 
@@ -210,24 +225,20 @@ The protocols below apply to this mode only; their full text is inline so this r
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Generate requested, regenerable navigation aids from exact canonical sources while preserving configured section, identity, evidence, authorship, and case/test semantics.
-- **IMPORTANT MUST ATTENTION Main steps/actions/gates:** read project config and required spec references → `AskUserQuestion` confirms scope, action, artifacts, and approved output destination before source-body reads → discover canonical owners with the configured patterns/exclusions → map intent/contracts/evidence, identifiers, carriers, and coverage relation; strict default TC/Section 8 applies only without an explicit native profile → assemble selected aids → stamp and write each approved output immediately, with unchanged-content guard → verify selection totals, source links, section policy, DERIVED status, and no duplicate registry → after completion ask about `/docs-manager --mode=update`, `/watzup`, or continuing manually. NEVER skip gates or infer a missing source — why: a wrong root or copied case registry can silently replace the real owner.
+- **IMPORTANT MUST ATTENTION Main steps/actions/gates:** read project config and required spec references → `ask user question tool` confirms scope, action, artifacts, and approved output destination before source-body reads → discover canonical owners with the configured patterns/exclusions → map intent/contracts/evidence, identifiers, carriers, and coverage relation; strict default TC/Section 8 applies only without an explicit native profile → assemble selected aids → stamp and write each approved output immediately, with unchanged-content guard → verify selection totals, source links, section policy, DERIVED status, and no duplicate registry → after completion ask about `/docs-manager --mode=update`, `/watzup`, or continuing manually. NEVER skip gates or infer a missing source — why: a wrong root or copied case registry can silently replace the real owner.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries — MUST ATTENTION each canonical body above):**
 
 - **Cross-Service Check:** scan producers/consumers/sagas/contracts; flag breaking-change risk.
 
-- **IMPORTANT MUST ATTENTION** Canonical owners remain authoritative; emit only approved derived aids, link every row/entity to its exact owner, and mark `[UNVERIFIED]` or omit unsupported claims.
-- **IMPORTANT MUST ATTENTION [BLOCKING]** Resolve business root, canonical pattern, section roles, owner/ID rules, carriers, coverage relation, prose policy, and destination from project config + required references; if no native profile is explicit, use the strict default TC/Section 8 format.
-- **IMPORTANT MUST ATTENTION [BLOCKING]** Confirm scope + action + artifacts + allowed destination via `AskUserQuestion` after required reference prefetch and before reading canonical source bodies. Empty selection → verify root/pattern, report exact search, STOP; never extract a substitute spec from code.
-- **IMPORTANT MUST ATTENTION [BLOCKING]** Never create a parallel case registry, canonical spec tree, or index forbidden by project policy; output only at a confirmed derived destination.
-- **IMPORTANT MUST ATTENTION [BLOCKING]** Context compaction/session resume → `TaskList` FIRST; resume existing tasks, never re-run a completed generation pass — why: summaries describe intent, not filesystem state
-- **IMPORTANT MUST ATTENTION [BLOCKING]** Stamp a DERIVED banner + date and write each selected aid immediately; compare candidate content first and do not write when content is unchanged.
-- **IMPORTANT MUST ATTENTION** Apply prose/stack constraints from the mapped project references; do not assume a universal section count or target-stack exception.
-- **IMPORTANT MUST ATTENTION** Verify every source link and selected-owner count; mark `[UNVERIFIED]` rather than guessing identity, field, status, relationship, coverage, or count.
-- **IMPORTANT MUST ATTENTION** Read code only for an explicitly requested technical dependency/build order or to validate a declared relationship — never to invent canonical business content.
-- **IMPORTANT MUST ATTENTION** Before authoring a new derived format, inspect 3+ matching project artifacts and confirm their ownership/destination rules fit the requested output.
-- **IMPORTANT MUST ATTENTION** Break task scope into small `TaskCreate` todos (one per artifact) before acting; mark each `completed` immediately after its file is written; keep exactly one `in_progress`
-- **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
+- **Ownership:** emit only requested, approved derived aids. Preserve exact canonical owners and profile-defined identities; never create a parallel spec/case registry or a forbidden index.
+- **Resolve and confirm:** read config + required references for roots, selectors/exclusions, mapped roles, IDs/carriers/cardinality, prose and destination policy. Confirm scope/action/artifacts/destination before canonical body reads. Empty selection → verify root/selector, report exact search, STOP.
+- **Evidence:** link every row/entity to its canonical source; keep unresolved fields/counts/results `UNKNOWN`/`[UNVERIFIED]` or omit unsupported claims. Never infer coverage from test or variant totals; inspect each claimed executor/assertion.
+- **Write and verify:** stamp the DERIVED banner + date, write each approved aid immediately, and skip unchanged candidates without changing their dates. Check source links, selected-owner totals and every output's policy/noncanonical status.
+- **Code boundary:** read code only to validate a declared relationship or resolve an explicitly requested technical dependency/build order; never invent canonical content. Follow local prose/stack policy, not a universal stack exception.
+- **Local fit:** before authoring a new derived format, inspect 3+ matching project artifacts and confirm their ownership/destination rules fit.
+- **Tracking/recovery:** create small tasks per artifact; keep one `in_progress`, complete each after its write, and inspect existing tasks first after compaction/resume rather than repeating a completed generation pass. If task tools are unavailable, maintain equivalent statuses/evidence.
+- **Parallel dispatch:** tag PAR/SEQ, group PAR into disjoint-write waves, dispatch each wave in one message and wait at the barrier before advancing.
 
 **Anti-Rationalization:**
 
@@ -236,15 +247,10 @@ The protocols below apply to this mode only; their full text is inline so this r
 | "The derived view can become a canonical source"        | NEVER — only configured canonical owners define requirements and cases. |
 | "A familiar filename or folder pattern should work"     | Resolve the project's configured root, selectors, and naming rules first. |
 | "No specs in this selection; I'll extract them from code" | Verify the root and selector, report exact paths, then STOP; code is not a replacement source. |
-| "Scope is obvious; skip `AskUserQuestion`"              | BLOCKING — confirm scope, action, artifact set, and destination before reading canonical bodies. |
+| "Scope is obvious; skip `ask user question tool`"              | BLOCKING — confirm scope, action, artifact set, and destination before reading canonical bodies. |
 | "I'll trust the source link"                             | Verify it. A dangling link makes the derived navigation layer worse than none. |
 | "Case count looks about right"                           | Count only from the selected canonical carrier and its explicit counting rule; otherwise mark unknown or omit it. |
 
 **[TASK-PLANNING]** MUST ATTENTION analyze task scope and break into small todo tasks/sub-tasks via TaskCreate before acting.
 
-> **[IMPORTANT]** Break into many small todo tasks systematically before starting — this is critical.
-
-**IMPORTANT MUST ATTENTION** Derived aids remain regenerable and noncanonical; preserve canonical owners and profile-defined identifiers.
-**IMPORTANT MUST ATTENTION** Read config + required refs, then confirm scope/action/artifacts/destination before canonical source reads.
-**IMPORTANT MUST ATTENTION** Use the explicit native profile when present; otherwise keep strict default TC/Section 8 obligations. Never invent a registry, path, identity, relationship, or coverage result.
-**IMPORTANT MUST ATTENTION** Link every derived claim to a canonical source, obey destination policy, and verify every selected output before completion.
+**IMPORTANT MUST ATTENTION** Preserve canonical ownership; confirm scope/action/destination before source reads; verify linked, regenerable outputs without inventing cases or coverage.

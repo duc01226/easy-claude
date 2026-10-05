@@ -1,9 +1,39 @@
 ---
 name: workflow-feature
-version: 1.0.0
-description: '[Workflow] Use when implementing a well-defined feature, component or capability (incl. TDD/test-first) where no canonical spec has the behavior yet. Spec-complete work: workflow-implement-spec.'
+version: 1.0.1
+description: "[Workflow] Implement a well-defined feature spec-first and test-first when its behavior is not yet captured in a canonical spec. Spec-complete behavior uses workflow-implement-spec."
 disable-model-invocation: false
 ---
+
+<!-- WORKFLOW-CALLS:START -->
+## Workflow Calls and Todo Bootstrap
+
+Read [the registry](../../../.claude/workflows.json) → `workflows.workflow-feature` together with this skill. Call [`/start-workflow workflow-feature`](../start-workflow/SKILL.md) to resolve the selected mode, pre-actions and fingerprint.
+
+**Todo FIRST:** create ALL selected occurrence tasks before triage, analysis or step execution, including conditional/optional tasks; preserve occurrence IDs, roles and barrier groups. Use native task tools or an equivalent persistent ledger. Then mark the first task `in_progress`; attach evidence before `completed`.
+Mode selection and registry loading prepare tracking; any 'first action' below means the first substantive action after this bootstrap.
+
+**Call each step skill:** read its linked SKILL.md and execute its protocol through the active host with the registry args. Reading or naming a skill alone is not execution. Required gates and core/optional flex follow the linked start-workflow Step Execution Protocol; keep this skill's quality gates, loops and evidence requirements.
+
+**Conditions:** load each occurrence's registry `applicability.when` and `skipReason` verbatim, and record its run/skip evidence through the linked start-workflow protocol. Do not silently omit a task or turn a conditional skill into an unconditional call. Declared parallel groups retain their all-return barrier.
+
+Explicit step-skill calls by mode (registry order; roles and conditions remain owned by the registry):
+
+- Mode `default`: [`/investigate`](../investigate/SKILL.md) (core) → [`/spec [mode=discovery]`](../spec/SKILL.md) (optional; conditional) → [`/domain-analysis`](../domain-analysis/SKILL.md) (optional; conditional) → [`/why-review`](../why-review/SKILL.md) (optional; conditional) → [`/spec`](../spec/SKILL.md) (core) → [`/spec [mode=clarify]`](../spec/SKILL.md) (optional; conditional) → [`/scenario`](../scenario/SKILL.md) (optional; conditional) → [`/pbi --mode=mockup --explore`](../pbi/SKILL.md) (optional; conditional) → [`/spec [mode=tests]`](../spec/SKILL.md) (core) → [`/pbi --mode=review --type=spec-tests`](../pbi/SKILL.md) (core) → [`/plan`](../plan/SKILL.md) (core) → [`/plan --mode=validate`](../plan/SKILL.md) (optional; conditional) → [`/plan --mode=execute`](../plan/SKILL.md) (core) → [`/seed-test-data`](../seed-test-data/SKILL.md) (optional; conditional) → [`/integration-test`](../integration-test/SKILL.md) (core) → [`/spec [mode=sync]`](../spec/SKILL.md) (core) → [`/workflow-review-changes --tests=defer`](../workflow-review-changes/SKILL.md) (gate) → [`/integration-test --mode=verify`](../integration-test/SKILL.md) (core) → [`/workflow-e2e --source=context`](../workflow-e2e/SKILL.md) (optional; conditional) → [`/test`](../test/SKILL.md) (gate) → [`/demo-guide`](../demo-guide/SKILL.md) (optional; conditional) → [`/workflow-end`](../workflow-end/SKILL.md) (gate) → [`/watzup`](../watzup/SKILL.md) (core)
+<!-- workflow-mode:default fingerprint:2d5aa27293ed7c03054c3ebbc68d8e618c8dba7c9698257572dde242c941bb7d -->
+
+Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs --write` after registry edits; [`/sync-codex`](../sync-codex/SKILL.md) refreshes it before mirroring.
+<!-- WORKFLOW-CALLS:END -->
+
+## Quick Summary
+
+**Goal:** Deliver a well-defined feature whose reviewed canonical spec matches the implementation, verified tests and converged change review.
+
+**Summary:**
+
+- Triage size, kind and risk; activate the workflow and resolve its registry, Goal Contract and artifact authority.
+- Main route: investigate → spec discovery → domain analysis → rationale review → spec authoring → clarification → scenarios → explore mockup → test specs → test-spec review → plan → plan validation → execute → QC seed data → integration tests → spec sync → static change review → integration verification → E2E → remaining tests → demo → close → handoff. Evaluate optional steps by the registry's conditions and record its skip reasons.
+- Preserve spec-first/test-first dependencies, human approval gates and verify-last ordering; close only with the required outcome evidence. Spec-complete work uses `workflow-implement-spec`; large ambiguous work uses `workflow-big-feature`.
 
 ## Purpose
 
@@ -113,7 +143,7 @@ Recommended: independent read-only work in one parallel wave (`/spec [mode=disco
 - Validate findings (evidence-backed, reproducible) before fixing; fix at the owning layer; re-run the reviewer or test that raised each finding, plus a holistic pass when the fixes were non-trivial.
 - A failing test gets a root-cause verdict before either the source or the test is edited; never weaken an assertion to force green.
 - Replanning is exceptional: only a material scope/contract decision invalidating the saved plan returns to `/plan`; ordinary implementation discovery stays with the executor.
-- Review loops (each `/pbi --mode=review` occurrence, the nested review): round 1 exits on zero open validated findings (Round-1 LOW closure); round 2 exits on zero CRITICAL/HIGH/MEDIUM with LOW-only findings deferred; cap 3 review rounds; failing tests are uncapped; escalate with `AskUserQuestion` on no progress. Convergence lives inside each skill's own loop, so the sequence lists each review once.
+- Review loops (each `/pbi --mode=review` occurrence, the nested review): round 1 exits on zero open validated findings (LOW deferral); round 2 exits on zero CRITICAL/HIGH/MEDIUM with LOW-only findings deferred; cap 3 review rounds; failed checks block and at the three-round cap require explicit user-approved bounded extension; escalate with `ask user question tool` on no progress. Convergence lives inside each skill's own loop, so the sequence lists each review once.
 - Spec-loop discipline: §8 derives invariant/property TCs for every hard rule and invariant, not only example scenarios; every behavior-changing finding updates BOTH the spec and the tests, never code alone.
 
 <!-- PROTOCOL-GUIDES:START -->
@@ -167,6 +197,10 @@ Recommended: independent read-only work in one parallel wave (`/spec [mode=disco
 <!-- /SYNC:session-goal-ledger:reminder -->
 
 ## Closing Reminders
+
+**IMPORTANT MUST ATTENTION Goal:** Deliver a well-defined feature whose reviewed canonical spec matches the implementation, verified tests and converged change review.
+
+**IMPORTANT MUST ATTENTION Main route:** triage and activate → investigate → spec discovery → domain analysis → rationale review → spec authoring → clarification → scenarios → explore mockup → test specs → test-spec review → plan → plan validation → execute → QC seed data → integration tests → spec sync → static change review → integration verification → E2E → remaining tests → demo → close → handoff. Registry conditions govern optional steps; record their skip reasons.
 
 **IMPORTANT MUST ATTENTION** triage size, kind and risk FIRST — depth follows risk and ambiguity, not file count; record the triage and every deviation.
 **IMPORTANT MUST ATTENTION** gates never flex: tests green in THIS run · nested `/workflow-review-changes` converged inline · Feature Spec re-verified and synced when behavior changed · Goal Satisfaction matrix at `/workflow-end`.

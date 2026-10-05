@@ -9,6 +9,8 @@ import { promisify } from "node:util";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const execFileAsync = promisify(execFile);
+const require = createRequire(import.meta.url);
+const { renderWorkflowSkillContract, updateWorkflowSkillContract } = require("../../lib/workflow-skill-contract.cjs");
 const thisDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(thisDir, "..", "..", "..", "..");
 const verifyScript = path.join(
@@ -207,6 +209,7 @@ function makeWorkflowJson() {
     const workflow = workflows[`workflow-${workflowId}`];
     workflow.preActions ??= {};
     workflow.preActions.injectContext ??= `Canonical context for ${workflowId}.`;
+    workflow.preActions.readFiles = [`.claude/skills/workflow-${workflowId}/SKILL.md`];
   }
 
   return {
@@ -333,7 +336,13 @@ async function writeSkillFile(root, workflowId, stepsLine, options = {}) {
     );
   }
 
-  await fs.writeFile(path.join(targetDir, "SKILL.md"), content.join("\n"), "utf8");
+  const document = JSON.parse(await fs.readFile(path.join(root, "..", "..", ".claude", "workflows.json"), "utf8"));
+  const id = `workflow-${workflowId}`;
+  const availableSkills = Object.values(document.workflows).flatMap(entry => entry.sequence ?? [])
+    .map(step => typeof step === "string" ? step.split(/\s+/, 1)[0] : step.skill);
+  const manifests = resolveWorkflowManifestsForVerification(document, id, { availableSkills });
+  const contract = renderWorkflowSkillContract(id, manifests, { dialect: root.includes(".agents") ? "$" : "/" });
+  await fs.writeFile(path.join(targetDir, "SKILL.md"), updateWorkflowSkillContract(content.join("\n"), contract), "utf8");
 }
 
 test("verify-workflow-cycle-compliance accepts the domain refresh for delivery workflows and excludes non-delivery workflows", async () => {

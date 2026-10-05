@@ -20,7 +20,6 @@ description: '[Documentation] Use when generating, smart-merging or refactoring 
 1. **Detect Mode** — init (no root context or `--mode init`), update (`--mode update`), refactor (`--mode refactor`)
 2. **Run Generator** — `node .claude/skills/ai-context-refresh/scripts/generate-claude-md.cjs --mode <mode>`
 3. **AI Fill** — Review output, fill creative sections (project description, golden rules inference)
-4. **Verify** — Confirm output is valid, no project-specific leaks from template, and the AI-discovery gate passes (project purpose on top, Doc Lookup triggers to existing docs; the root is short, so no closing reminders)
 5. **Sync Codex Mirrors** — After the final AI edits and verification, run the shared standalone runner with `--skip=claude-md` so `AGENTS.md`, `.agents/`, and `.codex/` are regenerated from the finished `CLAUDE.md`.
 
 **Key Rules:**
@@ -178,7 +177,6 @@ After the script generates the mechanical parts, AI reviews and fills:
 - [ ] No template placeholder text remains (e.g., `{project-name}`, `TODO`)
 - [ ] No `.claude/skills/ai-context-refresh/` implementation paths leak into generated project context (self-reference)
 - [ ] Conditional sections with no data are omitted (not empty stubs)
-- [ ] **AI-discovery gate (`SYNC:ai-discovery-doc-quality`):** the first screen carries the project purpose (the `tldr` line) and the Doc Lookup table; every Doc Lookup / path-routing row names a trigger and an existing target; a not-applicable doc appears once as a skip; the root holds project information only, so it stays short and needs no closing-reminder block
 - [ ] A discovery defect inside a `SECTION:*` block is fixed in its builder, the template or `docs/project-config.json`, then regenerated — never hand-edited; hand-owned prose that changed ran `/prompt-enhance`
 
 ## Phase 5: Sync Codex mirrors (after the final CLAUDE.md edit)
@@ -267,7 +265,6 @@ node .claude/hooks/tests/run-all-tests.cjs --filter=agent-files
 
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
-- `ai-discovery-doc-quality` — Agent-guide content value, authority, retention and verified discovery; writing a doc that an agent reads → .claude/skills/shared/protocols/ai-discovery-doc-quality.md
 - `output-quality-principles` — Useful, readable guidance without lost conditions; writing generated docs or reports → .claude/skills/shared/protocols/output-quality-principles.md
 
 <!-- PROTOCOL-GUIDES:END -->
@@ -278,11 +275,6 @@ node .claude/hooks/tests/run-all-tests.cjs --filter=agent-files
 
 <!-- /SYNC:output-quality-principles:reminder -->
 
-<!-- SYNC:ai-discovery-doc-quality:reminder -->
-
-**MUST ATTENTION** AI-read guides: purpose/read-when and priorities first; retain action-changing rules, exceptions and rationale; verify triggered discovery and parser contracts. Use the content-value and semantic-disposition gate after enhancement; keep evidence in temporary reports and fix generated output at its source.
-
-<!-- /SYNC:ai-discovery-doc-quality:reminder -->
 
 ## Closing Reminders
 
@@ -291,13 +283,11 @@ node .claude/hooks/tests/run-all-tests.cjs --filter=agent-files
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):** MUST ATTENTION honor every protocol below.
 
 - **Output Quality:** token-efficient — no inventories/trees/TOCs; tables over prose.
-- **AI-Discovery Doc Quality:** project purpose + critical rules on top, reminders at the bottom, every cross-doc pointer a `read <path> when <situation>` trigger to an existing target; fix generated sections at their source.
 
 **IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting
 **IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code
 **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
 **IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
-**IMPORTANT MUST ATTENTION** execute in order: preflight config and detect mode → generate/update or AI smart-merge/refactor while preserving unmanaged content → AI-fill and verify markers/placeholders/portability plus the AI-discovery gate → run the standalone `/sync-codex` runner with `--skip=claude-md` after final root edits and verify every Codex mirror
 
 | Evasion | Rebuttal |
 | --- | --- |

@@ -1,7 +1,7 @@
 ---
 name: scaffold
 version: 1.1.0
-description: '[Architecture] Use when a workflow step or the user asks for project scaffolding: foundations and golden-path examples before feature implementation.'
+description: '[Architecture] Use when a workflow step or the user asks for project architecture foundations, infrastructure and examples before feature implementation.'
 ---
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
@@ -19,7 +19,7 @@ description: '[Architecture] Use when a workflow step or the user asks for proje
 
 **Summary:**
 - **Purpose + scope:** Build reusable architecture infrastructure and golden-path examples, not feature code; adapt checklist templates to the detected stack and plan, skip irrelevant items with evidence.
-- **Ordered main flow:** (1) Activation Guards → (2) Read Plan → (3) Generate the applicable Backend and/or Frontend/UI checklist → (4) Validate against Plan → (5) confirm via `AskUserQuestion` → (6) scaffold approved abstractions + applicable foundations + examples → (7) verify build, architecture, testability, and Verification Gate → (8) `/linter-setup` → `/harness-setup` → `AskUserQuestion` handoff.
+- **Ordered main flow:** (1) Activation Guards → (2) Read Plan → (3) Generate the applicable Backend and/or Frontend/UI checklist → (4) Validate against Plan → (5) confirm via `ask user question tool` → (6) scaffold approved abstractions + applicable foundations + examples → (7) verify build, architecture, testability, and Verification Gate → (8) `/linter-setup` → `/harness-setup` → `ask user question tool` handoff.
 - **Testability gate:** Resolve Unit/Integration/System/E2E and warranted Performance/Scale applicability or evidence-backed `N/A`; record owner/root/data, copy-ready full/focused commands, zero-match failure, CI/simple Windows/macOS/Linux entry, host/container modes, environment reach, identity, idempotent/additive isolation, and repeat proof. Unresolved applicable fields block; do not invent E2E coverage.
 - **Non-negotiables:** Suitable existing foundations covering the planned boundary or wrong workflow → SKIP and mark completed; every plan decision maps to a checklist item; applicable project foundations must pass; sensor setup only via `/linter-setup` then `/harness-setup`; block `/feature-implement` until verification passes; cite evidence and confidence.
 
@@ -57,9 +57,9 @@ description: '[Architecture] Use when a workflow step or the user asks for proje
 1. **Read Plan** — Parse architecture decisions, tech stack, and domain model.
 2. **Generate Scaffolding Checklist** — Cover applicable abstractions and infrastructure identified by the plan, using the Backend and/or Frontend/UI categories below.
 3. **Validate Against Plan** — Map every architecture decision to a scaffolding item.
-4. **Present to User** — Use `AskUserQuestion` to confirm the checklist before code generation.
+4. **Present to User** — Use `ask user question tool` to confirm the checklist before code generation.
 5. **Scaffold** — Create only the abstractions, infrastructure, and examples selected by the plan and supported by project conventions.
-6. **Verify** — Build; validate the selected architecture, testability, and the Verification Gate; then invoke `/linter-setup` → `/harness-setup` and present the `AskUserQuestion` handoff.
+6. **Verify** — Build; validate the selected architecture, testability, and the Verification Gate; then invoke `/linter-setup` → `/harness-setup` and present the `ask user question tool` handoff.
 
 **AI surface?** Only if the plan scaffolds or changes a model call, prompt, agent, tool/MCP, retrieval or eval (see `node .claude/scripts/ai-signal-scan.cjs`): read `.claude/skills/shared/protocols/ai-feature-framing-gate.md` and apply it; otherwise skip this line.
 
@@ -144,7 +144,7 @@ AI must self-investigate chosen tech stack, produce a checklist covering these c
 - [ ] Create a `design-system/README.md` only when the project establishes a shared design system; document its real tokens, components, tiers, or platform concepts rather than preselecting them
 - [ ] Author `ui-review-principles.md` only when the project adopts explicit UI review rules. Base it on the configured platform, styling, accessibility, responsive, layering, and async-state conventions. BEM and CSS nesting limits are examples only when the project selects CSS/BEM rules.
 - **No-UI skip rule:** create no UI convention or design-system documents when the project has no UI surface.
-- [ ] **Discovery gate (`SYNC:ai-discovery-doc-quality`):** each UI convention doc created here leads with its purpose, when to read it and its critical rules, and is routed from the docs index or root context — select it in `referenceDocs` through `/project-config` so the generated Doc Lookup routes it; a doc nothing routes to is never read.
+- [ ] **Discovery gate:** each UI convention doc created here leads with its purpose, when to read it and its critical rules, and is routed from the docs index or root context — select it in `referenceDocs` through `/project-config` so the generated Doc Lookup routes it; a doc nothing routes to is never read.
 
 ## Example / Golden-Path Reference Scaffolding (when it improves adoption)
 
@@ -187,7 +187,7 @@ Read the completed `architecture --mode=design` Testability & Execution Contract
 | Integration/System | Create or document one applicable public-path example, its runner/root, full and focused commands, zero-match failure behavior, CI gate, and simple Windows/macOS/Linux entry point. |
 | E2E | Create or document one applicable configured-browser journey and commands; if no framework/configuration/command is evidenced, record `N/A — {evidence}` and create no invented browser example. |
 
-For each applicable persistent tier, the handoff also records the run/test identity and unique business-data suffix, supported public setup path, realistic valid data, count-before-create idempotent/restart-safe reference setup, additive/no-reset accumulation, mutable-root and parallel-worker isolation, realistic pacing/arrange barrier, exact result, and two consecutive no-reset full runs. If scaffold has not executed the commands yet, record `planned — {owner}` rather than claiming a pass. Include these contract rows in the existing user-confirmed final checklist; unresolved material tool choices still use the existing `AskUserQuestion` gate.
+For each applicable persistent tier, the handoff also records the run/test identity and unique business-data suffix, supported public setup path, realistic valid data, count-before-create idempotent/restart-safe reference setup, additive/no-reset accumulation, mutable-root and parallel-worker isolation, realistic pacing/arrange barrier, exact result, and two consecutive no-reset full runs. If scaffold has not executed the commands yet, record `planned — {owner}` rather than claiming a pass. Include these contract rows in the existing user-confirmed final checklist; unresolved material tool choices still use the existing `ask user question tool` gate.
 
 ## Code Quality Gate Selection (MANDATORY MUST ATTENTION — Before Feature Code)
 
@@ -300,7 +300,7 @@ The checklists above are **templates**. Before scaffolding:
 2. **Adapt naming** — Match target framework and language conventions
 3. **Skip irrelevant items** — Not every project needs every item (e.g., skip IFileStorageService if no file uploads)
 4. **Add project-specific items** — The plan may require additional base classes not in the template
-5. **Use `AskUserQuestion`** — Confirm final checklist with user before generating code
+5. **Use `ask user question tool`** — Confirm final checklist with user before generating code
 
 ## Output
 
@@ -331,7 +331,7 @@ Verify each selected, applicable foundation from the project readiness protocol:
 
 ## Next Steps
 
-**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, MUST ATTENTION use `AskUserQuestion` to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
+**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, MUST ATTENTION use `ask user question tool` to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
 
 - **"/feature-implement (Recommended)"** — Begin implementing feature stories on top of the scaffolding
 - **"/workflow-review-changes"** — Review scaffolding code before proceeding
@@ -345,7 +345,6 @@ Verify each selected, applicable foundation from the project readiness protocol:
 
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
-- `ai-discovery-doc-quality` — Agent-guide content value, authority, retention and verified discovery; writing a doc that an agent reads → .claude/skills/shared/protocols/ai-discovery-doc-quality.md
 - `design-distinctiveness-gate` — Design identity gate DD-1 to DD-8: subject, design plan, generic test, restraint; designing, implementing or reviewing a visual surface → .claude/skills/shared/protocols/design-distinctiveness-gate.md
 - `design-review-checklist` — Executable front-end design review protocol CL-1 to CL-6; reviewing, planning or building front-end work → .claude/skills/shared/protocols/design-review-checklist.md
 - `engineering-foundation-gate` — Seven engineering-foundation dimensions judged by project profile; creating or reviewing how a project is built, run, tested or checked → .claude/skills/shared/protocols/engineering-foundation-gate.md
@@ -376,11 +375,6 @@ Assess quality, error handling, async interaction, runtime/deployment, and integ
 
 <!-- /SYNC:scaffold-production-readiness:reminder -->
 
-<!-- SYNC:ai-discovery-doc-quality:reminder -->
-
-**MUST ATTENTION** AI-read guides: purpose/read-when and priorities first; retain action-changing rules, exceptions and rationale; verify triggered discovery and parser contracts. Use the content-value and semantic-disposition gate after enhancement; keep evidence in temporary reports and fix generated output at its source.
-
-<!-- /SYNC:ai-discovery-doc-quality:reminder -->
 
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:START -->
@@ -431,7 +425,7 @@ Assess quality, error handling, async interaction, runtime/deployment, and integ
 **IMPORTANT MUST ATTENTION** Testability contract: resolve evidence-backed Unit/Integration/System/E2E rows, copy-ready full/focused commands, zero-match failures, owner/root/data, CI/simple Windows/macOS/Linux entry, unique run identity, and repeat proof before claiming setup, review, or test completion.
 **IMPORTANT MUST ATTENTION Goal:** Generate a copy-ready architecture foundation that follows the project's chosen paradigm, conventions, and applicable quality gates before feature implementation.
 
-**MUST ATTENTION — Main steps (execute ALL, in order; AI keeps forgetting these):** (1) Read Plan → (2) Generate the applicable Backend and/or Frontend/UI checklist → (3) Validate Against Plan → (4) Present to User via `AskUserQuestion` → (5) Scaffold only the abstractions and foundations selected by the plan → (6) Verify the project build, chosen architecture, and Verification Gate → invoke `/linter-setup` → `/harness-setup` → `AskUserQuestion` handoff. NEVER skip, reorder, or merge a step without explicit user approval.
+**MUST ATTENTION — Main steps (execute ALL, in order; AI keeps forgetting these):** (1) Read Plan → (2) Generate the applicable Backend and/or Frontend/UI checklist → (3) Validate Against Plan → (4) Present to User via `ask user question tool` → (5) Scaffold only the abstractions and foundations selected by the plan → (6) Verify the project build, chosen architecture, and Verification Gate → invoke `/linter-setup` → `/harness-setup` → `ask user question tool` handoff. NEVER skip, reorder, or merge a step without explicit user approval.
 
 **MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
@@ -445,12 +439,12 @@ Assess quality, error handling, async interaction, runtime/deployment, and integ
 **MANDATORY IMPORTANT MUST ATTENTION** BLOCK `/feature-implement` until the Verification Gate passes — selected foundations are verified or explicitly `NOT-APPLICABLE`, and `/linter-setup` plus `/harness-setup` complete their selected work — why: code shipped without the project's warranted quality gates is technical debt from day one.
 **MANDATORY IMPORTANT MUST ATTENTION** delegate ALL sensor setup to `/linter-setup` then `/harness-setup` — NEVER hand-configure linters/formatters/pre-commit hooks in this skill — why: a checklist of installs is not a harness; the harness skills wire each control to its lifecycle stage.
 **MANDATORY IMPORTANT MUST ATTENTION** when the chosen architecture uses base abstractions, apply its relevant design principles (including SOLID where appropriate) and keep each base focused — why: an unnecessary or oversized base spreads its design flaw to every dependent feature.
-**MANDATORY IMPORTANT MUST ATTENTION** the checklists are TEMPLATES — self-investigate the chosen tech stack, adapt naming to framework conventions, skip irrelevant items, and confirm the final checklist via `AskUserQuestion` before generating code — NEVER auto-decide scope — why: scaffolding the wrong stack's idioms forces a costly rewrite before any feature lands.
+**MANDATORY IMPORTANT MUST ATTENTION** the checklists are TEMPLATES — self-investigate the chosen tech stack, adapt naming to framework conventions, skip irrelevant items, and confirm the final checklist via `ask user question tool` before generating code — NEVER auto-decide scope — why: scaffolding the wrong stack's idioms forces a costly rewrite before any feature lands.
 **MANDATORY IMPORTANT MUST ATTENTION** evaluate fit before copying a nearby pattern — closest example ≠ matching preconditions; verify the new context shares the same base classes, scope, and lifetime — why: a foundation lifted from a mismatched context fails silently.
 **MANDATORY IMPORTANT MUST ATTENTION** assert that tests protect intended outcomes; use mutation or property tools where the stack and risk justify them, and do not treat line coverage as behavioral proof — why: a test can execute code without asserting its intent.
 **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` proof + confidence % for EVERY claim (>80% to act, <60% DO NOT recommend) — NEVER present a guess as fact — why: speculation without evidence is the root of hallucinated foundations.
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting, mark one `in_progress`, mark `completed` immediately after evidence lands, and add a final review todo — why: external task state survives context compaction; memory does not.
-**MANDATORY IMPORTANT MUST ATTENTION** after scaffold, present `/feature-implement` vs `/workflow-review-changes` vs skip via `AskUserQuestion` — the user decides; do NOT skip because it "seems obvious" — why: the user owns the handoff decision.
+**MANDATORY IMPORTANT MUST ATTENTION** after scaffold, present `/feature-implement` vs `/workflow-review-changes` vs skip via `ask user question tool` — the user decides; do NOT skip because it "seems obvious" — why: the user owns the handoff decision.
 
 **Anti-Rationalization (Closing — reject these excuses):**
 
@@ -460,7 +454,7 @@ Assess quality, error handling, async interaction, runtime/deployment, and integ
 | "Already searched for base classes"                    | Show `file:line` grep evidence for all 6 guard patterns. No proof = no search.                    |
 | "I'll just configure the linter inline, it's quick"    | NEVER hand-configure sensors — delegate to `/linter-setup` then `/harness-setup`. Installs ≠ harness. |
 | "Coverage is high, the foundation is well-tested"      | Line coverage is a diagnostic, not proof. Check whether assertions protect intended outcomes; use mutation tools when they fit. |
-| "The stack is obvious, skip the AskUserQuestion"       | Checklists are templates — confirm the adapted final checklist with the user before generating code. |
+| "The stack is obvious, skip the ask user question tool"       | Checklists are templates — confirm the adapted final checklist with the user before generating code. |
 | "Found a nearby base class, just copy it"              | Evaluate fit first — same base classes/scope/lifetime? Closest ≠ matching. Verify before reusing.  |
 | "Scaffold's done, jump straight to /feature-implement" | BLOCKED until the Verification Gate passes — applicable foundations + `/linter-setup` + `/harness-setup`. |
 

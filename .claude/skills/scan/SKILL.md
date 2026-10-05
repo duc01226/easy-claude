@@ -1,8 +1,17 @@
 ---
 name: scan
 version: 1.0.0
-description: '[Documentation] Use when a workflow step or the user asks for one project-reference doc to be regenerated. --target=<doc key> (project-structure, code-review-rules, domain-entities, docs-index). All docs: scan-all.'
+description: '[Documentation] Use when a workflow step or the user asks for one project-reference doc rebuild via --target=<key>, preserving verified rules. All selected reference docs: scan-all.'
 ---
+
+<!-- PROTOCOL-GUIDES:START -->
+
+> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
+
+- `output-quality-principles` — Useful, readable guidance without lost conditions; writing generated docs or reports → .claude/skills/shared/protocols/output-quality-principles.md
+- `scan-and-update-reference-doc` — Baseline-safe updates with semantic retention and truthful freshness; scanning or updating a reference doc → .claude/skills/shared/protocols/scan-and-update-reference-doc.md
+
+<!-- PROTOCOL-GUIDES:END -->
 
 ## Quick Summary
 
@@ -11,10 +20,9 @@ description: '[Documentation] Use when a workflow step or the user asks for one 
 **Summary:**
 
 - **Purpose:** Run one selected, applicable manifest target; its entry owns the output doc, capability evidence, detection, agents, sections, exceptions, and enhancement requirements.
-- **Ordered path:** Resolve optional config and selection → applicability → owner scan → candidate/retention review → enhance + final quality gate → baseline/no-op check and application → report.
+- **Ordered path:** Resolve optional config/selection → applicability and mode/baseline → plan owner scopes → scan into unique shards → candidate/retention review → enhance + final quality gate → baseline/no-op/freshness check and application → report.
 - **Modes/gates:** Init/Sync and target-defined Force; `kind: orchestrator` uses its procedure; unknown key STOPs; unsupported capability is a reported skip, not a guessed fallback.
 - **Evidence:** Use real `file:line` examples, incremental unique reports, surgical writes, all-path/name checks, target exceptions, and graph checks when the project supports them.
-- **Review setup findings:** recommend evidence-backed classifier groups/rule sources in the report; `/project-config` owns accepted policy writes. Scanning performs no review-tool acquisition.
 
 **Workflow:**
 
@@ -23,7 +31,7 @@ description: '[Documentation] Use when a workflow step or the user asks for one 
 3. **Assess** — Check capability evidence before running target-specific Phase 0 detection.
 4. **Scan** — Run only applicable declared work; capture authority and evidence in the temporary report.
 5. **Write** — Build a candidate; verify its claims, semantic coverage and consumer contracts.
-6. **Enhance + discovery gate** — Before applying a changed candidate: `/prompt-enhance`, then the AI-discovery gate (purpose + critical rules on top, reminders at the bottom when long, trigger-based pointers to existing docs, reachable from the docs index).
+6. **Apply** — Enhance when required; review retention, reconcile the baseline, and apply only meaningful changes with truthful freshness.
 7. **Report** — Persist findings and return complete, unchanged, skipped, or blocked status with evidence.
 
 **Key Rules:**
@@ -72,7 +80,7 @@ After config, output selection, and applicability pass, run only the checks rele
 
 From the evidenced framework/type, derive concrete patterns to search (naming, lifecycle, data access, configuration, and test organization). Treat architecture patterns such as repositories, CQRS, events, or domain entities as options to evaluate against observed boundaries, not mandatory structures.
 
-Read the shared `ai-discovery-doc-quality` content-value contract before drafting. Record authoritative owners and exemplar preconditions; distinguish intended practice from legacy frequency. Bound exploration by selected owner scope and relevant consumers, use live registries, and record unknowns rather than exhaustive inventories. Create work items only for applicable branches. When delegation is authorized, assign disjoint source scopes and reconcile their union, including boundary files, before dispatch; the main agent owns output writes.
+Record authoritative owners and exemplar preconditions; distinguish intended practice from legacy frequency. Bound exploration by selected owner scope and relevant consumers, use live registries, and record unknowns rather than exhaustive inventories. Create work items only for applicable branches. When delegation is authorized, assign disjoint source scopes and reconcile their union, including boundary files, before dispatch; the main agent owns output writes.
 
 ## Phase 2: Execute Scan (Parallel Sub-Agents)
 
@@ -105,8 +113,6 @@ Read the full report. Apply the fresh-eyes protocol:
 
 ## Phase 4: Write & Verify
 
-**Selected-target review recommendations:** when this scan's authorized evidence reveals stable review responsibilities or rule sources, append proposals to its report: existing module/context identities, sample primary/overlap/unmatched assignments, suggested priority/related context and complete rule-source evidence with `file:line`. Recommend classifier changes through `/project-config` when an existing identity cannot express the observed boundary; never invent a duplicate matcher. Read `.claude/skills/shared/review-preparation.md` when explaining rule retention and fallback. **MUST ATTENTION** keep review-policy recommendations read-only: this scan writes only its selected doc and existing authorized convention output, never `reviewGroups`, `reviewPreparation` or tool installation policy. `/project-config` previews and merges the accepted subset; absent evidence yields no recommendation. An Unset OCR preference may be reported with the project-config/framework-config focused configuration route; the scan never asks the adoption choice, saves enable/off/Skip, invokes OCR or acquires it. Source-review adoption belongs to the shared recipe, not this scanning operation.
-
 1. **[BLOCKING] No-op scans write NOTHING — not even the stamp.** Finish enhancement and semantic review on the full candidate before application; choose freshness metadata according to the classified operation, then compare it against the doc on disk with the shared guard, which ignores volatile stamps and whitespace:
 
    ```bash
@@ -121,7 +127,7 @@ Read the full report. Apply the fresh-eyes protocol:
      node .claude/hooks/lib/doc-stamp-guard.cjs --record-verified <doc filename>
      ```
 
-     Then report `unchanged (no write)`. — why: a date-only rewrite is an unmergeable line at the top of a file many branches touch, so two branches that each merely RE-RAN this scan conflict over a date neither of them decided. The churn carries no information and costs a manual merge.
+     Then report `unchanged (no write)`. Date-only rewrites create merge conflicts without adding information.
 
 2. Apply only affected guidance; preserve manual annotations and meaningful local rules. Remove redundant/outside-purpose sections with semantic dispositions, preserving parser-owned structures. Never use a pointer that cannot deliver the rule when needed.
 3. Verify (Glob check): **ALL** code example file paths exist — not just a sample of 5.
@@ -141,25 +147,22 @@ Read the full report. Apply the fresh-eyes protocol:
 
 **TaskCreate (last task when a doc changed):** `Enhance candidate and review semantic retention before applying <target doc>`
 
-**Then run the AI-discovery gate (`SYNC:ai-discovery-doc-quality`) on the enhanced doc:** first screen states purpose, when to read it and its critical rules · a long or rule-bearing doc ends with closing reminders · every pointer to another doc is `read <path> when <situation>` with an existing target · the doc is reachable from the docs index (a missing route is reported for the `docs-index` target, not patched here). Fix a failure inside this doc before reporting; the gate includes the shared content-value/retention review and never widens rewrite authority.
-
 <!-- /SCAN:prompt-enhance-final-step -->
 
 ---
 
-> **[IMPORTANT]** Use small tracked tasks for multi-phase or delegated scans. Do not ask whether to skip a clear one-target scan.
+## Closing Reminders
 
-**Prerequisites:** **MUST ATTENTION READ** before executing:
+**IMPORTANT MUST ATTENTION Goal:** Scan one selected built-in or explicitly generic custom reference doc and deliver a surgical, evidence-backed update that preserves action-changing rules, exceptions and verified discovery without report bulk.
 
-<!-- PROTOCOL-GUIDES:START -->
+**MUST ATTENTION Main steps:** Resolve config/selection and target → verify applicability → classify Init/Sync/target-defined Force and save baseline → plan applicable owner scopes → scan into unique shards → review evidence and retention → enhance when required → reconcile baseline/no-op/freshness and apply → report. Orchestrator targets follow their own procedure.
 
-> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
-
-- `ai-discovery-doc-quality` — Agent-guide content value, authority, retention and verified discovery; writing a doc that an agent reads → .claude/skills/shared/protocols/ai-discovery-doc-quality.md
-- `output-quality-principles` — Useful, readable guidance without lost conditions; writing generated docs or reports → .claude/skills/shared/protocols/output-quality-principles.md
-- `scan-and-update-reference-doc` — Baseline-safe updates with semantic retention and truthful freshness; scanning or updating a reference doc → .claude/skills/shared/protocols/scan-and-update-reference-doc.md
-
-<!-- PROTOCOL-GUIDES:END -->
+- **MUST ATTENTION** load the registry and target entry first; derive detection/search terms from evidence and honor Content Rules, Special slivers and Anti-Rationalization exceptions.
+- **MUST ATTENTION** verify every emitted path/name/claim and generated projection; cite `file:line`, document above 80% confidence, label 60–80% unresolved, omit below 60%. An optional graph is only a hint; trace source callers when absent. Absence is neither a scan limitation nor a finding.
+- **MUST ATTENTION** use small tracked tasks: one per phase/worker plus final quality review. Sub-agents append incremental findings to unique shards; tag PAR/SEQ tasks, dispatch each disjoint PAR wave together and reconcile at the barrier; the main agent is sole writer. Do not ask whether to skip a clear one-target scan.
+- **MUST ATTENTION** clean Round 1 ends the scan; after Round 1 finds and fixes issues, Round 2 fresh-eyes review is mandatory; Round 3 runs only if Round 2 finds issues (max 3 rounds).
+- **MUST ATTENTION** preserve manual guidance and semantic dispositions; reject/reconcile live-byte conflicts, write nothing for no-ops, and advance full-scan freshness only for a full owner scan.
+- **MUST ATTENTION** report evidence-backed review-group/rule recommendations through project-config; write only the selected doc and existing authorized convention output, never review policy or tool installation.
 
 <!-- SYNC:scan-and-update-reference-doc:reminder -->
 
@@ -172,40 +175,6 @@ Read the full report. Apply the fresh-eyes protocol:
 **IMPORTANT MUST ATTENTION** lead with useful guidance and readable priorities; preserve action-changing conditions/numbers and required structures. Remove report bulk from guides, use verified discovery, and judge semantic value rather than word or warning counts.
 
 <!-- /SYNC:output-quality-principles:reminder -->
-
-<!-- SYNC:ai-discovery-doc-quality:reminder -->
-
-**MUST ATTENTION** AI-read guides: purpose/read-when and priorities first; retain action-changing rules, exceptions and rationale; verify triggered discovery and parser contracts. Use the content-value and semantic-disposition gate after enhancement; keep evidence in temporary reports and fix generated output at its source.
-
-<!-- /SYNC:ai-discovery-doc-quality:reminder -->
-
-
-## Closing Reminders
-
-**MUST ATTENTION** selected scan evidence → review-group/rule recommendations → project-config acceptance handoff; write only the selected output and existing authorized convention output, never review policy or tool installation.
-
-**IMPORTANT MUST ATTENTION Goal:** Scan one manifest-selected reference-doc target and deliver a surgical, evidence-backed update that preserves action-changing rules, exceptions and verified discovery without report bulk.
-
-**IMPORTANT MUST ATTENTION** verify every emitted path, example, coverage claim, and generated projection against the real repository before reporting success.
-
-**IMPORTANT MUST ATTENTION** resolve `--target` and load its manifest entry FIRST — never scan from memory of "what a backend/frontend/design scan does"
-
-**IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
-
-- **Scan & Update Doc:** read/save baseline, classify operation, preserve semantic coverage, reconcile conflicts, skip no-op writes.
-- **Output Quality:** retain decision value, readable conditions, useful examples and actionable numbers; detailed evidence stays in reports.
-- **AI-Discovery Doc Quality:** purpose + critical rules on top, reminders at the bottom when long, trigger-based pointers to existing docs, reachable from the docs index.
-- **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
-
-**IMPORTANT MUST ATTENTION Final Step:** enhance only a doc the scan actually changed, then pass the AI-discovery gate on it; a no-op or evidence-backed skip requires no write or enhancement
-**IMPORTANT MUST ATTENTION** break work into small `TaskCreate` tasks BEFORE starting — one task per sub-agent, one per phase
-**IMPORTANT MUST ATTENTION** verify applicability before framework/type detection — all grep terms derive from evidence, never hardcoded
-**IMPORTANT MUST ATTENTION** cite `file:line` for every pattern (confidence >80% to document; <60% omit)
-**IMPORTANT MUST ATTENTION** a project graph is an optional hint for code relationships; source callers remain the evidence, and an absent graph is neither a limitation nor a finding
-**IMPORTANT MUST ATTENTION** sub-agents write findings incrementally after each file — NEVER batch at end (context loss)
-**IMPORTANT MUST ATTENTION** read existing doc FIRST, save baseline, diff evidence, preserve meaningful guidance and disposition removals
-**IMPORTANT MUST ATTENTION** clean Round 1 ends the scan; after Round 1 finds and fixes issues, Round 2 fresh-eyes review is mandatory; Round 3 runs only if Round 2 finds issues (max 3 rounds)
-**IMPORTANT MUST ATTENTION** honor the target entry's Content-Rule exceptions, Special slivers, and Anti-Rationalization rows — they encode why this target differs from the others
 
 **Anti-Rationalization (shared — the target entry adds its own rows):**
 

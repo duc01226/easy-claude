@@ -10,7 +10,7 @@ disable-model-invocation: true
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - Use ask user tool to ask user.
+> - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -19,7 +19,11 @@ disable-model-invocation: true
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
 ## Quick Summary
 
-**Goal:** Detect structural rot in AI-assisted codebases — dead code, count-drift, orphan files, stale configs, dead feature flags, broken cross-references. Works on any project via `docs/project-config.json`.
+> **Review modes:** For review/audit work, standalone defaults to `--review-only` (`--report-only` alias); `--fix-loop` enables review → validate → authorized fix → fresh re-review, default cap 3. `--fix-loop --loop-owner=caller` returns a read-only pass to the caller that owns fixes/re-review. Create triage, review, validation and re-review todo tasks first; apply the carried `review-policy` contract for LOW deferral and user-approved bounded extensions. Non-review modes and terminal findings validation keep their own dispatch.
+
+**Goal:** Detect structural rot — dead code, count-drift, orphan files, stale configs, dead feature flags and broken cross-references — in AI-assisted codebases through `docs/project-config.json`, then report evidence-backed maintenance actions.
+
+**Summary:** Classify scope/tooling → check doc counts, config references, unused exports, orphan files, pattern drift, feature flags and cross-references → fresh-eyes verification → report → actionable summary. Log graph/flag-dependent skips; retain optional CI detection.
 
 **Workflow:**
 
@@ -74,9 +78,9 @@ If `codebaseHealth` section is missing, discover source roots from project confi
 
 ## Phase 1: Doc Count-Drift Detection (No Graph Required)
 
-**Think:** Which numeric claims in docs can actually be verified? What's the drift threshold that signals a real maintenance problem vs normal growth?
+Verify numeric claims against filesystem evidence; distinguish normal growth from maintenance drift using the thresholds below.
 
-Scan `docs/` **and the AI-harness instruction surface when present** (`.claude/**/*.md`, root `AGENTS.md`, `CLAUDE.md`) for numeric claims: "N files", "N tests", "N hooks", "N services", "N skills", "N components", "N stages", "N verifiers", "N agents", "N workflows". The harness docs embed counts that are directly derivable by globbing `.claude/` (skill dirs, hook entries, `scripts/**/verify-*` scripts, pipeline stages, agent files, `workflows.json` entries) — the highest-drift claims because a new skill/verifier/stage bumps the real count while the prose claim stays frozen. This scope is generic: any project carrying a `.claude/` harness gets it; it hardcodes no project- or framework-specific count.
+Scan `docs/` **and the AI-harness instruction surface when present** (`.claude/**/*.md`, root `AGENTS.md`, `CLAUDE.md`) for numeric claims: "N files", "N tests", "N hooks", "N services", "N skills", "N components", "N stages", "N verifiers", "N agents", "N workflows". Derive harness counts by globbing `.claude/` skill dirs, hook entries, `scripts/**/verify-*` scripts, pipeline stages, agent files and `workflows.json` entries. Prioritize these claims: artifact additions leave prose counts frozen. Apply to any `.claude/` harness; never hardcode project or framework counts.
 For each claim:
 
 1. Extract number and what it counts
@@ -94,7 +98,7 @@ Write findings incrementally to report after each doc scanned. NEVER batch at en
 
 ## Phase 2: Stale Config Reference Detection (No Graph Required)
 
-**Think:** Which config values reference code artifacts (class names, module names, connection strings)? Could those artifacts have been renamed or deleted?
+Check whether configured code artifacts (class names, module names, connection strings) were renamed or deleted.
 
 For each file matching `configPatterns`:
 
@@ -108,7 +112,7 @@ For each file matching `configPatterns`:
 
 **Skip if `.code-graph/graph.db` does not exist — log "Phase 3 skipped: no graph.db".**
 
-**Think:** Which public API surface has zero consumers? Could be dead code, or could be an intentional entry point — distinguish by file type.
+Distinguish dead public API from intentional entry points by file type.
 
 For key exported symbols in source files:
 
@@ -128,9 +132,7 @@ Find source files (.ts,.cs,.py, etc.) with zero inbound edges:
 
 ## Phase 5: Pattern Drift Detection (No Graph Required)
 
-**Think:** Where does the same pattern appear across services/modules? Does it look different in different places? Is that divergence intentional or accidental?
-
-Compare the same pattern across services/modules:
+Compare patterns across services/modules, distinguishing intentional from accidental divergence:
 
 1. Pick a pattern (e.g., repository registration, service configuration, error handling)
 2. Grep across all services/modules
@@ -140,8 +142,6 @@ Compare the same pattern across services/modules:
 
 **Skip if no feature flag patterns found in Phase 0.**
 
-**Think:** Which flags exist in config but have no code references? Which code references flags that no longer exist in config?
-
 1. Grep for feature flag names in config files
 2. Grep for feature flag usage in code
 3. Flag config-only flags (no code usage) as LOW
@@ -149,7 +149,7 @@ Compare the same pattern across services/modules:
 
 ## Phase 7: Broken Cross-Reference Detection (No Graph Required)
 
-**Think:** Which doc links point to files that no longer exist? Which `file:line` references in docs are stale?
+Check doc links and `file:line` references for missing or stale targets.
 
 For docs containing markdown links `[text](path)` or `file:line` references:
 
@@ -219,6 +219,8 @@ Write to `tmp/reports/codebase-health-scan-{YYMMDD}.md`:
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
 - `output-quality-principles` — Useful, readable guidance without lost conditions; writing generated docs or reports → .claude/skills/shared/protocols/output-quality-principles.md
+- `review-decision-autonomy` — Choose supported review decisions and ask before extending the round budget; running any review or audit skill or mode → .claude/skills/shared/protocols/review-decision-autonomy.md
+- `review-policy` — Review-only or a three-round fix loop with explicit extension and fresh post-fix evidence; deciding round eligibility, blocking findings or review state → .claude/skills/shared/protocols/review-policy.md
 
 <!-- PROTOCOL-GUIDES:END -->
 
@@ -228,8 +230,17 @@ Write to `tmp/reports/codebase-health-scan-{YYMMDD}.md`:
 
 <!-- /SYNC:output-quality-principles:reminder -->
 
+<!-- SYNC:review-decision-autonomy:reminder -->
+
+**MUST ATTENTION** Decide supported review choices and recommendations, record the rationale, and finish without routine user questions. Keep round-limit extension, indispensable facts and actual action authority; preserve source coverage, validation, tests, read-only boundaries and budgets. Review decisions do not accept open risks or make a failed gate pass.
+
+<!-- /SYNC:review-decision-autonomy:reminder -->
 
 ## Closing Reminders
+
+**IMPORTANT MUST ATTENTION Goal:** Detect structural rot — dead code, count-drift, orphan files, stale configs, dead feature flags and broken cross-references — in AI-assisted codebases through `docs/project-config.json`, then report evidence-backed maintenance actions.
+
+**MUST ATTENTION Main steps:** classify scope/tooling → doc counts → config references → unused exports → orphan files → pattern drift → feature flags → cross-references → fresh-eyes verification → report → actionable summary. Log graph/flag-dependent skips and retain optional CI detection.
 
 **IMPORTANT MUST ATTENTION** break work into small task tracking tasks BEFORE starting — one per phase
 
@@ -255,3 +266,10 @@ Write to `tmp/reports/codebase-health-scan-{YYMMDD}.md`:
 | "Config reference might still exist"         | Grep to verify. Confidence <80% → flag as MEDIUM "unverified" not LOW "probably fine" |
 
 **[TASK-PLANNING]** Before acting, analyze task scope and break into small todo tasks and sub-tasks using task tracking.
+
+
+<!-- SYNC:review-policy:reminder -->
+
+**MUST ATTENTION** Triage all targets, plan and create review/validation/fix/fresh re-review tasks first. Review-only reports without edits; fix-loop freshly reviews every repair under one fixing owner. Default cap three rounds: disclose deferred LOWs, ask and wait before a bounded extension for MEDIUM+ or failed required checks. Preserve scope, coverage and actual operation authority.
+
+<!-- /SYNC:review-policy:reminder -->

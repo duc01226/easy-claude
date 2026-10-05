@@ -13,16 +13,10 @@
 
 **Summary:**
 
-- **Purpose:** validate a changeset against architecture rules the project records in its OWN reference docs; classify every finding PASS/WARN/BLOCKED with `file:line` proof; self-validate before handoff — one reviewer in the `workflow-review-changes` pipeline.
-- **Main phases — run in order:** Phase 0 load architecture rules → Phase 1 determine scope → Phase 2 blast radius (grep/read; optional graph hint) → Phase 3 architecture review (13 categories) → Phase 4 finalize compliance report → Phase 5 `$why-review` self-validation gate → Next Steps ask user tool (standalone only — under `--report-only`, a parent skill/workflow, or a sub-agent, next steps return in the summary).
-- **The 13 Phase-3 categories — review EVERY applicable one, serially:** 0 quality-tooling baseline · 1 architecture boundaries and layers · 2 messaging and delivery · 3 application conventions such as CQRS, validation, and mapping · 4 data access · 5 service-pattern era · 6 side effects and events · 7 service/module boundaries · 8 frontend architecture (frontend files only) · 9 ADR conformance · 10 spec-loop discipline · 11 scalability and coupling regression · **12 data, consistency, and tenancy boundaries**. Use the Phase-3 evidence gate for all pattern-specific checks, plus Categories 9–12's stated triggers. Per applicable check: `Think:` derivation → project evidence → `file:line` proof + relevant counterexamples → verdict. NEVER scan categories in parallel; codebase convention wins over a suspected violation. — why: skipping an applicable category loses a violation class, while treating examples as mandates creates false findings.
-- **Workload-first scalability gate:** before judging a scale technique, prove read/write ratio · sustained/peak load · query shapes · data growth · burst/hot-key skew · geography · latency/consistency budgets; then check the reversible ladder (measure/tune → vertical and/or stateless horizontal from headroom + availability → read/write tactics → partition/shard LAST). Missing evidence means INFO/route, never a scale violation. — why: architecture review must catch regressions without penalizing a lean system for scale it does not have.
-- **Optional AI-agent-as-user advice:** when the reviewed change or an accepted future contract exposes machine interaction, apply `SYNC:ai-agent-as-user-access` to inspect agent identity, authority, capability contracts, safety, and observable outcomes; classify only evidence-backed gaps and record adaptation, deferral, N/A, or blockers — no agent finding is invented when the surface is not applicable.
-- Phase 0 is non-negotiable and first: read the project configuration and docs index, then load references triggered by the changed area — backend patterns for backend/API/data work, project structure for boundaries, frontend patterns for UI, and review rules when present. Every rule and symbol comes from project evidence, NEVER general knowledge; honor explicit N/A decisions.
-- **Universal reasoning comes from `.claude/docs/architecture-knowledge.md`** (coupling taxonomy + four coupling dimensions, distributed-monolith signature, module-design principles §4, isolation levels + coordination primitives §8-§9, ~100-entry anti-pattern catalog, symptom→root-cause triage, judgment checklists §20) — use it to RECOGNIZE a defect class, then prove it with `file:line`. **The project's own reference docs and accepted ADRs OUTRANK that catalog on every conflict — NEVER flag a deviation from the catalog as a project violation.** An anti-pattern match is a HYPOTHESIS until evidence plus the damaged quality attribute are both named. — why: pattern-shape matching without project grounding is exactly the guess-as-fact failure this skill exists to prevent.
-- Stay in lane: deep-review only what this skill OWNS (layers, messaging/CQRS/repos/service boundaries, entity events, frontend architecture, quality tooling, generated artifacts, ADRs); record a one-line `→ route to {sibling}` pointer for security/performance/DDD/UI/test findings instead of expanding them. — why: duplicated findings across reviewers inflate severity counts and bury issues each reviewer uniquely owns.
-- Read-only until validated: **self-audit every draft finding against the 11 thinking red flags (`architecture-knowledge.md` §20.3) FIRST** — a finding whose sacrifice/trade-off you cannot name, or that rests on "best practice", is demoted or deleted, never reworded — then run the Phase 5 `$why-review` self-validation gate before handoff; fixes happen only in the validated fix loop, and every fix restarts a full review from Phase 0. That loop fixes only findings that block the current round: Round 1 = every validated severity; Round 2 = CRITICAL/HIGH/MEDIUM; LOW-only is recorded as deferred and ends the loop, while failed binary gates always block. Write findings to `tmp/reports/arch-review-{date}-{slug}.md`.
-- **`--report-only`:** read-only leaf mode for a caller that owns every fix — Phases 0–5 only, no nested sub-agents, no ask user tool, no writer beyond the report; return validated findings grouped Critical/High/Medium/Low via the explicit BLOCKED/WARN mapping; see [Report-Only Mode](#report-only-mode---report-only).
+- Ground each check in project config, applicable references, accepted ADRs and established code; honor N/A. Architecture knowledge is a recognition aid, not overriding authority. Read context → select scope → trace blast radius → review all 13 applicable categories serially → report → self-audit and Phase-5 `$why-review` → hand off.
+- Preserve ownership, consistency, boundaries and generated artifacts. Prove violations with `file:line` and relevant counterexamples; route sibling-owned depth rather than duplicate it. Workload evidence precedes scale advice; missing capacity evidence yields INFO/route. Inspect machine-access contracts only when applicable.
+- Keep review read-only; validate findings before routing fixes. The declared fix loop restarts Phase 0 with fresh tasks after fixes, except LOW deferral: Round 1 clears all findings; Round 2 clears CRITICAL/HIGH/MEDIUM and defers LOW; binary gates always block. Persist `tmp/reports/arch-review-{date}-{slug}.md` incrementally.
+- `--report-only` runs Phases 0–5 only: no fixes/restarts, nested fan-out, questions or writes beyond the report. Return validated severity groups, verdict, material-trade-off handoffs and next steps. Standalone Next Steps asks; parent/workflow/sub-agent contexts return recommendations.
 
 **Default scope:** All uncommitted changes (staged + unstaged). Override: specify files, directories, services, or full codebase.
 
@@ -44,7 +38,7 @@
 4. **Phase 3: Architecture Review** — Classify applicability for each file, then review all applicable checks serially across the 13 categories (0 tooling → 12 data, consistency & tenancy)
 5. **Phase 4: Finalize** — Generate compliance report with PASS/BLOCKED/WARN verdicts
 6. **Phase 5: Why-Review Self-Validation Gate** — Adversarially validate own findings via `$why-review` before handoff (MANDATORY when any finding exists)
-7. **Next Steps** — ask user tool: `$code-simplifier` / `$code-quality-review` / skip (standalone only — see the [Next Steps](#next-steps) exemption)
+7. **Next Steps** — `ask user question tool`: `$code-simplifier` / `$code-quality-review` / skip (standalone only — see the [Next Steps](#next-steps) exemption)
 
 **Key Rules (top 3 critical first):**
 
@@ -54,7 +48,28 @@
 - MUST ATTENTION when an agent-facing surface or accepted future contract is in scope, apply `SYNC:ai-agent-as-user-access`; inspect the existing setup and classify only evidenced identity, authorization, capability, safety, contract, audit, or observability gaps as PASS/WARN/BLOCKED. If not applicable, record evidence-backed N/A or no finding; never prescribe every machine surface.
 - Write findings to `tmp/reports/arch-review-{date}-{slug}.md`.
 - BLOCKED = must fix before merge | WARN = review and decide | PASS = compliant.
-- Review is read-only until `$why-review --validate-findings` confirms findings; fixes happen only in the validated fix loop — the caller's fix step when a parent skill/workflow invoked this review, `$fix --target=review` when standalone — and every fix restarts a full architecture review from Phase 0 with a fresh task breakdown, except a round-1 LOW-only fix set (Round-1 LOW closure). Apply the round severity bar: Round 1 clears only at zero open findings; Round 2 clears at zero CRITICAL/HIGH/MEDIUM, with LOW findings deferred. Failed binary gates remain blocking.
+- Review is read-only until `$why-review --validate-findings` confirms findings; fixes happen only in the validated fix loop — the caller's fix step when a parent skill/workflow invoked this review, `$fix --target=review` when standalone. Every applied fix requires a fresh full architecture review from Phase 0 with new tasks. Apply the round severity bar: Round 1 clears at zero open findings; Round 2 clears at zero CRITICAL/HIGH/MEDIUM, with LOW findings deferred. No-edit LOW deferral needs no repair pass; failed binary gates remain blocking.
+
+## Contents
+
+- [Report-Only Mode (`--report-only`)](#report-only-mode---report-only)
+- [First Principle — Easy to Change · Easy to Scale · Easy to Maintain](#first-principle--easy-to-change--easy-to-scale--easy-to-maintain)
+- [Quality Tooling Principle — Tech-Stack Adaptive](#quality-tooling-principle--tech-stack-adaptive)
+- [Review Mindset (NON-NEGOTIABLE)](#review-mindset-non-negotiable)
+- [Ownership & Handoff (own vs delegate)](#ownership--handoff-own-vs-delegate)
+- [Phase 0: Load Architecture Rules (MANDATORY FIRST)](#phase-0-load-architecture-rules-mandatory-first)
+- [Phase 1: Determine Scope](#phase-1-determine-scope)
+- [Phase 2: Blast Radius (optional graph hint)](#phase-2-blast-radius-optional-graph-hint)
+- [Phase 3: Architecture Review](#phase-3-architecture-review)
+- [Phase 4: Finalize — Architecture Compliance Report](#phase-4-finalize--architecture-compliance-report)
+- [Architecture Boundary Check (Automated)](#architecture-boundary-check-automated)
+- [Systematic Review Strategy](#systematic-review-strategy)
+- [Phase 5: Why-Review Self-Validation Gate (MANDATORY when findings exist)](#phase-5-why-review-self-validation-gate-mandatory-when-findings-exist)
+- [Next Steps](#next-steps)
+- [AI Agent Integrity Gate (NON-NEGOTIABLE)](#ai-agent-integrity-gate-non-negotiable)
+- [Sub-Agent Type Override](#sub-agent-type-override)
+- [Mode protocols](#mode-protocols)
+- [Closing Reminders](#closing-reminders)
 
 ## Your Mission
 
@@ -64,13 +79,13 @@ $ARGUMENTS
 
 ## Report-Only Mode (`--report-only`)
 
-> **Use when** a caller runs this skill as a read-only leaf — e.g. a workflow specialist parallel batch, a delegated review lane, or a review batch — and another step owns every fix. `--report-only` in `$ARGUMENTS` is an execution flag, not a scope override; without it every phase below applies unchanged.
+> **Use when** a caller runs this skill as a read-only leaf — e.g. a workflow specialist parallel batch, a delegated review lane, or a review batch — and another step owns every fix. `--report-only` in `$ARGUMENTS` is an execution flag, not a scope override; review-only is the default; standalone `--fix-loop` alone runs repair/restart phases.
 >
 > **MANDATORY — when `--report-only` is passed, read `.claude/skills/workflow-review-changes/references/caller-mode.md` § `--report-only` in full FIRST.** It holds the rules every read-only leaf shares (no fix or restart, scope from the caller's brief, no nested fan-out, no user questions, write only the report, return contract); the rules below are this skill's own.
 >
-> 1. **Run Phases 0–5 only.** Phase 3 still reviews every applicable category serially; Phase 5 `$why-review --validate-findings` still validates every finding. No fix, no full-review restart, no fresh-context re-review round, and no Next Steps ask user tool: return the validated report; the caller owns fixes and any re-review. — why: two writers of one artifact inside a barrier race each other.
+> 1. **Run Phases 0–5 only.** Phase 3 still reviews every applicable category serially; Phase 5 `$why-review --validate-findings` still validates every finding. No fix, no full-review restart, no fresh-context re-review round, and no Next Steps `ask user question tool`: return the validated report; the caller owns fixes and any re-review. — why: two writers of one artifact inside a barrier race each other.
 > 2. **Default scope.** When the brief names no files, diff or target, use the default uncommitted-changes scope and record it in the report.
-> 3. **No nested fan-out.** Skip the Systematic Review Protocol's parallel `architect` sub-agents and size-capped batching; review sequentially in this context.
+> 3. **No nested fan-out.** Skip the Systematic Review Strategy's delegated assignments; review sequentially in this context, respecting working-set bounds.
 > 4. **Return** the report path, the local verdict (PASS/WARN/BLOCKED/N/A), validated findings grouped Critical/High/Medium/Low per the mapping below, every unconfirmed material trade-off (the `SYNC:trade-off-interrogation-gate` non-asking handoff), and the next-step recommendations the Next Steps prompt would have offered.
 >
 > **Severity mapping (local verdict → caller tier, per `SYNC:severity-rubric` domain-vocabulary normalization).** Classify each finding by consequence; the local label sets the starting tier, and the report records both (`BLOCKED→High`):
@@ -162,8 +177,6 @@ git diff --cached   # Staged only
 - Collect file list to review.
 - Categorize: backend (.cs), frontend (.ts/.html), config, docs, other.
 - Filter to architecture-relevant files (skip pure docs, configs, tests unless architecture-relevant).
-
-**Resolved source targets only:** follow `.claude/skills/shared/review-preparation.md` before reviewing the selected source/change set. Use the actual skill/mode and selected required documents; inherit the parent decision, including explicit `--provider-decision skip` on children/rechecks, under the recipe’s read-only-leaf and exact-target limits. Plan-only architecture grading is excluded.
 
 ## Phase 2: Blast Radius (optional graph hint)
 
@@ -639,12 +652,12 @@ Per changed file:
 
 ---
 
-## Systematic Review Protocol (10+ changed files)
+## Systematic Review Strategy
 
 Not run under `--report-only` — that mode reviews sequentially in this context.
 
-1. **Categorize** — Group files by service/layer/concern.
-2. **Parallel Sub-Agents** — Launch one `architect` sub-agent per category with architecture-specific checklist.
+1. **Categorize** — Group related service/layer/concern flows with their callers and rules.
+2. **Choose assignments** — Follow `SYNC:systematic-review-batching`: inline, bounded sequential or authorized fresh `architect` reviewers according to risk, working-set fit and delegation cost; retain the architecture-specific checklist. File counts do not require parallelism or hierarchy.
 3. **Synchronize** — Collect findings, cross-reference service boundaries.
 4. **Consolidate** — Single holistic report with per-category verdicts.
 
@@ -676,13 +689,13 @@ Not run under `--report-only` — that mode reviews sequentially in this context
 
 ## Next Steps
 
-**MANDATORY when standalone:** After completing, use ask user tool to present:
+**MANDATORY when standalone:** After completing, use `ask user question tool` to present:
 
 - **"$code-simplifier" (Recommended)** — Simplify and refine code
 - **"$code-quality-review"** — Deep code quality review
 - **"Skip, continue manually"** — user decides
 
-**Exempt** under `--report-only`, when a parent skill or workflow invoked this review, or when running as a sub-agent: do NOT ask — return these next-step recommendations in the returned summary and let the caller decide. — why: ask user tool cannot reach the user from a sub-agent, and a leaf that waits on a prompt stalls its parent's all-return barrier.
+**Exempt** under `--report-only`, when a parent skill or workflow invoked this review, or when running as a sub-agent: do NOT ask — return these next-step recommendations in the returned summary and let the caller decide. — why: `ask user question tool` cannot reach the user from a sub-agent, and a leaf that waits on a prompt stalls its parent's all-return barrier.
 
 > **Combined audit:** For a whole-project architecture + compliance + production-readiness audit in one pass, run `$architecture --mode=full` (or `$start-workflow workflow-architecture-audit`) — it fans out this skill, `architecture --mode=scalability`, and `production-readiness-review` as parallel sub-agents and synthesizes one consolidated report.
 
@@ -748,6 +761,7 @@ Speculation FORBIDDEN; prove every claim.
 2. Confidence: >80% act freely; 60-80% verify first; <60% DO NOT recommend
 3. Cross-service validation required for architectural changes
 4. Insufficient evidence is valid/expected output
+5. Review decision autonomy: choose evidence-supported review approaches, recommendations and next steps without asking the user. Record rationale and preserve every evidence gate. Read-only leaves return remedies to their owner. Only round-limit extension, indispensable facts with no defensible default, and actual missing action authority require a question; never infer consent, accept an open risk or perform an unauthorized operation.
 BLOCKED until: Evidence file path (file:line) provided; Grep search performed; 3+ similar patterns found; Confidence level stated.
 Forbidden without proof: "obviously", "I think", "should be", "probably", "this is because".
 If incomplete → output: "Insufficient evidence. Verified: [...]. Not verified: [...]."
@@ -1100,7 +1114,7 @@ The protocols below apply to this mode only; their full text is inline so this r
 >
 > **Mandatory closers:** Confidence % stated · Assumptions listed · Open questions surfaced · Next action concrete.
 >
-> **Stop conditions:** confidence <60% on any critical decision → stop and escalate using ask user tool (60-80% → verify first) · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
+> **Stop conditions:** confidence <70% on any critical decision → stop and escalate via ask user question tool (70-80% → verify first) · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
 >
 > **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
 
@@ -1108,41 +1122,29 @@ The protocols below apply to this mode only; their full text is inline so this r
 
 <!-- SYNC:severity-rubric -->
 
-> **Severity Rubric** — Classify every finding by consequence, not by effort, reviewer preference, or how annoying the fix is. One scale applies to every review, skill, agent, workflow, and host so a tier means the same everywhere. Choose the highest credible consequence supported by evidence; do not lower a tier to make a round pass.
+> **Severity Rubric** — Use one consequence-based scale across reviews, skills, agents, workflows and hosts. Choose the highest credible tier supported by evidence; never lower it to pass a round. Effort, cost, preference, annoyance, frequency alone and round-budget pressure do not determine severity.
 >
-> **Finding vs observation (required):** An observation becomes a finding only when it names the affected user/system/data/contract, the shipped consequence, the evidence location, and the normalized tier. `INFO`, advice, preference, duplicate wording, or an unsubstantiated concern is not a finding and must not reopen a loop. If the concern might affect a required behavior or gate but evidence is incomplete, emit `NOT VERIFIABLE` with the missing evidence and keep it unresolved; never silently convert uncertainty into LOW.
+> **Finding vs observation:** admit a finding only with an affected user/system/data/contract, shipped consequence, reachable supported trigger (caller, input, state or event sequence), evidence location and confidence percentage. Assess exposure/likelihood and reversibility/detectability before assigning a tier.
 >
-> **Reachable trigger path (required):** a finding also names HOW a supported configuration reaches the defect — the caller, input, state or event sequence that drives execution or data there. A concern on a path nothing reaches (dead code, a branch its guard excludes, an impossible state) is an observation: record it as advice, never as a LOW to fix. Also never a finding: what a compiler, type checker, linter or test run for this change already reports in the review evidence; a behavior change the stated intent asks for; an issue silenced by a suppression that predates this change and states its reason (a suppression the change adds is itself reviewed); a pre-existing issue on a line the change neither touched nor made reachable. When reachability cannot be settled and the concern would be MEDIUM or higher, emit `NOT VERIFIABLE` naming what would settle it; a polish-level concern with unsettled reachability is an observation. — why: a speculative LOW admitted as a finding becomes build work in round 1.
+> **Keep as observations:** advice, preference, duplicates, unsupported concerns, unreachable paths, issues already reported by this change’s compiler/type checker/linter/tests, intended behavior changes, reasoned suppressions predating the change, and pre-existing issues neither touched nor made reachable. Review newly added suppressions. Observations/INFO do not reopen loops.
 >
-> | Severity | Action | Definition and examples |
+> | Tier | Consequence and boundary examples | Action |
 > | --- | --- | --- |
-> | CRITICAL | Block immediately; escalate | Immediate material risk if shipped: authentication/authorization or safety bypass; secrets/PII exposure; irreversible destructive action; data loss/corruption; a silent failure on a critical path. A failed binary gate is carried by the executable policy as a separate synthetic blocker, not an ordinary severity judgment. |
-> | HIGH | Must fix before PASS/merge | Material correctness or contract risk: wrong behavior on a supported path; violated business/data invariant; meaningful privacy or authority gap; breaking API/schema/compatibility change; likely harm to users/downstream systems; a missing proof for a behavior-changing fix. |
-> | MEDIUM | Must clear the current round; escalate if the fix needs an owner decision | Bounded but consequential risk: an edge case, resilience/observability/testability/maintainability gap, credible future defect, or local architectural drift — real impact, not immediate material loss. A recorded follow-up does not make an open MEDIUM a clean pass. |
-> | LOW | Record and defer; never opens another fix/re-review round from round 2 onward, never raises the round budget | Non-blocking polish with no credible present correctness, security, privacy, authority, availability, or data-integrity impact: wording/formatting, minor documentation or convention drift, optional defensive cleanup, cosmetic refinement. |
+> | CRITICAL | Immediate material security, safety or authority harm; auth bypass; secrets/PII exposure; irreversible destruction; data loss/corruption; critical-path silent failure. | Block immediately; escalate. |
+> | HIGH | Material supported-path correctness, invariant, privacy/authority, public-contract or compatibility failure; likely user/downstream harm; missing proof for a behavior-changing fix. | Fix before PASS/merge. |
+> | MEDIUM | Bounded consequential edge, resilience, observability, testability, maintainability or architectural gap; credible future defect. | Clear this round; escalate decisions needing an owner. A follow-up is not a clean pass. |
+> | LOW | Proven non-blocking polish with no credible present correctness, security, privacy, authority, availability or data-integrity impact: wording, formatting, minor docs/conventions, optional cleanup, cosmetics. | Record/defer; alone never opens another round from round 2 or increases the budget. |
 >
-> **Consequence decision tree (apply in order):** (1) A failed binary gate stays a separate hard blocker (synthetic CRITICAL in the executable helper) — never hide it behind an ordinary label. Otherwise, would shipping permit immediate material security/safety/authority harm, irreversible destruction, data loss/corruption, or a critical-path silent failure? → **CRITICAL**. (2) Does a supported path, invariant, public contract, privacy/authority boundary, compatibility promise, or behavior-changing proof fail with material impact? → **HIGH**. (3) A bounded but consequential edge, resilience, observability, testability, maintainability, or architectural gap with credible impact? → **MEDIUM**. (4) Evidence shows only non-blocking polish? → **LOW**. (5) Evidence to choose among 1–4 missing → **NOT VERIFIABLE**, not LOW. When several tiers fit, select the highest credible consequence; effort, cost, reviewer discomfort, frequency alone, proximity to the round cap, and obtaining another round never decide the tier.
+> **Consequence decision tree:** check binary gates separately, then select the first evidenced tier from CRITICAL → HIGH → MEDIUM → LOW. Missing evidence is **NOT VERIFIABLE**, not a fifth tier or a LOW fallback: name the missing proof. Unsettled reachability is NOT VERIFIABLE for potential MEDIUM+ impact and an observation for polish. Claims potentially affecting required behavior, security, privacy, authority, availability, data integrity or a gate remain evidence blockers until proved or explicitly owner-accepted with scope, rationale and residual risk. Owner acceptance does not make an open MEDIUM a clean pass or a failed gate pass.
 >
-> **Boundary examples:** auth bypass, exposed secret/PII, destructive command without an authority gate, or failed required test/generation/parity gate → **CRITICAL**; wrong supported response, broken invariant/API/schema, meaningful privacy/authority defect, or unproven behavior-changing fix → **HIGH**; bounded retry/timeout/alert/testability gap or credible maintainability drift → **MEDIUM**; typo, formatting, optional cleanup, or cosmetic suggestion proven not to affect behavior → **LOW**. A missing fact about any boundary is **NOT VERIFIABLE** until evidence or a documented residual-risk decision exists.
+> **Hard gates and rounds:** failed tests, required artifacts, security must-fix checks, generated parity and policy compliance block every round, independently of finding severity. The executable helper carries failures as synthetic CRITICAL blockers; reports name the gate and failure evidence. Default review budget is three rounds; unresolved findings or failed required checks at the cap ask the user for a bounded extension under `SYNC:review-policy`. Failed checks never pass by severity deferral.
 >
-> **Classification procedure (every finding):** (1) state the affected user, system, data, contract, or gate; (2) assess consequence if it ships; (3) assess exposure/likelihood and reversibility/detectability; (4) select the highest justified tier; (5) cite `file:line` or equivalent evidence and a confidence percentage. `NOT VERIFIABLE` is a pending evidence state, not a fifth tier and never a LOW escape hatch: if the claim could affect required behavior, security, privacy, authority, availability, data integrity, or a binary gate, it stays an open evidence blocker until resolved or explicitly owner-accepted with documented residual risk. Classify LOW only when evidence supports the absence of credible present material impact.
->
-> **Hard-gate rule:** Binary gates (tests, required artifacts, security must-fix checks, generated parity, policy compliance) are not severity-rated findings. The executable helper records a failed gate as a synthetic CRITICAL blocker so one predicate can carry it; the report still names the gate and failure evidence. A failed gate blocks at every round, even when all ordinary findings are LOW. A failed non-test gate is bounded by the three-round review cap; a failing test gate is outside the round budget and loops until the tests pass.
->
-> **Score-based skills** map their numeric scale onto these tiers — no parallel vocabulary:
->
-> - **0-2 criterion scoring** (e.g. production-readiness-review): `0` = CRITICAL/HIGH (unmet, blocks readiness), `1` = MEDIUM (partial, consequential gap), `2` = pass. A polish-only criterion is LOW, not a forced `0`.
-> - **Two-axis scoring** (e.g. performance-review, impact × likelihood): high impact + high exposure → CRITICAL/HIGH; material impact, bounded exposure → HIGH/MEDIUM; low impact and exposure → LOW. Record the axes and why the tier is the highest credible consequence.
-> - **Scorecards / `/20` grades** (e.g. `architecture --mode=scalability`): the aggregate score and verdict band are separate from finding severity. A sub-80 area is evidence to investigate, not an automatic tier; classify each underlying gap by the decision tree and keep advisory score deductions apart from blocking findings.
->
-> **Domain-vocabulary normalization (mandatory):** a skill may keep a local reporting vocabulary, but it MUST feed this same four-tier round predicate — never a second severity system:
->
-> - `BLOCKED`, `HARD FAIL`, or `FAIL` is a blocking local verdict, not an automatic CRITICAL: CRITICAL for an immediate material risk or failed binary gate, otherwise HIGH or MEDIUM with evidence, while the local block holds until the owning gate is satisfied.
-> - `WARN` is not permission to ignore: MEDIUM when consequential, LOW only when evidence shows no credible present material impact, HIGH/CRITICAL when the consequence warrants. `PASS`/compliant is not a finding.
-> - UI `P0`/`P1`/`P2`/`P3`/`P4` start as CRITICAL/HIGH/MEDIUM/LOW/LOW; override upward only on evidence of a higher shipped consequence. A P0/P1 accessibility or task-completion floor stays a blocking gate even when called a priority.
-> - Numeric SRE/readiness or impact/likelihood scores are evidence inputs, not tiers: emit the score, the consequence, and the normalized tier together. `INFO`/advisory observations are not findings unless evidence shows a material consequence.
->
-> A tier drives the gate: CRITICAL/HIGH/MEDIUM stay actionable and blocking under the round policy; all review blockers may use up to three rounds, then escalate; LOW may be tracked as a follow-up and, from round 2, never justifies another fix/re-review by itself. An owner decision may explain or schedule an open MEDIUM but never makes it a clean pass; owner acceptance never makes a failed binary gate pass and must record scope, rationale, and residual risk.
+> **Domain-vocabulary normalization and scores:**
+> - `BLOCKED`/`HARD FAIL`/`FAIL` are local blocking verdicts, not automatic CRITICAL; classify by consequence while preserving the owning gate. `WARN` can be any tier; `PASS`/compliant is not a finding. INFO/advisory remains observational unless material consequence is evidenced.
+> - UI `P0/P1/P2/P3/P4` start at CRITICAL/HIGH/MEDIUM/LOW/LOW; raise only with evidence. P0/P1 accessibility or task-completion floors remain blocking gates.
+> - Criterion `0/1/2` → CRITICAL or HIGH (unmet readiness)/MEDIUM (partial consequential gap)/pass; polish is LOW, never forced to `0`.
+> - Impact × likelihood: high impact/exposure → CRITICAL/HIGH; material impact with bounded exposure → HIGH/MEDIUM; low impact/exposure → LOW. Record both axes and justify the highest credible tier.
+> - Aggregate scorecards and `/20` verdict bands stay separate; sub-80 areas prompt investigation, not automatic severity. Keep advisory deductions separate from blockers. Emit numeric SRE/readiness or impact/likelihood scores with consequence and normalized tier.
 
 <!-- /SYNC:severity-rubric -->
 
@@ -1161,60 +1163,14 @@ The protocols below apply to this mode only; their full text is inline so this r
 
 <!-- SYNC:systematic-review-batching -->
 
-> **Systematic Review Batching (map-reduce)** — When a changeset is large, do NOT review files one-by-one. Partition into size-capped batches, fire one specialized sub-agent per batch in parallel, then reduce. This bounds EVERY context — each batch agent AND the orchestrator — so coverage stays complete as file count grows.
+> **Adaptive Review Planning** — Triage the complete target and make a short plan before deep review. Optimize attention and time while preserving coverage and all applicable quality gates.
 >
-> **Trigger ladder (one ordered escalation — not competing thresholds):**
+> 1. **Understand the work.** Inventory all changed paths/status and intent; distinguish behavior, contracts, tests, docs/config and mechanical outputs. Identify risk, dependency links and governing rules. Prioritize the paths whose failure has the largest consequence; size alone does not decide depth.
+> 2. **Choose an approach.** Review inline when useful. Group connected behavior with its callers, tests and rules; use authorized specialist agents for independent work or necessary expertise. Decide grouping, read sizes and concurrency from the actual working set, context headroom and delegation cost. There are no universal file, line, byte or group-size caps, and no mandated split or hierarchy. Preserve host limits and leave room to reason.
+> 3. **Track and persist.** Create todo tasks for the planned review work, findings validation and fix/re-review checks. Track coverage so every file is reviewed or accounted for by relevant evidence; generated/mechanical changes can use verified generator/parity or pattern checks with an explicit rationale. Read relevant source and rules on demand, persist findings and remaining work as you go, and resume from that record after interruption. If context is tight, checkpoint and regroup; never silently truncate or call unreviewed work clean.
+> 4. **Coordinate and validate.** Give each delegated reviewer a clear scope, governing rules, report path and the required full review protocol template. Independent readers may run together; fixes wait until their reports return. Validate findings before acting, preserve rejected/re-tiered candidates and reconcile conflicts by evidence. The coordinator independently checks material findings, uncertain claims and cross-group interactions, choosing additional validation where risk warrants it. Reconcile all coverage and required checks before the final verdict.
 >
-> 1. **< 10 changed files** → sequential per-file review (default; no batching).
-> 2. **≥ 10 changed files** → switch to systematic parallel mode. Announce: `"Detected {N} changed files. Switching to systematic parallel review protocol."` Then: categorize → size-capped batches → flat consolidation.
-> 3. **categories > 6 OR files > 40** → additionally insert the hierarchical synthesis tier (below). Everything from rung 2 still applies.
->
-> **Step 1 — Categorize.** Group changed files into logical categories derived from the project's actual structure (not forced). Category is the *concern axis*; orient with these examples, derive what fits the repository:
->
-> | Category Type | Example Groupings |
-> | --- | --- |
-> | Agent/Tooling | AI scripts, hooks, skill definitions, workflow configs, linting rules |
-> | Root config/docs | Root README, project config, CI/CD pipeline configs |
-> | Reference docs | Architecture docs, patterns references, setup guides |
-> | Feature/domain docs | Business feature documentation, spec files, ADRs |
-> | Backend logic | Service/handler/controller source (infer from project structure) |
-> | Frontend logic | UI component/state/API source (infer from project structure) |
-> | Data/Schema | Migrations, schema files, seed data |
-> | Tests | Unit, integration, E2E test files |
-> | Infrastructure | Docker, k8s, CI/CD, cloud manifests |
->
-> **Step 2 — Risk-weighted batches.** Size caps bound each agent's context; the risk tier decides how tight the cap is. Classify each category's tier FIRST — a file whose tier is unclear takes the high-risk tier:
->
-> | Risk tier | Examples | Batch cap (whichever hits first) |
-> | --- | --- | --- |
-> | **High** | domain/business logic, commands/handlers/jobs, schema/migrations/data access, auth/permissions/secrets/money/PII, concurrency, public contracts, UI with state or requests | ≤8 files OR ≤2000 diff-lines — one category per batch |
-> | **Low** | UI styling/markup with no logic, tests, docs and specs, configuration text | ≤20 files OR ≤4000 diff-lines — low-risk categories may share a batch |
-> | **Mechanical churn** | generated files, lockfiles, pure renames/moves, bulk formatting | no batch agent — the orchestrator verifies by pattern (rule check plus a sample) and records it in the coverage ledger |
->
-> Any category exceeding its cap splits into more batches (30 high-risk backend files → 4 batches). Size caps — not category caps — make "many files" safe: a category cap alone lets one giant category blow a single agent's context. Risk weighting spends line-by-line depth where a defect costs most; the whole-target reviewer and specialist escalation still cover low-risk files.
->
-> **Step 2a — Sub-agent type per batch** (match the batch's dominant concern):
->
-> - Code logic (any stack) → `code-reviewer`
-> - Security-sensitive changes → `security-auditor`
-> - Performance-critical paths → `performance-optimizer`
-> - Docs, plans, specs, configs, infra → `general-purpose`
->
-> Each batch sub-agent receives: its full file list; the Step 2b instruction to validate its own findings; `SYNC:category-review-thinking` as its primary thinking model — derive each category's concerns from first principles, NOT a fixed checklist (if the consuming skill does not carry that block, apply category-first thinking directly); project reference docs relevant to its concern (discover via `*patterns*`, `*conventions*`, `*style-guide*`); cross-reference verification instructions (counts, tables, links). All batch agents run in parallel and write findings to `tmp/reports/` (per `SYNC:task-tracking-external-report`); reducers read from disk, never from memory.
->
-> **Step 2b — Each batch validates its own findings before returning.** The batch agent runs `$why-review --validate-findings <its batch report>` — a real terminal skill call in its own session, where the batch's code and protocols are already loaded — keeps the findings that survive, marks each `validated: in-batch`, lists every finding it rejected or re-tiered with its original severity, and never fixes. This matches report-only specialists and avoids re-loading the same context in a separate validator.
->
-> **Step 3 — Reduce.**
->
-> - **Deduplicate FIRST — before any validation or fix.** Merge findings that share one root cause (same owning `file:line` range and same violated rule or invariant) into one entry that lists every source batch/reviewer, keeps the highest justified severity plus each source's own severity, and records the merge — a severity disagreement between sources is a reviewer conflict. A cross-batch duplicate is never validated or fixed twice.
-> - **Independent check set (after dedup).** In-batch validation trades independence for cost, so the orchestrator re-validates with `$why-review --validate-findings` in the main session: every finding raised or kept at CRITICAL/HIGH, including one its batch rejected or demoted; every finding two reviewers disagree on (severity, owner or fix); every finding its batch did not mark `validated: in-batch`; and at least one in three of each batch's MEDIUM findings (minimum one), picked by position in the batch report, never by content. When a batch's sample shows unreliable validation — more than one in four sampled findings rejected or re-tiered — validate all of that batch's MEDIUM findings. The remaining LOW and unsampled MEDIUM findings ride on their in-batch validation. Keep each validation pass small enough that every finding in it gets full attention.
-> - **Flat reduction (rung 2, ≤6 categories AND ≤40 files):** the orchestrator collects each batch report, cross-references counts/tables/contracts ACROSS batches, detects gaps visible only across categories (feature in code but missing from docs; new API endpoint with no client call), and consolidates into one categorized holistic report.
-> - **Hierarchical reduction (rung 3, > 6 categories OR > 40 files):** insert a mid-tier — each concern with two or more batches gets ONE synthesizer agent that reads only its own batch reports and emits a single concern-synthesis (a single-batch concern needs no synthesizer: its batch report is its synthesis). The orchestrator reads the **concern-syntheses (~5)**, never the raw batch reports — keeping the reducer's context O(#concerns), not O(#files).
->   - **Cross-concern interaction pass (mandatory at rung 3 — closes the synthesis-tier blind spot):** concern-siloed synthesis can drop an interaction spanning two concerns AND two batches (tainted source in data-layer/batch 7 → sink in api/batch 3). So: (a) each concern-synthesizer MUST emit an explicit **"cross-concern interaction candidates"** list — entities/symbols/contracts it touched that plausibly bind to another concern (shared DTOs, event names, table/collection names, exported symbols); (b) the orchestrator MUST run the Step-3 cross-reference/gap step **over those candidate lists across all concern-syntheses**, not only within a batch, before concluding. Without this pass the tier trades completeness for context-bounding on exactly the large diffs it targets.
->
-> **Step 4 — Holistic assessment.** With all findings combined, judge: overall coherence as a unified intent; cross-category sync (docs match code? contracts match callers?); risk areas where categories interact; missing doc/spec updates for changed artifacts.
->
-> **No silent truncation.** If any cap forces sampling or a batch is dropped for budget, ANNOUNCE the dropped/sampled scope explicitly — bounded coverage must never read as complete coverage.
+> **Quality bar:** a thousand-file review may need several passes, but file count never waives end-to-end correctness, required rules, tests, finding validation or fresh post-fix review.
 
 <!-- /SYNC:systematic-review-batching -->
 
@@ -1236,13 +1192,15 @@ The protocols below apply to this mode only; their full text is inline so this r
 
 > **Trade-Off Interrogation Gate** — ALWAYS ask these THREE questions before ANY verdict, score, finding, or recommendation — about the thing under review AND about every recommendation YOU make. — why: naming a benefit without its price is an endorsement, not a review; the costliest trade-offs are the ones nobody wrote down.
 >
+> **Review/audit decisions:** apply `SYNC:review-decision-autonomy` before any user-choice or confirmation prompt below. Select the supported recommendation and record its rationale; round-limit extension, indispensable missing facts and operation authority retain their explicit boundaries.
+>
 > 1. **Is there any trade-off?** Name what it SACRIFICES. "None" / "pure win" is an unfinished analysis, NOT an answer — to claim none, state which dimensions you checked and why each is unaffected: future change cost · complexity · performance/latency · memory/cost · coupling · reversibility · migration burden · operational load · blast radius · security posture · testability · team skill/ramp · delivery time · UX.
 > 2. **Is it worth it?** Weigh gain against sacrifice EXPLICITLY — what is gained (with a metric) · what it costs · WHO pays · WHEN it comes due — then emit **WORTH IT / NOT WORTH IT / UNCLEAR**. "Better" with no metric and no cost FAILS this question. NOT WORTH IT → withdraw or replace the recommendation, never keep it as-is.
 > 3. **Is the trade-off material enough to CONFIRM WITH THE USER?** A material trade-off is the user's call, never yours. **MATERIAL** when ANY holds: irreversible / one-way door (data migration, public contract, storage format, vendor lock-in) · cost shifted onto someone else (another team, ops/on-call, future maintainer, end user) · one quality attribute traded for another (correctness↔speed, security↔convenience, latency↔cost, simplicity↔flexibility) · a boundary crossed (client↔server tier, service contract, event contract, shared library) · a high-consequence path (auth, money, data integrity, breaking change, High/Medium residual risk) · the worth-it verdict is UNCLEAR.
 >
-> **MATERIAL → STOP and confirm using ask user tool BEFORE the verdict stands** — state the trade-off, both options, what each sacrifices, and your recommendation. **NOT material →** record it inline with a one-line justification and proceed.
+> **MATERIAL → STOP and confirm via `ask user question tool` BEFORE the verdict stands** — state the trade-off, both options, what each sacrifices, and your recommendation. **NOT material →** record it inline with a one-line justification and proceed.
 >
-> **Non-asking execution contexts — ESCALATE BY HANDOFF, never by silence.** ask user tool reaches only the main interactive agent: a sub-agent cannot ask the user, and a terminal/verdict-only mode asks nothing by design. When you are running in such a context, the obligation is **redirected, never waived** — do ALL of: (a) complete questions 1 and 2 normally; (b) decide materiality and record it in the Trade-Off Assessment row with `confirmed? = NO — cannot ask from this context`; (c) **name the unconfirmed MATERIAL trade-off explicitly in your returned summary/verdict so the CALLER (or parent orchestrator) escalates it using ask user tool on your behalf** — a material trade-off mentioned only inside a report file on disk is NOT a handoff; (d) do not emit an unqualified PASS — mark the verdict as carrying an unconfirmed material trade-off, so the caller's gate stays closed until the user answers. The caller inherits the escalation duty the moment it reads your return.
+> **Non-asking execution contexts — ESCALATE BY HANDOFF, never by silence.** `ask user question tool` reaches only the main interactive agent: a sub-agent cannot ask the user, and a terminal/verdict-only mode asks nothing by design. When you are running in such a context, the obligation is **redirected, never waived** — do ALL of: (a) complete questions 1 and 2 normally; (b) decide materiality and record it in the Trade-Off Assessment row with `confirmed? = NO — cannot ask from this context`; (c) **name the unconfirmed MATERIAL trade-off explicitly in your returned summary/verdict so the CALLER (or parent orchestrator) escalates it via `ask user question tool` on your behalf** — a material trade-off mentioned only inside a report file on disk is NOT a handoff; (d) do not emit an unqualified PASS — mark the verdict as carrying an unconfirmed material trade-off, so the caller's gate stays closed until the user answers. The caller inherits the escalation duty the moment it reads your return.
 >
 > This carve-out is about **reachability, not convenience**: it applies ONLY where the tool genuinely cannot reach the user (spawned sub-agent, terminal validate/verdict-only mode, non-interactive/headless run). It is NEVER a licence to skip the question, to self-approve a one-way door, or to downgrade materiality because asking is inconvenient — if you CAN ask, you MUST ask.
 >
@@ -1298,9 +1256,7 @@ The protocols below apply to this mode only; their full text is inline so this r
 
 <!-- SYNC:systematic-review-batching:reminder -->
 
-- **MANDATORY** Large changeset → risk-weighted batches, one parallel sub-agent per batch: high-risk ≤8 files OR ≤2000 diff-lines; low-risk (styling, tests, docs, config text) may pool to ≤20 files OR ≤4000 diff-lines; mechanical churn is verified by pattern, not batched. Never review many files one-by-one.
-- **MANDATORY** Each batch agent validates its own findings (`$why-review --validate-findings` in its own session); the reducer deduplicates by root cause FIRST, then re-validates only CRITICAL/HIGH (including in-batch rejections and demotions), reviewer conflicts, unvalidated findings and a MEDIUM sample.
-- **MANDATORY** > 6 categories OR > 40 files → add the hierarchical synthesis tier; each concern-synthesizer emits cross-concern interaction candidates and the orchestrator runs the cross-concern pass before concluding.
+**MUST ATTENTION** Triage all files, write a short review plan and create review/validation/fix/re-review tasks first. Choose inline work or authorized specialists from risk, relationships and context headroom; no fixed file/line/byte caps. Persist coverage, reconcile interactions and validate findings before fixes or PASS.
 
 <!-- /SYNC:systematic-review-batching:reminder -->
 
@@ -1349,9 +1305,11 @@ The protocols below apply to this mode only; their full text is inline so this r
 
 <!-- SYNC:trade-off-interrogation-gate:reminder -->
 
-- **MANDATORY MUST ATTENTION ALWAYS ASK THE 3 TRADE-OFF QUESTIONS** — on the thing under review AND on every recommendation you make: (1) **what does it SACRIFICE?** name the dimensions checked (change cost · complexity · perf · coupling · reversibility · migration · ops load · blast radius · security · testability · delivery time · UX) — "none"/"pure win" is an unfinished analysis; (2) **is it worth it?** gain (with a metric) vs cost, WHO pays, WHEN → emit **WORTH IT / NOT WORTH IT / UNCLEAR**; NOT WORTH IT → withdraw or replace it; (3) **is it MATERIAL enough to confirm with the user?** irreversible/one-way door · cost shifted onto another team/ops/maintainer/user · one quality attribute traded for another · a tier/service/event/library boundary crossed · auth/money/data-integrity/breaking-change/High-or-Medium-risk path · verdict UNCLEAR → **STOP and confirm using ask user tool BEFORE the verdict**.
+**Review/audit invocations:** follow `SYNC:review-decision-autonomy` for every decision prompt; choose supported recommendations without asking, preserve round-extension approval and actual authority.
+
+- **MANDATORY MUST ATTENTION ALWAYS ASK THE 3 TRADE-OFF QUESTIONS** — on the thing under review AND on every recommendation you make: (1) **what does it SACRIFICE?** name the dimensions checked (change cost · complexity · perf · coupling · reversibility · migration · ops load · blast radius · security · testability · delivery time · UX) — "none"/"pure win" is an unfinished analysis; (2) **is it worth it?** gain (with a metric) vs cost, WHO pays, WHEN → emit **WORTH IT / NOT WORTH IT / UNCLEAR**; NOT WORTH IT → withdraw or replace it; (3) **is it MATERIAL enough to confirm with the user?** irreversible/one-way door · cost shifted onto another team/ops/maintainer/user · one quality attribute traded for another · a tier/service/event/library boundary crossed · auth/money/data-integrity/breaking-change/High-or-Medium-risk path · verdict UNCLEAR → **STOP and confirm via `ask user question tool` BEFORE the verdict**.
 - **MANDATORY** A MATERIAL trade-off with no user confirmation can NEVER be PASS; never bury one as a Low-severity note, never decide it silently, and never let delivery or convergence pressure authorize a one-way door — an un-walked-back one-way door is the user's call, not the reviewer's.
-- **MANDATORY — a context that cannot ask escalates BY HANDOFF, never by silence.** ask user tool reaches only the main interactive agent, so a sub-agent or a terminal/verdict-only mode cannot ask. There the duty is REDIRECTED, not waived: still name the trade-off, still decide materiality, record `confirmed? = NO — cannot ask from this context`, and **state the unconfirmed MATERIAL trade-off in your RETURNED verdict so the CALLER escalates it** (a note only in an on-disk report is not a handoff); never emit an unqualified PASS. If you CAN ask, you MUST ask.
+- **MANDATORY — a context that cannot ask escalates BY HANDOFF, never by silence.** `ask user question tool` reaches only the main interactive agent, so a sub-agent or a terminal/verdict-only mode cannot ask. There the duty is REDIRECTED, not waived: still name the trade-off, still decide materiality, record `confirmed? = NO — cannot ask from this context`, and **state the unconfirmed MATERIAL trade-off in your RETURNED verdict so the CALLER escalates it** (a note only in an on-disk report is not a handoff); never emit an unqualified PASS. If you CAN ask, you MUST ask.
 
 <!-- /SYNC:trade-off-interrogation-gate:reminder -->
 
@@ -1388,8 +1346,8 @@ The protocols below apply to this mode only; their full text is inline so this r
 - **Double-Round-Trip Review:** Validate findings, fix only current-round blocking findings, and full re-review until the round severity bar is clear (Round 1: zero open findings; Round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred; binary gates always block).
 - **Sub-Agent Selection:** Route specialized domains to the matching specialist agent, NEVER `code-reviewer`.
 - **Source/Test Drift Check:** Source behavior changes → inspect affected tests; decide fix vs update.
-- **Systematic Review Batching:** Large changeset → size-capped parallel batches, then reduce; NEVER one-by-one.
-- **Severity Rubric:** Classify by consequence Critical/High/Medium/Low using `SYNC:severity-rubric`; round 1 blocks on every open validated finding (Round-1 LOW closure), round 2 blocks only CRITICAL/HIGH/MEDIUM, and LOW is recorded/deferred. Failed binary gates always block.
+- **Systematic Review Batching:** choose inline, bounded sequential or authorized fresh review from risk, related flows, fit and delegation cost; reconcile complete coverage.
+- **Severity Rubric:** Classify by consequence Critical/High/Medium/Low using `SYNC:severity-rubric`; round 1 blocks on every open validated finding (LOW deferral), round 2 blocks only CRITICAL/HIGH/MEDIUM, and LOW is recorded/deferred. Failed binary gates always block.
 - **Category Review Thinking:** Derive each category's concerns from first principles with evidence, NEVER a checklist.
 - **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
 - **AI Agent as User:** Optional, evidence-gated review of agent identity/delegation, least-privilege capabilities, selected API/CLI/MCP/WebMCP/event surfaces, safety/consent, contract tests, audit, and observability; record N/A, owned deferral, or blockers rather than inventing gaps or expanding scope.
@@ -1404,8 +1362,8 @@ The protocols below apply to this mode only; their full text is inline so this r
 **IMPORTANT MUST ATTENTION** self-audit your OWN draft findings against the 11 thinking red flags (`.claude/docs/architecture-knowledge.md` §20.3) BEFORE Phase 5 — a finding whose SACRIFICE you cannot name, one resting on "best practice", one asserting a scale problem with no evidence, or one treating a two-way door as irreversible is DEMOTED or DELETED, never reworded — why: a finding that survives on authoritative tone alone consumes the team's fix budget and teaches them to ignore the report.
 **IMPORTANT MUST ATTENTION** when the project uses modules or port/adapter boundaries, judge a module by functionality hidden ÷ interface surface and check whether a port is declared where the project dependency rule requires it; otherwise assess actual cohesion and coupling without requiring a port pattern — why: interface count alone does not prove useful modularity.
 **IMPORTANT MUST ATTENTION** universal architecture knowledge (`.claude/docs/architecture-knowledge.md`) is a RECOGNITION aid, never authority — project reference docs and accepted ADRs OUTRANK it, an anti-pattern match is a HYPOTHESIS until `file:line`/config/topology evidence AND the damaged quality attribute are both named, and a grepped codebase convention beats any catalog entry — why: catalog-shaped false positives are confident, plausible, and the most expensive output this skill can produce.
-**IMPORTANT MUST ATTENTION** follow the phase order Phase 0 → 1 → 2 → 3 → 4 → 5 → Next Steps; Phase 5 `$why-review` self-validation is MANDATORY whenever any finding exists, and Next Steps MUST present `$code-simplifier` / `$code-quality-review` / skip using ask user tool when standalone (under `--report-only`, a parent skill/workflow, or a sub-agent, return them in the summary instead) — why: the AI repeatedly forgets the validation gate and stops at Phase 4, shipping unvalidated severities downstream.
-**IMPORTANT MUST ATTENTION** `--report-only` declares Phases 0–5 only — scope from the caller's brief, no fix, no restart, no nested sub-agent fan-out, no ask user tool, no writer beyond the report; return the report path plus validated findings grouped Critical/High/Medium/Low via the BLOCKED/WARN mapping — why: a read-only leaf that fixes, fans out, asks, or regenerates docs stalls or races its barrier siblings.
+**IMPORTANT MUST ATTENTION** follow the phase order Phase 0 → 1 → 2 → 3 → 4 → 5 → Next Steps; Phase 5 `$why-review` self-validation is MANDATORY whenever any finding exists, and Next Steps MUST present `$code-simplifier` / `$code-quality-review` / skip via `ask user question tool` when standalone (under `--report-only`, a parent skill/workflow, or a sub-agent, return them in the summary instead) — why: the AI repeatedly forgets the validation gate and stops at Phase 4, shipping unvalidated severities downstream.
+**IMPORTANT MUST ATTENTION** `--report-only` declares Phases 0–5 only — scope from the caller's brief, no fix, no restart, no nested sub-agent fan-out, no `ask user question tool`, no writer beyond the report; return the report path plus validated findings grouped Critical/High/Medium/Low via the BLOCKED/WARN mapping — why: a read-only leaf that fixes, fans out, asks, or regenerates docs stalls or races its barrier siblings.
 **IMPORTANT MUST ATTENTION** break work into small tasks using task tracking BEFORE starting; mark one `in_progress`/`completed` at a time; on context loss call the current task list first — why: resume existing tasks, never duplicate after compaction.
 **IMPORTANT MUST ATTENTION** stay in lane — deep-review only what this skill OWNS (layers, messaging/CQRS/repos/service boundaries, entity events, frontend architecture, quality tooling, generated artifacts, ADRs); record a one-line `→ route to {sibling}` pointer for security/performance/DDD/UI/integration-test findings instead of expanding them
 **IMPORTANT MUST ATTENTION** each framework, base-class, directory, transport, storage, test, and file-layout check anywhere in this skill needs its own applicability evidence from config, project references, accepted ADRs, or established code; record unsupported or explicitly N/A patterns as N/A and NEVER flag their absence.
@@ -1413,8 +1371,8 @@ The protocols below apply to this mode only; their full text is inline so this r
 **IMPORTANT MUST ATTENTION** when the project maintains a spec/test contract, review the WHOLE package (spec + tests + structural diff), not the diff alone — each behavior-affecting finding carries a Dual-Feedback row in the project's format. Otherwise record the spec axis N/A and assess the project's actual test contract; do not invent a spec requirement — why: a boundary change that compiles but is never asserted can regress silently when a sibling caller is next touched.
 **Optional advice:** for a high-risk cross-service blast radius grep may miss, the code graph can add hints — it may be stale; verify by reading. Never required.
 **IMPORTANT MUST ATTENTION** evaluate pattern fit before flagging — copying-nearby ≠ matching preconditions; verify the same scope, lifetime, project contract, constraints, and established exceptions before calling a deviation a violation.
-**IMPORTANT MUST ATTENTION** review is read-only until validated — NEVER fix code in this skill; after ANY finding run the Phase 5 `$why-review --validate-findings` self-validation gate BEFORE handoff, and every validated fix restarts a full review from Phase 0 with a fresh task breakdown — why: AI reports inherit confirmation bias; adversarial validation demotes false-positive Highs at the source.
-**IMPORTANT MUST ATTENTION** write findings to `tmp/reports/arch-review-{date}-{slug}.md` incrementally and synthesize from disk; use ask user tool to present next steps (`$code-simplifier` / `$code-quality-review` / skip) after completing a standalone review — why: long reviews exhaust context before a final batch write, losing findings.
+**IMPORTANT MUST ATTENTION** review-only and caller-owned passes stay read-only; standalone `--fix-loop` fixes only validated findings within scope; after ANY finding run the Phase 5 `$why-review --validate-findings` self-validation gate BEFORE handoff, and every validated fix restarts a full review from Phase 0 with a fresh task breakdown — why: AI reports inherit confirmation bias; adversarial validation demotes false-positive Highs at the source.
+**IMPORTANT MUST ATTENTION** write findings to `tmp/reports/arch-review-{date}-{slug}.md` incrementally and synthesize from disk; use `ask user question tool` to present next steps (`$code-simplifier` / `$code-quality-review` / skip) after completing a standalone review — why: long reviews exhaust context before a final batch write, losing findings.
 
 **Anti-Rationalization:**
 

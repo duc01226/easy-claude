@@ -10,7 +10,7 @@ disable-model-invocation: true
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - Use ask user tool to ask user.
+> - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -21,7 +21,7 @@ disable-model-invocation: true
 
 **Goal:** Create new custom agents, audit existing agent quality, or enhance agent definitions so each agent is valid, least-privilege, structurally complete, and ready for safe delegation.
 
-**Summary:** Route the request to Create, Audit, or Enhance; inspect existing agents and conventions; apply only confirmed changes; then validate frontmatter, tools, prompt structure, and quality score.
+**Summary:** Produce valid agents through the selected mode: Create — clarify → check existing → scaffold → write → validate; Audit — discover → read/parse → validate → report → fix confirmed Errors; Enhance — read → analyze → recommend → apply confirmed changes. Validate frontmatter, tools, structure, and quality score.
 
 **Workflow:** Detect mode (Create/Audit/Enhance) from `$ARGUMENTS` → Execute → Validate
 
@@ -31,6 +31,7 @@ disable-model-invocation: true
 - Agent does NOT inherit Claude Code system prompt — write complete instructions
 - Minimize tools to only what the agent needs
 - System prompt structure: `## Role` → `## Workflow` → `## Key Rules` → `## Output`
+- Analyze scope and use task tracking for small tasks/subtasks before starting, including per-file reads and final review. For simple tasks, ask whether to skip.
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
@@ -44,7 +45,7 @@ disable-model-invocation: true
 
 ## Mode 1: Create Agent
 
-1. **Clarify** — ask user tool: purpose, read-only vs read-write, model preference, memory needs
+1. **Clarify** — `ask user question tool`: purpose, read-only vs read-write, model preference, memory needs
 2. **Check Existing** — Glob `.claude/agents/*.md` for similar agents. Avoid duplication.
 3. **Scaffold** — Create `.claude/agents/{name}.md` using frontmatter template below
 4. **Write System Prompt** — Structure: `## Role` → `## Workflow` → `## Key Rules` → `## Output`
@@ -53,8 +54,8 @@ disable-model-invocation: true
 ## Mode 2: Audit Agents
 
 1. **Discover** — Glob `.claude/agents/*.md`
-2. **Parse** — Read first 30 lines of each, extract frontmatter
-3. **Validate** — Check each audit rule below
+2. **Read and parse** — Read each complete frontmatter and body before checking or scoring it. A header preview is discovery only; follow multiline YAML through its closing delimiter.
+3. **Validate** — Apply the [Audit Checklist](#audit-checklist) and quality score; consult [Agent Frontmatter Schema](#agent-frontmatter-schema) for field definitions and [Tool Restriction Patterns](#tool-restriction-patterns) for tool scope.
 4. **Report** — Issues grouped by severity (Error > Warning > Info), include quality scores
 5. **Fix** — If user confirms, fix Error-level issues automatically
 
@@ -122,15 +123,17 @@ isolation: worktree # Run in temporary git worktree
 | Researcher           | `Read, Grep, Glob, WebFetch, WebSearch` |
 | Orchestrator         | `Read, Grep, Glob, Task(sub1, sub2)`    |
 
-Available tools: Read, Write, Edit, MultiEdit, Glob, Grep, Bash, WebFetch, WebSearch, Task, NotebookRead, NotebookEdit, task tracking, TaskUpdate, ask user tool, + MCP tools.
+Available tools: Read, Write, Edit, MultiEdit, Glob, Grep, Bash, WebFetch, WebSearch, Task, NotebookRead, NotebookEdit, task tracking, TaskUpdate, ask user question tool, + MCP tools.
 
 ## Model Selection
+
+These are routing heuristics, not measured quality rankings or compatibility evidence. Preserve an explicit user choice; otherwise prefer `inherit`. Record representative model/runtime tests separately, with unavailable comparisons marked `NOT RUN`.
 
 | Model     | Best For                                                                                               |
 | --------- | ------------------------------------------------------------------------------------------------------ |
 | `haiku`   | Fast read-only: scanning, search, file listing                                                         |
 | `sonnet`  | Balanced: code review, debugging, analysis                                                             |
-| `opus`    | High-stakes: architecture, complex implementation. Better quality for code review, debugging, analysis |
+| `opus`    | Candidate for high-stakes architecture or complex implementation; verify suitability on representative tasks |
 | `inherit` | Default — match parent's model                                                                         |
 
 ## Description Best Practices
@@ -194,14 +197,19 @@ Same `name` across levels: higher-priority wins. Use `claude agents` CLI to list
 
 ---
 
-**IMPORTANT Task Planning Notes (MUST ATTENTION FOLLOW)**
+<!-- PROTOCOL-GUIDES:START -->
 
-- Always break work into small todo tasks
-- Always add a final review todo task
+> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
----
+- `review-decision-autonomy` — Choose supported review decisions and ask before extending the round budget; running any review or audit skill or mode → .claude/skills/shared/protocols/review-decision-autonomy.md
 
-> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
+<!-- PROTOCOL-GUIDES:END -->
+
+<!-- SYNC:review-decision-autonomy:reminder -->
+
+**MUST ATTENTION** Decide supported review choices and recommendations, record the rationale, and finish without routine user questions. Keep round-limit extension, indispensable facts and actual action authority; preserve source coverage, validation, tests, read-only boundaries and budgets. Review decisions do not accept open risks or make a failed gate pass.
+
+<!-- /SYNC:review-decision-autonomy:reminder -->
 
 ## Closing Reminders
 
@@ -213,9 +221,10 @@ Same `name` across levels: higher-priority wins. Use `claude agents` CLI to list
 
 - **AI Mistakes:** holistic-first debug, fix at responsible layer, surgical diff, verify ALL outputs.
 
-- **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting
-- **MANDATORY IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code
-- **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
-- **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
+- Use task tracking before starting, including per-file reads and final review; ask whether to skip for simple tasks.
+- Search 3+ similar patterns before creating code; cite `file:line` for every claim, with confidence >80% to act.
 
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
+| Evasion | Required action |
+| --- | --- |
+| "Header preview is enough" | Read complete frontmatter and body before checking or scoring |
+| "Audit found Errors, fix now" | Report first; fix Error-level issues only after user confirmation |

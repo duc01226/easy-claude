@@ -86,7 +86,7 @@ Use “Pre-MVP Gate” for product truth/ownership/state decisions when needed, 
 
 ## Phase 3: Decision Gate
 
-Before writing an approved roadmap, use `AskUserQuestion` for every material ambiguity. At minimum confirm:
+Before writing an approved roadmap, use `ask user question tool` for every material ambiguity. At minimum confirm:
 
 - the product hypothesis and primary owner/customer;
 - source-of-truth state and persistence expectation;
@@ -142,5 +142,5 @@ Report:
 **IMPORTANT MUST ATTENTION Main steps:** confirm the explicit route → load context and contract → frame outcomes → design milestones → obtain owner decisions → write the roadmap/scope brief → hand off the selected milestone or EXEMPT branch through scenario and Plan Gate.
 **IMPORTANT MUST ATTENTION** run the explicit route → context → outcome/milestone or EXEMPT boundary → decision gate → scope → handoff in order.
 **IMPORTANT MUST ATTENTION** define outcome, risk retired, non-goals, human decisions, dependencies, and evidence for every milestone.
-**IMPORTANT MUST ATTENTION** use `AskUserQuestion` for material decisions; AI confidence never equals owner approval.
+**IMPORTANT MUST ATTENTION** use `ask user question tool` for material decisions; AI confidence never equals owner approval.
 **IMPORTANT MUST ATTENTION** no framework, schema, endpoint, screen, or code decisions in the product roadmap.

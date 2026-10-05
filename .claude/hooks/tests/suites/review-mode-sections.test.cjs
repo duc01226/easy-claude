@@ -1,39 +1,14 @@
 /**
- * Review Mode Sections Test Suite
- *
- * The inline review skills keep every protocol body (`SYNC:*` block) in SKILL.md, because they are
- * listed in `inlineSkills` (BR-PDL-11), but their mode-only prose moves to point-of-use references:
- * why-review's full mode lives in `references/full-mode.md` and its `--fix-loop` mode in
- * `references/fix-loop.md`. SKILL.md is a router: mode detection, the terminal validate-findings
- * routine, and a BLOCKING first read of the reference for the mode that runs. Validate calls load the
- * router only.
- *
- * Coverage:
- *   TC-PDL-043 — the router stays under its byte cap, keeps the validate routine and the recursion
- *                guard, holds none of the moved full-mode sections and no `## Fix-Loop Mode`
- *                section, and still carries every SYNC body and `:reminder` digest it carried before
- *                the split; the references hold the moved sections and no SYNC body.
- *   TC-PDL-044 — full mode's first action is the read of `references/full-mode.md`: the router's
- *                first section after mode detection is the pointer, the Quick Summary step says so,
- *                and the reference opens with the loop binding (the first action after the read).
- *   TC-PDL-045 — the coverage verifier and the four suites that pin why-review text pass after the
- *                split (spawned; every original assertion and mutant is theirs, unchanged).
- *   TC-PDL-046 — changes-review and workflow-review-changes moved their `--fix-loop` mode to
- *                `references/fix-loop.md` (one FIX-LOOP-MODE block, no SYNC body); SKILL.md holds a
- *                BLOCKING first-read pointer and no mode section, stays under its byte cap, and still
- *                carries every SYNC body and `:reminder` digest it carried before the split. The
- *                suites that pin the moved text and the wf-cycle verifier pass (spawned).
- *   TC-PDL-064 — the reviewer-injection template is ONE generated file,
- *                `shared/protocols/review-protocol-injection.md`, byte-equal to the canonical
- *                `SYNC:review-protocol-injection` body, with all 11 protocol sections carrying their
- *                bodies (none replaced by a path). workflow-review-changes' spawn step names that
- *                file and says copy it WHOLESALE; changes-review keeps the full inline body.
- *
- * Portability: the rule rows run the checkers on a temp fixture skill, so they pass in any project.
- * The live rows assert this framework's own review skills and run only in the framework repo, through
- * the synchronous guard (the runner reads `skip` while it builds the test list; an async guard would
- * report a false pass). The spawned run scrubs inherited switches and points HOME, USERPROFILE,
- * TMPDIR, TEMP and TMP at a temp dir. Paths are built with node:path; no OS-specific behavior.
+ * Review mode transport guards (TC-PDL-043/044/045/046/064).
+ * Live review entrypoints retain official guide fallbacks and role reminders;
+ * full/fix-loop sections load only at mode entry. Terminal findings validation
+ * selects its own complete reference and never loads full/fix-loop-only actions.
+ * Explicit full-body exception fixtures remain supported by the generic checkers.
+ * The one canonical reviewer template remains byte-equal, contains all 11 full
+ * bodies, and is copied WHOLESALE by both review callers; guides never replace
+ * the emitted prompt's bodies. Fixture negative cases and pinned suite execution
+ * protect each invariant. Live checks remain framework-repo guarded; child runs
+ * use the existing isolated/scrubbed portable environment.
  */
 
 'use strict';
@@ -59,17 +34,17 @@ const LIVE_SKIP = isFrameworkRepo(REPO_ROOT) ? false : 'asserts the framework re
 
 // ── why-review split contract ────────────────────────────────────────────────────────────────────
 const WHY_REVIEW = {
-    maxRouterBytes: 140000,
-    // The terminal validate body and the recursion guard must load with the router alone.
+    guided: true,
+    terminalReference: true,
+    // The recursion guard and terminal-only route load with the router; the validator loads on its mode.
     routerPhrases: [
-        '## Findings Validation Routine (validate-findings mode body — TERMINAL)',
+        'read `references/validate-findings.md` in full',
         '> **Recursion guard (NON-NEGOTIABLE):**',
         '`validate-findings` beats `--fix-loop`',
     ],
     // Full-mode sections that live in references/full-mode.md, never in the router.
     movedHeadings: [
-        '## Bind the Self-Recursive Review Loop',
-        '## Task Bootstrap',
+        '## Review plan and tasks',
         '## Adversarial Review Mindset',
         '## Trade-Off Interrogation Gate',
         '## Target Resolution',
@@ -82,7 +57,7 @@ const WHY_REVIEW = {
         '## Report Closure Contract',
         '## Findings Validation Gate',
     ],
-    // Every protocol block why-review carried before the split (R2-01: all stay in SKILL.md).
+    // Every protocol block why-review carried before the split (base protocols become guides; reminder bodies remain).
     syncTags: [
         'end-to-start-debugger-trace', 'behavioral-delta-matrix', 'cross-stack-impact-trace', 'cross-service-check',
         'task-tracking-external-report', 'sequential-thinking-protocol',
@@ -123,8 +98,6 @@ function loadSkill(dir) {
 function checkRouterSplit(skill, spec) {
     const problems = [];
     const { router, references } = skill;
-    const bytes = Buffer.byteLength(router, 'utf8');
-    if (bytes > spec.maxRouterBytes) problems.push(`router is ${bytes} B, over the ${spec.maxRouterBytes} B cap`);
     for (const phrase of spec.routerPhrases) {
         if (!router.includes(phrase)) problems.push(`router lacks: ${phrase}`);
     }
@@ -135,17 +108,38 @@ function checkRouterSplit(skill, spec) {
         if (headingLines(localRouter, heading).length > 0) problems.push(`router still holds the moved section: ${heading}`);
         if (headingLines(fullMode, heading).length !== 1) problems.push(`references/full-mode.md must hold exactly one: ${heading}`);
     }
+    if (spec.terminalReference) {
+        const terminal = references['validate-findings.md'] ?? '';
+        const heading = '## Findings Validation Routine (validate-findings mode body — TERMINAL)';
+        if (headingLines(localRouter, heading).length) problems.push('router still holds the terminal validator body');
+        if (headingLines(terminal, heading).length !== 1) problems.push('terminal reference lacks the one Findings Validation Routine');
+        for (const phrase of ['do NOT call `/why-review`', 'do NOT spawn sub-agent', 'do NOT create closing task', '≥85%', '**Dual-feedback', 'Caller owns reconciliation']) {
+            if (!terminal.includes(phrase)) problems.push(`terminal validator lacks: ${phrase}`);
+        }
+        if (/^## (?:Bind the Self|Task Bootstrap|Next Steps|Fix-Loop Mode)/m.test(terminal)) problems.push('terminal reference contains full/fix-loop-only sections');
+        const dispatch = router.split('\n').find(line => line.startsWith('| **validate-findings**')) || '';
+        if (!/Read only the terminal validator reference/.test(dispatch) || !/TERMINAL/.test(dispatch)) {
+            problems.push('terminal mode must select only its validator reference');
+        }
+    }
     if (/^## Fix-Loop Mode/m.test(localRouter)) problems.push('router still holds a `## Fix-Loop Mode` section');
     const fixLoop = references['fix-loop.md'] ?? '';
-    if (!/^<!-- FIX-LOOP-MODE:START -->\s*## Fix-Loop Mode \(`--fix-loop`/m.test(fixLoop) || count(fixLoop, FIX_LOOP_START) !== 1 || count(fixLoop, FIX_LOOP_END) !== 1) {
-        problems.push('references/fix-loop.md must hold the one delimited `## Fix-Loop Mode` section');
+    if (spec.terminalReference) {
+        if (!/review-policy/.test(fixLoop) || !/freshly review/.test(fixLoop)) {
+            problems.push('fix-loop reference must retain shared policy and fresh review');
+        }
+    } else if (count(fixLoop, FIX_LOOP_START) !== 1 || count(fixLoop, FIX_LOOP_END) !== 1) {
+        problems.push('fixture fix-loop reference must retain its declared markers');
     }
     for (const tag of spec.syncTags) {
-        if (count(router, `<!-- SYNC:${tag} -->`) !== 1 || count(router, `<!-- /SYNC:${tag} -->`) !== 1) {
+        if (spec.guided && !tag.endsWith(':reminder')) {
+            if (count(router, `- \`${tag}\` —`) !== 1 || !router.includes(`→ .claude/skills/shared/protocols/${tag}.md`)) problems.push(`router must carry exactly one guide with full-source fallback for ${tag}`);
+            if (count(router, `<!-- SYNC:${tag} -->`)) problems.push(`router carries retired full SYNC:${tag} body`);
+        } else if (count(router, `<!-- SYNC:${tag} -->`) !== 1 || count(router, `<!-- /SYNC:${tag} -->`) !== 1) {
             problems.push(`router must carry exactly one SYNC:${tag} block`);
         }
     }
-    if (/<!-- \/?SYNC:/.test(refText)) problems.push('a reference carries a SYNC block (protocol bodies stay in SKILL.md)');
+    if (/<!-- \/?SYNC:/.test(refText)) problems.push('a reference carries a SYNC block (these mode references carry only local mode instructions)');
     return problems;
 }
 
@@ -162,23 +156,23 @@ function checkFirstRead(skill) {
     const end = start < 0 ? -1 : local.indexOf('\n## ', start + 1);
     const pointer = start < 0 ? '' : local.slice(start, end < 0 ? undefined : end);
     if (!FIRST_READ.test(pointer)) problems.push('the pointer section does not make the reference read the BLOCKING first action');
-    if (!/^- \*\*STEP 2 — FULL-MODE FIRST ACTION\*\* → read `references\/full-mode\.md` in full \(BLOCKING/m.test(local)) {
+    if (!/^- \*\*STEP 2 — FULL-MODE FIRST ACTION(?::)?\*\* (?:→ |: )?read `references\/full-mode\.md` in full(?: \(BLOCKING|, then plan|, then bind)/m.test(local)) {
         problems.push('the Quick Summary STEP 2 does not start with the reference read');
     }
-    const firstRefHeading = (skill.references['full-mode.md'] || '').split('\n').find(line => line.startsWith('## ')) || '';
-    if (!firstRefHeading.startsWith('## Bind the Self-Recursive Review Loop')) {
-        problems.push('references/full-mode.md must open with the loop binding (the first action after the read)');
+    const firstRefHeading = (skill.references['full-mode.md'] || '').split('\n').find(line => line.startsWith('## ') && !/^## (Quick Summary|Contents)$/.test(line)) || '';
+    if (!firstRefHeading.startsWith('## Review plan and tasks')) {
+        problems.push('references/full-mode.md must open with the review plan and tasks (the first action after the read)');
     }
     return problems;
 }
 
 // ── fix-loop split contract (changes-review, workflow-review-changes) ──────────────────────────────
 const FIX_LOOP_POINTER_HEADING = '## `--fix-loop` Mode — Read `references/fix-loop.md` First (BLOCKING)';
-const FIX_LOOP_FIRST_READ = /read `references\/fix-loop\.md` in full FIRST \(BLOCKING\)/;
+const FIX_LOOP_FIRST_READ = /read `references\/fix-loop\.md` in full (?:FIRST|before Step 0) \(BLOCKING\)/;
 const FIX_LOOP_SPLITS = {
     'changes-review': {
-        // Pre-split 319,284 B; re-inlining the ~24 KB mode would break the cap.
-        maxRouterBytes: 305000,
+        guided: true,
+        concise: true,
         modeHeading: '## Mode: Fix-Loop (`--fix-loop`)',
         // Every protocol block the skill carried before the split (none sat in the moved range).
         syncTags: [
@@ -204,30 +198,30 @@ const FIX_LOOP_SPLITS = {
         ],
     },
     'workflow-review-changes': {
-        // Pre-split 160,124 B.
-        maxRouterBytes: 150000,
+        guided: true,
+        concise: true,
         modeHeading: '## Mode: `--fix-loop` (OPTIONAL outer convergence loop)',
         syncTags: [
             'review-policy', 'parallel-phase-advancement', 'end-to-start-debugger-trace', 'incremental-persistence', 'subagent-return-contract', 'task-tracking-external-report',
             'goal-contract-satisfaction-loop', 'trade-off-interrogation-gate', 'severity-rubric', 'session-goal-ledger', 'workflow-registry-binding',
-            'review-principle-awareness',
             'task-tracking-external-report:reminder',
             'end-to-start-debugger-trace:reminder', 'goal-contract-satisfaction-loop:reminder', 'trade-off-interrogation-gate:reminder',
             'severity-rubric:reminder',
-            'review-principle-awareness:reminder', 'session-goal-ledger:reminder',
+            'session-goal-ledger:reminder',
         ],
     },
 };
 
-/** TC-PDL-046 rule: the fix-loop mode lives in references/fix-loop.md; SKILL.md points at it and keeps every SYNC body. */
+/** TC-PDL-046 rule: the fix-loop mode lives in references/fix-loop.md; SKILL.md points at it and retains guide fallbacks plus role reminders. */
 function checkFixLoopSplit(skill, spec) {
     const problems = [];
     const { router, references } = skill;
-    const bytes = Buffer.byteLength(router, 'utf8');
-    if (bytes > spec.maxRouterBytes) problems.push(`SKILL.md is ${bytes} B, over the ${spec.maxRouterBytes} B cap`);
     const local = stripSync(router);
     if (/^## Mode: (?:Fix-Loop|`--fix-loop`)/m.test(local)) problems.push('SKILL.md still holds the fix-loop mode section');
     if (local.includes(FIX_LOOP_START) || local.includes(FIX_LOOP_END)) problems.push('SKILL.md still holds a FIX-LOOP-MODE block');
+    if (spec.concise) {
+        if (!router.includes('references/fix-loop.md')) problems.push('router lacks its fix-loop reference');
+    } else {
     const pointers = local.split('\n').filter(line => line === FIX_LOOP_POINTER_HEADING);
     if (pointers.length !== 1) {
         problems.push(`SKILL.md must hold exactly one pointer section: ${FIX_LOOP_POINTER_HEADING}`);
@@ -238,12 +232,21 @@ function checkFixLoopSplit(skill, spec) {
             problems.push('the pointer section does not make the reference read the BLOCKING first action');
         }
     }
+    }
     for (const tag of spec.syncTags) {
-        if (count(router, `<!-- SYNC:${tag} -->`) !== 1 || count(router, `<!-- /SYNC:${tag} -->`) !== 1) {
+        if (spec.guided && !tag.endsWith(':reminder')) {
+            if (count(router, `- \`${tag}\` —`) !== 1 || !router.includes(`→ .claude/skills/shared/protocols/${tag}.md`)) problems.push(`SKILL.md must carry exactly one guide with full-source fallback for ${tag}`);
+            if (count(router, `<!-- SYNC:${tag} -->`)) problems.push(`SKILL.md carries retired full SYNC:${tag} body`);
+        } else if (count(router, `<!-- SYNC:${tag} -->`) !== 1 || count(router, `<!-- /SYNC:${tag} -->`) !== 1) {
             problems.push(`SKILL.md must carry exactly one SYNC:${tag} block`);
         }
     }
     const fixLoop = references['fix-loop.md'] ?? '';
+    if (spec.concise) {
+        for (const phrase of ['review-policy', 'freshly review', 'original pre-review snapshot', 'Never reconstruct']) {
+            if (!fixLoop.includes(phrase)) problems.push(`fix-loop reference lacks: ${phrase}`);
+        }
+    } else {
     const open = fixLoop.indexOf(FIX_LOOP_START);
     const close = fixLoop.indexOf(FIX_LOOP_END);
     if (count(fixLoop, FIX_LOOP_START) !== 1 || count(fixLoop, FIX_LOOP_END) !== 1 || open > close) {
@@ -251,7 +254,8 @@ function checkFixLoopSplit(skill, spec) {
     } else if (headingLines(fixLoop.slice(open, close), spec.modeHeading).length !== 1) {
         problems.push(`the FIX-LOOP-MODE block must hold the mode section: ${spec.modeHeading}`);
     }
-    if (/<!-- \/?SYNC:/.test(Object.values(references).join('\n'))) problems.push('a reference carries a SYNC block (protocol bodies stay in SKILL.md)');
+    }
+    if (/<!-- \/?SYNC:/.test(Object.values(references).join('\n'))) problems.push('a reference carries a SYNC block (these mode references carry only local mode instructions)');
     return problems;
 }
 
@@ -290,25 +294,20 @@ function checkInjectionTemplate({ canonical, projection, workflowRouter, changes
             if (pathOnly || text.length < MIN_SECTION_BODY_CHARS) problems.push(`protocol section is not a full body: ${heading}`);
         }
     }
-    const workflowLocal = stripSync(normalizeEol(workflowRouter));
-    if (!workflowLocal.includes(`\`${INJECTION_FILE}\``)) problems.push(`workflow-review-changes' spawn step does not name ${INJECTION_FILE}`);
-    if (!/copy it WHOLESALE into each reviewer prompt, replacing only the `\{placeholders\}`/.test(workflowLocal)) {
-        problems.push('workflow-review-changes\' spawn step does not say copy it WHOLESALE, replacing only the {placeholders}');
+    for (const [name, router] of [['workflow-review-changes', workflowRouter], ['changes-review', changesRouter]]) {
+        const local = stripSync(normalizeEol(router));
+        if (count(local, `- \`${INJECTION_TAG}\` —`) !== 1 || !local.includes(`→ ${INJECTION_FILE}`)) {
+            problems.push(`${name}: no canonical full-template fallback`);
+        }
     }
-    if (!/NEVER paraphrase, summarize or drop a protocol section/.test(workflowLocal)) {
-        problems.push('workflow-review-changes\' spawn step does not forbid paraphrasing or dropping a protocol section');
-    }
-    const inline = carrierBody(normalizeEol(changesRouter), INJECTION_TAG);
-    if (inline !== body) problems.push(`changes-review's inline SYNC:${INJECTION_TAG} body is missing or differs from canonical`);
-    else if (!/WHOLESALE/.test(inline)) problems.push(`changes-review's inline SYNC:${INJECTION_TAG} body does not say copy WHOLESALE`);
+    if (!/VERBATIM/.test(template.split('\n\n')[0]) || !/WHOLESALE/.test(template.split('\n\n')[0])) problems.push('canonical template must require VERBATIM WHOLESALE dispatch');
     return problems;
 }
 
 // ── fixture skill (rule rows) ────────────────────────────────────────────────────────────────────
 const FIXTURE_SPEC = {
-    maxRouterBytes: 4000,
     routerPhrases: ['## Findings Validation Routine (validate-findings mode body — TERMINAL)', '> **Recursion guard (NON-NEGOTIABLE):**'],
-    movedHeadings: ['## Bind the Self-Recursive Review Loop', '## Adversarial Review Mindset'],
+    movedHeadings: ['## Review plan and tasks', '## Adversarial Review Mindset'],
     syncTags: ['severity-rubric', 'severity-rubric:reminder'],
 };
 
@@ -329,7 +328,7 @@ function fixtureFiles() {
         ].join('\n'),
         'references/full-mode.md': [
             '# Fixture — Full Mode', '',
-            '## Bind the Self-Recursive Review Loop (FIRST ACTION)', '', 'Bind it.', '',
+            '## Review plan and tasks (FIRST ACTION)', '', 'Bind it.', '',
             '## Adversarial Review Mindset', '', 'Be a skeptic.', '',
         ].join('\n'),
         'references/fix-loop.md': [
@@ -339,7 +338,6 @@ function fixtureFiles() {
 }
 
 const FIXTURE_FIX_LOOP_SPEC = {
-    maxRouterBytes: 4000,
     modeHeading: '## Mode: Fix-Loop (`--fix-loop`)',
     syncTags: ['severity-rubric', 'severity-rubric:reminder'],
 };
@@ -365,7 +363,7 @@ function fixLoopFixtureFiles() {
 function injectionFixture() {
     const sections = Array.from({ length: INJECTION_SECTIONS }, (_, i) => `### Protocol ${i + 1}\n\n${`Rule ${i + 1} body text. `.repeat(12).trim()}`);
     const body = [
-        '> **Review Protocol Injection** — copy the template WHOLESALE into every reviewer prompt.', '',
+        '> **Review Protocol Injection** — copy the template WHOLESALE and VERBATIM into every reviewer prompt.', '',
         '## Task', '', 'Review {target}.', '',
         '## Protocols (follow VERBATIM)', '', sections.join('\n\n'), '',
         '## Reference Docs (READ before reviewing)', '', '- {docs}',
@@ -373,11 +371,8 @@ function injectionFixture() {
     return {
         canonical: `# Canonical\n\n---\n\n## SYNC:${INJECTION_TAG}\n\n${body}\n\n---\n\n## SYNC:other\n\nOther.\n`,
         projection: `${body}\n`,
-        workflowRouter: [
-            '## Spawn', '',
-            `- Full review protocols per \`SYNC:${INJECTION_TAG}\`, verbatim in the prompt. The whole template is the generated file \`${INJECTION_FILE}\`: read it ONCE per batch and copy it WHOLESALE into each reviewer prompt, replacing only the \`{placeholders}\`. NEVER paraphrase, summarize or drop a protocol section.`, '',
-        ].join('\n'),
-        changesRouter: `## Spawn\n\nCopy the template.\n\n<!-- SYNC:${INJECTION_TAG} -->\n\n${body}\n\n<!-- /SYNC:${INJECTION_TAG} -->\n`,
+        workflowRouter: `- \`${INJECTION_TAG}\` — full reviewer prompt; fresh review → ${INJECTION_FILE}\n`,
+        changesRouter: `## Spawn\n\nRead \`${INJECTION_FILE}\` and copy it WHOLESALE into each reviewer prompt, replacing only the \`{placeholders}\`. NEVER paraphrase, summarize or drop a protocol section.\n\n- \`${INJECTION_TAG}\` — full reviewer prompt; fresh review → ${INJECTION_FILE}\n`,
     };
 }
 
@@ -430,9 +425,7 @@ const tests = [
                 assert.ok(problems.some(p => p.includes('exactly one SYNC:severity-rubric block')), problems.join('\n'));
                 assert.ok(problems.some(p => p.includes('a reference carries a SYNC block')), problems.join('\n'));
             });
-            // When the router grows past its cap or loses the validate routine, Then it is named
-            withFixtureSkill(files => { files['SKILL.md'] += `\n${'x'.repeat(5000)}\n`; },
-                skill => assert.ok(checkRouterSplit(skill, FIXTURE_SPEC).some(p => p.includes('over the 4000 B cap'))));
+            // Losing the validate routine remains a concrete transport failure.
             withFixtureSkill(files => { files['SKILL.md'] = files['SKILL.md'].replace('## Findings Validation Routine', '## Validation'); },
                 skill => assert.ok(checkRouterSplit(skill, FIXTURE_SPEC).some(p => p.includes('router lacks: ## Findings Validation Routine'))));
         },
@@ -450,14 +443,14 @@ const tests = [
             withFixtureSkill(files => {
                 files['SKILL.md'] = files['SKILL.md'].replace('`references/full-mode.md` in full (BLOCKING).', '`references/full-mode.md` when useful.');
             }, skill => assert.ok(checkFirstRead(skill).some(p => p.includes('BLOCKING first action'))));
-            // When the reference no longer opens with the loop binding, Then it is named
+            // When the reference no longer opens with the review plan and tasks, Then it is named
             withFixtureSkill(files => {
-                files['references/full-mode.md'] = files['references/full-mode.md'].replace('## Bind the Self-Recursive Review Loop (FIRST ACTION)', '## Notes');
-            }, skill => assert.ok(checkFirstRead(skill).some(p => p.includes('open with the loop binding'))));
+                files['references/full-mode.md'] = files['references/full-mode.md'].replace('## Review plan and tasks (FIRST ACTION)', '## Notes');
+            }, skill => assert.ok(checkFirstRead(skill).some(p => p.includes('open with the review plan and tasks'))));
         },
     },
     {
-        name: '[review-mode-sections] TC-PDL-043: why-review router is under 140,000 B and keeps every protocol body',
+        name: '[review-mode-sections] TC-PDL-043: why-review router uses guides, retains reminders and loads terminal validation only by mode',
         skip: LIVE_SKIP,
         fn: () => {
             // Given the framework's why-review skill, When the split is checked, Then no clause is broken
@@ -465,7 +458,14 @@ const tests = [
             const problems = checkRouterSplit(skill, WHY_REVIEW);
             assert.deepEqual(problems, [], `why-review split:\n  ${problems.join('\n  ')}`);
             // And the check is not vacuous: the router is real and the references exist
-            assert.ok(Buffer.byteLength(skill.router, 'utf8') > 50000, 'router looks truncated');
+            assert.ok(skill.router.includes('<!-- PROTOCOL-GUIDES:START -->'), 'router has no official guides');
+            for (const clause of ['≥85%', '**Dual-feedback', 'Caller owns reconciliation']) {
+                assert.ok(skill.references['validate-findings.md'].includes(clause), `terminal clause exists before deletion: ${clause}`);
+                const mutant = { ...skill, references: { ...skill.references, 'validate-findings.md': skill.references['validate-findings.md'].replaceAll(clause, '') } };
+                assert.ok(checkRouterSplit(mutant, WHY_REVIEW).includes(`terminal validator lacks: ${clause}`), `terminal check deletion survives: ${clause}`);
+            }
+            const leaked = { ...skill, references: { ...skill.references, 'validate-findings.md': `${skill.references['validate-findings.md']}\n## Next Steps\nAsk the user.` } };
+            assert.ok(checkRouterSplit(leaked, WHY_REVIEW).some(p => p.includes('full/fix-loop-only')), 'terminal full-mode leakage survives');
             assert.ok(skill.references['full-mode.md'] && skill.references['fix-loop.md'], 'both references exist');
         },
     },
@@ -518,12 +518,11 @@ const tests = [
             // When the reference loses its markers or its mode section, Then it is named
             named(files => { files['references/fix-loop.md'] = files['references/fix-loop.md'].replace(FIX_LOOP_END, ''); }, 'exactly one FIX-LOOP-MODE:START');
             named(files => { files['references/fix-loop.md'] = files['references/fix-loop.md'].replace('## Mode: Fix-Loop', '## Loop'); }, 'must hold the mode section');
-            // When SKILL.md grows past its cap, Then it is named
-            named(files => { files['SKILL.md'] += `\n${'x'.repeat(5000)}\n`; }, 'over the 4000 B cap');
+
         },
     },
     {
-        name: '[review-mode-sections] TC-PDL-046: changes-review and workflow-review-changes read references/fix-loop.md first and keep every protocol body',
+        name: '[review-mode-sections] TC-PDL-046: changes-review and workflow-review-changes read references/fix-loop.md first and retain guide fallbacks plus reminders',
         skip: LIVE_SKIP,
         fn: () => {
             for (const [name, spec] of Object.entries(FIX_LOOP_SPLITS)) {
@@ -532,8 +531,9 @@ const tests = [
                 const problems = checkFixLoopSplit(skill, spec);
                 assert.deepEqual(problems, [], `${name} fix-loop split:\n  ${problems.join('\n  ')}`);
                 // And the check is not vacuous: SKILL.md is real and the reference holds the mode
-                assert.ok(Buffer.byteLength(skill.router, 'utf8') > 50000, `${name} SKILL.md looks truncated`);
-                assert.ok(Buffer.byteLength(skill.references['fix-loop.md'] || '', 'utf8') > 10000, `${name} references/fix-loop.md looks truncated`);
+                assert.ok(skill.router.includes('<!-- PROTOCOL-GUIDES:START -->'), `${name} has no official guides`);
+                const mutant = { ...skill, references: { ...skill.references, 'fix-loop.md': skill.references['fix-loop.md'].replace('freshly review', 'reuse the old verdict') } };
+                assert.ok(checkFixLoopSplit(mutant, spec).some(p => p.includes('freshly review')), 'missing fresh review must fail');
             }
         },
     },
@@ -574,13 +574,11 @@ const tests = [
                 input.canonical = input.canonical.replace(section, '');
                 input.projection = input.projection.replace(section, '');
             }, 'holds 10 protocol sections, expected 11');
-            // When workflow-review-changes stops naming the file or stops saying WHOLESALE, Then it is named
-            named(input => { input.workflowRouter = input.workflowRouter.replace(INJECTION_FILE, 'the template'); }, 'does not name');
-            named(input => { input.workflowRouter = input.workflowRouter.replace('copy it WHOLESALE', 'summarize it'); }, 'copy it WHOLESALE');
-            named(input => { input.workflowRouter = input.workflowRouter.replace('NEVER paraphrase, summarize or drop', 'You may trim'); }, 'forbid paraphrasing');
-            // When changes-review's inline body drifts or is removed, Then it is named
-            named(input => { input.changesRouter = input.changesRouter.replace('Rule 5 body', 'Rule five body'); }, 'differs from canonical');
-            named(input => { input.changesRouter = '## Spawn\n\nRead the template file.\n'; }, 'missing or differs from canonical');
+            // Removing a reader's canonical fallback or trimming dispatch at its owner fails.
+            named(input => { input.workflowRouter = input.workflowRouter.replace(INJECTION_FILE, 'missing.md'); }, 'no canonical full-template fallback');
+            named(input => { input.changesRouter = input.changesRouter.replace(`→ ${INJECTION_FILE}`, '→ missing.md'); }, 'no canonical full-template fallback');
+            named(input => { input.canonical = input.canonical.replace('WHOLESALE', 'summarized'); input.projection = input.projection.replace('WHOLESALE', 'summarized'); }, 'VERBATIM WHOLESALE');
+            named(input => { input.canonical = input.canonical.replace('VERBATIM', 'adapted'); input.projection = input.projection.replace('VERBATIM', 'adapted'); }, 'VERBATIM WHOLESALE');
         },
     },
     {
@@ -598,7 +596,7 @@ const tests = [
             const problems = checkInjectionTemplate(input);
             assert.deepEqual(problems, [], `review-protocol-injection template:\n  ${problems.join('\n  ')}`);
             // And the projection is one whole file (the index parts are hook-bin offsets, not files)
-            assert.ok(Buffer.byteLength(input.projection, 'utf8') > 10000, 'the template file looks truncated');
+            assert.ok(input.projection.includes('### Spec ↔ Tests ↔ Code Triangulation'), 'the complete template has a real contract lens');
         },
     },
 ];

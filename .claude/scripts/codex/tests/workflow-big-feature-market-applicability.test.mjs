@@ -114,7 +114,7 @@ test("market-analysis parity, consumer obligations, and all workflow steps stay 
   assert.match(skill, /never waives `\/web-research`, `\/source-deep-dive`.*required user confirmations/i);
   assert.match(evaluationSkill, /mark every market-sizing figure.*N\/A with that reason/i);
   assert.match(evaluationSkill, /NEVER re-derive sizing/);
-  assert.match(workflow.preActions.injectContext, /EVERY research stage requires AskUserQuestion validation before proceeding/);
+  assert.match(workflow.preActions.injectContext, /EVERY research stage requires ask user question tool validation before proceeding/);
   assert.equal(sequence.length, 45);
   assert.deepEqual(sequence, expectedSequence);
   assert.equal(sequence[sequence.indexOf("market-analysis") + 1], "business-evaluation");

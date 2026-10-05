@@ -1,4 +1,4 @@
-<!-- Last scanned: 2026-10-03 -->
+<!-- Last scanned: 2026-10-05 -->
 
 # Documentation Index Reference
 
@@ -13,7 +13,7 @@
 - Resolve configured roots; regenerate category globs into a normalized unique-path union.
 - Compare broad `docs/**/*.md` results with the category union and expose every remainder.
 - Verify relationships and lookup paths; keep every path real, unique, and traceable to the current tree.
-- Index 495 unique authored Markdown files across 12 categories; `docs/` contains 55 files with 0 uncategorized. Design System is a one-file Project Reference subset counted once.
+- Index 487 unique authored Markdown files across 12 categories; `docs/` contains 43 files with 0 uncategorized. Design System is a one-file Project Reference subset counted once.
 
 ## Workflow
 
@@ -29,7 +29,7 @@
 
 ## Documentation System
 
-495 unique authored markdown files across 12 indexed categories. Last scanned: 2026-10-03.
+487 unique authored markdown files across 12 indexed categories. Last scanned: 2026-10-05.
 
 **Relocatable roots.** Four of the categories below are anchored on a configurable root. Resolve each one before running its glob:
 
@@ -46,14 +46,14 @@ The **Reproducible scope** column states each glob relative to its category's ro
 | Project Reference      |             18 | `**/*.md` under the project-reference docs root                                       |
 | Operations             |              0 | direct getting-started/deployment/operations/runbook/setup/install/configuration docs |
 | Design System          |              1 | `design-system/**/*.md` under the project-reference docs root                         |
-| Feature Specs          |             12 | `*/README.*.md` under the business spec root                                          |
+| Feature Specs          |             11 | `*/README.*.md` under the business spec root                                          |
 | Spec Catalogs          |              5 | `*/INDEX.md` under the business spec root                                             |
 | Architecture Decisions |              4 | `**/*.md` under the ADR root                                                          |
 | Templates              |              1 | `**/*.md` under the templates root                                                    |
 | Release Notes          |              3 | `docs/release/**/*.md` + `docs/release-notes/**/*.md`                                 |
-| Knowledge Reports      |              12 | `docs/knowledge/**/*.md`                                                             |
-| Framework Docs         |             42 | `.claude/docs/**/*.md`                                                                |
-| Skill Markdown         |            395 | `rg --files .claude/skills -g '*.md'`                                                 |
+| Knowledge Reports      |              1 | `docs/knowledge/**/*.md`                                                             |
+| Framework Docs         |             41 | `.claude/docs/**/*.md`                                                                |
+| Skill Markdown         |            400 | `rg --files .claude/skills -g '*.md'`                                                 |
 
 The unique total is the normalized union returned by `rg --files` for Root-Level Docs, all `docs/**/*.md`, Framework Docs, and Skill Markdown. Design System is nested inside Project Reference, so its count is informative rather than additive. For this inventory, the authored/tracked scope includes generated protocol projections deliberately published as reader-facing documentation; Codex/OpenCode mirrors are excluded. Ignored dependency artifacts such as skill-local `.venv/` files are excluded.
 
@@ -66,7 +66,7 @@ easy-claude/
 ├── AGENTS.md                                      # Codex/agent instructions
 ├── CLAUDE.md                                      # Claude project instructions
 ├── README.md                                      # Project overview and adoption entry point
-├── docs/                                          # 55 markdown files
+├── docs/                                          # 43 markdown files
 │   ├── adr/                                       # 4 architecture decisions
 │   │   ├── 0001-skill-lifecycle.md
 │   │   ├── 0002-canonical-count-metrics.md
@@ -112,23 +112,20 @@ easy-claude/
 │   │   ├── Presentation/                          # 1 Feature Spec + 1 bucket catalog
 │   │   │   ├── INDEX.md
 │   │   │   └── README.PresentationDecks.md
-│   │   └── WorkflowExecution/                     # 2 Feature Specs + 1 bucket catalog
+│   │   └── WorkflowExecution/                     # 1 Feature Spec + 1 bucket catalog
 │   │       ├── INDEX.md
-│   │       ├── README.GuidedWorkflow.md
-│   │       └── README.ReviewPreparation.md
-│   ├── knowledge/research/                        # 12 project research/audit reports
-│   │   ├── agent-skill-prompt-engineering-2026-10-03.md
-│   │   ├── ai-agent-skills-best-and-bad-practices.md
-│   │   └── workflow-skill-audit-2026-10-02/            # index + 4 audit/validation reports + repair log + 4 repair reports
+│   │       └── README.GuidedWorkflow.md
+│   ├── knowledge/research/                        # 1 project research report
+│   │   └── ai-agent-skills-best-and-bad-practices.md
 │   └── templates/                                 # 1 Feature Spec template
-├── .claude/docs/                                  # 42 framework docs
-│   ├── 25 direct framework guides
+├── .claude/docs/                                  # 41 framework docs
+│   ├── 24 direct framework guides
 │   ├── agents/                                    # 2
 │   ├── configuration/                             # 4
 │   ├── hooks/                                     # 3
 │   ├── skills/                                    # 2
 │   └── team-artifacts/templates/                  # 6
-└── .claude/skills/                                # 395 authored/tracked markdown assets
+└── .claude/skills/                                # 400 authored/tracked markdown assets
 ```
 
 Absent whitelist branches: Operations only.
@@ -158,15 +155,9 @@ CLAUDE.md
 │   └── .claude/docs/ai-engineering-{review-checklist,knowledge,calibration}.md   # by section, on demand
 └── docs/adr/0002-canonical-count-metrics.md
 
-.claude/docs/README.md
-├── quick-start.md
-├── skills/README.md
-├── hooks/{README,extending-hooks}.md
-├── configuration/{README,output-styles,experience-verification}.md
-├── review-preparation.md
-├── team-collaboration-guide.md
-├── code-graph-{mechanism,setup}.md
-└── troubleshooting.md
+.claude/skills/design-spec/SKILL.md
+├── references/wireframe.md                  # input adapter after journey/context gates
+└── references/accessibility-audit.md        # audit variant and verified status format
 
 docs/specs/Adoption/INDEX.md
 ├── README.AdoptionSwitches-Part2.md
@@ -186,12 +177,7 @@ docs/specs/Notifications/INDEX.md
 docs/specs/Presentation/INDEX.md
 └── README.PresentationDecks.md
 
-docs/specs/WorkflowExecution/INDEX.md
-├── README.GuidedWorkflow.md
-└── README.ReviewPreparation.md
-```
-
-Evidence: `README.md:386-396` (Further Reading); `CLAUDE.md` (Doc Lookup rows for hook, skill, agent, test, and feature-spec docs; the not-applicable reference note; the integration-test reference; the Automatic Skill Activation spec/test rows; the ADR pointer); `.claude/docs/README.md:9-18,88-98,146-150`; `Adoption/INDEX.md:7-12`; `ContextDelivery/INDEX.md:7-14`; `Notifications/INDEX.md:7-11`; `Presentation/INDEX.md:7-11`; and `WorkflowExecution/INDEX.md:7-12`. The bucket index paths resolve under the business spec root (default `docs/specs`; `specRoots.business.path` in `docs/project-config.json` overrides it).
+Evidence: `README.md:386-396` (Further Reading); `CLAUDE.md` (Doc Lookup rows for hook, skill, agent, test, and feature-spec docs; the not-applicable reference note; the integration-test reference; the Automatic Skill Activation spec/test rows; the ADR pointer); `.claude/docs/README.md:9-18,88-98,146-150`; `Adoption/INDEX.md:7-12`; `ContextDelivery/INDEX.md:7-14`; `Notifications/INDEX.md:7-11`; `Presentation/INDEX.md:7-11`; and `WorkflowExecution/INDEX.md:7-12`. The design-spec reference links are declared at `.claude/skills/design-spec/SKILL.md:162,363`. The bucket index paths resolve under the business spec root (default `docs/specs`; `specRoots.business.path` in `docs/project-config.json` overrides it).
 
 ## Doc Lookup Guide
 
@@ -219,14 +205,15 @@ Read `docs/project-config.json` first for any project question or task — paths
 | Project Reference      | about to run any skill — check project overlays                                                                                                                                    | `skill-protocols-reference.md`                                                                              |
 | Design System          | touching UI design — tokens, components, app-to-doc map                                                                                                                            | `design-system/README.md`                                                                                   |
 | Framework Docs         | generating, planning, or reviewing any user-facing surface — journey-first UX process (`UX-1`–`UX-11`), read before `design-knowledge.md`                                          | `.claude/docs/ux-journey-process.md`                                                                        |
+| Skill Markdown         | generating a screenshot demo video for changes, a commit, PR or user journey, covering every relevant E2E case | `.claude/skills/e2e-demo/SKILL.md` |
 | Skill Markdown         | planning, building, changing or reviewing an AI feature (model calls, prompts, agents, tools, retrieval, evals) — only when the change has an AI surface; read this ONE file first | `.claude/skills/shared/protocols/ai-engineering-gate.md` (planning: `ai-feature-framing-gate.md` beside it) |
+| Skill Markdown | converting a wireframe image into a design spec — read after the design-spec entrypoint journey/context gates | `.claude/skills/design-spec/references/wireframe.md` |
+| Skill Markdown | producing an accessibility-audit deliverable — select the platform standard and retain unverified coverage | `.claude/skills/design-spec/references/accessibility-audit.md` |
 | Skill Markdown | changing scan/enhancement quality rules — regression corpus, semantic grading and baseline checks | `.claude/skills/scan/tests/README.md` |
 | Framework Docs         | reviewing an AI feature or plan — read the section for the touched surface only, never whole unless running the AI review                                                          | `.claude/docs/ai-engineering-review-checklist.md`                                                           |
 | Framework Docs         | needing the rationale or a clause of AI-engineering practice (RAG, tool use, agents, evals, safety, cost) — read by clause                                                         | `.claude/docs/ai-engineering-knowledge.md`                                                                  |
 | Framework Docs         | calibrating the severity of an AI-feature finding — read by section                                                                                                                | `.claude/docs/ai-engineering-calibration.md`                                                                |
-| Knowledge Reports | authoring or compressing agent skills — prompting principles, anti-patterns and quality gates | `docs/knowledge/research/agent-skill-prompt-engineering-2026-10-03.md` |
 | Knowledge Reports      | researching skill authoring, activation scope, verification, or evaluation trade-offs | `docs/knowledge/research/ai-agent-skills-best-and-bad-practices.md` |
-| Knowledge Reports      | reviewing framework workflow and skill audit findings and the repair log | `docs/knowledge/research/workflow-skill-audit-2026-10-02/index.md`, `docs/knowledge/research/workflow-skill-audit-2026-10-02/repairs.md` |
 | Operations             | looking for getting-started, deployment, or runbook docs                                                                                                                           | No authored Operations file                                                                                 |
 | Feature Specs          | changing per-file convention injection (PFCI), its content signals, the AI-feature prompt route or the change-set AI scan (`status`)                                               | `ContextDelivery/README.PerFileConventionInjection.md`                                                      |
 | Feature Specs | changing project-rule discovery, phase loading, compaction/resume or read-credit requirements (PCI) | `ContextDelivery/README.ProjectContextIntake.md` |
@@ -234,9 +221,6 @@ Read `docs/project-config.json` first for any project question or task — paths
 | Feature Specs          | changing workflow routing, the route payload, or activation tiers (WFR)                                                                                                            | `ContextDelivery/README.WorkflowRouting.md`                                                                 |
 | Feature Specs          | changing how shared protocols reach the assistant: guide lines, delivery hooks, host mapping (PDL)                                                                                 | `ContextDelivery/README.ProtocolDelivery.md`                                                                |
 | Feature Specs          | changing how a chosen workflow runs: step roles, outcome gates, deviation log, the spec-supplied route, scope guard, usage report, token checkpoint (GWF)                          | `WorkflowExecution/README.GuidedWorkflow.md`                                                                |
-| Feature Specs          | changing exact review target identity, deterministic grouping, full required rules or supplemental-provider boundaries (RVP) | `WorkflowExecution/README.ReviewPreparation.md` |
-| Framework Docs         | configuring or troubleshooting portable review preparation, OCR delegation, machine policy, scopes or artifacts | `.claude/docs/review-preparation.md` |
-| Skill Markdown         | executing code/diff review capture and consumption through the active host | `.claude/skills/shared/review-preparation.md` |
 | Feature Specs          | changing adoption switches: code graph, commit trailer, command-only skills, compaction (ADS)                                                                                      | `Adoption/README.AdoptionSwitches.md` (release-D cases in `Adoption/README.AdoptionSwitches-Part2.md`)      |
 | Feature Specs          | changing assistant session notifications (NT)                                                                                                                                      | `Notifications/README.AssistantSessionNotifications.md`                                                     |
 | Feature Specs          | changing slide decks: the shared deck standard, conformance profiles, the feature review deck, slide-direction hand-off (PD)                                                       | `Presentation/README.PresentationDecks.md`                                                                  |
@@ -263,14 +247,13 @@ With no `docsRoots.projectReference.path` entry in `docs/project-config.json`, t
 
 ## Uncategorized Files
 
-None. A fresh broad `docs/**/*.md` scan returned 55 paths; the normalized union of Project Reference, Operations, Design System, Feature Specs, Spec Catalogs, Architecture Decisions, Templates, Release Notes, and Knowledge Reports covered all 55.
+None. A fresh broad `docs/**/*.md` scan returned 43 paths; the normalized union of Project Reference, Operations, Design System, Feature Specs, Spec Catalogs, Architecture Decisions, Templates, Release Notes, and Knowledge Reports covered all 43.
 
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Route readers to every indexed Markdown surface with current category counts, complete lookup paths, and no uncategorized `docs/` files.
 
 - **MUST ATTENTION** Resolve roots and re-glob categories → normalize and union paths → compare the broad `docs/**/*.md` set and list remainders → verify relationships and lookup paths.
-- **MUST ATTENTION** route exact review targets/grouping/provider boundaries to the RVP spec and execution/configuration guides above.
 - **MUST** rerun all category globs before changing any count.
 - **MUST** preserve an explicit Uncategorized Files result.
 - **NEVER** copy stale totals from a prior scan or count an overlapping subset twice.

@@ -1,5 +1,26 @@
 > The `spec` skill (`../SKILL.md`) loads this body for `[mode=draft|init|update|audit|amend]`. The host SKILL.md selects the profile and routes to shared semantic gates; this body carries the authoring procedure.
 
+## Contents
+
+- [Native Profile Procedure](#native-profile-procedure)
+- [Strict Default Feature-Spec Procedure](#strict-default-feature-spec-procedure)
+- [Source Resolution (code vs idea) — resolve BEFORE Project Pattern Discovery](#source-resolution-code-vs-idea--resolve-before-project-pattern-discovery)
+- [Project Pattern Discovery](#project-pattern-discovery)
+- [[CRITICAL] MANDATORY CODE EVIDENCE RULE](#critical-mandatory-code-evidence-rule)
+- [Output Structure](#output-structure)
+- [MANDATORY 8-SECTION TECH-FREE STRUCTURE](#mandatory-8-section-tech-free-structure)
+- [Step 0 — Mode Detection (MANDATORY FIRST)](#step-0--mode-detection-mandatory-first)
+- [Mode: AUDIT (Staleness Detection)](#mode-audit-staleness-detection)
+- [Phase 1: Module Detection & Context Gathering](#phase-1-module-detection--context-gathering)
+- [Phase 1.5: Update Mode (when updating existing docs)](#phase-15-update-mode-when-updating-existing-docs)
+- [Phase 2: Documentation Generation](#phase-2-documentation-generation)
+- [Note: AI Companion Files Deprecated](#note-ai-companion-files-deprecated)
+- [Phase 3: Derived Artifact Refresh Flag](#phase-3-derived-artifact-refresh-flag)
+- [Anti-Hallucination Protocols](#anti-hallucination-protocols)
+- [Phase 3.5: Verification (4 Passes)](#phase-35-verification-4-passes)
+- [Quality Checklist](#quality-checklist)
+- [Standalone Chain](#standalone-chain)
+
 ## Native Profile Procedure
 
 Apply this branch when `spec` profile resolution selects a native contract from project config or the required project-reference docs. In that case, do not execute the strict-default procedure below: its eight-section template, TC IDs, Section 8, evidence syntax, numbering, size thresholds, and carrier names are conditional defaults, not additional native requirements.
@@ -172,7 +193,7 @@ When a companion `design-spec`/mockup exists, record its path in the spec frontm
 
 1. Check `<spec root>/{Bucket}/` exists (or `--audit` flag) — default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path
 2. If auto-detected module, check the entire `<spec root>/` tree — default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path
-3. Present detected mode via `AskUserQuestion` before proceeding — NEVER auto-start
+3. Present detected mode via `ask user question tool` before proceeding — NEVER auto-start
 
 **Mode routing:**
 
@@ -499,7 +520,7 @@ After extraction is complete, fold the extracted content into the 8 business sec
 | S5 Domain Model            | Yes — TCs assert entity/field state   | ≥1 entity with business-meaning cols  |
 | S7 Permissions & Roles     | Yes — TCs must include access checks  | Role-permission matrix present        |
 
-If 2 or more of these sections are missing or empty → use `AskUserQuestion` to ask user whether to proceed with placeholder TCs or halt and complete foundational sections first.
+If 2 or more of these sections are missing or empty → use `ask user question tool` to ask user whether to proceed with placeholder TCs or halt and complete foundational sections first.
 
 **[BLOCKING] Section 8 Quantity Gate (runs after Readiness Gate):**
 
@@ -554,12 +575,12 @@ Note the highest existing ID before assigning new ones. See `.claude/skills/shar
 
 ### Mode: AUDIT (Staleness Detection)
 
-When audit mode is triggered:
+Audit is read-only for existing docs. Use the root already resolved by `SKILL.md`; the procedure below applies only to the strict default profile. The [native audit branch](#native-mode-specific-behavior) reports against its declared owners/carriers and preserves `UNKNOWN` for unresolved selection or unsupported data.
 
-1. Read `<spec root>/{Bucket}/README.{Feature}.md` frontmatter → `last_updated` — default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path
+1. Read `<spec root>/{Bucket}/README.{Feature}.md` frontmatter → `last_updated`
 2. Run `git log --since="{last_updated}" --name-only -- {module-source-root}/`
-3. If changed files found → flag sections using Phase 1.5 impact mapping table — this includes flagging **§6 (Process Flows & Interaction Surface)** STALE when changed UI-affecting source implies a new/changed view, navigation, observable state, or click-path the spec's §6.2–6.5 no longer reflects.
-4. Output `<spec root>/{Bucket}/AUDIT-{date}.md` — default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path:
+3. If changed files found → flag sections using [Section Impact Mapping](#step-152-section-impact-mapping), including §6 STALE when UI-affecting changes imply new or changed views, navigation, observable states or click-paths no longer reflected in §6.2–6.5.
+4. Output `<spec root>/{Bucket}/AUDIT-{date}.md`:
 
     ```markdown
     # Feature Doc Audit — {date}
@@ -822,7 +843,7 @@ No `.ai.md` companion files. Single `README.{Feature}.md` only output. Template:
 ### Key Principles (v4.0)
 
 - **No code details** in sections 1-7 — no file paths, no source-code types, no API/command/handler/message names
-- **Evidence only in Section 8** — `[Source: namespace/service/id]` abstract-anchor references in the per-TC hidden carrier
+- **Evidence stays in carriers** — use `[Source: namespace/service/id]` fields for requirements, rules, entities and TCs; never fold source identifiers into narrative prose.
 - **Acceptance criteria MUST cross-reference BR-{FC}-NN** — each AC names the business rules it enforces
 - **Split criteria** — no line-count cap applies to Feature Specs. **Split** the capability when TCs>40 or when two distinct module-level capabilities emerge:
     1. Create `README.{FeatureName}-Part1.md` and `README.{FeatureName}-Part2.md`
@@ -866,10 +887,10 @@ For every test case, perform the four evidence checks in **Phase 3.5 → First P
 
 **EVERY test case:**
 
-1. Read Evidence file at claimed line number
-2. Verify: code at line supports test assertion?
-3. Check Edge Cases: find error constants in the configured error-constants location, if the project defines one
-4. Fix immediately if line numbers wrong
+1. Resolve the TC's abstract evidence anchor through the provenance sidecar to its current source location.
+2. Read that source and verify it supports the test assertion.
+3. Check Edge Cases against error constants in the configured location, if the project defines one.
+4. Correct stale provenance immediately; keep physical coordinates in the sidecar and the abstract anchor in the TC.
 
 ### Second Pass — Domain Model Verification
 
@@ -900,7 +921,7 @@ Flag items requiring implementation assumptions:
 - **S7 (Permissions & Roles):** Permission matrix with explicit role × action × condition cells. Blank cells → flag.
 - **Concrete examples:** ≥1 example (input + expected output) per core operation. Abstract-only → LOW.
 
-If >3 INCOMPLETE items → HALT, present gap list via AskUserQuestion before completing.
+If >3 INCOMPLETE items → HALT, present gap list via ask user question tool before completing.
 
 _Reference: `.claude/skills/shared/sdd-artifact-contract.md` → "AI-Implementability Gate" (and mandate M4) for the AI-implementability criteria. `docs/project-reference/spec-principles.md` (project-reference docs root default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path) carries only repo-local prose/evidence rules._
 
@@ -945,7 +966,7 @@ See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M7
 
 - [ ] **EVERY test case has Evidence field** with `[Source: namespace/service/id]` abstract-anchor format (never `file:line`)
 - [ ] **No template placeholders** remain (`{namespace}`, `{service}`, `{id}`)
-- [ ] **Line numbers verified** by reading actual source files
+- [ ] **Provenance verified** — abstract anchors resolve through the sidecar to inspected, current source locations
 - [ ] **Edge case errors match** constants from the configured error-constants location, if one exists
 - [ ] **Test Summary counts match** actual number of test cases in Section 8
 

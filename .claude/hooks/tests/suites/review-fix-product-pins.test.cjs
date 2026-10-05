@@ -152,7 +152,7 @@ const tests = [
             const text = skillText('idea', 'SKILL.md');
             const step7 = between(text, '### Step 7:', '**Validation Output Format');
             assert.ok(step7, 'Step 7 exists');
-            assert.match(step7, /ALWAYS ask ONE short `AskUserQuestion`/, 'Step 7 asks unconditionally');
+            assert.match(step7, /ALWAYS ask ONE short `ask user question tool`/, 'Step 7 asks unconditionally');
             assert.doesNotMatch(step7, /only when|materially|otherwise ask nothing/i, 'no conditional gate in Step 7');
             // Every other mention agrees: no line anywhere makes the confirm conditional
             assert.doesNotMatch(text, /confirm question only when|only when the answers materially/i, 'no carrier keeps the conditional confirm');

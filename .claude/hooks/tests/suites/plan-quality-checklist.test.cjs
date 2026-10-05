@@ -13,7 +13,7 @@
  *   TC-PQC-002 — the owner reference keeps the column shape, the candidate sweep, the row quality bar and
  *                the three mode duties.
  *   TC-PQC-003 — review mode audits the checklist: missing / generic / evidence-less / omitted-gate
- *                findings with severities, inside the one-round read-only contract.
+ *                findings with severities, inside default read-only or caller-owned fix-loop contracts.
  *   TC-PQC-004 — validate mode probes the checklist with critical questions and keeps the interview.
  *   TC-PQC-005 — execute mode walks the checklist before completion and a FAIL or unverified applicable
  *                row blocks; the flags and approval gate are unchanged.
@@ -110,34 +110,30 @@ const tests = [
         }
     },
     {
-        name: 'TC-PQC-003 --mode=review flags a missing, generic, evidence-less or gate-omitting checklist with rubric severities, inside the one-round read-only contract',
+        name: 'TC-PQC-003 --mode=review flags a missing, generic, evidence-less or gate-omitting checklist with rubric severities, with default read-only and bounded fix-loop ownership',
         fn: () => {
             const review = planRef('mode-review.md');
-            // Given the review core-review table
-            const row = review.split('\n').find((line) => line.startsWith('| Quality gates checklist |'));
-            assert.ok(row, 'review core table has a Quality gates checklist dimension');
-            // Then it names each defect class and its severity
-            assert.match(row, /exist before the phases/);
-            assert.match(row, /not the same rows for any task/);
-            assert.match(row, /verification method, expected evidence and owner phase/);
-            assert.match(row, /behavior change has a test row, a UI change an accessibility row/);
-            assert.match(row, /Missing section = at least MEDIUM/);
-            assert.match(row, /missing gate for a triggered high-risk concern = HIGH/);
-            // And a BLOCKING read line loads the owner reference before the core review
+            // The concise review loads the authoritative rubric instead of duplicating it.
+            assert.match(review, /its Review duty owns the defect classes and severities/);
             assert.match(review, /\*\*\[BLOCKING\]\*\* Read `references\/plan-quality-checklist\.md` in full before the core review/);
+            const owner = checklistRef();
+            for (const defect of [/section is missing/, /generic, meaning the same rows regardless of task/, /YES row with no verification method or evidence/, /omits a gate the task clearly triggers/]) {
+                assert.match(owner, defect, `authoritative review duty retains ${defect}`);
+            }
             // And the owner reference states the same severities once
             const duty = checklistRef();
             assert.match(duty, /missing \(at least MEDIUM\)/);
             assert.match(duty, /HIGH when the concern is high-risk/);
             assert.match(duty, /a behavior change with no test row is HIGH/);
-            // And the one-round, read-only contract is untouched
-            assert.match(review, /`round = 1`, `maxRounds = 1`, `minRounds = 1`/);
-            assert.match(review, /Read-only on plan\/source\/spec artifacts\. Write only the review report under `tmp\/reports\/`/);
-            assert.match(review, /Stop\. Do not apply fixes or re-review/);
+            // Checklist quality remains enforced in either mode, with one fixing owner.
+            assert.match(review, /Review-only and caller-owned leaves keep the target read-only/);
+            assert.match(review, /one shared three-round budget and the LOW\/extension rules/);
+            assert.match(review, /caller-owned leaves never start another loop or edit/);
+            assert.match(review, /Fix-loop repairs validated findings, then repeats the complete review/);
         }
     },
     {
-        name: 'TC-PQC-004 --mode=validate probes the checklist with critical questions and keeps the AskUserQuestion interview',
+        name: 'TC-PQC-004 --mode=validate probes the checklist with critical questions and keeps the ask user question tool interview',
         fn: () => {
             const validate = planRef('mode-validate.md');
             // Given the question-generation step
@@ -151,7 +147,7 @@ const tests = [
             assert.match(validate, /each with 2-4 concrete options/);
             assert.match(validate, /Count these inside the `questions` range/);
             // And the interview shape is unchanged
-            assert.match(validate, /Use `AskUserQuestion` — NEVER skip or auto-answer/);
+            assert.match(validate, /Use `ask user question tool` — NEVER skip or auto-answer/);
             assert.match(validate, /Group related questions \(max 4 per tool call\)/);
             // And a plan with no checklist: the question is asked, but the answer is RECORDED in the Validation Summary, never an edit of the plan
             assert.match(validate, /Validate never edits the plan beyond `## Validation Summary`: record the answer there — "add now" becomes an action item routed to `\/plan`/);
@@ -209,7 +205,7 @@ const tests = [
             // And a nested run covers ONE phase, so unfinished later phases surface at close instead of passing silently:
             // workflow-end step 0 names unresolved DEFERRED-BY-PLAN phase rows and refuses to close (like missing gate evidence);
             // no checklist -> no change; the execute duty in the owner reference states the same
-            assert.match(workflowEnd, /still recorded `DEFERRED-BY-PLAN: phase <n>` at close: name them as `unfinished plan phases: <n…>` and treat them like missing gate evidence — the close is refused and surfaced via `AskUserQuestion`/, 'workflow-end step 0 refuses to close over unfinished plan phases');
+            assert.match(workflowEnd, /still recorded `DEFERRED-BY-PLAN: phase <n>` at close: name them as `unfinished plan phases: <n…>` and treat them like missing gate evidence — the close is refused and surfaced via `ask user question tool`/, 'workflow-end step 0 refuses to close over unfinished plan phases');
             assert.match(workflowEnd, /Continue the remaining phases[^\n]*Accept as-is — I will record the reason/, 'the unfinished-phase question offers continue or accept-with-reason');
             assert.match(workflowEnd, /No plan checklist → record `N\/A — no plan checklist` for this scan too/, 'no checklist -> no change');
             assert.match(checklistRef(), /refuses to close while any `DEFERRED-BY-PLAN: phase <n>` row is still unresolved \(named as `unfinished plan phases: <n…>`/, 'the Execute duty mirrors the workflow-end rule');

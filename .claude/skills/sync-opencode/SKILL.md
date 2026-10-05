@@ -200,7 +200,7 @@ Arguments: $ARGUMENTS
 | `apply_patch` | `Edit`, `Write`, `MultiEdit`, `NotebookEdit` |
 | `todowrite` | `TodoWrite`, `TaskCreate`, `TaskUpdate`, `update_plan` |
 | `webfetch` / `websearch` | `WebFetch` / `WebSearch` |
-| `question` | `AskUserQuestion` |
+| `question` | `ask user question tool` |
 | `skill` | `Skill` |
 | `<server>_<tool>` (MCP) | `mcp__<server>__*` |
 

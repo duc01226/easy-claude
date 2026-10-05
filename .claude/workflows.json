@@ -5,36 +5,49 @@
   "workflows": {
     "workflow-big-feature": {
       "activation": "confirm",
-      "description": "Research-driven feature development for large, complex, or ambiguous features in an existing project — includes idea refinement, market research, business evaluation, domain analysis, tech stack research, full implementation, and required near-end workflow-e2e verification",
+      "description": "Research-driven feature development for large, complex, or ambiguous features in an existing project \u2014 includes idea refinement, market research, business evaluation, domain analysis, tech stack research, full implementation, and required near-end workflow-e2e verification",
       "intent": "Research, specify, plan and build a large or ambiguous feature so it ships with an approved plan, synced specs, green tests and a converged review.",
       "name": "Big Feature (Research + Implement)",
       "outcomeGates": [
         {
           "id": "plan-approved",
-          "satisfiedBy": ["plan --mode=validate"]
+          "satisfiedBy": [
+            "plan --mode=validate"
+          ]
         },
         {
           "id": "spec-synced",
-          "satisfiedBy": ["spec [mode=sync]"],
+          "satisfiedBy": [
+            "spec [mode=sync]"
+          ],
           "when": "Behavior or a public contract changed"
         },
         {
           "id": "tests-pass",
-          "satisfiedBy": ["test"]
+          "satisfiedBy": [
+            "test"
+          ]
         },
         {
           "id": "review-converged",
-          "satisfiedBy": ["workflow-review-changes"]
+          "satisfiedBy": [
+            "workflow-review-changes"
+          ]
         },
         {
           "id": "run-closed",
-          "satisfiedBy": ["workflow-end"]
+          "satisfiedBy": [
+            "workflow-end"
+          ]
         }
       ],
       "parallelGroups": [
         {
           "id": "architecture-gates",
-          "members": ["architecture --mode=scalability", "architecture-rationale-review"],
+          "members": [
+            "architecture --mode=scalability",
+            "architecture-rationale-review"
+          ],
           "conditionalMembers": [],
           "barrier": true
         }
@@ -61,8 +74,10 @@
         }
       },
       "preActions": {
-        "injectContext": "BIG FEATURE (research-driven, existing codebase). Contract: .claude/skills/workflow-big-feature/SKILL.md — triage FIRST (size, kind, risk, isLargeIdea), then run only the research/design depth the idea needs; gate steps always run, core/optional steps follow the start-workflow Step Execution Protocol with every deviation logged.\nLARGE IDEA: evaluate isLargeIdea (multipleIndependentOutcomes || ambiguousOrResearchHeavy || releaseScopeDecomposition || oversizedPbiThatMustSplit) before any spec, PBI, story or plan. True -> embed the complete large_idea_decomposition block (outcome_slices, dependencies_order, non_goals, risks_evidence, deferred_work_owner) in the owning artifacts and carry its slice IDs downstream. False -> record Decomposition Applicability: EXEMPT with reason and owner. Never create {PRODUCT_ROADMAP_DOC}; a supplied roadmap is read-only context.\nRELEASABLE PBI: every PBI is one independently releasable actor-facing outcome with a complete entry-to-result journey (.claude/skills/shared/releasable-pbi-contract.md); technical/foundation work is enabling work under it; UI PBIs need the full connected multi-view mock-app flow, or a recorded Mockup: SKIPPED by user from the pre-generation scope gate.\nRESEARCH & DECISIONS: EVERY research stage requires AskUserQuestion validation before proceeding. Save artifacts to the plan directory per step. Present 2-4 options with confidence % for each major decision; evaluate the top 3 alternatives before adding any new dependency.\nARCHITECTURE GATES: architecture --mode=scalability (read-only architect sub-agent) and the design-rationale why-review (inline, full mode) form one all-return barrier; a why-review FAIL or a changed trade-off blocks /scenario until the design is revised and both re-run. Apply SYNC:scale-ready-foundation before PLAN1; scale-technique and scenario-stress gates are advisory right-sizing in both directions.\nPLANS: PLAN1 (after architecture) is strategic; PLAN2 (after test-spec review) is the sprint-ready implementation plan. /plan --mode=validate is the plan-approved gate.\nTAIL: /workflow-review-changes runs INLINE (owns security/performance/production-readiness review, the domain-entity reference refresh and docs-manager --mode=update); /workflow-e2e --source=context is required after it; /test and /workflow-end close the run.\nNEW-UI EXPLORE MOCKUP (BEFORE the implementation plan): the pbi --mode=mockup step runs with --explore; its Step 0 owns the scope gate and it runs in the main session only; PLAN2's UI Layout builds on the selected mockup.",
-        "readFiles": [".claude/skills/workflow-big-feature/SKILL.md"]
+        "injectContext": "BIG FEATURE (research-driven, existing codebase). Contract: .claude/skills/workflow-big-feature/SKILL.md \u2014 triage FIRST (size, kind, risk, isLargeIdea), then run only the research/design depth the idea needs; gate steps always run, core/optional steps follow the start-workflow Step Execution Protocol with every deviation logged.\nLARGE IDEA: evaluate isLargeIdea (multipleIndependentOutcomes || ambiguousOrResearchHeavy || releaseScopeDecomposition || oversizedPbiThatMustSplit) before any spec, PBI, story or plan. True -> embed the complete large_idea_decomposition block (outcome_slices, dependencies_order, non_goals, risks_evidence, deferred_work_owner) in the owning artifacts and carry its slice IDs downstream. False -> record Decomposition Applicability: EXEMPT with reason and owner. Never create {PRODUCT_ROADMAP_DOC}; a supplied roadmap is read-only context.\nRELEASABLE PBI: every PBI is one independently releasable actor-facing outcome with a complete entry-to-result journey (.claude/skills/shared/releasable-pbi-contract.md); technical/foundation work is enabling work under it; UI PBIs need the full connected multi-view mock-app flow, or a recorded Mockup: SKIPPED by user from the pre-generation scope gate.\nRESEARCH & DECISIONS: EVERY research stage requires ask user question tool validation before proceeding. Save artifacts to the plan directory per step. Present 2-4 options with confidence % for each major decision; evaluate the top 3 alternatives before adding any new dependency.\nARCHITECTURE GATES: architecture --mode=scalability (read-only architect sub-agent) and the design-rationale why-review (inline, full mode) form one all-return barrier; a why-review FAIL or a changed trade-off blocks /scenario until the design is revised and both re-run. Apply SYNC:scale-ready-foundation before PLAN1; scale-technique and scenario-stress gates are advisory right-sizing in both directions.\nPLANS: PLAN1 (after architecture) is strategic; PLAN2 (after test-spec review) is the sprint-ready implementation plan. /plan --mode=validate is the plan-approved gate.\nTAIL: /workflow-review-changes runs INLINE (owns security/performance/production-readiness review, the domain-entity reference refresh and docs-manager --mode=update); /workflow-e2e --source=context is required after it; /test and /workflow-end close the run.\nNEW-UI EXPLORE MOCKUP (BEFORE the implementation plan): the pbi --mode=mockup step runs with --explore; its Step 0 owns the scope gate and it runs in the main session only; PLAN2's UI Layout builds on the selected mockup.",
+        "readFiles": [
+          ".claude/skills/workflow-big-feature/SKILL.md"
+        ]
       },
       "sequence": [
         "idea",
@@ -319,29 +334,41 @@
       "outcomeGates": [
         {
           "id": "root-cause-traced",
-          "satisfiedBy": ["investigate --mode=debug"]
+          "satisfiedBy": [
+            "investigate --mode=debug"
+          ]
         },
         {
           "id": "tests-pass",
-          "satisfiedBy": ["integration-test --mode=verify"]
+          "satisfiedBy": [
+            "integration-test --mode=verify"
+          ]
         },
         {
           "id": "spec-synced",
-          "satisfiedBy": ["spec"],
+          "satisfiedBy": [
+            "spec"
+          ],
           "when": "A canonical spec or test-case artifact governs the affected area, and behavior or a public contract changed or that spec lacked the case the bug exposed"
         },
         {
           "id": "review-converged",
-          "satisfiedBy": ["workflow-review-changes"]
+          "satisfiedBy": [
+            "workflow-review-changes"
+          ]
         },
         {
           "id": "run-closed",
-          "satisfiedBy": ["workflow-end"]
+          "satisfiedBy": [
+            "workflow-end"
+          ]
         }
       ],
       "preActions": {
-        "injectContext": "BUG FIX (lean, TDD-first). Intent: fix the defect at the root cause its end-to-start trace proves, guarded by a regression test that is RED without the fix and GREEN with it. Read .claude/skills/workflow-bugfix/SKILL.md (triage, gates, Code Bug vs Spec Bug gate).\nFIRST: triage size (XS/S/M/L/XL), kind and risk per the SKILL.md; the triage selects which optional steps run. Gate steps always run; core and optional steps follow the /start-workflow Step Execution Protocol, one deviation-log line each.\nNON-NEGOTIABLE:\n- /investigate --mode=debug owns discovery AND root cause (there is no separate read-only /investigate step). END-TO-START TRACE: start at the observed final state/output, trace backward through reader, storage/projection, writer, consumer/job and producer, enumerate every feeder path, build a hypothesis matrix and weigh environment causes. BLOCKED until the owning fix layer and forward convergence proof are written.\n- CODE BUG vs SPEC BUG before any regression TC or test: Code Bug (spec right, code diverged) -> TCs for the intended behavior; Spec Bug (spec documents the wrong behavior) -> /spec [mode=amend] first; Ambiguous -> ask the user. Never encode buggy behavior into specs or tests.\n- RED/GREEN (verify last): the first /integration-test WRITES the regression test and does not run it; tests run once, after the static /workflow-review-changes --tests=defer, in /integration-test --mode=verify, whose mutation check reverts the fix by hand-edit (never git checkout/restore/stash) and expects the regression test to FAIL (RED), then restores it and the regression and affected tests must PASS (GREEN) in this run. Tests name the Business Intent / Invariant Guarded.\n- /workflow-review-changes runs INLINE in the main session and converges the review of the whole package (spec + tests + fix).\nPERFORMANCE-SDD ROUTE: a performance bug runs /performance-review with SLA/benchmark evidence (target metric, baseline, measurement command, regression budget); keep functional no-regression checks when behavior can change; update specs/docs for a changed SLA or behavior boundary.\nNEW-UI EXPLORE MOCKUP (conditional, BEFORE plan): only when the fix is size M+ and creates completely new user-facing UI (a new page/view, component or dialog); run /pbi --mode=mockup --explore --source=<investigation report or amended spec> — its Step 0 owns the scope gate and it runs in the main session only. A fix inside existing UI skips it with a stated reason.\nCONTEXT: shared/sdd-artifact-contract.md in the active skills root, docs/project-config.json and the docs index. Code-extracted specs are reference-only until accepted.",
-        "readFiles": [".claude/skills/workflow-bugfix/SKILL.md"]
+        "injectContext": "BUG FIX (lean, TDD-first). Intent: fix the defect at the root cause its end-to-start trace proves, guarded by a regression test that is RED without the fix and GREEN with it. Read .claude/skills/workflow-bugfix/SKILL.md (triage, gates, Code Bug vs Spec Bug gate).\nFIRST: triage size (XS/S/M/L/XL), kind and risk per the SKILL.md; the triage selects which optional steps run. Gate steps always run; core and optional steps follow the /start-workflow Step Execution Protocol, one deviation-log line each.\nNON-NEGOTIABLE:\n- /investigate --mode=debug owns discovery AND root cause (there is no separate read-only /investigate step). END-TO-START TRACE: start at the observed final state/output, trace backward through reader, storage/projection, writer, consumer/job and producer, enumerate every feeder path, build a hypothesis matrix and weigh environment causes. BLOCKED until the owning fix layer and forward convergence proof are written.\n- CODE BUG vs SPEC BUG before any regression TC or test: Code Bug (spec right, code diverged) -> TCs for the intended behavior; Spec Bug (spec documents the wrong behavior) -> /spec [mode=amend] first; Ambiguous -> ask the user. Never encode buggy behavior into specs or tests.\n- RED/GREEN (verify last): the first /integration-test WRITES the regression test and does not run it; tests run once, after the static /workflow-review-changes --tests=defer, in /integration-test --mode=verify, whose mutation check reverts the fix by hand-edit (never git checkout/restore/stash) and expects the regression test to FAIL (RED), then restores it and the regression and affected tests must PASS (GREEN) in this run. Tests name the Business Intent / Invariant Guarded.\n- /workflow-review-changes runs INLINE in the main session and converges the review of the whole package (spec + tests + fix).\nPERFORMANCE-SDD ROUTE: a performance bug runs /performance-review with SLA/benchmark evidence (target metric, baseline, measurement command, regression budget); keep functional no-regression checks when behavior can change; update specs/docs for a changed SLA or behavior boundary.\nNEW-UI EXPLORE MOCKUP (conditional, BEFORE plan): only when the fix is size M+ and creates completely new user-facing UI (a new page/view, component or dialog); run /pbi --mode=mockup --explore --source=<investigation report or amended spec> \u2014 its Step 0 owns the scope gate and it runs in the main session only. A fix inside existing UI skips it with a stated reason.\nCONTEXT: shared/sdd-artifact-contract.md in the active skills root, docs/project-config.json and the docs index. Code-extracted specs are reference-only until accepted.",
+        "readFiles": [
+          ".claude/skills/workflow-bugfix/SKILL.md"
+        ]
       },
       "sequence": [
         {
@@ -467,16 +494,23 @@
       "outcomeGates": [
         {
           "id": "tests-pass",
-          "satisfiedBy": ["e2e-test --mode=verify"]
+          "satisfiedBy": [
+            "e2e-test --mode=verify"
+          ]
         },
         {
           "id": "run-closed",
-          "satisfiedBy": ["workflow-end"]
+          "satisfiedBy": [
+            "workflow-end"
+          ]
         }
       ],
       "preActions": {
-        "injectContext": "E2E WORKFLOW — follow .claude/skills/workflow-e2e/SKILL.md (triage, gates, recommended skills).\nFIRST: resolve --source={changes|recording|update-ui|prompt|context|whole} and --visual-review={true|false} from the invocation, request, and project contract (no framework-wide screenshot default; a false value cannot waive a project-required gate), then triage size/kind/risk and record it.\nLifecycle: investigate -> conditional authoring (e2e-test for changes, recording, update-ui; skipped for prompt, context, whole because the loop selects or generates cases) -> e2e-test --mode=verify --fix-loop -> docs-manager --mode=update when tests, baselines, source, or documented behavior changed -> workflow-end -> watzup.\nThe loop is the single convergence owner: configured run, report-only /experience-review for visual evidence, failure classification, owning-layer fixes, review, fresh bring-up, and same-scope reruns until the configured consecutive green runs pass within the round cap, or escalation.\nInvariants: map each selected owner-qualified case (or strict-default TC/section 8 when no native specArtifacts profile applies) to an actual test, assertion, and result; classify SOURCE-WRONG, TEST-WRONG, TEST-NOT-OPTIMAL, ENVIRONMENT-BLOCKED, or AMBIGUOUS before edits; use the runner native waits or an evidenced helper, never a delay as readiness; change no baseline or expectation without explicit acceptance; never weaken, skip, narrow, delete, silence, or auto-accept to obtain green.",
-        "readFiles": [".claude/skills/workflow-e2e/SKILL.md", ".claude/skills/e2e-test/references/mode-verify.md"]
+        "injectContext": "E2E WORKFLOW \u2014 follow .claude/skills/workflow-e2e/SKILL.md (triage, gates, recommended skills).\nFIRST: resolve --source={changes|recording|update-ui|prompt|context|whole} and --visual-review={true|false} from the invocation, request, and project contract (no framework-wide screenshot default; a false value cannot waive a project-required gate), then triage size/kind/risk and record it.\nLifecycle: investigate -> conditional authoring (e2e-test for changes, recording, update-ui; skipped for prompt, context, whole because the loop selects or generates cases) -> e2e-test --mode=verify --fix-loop -> docs-manager --mode=update when tests, baselines, source, or documented behavior changed -> workflow-end -> watzup.\nThe loop is the single convergence owner: configured run, report-only /experience-review for visual evidence, failure classification, owning-layer fixes, review, fresh bring-up, and same-scope reruns until the configured consecutive green runs pass within the round cap, or escalation.\nInvariants: map each selected owner-qualified case (or strict-default TC/section 8 when no native specArtifacts profile applies) to an actual test, assertion, and result; classify SOURCE-WRONG, TEST-WRONG, TEST-NOT-OPTIMAL, ENVIRONMENT-BLOCKED, or AMBIGUOUS before edits; use the runner native waits or an evidenced helper, never a delay as readiness; change no baseline or expectation without explicit acceptance; never weaken, skip, narrow, delete, silence, or auto-accept to obtain green.",
+        "readFiles": [
+          ".claude/skills/workflow-e2e/SKILL.md",
+          ".claude/skills/e2e-test/references/mode-verify.md"
+        ]
       },
       "sequence": [
         "investigate",
@@ -530,25 +564,35 @@
       "outcomeGates": [
         {
           "id": "tests-pass",
-          "satisfiedBy": ["test"]
+          "satisfiedBy": [
+            "test"
+          ]
         },
         {
           "id": "spec-synced",
-          "satisfiedBy": ["spec [mode=sync]"],
+          "satisfiedBy": [
+            "spec [mode=sync]"
+          ],
           "when": "Behavior or a public contract changed"
         },
         {
           "id": "review-converged",
-          "satisfiedBy": ["workflow-review-changes"]
+          "satisfiedBy": [
+            "workflow-review-changes"
+          ]
         },
         {
           "id": "run-closed",
-          "satisfiedBy": ["workflow-end"]
+          "satisfiedBy": [
+            "workflow-end"
+          ]
         }
       ],
       "preActions": {
-        "injectContext": "FEATURE WORKFLOW — spec-first, test-first. Read .claude/skills/workflow-feature/SKILL.md (triage, gates, contracts); the Step Execution Protocol in /start-workflow governs which steps flex.\nFIRST ACTION: triage size (XS/S/M/L/XL), kind and risk per the SKILL.md Size & Kind Triage; depth follows risk and ambiguity, not file count. Record the triage and every deviation in the run report.\nGATES (never flex): /test green in this run; nested /workflow-review-changes converged, run inline in the main session; when behavior or a public contract changed, Feature Spec §1-7 re-verified against the built behavior (drift adjudicated per SYNC:spec-drift-adjudication) and §8 TCs synced with test code via /spec [mode=sync]; /workflow-end emits the Goal Satisfaction matrix.\nINVARIANTS: the canonical Feature Spec precedes the first /plan; test specs (/spec [mode=tests]) are reviewed by /pbi --mode=review --type=spec-tests before /plan --mode=execute; a BLOCKED Plan Gate stops /plan --mode=execute; every test names the business intent or invariant it guards and fails when it breaks; lifecycle behavior asserts persisted state transitions and invalid-transition rejection.\nLARGE IDEA: evaluate the shared isLargeIdea rule before the first mutating /spec; when any signal is true the owning spec/PBI carries the complete five-field large_idea_decomposition block; a genuinely isolated brownfield change records EXEMPT with reason and accepting owner. This route never writes a product roadmap; an explicitly supplied roadmap is read-only context. A generated PBI follows .claude/skills/shared/releasable-pbi-contract.md.\nPERFORMANCE-SDD ROUTE: a performance enhancement runs /performance-review with SLA/benchmark evidence (target metric, baseline, measurement command, regression budget), still runs /plan --mode=execute, and runs functional no-regression checks whenever behavior can change.\nNEW-UI EXPLORE MOCKUP (conditional, BEFORE plan): completely new user-facing UI (a new page/view, component or dialog) runs /pbi --mode=mockup --explore --source=<spec or requirement report>; its Step 0 owns the scope gate and it runs in the main session only. Skip with a stated reason when no new UI surface is added.\nPROJECT CONTEXT: docs/project-config.json, {REF_DOCS_ROOT}/docs-index-reference.md and the shared SDD Artifact Contract (shared/sdd-artifact-contract.md in the active skills root) override generic defaults.",
-        "readFiles": [".claude/skills/workflow-feature/SKILL.md"]
+        "injectContext": "FEATURE WORKFLOW \u2014 spec-first, test-first. Read .claude/skills/workflow-feature/SKILL.md (triage, gates, contracts); the Step Execution Protocol in /start-workflow governs which steps flex.\nFIRST ACTION: triage size (XS/S/M/L/XL), kind and risk per the SKILL.md Size & Kind Triage; depth follows risk and ambiguity, not file count. Record the triage and every deviation in the run report.\nGATES (never flex): /test green in this run; nested /workflow-review-changes converged, run inline in the main session; when behavior or a public contract changed, Feature Spec \u00a71-7 re-verified against the built behavior (drift adjudicated per SYNC:spec-drift-adjudication) and \u00a78 TCs synced with test code via /spec [mode=sync]; /workflow-end emits the Goal Satisfaction matrix.\nINVARIANTS: the canonical Feature Spec precedes the first /plan; test specs (/spec [mode=tests]) are reviewed by /pbi --mode=review --type=spec-tests before /plan --mode=execute; a BLOCKED Plan Gate stops /plan --mode=execute; every test names the business intent or invariant it guards and fails when it breaks; lifecycle behavior asserts persisted state transitions and invalid-transition rejection.\nLARGE IDEA: evaluate the shared isLargeIdea rule before the first mutating /spec; when any signal is true the owning spec/PBI carries the complete five-field large_idea_decomposition block; a genuinely isolated brownfield change records EXEMPT with reason and accepting owner. This route never writes a product roadmap; an explicitly supplied roadmap is read-only context. A generated PBI follows .claude/skills/shared/releasable-pbi-contract.md.\nPERFORMANCE-SDD ROUTE: a performance enhancement runs /performance-review with SLA/benchmark evidence (target metric, baseline, measurement command, regression budget), still runs /plan --mode=execute, and runs functional no-regression checks whenever behavior can change.\nNEW-UI EXPLORE MOCKUP (conditional, BEFORE plan): completely new user-facing UI (a new page/view, component or dialog) runs /pbi --mode=mockup --explore --source=<spec or requirement report>; its Step 0 owns the scope gate and it runs in the main session only. Skip with a stated reason when no new UI surface is added.\nPROJECT CONTEXT: docs/project-config.json, {REF_DOCS_ROOT}/docs-index-reference.md and the shared SDD Artifact Contract (shared/sdd-artifact-contract.md in the active skills root) override generic defaults.",
+        "readFiles": [
+          ".claude/skills/workflow-feature/SKILL.md"
+        ]
       },
       "sequence": [
         "investigate",
@@ -619,7 +663,7 @@
           "args": "--mode=validate",
           "role": "optional",
           "applicability": {
-            "when": "The reviewed plan carries decisions, assumptions or risks the user should confirm, or its Plan Gate still lacks human approval — typically M+ size, a public contract, data/schema, security or cross-module work.",
+            "when": "The reviewed plan carries decisions, assumptions or risks the user should confirm, or its Plan Gate still lacks human approval \u2014 typically M+ size, a public contract, data/schema, security or cross-module work.",
             "skipReason": "The plan is small and unambiguous: every decision traces to the reviewed spec and its Plan Gate already records human approval."
           }
         },
@@ -683,25 +727,36 @@
       "outcomeGates": [
         {
           "id": "tests-pass",
-          "satisfiedBy": ["integration-test --mode=verify", "test"]
+          "satisfiedBy": [
+            "integration-test --mode=verify",
+            "test"
+          ]
         },
         {
           "id": "review-converged",
-          "satisfiedBy": ["workflow-review-changes"]
+          "satisfiedBy": [
+            "workflow-review-changes"
+          ]
         },
         {
           "id": "spec-synced",
-          "satisfiedBy": ["spec [mode=sync]"],
+          "satisfiedBy": [
+            "spec [mode=sync]"
+          ],
           "when": "Implemented behavior differs from the supplied spec"
         },
         {
           "id": "run-closed",
-          "satisfiedBy": ["workflow-end"]
+          "satisfiedBy": [
+            "workflow-end"
+          ]
         }
       ],
       "preActions": {
         "injectContext": "LEAN SPEC-SUPPLIED ROUTE: the requested behavior is already written in a canonical spec or TC set, so this route implements it without re-authoring the spec. Read .claude/skills/workflow-implement-spec/SKILL.md. FIRST ACTION: triage size (XS/S/M/L/XL), kind and risk per the SKILL.md Size & Kind Triage; depth follows risk and ambiguity, and the gap review plus every gate hold at every size. ESCALATION (BR-GWF-04): /investigate reads the supplied spec and affected code, then /spec [mode=clarify] gap-reviews that spec against the request; vague, contradictory, or missing behavior stops before /plan and routes to user clarification or workflow-feature. SPEC-BASELINE ANCHOR (BR-GWF-05): before /plan, the workflow report records the supplied spec path and revision as spec_baseline; /plan keeps every phase and acceptance gate within it, and unowned additions require approval. Author integration tests after implementation, then run one /spec [mode=sync] reconciliation when behavior or case-to-test evidence changed, before the nested /workflow-review-changes. If review fixes invalidate that reconciliation, repeat only the scoped sync before final verification. Tests run only in the final verification gates.",
-        "readFiles": [".claude/skills/workflow-implement-spec/SKILL.md"]
+        "readFiles": [
+          ".claude/skills/workflow-implement-spec/SKILL.md"
+        ]
       },
       "sequence": [
         "investigate",
@@ -752,20 +807,28 @@
       "outcomeGates": [
         {
           "id": "review-converged",
-          "satisfiedBy": ["workflow-review-changes"]
+          "satisfiedBy": [
+            "workflow-review-changes"
+          ]
         },
         {
           "id": "spec-synced",
-          "satisfiedBy": ["docs-manager --mode=update"]
+          "satisfiedBy": [
+            "docs-manager --mode=update"
+          ]
         },
         {
           "id": "run-closed",
-          "satisfiedBy": ["workflow-end"]
+          "satisfiedBy": [
+            "workflow-end"
+          ]
         }
       ],
       "preActions": {
         "injectContext": "FEATURE-SPEC: create or update ONE canonical feature/spec artifact for one capability at its configured path, planned to the depth the change needs, cases reconciled, reviewed and docs-synced.\nTRIAGE FIRST (SKILL.md section 1): use one lean plan and /plan --mode=validate; several capabilities split into one spec each or route to workflow-code-to-spec.\nPROFILE FIRST: read docs/project-config.json (specRoots.business.path, workflowPatterns.featureDocTemplate, specArtifacts), the configured template, spec-system-reference.md and spec-principles.md. The native profile or local contract owns paths, section roles, IDs and test/evidence carriers; intent roles stay tech-agnostic. Unknown mapping = BLOCKED/UNKNOWN, never PASS; a malformed contract blocks.\nGATES: /plan --mode=validate confirms scope and non-obvious decisions with the user; docs-manager --mode=update routes the spec chain (/spec -> /spec [mode=tests] -> test-spec review -> /spec [mode=sync]); workflow-review-changes converges inline; workflow-end closes.\nTests Verify Intent: every case names the business intent or invariant it guards and would fail if that intent broke.",
-        "readFiles": [".claude/skills/workflow-feature-spec/SKILL.md"]
+        "readFiles": [
+          ".claude/skills/workflow-feature-spec/SKILL.md"
+        ]
       },
       "sequence": [
         "investigate",
@@ -804,37 +867,56 @@
       "outcomeGates": [
         {
           "id": "plan-approved",
-          "satisfiedBy": ["plan --mode=validate"]
+          "satisfiedBy": [
+            "plan --mode=validate"
+          ]
         },
         {
           "id": "spec-synced",
-          "satisfiedBy": ["spec [mode=sync]"],
+          "satisfiedBy": [
+            "spec [mode=sync]"
+          ],
           "when": "Implemented behavior diverged from, or went beyond, the authored specs"
         },
         {
           "id": "tests-pass",
-          "satisfiedBy": ["test"]
+          "satisfiedBy": [
+            "test"
+          ]
         },
         {
           "id": "review-converged",
-          "satisfiedBy": ["workflow-review-changes"]
+          "satisfiedBy": [
+            "workflow-review-changes"
+          ]
         },
         {
           "id": "run-closed",
-          "satisfiedBy": ["workflow-end"]
+          "satisfiedBy": [
+            "workflow-end"
+          ]
         }
       ],
       "parallelGroups": [
         {
           "id": "architecture-gates",
-          "members": ["architecture --mode=scalability", "architecture-rationale-review"],
+          "members": [
+            "architecture --mode=scalability",
+            "architecture-rationale-review"
+          ],
           "conditionalMembers": [],
           "barrier": true
         },
         {
           "id": "architecture-risk-reviews",
-          "members": ["architecture-security-review", "architecture-performance-review"],
-          "conditionalMembers": ["architecture-security-review", "architecture-performance-review"],
+          "members": [
+            "architecture-security-review",
+            "architecture-performance-review"
+          ],
+          "conditionalMembers": [
+            "architecture-security-review",
+            "architecture-performance-review"
+          ],
           "barrier": true
         },
         {
@@ -846,7 +928,9 @@
             "scan --target=project-structure",
             "pre-coding-rationale-review"
           ],
-          "conditionalMembers": ["scan-ui-system"],
+          "conditionalMembers": [
+            "scan-ui-system"
+          ],
           "barrier": true
         }
       ],
@@ -884,8 +968,10 @@
         }
       },
       "preActions": {
-        "injectContext": "GREENFIELD INCEPTION: take a new product from idea to a reviewed first releasable slice on a verified foundation. Read .claude/skills/workflow-greenfield-init/SKILL.md before step 1 — it owns triage, the required gates and orchestration; /start-workflow → Step Execution Protocol owns step flex and the deviation log.\nTRIAGE FIRST and record it in the run report: scale (prototype/internal · product · platform), UI surface yes/no, commercial market yes/no, criticality (auth, PII, money, regulated), isLargeIdea, and applicable test tiers. Judge every optional step's applicability from that record.\nLARGE IDEA: evaluate isLargeIdea = multipleIndependentOutcomes || ambiguousOrResearchHeavy || releaseScopeDecomposition || oversizedPbiThatMustSplit before any spec, PBI, story or plan. When true, embed the complete large_idea_decomposition block in the owning artifact and carry its stable slice IDs downstream. The roadmap artifact ({PRODUCT_ROADMAP_DOC}) is never a default output here — only an explicit roadmap request routes to its standalone skill; a supplied roadmap is read-only context.\nRELEASABLE PBIs: each PBI is one independently releasable actor-facing outcome with a complete entry-to-result journey; foundation/setup work attaches to it and is never a standalone technical PBI; UI PBIs carry the connected multi-view mock-app surface (.claude/skills/shared/releasable-pbi-contract.md).\nORDER: business and domain before technology — do not ask for the tech stack upfront; domain analysis (ERD + bounded contexts) precedes tech-stack research. Major decisions show 2-4 options with confidence % and evidence; validate each phase's decisions with the user via AskUserQuestion and never self-approve a one-way door.\nBLOCKING: before the first /plan completes, record the SYNC:scale-ready-foundation matrix and the SYNC:ai-agent-as-user-access decision (or an explicit evidence-backed omission). Before /plan --mode=execute, every Test Architecture & Execution Contract tier is APPLICABLE with runner, copy-ready full and focused commands, zero-match behavior and unique run/data identity — or N/A — <evidence>.\nFIXED: /plan --mode=validate, /workflow-review-changes, the final /test and /workflow-end are gates; the final /test is the single unit/system verify and runs after E2E. /workflow-review-changes runs INLINE in the main session. /e2e-test runs only when docs/project-config.json → e2eTesting declares a runnable framework, else N/A — <evidence>. /workflow-e2e --source=context runs after the review and before the final /test and records N/A or ENVIRONMENT-BLOCKED honestly. Tests use the project's native style, name the protected intent or invariant, and fail when it breaks.",
-        "readFiles": [".claude/skills/workflow-greenfield-init/SKILL.md"]
+        "injectContext": "GREENFIELD INCEPTION: take a new product from idea to a reviewed first releasable slice on a verified foundation. Read .claude/skills/workflow-greenfield-init/SKILL.md before step 1 \u2014 it owns triage, the required gates and orchestration; /start-workflow \u2192 Step Execution Protocol owns step flex and the deviation log.\nTRIAGE FIRST and record it in the run report: scale (prototype/internal \u00b7 product \u00b7 platform), UI surface yes/no, commercial market yes/no, criticality (auth, PII, money, regulated), isLargeIdea, and applicable test tiers. Judge every optional step's applicability from that record.\nLARGE IDEA: evaluate isLargeIdea = multipleIndependentOutcomes || ambiguousOrResearchHeavy || releaseScopeDecomposition || oversizedPbiThatMustSplit before any spec, PBI, story or plan. When true, embed the complete large_idea_decomposition block in the owning artifact and carry its stable slice IDs downstream. The roadmap artifact ({PRODUCT_ROADMAP_DOC}) is never a default output here \u2014 only an explicit roadmap request routes to its standalone skill; a supplied roadmap is read-only context.\nRELEASABLE PBIs: each PBI is one independently releasable actor-facing outcome with a complete entry-to-result journey; foundation/setup work attaches to it and is never a standalone technical PBI; UI PBIs carry the connected multi-view mock-app surface (.claude/skills/shared/releasable-pbi-contract.md).\nORDER: business and domain before technology \u2014 do not ask for the tech stack upfront; domain analysis (ERD + bounded contexts) precedes tech-stack research. Major decisions show 2-4 options with confidence % and evidence; validate each phase's decisions with the user via ask user question tool and never self-approve a one-way door.\nBLOCKING: before the first /plan completes, record the SYNC:scale-ready-foundation matrix and the SYNC:ai-agent-as-user-access decision (or an explicit evidence-backed omission). Before /plan --mode=execute, every Test Architecture & Execution Contract tier is APPLICABLE with runner, copy-ready full and focused commands, zero-match behavior and unique run/data identity \u2014 or N/A \u2014 <evidence>.\nFIXED: /plan --mode=validate, /workflow-review-changes, the final /test and /workflow-end are gates; the final /test is the single unit/system verify and runs after E2E. /workflow-review-changes runs INLINE in the main session. /e2e-test runs only when docs/project-config.json \u2192 e2eTesting declares a runnable framework, else N/A \u2014 <evidence>. /workflow-e2e --source=context runs after the review and before the final /test and records N/A or ENVIRONMENT-BLOCKED honestly. Tests use the project's native style, name the protected intent or invariant, and fail when it breaks.",
+        "readFiles": [
+          ".claude/skills/workflow-greenfield-init/SKILL.md"
+        ]
       },
       "sequence": [
         "idea",
@@ -991,8 +1077,8 @@
           "args": "--mode=review",
           "role": "optional",
           "applicability": {
-            "when": "An architecture risk review ran and returned findings that PLAN₁ must fold in.",
-            "skipReason": "No architecture risk review ran, or none returned findings, so PLAN₁ is unchanged."
+            "when": "An architecture risk review ran and returned findings that PLAN\u2081 must fold in.",
+            "skipReason": "No architecture risk review ran, or none returned findings, so PLAN\u2081 is unchanged."
           }
         },
         "pbi --mode=refine",
@@ -1197,27 +1283,35 @@
     },
     "workflow-idea-to-pbi": {
       "activation": "auto",
-      "description": "PO/BA idea → reviewed, Definition-of-Ready, prioritized PBI backlog (no implementation). Triage first: SINGLE-PBI track (one concrete idea/ticket/brief → draft Feature Spec → test specs → one PBI + stories) or MULTI-OPPORTUNITY track (raw vision → brainstorm → RICE opportunity map → multi-select → light per-opportunity PBI loop → cross-PBI ranked backlog). Depth scales with size and risk. For idea → ONE provisional Feature Spec only (no backlog) use workflow-idea-to-spec.",
+      "description": "PO/BA idea \u2192 reviewed, Definition-of-Ready, prioritized PBI backlog (no implementation). Triage first: SINGLE-PBI track (one concrete idea/ticket/brief \u2192 draft Feature Spec \u2192 test specs \u2192 one PBI + stories) or MULTI-OPPORTUNITY track (raw vision \u2192 brainstorm \u2192 RICE opportunity map \u2192 multi-select \u2192 light per-opportunity PBI loop \u2192 cross-PBI ranked backlog). Depth scales with size and risk. For idea \u2192 ONE provisional Feature Spec only (no backlog) use workflow-idea-to-spec.",
       "intent": "Turn a product idea into a grooming-ready, prioritized PBI backlog backed by a provisional spec, stories, test specs and Definition-of-Ready evidence.",
       "name": "Idea to PBI",
       "outcomeGates": [
         {
           "id": "review-converged",
-          "satisfiedBy": ["pbi --mode=review"]
+          "satisfiedBy": [
+            "pbi --mode=review"
+          ]
         },
         {
           "id": "spec-synced",
-          "satisfiedBy": ["docs-manager --mode=update"],
+          "satisfiedBy": [
+            "docs-manager --mode=update"
+          ],
           "when": "A draft Feature Spec or test specifications were authored or changed in this run"
         },
         {
           "id": "run-closed",
-          "satisfiedBy": ["workflow-end"]
+          "satisfiedBy": [
+            "workflow-end"
+          ]
         }
       ],
       "preActions": {
-        "injectContext": "IDEA TO PBI — turn an idea into a reviewed, Definition-of-Ready, prioritized PBI backlog (no implementation). Read .claude/skills/workflow-idea-to-pbi/SKILL.md first: it owns triage, gates, the recommended-skill table and the per-opportunity loop.\nTRIAGE FIRST and record it: track = SINGLE-PBI (one concrete idea/ticket/brief) or MULTI-OPPORTUNITY (raw vision spanning several opportunities; ask via AskUserQuestion when unclear); size XS…XL; kinds (UI surface, domain change, existing artifact, market uncertainty); risk; isLargeIdea = multipleIndependentOutcomes || ambiguousOrResearchHeavy || releaseScopeDecomposition || oversizedPbiThatMustSplit. Each step's applicability follows the triage: a small clear idea skips research, brainstorm, scenario, the plan cycle, cross-PBI prioritize and the deck. Log every skip/merge with evidence.\nGATES (never skipped): pbi --mode=review --type=pbi, pbi --mode=dor (PASS or WARN), workflow-end; why-review after pbi --mode=refine (FAIL → pbi --mode=refine; WARN → user acknowledgment); SINGLE-PBI: draft spec + TC IDs in Feature doc Section 8 reviewed by pbi --mode=review --type=spec-tests, then spec [mode=clarify] confirms every non-obvious/conflicting decision with the user before the PBI is derived (Spec Validation: questions=3-6, TEST-SPEC context); pbi --mode=challenge reviewer ≠ drafter; every PBI is one independently releasable actor-facing outcome (.claude/skills/shared/releasable-pbi-contract.md); UI PBIs get a navigable full-flow mock app (or a recorded Mockup: SKIPPED by user) + design-spec, backend-only states the skip; every PBI carries priority in frontmatter and mockup/deck show the final value; docs-manager --mode=update syncs specs and TC IDs before close.\nLARGE IDEA: when isLargeIdea is true, the owning artifacts carry the complete large_idea_decomposition block (outcome_slices, dependencies_order, non_goals, risks_evidence, deferred_work_owner) and downstream outputs inherit it read-only; all-false ideas omit it. Never create {PRODUCT_ROADMAP_DOC}; a roadmap is an explicit standalone request only and a supplied roadmap is read-only context.\nMULTI-OPPORTUNITY: brainstorm writes a 3–8 item RICE map to {PLANS_ROOT}/{plan-dir}/brainstorm-opportunity-map.md → user multi-select → opportunity-map why-review → domain-analysis once → per-opportunity loop (idea → pbi --mode=refine → PBI review → pbi --mode=story → story review → pbi --mode=challenge → pbi --mode=dor → UI mockup/design-spec), one task per loop step per opportunity, created up front → cross-PBI prioritize. Draft spec, test specs, spec [mode=clarify], scenario and the plan cycle never run per opportunity.\nUI MOCKUP: the idea-to-pbi-mockup step runs pbi --mode=mockup --explore for each UI PBI after pbi --mode=dor; pbi --mode=mockup owns the whole sequence (Step 0 mockup scope gate first, Journey Report UX-1, design-authority read UX-2, direction drafts, the user's recorded pick, full build, journey walkthrough UX-8, UI/UX Gate Report) and UI-1.1-UI-9.4, DD-1-DD-8 and CL-1-CL-6 apply after UX-*. The scope gate and the pick are user gates: main session only, never inside a sub-agent, never batched across PBIs; when opportunities run as sub-agents, each stops after pbi --mode=dor and the main session runs the mockup and design-spec per UI PBI. design-spec reuses the mockup's Journey Report and design-authority record.\nArtifacts stay drafts until their review gate accepts them; write each one immediately under {TEAM_ARTIFACTS_ROOT}. Goal-driven: define success criteria first and loop until observable checks pass.",
-        "readFiles": [".claude/skills/workflow-idea-to-pbi/SKILL.md"]
+        "injectContext": "IDEA TO PBI \u2014 turn an idea into a reviewed, Definition-of-Ready, prioritized PBI backlog (no implementation). Read .claude/skills/workflow-idea-to-pbi/SKILL.md first: it owns triage, gates, the recommended-skill table and the per-opportunity loop.\nTRIAGE FIRST and record it: track = SINGLE-PBI (one concrete idea/ticket/brief) or MULTI-OPPORTUNITY (raw vision spanning several opportunities; ask via ask user question tool when unclear); size XS\u2026XL; kinds (UI surface, domain change, existing artifact, market uncertainty); risk; isLargeIdea = multipleIndependentOutcomes || ambiguousOrResearchHeavy || releaseScopeDecomposition || oversizedPbiThatMustSplit. Each step's applicability follows the triage: a small clear idea skips research, brainstorm, scenario, the plan cycle, cross-PBI prioritize and the deck. Log every skip/merge with evidence.\nGATES (never skipped): pbi --mode=review --type=pbi, pbi --mode=dor (PASS or WARN), workflow-end; why-review after pbi --mode=refine (FAIL \u2192 pbi --mode=refine; WARN \u2192 user acknowledgment); SINGLE-PBI: draft spec + TC IDs in Feature doc Section 8 reviewed by pbi --mode=review --type=spec-tests, then spec [mode=clarify] confirms every non-obvious/conflicting decision with the user before the PBI is derived (Spec Validation: questions=3-6, TEST-SPEC context); pbi --mode=challenge reviewer \u2260 drafter; every PBI is one independently releasable actor-facing outcome (.claude/skills/shared/releasable-pbi-contract.md); UI PBIs get a navigable full-flow mock app (or a recorded Mockup: SKIPPED by user) + design-spec, backend-only states the skip; every PBI carries priority in frontmatter and mockup/deck show the final value; docs-manager --mode=update syncs specs and TC IDs before close.\nLARGE IDEA: when isLargeIdea is true, the owning artifacts carry the complete large_idea_decomposition block (outcome_slices, dependencies_order, non_goals, risks_evidence, deferred_work_owner) and downstream outputs inherit it read-only; all-false ideas omit it. Never create {PRODUCT_ROADMAP_DOC}; a roadmap is an explicit standalone request only and a supplied roadmap is read-only context.\nMULTI-OPPORTUNITY: brainstorm writes a 3\u20138 item RICE map to {PLANS_ROOT}/{plan-dir}/brainstorm-opportunity-map.md \u2192 user multi-select \u2192 opportunity-map why-review \u2192 domain-analysis once \u2192 per-opportunity loop (idea \u2192 pbi --mode=refine \u2192 PBI review \u2192 pbi --mode=story \u2192 story review \u2192 pbi --mode=challenge \u2192 pbi --mode=dor \u2192 UI mockup/design-spec), one task per loop step per opportunity, created up front \u2192 cross-PBI prioritize. Draft spec, test specs, spec [mode=clarify], scenario and the plan cycle never run per opportunity.\nUI MOCKUP: the idea-to-pbi-mockup step runs pbi --mode=mockup --explore for each UI PBI after pbi --mode=dor; pbi --mode=mockup owns the whole sequence (Step 0 mockup scope gate first, Journey Report UX-1, design-authority read UX-2, direction drafts, the user's recorded pick, full build, journey walkthrough UX-8, UI/UX Gate Report) and UI-1.1-UI-9.4, DD-1-DD-8 and CL-1-CL-6 apply after UX-*. The scope gate and the pick are user gates: main session only, never inside a sub-agent, never batched across PBIs; when opportunities run as sub-agents, each stops after pbi --mode=dor and the main session runs the mockup and design-spec per UI PBI. design-spec reuses the mockup's Journey Report and design-authority record.\nArtifacts stay drafts until their review gate accepts them; write each one immediately under {TEAM_ARTIFACTS_ROOT}. Goal-driven: define success criteria first and loop until observable checks pass.",
+        "readFiles": [
+          ".claude/skills/workflow-idea-to-pbi/SKILL.md"
+        ]
       },
       "sequence": [
         {
@@ -1420,7 +1514,7 @@
         },
         "watzup"
       ],
-      "whenToUse": "PO/BA wants a grooming-ready PBI backlog from an idea. SINGLE-PBI DEEP: a raw idea — or a handed-off artifact/ticket/brief — through to ONE grooming-ready PBI with a provisional Feature Spec, user stories, TDD test specifications, Dev BA PIC challenge, DoR validation, wireframes, and prioritization. MULTI-OPPORTUNITY DISCOVERY: a raw product vision/problem statement → structured brainstorm → RICE opportunity map → user multi-select → multiple PBIs (light per-opportunity loop) → cross-PBI ranked backlog. For idea → ONE provisional Feature Spec only (no backlog), use workflow-idea-to-spec"
+      "whenToUse": "PO/BA wants a grooming-ready PBI backlog from an idea. SINGLE-PBI DEEP: a raw idea \u2014 or a handed-off artifact/ticket/brief \u2014 through to ONE grooming-ready PBI with a provisional Feature Spec, user stories, TDD test specifications, Dev BA PIC challenge, DoR validation, wireframes, and prioritization. MULTI-OPPORTUNITY DISCOVERY: a raw product vision/problem statement \u2192 structured brainstorm \u2192 RICE opportunity map \u2192 user multi-select \u2192 multiple PBIs (light per-opportunity loop) \u2192 cross-PBI ranked backlog. For idea \u2192 ONE provisional Feature Spec only (no backlog), use workflow-idea-to-spec"
     },
     "workflow-idea-to-spec": {
       "description": "Idea-to-spec: turn a raw idea, vision, or problem into one reviewed provisional canonical spec under the active artifact contract. Stop at the spec; chain workflow-spec-to-pbi for a backlog. Portable README/eight-section/TC details apply only when neither a native profile nor local artifact contract applies.",
@@ -1429,16 +1523,22 @@
       "outcomeGates": [
         {
           "id": "review-converged",
-          "satisfiedBy": ["pbi --mode=review"]
+          "satisfiedBy": [
+            "pbi --mode=review"
+          ]
         },
         {
           "id": "run-closed",
-          "satisfiedBy": ["workflow-end"]
+          "satisfiedBy": [
+            "workflow-end"
+          ]
         }
       ],
       "preActions": {
-        "injectContext": "IDEA-TO-SPEC (stops at the reviewed spec): turn a raw idea into ONE reviewed, docs-synced, provisional canonical spec per converged capability. No PBI, story, backlog, mockup or roadmap artifact here; chain workflow-spec-to-pbi for a backlog or workflow-implement-spec to build. A supplied roadmap is read-only context; the standalone product-roadmap skill is explicit-request only.\nTRIAGE FIRST (SKILL.md section 1): size band XS..XL by capabilities and ambiguity, kinds (external evidence, existing specs/code, new entities, UI, stakeholders) and risk select the optional steps and their depth. Evaluate isLargeIdea (multipleIndependentOutcomes || ambiguousOrResearchHeavy || releaseScopeDecomposition || oversizedPbiThatMustSplit); any true -> the complete large_idea_decomposition block (outcome_slices, dependencies_order, non_goals, risks_evidence, deferred_work_owner) in the profile role that permits slice plans; all false -> omit it.\nPROFILE FIRST: read docs/project-config.json (specRoots.business.path, workflowPatterns.featureDocTemplate, specArtifacts), the configured template, spec-system-reference.md and spec-principles.md. The native profile or local contract owns paths, section roles, IDs and test/evidence carriers; intent roles stay tech-agnostic. The portable eight-section README + Section 8 TC-{FEATURE}-{NNN} form applies only when neither exists (details: SKILL.md). Unknown mapping = BLOCKED/UNKNOWN, never PASS; a malformed contract blocks. Before code exists use the profile's provisional convention (portable: Evidence: TBD, Status: Planned, provisional: true); workflow-code-to-spec reconciles it once code lands.\nGATES: scope confirmed with the user (brainstorm convergence; spec [mode=discovery] NEW / EXTEND via spec [mode=update] / SPLIT); spec authored with planned cases (spec [mode=draft], spec [mode=tests]); pbi --mode=review converged incl. the M1-M7 gate; spec [mode=clarify] confirmed every non-obvious decision via AskUserQuestion (depth by triage); docs-manager --mode=update synced; workflow-end closed. 4+ capabilities -> one spec sub-agent per capability in ONE message.\nTests Verify Intent: every case names the business intent or invariant it guards and would fail if that intent broke. Goal-Driven Execution: define success criteria first; loop until observable checks pass.",
-        "readFiles": [".claude/skills/workflow-idea-to-spec/SKILL.md"]
+        "injectContext": "IDEA-TO-SPEC (stops at the reviewed spec): turn a raw idea into ONE reviewed, docs-synced, provisional canonical spec per converged capability. No PBI, story, backlog, mockup or roadmap artifact here; chain workflow-spec-to-pbi for a backlog or workflow-implement-spec to build. A supplied roadmap is read-only context; the standalone product-roadmap skill is explicit-request only.\nTRIAGE FIRST (SKILL.md section 1): size band XS..XL by capabilities and ambiguity, kinds (external evidence, existing specs/code, new entities, UI, stakeholders) and risk select the optional steps and their depth. Evaluate isLargeIdea (multipleIndependentOutcomes || ambiguousOrResearchHeavy || releaseScopeDecomposition || oversizedPbiThatMustSplit); any true -> the complete large_idea_decomposition block (outcome_slices, dependencies_order, non_goals, risks_evidence, deferred_work_owner) in the profile role that permits slice plans; all false -> omit it.\nPROFILE FIRST: read docs/project-config.json (specRoots.business.path, workflowPatterns.featureDocTemplate, specArtifacts), the configured template, spec-system-reference.md and spec-principles.md. The native profile or local contract owns paths, section roles, IDs and test/evidence carriers; intent roles stay tech-agnostic. The portable eight-section README + Section 8 TC-{FEATURE}-{NNN} form applies only when neither exists (details: SKILL.md). Unknown mapping = BLOCKED/UNKNOWN, never PASS; a malformed contract blocks. Before code exists use the profile's provisional convention (portable: Evidence: TBD, Status: Planned, provisional: true); workflow-code-to-spec reconciles it once code lands.\nGATES: scope confirmed with the user (brainstorm convergence; spec [mode=discovery] NEW / EXTEND via spec [mode=update] / SPLIT); spec authored with planned cases (spec [mode=draft], spec [mode=tests]); pbi --mode=review converged incl. the M1-M7 gate; spec [mode=clarify] confirmed every non-obvious decision via ask user question tool (depth by triage); docs-manager --mode=update synced; workflow-end closed. 4+ capabilities -> one spec sub-agent per capability in ONE message.\nTests Verify Intent: every case names the business intent or invariant it guards and would fail if that intent broke. Goal-Driven Execution: define success criteria first; loop until observable checks pass.",
+        "readFiles": [
+          ".claude/skills/workflow-idea-to-spec/SKILL.md"
+        ]
       },
       "sequence": [
         {
@@ -1557,20 +1657,28 @@
       "outcomeGates": [
         {
           "id": "tests-pass",
-          "satisfiedBy": ["test"]
+          "satisfiedBy": [
+            "test"
+          ]
         },
         {
           "id": "review-converged",
-          "satisfiedBy": ["workflow-review-changes"]
+          "satisfiedBy": [
+            "workflow-review-changes"
+          ]
         },
         {
           "id": "run-closed",
-          "satisfiedBy": ["workflow-end"]
+          "satisfiedBy": [
+            "workflow-end"
+          ]
         }
       ],
       "preActions": {
         "injectContext": "REFACTOR (lean, behavior-preserving). Intent: restructure code without changing observable behavior, proven by the same test scope green before and after plus a converged change review. Read .claude/skills/workflow-refactor/SKILL.md (triage, gates).\nFIRST: triage size (XS/S/M/L/XL), kind and risk per the SKILL.md; the triage selects which optional steps run. Gate steps always run; core and optional steps follow the /start-workflow Step Execution Protocol, one deviation-log line each.\nNON-NEGOTIABLE:\n- Search before planning: find the target pattern in 3+ local examples (file:line) and follow docs/project-config.json workflowPatterns (architecture, code hierarchy, naming), not generic framework docs.\n- BASELINE: run /test on the affected scope BEFORE any change; it must be green. A red baseline stops the refactor: report it or route the failure to workflow-bugfix. When no existing test would fail if the touched behavior changed, write characterization tests first (/integration-test) and prove them green on the unrefactored code.\n- Observable behavior (outputs, persisted state, public contracts, errors, state transitions, timing boundaries) must not change; a change the user explicitly approves turns the work into a feature or bugfix. Test code may change only mechanically (imports, renamed symbols, moved paths); an edited assertion or expected value is a behavior change and needs the user's approval.\n- Removing 'unused' code needs /investigate evidence: grep results, confidence >=80%, cross-module/service check.\n- /workflow-review-changes runs INLINE in the main session; the final /test gate re-runs the baseline scope and must be green.\nPERFORMANCE-SDD ROUTE: a performance-driven refactor runs /performance-review for benchmark evidence (SLA, baseline, measurement command) while preserving observable behavior and functional no-regression; a changed SLA, public contract or docs/spec boundary still requires spec/test/docs sync.\nCONTEXT: shared/sdd-artifact-contract.md in the active skills root and docs/project-config.json.",
-        "readFiles": [".claude/skills/workflow-refactor/SKILL.md"]
+        "readFiles": [
+          ".claude/skills/workflow-refactor/SKILL.md"
+        ]
       },
       "sequence": [
         "investigate",
@@ -1661,22 +1769,28 @@
       "whenToUse": "User wants to restructure, reorganize, clean up, or improve existing code without changing behavior; technical debt"
     },
     "workflow-research": {
-      "description": "Research & Synthesis: gather web sources on a topic, then synthesize into one of four artifacts selected by --output — cited knowledge report (synthesis), business/market viability evaluation (business-eval), marketing strategy (marketing), or structured course material (course)",
+      "description": "Research & Synthesis: gather web sources on a topic, then synthesize into one of four artifacts selected by --output \u2014 cited knowledge report (synthesis), business/market viability evaluation (business-eval), marketing strategy (marketing), or structured course material (course)",
       "intent": "Research a topic from web sources and synthesize a cited, reviewed deliverable in the selected output form.",
       "name": "Research & Synthesis",
       "outcomeGates": [
         {
           "id": "review-converged",
-          "satisfiedBy": ["knowledge-review"]
+          "satisfiedBy": [
+            "knowledge-review"
+          ]
         },
         {
           "id": "run-closed",
-          "satisfiedBy": ["workflow-end"]
+          "satisfiedBy": [
+            "workflow-end"
+          ]
         }
       ],
       "preActions": {
-        "injectContext": "RESEARCH & SYNTHESIS (research artifacts only, no code):\n- Pick `--output` from the prompt BEFORE creating tasks: synthesis (cited knowledge report, default — state the assumption when ambiguous) · business-eval · marketing · course. The resolved variant is a complete sequence; build tasks from it.\n- FIRST triage question scope (narrow / standard / broad or decision-critical) per the workflow SKILL.md. Scope sets query and fetch depth inside the research step's caps; it never lowers the evidence bar.\n- The research step is `web-research --chain=deep-dive`: one step that writes the source map, then the evidence base (`tmp/research/_sources-{slug}.md`, `_evidence-{slug}.md`). `knowledge-review` stays a separate gate.\n- Evidence bar: every factual claim ends with an inline citation mapped to a Sources row; factual claims rest on 2+ independent sources (a single-source claim is marked unverified, below 60%); Tier 4 is never cited as fact; gaps and findings below 60% are flagged.\n- `knowledge-review` is the review gate: fix validated findings in the artifact, then re-review until it converges.\n- business-eval / marketing: derive one ARTIFACT_SLUG and MARKET_ANALYSIS_PATH before the first research step and pass the exact values to market-analysis and its consumer.\nFull contract: .claude/skills/workflow-research/SKILL.md",
-        "readFiles": [".claude/skills/workflow-research/SKILL.md"]
+        "injectContext": "RESEARCH & SYNTHESIS (research artifacts only, no code):\n- Pick `--output` from the prompt BEFORE creating tasks: synthesis (cited knowledge report, default \u2014 state the assumption when ambiguous) \u00b7 business-eval \u00b7 marketing \u00b7 course. The resolved variant is a complete sequence; build tasks from it.\n- FIRST triage question scope (narrow / standard / broad or decision-critical) per the workflow SKILL.md. Scope sets query and fetch depth inside the research step's caps; it never lowers the evidence bar.\n- The research step is `web-research --chain=deep-dive`: one step that writes the source map, then the evidence base (`tmp/research/_sources-{slug}.md`, `_evidence-{slug}.md`). `knowledge-review` stays a separate gate.\n- Evidence bar: every factual claim ends with an inline citation mapped to a Sources row; factual claims rest on 2+ independent sources (a single-source claim is marked unverified, below 60%); Tier 4 is never cited as fact; gaps and findings below 60% are flagged.\n- `knowledge-review` is the review gate: fix validated findings in the artifact, then re-review until it converges.\n- business-eval / marketing: derive one ARTIFACT_SLUG and MARKET_ANALYSIS_PATH before the first research step and pass the exact values to market-analysis and its consumer.\nFull contract: .claude/skills/workflow-research/SKILL.md",
+        "readFiles": [
+          ".claude/skills/workflow-research/SKILL.md"
+        ]
       },
       "defaultMode": "synthesis",
       "variants": {
@@ -1797,91 +1911,53 @@
           ]
         }
       },
-      "sequence": ["web-research", "knowledge-synthesis", "knowledge-review", "workflow-end", "watzup"],
-      "whenToUse": "User wants to research a topic from web sources and synthesize the findings into a deliverable — a cited knowledge report, a business/market viability evaluation, a marketing strategy, or structured course material"
+      "sequence": [
+        "web-research",
+        "knowledge-synthesis",
+        "knowledge-review",
+        "workflow-end",
+        "watzup"
+      ],
+      "whenToUse": "User wants to research a topic from web sources and synthesize the findings into a deliverable \u2014 a cited knowledge report, a business/market viability evaluation, a marketing strategy, or structured course material"
     },
     "workflow-review-changes": {
-      "description": "Review uncommitted changes with triage-selected reviewers, validate and fix blocking findings directly, then re-review the fixed state until the current severity bar is clear",
+      "description": "Review current changes in a coordinator-owned fix-loop by default; --review-only reports without edits.",
       "intent": "Review the current uncommitted changes, fix every validated blocking finding, and re-review until the severity bar is clear.",
       "name": "Review Current Changes",
-      "outcomeGates": [
-        {
-          "id": "review-converged",
-          "satisfiedBy": ["changes-review"]
-        },
-        {
-          "id": "tests-pass",
-          "satisfiedBy": ["integration-test --mode=review"]
-        },
-        {
-          "id": "root-cause-traced",
-          "satisfiedBy": ["investigate --mode=debug"],
-          "when": "A validated finding is a defect whose owning cause the review evidence does not already trace"
-        },
-        {
-          "id": "run-closed",
-          "satisfiedBy": ["workflow-end"],
-          "when": "This workflow is the top-level invocation, not nested in a parent workflow"
-        }
-      ],
-      "parallelGroups": [
-        {
-          "id": "initial-reviews",
-          "members": ["initial-changes-review", "why-review --target=whole-review-target"],
-          "conditionalMembers": [],
-          "barrier": true
-        },
-        {
-          "id": "reviewers",
-          "members": [
-            "architecture-compliance-review",
-            "domain-entities-design-review",
-            "performance-review",
-            "integration-tests-review",
-            "security-audit",
-            "production-readiness-review",
-            "ui-design-review",
-            "ai-engineering-review"
-          ],
-          "conditionalMembers": [
-            "architecture-compliance-review",
-            "domain-entities-design-review",
-            "performance-review",
-            "security-audit",
-            "production-readiness-review",
-            "ui-design-review",
-            "ai-engineering-review"
-          ],
-          "barrier": true
-        }
-      ],
       "preActions": {
         "domainEntityReferenceRefresh": "Immediately before docs-manager --mode=update, run scan --target=domain-entities when the final diff changes entity/model, DTO/contract, persistence schema/migration, or documented entity-sync evidence; otherwise record a cited skip reason.",
-        "injectContext": "REVIEW CURRENT CHANGES — intent: review the current changes, validate every finding, fix the validated blocking ones at their owning layer, and re-review the fixed state until the round bar clears. The SKILL.md (`.claude/skills/workflow-review-changes/SKILL.md`) owns the procedure; you choose the orchestration.\n\nTRIAGE FIRST: classify the target by size band (XS 1-3 files … XL 300+ files) and change kinds (docs-only, tooling/config, test-only, behavior, public contract, data/schema, security-sensitive, UI, AI feature — decided by running node .claude/scripts/ai-signal-scan.cjs --base <review base> --json first —, infra/CI, cross-module). The triage selects which optional specialist reviewers run (each occurrence carries its applicability) and how deep; record the review plan in the report before reviewing.\n\nSEVERITY + ROUND-BAR POLICY (MANDATORY):\n- Classify each validated finding by shipped consequence, not effort: CRITICAL = immediate material risk (security/authority bypass, secrets or PII exposure, irreversible destructive action, data loss/corruption, silent critical-path failure, or failed binary gate); HIGH = material supported-path correctness, contract, invariant, privacy, authority, compatibility, or likely-harm risk; MEDIUM = bounded consequential edge/resilience/observability/testability/maintainability or local architecture gap; LOW = polish with no credible present correctness, security, privacy, authority, availability, or data-integrity impact.\n- Round 1 blocks on every validated severity, but a LOW never buys a full round: a local LOW fix closes by a scoped check, and a LOW needing new code or tests is deferred. Rounds 2-3 block only on validated CRITICAL/HIGH/MEDIUM; LOW-only rounds end immediately and list LOWs as deferred. Never re-tier a finding to obtain a pass. Binary gates (tests, security must-fix, required artifacts, generated parity, policy compliance) block at every round. `NOT VERIFIABLE` is pending evidence, never a LOW escape hatch.\n\nREVIEWERS: `changes-review` runs INLINE in the main session (`--report-only --defer=whole-target,specialists,tests,entities`, plus `simplify` while the `code-simplifier` step will run: the caller-mode contract in `references/caller-mode.md`) in parallel with the whole-target `why-review` sub-agent; a behavior-changing diff is read whole once — the whole-diff correctness lane — by changes-review when it fits its context, otherwise by the whole-target sub-agent with the lane protocol in its brief, never by both; advance only after BOTH return. The selected specialists — `architecture --mode=review`, `domain-analysis --mode=review`, `performance-review`, `integration-test --mode=review`, `security-audit`, `production-readiness-review`, `ui-design --mode=review`, `ai-engineering-review` — run with `--report-only` as read-only leaves (no fixes, no user prompts, report under tmp/reports/), dispatched together in one message (specialists whose lenses read the same files share one agent when the combined context fits; a small-surface, low-risk optional specialist is folded into an existing reviewer as lens questions and logged `merged`); advance only after every spawned reviewer returns. `integration-test --mode=review` always runs (coverage map + relevant test results).\n\nFIX PATH (no plan ceremony): consolidate every report into the living changes-review report and deduplicate by root cause → one main-session `why-review --validate-findings` pass over findings no reviewer validated plus the independent check set (every CRITICAL/HIGH, reviewer conflicts, a MEDIUM sample; batch reviewers and report-only specialists validate their own findings) → `fix --target=review` on validated blocking findings → `code-simplifier --defer=review` when code changed (the post-fix `why-review` is its review) → post-fix `why-review` INLINE over the settled whole target → loop within the round budget. Use `/plan` only when the validated fix set is large, cross-module or ambiguous.\n\nMANDATORY GATES:\n- SPEC DRIFT ADJUDICATION: every behavior-changing file is adjudicated CODE-WRONG / SPEC-STALE / SPEC-SILENT / AMBIGUOUS (AskUserQuestion) — never normalized because tests are green. Every behavior-changing finding feeds BOTH the spec and the tests (Dual-Feedback Ledger).\n- INTEGRATION TEST SYNC: changed business-logic files need a covering test; a gap is surfaced via AskUserQuestion — mandatory, not advisory.\n- MULTILINGUAL UI SYNC CHECK: If UI-facing files changed and project localization is multilingual (`localization.enabled` + `supportedLocales.length > 1`), verify translation file updates. If missing, surface via AskUserQuestion — mandatory, not advisory.\n- STATE MACHINE DATA ASSERT: lifecycle/state-transition changes need persisted-state assertions and invalid-transition rejection tests.\n- DOMAIN-ENTITY REFRESH: `scan --target=domain-entities` runs only when the final diff changes an entity/model, DTO/data contract, persistence schema/migration or entity-sync evidence; otherwise skip it as a pre-action deviation with the cited reason.\n- DOC SYNC: review steps flag spec/doc gaps read-only; `docs-manager --mode=update` applies them. Every behavior change ends with its configured canonical owner, profile-declared scenario/case and mapped test assertions in sync.\n\nUNIVERSAL RULES: define success criteria first and loop until observable checks pass; every finding cites file:line evidence and confidence; tests verify the protected intent, not just current behavior.",
-        "readFiles": [".claude/skills/workflow-review-changes/SKILL.md"]
+        "injectContext": "Triage all requested files and intent; write a short risk/coverage plan and create occurrence, validation, fix and fresh re-review todo tasks before reviewing. Choose inline work, related groups or specialists from risk, dependencies and context headroom, without fixed file/line/byte caps. Default --fix-loop covers every review child under one main-session fixing coordinator; children passed --loop-owner=caller stay read-only. Explicit --review-only/--report-only overrides the default and stops after validated reports. Review connected behavior and cross-file interactions, consolidate/validate findings, fix at the evidenced owner, then re-run all applicable review lenses on the settled target. One shared three-round budget; current clean proof ends early, LOW-only at cap is accepted with disclosure, MEDIUM/HIGH/CRITICAL or failed required checks ask the user whether to extend by a stated bounded number of rounds or stop. Wait for the real answer. Preserve required tests, spec/test/code consistency, docs and parity; no staging/commit/push authority.\nMULTILINGUAL UI SYNC CHECK: When UI changes affect a multilingual project, verify its translation updates and retain missing coverage as a finding for authorized repair or caller handoff. State/lifecycle changes need persisted-state assertions and invalid-transition rejection coverage.",
+        "readFiles": [
+          ".claude/skills/workflow-review-changes/SKILL.md"
+        ]
       },
       "sequence": [
         {
           "id": "initial-changes-review",
           "skill": "changes-review",
-          "args": "--report-only --defer=whole-target,specialists,tests,entities",
+          "args": "--defer=whole-target,specialists,tests,entities --fix-loop --loop-owner=caller",
           "role": "gate"
         },
-        "why-review --target=whole-review-target",
+        {
+          "id": "whole-target-why-review",
+          "skill": "why-review",
+          "args": "--target=whole-review-target --fix-loop --loop-owner=caller",
+          "role": "core"
+        },
         {
           "id": "architecture-compliance-review",
           "skill": "architecture",
-          "args": "--mode=review --report-only",
+          "args": "--mode=review --fix-loop --loop-owner=caller",
           "role": "optional",
           "applicability": {
-            "when": "Triage finds a cross-module or cross-service change, a new module/layer, a public contract or dependency-direction change, or a size band of M or larger.",
-            "skipReason": "Triage shows a local change inside one module with no contract, layering or dependency-direction impact (size XS/S); record the triage evidence."
+            "when": "Triage finds a cross-module or cross-service change, a new module/layer, a public contract or dependency-direction change.",
+            "skipReason": "Triage shows a local change inside one module with no contract, layering or dependency-direction impact; record the triage evidence."
           }
         },
         {
           "id": "domain-entities-design-review",
           "skill": "domain-analysis",
-          "args": "--mode=review --report-only",
+          "args": "--mode=review --fix-loop --loop-owner=caller",
           "role": "optional",
           "applicability": {
             "when": "Domain entity, value-object or aggregate files changed.",
@@ -1891,7 +1967,7 @@
         {
           "id": "performance-review",
           "skill": "performance-review",
-          "args": "--report-only",
+          "args": "--fix-loop --loop-owner=caller",
           "role": "optional",
           "applicability": {
             "when": "The diff touches data access (queries, loops over collections, paging, indexes), hot paths, caching, concurrency, batch/job throughput, or render-heavy UI.",
@@ -1901,23 +1977,23 @@
         {
           "id": "integration-tests-review",
           "skill": "integration-test",
-          "args": "--mode=review --report-only --prove-tests",
+          "args": "--mode=review --prove-tests --fix-loop --loop-owner=caller",
           "role": "gate"
         },
         {
           "id": "security-audit",
           "skill": "security-audit",
-          "args": "--report-only",
+          "args": "--fix-loop --loop-owner=caller",
           "role": "optional",
           "applicability": {
-            "when": "The diff touches authentication, authorization, secrets, input handling, external data, dependency manifests, CI/infra, PII or money paths — or any file the triage cannot rule out as security-neutral.",
+            "when": "The diff touches authentication, authorization, secrets, input handling, external data, dependency manifests, CI/infra, PII or money paths \u2014 or any file the triage cannot rule out as security-neutral.",
             "skipReason": "Triage proves the diff security-neutral (docs, comments, pure internal refactor with no input, auth, secret, dependency or infra surface); record the evidence."
           }
         },
         {
           "id": "production-readiness-review",
           "skill": "production-readiness-review",
-          "args": "--report-only",
+          "args": "--fix-loop --loop-owner=caller",
           "role": "optional",
           "applicability": {
             "when": "The diff changes a deployable service, API, job, migration, configuration, infrastructure or operational (logging, health, retry, timeout) surface.",
@@ -1927,7 +2003,7 @@
         {
           "id": "ui-design-review",
           "skill": "ui-design",
-          "args": "--mode=review --report-only",
+          "args": "--mode=review --fix-loop --loop-owner=caller",
           "role": "optional",
           "applicability": {
             "when": "The diff contains files matching the project's configured frontend/UI file patterns.",
@@ -1937,10 +2013,10 @@
         {
           "id": "ai-engineering-review",
           "skill": "ai-engineering-review",
-          "args": "--report-only",
+          "args": "--fix-loop --loop-owner=caller",
           "role": "optional",
           "applicability": {
-            "when": "The diff contains AI-feature surfaces — files that call a model SDK or provider API, hold prompts, agents, tools, retrieval, evals or guardrails — as reported by node .claude/scripts/ai-signal-scan.cjs --base <review base> --json (drop --base only when no review base exists), which runs FIRST; run this step when its status is surface, or when the status is unknown and the checklist §0.1 signal grep, run once, is also inconclusive.",
+            "when": "The diff contains AI-feature surfaces \u2014 files that call a model SDK or provider API, hold prompts, agents, tools, retrieval, evals or guardrails \u2014 inspect the exact requested source and use the AI signal scanner for supported live scopes; unknown evidence retains the specialist gate.",
             "skipReason": "The scan reports status clean; record `No AI-feature surface` once and read or spawn nothing for this step."
           }
         },
@@ -1950,8 +2026,8 @@
           "args": "--validate-findings",
           "role": "optional",
           "applicability": {
-            "when": "After root-cause dedup, the consolidated review report holds a finding no reviewer validated, or a finding in the independent check set of SYNC:systematic-review-batching Step 3 (every CRITICAL/HIGH, reviewer conflicts, a MEDIUM sample). Report-only specialists and batch reviewers validate their own findings.",
-            "skipReason": "Every reviewer returned zero findings, or every finding was validated by its own reviewer and none falls in the independent check set; cite the reports."
+            "when": "Any review report contains a finding that needs validation or a material/conflicting claim needing independent checking.",
+            "skipReason": "All complete review reports have no findings; cite those reports."
           }
         },
         {
@@ -1980,7 +2056,7 @@
           "args": "--defer=review",
           "role": "optional",
           "applicability": {
-            "when": "Source code changed — in the reviewed diff or through the fix step.",
+            "when": "Source code changed \u2014 in the reviewed diff or through the fix step.",
             "skipReason": "The diff and the fixes touch no source code (docs, config or test data only); record the changed paths."
           }
         },
@@ -1989,9 +2065,10 @@
           "skill": "why-review",
           "role": "optional",
           "applicability": {
-            "when": "The fix step or code-simplifier changed files, or the fix step marked a validated blocking finding REJECTED — the settled post-fix whole target (including every rejection) must be re-reviewed and proven clean. A round-1 fix set of LOWs closed by scoped check or deferral needs no post-fix full re-review when no simplification landed.",
-            "skipReason": "No fix or simplification landed and no validated blocking finding was rejected, or the only fixes were round-1 LOWs closed by scoped check or deferral and no simplification landed, so there is no post-fix state that needs a full re-review; record the skip with the clean review or scoped-check evidence."
-          }
+            "when": "Any fix, simplification, spec/doc/test repair or rejected finding needs fresh review of the settled target.",
+            "skipReason": "No edit or rejected finding followed the current complete review; cite the unchanged target evidence."
+          },
+          "args": "--fix-loop --loop-owner=caller"
         },
         {
           "id": "experience-review",
@@ -2000,16 +2077,31 @@
           "applicability": {
             "when": "The current target includes a configured experienceVerification surface whose reviewOn trigger intersects the diff, or the diff creates or changes a likely user-facing or externally observable surface; when the latter is true without usable configuration, run the skill and record ENVIRONMENT-BLOCKED.",
             "skipReason": "After inspecting docs/project-config.json and the diff, no configured or likely observable surface is in scope; record NOT-APPLICABLE with evidence citing the inspected paths."
+          },
+          "args": "--fix-loop --loop-owner=caller"
+        },
+        {
+          "id": "domain-refresh",
+          "skill": "scan",
+          "args": "--target=domain-entities",
+          "role": "optional",
+          "applicability": {
+            "when": "The settled diff changes domain/entity models, contracts, persistence schemas or their documented relationships.",
+            "skipReason": "No affected domain/entity contract or relationship requires a reference refresh; cite the settled diff."
           }
         },
-        "scan --target=domain-entities",
-        "docs-manager --mode=update",
+        {
+          "id": "documentation-update",
+          "skill": "docs-manager",
+          "args": "--mode=update",
+          "role": "core"
+        },
         {
           "id": "review-changes-end",
           "skill": "workflow-end",
           "role": "optional",
           "applicability": {
-            "when": "This workflow is the TOP-LEVEL invocation — the user ran /start-workflow workflow-review-changes, or /changes-review routed here directly — and this run is neither an inner round of its own --fix-loop nor invoked by another skill (e.g. /pull-request, /commit).",
+            "when": "This workflow is the TOP-LEVEL invocation \u2014 the user ran /start-workflow workflow-review-changes, or /changes-review routed here directly \u2014 and this run is neither an inner round of its own --fix-loop nor invoked by another skill (e.g. /pull-request, /commit).",
             "skipReason": "Nested inside a parent workflow (workflow-feature, workflow-bugfix, workflow-refactor, workflow-big-feature, workflow-greenfield-init, workflow-spec-sync, workflow-code-to-spec [update]), running as an inner round of --fix-loop, or invoked by another skill (e.g. /pull-request, /commit); the caller owns /workflow-end and the terminal wrap-up. Return control after docs-manager --mode=update instead of announcing workflow completion."
           }
         },
@@ -2018,7 +2110,7 @@
           "skill": "watzup",
           "role": "optional",
           "applicability": {
-            "when": "This workflow is the TOP-LEVEL invocation — the user ran /start-workflow workflow-review-changes, or /changes-review routed here directly — and this run is neither an inner round of its own --fix-loop nor invoked by another skill (e.g. /pull-request, /commit).",
+            "when": "This workflow is the TOP-LEVEL invocation \u2014 the user ran /start-workflow workflow-review-changes, or /changes-review routed here directly \u2014 and this run is neither an inner round of its own --fix-loop nor invoked by another skill (e.g. /pull-request, /commit).",
             "skipReason": "Nested inside a parent workflow (workflow-feature, workflow-bugfix, workflow-refactor, workflow-big-feature, workflow-greenfield-init, workflow-spec-sync, workflow-code-to-spec [update]), running as an inner round of --fix-loop, or invoked by another skill (e.g. /pull-request, /commit); the caller owns /workflow-end and the terminal wrap-up. Return control after docs-manager --mode=update instead of announcing workflow completion."
           }
         }
@@ -2027,55 +2119,8 @@
         "initial-changes-review": {
           "executionMode": "inline"
         },
-        "why-review --target=whole-review-target": {
-          "executionMode": "subagent",
-          "contextBudget": "high"
-        },
-        "why-review": {
-          "executionMode": "inline"
-        },
-        "architecture-compliance-review": {
-          "executionMode": "subagent",
-          "contextBudget": "high"
-        },
-        "domain-entities-design-review": {
-          "executionMode": "subagent",
-          "contextBudget": "high"
-        },
-        "performance-review": {
-          "executionMode": "subagent",
-          "contextBudget": "high"
-        },
-        "integration-tests-review": {
-          "executionMode": "subagent",
-          "contextBudget": "high"
-        },
-        "security-audit": {
-          "executionMode": "subagent",
-          "contextBudget": "high"
-        },
-        "production-readiness-review": {
-          "executionMode": "subagent",
-          "contextBudget": "high"
-        },
-        "ui-design-review": {
-          "executionMode": "subagent",
-          "contextBudget": "high"
-        },
-        "ai-engineering-review": {
-          "executionMode": "subagent",
-          "contextBudget": "high"
-        },
         "code-simplifier": {
           "executionMode": "inline"
-        },
-        "experience-review": {
-          "executionMode": "inline",
-          "contextBudget": "medium"
-        },
-        "docs-manager --mode=update": {
-          "executionMode": "subagent",
-          "contextBudget": "high"
         },
         "validate-findings": {
           "executionMode": "inline"
@@ -2087,25 +2132,527 @@
           "executionMode": "inline"
         }
       },
-      "whenToUse": "User wants to review current uncommitted, staged, or unstaged changes before committing"
+      "whenToUse": "User wants to review current uncommitted, staged, or unstaged changes before committing",
+      "defaultMode": "fix-loop",
+      "variants": {
+        "review-only": {
+          "sequence": [
+            {
+              "id": "initial-changes-review",
+              "skill": "changes-review",
+              "args": "--defer=whole-target,specialists,tests,entities --review-only",
+              "role": "gate"
+            },
+            {
+              "id": "whole-target-why-review",
+              "skill": "why-review",
+              "args": "--target=whole-review-target --review-only",
+              "role": "core"
+            },
+            {
+              "id": "architecture-compliance-review",
+              "skill": "architecture",
+              "args": "--mode=review --review-only",
+              "role": "optional",
+              "applicability": {
+                "when": "Triage finds a cross-module or cross-service change, a new module/layer, a public contract or dependency-direction change.",
+                "skipReason": "Triage shows a local change inside one module with no contract, layering or dependency-direction impact; record the triage evidence."
+              }
+            },
+            {
+              "id": "domain-entities-design-review",
+              "skill": "domain-analysis",
+              "args": "--mode=review --review-only",
+              "role": "optional",
+              "applicability": {
+                "when": "Domain entity, value-object or aggregate files changed.",
+                "skipReason": "No domain entity, value-object or aggregate files are in the diff; record the inspected paths."
+              }
+            },
+            {
+              "id": "performance-review",
+              "skill": "performance-review",
+              "args": "--review-only",
+              "role": "optional",
+              "applicability": {
+                "when": "The diff touches data access (queries, loops over collections, paging, indexes), hot paths, caching, concurrency, batch/job throughput, or render-heavy UI.",
+                "skipReason": "No data-access, hot-path, caching, concurrency or render-heavy change is in the diff; record the triage evidence."
+              }
+            },
+            {
+              "id": "integration-tests-review",
+              "skill": "integration-test",
+              "args": "--mode=review --prove-tests --review-only",
+              "role": "gate"
+            },
+            {
+              "id": "security-audit",
+              "skill": "security-audit",
+              "args": "--review-only",
+              "role": "optional",
+              "applicability": {
+                "when": "The diff touches authentication, authorization, secrets, input handling, external data, dependency manifests, CI/infra, PII or money paths \u2014 or any file the triage cannot rule out as security-neutral.",
+                "skipReason": "Triage proves the diff security-neutral (docs, comments, pure internal refactor with no input, auth, secret, dependency or infra surface); record the evidence."
+              }
+            },
+            {
+              "id": "production-readiness-review",
+              "skill": "production-readiness-review",
+              "args": "--review-only",
+              "role": "optional",
+              "applicability": {
+                "when": "The diff changes a deployable service, API, job, migration, configuration, infrastructure or operational (logging, health, retry, timeout) surface.",
+                "skipReason": "No deployable service, API, job, migration, configuration or operational surface changed; record the triage evidence."
+              }
+            },
+            {
+              "id": "ui-design-review",
+              "skill": "ui-design",
+              "args": "--mode=review --review-only",
+              "role": "optional",
+              "applicability": {
+                "when": "The diff contains files matching the project's configured frontend/UI file patterns.",
+                "skipReason": "No frontend/UI files are in the diff; record the inspected paths."
+              }
+            },
+            {
+              "id": "ai-engineering-review",
+              "skill": "ai-engineering-review",
+              "args": "--review-only",
+              "role": "optional",
+              "applicability": {
+                "when": "The diff contains AI-feature surfaces \u2014 files that call a model SDK or provider API, hold prompts, agents, tools, retrieval, evals or guardrails \u2014 inspect the exact requested source and use the AI signal scanner for supported live scopes; unknown evidence retains the specialist gate.",
+                "skipReason": "The scan reports status clean; record `No AI-feature surface` once and read or spawn nothing for this step."
+              }
+            },
+            {
+              "id": "validate-findings",
+              "skill": "why-review",
+              "args": "--validate-findings",
+              "role": "optional",
+              "applicability": {
+                "when": "Any review report contains a finding that needs validation or a material/conflicting claim needing independent checking.",
+                "skipReason": "All complete review reports have no findings; cite those reports."
+              }
+            },
+            {
+              "id": "experience-review",
+              "skill": "experience-review",
+              "role": "optional",
+              "applicability": {
+                "when": "The current target includes a configured experienceVerification surface whose reviewOn trigger intersects the diff, or the diff creates or changes a likely user-facing or externally observable surface; when the latter is true without usable configuration, run the skill and record ENVIRONMENT-BLOCKED.",
+                "skipReason": "After inspecting docs/project-config.json and the diff, no configured or likely observable surface is in scope; record NOT-APPLICABLE with evidence citing the inspected paths."
+              },
+              "args": "--review-only"
+            },
+            {
+              "id": "review-changes-end",
+              "skill": "workflow-end",
+              "role": "optional",
+              "applicability": {
+                "when": "This workflow is the TOP-LEVEL invocation \u2014 the user ran /start-workflow workflow-review-changes, or /changes-review routed here directly \u2014 and this run is neither an inner round of its own --fix-loop nor invoked by another skill (e.g. /pull-request, /commit).",
+                "skipReason": "Nested inside a parent workflow (workflow-feature, workflow-bugfix, workflow-refactor, workflow-big-feature, workflow-greenfield-init, workflow-spec-sync, workflow-code-to-spec [update]), running as an inner round of --fix-loop, or invoked by another skill (e.g. /pull-request, /commit); the caller owns /workflow-end and the terminal wrap-up. Return control after docs-manager --mode=update instead of announcing workflow completion."
+              }
+            },
+            {
+              "id": "review-changes-watzup",
+              "skill": "watzup",
+              "role": "optional",
+              "applicability": {
+                "when": "This workflow is the TOP-LEVEL invocation \u2014 the user ran /start-workflow workflow-review-changes, or /changes-review routed here directly \u2014 and this run is neither an inner round of its own --fix-loop nor invoked by another skill (e.g. /pull-request, /commit).",
+                "skipReason": "Nested inside a parent workflow (workflow-feature, workflow-bugfix, workflow-refactor, workflow-big-feature, workflow-greenfield-init, workflow-spec-sync, workflow-code-to-spec [update]), running as an inner round of --fix-loop, or invoked by another skill (e.g. /pull-request, /commit); the caller owns /workflow-end and the terminal wrap-up. Return control after docs-manager --mode=update instead of announcing workflow completion."
+              }
+            }
+          ]
+        },
+        "report-only": {
+          "sequence": [
+            {
+              "id": "initial-changes-review",
+              "skill": "changes-review",
+              "args": "--defer=whole-target,specialists,tests,entities --review-only",
+              "role": "gate"
+            },
+            {
+              "id": "whole-target-why-review",
+              "skill": "why-review",
+              "args": "--target=whole-review-target --review-only",
+              "role": "core"
+            },
+            {
+              "id": "architecture-compliance-review",
+              "skill": "architecture",
+              "args": "--mode=review --review-only",
+              "role": "optional",
+              "applicability": {
+                "when": "Triage finds a cross-module or cross-service change, a new module/layer, a public contract or dependency-direction change.",
+                "skipReason": "Triage shows a local change inside one module with no contract, layering or dependency-direction impact; record the triage evidence."
+              }
+            },
+            {
+              "id": "domain-entities-design-review",
+              "skill": "domain-analysis",
+              "args": "--mode=review --review-only",
+              "role": "optional",
+              "applicability": {
+                "when": "Domain entity, value-object or aggregate files changed.",
+                "skipReason": "No domain entity, value-object or aggregate files are in the diff; record the inspected paths."
+              }
+            },
+            {
+              "id": "performance-review",
+              "skill": "performance-review",
+              "args": "--review-only",
+              "role": "optional",
+              "applicability": {
+                "when": "The diff touches data access (queries, loops over collections, paging, indexes), hot paths, caching, concurrency, batch/job throughput, or render-heavy UI.",
+                "skipReason": "No data-access, hot-path, caching, concurrency or render-heavy change is in the diff; record the triage evidence."
+              }
+            },
+            {
+              "id": "integration-tests-review",
+              "skill": "integration-test",
+              "args": "--mode=review --prove-tests --review-only",
+              "role": "gate"
+            },
+            {
+              "id": "security-audit",
+              "skill": "security-audit",
+              "args": "--review-only",
+              "role": "optional",
+              "applicability": {
+                "when": "The diff touches authentication, authorization, secrets, input handling, external data, dependency manifests, CI/infra, PII or money paths \u2014 or any file the triage cannot rule out as security-neutral.",
+                "skipReason": "Triage proves the diff security-neutral (docs, comments, pure internal refactor with no input, auth, secret, dependency or infra surface); record the evidence."
+              }
+            },
+            {
+              "id": "production-readiness-review",
+              "skill": "production-readiness-review",
+              "args": "--review-only",
+              "role": "optional",
+              "applicability": {
+                "when": "The diff changes a deployable service, API, job, migration, configuration, infrastructure or operational (logging, health, retry, timeout) surface.",
+                "skipReason": "No deployable service, API, job, migration, configuration or operational surface changed; record the triage evidence."
+              }
+            },
+            {
+              "id": "ui-design-review",
+              "skill": "ui-design",
+              "args": "--mode=review --review-only",
+              "role": "optional",
+              "applicability": {
+                "when": "The diff contains files matching the project's configured frontend/UI file patterns.",
+                "skipReason": "No frontend/UI files are in the diff; record the inspected paths."
+              }
+            },
+            {
+              "id": "ai-engineering-review",
+              "skill": "ai-engineering-review",
+              "args": "--review-only",
+              "role": "optional",
+              "applicability": {
+                "when": "The diff contains AI-feature surfaces \u2014 files that call a model SDK or provider API, hold prompts, agents, tools, retrieval, evals or guardrails \u2014 inspect the exact requested source and use the AI signal scanner for supported live scopes; unknown evidence retains the specialist gate.",
+                "skipReason": "The scan reports status clean; record `No AI-feature surface` once and read or spawn nothing for this step."
+              }
+            },
+            {
+              "id": "validate-findings",
+              "skill": "why-review",
+              "args": "--validate-findings",
+              "role": "optional",
+              "applicability": {
+                "when": "Any review report contains a finding that needs validation or a material/conflicting claim needing independent checking.",
+                "skipReason": "All complete review reports have no findings; cite those reports."
+              }
+            },
+            {
+              "id": "experience-review",
+              "skill": "experience-review",
+              "role": "optional",
+              "applicability": {
+                "when": "The current target includes a configured experienceVerification surface whose reviewOn trigger intersects the diff, or the diff creates or changes a likely user-facing or externally observable surface; when the latter is true without usable configuration, run the skill and record ENVIRONMENT-BLOCKED.",
+                "skipReason": "After inspecting docs/project-config.json and the diff, no configured or likely observable surface is in scope; record NOT-APPLICABLE with evidence citing the inspected paths."
+              },
+              "args": "--review-only"
+            },
+            {
+              "id": "review-changes-end",
+              "skill": "workflow-end",
+              "role": "optional",
+              "applicability": {
+                "when": "This workflow is the TOP-LEVEL invocation \u2014 the user ran /start-workflow workflow-review-changes, or /changes-review routed here directly \u2014 and this run is neither an inner round of its own --fix-loop nor invoked by another skill (e.g. /pull-request, /commit).",
+                "skipReason": "Nested inside a parent workflow (workflow-feature, workflow-bugfix, workflow-refactor, workflow-big-feature, workflow-greenfield-init, workflow-spec-sync, workflow-code-to-spec [update]), running as an inner round of --fix-loop, or invoked by another skill (e.g. /pull-request, /commit); the caller owns /workflow-end and the terminal wrap-up. Return control after docs-manager --mode=update instead of announcing workflow completion."
+              }
+            },
+            {
+              "id": "review-changes-watzup",
+              "skill": "watzup",
+              "role": "optional",
+              "applicability": {
+                "when": "This workflow is the TOP-LEVEL invocation \u2014 the user ran /start-workflow workflow-review-changes, or /changes-review routed here directly \u2014 and this run is neither an inner round of its own --fix-loop nor invoked by another skill (e.g. /pull-request, /commit).",
+                "skipReason": "Nested inside a parent workflow (workflow-feature, workflow-bugfix, workflow-refactor, workflow-big-feature, workflow-greenfield-init, workflow-spec-sync, workflow-code-to-spec [update]), running as an inner round of --fix-loop, or invoked by another skill (e.g. /pull-request, /commit); the caller owns /workflow-end and the terminal wrap-up. Return control after docs-manager --mode=update instead of announcing workflow completion."
+              }
+            }
+          ]
+        },
+        "fix-loop": {
+          "sequence": [
+            {
+              "id": "initial-changes-review",
+              "skill": "changes-review",
+              "args": "--defer=whole-target,specialists,tests,entities --fix-loop --loop-owner=caller",
+              "role": "gate"
+            },
+            {
+              "id": "whole-target-why-review",
+              "skill": "why-review",
+              "args": "--target=whole-review-target --fix-loop --loop-owner=caller",
+              "role": "core"
+            },
+            {
+              "id": "architecture-compliance-review",
+              "skill": "architecture",
+              "args": "--mode=review --fix-loop --loop-owner=caller",
+              "role": "optional",
+              "applicability": {
+                "when": "Triage finds a cross-module or cross-service change, a new module/layer, a public contract or dependency-direction change.",
+                "skipReason": "Triage shows a local change inside one module with no contract, layering or dependency-direction impact; record the triage evidence."
+              }
+            },
+            {
+              "id": "domain-entities-design-review",
+              "skill": "domain-analysis",
+              "args": "--mode=review --fix-loop --loop-owner=caller",
+              "role": "optional",
+              "applicability": {
+                "when": "Domain entity, value-object or aggregate files changed.",
+                "skipReason": "No domain entity, value-object or aggregate files are in the diff; record the inspected paths."
+              }
+            },
+            {
+              "id": "performance-review",
+              "skill": "performance-review",
+              "args": "--fix-loop --loop-owner=caller",
+              "role": "optional",
+              "applicability": {
+                "when": "The diff touches data access (queries, loops over collections, paging, indexes), hot paths, caching, concurrency, batch/job throughput, or render-heavy UI.",
+                "skipReason": "No data-access, hot-path, caching, concurrency or render-heavy change is in the diff; record the triage evidence."
+              }
+            },
+            {
+              "id": "integration-tests-review",
+              "skill": "integration-test",
+              "args": "--mode=review --prove-tests --fix-loop --loop-owner=caller",
+              "role": "gate"
+            },
+            {
+              "id": "security-audit",
+              "skill": "security-audit",
+              "args": "--fix-loop --loop-owner=caller",
+              "role": "optional",
+              "applicability": {
+                "when": "The diff touches authentication, authorization, secrets, input handling, external data, dependency manifests, CI/infra, PII or money paths \u2014 or any file the triage cannot rule out as security-neutral.",
+                "skipReason": "Triage proves the diff security-neutral (docs, comments, pure internal refactor with no input, auth, secret, dependency or infra surface); record the evidence."
+              }
+            },
+            {
+              "id": "production-readiness-review",
+              "skill": "production-readiness-review",
+              "args": "--fix-loop --loop-owner=caller",
+              "role": "optional",
+              "applicability": {
+                "when": "The diff changes a deployable service, API, job, migration, configuration, infrastructure or operational (logging, health, retry, timeout) surface.",
+                "skipReason": "No deployable service, API, job, migration, configuration or operational surface changed; record the triage evidence."
+              }
+            },
+            {
+              "id": "ui-design-review",
+              "skill": "ui-design",
+              "args": "--mode=review --fix-loop --loop-owner=caller",
+              "role": "optional",
+              "applicability": {
+                "when": "The diff contains files matching the project's configured frontend/UI file patterns.",
+                "skipReason": "No frontend/UI files are in the diff; record the inspected paths."
+              }
+            },
+            {
+              "id": "ai-engineering-review",
+              "skill": "ai-engineering-review",
+              "args": "--fix-loop --loop-owner=caller",
+              "role": "optional",
+              "applicability": {
+                "when": "The diff contains AI-feature surfaces \u2014 files that call a model SDK or provider API, hold prompts, agents, tools, retrieval, evals or guardrails \u2014 inspect the exact requested source and use the AI signal scanner for supported live scopes; unknown evidence retains the specialist gate.",
+                "skipReason": "The scan reports status clean; record `No AI-feature surface` once and read or spawn nothing for this step."
+              }
+            },
+            {
+              "id": "validate-findings",
+              "skill": "why-review",
+              "args": "--validate-findings",
+              "role": "optional",
+              "applicability": {
+                "when": "Any review report contains a finding that needs validation or a material/conflicting claim needing independent checking.",
+                "skipReason": "All complete review reports have no findings; cite those reports."
+              }
+            },
+            {
+              "id": "trace-untraced-defects",
+              "skill": "investigate",
+              "args": "--mode=debug",
+              "role": "optional",
+              "applicability": {
+                "when": "A validated blocking finding is a defect (wrong behavior, crash, data error) whose report names the symptom but not the owning cause.",
+                "skipReason": "Every validated blocking finding already carries file:line evidence of its owning cause (design, quality, coverage or traced defect findings); cite the validated report."
+              }
+            },
+            {
+              "id": "fix-findings",
+              "skill": "fix",
+              "args": "--target=review",
+              "role": "optional",
+              "applicability": {
+                "when": "Validated findings that block the current round exist.",
+                "skipReason": "No validated finding blocks the current round; cite the validated report."
+              }
+            },
+            {
+              "id": "code-simplifier",
+              "skill": "code-simplifier",
+              "args": "--defer=review",
+              "role": "optional",
+              "applicability": {
+                "when": "Source code changed \u2014 in the reviewed diff or through the fix step.",
+                "skipReason": "The diff and the fixes touch no source code (docs, config or test data only); record the changed paths."
+              }
+            },
+            {
+              "id": "why-review",
+              "skill": "why-review",
+              "role": "optional",
+              "applicability": {
+                "when": "Any fix, simplification, spec/doc/test repair or rejected finding needs fresh review of the settled target.",
+                "skipReason": "No edit or rejected finding followed the current complete review; cite the unchanged target evidence."
+              },
+              "args": "--fix-loop --loop-owner=caller"
+            },
+            {
+              "id": "experience-review",
+              "skill": "experience-review",
+              "role": "optional",
+              "applicability": {
+                "when": "The current target includes a configured experienceVerification surface whose reviewOn trigger intersects the diff, or the diff creates or changes a likely user-facing or externally observable surface; when the latter is true without usable configuration, run the skill and record ENVIRONMENT-BLOCKED.",
+                "skipReason": "After inspecting docs/project-config.json and the diff, no configured or likely observable surface is in scope; record NOT-APPLICABLE with evidence citing the inspected paths."
+              },
+              "args": "--fix-loop --loop-owner=caller"
+            },
+            {
+              "id": "domain-refresh",
+              "skill": "scan",
+              "args": "--target=domain-entities",
+              "role": "optional",
+              "applicability": {
+                "when": "The settled diff changes domain/entity models, contracts, persistence schemas or their documented relationships.",
+                "skipReason": "No affected domain/entity contract or relationship requires a reference refresh; cite the settled diff."
+              }
+            },
+            {
+              "id": "documentation-update",
+              "skill": "docs-manager",
+              "args": "--mode=update",
+              "role": "core"
+            },
+            {
+              "id": "review-changes-end",
+              "skill": "workflow-end",
+              "role": "optional",
+              "applicability": {
+                "when": "This workflow is the TOP-LEVEL invocation \u2014 the user ran /start-workflow workflow-review-changes, or /changes-review routed here directly \u2014 and this run is neither an inner round of its own --fix-loop nor invoked by another skill (e.g. /pull-request, /commit).",
+                "skipReason": "Nested inside a parent workflow (workflow-feature, workflow-bugfix, workflow-refactor, workflow-big-feature, workflow-greenfield-init, workflow-spec-sync, workflow-code-to-spec [update]), running as an inner round of --fix-loop, or invoked by another skill (e.g. /pull-request, /commit); the caller owns /workflow-end and the terminal wrap-up. Return control after docs-manager --mode=update instead of announcing workflow completion."
+              }
+            },
+            {
+              "id": "review-changes-watzup",
+              "skill": "watzup",
+              "role": "optional",
+              "applicability": {
+                "when": "This workflow is the TOP-LEVEL invocation \u2014 the user ran /start-workflow workflow-review-changes, or /changes-review routed here directly \u2014 and this run is neither an inner round of its own --fix-loop nor invoked by another skill (e.g. /pull-request, /commit).",
+                "skipReason": "Nested inside a parent workflow (workflow-feature, workflow-bugfix, workflow-refactor, workflow-big-feature, workflow-greenfield-init, workflow-spec-sync, workflow-code-to-spec [update]), running as an inner round of --fix-loop, or invoked by another skill (e.g. /pull-request, /commit); the caller owns /workflow-end and the terminal wrap-up. Return control after docs-manager --mode=update instead of announcing workflow completion."
+              }
+            }
+          ],
+          "outcomeGates": [
+            {
+              "id": "root-cause-traced",
+              "satisfiedBy": [
+                "investigate --mode=debug"
+              ],
+              "when": "A validated finding is a defect whose owning cause the review evidence does not already trace"
+            }
+          ],
+          "stepMeta": {
+            "initial-changes-review": {
+              "executionMode": "inline"
+            },
+            "code-simplifier": {
+              "executionMode": "inline"
+            },
+            "validate-findings": {
+              "executionMode": "inline"
+            },
+            "fix-findings": {
+              "executionMode": "inline"
+            },
+            "trace-untraced-defects": {
+              "executionMode": "inline"
+            }
+          }
+        }
+      },
+      "outcomeGates": [
+        {
+          "id": "review-converged",
+          "satisfiedBy": [
+            "changes-review"
+          ]
+        },
+        {
+          "id": "tests-pass",
+          "satisfiedBy": [
+            "integration-test --mode=review"
+          ]
+        },
+        {
+          "id": "run-closed",
+          "satisfiedBy": [
+            "workflow-end"
+          ],
+          "when": "This workflow is the top-level invocation, not nested in a parent workflow"
+        }
+      ]
     },
     "workflow-architecture-audit": {
-      "description": "Architecture Audit — audit the whole project's architecture, scalability, and production readiness in one pass; synthesize one consolidated Architecture Health Report with three sub-scores and one combined verdict. Read-only: fixes route to a follow-up plan/feature workflow.",
+      "description": "Architecture Audit \u2014 audit the whole project's architecture, scalability, and production readiness in one pass; synthesize one consolidated Architecture Health Report with three sub-scores and one combined verdict. Read-only: fixes route to a follow-up plan/feature workflow.",
       "intent": "Audit the whole project's architecture, scalability and production readiness into one consolidated health report without changing code.",
       "name": "Architecture Audit",
       "outcomeGates": [
         {
           "id": "review-converged",
-          "satisfiedBy": ["architecture --mode=full"]
+          "satisfiedBy": [
+            "architecture --mode=full"
+          ]
         },
         {
           "id": "run-closed",
-          "satisfiedBy": ["workflow-end"]
+          "satisfiedBy": [
+            "workflow-end"
+          ]
         }
       ],
       "preActions": {
-        "injectContext": "ARCHITECTURE AUDIT (READ-ONLY): produce ONE consolidated Architecture Health Report — three sub-scores, one worst-case combined verdict, and the merged ADVISORY Technique Applicability and Scenario Stress matrices (advisory: they never change a sub-score, the verdict or a gate).\n- FIRST triage scope (whole project / current diff / specific path / greenfield `mode=init`) and size (XS–XL) per the workflow SKILL.md; depth follows size and risk.\n- `architecture --mode=full` runs INLINE: it owns the three-reviewer fan-out, the all-return barrier, progressive synthesis and the per-face `/why-review` fix. This workflow declares no workflow-level parallel groups.\n- The workflow-level `why-review` gate then validates the FINISHED report — scope (nothing in-scope missed, nothing out-of-scope pulled in), verdict rollup, dedup completeness, cross-face severity consistency — and fixes the report in place.\n- Every finding carries `file:line` proof and a confidence; below 60% is flagged, never recommended.\n- No source fixes here: each validated finding routes to a follow-up `/plan` or feature workflow.\n- `docs-manager --mode=update` runs only when the validated audit shows project docs contradicting the code, and re-validates its own non-trivial doc diff with `why-review`.\nFull contract: .claude/skills/workflow-architecture-audit/SKILL.md",
-        "readFiles": [".claude/skills/workflow-architecture-audit/SKILL.md"]
+        "injectContext": "ARCHITECTURE AUDIT (READ-ONLY): produce ONE consolidated Architecture Health Report \u2014 three sub-scores, one worst-case combined verdict, and the merged ADVISORY Technique Applicability and Scenario Stress matrices (advisory: they never change a sub-score, the verdict or a gate).\n- FIRST triage scope (whole project / current diff / specific path / greenfield `mode=init`) and size (XS\u2013XL) per the workflow SKILL.md; depth follows size and risk.\n- `architecture --mode=full` runs INLINE: it owns the three-reviewer fan-out, the all-return barrier, progressive synthesis and the per-face `/why-review` fix. This workflow declares no workflow-level parallel groups.\n- The workflow-level `why-review` gate then validates the FINISHED report \u2014 scope (nothing in-scope missed, nothing out-of-scope pulled in), verdict rollup, dedup completeness, cross-face severity consistency \u2014 and fixes the report in place.\n- Every finding carries `file:line` proof and a confidence; below 60% is flagged, never recommended.\n- No source fixes here: each validated finding routes to a follow-up `/plan` or feature workflow.\n- `docs-manager --mode=update` runs only when the validated audit shows project docs contradicting the code, and re-validates its own non-trivial doc diff with `why-review`.\nFull contract: .claude/skills/workflow-architecture-audit/SKILL.md",
+        "readFiles": [
+          ".claude/skills/workflow-architecture-audit/SKILL.md"
+        ]
       },
       "sequence": [
         {
@@ -2173,21 +2720,29 @@
       "outcomeGates": [
         {
           "id": "review-converged",
-          "satisfiedBy": ["pbi --mode=review"]
+          "satisfiedBy": [
+            "pbi --mode=review"
+          ]
         },
         {
           "id": "spec-synced",
-          "satisfiedBy": ["spec"],
+          "satisfiedBy": [
+            "spec"
+          ],
           "when": "The selected mode writes the spec (init-full or update)"
         },
         {
           "id": "run-closed",
-          "satisfiedBy": ["workflow-end"]
+          "satisfiedBy": [
+            "workflow-end"
+          ]
         }
       ],
       "preActions": {
-        "injectContext": "CODE-TO-SPEC: modes init-full | update (default) | audit. Keep ONE canonical spec per capability in agreement with code (technical truth) and test evidence; the spec owns requirements and behavior. Create only project-declared derived aids, never a parallel spec tree.\nSTEP 0 (BLOCKING): detect the mode, map changed code to its capability owner (App Bucket Mapping in spec-system-reference.md), confirm mode, capabilities and target paths via AskUserQuestion.\nTRIAGE (SKILL.md section 2): 1-3 capabilities inline; 4-10 -> one spec sub-agent per capability in ONE message; >10 -> groups of 10 run sequentially; multi-bucket/whole-project keeps the resumable Coverage Ledger (tmp/reports) and the completeness gate (every capability REVIEWED or deferred with a reason). After compaction read the ledger and TaskList first; never re-author a done capability.\nPROFILE FIRST: read docs/project-config.json (specRoots.business.path, workflowPatterns.featureDocTemplate, specArtifacts), the configured template, spec-system-reference.md and spec-principles.md. The native profile or local contract owns paths, section roles, IDs and test/evidence carriers; intent roles stay tech-agnostic. The portable eight-section README + Section 8 TC-{FEATURE}-{NNN} form applies only when neither exists (details: SKILL.md). Unknown mapping = BLOCKED/UNKNOWN, never PASS; a malformed contract blocks.\nGATES: full vertical chain traced and reconciled per capability (UI -> API -> handler -> domain -> event -> read model -> UI); three-way sync of native intent/contract/acceptance roles <-> configured cases/evidence <-> executing test code (follow spec-system-reference.md incl. its STATE MACHINE DATA ASSERT mandate); pbi --mode=review converged incl. M1-M7; update mode runs workflow-review-changes inline in the main session; docs-manager --mode=update before workflow-end; Goal Satisfaction matrix before close.\nSpec-Loop Discipline: property cases with boundary counter-cases for every hard invariant; mutation-score gate, not line coverage, for protected core logic; feed uncovered behavior into spec and tests via a dual-feedback ledger.\nTests Verify Intent: every case names the business intent or invariant it guards and would fail if that intent broke. Goal-Driven Execution: define success criteria first; loop until observable checks pass.",
-        "readFiles": [".claude/skills/workflow-code-to-spec/SKILL.md"]
+        "injectContext": "CODE-TO-SPEC: modes init-full | update (default) | audit. Keep ONE canonical spec per capability in agreement with code (technical truth) and test evidence; the spec owns requirements and behavior. Create only project-declared derived aids, never a parallel spec tree.\nSTEP 0 (BLOCKING): detect the mode, map changed code to its capability owner (App Bucket Mapping in spec-system-reference.md), confirm mode, capabilities and target paths via ask user question tool.\nTRIAGE (SKILL.md section 2): 1-3 capabilities inline; 4-10 -> one spec sub-agent per capability in ONE message; >10 -> groups of 10 run sequentially; multi-bucket/whole-project keeps the resumable Coverage Ledger (tmp/reports) and the completeness gate (every capability REVIEWED or deferred with a reason). After compaction read the ledger and TaskList first; never re-author a done capability.\nPROFILE FIRST: read docs/project-config.json (specRoots.business.path, workflowPatterns.featureDocTemplate, specArtifacts), the configured template, spec-system-reference.md and spec-principles.md. The native profile or local contract owns paths, section roles, IDs and test/evidence carriers; intent roles stay tech-agnostic. The portable eight-section README + Section 8 TC-{FEATURE}-{NNN} form applies only when neither exists (details: SKILL.md). Unknown mapping = BLOCKED/UNKNOWN, never PASS; a malformed contract blocks.\nGATES: full vertical chain traced and reconciled per capability (UI -> API -> handler -> domain -> event -> read model -> UI); three-way sync of native intent/contract/acceptance roles <-> configured cases/evidence <-> executing test code (follow spec-system-reference.md incl. its STATE MACHINE DATA ASSERT mandate); pbi --mode=review converged incl. M1-M7; update mode runs workflow-review-changes inline in the main session; docs-manager --mode=update before workflow-end; Goal Satisfaction matrix before close.\nSpec-Loop Discipline: property cases with boundary counter-cases for every hard invariant; mutation-score gate, not line coverage, for protected core logic; feed uncovered behavior into spec and tests via a dual-feedback ledger.\nTests Verify Intent: every case names the business intent or invariant it guards and would fail if that intent broke. Goal-Driven Execution: define success criteria first; loop until observable checks pass.",
+        "readFiles": [
+          ".claude/skills/workflow-code-to-spec/SKILL.md"
+        ]
       },
       "defaultMode": "update",
       "variants": {
@@ -2358,21 +2913,29 @@
       "outcomeGates": [
         {
           "id": "review-converged",
-          "satisfiedBy": ["pbi --mode=review"]
+          "satisfiedBy": [
+            "pbi --mode=review"
+          ]
         },
         {
           "id": "spec-synced",
-          "satisfiedBy": ["docs-manager --mode=update"],
+          "satisfiedBy": [
+            "docs-manager --mode=update"
+          ],
           "when": "Generated PBIs, clarified decisions or scenario proof changed canonical spec content or its test/evidence carriers"
         },
         {
           "id": "run-closed",
-          "satisfiedBy": ["workflow-end"]
+          "satisfiedBy": [
+            "workflow-end"
+          ]
         }
       ],
       "preActions": {
-        "injectContext": "SPEC TO PBI — turn existing canonical specs into a complete, dependency-ordered, prioritized, Definition-of-Ready PBI/story backlog (no implementation). Read .claude/skills/workflow-spec-to-pbi/SKILL.md first: it owns triage, gates, the coverage matrix and the recommended-skill table.\nCANONICAL INPUT: resolve the spec root, template, specArtifacts profile and local spec-system-reference.md / spec-principles.md from docs/project-config.json; map native intent, acceptance, rule, contract, UI-intent and test/evidence roles; carry native IDs as the citation spine and never mint replacement IDs or synthesize a missing section. The {SPEC_ROOT}/{Bucket}/README.{Feature}.md 8-section form is the fallback only when no native profile or local contract exists. An unknown role/owner/case mapping is UNKNOWN and blocks that mapping.\nTRIAGE FIRST and record it: capability count (1-3 inline · 4-10 split by capability · 10+ batched with coverage-matrix checkpoints), kinds (domain change, UI surface, implementation exists → freshness risk), risk, isLargeIdea. Each step's applicability follows the triage; log every skip/merge with evidence.\nGATES (never skipped): spec [mode=clarify] before decomposition (Spec Validation: questions=4-8, EXISTING-SPEC context; confirmed changes route through /spec [mode=update]), pbi --mode=review --type=pbi, pbi --mode=dor (PASS or WARN), workflow-end; coverage matrix maps every spec item to a PBI, attached enabling task, existing PBI or out-of-scope reason; every PBI is one independently releasable actor-facing outcome (.claude/skills/shared/releasable-pbi-contract.md) with business-visible (M7) acceptance criteria; pbi --mode=challenge reviewer ≠ drafter; UI PBIs get a navigable full-flow mock app + design-spec; prioritize ranks all PBIs once (skipped only when exactly one PBI was generated and no backlog ranking was requested; pbi --mode=refine's frontmatter priority stands) and writes rank/priority into every PBI's frontmatter, shown by mockups and the deck; docs-manager --mode=update syncs canonical specs and their test/evidence carriers before close.\nLARGE SPEC: when isLargeIdea is true, carry the complete large_idea_decomposition block (outcome_slices, dependencies_order, non_goals, risks_evidence, deferred_work_owner) from the spec's declared slice-planning role through PBIs, stories, mockups and the deck; stop decomposition when no role permits slice plans. Never create {PRODUCT_ROADMAP_DOC}; a roadmap is an explicit standalone request only and a supplied roadmap is read-only context.\nWrite each PBI to {TEAM_ARTIFACTS_ROOT}/pbis and the ranked backlog to {TEAM_ARTIFACTS_ROOT}/backlog immediately; never hold all PBIs in memory. Goal-driven: define success criteria first and loop until observable checks pass.",
-        "readFiles": [".claude/skills/workflow-spec-to-pbi/SKILL.md"]
+        "injectContext": "SPEC TO PBI \u2014 turn existing canonical specs into a complete, dependency-ordered, prioritized, Definition-of-Ready PBI/story backlog (no implementation). Read .claude/skills/workflow-spec-to-pbi/SKILL.md first: it owns triage, gates, the coverage matrix and the recommended-skill table.\nCANONICAL INPUT: resolve the spec root, template, specArtifacts profile and local spec-system-reference.md / spec-principles.md from docs/project-config.json; map native intent, acceptance, rule, contract, UI-intent and test/evidence roles; carry native IDs as the citation spine and never mint replacement IDs or synthesize a missing section. The {SPEC_ROOT}/{Bucket}/README.{Feature}.md 8-section form is the fallback only when no native profile or local contract exists. An unknown role/owner/case mapping is UNKNOWN and blocks that mapping.\nTRIAGE FIRST and record it: capability count (1-3 inline \u00b7 4-10 split by capability \u00b7 10+ batched with coverage-matrix checkpoints), kinds (domain change, UI surface, implementation exists \u2192 freshness risk), risk, isLargeIdea. Each step's applicability follows the triage; log every skip/merge with evidence.\nGATES (never skipped): spec [mode=clarify] before decomposition (Spec Validation: questions=4-8, EXISTING-SPEC context; confirmed changes route through /spec [mode=update]), pbi --mode=review --type=pbi, pbi --mode=dor (PASS or WARN), workflow-end; coverage matrix maps every spec item to a PBI, attached enabling task, existing PBI or out-of-scope reason; every PBI is one independently releasable actor-facing outcome (.claude/skills/shared/releasable-pbi-contract.md) with business-visible (M7) acceptance criteria; pbi --mode=challenge reviewer \u2260 drafter; UI PBIs get a navigable full-flow mock app + design-spec; prioritize ranks all PBIs once (skipped only when exactly one PBI was generated and no backlog ranking was requested; pbi --mode=refine's frontmatter priority stands) and writes rank/priority into every PBI's frontmatter, shown by mockups and the deck; docs-manager --mode=update syncs canonical specs and their test/evidence carriers before close.\nLARGE SPEC: when isLargeIdea is true, carry the complete large_idea_decomposition block (outcome_slices, dependencies_order, non_goals, risks_evidence, deferred_work_owner) from the spec's declared slice-planning role through PBIs, stories, mockups and the deck; stop decomposition when no role permits slice plans. Never create {PRODUCT_ROADMAP_DOC}; a roadmap is an explicit standalone request only and a supplied roadmap is read-only context.\nWrite each PBI to {TEAM_ARTIFACTS_ROOT}/pbis and the ranked backlog to {TEAM_ARTIFACTS_ROOT}/backlog immediately; never hold all PBIs in memory. Goal-driven: define success criteria first and loop until observable checks pass.",
+        "readFiles": [
+          ".claude/skills/workflow-spec-to-pbi/SKILL.md"
+        ]
       },
       "sequence": [
         "investigate",
@@ -2499,22 +3062,28 @@
     },
     "workflow-spec-to-mockup": {
       "activation": "auto",
-      "description": "Spec to interactive mockup: turn UI-bearing canonical spec(s) into a reviewed, journey-validated, interactive multi-view HTML mock app. Journey-first: design-spec reports the main user journeys (UX-1) and reads the design authority (UX-2) before any design output; pbi --mode=review --type=design gates it; pbi --mode=mockup --explore asks the mockup scope gate first (1-3 drafts or skip; the run's first action) and renders that many divergent design directions for the user to pick, then builds the full mock app in the chosen direction; html-export renders the journey views; ui-design --mode=review walks every main journey (UX-8). Stops at the mockup — no PBI, story, plan or code.",
+      "description": "Spec to interactive mockup: turn UI-bearing canonical spec(s) into a reviewed, journey-validated, interactive multi-view HTML mock app. Journey-first: design-spec reports the main user journeys (UX-1) and reads the design authority (UX-2) before any design output; pbi --mode=review --type=design gates it; pbi --mode=mockup --explore asks the mockup scope gate first (1-3 drafts or skip; the run's first action) and renders that many divergent design directions for the user to pick, then builds the full mock app in the chosen direction; html-export renders the journey views; ui-design --mode=review walks every main journey (UX-8). Stops at the mockup \u2014 no PBI, story, plan or code.",
       "intent": "Turn UI-bearing canonical specs into a reviewed, journey-validated interactive mock app built in a user-picked design direction.",
       "name": "Spec to Interactive Mockup",
       "outcomeGates": [
         {
           "id": "review-converged",
-          "satisfiedBy": ["pbi --mode=review"]
+          "satisfiedBy": [
+            "pbi --mode=review"
+          ]
         },
         {
           "id": "run-closed",
-          "satisfiedBy": ["workflow-end"]
+          "satisfiedBy": [
+            "workflow-end"
+          ]
         }
       ],
       "preActions": {
-        "injectContext": "SPEC TO INTERACTIVE MOCKUP — turn UI-bearing canonical spec(s) into ONE reviewed, journey-validated, interactive multi-view HTML mock app per spec, built in a visual direction the user picked (no PBI, story, plan or code). Read .claude/skills/workflow-spec-to-mockup/SKILL.md first: it owns triage, the journey-first order, gates and the fix path.\nSOURCE: resolve the canonical spec path(s) the user named or search {SPEC_ROOT}; read the spec's UI intent layer (view inventory with information priority and container role, navigation map, observable states, per-story action flows — SYNC:ui-intent-layer) and its business rules through the active artifact profile. No canonical spec → route to workflow-idea-to-spec. Backend-only spec → stop, no mockup applies, state the reason. A missing UI intent layer → spec [mode=update] first, or derive it in design-spec with every derived item tagged INFERRED.\nJOURNEY-FIRST ORDER (BLOCKING, SYNC:ux-journey-gate, every generation step): design-spec Step 0a writes the Journey Report (UX-1) and the design-authority record (UX-2) before anything else; pbi --mode=mockup --source=<spec path> reuses both as its Step 2a/3 evidence and re-confirms only deltas (a conflicting re-derivation goes to the user); ui-design --mode=review walks every main journey on the final mockup with a traceability matrix (UX-8); the mockup closes with the UI/UX Gate Report (UX-11) and an unresolved FAIL blocks hand-off. Catalogs: .claude/docs/ux-journey-process.md, .claude/docs/design-knowledge.md, .claude/docs/design-review-checklist.md.\nEXPLORE PICK GATE (the user's decision while the user can be asked): pbi --mode=mockup --explore owns the 1-3 direction drafts (tmp/design/<run>/direction-{a,b,c}.html), the browser open, the AskUserQuestion pick with your evidence-backed recommendation first, the recorded Selection: line in tmp/design/<run>/direction-approved.md, and the exemption when a brief or design system pins every axis; it reuses the scope-gate answer and the pick stays in the main session.\nMOCK-APP CONTRACT: the final mockup is ONE self-contained multi-view mock app per spec — every required view, navigation edge, common/domain/page component and applicable state (empty, loading and error first) plus a connected full-flow demo of each main journey; one static or disconnected screen fails. Apply .claude/skills/shared/releasable-pbi-contract.md.\nARTIFACTS: direction drafts, renders, product facts and run notes are disposable run output under tmp/design/<run>/ (<run> = YYMMDD-HHmm-<slug>); the design spec lives under {TEAM_ARTIFACTS_ROOT}; the final mockup lives at the pbi --mode=mockup spec-source output path, design-specs/ under {TEAM_ARTIFACTS_ROOT} — never inside {SPEC_ROOT}, which holds canonical specs only. html-export --to=png renders the final mockup's journey views before ui-design --mode=review: exit 0 = render evidence only, exit 4 = fix the mockup and re-render, exit 3 = NOT VERIFIABLE with a setup pointer (never install), exit 1/2 or any other code = tool failure, NOT VERIFIABLE. Record the design spec and mockup paths in the spec's companion-artifact frontmatter (design_spec:/mockup: in the portable fallback) — frontmatter only, spec body untouched.\nGATES (never skipped): pbi --mode=review --type=design, ui-design --mode=review (N/A only when Mockup: SKIPPED by user: no mockup to review), workflow-end. User confirmations and the explore pick are never parallelized or delegated, and never auto-answered while the user can be asked (only the recorded Selection: AUTO-SELECTED paths). Goal-driven: define success criteria first and loop until observable checks pass.\nSCOPE GATE FIRST (this workflow): pbi --mode=mockup Step 0 (3/2/1 mockup options, or skip) is the run's FIRST action, before /design-spec or any reading; record the answer in the run report. Skip -> run only /design-spec and /pbi --mode=review --type=design, record Mockup: SKIPPED by user, log pbi --mode=mockup, html-export, ui-design --mode=review and docs-manager --mode=update as N/A (no mockup exists), then /workflow-end and /watzup. MAIN SESSION ONLY: the scope gate and the pick never run inside a delegated sub-agent; only the draft builders may be sub-agents.",
-        "readFiles": [".claude/skills/workflow-spec-to-mockup/SKILL.md"]
+        "injectContext": "SPEC TO INTERACTIVE MOCKUP \u2014 turn UI-bearing canonical spec(s) into ONE reviewed, journey-validated, interactive multi-view HTML mock app per spec, built in a visual direction the user picked (no PBI, story, plan or code). Read .claude/skills/workflow-spec-to-mockup/SKILL.md first: it owns triage, the journey-first order, gates and the fix path.\nSOURCE: resolve the canonical spec path(s) the user named or search {SPEC_ROOT}; read the spec's UI intent layer (view inventory with information priority and container role, navigation map, observable states, per-story action flows \u2014 SYNC:ui-intent-layer) and its business rules through the active artifact profile. No canonical spec \u2192 route to workflow-idea-to-spec. Backend-only spec \u2192 stop, no mockup applies, state the reason. A missing UI intent layer \u2192 spec [mode=update] first, or derive it in design-spec with every derived item tagged INFERRED.\nJOURNEY-FIRST ORDER (BLOCKING, SYNC:ux-journey-gate, every generation step): design-spec Step 0a writes the Journey Report (UX-1) and the design-authority record (UX-2) before anything else; pbi --mode=mockup --source=<spec path> reuses both as its Step 2a/3 evidence and re-confirms only deltas (a conflicting re-derivation goes to the user); ui-design --mode=review walks every main journey on the final mockup with a traceability matrix (UX-8); the mockup closes with the UI/UX Gate Report (UX-11) and an unresolved FAIL blocks hand-off. Catalogs: .claude/docs/ux-journey-process.md, .claude/docs/design-knowledge.md, .claude/docs/design-review-checklist.md.\nEXPLORE PICK GATE (the user's decision while the user can be asked): pbi --mode=mockup --explore owns the 1-3 direction drafts (tmp/design/<run>/direction-{a,b,c}.html), the browser open, the ask user question tool pick with your evidence-backed recommendation first, the recorded Selection: line in tmp/design/<run>/direction-approved.md, and the exemption when a brief or design system pins every axis; it reuses the scope-gate answer and the pick stays in the main session.\nMOCK-APP CONTRACT: the final mockup is ONE self-contained multi-view mock app per spec \u2014 every required view, navigation edge, common/domain/page component and applicable state (empty, loading and error first) plus a connected full-flow demo of each main journey; one static or disconnected screen fails. Apply .claude/skills/shared/releasable-pbi-contract.md.\nARTIFACTS: direction drafts, renders, product facts and run notes are disposable run output under tmp/design/<run>/ (<run> = YYMMDD-HHmm-<slug>); the design spec lives under {TEAM_ARTIFACTS_ROOT}; the final mockup lives at the pbi --mode=mockup spec-source output path, design-specs/ under {TEAM_ARTIFACTS_ROOT} \u2014 never inside {SPEC_ROOT}, which holds canonical specs only. html-export --to=png renders the final mockup's journey views before ui-design --mode=review: exit 0 = render evidence only, exit 4 = fix the mockup and re-render, exit 3 = NOT VERIFIABLE with a setup pointer (never install), exit 1/2 or any other code = tool failure, NOT VERIFIABLE. Record the design spec and mockup paths in the spec's companion-artifact frontmatter (design_spec:/mockup: in the portable fallback) \u2014 frontmatter only, spec body untouched.\nGATES (never skipped): pbi --mode=review --type=design, ui-design --mode=review (N/A only when Mockup: SKIPPED by user: no mockup to review), workflow-end. User confirmations and the explore pick are never parallelized or delegated, and never auto-answered while the user can be asked (only the recorded Selection: AUTO-SELECTED paths). Goal-driven: define success criteria first and loop until observable checks pass.\nSCOPE GATE FIRST (this workflow): pbi --mode=mockup Step 0 (3/2/1 mockup options, or skip) is the run's FIRST action, before /design-spec or any reading; record the answer in the run report. Skip -> run /design-spec, /pbi --mode=review --type=design and the /ui-design --mode=review gate (record N/A \u2014 no mockup to review); record Mockup: SKIPPED by user; log pbi --mode=mockup, html-export and docs-manager --mode=update as N/A (no mockup exists), then /workflow-end and /watzup. MAIN SESSION ONLY: the scope gate and the pick never run inside a delegated sub-agent; only the draft builders may be sub-agents.",
+        "readFiles": [
+          ".claude/skills/workflow-spec-to-mockup/SKILL.md"
+        ]
       },
       "sequence": [
         {
@@ -2572,24 +3141,34 @@
       "outcomeGates": [
         {
           "id": "review-converged",
-          "satisfiedBy": ["workflow-review-changes"]
+          "satisfiedBy": [
+            "workflow-review-changes"
+          ]
         },
         {
           "id": "spec-synced",
-          "satisfiedBy": ["spec"]
+          "satisfiedBy": [
+            "spec"
+          ]
         },
         {
           "id": "tests-pass",
-          "satisfiedBy": ["test"]
+          "satisfiedBy": [
+            "test"
+          ]
         },
         {
           "id": "run-closed",
-          "satisfiedBy": ["workflow-end"]
+          "satisfiedBy": [
+            "workflow-end"
+          ]
         }
       ],
       "preActions": {
         "injectContext": "SPEC SYNC (post-change): bring canonical test cases, feature docs and integration tests back in line with the code after a change; every changed behavior ends covered by tests that ran green in this run.\nA native contract may be declared by config or local references; resolve the active artifact contract from docs/project-config.json (specArtifacts, specRoots) and the required local references first, and use the strict portable defaults only when neither config nor local references declares a native artifact contract. An unresolved mapping stays UNKNOWN/BLOCKED.\nTRIAGE FIRST (record it): size band (XS/S/M/L/XL) and trigger kind (bug fix -> regression case; behavior or contract change; behavior-preserving refactor or docs-only -> cases usually current; UI-bearing). Optional steps run only when their registry `when` holds; log every other deviation per /start-workflow.\nGATES: the nested /workflow-review-changes runs INLINE in the main session; /spec [mode=sync] reconciles the case owner with the executing tests and the source (three-way sync per {REF_DOCS_ROOT}/spec-system-reference.md; strict default = Feature Spec Section 8 TCs + CoveredBy links); the /test gate proves changed behavior green in this run; /workflow-end closes.\nINVARIANTS: cases encode intended behavior, never the bug - name the Business Intent / Invariant Guarded and make the test fail if that intent breaks. For each changed hard rule or invariant, sync a universally quantified property case plus its boundary counter-case (property/metamorphic tests; mutation testing when configured or warranted by risk), and feed every behavior-changing finding into BOTH the spec and the tests. A failing test gets a five-way Fault Verdict (SOURCE-WRONG | TEST-WRONG | TEST-NOT-OPTIMAL | ENVIRONMENT-BLOCKED | AMBIGUOUS) via /investigate --mode=debug before any edit; never weaken, skip or retry an assertion to force green. UI-bearing change -> refresh the interaction surface (strict default: Feature Spec section 6) alongside the sync; backend-only -> state that reason.\nTriage table, gates and recommended skills: .claude/skills/workflow-spec-sync/SKILL.md.",
-        "readFiles": [".claude/skills/workflow-spec-sync/SKILL.md"]
+        "readFiles": [
+          ".claude/skills/workflow-spec-sync/SKILL.md"
+        ]
       },
       "sequence": [
         {
@@ -2666,20 +3245,28 @@
       "outcomeGates": [
         {
           "id": "review-converged",
-          "satisfiedBy": ["changes-review"]
+          "satisfiedBy": [
+            "changes-review"
+          ]
         },
         {
           "id": "tests-pass",
-          "satisfiedBy": ["test"]
+          "satisfiedBy": [
+            "test"
+          ]
         },
         {
           "id": "run-closed",
-          "satisfiedBy": ["workflow-end"]
+          "satisfiedBy": [
+            "workflow-end"
+          ]
         }
       ],
       "preActions": {
-        "injectContext": "SEED TEST DATA — follow .claude/skills/workflow-seed-test-data/SKILL.md (triage, gates, recommended skills).\nBEFORE any seeder code: read docs/project-config.json seeder context group (e.g. Data Seeders: base class, file location, env-gate key, count key, DI registration) and {REF_DOCS_ROOT}/seed-test-data-reference.md; match the existing seeder convention exactly.\nUNIVERSAL RULES:\n1. Environment gate FIRST — development or config-enabled only. NEVER production.\n2. Command-based ONLY — application-layer commands; NEVER direct DB/repo writes for domain entities; commands own validation and domain rules, the seeder supplies valid inputs.\n3. Idempotency — check existing count BEFORE seeding; loop from existing to target (restart-safe), never from 0.\n4. Count-configurable — read the count from the project config key; small default; zero is a no-op.\n5. Scoped DI per iteration — never share a DI scope across loop iterations.\nGates: tests pass on the final (post-simplification) code; changes-review converges; experience-review inspects seeded data a QC/operator observes (ENVIRONMENT-BLOCKED, never PASS, when it cannot be inspected).\nSpec-loop (seeder tier): property/metamorphic and mutation-score gates are N/A; seeded state MUST stay consistent with spec invariants, and any domain rule a seeder encodes goes into the spec (and tests where testable), never a seeder-only fix.",
-        "readFiles": [".claude/skills/workflow-seed-test-data/SKILL.md"]
+        "injectContext": "SEED TEST DATA \u2014 follow .claude/skills/workflow-seed-test-data/SKILL.md (triage, gates, recommended skills).\nBEFORE any seeder code: read docs/project-config.json seeder context group (e.g. Data Seeders: base class, file location, env-gate key, count key, DI registration) and {REF_DOCS_ROOT}/seed-test-data-reference.md; match the existing seeder convention exactly.\nUNIVERSAL RULES:\n1. Environment gate FIRST \u2014 development or config-enabled only. NEVER production.\n2. Command-based ONLY \u2014 application-layer commands; NEVER direct DB/repo writes for domain entities; commands own validation and domain rules, the seeder supplies valid inputs.\n3. Idempotency \u2014 check existing count BEFORE seeding; loop from existing to target (restart-safe), never from 0.\n4. Count-configurable \u2014 read the count from the project config key; small default; zero is a no-op.\n5. Scoped DI per iteration \u2014 never share a DI scope across loop iterations.\nGates: tests pass on the final (post-simplification) code; changes-review converges; experience-review inspects seeded data a QC/operator observes (ENVIRONMENT-BLOCKED, never PASS, when it cannot be inspected).\nSpec-loop (seeder tier): property/metamorphic and mutation-score gates are N/A; seeded state MUST stay consistent with spec invariants, and any domain rule a seeder encodes goes into the spec (and tests where testable), never a seeder-only fix.",
+        "readFiles": [
+          ".claude/skills/workflow-seed-test-data/SKILL.md"
+        ]
       },
       "sequence": [
         "investigate",
@@ -2715,22 +3302,28 @@
       "whenToUse": "User wants to seed test data, implement data seeders, generate realistic development environment data, add happy-path scenarios for a feature, create dummy data for manual QC testing, fill dev database with realistic test cases"
     },
     "workflow-integration-test": {
-      "description": "Integration tests, two variants selected by --mode: `write` (default) writes or updates integration tests for existing code spec-first — investigate domain logic, write/update specs, generate test code, one-pass 8-gate review, run and verify; `green` drives an integration-test suite to fully green with a bounded convergence loop — verify the whole system (or the named target), adjudicate every failure with investigate --mode=debug + integration-test --mode=review before any edit, fix at the owning layer, re-verify from scratch, then sync spec TCs, the integration-test reference doc, and feature docs",
+      "description": "Integration tests, two variants selected by --mode: `write` (default) writes or updates integration tests for existing code spec-first \u2014 investigate domain logic, write/update specs, generate test code, one-pass 8-gate review, run and verify; `green` drives an integration-test suite to fully green with a bounded convergence loop \u2014 verify the whole system (or the named target), adjudicate every failure with investigate --mode=debug + integration-test --mode=review before any edit, fix at the owning layer, re-verify from scratch, then sync spec TCs, the integration-test reference doc, and feature docs",
       "intent": "Write spec-traced integration tests for existing code and prove they pass with real assertion value (write), or drive the integration-test suite, or the named target, to repeatably green by fixing each failure at its owning layer (green).",
-      "name": "Integration Tests (Write · Green)",
+      "name": "Integration Tests (Write \u00b7 Green)",
       "outcomeGates": [
         {
           "id": "tests-pass",
-          "satisfiedBy": ["integration-test --mode=verify"]
+          "satisfiedBy": [
+            "integration-test --mode=verify"
+          ]
         },
         {
           "id": "run-closed",
-          "satisfiedBy": ["workflow-end"]
+          "satisfiedBy": [
+            "workflow-end"
+          ]
         }
       ],
       "preActions": {
-        "injectContext": "INTEGRATION TESTS (variants write | green): pick `--mode` from the prompt BEFORE creating tasks — `write` (default: author or update spec-traced integration tests for existing code and prove them green; state the assumption when ambiguous) or `green` (a suite or named test is red, flaky or must be proven repeatably green: verify -> adjudicate -> fix -> re-verify). The resolved variant is a complete sequence; build tasks from it and apply ONLY its section below.\n\nVARIANT write (--mode=write):\nWRITE INTEGRATION TESTS: write or update integration tests traced to the project's canonical case owner and prove they pass with real assertion value.\nPROJECT CONTEXT: read docs/project-config.json -> integrationTestVerify (guidance, commands, test roots) and framework.integrationTestDoc, the selected referenceDocs, and same-area tests; they choose runner, layout, fixtures, waits, annotations and repeat policy. Never assume a language, database, layer layout or helper.\nCASE OWNER: resolve specArtifacts and specRoots; use the configured carrier and identifiers, else the strict-default Feature Spec Section 8 TC contract when that is the selected contract. Never invent sections, TC IDs, CoveredBy fields or annotations for a custom carrier.\nTRIAGE FIRST (record it): size band (XS 1-3 cases in one suite ... XL whole-suite audit), kind (new coverage, converting existing cases, stabilising a suite, persistent/shared state, UI, security) and case state (missing, stale, current). Optional steps run only when their registry `when` holds; log every other deviation per /start-workflow.\nGATES: /integration-test --mode=review performs one evidence-backed review pass over all eight gates, including change coverage and real-world fidelity, then reports and stops; fixes and any later review are caller-owned and require a new explicit invocation. /integration-test --mode=verify is green over the configured suites under integrationTestVerify.guidance (absent: two fresh green runs without destructive reset for persistent/shared-state suites) with real runner output; /spec [mode=sync] reconciles cases with executing tests; /workflow-end closes after the Goal Satisfaction matrix.\nGUARDRAILS: read the production and test source before writing any assertion; every test names the invariant it protects and asserts an outcome the system owns; exercise the production entry path when it is the behavior under test and valid fixtures for unrelated preconditions; wait only on a real observable signal. On any failure record a five-way Fault Verdict via /investigate --mode=debug before editing; never force green by deleting or skipping tests, weakening assertions, widening assertion timeouts, retrying assertions or narrowing scope.\nTriage table, gates and recommended skills: .claude/skills/workflow-integration-test/references/variant-write.md.\n\nVARIANT green (--mode=green):\nINTEGRATION TEST GREEN (verify -> adjudicate -> fix -> re-verify, bounded loop): drive the resolved integration-test scope to repeatable green by fixing each failure at its owning layer.\nPROJECT CONTEXT: read docs/project-config.json -> integrationTestVerify (guidance, quickRunCommand, testProjectPattern/testProjects, systemCheckCommand, startupScript) and framework.integrationTestDoc; never hardcode a runner, database, helper or layout.\nSCOPE: the WHOLE system by default; a named suite, module, test or diff narrows it. Record the concrete suite list and pass it explicitly every round - never the git-changed subset, never narrowed; widen it (logged) when a source fix reaches suites outside it.\nTRIAGE FIRST (record it): failure load after the first verify (0 = proof-only run; XS 1-3 failures sharing a cause = inline; larger = cluster by signature and module, sweep the environment first, adjudicate cluster by cluster in bounded batches) and the verdict kinds. Optional steps run only when their registry `when` holds; log every other deviation per /start-workflow.\nLOOP (owned by /integration-test --mode=verify --fix-loop, INLINE): Goal Contract first; each round runs the default verify pass INLINE over the fixed scope; every failure gets ONE Fault Verdict (SOURCE-WRONG | TEST-WRONG | TEST-NOT-OPTIMAL | ENVIRONMENT-BLOCKED | AMBIGUOUS) from /investigate --mode=debug + report-only /integration-test --mode=review BEFORE any edit; /fix at the owning component (SOURCE-WRONG keeps or strengthens the catching test); every round with a fix runs INLINE report-only /changes-review over the fix diff, validates findings with /why-review --validate-findings and folds them into the same round; Round Integrity Check (executed count never shrinks, skipped never grows, scope never narrows); fresh full re-verify. Round cap 3 -> escalate via AskUserQuestion on no progress across 2 rounds, more failures, lost coverage, an open validated finding, ENVIRONMENT-BLOCKED or AMBIGUOUS. Investigation and fixes happen only inside the loop (no workflow-level /investigate --mode=debug or /fix step) - never a second fix loop after it returns.\nGUARDRAIL - NEVER force green: no weakened or removed assertions, skips, widened assertion timeouts, retried assertions, mutated unrelated persistent data or narrowed scope. Every pass/fail claim cites runner output.\nAFTER CONVERGENCE: sync the configured case owner (strict default: Feature Spec Section 8 TCs + CoveredBy; custom profile: its declared carrier and fields), then /docs-manager --mode=update - its impact map verifies the integration-test reference and other docs and escalates to /scan --target=integration-tests only when that reference needs a rebuild.\nTriage table, gates and recommended skills: .claude/skills/workflow-integration-test/references/variant-green.md.\n\nFull contract: .claude/skills/workflow-integration-test/SKILL.md",
-        "readFiles": [".claude/skills/workflow-integration-test/SKILL.md"]
+        "injectContext": "INTEGRATION TESTS (variants write | green): pick `--mode` from the prompt BEFORE creating tasks \u2014 `write` (default: author or update spec-traced integration tests for existing code and prove them green; state the assumption when ambiguous) or `green` (a suite or named test is red, flaky or must be proven repeatably green: verify -> adjudicate -> fix -> re-verify). The resolved variant is a complete sequence; build tasks from it and apply ONLY its section below.\n\nVARIANT write (--mode=write):\nWRITE INTEGRATION TESTS: write or update integration tests traced to the project's canonical case owner and prove they pass with real assertion value.\nPROJECT CONTEXT: read docs/project-config.json -> integrationTestVerify (guidance, commands, test roots) and framework.integrationTestDoc, the selected referenceDocs, and same-area tests; they choose runner, layout, fixtures, waits, annotations and repeat policy. Never assume a language, database, layer layout or helper.\nCASE OWNER: resolve specArtifacts and specRoots; use the configured carrier and identifiers, else the strict-default Feature Spec Section 8 TC contract when that is the selected contract. Never invent sections, TC IDs, CoveredBy fields or annotations for a custom carrier.\nTRIAGE FIRST (record it): size band (XS 1-3 cases in one suite ... XL whole-suite audit), kind (new coverage, converting existing cases, stabilising a suite, persistent/shared state, UI, security) and case state (missing, stale, current). Optional steps run only when their registry `when` holds; log every other deviation per /start-workflow.\nGATES: /integration-test --mode=review performs one evidence-backed review pass over all eight gates, including change coverage and real-world fidelity, then reports and stops; fixes and any later review are caller-owned and require a new explicit invocation. /integration-test --mode=verify is green over the configured suites under integrationTestVerify.guidance (absent: two fresh green runs without destructive reset for persistent/shared-state suites) with real runner output; /spec [mode=sync] reconciles cases with executing tests; /workflow-end closes after the Goal Satisfaction matrix.\nGUARDRAILS: read the production and test source before writing any assertion; every test names the invariant it protects and asserts an outcome the system owns; exercise the production entry path when it is the behavior under test and valid fixtures for unrelated preconditions; wait only on a real observable signal. On any failure record a five-way Fault Verdict via /investigate --mode=debug before editing; never force green by deleting or skipping tests, weakening assertions, widening assertion timeouts, retrying assertions or narrowing scope.\nTriage table, gates and recommended skills: .claude/skills/workflow-integration-test/references/variant-write.md.\n\nVARIANT green (--mode=green):\nINTEGRATION TEST GREEN (verify -> adjudicate -> fix -> re-verify, bounded loop): drive the resolved integration-test scope to repeatable green by fixing each failure at its owning layer.\nPROJECT CONTEXT: read docs/project-config.json -> integrationTestVerify (guidance, quickRunCommand, testProjectPattern/testProjects, systemCheckCommand, startupScript) and framework.integrationTestDoc; never hardcode a runner, database, helper or layout.\nSCOPE: the WHOLE system by default; a named suite, module, test or diff narrows it. Record the concrete suite list and pass it explicitly every round - never the git-changed subset, never narrowed; widen it (logged) when a source fix reaches suites outside it.\nTRIAGE FIRST (record it): failure load after the first verify (0 = proof-only run; XS 1-3 failures sharing a cause = inline; larger = cluster by signature and module, sweep the environment first, adjudicate cluster by cluster in bounded batches) and the verdict kinds. Optional steps run only when their registry `when` holds; log every other deviation per /start-workflow.\nLOOP (owned by /integration-test --mode=verify --fix-loop, INLINE): Goal Contract first; each round runs the default verify pass INLINE over the fixed scope; every failure gets ONE Fault Verdict (SOURCE-WRONG | TEST-WRONG | TEST-NOT-OPTIMAL | ENVIRONMENT-BLOCKED | AMBIGUOUS) from /investigate --mode=debug + report-only /integration-test --mode=review BEFORE any edit; /fix at the owning component (SOURCE-WRONG keeps or strengthens the catching test); every round with a fix runs INLINE report-only /changes-review over the fix diff, validates findings with /why-review --validate-findings and folds them into the same round; Round Integrity Check (executed count never shrinks, skipped never grows, scope never narrows); fresh full re-verify. Round cap 3 -> escalate via ask user question tool on no progress across 2 rounds, more failures, lost coverage, an open validated finding, ENVIRONMENT-BLOCKED or AMBIGUOUS. Investigation and fixes happen only inside the loop (no workflow-level /investigate --mode=debug or /fix step) - never a second fix loop after it returns.\nGUARDRAIL - NEVER force green: no weakened or removed assertions, skips, widened assertion timeouts, retried assertions, mutated unrelated persistent data or narrowed scope. Every pass/fail claim cites runner output.\nAFTER CONVERGENCE: sync the configured case owner (strict default: Feature Spec Section 8 TCs + CoveredBy; custom profile: its declared carrier and fields), then /docs-manager --mode=update - its impact map verifies the integration-test reference and other docs and escalates to /scan --target=integration-tests only when that reference needs a rebuild.\nTriage table, gates and recommended skills: .claude/skills/workflow-integration-test/references/variant-green.md.\n\nFull contract: .claude/skills/workflow-integration-test/SKILL.md",
+        "readFiles": [
+          ".claude/skills/workflow-integration-test/SKILL.md"
+        ]
       },
       "defaultMode": "write",
       "variants": {
@@ -2738,11 +3331,15 @@
           "outcomeGates": [
             {
               "id": "spec-synced",
-              "satisfiedBy": ["spec"]
+              "satisfiedBy": [
+                "spec"
+              ]
             },
             {
               "id": "review-converged",
-              "satisfiedBy": ["integration-test --mode=review"]
+              "satisfiedBy": [
+                "integration-test --mode=review"
+              ]
             }
           ],
           "sequence": [
@@ -2817,12 +3414,16 @@
           "outcomeGates": [
             {
               "id": "root-cause-traced",
-              "satisfiedBy": ["integration-test --mode=verify"],
+              "satisfiedBy": [
+                "integration-test --mode=verify"
+              ],
               "when": "A verify run reported a failing test"
             },
             {
               "id": "spec-synced",
-              "satisfiedBy": ["spec"],
+              "satisfiedBy": [
+                "spec"
+              ],
               "when": "A fix changed tested behavior or a test case"
             }
           ],

@@ -69,7 +69,7 @@ roadmap_status: null
 
 ## 1. Overview
 
-Many skills follow the same shared protocols — evidence rules, review rules, task rules — and until now every skill carried a full copy of each one, so half of what the assistant read when it loaded a skill was repeated text. This capability keeps one short guide entry per protocol in each skill and delivers the full protocol text to the assistant once per session, in five small group messages, when the skill loads on any of the three supported assistant hosts; a delivery that cannot happen degrades to the assistant reading the protocol by its path, never to silence. The four review-family skills, whose protocol text is larger than the delivery capacity, and every supporting reference file keep their full text in place. The framework rules every task follows (the universal group) are carried by no file: a hook delivers them in four small messages on the session's first prompt and again after a long stretch or a compaction, and to every sub-agent at its start. A second hook reminds the assistant, when a skill starts, which project overlay files apply to it.
+Many skills follow the same shared protocols — evidence rules, review rules, task rules — and until now every skill carried a full copy of each one, so half of what the assistant read when it loaded a skill was repeated text. This capability keeps one short guide entry per protocol in each skill and delivers the full protocol text to the assistant once per session, in five small group messages, when the skill loads on any of the three supported assistant hosts; a delivery that cannot happen degrades to the assistant reading the protocol by its path, never to silence. Review-family entrypoints also use guides; a delivery overflow requires reading the unread full published sources before acting. Supporting reference files and agents retain their full bodies, and fresh reviewer prompts receive the complete eleven-body template verbatim. The framework rules every task follows (the universal group) are carried by no file: a hook delivers them in four small messages on the session's first prompt and again after a long stretch or a compaction, and to every sub-agent at its start. A second hook reminds the assistant, when a skill starts, which project overlay files apply to it.
 
 ---
 
@@ -88,7 +88,7 @@ Many skills follow the same shared protocols — evidence rules, review rules, t
 | Guide Block               | The marked block in a skill that holds its guide entries                                                                                                                                                     | The only place delivery reads a skill's declared protocols                           |
 | Reminder Digest           | The short recap of a protocol near the end of a skill                                                                                                                                                        | Always kept, in every kind of skill                                                  |
 | Converted Skill           | A skill whose protocol bodies were replaced by guide entries                                                                                                                                                 | Receives the full text by delivery                                                   |
-| Inline Skill              | A skill that keeps every full protocol body and has no guide block                                                                                                                                           | The four review-family skills, listed in the group data                              |
+| Inline Skill              | A skill that keeps every full protocol body and has no guide block                                                                                                                                           | An explicitly approved future exception; the live group-data list is empty                              |
 | Undeclared Skill          | A skill not yet converted and not on the inline list                                                                                                                                                         | Carries full bodies; delivery gives it nothing                                       |
 | Reference Carrier         | A supporting file of a skill, read at the point in the skill where it is needed                                                                                                                              | Keeps full protocol bodies; never converted                                          |
 | Root Instruction File     | The always-loaded project instruction file a host reads at session start                                                                                                                                     | Holds project information only; carries no protocol                                  |
@@ -140,12 +140,12 @@ Many skills follow the same shared protocols — evidence rules, review rules, t
 ### US-PDL-03: Heavy review skills and reference files keep their full text
 
 **As a** framework maintainer
-**I want** the skills whose protocol text exceeds the delivery capacity, and every reference file, to keep full bodies
+**I want** every review entrypoint to discover applicable full protocols through guides, with full-source fallback and complete full-text reviewer dispatch, while reference files retain their bodies
 **So that** no review reaches the assistant as a list of paths
 
 **Acceptance Criteria:**
 
-- **AC-PDL-07** — **Given** one of the inline skills **When** it loads on any host **Then** it keeps every full role-protocol body, receives nothing from any role group, and a guide entry placed in it fails verification; like every skill it holds no body, reminder or guide entry of a universal protocol
+- **AC-PDL-07** — **Given** a review-family entrypoint **When** it loads on any host **Then** its applicable protocols are guides with full published-source fallback, its role reminders remain, and missing delivery never permits omission; every fresh reviewer prompt still contains all eleven complete protocol bodies verbatim, and universal protocols remain excluded. An explicitly approved future inline exception receives no role delivery and rejects guides
 - **AC-PDL-08** — **Given** a reference file of a skill that holds full protocol bodies **When** conversion runs **Then** the file is unchanged, and a converted skill's guide block lists every protocol that any mode or reference of the skill declares
 
 ### US-PDL-04: Universal rules arrive by hook and are carried nowhere
@@ -202,7 +202,7 @@ Many skills follow the same shared protocols — evidence rules, review rules, t
 
 **Acceptance Criteria:**
 
-- **AC-PDL-19** — **Given** a review skill with a validate mode, a full mode, a fix loop and a reviewer injection template **When** a mode runs **Then** that mode's first action reads its section from the reference file, the other modes' sections are absent from the main file, every full protocol body stays in the main file, and the reviewer injection template is published whole and copied wholesale into reviewer prompts
+- **AC-PDL-19** — **Given** a review skill with a validate mode, a full mode, a fix loop and a reviewer injection template **When** a mode runs **Then** that mode's first action reads its section from the reference file, the other modes’ sections are absent from the main file, applicable protocol guides and full-source fallbacks plus role reminders remain, terminal mode loads only its validator reference, and the reviewer injection template is published whole and copied wholesale into reviewer prompts
 
 ### US-PDL-09: One owner keeps every carrier in step
 
@@ -249,7 +249,7 @@ Many skills follow the same shared protocols — evidence rules, review rules, t
 | BR-PDL-08 | Agent-start delivery decided per agent                                       | Delivery  | [HARD]      |
 | BR-PDL-09 | Per-event, per-host cost budget                                              | Cost      | [HARD]      |
 | BR-PDL-10 | Input trust                                                                  | Security  | [HARD]      |
-| BR-PDL-11 | The four review-family skills stay inline                                    | Carrier   | [HARD]      |
+| BR-PDL-11 | Review-family entrypoints use guides with complete fallback                                    | Carrier   | [HARD]      |
 | BR-PDL-12 | Reference carriers stay inline                                               | Carrier   | [HARD]      |
 | BR-PDL-13 | Published protocol text is generated, fresh and portable                     | Integrity | [HARD]      |
 | BR-PDL-14 | One owner; every carrier and check stays in step                             | Integrity | [HARD]      |
@@ -261,7 +261,7 @@ Many skills follow the same shared protocols — evidence rules, review rules, t
 
 ### BR-PDL-01: Every converted skill keeps a guide entry per protocol [HARD]
 
-IF a skill is converted THEN for every protocol it follows it carries one guide entry inside its guide block — the protocol name, a one-line summary, when it applies, and the path of the published text — and it keeps each protocol's reminder digest. A guide entry is the fallback every delivery miss relies on (BR-PDL-05). The universal protocols (BR-PDL-04) have no guide entry: no skill and no agent carries any part of them. The inline skills of BR-PDL-11 are never converted and carry no guide block. A skill that declares no guide block receives nothing from delivery, so a skill is never delivered text it already carries in full while conversion is in progress.
+IF a skill is converted THEN for every protocol it follows it carries one guide entry inside its guide block — the protocol name, a one-line summary, when it applies, and the path of the published text — and it keeps each protocol's reminder digest. A guide entry is the fallback every delivery miss relies on (BR-PDL-05). The universal protocols (BR-PDL-04) have no guide entry: no skill and no agent carries any part of them. The live inline list is empty (BR-PDL-11). An explicitly approved future inline exception is not converted and carries no guide block. A skill that declares no guide block receives nothing from delivery, so a skill is never delivered text it already carries in full while conversion is in progress.
 
 `[Source: rule/skills/protocol-guide-entry]`
 
@@ -312,7 +312,7 @@ Each second-host delivery message has an allowance of 3,000 (holds up to about 1
 
 ### BR-PDL-07: Mode-only sections load with their mode [HARD]
 
-IF a section of a skill is used by one mode only — the full review of the reasoning review skill, the fix loop of the review skills, the reviewer injection template — THEN it lives in a reference file, and the mode's first action is a blocking read of it. The main skill file keeps every full protocol body and reminder it carried before (BR-PDL-11). The reviewer injection template is published whole, with every protocol section and body, and each reviewer prompt copies it wholesale.
+IF a section of a skill is used by one mode only — the full review of the reasoning review skill, the fix loop of the review skills, the reviewer injection template — THEN it lives in a reference file, and the mode's first action is a blocking read of it. The main skill file keeps guides for every applicable protocol and all role reminders (BR-PDL-11). Terminal findings validation reads only its validator reference, never full/fix-loop mode, source preparation, loop-binding or user-question instructions. The reviewer injection template is published whole, with every protocol section and body, and each reviewer prompt copies it wholesale.
 
 `[Source: rule/skills/review-mode-sections]`
 
@@ -342,9 +342,11 @@ The budget is **per event and per host**: the added wall time of all delivery st
 
 `[Source: rule/hooks/protocol-input-trust]`
 
-### BR-PDL-11: The four review-family skills stay inline [HARD]
+### BR-PDL-11: Review-family entrypoints use guides with complete fallback [HARD]
 
-The skills on the inline list of the group data keep every full protocol body in their main file. **Decided list:** changes-review, code-quality-review, why-review, workflow-review-changes — each carries between 63,871 and 139,257 characters of shared protocol text, more than the 47,500 characters five bins can deliver per load, so delivery would reach them mostly as paths. They are never converted, even when a conversion run names their protocols; they declare no guide entries, so no group delivers to them on a skill load; a guide entry in one of them fails verification. Every name on the list must be a valid skill name with an existing skill folder. Agents keep their full protocol text as before and are never converted.
+The review-family entrypoints — changes-review, code-quality-review, why-review and workflow-review-changes — carry official protocol guides, with the live `inlineSkills` list empty. Each guide names its full published source. IF hook delivery is absent or overflows THEN the reviewer reads all applicable unread full sources before acting; neither a guide, tag nor pointer substitutes for consumed full text. Every role reminder remains. Mode-only references and agents retain full protocol bodies, while every fresh reviewer prompt receives the complete review-protocol-injection template, all eleven full bodies VERBATIM, with only its declared placeholders replaced. Guide transport changes discovery and loading cost, never coverage, validation, severity, material-decision ownership, recursion guards or dispatch obligations.
+
+A future full-body skill exception needs an explicit owner decision and a valid existing skill name in the registry. Its runtime remains supported: it keeps full bodies, receives no role delivery, is not converted and rejects guide entries. An empty exception list is valid.
 
 `[Source: rule/skills/inline-skills]`
 
@@ -364,7 +366,7 @@ The published text — one file per protocol in use plus the protocol index (gro
 
 - A canonical protocol edit reaches every full-text carrier — inline skills, reference files and agents — through the carrier tooling; guide conversion never changes an agent, an inline skill or a reference file, is limited to the protocols it is asked for, and is repeatable with no further change.
 - Every framework check and skill injector that looks for a protocol accepts a guide entry with its reminder in place of the body, and still fails when both are missing; the text-presence checks on a converted skill read the pinned rule fragments from the published text.
-- The duplication policy states the hybrid rule — skills keep guides, delivery carries the text, agents and reviewer prompts carry full text, the four review-family skills keep full bodies — and every copy of the policy equals the canonical text.
+- The duplication policy states the hybrid rule — skills keep guides, delivery carries the text, agents and reviewer prompts carry full text, review-family entrypoints keep guides and full-source fallback while fresh reviewer prompts still keep all eleven full bodies verbatim — and every copy of the policy equals the canonical text.
 - Compressed protocols keep every rule they had (checked rule by rule) and stay at or under 9,000 characters, the reviewer injection template excepted.
 - Pruning a skill's guide list is a conditional follow-up that runs only if delivered protocol text is still a top-three cost after de-duplication; it removes only protocols that no mode of the skill uses, each with a recorded reason.
 
@@ -465,7 +467,7 @@ SecondHostInlineList    1──N Protocol           (decided: none)
 | Property         | Type                   | Required | Constraints                                               | Business Meaning                             |
 | ---------------- | ---------------------- | -------- | --------------------------------------------------------- | -------------------------------------------- |
 | Name             | text                   | Yes      | Lowercase letters, digits, hyphens                        | How hosts and agents refer to it             |
-| Delivery mode    | enum SkillDeliveryMode | Yes      | Inline for the four review-family skills                  | Whether it keeps bodies or receives delivery |
+| Delivery mode    | enum SkillDeliveryMode | Yes      | Guides for all live entrypoints; explicit exceptions only                  | Whether it keeps bodies or receives delivery |
 | Guide block      | list of GuideEntry     | No       | Only on converted skills; union over modes and references | What delivery reads                          |
 | Reminder digests | list                   | Yes      | Kept in every mode                                        | Recency recap                                |
 
@@ -1221,7 +1223,7 @@ boundaryCounterCase: 'a project that is not the framework repository → the cas
 
 **Objective:** Prove the group data pins the universal layout and the inline skill list.
 
-**Business Intent / Invariant Guarded:** A tag in no bin is never delivered, a foreign or repeated tag is delivered wrongly, and a wrong inline name converts a review skill or keeps a ghost (BR-PDL-18, BR-PDL-11).
+**Business Intent / Invariant Guarded:** A tag in no bin is never delivered, a foreign or repeated tag is delivered wrongly, and a wrong exception name keeps a ghost and a review entrypoint without a fallback loses a rule (BR-PDL-18, BR-PDL-11).
 
 **Traces:** AC-PDL-07, AC-PDL-09 / BR-PDL-18, BR-PDL-11
 
@@ -1237,7 +1239,8 @@ boundaryCounterCase: 'a project that is not the framework repository → the cas
 Given the group data
 When the published text is built
 Then every universal protocol sits in exactly one bin and each rendered bin fits
-And the inline list names existing skills only
+And the live inline list is empty and the four review entrypoints carry guides, full-source fallbacks and role reminders
+And any explicit exception names an existing skill only
 And a bad layout or inline name fails the build by name
 ```
 
@@ -1696,7 +1699,7 @@ boundaryCounterCase: 'a skill that lists a universal protocol by mistake → sti
 
 - A fixture with an inline skill
 
-**Real-World Reachability:** A review-family skill loads through any path.
+**Real-World Reachability:** A project explicitly declares a full-body exception and loads it through any path.
 
 **Demo Flow:** Plan delivery for an inline skill by each load path.
 
@@ -3345,7 +3348,7 @@ boundaryCounterCase: 'an empty subset → no change'
 Given the policy sections
 When they are read
 Then no rule says never to reference a protocol by path
-And the hybrid rule is present, including that agents keep full text, reviewer prompts carry bodies inline, and the four review-family skills keep full bodies inline
+And the hybrid rule is present, including that agents keep full text, reviewer prompts carry bodies inline, and review-family entrypoints keep guides and mandatory full-source fallback, while fresh reviewer prompts still contain all eleven complete bodies verbatim
 ```
 
 **Expected Result:**
@@ -4220,7 +4223,7 @@ boundaryCounterCase: 'a second prompt inside the window → nothing'
 Given every main skill file outside the inline list
 When it is scanned
 Then no full protocol body remains, reminders excepted
-Given the five inline skills, every reference file and every agent
+Given any explicitly declared inline exception, every reference file and every agent
 When they are scanned
 Then each still holds its full bodies, equal to canonical
 ```
@@ -4282,7 +4285,7 @@ boundaryCounterCase: 'a stale body in a reference file → fails'
 Given a converted review-group skill in a live session
 When it loads
 Then the review group messages arrive once
-Given one of the five inline skills
+Given an explicitly declared full-body exception
 When it loads
 Then no protocol group message arrives for it
 ```
@@ -4385,11 +4388,11 @@ boundaryCounterCase: 'a regression confirmed on one re-run → the next conversi
 
 > Mode-only sections at point of use (US-PDL-08).
 
-#### TC-PDL-043: The reasoning review skill's main file holds the validate path and every protocol body, not the full-mode sections [P1]
+#### TC-PDL-043: The reasoning review router keeps guide fallbacks and reminders and selects terminal validation without full-mode instructions [P1]
 
-**Objective:** Prove the main file of the reasoning review skill shrinks to the validate path while keeping every protocol body and reminder.
+**Objective:** Prove the main file of the reasoning review skill selects the terminal validator while keeping every applicable protocol guide, fallback and reminder.
 
-**Business Intent / Invariant Guarded:** A validate run should not pay for the full review; a lost body would lose a rule (BR-PDL-07, BR-PDL-11).
+**Business Intent / Invariant Guarded:** A validate run should not pay for the full review; a missing full-source fallback or terminal check would lose a rule (BR-PDL-07, BR-PDL-11).
 
 **Traces:** AC-PDL-19 / BR-PDL-07
 
@@ -4405,9 +4408,11 @@ boundaryCounterCase: 'a regression confirmed on one re-run → the next conversi
 Given the reasoning review skill
 When its main file is measured and read
 Then it is at most 140,000 bytes
-And it holds the validate routine and the recursion guard
+And it holds the terminal-reference route and the recursion guard
+And terminal policy sources select only the validator reference
 And none of the moved full-mode sections and no fix-loop section
-And every full protocol body and reminder it carried before
+And every applicable guide, full-source fallback and role reminder remains
+And the terminal reference preserves evidence, reachability, severity, trade-off, dual-feedback and confidence checks, without full-mode or fix-loop instructions
 ```
 
 **Expected Result:**
@@ -4416,22 +4421,22 @@ And every full protocol body and reminder it carried before
 | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the generated host files, command output and check messages |
 | **System behavior**     | Main file split                                                                                                                                                       |
-| **Business data state** | Every body kept                                                                                                                                                       |
+| **Business data state** | Every applicable full source discoverable and reminders kept                                                                                                                                                       |
 | **Data shown on UI**    | Size and sections                                                                                                                                                     |
 
 **Acceptance Criteria:**
 
 - ✅ Within 140,000 bytes
-- ✅ Every body kept
+- ✅ Every applicable full source discoverable and reminders kept
 - ❌ A moved section still present
-- ❌ A body lost
+- ❌ A fallback, reminder or terminal check lost; full/fix-loop instructions leak into terminal mode
 
 **Test Data:**
 
 ```yaml
 inputDomain: 'the main file'
-invariant: 'for ALL protocol bodies carried before the split each is still present'
-boundaryCounterCase: 'a body moved to a reference → fails'
+invariant: 'for ALL applicable protocols the guide and full-source fallback remain, reminders are retained, and terminal mode selects only its complete validator'
+boundaryCounterCase: 'a missing guide fallback or ≥85% survival check, or Next Steps leaking into terminal validation → fails'
 ```
 
 **Edge Cases:**
@@ -4442,7 +4447,7 @@ boundaryCounterCase: 'a body moved to a reference → fails'
 
 > **Evidence:** `[Source: rule/skills/review-mode-sections]`
 > **Related Behaviors:** `test/scripts/review-mode-sections`
-> **CoveredBy:** `.claude/hooks/tests/suites/review-mode-sections.test.cjs::TC-PDL-043` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/review-mode-sections.test.cjs:426` "[review-mode-sections] TC-PDL-043: a valid fixture split passes; each broken clause is named", `.claude/hooks/tests/suites/review-mode-sections.test.cjs:473` "[review-mode-sections] TC-PDL-043: why-review router is under 140,000 B and keeps every protocol body" (written in P28, never executed; not run at the final gate)
+> **CoveredBy:** `.claude/hooks/tests/suites/review-mode-sections.test.cjs::TC-PDL-043` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/review-mode-sections.test.cjs:426` "[review-mode-sections] TC-PDL-043: a valid fixture split passes; each broken clause is named", `.claude/hooks/tests/suites/review-mode-sections.test.cjs:473` "[review-mode-sections] TC-PDL-043: why-review router uses guides, retains reminders and loads terminal validation only by mode" (written in P28, never executed; not run at the final gate)
 
 ---
 
@@ -4559,9 +4564,9 @@ boundaryCounterCase: 'an assertion deleted → fails the comparison'
 
 ---
 
-#### TC-PDL-046: Fix-loop sections live in a reference file; every protocol body stays in the main file [P1]
+#### TC-PDL-046: Fix-loop sections live in a reference file; every applicable guide fallback and reminder stays in the main file [P1]
 
-**Objective:** Prove the change review and the review workflow moved their fix-loop sections out and kept every body.
+**Objective:** Prove the change review and the review workflow moved their fix-loop sections out and kept every guide fallback and reminder.
 
 **Business Intent / Invariant Guarded:** A normal review should not pay for the fix loop; the fix loop must still be read when it runs (BR-PDL-07).
 
@@ -4579,7 +4584,7 @@ boundaryCounterCase: 'an assertion deleted → fails the comparison'
 Given the change review skill and the review workflow skill
 When they are read
 Then the fix-loop bodies are absent from the main file and a blocking pointer is present
-And every full protocol body each carried before is still in its main file
+And every applicable guide with full-source fallback and every role reminder remains in its main file
 And the moved section keeps its markers
 And the pinned suites pass on the main file and references with every assertion intact
 ```
@@ -4590,21 +4595,21 @@ And the pinned suites pass on the main file and references with every assertion 
 | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the generated host files, command output and check messages |
 | **System behavior**     | Split verified                                                                                                                                                        |
-| **Business data state** | Every body kept                                                                                                                                                       |
+| **Business data state** | Every applicable full source discoverable and reminders retained                                                                                                                                                       |
 | **Data shown on UI**    | Sections and passing runs                                                                                                                                             |
 
 **Acceptance Criteria:**
 
 - ✅ Fix loop moved
-- ✅ Bodies kept
-- ❌ A body moved
+- ✅ Guide fallbacks and reminders kept
+- ❌ A fallback or reminder lost
 - ❌ An assertion removed
 
 **Test Data:**
 
 ```yaml
 inputDomain: 'both skills'
-invariant: 'for ALL protocol bodies carried before, each is still in the main file'
+invariant: 'for ALL applicable protocols each main file retains its guide with full-source fallback and all role reminders'
 boundaryCounterCase: 'the pointer removed → fails'
 ```
 
@@ -4616,7 +4621,7 @@ boundaryCounterCase: 'the pointer removed → fails'
 
 > **Evidence:** `[Source: rule/skills/review-mode-sections]`
 > **Related Behaviors:** `test/scripts/review-mode-sections`
-> **CoveredBy:** `.claude/hooks/tests/suites/review-mode-sections.test.cjs::TC-PDL-046`, `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --only=tests,scripts-tests,wf-cycle` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/review-mode-sections.test.cjs:509` "[review-mode-sections] TC-PDL-046: a valid fixture fix-loop split passes; each broken clause is named", `.claude/hooks/tests/suites/review-mode-sections.test.cjs:539` "[review-mode-sections] TC-PDL-046: changes-review and workflow-review-changes read references/fix-loop.md first and keep every protocol body", `.claude/hooks/tests/suites/review-mode-sections.test.cjs:554` "[review-mode-sections] TC-PDL-046: the suites that pin the moved fix-loop text and the wf-cycle verifier pass" (written in P40, never executed; not run at the final gate)
+> **CoveredBy:** `.claude/hooks/tests/suites/review-mode-sections.test.cjs::TC-PDL-046`, `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --only=tests,scripts-tests,wf-cycle` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/review-mode-sections.test.cjs:509` "[review-mode-sections] TC-PDL-046: a valid fixture fix-loop split passes; each broken clause is named", `.claude/hooks/tests/suites/review-mode-sections.test.cjs:539` "[review-mode-sections] TC-PDL-046: changes-review and workflow-review-changes read references/fix-loop.md first and retain guide fallbacks plus reminders", `.claude/hooks/tests/suites/review-mode-sections.test.cjs:554` "[review-mode-sections] TC-PDL-046: the suites that pin the moved fix-loop text and the wf-cycle verifier pass" (written in P40, never executed; not run at the final gate)
 
 ---
 
@@ -4642,7 +4647,7 @@ When it is built
 Then the reviewer injection template byte-matches the canonical body, with all eleven protocol sections and their bodies and none replaced by a path
 When the start steps are read
 Then the review workflow names that file and says to copy it wholesale
-And the change review still holds the full template inline, equal to canonical, and says to copy it wholesale
+And the change review guide points to that complete canonical template and its spawn step says to copy it wholesale, never summarize or drop a section
 ```
 
 **Expected Result:**

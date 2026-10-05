@@ -12,6 +12,22 @@
 - MUST ATTENTION keep claims evidence-based (`file:line`) with confidence >80% to act.
 - MUST ATTENTION keep task tracking updated as each step starts/completes.
 
+<!-- SKILL-NAV:START -->
+## Contents
+
+- Prerequisites
+- Scope Mode (`--scope=`)
+- Steps
+- When to Use
+- Notes
+- Connectors (Auto-Run)
+- DB Performance Indexes
+- Auto-Connect After Build
+- Describe (AI-Friendly Command Reference)
+- Valid CLI Subcommands
+
+<!-- SKILL-NAV:END -->
+
 ## Prerequisites
 
 Requires Python 3.10+ on the machine. The graph tooling (`tree-sitter`, `tree-sitter-language-pack`, `networkx`) is installed by [Step 0](#step-0--install-the-graph-tooling-every-scope) on first use; session start installs it only while the graph is active.

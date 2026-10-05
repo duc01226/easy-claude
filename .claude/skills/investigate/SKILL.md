@@ -1,6 +1,6 @@
 ---
 name: investigate
-description: '[Fix & Debug] Use when a workflow step or the user asks for how an existing feature works (read-only code-flow trace) or --mode=debug: a bug''s root cause (reproduce, trace end-to-start). --mode=explain. Plans or decisions: understand.'
+description: '[Fix & Debug] Use when a workflow step or the user asks for read-only code-flow investigation. --mode=debug finds bug root causes; --mode=explain narrates purpose, flow and impact. Plans/decisions: understand.'
 version: 2.3.0
 ---
 
@@ -57,7 +57,7 @@ Detect the mode from the invocation arguments before any other work; do not load
 | `--mode=debug [bug description]` | Root-cause investigation of a bug: reproduce, trace end-to-start, hypothesis matrix, pinpoint the owning layer, `/why-review` validation; never patches code (`/fix` applies the fix). Formerly `/debug-investigate` | `references/mode-debug.md` |
 | `--mode=explain [target]` | One-way developer narrative (Purpose → How → Why → Impact) — [Mode: Explain](#mode-explain-developer-narrative) below | `references/investigate-skill-explain.md` |
 
-- **[BLOCKING]** When `--mode=debug`, read `references/mode-debug.md` in full FIRST; it replaces the default Phase 0 classification, Workflow and Output Format for the invocation (Phase 0 bug-type routing, reproduce, end-to-start trace, the `/why-review` Root Cause Validation gate, `/fix` hand-off). Workflow invocation (for example `workflow-bugfix`) returns the validated root cause to the parent; standalone ends with the `AskUserQuestion` next-step choice.
+- **[BLOCKING]** When `--mode=debug`, read `references/mode-debug.md` in full FIRST; it replaces the default Phase 0 classification, Workflow and Output Format for the invocation (Phase 0 bug-type routing, reproduce, end-to-start trace, the `/why-review` Root Cause Validation gate, `/fix` hand-off). Workflow invocation (for example `workflow-bugfix`) returns the validated root cause to the parent; standalone ends with the `ask user question tool` next-step choice.
 - `--mode=debug` and the default flow are separate invocations; the default flow never chains into the debug gate, and debug mode never relaxes the READ-ONLY or `file:line` evidence rules.
 
 ## Phase 0: Scope Classification

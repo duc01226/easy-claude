@@ -1,5 +1,5 @@
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
-**User questions:** Use ask user tool to ask user.
+**User questions:** Use ask user question tool to ask user. Resolve this generic term to the active harness's available native question tool.
 **Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
 **AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
 **Goal-driven execution:** Define success criteria first, loop until verified, and stop only when observable checks pass.

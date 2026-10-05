@@ -22,7 +22,6 @@ Use the current bucket indexes for discovery rather than copying a census into t
 | Context injection, protocol delivery, prompt history, workflow routing | `docs/specs/ContextDelivery/INDEX.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
 | Assistant session notifications | `docs/specs/Notifications/INDEX.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
 | Presentation deck standards | `docs/specs/Presentation/INDEX.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
-| Review preparation: exact targets, required rules, groups and provider authority | `docs/specs/WorkflowExecution/README.ReviewPreparation.md`; read `.claude/docs/review-preparation.md` for execution/configuration Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
 | Guided workflow execution | `docs/specs/WorkflowExecution/INDEX.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
 
 The Adoption router currently links the ADS continuation without the main owner; use the explicit main path above until regenerated through the spec index owner. There is no product app/service mapping to infer: the configured modules are framework libraries.
@@ -67,7 +66,6 @@ Local capability codes are discoverable through owner frontmatter and bucket ind
 | PDL | Protocol Delivery | `docs/specs/ContextDelivery/README.ProtocolDelivery.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
 | SPL | Session Prompt Ledger | `docs/specs/ContextDelivery/README.SessionPromptLedger.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
 | WFR | Workflow Routing | `docs/specs/ContextDelivery/README.WorkflowRouting.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
-| RVP | Review Preparation | `docs/specs/WorkflowExecution/README.ReviewPreparation.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
 | GWF | Guided Workflow Execution | `docs/specs/WorkflowExecution/README.GuidedWorkflow.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
 | NT | Assistant Session Notifications | `docs/specs/Notifications/README.AssistantSessionNotifications.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
 | PD | Presentation Decks | `docs/specs/Presentation/README.PresentationDecks.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
@@ -89,8 +87,6 @@ For each claimed case, resolve the canonical owner and TC, inspect its precondit
 For example, `docs/specs/Adoption/README.SkillActivationPolicy.md` TC-SAP-003 links to the registered suite case at `.claude/hooks/tests/suites/skill-activation-policy.test.cjs:98`: a restricted fixture enters the real host launchers, and assertions check the emitted human-choice and authorization conditions. The suite runner discovers files and awaits test callbacks at `.claude/hooks/tests/run-all-tests.cjs:100-109,125-145`. These paths explain how to trace evidence; their existence does not establish a current passing result. Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location.
 
 Read `docs/project-reference/integration-test-reference.md` when choosing the test runner and isolation contract. Read `.claude/skills/spec/references/sync.md` when reconciling coverage or unmatched behavior, and `docs/project-reference/workflow-spec-test-code-cycle-reference.md` when coordinating behavior, specs, tests and derived views. Default-root example; `docsRoots.projectReference.path` in `docs/project-config.json` overrides this location.
-
-The newer RVP owner is a provisional draft with Planned cases; its guidance and source joins do not establish observed execution. Read `docs/specs/WorkflowExecution/README.ReviewPreparation.md` when reviewing that capability’s intent and case coverage. Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location.
 
 ## Coverage Gaps & Quality Limits
 

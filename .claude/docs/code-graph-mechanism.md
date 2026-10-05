@@ -6,7 +6,7 @@
 
 The Code Review Graph builds a **persistent knowledge graph** of your codebase using Tree-sitter **AST (Abstract Syntax Tree)** parsing — a technique that reads source code structure (functions, classes, imports) without executing it, similar to how a compiler understands your code. It stores functions, classes, imports, calls, inheritance, and test relationships in a SQLite database. When you make changes, it can compute a **blast radius** — the set of files, functions, and tests affected by your change (borrowed from incident response: "how far does the damage spread?").
 
-> **On-demand structural context.** Structural context is obtained on demand through the `graph-code` skill (modes `trace`, `blast-radius`, `query`, `build`, `connect-api`) and the `python .claude/scripts/code_graph` CLI, which Claude/Codex may use as optional advice (see `.claude/skills/shared/protocols/graph-assisted-investigation.md`). The graph DB is kept fresh automatically by `graph-auto-update.cjs` (PostToolUse).
+> **On-demand structural context.** Structural context is obtained on demand through the `graph-code` skill (modes `trace`, `blast-radius`, `query`, `build`, `connect-api`, `export`) and the `python .claude/scripts/code_graph` CLI, which Claude/Codex may use as optional advice (see `.claude/skills/shared/protocols/graph-assisted-investigation.md`). The graph DB is kept fresh automatically by `graph-auto-update.cjs` (PostToolUse).
 
 > **Advisory only — never required.** Optional: when grep and reading files alone may not reveal a high-risk blast radius (shared contract, many callers, cross-module/cross-service flow, public API), the code graph (`.code-graph/graph.db`) can add callers, dependents and impacted tests. Treat it as a hint, NOT proof: the graph can be stale or incomplete (it lags uncommitted edits and unindexed paths) — verify anything that matters by reading the files/grep. Skip it for low-risk or local changes.
 
@@ -464,7 +464,7 @@ The BFS trace algorithm (`tools.py:trace_connections`) follows both structural e
 | `graph-code --mode=blast-radius` | Analyze structural impact of changes                                                                                                                                                               |
 | `graph-code --mode=query`        | Natural language graph queries (8 query patterns)                                                                                                                                                  |
 | `graph-code --mode=connect-api`  | Detect frontend-backend API connections via graph                                                                                                                                                  |
-| `graph-export`                   | Export graph to JSON (`--format=json`) or single-file Mermaid diagram (`--format=mermaid`)                                                                                                         |
+| `graph-code --mode=export`                   | Export graph to JSON (`--format=json`) or single-file Mermaid diagram (`--format=mermaid`)                                                                                                         |
 
 **Skills with graph integration** (RECOMMENDED if graph.db exists):
 investigate, debug, code-quality-review, changes-review, production-readiness-review
@@ -599,7 +599,7 @@ sequenceDiagram
 | `/graph-code --mode=build`                 | Builds the knowledge graph from scratch or updates incrementally                                |
 | `/graph-code --mode=blast-radius`          | Direct blast radius analysis — shows impacted files, functions, test gaps                       |
 | `/graph-code --mode=query`                 | Natural language queries: "who calls login?", "tests for AuthService?"                          |
-| `/graph-export`                | Export full graph to JSON (`--format=json`) or single-file Mermaid diagram (`--format=mermaid`) |
+| `/graph-code --mode=export`                | Export full graph to JSON (`--format=json`) or single-file Mermaid diagram (`--format=mermaid`) |
 | `/graph-code --mode=connect-api`           | Detect frontend-backend API connections via graph edges                                         |
 | `/code-quality-review`                 | Auto-receives blast radius context when graph exists                                            |
 | `/investigate`                 | Auto-receives structural overview when graph exists                                             |

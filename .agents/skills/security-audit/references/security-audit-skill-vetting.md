@@ -2,7 +2,7 @@ Read in full when D4 is selected by the security-audit scope. The parent skill o
 
 ### D4 — Third-Party Repository / Package Vetting (BEFORE INSTALL — MANDATORY GATE)
 
-> Lesson learned the hard way: installing dozens of free GitHub repos on a VPS got one user a rootkit, rogue users, and hidden SSH backdoors. Free ≠ safe. **Vet BEFORE the first `npm install`, `pip install`, `docker compose up`, or `./install.sh` — install-time is infection-time.**
+> **Vet BEFORE the first `npm install`, `pip install`, `docker compose up`, or `./install.sh` — install-time is infection-time.** Free availability does not establish trust.
 
 **Static inspection (no execution):**
 

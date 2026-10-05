@@ -4,9 +4,8 @@
 
 # WorkflowExecution — Bucket Index
 
-Read the linked capability when selecting workflow execution, completion proof or review preparation behavior.
+Read the linked capability when selecting workflow execution or completion proof.
 
 | Capability | Feature Code | Status | Spec |
 | --- | --- | --- | --- |
 | Guided Workflow Execution | GWF | draft | [README.GuidedWorkflow.md](README.GuidedWorkflow.md) |
-| Review Preparation | RVP | draft | [README.ReviewPreparation.md](README.ReviewPreparation.md) |

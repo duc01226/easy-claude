@@ -1,9 +1,29 @@
 ---
 name: workflow-idea-to-pbi
 version: 3.0.0
-description: '[Workflow] Use when turning an idea or product vision into prioritized PBIs and stories (single-PBI deep mode or multi-opportunity discovery).'
+description: "[Workflow] Turn a product idea into a reviewed, prioritized, Definition-of-Ready PBI and story backlog; stop before implementation."
 disable-model-invocation: false
 ---
+
+<!-- WORKFLOW-CALLS:START -->
+## Workflow Calls and Todo Bootstrap
+
+Read [the registry](../../../.claude/workflows.json) → `workflows.workflow-idea-to-pbi` together with this skill. Call [`/start-workflow workflow-idea-to-pbi`](../start-workflow/SKILL.md) to resolve the selected mode, pre-actions and fingerprint.
+
+**Todo FIRST:** create ALL selected occurrence tasks before triage, analysis or step execution, including conditional/optional tasks; preserve occurrence IDs, roles and barrier groups. Use native task tools or an equivalent persistent ledger. Then mark the first task `in_progress`; attach evidence before `completed`.
+Mode selection and registry loading prepare tracking; any 'first action' below means the first substantive action after this bootstrap.
+
+**Call each step skill:** read its linked SKILL.md and execute its protocol through the active host with the registry args. Reading or naming a skill alone is not execution. Required gates and core/optional flex follow the linked start-workflow Step Execution Protocol; keep this skill's quality gates, loops and evidence requirements.
+
+**Conditions:** load each occurrence's registry `applicability.when` and `skipReason` verbatim, and record its run/skip evidence through the linked start-workflow protocol. Do not silently omit a task or turn a conditional skill into an unconditional call. Declared parallel groups retain their all-return barrier.
+
+Explicit step-skill calls by mode (registry order; roles and conditions remain owned by the registry):
+
+- Mode `default`: [`/web-research`](../web-research/SKILL.md) (optional; conditional) → [`/source-deep-dive`](../source-deep-dive/SKILL.md) (optional; conditional) → [`/brainstorm`](../brainstorm/SKILL.md) (optional; conditional) → [`/idea`](../idea/SKILL.md) (core) → [`/spec [mode=discovery]`](../spec/SKILL.md) (optional; conditional) → [`/pbi --mode=review`](../pbi/SKILL.md) (optional; conditional) → [`/pbi --mode=refine`](../pbi/SKILL.md) (core) → [`/why-review`](../why-review/SKILL.md) (core) → [`/spec [mode=draft]`](../spec/SKILL.md) (optional; conditional) → [`/spec [mode=tests]`](../spec/SKILL.md) (optional; conditional) → [`/pbi --mode=review --type=spec-tests`](../pbi/SKILL.md) (optional; conditional) → [`/spec [mode=clarify]`](../spec/SKILL.md) (optional; conditional) → [`/scenario`](../scenario/SKILL.md) (optional; conditional) → [`/domain-analysis`](../domain-analysis/SKILL.md) (optional; conditional) → [`/why-review`](../why-review/SKILL.md) (optional; conditional) → [`/plan`](../plan/SKILL.md) (optional; conditional) → [`/plan --mode=validate`](../plan/SKILL.md) (optional; conditional) → [`/pbi --mode=review --type=pbi`](../pbi/SKILL.md) (gate) → [`/pbi --mode=story`](../pbi/SKILL.md) (core) → [`/pbi --mode=review --type=story`](../pbi/SKILL.md) (core) → [`/pbi --mode=challenge --reuse=pbi-review`](../pbi/SKILL.md) (core) → [`/pbi --mode=dor --reuse=pbi-review`](../pbi/SKILL.md) (gate) → [`/pbi --mode=mockup --explore`](../pbi/SKILL.md) (optional; conditional) → [`/design-spec`](../design-spec/SKILL.md) (optional; conditional) → [`/prioritize`](../prioritize/SKILL.md) (optional; conditional) → [`/docs-manager --mode=update`](../docs-manager/SKILL.md) (core) → [`/feature-presentation`](../feature-presentation/SKILL.md) (optional; conditional) → [`/workflow-end`](../workflow-end/SKILL.md) (gate) → [`/watzup`](../watzup/SKILL.md) (core)
+<!-- workflow-mode:default fingerprint:f34225e773bccfd2ed8574b9bb9361305381d2d3e310a613d05334c3f9a01734 -->
+
+Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs --write` after registry edits; [`/sync-codex`](../sync-codex/SKILL.md) refreshes it before mirroring.
+<!-- WORKFLOW-CALLS:END -->
 
 ## Quick Summary
 
@@ -21,7 +41,7 @@ disable-model-invocation: false
 
 Classify before choosing steps; write the result as the first section of the run report.
 
-1. **Track** — one concrete idea/ticket/brief → **Single-PBI**; a vision/problem spanning several independent opportunities → **Multi-Opportunity**. Ambiguous → ask via `AskUserQuestion` before any step.
+1. **Track** — one concrete idea/ticket/brief → **Single-PBI**; a vision/problem spanning several independent opportunities → **Multi-Opportunity**. Ambiguous → ask via `ask user question tool` before any step.
 2. **Size** (guidance, not a law) — **XS/S**: one actor, one journey, evident acceptance criteria, no new domain entity, no open decision · **M**: one PBI with domain, UI or cross-module reach, or unresolved decisions · **L/XL**: several PBIs, multi-capability or release-scope.
 3. **Kinds** — existing PO artifact supplied · new or reshaped UI surface · domain entity change · market uncertainty · security/PII/money · cross-module.
 4. **Large idea** — `isLargeIdea = multipleIndependentOutcomes || ambiguousOrResearchHeavy || releaseScopeDecomposition || oversizedPbiThatMustSplit`. True → the owning PBI/spec carries the complete `large_idea_decomposition` block (`outcome_slices`, `dependencies_order`, `non_goals`, `risks_evidence`, `deferred_work_owner`) and downstream stories, mockups and the deck inherit it read-only; all-false → omit the block. A genuinely isolated change records `Decomposition Applicability: EXEMPT` with reason and accepting owner. Never create the product-roadmap artifact (default `docs/product-roadmap.md`; `docsRoots.productRoadmap.path` in `docs/project-config.json` overrides) — only an explicit roadmap request routes to the standalone `product-roadmap` skill; a supplied roadmap is read-only context.
@@ -93,7 +113,7 @@ The `idea-to-pbi-mockup` step runs `/pbi --mode=mockup --explore` after `/pbi --
 ## Multi-Opportunity Loop
 
 1. `/brainstorm` (Double Diamond) writes the RICE-scored opportunity map to `{plan-dir}/brainstorm-opportunity-map.md` under the plans root (default `plans/`; `docsRoots.plans.path` in `docs/project-config.json` overrides).
-2. `AskUserQuestion` with `multiSelect: true`: "Which opportunities should we develop into PBIs?"
+2. `ask user question tool` with `multiSelect: true`: "Which opportunities should we develop into PBIs?"
 3. Opportunity-map why-review: are the top opportunities the right problems, are Reach/Impact founded, pre-mortem, systemic alternatives. FAIL on a high-ranked item → drop it or reframe; WARN → proceed with user acknowledgment.
 4. Create every loop task up front — one task per loop step per selected opportunity — before processing any opportunity.
 5. **Per-opportunity PBI loop:** `/idea` → `/pbi --mode=refine` → `/pbi --mode=review --type=pbi` → `/pbi --mode=story` → `/pbi --mode=review --type=story` → `/pbi --mode=challenge` → `/pbi --mode=dor` → `/pbi --mode=mockup --explore` → `/design-spec` (UI steps skip for backend-only PBIs; the scope gate and the explore pick are the user's, per PBI). When opportunities run as sub-agents, each sub-agent stops after `/pbi --mode=dor`; the main session then runs `/pbi --mode=mockup --explore` (scope gate + pick) and `/design-spec` for each UI PBI, because a sub-agent cannot ask the user. Draft spec, test specs, spec [mode=clarify], scenario and the plan cycle never run per opportunity.
@@ -117,7 +137,7 @@ Each PBI carries: title, problem statement, hypothesis, GIVEN/WHEN/THEN acceptan
 - **Orchestration freedom:** choose inline vs sub-agent, batching and order to minimize wall-clock and tokens at equal quality. XS/S work runs inline; with 6+ selected opportunities spawn one sub-agent per opportunity (brainstorm context + its task list) and keep `/prioritize` in the main context, updating a summary table every 3 opportunities. Fixed dependencies: an artifact exists before it is reviewed; the draft spec and its test specs are reviewed and clarified before the PBI is derived from them; DoR passes before the mockup is finalized; `/docs-manager --mode=update` follows `/prioritize`; gates awaiting user answers are never parallelized; `/workflow-end` runs last. When `/prioritize` changes a PBI's rank after its mockup was built, refresh the mockup's priority badge.
 - **Memory:** one task per selected step (per opportunity in the loop). Create `tmp/reports/workflow-idea-to-pbi-{YYMMDD}-{HHmm}-{slug}.md` first, append after every step, and re-read it plus `TaskList` after compaction. Sub-agent briefs make report writing their first deliverable.
 - **Fix path:** findings are validated before fixing; fix in the owning artifact (`/pbi --mode=refine` for the PBI, `/spec` for TCs, `/pbi --mode=story` for stories) and re-run the reviewer that raised it.
-- **Loop bounds:** round 1 zero open findings (Round-1 LOW closure), or round 2 zero CRITICAL/HIGH/MEDIUM with LOWs deferred; cap 3 review rounds; on no progress escalate via `AskUserQuestion`.
+- **Loop bounds:** round 1 zero open findings (LOW deferral), or round 2 zero CRITICAL/HIGH/MEDIUM with LOWs deferred; cap 3 review rounds; on no progress escalate via `ask user question tool`.
 
 ---
 

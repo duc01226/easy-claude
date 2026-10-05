@@ -1,28 +1,29 @@
 ## Mode: Review (seed-data convention audit)
 
-> **Invoke with `--mode=review`.** READ-ONLY audit of a seeder target against EVERY [Universal Seed Data Rule](../SKILL.md#universal-seed-data-rules) AND the project-specific seeder conventions. Produces a per-principle PASS/FAIL with `file:line` evidence. This mode makes **NO code changes** — it reports findings and routes confirmed defects back to Generate mode for the fix.
+> **Read when `--mode=review` is selected or Generate reaches self-audit.** Audit every [Universal Seed Data Rule](../SKILL.md#universal-seed-data-rules) and project seeder convention with per-item evidence. Review is read-only; report confirmed defects to Generate for correction, then re-audit.
 
 ### R0 — Resolve the review target
 
-Determine WHAT to review, in priority order:
+Resolve the target in this order:
 
-1. **Explicit target in the user prompt** — a named seeder file / class / feature area → review exactly that.
-2. **Else → current changes** — `git diff --name-only` plus staged (`git diff --cached --name-only`) and untracked, filtered to seeder files using the discovered seeder naming (Step 1 / reference doc). Review every changed or added seeder.
-3. **Else → current work-context result** — the seeder(s) created or edited earlier in THIS session / work context.
+1. **Explicit target** — review exactly the named seeder file, class or feature area.
+2. **Current changes** — use `git diff --name-only`, `git diff --cached --name-only` and untracked files, filtered by discovered seeder naming. Review every changed or added seeder.
+3. **Work-context result** — seeders created or edited earlier in this session/work context.
 
-If none resolve → ask the user which seeder to review. NEVER assume a target.
+If none resolves, ask which seeder to review; never assume a target.
 
 ### R1 — Read the conventions BEFORE reviewing (BLOCKING)
 
-MUST ATTENTION read, in full, before forming ANY verdict:
+Before any verdict, read in full:
 
-- `seed-test-data-reference.md` (project-reference docs root — default `docs/project-reference/`; path from `docsRoots.projectReference.path` in `docs/project-config.json`) — project seeder locations, base class, env-gate key, count config key, DI/UoW scope strategy, Required Patterns, Verification Checklist.
-- `docs/project-config.json` → `Data Seeders` context group — configured source roots, naming conventions, run commands.
-- The [Universal Seed Data Rules](../SKILL.md#universal-seed-data-rules) (1–8) in this skill — the principles being graded.
-- The target seeder file(s) themselves — re-read in full; NEVER review from memory.
-- Step 1 discovery: confirm the project's ACTUAL seeder base class, env-gate key, and count key with `file:line` — the review grades against THESE, not generic defaults.
+- `seed-test-data-reference.md` under the resolved project-reference root (default `docs/project-reference/`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it): locations, base/interface, environment/count keys, DI/UoW lifetime, Required Patterns and Verification Checklist.
+- The loader-selected project config → `Data Seeders` context group: source roots, naming and run commands.
+- [Universal Seed Data Rules](../SKILL.md#universal-seed-data-rules): the graded principles.
+- Every target seeder: re-read it; never review from memory.
 
-> If the reference doc is still a skeleton (`TODO` placeholders), say so explicitly, grade against discovered `file:line` conventions instead, and raise the missing/incomplete project reference as its own finding.
+Apply Generate's **Discover conventions** step: confirm the actual seeder base/interface, environment gate and count key with `file:line`. Grade these discovered owners, not generic defaults.
+
+> A skeleton reference (`TODO` placeholders) requires an explicit missing/incomplete-reference finding; grade against discovered `file:line` conventions instead.
 
 ### R2 — Review checklist (grade EVERY item: `file:line` evidence or FAIL)
 
@@ -54,17 +55,16 @@ MUST ATTENTION read, in full, before forming ANY verdict:
 Per item: **PASS / FAIL / N/A** with `file:line` evidence and confidence (>80% required to assert a FAIL; <60% → "insufficient evidence", verify before grading). Overall verdict is **PASS only if ZERO universal-rule FAILs**.
 
 - **PASS** → report the evidence table; if idempotency/count tests are absent, suggest `$integration-test`.
-- **FAIL** → list each violation with the responsible `file:line` and the correct pattern (from the [Anti-Patterns](../SKILL.md#anti-patterns) table / reference doc). Route the fix back through **Generate mode** (Phase 0 → "Fix broken"); after the fix lands, RE-RUN `--mode=review` over the changed code. NEVER edit the seeder inside review mode.
+- **FAIL** → list each violation, responsible `file:line` and correct pattern from [Anti-Patterns](../SKILL.md#anti-patterns) or the reference doc. Hand confirmed defects to Generate's **Classify** step as broken seeders; re-run `--mode=review` after correction. Never edit the seeder in Review.
 
 ### Review-mode task plan (task tracking — required)
 
-1. Resolve the review target (prompt → current changes → work-context).
-2. Read `seed-test-data-reference.md` + project-config `Data Seeders` group + Universal Rules + the target file(s).
-3. Discover/confirm base class, env-gate key, count key with `file:line` evidence.
-4. Grade every universal + project-specific checklist item (R2).
-5. Produce the PASS/FAIL verdict with per-item `file:line` evidence (R3).
-6. If FAIL → hand confirmed defects to Generate mode and re-review after the fix; else report PASS + next-step suggestion.
+1. Resolve the target (R0).
+2. Read the conventions, config, rules and targets (R1).
+3. Confirm base/interface, environment gate and count key with `file:line` (R1).
+4. Grade every universal and project item (R2).
+5. Report the verdict with per-item evidence (R3).
+6. Hand confirmed FAILs to Generate and re-review after correction; otherwise report PASS and next-step suggestion (R3).
 7. Analyze AI mistakes & lessons learned.
 
 ---
-

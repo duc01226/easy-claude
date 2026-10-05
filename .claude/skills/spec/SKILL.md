@@ -1,7 +1,7 @@
 ---
 name: spec
 version: 6.0.0
-description: '[Documentation] Use when a workflow step or the user asks for spec authoring, auditing, amending, test-speccing, reconciling, or [mode=discovery|clarify|index]: pre-spec landscape, user-confirmed decisions, derived index/ERD.'
+description: '[Documentation] Use when a workflow step or the user asks for canonical feature specs and test scenarios: author, audit, amend, tests and sync. discovery maps overlaps; clarify confirms decisions; index derives navigation/ERD.'
 triggers: 'feature spec, feature documentation, create feature doc, update feature doc, business feature documentation, audit feature spec, amend feature spec, spec from idea, generate spec from requirements, draft feature spec from prompt, idea to spec, requirements to spec, tdd spec, tdd test, test driven, write test specs, create test cases, update test specs, test specifications for feature, test spec for feature, sync test specs, generate test specs from code, update test specs after changes, test specs from PR, test specs from pull request, code to test specs, sync tests, reconcile tests with code, sync test specs to integration tests, spec discovery, related specs, overlapping specs, duplicate spec check, pre-spec landscape, invariant landscape, scope decision new extend split, spec clarify, clarify spec decisions, validate spec decisions with user, spec gap review, unresolved spec intent, spec index, derived spec index, spec navigation index, cross-capability ERD, reimplementation guide, audit derived spec index, refresh spec index'
 ---
 
@@ -14,7 +14,7 @@ triggers: 'feature spec, feature documentation, create feature doc, update featu
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:END -->
 
-> **[BLOCKING] Mode routing — detect FIRST.** An explicit `[mode=discovery]`, `[mode=clarify]` or `[mode=index]` selects that mode; `/spec [mode=discovery]`, `/spec [mode=clarify]` and `/spec [mode=index]` are the former `/spec-discovery`, `/spec-clarify` and `/spec-index`: those slash commands no longer exist, and each mode works called directly with no workflow. Read the mode file in full before anything else (see [Modes](#modes-resolve-mode-first--blocking)); it REPLACES the authoring body of this file for the invocation, so the Artifact Root and Profile Resolution, Applicability and Decomposition Gate, Strict Default rules and Next Steps below do not apply to those three modes (each mode file carries its own gates). The other modes (`draft`, `init`, `update`, `audit`, `amend`, `tests`, `sync`) run the body below.
+> **[BLOCKING] Mode routing — detect FIRST.** Read the selected reference in full before acting (see [Modes](#modes-resolve-mode-first--blocking)). `discovery`, `clarify`, and `index` replace this file's authoring body: its Artifact Root and Profile Resolution, Applicability and Decomposition Gate, Strict Default rules and Next Steps do not apply to them; their references own those gates. The other seven modes run the body below. Every mode works directly without a workflow.
 
 ## Quick Summary
 
@@ -22,26 +22,21 @@ triggers: 'feature spec, feature documentation, create feature doc, update featu
 
 **[IMPORTANT] TaskCreate** — Break ALL work into small tasks BEFORE starting. For simple tasks, ask user whether to skip.
 
-**Goal:** Own the spec lifecycle across seven authoring/test/sync modes (plus the read/gate/derive modes `discovery`, `clarify` and `index`, whose files load on demand) — author the canonical project artifact, capture testable scenario intent in its declared carrier, and reconcile cases to tests and code. **MUST ATTENTION** resolve the project profile before applying a format. The eight-section/TC model remains the strict default; a declared native profile owns its existing identifiers, sections, carriers, and cardinality without a duplicate registry. Every profile keeps the applicable shared semantic, evidence, execution, and review gates.
+**Goal:** Author canonical feature intent and test scenarios, then reconcile them with tests and code using the project's declared artifact profile.
 
-**Summary:**
-
-- **Main steps:** **MUST ATTENTION** resolve mode → resolve artifact root/type/profile from project config and references → read the matching author/tests/sync body → run applicability/decomposition gate → track and execute that profile's procedure → verify evidence and execution status → cross-service check → reconcile without replacing canonical owner content.
+**Summary:** Resolve mode → root/type/profile → matching reference → applicability/decomposition → tracked execution → evidence/results → cross-service check → reconciliation and derived-refresh flag. `discovery`, `clarify`, and `index` use their own reference gates; the other seven modes use this body. Native profiles preserve their owner, IDs, carriers and cardinality; the eight-section/TC model applies only without an explicit native contract.
 
 **Workflow:**
 
-- **Purpose:** one skill owns `draft | init | update | audit | amend | tests | sync`, selecting the canonical artifact profile before applying representation-specific rules.
-- **Main steps (every run):** (1) **MUST ATTENTION** resolve mode FIRST — explicit `[mode=<x>]` wins, else infer from request + repo state, ambiguous → `AskUserQuestion` before any mutating mode; (2) resolve the project root, artifact type, profile, owner, and configured identifiers/carriers; (3) read required project references and the matching `references/{author,tests,sync}.md` body — NEVER run a mode from memory; (4) classify large-idea applicability; (5) `TaskCreate`-break the work before starting; (6) execute the selected profile's procedure and semantic gates; (7) cross-service check before concluding.
-- **Semantic floor:** **MUST ATTENTION** enforce applicable M1-M7, evidence, testability, property/boundary, preservation, actual-execution, operation-authority, and drift gates for every profile. A representation change never waives these obligations. — why: traceable intent must survive changes in format or test topology.
-- **Strict default representation:** **MUST ATTENTION** use the tech-free eight-section Feature Spec and `TC-{FEATURE}-{NNN}` registry in Section 8 only when no native case profile is explicitly declared; preserve its canonical source, `[Source:]` evidence, and no-overwrite rules.
-- **Native representation:** **MUST ATTENTION** use the project's declared section roles, logical IDs, owner rule, case carriers, and cardinality. For executable coverage, link each owner/scenario/variant to its executor, inspected assertion, observed runner result, source evidence, and reconciliation state. Use a manual-QC path only when the profile explicitly authorizes it, with its approved procedure and observed evidence; never label that result runner-executed. Never add a TC/Section 8 side registry to mirror native cases.
-- **Derived outputs:** `INDEX.md`/ERDs remain derived; flag required refresh, but never trigger `[mode=index]` from an authoring mode. — why: derived views cannot become competing sources of truth.
-- **[BLOCKING]** Apply `isLargeIdea = multipleIndependentOutcomes || ambiguousOrResearchHeavy || releaseScopeDecomposition || oversizedPbiThatMustSplit` before authoring. A true signal requires the complete `large_idea_decomposition` block with stable outcome slices, dependency order, non-goals, risks/evidence, and deferred-work owners; an all-false idea omits the block and roadmap/milestone placeholders. Only an explicit roadmap request uses the standalone roadmap branch; unresolved product terms or missing decomposition owners stop authoring. — why: a technically complete spec can still encode the wrong product boundary.
+1. **Resolve mode first.** Explicit `[mode=<x>]` wins; otherwise infer from request and repository state. Ask before proceeding when ambiguous; never auto-start a mutating mode.
+2. **Resolve context and load the body.** Read required project references, resolve root/type/profile/owner/identifiers/carriers, and read the matching mode reference in full. Never run a mode from memory.
+3. **Apply gates and execute.** Classify large-idea applicability, break work into tracked tasks, and follow the selected profile's procedure. Preserve applicable M1–M7, evidence, testability, property/boundary, preservation, execution, authority, drift and review gates across representations.
+4. **Verify and reconcile.** Trace actual executors, assertions and observed results; use manual-QC only when explicitly authorized, with its approved procedure and observed evidence, never labeled runner-executed. Run the applicable cross-service check. Preserve canonical content; flag derived INDEX/ERD refresh without invoking `[mode=index]` from an authoring mode.
 
 **Key Rules:**
 
 - **AI surface?** Only if the spec adds or changes a model call, prompt, agent, tool/MCP, retrieval or eval (see `node .claude/scripts/ai-signal-scan.cjs`): read `.claude/skills/shared/protocols/ai-feature-framing-gate.md` and write its quality bar and failure behavior as cases; otherwise skip this line.
-- Resolve the mode and artifact profile and read its matching reference body before any mutation; ambiguous mode → `AskUserQuestion`, invalid/conflicting profile → `UNKNOWN`/`BLOCKED`.
+- Resolve the mode and artifact profile and read its matching reference body before any mutation; ambiguous mode → `ask user question tool`, invalid/conflicting profile → `UNKNOWN`/`BLOCKED`.
 - Keep the canonical owner and identifiers authoritative; never create duplicate case registries or overwrite existing owner content during `update`.
 - Apply the shared AI-SDD/large-idea gates, cross-service check, evidence rules, and review/sync boundaries before concluding.
 
@@ -76,8 +71,6 @@ Read `.claude/skills/shared/product-roadmap-contract.md` before creating, updati
 
 This gate is product-level and does not relax applicable intent-quality rules in the selected profile. Explicit roadmap references belong only in the explicit branch; embedded decomposition fields belong in the owning artifact; business outcomes, definitions, and boundaries belong in the canonical sections.
 
-> **Renamed:** formerly `/feature-spec` (and earlier `/feature-docs`); the former `/spec-tests` skill is now folded in as `mode=tests` / `mode=sync`, and the former `/spec-discovery`, `/spec-clarify` and `/spec-index` skills as `mode=discovery` / `mode=clarify` / `mode=index`. Those names no longer resolve as slash commands — use `/spec` with the matching mode.
-
 ### Modes (resolve mode FIRST — BLOCKING)
 
 | Mode     | Use when…                                                                                                                                       | Body                   |
@@ -85,22 +78,26 @@ This gate is product-level and does not relax applicable intent-quality rules in
 | `draft`  | Author a provisional artifact from an idea/requirement/prompt — **no code yet**; evidence and provisional fields follow the selected profile | `references/author.md` |
 | `init`   | No canonical owner exists under the configured business root; author the selected profile's artifact from source | `references/author.md` |
 | `update` | Docs exist + code changed — section-impact-mapped updates                                                                                       | `references/author.md` |
-| `audit`  | `--audit` flag or user asks — staleness report per section (never mutates docs)                                                                 | `references/author.md` |
+| `audit`  | `--audit` flag or user asks — staleness report per section (never mutates docs)                                                                 | [references/author.md](references/author.md#mode-audit-staleness-detection) |
 | `amend`  | `[mode=amend]` from the bugfix workflow — minimal owner-scoped intent/contract/scenario touch under the selected profile | `references/author.md` |
 | `tests`  | Generate or update canonical test scenarios under the selected profile (strict default: Section 8 TCs) | `references/tests.md`  |
 | `sync`   | Reconcile canonical owner/cases ↔ executing test code using the selected profile (forward/reverse/harvest/orphan/staleness) | `references/sync.md`   |
-| `discovery` | Before authoring a NEW spec: related/overlapping/affected specs, related code, gaps, invariant landscape, then a BLOCKING scope decision (NEW / EXTEND / SPLIT); `--investigation=<report path>` reuses a same-run investigate report. Formerly `/spec-discovery` | `references/mode-discovery.md` |
-| `clarify` | After a spec exists: completeness vs the discovered system + BLOCKING user confirmation of every non-obvious or conflicting decision; blocks on unresolved intent. Formerly `/spec-clarify` | `references/mode-clarify.md` |
-| `index`  | Regenerate (or `audit` for staleness) DERIVED navigation aids — index, cross-capability ERD, reimplementation guide — FROM canonical specs only; `action=index\|audit` or `--audit`. Formerly `/spec-index` | `references/mode-index.md` |
+| `discovery` | Before authoring a NEW spec: related/overlapping/affected specs, related code, gaps, invariant landscape, then a BLOCKING scope decision (NEW / EXTEND / SPLIT); `--investigation=<report path>` reuses a same-run investigate report. | `references/mode-discovery.md` |
+| `clarify` | After a spec exists: completeness vs the discovered system + BLOCKING user confirmation of every non-obvious or conflicting decision; blocks on unresolved intent. | `references/mode-clarify.md` |
+| `index`  | Regenerate (or `audit` for staleness) DERIVED navigation aids — index, cross-capability ERD, reimplementation guide — FROM canonical specs only; `action=index\|audit` or `--audit`. | [references/mode-index.md](references/mode-index.md) |
 
-- **[BLOCKING]** When `[mode=discovery]`, read `references/mode-discovery.md` in full FIRST; it runs INLINE (its scope gate is a BLOCKING `AskUserQuestion`), never authors or edits a spec, and keeps `--investigation=<report path>` as its optional input.
+- **[BLOCKING]** When `[mode=discovery]`, read `references/mode-discovery.md` in full FIRST; it runs INLINE (its scope gate is a BLOCKING `ask user question tool`), never authors or edits a spec, and keeps `--investigation=<report path>` as its optional input.
 - **[BLOCKING]** When `[mode=clarify]`, read `references/mode-clarify.md` in full FIRST (its interview catalog `references/clarify-interview.md` loads from it); it runs INLINE, blocks on unresolved intent, and returns `BLOCKED`/`NEEDS-CLARIFICATION` when the user cannot answer — never infer a decision.
-- **[BLOCKING]** When `[mode=index]`, read `references/mode-index.md` in full FIRST; it derives aids only from canonical specs, confirms scope/action/artifacts/destination via `AskUserQuestion` before reading spec bodies, and never writes canonical content. Its `audit` action (`action=audit` / `--audit`) is the derived-aid staleness report, never the spec `audit` mode.
+- **[BLOCKING]** When `[mode=index]`, read `references/mode-index.md` in full FIRST; it derives aids only from canonical specs, confirms scope/action/artifacts/destination via `ask user question tool` before reading spec bodies, and never writes canonical content. Its `audit` action (`action=audit` / `--audit`) is the derived-aid staleness report, never the spec `audit` mode.
+
+**Invocation names:** `/feature-spec` and `/feature-docs` do not resolve; use `/spec`. Use `/spec [mode=tests|sync]` for `/spec-tests`. For the former `/spec-discovery`, `/spec-clarify` and `/spec-index`: those slash commands no longer exist; use `/spec [mode=discovery]`, `/spec [mode=clarify]` and `/spec [mode=index]`, respectively.
+
+**Supporting references:** Read `references/clarify-interview.md` when running the clarify interview; it owns categories and question budgets. Read `references/spec-tests-template.md` before writing strict-default TCs; it owns the entry template, fidelity and preservation fields.
 
 **Mode resolution (do this before any work):**
 
 1. Parse the mode from the invocation: explicit `[mode=<x>]` arg wins; else infer from request + repo state ("overlap / related specs / duplicate-spec check before a new spec" → `discovery`; "validate or clarify spec decisions with the user / gap-review a spec" → `clarify`; "regenerate or audit the spec index / ERD / reimplementation guide" → `index`; "from idea/requirements/prompt", "draft spec", "no code yet" → `draft`; no canonical owner under the configured business root AND code exists to source from → `init`; docs exist + diff → `update`; "audit/stale" → `audit`; bugfix caller → `amend`; "write/update test specs" or the selected profile's case terms → `tests`; "sync tests" or reconcile canonical cases with tests → `sync`). **`draft` vs `init`:** both author a new artifact, but `draft` sources from idea/requirement text and records evidence/provisional state using the selected profile, while `init` sources from existing code. "No docs" alone does NOT imply `init` — check whether code exists to source from. Never overwrite existing owner content during `update`.
-2. If ambiguous, present the detected mode via `AskUserQuestion` before proceeding — NEVER auto-start a mutating mode.
+2. If ambiguous, present the detected mode via `ask user question tool` before proceeding — NEVER auto-start a mutating mode.
 3. **Read the matching `references/` body** — it is the single source of truth for that mode's procedure, gates, and output contract. Do not run a mode from memory.
 
 **Key Rules (all modes):**
@@ -115,7 +112,7 @@ This gate is product-level and does not relax applicable intent-quality rules in
 
 ### Strict Default 8-Section Feature Spec Rules (canonical reference)
 
-> Apply this section only after profile resolution selects the strict default. A native profile uses the matching native branch in the loaded mode body; it does not inherit this template's sections or case IDs.
+> **Strict default representation:** Apply this section only when no native case profile is explicitly declared in config or the required project references. A native profile uses the matching native branch in the loaded mode body; it does not inherit this template's sections or case IDs.
 
 **Format:** Tech-free 8-section Feature Spec. Activate the `/spec` skill before editing.
 
@@ -158,7 +155,7 @@ This skill owns the canonical artifact and cases selected by the active profile.
 
 ## Next Steps
 
-**[BLOCKING]** After completing, use `AskUserQuestion` to present options. Do NOT skip — user decides:
+**[BLOCKING]** After completing, use `ask user question tool` to present options. Do NOT skip — user decides:
 
 - **"/spec [mode=tests] (Recommended)"** — Generate/update the selected profile's canonical test scenarios (strict default: Section 8 TCs)
 - **"/spec [mode=sync]"** — Reconcile the selected profile's canonical cases with executing test code
@@ -176,14 +173,12 @@ This skill owns the canonical artifact and cases selected by the active profile.
 | `/spec [mode=clarify]`               | **Decision gate** — completeness vs the discovered system + user-confirmed non-obvious decisions | AFTER the spec and its cases are authored and reviewed |
 | `/pbi --mode=review --type=spec-tests` | **Reviewer** — audits scenario intent and coverage under the selected profile                                         | After `spec [mode=tests]`, to validate completeness and assertion-backed mappings                      |
 | `/integration-test`                  | **End consumer** — generates or updates executable tests from the selected profile's canonical scenarios             | After `spec [mode=tests]`, when code generation is the configured next step                             |
-| `/docs-manager --mode=update`                       | **Orchestrator** — calls this skill as Phase 2                                                                         | Run `/docs-manager --mode=update` for full chain sync; it calls `/spec` internally                                    |
+| `/docs-manager --mode=update`                       | **Orchestrator** — routes canonical feature intent to this skill                                                                         | Run `/docs-manager --mode=update` for full chain sync; it calls `/spec` internally                                    |
 | `/changes-review`                    | **Trigger** — detects feature doc staleness                                                                            | Calls `/docs-manager --mode=update` when a business doc is stale relative to code changes                             |
 
 ---
 
-> **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
-
-> **Profile adapter:** For a native profile, carry this UI intent in the declared native intent/acceptance section and keep its existing identifiers; do not add the strict-default section number or a parallel UI-spec artifact.
+> **[IMPORTANT]** Track small tasks before work, including each file read and final review. On context loss, inspect existing tasks before creating more. For simple tasks, ask whether to skip.
 
 <!-- PROTOCOL-GUIDES:START -->
 
@@ -191,15 +186,12 @@ This skill owns the canonical artifact and cases selected by the active profile.
 
 - `cross-service-check` — Scan producers, consumers, sagas and shared contracts for cross-service impact; concluding an investigation, plan or spec in a service-based system → .claude/skills/shared/protocols/cross-service-check.md
 - `evidence-based-reasoning` — Ground every material claim in file:line, config or source evidence, with stated confidence; making any claim, finding or recommendation → .claude/skills/shared/protocols/evidence-based-reasoning.md
+- `review-decision-autonomy` — Choose supported review decisions and ask before extending the round budget; running any review or audit skill or mode → .claude/skills/shared/protocols/review-decision-autonomy.md
 - `spec-drift-adjudication` — Decide code-wrong versus spec-stale from evidence, never silently; behavior diverges from its spec → .claude/skills/shared/protocols/spec-drift-adjudication.md
 - `spec-tests-code-triangulation` — Review spec, tests and code together for mutual consistency first; reviewing behavior that has a spec → .claude/skills/shared/protocols/spec-tests-code-triangulation.md
 - `ui-intent-layer` — Tech-agnostic UI intent layer in every UI-bearing spec; writing a spec for a feature with a user interface → .claude/skills/shared/protocols/ui-intent-layer.md
 
 <!-- PROTOCOL-GUIDES:END -->
-
-> **Profile adapter:** The synchronized examples below use default section/ID names. Under a native profile, load the configured owner and aliases; the package, disagreement, and re-review gates still apply.
-
-> **Profile adapter:** Resolve each default section/TC reference below through the active profile's aliases and case carrier. Preserve the same drift classes and harvest gates without creating a TC registry.
 
 <!-- SYNC:evidence-based-reasoning:reminder -->
 
@@ -213,29 +205,24 @@ This skill owns the canonical artifact and cases selected by the active profile.
 
 <!-- /SYNC:ui-intent-layer:reminder -->
 
+<!-- SYNC:review-decision-autonomy:reminder -->
+
+**MUST ATTENTION** Decide supported review choices and recommendations, record the rationale, and finish without routine user questions. Keep round-limit extension, indispensable facts and actual action authority; preserve source coverage, validation, tests, read-only boundaries and budgets. Review decisions do not accept open risks or make a failed gate pass.
+
+<!-- /SYNC:review-decision-autonomy:reminder -->
+
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Own the spec lifecycle in the profile declared by project config/references; keep one canonical owner, its native identifiers and carriers, and assertion-backed test evidence. The eight-section/TC model is the strict default only when no native contract is declared. The mode you run determines which `references/` body drives work; the shared semantic, evidence, execution, and review gates apply to every profile.
-- **IMPORTANT MUST ATTENTION Main steps:** resolve mode → resolve root, artifact type, profile, owner, identifiers, and carriers → read the matching `references/{author,tests,sync}.md` body and required project docs → run applicability/decomposition gate → execute the selected profile's procedure → verify actual executors/assertions/results → cross-service check → reconcile without overwriting canonical owner content → flag derived-output refresh.
+**IMPORTANT MUST ATTENTION Goal:** Author canonical feature intent and test scenarios, then reconcile them with tests and code using the project's declared artifact profile.
 
-**Protocols in force (concise digest of the SYNC/shared blocks this skill carries — MUST ATTENTION honor each canonical body):**
+**IMPORTANT MUST ATTENTION Main steps:** resolve mode → root/type/profile/owner/IDs/carriers → matching reference and project docs → applicability/decomposition → tracked procedure → executor/assertion/result proof → applicable cross-service check → reconciliation and derived-refresh flag. `discovery`, `clarify`, and `index` use their own reference gates.
 
-- **Cross-Service Check:** ALWAYS scan producers, consumers, sagas, contracts before concluding; missing consumer = silent regression.
-- **Evidence:** cite `file:line` for every claim; confidence >80% to act, <60% NEVER recommend.
-- **Spec↔Tests↔Code Triangulation:** the unit of judgment is the WHOLE PACKAGE (configured intent/contracts/case carriers + tests + code) — reason mutual-consistency first; a disagreeing or missing face is a logged finding, NEVER a silent pass.
-- **Spec Drift Adjudication:** on behavior divergence from a canonical spec, classify CODE-WRONG / SPEC-STALE / AMBIGUOUS / SPEC-SILENT and capture unwritten invariants in the configured contract and case owner with a guarding test — NEVER normalize drift to whichever side is green.
-
-- **IMPORTANT MUST ATTENTION [BLOCKING]** Resolve the mode FIRST and read its `references/{author,tests,sync,mode-discovery,mode-clarify,mode-index}.md` body — NEVER run `draft`/`init`/`update`/`audit`/`amend`/`tests`/`sync`/`discovery`/`clarify`/`index` from memory; ambiguous → `AskUserQuestion` before any mutating mode — why: each mode's gates + output contract live in its body, not in this entry skill
-- **IMPORTANT MUST ATTENTION [BLOCKING]** Run the Applicability and Decomposition Gate before authoring or materially changing a spec; use the shared four-signal rule, require the complete five-field `large_idea_decomposition` block when true, omit roadmap/milestone placeholders when false, and use the standalone roadmap branch only for an explicit roadmap request — why: the spec must preserve an approved outcome boundary without turning every large idea into a new roadmap file
-- **IMPORTANT MUST ATTENTION [BLOCKING]** Use only the selected profile's canonical owner, identifiers, evidence fields, and carriers; do not add a TC/Section 8 shadow registry beside a native case source — why: competing owners make drift silent.
-- **IMPORTANT MUST ATTENTION [BLOCKING]** Source mapping or ID presence alone is not execution proof; map each owner/scenario/variant to its actual executor and inspected assertion, and claim executed/PASS only after observing the selected runner result — why: aggregate labels can conceal unverified rows.
-- **IMPORTANT MUST ATTENTION [BLOCKING]** Keep unresolved owners, unsupported carriers, ambiguous profile declarations, and required unexecuted cases `UNKNOWN`/`BLOCKED`; never convert missing data to N/A or PASS — why: absence is not evidence of inapplicability.
-- **IMPORTANT MUST ATTENTION** Honor applicable M1-M7 from `.claude/skills/shared/sdd-artifact-contract.md`; use `.claude/skills/shared/tc-format.md` only for the strict default TC representation. Apply business-visibility and tech-agnostic rules through the selected profile's section/carrier roles.
-- **IMPORTANT MUST ATTENTION** `INDEX.md`/ERD are DERIVED — flag refresh need in `update`, NEVER trigger `[mode=index]` from an authoring mode — why: separation of concerns keeps the canonical spec the only source of truth
-- **IMPORTANT MUST ATTENTION** evidence gate — cite traced source evidence for every claim, confidence >80% to act, <60% do NOT recommend; verify profile-specific anchors against actual code/docs and map native cases to their real executor/assertion/result before claiming coverage — why: unsupported or stale anchors silently break traceability
-- **IMPORTANT MUST ATTENTION** cross-service check before concluding any spec/case work — scan producers, consumers, sagas, contracts; per touchpoint owner · message · risk (NONE/ADDITIVE/BREAKING) — why: a missing downstream consumer is a silent regression
-- **IMPORTANT MUST ATTENTION [BLOCKING]** Break work into small `TaskCreate` tasks BEFORE starting (one per file read) + a final review task; on context loss `TaskList` first, never duplicate — why: long spec files exhaust context and lose un-tracked progress
-- **IMPORTANT MUST ATTENTION** Search codebase for 3+ similar patterns and read existing spec siblings before authoring new content — match local conventions over generic defaults
+- **Mode and profile first:** read the matching reference in full; ask when mode is ambiguous. Unsupported carriers, unresolved owners or profiles, and required unexecuted cases remain `UNKNOWN`/`BLOCKED`, never N/A or PASS. Native profiles keep their own section roles, IDs and case carriers; do not add a TC/Section 8 shadow registry.
+- **Keep semantic gates:** apply M1–M7 from `shared/sdd-artifact-contract.md`, business visibility, evidence, preservation and drift adjudication. Use `shared/tc-format.md` only for the strict default. Review the whole spec/tests/code package and log missing or disagreeing faces; classify CODE-WRONG / SPEC-STALE / AMBIGUOUS / SPEC-SILENT rather than normalizing to green tests. Capture unwritten invariants in the contract and guarding case/test.
+- **Preserve outcome boundaries:** run the four-signal Applicability and Decomposition Gate; require all five `large_idea_decomposition` fields when true, omit roadmap/milestone placeholders when false, and use the roadmap branch only for an explicit request.
+- **Prove execution:** an ID or source mapping is insufficient. Trace owner/scenario/variant to the executor, inspected assertion and observed result; preserve authorized manual-QC proof as distinct from runner execution. Ground claims in traced evidence; >80% confidence to act, <60% do not recommend.
+- **Trace impact and preserve owners:** in service-based systems scan producers, consumers, sagas and contracts; record owner, message, consumers and NONE/ADDITIVE/BREAKING risk. Preserve canonical content during update/sync. Flag derived INDEX/ERD refresh without invoking index from authoring.
+- **Track and inspect:** maintain small tasks, including each file read and final review; inspect existing tasks after context loss. Search 3+ comparable patterns and spec siblings before authoring, checking local fit rather than imposing defaults.
 
 **Anti-Rationalization:**
 

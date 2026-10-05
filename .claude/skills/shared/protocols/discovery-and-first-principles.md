@@ -2,7 +2,7 @@
 
 Before investigating, planning, or coding, use `.claude/hooks/lib/project-config-loader.cjs` to resolve the project config (default `docs/project-config.json`) and docs index; read existing config, then the index and `lessons.md` at configured owner paths. Apply `project-reference-docs-guide` below: absent config is supported, derive facts from repository evidence; declared invalid sections need repair. Never require default paths when owners are relocated. Answer a project question from its root Doc Lookup row and cite the doc read, not memory or generic defaults. For framework questions read `.claude/docs/README.md` (`/project-help`). Report missing required docs through the gate's repair route; never invent rules or completion.
 
-When you write or update a doc an agent reads (root context, reference docs, docs index, `lessons.md`), keep it discoverable: purpose and critical rules first, closing reminders last when long, and every pointer to another doc as `read <path> when <situation>` to a file that exists, routed from the Doc Lookup table or the docs index. The doc-writing skills end with this gate (`SYNC:ai-discovery-doc-quality`).
+When you write or update a doc an agent reads (root context, reference docs, docs index, `lessons.md`), keep it discoverable: purpose and critical rules first, closing reminders last when long, and every pointer to another doc as `read <path> when <situation>` to a file that exists, routed from the Doc Lookup table or the docs index.
 
 ## Search Existing Code First
 

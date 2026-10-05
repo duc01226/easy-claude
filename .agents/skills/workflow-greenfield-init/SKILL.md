@@ -1,6 +1,6 @@
 ---
 name: workflow-greenfield-init
-description: '[Workflow] Use when starting a new project from scratch: waterfall inception from idea through implementation and integration testing.'
+description: '[Workflow] Take a new product from idea through architecture and scaffolding to a reviewed, tested first releasable slice.'
 disable-model-invocation: false
 ---
 
@@ -10,13 +10,33 @@ disable-model-invocation: false
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - Use ask user tool to ask user.
+> - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
 > - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
 > - For workflow skills, steps follow the guided contract in `$start-workflow` (gate steps fixed; other steps may flex with a logged reason); report step-by-step evidence.
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
+<!-- WORKFLOW-CALLS:START -->
+## Workflow Calls and Todo Bootstrap
+
+Read [the registry](../../../.claude/workflows.json) → `workflows.workflow-greenfield-init` together with this skill. Call [`$start-workflow workflow-greenfield-init`](../start-workflow/SKILL.md) to resolve the selected mode, pre-actions and fingerprint.
+
+**Todo FIRST:** create ALL selected occurrence tasks before triage, analysis or step execution, including conditional/optional tasks; preserve occurrence IDs, roles and barrier groups. Use native task tools or an equivalent persistent ledger. Then mark the first task `in_progress`; attach evidence before `completed`.
+Mode selection and registry loading prepare tracking; any 'first action' below means the first substantive action after this bootstrap.
+
+**Call each step skill:** read its linked SKILL.md and execute its protocol through the active host with the registry args. Reading or naming a skill alone is not execution. Required gates and core/optional flex follow the linked start-workflow Step Execution Protocol; keep this skill's quality gates, loops and evidence requirements.
+
+**Conditions:** load each occurrence's registry `applicability.when` and `skipReason` verbatim, and record its run/skip evidence through the linked start-workflow protocol. Do not silently omit a task or turn a conditional skill into an unconditional call. Declared parallel groups retain their all-return barrier.
+
+Explicit step-skill calls by mode (registry order; roles and conditions remain owned by the registry):
+
+- Mode `default`: [`$idea`](../idea/SKILL.md) (core) → [`$web-research`](../web-research/SKILL.md) (optional; conditional) → [`$source-deep-dive`](../source-deep-dive/SKILL.md) (optional; conditional) → [`$market-analysis`](../market-analysis/SKILL.md) (optional; conditional) → [`$business-evaluation`](../business-evaluation/SKILL.md) (optional; conditional) → [`$spec [mode=discovery]`](../spec/SKILL.md) (optional; conditional) → [`$domain-analysis`](../domain-analysis/SKILL.md) (core) → [`$why-review`](../why-review/SKILL.md) (core) → [`$tech-stack-research`](../tech-stack-research/SKILL.md) (core) → [`$architecture --mode=design`](../architecture/SKILL.md) (core) → [`$architecture --mode=scalability`](../architecture/SKILL.md) (core) → [`$why-review`](../why-review/SKILL.md) (core) → [`$scenario`](../scenario/SKILL.md) (optional; conditional) → [`$plan`](../plan/SKILL.md) (core) → [`$plan --mode=review`](../plan/SKILL.md) (core) → [`$security-audit --report-only`](../security-audit/SKILL.md) (optional; conditional) → [`$performance-review --report-only`](../performance-review/SKILL.md) (optional; conditional) → [`$plan --mode=review`](../plan/SKILL.md) (optional; conditional) → [`$pbi --mode=refine`](../pbi/SKILL.md) (core) → [`$pbi --mode=review --type=pbi`](../pbi/SKILL.md) (core) → [`$pbi --mode=story`](../pbi/SKILL.md) (core) → [`$pbi --mode=review --type=story`](../pbi/SKILL.md) (core) → [`$pbi --mode=challenge --reuse=pbi-review`](../pbi/SKILL.md) (core) → [`$pbi --mode=dor --reuse=pbi-review`](../pbi/SKILL.md) (core) → [`$pbi --mode=mockup`](../pbi/SKILL.md) (optional; conditional) → [`$plan --mode=validate`](../plan/SKILL.md) (gate) → [`$spec [mode=tests]`](../spec/SKILL.md) (core) → [`$pbi --mode=review --type=spec-tests`](../pbi/SKILL.md) (core) → [`$spec [mode=clarify]`](../spec/SKILL.md) (optional; conditional) → [`$plan`](../plan/SKILL.md) (core) → [`$plan --mode=review`](../plan/SKILL.md) (core) → [`$scaffold`](../scaffold/SKILL.md) (optional; conditional) → [`$linter-setup`](../linter-setup/SKILL.md) (core) → [`$harness-setup`](../harness-setup/SKILL.md) (core) → [`$architecture --mode=full`](../architecture/SKILL.md) (core) → [`$scan --target=ui-system`](../scan/SKILL.md) (optional; conditional) → [`$scan --target=backend-patterns`](../scan/SKILL.md) (core) → [`$scan --target=integration-tests`](../scan/SKILL.md) (core) → [`$scan --target=project-structure`](../scan/SKILL.md) (core) → [`$why-review`](../why-review/SKILL.md) (core) → [`$plan --mode=execute`](../plan/SKILL.md) (core) → [`$seed-test-data`](../seed-test-data/SKILL.md) (optional; conditional) → [`$spec [mode=tests]`](../spec/SKILL.md) (optional; conditional) → [`$pbi --mode=review --type=spec-tests`](../pbi/SKILL.md) (optional; conditional) → [`$plan`](../plan/SKILL.md) (optional; conditional) → [`$plan --mode=review`](../plan/SKILL.md) (optional; conditional) → [`$integration-test`](../integration-test/SKILL.md) (optional; conditional) → [`$e2e-test`](../e2e-test/SKILL.md) (optional; conditional) → [`$spec [mode=sync]`](../spec/SKILL.md) (optional; conditional) → [`$workflow-review-changes --tests=defer`](../workflow-review-changes/SKILL.md) (gate) → [`$integration-test --mode=verify`](../integration-test/SKILL.md) (optional; conditional) → [`$workflow-e2e --source=context`](../workflow-e2e/SKILL.md) (core) → [`$test`](../test/SKILL.md) (gate) → [`$workflow-end`](../workflow-end/SKILL.md) (gate) → [`$watzup`](../watzup/SKILL.md) (core)
+<!-- workflow-mode:default fingerprint:0c3c901023882df0f159f462b840a59fa63fc13c5c703d28044828f467175e6f -->
+
+Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs --write` after registry edits; [`$sync-codex`](../sync-codex/SKILL.md) refreshes it before mirroring.
+<!-- WORKFLOW-CALLS:END -->
+
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
 > **[BLOCKING]** Workflow steps follow the guided contract in `$start-workflow` → Step Execution Protocol: `gate` steps are fixed; other steps may flex with a logged reason.
@@ -94,7 +114,7 @@ Each gate names the evidence that proves it:
 
 ## Workflow-Specific Contracts
 
-- **Decisions** — 2–4 options with confidence % and evidence per major decision; validate each phase's decisions with the user using ask user tool before building on them; never self-approve a one-way door. Save artifacts to the plan directory per step.
+- **Decisions** — 2–4 options with confidence % and evidence per major decision; validate each phase's decisions with the user via `ask user question tool` before building on them; never self-approve a one-way door. Save artifacts to the plan directory per step.
 - **Occurrence names** — repeated skills are distinct tasks: PLAN₁ `plan-architecture` (system design, boundaries, tech choices) · PLAN₂ `plan-implementation` (stories, test specs, phased tasks) · PLAN₃ `plan-integration-tests` (test structure, data setup, CI) · rationale reviews `domain-rationale-review`, `architecture-rationale-review`, `pre-coding-rationale-review` · `test-spec-initial` / `test-spec-post-impl`.
 - **Scaffold** — grep first for base classes, generic interfaces, infrastructure abstractions, utility layers, frontend foundations and DI registrations; found → skip with evidence. Otherwise build them behind interfaces with at least one concrete implementation before any feature story, sized to the triaged scale.
 - **Reference docs** — after the foundation review's fixes, the four `$scan` targets derive the project-reference docs (default `docs/project-reference/`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides) from the reviewed foundation, so feature work reads accurate references from day one.
@@ -120,7 +140,7 @@ Declared all-return barriers — advance only after every member returns:
 
 ## Fix Path & Loop Bounds
 
-Validate findings (evidence-backed, reproducible) before fixing; fix at the owning layer; re-run the reviewer or test that raised each finding, plus a holistic pass after non-trivial fixes. Plan ceremony for fixes only when the fix set is large, cross-module or ambiguous. Review loops: round 1 exits on zero open validated findings (Round-1 LOW closure); from round 2 only CRITICAL/HIGH/MEDIUM block (LOW deferred); cap 3 review rounds; failing tests are uncapped; no progress → ask user tool.
+Validate findings (evidence-backed, reproducible) before fixing; fix at the owning layer; re-run the reviewer or test that raised each finding, plus a holistic pass after non-trivial fixes. Plan ceremony for fixes only when the fix set is large, cross-module or ambiguous. Review loops: round 1 exits on zero open validated findings (LOW deferral); from round 2 only CRITICAL/HIGH/MEDIUM block (LOW deferred); cap 3 review rounds; failed checks block and at the three-round cap require explicit user-approved bounded extension; no progress → `ask user question tool`.
 
 ## Step Chain
 

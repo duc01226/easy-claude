@@ -24,7 +24,7 @@ section 3). Only the first propagates to a headless leaf sub-agent:
   * ORCHESTRATION / INTERACTION  -> do NOT blanket-copy (``EXCLUDED_ORCHESTRATION``
     below). A sub-agent runs headless under a caller: it does not expand workflow
     steps, does not choose/return-contract its own sub-agents, and does not drive
-    the AskUserQuestion dialog. Copying these would tell the agent to perform
+    the ask user question tool dialog. Copying these would tell the agent to perform
     actions it structurally cannot. The ONE exception is curated per-agent in
     ``ORCHESTRATION_WHITELIST`` (framework-maintainer reasons ABOUT sub-agent
     design as its subject matter, so ``sub-agent-selection`` is content for it).
@@ -218,6 +218,7 @@ OFF_ROLE_TRIMS = {
 AGENT_QUALITY_BLOCKS = {
     # --- review family ---------------------------------------------------
     "code-reviewer": [
+        "review-decision-autonomy",  # Applies only to review/audit decisions.
         "measured-capacity-engineering",
         "core-engineering-principles",
         "whole-diff-correctness",
@@ -260,6 +261,7 @@ AGENT_QUALITY_BLOCKS = {
     # carries them: every other agent holds one conditional pointer line instead, so a task with no
     # AI surface pays nothing (guarded by the ai-gate-zero-cost suite).
     "ai-engineering-reviewer": [
+        "review-decision-autonomy",  # Applies only to review/audit decisions.
         "measured-capacity-engineering",
         "core-engineering-principles",
         "severity-rubric", "category-review-thinking",
@@ -271,6 +273,7 @@ AGENT_QUALITY_BLOCKS = {
         "ai-feature-framing-gate", "ai-engineering-gate", "ai-review-checklist",
     ],
     "security-auditor": [
+        "review-decision-autonomy",  # Applies only to review/audit decisions.
         "measured-capacity-engineering",
         "severity-rubric", "category-review-thinking",
         "graph-assisted-investigation", "incremental-persistence",
@@ -280,6 +283,7 @@ AGENT_QUALITY_BLOCKS = {
         "review-principle-awareness",
     ],
     "performance-optimizer": [
+        "review-decision-autonomy",  # Applies only to review/audit decisions.
         "measured-capacity-engineering",
         "core-engineering-principles",
         "severity-rubric", "category-review-thinking",
@@ -289,6 +293,7 @@ AGENT_QUALITY_BLOCKS = {
         "review-principle-awareness",
     ],
     "spec-compliance-reviewer": [
+        "review-decision-autonomy",  # Applies only to review/audit decisions.
         "severity-rubric",
         "behavioral-delta-matrix", "spec-drift-adjudication",
         "test-spec-verification",
@@ -324,6 +329,7 @@ AGENT_QUALITY_BLOCKS = {
     ],
     # --- planning / product / architecture family ------------------------
     "planner": [
+        "review-decision-autonomy",  # Applies only to review/audit decisions.
         "measured-capacity-engineering",
         "core-engineering-principles",
         "estimation-framework", "plan-quality", "plan-granularity",
@@ -341,6 +347,7 @@ AGENT_QUALITY_BLOCKS = {
         "review-principle-awareness",
     ],
     "architect": [
+        "review-decision-autonomy",  # Applies only to review/audit decisions.
         "measured-capacity-engineering",
         "core-engineering-principles",
         "severity-rubric", "category-review-thinking",
@@ -378,6 +385,7 @@ AGENT_QUALITY_BLOCKS = {
     ],
     # --- test family -----------------------------------------------------
     "integration-tester": [
+        "review-decision-autonomy",  # Applies only to review/audit decisions.
         "measured-capacity-engineering",
         "core-engineering-principles",
         "repeatable-test-principle", "source-test-drift-check", "red-flag-stop-conditions",
@@ -432,6 +440,7 @@ AGENT_QUALITY_BLOCKS = {
     ],
     # --- design / craft / docs family ------------------------------------
     "ui-ux-designer": [
+        "review-decision-autonomy",  # Applies only to review/audit decisions.
         "core-engineering-principles",
         "ui-system-context", "ui-wireframe", "design-system-check",
         "design-patterns-quality", "severity-rubric",
@@ -459,9 +468,10 @@ AGENT_QUALITY_BLOCKS = {
         "source-test-drift-check",
     ],
     "docs-manager": [
-        "incremental-persistence", "ai-discovery-doc-quality",
+        "incremental-persistence",
     ],
     "framework-maintainer": [
+        "review-decision-autonomy",  # Applies only to review/audit decisions.
         "core-engineering-principles",
         "context-engineering-principles", "sub-agent-selection",  # sub-agent-selection whitelisted
         # wave 2 (twin: skill-creator / custom-agent) -- it EDITS SYNC blocks, so the

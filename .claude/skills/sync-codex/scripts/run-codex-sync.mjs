@@ -19,6 +19,9 @@ import { spawn } from "node:child_process";
 import { access, readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import url from "node:url";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
 
 const here = path.dirname(url.fileURLToPath(import.meta.url));
 const rootDir = path.resolve(here, "..", "..", "..", "..");
@@ -424,8 +427,16 @@ async function main() {
 
     for (let i = 0; i < active.length; i++) {
         try {
+            // Belongs to the mutating migration stage, including ai-context-refresh's
+            // --skip=claude-md handoff. Verify-only never reaches this branch.
+            if (active[i].id === "migrate") {
+                const { syncWorkflowSkillContracts } = require(path.join(rootDir, ".claude", "scripts", "lib", "workflow-skill-contract.cjs"));
+                const updated = syncWorkflowSkillContracts(rootDir);
+                process.stdout.write(`[workflow-calls] updated: ${updated.length}\n`);
+            }
             await runStage(active[i], i + 1, active.length);
         } catch (err) {
+            err.stage ??= active[i].id;
             console.error(`[codex-sync] aborted at stage '${err.stage}' (exit ${err.exitCode ?? "?"})`);
             process.exit(err.exitCode || 1);
         }

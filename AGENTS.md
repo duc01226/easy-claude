@@ -111,7 +111,7 @@ node .claude/hooks/tests/test-all-hooks.cjs   # hook tests
 node .claude/hooks/tests/run-all-tests.cjs    # all suites
 ```
 
-**Platform (Windows):** invoke Python via `py -3` or `py` — NEVER `python3` (MS Store alias exits 49). Scripts resolve `python` then `py -3` (see `count-drift.test.cjs:40-45`). macOS/Linux: use `python3`.
+**Platform:** use `python3` on macOS/Linux and `py -3` on Windows. Integration suites use `.claude/hooks/tests/lib/python-command.cjs`: POSIX probes `python3` then `python`; Windows probes `python` then `py -3`, validating Python 3 (3.10+ for graph tests). Missing PyYAML uses the bounded global attempt and local fallback owned by `.claude/scripts/lib/python_dependencies.py`.
 
 <!-- /SECTION:dev-commands -->
 

@@ -1,22 +1,24 @@
 ---
 name: performance-review
 version: 3.6.0
-description: '[Debugging] Use when a workflow step or the user asks for a performance review: slow queries, N+1, latency, memory, caching, frontend rendering, Web Vitals.'
+description: '[Debugging] Use when a workflow step or the user asks for performance bottleneck analysis and validated fixes: queries, memory, network, rendering and concurrency.'
 ---
 
 ## Quick Summary
+
+> **Review modes:** For review/audit work, standalone defaults to `--review-only` (`--report-only` alias); `--fix-loop` enables review → validate → authorized fix → fresh re-review, default cap 3. `--fix-loop --loop-owner=caller` returns a read-only pass to the caller that owns fixes/re-review. Create triage, review, validation and re-review todo tasks first; apply the carried `review-policy` contract for LOW deferral and user-approved bounded extensions. Non-review modes and terminal findings validation keep their own dispatch.
 
 **Goal:** Ensure every shipped performance fix removes a measured or static-risk-labeled bottleneck across data access, compute, runtime/GC, network, client delivery, and concurrency/resilience; calibrate every number against a known anchor, preserve behavior/authorization/semantics, prove before/after evidence, pass `/why-review` before any fix, and complete a clean full Phase-0 re-review — never hide waste or break correctness.
 
 **Summary:**
 
 - **Main path:** detect scope → discover local patterns → measure or label static risk → review all applicable performance dimensions → calibrate severity → plan → validate findings → fix at the owning layer → prove before/after → run a fresh full re-review.
-- **Gates:** count rows before row size, bound memory/queues/concurrency, preserve authorization and semantics, and treat failed binary gates as blocking; round 1 clears all validated findings, round 2 clears only CRITICAL/HIGH/MEDIUM and defers LOW.
+- **Gates:** count rows before row size; bound memory, queues and concurrency; preserve authorization and semantics. Round 1 clears all validated findings, with a LOW-only fix set reviewed after the fix (LOW deferral). Round 2 clears CRITICAL/HIGH/MEDIUM and defers LOW; failed binary gates always block.
 - **`--report-only`:** read-only leaf mode for a caller that owns every fix — Phases 0–6 only, no nested sub-agents, no writer beyond the report; see [Report-Only Mode](#report-only-mode---report-only).
 
-**Workflow:** Detect scope → discover local patterns → measure or label static risk → analyze all applicable dimensions → plan → validate findings → fix → run a full re-review.
+**Workflow:** Detect scope → discover local patterns → measure or label static risk → run 12 serial dimension passes → findings and severity → plan → validate findings → fix → run a full re-review.
 
-**Key Rules:** Evidence beats intuition; calibrate numbers against the local performance reference; bound rows, memory, queues, and concurrency; Round 1 fixes every open validated severity (Round-1 LOW closure), while Round 2 fixes only CRITICAL/HIGH/MEDIUM and defers LOW-only findings; failed binary gates always block.
+**Key Rules:** Evidence beats intuition; calibrate numbers against the local performance reference; bound rows, memory, queues, and concurrency; Round 1 fixes every open validated severity (LOW deferral), while Round 2 fixes only CRITICAL/HIGH/MEDIUM and defers LOW-only findings; failed binary gates always block.
 
 > **[IMPORTANT]** MANDATORY MUST ATTENTION stay project-generic: discover local stack, conventions, query APIs, index definitions, metrics, and report paths before judging.
 >
@@ -50,10 +52,12 @@ description: '[Debugging] Use when a workflow step or the user asks for a perfor
 - `goal-contract-satisfaction-loop` — Save the goal in a file and loop until every saved criterion passes; executing work against a user goal → .claude/skills/shared/protocols/goal-contract-satisfaction-loop.md
 - `graph-assisted-investigation` — Optional hint: a code-graph query can add callers and dependents when grep may miss a high-risk blast radius, and it can be stale; a high-risk change where grep and reading alone may miss the blast radius → .claude/skills/shared/protocols/graph-assisted-investigation.md
 - `measured-capacity-engineering` — Model demand, reduce measured work safely and prove capacity before scaling; planning, building, testing or reviewing hot paths, caches or capacity → .claude/skills/shared/protocols/measured-capacity-engineering.md
+- `review-decision-autonomy` — Choose supported review decisions and ask before extending the round budget; running any review or audit skill or mode → .claude/skills/shared/protocols/review-decision-autonomy.md
+- `review-policy` — Review-only or a three-round fix loop with explicit extension and fresh post-fix evidence; deciding round eligibility, blocking findings or review state → .claude/skills/shared/protocols/review-policy.md
 - `review-principle-awareness` — Classify the change context first, then apply the current principles that fit it; starting any review → .claude/skills/shared/protocols/review-principle-awareness.md
 - `scenario-stress-eval` — Judge the system under concrete failure and load scenarios; evaluating resilience or production readiness → .claude/skills/shared/protocols/scenario-stress-eval.md
 - `severity-rubric` — One consequence-based Critical, High, Medium, Low scale for every finding and gate; classifying a finding or deciding whether a review round passes → .claude/skills/shared/protocols/severity-rubric.md
-- `systematic-review-batching` — Map-reduce review: size-capped batches, one sub-agent per batch, then reduce; reviewing a large changeset → .claude/skills/shared/protocols/systematic-review-batching.md
+- `systematic-review-batching` — Triage all files and plan adaptive review with complete coverage and no fixed size caps; choosing review assignments or handling working-set overflow → .claude/skills/shared/protocols/systematic-review-batching.md
 - `trade-off-interrogation-gate` — Three trade-off questions before any verdict, score or recommendation; rendering a verdict or recommending an option → .claude/skills/shared/protocols/trade-off-interrogation-gate.md
 
 <!-- PROTOCOL-GUIDES:END -->
@@ -69,45 +73,13 @@ description: '[Debugging] Use when a workflow step or the user asks for a perfor
 
 ## Detailed Summary
 
-**Goal:** Ensure every shipped performance fix removes a measured or static-risk-labeled bottleneck across data access, compute, runtime/GC, network, client delivery, and concurrency/resilience; calibrate every number against a known anchor, preserve behavior/authorization/semantics, prove before/after evidence, pass `/why-review` before any fix, and complete a clean full Phase-0 re-review — never hide waste or break correctness.
-
-**Summary:**
-
-- **Purpose & 8-phase pipeline (the main tasks):** drive a target through **Phase 0 Detect scope (+ symptom→cause triage) → Phase 1 Discover local context (grep 3+ patterns, read index/schema, map callers) → Phase 2 Baseline evidence + anchor calibration (or `static risk` + verify cmd) → Phase 3 twelve serial dimension passes → Phase 4 Findings + Severity → Phase 5 Optimize plan (behavior-preserving) → Phase 6 `/why-review --validate-findings` gate → Phase 7 validated-fix + full Phase-0 re-review** — so every recommendation removes a real bottleneck, preserves behavior, is evidence-proven; an Architecture-Altitude lens applies the same gate at design time.
-- Evidence is the gate, not intuition: capture a runtime baseline (query plan/explain, row counts, p95/p99 distributions, pool acquire-wait, GC pauses, call count × RTT, field CWV, microbench at worst-case N) or label the finding `static risk` with the exact verify command — never recommend below 60% confidence, never average percentiles, always name the load model.
-- **Calibration:** obey the first-screen blocking `references/performance-knowledge.md` read before severity or any anchor comparison; a breached anchor remains a locally proved hypothesis, never a finding by itself.
-- Run ALL 12 first-screen dimensions in separate passes; reduce rows at the source before trimming/caching, and validate average pool demand, wait behavior and fleet connection limits when a fast operation has high p99.
-- No finding is fixable until `/why-review --validate-findings` confirms it (Phase 6); each validated fix that blocks the current round then restarts the FULL review from Phase 0 over the whole target (Phase 7), except a round-1 LOW-only fix set closed by scoped check (Round-1 LOW closure). Round 1 fixes every open validated severity; Round 2 fixes CRITICAL/HIGH/MEDIUM, while LOW-only findings are recorded as deferred and end the loop; failed binary gates always block. A targeted before/after check alone never earns a PASS.
-
-> **Renamed:** formerly `/performance` — that name no longer resolves as a slash command; use `/performance-review`.
-
-**Workflow:**
-
-1. **Detect** - Classify scope and bottleneck type; order hypotheses via the symptom→cause matrix.
-2. **Discover** - Read local code, metrics, docs, query/index definitions, similar patterns.
-3. **Measure** - Capture baseline against a known anchor, or mark static-only risk.
-4. **Analyze** - Run 12 serial dimension passes with evidence.
-5. **Plan** - Propose smallest fix preserving behavior.
-6. **Verify** - Re-measure, run tests, and record evidence.
-7. **Validate Findings** - Run `/why-review --validate-findings <report-path>` before any fix.
-8. **Fix + Full Re-Review** - Fix only validated findings that block the current round, then restart from Detect over the full target; Round 2 LOW-only findings do not start another cycle. Not run under `--report-only`.
-
-**Key Rules:**
-
-- MANDATORY ALWAYS measure before/after; static review findings need explicit verification command.
-- MANDATORY ALWAYS calibrate a number against a known anchor before assigning severity; an anchor breach alone is a hypothesis, never a finding.
-- MANDATORY ALWAYS push row filters to data source before projection/caching; row-count reduction beats column trimming.
-- MANDATORY ALWAYS verify index usability with query shape/order, not index existence alone.
-- MANDATORY ALWAYS count `call count × RTT` on a remote path, and check the timeout/retry/queue-bound before optimizing inside a call.
-- NEVER recommend caching until query shape, indexes, pagination, batching, and data volume are understood; NEVER call a cache done without its measured hit ratio and bound.
-- NEVER average percentiles, and NEVER trust a throughput number whose load model (open vs closed) is unstated.
-- Findings are not eligible for fix until `/why-review --validate-findings` confirms them; every validated fix that blocks the current round restarts the full performance review from Phase 0. Apply the shared severity bar: Round 1 = zero open findings (Round-1 LOW closure); Round 2 = zero CRITICAL/HIGH/MEDIUM, with LOW deferred and binary gates still blocking.
+Read [Architecture-Altitude Performance Review](#architecture-altitude-performance-review) when judging a design; apply the same evidence gate before recommendations. Before recommending caching, understand query shape, indexes, pagination, batching and data volume; completion requires measured hit ratio and a bound.
 
 <target>$ARGUMENTS</target>
 
 ## Report-Only Mode (`--report-only`)
 
-> **Use when** a caller runs this skill as a read-only leaf — e.g. a workflow parallel review barrier over a plan or design, or a review batch — and another step owns every fix. `--report-only` in `$ARGUMENTS` selects it; without the flag every phase below applies unchanged.
+> **Use when** a caller runs this skill as a read-only leaf — e.g. a workflow parallel review barrier over a plan or design, or a review batch — and another step owns every fix. `--report-only` in `$ARGUMENTS` selects it; review-only is the default; standalone `--fix-loop` alone runs repair/restart phases.
 >
 > **MANDATORY — when `--report-only` is passed, read `.claude/skills/workflow-review-changes/references/caller-mode.md` § `--report-only` in full FIRST.** It holds the rules every read-only leaf shares (no fix or restart, scope from the caller's brief, no nested fan-out, no user questions, write only the report, return contract); the rules below are this skill's own.
 >
@@ -136,8 +108,6 @@ Classify before analysis. Detection drives dimensions, evidence, sub-agent choic
 | Network/protocol    | chatty call count, per-request handshake, no keep-alive, large payload, cross-region hop        | call count × RTT, connection reuse state, TLS/DNS timing, payload size, HTTP version            |
 | Runtime/GC          | latency spikes uncorrelated with load, pauses, RSS growth, blocked event loop                    | GC log/pause histogram, allocation rate, RSS vs heap, thread states, event-loop lag             |
 | Resilience/load     | retry storm, no timeout, unbounded queue, cold-start blip, one tenant degrades all               | timeout/retry config, queue depth AND age, breaker state, per-tenant rate limits                |
-
-**Source-review preparation:** when scope resolves concrete code/query/caller/UI sources, follow `.claude/skills/shared/review-preparation.md` before source analysis. Use the actual skill/mode and selected required documents; inherit the parent decision, including explicit `--provider-decision skip` on children/rechecks, under the recipe’s read-only-leaf and exact-target limits. Profile/log/metrics-only and plan-only evidence are excluded; setup does not authorize new runtime calls.
 
 Skip reason allowed only when target explicitly narrows scope and evidence proves dimension irrelevant.
 
@@ -234,8 +204,8 @@ Confidence:
 | ---------- | ----------------------------------------------------- |
 | 95%+       | Recommend fix freely.                                 |
 | 80-94%     | Recommend with caveats and verification command.      |
-| 60-79%     | List unknowns first; gather more evidence before fix. |
-| <60%       | STOP. Do not recommend.                               |
+| 70-79%     | List unknowns first; gather more evidence before fix. |
+| <70%       | STOP. Do not recommend.                               |
 
 ---
 
@@ -573,9 +543,7 @@ If evidence insufficient, output: `Insufficient evidence. Verified: [...]. Not v
 
 <!-- SYNC:systematic-review-batching:reminder -->
 
-- **MANDATORY** Large changeset → risk-weighted batches, one parallel sub-agent per batch: high-risk ≤8 files OR ≤2000 diff-lines; low-risk (styling, tests, docs, config text) may pool to ≤20 files OR ≤4000 diff-lines; mechanical churn is verified by pattern, not batched. Never review many files one-by-one.
-- **MANDATORY** Each batch agent validates its own findings (`/why-review --validate-findings` in its own session); the reducer deduplicates by root cause FIRST, then re-validates only CRITICAL/HIGH (including in-batch rejections and demotions), reviewer conflicts, unvalidated findings and a MEDIUM sample.
-- **MANDATORY** > 6 categories OR > 40 files → add the hierarchical synthesis tier; each concern-synthesizer emits cross-concern interaction candidates and the orchestrator runs the cross-concern pass before concluding.
+**MUST ATTENTION** Triage all files, write a short review plan and create review/validation/fix/re-review tasks first. Choose inline work or authorized specialists from risk, relationships and context headroom; no fixed file/line/byte caps. Persist coverage, reconcile interactions and validate findings before fixes or PASS.
 
 <!-- /SYNC:systematic-review-batching:reminder -->
 
@@ -612,11 +580,14 @@ If evidence insufficient, output: `Insufficient evidence. Verified: [...]. Not v
 
 <!-- SYNC:trade-off-interrogation-gate:reminder -->
 
-- **MANDATORY MUST ATTENTION ALWAYS ASK THE 3 TRADE-OFF QUESTIONS** — on the thing under review AND on every recommendation you make: (1) **what does it SACRIFICE?** name the dimensions checked (change cost · complexity · perf · coupling · reversibility · migration · ops load · blast radius · security · testability · delivery time · UX) — "none"/"pure win" is an unfinished analysis; (2) **is it worth it?** gain (with a metric) vs cost, WHO pays, WHEN → emit **WORTH IT / NOT WORTH IT / UNCLEAR**; NOT WORTH IT → withdraw or replace it; (3) **is it MATERIAL enough to confirm with the user?** irreversible/one-way door · cost shifted onto another team/ops/maintainer/user · one quality attribute traded for another · a tier/service/event/library boundary crossed · auth/money/data-integrity/breaking-change/High-or-Medium-risk path · verdict UNCLEAR → **STOP and confirm via `AskUserQuestion` BEFORE the verdict**.
+**Review/audit invocations:** follow `SYNC:review-decision-autonomy` for every decision prompt; choose supported recommendations without asking, preserve round-extension approval and actual authority.
+
+- **MANDATORY MUST ATTENTION ALWAYS ASK THE 3 TRADE-OFF QUESTIONS** — on the thing under review AND on every recommendation you make: (1) **what does it SACRIFICE?** name the dimensions checked (change cost · complexity · perf · coupling · reversibility · migration · ops load · blast radius · security · testability · delivery time · UX) — "none"/"pure win" is an unfinished analysis; (2) **is it worth it?** gain (with a metric) vs cost, WHO pays, WHEN → emit **WORTH IT / NOT WORTH IT / UNCLEAR**; NOT WORTH IT → withdraw or replace it; (3) **is it MATERIAL enough to confirm with the user?** irreversible/one-way door · cost shifted onto another team/ops/maintainer/user · one quality attribute traded for another · a tier/service/event/library boundary crossed · auth/money/data-integrity/breaking-change/High-or-Medium-risk path · verdict UNCLEAR → **STOP and confirm via `ask user question tool` BEFORE the verdict**.
 - **MANDATORY** A MATERIAL trade-off with no user confirmation can NEVER be PASS; never bury one as a Low-severity note, never decide it silently, and never let delivery or convergence pressure authorize a one-way door — an un-walked-back one-way door is the user's call, not the reviewer's.
-- **MANDATORY — a context that cannot ask escalates BY HANDOFF, never by silence.** `AskUserQuestion` reaches only the main interactive agent, so a sub-agent or a terminal/verdict-only mode cannot ask. There the duty is REDIRECTED, not waived: still name the trade-off, still decide materiality, record `confirmed? = NO — cannot ask from this context`, and **state the unconfirmed MATERIAL trade-off in your RETURNED verdict so the CALLER escalates it** (a note only in an on-disk report is not a handoff); never emit an unqualified PASS. If you CAN ask, you MUST ask.
+- **MANDATORY — a context that cannot ask escalates BY HANDOFF, never by silence.** `ask user question tool` reaches only the main interactive agent, so a sub-agent or a terminal/verdict-only mode cannot ask. There the duty is REDIRECTED, not waived: still name the trade-off, still decide materiality, record `confirmed? = NO — cannot ask from this context`, and **state the unconfirmed MATERIAL trade-off in your RETURNED verdict so the CALLER escalates it** (a note only in an on-disk report is not a handoff); never emit an unqualified PASS. If you CAN ask, you MUST ask.
 
 <!-- /SYNC:trade-off-interrogation-gate:reminder -->
+
 
 
 <!-- SYNC:review-principle-awareness:reminder -->
@@ -631,37 +602,25 @@ If evidence insufficient, output: `Insufficient evidence. Verified: [...]. Not v
 
 <!-- /SYNC:measured-capacity-engineering:reminder -->
 
+<!-- SYNC:review-decision-autonomy:reminder -->
+
+**MUST ATTENTION** Decide supported review choices and recommendations, record the rationale, and finish without routine user questions. Keep round-limit extension, indispensable facts and actual action authority; preserve source coverage, validation, tests, read-only boundaries and budgets. Review decisions do not accept open risks or make a failed gate pass.
+
+<!-- /SYNC:review-decision-autonomy:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Ensure every shipped performance fix removes a measured or static-risk-labeled bottleneck across data access, compute, runtime/GC, network, client delivery, and concurrency/resilience; calibrate every number against a known anchor, preserve behavior/authorization/semantics, prove before/after evidence, pass `/why-review` before any fix, and complete a clean full Phase-0 re-review — never hide waste or break correctness.
 
 **IMPORTANT MUST ATTENTION — Main steps:** Detect scope and symptom→cause triage → discover local context and 3+ patterns → baseline evidence and calibrate anchors → run 12 serial dimension passes → order findings by severity → plan the smallest behavior-preserving optimization → validate findings with `/why-review --validate-findings` → fix only validated findings that block the current round and restart the full Phase-0 review (Round 1: all severities; Round 2: CRITICAL/HIGH/MEDIUM; LOW-only deferred; binary gates always block).
 
-**Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
-
-- **Graph-Assisted Investigation (optional):** the code graph is a stale-able hint for high-risk blast radius, never required.
-- **Severity Rubric:** Classify by consequence; Critical/High block PASS until resolved.
-- **Category Review Thinking:** Derive per-category concerns from first principles, NEVER a fixed checklist.
-- **Systematic Batching:** Large changeset → size-capped parallel batches, then reduce.
-- **Performance Knowledge (`references/performance-knowledge.md`):** latency ladder · universal laws (Little, utilization knee, Amdahl, USL, tail amplification) · symptom→cause triage · network/DB/cache/web/memory-GC/distributed deep tables · measurement rigor. Calibrates severity; NEVER governs over local SLA/spec.
-- **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
-
-**IMPORTANT MUST ATTENTION** run ALL 8 phases in order — Detect scope (+ symptom→cause triage) → Discover local context → Baseline evidence + anchor calibration → 12 serial dimension passes → Findings+Severity → Optimize plan → Why-Review validation gate → Validated-fix + full Phase-0 re-review; NEVER skip a phase or jump to a fix (`--report-only` declares Phases 0–6, then returns the validated report with no fix, no nested sub-agent, and no writer) — why: AI forgets its own steps and ships unmeasured, unvalidated changes.
-**IMPORTANT MUST ATTENTION** cover ALL 12 dimensions one pass each — (1) query-shape/data-minimization, (2) index/access-path/data-topology, (3) N+1/fan-out, (4) aggregation/join/pipeline, (5) materialization/memory, (6) write/locks/transactions, (7) cache/reuse, (8) API-payload/frontend/CWV, (9) compute/algorithmic, (10) network/protocol, (11) runtime/memory/GC, (12) distributed-resilience/load — why: a single combined scan silently drops a dimension, and 10-12 are the layers a code-only reading habitually never opens.
-**IMPORTANT MUST ATTENTION** calibrate every number against a known anchor before assigning severity — latency ladder (`1 ns → 100 ns → 100 µs → 10 ms → 100 ms`, ~1 ms RTT per 100 km as a hard floor), measured utilization knee (M/M/1 illustrates `wait = service × ρ/(1−ρ)`, not a universal CPU threshold), Little's Law, tail amplification (fan-out to 100 backends hits a p99 ~63% of the time), CWV (LCP 2.5 s/INP 200 ms/CLS 0.1/TTFB 800 ms at field p75), cache hit-ratio math (90%→99% = 10× less origin load) — and treat a breached anchor as a HYPOTHESIS needing local proof, never a finding — why: an uncalibrated number cannot carry a severity, and a quoted constant with no local measurement is guess-as-fact.
-**IMPORTANT MUST ATTENTION** on any remote path count `call count × RTT` FIRST and verify connection reuse (keep-alive/pooled client) — why: per-request TCP+TLS handshakes and chatty contracts dominate paths where every individual handler is already fast.
-**IMPORTANT MUST ATTENTION** check the resilience controls as performance defects — decreasing timeout budget per hop, backoff + FULL JITTER + retry budget + idempotency keys, breaker/bulkhead/load-shedding, and a BOUND on every queue (watch age, not only depth) — why: these are invisible at low load and surface only as the outage they cause; an unbounded queue turns a throughput problem into unbounded latency and then OOM.
-**IMPORTANT MUST ATTENTION** report distributions not means (p50/p90/p99/p99.9 + max, segmented), NEVER average percentiles, always name the load model (open-model exposes queueing collapse, closed-model can reduce offered demand as responses slow), and flag suspected coordinated omission — why: the aggregate mean hides exactly the tail users complain about.
-**IMPORTANT MUST ATTENTION** apply the Performance-First Principles on every hot path — (1) [MOST IMPORTANT] hunt every OOM bad practice: bound every result set, reduce rows at the source, stream instead of buffer, triage row-count before row-size; (2) pick the data structure/algorithm that matches the access pattern (O(1) Set/Map over linear scan-in-loop, no needless O(n²)) and prove the complexity class at worst-case N; (3) batch per-item calls into one, else run bounded-parallel — never serial fan-out — why: unbounded memory OOMs the process, the wrong structure melts at scale, and serial fan-out multiplies latency.
-**IMPORTANT MUST ATTENTION** prove every performance claim with measurement or static evidence — `file:line`, query text/shape, row counts, query plan/explain, trace, profile, or logs; confidence >80% to act, 60-79% gather more, <60% STOP — why: a number without a measured baseline is a guess that ships unverified waste.
-**MANDATORY** search 3+ similar local query/API patterns before proposing a fix, and read the index/migration/schema files controlling the data — why: local conventions override generic framework defaults; the closest example must match preconditions (base class, scope, cardinality) before you copy it.
-**MANDATORY** ALWAYS measure before/after; static review findings need an explicit verification command attached.
-**MANDATORY** ALWAYS verify index usability with actual query shape/order and plan/explain — index existence alone is not proof.
-**IMPORTANT MANDATORY MUST ATTENTION** ALWAYS push row filters to the data source before projection/caching; row-count reduction beats column trimming — why: fewer columns from too many rows still scans the rows.
-**MANDATORY** use Little's Law for average demand at the measured resource boundary, validate burst/wait behavior and fleet-wide dependency budgets, and shorten unnecessary hold-time before growing pools — why: queue/pool wait can dominate an otherwise fast operation.
-**MANDATORY** Break work into small tracked tasks before starting; one `in_progress` at a time; mark each `completed` immediately after its evidence lands — why: compaction wipes memory and untracked review scope silently goes uncovered.
-**MANDATORY** when a finding moves a behavior-defining boundary (SLA/p95 budget, result-set bound, page-size limit, pool-size assumption), feed it BOTH the spec (record as a §5 invariant) AND a guarding test/benchmark — why: a faster number left undocumented OR unguarded regresses silently.
-**MANDATORY** add a final review task checking doc/test/spec staleness.
+- **Evidence and calibration:** measure before/after or label `static risk` with an exact verification command. Read `references/performance-knowledge.md` before severity or anchor comparisons; local SLA/spec wins. An anchor breach is a hypothesis requiring local proof. Apply the confidence table in Phase 2.
+- **Coverage:** run all 12 dimensions serially; skip only with explicit scope narrowing and evidence. Count `call count × RTT`, verify connection reuse, and inspect runtime/GC and resilience alongside data access and compute.
+- **Hot paths:** reduce rows at the source before projection/caching, bound result sets and memory, verify index usability with query shape and plan/explain, prove worst-case complexity, and batch or use safe bounded parallelism.
+- **Measurement:** report segmented distributions, never average percentiles, disclose load model and cache/data state, and measure pool acquire-wait, resource hold-time and fleet dependency budgets. Shorten unnecessary hold-time before growing pools.
+- **Fix authority:** validate findings through `/why-review --validate-findings` before fixing. Restart the full Phase-0 review over the complete target after current-round blocking fixes; retain the LOW deferral exception. Under `--report-only`, return the validated report after Phase 6; the caller owns fixes/re-review.
+- **Delegation:** tag tasks PAR/SEQ, group PAR tasks into disjoint-write waves, spawn each wave together, and wait for all returns before advancing. `--report-only` forbids fan-out.
+- **Local fit and contracts:** search 3+ matching local patterns and inspect schema/index owners. Put changed SLA, result/page bounds or pool assumptions in both a §5 spec invariant and a guarding test/benchmark. Track tasks and finish with a doc/test/spec staleness review.
 
 **Anti-Rationalization:**
 
@@ -687,9 +646,11 @@ If evidence insufficient, output: `Insufficient evidence. Verified: [...]. Not v
 | "Anchor says it's slow, that's the finding"   | An anchor breach is a hypothesis. Promote it with `file:line` + measurement or an explicit `static risk` label and verify command.                             |
 | "Digest is enough, skip the references body"  | The digest orders hypotheses; only the body carries the thresholds. NEVER assign a severity or quote an anchor constant from memory or the digest — read it.    |
 
-**[TASK-PLANNING]** Break work into small tracked tasks before starting; update each status immediately.
+**[TASK-PLANNING]** Break work into small tracked tasks before starting; keep one `in_progress`, mark each completed after evidence, and include the final doc/test/spec review.
 
-**IMPORTANT MUST ATTENTION** prove every claim with measurement/static evidence + `file:line` (confidence >80% to act, <60% STOP); calibrate the number against a known anchor, and treat an anchor breach as a hypothesis, never a finding.
-**IMPORTANT MUST ATTENTION** walk ALL 12 dimensions one pass each — dimensions 10-12 (network/protocol, runtime/GC, distributed resilience) are the ones a code-only reading skips.
-**IMPORTANT MUST ATTENTION** push row filters to the data source before projection/caching; verify index usability via plan/explain, never existence alone.
-**IMPORTANT MUST ATTENTION** no fix before `/why-review --validate-findings`; after every validated fix restart the full review from Phase 0 before claiming PASS.
+
+<!-- SYNC:review-policy:reminder -->
+
+**MUST ATTENTION** Triage all targets, plan and create review/validation/fix/fresh re-review tasks first. Review-only reports without edits; fix-loop freshly reviews every repair under one fixing owner. Default cap three rounds: disclose deferred LOWs, ask and wait before a bounded extension for MEDIUM+ or failed required checks. Preserve scope, coverage and actual operation authority.
+
+<!-- /SYNC:review-policy:reminder -->

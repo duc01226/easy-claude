@@ -4,6 +4,8 @@ Read in full FIRST when `--mode=green` resolves for `workflow-integration-test`.
 
 **Goal:** Drive the resolved integration-test scope to a truthful, repeatable green — every failure adjudicated before any edit, fixed at the component that owns the violated contract, and re-verified under the configured repeat policy — then sync the case owner and the docs the fixes made stale.
 
+**Required Python setup:** when the resolved suite requires Python, read `.claude/skills/integration-test/references/mode-verify.md` → **Persistent Python readiness** during environment preparation. Provision a missing runtime persistently on Windows, macOS or Linux, verify it in a fresh shell, and reuse it on later runs. A working `python3` on macOS/Linux needs no `python` alias or reinstall. Exhausted recovery remains `ENVIRONMENT-BLOCKED`; never patch assertions to absorb it.
+
 **Use when:** a suite or a named test is red, flaky, or must be proven repeatably green. To author new tests from specs, use `/workflow-integration-test --mode=write`; to reconcile specs and tests after a code change, use `/workflow-spec-sync`.
 
 ## Triage — FIRST Action
@@ -60,7 +62,7 @@ You choose inline vs sub-agent, batching, clustering and ordering to minimise wa
 
 ## Loop Bounds
 
-The loop is bounded by `/integration-test --mode=verify --fix-loop`: round cap 3 by default; STOP and escalate via `AskUserQuestion` when the failing count does not shrink across 2 rounds, failures increase, coverage is lost, a validated review finding stays open, the cap is hit with failures open, or a failure is `ENVIRONMENT-BLOCKED` or `AMBIGUOUS`. The cap triggers escalation, never acceptance of a red test. The per-round fix-diff review follows the framework round bar: round 1 exits on zero open validated findings (Round-1 LOW closure); round 2 onward clears CRITICAL/HIGH/MEDIUM and defers LOW.
+The loop is bounded by `/integration-test --mode=verify --fix-loop`: round cap 3 by default; STOP and escalate via `ask user question tool` when the failing count does not shrink across 2 rounds, failures increase, coverage is lost, a validated review finding stays open, the cap is hit with failures open, or a failure is `ENVIRONMENT-BLOCKED` or `AMBIGUOUS`. The cap triggers escalation, never acceptance of a red test. The per-round fix-diff review follows the framework round bar: round 1 exits on zero open validated findings (LOW deferral); round 2 onward clears CRITICAL/HIGH/MEDIUM and defers LOW.
 
 ## Test Architecture Contract Handoff
 

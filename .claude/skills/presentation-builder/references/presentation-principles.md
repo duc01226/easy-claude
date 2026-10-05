@@ -2,6 +2,20 @@
 
 Use this as the content and structure rubric for any subject. It is a decision aid, not a fixed template: audience, goal, environment, subject, and time determine the final sequence.
 
+<!-- SKILL-NAV:START -->
+## Contents
+
+- 1. Communication foundation
+- 2. Narrative architecture
+- 3. Narrative archetypes
+- 4. Slide map and slide-level contract
+- 5. Content and visual reasoning
+- 6. Delivery, notes, and pacing
+- 7. Final structure review
+- Research basis
+
+<!-- SKILL-NAV:END -->
+
 ## 1. Communication foundation
 
 1. Name the **audience**, **goal**, and **environment** before choosing a slide pattern. The same material needs different altitude, vocabulary, evidence, and interaction for a boardroom, classroom, conference, async reader, or technical review.

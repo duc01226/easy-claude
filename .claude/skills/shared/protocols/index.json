@@ -53,20 +53,6 @@
       ]
     },
     {
-      "tag": "ai-discovery-doc-quality",
-      "group": "spec-test",
-      "summary": "Agent-guide content value, authority, retention and verified discovery",
-      "when": "writing a doc that an agent reads",
-      "chars": 4027,
-      "file": ".claude/skills/shared/protocols/ai-discovery-doc-quality.md",
-      "parts": [
-        {
-          "file": ".claude/skills/shared/protocols/ai-discovery-doc-quality.md",
-          "chars": 4027
-        }
-      ]
-    },
-    {
       "tag": "ai-engineering-gate",
       "group": "design",
       "summary": "Thirty-eight AI-engineering clauses, AE-1.1 to AE-9.4: prompt contract, security, agents, retrieval, reliability, evals, operations, governance, UX",
@@ -253,12 +239,12 @@
       "group": "workflow-task",
       "summary": "Prompt clarity and semantic retention principles",
       "when": "writing or enhancing prompts, skills or agents",
-      "chars": 1580,
+      "chars": 1546,
       "file": ".claude/skills/shared/protocols/context-engineering-principles.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/context-engineering-principles.md",
-          "chars": 1580
+          "chars": 1546
         }
       ]
     },
@@ -281,12 +267,12 @@
       "group": "universal",
       "summary": "Critical and sequential thinking with traced proof for every claim",
       "when": "delivered by the universal hook",
-      "chars": 2001,
+      "chars": 2092,
       "file": ".claude/skills/shared/protocols/critical-thinking-mindset.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/critical-thinking-mindset.md",
-          "chars": 2001
+          "chars": 2092
         }
       ]
     },
@@ -393,12 +379,12 @@
       "group": "universal",
       "summary": "Discovery order, search-first rule and first principles",
       "when": "delivered by the universal hook",
-      "chars": 1986,
+      "chars": 1909,
       "file": ".claude/skills/shared/protocols/discovery-and-first-principles.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/discovery-and-first-principles.md",
-          "chars": 1986
+          "chars": 1909
         }
       ]
     },
@@ -659,12 +645,12 @@
       "group": "spec-test",
       "summary": "Changed business logic has matching tests",
       "when": "reviewing changed business logic",
-      "chars": 1529,
+      "chars": 1837,
       "file": ".claude/skills/shared/protocols/integration-test-sync-check.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/integration-test-sync-check.md",
-          "chars": 1529
+          "chars": 1837
         }
       ]
     },
@@ -771,12 +757,12 @@
       "group": "workflow-task",
       "summary": "Useful, readable guidance without lost conditions",
       "when": "writing generated docs or reports",
-      "chars": 874,
+      "chars": 792,
       "file": ".claude/skills/shared/protocols/output-quality-principles.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/output-quality-principles.md",
-          "chars": 874
+          "chars": 792
         }
       ]
     },
@@ -911,12 +897,12 @@
       "group": "evidence-trace",
       "summary": "Conditions that require stopping and escalating to the user",
       "when": "debugging or testing stalls or the risk rises",
-      "chars": 553,
+      "chars": 499,
       "file": ".claude/skills/shared/protocols/red-flag-stop-conditions.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/red-flag-stop-conditions.md",
-          "chars": 553
+          "chars": 499
         }
       ]
     },
@@ -949,16 +935,30 @@
       ]
     },
     {
+      "tag": "review-decision-autonomy",
+      "group": "review",
+      "summary": "Choose supported review decisions and ask before extending the round budget",
+      "when": "running any review or audit skill or mode",
+      "chars": 2914,
+      "file": ".claude/skills/shared/protocols/review-decision-autonomy.md",
+      "parts": [
+        {
+          "file": ".claude/skills/shared/protocols/review-decision-autonomy.md",
+          "chars": 2914
+        }
+      ]
+    },
+    {
       "tag": "review-policy",
       "group": "review",
-      "summary": "Executable review policy: one round-eligibility predicate and durable review state transitions",
+      "summary": "Review-only or a three-round fix loop with explicit extension and fresh post-fix evidence",
       "when": "deciding round eligibility, blocking findings or review state",
-      "chars": 3183,
+      "chars": 4579,
       "file": ".claude/skills/shared/protocols/review-policy.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/review-policy.md",
-          "chars": 3183
+          "chars": 4579
         }
       ]
     },
@@ -981,12 +981,12 @@
       "group": "review",
       "summary": "Verbatim template and protocol blocks for every fresh sub-agent review prompt",
       "when": "spawning a fresh sub-agent to review",
-      "chars": 14775,
+      "chars": 15216,
       "file": ".claude/skills/shared/protocols/review-protocol-injection.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/review-protocol-injection.part-1.md",
-          "chars": 8811
+          "chars": 9252
         },
         {
           "file": ".claude/skills/shared/protocols/review-protocol-injection.part-2.md",
@@ -1055,12 +1055,12 @@
       "group": "spec-test",
       "summary": "Baseline-safe updates with semantic retention and truthful freshness",
       "when": "scanning or updating a reference doc",
-      "chars": 2182,
+      "chars": 2146,
       "file": ".claude/skills/shared/protocols/scan-and-update-reference-doc.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/scan-and-update-reference-doc.md",
-          "chars": 2182
+          "chars": 2146
         }
       ]
     },
@@ -1083,12 +1083,12 @@
       "group": "evidence-trace",
       "summary": "Structured multi-step reasoning with revision, branch and hypothesis markers",
       "when": "planning, debugging or reviewing complex or ambiguous work",
-      "chars": 1492,
+      "chars": 1499,
       "file": ".claude/skills/shared/protocols/sequential-thinking-protocol.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/sequential-thinking-protocol.md",
-          "chars": 1492
+          "chars": 1499
         }
       ]
     },
@@ -1111,12 +1111,12 @@
       "group": "review",
       "summary": "One consequence-based Critical, High, Medium, Low scale for every finding and gate",
       "when": "classifying a finding or deciding whether a review round passes",
-      "chars": 8811,
+      "chars": 4304,
       "file": ".claude/skills/shared/protocols/severity-rubric.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/severity-rubric.md",
-          "chars": 8811
+          "chars": 4304
         }
       ]
     },
@@ -1125,12 +1125,12 @@
       "group": "workflow-task",
       "summary": "Protocol copies in carriers are intentional: edit the canonical source, then propagate",
       "when": "editing a shared protocol or its carriers",
-      "chars": 2008,
+      "chars": 2164,
       "file": ".claude/skills/shared/protocols/shared-protocol-duplication-policy.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/shared-protocol-duplication-policy.md",
-          "chars": 2008
+          "chars": 2164
         }
       ]
     },
@@ -1221,14 +1221,14 @@
     {
       "tag": "systematic-review-batching",
       "group": "review",
-      "summary": "Map-reduce review: size-capped batches, one sub-agent per batch, then reduce",
-      "when": "reviewing a large changeset",
-      "chars": 7940,
+      "summary": "Triage all files and plan adaptive review with complete coverage and no fixed size caps",
+      "when": "choosing review assignments or handling working-set overflow",
+      "chars": 2247,
       "file": ".claude/skills/shared/protocols/systematic-review-batching.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/systematic-review-batching.md",
-          "chars": 7940
+          "chars": 2247
         }
       ]
     },
@@ -1335,12 +1335,12 @@
       "group": "evidence-trace",
       "summary": "Three trade-off questions before any verdict, score or recommendation",
       "when": "rendering a verdict or recommending an option",
-      "chars": 4243,
+      "chars": 4558,
       "file": ".claude/skills/shared/protocols/trade-off-interrogation-gate.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/trade-off-interrogation-gate.md",
-          "chars": 4243
+          "chars": 4558
         }
       ]
     },
@@ -1349,12 +1349,12 @@
       "group": "review",
       "summary": "Multilingual UI changes must include translation updates or an explicit user decision",
       "when": "reviewing a change that touches user-visible text in a multilingual project",
-      "chars": 1053,
+      "chars": 1354,
       "file": ".claude/skills/shared/protocols/translation-sync-check.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/translation-sync-check.md",
-          "chars": 1053
+          "chars": 1354
         }
       ]
     },
@@ -1461,12 +1461,12 @@
       "group": "universal",
       "summary": "Closing reminders that restate the universal rules",
       "when": "delivered by the universal hook",
-      "chars": 575,
+      "chars": 584,
       "file": ".claude/skills/shared/protocols/universal-closing-reminders.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/universal-closing-reminders.md",
-          "chars": 575
+          "chars": 584
         }
       ]
     },
@@ -1489,12 +1489,12 @@
       "group": "spec-test",
       "summary": "Build all phases and write tests, review statically, then verify once with a mutation check",
       "when": "planning or running any code-changing task",
-      "chars": 2839,
+      "chars": 2846,
       "file": ".claude/skills/shared/protocols/verify-last-order.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/verify-last-order.md",
-          "chars": 2839
+          "chars": 2846
         }
       ]
     },
@@ -1517,12 +1517,12 @@
       "group": "review",
       "summary": "Read a behavior-changing diff once as one change and hunt cross-file defects through real situations",
       "when": "reviewing a behavior-changing diff",
-      "chars": 2062,
+      "chars": 1037,
       "file": ".claude/skills/shared/protocols/whole-diff-correctness.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/whole-diff-correctness.md",
-          "chars": 2062
+          "chars": 1037
         }
       ]
     },

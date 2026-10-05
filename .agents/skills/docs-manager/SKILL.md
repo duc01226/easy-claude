@@ -1,6 +1,6 @@
 ---
 name: docs-manager
-description: '[Documentation] Use when a workflow step or the user asks for a documentation update of docs impacted by code/spec/test changes (--mode=update), or first-time init of the reference-doc set from project-config (--mode=init).'
+description: '[Documentation] Use when a workflow step or the user asks for documentation sync after code/spec/test changes (--mode=update), or explicit reference-doc initialization and reconciliation (--mode=init).'
 ---
 
 > Codex compatibility note:
@@ -9,7 +9,7 @@ description: '[Documentation] Use when a workflow step or the user asks for a do
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - Use ask user tool to ask user.
+> - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -20,38 +20,42 @@ description: '[Documentation] Use when a workflow step or the user asks for a do
 
 ## Quick Summary
 
-**Goal:** Keep project documentation true to the code: `--mode=update` syncs the docs a change impacts (reference docs, project config, Feature Specs, §8 TCs, derived indexes, demo guides); `--mode=init` initializes or reconciles the whole reference-doc set from project config.
+**Goal:** Keep documentation true to code: update impacted context, config, specs/tests and derived/demo outputs; explicitly initialize or reconcile selected reference docs.
 
-**Workflow:** Detect the mode → read its `references/mode-<x>.md` in full → run that mode's ordered phases and gates → report with evidence.
+**Summary:** Update impacted docs or explicitly initialize reference docs: detect mode → read its contract → resolve scope/owners → run gates → review and report evidence.
+
+**Workflow:** Detect mode → read its full reference → execute its contract → verify and report.
 
 **Key Rules:**
 
-- One mode per invocation; the two modes share no body and a mode never loads the other's file.
+- One mode per invocation; load only the selected mode's body.
 - A natural-language request that matches the `update` Intent column selects `update`; `init` is selected only by an explicit `--mode=init`. No mode flag and no such request: show the [Mode Dispatch](#mode-dispatch) table and stop.
-- `--mode=` (two dashes) selects the skill mode. The `update` caller flag `mode=update` (no dashes, see that mode's Additional Requests) only overrides `$spec` mode detection and never selects a skill mode.
+- `--mode=` (two dashes) selects the skill mode. The `update` caller flag `mode=update` (no dashes, see that mode's Scope and inputs) only overrides `$spec` mode detection and never selects a skill mode.
 - The `docs-manager` sub-agent (`agent_type="docs-manager"`) is an agent, not this skill; it drives `$docs-manager --mode=update`.
 - MUST ATTENTION keep claims evidence-based (`file:line`, confidence >80% to act) and task tracking live as each step starts and completes.
 
 ## Mode Dispatch
 
-Detect the mode from the invocation arguments before any other work; do not load a mode file the invocation did not select.
-
 | Mode | Purpose | Intent (natural-language triggers) | Read in full FIRST |
 | --- | --- | --- | --- |
-| `--mode=update [modules=… changed_files=… phases=… skip_phases=… tc_mode=… freshness={impact\|full\|off} base=…]` | Sync the docs impacted by code, spec or test changes: triage → impact-scoped project-context sync → `$spec` chain → demo guide → report. Formerly `/docs-update` | "update docs", "docs impacted by my changes", "sync docs after code change", "doc sync", "documentation update" | `references/mode-update.md` |
-| `--mode=init` | First-time initialization or reconciliation of the whole project reference-doc set from project config; delegates each target to `scan`. Formerly `/docs-init` | _(explicit `--mode=init` only)_ | `references/mode-init.md` |
+| `--mode=update [modules=… changed_files=… phases=… skip_phases=… tc_mode=… freshness={impact\|full\|off} base=…]` | Impact-scoped context/config checks → spec/test owners → derived/demo outputs → report. Formerly `/docs-update` | "update docs", "docs impacted by my changes", "sync docs after code change", "doc sync", "documentation update" | `references/mode-update.md` |
+| `--mode=init` | Initialize or reconcile selected, applicable reference docs through `scan`. Formerly `/docs-init` | _(explicit `--mode=init` only)_ | `references/mode-init.md` |
 
-- **[BLOCKING]** When `--mode=update`, read `references/mode-update.md` in full FIRST; it owns the 9-task creation gate, the fixed phase order, the `$ARGUMENTS` caller flags, the Phase 5 report (`tmp/reports/docs-update-{YYMMDD}-{HHMM}.md`) and the nested-in-workflow behavior. Workflow invocation and standalone both run the full contract.
-- **[BLOCKING]** When `--mode=init`, read `references/mode-init.md` in full FIRST; it owns the config validation, the always-on vs task-specific doc split, the applicability-gated `scan` delegation and the AI-discovery gate.
+- **[BLOCKING]** When `--mode=update`, read `references/mode-update.md` in full FIRST; it owns scope, owners, freshness, intent/coverage, caller flags and the report (`tmp/reports/docs-update-{YYMMDD}-{HHMM}.md`). Workflow invocation and standalone both run the full contract.
+- **[BLOCKING]** When `--mode=init`, read `references/mode-init.md` in full FIRST; it owns optional config, document selection and applicability-gated scans.
 - One-doc rebuilds stay in `scan` (`$scan --target=<key>`); refreshing every selected reference doc at once stays in `scan-all`. `--mode=update` escalates to them and `--mode=init` delegates to `scan`; neither is a mode of this skill.
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Keep project documentation true to the code through exactly one mode per invocation, reading that mode's reference in full first.
+**IMPORTANT MUST ATTENTION Goal:** Keep project documentation true to the code through the selected update or init contract.
+
+**IMPORTANT MUST ATTENTION Main steps:** detect mode → read its full reference → resolve scope and ownership → run quality gates → review and report evidence.
 
 - **MANDATORY IMPORTANT MUST ATTENTION** `--mode=<x>` reads `references/mode-<x>.md` in full FIRST; no mode flag and no `update`-intent request shows the mode table and stops — never guess a mode, never start `init` without an explicit `--mode=init`
-- **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting; follow the mode's own task list and fixed step order
 - **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
-- **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
 
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
+**[TASK-PLANNING]** Track the selected contract before acting, with a final consistency review.
+
+| Evasion | Required action |
+| --- | --- |
+| "Direct call, skip the reference" | Standalone calls retain the full selected contract. |

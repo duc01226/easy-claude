@@ -9,7 +9,7 @@ description: '[Code Quality] Use when reviewing UI code for accessibility, respo
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - Use ask user tool to ask user.
+> - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -18,26 +18,28 @@ description: '[Code Quality] Use when reviewing UI code for accessibility, respo
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
 ## Quick Summary
 
-**Goal:** Review UI code for WCAG 2.2 accessibility, Core Web Vitals performance, and modern web design best practices.
+> **Review modes:** For review/audit work, standalone defaults to `--review-only` (`--report-only` alias); `--fix-loop` enables review → validate → authorized fix → fresh re-review, default cap 3. `--fix-loop --loop-owner=caller` returns a read-only pass to the caller that owns fixes/re-review. Create triage, review, validation and re-review todo tasks first; apply the carried `review-policy` contract for LOW deferral and user-approved bounded extensions. Non-review modes and terminal findings validation keep their own dispatch.
+
+**Goal:** Review UI code for WCAG 2.2 accessibility, Core Web Vitals performance, and modern web design best practices to identify evidenced issues and prioritize improvements.
+
+**Summary:** Triage the requested files → load guidelines and applicable styling rules → scan priority categories and UI/UX dimensions → validate and report evidenced findings. Review-only stops there; standalone fix-loop repairs authorized findings and freshly re-reviews.
 
 **Workflow:**
 
-1. **Identify Target** — Use provided file/pattern or ask user which components to review
+1. **Identify Target** — Use the file/pattern or ask which components to review; load prerequisites and plan review tasks
 2. **Scan Files** — Read and Grep target files for violation patterns
-3. **Check Categories** — Accessibility, keyboard nav, forms, async states & feedback (loading/error/empty), animation, performance, touch/mobile, responsive layout (flex-wrap / row→column), content, dark mode/i18n
+3. **Check Categories** — Check accessibility first, then remaining categories and the nine focused UI/UX dimensions
 4. **Report Findings** — Group by file, use `file:line` format, terse findings, prioritized summary
 
 **Key Rules:**
 
-- Review-only skill: finds issues, does NOT fix them
+- Review-only and caller-owned passes report without edits; standalone fix-loop follows the shared repair/re-review policy.
 - Check categories in priority order (accessibility first)
 - Resolve the project's configured styling reference when applicable; do not assume SCSS or BEM.
 
-**Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
+**Evidence:** Cite traced proof and confidence percentages for every claim; >80% confidence to act.
 
 # Web Design Guidelines Review
-
-Review UI code for compliance with WCAG 2.2, Core Web Vitals, and modern web design best practices. This is a **review-only** skill -- it finds issues, not fixes them.
 
 ## When to Use
 
@@ -56,7 +58,7 @@ Review UI code for compliance with WCAG 2.2, Core Web Vitals, and modern web des
 
 ## Prerequisites
 
-- Full guidelines reference: `references/guidelines.md`
+- Read [references/guidelines.md](references/guidelines.md) before scanning UI code; it covers accessibility, interaction, content, layout, performance and platform-specific checks.
 - Project styling: read the guide selected by project config when present.
 
 ## Workflow
@@ -64,8 +66,6 @@ Review UI code for compliance with WCAG 2.2, Core Web Vitals, and modern web des
 1. **Identify target files**
     - IF file/pattern argument provided → use it
     - IF not → ask user which files or components to review
-
-    **Concrete UI code only:** after identifying files, follow `.claude/skills/shared/review-preparation.md` before scanning. Use the actual skill/mode and selected required documents; inherit the parent decision, including explicit `--provider-decision skip` on children/rechecks, under the recipe’s read-only-leaf and exact-target limits. Image/live-only evidence is excluded.
 
 2. **Scan files** using Read and Grep tools
 
@@ -82,15 +82,15 @@ Review UI code for compliance with WCAG 2.2, Core Web Vitals, and modern web des
     - **Content** -- long-text/overflow handling (`text-overflow`, wrapping, line clamp), readable line length _(empty-collection states → **Async states & feedback**; breakpoints/reflow → **Responsive layout**)_
     - **Dark mode / i18n** -- `color-scheme`, logical CSS properties, `Intl.*` formatters
 
-4. **Report findings** in output format below
+4. **Validate and report findings** through `$why-review --validate-findings` before any fix or verdict, using the output format below. Standalone fix-loop then repairs authorized findings and freshly repeats the full review under `review-policy`.
 
 ## UI/UX Design Principles Pass (9 dimensions)
 
-The 40 clauses of `SYNC:ui-ux-design-principles` (full body inlined below in this skill) bind this review in the **REVIEW** role: each clause is a fail-condition. They do not replace the step-3 categories — they DEEPEN them. Run **NINE focused passes, one dimension at a time**, over the target files; a single simultaneous sweep of all nine is tick-boxing, which this skill's evidence rule already forbids. Answer each `Think:` prompt from first principles BEFORE hunting the violation it predicts.
+The 40 clauses of `SYNC:ui-ux-design-principles` bind this review in the **REVIEW** role: each clause is a fail-condition. Their full text is hook-delivered, with the Protocol guides below providing the fallback. They deepen the step-3 categories. Run **nine focused passes, one dimension at a time**; answer each `Think:` prompt before checking the violation it predicts.
 
-**Every finding** keeps this skill's existing Output Format — `path:line - finding`, grouped by file — with the clause ID in the text, e.g. `{ui-source-root}/components/Button:42 - UI-3.1 measured contrast 3.1:1 on the disabled label (needs 4.5:1)`. This skill defines no severity tiers and this pass adds none: keep the existing accessibility-first priority ordering and the Summary counts.
+**Findings:** Use `path:line - finding`, grouped by file, with the clause ID in the text, e.g. `{ui-source-root}/components/Button:42 - UI-3.1 measured contrast 3.1:1 on the disabled label (needs 4.5:1)`. Keep accessibility-first ordering and Summary counts; this pass adds no severity tiers.
 
-**One rule, one finding.** Where a clause restates a category rule this skill already states (touch targets >= 44px, `prefers-reduced-motion`, loading/error/empty states, image dimensions, readable line length), report ONE finding citing both the category and the clause ID — never two.
+**One rule, one finding.** When a clause repeats a category rule (touch targets, reduced motion, async states, image dimensions or readable line length), cite both the category and clause ID in one finding.
 
 **Component architecture findings** use the project design-review checklist IDs `M6`–`M9` when source code is available. If the artifact is a screenshot or live surface without source, record component base/tier/reuse as `NOT VERIFIABLE` rather than inferring it.
 
@@ -143,13 +143,13 @@ Group by file. Use `file:line` format. Terse findings. No preamble.
 
 **Input:** "Review the user profile component for accessibility"
 
-**Action:** Read component file, check for semantic HTML, ARIA attributes, label associations, color contrast patterns, keyboard navigation, focus indicators. Report each violation with file:line.
+**Action:** Read the component; check semantics, ARIA, label associations, contrast, keyboard navigation and focus indicators. Report violations with `file:line`.
 
 ### Example 2: Visual polish review
 
 **Input:** "Check the dashboard page for design best practices"
 
-**Action:** Scan for animation performance (no `transition: all`), image optimization (dimensions, lazy loading), responsive patterns (breakpoints, safe areas), typography (line height, max-width), empty states handling. Report categorized findings.
+**Action:** Check animation (`transition: all`), images (dimensions/lazy loading), responsiveness (breakpoints/safe areas), typography (line height/max-width) and empty states. Report categorized findings.
 
 ## Related Skills
 
@@ -161,7 +161,7 @@ Group by file. Use `file:line` format. Terse findings. No preamble.
 
 ---
 
-> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
+> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. Keep task depth proportional to the work.
 
 <!-- PROTOCOL-GUIDES:START -->
 
@@ -169,6 +169,8 @@ Group by file. Use `file:line` format. Terse findings. No preamble.
 
 - `design-distinctiveness-gate` — Design identity gate DD-1 to DD-8: subject, design plan, generic test, restraint; designing, implementing or reviewing a visual surface → .claude/skills/shared/protocols/design-distinctiveness-gate.md
 - `design-review-checklist` — Executable front-end design review protocol CL-1 to CL-6; reviewing, planning or building front-end work → .claude/skills/shared/protocols/design-review-checklist.md
+- `review-decision-autonomy` — Choose supported review decisions and ask before extending the round budget; running any review or audit skill or mode → .claude/skills/shared/protocols/review-decision-autonomy.md
+- `review-policy` — Review-only or a three-round fix loop with explicit extension and fresh post-fix evidence; deciding round eligibility, blocking findings or review state → .claude/skills/shared/protocols/review-policy.md
 - `ui-copywriting` — User-visible strings are design content; writing or reviewing UI text → .claude/skills/shared/protocols/ui-copywriting.md
 - `ui-ux-design-principles` — Forty usability and accessibility clauses, UI-1.1 to UI-9.4; designing, building or reviewing a user-facing interface → .claude/skills/shared/protocols/ui-ux-design-principles.md
 
@@ -198,13 +200,33 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 
 <!-- /SYNC:design-review-checklist:reminder -->
 
+<!-- SYNC:review-decision-autonomy:reminder -->
+
+**MUST ATTENTION** Decide supported review choices and recommendations, record the rationale, and finish without routine user questions. Keep round-limit extension, indispensable facts and actual action authority; preserve source coverage, validation, tests, read-only boundaries and budgets. Review decisions do not accept open risks or make a failed gate pass.
+
+<!-- /SYNC:review-decision-autonomy:reminder -->
+
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting
+**IMPORTANT MUST ATTENTION Goal:** Review UI code for WCAG 2.2 accessibility, Core Web Vitals performance, and modern web design best practices to identify evidenced issues and prioritize improvements.
 
-**IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code
-**IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
-**IMPORTANT MUST ATTENTION** run the 9-dimension UI/UX Design Principles pass — all 40 clauses (`UI-1.1`-`UI-9.4`), one dimension at a time; every finding cites `UI-<clause>` + `file:line` in the existing output format, and project SCSS/design-system docs OUTRANK the clauses (genuine conflict → surface both sides to the user)
-**IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
+**IMPORTANT MUST ATTENTION Main steps:** identify target → load prerequisites → triage and plan tasks → scan files → check priority categories and nine focused UI/UX dimensions → report deduplicated findings and Summary counts.
+
+- Report without edits in review-only and caller-owned passes; standalone fix-loop validates, repairs and freshly re-reviews. Use accessibility-first priority and the existing `file:line` output format.
+- Cite traced evidence and confidence (>80% to act). Run all 40 clauses (`UI-1.1`–`UI-9.4`) one dimension at a time; include the applicable clause ID. Project styling/design-system docs outrank the clauses; surface genuine conflicts with both sides.
+- Break work into small tasks before starting and include a final quality-review task.
+
+| Evasion | Required action |
+|---|---|
+| "Fix before validation" | Validate the finding first; repair only in authorized standalone fix-loop |
+| "Scan all dimensions together" | Give each dimension a focused pass before aggregating |
+| "The guide link is enough" | Read absent protocol text and the guidelines before acting |
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
+
+
+<!-- SYNC:review-policy:reminder -->
+
+**MUST ATTENTION** Triage all targets, plan and create review/validation/fix/fresh re-review tasks first. Review-only reports without edits; fix-loop freshly reviews every repair under one fixing owner. Default cap three rounds: disclose deferred LOWs, ask and wait before a bounded extension for MEDIUM+ or failed required checks. Preserve scope, coverage and actual operation authority.
+
+<!-- /SYNC:review-policy:reminder -->

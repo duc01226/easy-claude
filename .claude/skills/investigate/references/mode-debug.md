@@ -1,221 +1,129 @@
 # `/investigate --mode=debug` — root-cause investigation reference
 
-> Loaded by `investigate/SKILL.md`'s Mode Dispatch when invoked as `/investigate --mode=debug [bug description]`. This contract REPLACES the default read-only code-flow trace for the invocation: reproduce the bug, trace it end-to-start, test hypotheses, pinpoint the root cause, validate it with `/why-review`, then hand off to `/fix`. It never patches code. The default `/investigate` flow, its Phase 0 scope table and its Output Format do not apply; its `file:line` evidence rule and READ-ONLY rule bind this mode too (the code graph stays optional advice).
-
-<!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
-
-> **[BLOCKING]** Execute steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
-> **[BLOCKING]** Before each step or sub-skill call, update task tracking: set `in_progress` when step starts, set `completed` when step ends.
-> **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
-> **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
-
-<!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:END -->
+> Read in full for `--mode=debug [bug description]`. Replaces default Phase 0, workflow and output format; READ-ONLY and `file:line` rules remain. Investigate and recommend; `/fix` implements. The code graph remains optional.
 
 ## Quick Summary
 
-**Goal:** Deliver a `/why-review`-validated root cause at the lowest invariant-owning layer with `file:line` proof; investigate only so `/fix` corrects causes, not symptoms, or report "hypothesis, not confirmed" with evidence gaps.
+**Goal:** Deliver a `/why-review`-validated root cause at the invariant-owning layer so `/fix` corrects the cause; otherwise report an unconfirmed hypothesis and evidence gaps.
 
-**Summary:**
-
-- **Purpose — investigation-ONLY:** Find/pin cause; NEVER patch here. Deliver a `/why-review`-validated cause to `/fix`, or "hypothesis, not confirmed" with evidence gaps.
-- **Ordered phases:** (0) Classify bug type and route `debugger` / `performance-optimizer` / `security-auditor`; (0.5) failing/flaky integration test ONLY: READ the protocol (never invoke) and emit one verdict; (1) Reproduce; (2) Hypothesize 2-3 ranked theories; (3) Trace END-to-START from Frame 0 through reader → storage/projection → writer → consumer/job → producer, including ALL feeder paths; (4) Confirm one cause explains ALL symptoms and no bypasses; (5) validate via `/why-review`; (6) report the confidence-tagged finding, then `/fix`.
-- **Modes and gates:** Phase 0 is BLOCKING; Phase 0.5 applies only to failing integration tests; the code graph is optional advice (stale-able hint, never required); `/why-review` runs in the SAME main session, 2 failed rounds → STOP/`AskUserQuestion`; a direct call asks no workflow question, and standalone completion asks `workflow`, `/fix`, `/plan`, or manual continuation.
-- **Core evidence:** Bad state enters where written, so fix at the LOWEST invariant-owning layer, NEVER the crash site. Every root-cause claim needs `Confidence: X%` + `file:line`; below 60% report an unconfirmed hypothesis with named gaps.
-
-**Workflow:**
-
-1. **Classify** — Detect bug scenario type (Phase 0) → route to specialized agent
-1.5. **Adjudicate** — Failing integration test? Read `/integration-test --mode=review` gates (Phase 0.5) → emit fault verdict before tracing
-2. **Reproduce** — Confirm expected vs actual with evidence
-3. **Hypothesize** — Form 2-3 ranked theories
-4. **Trace** — Follow code paths; collect `file:line` proof per hypothesis
-5. **Confirm** — Single root cause explains ALL symptoms
-6. **Validate** — Trigger `/why-review` on findings/root cause before declaring confirmed
-7. **Report** — Confidence-tagged finding + hand off to `/fix`
+**Summary:** Classify → conditional test adjudication → reproduce → rank 2–3 hypotheses → trace end-to-start/all feeders → confirm ownership and forward proof → `/why-review` → report/handoff. Direct invocation asks no workflow question; standalone completion asks how to continue.
 
 **Key Rules:**
 
-- **AI surface?** Only if the defect sits in, or its fix changes, a model call, prompt, agent, tool/MCP, retrieval or eval (see `node .claude/scripts/ai-signal-scan.cjs`): read `.claude/skills/shared/protocols/ai-engineering-gate.md`; reproduce from recorded inputs and traces (`AE-6`, `AE-7`), not one sampled output; otherwise skip this line.
-- NEVER patch symptoms — trace full call chain, fix at owning layer
-- NEVER report root cause without `file:line` evidence
-- NEVER declare confirmed root cause without passing the `/why-review` validation gate
-- Output: confirmed root cause OR "hypothesis, not confirmed" + evidence gaps
+- Never patch here. Read actual code, search 3+ comparable patterns, and cite `file:line` + `Confidence: X%`.
+- Resolve or bound competing causes and bypasses before recommending; preserve intent rather than forcing green.
+- Confirm only after same-main-session `/why-review` PASS; two unsuccessful rounds → STOP/ask.
 
-## Phase 0: Classify Bug Scenario (BLOCKING — Do Before ANY Investigation)
+<!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
-**Think:** Which failure type? Classification routes the agent and evidence priorities.
+> **[BLOCKING]** Execute steps in order; skipping, reordering or merging requires explicit user approval.
+> **[BLOCKING]** Bootstrap task tracking before the first file read. Track each step/sub-skill with evidence or a skip reason; keep one `in_progress`, then mark `completed`. Use an equivalent tracker if Task tools are unavailable. Include a final consistency review.
 
-| Bug Type                    | Signals                                                 | Specialized Agent                  |
-| --------------------------- | ------------------------------------------------------- | ---------------------------------- |
-| Frontend UI / rendering     | Console errors, visual regression, component state      | `debugger`                         |
-| Backend logic / data        | Wrong API response, data corruption, validation failure | `debugger`                         |
-| Cross-service / message bus | Events not propagating, consumer failures, sync lag     | `debugger` (an optional graph trace may hint) |
-| Performance / memory        | Slow queries, OOM, N+1, unbounded result sets           | `performance-optimizer`            |
-| Security / auth             | Access denied, token issues, permission bypass          | `security-auditor`                 |
-| **Failing / flaky integration test** | A test that was green now fails, fails intermittently, or fails only in a full-suite run | `debugger` + **READ the `/integration-test --mode=review` protocol FIRST** (see Fault Adjudication below) |
+<!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:END -->
 
-**Cross-service bugs:** grep/read the producers and consumers first; an optional graph trace can hint at implicit bus connections grep misses (it may be stale — verify by reading); **OOM / memory exhaustion:** check row COUNT before row SIZE because unbounded queries are the more common cause; triage (1) missing DB filter? (2) excessive row size?
+<!-- SKILL-NAV:START -->
+## Contents
 
-### Phase 0.5: Fault Adjudication — failing integration tests (BLOCKING for that bug type)
+- [Classify and route](#phase-0-classify-and-route-blocking)
+- [Reproduce](#phase-1-reproduce)
+- [Hypothesize](#phase-2-hypothesize)
+- [Trace end-to-start](#phase-3-trace-end-to-start)
+- [Confirm ownership](#phase-4-confirm-ownership-and-completeness)
+- [Validate](#phase-5-root-cause-validation-why-review-gate)
+- [Report and hand off](#phase-6-report-and-hand-off)
+- [Mode protocols](#mode-protocols)
+- [Closing reminders](#closing-reminders)
 
-> **Think:** A failing test has TWO defendants: source or test. Tracing source first ASSUMES the test is right and can rationalize a broken invariant into green. Decide *whose fault* before *where to trace*.
+<!-- SKILL-NAV:END -->
 
-> **Integration Test Review** — Eight gates check assertion value, data state, repeatability, handler/domain alignment, spec traceability, test/code/docs sync, changed-behavior coverage, and scenario fidelity. Use them to distinguish TEST-WRONG, TEST-NOT-OPTIMAL, SOURCE-WRONG, ENVIRONMENT-BLOCKED, and AMBIGUOUS before source tracing; never weaken assertions or mask timing.
->
-> **MUST ATTENTION READ** `.claude/skills/integration-test/references/mode-review.md` §"Single Review Pass — Eight Gates" for full details.
+## Phase 0: Classify and Route (BLOCKING)
 
-**Step 1 — NEVER invoke the skill.** Apply the protocol read above. Gates 1 (assertion value), 3 (repeatability), 4 (domain logic), and 8 (scenario fidelity) expose faulty tests: dead/always-true assertion, non-unique ID, assertion on fields the handler never writes, or unreachable setup.
+Route by failure type:
 
-> **MUST NOT invoke `/integration-test --mode=review` from here — READ its protocol instead.** Inside `integration-test --mode=verify --fix-loop`, this mode already runs in the SAME round as an explicit `/integration-test --mode=review` call (`integration-test/references/fix-loop.md` → FL-1 step 5); invoking it again runs a 9-phase audit twice per round — the duplicate-ownership defect that loop removes (its "Why this mode exists"). The loop OWNS the invocation. — why: standalone, reading also suffices — investigation is this mode's only deliverable.
-
-**Step 2 — emit ONE fault verdict before any trace.**
-
-| Verdict | Meaning | Where to trace next |
+| Bug type | Signals | Specialized agent |
 | --- | --- | --- |
-| **TEST-WRONG** | Stale assertion, wrong setup, non-unique data, unreachable scenario | The test's own root cause — fix the assertion/setup at its root, NEVER weaken it |
-| **TEST-NOT-OPTIMAL** | Test is right but fragile — timing, shared state, ordering dependence | The fragility's source (missing ARRANGE barrier, shared infra assertion) |
-| **SOURCE-WRONG** | Production code violates the spec or a clear invariant | Normal end-to-start trace to the invariant-owning layer; KEEP or strengthen the test |
-| **ENVIRONMENT-BLOCKED** | Config, DB, credentials, ports, versions | Mark BLOCKED — do not trace application code |
-| **AMBIGUOUS** | Spec silent or contradictory about which side is correct | **STOP and ask the user** via `AskUserQuestion` — never self-resolve |
+| Frontend UI / rendering | Console errors, visual regression, component state | `debugger` |
+| Backend logic / data | Wrong response, corrupt data, validation failure | `debugger` |
+| Cross-service / message bus | Missing events, failed consumers, sync lag | `debugger` |
+| Performance / memory | Slow queries, OOM, N+1, unbounded results | `performance-optimizer` |
+| Security / auth | Access denied, token issues, permission bypass | `security-auditor` |
+| Failing / flaky integration test | Regression, intermittent or full-suite-only failure | `debugger`; Phase 0.5 FIRST |
 
-> **Development Rules** — Task steps need observable verification; changes stay surgical; tests protect intent; failed tests require fault adjudication; NEVER weaken assertions, add skips, relax timeouts, or alter source merely to force green.
->
-> **MUST ATTENTION READ** `.claude/docs/development-rules.md` for full project rules.
+- Cross-service bugs: grep/read producers, consumers, sagas and shared contracts.
+- OOM: check row COUNT before row SIZE — missing DB filter, then excessive row size.
+- When the defect or proposed fix touches model calls, prompts, agents, tools/MCP, retrieval or evals, record inputs/traces and reproducible evidence (`AE-6`, `AE-7`), not one sample. Read `.claude/skills/shared/protocols/ai-engineering-gate.md` then; `node .claude/scripts/ai-signal-scan.cjs` assists discovery. Otherwise skip.
+- When business entity/model ownership or relationships matter, read `domain-entities-reference.md` under the reference-docs root (default `docs/project-reference`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it).
 
-**Step 3 — governing law.** Project lesson: *"Test failure → record a provisional verdict before trace/edit, then investigate"*, canonical in `CLAUDE.md` and restated in `.claude/docs/development-rules.md`: *"NEVER weaken an assertion, add a skip, relax a timeout, or change source merely to force green."* (`AGENTS.md` is the GENERATED Codex mirror; cite canonical `CLAUDE.md`, never the mirror.) Green is not the goal; fix the verdict-named party at its owning layer. Silent/ambiguous spec → STOP and ask.
+### Phase 0.5: Fault Adjudication (failing/flaky integration tests ONLY)
 
-## Debug Mindset (NON-NEGOTIABLE)
+**Integration Test Review** — Read `.claude/skills/integration-test/references/mode-review.md` §"Single Review Pass — Eight Gates" and apply it; NEVER invoke `/integration-test --mode=review` here. It covers assertion value, data state, repeatability, domain alignment, spec traceability, sync, changed-behavior coverage and scenario fidelity. The verify fix-loop owns invocation (`.claude/skills/integration-test/references/fix-loop.md`, FL-1 step 5); reading suffices standalone.
 
-**Skeptical. Sequential. Every claim needs traced proof; confidence >80%.**
+Emit ONE provisional verdict before tracing:
 
-- NEVER assume first hypothesis — verify with actual code traces; every root-cause claim MUST include `file:line` evidence
-- Cannot prove cause → state "hypothesis, not confirmed"
-- Challenge cause and completeness → trace execution and related paths
+| Verdict | Evidence / next action |
+| --- | --- |
+| **TEST-WRONG** | Stale/dead assertion, incorrect setup, non-unique data or unreachable scenario → trace the test's root cause; recommend correcting it without weakening the invariant. |
+| **TEST-NOT-OPTIMAL** | Valid intent but fragile timing, shared state, ordering or low signal → trace the test seam/barrier or shared infrastructure assertion. |
+| **SOURCE-WRONG** | Production violates the governing spec or invariant → trace to its owner; keep or strengthen the detecting test. |
+| **ENVIRONMENT-BLOCKED** | Config, dependencies, DB, credentials, ports, versions or resource pressure prevent a verdict → preserve diagnostics, name the environment remedy; block application tracing and source/test mutation. |
+| **AMBIGUOUS** | Intended behavior or ownership is silent/contradictory → STOP and ask the user or canonical owner. |
 
-## Confidence & Evidence Gate
+Read `.claude/docs/development-rules.md` when adjudicating: verify observable intent, triangulate spec/source per the full protocol below, and propose surgical repairs. Never weaken assertions, add skips, relax timeouts or alter source to force green; this mode returns proposed repairs only.
 
-**MUST ATTENTION** declare `Confidence: X%` + evidence list + `file:line` proof for EVERY claim.
+## Phase 1: Reproduce
 
-| Confidence | Meaning                                  | Action                               |
-| ---------- | ---------------------------------------- | ------------------------------------ |
-| 95-100%    | Full trace verified                      | Report as confirmed root cause       |
-| 80-94%     | Main path verified, edge cases uncertain | Report with caveats                  |
-| 60-79%     | Partial trace                            | Report as hypothesis                 |
-| <60%       | Insufficient evidence                    | DO NOT report — gather more evidence |
+Record expected/actual behavior, exact trigger (data/action/timing/environment) and error, stack trace, screenshot or assertion. Before deep tracing, sweep environment preconditions and resource/transience suspects; run and cite a discriminator. Retry success alone leaves the failure unexplained.
 
-## Investigation Dimensions
+## Phase 2: Hypothesize
 
-For each dimension: state failure if weak, then apply with evidence.
+Rank 2–3 theories with evidence for/against and a falsifiable verification. Keep the environment as a competing cause until ruled out; test one variable at a time.
 
-### Dim 1: Reproduce
+## Phase 3: Trace End-to-Start
 
-**Think:** What exact data, action, timing, or environment triggers this?
-- Confirm issue exists with evidence (error message, stack trace, screenshot); identify trigger: user action, data state, timing, env difference
+Apply the full trace protocol below: name Frame 0 and its reader, trace each hop to origin with input/transformation/output/owner/evidence, and enumerate ALL feeders (retry, async/background, alternate entries) and error branches. Complete the hypothesis matrix before recommending.
 
-### Dim 2: Hypothesize
-
-**Think:** Which failure modes fit symptoms? What confirms or contradicts each?
-- Form 2-3 theories ranked by likelihood; note evidence needed to confirm/contradict each before investigating
-
-### Dim 3: End-to-Start Debugger Trace
-
-**Think:** What final output proves the bug? Which reader and storage/projection/write path fed it? Where does bad state ENTER, not CRASH? Which layer owns the invariant?
-
-- Name Frame 0: observed final state (UI, API response, log, persisted value, assertion, aggregate)
-- Identify final reader/query/renderer/assertion and consumed state
-- Walk backward: reader -> storage/projection/cache -> writer -> consumer/handler/job -> producer/origin
-- Enumerate all feeder paths writing the same final state
-- Check error paths; collect `file:line` evidence per hypothesis; an optional graph trace may hint at implicit connections (event handlers, bus consumers) — verify by reading
-
-### Dim 4: Confirm
-
-**Think:** Does one cause explain ALL symptoms? Do bypass paths skip the fix point?
-
-- Match evidence to one root cause; verify it explains ALL observed symptoms
-- Check secondary factors; build hypothesis matrix: primary, contributing, ruled out, latent, unknown
-- Resolve or disclose competing causes before proposing a fix; verify no bypass paths (direct construction, clone/spread without re-validation, mutations outside model layer)
-
-### Dim 5: Report
-
-- Output confirmed root cause + evidence chain; include affected files, Debugger Trace: End -> Start, feeder paths, hypothesis matrix, data flow, owning fix layer, fix recommendation, forward convergence proof
-- Hand off to `/fix` for implementation
-- Persist the report to `tmp/reports/debug-investigate-{YYMMDD}-{slug}.md`, appended incrementally; the prefix is what `/fix`'s Root-Cause Prerequisite Gate recognizes as same-session evidence
-
-## Dependency Tracing (optional advice)
-
-Optional: when grep and reading files alone may not reveal a high-risk blast radius (shared contract, many callers, cross-module/cross-service flow, public API), the code graph (`.code-graph/graph.db`) can add callers, dependents and impacted tests. Treat it as a hint, NOT proof: the graph can be stale or incomplete (it lags uncommitted edits and unindexed paths) — verify anything that matters by reading the files/grep. Skip it for low-risk or local changes.
+**Optional graph advice:** For shared contracts, many callers, public APIs or cross-module/service flows, `.code-graph/graph.db` may reveal dependencies/tests/message-bus hints. Verify them with grep/read; stale, missing or local/low-risk graphs never block. Use a verified Python 3 launcher: `python3` on macOS/Linux, `py -3` on Windows.
 
 ```bash
-# Who calls the buggy function
-python .claude/scripts/code_graph query callers_of <function> --json
-
-# Who imports the buggy module
-python .claude/scripts/code_graph query importers_of <file> --json
-
-# What tests exist
-python .claude/scripts/code_graph query tests_for <function> --json
-
-# Full upstream + downstream context
-python .claude/scripts/code_graph trace <suspect-file> --direction both --json
-
-# Callers only (find all trigger points)
-python .claude/scripts/code_graph trace <suspect-file> --direction upstream --json
+python3 .claude/scripts/code_graph query callers_of <function> --json
+python3 .claude/scripts/code_graph trace <suspect-file> --direction both --json
 ```
 
-The graph may surface implicit MESSAGE_BUS/event-handler connections across services that grep cannot see; confirm each by reading the code.
+## Phase 4: Confirm Ownership and Completeness
 
-## Root Cause Validation (`/why-review` Gate)
+Classify hypotheses as primary, contributing, ruled out, latent or unknown; cover ALL symptoms and resolve or bound competing causes. Check bypasses (direct construction, clone/spread without revalidation, external mutation). Prove the correction point owns the invariant and protects consumers; the crash site qualifies only when it owns the contract. Walk origin → observed end state forward, mapping each cause to a correction and each correction to tests/proof.
 
-NEVER declare a confirmed root cause straight from investigation. Run `/why-review` on findings and cause — SAME session, SAME main agent (do NOT spawn a sub-agent) — before `/fix`.
+## Phase 5: Root Cause Validation (`/why-review` Gate)
 
-**Step 1 — Investigate (main agent):** Identify root cause + full evidence chain; write findings to report.
+Persist findings; run `/why-review` in the SAME session and SAME main agent; do NOT delegate this gate. Verify conclusive `file:line` proof, ALL symptoms, no evidence gaps, correct ownership and no downstream/bypass regressions.
 
-**Step 2 — Validate (`/why-review`, same main agent):** Trigger it on findings/cause. The gate must confirm:
+- **PASS:** May confirm and hand findings to `/fix`.
+- **Gaps/risks:** Gather evidence and repeat validation.
+- **Two rounds without PASS:** STOP and escalate through `ask user question tool`.
 
-- Root cause is correct and reasonable, with `file:line` evidence that conclusively supports it
-- Evidence has no gaps and explains ALL symptoms
-- The proposed fix direction would NOT introduce other bugs or regressions (check downstream consumers, bypass paths, owning layer)
+Every root-cause claim needs `Confidence: X%` and traced evidence; verify before acting at ≤80%.
 
-**Decision:**
+| Confidence | Evidence | Reporting |
+| --- | --- | --- |
+| 95–100% | Full trace verified | Confirmed only after validation PASS |
+| 80–94% | Main path verified; edges uncertain | Report with caveats |
+| 60–79% | Partial trace | Hypothesis, not confirmed |
+| <60% | Insufficient evidence | Gather evidence; report only the unconfirmed hypothesis and named gaps, never a root-cause verdict |
 
-- `/why-review` PASSES → declare confirmed, proceed to `/fix`
-- `/why-review` finds GAPS/risks → collect additional evidence, repeat
-- 2 validation rounds without passing → STOP, escalate to user via `AskUserQuestion`
+## Phase 6: Report and Hand Off
 
-## Anti-Rationalization (Red Flags)
+Append evidence incrementally to `tmp/reports/debug-investigate-{YYMMDD}-{slug}.md`; `/fix` recognizes this prefix. Return:
 
-| Evasion                                | Rebuttal                                                                        |
-| -------------------------------------- | ------------------------------------------------------------------------------- |
-| "I see the problem, let me fix it"     | Symptoms ≠ root cause. Investigate first.                                       |
-| "Quick fix for now, investigate later" | Quick fixes mask bugs. Find root cause.                                         |
-| "Just try changing X and see"          | One hypothesis at a time. Scientific method, not trial and error.               |
-| "Already tried 2+ fixes, one more"     | 3+ failed fixes = STOP. Question the architecture, not the fix.                 |
-| "The error message is misleading"      | Read it again carefully. Error messages are usually right.                      |
-| "It works on my machine"               | Reproduce in the failing environment. Your environment hides bugs.              |
-| "This can't be the cause"              | Verify with evidence, not intuition. Unlikely causes are still causes.          |
-| "It's OOM, must be a large object"     | Check row COUNT before row SIZE. Unbounded query > large single row.            |
-| "Skip `/why-review`, findings look solid" | Self-confirmed findings rationalize their own gaps. The `/why-review` gate is non-negotiable. |
+- Expected/actual behavior, trigger and environment discriminator.
+- Root cause or "hypothesis, not confirmed", confidence, `file:line` chain, affected files and gaps.
+- `Debugger Trace: End -> Start`, feeder statuses, hypothesis matrix and data flow.
+- Invariant owner, proposed correction, forward convergence, tests/proof and full report link.
 
----
-
-## Next Steps (Standalone only — skip only when `nested=true`: THIS run is a step of a `[Workflow]` row with its own linked phase tasks; a `[Workflow]` row that merely exists in `TaskList`, such as an abandoned one, does not count)
-
-**MUST ATTENTION** after completion, use `AskUserQuestion`; NEVER auto-decide next step:
-
-- **"Proceed with full workflow (Recommended)"** — detect best workflow to continue from here
-- **"/fix"** — apply fix based on debug findings
-- **"/plan"** — if fix requires planning first
-- **"Skip, continue manually"** — user decides
-
----
-
-> **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting, including each file read — prevents long-file context loss.
-
-- `domain-entities-reference.md` under the reference-docs root (default `docs/project-reference`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides) — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models)
+**Standalone next steps:** Use `ask user question tool`; never auto-continue. Offer the appropriate full workflow (recommended), `/fix`, `/plan`, or manual continuation. Skip this choice ONLY for `nested=true`: a linked step of an active `[Workflow]` row with its own phase tasks; an abandoned/existing row alone does not qualify. Return nested findings to the parent.
 
 ## Mode protocols
 
-The protocols below apply to this mode only; their full text is inline so this reference is self-contained. `end-to-start-debugger-trace` is inline here because the debug flow runs it; the `investigate` skill also carries it, plus `cross-service-check`, `environment-fault-hypothesis`, `fix-layer-accountability`, `root-cause-debugging`, `sequential-thinking-protocol`, `source-test-drift-check`, `task-tracking-external-report` and `understand-code-first` (and their digests), as guide lines.
+Keep these six full SYNC bodies intact. The entrypoint's required protocol delivery also applies: cross-service, environment, fix-layer, root-cause, sequential-thinking, source/test-drift, task/report and understand-code guides.
 
 <!-- SYNC:end-to-start-debugger-trace -->
 
@@ -270,15 +178,14 @@ The protocols below apply to this mode only; their full text is inline so this r
 
 <!-- SYNC:red-flag-stop-conditions -->
 
-> **Red Flag Stop Conditions** — STOP and escalate to user via AskUserQuestion when:
+> **Red Flag Stop Conditions** — STOP and escalate to user via ask user question tool when:
 >
-> 1. Confidence drops below 60% on any critical decision
-> 2. Changes would affect >20 files (blast radius too large)
-> 3. Cross-service boundary is being crossed
-> 4. Security-sensitive code (auth, crypto, PII handling)
-> 5. Breaking change detected (interface, API contract, DB schema)
-> 6. Test coverage would decrease after changes
-> 7. Approach requires technology/pattern not in the project
+> 1. Confidence drops below 70% on any critical decision
+> 2. Cross-service boundary is being crossed
+> 3. Security-sensitive code (auth, crypto, PII handling)
+> 4. Breaking change detected (interface, API contract, DB schema)
+> 5. Test coverage would decrease after changes
+> 6. Approach requires technology/pattern not in the project
 >
 > **NEVER proceed past a red flag without explicit user approval.**
 
@@ -347,51 +254,13 @@ The protocols below apply to this mode only; their full text is inline so this r
 
 <!-- /SYNC:test-failure-fault-adjudication -->
 
-## Prompt-Enhance Closing Anchors
-
-**IMPORTANT MUST ATTENTION** follow declared step order for this mode; NEVER skip, reorder, or merge steps without explicit user approval
-**IMPORTANT MUST ATTENTION** for every step/sub-skill call: set `in_progress` before execution, set `completed` after execution
-**IMPORTANT MUST ATTENTION** every skipped step MUST include explicit reason; every completed step MUST include concise evidence
-**IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses
-
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Deliver a `/why-review`-validated root cause at the lowest invariant-owning layer with `file:line` proof; investigate only so `/fix` corrects causes, not symptoms, or report "hypothesis, not confirmed" with evidence gaps.
+**IMPORTANT MUST ATTENTION Goal:** Deliver a `/why-review`-validated root cause at the invariant-owning layer so `/fix` corrects the cause; otherwise report an unconfirmed hypothesis and evidence gaps.
 
-**IMPORTANT MUST ATTENTION — Main steps/modes/gates:** Investigation-only: (0) Classify bug type and route specialist → (0.5) failing/flaky integration test ONLY: read the `integration-test --mode=review` protocol, never invoke it, emit one verdict → (1) Reproduce → (2) Hypothesize 2-3 ranked theories → (3) Trace END-to-START from Frame 0 through reader → storage/projection → writer → consumer/job → producer and ALL feeder paths → (4) Confirm one cause explains ALL symptoms and no bypasses → (5) validate with `/why-review` → (6) report confidence-tagged finding → `/fix`.
-**IMPORTANT MUST ATTENTION — Routing/terminal behavior:** Phase 0 is BLOCKING; Phase 0.5 is conditional; the code graph is optional advice; `/why-review` runs in the SAME main session, 2 failed rounds → STOP/`AskUserQuestion`; a direct call asks no workflow question; standalone completion asks `workflow`, `/fix`, `/plan`, or manual continuation.
+**Route:** Classify → conditional adjudication (read, never invoke review) → reproduce → rank 2–3 hypotheses → trace/all feeders → ownership/forward proof → same-main-session `/why-review` → report → standalone user choice or nested return.
 
-**Protocols in force (concise digest of the SYNC/shared blocks this mode carries):**
-
-- **End-to-Start Debugger Trace:** MUST ATTENTION trace backward from final state.
-- **Root Cause Debugging:** reproduce, isolate, trace — NEVER guess-and-check.
-- **Incremental Persistence:** append findings to report per file.
-- **Sub-Agent Return Contract:** return summary only, full report on disk.
-- **Source/Test Drift Check:** changed behavior — reconcile affected tests from evidence.
-- **Test-Failure Fault Adjudication:** decide whether the source or the test is at fault before editing either.
-- **Nested Task Creation:** expand child phases, link parent when nested.
-- **Task Tracking & External Report:** bootstrap tasks, persist findings incrementally.
-- **Sequential Thinking:** multi-step Thought N/M with confidence closer.
-- **Understand Code First:** read code, grep 3+ patterns before concluding.
-- **Evidence:** cite `file:line`, declare confidence — NEVER speculate.
-- **Cross-Service Check:** scan producers/consumers/sagas/contracts for silent regressions.
-- **Red Flag Stop Conditions:** escalate on confidence/blast/boundary/security flags.
-- **Fix-Layer Accountability:** fix lowest invariant-owning layer — NEVER crash site.
-- **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
-
-**IMPORTANT MUST ATTENTION** investigation-ONLY — NEVER patch here; hand confirmed cause to `/fix` — why: a fix from un-validated findings patches the symptom and masks the real defect.
-**IMPORTANT MUST ATTENTION** Phase 0 FIRST (BLOCKING) — classify bug type, route to the specialized agent (`debugger` / `performance-optimizer` / `security-auditor`) before any investigation — why: classification decides which evidence matters and which agent has the right checklist.
-**IMPORTANT MUST ATTENTION** NEVER fix at the crash site — trace full data flow origin → crash, fix at the lowest invariant-owning layer that protects ALL downstream consumers — why: the crash site is a symptom; scattered guards at consumers signal nobody owns the invariant.
-**MUST ATTENTION** trace END-to-START — name Frame 0 (observed final state), walk reader → storage/projection → writer → consumer/job → producer, enumerate ALL feeder paths, build the hypothesis matrix BEFORE proposing any fix — why: the bug enters where bad state is WRITTEN, not where it crashes.
-**MUST ATTENTION** every root-cause claim carries `Confidence: X%` + `file:line` proof; <60% → report "hypothesis, not confirmed" with named evidence gaps, NEVER a guess — why: self-confirmed findings rationalize their own gaps.
-**MUST ATTENTION** NEVER declare a confirmed root cause without passing the `/why-review` gate (SAME session, SAME main agent, NO sub-agent); 2 rounds without passing → STOP, escalate via `AskUserQuestion`.
-**MUST ATTENTION** search 3+ existing patterns and READ the actual code before concluding — cite `file:line`; inference alone is insufficient — why: trial-and-error and assumed APIs hallucinate causes.
-**MUST ATTENTION** failing/flaky integration test → run **Phase 0.5 Fault Adjudication BEFORE any trace**: READ the `/integration-test --mode=review` protocol (8 assertion-quality / repeatability / domain-logic / scenario-fidelity gates) — NEVER invoke that skill, the verify loop owns the invocation — then emit ONE verdict: TEST-WRONG · TEST-NOT-OPTIMAL · SOURCE-WRONG · ENVIRONMENT · AMBIGUOUS (→ STOP and ask) — why: without that verdict the trace targets the wrong side and can rationalize a broken invariant as green.
-**Optional advice:** on a cross-service flow grep may miss, a graph trace can hint at MESSAGE_BUS consumers and event handlers — it may be stale; verify by reading. Never required.
-**MUST ATTENTION** prove convergence FORWARD after choosing the fix layer — walk start → end, map each root cause to a fix part and each fix part to a test/proof.
-**MUST ATTENTION** OOM/memory → check row COUNT before row SIZE (unbounded query > large row); 3+ failed fixes → STOP, question the architecture, escalate to user.
-**MUST ATTENTION** bootstrap `TaskCreate` task tracking BEFORE first file read; persist findings incrementally to `tmp/reports/`; return the investigation findings without modifying target code or applying fixes.
-
-
-
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.
+- **READ-ONLY:** No quick patches; read code, search 3+ patterns, preserve intent and cite `file:line` + confidence. Below 60%, return only an unconfirmed hypothesis and gaps.
+- **Validation:** Solid-looking findings still need `/why-review` PASS. Two unsuccessful rounds → STOP/ask; 3+ failed fix attempts → STOP, question the architecture and escalate.
+- **Evidence:** Retry/local success is insufficient; reproduce in the failing environment and name the mechanism/discriminator.
+- **Completion:** Follow phase order, link nested tasks, restrict parallel work to disjoint write sets with a barrier, persist evidence, update task status and finish the consistency review.

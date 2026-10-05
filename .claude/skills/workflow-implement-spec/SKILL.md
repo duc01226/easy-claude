@@ -1,19 +1,43 @@
 ---
 name: workflow-implement-spec
 version: 1.0.0
-description: '[Workflow] Use when implementing behavior already written in a canonical spec or TC set. Spec lacks the behavior: workflow-feature.'
+description: "[Workflow] Implement behavior already captured in a canonical spec or test-case set, with scope held, reviewed changes and verified tests. Spec gaps use workflow-feature."
 disable-model-invocation: false
 ---
 
-## Purpose
+<!-- WORKFLOW-CALLS:START -->
+## Workflow Calls and Todo Bootstrap
 
-Implement behavior that a canonical spec or TC set already states — without re-authoring the spec or growing scope — and close with green tests, a converged change review and a spec synced to any behavior difference. Use it only when the requested behavior is already written in a canonical spec; a spec that lacks it goes to `workflow-feature`, which updates the spec first. The route is lean by design: the supplied spec stands in for the discovery, spec-authoring and test-spec rounds of the feature route.
+Read [the registry](../../../.claude/workflows.json) → `workflows.workflow-implement-spec` together with this skill. Call [`/start-workflow workflow-implement-spec`](../start-workflow/SKILL.md) to resolve the selected mode, pre-actions and fingerprint.
 
-Activate the `workflow-implement-spec` workflow. Run `/start-workflow workflow-implement-spec` with the user's prompt as context.
+**Todo FIRST:** create ALL selected occurrence tasks before triage, analysis or step execution, including conditional/optional tasks; preserve occurrence IDs, roles and barrier groups. Use native task tools or an equivalent persistent ledger. Then mark the first task `in_progress`; attach evidence before `completed`.
+Mode selection and registry loading prepare tracking; any 'first action' below means the first substantive action after this bootstrap.
+
+**Call each step skill:** read its linked SKILL.md and execute its protocol through the active host with the registry args. Reading or naming a skill alone is not execution. Required gates and core/optional flex follow the linked start-workflow Step Execution Protocol; keep this skill's quality gates, loops and evidence requirements.
+
+**Conditions:** load each occurrence's registry `applicability.when` and `skipReason` verbatim, and record its run/skip evidence through the linked start-workflow protocol. Do not silently omit a task or turn a conditional skill into an unconditional call. Declared parallel groups retain their all-return barrier.
+
+Explicit step-skill calls by mode (registry order; roles and conditions remain owned by the registry):
+
+- Mode `default`: [`/investigate`](../investigate/SKILL.md) (core) → [`/spec [mode=clarify]`](../spec/SKILL.md) (core) → [`/plan`](../plan/SKILL.md) (core) → [`/plan --mode=execute`](../plan/SKILL.md) (core) → [`/integration-test`](../integration-test/SKILL.md) (core) → [`/spec [mode=sync]`](../spec/SKILL.md) (optional; conditional) → [`/workflow-review-changes --tests=defer`](../workflow-review-changes/SKILL.md) (gate) → [`/integration-test --mode=verify`](../integration-test/SKILL.md) (gate) → [`/test`](../test/SKILL.md) (gate) → [`/workflow-end`](../workflow-end/SKILL.md) (gate) → [`/watzup`](../watzup/SKILL.md) (core)
+<!-- workflow-mode:default fingerprint:235c2b9f3476f380213bf45fca43bea1532f6a2817fd99de5c494c8099130f9e -->
+
+Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs --write` after registry edits; [`/sync-codex`](../sync-codex/SKILL.md) refreshes it before mirroring.
+<!-- WORKFLOW-CALLS:END -->
+
+## Quick Summary
+
+**Goal:** Implement already-specified behavior within the supplied baseline, proven by green tests, converged review and reconciled spec evidence.
+
+**Summary:** The supplied spec replaces feature discovery, spec-authoring and test-spec rounds. Triage → investigate → clarify gaps → plan → execute → author integration tests → sync changed behavior/evidence → review statically → verify integration tests → test remaining tiers → close → hand off.
+
+**Workflow:** Activate `/start-workflow workflow-implement-spec` with the user's prompt; follow the registry and step contracts below.
+
+**Key Rules:** Implement the supplied spec without re-authoring it or growing scope. Missing behavior routes to `workflow-feature`, which updates the spec first; other gaps stop for clarification before planning. Keep every phase within `spec_baseline`; review runs inline and tests run last.
 
 ## Size & Kind Triage (first action)
 
-Classify the target before choosing depth and record the result in the run report:
+Classify the target before choosing depth; record it in the run report:
 
 - **Size** (guidance, not a law): **XS** 1–3 files / ≤100 changed lines · **S** ≤15 files · **M** ≤60 · **L** ≤300 · **XL** >300.
 - **Kind**: behavior change · public contract/API · data/schema/migration · security-sensitive (auth, secrets, money, PII) · UI surface · infra/CI · cross-module/cross-service · test-only · tooling/config.
@@ -25,7 +49,7 @@ Depth by band:
 - **M, or any public-contract, data/schema or security kind** — full investigation and one lean plan; user-owned decisions go through `/plan --mode=validate`.
 - **L/XL** — partition the build, the integration tests and the review into bounded batches per module or TC group, one report per batch; the plan names the batches.
 
-The gap review never shrinks: at every size `/spec [mode=clarify]` checks the supplied spec against the request before `/plan`.
+At every size, `/spec [mode=clarify]` checks the supplied spec against the request before `/plan`.
 
 ## Required Quality Gates
 
@@ -42,7 +66,7 @@ The gap review never shrinks: at every size `/spec [mode=clarify]` checks the su
 
 ## Gates and Optional Steps
 
-**Step contract:** `/start-workflow` → Step Execution Protocol owns how gate, core and optional steps run and how every deviation is logged; this table is the registry's recommended order (`.claude/workflows.json` → `workflow-implement-spec`) with this workflow's triage guidance.
+**Step contract:** Read `/start-workflow` → Step Execution Protocol for gate/core/optional execution and deviation logging. The table follows `.claude/workflows.json` → `workflow-implement-spec`; apply the triage above.
 
 | Step                       | Role     | Earns its cost when                                                           | Proves / feeds                |
 | -------------------------- | -------- | ----------------------------------------------------------------------------- | ----------------------------- |
@@ -60,7 +84,7 @@ The gap review never shrinks: at every size `/spec [mode=clarify]` checks the su
 
 > **Conditional step:** `/spec [mode=sync]` runs after integration-test authoring when behavior differs or canonical case-to-test evidence/mappings changed, and before the nested review. Skip reason: "Behavior and canonical case-to-test evidence still match the supplied spec, so no reconciliation is needed."
 
-The registry's default order, parsed by the workflow verifier — keep it equal to `workflows.json`; the roles above decide what may flex:
+Keep this verifier-parsed chain equal to the registry; roles determine permitted flex:
 
 **IMPORTANT MANDATORY Steps:** /investigate -> /spec [mode=clarify] -> /plan -> /plan --mode=execute -> /integration-test -> /spec [mode=sync] -> /workflow-review-changes --tests=defer -> /integration-test --mode=verify -> /test -> /workflow-end -> /watzup
 
@@ -68,7 +92,7 @@ The registry's default order, parsed by the workflow verifier — keep it equal 
 
 ## Orchestration Freedom
 
-You choose inline vs sub-agent, parallel waves vs sequential, batching and ordering — optimize wall-clock and token cost at equal quality. Only these data dependencies are fixed:
+Choose inline/sub-agent execution, parallel waves, batching and ordering at equal quality, preserving these dependencies:
 
 - the gap review precedes `/plan`; a change exists before it is reviewed or tested; tests run once, last, after the static review (`--tests=defer`); a fix made by the verify step re-runs `/workflow-review-changes --tests=defer`, and a fix made by that re-review re-runs the verify (`SYNC:verify-last-order`);
 - `/integration-test` writes the executing evidence before the single conditional `/spec [mode=sync]` reconciliation; the sync precedes review;
@@ -76,20 +100,18 @@ You choose inline vs sub-agent, parallel waves vs sequential, batching and order
 - a gap-review question to the user is never parallelized with later work;
 - `/workflow-end` runs last, then `/watzup`.
 
-Recommended: XS/S inline without sub-agents; L/XL in bounded batches per module or TC group with one report per batch.
-
 ## Memory & Reporting
 
-- One task per selected step (and per batch for L/XL); a step that does not run keeps its task, closed with its logged deviation.
+- One task per selected step or L/XL batch; skipped steps keep tasks closed with logged deviations.
 - Write the run report FIRST under `tmp/reports/` — triage result, `spec_baseline`, gate evidence, deviations — and append per step or batch; re-read it and `TaskList` after compaction.
-- Sub-agent briefs carry the supplied spec path, the `spec_baseline` and the resolved reference-doc paths, and make report-writing their first deliverable.
+- Sub-agent briefs carry the supplied spec path, `spec_baseline`, resolved reference-doc paths and report-writing as their first deliverable.
 
 ## Fix Path & Loop Bounds
 
 - Validate findings (evidence-backed, reproducible) before fixing; fix at the owning layer; re-run the reviewer or test that raised each finding, plus a holistic pass when the fixes were non-trivial.
 - A failing test gets a root-cause verdict before either the source or the test is edited; never weaken an assertion to force green. A test that contradicts the supplied spec is adjudicated against the spec, never silently rewritten.
 - Re-run `/plan` only when a material scope or contract decision invalidates the saved plan; ordinary implementation discovery stays with the executor.
-- The nested review keeps the framework loop bounds: round 1 exits on zero open validated findings (Round-1 LOW closure); round 2 exits on zero CRITICAL/HIGH/MEDIUM with LOW-only findings deferred; cap 3 review rounds; failing tests are uncapped; escalate with `AskUserQuestion` on no progress.
+- The nested review keeps the framework loop bounds: round 1 exits on zero open validated findings (LOW deferral); round 2 exits on zero CRITICAL/HIGH/MEDIUM with LOW-only findings deferred; cap 3 review rounds; failed checks block and at the three-round cap require explicit user-approved bounded extension; escalate with `ask user question tool` on no progress.
 
 <!-- PROTOCOL-GUIDES:START -->
 
@@ -112,6 +134,8 @@ Recommended: XS/S inline without sub-agents; L/XL in bounded batches per module 
 
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION Goal:** Implement already-specified behavior within the supplied baseline, proven by green tests, converged review and reconciled spec evidence.
+**IMPORTANT MUST ATTENTION Main steps:** triage → investigate → clarify gaps → plan → execute → author integration tests → sync changed behavior/evidence → review statically → verify integration tests → test remaining tiers → close → hand off.
 **IMPORTANT MUST ATTENTION** a vague, contradictory or incomplete spec stops the route before `/plan` — the user clarifies the spec or switches to `workflow-feature`.
 **IMPORTANT MUST ATTENTION** the workflow records the supplied baseline before planning; every plan phase and acceptance gate stays within it, and anything beyond it needs owner approval.
 **IMPORTANT MUST ATTENTION** gates never flex: tests green in THIS run · nested `/workflow-review-changes` converged inline · spec synced before the review when behavior differs · `/workflow-end` last.

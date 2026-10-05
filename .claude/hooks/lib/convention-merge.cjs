@@ -335,46 +335,37 @@ function fingerprintGroup(group) {
 
 /**
  * BR-PFCI-12 merge:
- *   no group with that identity        → ADD (origin detected + fingerprint)
+ *   no group with that name            → ADD (origin detected + fingerprint)
  *   origin !== 'detected'               → KEEP
  *   detected but edited since detection → KEEP
  *   detected and unedited               → REFRESH (identical content ⇒ reported kept)
  * Never removes a group; order of existing groups preserved, additions appended.
  */
-function mergeDetected(existing, detected, options = {}) {
-    // Review groups share the ownership contract, but use id instead of the legacy
-    // case-insensitive convention name. Callers accept/validate proposals before merging.
-    const identityKey = options.identityKey === undefined ? 'name' : options.identityKey;
-    if (identityKey !== 'name' && identityKey !== 'id') throw new TypeError('mergeDetected identityKey must be name or id');
-    const identity = group => {
-        if (!isPlainObject(group) || typeof group[identityKey] !== 'string') return null;
-        const value = group[identityKey];
-        return identityKey === 'name' ? value.trim().toLowerCase() : value;
-    };
+function mergeDetected(existing, detected) {
     const groups = (Array.isArray(existing) ? existing : []).slice();
     const added = [];
     const refreshed = [];
     const kept = [];
     for (const incoming of Array.isArray(detected) ? detected : []) {
-        if (identity(incoming) === null) continue;
+        if (!isPlainObject(incoming) || typeof incoming.name !== 'string') continue;
         const fingerprint = fingerprintGroup(incoming);
         const stamped = { ...incoming, origin: 'detected', detectedFingerprint: fingerprint };
         // Case-insensitive: a maintainer "Backend" and a detected "backend" are the same class, not two.
-        const key = identity(incoming);
-        const index = groups.findIndex(g => identity(g) === key);
+        const key = incoming.name.trim().toLowerCase();
+        const index = groups.findIndex(g => isPlainObject(g) && typeof g.name === 'string' && g.name.trim().toLowerCase() === key);
         if (index < 0) {
             groups.push(stamped);
-            added.push(incoming[identityKey]);
+            added.push(incoming.name);
             continue;
         }
         const current = groups[index];
         const unedited = current.origin === 'detected' && current.detectedFingerprint === fingerprintGroup(current);
         if (!unedited || current.detectedFingerprint === fingerprint) {
-            kept.push(incoming[identityKey]);
+            kept.push(incoming.name);
             continue;
         }
         groups[index] = stamped;
-        refreshed.push(incoming[identityKey]);
+        refreshed.push(incoming.name);
     }
     return { groups, added, refreshed, kept };
 }

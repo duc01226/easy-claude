@@ -2,17 +2,29 @@
 
 Read on demand by `domain-analysis` (SKILL.md → "DDD Reference") and by `--mode=review` (`references/mode-review.md` → Universal DDD Quick Reference: Entity vs Value Object, Aggregate Design, Anti-Patterns → Phase 2 A, B, C, F, K). Section → step map: Strategic Design → Steps 2, 4 · Entity vs Value Object, Entity Design, Aggregate Design, Repository Pattern → Step 3 · Domain Events → Step 5 · ERD Design → Step 6 · Anti-Patterns → Steps 3, 7.
 
+## Contents
+
+- [Strategic design](#ddd-reference-strategic-design)
+- [Entity vs value object](#ddd-reference-entity-vs-value-object)
+- [Entity design](#ddd-reference-entity-design)
+- [Aggregate design](#ddd-reference-aggregate-design)
+- [ERD design](#ddd-reference-erd-design)
+- [Domain events](#ddd-reference-domain-events)
+- [Repository pattern](#ddd-reference-repository-pattern)
+- [Anti-patterns](#ddd-reference-anti-patterns-quick-reference)
+- [Closing reminders](#closing-reminders)
+
 ## DDD Reference: Strategic Design
 
 ### Bounded Context Rules
 
-| Signal                                     | Action                                 |
-| ------------------------------------------ | -------------------------------------- |
-| Same term, different meaning across teams  | Separate bounded contexts              |
-| Different data lifecycles for same concept | Separate contexts                      |
-| Different invariants on same entity        | Separate contexts                      |
-| Team ownership conflict (Conway's Law)     | Separate contexts                      |
-| Shared DB table touched by two services    | Extract shared kernel or introduce ACL |
+| Signal | Action |
+| --- | --- |
+| Same term, different meaning across teams | Separate bounded contexts |
+| Different data lifecycles for same concept | Separate contexts |
+| Different invariants on same entity | Separate contexts |
+| Team ownership conflict (Conway's Law) | Separate contexts |
+| Shared DB table touched by two services | Extract shared kernel or introduce ACL |
 
 **Ubiquitous Language Rules:**
 
@@ -22,90 +34,56 @@ Read on demand by `domain-analysis` (SKILL.md → "DDD Reference") and by `--mod
 
 ### Context Map Pattern Decision Table
 
-| Situation                                              | Pattern                                |
-| ------------------------------------------------------ | -------------------------------------- |
-| Two teams, joint success/failure, equal power          | Partnership                            |
-| Small shared code nucleus, joint governance acceptable | Shared Kernel                          |
-| Downstream can influence upstream roadmap              | Customer-Supplier                      |
-| Downstream has no influence on upstream                | Conformist                             |
-| External/legacy system with hostile or polluting model | Anti-Corruption Layer (ACL)            |
-| One upstream, many downstream consumers                | Open Host Service + Published Language |
-| Integration cost exceeds integration value             | Separate Ways                          |
+| Situation | Pattern |
+| --- | --- |
+| Two teams, joint success/failure, equal power | Partnership |
+| Small shared code nucleus, joint governance acceptable | Shared Kernel |
+| Downstream can influence upstream roadmap | Customer-Supplier |
+| Downstream has no influence on upstream | Conformist |
+| External/legacy system with hostile or polluting model | Anti-Corruption Layer (ACL) |
+| One upstream, many downstream consumers | Open Host Service + Published Language |
+| Integration cost exceeds integration value | Separate Ways |
 
 **ACL — use when:** upstream is external, legacy, or third-party (Salesforce, SAP, Workday); upstream types NEVER cross ACL into domain model.
 
 **Shared Kernel — avoid when:** teams cannot coordinate every change → use Customer-Supplier + Published Language.
 
----
-
 ## DDD Reference: Entity vs Value Object
 
 ### Decision Matrix
 
-| Question                                          | Entity | Value Object |
-| ------------------------------------------------- | ------ | ------------ |
-| Has identity beyond its attributes?               | YES    | no           |
-| Can two instances with same data be distinct?     | YES    | no           |
-| Has a lifecycle (created, modified, deleted)?     | YES    | no           |
-| Identified by an ID in any downstream system?     | YES    | no           |
-| Measured or described (quantity, address, money)? | no     | YES          |
-| Replaced rather than modified on change?          | no     | YES          |
-| Must be found independently of parent?            | YES    | no           |
+| Question | Entity | Value Object |
+| --- | --- | --- |
+| Has identity beyond its attributes? | YES | no |
+| Can two instances with same data be distinct? | YES | no |
+| Has a lifecycle (created, modified, deleted)? | YES | no |
+| Identified by an ID in any downstream system? | YES | no |
+| Measured or described (quantity, address, money)? | no | YES |
+| Replaced rather than modified on change? | no | YES |
+| Must be found independently of parent? | YES | no |
 
-**Fast heuristics:**
-
-- Replace with equal-valued copy → breaks nothing? → **Value Object**
-- Must be tracked across time or fetched by ID? → **Entity**
-- Always retrieved as part of another object? → likely **Value Object**
-- Two instances with same data are interchangeable? → **Value Object**
+**Fast test:** Equal-valued copies interchangeable → VO; tracked across time or fetched independently by ID → Entity. Parent-only retrieval suggests a VO.
 
 ### Canonical Value Objects
 
-| VO            | Attributes                          | Key Invariants                                                     |
-| ------------- | ----------------------------------- | ------------------------------------------------------------------ |
-| `Money`       | amount: Decimal, currency: Currency | amount ≥ 0, valid ISO currency; Add/Subtract require same currency |
-| `Email`       | value: string                       | RFC 5322 format, normalized to lowercase                           |
-| `Address`     | street, city, country, postalCode   | All fields non-empty; composed of Country + PostalCode VOs         |
-| `DateRange`   | start: DateOnly, end: DateOnly      | start ≤ end; operations: Contains, Overlaps, Duration              |
-| `PhoneNumber` | countryCode, number                 | E.164 format                                                       |
-| `Percentage`  | value: int                          | 0 ≤ value ≤ 100                                                    |
+| VO | Attributes | Key Invariants |
+| --- | --- | --- |
+| `Money` | amount: Decimal, currency: Currency | amount ≥ 0, valid ISO currency; Add/Subtract require same currency |
+| `Email` | value: string | RFC 5322 format, normalized to lowercase |
+| `Address` | street, city, country, postalCode | All fields non-empty; composed of Country + PostalCode VOs |
+| `DateRange` | start: DateOnly, end: DateOnly | start ≤ end; operations: Contains, Overlaps, Duration |
+| `PhoneNumber` | countryCode, number | E.164 format |
+| `Percentage` | value: int | 0 ≤ value ≤ 100 |
 
 ### Primitive Obsession → Value Object Mapping
 
-| Primitive Usage                          | Replace With                          |
-| ---------------------------------------- | ------------------------------------- |
-| `string orderId`                         | `OrderId` typed wrapper               |
-| `decimal amount, string currency`        | `Money { amount, currency }`          |
-| `string street, string city, string zip` | `Address { ... }`                     |
-| `DateTime start, DateTime end`           | `DateRange { start, end }`            |
-| `string email`                           | `Email { value }`                     |
-| `int percentage`                         | `Percentage { value }`                |
-| `string phoneNumber`                     | `PhoneNumber { countryCode, number }` |
-
-**Rule:** Primitive with validation rules, formatting, or always passed grouped with other primitives → missing Value Object.
+Use typed IDs and the VOs above for validated primitives or groups that travel together: amount/currency → Money; address fields → Address; start/end → DateRange. A primitive with validation or formatting rules signals a missing VO.
 
 ### Value Object Construction Pattern
 
 VO self-validates invariants at construction via a factory; no public constructor may produce an invalid instance; immutable; equality-by-value. Base class and factory names below are illustrative; adapt to your language.
 
-**Example (illustrative — adapt to your language):**
-
-```csharp
-// Self-validating VO — never an invalid instance in memory
-public sealed class Email : ValueObject<Email>
-{
-    private Email(string value) { Value = value; }
-    public string Value { get; }
-
-    public static Email Of(string raw)
-    {
-        var normalized = raw?.Trim().ToLowerInvariant();
-        if (string.IsNullOrWhiteSpace(normalized) || !IsValidFormat(normalized))
-            throw new DomainException($"Invalid email: {raw}");
-        return new Email(normalized);
-    }
-}
-```
+`Email.Of(raw)` validates before creating an immutable, value-equal VO; changing it replaces the instance.
 
 **Rules:**
 
@@ -115,29 +93,27 @@ public sealed class Email : ValueObject<Email>
 
 ### VO Persistence Strategies
 
-| Strategy                    | When to Use                                  | Trade-offs                               |
-| --------------------------- | -------------------------------------------- | ---------------------------------------- |
-| Owned types (EF Core)       | VO maps to same table as owning entity       | Simple, no FK, nullable columns possible |
-| Embedded document store | VO stored as subdocument                     | Natural fit, no joins                    |
-| JSON column                 | Complex VO, low query frequency on VO fields | Flexible, not queryable by parts         |
-| Serialized string           | Simple VOs (Email, PostalCode)               | Compact, unqueryable by parts            |
+| Strategy | When to Use | Trade-offs |
+| --- | --- | --- |
+| Owned types (EF Core) | VO maps to same table as owning entity | Simple, no FK, nullable columns possible |
+| Embedded document store | VO stored as subdocument | Natural fit, no joins |
+| JSON column | Complex VO, low query frequency on VO fields | Flexible, not queryable by parts |
+| Serialized string | Simple VOs (Email, PostalCode) | Compact, unqueryable by parts |
 
 **Rule:** VOs NEVER have own table with primary key — that makes them entities by infrastructure.
-
----
 
 ## DDD Reference: Entity Design
 
 ### Identity Strategies
 
-| Strategy           | When to Use                                       | Trade-offs                                |
-| ------------------ | ------------------------------------------------- | ----------------------------------------- |
-| **ULID** (default) | New entities in distributed system                | Sortable, URL-safe, monotonic, 128-bit    |
-| **UUID v4**        | True randomness / security-sensitive IDs          | Not sortable, fragmented indexes          |
-| **UUID v7**        | Sortable UUID needed                              | Time-ordered, good index locality         |
-| **Natural key**    | Domain guarantees permanent uniqueness (SSN, EAN) | Unstable — domain can change              |
-| **Surrogate int**  | Legacy/single-DB sequences                        | No distributed generation                 |
-| **Composite key**  | Relationship/join table                           | Harder to reference from other aggregates |
+| Strategy | When to Use | Trade-offs |
+| --- | --- | --- |
+| **ULID** (default) | New entities in distributed system | Sortable, URL-safe, monotonic, 128-bit |
+| **UUID v4** | True randomness / security-sensitive IDs | Not sortable, fragmented indexes |
+| **UUID v7** | Sortable UUID needed | Time-ordered, good index locality |
+| **Natural key** | Domain guarantees permanent uniqueness (SSN, EAN) | Unstable — domain can change |
+| **Surrogate int** | Legacy/single-DB sequences | No distributed generation |
+| **Composite key** | Relationship/join table | Harder to reference from other aggregates |
 
 **Rules:**
 
@@ -147,87 +123,28 @@ public sealed class Email : ValueObject<Email>
 
 ### Rich vs Anemic Domain Model
 
-| Anemic (Anti-Pattern)                    | Rich (Correct)                              |
-| ---------------------------------------- | ------------------------------------------- |
-| Entity is data bag, logic in services    | Entity contains behavior + invariants       |
-| `public set` on all properties           | Private setters, mutation via named methods |
-| `OrderService.Confirm(order)`            | `order.Confirm()`                           |
-| Service checks rules then mutates entity | Entity refuses invalid state transitions    |
-| Logic duplicated across services         | Single authoritative location in entity     |
-
-**Tell Don't Ask Principle:**
-
-- BAD: `if (order.Status == Confirmed) { order.Status = OnHold; }` (external ask + mutate)
-- GOOD: `order.Hold(reason)` (entity enforces its own invariants)
+A rich model owns behavior and invariants: `order.Hold(reason)` replaces external checks and assignments. Public setters, data bags, and entity rules duplicated in services signal anemia. Review mode first checks whether the subdomain warrants rich modeling.
 
 ### Entity Invariant Enforcement
 
 Rich entity guards its state: private constructor for ORM/persistence hydration, valid-creation factories, and intent-named mutation methods that reject invalid transitions and emit domain events. Base class, guard, and ID-generator names below are illustrative; adapt to your language.
 
-**Example (illustrative — adapt to your language):**
-
-```csharp
-public class Order : AuditedAggregateRoot<Order, string>
-{
-    private Order() { }  // ORM hydration only
-
-    public static Order Create(string name, Email email, WarehouseId warehouseId)
-    {
-        Guard.NotNullOrWhitespace(name, nameof(name));
-        Guard.NotNull(email, nameof(email));
-        return new Order
-        {
-            Id = Ulid.NewUlid().ToString(),
-            Name = name,
-            Email = email,
-            WarehouseId = warehouseId,
-            Status = OrderStatus.Confirmed
-        };
-    }
-
-    public void Cancel(string reason, DateOnly cancellationDate)
-    {
-        if (Status == OrderStatus.Cancelled)
-            throw new DomainException("Order already cancelled");
-        if (cancellationDate < DateOnly.FromDateTime(DateTime.UtcNow))
-            throw new DomainException("Cancellation date cannot be in the past");
-
-        Status = OrderStatus.Cancelled;
-        CancellationReason = reason;
-        CancellationDate = cancellationDate;
-        AddDomainEvent(new OrderCancelledDomainEvent(Id, cancellationDate));
-    }
-}
-```
+`Order.Create(...)` validates required data; a private hydration path loads existing state. `order.Cancel(reason, date)` rejects invalid transitions, updates state and raises `OrderCancelled`.
 
 ### Entity Lifecycle State Machines
 
-Document ALL transitions explicitly. Unmodeled transitions throw `DomainException`.
+Document every permitted transition and intent-named method; reject unmodeled transitions through the project's domain failure convention. Example: Draft → Submitted → Approved/Rejected; Approved → Active → Suspended → Active, or Active → Archived.
 
-```
-Draft → Submitted (Submit())
-Submitted → Approved (Approve(approverId))
-Submitted → Rejected (Reject(reason))
-Approved → Active (Activate())
-Active → Suspended (Suspend(reason))
-Suspended → Active (Reinstate())
-Active → Archived (Archive())
-```
-
-| Pattern                          | When to Use                                              |
-| -------------------------------- | -------------------------------------------------------- |
-| Status enum + transition methods | Simple linear/branching lifecycles (most cases)          |
-| State pattern (class per state)  | Complex per-state behavior, many states                  |
-| Event sourcing                   | Full audit trail + point-in-time reconstruction required |
+Use status + transition methods for simple branching lifecycles, state classes for complex per-state behavior, and event sourcing for full audit/reconstruction. Adapt to the paradigm discovered by review mode.
 
 ### Domain Validation Layers
 
-| Layer                   | What It Validates                               | Failure Signal (per stack)                                |
-| ----------------------- | ----------------------------------------------- | --------------------------------------------------------- |
-| **Value Object**        | Single-value format/range invariants            | Construction failure (raised error or result type)        |
-| **Entity method**       | Aggregate consistency rules, state transitions  | Domain rule violation (e.g. `DomainException`)            |
+| Layer | What It Validates | Failure Signal (per stack) |
+| --- | --- | --- |
+| **Value Object** | Single-value format/range invariants | Construction failure (raised error or result type) |
+| **Entity method** | Aggregate consistency rules, state transitions | Domain rule violation (e.g. `DomainException`) |
 | **Application service** | Cross-aggregate rules, authorization, existence | Structured validation result (e.g. `ValidationResult` / problem-details payload) |
-| **Infrastructure**      | DB constraints (last resort, NEVER first line)  | Persistence-layer error (last-resort constraint)          |
+| **Infrastructure** | DB constraints (last resort, NEVER first line) | Persistence-layer error (last-resort constraint) |
 
 **Decision rule:**
 
@@ -237,13 +154,7 @@ Active → Archived (Archive())
 
 ### Factory Methods on Entities
 
-Use when construction requires domain logic, multiple creation paths, domain events, or object-graph initialization.
-
-**Naming:**
-
-- `Order.Create(...)` — primary creation
-- `Order.Place(...)` — semantically loaded creation (domain language)
-- Private constructor — ORM hydration only, NEVER called directly
+Use factories for domain creation logic, multiple paths, events or graph initialization: `Create` or a domain verb such as `Place`. Private hydration constructors serve persistence, not public creation.
 
 ### Temporal (Bi-Temporal) Entities
 
@@ -259,94 +170,29 @@ ProductPrice {
 
 Use when: regulatory compliance, retroactive corrections, "as-of" queries.
 
----
-
 ## DDD Reference: Aggregate Design
 
 ### Aggregate Boundary Rules
 
-1. **Invariant scope** — boundary = objects needed to enforce invariants atomically
-2. **Transaction boundary** — exactly one database transaction per aggregate operation
-3. **Consistency scope** — must be consistent atomically? same aggregate. Eventual consistency acceptable? separate aggregates
-4. **Small aggregates preferred** — fewer members = fewer transaction conflicts = better scalability
-
-### Aggregate Size Heuristics
-
-| Heuristic                  | Guideline                                                            |
-| -------------------------- | -------------------------------------------------------------------- |
-| Default                    | Start with single-entity aggregate unless invariant demands more     |
-| Add member                 | Only when invariant requires atomic consistency across root + member |
-| Max size                   | > 5 entities → redesign; likely missing sub-aggregates               |
-| Concurrent writes conflict | Reduce aggregate size                                                |
-
-### Aggregate Root Responsibilities
-
-1. Maintain all invariants across all members
-2. All mutation paths go through root (child entities NEVER directly accessible from outside)
-3. Emit domain events for significant state changes
-4. Control creation of child entities (factory methods on root)
-5. Assign IDs to child entities
-
-**Rule:** Outside code NEVER holds direct reference to non-root entity within aggregate.
-
-### Cross-Aggregate References
-
-| Rule                                      | Detail                                                            |
-| ----------------------------------------- | ----------------------------------------------------------------- |
-| Reference by ID only                      | NEVER `order.Customer.Name` — load separately                     |
-| No FK object navigation                   | `CustomerId` field, NEVER `Customer Customer` navigation property |
-| Cross-aggregate transactions are eventual | Need them in same transaction → boundaries are wrong              |
-| Deletion cascade                          | Domain event → handler → compensating action in other aggregate   |
-
-### Aggregate Invariant Enforcement
-
-Aggregate root owns mutation: check every invariant before change and recompute derived state to prevent inconsistency. Throw-on-violation example is illustrative; language may use exceptions or result types.
-
-**Example (illustrative — adapt to your language):**
-
-```csharp
-public void AddLineItem(ProductId productId, int quantity, Money unitPrice)
-{
-    if (Status != OrderStatus.Draft)
-        throw new DomainException("Cannot modify confirmed order");
-    if (LineItems.Count >= 50)
-        throw new DomainException("Order cannot exceed 50 line items");
-
-    var item = OrderLineItem.Create(productId, quantity, unitPrice);
-    _lineItems.Add(item);
-    RecalculateTotal();  // invariant: Total == sum(lineItems)
-}
-```
-
-### Aggregate Design Patterns
-
-| Pattern                 | When to Use                                                  |
-| ----------------------- | ------------------------------------------------------------ |
-| Single-entity aggregate | Default — most entities are their own aggregate              |
-| Nested aggregate        | Invariant requires atomic consistency across root + children |
-| Aggregate with VOs      | Root + embedded value objects (no IDs, no own table)         |
+- Boundary = objects required for atomic invariants. Start with one entity; add members only for atomic root/member consistency. One transaction per aggregate operation; eventual consistency permits separate aggregates. >5 entities or frequent unrelated write conflicts prompts decomposition.
+- Root owns all member invariants, creation/IDs, significant events and every mutation. Outside code holds no direct child references or mutable collection access.
+- Cross-aggregate references are IDs, not object navigation (`CustomerId`, not `order.Customer.Name`). Load separately; cascade deletion through events/compensation. If multiple roots need one transaction, revisit boundaries.
+- Check invariants before mutation and recompute derived state: `root.AddLineItem(...)` checks status/domain limits, then recomputes totals. The former example's limit of 50 is illustrative.
+- Root + embedded VOs need no separate IDs/tables. Nested child entities require atomic invariants; smaller aggregates reduce transaction conflicts.
 
 ### When to Break Aggregate Rules (Pragmatic DDD)
 
-| Situation                          | Acceptable Pragmatism                                            |
-| ---------------------------------- | ---------------------------------------------------------------- |
-| ORM limitation (EF owned entities) | Allow private owned collections even if not strictly necessary   |
-| Performance — 1-query load         | Embed child data as VO/owned type rather than separate aggregate |
-| Legacy schema migration            | Accept cross-aggregate FK temporarily, document as debt          |
-
-**Rule:** Break aggregate rules ONLY with explicit technical-debt documentation and mitigation plan.
-
----
+Document technical debt and mitigation before exceptions: private owned collections for ORM limitations; embedded VO/owned data for one-query performance; temporary cross-aggregate FKs during legacy migration.
 
 ## DDD Reference: ERD Design
 
 ### Cardinality Types
 
-| Cardinality | Mermaid    | When to Use                                                    |
-| ----------- | ---------- | -------------------------------------------------------------- |
-| 1:1         | `\|o--o\|` | Same-table extension, optional sub-type, shared lifecycle      |
-| 1:N         | `\|o--{`   | Parent-child, one entity owns many dependent records           |
-| M:N         | `}o--o{`   | Peer relationship; ALWAYS use explicit join/association entity |
+| Cardinality | Mermaid | When to Use |
+| --- | --- | --- |
+| 1:1 | `\|o--o\|` | Same-table extension, optional sub-type, shared lifecycle |
+| 1:N | `\|o--{` | Parent-child, one entity owns many dependent records |
+| M:N | `}o--o{` | Peer relationship; ALWAYS use explicit join/association entity |
 
 **M:N rule:** Attributes (date joined, role) → explicit named join entity.
 
@@ -354,22 +200,14 @@ public void AddLineItem(ProductId productId, int quantity, Money unitPrice)
 
 ### Normalization Targets
 
-| Normal Form  | Rule                                   | Use For                        |
-| ------------ | -------------------------------------- | ------------------------------ |
-| 1NF          | Atomic values, no repeating groups     | Always — baseline              |
-| 2NF          | No partial dependency on composite key | Composite PKs only             |
-| 3NF          | No transitive dependencies             | OLTP — standard target         |
-| BCNF         | Every determinant is a candidate key   | When 3NF still has anomalies   |
-| Denormalized | Intentional redundancy                 | Read models, projections, OLAP |
-
-**Rule:** 3NF for OLTP write models; denormalize only in read models/projections with documented justification.
+Use 1NF (atomic values/no repeated groups), 2NF for composite keys (no partial dependency), and 3NF for OLTP writes (no transitive dependency). Use BCNF when 3NF still has anomalies (every determinant a candidate key). Denormalize read models/projections/OLAP only with documented justification.
 
 ### Identifying vs Non-Identifying Relationships
 
-| Type            | FK in Child PK?            | Child Existence                                             |
-| --------------- | -------------------------- | ----------------------------------------------------------- |
-| Identifying     | YES (FK is part of PK)     | Child cannot exist without parent (line item without order) |
-| Non-identifying | NO (FK is separate column) | Child can exist independently (order without warehouse)     |
+| Type | FK in Child PK? | Child Existence |
+| --- | --- | --- |
+| Identifying | YES (FK is part of PK) | Child cannot exist without parent (line item without order) |
+| Non-identifying | NO (FK is separate column) | Child can exist independently (order without warehouse) |
 
 **Mapping to DDD:** Identifying relationship → child entity inside parent aggregate. Non-identifying FK → likely separate aggregates.
 
@@ -382,76 +220,49 @@ public void AddLineItem(ProductId productId, int quantity, Money unitPrice)
 
 ### ERD Anti-Patterns
 
-| Anti-Pattern                      | Problem                                | Fix                                                |
-| --------------------------------- | -------------------------------------- | -------------------------------------------------- |
-| God table (50+ columns)           | Every feature adds more columns        | Extract sub-entities, decompose by bounded context |
-| Cross-service FK                  | Direct FK across microservice schemas  | Replicate needed data, use events to sync          |
-| Polymorphic association           | `entityType + entityId` columns        | Separate tables per concrete type or JSON column   |
-| EAV (Entity-Attribute-Value)      | Key-value rows replacing typed columns | JSON column or explicit schema with migration      |
-| Implicit M:N (two FK cols, no PK) | Hard to add relationship attributes    | Explicit join table with surrogate PK              |
-| Nullable FK everywhere            | Unclear cardinality                    | Separate optional relationship into explicit table |
+| Anti-Pattern | Problem | Fix |
+| --- | --- | --- |
+| God table (50+ columns) | Every feature adds more columns | Extract sub-entities, decompose by bounded context |
+| Cross-service FK | Direct FK across microservice schemas | Replicate needed data, use events to sync |
+| Polymorphic association | `entityType + entityId` columns | Separate tables per concrete type or JSON column |
+| EAV (Entity-Attribute-Value) | Key-value rows replacing typed columns | JSON column or explicit schema with migration |
+| Implicit M:N (two FK cols, no PK) | Hard to add relationship attributes | Explicit join table with surrogate PK |
+| Nullable FK everywhere | Unclear cardinality | Separate optional relationship into explicit table |
 
 ### ERD to Aggregate Mapping
 
-| ERD Pattern                                | DDD Mapping                                          |
-| ------------------------------------------ | ---------------------------------------------------- |
-| Parent-child with identifying relationship | Child entity inside parent aggregate                 |
-| Parent-child with non-identifying FK       | Likely separate aggregates (independent lifecycle)   |
-| M:N join table with no extra attributes    | Both sides separate aggregates, IDs in domain events |
-| M:N join table with attributes             | Association entity as separate aggregate             |
-| Strong entity + many weak dependents       | Root entity + owned collection aggregate             |
-
----
+Identifying parent/child relationships and strong roots with weak dependents suggest owned children; non-identifying FKs suggest separate aggregates. M:N without extra fields connects separate aggregates by IDs/events; association attributes suggest a separate association aggregate.
 
 ## DDD Reference: Domain Events
 
 ### Event Naming Conventions
 
-**Format:** `{AggregateNoun}{PastTenseVerb}` — what happened, not what to do.
-
-| Good                 | Bad                                  |
-| -------------------- | ------------------------------------ |
-| `OrderCancelled`     | `CancelOrder` (command naming)       |
-| `OrderConfirmed`     | `OrderStatusChanged` (too generic)   |
-| `PaymentProcessed`   | `PaymentComplete` (not past tense)   |
-| `SalaryBandUpdated`  | `SalaryChanged` (vague)              |
+Use `{AggregateNoun}{PastTenseVerb}` for what happened: `OrderCancelled`, `OrderConfirmed`, `PaymentProcessed`, `SalaryBandUpdated`. Avoid command names (`CancelOrder`), generic changes (`OrderStatusChanged`), non-past-tense labels (`PaymentComplete`) and vague subjects (`SalaryChanged`).
 
 ### Event Payload Design Rules
 
-| Decision               | Rule                                                                                   |
-| ---------------------- | -------------------------------------------------------------------------------------- |
-| Minimal vs fat         | **Minimal (default):** AggregateId + what changed. Consumer queries for rest if needed |
-| Fat event              | Accept when: round-trip cost high AND consumers known AND staleness acceptable         |
-| Required fields always | `AggregateId`, `OccurredOn` (UTC timestamp), `Version`, `CorrelationId`                |
-| No mutable references  | Payload contains value copies, not object references                                   |
+| Decision | Rule |
+| --- | --- |
+| Minimal vs fat | **Minimal (default):** AggregateId + what changed. Consumer queries for rest if needed |
+| Fat event | Accept when: round-trip cost high AND consumers known AND staleness acceptable |
+| Required fields always | `AggregateId`, `OccurredOn` (UTC timestamp), `Version`, `CorrelationId` |
+| No mutable references | Payload contains value copies, not object references |
 
 ### Domain Events vs Integration Events
 
-| Dimension        | Domain Event               | Integration Event                           |
-| ---------------- | -------------------------- | ------------------------------------------- |
-| Scope            | Within one bounded context | Across bounded contexts                     |
-| Delivery         | In-process, post-commit    | Via configured message bus or event stream  |
-| Schema ownership | Domain owns, internal      | Published Language contract                 |
-| Versioning       | Internal refactor freely   | Versioned, backward-compatible              |
-| Failure handling | Transaction rollback       | At-least-once delivery, idempotent consumer |
+| Dimension | Domain Event | Integration Event |
+| --- | --- | --- |
+| Scope | Within one bounded context | Across bounded contexts |
+| Delivery | In-process, post-commit | Via configured message bus or event stream |
+| Schema ownership | Domain owns, internal | Published Language contract |
+| Versioning | Internal refactor freely | Versioned, backward-compatible |
+| Failure handling | Transaction rollback | At-least-once delivery, idempotent consumer |
 
 **Rule:** Domain event raised → in-process handlers fire → if cross-service needed, handler publishes integration event to message bus.
 
 ### Event Versioning Strategies
 
-| Strategy          | Mechanism                                      | Trade-offs                              |
-| ----------------- | ---------------------------------------------- | --------------------------------------- |
-| Additive only     | NEVER remove/rename fields, only add           | Simple, payload bloats over time        |
-| Multiple versions | `OrderConfirmedV1`, `OrderConfirmedV2`         | Clear versioning, consumers handle both |
-| Upcasting         | Transform old events to new on deserialization | Transparent to consumers, complex infra |
-
-**Backward compatibility rules:**
-
-- Adding optional field → backward compatible
-- Removing or renaming field → breaking
-- Changing field type → breaking
-
----
+Choose additive-only fields (simple but grows payload), multiple explicit versions (clear; consumers support both), or upcasting on deserialization (transparent; more infrastructure). Optional additions are compatible; removals, renames and type changes break compatibility.
 
 ## DDD Reference: Repository Pattern
 
@@ -465,42 +276,33 @@ public void AddLineItem(ProductId productId, int quantity, Money unitPrice)
 
 ### Repository vs DAO
 
-| Repository                       | DAO                                 |
-| -------------------------------- | ----------------------------------- |
-| Domain-oriented interface        | Data-oriented interface             |
-| Returns entities/VOs             | Returns DTOs or raw data            |
-| Used in application/domain layer | Used in infrastructure layer        |
-| Hides persistence mechanism      | Often tied to persistence mechanism |
+A repository exposes domain language and returns entities/VOs for application/domain consumers while hiding persistence. A DAO exposes data operations and returns DTOs/raw data, often tied to infrastructure.
 
 ### Query Objects — When to Use Specification
 
 Use when a rule repeats, needs a name/test, or needs composition. A specification is a reusable, composable, testable domain-owned query predicate. The expression-tree form below is illustrative; adapt to your language's predicate, query-builder, or specification-object equivalent.
 
-**Example (illustrative — adapt to your language):**
-
-```csharp
-// Static expression on entity — composable, testable
-public static Expression<Func<Order, bool>> ByWarehouseExpression(string warehouseId)
-    => o => o.WarehouseId == warehouseId && o.Status == OrderStatus.Confirmed;
-```
+A reusable named predicate such as `ByWarehouse(warehouseId)` combines warehouse identity and confirmed status; adapt to the stack’s query/specification mechanism.
 
 **When NOT to use Specification:** Simple single-use predicate → inline lambda. Rule only used once → repository method directly.
 
----
-
 ## DDD Reference: Anti-Patterns Quick Reference
 
-| Anti-Pattern                | Detection Signal                                                   | Fix                                           |
-| --------------------------- | ------------------------------------------------------------------ | --------------------------------------------- |
-| **Anemic domain model**     | Services have entity-specific logic; entity has all public setters | Move logic to entity                          |
-| **God aggregate**           | Aggregate > 5 entities or 100+ ms load time                        | Extract sub-aggregates                        |
-| **Leaky aggregate**         | External code mutates child entities directly                      | Private setters + root mutation methods       |
-| **Primitive obsession**     | 3+ primitives always travel together as group                      | Introduce Value Object                        |
-| **Implicit concept**        | Domain expert names it, code doesn't model it                      | Explicit class                                |
-| **Feature envy**            | Method uses more of B's data than A's                              | Move method to B                              |
-| **Getter/setter entity**    | All mutation via property assignment, no intent-named methods      | Replace with `Cancel()`, `Approve()`, etc.    |
-| **Cross-aggregate loading** | Full aggregate loaded just to read one field                       | Pass scalar; resolve in app service           |
-| **Side effects in handler** | Command handler calls multiple services after save                 | Domain event + separate handlers              |
-| **Cross-service FK**        | Database FK across microservice schemas                            | ID reference + event-driven sync              |
-| **Shared Kernel overuse**   | Two teams, one shared model, constant coordination overhead        | Split to Customer-Supplier                    |
-| **Missing ACL**             | External model types bleed into domain classes                     | ACL at integration boundary                   |
+| Anti-Pattern | Detection Signal | Fix |
+| --- | --- | --- |
+| **Anemic domain model** | Services have entity-specific logic; entity has all public setters | Move logic to entity |
+| **God aggregate** | Aggregate > 5 entities or 100+ ms load time | Extract sub-aggregates |
+| **Leaky aggregate** | External code mutates child entities directly | Private setters + root mutation methods |
+| **Primitive obsession** | 3+ primitives always travel together as group | Introduce Value Object |
+| **Implicit concept** | Domain expert names it, code doesn't model it | Explicit class |
+| **Feature envy** | Method uses more of B's data than A's | Move method to B |
+| **Getter/setter entity** | All mutation via property assignment, no intent-named methods | Replace with `Cancel()`, `Approve()`, etc. |
+| **Cross-aggregate loading** | Full aggregate loaded just to read one field | Pass scalar; resolve in app service |
+| **Side effects in handler** | Command handler calls multiple services after save | Domain event + separate handlers |
+| **Cross-service FK** | Database FK across microservice schemas | ID reference + event-driven sync |
+| **Shared Kernel overuse** | Two teams, one shared model, constant coordination overhead | Split to Customer-Supplier |
+| **Missing ACL** | External model types bleed into domain classes | ACL at integration boundary |
+
+## Closing Reminders
+
+Classify by identity and lifecycle; size aggregates by atomic invariants; protect mutation through the root. Use domain language, validated immutable VOs, ID-only cross-service references and explicit event contracts. Follow the entrypoint’s section-to-step routing and the project’s discovered conventions.

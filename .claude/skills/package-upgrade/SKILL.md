@@ -1,12 +1,14 @@
 ---
 name: package-upgrade
-version: 1.0.1
-description: '[Code Quality] Use when analyzing package upgrades, outdated dependencies, npm/NuGet update plans or breaking changes.'
+version: 1.0.2
+description: '[Code Quality] Use when analyzing npm package upgrades, outdated dependencies or breaking changes and preparing a phased upgrade plan.'
 ---
 
 ## Quick Summary
 
 **Goal:** Analyze npm package dependencies, research latest versions and breaking changes, and generate a phased upgrade plan.
+
+**Summary:** Inventory manifests and usage → research official version/migration evidence → assess risk and dependency order → write the phased report → obtain approval before migration → declare confidence and gaps. This skill analyzes npm packages; it does not implement upgrades.
 
 **Workflow:**
 
@@ -133,7 +135,7 @@ Document:
 
 ## PHASE 4: COMPREHENSIVE REPORT GENERATION
 
-Generate report at `ai_package_upgrade_reports/[YYYY-MM-DD]-frontend-package-upgrade-report.md`:
+Generate report at `tmp/reports/package-upgrade/[YYYY-MM-DD]-frontend-package-upgrade-report.md`:
 
 ### Report Structure
 
@@ -213,6 +215,9 @@ Before marking complete, provide:
 <!-- /SYNC:evidence-based-reasoning:reminder -->
 
 ## Closing Reminders
+
+**Goal:** Analyze npm dependencies and produce an evidence-backed phased upgrade plan.
+**MUST ATTENTION Route:** inventory manifests/usage → research official sources → assess risk/order → report → obtain migration approval → declare confidence and gaps. Keep the report under `tmp/reports/`; research is not authorization to change dependencies.
 
 **IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 

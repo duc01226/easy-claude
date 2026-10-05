@@ -11,8 +11,8 @@
  *   - pull-request/SKILL.md: Step 4 states the total-branch-diff invariant (three-dot from the merge-base,
  *     every branch commit ∪ uncommitted), forbids latest-commit and working-tree-only scope, and a CI fix
  *     is re-reviewed over the whole branch diff, not the fix alone;
- *   - changes-review and both fix-loop references treat a PR/branch review as always having a
- *     `<target>...HEAD` base.
+ *   - changes-review and both fix-loop references preserve the current PR/branch whole-diff base;
+ *     explicit historical assessments remain immutable and report-only, never live fix-loop targets.
  *
  * Portability: reads only skill files that ship inside `.claude/`, resolved from this file's location;
  * no process, environment, home-dir, project config or git state.
@@ -50,14 +50,27 @@ const tests = [
         }
     },
     {
-        name: 'TC-PRS-002 the review skills treat a PR or branch review as always carrying a target...HEAD base',
+        name: 'TC-PRS-002 current PR reviews retain the whole branch while explicit historical assessments preserve immutable scope',
         fn: () => {
             // Given the review skills and their fix-loop references
             const carriers = ['changes-review/SKILL.md', 'changes-review/references/fix-loop.md', 'workflow-review-changes/references/fix-loop.md'];
-            for (const rel of carriers) {
-                // Then each says a pull-request or branch review is scoped `<target>...HEAD` ∪ uncommitted, never the latest commit alone
-                assert.match(read(rel), /pull-request or branch review[^\n]*<target>\.\.\.HEAD[^\n]*never only the latest commit or the working tree/i, `${rel} must pin the PR review scope`);
+            const text = read('changes-review/SKILL.md');
+            assert.match(text, /Current branch\/PR review includes `git diff <base>\.\.\.HEAD` plus local changes/);
+            assert.match(text, /pin the merge-base/);
+            assert.match(text, /Historical assessment is review-only/);
+            assert.match(text, /fixing current files requires an agreed current target/);
+            assert.match(text, /cannot make an immutable historical diff converge/);
+            for (const rel of ['changes-review/references/fix-loop.md', 'why-review/references/fix-loop.md', 'workflow-review-changes/references/fix-loop.md']) {
+                const receipt = read(rel);
+                assert.match(receipt, /historical targets are not eligible for a live fix-loop receipt/);
+                assert.match(receipt, /original pre-review snapshot/);
             }
+            // A merged/squashed PR needs an explicit commit or verified range, not inferred current branch membership
+            assert.match(read('changes-review/SKILL.md'), /merged or squashed PR[^\n]*explicit commit or verified range/i);
+            const recipe = read('changes-review/SKILL.md');
+            assert.match(recipe, /Historical commits compare their first parent \(empty tree for a root\)/);
+            assert.match(recipe, /ranges compare the named endpoints/);
+            assert.match(recipe, /Do not infer[^\n]*PR membership/);
         }
     }
 ];

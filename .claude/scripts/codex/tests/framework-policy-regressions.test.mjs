@@ -90,9 +90,9 @@ test("plan and plan --mode=review keep decision-boundary altitude and verify-las
 
 test("docs-manager --mode=update reserves spec and generated-doc paths to canonical child skills (CR-096)", async () => {
   const skill = await read(".claude/skills/docs-manager/references/mode-update.md");
-  assert.match(skill, /MUST NOT own any `docs\/specs\/\*\*`/);
-  assert.match(skill, /explicitly reserved to its child skill/);
-  assert.match(skill, /Exclude `docs\/specs\/\*\*`/);
+  assert.match(skill, /Keep Feature Specs, test specs, derived indexes\/ERDs, technical views and demo guides outside every context-patching brief\/write set/);
+  assert.match(skill, /The owning child skill performs those writes/);
+  assert.match(skill, /specRoots.business.path/);
 });
 
 const NO_STAMP_POLICY_INDEX_FIXTURE = "# Docs index\n\nNo applicable stamp rule is declared.\n";
@@ -108,35 +108,28 @@ function hasImpactScopedLastVerifiedRule(localDocsIndex) {
 
 function assertDocsUpdateStampPolicy(skillInput, localDocsIndexFixture) {
   const skill = skillInput.replace(/\r\n/g, "\n");
-  const start = skill.indexOf("### Step 1.6: Stamp Discipline (BLOCKING)");
-  const end = skill.indexOf("### Step 1.7: Phase 1 Output", start);
-  assert.ok(start >= 0 && end > start, "docs-manager --mode=update must keep its bounded Step 1.6 stamp policy");
+  const start = skill.indexOf("## Stamp discipline");
+  const end = skill.indexOf("## Business intent and coverage gates", start);
+  assert.ok(start >= 0 && end > start, "stamp policy remains discoverable");
   const stampPolicy = skill.slice(start, end);
-
   assert.match(stampPolicy, /Resolve and read `docs-index-reference\.md`[\s\S]*`docsRoots\.projectReference\.path`/);
   assert.match(stampPolicy, /Only a full scan may[^\n.]*Last scanned/i);
   assert.match(stampPolicy, /If an applicable local rule explicitly requires `Last verified`, write or update it exactly as specified/i);
-  assert.match(stampPolicy, /Follow any applicable explicit stamp rule exactly, including its scope, format, and placement/i);
+  assert.match(stampPolicy, /Honor its scope, format, placement and no-stamp exceptions/i);
   assert.match(stampPolicy, /otherwise write NO tracked date stamp/i);
-  assert.match(stampPolicy, /if no applicable explicit rule exists, the portable default is NO tracked date stamp/i);
-  assert.match(stampPolicy, /record the pass in the untracked local ledger: `node \.claude\/hooks\/lib\/doc-stamp-guard\.cjs --record-verified/);
+  assert.match(stampPolicy, /Only completed full owner scans record `--record-verified/);
+  assert.match(stampPolicy, /scoped\/editorial checks[\s\S]*never clear full-scan staleness/);
   assert.match(stampPolicy, /impact-scoped pass MUST NOT add, update, or move `Last scanned`/i);
   assert.match(stampPolicy, /A verify pass that changes nothing writes nothing, regardless of any local stamp rule/i);
-  assert.match(stampPolicy, /When the applicable rule does not allow this stamp[\s\S]*remove a pre-existing `Last verified` line only as part of an otherwise-required content patch, never in a stamp-only write/i);
-  assert.match(stampPolicy, /doc-stamp-guard\.cjs --check <doc> --candidate <file>/);
-  assert.match(stampPolicy, /exit 3 = no-op/);
-
+  assert.match(stampPolicy, /Remove a disallowed pre-existing `Last verified` only during an otherwise-required content patch, never a stamp-only write/i);
+  assert.match(stampPolicy, /doc-stamp-guard\.cjs --check <doc> --candidate <file> --baseline <baseline-file>/);
+  assert.match(stampPolicy, /Exit 3 = no-op/i);
+  assert.match(stampPolicy, /Exit 4 = concurrent change/i);
   if (hasImpactScopedLastVerifiedRule(localDocsIndexFixture)) {
     assert.match(stampPolicy, /If an applicable local rule explicitly requires `Last verified`, write or update it exactly as specified/i);
   } else {
-    assert.match(stampPolicy, /if the local docs-index is missing or has no applicable explicit rule, write NO tracked date stamp/i);
+    assert.match(stampPolicy, /otherwise write NO tracked date stamp/i);
   }
-  assert.match(skill, /Stamps: .*`Last verified`.*local docs-index rule/);
-  assert.match(
-    skill,
-    /\| "I updated the doc, so I'll refresh `Last scanned`" \|[^\n]*Last scanned[^\n]*Last verified[^\n]*local docs-index/i,
-    "anti-rationalization text must use the same local-policy rule",
-  );
 
   assert.doesNotMatch(skill, /NEVER write .*Last verified.*tracked doc/i, "there must be no absolute Last verified prohibition");
   assert.doesNotMatch(skill, /(?:every|all) impact-scoped[^\n.]{0,120}(?:must|shall|always|required)[^\n.]{0,80}Last verified/i, "there must be no universal Last verified mandate");
@@ -207,10 +200,10 @@ test("docs-manager follows the docs-manager --mode=update local stamp contract",
   const stampRule = role.split("\n").find((line) => /Stamp discipline:/i.test(line));
 
   assert.ok(stampRule, "docs-manager must keep one explicit stamp rule");
-  assert.match(stampRule, /follow Step 1\.6 of `\.claude\/skills\/docs-manager\/references\/mode-update\.md`/i);
+  assert.match(stampRule, /follow Stamp discipline in `\.claude\/skills\/docs-manager\/references\/mode-update\.md`/i);
   assert.match(stampRule, /update `Last verified` only when the resolved local docs-index explicitly requires it/i);
   assert.match(stampRule, /Preserve explicit no-stamp paths such as `CLAUDE\.md` and `\.claude\/\*\*`/);
-  assert.match(stampRule, /record the pass in the untracked ledger/i);
+  assert.match(stampRule, /Only after a completed full owner scan record verification in the untracked ledger/i);
   assert.doesNotMatch(stampRule, /impact-scoped patch writes NO stamp at all/i);
 });
 
@@ -248,9 +241,9 @@ test("review convergence uses one blocking predicate and byte-identical low-only
   ]);
   assert.match(canonical, /blockingFindings\(round, findings, hardGates\)/);
   assert.match(canonical, /binary gate/i);
-  assert.match(loop, /ALL LOW/i);
-  assert.match(loop, /byte-identical/i);
-  assert.match(loop, /changed fingerprint.*re-review/i);
+  assert.match(loop, /only LOWs remain/);
+  assert.match(loop, /no content changed after the final full pass/);
+  assert.match(loop, /Any edit after a review invalidates its verdict; review the settled target again/);
 
   const reviewCarriers = [
     ".claude/skills/architecture/references/mode-full.md",
@@ -326,9 +319,10 @@ test("mutating workflow closures refresh domain-entity references before docs-ma
   // Workflows that still own the terminal refresh carry scan -> docs-manager --mode=update explicitly.
   for (const id of ["workflow-review-changes"]) {
     const sequence = workflows[id].sequence;
-    const scanIndex = sequence.indexOf("scan --target=domain-entities");
+    const scanIndex = sequence.findIndex(step => typeof step === "string" ? step === "scan --target=domain-entities" : step.skill === "scan" && step.args === "--target=domain-entities");
     assert.ok(scanIndex >= 0, `${id} must carry the refresh step`);
-    assert.equal(sequence[scanIndex + 1], "docs-manager --mode=update");
+    assert.equal(sequence[scanIndex + 1].skill, "docs-manager");
+    assert.equal(sequence[scanIndex + 1].args, "--mode=update");
     assert.match(workflows[id].preActions.domainEntityReferenceRefresh, /cited skip reason/);
   }
   // Workflows that delegate their review/docs tail to the nested workflow-review-changes must name
@@ -349,86 +343,55 @@ test("plan creation never runs --mode=review and only offers it after a standalo
   assert.doesNotMatch(plan, /run `--mode=review` automatically|then run `\/plan --mode=review`/i);
 });
 
-test("plan --mode=review performs exactly one read-only review round", async () => {
+test("plan review reports once by default and fixes only under the shared opt-in loop", async () => {
   const [review, planSkill, planner] = await Promise.all([
-    read(".claude/skills/plan/references/mode-review.md"),
-    read(".claude/skills/plan/SKILL.md"),
-    read(".claude/agents/planner.md"),
+    read(".claude/skills/plan/references/mode-review.md"), read(".claude/skills/plan/SKILL.md"), read(".claude/agents/planner.md"),
   ]);
-  const text = review.replace(/\r\n/g, "\n");
-  const planText = planSkill.replace(/\r\n/g, "\n");
-  const frontmatter = planText.slice(0, planText.indexOf("\n---", 4));
-  const summary = text.slice(text.indexOf("## Quick Summary"), text.indexOf("## One-Round Contract"));
-  const closing = text.slice(text.lastIndexOf("## Closing Reminders"));
-  assert.match(frontmatter, /\bone (?:evidence-backed )?(?:review )?(?:pass|round)\b/, "frontmatter advertises the single-pass cap");
-  for (const [where, section] of [["Quick Summary", summary], ["Closing Reminders", closing]]) {
-    assert.match(section, /one review round|ONE ROUND MAXIMUM/i, `${where} must state the single-pass cap`);
-    assert.match(section, /never (?:fix the plan|edit the plan)|never edit the plan/i, `${where} must preserve the read-only boundary`);
-  }
-  assert.match(text, /`round = 1`, `maxRounds = 1`, `minRounds = 1`/);
-  assert.match(text, /Stop\. Do not apply fixes or re-review/);
-  assert.match(text, /another review requires a new explicit invocation/i);
-  assert.doesNotMatch(text, /OVERRIDE:double-round-trip-review|SYNC:double-round-trip-review|extendable ONCE|fresh full re-review/i);
+  assert.match(planSkill, /--mode=review supports review-only or --fix-loop/);
+  assert.match(review, /Standalone defaults to review-only/);
+  assert.match(review, /review-only writes only the report/);
+  assert.match(review, /run the full domain pass once and hand off/);
+  assert.match(review, /fix-loop repairs validated findings, then repeats the complete review/i);
+  assert.match(review, /one shared three-round budget/);
+  assert.match(review, /caller-owned leaves never start another loop or edit/);
   assert.match(planSkill, /Plan creation never runs `--mode=review`/);
   assert.match(planSkill, /When `--mode=review`, read `references\/mode-review\.md` in full FIRST/);
   assert.match(planner, /never invoke `\/plan --mode=review` automatically/);
   const connections = planner.slice(planner.indexOf("<!-- AGENT-SKILL-CONNECTIONS:START -->"), planner.indexOf("<!-- AGENT-SKILL-CONNECTIONS:END -->"));
   assert.match(connections, /- `plan`/);
-  assert.doesNotMatch(connections, /mode-review|One-Round Contract/, "planner must not preload the optional review contract");
+  assert.doesNotMatch(connections, /mode-review|One-Round Contract/);
 });
 
-// The retired standalone loop skill now lives as `changes-review --fix-loop`: the mode must keep every
-// loop gate (scope + Goal Contract, convergence binding, round loop, convergence/escalation, fresh
-// re-review, terminal docs-manager --mode=update) while the flagless default path keeps its own self-fix loop.
+// Protect the mode contract, not retired phase numbering or unlimited test retries.
 function assertChangesReviewFixLoop(text) {
-  const frontmatter = text.slice(0, text.indexOf("\n---", 4));
-  assert.match(frontmatter, /^description: '[^'\n]*--fix-loop reviews, fixes,? (?:and )?re-reviews[^'\n]*'$/m);
-  const summary = text.slice(text.indexOf("## Quick Summary"), text.indexOf("**Workflow:**"));
-  assert.match(summary, /Optional `--fix-loop` mode \(standalone-only\) DECOUPLES find from fix/);
-  const closing = text.slice(text.lastIndexOf("## Closing Reminders"));
-  assert.match(closing, /`--fix-loop` mode \(optional, standalone-only; no flag → default unchanged\)/);
-  const start = text.indexOf("## Mode: Fix-Loop (`--fix-loop`)");
-  assert.ok(start >= 0, "changes-review must carry the Fix-Loop mode section");
-  const mode = text.slice(start, text.indexOf("## Next Steps", start));
-  for (const heading of ["Step 0 — Resolve Diff Scope + Goal Contract", "Step 0b — Bind the Convergence Loop", "Step 1 — Round Loop", "Step 2 — Convergence & Escalation Gate", "Step 3 — Terminal Docs-Update + Recap", "Convergence Detection — Why a Fresh Full Re-Review Is Required"]) {
-    assert.ok(mode.includes(`### Fix-Loop ${heading}`), `missing Fix-Loop ${heading}`);
-  }
-  assert.match(mode, /SKIP Phase -1[^\n]*STOP before Phase 6 \/ Phase 7 \/ Phase 7\.5 \/ Phase 8/);
-  assert.match(mode, /it never re-invokes this skill with `--fix-loop`/);
-  assert.match(mode, /Resolve\/create the Goal Contract/);
-  assert.match(mode, /`\/goal` command is an OPTIONAL accelerator/);
-  assert.match(mode, /Run `\/why-review --validate-findings <report-path>` INLINE/);
-  assert.match(mode, /Run `\/fix` on the validated blocking findings/);
-  assert.match(mode, /\*\*in this order — the first matching row decides\*\*/);
-  assert.match(mode, /Cap at `?\{N=3\}`? review rounds/);
-  assert.doesNotMatch(mode, /ONE extension round|N=2/);
-  assert.match(mode, /\*\*Keep looping — NO round cap\.\*\*/);
-  assert.match(mode, /\*\*CONVERGED on the severity floor\*\*/);
-  assert.match(mode, /\*\*Increasing review blockers = STOP\.\*\*/);
-  assert.match(mode, /run the \*\*Phase 8 protocol\*\* exactly once/);
-  assert.match(mode, /never reuse a stale clean report/);
-  // The flagless default keeps its coupled loop and only defers Phase -1 when the flag is set.
-  assert.match(text, /\*\*SKIP\*\* when `--fix-loop` is set — Fix-Loop Step 0b owns the single convergence binding/);
-  assert.match(text, /## Phase 7: Recursive Auto-Fix \+ Full Re-Review Loop/);
-  assert.match(text, /SELF-FIX each validated finding that blocks the current round/);
+  assert.match(text, /Review-only is the standalone default/);
+  assert.match(text, /`--fix-loop` enables the shared three-round loop/);
+  assert.match(text, /--loop-owner=caller/);
+  assert.match(text, /triage every changed file/i);
+  assert.match(text, /tasks for triage, review, validation, fixes, fresh re-review and final checks/);
+  assert.match(text, /why-review --validate-findings <report>/);
+  assert.match(text, /apply authorized fixes, then freshly review the whole updated target/);
+  assert.match(text, /At exhaustion, ask before a bounded extension/);
+  assert.match(text, /Update relevant specs\/docs before the final pass/);
+  assert.match(text, /original pre-review snapshot/);
+  assert.match(text, /Never reconstruct or capture a new snapshot at issuance/);
+  assert.doesNotMatch(text, /NO round cap|SELF-FIX each validated finding/);
 }
 
-test("changes-review --fix-loop carries the retired loop skill's gates without changing the default path", async () => {
-  // The mode lives in references/fix-loop.md; the contract is SKILL.md + references.
+test("changes-review keeps report-only defaults and bounded fresh fix-loop evidence", async () => {
   const text = (await readSkillContract("changes-review")).replace(/\r\n/g, "\n");
   assertChangesReviewFixLoop(text);
   for (const [before, after] of [
-    ["### Fix-Loop Step 2 — Convergence & Escalation Gate", "### Fix-Loop Step 2 — Wrap Up"],
-    ["Run `/why-review --validate-findings <report-path>` INLINE", "Optionally review the findings"],
-    ["run the **Phase 8 protocol** exactly once", "skip docs"],
+    ["why-review --validate-findings <report>", "optionally validate"],
+    ["freshly review the whole updated target", "reuse the old verdict"],
+    ["At exhaustion, ask before a bounded extension", "automatically extend"],
+    ["Update relevant specs/docs before the final pass", "skip docs"],
   ]) {
-    const mutant = text.replaceAll(before, after);
-    assert.notEqual(mutant, text, `mutation anchor exists: ${before}`);
-    assert.throws(() => assertChangesReviewFixLoop(mutant), { code: "ERR_ASSERTION" });
+    assert.notEqual(text.replaceAll(before, after), text, `mutation anchor exists: ${before}`);
+    assert.throws(() => assertChangesReviewFixLoop(text.replaceAll(before, after)), { code: "ERR_ASSERTION" });
   }
-  // Built from parts so the repo-wide "no retired skill id" grep stays at zero hits.
   const retiredLoopSkill = ["changes", "review", "loop"].join("-");
-  await assert.rejects(fs.access(path.join(repoRoot, ".claude", "skills", retiredLoopSkill)), "the retired loop skill directory must stay removed");
+  await assert.rejects(fs.access(path.join(repoRoot, ".claude", "skills", retiredLoopSkill)));
 });
 
 // Given the integration-test convergence loop is an OPTIONAL `--fix-loop` flag of `integration-test --mode=verify`

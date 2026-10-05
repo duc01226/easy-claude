@@ -29,17 +29,13 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
+const { resolvePythonCommand: findPythonCommand } = require('../lib/python-command.cjs');
 const { childEnv } = require('../lib/hook-runner.cjs');
 
 const HOOKS_LIB = path.resolve(__dirname, '..', '..', 'lib');
 const SCRIPTS_DIR = path.resolve(__dirname, '..', '..', '..', 'scripts');
 const CLI_DIR = path.join(SCRIPTS_DIR, 'code_graph');
 const OFF_MESSAGE = 'code graph is off for this project (hooks.codeGraph)';
-const PYTHON_CANDIDATES = [
-    { command: 'python', baseArgs: [] },
-    { command: 'py', baseArgs: ['-3'] },
-    { command: 'python3', baseArgs: [] }
-];
 
 /** Clean child env: fixture home and temp dirs, no inherited CK_*, PYTHON* or CLAUDE_PROJECT_DIR keys. */
 function isolatedEnv(tree, extra = {}) {
@@ -53,19 +49,8 @@ function isolatedEnv(tree, extra = {}) {
 let resolvedPython;
 function resolvePython(env) {
     if (resolvedPython) return resolvedPython;
-    for (const candidate of PYTHON_CANDIDATES) {
-        const result = spawnSync(candidate.command, [...candidate.baseArgs, '-c', 'import sys; assert sys.version_info >= (3, 10)'], {
-            encoding: 'utf8',
-            timeout: 15000,
-            windowsHide: true,
-            env
-        });
-        if (!result.error && result.status === 0) {
-            resolvedPython = candidate;
-            return candidate;
-        }
-    }
-    throw new Error('Python 3.10 or newer (python, py -3 or python3) is required for the code-graph config parity suite.');
+    resolvedPython = findPythonCommand({ env, minMinor: 10 });
+    return resolvedPython;
 }
 
 const writeJson = (file, value) => {

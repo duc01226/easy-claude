@@ -1,33 +1,15 @@
 ---
 name: ui-design
 version: 1.2.0
-description: '[Design] Use when a workflow step or the user asks for a UI design (create, describe) or a UI review: content fit, layouts, styling conventions, accessibility, async states. --mode={fast|good|explore|describe|screenshot|video|review}.'
+description: '[Design] Use when a workflow step or the user asks for UI creation, exploration or description from briefs, screenshots or videos for product/marketing interfaces. --mode=review checks layout, styling, accessibility and async states.'
 disable-model-invocation: false
 ---
 
-<!-- REVIEW-POLICY-SOURCES:START -->
-```json
-{
-  "version": 1,
-  "defaultMode": "fast",
-  "modes": {
-    "fast": [],
-    "good": [],
-    "explore": [],
-    "describe": [],
-    "screenshot": [],
-    "video": [],
-    "review": [
-      ".claude/skills/ui-design/references/mode-review.md"
-    ]
-  }
-}
-```
-<!-- REVIEW-POLICY-SOURCES:END -->
-
-> **[BLOCKING] Mode routing — detect FIRST.** Explicit `--mode=review` selects the UI review (read-only findings over existing interfaces); explicit `--mode={fast|good|explore|describe|screenshot|video}` selects that design mode; no `--mode` is the default `fast` design (everything below, unchanged). An explicit mode always wins. `/ui-design --mode=review` is the former `/ui-review`: that slash command no longer exists, and the mode works called directly with no workflow. `--mode=review` REPLACES the design spine for the invocation — read `references/mode-review.md` in full before anything else (see [Mode Dispatch](#arguments--mode-dispatch)); the shared steps, design-intelligence search, lane and mode branches below do not run for it.
+> **[BLOCKING] Mode routing — detect FIRST.** An explicit mode wins; omitted `--mode` defaults to `fast`. `--mode=review` runs standalone or in a workflow: read `references/mode-review.md` in full and follow it instead of the design spine, search, lanes and design branches below.
 
 ## Quick Summary
+
+> **Review modes:** For review/audit work, standalone defaults to `--review-only` (`--report-only` alias); `--fix-loop` enables review → validate → authorized fix → fresh re-review, default cap 3. `--fix-loop --loop-owner=caller` returns a read-only pass to the caller that owns fixes/re-review. Create triage, review, validation and re-review todo tasks first; apply the carried `review-policy` contract for LOW deferral and user-approved bounded extensions. Non-review modes and terminal findings validation keep their own dispatch.
 
 **Goal:** Create (or describe) a UI design using design-intelligence databases and subagents, dispatched by `--mode` (input carrier) × `--lane` (design lane); `--mode=review` instead reviews existing UI for content fit, supported-size layout, styling conventions, layering, accessibility and async states.
 
@@ -38,11 +20,13 @@ disable-model-invocation: false
 - **Quality floor:** apply project tokens/components plus `UI-*`/`DD-*`/`CL-*`; design states, interaction feedback, declared scales, measured contrast, touch targets, responsive reflow, and subject-grounded copy before the happy path.
 - **Ownership:** the design modes author the visual direction and implementation contract; `--mode=review` owns source findings and review evidence; the local index supplies candidates only.
 
-> **Renamed:** folds the former `/design-fast`, `/design-good`, `/design-describe`, `/design-screenshot`, `/design-video` skills into the same-named value of `--mode={fast|good|explore|describe|screenshot|video}` — those names no longer resolve as slash commands; use `/ui-design --mode=…`.
->
-> **Folded review:** the former `/ui-review` is `--mode=review` — that name no longer resolves as a slash command; use `/ui-design --mode=review [scope] [--report-only]`. Its full body lives in `references/mode-review.md`.
->
-> **Absorbed lanes:** the former `frontend-design` (marketing/creative) and `interface-design` (product-UI) skills now fold into `--lane={marketing|product}` — those names no longer resolve as slash commands; use `/ui-design --lane=…`. Each lane's full body lives under `references/lane-{marketing,product}/lane-guide.md`.
+**Command routing:** Use `/ui-design` with these values; the old commands do not resolve.
+
+| Old command | Current invocation |
+| --- | --- |
+| `/design-fast`, `/design-good`, `/design-describe`, `/design-screenshot`, `/design-video` | `/ui-design --mode=<same suffix>` |
+| `/ui-review` | `/ui-design --mode=review [scope] [--report-only]` — read `references/mode-review.md` when selected |
+| `frontend-design`, `interface-design` | `/ui-design --lane=marketing`, `/ui-design --lane=product` — read the selected `references/lane-{marketing,product}/lane-guide.md` |
 
 **Mode dispatch:** `--mode={fast|good|explore|describe|screenshot|video|review}` — default `fast` when omitted.
 **Lane dispatch:** `--lane={product|marketing}` — default `product` when omitted. Lane (the design tradition) is orthogonal to mode (the input carrier); any mode combines with any lane.
@@ -83,8 +67,6 @@ disable-model-invocation: false
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
-**Source-review preparation:** `--mode=review` uses `.claude/skills/shared/review-preparation.md` once concrete UI sources are resolved in `references/mode-review.md`. Design/describe/screenshot/video modes and image/live-only review without source are excluded.
-
 ## Arguments & Mode Dispatch
 
 `/ui-design --mode={fast|good|explore|describe|screenshot|video|review} --lane={product|marketing} <brief | screenshot | video | review scope>`
@@ -108,8 +90,6 @@ Do NOT inline the lane bodies here — read the matching `lane-guide.md` when th
 2. **In-skill lane references** — `references/lane-{product|marketing}/lane-guide.md` (+ their reference files) own implementation, screenshot/video analysis, and design replication for the selected lane.
 3. **In-skill explore references** — `references/explore/workflow.md` (+ `gate-files.md`, `brand-asset-protocol.md`) own the `--mode=explore` flow; read them only when that mode is selected.
 4. **In-skill review reference** — `references/mode-review.md` owns `--mode=review`; read it only when that mode is selected.
-
-**Ensure token efficiency while maintaining high quality.**
 
 ## Shared First Step (ALL design modes)
 
@@ -213,7 +193,7 @@ Opt-in. Use when the visual direction is genuinely open and the user wants to ch
 3. **N seeds (take the first N)** — a random style row from `node .claude/skills/ui-design/scripts/pick-style.cjs` (after changing the picker, run its tests: `node .claude/skills/ui-design/tests/pick-style.test.cjs`), the user's liked reference or a web-verified real-world reference, a studio persona described by traits only. Seeds are divergence seeds, never taste: each draft translates its seed into THIS subject (`DD-1`) and passes the `DD-3` generic test, or it is revised.
 4. **Fan out** — N `ui-ux-designer` sub-agents in ONE message → `tmp/design/<run>/direction-{a,b,c}.html`; layout FREE → structurally different layout skeletons, layout ADOPTED → the pinned layout is shared and drafts diverge on the free axes only. Every draft serves the SAME main journeys and information-priority tiers (`UX-3`/`UX-4`) — drafts diverge on visual axes and layout skeleton, never on the journeys or the priority tier of content. No sub-agents → build serially; each later draft names what it avoided from the earlier ones.
 5. **Render after all return** — per draft, `node .claude/skills/html-export/scripts/export.cjs --to=png --viewport=<canvas> --out=tmp/design/<run>/renders/<draft>/ <file>`; handle exits 0/4/3/1-2 per workflow step 8, re-render after the `DD-8` edit. NEVER run install commands.
-6. **Present side by side, open every draft in the default browser, and ASK** — each draft with how it serves the primary journey; open each with `node .claude/scripts/open-report.cjs tmp/design/<run>/direction-<x>.html`, then, with 2–3 drafts, `AskUserQuestion` with one option per draft and your evidence-backed `(Recommended)` draft first (explore step 9); one draft → no question (`Selection: USER — 1 option`, or `AUTO-SELECTED — no question tool (1 draft)` set at Step 0); drafts cannot be shown or the question tool errors → AUTO-SELECT the recommended draft; record why either way (explore step 9 fallback). Never pick for the user while they can be asked; never offer a text-only style choice; "continue" is not a pick.
+6. **Present side by side, open every draft in the default browser, and ASK** — each draft with how it serves the primary journey; open each with `node .claude/scripts/open-report.cjs tmp/design/<run>/direction-<x>.html`, then, with 2–3 drafts, `ask user question tool` with one option per draft and your evidence-backed `(Recommended)` draft first (explore step 9); one draft → no question (`Selection: USER — 1 option`, or `AUTO-SELECTED — no question tool (1 draft)` set at Step 0); drafts cannot be shown or the question tool errors → AUTO-SELECT the recommended draft; record why either way (explore step 9 fallback). Never pick for the user while they can be asked; never offer a text-only style choice; "continue" is not a pick.
 7. **Record** the user's verbatim choice, or the `Selection:` line, in `tmp/design/<run>/direction-approved.md` (template: `references/explore/gate-files.md`), with the chosen draft's Design Plan tokens in its `## Design Plan tokens` section.
 8. **Walk the main journeys (`UX-8`)** on the chosen draft with the traceability matrix, record the gaps in the `## Journey fixes (UX-8)` table of `run-notes.md` as inputs, then continue as `--mode=good` from the chosen draft — except a Slide deliverable: hand two files, `direction-approved.md` (carrying the tokens) and `run-notes.md`, to a deck builder instead (`/presentation-builder` for a general deck — command-only, so stop and tell the user to run it; `feature-presentation` for a feature review deck; explore step 10).
 
@@ -276,7 +256,7 @@ Treat `$ARGUMENTS` as the video to recreate exactly. Same as `--mode=screenshot`
 
 ---
 
-> **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
+> **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. Keep task depth proportional to the work.
 
 Think hard to plan & start working on these tasks follow the Orchestration Protocol, Core Responsibilities, Subagents Team and Development Rules. Parse `--mode` from the input (default `fast`; an explicit mode wins) and route to the matching branch above:
 <tasks>$ARGUMENTS</tasks>
@@ -288,6 +268,8 @@ Think hard to plan & start working on these tasks follow the Orchestration Proto
 - `design-distinctiveness-gate` — Design identity gate DD-1 to DD-8: subject, design plan, generic test, restraint; designing, implementing or reviewing a visual surface → .claude/skills/shared/protocols/design-distinctiveness-gate.md
 - `design-review-checklist` — Executable front-end design review protocol CL-1 to CL-6; reviewing, planning or building front-end work → .claude/skills/shared/protocols/design-review-checklist.md
 - `existing-ui-research` — Study the existing UI before designing or specifying a screen; designing or specifying a new or updated screen → .claude/skills/shared/protocols/existing-ui-research.md
+- `review-decision-autonomy` — Choose supported review decisions and ask before extending the round budget; running any review or audit skill or mode → .claude/skills/shared/protocols/review-decision-autonomy.md
+- `review-policy` — Review-only or a three-round fix loop with explicit extension and fresh post-fix evidence; deciding round eligibility, blocking findings or review state → .claude/skills/shared/protocols/review-policy.md
 - `ui-copywriting` — User-visible strings are design content; writing or reviewing UI text → .claude/skills/shared/protocols/ui-copywriting.md
 - `ui-ux-design-principles` — Forty usability and accessibility clauses, UI-1.1 to UI-9.4; designing, building or reviewing a user-facing interface → .claude/skills/shared/protocols/ui-ux-design-principles.md
 - `ux-journey-gate` — Journey-first UX gate UX-1 to UX-11: report journeys, read the design authority, generate, then check every UI/UX gate; generating, specifying, planning, mocking up or reviewing a user-facing surface → .claude/skills/shared/protocols/ux-journey-gate.md
@@ -325,6 +307,12 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 
 <!-- /SYNC:ux-journey-gate:reminder -->
 
+<!-- SYNC:review-decision-autonomy:reminder -->
+
+**MUST ATTENTION** Decide supported review choices and recommendations, record the rationale, and finish without routine user questions. Keep round-limit extension, indispensable facts and actual action authority; preserve source coverage, validation, tests, read-only boundaries and budgets. Review decisions do not accept open risks or make a failed gate pass.
+
+<!-- /SYNC:review-decision-autonomy:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Create (or describe) a UI design using design-intelligence databases and subagents, dispatched by `--mode` (input carrier) × `--lane` (design lane); `--mode=review` reviews existing UI through `references/mode-review.md`.
@@ -343,3 +331,10 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 - **MANDATORY IMPORTANT MUST ATTENTION** apply the 40 UI/UX Design Principles (`UI-1.1`–`UI-9.4`) to every design: empty/loading/error states designed FIRST (`UI-1.5`), all 5 interaction states per interactive element (`UI-5.2`), type scale (6 named steps, `UI-2.5`) and spacing unit (4/8px base, `UI-4.1`) DECLARED not improvised, contrast measured and stated (4.5:1 text / 3:1 edges, `UI-3.1`), ≥44×44pt touch targets + bottom-third primaries on mobile surfaces (`UI-8.1`, `UI-8.2`); `fast`/`good`/`explore` APPLY them, `describe`/`screenshot`/`video` also REPORT by clause ID which the observed design satisfies or violates — project design-system docs outrank the clauses, conflicts go to the user
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.
+
+
+<!-- SYNC:review-policy:reminder -->
+
+**MUST ATTENTION** Triage all targets, plan and create review/validation/fix/fresh re-review tasks first. Review-only reports without edits; fix-loop freshly reviews every repair under one fixing owner. Default cap three rounds: disclose deferred LOWs, ask and wait before a bounded extension for MEDIUM+ or failed required checks. Preserve scope, coverage and actual operation authority.
+
+<!-- /SYNC:review-policy:reminder -->

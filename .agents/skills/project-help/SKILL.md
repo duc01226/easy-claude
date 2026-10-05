@@ -10,7 +10,7 @@ disable-model-invocation: true
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - Use ask user tool to ask user.
+> - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -21,6 +21,8 @@ disable-model-invocation: true
 
 **Goal:** Answer anything about (a) the portable `.claude` framework **as configured for this project** and (b) this project's own key technical, architecture, and structural knowledge — from generated output, never from memory.
 
+**Summary:** Classify the question → run the matching generator → show its output and requested interpretation → hand off narrower help or requested changes. Keep project files unchanged and ground names, paths and counts in this session's command output.
+
 **Workflow:**
 
 1. **Classify** the question against the routing table below.
@@ -30,7 +32,7 @@ disable-model-invocation: true
 
 **Key Rules:**
 
-- MUST ATTENTION this skill is **read-only and terminal**. It creates no tasks, runs no scan, edits no file, and never proposes a change. If the user wants a change afterwards, hand off to `$project-config` or `$project-init`.
+- MUST ATTENTION this skill is **read-only and terminal**. Run no scan, edit no project file, and never propose a change. Keep host task tracking for execution evidence. If the user wants a change afterwards, hand off to `$project-config` or `$project-init`.
 - MUST ATTENTION every number, path, and name in the answer comes from a command run **in this session**. The framework and the config both drift; a memorised count is a hallucination with a plausible shape.
 - Show the generator output verbatim before commenting on it. Do not summarise it away.
 - Config **option** questions ("what can I set", "who reads `docsRoots`") belong to `$project-config --help` — delegate rather than duplicating.
@@ -81,14 +83,8 @@ Both are plain `node` entrypoints using only `node:` built-ins (PORT-001). Neith
 
 ---
 
-> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
-
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting
-
-**IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code
-**IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
-**IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
-
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
+**Goal:** Answer framework and project-knowledge questions from current generated output.
+**MUST ATTENTION Route:** classify → run generator → present output and requested interpretation → route narrower help or requested changes.
+Keep the operation read-only and terminal. Track execution, verify names/counts/paths from the current command, redact secrets, and show the output before interpreting it.

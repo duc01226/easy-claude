@@ -1,7 +1,7 @@
 ---
 name: web-research
 version: 1.0.0
-description: '[Research] Use when a workflow step or the user asks for web research. Gathers and triages candidate sources; `--chain=deep-dive` also deep-dives them into an evidence base.'
+description: '[Research] Use when a workflow step or the user asks for web source discovery and triage into a source map and gaps. --chain=deep-dive also builds a cross-validated evidence base.'
 ---
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
@@ -130,7 +130,7 @@ Note gaps for `source-deep-dive`.
 
 ## Next Steps
 
-**Without `--chain=deep-dive` only** (chain mode follows `references/research-chain.md`). **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** After completion, use `AskUserQuestion`; user chooses:
+**Without `--chain=deep-dive` only** (chain mode follows `references/research-chain.md`). **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** After completion, use `ask user question tool`; user chooses:
 
 - **"/source-deep-dive (Recommended)"** — Deep-dive into top sources
 - **"/market-analysis"** — If sizing the market (TAM/SAM/SOM), competitors, trends — required before `/business-evaluation`
@@ -178,7 +178,7 @@ Note gaps for `source-deep-dive`.
 **IMPORTANT MUST ATTENTION** with `--chain=deep-dive`, after Step 5 read `references/research-chain.md` and run `source-deep-dive` Steps 1-5 from its own SKILL.md (never from memory); without the flag stop at the source map — why: the flag is the only contract that lets one step own both halves while each skill still works alone.
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting; add a final review todo task to verify work quality; transition one task at a time.
 **IMPORTANT MUST ATTENTION** persist intermediate findings/results to a report file in `tmp/reports/` for complex or lengthy work — why: external memory prevents context loss and is itself the deliverable.
-**IMPORTANT MUST ATTENTION** a direct `/web-research` call is an explicit skill request: run it with no routing question and NEVER start a workflow from inside this skill; only the post-completion Next Steps question uses `AskUserQuestion`.
+**IMPORTANT MUST ATTENTION** a direct `/web-research` call is an explicit skill request: run it with no routing question and NEVER start a workflow from inside this skill; only the post-completion Next Steps question uses `ask user question tool`.
 **IMPORTANT MUST ATTENTION** every claim, finding, and recommendation requires `file:line` proof or traced evidence with confidence percentage (>80% to act, <80% verify first) — NEVER speculate without proof.
 
 **Anti-Rationalization:**

@@ -2,6 +2,19 @@
 
 # Mode: Generate / Update Test Scenarios
 
+## Contents
+
+- [Native Profile Procedure](#native-profile-procedure)
+- [Strict Default TC Procedure](#strict-default-tc-procedure)
+- [Reference Files (read BEFORE generating TCs)](#reference-files-read-before-generating-tcs)
+- [Quick Reference](#quick-reference)
+- [Detailed Workflow](#detailed-workflow)
+- [TC Decade-Based Numbering](#tc-decade-based-numbering)
+- [TC Deprecation Protocol](#tc-deprecation-protocol)
+- [Anti-Patterns](#anti-patterns)
+- [See Also](#see-also)
+- [Integration with Bugfix Flow](#integration-with-bugfix-flow)
+
 ## Native Profile Procedure
 
 Apply this branch when the host selected a native profile. Do not execute the strict-default TC procedure below: Section 8, TC IDs, decade ranges, default GWT fields, `CoveredBy`, and default test-category counts are not additional requirements unless the native profile explicitly defines them.
@@ -27,7 +40,7 @@ Everything from this point to the end describes the strict default TC/Section 8 
 
 **Workflow:** (1) Mode Detection → (2) Investigation → (3) TC Generation → (4) Write Section 8 → (5) Test-Code Sync → (6) Next Steps
 
-**Key Rules:** Unified `TC-{FEATURE}-{NNN}` format · Section 8 = source of truth · Evidence required on every TC · Minimum 5 categories (positive, negative, authorization, edge cases, invariant/property) · Properties not just examples — every [HARD] rule / §5 invariant gets a universally-quantified property TC · Interactive review using ask user tool mandatory
+**Key Rules:** Unified `TC-{FEATURE}-{NNN}` format · Section 8 = source of truth · Evidence required on every TC · Minimum 5 categories (positive, negative, authorization, edge cases, invariant/property) · Properties not just examples — every [HARD] rule / §5 invariant gets a universally-quantified property TC · Interactive review via `ask user question tool` mandatory
 
 > **[M5 — Rebuild-from-scratch signal]** A competent team with zero codebase knowledge MUST be able to derive and execute every TC from the spec text alone, on ANY stack — without reading source. If a TC's intent is only understandable by opening the implementation, it fails M5: rewrite the objective/Given-When-Then in business-observable terms. See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M7)" for BLOCKING criteria.
 
@@ -80,7 +93,7 @@ Each reference doc below sits in the project-reference docs root — default `do
     - **Performance TCs:** Feature within SLA under production-like volume
     - **Data Change TCs:** business data state transforms correctly and remains visible/usable as expected
     - **Preservation TCs (MANDATORY business-visible bugfixes):** ≥1 per "Healthy input" row — authored from OLD code semantics BEFORE fix lands. Technical-only bugfixes with no business-visible result produce zero business TCs.
-- **Interactive review:** ALWAYS ask user tool — review TC list with user before writing
+- **Interactive review:** ALWAYS `ask user question tool` — review TC list with user before writing
 - **Real-world fidelity (per TC):** every TC's `Preconditions` and `Demo Flow` MUST describe a situation real actor behaviour can actually produce. State HOW production reaches the precondition, and — whenever two consecutive steps are distinct actor actions — state the realistic elapsed gap between them. A TC specifying a sequence production could never reach GUARANTEES an unrealistic test downstream: the spec is the upstream lever, so fix it here, never in the generated test's assertions.
 
 <!-- SYNC:real-world-fidelity-testing -->
@@ -152,7 +165,7 @@ Detect mode from prompt and context:
 | **Sync**                   | User says "sync test specs" or bidirectional need | Reconcile feature docs ↔ the business spec root (default `docs/specs/`, overridden by `specRoots.business.path` in `docs/project-config.json`), either direction — see `sync.md` |
 | **From-integration-tests** | Tests exist with test spec annotations, no docs   | Extract TC metadata from test code → write to feature docs        |
 
-### Mode Confirmation (ask user tool)
+### Mode Confirmation (ask user question tool)
 
 **[REQUIRED]** Confirm mode before Phase 2 when signals ambiguous:
 
@@ -183,7 +196,7 @@ Read target feature doc Sections 3, 4, 5, 7. Check:
 - Section 7 has permission matrix (≥1 role × action row) — flag if absent
 - Section 3 has US-/AC- entries with explicit outcomes — flag if empty/vague
 
-If 2+ fail → ask user tool: "Spec readiness below TC generation threshold. Fill gaps first OR proceed with shallow TCs (`Status: Planned`)?" NEVER silently generate shallow TCs.
+If 2+ fail → `ask user question tool`: "Spec readiness below TC generation threshold. Fill gaps first OR proceed with shallow TCs (`Status: Planned`)?" NEVER silently generate shallow TCs.
 
 **If target feature doc missing:** suggest `$spec` first, OR create minimal Section 8 stub.
 
@@ -395,7 +408,7 @@ TC Blast Radius Analysis:
 
 > ⚠️ **This table has NO Write-op / Read-op / Event-job rows, deliberately.** Those made the business TC count a function of the architecture — an Event/job row mints a business TC for every consumer and background job, which is how sync/consumer/event-handler cases entered a tech-free business spec. **The obligation is not abolished: it is owned by the technical spec tree**, where counting handlers is correct. Every row above reads a **spec section**, so re-architecting cannot move any number in this table.
 >
-> **Count properties, not operations.** The Invariant-coverage row counts TCs that ASSERT a universally-quantified property (per the imported Test-Complete Gate), NOT TCs that merely name an invariant in the per-TC field. A §4 [HARD] rule or §5 invariant with zero property TC = FAIL even when every story/actor row passes. The Transition-coverage row operationalizes `sdd-artifact-contract.md` → Test-Complete Gate ("every state transition maps to ≥1 valid AND ≥1 invalid transition TC"); also confirm every integration event has an idempotency TC (covered under Event/job coverage).
+> **Count properties, not operations.** The Invariant-coverage row counts TCs that ASSERT a universally-quantified property (per the imported Test-Complete Gate), NOT TCs that merely name an invariant in the per-TC field. A §4 [HARD] rule or §5 invariant with zero property TC = FAIL even when every story/actor row passes. The Transition-coverage row operationalizes `sdd-artifact-contract.md` → Test-Complete Gate ("every state transition maps to ≥1 valid AND ≥1 invalid transition TC"); retain business-visible idempotency cases when they guard canonical intent. Purely architectural event/job idempotency coverage belongs to the technical spec tree and test owner, not an additional business TC-count row.
 
 **FAIL action:** task tracking for each FAIL row — list specific missing TC categories (and, for Invariant/Transition rows, the exact §4 rule / §5 invariant / lifecycle state left uncovered). NEVER proceed to Phase 3 until all gates PASS.
 
@@ -410,7 +423,7 @@ Task tracking: "Generate Edge Case TCs for {feature} — boundary conditions fro
 Task tracking: "Generate Invariant/Property TCs for {feature} — per [HARD] §4 rule + §5 invariant: universally-quantified property + boundary counter-case (probe idempotency/round-trip/commutativity/monotonicity/conservation/state-transition)"
 ```
 
-Each batch task completes before starting the next. Final ask user tool review covers all batches together.
+Each batch task completes before starting the next. Final ask user question tool review covers all batches together.
 
 ### Phase 3: TC Generation with Interactive Review
 
@@ -424,7 +437,7 @@ Each batch task completes before starting the next. Final ask user tool review c
 | TC-ORD-039 | Unauthenticated user cannot access orders | P0 | Permission | New |
 ```
 
-2. Use ask user tool to review with user:
+2. Use `ask user question tool` to review with user:
 
 ```
 Question: "These {N} test cases cover {feature}. Review the list:
@@ -544,7 +557,7 @@ The full reconciliation procedure (direction detection, quality gate, forward/re
 
 ### Phase 6: Next Step Suggestion
 
-Based on mode, suggest using ask user tool:
+Based on mode, suggest via `ask user question tool`:
 
 **TDD-first:**
 

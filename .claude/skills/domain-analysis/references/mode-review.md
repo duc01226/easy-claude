@@ -1,65 +1,58 @@
 # `/domain-analysis --mode=review` — domain entity and value-object DDD quality review reference
 
-> Loaded by `domain-analysis/SKILL.md`'s Mode Dispatch when invoked as `/domain-analysis --mode=review [changes | scan [<module>]] [--report-only]`. This contract REPLACES the default business domain analysis for the invocation: discover conventions, review entities and value objects against checklist A–P, validate findings, fix the validated blocking ones (or return them under `--report-only`), report, and stop at the severity bar. It is the former `/domain-entities-review`; the DDD primer it shares with domain analysis is `references/ddd-reference.md`.
+> Read this complete contract when `/domain-analysis --mode=review [changes | scan [<module>]] [--report-only]` is selected. It replaces default business analysis with evidence-based A–P/E2 review, finding validation, and the severity-gated fix/re-review loop. `--report-only` returns validated findings without fixes. Read `references/ddd-reference.md` sections on demand as routed below.
 
 ## Quick Summary
 
-**Goal:** Detect DDD design quality violations in domain entities and value objects across any technology stack — adapting to project-specific patterns via config/reference docs discovery — so domain entities and value objects preserve invariants, aggregate boundaries, and discovered DDD conventions.
+**Goal:** Review entity/VO design against discovered project conventions so invariants and aggregate boundaries remain safe.
 
-**Summary:** read-this-if-nothing-else digest — this mode's main steps in order:
+**Summary:** Discover conventions/scope/paradigm → search/report → A–P/E2 → holistic fit/fresh-context gate → final report/score → validate/fix/full restart → standalone Next Steps. Adapt to each aggregate's paradigm/subdomain; persist evidence per file. `--report-only` returns after validation and leaves fixes to its caller.
 
-- **Phase 0 (gate):** discover the project's real entity/VO base classes, validation API, domain exception type, failure-signalling convention, concurrency mechanism + blast radius FIRST, then **0.4 detect the modelling paradigm** (OO-mutable / type-driven-immutable / event-sourced) per aggregate — discovered conventions override every generic DDD rule. — why: wrong base classes = wrong checklist, and setter rules applied to an immutable or event-sourced model manufacture false findings.
-- **Phase 1:** create the report, run the mandatory high-signal grep patterns (hidden `validate()` overrides, leaked persistence/business logic, missing identity markers) BEFORE reading individual files, write every grep result immediately, categorize files (root/entity/VO/unknown).
-- **Phase 2:** per-file checklist **A–P** — A–L (entity-vs-VO classification, base-class compliance, VO immutability/structural equality, anemic-model detection, domain invariants, invariant→property-TC Dual-Feedback, aggregate-by-ID, navigation serialization safety, domain events, query expressions, ubiquitous language, OOP) plus **M** invariant-vs-validation ownership + failure signalling, **N** construction-vs-reconstitution, **O** event dispatch timing/outbox/domain-vs-integration contract, **P** aggregate concurrency + transaction boundary — append findings per file, NEVER batch.
-- **Phase 3 → 4:** holistic cross-entity synthesis in the current pass, including **3.1 model-level dimensions** (bounded-context sharing; subdomain fit — judge whether a rich model is warranted BEFORE reporting anemia), then final report with health score (`100 − (CRIT×25 + HIGH×10 + MED×3 + LOW×1)`); 10+ entity files → switch to parallel `code-reviewer` sub-agents automatically (never under `--report-only`).
-- **Phase 5 (validation-first loop):** validate via `/why-review` gate before any fix, fix only validated findings that block the current round (the caller's fix step when a parent skill/workflow invoked this review, `/fix --target=review` when standalone), then restart the FULL review; Round 1 requires zero open findings (Round-1 LOW closure), while Round 2 requires zero CRITICAL/HIGH/MEDIUM and records LOW-only findings as deferred without another cycle. Every finding needs `file:line` at confidence >80%. Close with `AskUserQuestion` next-steps when standalone (under `--report-only`, a parent skill/workflow, or a sub-agent, return them in the summary).
-- **`--report-only`:** read-only leaf mode for a caller that owns every fix — Phases 0–4 plus the Phase 5 validation gate only, no fix loop, no nested sub-agents, no `AskUserQuestion`, no writer beyond the report; return validated findings grouped Critical/High/Medium/Low; see [Report-Only Mode](#report-only-mode---report-only).
+**Workflow:** Execute Phases 0–5 in order; restart the full review after validated blocking fixes. Offer Next Steps only after standalone closure; `--report-only` stops after validation.
 
-**Workflow:**
+**Key Rules:** Discover conventions first; require `file:line` at >80% confidence; validate before fixes and fully re-review afterward. Round 1: zero open findings; Round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred. Failed binary gates always block. Persist findings per file, never batch.
 
-1. **Phase 0** — Discover project stack + entity/VO base classes + validation API + domain exception type + failure-signalling convention + concurrency mechanism + blast radius, then **0.4 detect modelling paradigm per aggregate** **(MANDATORY FIRST)**
-2. **Phase 1** — Create report; run mandatory grep patterns BEFORE per-file reads; write results immediately; categorize files
-3. **Phase 2** — Entity-by-entity DDD review (per-file checklist **A–P** + project-specific rules); append per file, never batch
-4. **Phase 3** — Holistic cross-entity synthesis in the current pass, incl. **3.1 model-level dimensions** (bounded-context sharing, subdomain fit); fresh-context sub-agent only after validated fixes or explicit high-risk trigger
-5. **Phase 4** — Final report: critical issues, health score, refactoring priority, recommendations
-6. **Phase 5** — Why-Review self-validation gate (MANDATORY when findings exist) → validate → fix current-round blocking findings → restart full review until the severity bar is clear (Round 1: zero open findings; Round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred) → `AskUserQuestion` next-steps (standalone only — see the [Next Steps](#next-steps) exemption)
-7. **Scale rule** — 10+ entity files → parallel `code-reviewer` sub-agents, then consolidate (sequential under `--report-only`)
+| Severity | Consequence |
+| --- | --- |
+| CRITICAL | Silent runtime failure, corruption or validation bypass; blocks merge |
+| HIGH | Incorrect behavior, invariant gap or architectural violation; must fix |
+| MEDIUM | Design debt, maintainability or likely future bug; should fix |
+| LOW | Convention, documentation or minor clarity |
 
-**Key Rules:**
+## Contents
 
-- MUST ATTENTION discover project base classes in Phase 0 — NEVER assume generic patterns apply — why: wrong base classes = wrong checklist.
-- MUST ATTENTION run mandatory grep patterns in Phase 1 BEFORE reading individual files — why: highest-signal violations surface fastest and seed the report.
-- MUST ATTENTION validate findings via the Phase 5 `/why-review` gate before any fix, then restart the full review after validated fixes — a pass clearing the current severity bar ENDS the review (Round 1: zero open findings; Round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred) — why: every fix invalidates the prior verdict and AI reports inherit confirmation bias.
-- NEVER report a finding without `file:line` evidence at confidence >80% — why: unproven findings inflate severity downstream.
-- MUST ATTENTION append findings per file and persist to `tmp/reports/` incrementally; 10+ entity files → parallel sub-agents — why: batched writes vanish on context/budget cutoff.
-- MUST ATTENTION detect the modelling paradigm (0.4) before applying any setter/mutability rule, and judge subdomain fit (3.1) before reporting anemic model — NEVER flag a paradigm-appropriate or appropriately-simple design as a violation — why: uniform tactical DDD over CRUD is itself an anti-pattern, and rules written for mutable OO are meaningless against an immutable or event-sourced model.
-- MUST ATTENTION treat invariant and validation as different questions with different owners (entity vs boundary), and keep failure signalling consistent with the Phase 0 convention — why: collapsing them buries UX checks in entities and parks business rules in bypassable validators.
-
-**Severity Classification:**
-
-| Severity | Action      | Definition                                                 |
-| -------- | ----------- | ---------------------------------------------------------- |
-| CRITICAL | Block merge | Silent runtime failure, data corruption, validation bypass |
-| HIGH     | Must fix    | Incorrect behavior, invariant gap, architectural violation |
-| MEDIUM   | Should fix  | Design debt, maintainability, likely future bug            |
-| LOW      | Nice to fix | Convention, documentation, minor clarity                   |
+- [Summary and severity](#quick-summary)
+- [Report-only contract](#report-only-mode---report-only)
+- [Domain gate ownership](#canonical-owner--domain-entity-change-gate)
+- [Phase 0: Discovery and scope](#phase-0-project-discovery--mode-detection--blast-radius)
+- [Phase 1: Search and report](#phase-1-collect-files--grep-patterns--create-report)
+- [Phase 2: A–P/E2 checklist](#phase-2-entity-by-entity-ddd-review)
+- [Phase 3: Holistic and fresh-context gate](#phase-3-holistic-synthesis--fresh-context-gate)
+- [Phase 4: Report and health score](#phase-4-final-report-generation)
+- [DDD quick reference](#universal-ddd-quick-reference)
+- [Review strategy](#systematic-review-strategy)
+- [Returned summary](#output-summary-format)
+- [Phase 5: Finding validation](#phase-5-why-review-self-validation-gate-mandatory-when-findings-exist)
+- [Next Steps](#next-steps)
+- [Scope detection](#mode-detection)
+- [Full mode protocols](#mode-protocols)
+- [Closing reminders](#closing-reminders)
 
 ## Report-Only Mode (`--report-only`)
 
-> **Use when** a caller runs this mode as a read-only leaf — e.g. a workflow specialist parallel batch, a delegated domain-entity gate, or a review batch — and another step owns every fix. `--report-only` in `$ARGUMENTS` is an execution flag, not a scope (`changes`/`scan` still resolve per [Mode Detection](#mode-detection)); without it every phase below applies unchanged.
+> **Use when** a caller runs this mode as a read-only leaf — e.g. a workflow specialist parallel batch, a delegated domain-entity gate, or a review batch — and another step owns every fix. `--report-only` in `$ARGUMENTS` is an execution flag, not a scope (`changes`/`scan` still resolve per [Mode Detection](#mode-detection)); review-only is the default; standalone `--fix-loop` alone runs repair/restart phases.
 >
 > **MANDATORY — when `--report-only` is passed, read `.claude/skills/workflow-review-changes/references/caller-mode.md` § `--report-only` in full FIRST.** It holds the rules every read-only leaf shares (no fix or restart, scope from the caller's brief, no nested fan-out, no user questions, write only the report, return contract); the rules below are this skill's own.
 >
-> 1. **Run Phases 0–4, then the Phase 5 Why-Review Self-Validation Gate only.** Phase 5 `/why-review --validate-findings` still validates every finding. The Phase 5 fix and full-review restart, the Phase 3 fresh-context `code-reviewer` spawn, and the Next Steps `AskUserQuestion` do not run: return the validated report; the caller owns fixes and any re-review. Contradictory Phase 2 evidence that would have triggered a fresh read is recorded under `Unresolved Questions` as `NOT VERIFIABLE`. — why: two writers of one artifact inside a barrier race each other.
+> 1. **Run Phases 0–4, then the Phase 5 Why-Review Self-Validation Gate only.** Phase 5 `/why-review --validate-findings` still validates every finding. The Phase 5 fix and full-review restart, the Phase 3 fresh-context `code-reviewer` spawn, and the Next Steps `ask user question tool` do not run: return the validated report; the caller owns fixes and any re-review. Contradictory Phase 2 evidence that would have triggered a fresh read is recorded under `Unresolved Questions` as `NOT VERIFIABLE`. — why: two writers of one artifact inside a barrier race each other.
 > 2. **Default scope.** Use the entity files, diff or module the brief names (else the default `changes` scope) and record the mode and file set in the report.
-> 3. **No nested fan-out.** Skip the Systematic Review Protocol (10+ entity files) and size-capped batching; review files sequentially in this context, still appending findings per file.
+> 3. **No nested fan-out.** Skip the Systematic Review Strategy's delegated assignments; review files sequentially in this context, still appending findings per file and respecting working-set bounds.
 > 4. **Return** the report path, the health score, validated findings grouped Critical/High/Medium/Low per the mapping below, every unconfirmed material trade-off (the `SYNC:trade-off-interrogation-gate` non-asking handoff), and the next-step recommendations the Next Steps prompt would have offered.
 >
 > **Severity mapping.** This mode's native tiers are the shared `SYNC:severity-rubric` tiers, so they map 1:1: CRITICAL→Critical · HIGH→High · MEDIUM→Medium · LOW→Low, each still classified by consequence. The health score is an evidence input, never a tier; `Positive Observations`, informational notes, and `Unresolved Questions` are not findings; a finding without the evidence to choose a tier is `NOT VERIFIABLE` — it stays open, never Low.
 >
 > For this mode the declared step order ends at the Phase 5 validation gate; stopping there is the mode's contract, not a skipped step.
 
----
 
 ## Canonical Owner — Domain Entity Change Gate
 
@@ -69,55 +62,35 @@
 >
 > Changing an entity rule here → update `.claude/skills/shared/sync-inline-versions.md` FIRST if the rule belongs to the gate's 6 decision points, then propagate to the three consumers. NEVER edit an inlined copy directly.
 
----
 
 ## First Principle — Easy to Change · Easy to Scale · Easy to Maintain
 
 > The full gate is `SYNC:core-engineering-principles` (full body in the protocol section of this file); its closing digest ends this file.
 
----
 
 ## Phase 0: Project Discovery + Mode Detection + Blast Radius
 
 > **MANDATORY FIRST STEP.** Phase 0 gates all other work — wrong base classes = wrong checklist.
 
-**Create `TaskCreate` tasks for all phases NOW before doing anything else:**
-
-- `[Phase 0] Project stack discovery + mode detection + blast radius` — in_progress **(FIRST)**
-- `[Phase 1] Collect entity files + grep patterns + create report` — pending
-- `[Phase 2] Entity-by-entity DDD review` — pending
-- `[Phase 3] Holistic synthesis and fresh-context gate` — pending
-- `[Phase 4] Generate final findings` — pending
+Create tasks for Phases 0–5 and final lessons review before any work. Set Phase 0 in progress; complete phases immediately with evidence.
 
 ### 0.1 Discover Project Stack and Entity Conventions
 
-```bash
-# Check for project reference docs
-ls docs/project-reference/ 2>/dev/null   # default root; docsRoots.projectReference.path in docs/project-config.json overrides it
-ls docs/ 2>/dev/null | grep -i "entity\|domain\|backend\|pattern"
-
-# Detect configured build/runtime markers from project config and project-reference docs
-rg --files | rg "(project|package|build|config|settings|manifest)" | head -20
-
-# Find entity/VO base classes actually used
-rg "class.*Entity|class.*RootEntity|class.*BaseEntity|class.*AbstractEntity" {configured-source-roots} | head -10
-rg "ValueObject|Aggregate|Entity" {configured-source-roots} | head -20
-rg "{configured-entity-markers}" {configured-source-roots} | head -10
-```
+Read `CLAUDE.md` and discovered entity/backend/code-review references under the configured reference-docs root (default `docs/project-reference`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides). Locate build/runtime markers, entity/VO bases and persistence annotations in configured source roots. If docs are absent, infer conventions from 3+ existing entities; verify fit before reusing a pattern.
 
 **Record in report (required before Phase 2):**
 
-| Convention              | Discovered Value                     |
-| ----------------------- | ------------------------------------ |
-| Entity base class(es)   | `{class names with file:line}`       |
-| VO base class(es)       | `{class names with file:line}`       |
-| Validation API          | `{how validation done}`              |
-| Domain exception type   | `{exception class used}`             |
-| Navigation/FK pattern   | `{annotation + FK property pattern}` |
-| Persistence annotations | `{ORM annotations}`                  |
+| Convention | Discovered Value |
+| --- | --- |
+| Entity base class(es) | `{class names with file:line}` |
+| VO base class(es) | `{class names with file:line}` |
+| Validation API | `{how validation done}` |
+| Domain exception type | `{exception class used}` |
+| Navigation/FK pattern | `{annotation + FK property pattern}` |
+| Persistence annotations | `{ORM annotations}` |
 | Failure-signalling convention | `{throws domain exception \| returns Result/Either \| mixed}` |
-| Concurrency mechanism   | `{version/rowversion/etag field on roots, or none}` |
-| Modelling paradigm      | `{OO-mutable \| type-driven/immutable \| event-sourced}` (0.4) |
+| Concurrency mechanism | `{version/rowversion/etag field on roots, or none}` |
+| Modelling paradigm | `{OO-mutable \| type-driven/immutable \| event-sourced}` (0.4) |
 
 If project reference docs exist → read them and extract: service-specific base class requirements, documented anti-patterns, naming conventions, cross-service rules.
 
@@ -127,30 +100,26 @@ Apply mode-appropriate command from Mode Detection table, adapted to discovered 
 
 ### 0.3 Blast Radius Analysis
 
-```bash
-# Optional: for a high-risk entity blast radius when .code-graph/graph.db exists (a stale-able hint)
-python .claude/scripts/code_graph trace <entity-file> --direction both --json --node-mode file
-```
+For high-risk blast radius, an existing `.code-graph/graph.db` can supplement grep/read tracing; verify its possibly stale hints in source. Use the framework's discovered graph command, adapted to the host.
 
 Record: entity file count, downstream consumers, risk level. Use to prioritize review order (highest-impact first).
 
-### 0.4 Modelling Paradigm Detection (MUST ATTENTION — gates which per-file rules apply)
+### 0.4 Modelling Paradigm Detection (— gates which per-file rules apply)
 
 > Sections C/D/N assume a mutable OO entity. Applying them to an immutable or event-sourced model manufactures false findings — detect the paradigm BEFORE the checklist. — why: "no public setters" is a finding in OO code and meaningless in a model that has no setters by construction.
 
 Detect from the domain source, NEVER assume:
 
 | Paradigm | Detection signal | Checklist adaptation |
-| -------- | ---------------- | -------------------- |
+| --- | --- | --- |
 | **OO-mutable** (default) | Classes with private setters + state-changing methods | Full A–P checklist as written |
 | **Type-driven / immutable** | Sealed hierarchies, discriminated unions, records-only, `With*()`/copy-returning methods, smart constructors returning `Result` | Section C immutability applies to entities too; Section D reads "no state-mutating method returns void"; illegal-state-representability replaces runtime guards — flag a status enum + nullable per-status fields as the union that was never made |
 | **Event-sourced** | `apply`/`evolve`/`when` per event, `From(events)` / stream-fold reconstitution, no persisted state | Section C setter rules N/A; Section N reconstitution = the fold; Section O owns event-schema evolution; a CRUD-shaped event (`{Entity}Updated` with full payload) is a HIGH finding — it carries no business meaning |
 
-- MUST ATTENTION record the detected paradigm in the report before Phase 2 and state which sections were adapted or marked N/A — why: an unrecorded adaptation reads as a skipped check.
+- record the detected paradigm in the report before Phase 2 and state which sections were adapted or marked N/A — why: an unrecorded adaptation reads as a skipped check.
 - NEVER flag a paradigm-appropriate pattern as a violation of a rule written for another paradigm — verify against 0.4 first.
 - Mixed paradigms per aggregate are legitimate (event-source one aggregate, not the system) — detect per aggregate, NEVER once per repo.
 
----
 
 ## Phase 1: Collect Files + Grep Patterns + Create Report
 
@@ -160,7 +129,7 @@ Initialize with: Mode, Tech Stack, Discovered Conventions, Blast Radius Summary.
 
 ### Mandatory Search Intent
 
-MUST ATTENTION run high-signal searches BEFORE reading individual files. Derive the actual roots, file globs, framework markers, and naming conventions from `docs/project-config.json` plus the repository's project-reference docs. Do not copy a source-root, extension, framework type, or folder name from this skill as if it were canonical.
+run high-signal searches BEFORE reading individual files. Derive the actual roots, file globs, framework markers, and naming conventions from `docs/project-config.json` plus the repository's project-reference docs. Do not copy a source-root, extension, framework type, or folder name from this skill as if it were canonical.
 
 Search for these intent categories with the configured source roots and discovered stack syntax:
 
@@ -173,34 +142,19 @@ Search for these intent categories with the configured source roots and discover
 - Entity classes missing identity markers required by the configured persistence framework.
 - Domain models performing direct persistence, network, or infrastructure work.
 
-Representative searches — substitute the markers and source roots discovered from `docs/project-config.json` / project-reference docs (never hardcode the examples):
-
-```bash
-# Validation methods that hide or bypass the base/domain validation path
-rg "{configured-validation-markers}" {configured-domain-source-roots} | head -20
-
-# Persistence/query-filter expressions or infrastructure work leaked into domain models
-rg "{configured-persistence-or-query-markers}" {configured-domain-source-roots} | head -20
-
-# Business conditions / entity mutation leaked above the owning domain layer
-rg "{configured-business-condition-patterns}" {configured-application-source-roots} | head -20
-
-# Entity classes missing the identity markers required by the configured persistence framework
-rg "{configured-identity-markers}" {configured-domain-source-roots} | head -20
-```
+Build stack-specific `rg` searches from those intents; configured roots, syntax and markers determine the commands.
 
 Write ALL grep results to report IMMEDIATELY.
 
 ### Categorize Files
 
-| Category       | Definition                                               |
-| -------------- | -------------------------------------------------------- |
-| Aggregate Root | Has dedicated repository; aggregate entry point          |
-| Entity         | Has identity; accessed/persisted through root            |
-| Value Object   | Structural equality; must be immutable                   |
-| Unknown        | Plain class in domain layer without clear classification |
+| Category | Definition |
+| --- | --- |
+| Aggregate Root | Has dedicated repository; aggregate entry point |
+| Entity | Has identity; accessed/persisted through root |
+| Value Object | Structural equality; must be immutable |
+| Unknown | Plain class in domain layer without clear classification |
 
----
 
 ## Phase 2: Entity-by-Entity DDD Review
 
@@ -208,9 +162,7 @@ For EACH entity/VO file: read file → append findings to report IMMEDIATELY. NE
 
 ### Per-File Review Checklist
 
-#### A. Entity vs Value Object Classification (MUST ATTENTION)
-
-> Entity = unique identity persisting across time. VO = defined by attributes, immutable, interchangeable when equal. NEVER swap roles.
+#### A. Entity vs Value Object Classification
 
 - verify: does class need unique persistent identity? No → suspect VO misclassification.
 - flag: "snapshot at point in time" (contact at referral, price at purchase, measurement at check-in) → MUST be VO, NEVER entity.
@@ -218,9 +170,7 @@ For EACH entity/VO file: read file → append findings to report IMMEDIATELY. NE
 - MEDIUM if entity has 3+ scalar fields always moving together → data clump → VO candidate.
 - MEDIUM if entity is effectively stateless (no state changes after creation) → suspect VO.
 
-#### B. Base Class Compliance (MUST ATTENTION)
-
-> NEVER assume base class — ALWAYS use discovered values from Phase 0. Project docs override generic rules.
+#### B. Base Class Compliance
 
 - verify aggregate root extends project's root entity base (from Phase 0 discovery).
 - NEVER use root entity base for non-root child entities — child entities MUST NOT have their own repository.
@@ -228,9 +178,7 @@ For EACH entity/VO file: read file → append findings to report IMMEDIATELY. NE
 - verify audited entities extend audited base where audit trail required.
 - cross-check each entity's base class against service/module-specific requirements from reference docs.
 
-#### C. Value Object Immutability and Equality (MUST ATTENTION)
-
-> Mutable VOs are a design contradiction — they imply identity through mutation, which entities have, not VOs.
+#### C. Value Object Immutability and Equality
 
 - NEVER allow mutable public state on value objects. Use the immutability mechanism idiomatic to the configured language/runtime.
 - Parameterless/default constructor allowed when required for framework deserialization.
@@ -240,9 +188,7 @@ For EACH entity/VO file: read file → append findings to report IMMEDIATELY. NE
 - NEVER put async operations, repository calls, or infrastructure dependencies inside VO.
 - Conversion/implicit operator defined when VO wraps single primitive.
 
-#### D. Encapsulation and Anemic Domain Model (MUST ATTENTION)
-
-> Anemic model = entity is data bag, all logic in handlers. Fix: move behavior to entity (lowest layer).
+#### D. Encapsulation and Anemic Domain Model
 
 - verify entity has at least ONE domain method when it has business rules — NEVER pure property bag.
 - NEVER allow direct property assignment for state transitions from outside entity — MUST use domain methods (`changeStatus()`, `approve()`, `assign()`).
@@ -251,11 +197,7 @@ For EACH entity/VO file: read file → append findings to report IMMEDIATELY. NE
 - flag: business conditionals in application layer referencing single entity's state → move to entity guard.
 - Entity behavior MUST be caller-agnostic — methods describe domain intent, NEVER reference who calls them.
 
-**Detection signal:** `entity.property = value` assignments (non-audit) in application layer = anemic model signal.
-
-#### E. Domain Invariants (MUST ATTENTION)
-
-> Invariants enforced only in application layer = domain can reach invalid state via any other entry point.
+#### E. Domain Invariants
 
 - verify entity validates own invariants (via `validate()`, constructor guard, or factory) — NEVER handler-only enforcement.
 - verify pre-operation guards as `ensureCan*()` / `validateCan*()` methods on entity.
@@ -263,21 +205,13 @@ For EACH entity/VO file: read file → append findings to report IMMEDIATELY. NE
 - Invariants from creation MUST be enforced in factory method or constructor.
 - CRITICAL: `validate()` MUST NOT be hidden by same-name method without calling `super` → silent validation dead zone.
 
-**Detection signal:** Search for `validate()` override not calling `super.validate()` or framework base validation.
-
-#### E2. Spec-Loop Discipline — Invariant → Property-TC Mapping (MUST ATTENTION)
-
-> Every §5 invariant you verify is a property the spec should name and a test should guard universally — an enforced invariant with no property test is one refactor away from silent regression.
+#### E2. Spec-Loop Discipline — Invariant → Property-TC Mapping
 
 - verify each entity/VO invariant maps to a **universally-quantified property TC** (holds for ALL valid inputs) plus a **boundary counter-case** — NEVER accept a single happy-path example as coverage for an invariant.
 - flag any invariant with no guarding property TC as a **Dual-Feedback finding**: the spec must NAME the invariant AND a test must GUARD it — blank either axis = INCOMPLETE, NEVER report a behavior-affecting invariant finding as code-only.
 - review the whole package (spec + tests + entity code), not the entity diff alone; loop until zero new invariant→property-TC gaps remain — each cycle enriches the spec.
 
-**Detection signal:** an invariant enforced in the entity (constructor/`validate()`/`ensureCan*()`) with no corresponding property TC in the spec's Section 8 or test suite → Dual-Feedback gap.
-
-#### F. Aggregate Design (MUST ATTENTION)
-
-> Aggregate = consistency boundary. All invariants must flow through root. Cross-aggregate coupling = transaction trap.
+#### F. Aggregate Design
 
 - NEVER give child entity its own repository — ONLY aggregate root has repository.
 - NEVER reference another aggregate by object — MUST use ID only (`string productId` NOT `Product product`).
@@ -288,8 +222,6 @@ For EACH entity/VO file: read file → append findings to report IMMEDIATELY. NE
 
 #### G. Navigation / Relationship Properties
 
-> Navigation properties serializing into each other = circular reference crash or infinite memory allocation.
-
 - CRITICAL: ALL navigation/relationship properties that can serialize recursively MUST use the configured serialization-ignore mechanism or an explicit DTO/projection boundary.
 - Navigation properties MUST be nullable/optional — not always loaded.
 - FK ID MUST be stored as primitive alongside navigation — NEVER navigation-only reference.
@@ -297,8 +229,6 @@ For EACH entity/VO file: read file → append findings to report IMMEDIATELY. NE
 - Prefer unidirectional navigation — bidirectional only when both directions actively used.
 
 #### H. Domain Events
-
-> Entity raises events → handlers react. NEVER inline side effects in entity domain methods.
 
 - verify meaningful state changes raise domain events — NEVER tracked only by polling DB.
 - Events MUST be raised INSIDE entity domain methods — NEVER from handlers/services.
@@ -308,16 +238,12 @@ For EACH entity/VO file: read file → append findings to report IMMEDIATELY. NE
 
 #### I. Static Query Expressions
 
-> Query logic belongs on entity (lowest layer) — duplication in repos/handlers = wrong layer.
-
 - verify reusable filter expressions defined as static methods on entity (or companion class) — NEVER duplicated in repos/handlers.
 - Expression naming: descriptive static method (e.g., `isActive()`, `filteredByDepartment()`).
 - NEVER duplicate expressions across multiple repository or handler files.
 - Query expressions MUST have corresponding database indexes (verify in migration/schema files).
 
 #### J. Naming and Ubiquitous Language
-
-> Technical names break the domain model. Entity names ARE the project's vocabulary.
 
 - NEVER use technical class name suffixes: `Manager`, `Helper`, `Processor`, `Util`, `Handler`, `Service`.
 - Domain methods MUST use domain verbs: `approve()`, `reject()`, `assign()`, `changeStatus()` — NEVER `process()`, `handle()`, `execute()`.
@@ -327,15 +253,15 @@ For EACH entity/VO file: read file → append findings to report IMMEDIATELY. NE
 
 #### K. Code Smells
 
-| Smell                    | Detection Signal                            | Severity                         |
-| ------------------------ | ------------------------------------------- | -------------------------------- |
-| **Fat Entity**           | >500 lines with unrelated concerns          | MEDIUM — split by domain concept |
-| **Feature Envy**         | Method uses 5+ properties of another entity | HIGH — wrong responsibility      |
-| **Data Clump**           | 3+ primitives always together               | MEDIUM — VO candidate            |
-| **Primitive Obsession**  | Raw `string` for email/phone/money/ID       | MEDIUM — domain type opportunity |
-| **Leaky Abstraction**    | Entity exposes persistence internals        | HIGH                             |
-| **Collection Exposure**  | Public mutable collection returned directly | HIGH — domain method needed      |
-| **Constructor Overload** | 5+ params without factory method            | MEDIUM                           |
+| Smell | Detection Signal | Severity |
+| --- | --- | --- |
+| **Fat Entity** | >500 lines with unrelated concerns | MEDIUM — split by domain concept |
+| **Feature Envy** | Method uses 5+ properties of another entity | HIGH — wrong responsibility |
+| **Data Clump** | 3+ primitives always together | MEDIUM — VO candidate |
+| **Primitive Obsession** | Raw `string` for email/phone/money/ID | MEDIUM — domain type opportunity |
+| **Leaky Abstraction** | Entity exposes persistence internals | HIGH |
+| **Collection Exposure** | Public mutable collection returned directly | HIGH — domain method needed |
+| **Constructor Overload** | 5+ params without factory method | MEDIUM |
 
 #### L. OOP Principles
 
@@ -345,93 +271,76 @@ For EACH entity/VO file: read file → append findings to report IMMEDIATELY. NE
 - Capability traits added via focused interfaces — NEVER monolithic interface bundle (ISP).
 - Entity subclasses MUST be substitutable for base — `base.method()` NEVER skipped in override (LSP).
 
-#### M. Invariant vs Validation Ownership + Failure Signalling (MUST ATTENTION)
-
-> Two different questions wearing one word. **Invariant** = "can this state legally exist?" — owned by the entity, failure is a bug. **Validation** = "is this input acceptable right now?" — owned by the application boundary, failure is a user error. Collapsing them produces both classic defects at once: form validation buried in entities, and business rules parked in a bypassable `Validator`.
+#### M. Invariant vs Validation Ownership + Failure Signalling
 
 **Think:** for each rule the entity enforces, ask who is allowed to violate it. A user typo → boundary validation. A code path reaching an impossible state → entity invariant.
 
 - flag input-shape checks inside the entity (required-field, max-length, format-for-UX, localized messages) → MEDIUM, belongs at the boundary — why: the entity now changes when the form changes.
 - flag a business rule living ONLY in a `*Validator` / `*Rules` / handler guard while the entity permits the state → HIGH invariant gap — why: every other entry point reaches invalid state.
 - NEVER accept a database constraint or trigger as the invariant's enforcement — it is a backstop; the model must state the rule — why: an opaque SQL error is not a domain contract and cannot be unit-tested.
-- MUST ATTENTION verify failure signalling matches the convention discovered in Phase 0 — mixed exception/`Result` for the SAME class of failure is a HIGH finding — why: callers cannot know which to handle, so one path goes unhandled.
+- verify failure signalling matches the convention discovered in Phase 0 — mixed exception/`Result` for the SAME class of failure is a HIGH finding — why: callers cannot know which to handle, so one path goes unhandled.
 - Expected business outcomes (insufficient funds, slot taken) returning `Result`, unreachable-state guards throwing → correct split; flag the inverse (throwing for expected outcomes in a hot path, or `Result` for a "cannot happen") as MEDIUM.
 - flag mutations returning bare `bool` → MEDIUM: loses WHY and is trivially ignored.
 - flag silent clamping of bad input (`if (qty < 0) qty = 0`) → HIGH — why: hides a caller bug and persists wrong data with no signal.
 
-**Detection signal:** business rule text appearing in BOTH a validator/handler and the entity, or appearing ONLY outside the entity.
-
-#### N. Construction vs Reconstitution (MUST ATTENTION)
-
-> Creating a new entity runs business rules and raises events. Loading an existing one from storage MUST do neither. One constructor serving both makes creation rules unenforceable without breaking loading.
+#### N. Construction vs Reconstitution
 
 **Think:** trace both paths separately — `new` from a command, and materialization by the ORM/stream fold. Ask what each is allowed to run.
 
-- MUST ATTENTION verify a distinct reconstitution path exists (private/protected ctor, ORM materialization hook, or `From(events)` fold) separate from the creation factory — why: without it, creation invariants must be weakened until loading passes.
+- verify a distinct reconstitution path exists (private/protected ctor, ORM materialization hook, or `From(events)` fold) separate from the creation factory — why: without it, creation invariants must be weakened until loading passes.
 - CRITICAL if the load path raises domain events — loading N entities emits N phantom events — why: downstream handlers fire for things that did not happen.
 - flag creation rules re-run on load (clock checks, uniqueness calls, `startsOn >= today`) → HIGH: historical rows fail to load once the rule tightens.
-- MUST ATTENTION verify required data sits in the constructor/factory and optional data in methods — an entity constructible without a value it cannot exist without is a HIGH invariant gap.
+- verify required data sits in the constructor/factory and optional data in methods — an entity constructible without a value it cannot exist without is a HIGH invariant gap.
 - flag public parameterless constructor + public setters as the creation path → CRITICAL anemic entry point (paradigm-adjusted per 0.4; framework-required non-public ctors are fine).
 - flag 5+ positional constructor params → MEDIUM: group into VOs FIRST, consider a builder only after.
 - NEVER flag a framework-mandated non-public parameterless constructor as a violation — verify the discovered persistence convention first.
 
-**Detection signal:** one public constructor referenced by both the command handler and the ORM/mapping configuration.
-
-#### O. Event Dispatch Timing + Contract Boundary (MUST ATTENTION)
-
-> Section H owns event **raising**. This owns what happens **after** — when they dispatch, who may consume them, and how they evolve. Wrong timing silently couples an unrelated handler's failure to the core write.
+#### O. Event Dispatch Timing + Contract Boundary
 
 **Think:** follow one raised event to its consumer and ask what happens if the consumer throws, if the transaction rolls back, and if the event is delivered twice.
 
 - CRITICAL if events dispatch synchronously INSIDE the write transaction — a handler failure rolls back the business operation — why: an unrelated feature can now break the core write.
 - CRITICAL if events publish to a broker BEFORE the transaction commits — you announced a fact that may never have happened; require the transactional outbox (events persisted in the SAME transaction, relayed after commit).
-- MUST ATTENTION verify the event buffer is cleared after dispatch — an uncleared buffer republishes on the next save (MEDIUM–HIGH by blast radius).
-- MUST ATTENTION verify internal domain events are distinct from published integration events — flag an internal event placed on the bus as HIGH — why: consumers become coupled to your model's internal shape, permanently, and it can no longer be refactored.
+- verify the event buffer is cleared after dispatch — an uncleared buffer republishes on the next save (MEDIUM–HIGH by blast radius).
+- verify internal domain events are distinct from published integration events — flag an internal event placed on the bus as HIGH — why: consumers become coupled to your model's internal shape, permanently, and it can no longer be refactored.
 - flag fat events carrying the whole aggregate → MEDIUM: violates least privilege and blocks schema evolution. Events carry IDs + the minimal meaningful payload.
 - flag events named as commands (`SendEmail`, `UpdateStock`) → MEDIUM: an event states what happened; command-naming re-couples producer to consumer.
 - flag handlers with no idempotency guard where delivery is at-least-once → HIGH.
-- Event-sourced projects (0.4): MUST ATTENTION verify a versioning/upcasting strategy exists — why: a past event can never be changed, only upcast, and the first schema change without a plan has no rollback.
+- Event-sourced projects (0.4): verify a versioning/upcasting strategy exists — why: a past event can never be changed, only upcast, and the first schema change without a plan has no rollback.
 
-**Detection signal:** dispatch/publish call inside the same transaction scope as the repository save, or an integration-event type imported from the domain assembly.
-
-#### P. Aggregate Concurrency + Transaction Boundary (MUST ATTENTION)
-
-> Section F owns aggregate *shape*. This owns what makes "one aggregate per transaction" actually safe under concurrent load.
+#### P. Aggregate Concurrency + Transaction Boundary
 
 **Think:** two users act on the same aggregate at the same instant — what stops the second write from silently discarding the first?
 
-- MUST ATTENTION verify aggregate roots carry an optimistic-concurrency token (version/rowversion/etag) when the discovered persistence layer supports one — absence is HIGH on any contended or money/data-integrity path — why: last-write-wins silently discards a committed decision.
+- verify aggregate roots carry an optimistic-concurrency token (version/rowversion/etag) when the discovered persistence layer supports one — absence is HIGH on any contended or money/data-integrity path — why: last-write-wins silently discards a committed decision.
 - NEVER accept a concurrency token on a CHILD entity as the aggregate's token — the version belongs to the ROOT, because a change anywhere inside the aggregate is a change to the aggregate.
 - flag a single transaction mutating 2+ aggregate roots → HIGH: lock-ordering and deadlock risk, and it blocks later service extraction. Route the second change through a domain event.
 - flag an aggregate whose parts are routinely written by different users concurrently → MEDIUM sizing finding: the boundary is too big and produces concurrency failures on unrelated work.
-- MUST ATTENTION check invariants claimed to span aggregates (uniqueness across all instances, "max N active per tenant") — these cannot live inside one aggregate; verify the owning mechanism (DB constraint + domain service, or a reservation pattern) exists and is stated — why: a set-based invariant enforced by an in-memory check races under concurrency and passes every single-threaded test.
+- check invariants claimed to span aggregates (uniqueness across all instances, "max N active per tenant") — these cannot live inside one aggregate; verify the owning mechanism (DB constraint + domain service, or a reservation pattern) exists and is stated — why: a set-based invariant enforced by an in-memory check races under concurrency and passes every single-threaded test.
 
-**Detection signal:** repository save of two roots inside one unit-of-work scope, or a root type with no version/timestamp concurrency member.
-
----
 
 ## Phase 3: Holistic Synthesis + Fresh-Context Gate
 
 After all Phase 2 files are reviewed, synthesize cross-entity DDD concerns in the current report. Do not spawn a fresh sub-agent only because findings exist. Findings must go through the why-review validation gate before any fix.
 
-### 3.1 Model-Level Dimensions (MUST ATTENTION — judged over the whole model, NEVER per file)
+### 3.1 Model-Level Dimensions (— judged over the whole model, NEVER per file)
 
 Two concerns are invisible file-by-file and only appear when the model is viewed whole. Run one focused pass each.
 
 **Dimension 1 — Bounded-context sharing.** **Think:** does one entity class serve two different businesses?
 
-- MUST ATTENTION flag a single entity class consumed by two contexts with divergent rules (a `Customer` used by Sales, Support, AND Billing) → HIGH — why: the class accretes every context's fields and rules, becomes the god entity nobody can change, and no context owns it.
+- flag a single entity class consumed by two contexts with divergent rules (a `Customer` used by Sales, Support, AND Billing) → HIGH — why: the class accretes every context's fields and rules, becomes the god entity nobody can change, and no context owns it.
 - The same word meaning different things per context is CORRECT, NEVER a duplication to eliminate — flag an attempt to unify them as a MEDIUM finding against the unifier.
-- MUST ATTENTION verify a translation boundary exists where contexts meet (anti-corruption layer, mapper, published contract) — direct cross-context entity reuse is HIGH.
+- verify a translation boundary exists where contexts meet (anti-corruption layer, mapper, published contract) — direct cross-context entity reuse is HIGH.
 - flag domain concepts leaking into a shared/generic/infrastructure layer (tenant/customer/product IDs, business rules in a "reusable" base) → HIGH — why: a layer coupled to one consumer's domain is no longer reusable.
 
 **Dimension 2 — Subdomain fit.** **Think:** does this code deserve a rich domain model at all?
 
-- MUST ATTENTION judge fit BEFORE reporting anemic-model findings: a rich entity is correct in a **core** subdomain (complex, differentiating, changes often); Active Record or Transaction Script is CORRECT in supporting/generic subdomains and in pure CRUD.
+- judge fit BEFORE reporting anemic-model findings: a rich entity is correct in a **core** subdomain (complex, differentiating, changes often); Active Record or Transaction Script is CORRECT in supporting/generic subdomains and in pure CRUD.
 - NEVER report "anemic model" against code whose subdomain has no invariants beyond required-field — that is CRUD, and the finding is noise — why: uniform tactical DDD over CRUD is itself an anti-pattern, adding ceremony and indirection with no invariant to protect.
 - flag the inverse too: a **core** subdomain implemented as Transaction Script with business rules scattered across handlers → HIGH, this is where the rich model was owed.
 - flag generic subdomains modelled in-house (auth, billing, email, scheduling) → MEDIUM: buy or adopt, do not model.
-- MUST ATTENTION state the subdomain judgment and its evidence in the report — an anemic-model finding without it is unproven — why: "anemic" and "appropriately simple" look identical in a diff.
+- state the subdomain judgment and its evidence in the report — an anemic-model finding without it is unproven — why: "anemic" and "appropriately simple" look identical in a diff.
 
 Spawn a fresh `code-reviewer` sub-agent only when one of these conditions is true (never under `--report-only` — see [Report-Only Mode](#report-only-mode---report-only)):
 
@@ -439,159 +348,35 @@ Spawn a fresh `code-reviewer` sub-agent only when one of these conditions is tru
 - The user/workflow explicitly requests an independent high-risk synthesis pass for broad entity-model changes.
 - Phase 2 produced contradictory evidence that cannot be resolved in the current session without an independent read.
 
-When a fresh-context pass is triggered, build the Agent call dynamically — set Target Files and Reference Docs from Phase 0/1 discoveries:
+When triggered, dispatch a fresh `code-reviewer` with zero prior-round memory. Build the brief from Phase 0 conventions/reference paths and Phase 1 target files; require its own complete reads of this mode, applicable DDD-reference sections and the targets.
 
-```
-Agent({
-  description: "Fresh full DDD entity review after validated fixes or explicit high-risk trigger",
-  subagent_type: "code-reviewer",
-  prompt: `
-## Task
-Review domain entity and value object files holistically for DDD design quality:
-- Domain model coherence: entities vs VOs correctly classified across entire model?
-- Aggregate boundary consistency across service/module?
-- Anemic domain model: business logic consistently in entity or scattered in handlers?
-- Navigation property hygiene across entire domain layer
-- Ubiquitous language consistency across all entities
-- Missed cross-entity interactions
-- Bounded-context sharing: one entity class serving two contexts with divergent rules?
-- Subdomain fit: does this model deserve rich entities, or is Active Record / Transaction Script correct here?
-- Concurrency: do aggregate roots carry an optimistic-concurrency token? Any transaction mutating 2+ roots?
-- Set-based invariants (uniqueness across all instances) — enforced by a real mechanism, or by a racy in-memory check?
+The brief must contain the complete `SYNC:review-protocol-injection` template (all 11 full bodies, verbatim from `.claude/skills/shared/sync-inline-versions.md`); pointers/digests do not substitute for injected bodies.
 
-## Review Mode
-Fresh full review after a validated fix cycle or explicit high-risk trigger. ZERO memory of prior rounds. Re-read all target files from scratch via own tool calls.
+Assign holistic model coherence, classification, aggregate boundaries, navigation/serialization, language, cross-context translation, paradigm/subdomain fit, concurrency and set-based invariants. Include null-safe computed/navigation paths, empty/zero/negative boundaries, failure signalling and root-only mutation. Apply A–P/E2 and discovered conventions; trace cause to the invariant owner before suggesting a fix. Optional graph hints require source verification.
 
-## Protocols (follow VERBATIM)
-
-### Evidence-Based Reasoning
-Every claim needs proof. Cite file:line or grep results. Confidence: >80% act, 60-80% verify first, <60% DO NOT report.
-NEVER write: "obviously", "I think", "should be", "probably".
-
-### Project-Specific Discovery (MANDATORY before any finding)
-1. Check the reference-docs root (default docs/project-reference/; docsRoots.projectReference.path in docs/project-config.json overrides) for entity reference docs, backend patterns, code review rules
-2. grep -rn "class.*Entity\|class.*BaseEntity\|class.*RootEntity" <source-root>/ | head -10
-3. grep -rn "ValueObject\|@ValueObject\|AbstractValueObject" <source-root>/ | head -10
-4. Read discovered project reference docs — extract project-specific rules
-5. NEVER flag violations contradicting discovered project conventions — verify against docs first
-
-### Bug Detection for Domain Entities
-Check every entity:
-1. Null Safety: navigation properties guarded before use? Computed properties NPE-safe?
-2. Boundary Conditions: empty collections in domain methods? Zero/negative invariants?
-3. Error Handling: domain violations using project-specific exception type — NEVER raw language exceptions?
-4. Aggregate Safety: child collections mutable bypassing domain methods?
-5. Serialization Safety: navigation properties missing serialize-ignore annotation?
-
-### DDD Design Patterns Quality
-1. Entity = identity + lifecycle. VO = structural equality + immutable. NEVER swap roles.
-2. Invariants enforced at entity level (lowest layer) — NEVER application layer only.
-3. Aggregate: only root has repository; cross-aggregate = ID only; child mutations = domain method.
-4. Domain events raised in entity — NEVER inline side effects in entity methods.
-5. Anemic model: entity has no domain methods + handlers contain all logic → CRITICAL violation — BUT judge subdomain fit first: in a CRUD/supporting subdomain with no invariants, simple is CORRECT and "anemic" is a false finding.
-6. Invariant vs validation: entity owns "can this state exist?"; the boundary owns "is this input acceptable?". A business rule living ONLY in a validator/handler = HIGH invariant gap. Input-shape/UX checks inside the entity = MEDIUM, wrong layer.
-7. Failure signalling consistent with the project convention — mixed exception/`Result` for the same failure class = HIGH. NEVER raw language exceptions for domain violations.
-8. Creation vs reconstitution are separate paths. Load path raising domain events = CRITICAL (N loaded entities emit N phantom events). Creation rules re-run on load = HIGH.
-9. Event dispatch: synchronous in-transaction dispatch = CRITICAL (handler failure rolls back the business op); publish-before-commit = CRITICAL (announced a fact that may never have happened) — require the outbox. Internal domain events published as integration contracts = HIGH.
-10. Concurrency: aggregate roots carry an optimistic-concurrency token (version on the ROOT, never on a child); a transaction mutating 2+ roots = HIGH.
-11. Bounded contexts: one entity class shared across contexts with divergent rules = HIGH. The same word meaning different things per context is CORRECT — NEVER unify it.
-12. Modelling paradigm: detect OO-mutable vs immutable/type-driven vs event-sourced BEFORE applying setter/mutability rules — NEVER flag a paradigm-appropriate pattern against a rule written for another paradigm.
-
-### Fix-Layer Accountability
-NEVER fix at crash site. Validation fails because handler skips entity validate()? → fix entity, not handler. Aggregate boundary violated? → fix entity relationship, not handler defensiveness.
-
-### Graph-Assisted Investigation (optional advice)
-Optional: for a high-risk entity blast radius grep may miss, when .code-graph/graph.db exists, trace --direction both on 2-3 entity files can hint at consumers — it may be stale; verify by reading.
-CLI: python .claude/scripts/code_graph trace <file> --direction both --json --node-mode file
-
-## Reference Docs
-{insert docs discovered in Phase 0}
-If none: read 3 existing entity files to infer project conventions before reviewing.
-
-## Target Files
-{insert entity/VO file list from Phase 1}
-
-## Output
-Write to tmp/reports/domain-entities-rerun{N}-{date}.md:
-- Status: PASS | FAIL
-- Critical Issues (file:line evidence)
-- High Priority Issues (file:line evidence)
-- Cross-cutting DDD concerns
-- Aggregate model coherence assessment
-- Refactoring priority
-
-Return report path and status. Every finding MUST have file:line evidence.
-`
-})
-```
+Require **PASS/FAIL, severity-grouped evidence, cross-cutting concerns, aggregate coherence and refactoring priorities** in `tmp/reports/domain-entities-rerun{N}-{date}.md`; return path/status. Infer conventions from 3+ entities when references are absent. No finding without `file:line`; >80% report, 60–80% verify, <60% withhold. Judge anemia against subdomain fit; do not overrule local patterns.
 
 After sub-agent returns:
 
 1. Read the sub-agent report
 2. Integrate as `## Re-Review {N} Findings` in main report — NEVER filter or override
 3. If findings remain: validate the new finding set before any additional fixes
-4. Repeat only after another validated-finding fix cycle; if the same blocker repeats across 2 full invocations with no progress, escalate via `AskUserQuestion`
+4. Repeat only after another validated-finding fix cycle; if the same blocker repeats across 2 full invocations with no progress, escalate via `ask user question tool`
 5. Final verdict MUST incorporate every review pass that actually ran
 
----
 
 ## Phase 4: Final Report Generation
 
-```markdown
-## Domain Entities DDD Review — Final Report
+Write the report with these sections:
 
-**Mode:** {scan | changes}
-**Tech Stack:** {discovered}
-**Entity Base Classes:** {discovered from codebase}
-**VO Base Classes:** {discovered from codebase}
-**Scope / Date / Entity Count:** {values}
-
-## Blast Radius Summary
-
-Blast-radius hint (optional graph): {HIGH | MEDIUM | LOW | N/A} | Downstream consumers: {N}
-
-## Health Score
-
-{score}/100 — 100 - (CRITICAL×25 + HIGH×10 + MEDIUM×3 + LOW×1), min 0
-
-## Critical Issues (block merge)
-
-{severity} | {description} | {file:line} | {fix}
-
-## High Priority Issues (must fix)
-
-{severity} | {description} | {file:line} | {fix}
-
-## Medium Issues (should fix)
-
-{severity} | {description} | {file:line} | {fix}
-
-## Low / Informational
-
-{severity} | {description} | {file:line} | {fix}
-
-## Re-Review Findings (if a fresh full re-review ran)
-
-{integrated — not filtered}
-
-## Positive Observations
-
-{observation} | {evidence}
-
-## Refactoring Priority (highest-impact first)
-
-{priority} | {target} | {reason}
-
-## Repository-Specific Rules Applied
-
-{rule} | {evidence}
-
-## Unresolved Questions
-
-{question} | {owner/next step}
-```
-
----
+- **Metadata:** mode, stack, entity/VO bases, scope, date, entity count and blast radius/downstream consumers (graph hint optional).
+- **Health Score:** 100 - (CRITICAL×25 + HIGH×10 + MEDIUM×3 + LOW×1), min 0. Score is evidence, not severity.
+- **Critical / High / Medium / Low:** each finding includes description, `file:line`, consequence and fix. Keep informational notes separate.
+- **Re-Review Findings:** integrate every fresh pass without filtering.
+- **Positive Observations:** evidence-backed strengths.
+- **Refactoring Priority:** targets and reasons, highest impact first.
+- **Repository-Specific Rules Applied:** rule and evidence.
+- **Unresolved Questions:** question, owner and next step.
 
 ## Universal DDD Quick Reference
 
@@ -601,13 +386,13 @@ Blast-radius hint (optional graph): {HIGH | MEDIUM | LOW | N/A} | Downstream con
 
 ### Invariant Enforcement Decision Table
 
-| Location               | When to Use                                      |
-| ---------------------- | ------------------------------------------------ |
-| Constructor / Factory  | Invariants must hold from creation               |
-| `validate()` override  | State invariants run before persistence          |
-| `ensureCan*()` guard   | Operation preconditions (throw domain exception) |
-| Before-delete hook     | Pre-delete constraints                           |
-| Application layer ONLY | ← NEVER — always enforce in entity too           |
+| Location | When to Use |
+| --- | --- |
+| Constructor / Factory | Invariants must hold from creation |
+| `validate()` override | State invariants run before persistence |
+| `ensureCan*()` guard | Operation preconditions (throw domain exception) |
+| Before-delete hook | Pre-delete constraints |
+| Application layer ONLY | ← NEVER — always enforce in entity too |
 
 ### Invariant vs Validation Decision Table
 
@@ -629,67 +414,28 @@ Blast-radius hint (optional graph): {HIGH | MEDIUM | LOW | N/A} | Downstream con
 | "Status enum + guards" | correct | **anti-pattern** — should be a union | replaced by event stream |
 | "Events raised in entity" (H/O) | applies | applies | events ARE the state |
 
-### Aggregate Boundary Rules
-
-```
-CORRECT — cross-aggregate by ID:
-  Entity A { string EntityBId; EntityB? entityB; }  ← ID + optional navigation
-
-WRONG — cross-aggregate by object:
-  Entity A { EntityB entityB; }  ← object reference = implicit coupling
-
-CORRECT — child mutation via domain method:
-  order.addLine(product, quantity);
-
-WRONG — direct collection mutation:
-  order.lines.add(new OrderLine(product, quantity));
-```
-
 ### Code Smell Signals
 
-```
-Fat Entity:    file > 500 lines, > 20 properties → split by domain concept
-Feature Envy:  method accesses 5+ properties of another entity → move to that entity
-Data Clump:    3+ primitives always travel together → extract as Value Object
-Primitive Obs: string email, string userId, decimal price → wrap in domain type
-Anemic Model:  entity has 0 domain methods + all logic in handlers → move logic down
-```
+Read **K** for code-smell thresholds. >20 properties prompts a cohesion check, not an automatic finding; no methods plus handler-owned rules suggests anemia only after subdomain-fit assessment.
 
----
+### Related decisions
 
-## Systematic Review Protocol (10+ Entity Files)
+Read **Phase 0.4** when adapting to immutable or event-sourced models; **M** for invariant versus boundary validation; **F** for root-only mutation and ID references.
 
-> **NON-NEGOTIABLE:** 10+ entity files in scope → switch to parallel sub-agents automatically. Not run under `--report-only` — that mode reviews sequentially in this context.
+## Systematic Review Strategy
 
-1. announce: `"Detected {N} entity files. Switching to parallel DDD review protocol."`
-2. Group by module/aggregate/type
-3. Fire parallel `code-reviewer` sub-agents with `run_in_background: true` (one per group)
-4. Each sub-agent: Phase 2 checklist + discovered project-specific rules → write to `tmp/reports/domain-entities-{group}-round1-{date}.md`
+> Follow `SYNC:systematic-review-batching` to choose from risk, related flows, working-set fit and delegation cost; file counts are planning cues. Not run under `--report-only` — that mode reviews sequentially in this context.
+
+1. Record the chosen scope/approach, reason, fit and coverage before source reads.
+2. Group related module/aggregate/type flows and preserve cross-group links.
+3. Review inline or in bounded sequential assignments; use authorized fresh parallel `code-reviewer` assignments when independent flows or necessary depth justify delegation.
+4. Each reviewer: Phase 2 checklist + discovered project-specific rules → write to `tmp/reports/domain-entities-{group}-round1-{date}.md`
 5. Main agent consolidates: cross-aggregate violations, naming consistency, model coherence
 
----
 
 ## Output Summary Format
 
-```
-Domain Entities DDD Review
-
-Health Score: {N}/100
-
-Critical Issues: (block merge)
-- {issue}: file:line — description + fix
-
-High Priority: (must fix)
-- {issue}: file:line — description + fix
-
-Medium Issues: (should fix)
-Positive Observations:
-Unresolved Questions:
-
-Report: tmp/reports/domain-entities-review-{date}-{slug}.md
-```
-
----
+Return the health score, findings grouped by severity with `file:line` and fix, positive observations, unresolved questions, and report path. Include every pass and deferred item.
 
 ## Phase 5: Why-Review Self-Validation Gate (MANDATORY when findings exist)
 
@@ -711,11 +457,10 @@ Report: tmp/reports/domain-entities-review-{date}-{slug}.md
 - Why-review skill itself is the active context (avoid recursion)
 
 
----
 
 ## Next Steps
 
-MUST ATTENTION when standalone, use `AskUserQuestion` after completing to present:
+when standalone, use `ask user question tool` after completing to present:
 
 - **`/fix` (Recommended if FAIL)** — Fix validated findings that block the current round (Round 1: all severities; Round 2: CRITICAL/HIGH/MEDIUM; LOW-only is deferred)
 - **`/scan --target=domain-entities`** — Update domain-entities-reference.md (scan mode)
@@ -723,34 +468,21 @@ MUST ATTENTION when standalone, use `AskUserQuestion` after completing to presen
 - **`/docs-manager --mode=update`** — Update feature docs if entity contracts changed
 - **"Skip, continue manually"** — user decides
 
-**Exempt** under `--report-only`, when a parent skill or workflow invoked this review, or when running as a sub-agent: do NOT ask — return these next-step recommendations in the returned summary and let the caller decide; the caller's fix step owns any fix. — why: `AskUserQuestion` cannot reach the user from a sub-agent, and a leaf that waits on a prompt stalls its parent's all-return barrier.
+**Exempt** under `--report-only`, when a parent skill or workflow invoked this review, or when running as a sub-agent: do NOT ask — return these next-step recommendations in the returned summary and let the caller decide; the caller's fix step owns any fix. — why: `ask user question tool` cannot reach the user from a sub-agent, and a leaf that waits on a prompt stalls its parent's all-return barrier.
 
----
 
-> **[IMPORTANT]** `TaskCreate` for ALL phases BEFORE starting. Mark each completed immediately.
 
-> **CRITICAL RULES** — (1) MUST ATTENTION run Phase 0 project discovery FIRST — discovered conventions override ALL generic rules. (2) Validate findings before fixes; after validated fixes, restart a full review before declaring PASS. The current severity bar ends the review: Round 1 requires zero open findings; Round 2 requires zero CRITICAL/HIGH/MEDIUM, with LOW-only findings deferred. (3) NEVER report a finding without `file:line` evidence.
-
----
-
-**Prerequisites — MUST ATTENTION discover project-specific rules FIRST:**
-
-> Read the reference-docs root (default `docs/project-reference/`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides) — entity reference, backend patterns, code review rules — and `CLAUDE.md`. Find entity/VO base classes, validation API, domain exception type, persistence annotations. Infer from 3+ existing entity files if no docs exist. NEVER apply generic rules that contradict discovered project conventions.
-
-> **Evidence Gate:** Every finding requires `file:line` proof or grep result. Confidence >80% → report. <60% → state uncertainty explicitly.
-
----
 
 ## Mode Detection
 
 **Determine the review scope BEFORE any other work** (the invocation already selected `--mode=review`; `--report-only` composes with any scope):
 
-| Invocation                                      | Scope            | Files                                           |
-| ----------------------------------------------- | ---------------- | ----------------------------------------------- |
-| `/domain-analysis --mode=review` (default)      | **changes**      | Changed domain entity files from `git diff`     |
-| `/domain-analysis --mode=review changes`        | **changes**      | Changed domain entity files                     |
-| `/domain-analysis --mode=review scan`           | **scan**         | All entity/VO files in domain layer directories |
-| `/domain-analysis --mode=review scan <module>`  | **scan-service** | Entities in named module only                   |
+| Invocation | Scope | Files |
+| --- | --- | --- |
+| `/domain-analysis --mode=review` (default) | **changes** | Changed domain entity files from `git diff` |
+| `/domain-analysis --mode=review changes` | **changes** | Changed domain entity files |
+| `/domain-analysis --mode=review scan` | **scan** | All entity/VO files in domain layer directories |
+| `/domain-analysis --mode=review scan <module>` | **scan-service** | Entities in named module only |
 
 **Entity file detection — adapt to discovered stack:**
 
@@ -763,7 +495,6 @@ Filter those results using the entity/value-object/aggregate naming conventions 
 
 If no domain entity files match in changes mode → announce "No domain entity changes detected" and report clean.
 
----
 
 ## Mode protocols
 
@@ -886,41 +617,29 @@ If no domain entity files match in changes mode → announce "No domain entity c
 
 <!-- SYNC:severity-rubric -->
 
-> **Severity Rubric** — Classify every finding by consequence, not by effort, reviewer preference, or how annoying the fix is. One scale applies to every review, skill, agent, workflow, and host so a tier means the same everywhere. Choose the highest credible consequence supported by evidence; do not lower a tier to make a round pass.
+> **Severity Rubric** — Use one consequence-based scale across reviews, skills, agents, workflows and hosts. Choose the highest credible tier supported by evidence; never lower it to pass a round. Effort, cost, preference, annoyance, frequency alone and round-budget pressure do not determine severity.
 >
-> **Finding vs observation (required):** An observation becomes a finding only when it names the affected user/system/data/contract, the shipped consequence, the evidence location, and the normalized tier. `INFO`, advice, preference, duplicate wording, or an unsubstantiated concern is not a finding and must not reopen a loop. If the concern might affect a required behavior or gate but evidence is incomplete, emit `NOT VERIFIABLE` with the missing evidence and keep it unresolved; never silently convert uncertainty into LOW.
+> **Finding vs observation:** admit a finding only with an affected user/system/data/contract, shipped consequence, reachable supported trigger (caller, input, state or event sequence), evidence location and confidence percentage. Assess exposure/likelihood and reversibility/detectability before assigning a tier.
 >
-> **Reachable trigger path (required):** a finding also names HOW a supported configuration reaches the defect — the caller, input, state or event sequence that drives execution or data there. A concern on a path nothing reaches (dead code, a branch its guard excludes, an impossible state) is an observation: record it as advice, never as a LOW to fix. Also never a finding: what a compiler, type checker, linter or test run for this change already reports in the review evidence; a behavior change the stated intent asks for; an issue silenced by a suppression that predates this change and states its reason (a suppression the change adds is itself reviewed); a pre-existing issue on a line the change neither touched nor made reachable. When reachability cannot be settled and the concern would be MEDIUM or higher, emit `NOT VERIFIABLE` naming what would settle it; a polish-level concern with unsettled reachability is an observation. — why: a speculative LOW admitted as a finding becomes build work in round 1.
+> **Keep as observations:** advice, preference, duplicates, unsupported concerns, unreachable paths, issues already reported by this change’s compiler/type checker/linter/tests, intended behavior changes, reasoned suppressions predating the change, and pre-existing issues neither touched nor made reachable. Review newly added suppressions. Observations/INFO do not reopen loops.
 >
-> | Severity | Action | Definition and examples |
+> | Tier | Consequence and boundary examples | Action |
 > | --- | --- | --- |
-> | CRITICAL | Block immediately; escalate | Immediate material risk if shipped: authentication/authorization or safety bypass; secrets/PII exposure; irreversible destructive action; data loss/corruption; a silent failure on a critical path. A failed binary gate is carried by the executable policy as a separate synthetic blocker, not an ordinary severity judgment. |
-> | HIGH | Must fix before PASS/merge | Material correctness or contract risk: wrong behavior on a supported path; violated business/data invariant; meaningful privacy or authority gap; breaking API/schema/compatibility change; likely harm to users/downstream systems; a missing proof for a behavior-changing fix. |
-> | MEDIUM | Must clear the current round; escalate if the fix needs an owner decision | Bounded but consequential risk: an edge case, resilience/observability/testability/maintainability gap, credible future defect, or local architectural drift — real impact, not immediate material loss. A recorded follow-up does not make an open MEDIUM a clean pass. |
-> | LOW | Record and defer; never opens another fix/re-review round from round 2 onward, never raises the round budget | Non-blocking polish with no credible present correctness, security, privacy, authority, availability, or data-integrity impact: wording/formatting, minor documentation or convention drift, optional defensive cleanup, cosmetic refinement. |
+> | CRITICAL | Immediate material security, safety or authority harm; auth bypass; secrets/PII exposure; irreversible destruction; data loss/corruption; critical-path silent failure. | Block immediately; escalate. |
+> | HIGH | Material supported-path correctness, invariant, privacy/authority, public-contract or compatibility failure; likely user/downstream harm; missing proof for a behavior-changing fix. | Fix before PASS/merge. |
+> | MEDIUM | Bounded consequential edge, resilience, observability, testability, maintainability or architectural gap; credible future defect. | Clear this round; escalate decisions needing an owner. A follow-up is not a clean pass. |
+> | LOW | Proven non-blocking polish with no credible present correctness, security, privacy, authority, availability or data-integrity impact: wording, formatting, minor docs/conventions, optional cleanup, cosmetics. | Record/defer; alone never opens another round from round 2 or increases the budget. |
 >
-> **Consequence decision tree (apply in order):** (1) A failed binary gate stays a separate hard blocker (synthetic CRITICAL in the executable helper) — never hide it behind an ordinary label. Otherwise, would shipping permit immediate material security/safety/authority harm, irreversible destruction, data loss/corruption, or a critical-path silent failure? → **CRITICAL**. (2) Does a supported path, invariant, public contract, privacy/authority boundary, compatibility promise, or behavior-changing proof fail with material impact? → **HIGH**. (3) A bounded but consequential edge, resilience, observability, testability, maintainability, or architectural gap with credible impact? → **MEDIUM**. (4) Evidence shows only non-blocking polish? → **LOW**. (5) Evidence to choose among 1–4 missing → **NOT VERIFIABLE**, not LOW. When several tiers fit, select the highest credible consequence; effort, cost, reviewer discomfort, frequency alone, proximity to the round cap, and obtaining another round never decide the tier.
+> **Consequence decision tree:** check binary gates separately, then select the first evidenced tier from CRITICAL → HIGH → MEDIUM → LOW. Missing evidence is **NOT VERIFIABLE**, not a fifth tier or a LOW fallback: name the missing proof. Unsettled reachability is NOT VERIFIABLE for potential MEDIUM+ impact and an observation for polish. Claims potentially affecting required behavior, security, privacy, authority, availability, data integrity or a gate remain evidence blockers until proved or explicitly owner-accepted with scope, rationale and residual risk. Owner acceptance does not make an open MEDIUM a clean pass or a failed gate pass.
 >
-> **Boundary examples:** auth bypass, exposed secret/PII, destructive command without an authority gate, or failed required test/generation/parity gate → **CRITICAL**; wrong supported response, broken invariant/API/schema, meaningful privacy/authority defect, or unproven behavior-changing fix → **HIGH**; bounded retry/timeout/alert/testability gap or credible maintainability drift → **MEDIUM**; typo, formatting, optional cleanup, or cosmetic suggestion proven not to affect behavior → **LOW**. A missing fact about any boundary is **NOT VERIFIABLE** until evidence or a documented residual-risk decision exists.
+> **Hard gates and rounds:** failed tests, required artifacts, security must-fix checks, generated parity and policy compliance block every round, independently of finding severity. The executable helper carries failures as synthetic CRITICAL blockers; reports name the gate and failure evidence. Default review budget is three rounds; unresolved findings or failed required checks at the cap ask the user for a bounded extension under `SYNC:review-policy`. Failed checks never pass by severity deferral.
 >
-> **Classification procedure (every finding):** (1) state the affected user, system, data, contract, or gate; (2) assess consequence if it ships; (3) assess exposure/likelihood and reversibility/detectability; (4) select the highest justified tier; (5) cite `file:line` or equivalent evidence and a confidence percentage. `NOT VERIFIABLE` is a pending evidence state, not a fifth tier and never a LOW escape hatch: if the claim could affect required behavior, security, privacy, authority, availability, data integrity, or a binary gate, it stays an open evidence blocker until resolved or explicitly owner-accepted with documented residual risk. Classify LOW only when evidence supports the absence of credible present material impact.
->
-> **Hard-gate rule:** Binary gates (tests, required artifacts, security must-fix checks, generated parity, policy compliance) are not severity-rated findings. The executable helper records a failed gate as a synthetic CRITICAL blocker so one predicate can carry it; the report still names the gate and failure evidence. A failed gate blocks at every round, even when all ordinary findings are LOW. A failed non-test gate is bounded by the three-round review cap; a failing test gate is outside the round budget and loops until the tests pass.
->
-> **Score-based skills** map their numeric scale onto these tiers — no parallel vocabulary:
->
-> - **0-2 criterion scoring** (e.g. production-readiness-review): `0` = CRITICAL/HIGH (unmet, blocks readiness), `1` = MEDIUM (partial, consequential gap), `2` = pass. A polish-only criterion is LOW, not a forced `0`.
-> - **Two-axis scoring** (e.g. performance-review, impact × likelihood): high impact + high exposure → CRITICAL/HIGH; material impact, bounded exposure → HIGH/MEDIUM; low impact and exposure → LOW. Record the axes and why the tier is the highest credible consequence.
-> - **Scorecards / `/20` grades** (e.g. `architecture --mode=scalability`): the aggregate score and verdict band are separate from finding severity. A sub-80 area is evidence to investigate, not an automatic tier; classify each underlying gap by the decision tree and keep advisory score deductions apart from blocking findings.
->
-> **Domain-vocabulary normalization (mandatory):** a skill may keep a local reporting vocabulary, but it MUST feed this same four-tier round predicate — never a second severity system:
->
-> - `BLOCKED`, `HARD FAIL`, or `FAIL` is a blocking local verdict, not an automatic CRITICAL: CRITICAL for an immediate material risk or failed binary gate, otherwise HIGH or MEDIUM with evidence, while the local block holds until the owning gate is satisfied.
-> - `WARN` is not permission to ignore: MEDIUM when consequential, LOW only when evidence shows no credible present material impact, HIGH/CRITICAL when the consequence warrants. `PASS`/compliant is not a finding.
-> - UI `P0`/`P1`/`P2`/`P3`/`P4` start as CRITICAL/HIGH/MEDIUM/LOW/LOW; override upward only on evidence of a higher shipped consequence. A P0/P1 accessibility or task-completion floor stays a blocking gate even when called a priority.
-> - Numeric SRE/readiness or impact/likelihood scores are evidence inputs, not tiers: emit the score, the consequence, and the normalized tier together. `INFO`/advisory observations are not findings unless evidence shows a material consequence.
->
-> A tier drives the gate: CRITICAL/HIGH/MEDIUM stay actionable and blocking under the round policy; all review blockers may use up to three rounds, then escalate; LOW may be tracked as a follow-up and, from round 2, never justifies another fix/re-review by itself. An owner decision may explain or schedule an open MEDIUM but never makes it a clean pass; owner acceptance never makes a failed binary gate pass and must record scope, rationale, and residual risk.
+> **Domain-vocabulary normalization and scores:**
+> - `BLOCKED`/`HARD FAIL`/`FAIL` are local blocking verdicts, not automatic CRITICAL; classify by consequence while preserving the owning gate. `WARN` can be any tier; `PASS`/compliant is not a finding. INFO/advisory remains observational unless material consequence is evidenced.
+> - UI `P0/P1/P2/P3/P4` start at CRITICAL/HIGH/MEDIUM/LOW/LOW; raise only with evidence. P0/P1 accessibility or task-completion floors remain blocking gates.
+> - Criterion `0/1/2` → CRITICAL or HIGH (unmet readiness)/MEDIUM (partial consequential gap)/pass; polish is LOW, never forced to `0`.
+> - Impact × likelihood: high impact/exposure → CRITICAL/HIGH; material impact with bounded exposure → HIGH/MEDIUM; low impact/exposure → LOW. Record both axes and justify the highest credible tier.
+> - Aggregate scorecards and `/20` verdict bands stay separate; sub-80 areas prompt investigation, not automatic severity. Keep advisory deductions separate from blockers. Emit numeric SRE/readiness or impact/likelihood scores with consequence and normalized tier.
 
 <!-- /SYNC:severity-rubric -->
 
@@ -932,60 +651,14 @@ If no domain entity files match in changes mode → announce "No domain entity c
 
 <!-- SYNC:systematic-review-batching -->
 
-> **Systematic Review Batching (map-reduce)** — When a changeset is large, do NOT review files one-by-one. Partition into size-capped batches, fire one specialized sub-agent per batch in parallel, then reduce. This bounds EVERY context — each batch agent AND the orchestrator — so coverage stays complete as file count grows.
+> **Adaptive Review Planning** — Triage the complete target and make a short plan before deep review. Optimize attention and time while preserving coverage and all applicable quality gates.
 >
-> **Trigger ladder (one ordered escalation — not competing thresholds):**
+> 1. **Understand the work.** Inventory all changed paths/status and intent; distinguish behavior, contracts, tests, docs/config and mechanical outputs. Identify risk, dependency links and governing rules. Prioritize the paths whose failure has the largest consequence; size alone does not decide depth.
+> 2. **Choose an approach.** Review inline when useful. Group connected behavior with its callers, tests and rules; use authorized specialist agents for independent work or necessary expertise. Decide grouping, read sizes and concurrency from the actual working set, context headroom and delegation cost. There are no universal file, line, byte or group-size caps, and no mandated split or hierarchy. Preserve host limits and leave room to reason.
+> 3. **Track and persist.** Create todo tasks for the planned review work, findings validation and fix/re-review checks. Track coverage so every file is reviewed or accounted for by relevant evidence; generated/mechanical changes can use verified generator/parity or pattern checks with an explicit rationale. Read relevant source and rules on demand, persist findings and remaining work as you go, and resume from that record after interruption. If context is tight, checkpoint and regroup; never silently truncate or call unreviewed work clean.
+> 4. **Coordinate and validate.** Give each delegated reviewer a clear scope, governing rules, report path and the required full review protocol template. Independent readers may run together; fixes wait until their reports return. Validate findings before acting, preserve rejected/re-tiered candidates and reconcile conflicts by evidence. The coordinator independently checks material findings, uncertain claims and cross-group interactions, choosing additional validation where risk warrants it. Reconcile all coverage and required checks before the final verdict.
 >
-> 1. **< 10 changed files** → sequential per-file review (default; no batching).
-> 2. **≥ 10 changed files** → switch to systematic parallel mode. Announce: `"Detected {N} changed files. Switching to systematic parallel review protocol."` Then: categorize → size-capped batches → flat consolidation.
-> 3. **categories > 6 OR files > 40** → additionally insert the hierarchical synthesis tier (below). Everything from rung 2 still applies.
->
-> **Step 1 — Categorize.** Group changed files into logical categories derived from the project's actual structure (not forced). Category is the *concern axis*; orient with these examples, derive what fits the repository:
->
-> | Category Type | Example Groupings |
-> | --- | --- |
-> | Agent/Tooling | AI scripts, hooks, skill definitions, workflow configs, linting rules |
-> | Root config/docs | Root README, project config, CI/CD pipeline configs |
-> | Reference docs | Architecture docs, patterns references, setup guides |
-> | Feature/domain docs | Business feature documentation, spec files, ADRs |
-> | Backend logic | Service/handler/controller source (infer from project structure) |
-> | Frontend logic | UI component/state/API source (infer from project structure) |
-> | Data/Schema | Migrations, schema files, seed data |
-> | Tests | Unit, integration, E2E test files |
-> | Infrastructure | Docker, k8s, CI/CD, cloud manifests |
->
-> **Step 2 — Risk-weighted batches.** Size caps bound each agent's context; the risk tier decides how tight the cap is. Classify each category's tier FIRST — a file whose tier is unclear takes the high-risk tier:
->
-> | Risk tier | Examples | Batch cap (whichever hits first) |
-> | --- | --- | --- |
-> | **High** | domain/business logic, commands/handlers/jobs, schema/migrations/data access, auth/permissions/secrets/money/PII, concurrency, public contracts, UI with state or requests | ≤8 files OR ≤2000 diff-lines — one category per batch |
-> | **Low** | UI styling/markup with no logic, tests, docs and specs, configuration text | ≤20 files OR ≤4000 diff-lines — low-risk categories may share a batch |
-> | **Mechanical churn** | generated files, lockfiles, pure renames/moves, bulk formatting | no batch agent — the orchestrator verifies by pattern (rule check plus a sample) and records it in the coverage ledger |
->
-> Any category exceeding its cap splits into more batches (30 high-risk backend files → 4 batches). Size caps — not category caps — make "many files" safe: a category cap alone lets one giant category blow a single agent's context. Risk weighting spends line-by-line depth where a defect costs most; the whole-target reviewer and specialist escalation still cover low-risk files.
->
-> **Step 2a — Sub-agent type per batch** (match the batch's dominant concern):
->
-> - Code logic (any stack) → `code-reviewer`
-> - Security-sensitive changes → `security-auditor`
-> - Performance-critical paths → `performance-optimizer`
-> - Docs, plans, specs, configs, infra → `general-purpose`
->
-> Each batch sub-agent receives: its full file list; the Step 2b instruction to validate its own findings; `SYNC:category-review-thinking` as its primary thinking model — derive each category's concerns from first principles, NOT a fixed checklist (if the consuming skill does not carry that block, apply category-first thinking directly); project reference docs relevant to its concern (discover via `*patterns*`, `*conventions*`, `*style-guide*`); cross-reference verification instructions (counts, tables, links). All batch agents run in parallel and write findings to `tmp/reports/` (per `SYNC:task-tracking-external-report`); reducers read from disk, never from memory.
->
-> **Step 2b — Each batch validates its own findings before returning.** The batch agent runs `/why-review --validate-findings <its batch report>` — a real terminal skill call in its own session, where the batch's code and protocols are already loaded — keeps the findings that survive, marks each `validated: in-batch`, lists every finding it rejected or re-tiered with its original severity, and never fixes. This matches report-only specialists and avoids re-loading the same context in a separate validator.
->
-> **Step 3 — Reduce.**
->
-> - **Deduplicate FIRST — before any validation or fix.** Merge findings that share one root cause (same owning `file:line` range and same violated rule or invariant) into one entry that lists every source batch/reviewer, keeps the highest justified severity plus each source's own severity, and records the merge — a severity disagreement between sources is a reviewer conflict. A cross-batch duplicate is never validated or fixed twice.
-> - **Independent check set (after dedup).** In-batch validation trades independence for cost, so the orchestrator re-validates with `/why-review --validate-findings` in the main session: every finding raised or kept at CRITICAL/HIGH, including one its batch rejected or demoted; every finding two reviewers disagree on (severity, owner or fix); every finding its batch did not mark `validated: in-batch`; and at least one in three of each batch's MEDIUM findings (minimum one), picked by position in the batch report, never by content. When a batch's sample shows unreliable validation — more than one in four sampled findings rejected or re-tiered — validate all of that batch's MEDIUM findings. The remaining LOW and unsampled MEDIUM findings ride on their in-batch validation. Keep each validation pass small enough that every finding in it gets full attention.
-> - **Flat reduction (rung 2, ≤6 categories AND ≤40 files):** the orchestrator collects each batch report, cross-references counts/tables/contracts ACROSS batches, detects gaps visible only across categories (feature in code but missing from docs; new API endpoint with no client call), and consolidates into one categorized holistic report.
-> - **Hierarchical reduction (rung 3, > 6 categories OR > 40 files):** insert a mid-tier — each concern with two or more batches gets ONE synthesizer agent that reads only its own batch reports and emits a single concern-synthesis (a single-batch concern needs no synthesizer: its batch report is its synthesis). The orchestrator reads the **concern-syntheses (~5)**, never the raw batch reports — keeping the reducer's context O(#concerns), not O(#files).
->   - **Cross-concern interaction pass (mandatory at rung 3 — closes the synthesis-tier blind spot):** concern-siloed synthesis can drop an interaction spanning two concerns AND two batches (tainted source in data-layer/batch 7 → sink in api/batch 3). So: (a) each concern-synthesizer MUST emit an explicit **"cross-concern interaction candidates"** list — entities/symbols/contracts it touched that plausibly bind to another concern (shared DTOs, event names, table/collection names, exported symbols); (b) the orchestrator MUST run the Step-3 cross-reference/gap step **over those candidate lists across all concern-syntheses**, not only within a batch, before concluding. Without this pass the tier trades completeness for context-bounding on exactly the large diffs it targets.
->
-> **Step 4 — Holistic assessment.** With all findings combined, judge: overall coherence as a unified intent; cross-category sync (docs match code? contracts match callers?); risk areas where categories interact; missing doc/spec updates for changed artifacts.
->
-> **No silent truncation.** If any cap forces sampling or a batch is dropped for budget, ANNOUNCE the dropped/sampled scope explicitly — bounded coverage must never read as complete coverage.
+> **Quality bar:** a thousand-file review may need several passes, but file count never waives end-to-end correctness, required rules, tests, finding validation or fresh post-fix review.
 
 <!-- /SYNC:systematic-review-batching -->
 
@@ -1007,13 +680,15 @@ If no domain entity files match in changes mode → announce "No domain entity c
 
 > **Trade-Off Interrogation Gate** — ALWAYS ask these THREE questions before ANY verdict, score, finding, or recommendation — about the thing under review AND about every recommendation YOU make. — why: naming a benefit without its price is an endorsement, not a review; the costliest trade-offs are the ones nobody wrote down.
 >
+> **Review/audit decisions:** apply `SYNC:review-decision-autonomy` before any user-choice or confirmation prompt below. Select the supported recommendation and record its rationale; round-limit extension, indispensable missing facts and operation authority retain their explicit boundaries.
+>
 > 1. **Is there any trade-off?** Name what it SACRIFICES. "None" / "pure win" is an unfinished analysis, NOT an answer — to claim none, state which dimensions you checked and why each is unaffected: future change cost · complexity · performance/latency · memory/cost · coupling · reversibility · migration burden · operational load · blast radius · security posture · testability · team skill/ramp · delivery time · UX.
 > 2. **Is it worth it?** Weigh gain against sacrifice EXPLICITLY — what is gained (with a metric) · what it costs · WHO pays · WHEN it comes due — then emit **WORTH IT / NOT WORTH IT / UNCLEAR**. "Better" with no metric and no cost FAILS this question. NOT WORTH IT → withdraw or replace the recommendation, never keep it as-is.
 > 3. **Is the trade-off material enough to CONFIRM WITH THE USER?** A material trade-off is the user's call, never yours. **MATERIAL** when ANY holds: irreversible / one-way door (data migration, public contract, storage format, vendor lock-in) · cost shifted onto someone else (another team, ops/on-call, future maintainer, end user) · one quality attribute traded for another (correctness↔speed, security↔convenience, latency↔cost, simplicity↔flexibility) · a boundary crossed (client↔server tier, service contract, event contract, shared library) · a high-consequence path (auth, money, data integrity, breaking change, High/Medium residual risk) · the worth-it verdict is UNCLEAR.
 >
-> **MATERIAL → STOP and confirm via `AskUserQuestion` BEFORE the verdict stands** — state the trade-off, both options, what each sacrifices, and your recommendation. **NOT material →** record it inline with a one-line justification and proceed.
+> **MATERIAL → STOP and confirm via `ask user question tool` BEFORE the verdict stands** — state the trade-off, both options, what each sacrifices, and your recommendation. **NOT material →** record it inline with a one-line justification and proceed.
 >
-> **Non-asking execution contexts — ESCALATE BY HANDOFF, never by silence.** `AskUserQuestion` reaches only the main interactive agent: a sub-agent cannot ask the user, and a terminal/verdict-only mode asks nothing by design. When you are running in such a context, the obligation is **redirected, never waived** — do ALL of: (a) complete questions 1 and 2 normally; (b) decide materiality and record it in the Trade-Off Assessment row with `confirmed? = NO — cannot ask from this context`; (c) **name the unconfirmed MATERIAL trade-off explicitly in your returned summary/verdict so the CALLER (or parent orchestrator) escalates it via `AskUserQuestion` on your behalf** — a material trade-off mentioned only inside a report file on disk is NOT a handoff; (d) do not emit an unqualified PASS — mark the verdict as carrying an unconfirmed material trade-off, so the caller's gate stays closed until the user answers. The caller inherits the escalation duty the moment it reads your return.
+> **Non-asking execution contexts — ESCALATE BY HANDOFF, never by silence.** `ask user question tool` reaches only the main interactive agent: a sub-agent cannot ask the user, and a terminal/verdict-only mode asks nothing by design. When you are running in such a context, the obligation is **redirected, never waived** — do ALL of: (a) complete questions 1 and 2 normally; (b) decide materiality and record it in the Trade-Off Assessment row with `confirmed? = NO — cannot ask from this context`; (c) **name the unconfirmed MATERIAL trade-off explicitly in your returned summary/verdict so the CALLER (or parent orchestrator) escalates it via `ask user question tool` on your behalf** — a material trade-off mentioned only inside a report file on disk is NOT a handoff; (d) do not emit an unqualified PASS — mark the verdict as carrying an unconfirmed material trade-off, so the caller's gate stays closed until the user answers. The caller inherits the escalation duty the moment it reads your return.
 >
 > This carve-out is about **reachability, not convenience**: it applies ONLY where the tool genuinely cannot reach the user (spawned sub-agent, terminal validate/verdict-only mode, non-interactive/headless run). It is NEVER a licence to skip the question, to self-approve a one-way door, or to downgrade materiality because asking is inconvenient — if you CAN ask, you MUST ask.
 >
@@ -1069,9 +744,7 @@ If no domain entity files match in changes mode → announce "No domain entity c
 
 <!-- SYNC:systematic-review-batching:reminder -->
 
-- **MANDATORY** Large changeset → risk-weighted batches, one parallel sub-agent per batch: high-risk ≤8 files OR ≤2000 diff-lines; low-risk (styling, tests, docs, config text) may pool to ≤20 files OR ≤4000 diff-lines; mechanical churn is verified by pattern, not batched. Never review many files one-by-one.
-- **MANDATORY** Each batch agent validates its own findings (`/why-review --validate-findings` in its own session); the reducer deduplicates by root cause FIRST, then re-validates only CRITICAL/HIGH (including in-batch rejections and demotions), reviewer conflicts, unvalidated findings and a MEDIUM sample.
-- **MANDATORY** > 6 categories OR > 40 files → add the hierarchical synthesis tier; each concern-synthesizer emits cross-concern interaction candidates and the orchestrator runs the cross-concern pass before concluding.
+**MUST ATTENTION** Triage all files, write a short review plan and create review/validation/fix/re-review tasks first. Choose inline work or authorized specialists from risk, relationships and context headroom; no fixed file/line/byte caps. Persist coverage, reconcile interactions and validate findings before fixes or PASS.
 
 <!-- /SYNC:systematic-review-batching:reminder -->
 
@@ -1101,9 +774,11 @@ If no domain entity files match in changes mode → announce "No domain entity c
 
 <!-- SYNC:trade-off-interrogation-gate:reminder -->
 
-- **MANDATORY MUST ATTENTION ALWAYS ASK THE 3 TRADE-OFF QUESTIONS** — on the thing under review AND on every recommendation you make: (1) **what does it SACRIFICE?** name the dimensions checked (change cost · complexity · perf · coupling · reversibility · migration · ops load · blast radius · security · testability · delivery time · UX) — "none"/"pure win" is an unfinished analysis; (2) **is it worth it?** gain (with a metric) vs cost, WHO pays, WHEN → emit **WORTH IT / NOT WORTH IT / UNCLEAR**; NOT WORTH IT → withdraw or replace it; (3) **is it MATERIAL enough to confirm with the user?** irreversible/one-way door · cost shifted onto another team/ops/maintainer/user · one quality attribute traded for another · a tier/service/event/library boundary crossed · auth/money/data-integrity/breaking-change/High-or-Medium-risk path · verdict UNCLEAR → **STOP and confirm via `AskUserQuestion` BEFORE the verdict**.
+**Review/audit invocations:** follow `SYNC:review-decision-autonomy` for every decision prompt; choose supported recommendations without asking, preserve round-extension approval and actual authority.
+
+- **MANDATORY MUST ATTENTION ALWAYS ASK THE 3 TRADE-OFF QUESTIONS** — on the thing under review AND on every recommendation you make: (1) **what does it SACRIFICE?** name the dimensions checked (change cost · complexity · perf · coupling · reversibility · migration · ops load · blast radius · security · testability · delivery time · UX) — "none"/"pure win" is an unfinished analysis; (2) **is it worth it?** gain (with a metric) vs cost, WHO pays, WHEN → emit **WORTH IT / NOT WORTH IT / UNCLEAR**; NOT WORTH IT → withdraw or replace it; (3) **is it MATERIAL enough to confirm with the user?** irreversible/one-way door · cost shifted onto another team/ops/maintainer/user · one quality attribute traded for another · a tier/service/event/library boundary crossed · auth/money/data-integrity/breaking-change/High-or-Medium-risk path · verdict UNCLEAR → **STOP and confirm via `ask user question tool` BEFORE the verdict**.
 - **MANDATORY** A MATERIAL trade-off with no user confirmation can NEVER be PASS; never bury one as a Low-severity note, never decide it silently, and never let delivery or convergence pressure authorize a one-way door — an un-walked-back one-way door is the user's call, not the reviewer's.
-- **MANDATORY — a context that cannot ask escalates BY HANDOFF, never by silence.** `AskUserQuestion` reaches only the main interactive agent, so a sub-agent or a terminal/verdict-only mode cannot ask. There the duty is REDIRECTED, not waived: still name the trade-off, still decide materiality, record `confirmed? = NO — cannot ask from this context`, and **state the unconfirmed MATERIAL trade-off in your RETURNED verdict so the CALLER escalates it** (a note only in an on-disk report is not a handoff); never emit an unqualified PASS. If you CAN ask, you MUST ask.
+- **MANDATORY — a context that cannot ask escalates BY HANDOFF, never by silence.** `ask user question tool` reaches only the main interactive agent, so a sub-agent or a terminal/verdict-only mode cannot ask. There the duty is REDIRECTED, not waived: still name the trade-off, still decide materiality, record `confirmed? = NO — cannot ask from this context`, and **state the unconfirmed MATERIAL trade-off in your RETURNED verdict so the CALLER escalates it** (a note only in an on-disk report is not a handoff); never emit an unqualified PASS. If you CAN ask, you MUST ask.
 
 <!-- /SYNC:trade-off-interrogation-gate:reminder -->
 
@@ -1116,62 +791,14 @@ If no domain entity files match in changes mode → announce "No domain entity c
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Detect DDD design quality violations in domain entities and value objects across any technology stack — adapting to project-specific patterns via config/reference docs discovery — so domain entities and value objects preserve invariants, aggregate boundaries, and discovered DDD conventions.
+**Goal:** Review entity/VO design against discovered project conventions so invariants and aggregate boundaries remain safe.
 
-**IMPORTANT MUST ATTENTION** follow the declared path: Phase 0 discover conventions, paradigm, and blast radius → Phase 1 create the report, run mandatory greps, and categorize files → Phase 2 review each entity/VO with checklist A–P and append findings → Phase 3 synthesize holistic model concerns and subdomain fit → Phase 4 produce the final report and health score → Phase 5 validate findings, fix only current-round blocking findings, and restart the full review until the severity bar is clear (Round 1: zero open findings; Round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred) → ask next steps when standalone; scale 10+ entity files through parallel batches and consolidation. Under `--report-only` the path ends at the Phase 5 validation gate with no fix, fan-out, or question.
+**MUST ATTENTION** Phase 0 discovery/paradigm/scope → 1 search/report → 2 A–P/E2 → 3 holistic fit/fresh-context gate → 4 report/score → 5 validate/fix/full restart → standalone Next Steps. `--report-only` ends after validation: no fixes, restart, delegation or user questions.
 
-**Protocols in force — MUST ATTENTION (concise digest of the SYNC/shared blocks this mode carries):**
-
-- **Source/Test Drift Check:** Source behavior change → inspect and reconcile affected tests.
-- **Nested Task Creation:** Workflow parent row NEVER replaces child phase tracking.
-- **Task Tracking & External Report:** Bootstrap tasks; persist review findings to `tmp/reports/` incrementally.
-- **Understand Code First:** Discover conventions and grep 3+ patterns before applying checklist.
-- **Graph-Assisted Investigation (optional):** the code graph is a stale-able hint for high-risk blast radius, never required.
-- **Double Round-Trip Review:** Validate findings, fix only current-round blocking findings, restart full re-review, and end when the round severity bar is clear (Round 1: zero open findings; Round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred; binary gates always block).
-- **Fresh Context Review:** Spawn fresh zero-memory sub-agent only after a validated-fix cycle.
-- **Systematic Review Batching:** 10+ files → size-capped parallel batches, then reduce.
-- **Severity Rubric:** Classify by consequence using `SYNC:severity-rubric`; round 1 blocks on every open validated finding (Round-1 LOW closure), round 2 blocks only CRITICAL/HIGH/MEDIUM, LOW is recorded/deferred, and failed binary gates always block.
-- **Category Review Thinking:** Derive each category's concerns from first principles — NEVER a fixed checklist.
-- **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
-
-**Top-3 (primacy-recency — these 3 are also at file top):**
-
-- **MANDATORY MUST ATTENTION** Phase 0 project discovery FIRST — discovered base classes / validation API / domain exception type override ALL generic rules. NEVER apply generic DDD patterns without verifying the project's real entity/VO base classes — why: wrong base classes = wrong checklist, every downstream finding is then noise.
-- **MANDATORY MUST ATTENTION** NEVER report any finding without `file:line` evidence — confidence >80% to report, 60-80% verify first, <60% DO NOT recommend — why: AI sub-agent reports inherit confirmation bias; unproven findings inflate severity downstream.
-- **MANDATORY MUST ATTENTION** validate findings before fixing (Phase 5 why-review gate); after validated fixes restart the FULL review before declaring PASS — a pass clearing the current severity bar ends the review (Round 1: zero open findings; Round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred) — why: every fix invalidates the prior verdict.
-
-**Evidence + process gates:**
-
-- **MANDATORY MUST ATTENTION** run mandatory Phase 1 grep patterns (hidden `validate()` overrides, leaked persistence/business logic, missing identity markers) BEFORE reading individual files, and write EVERY grep result to the report immediately — why: highest-signal violations surface fastest and batched writes lose findings on context loss.
-- **MANDATORY MUST ATTENTION** bootstrap `TaskCreate` for ALL phases before any work; mark one task `in_progress`, mark `completed` immediately after evidence; on context loss call `TaskList` first — never duplicate — why: phase tracking survives compaction, memory does not.
-- **MANDATORY MUST ATTENTION** read project-reference docs (`lessons.md`, entity/backend/code-review references) + `CLAUDE.md` and search 3+ existing entity files BEFORE applying any checklist — discovered conventions win — why: local conventions differ from generic framework defaults.
-- **MANDATORY MUST ATTENTION** evaluate pattern FIT before copying a nearby entity pattern — verify the new context shares the same base class, scope, and lifetime — why: closest example ≠ matching preconditions.
-- **MANDATORY MUST ATTENTION** inspect entity callers/usages (grep/read; an optional graph trace may hint at more, and may be stale) before classifying anemic model or misplaced invariant — why: code existing ≠ code executing; the bug owner is the layer the data flows through.
-- **MANDATORY MUST ATTENTION** append findings per file — NEVER batch; persist to `tmp/reports/` incrementally and synthesize from disk — why: long sub-agents hit budget before a final batched write and lose everything.
-- **MANDATORY MUST ATTENTION** `--report-only` declares Phases 0–4 plus the Phase 5 validation gate only — scope from the caller's brief, no fix, no restart, no nested sub-agent fan-out, no `AskUserQuestion`/Next Steps prompt, no writer beyond the report; return the report path plus validated findings grouped Critical/High/Medium/Low (native tiers map 1:1) — why: a read-only leaf that fixes, fans out, asks, or regenerates docs stalls or races its barrier siblings.
-
-**Domain rules (this mode's invariants):**
-
-- **MANDATORY MUST ATTENTION** NEVER throw raw language exceptions for domain violations — use the project's discovered domain exception type — why: generic exceptions lose domain context and bypass the invariant contract.
-- **MANDATORY MUST ATTENTION** NEVER allow mutable public state or reference equality on Value Objects — structural immutability + structural equality are non-negotiable — why: a mutable VO implies identity-through-mutation, which is an entity, not a VO.
-- **MANDATORY MUST ATTENTION** enforce invariants at the entity (lowest layer) via constructor/factory/`validate()`/`ensureCan*()` — NEVER application-layer-only — why: any other entry point can then reach an invalid domain state.
-- **MANDATORY MUST ATTENTION** NEVER give a child entity its own repository and NEVER reference another aggregate by object — ID only — why: only the aggregate root owns its consistency boundary; object references create implicit transaction coupling.
-- **MANDATORY MUST ATTENTION** map every verified §5 invariant to a universally-quantified property TC + boundary counter-case (Dual-Feedback) — spec NAMES it AND a test GUARDS it — why: an enforced invariant with no property test is one refactor from silent regression.
-- **MANDATORY MUST ATTENTION** treat 2+ violations of the same kind as a structural/architectural finding, not isolated style notes — why: repeated leaks reveal a missing pattern, not individual slips.
-- **MANDATORY MUST ATTENTION** classify by consequence not fix-effort using `SYNC:severity-rubric` (round 1 blocks every validated tier; round 2 blocks CRITICAL/HIGH/MEDIUM, LOW deferred; failed binary gates always block); 10+ entity files → switch to parallel `code-reviewer` sub-agents automatically — why: one "High" must mean the same everywhere, and serial review of many files exhausts context.
-- **MANDATORY MUST ATTENTION** detect the modelling paradigm per aggregate (0.4) BEFORE applying any setter/mutability/reconstitution rule, and record which sections were adapted or marked N/A — NEVER flag a paradigm-appropriate pattern against a rule written for another paradigm — why: "no public setters" is a real finding in OO code and meaningless in a model that has none by construction.
-- **MANDATORY MUST ATTENTION** judge subdomain fit (3.1) BEFORE reporting anemic model, and state the judgment with evidence — a rich model is owed in a CORE subdomain and is ceremony in CRUD — why: "anemic" and "appropriately simple" look identical in a diff, and uniform tactical DDD over CRUD is itself an anti-pattern.
-- **MANDATORY MUST ATTENTION** separate invariant (entity owns "can this state exist?") from validation (boundary owns "is this input acceptable?"); a business rule living ONLY in a validator/handler is a HIGH invariant gap, and input-shape/UX checks inside the entity are MEDIUM wrong-layer — NEVER accept a DB constraint or trigger as the invariant's enforcement, it is a backstop — why: any other entry point reaches invalid state, and an opaque SQL error is not a domain contract.
-- **MANDATORY MUST ATTENTION** keep failure signalling consistent with the Phase 0 convention — mixed exception/`Result` for the SAME failure class is HIGH; NEVER silently clamp bad input or return bare `bool` from a mutation — why: callers cannot know which to handle, so one path goes unhandled, and clamping persists wrong data with no signal.
-- **MANDATORY MUST ATTENTION** verify creation and reconstitution are separate paths — the load path raising domain events is CRITICAL (N loaded entities emit N phantom events) and creation rules re-run on load is HIGH — why: without a separate path, creation invariants must be weakened until historical rows load.
-- **MANDATORY MUST ATTENTION** NEVER allow synchronous in-transaction event dispatch (a handler failure rolls back the business operation) or publish-before-commit (announces a fact that may never have happened) — require the transactional outbox, clear the buffer after dispatch, and keep internal domain events distinct from published integration contracts — why: unrelated features must not be able to break the core write, and a published internal event couples every consumer to your model's shape permanently.
-- **MANDATORY MUST ATTENTION** verify aggregate roots carry an optimistic-concurrency token on the ROOT (never on a child), flag any transaction mutating 2+ roots, and verify set-based invariants (uniqueness across all instances) have a real enforcing mechanism — why: last-write-wins silently discards a committed decision, and an in-memory uniqueness check races under concurrency while passing every single-threaded test.
-- **MANDATORY MUST ATTENTION** flag one entity class shared across bounded contexts with divergent rules as HIGH, and NEVER treat the same word meaning different things per context as duplication to unify — verify a translation boundary exists where contexts meet — why: a unified cross-context entity accretes every context's rules until nobody owns it.
-
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using `TaskCreate`; add a final "Analyze AI mistakes & lessons learned" review task.
-
-
-**IMPORTANT MUST ATTENTION** Phase 0 discovery FIRST (base classes override generic rules) · NEVER report a finding without `file:line` evidence at confidence >80% · validate findings before fixing, then restart the full review — a clean pass ENDS it once the persisted `minRounds` is met.
+- Discover before judging; verify callers and all execution paths. Require `file:line` and >80% confidence (60–80% verify first; <60% do not recommend).
+- Adapt rules per aggregate and subdomain; check pattern fit, base class, scope and lifetime. Two or more same-kind violations signal a structural concern.
+- Validate all findings before fixing; respect the round severity bar and binary gates. A clean pass ENDS the review only once the persisted `minRounds` is met. Each fix invalidates the prior verdict.
+- Bootstrap all phase tasks plus the final lessons review; keep one in progress, complete with evidence, resume existing tasks after context loss, and persist findings per file.
 
 <!-- SYNC:core-engineering-principles:reminder -->
 

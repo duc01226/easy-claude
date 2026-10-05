@@ -199,7 +199,7 @@ test('migrate-claude-to-codex mirrors skills without injecting any protocol bloc
         assert.match(mirroredSkill, /spawn_agent\(\{ agent_type: "architect"/);
         assert.match(mirroredSkill, /spawn_agent\(example-review, agent_type="code-reviewer"/);
         assert.match(mirroredSkill, /Use the specialized agent_type when one exists\./);
-        assert.match(mirroredSkill, /STOP and ask user tool whether integration-test --mode=verify ran\./);
+        assert.match(mirroredSkill, /STOP and ask user question tool whether integration-test --mode=verify ran\./);
         assert.doesNotMatch(mirroredSkill, /a direct user question/);
         assert.doesNotMatch(mirroredSkill, /\bAgent\(|\bsubagent_type\b/);
         assert.equal(mirroredReadme, 'Legacy $code-simplifier note.\n');
@@ -380,6 +380,114 @@ test('sync-codex runner forwards copy-skills to migrate stage', async () => {
         await fs.rm(tempRoot, { recursive: true, force: true });
     }
 });
+
+async function withWorkflowRunnerFixture(body) {
+    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-sync-workflow-'));
+    try {
+        await copyPortableCodexTooling(tempRoot);
+        const runner = path.join(tempRoot, '.claude', 'skills', 'sync-codex', 'scripts', 'run-codex-sync.mjs');
+        await fs.mkdir(path.dirname(runner), { recursive: true });
+        await fs.copyFile(runnerScript, runner);
+        await fs.mkdir(path.join(tempRoot, '.claude', 'agents'), { recursive: true });
+        for (const name of ['sample-skill', 'start-workflow', 'sync-codex']) {
+            const dir = path.join(tempRoot, '.claude', 'skills', name);
+            await fs.mkdir(dir, { recursive: true });
+            await fs.writeFile(path.join(dir, 'SKILL.md'),
+                ['---', `name: ${name}`, 'description: Fixture skill', '---', '', `# ${name}`, ''].join('\n'), 'utf8');
+        }
+        const workflowId = 'workflow-fixture';
+        const sourceFile = path.join(tempRoot, '.claude', 'skills', workflowId, 'SKILL.md');
+        const mirrorFile = path.join(tempRoot, '.agents', 'skills', workflowId, 'SKILL.md');
+        const registryFile = path.join(tempRoot, '.claude', 'workflows.json');
+        const authored = '\n## Quality\nPreserve authored review evidence.\n';
+        const stale = [
+            '---', `name: ${workflowId}`, 'description: Fixture workflow', '---', '',
+            '<!-- WORKFLOW-CALLS:START -->',
+            'Stale workflow call: /sample-skill --mode=old',
+            '<!-- WORKFLOW-CALLS:END -->',
+        ].join('\n') + authored;
+        await fs.mkdir(path.dirname(sourceFile), { recursive: true });
+        await fs.writeFile(sourceFile, stale, 'utf8');
+        const document = { version: '1', workflows: { [workflowId]: {
+            preActions: { injectContext: 'Fixture quality context', readFiles: [`.claude/skills/${workflowId}/SKILL.md`] },
+            defaultMode: 'build',
+            variants: {
+                build: { sequence: [{ id: 'build-sample', skill: 'sample-skill', args: '--mode=build' }] },
+                audit: { sequence: [{ id: 'audit-sample', skill: 'sample-skill', args: '--mode=fresh' }] },
+            },
+        } } };
+        const saveRegistry = () => fs.writeFile(registryFile, JSON.stringify(document), 'utf8');
+        await saveRegistry();
+        const env = cleanMachineEnv(tempRoot);
+        const run = flags => execFileAsync(process.execPath, [runner, ...flags], { cwd: tempRoot, env });
+        await body({ tempRoot, run, document, saveRegistry, sourceFile, mirrorFile, registryFile, stale, authored });
+    } finally {
+        await fs.rm(tempRoot, { recursive: true, force: true });
+    }
+}
+
+// Intent: the documented sync command refreshes workflow source before publishing its Codex mirror.
+test('sync runner refreshes every workflow mode before mirroring and is idempotent', async () => {
+    await withWorkflowRunnerFixture(async ({ run, sourceFile, mirrorFile, registryFile, authored }) => {
+        // Given a stale source call block and a registry whose nondefault mode has fresh args.
+        const registry = await fs.readFile(registryFile, 'utf8');
+        // When the actual copied coordinator runs its migration stage.
+        await run(['--only=migrate', '--copy-skills']);
+        const source = await fs.readFile(sourceFile, 'utf8');
+        const mirror = await fs.readFile(mirrorFile, 'utf8');
+        // Then both owned artifacts contain the new mode's call, in their native dialects.
+        assert.match(source, /\/sample-skill --mode=fresh/);
+        assert.match(mirror, /\$sample-skill --mode=fresh/);
+        assert.match(source, /\/sample-skill --mode=build/);
+        assert.match(mirror, /\$sample-skill --mode=build/);
+        assert.match(source, /Todo FIRST/);
+        assert.match(mirror, /Todo FIRST/);
+        assert.doesNotMatch(source, /--mode=old/);
+        assert.doesNotMatch(mirror, /--mode=old/);
+        assert.ok(source.endsWith(authored), 'source refresh preserves authored quality bytes');
+        assert.equal(await fs.readFile(registryFile, 'utf8'), registry, 'projection never changes its registry');
+        // And repeating the same sync changes neither source nor mirrored workflow guidance.
+        await run(['--only=migrate', '--copy-skills']);
+        assert.equal(await fs.readFile(sourceFile, 'utf8'), source);
+        assert.equal(await fs.readFile(mirrorFile, 'utf8'), mirror);
+    });
+});
+
+// Intent: a read-only request cannot refresh workflow source even when it names the mutating stage.
+test('verify-only excludes workflow refresh and leaves stale source untouched', async () => {
+    await withWorkflowRunnerFixture(async ({ tempRoot, run, sourceFile, stale }) => {
+        // Given stale guidance; when read-only selection names only migration.
+        await assert.rejects(run(['--verify-only', '--only=migrate']), error => {
+            assert.equal(error.code, 1);
+            assert.match(error.stderr, /no stages selected/);
+            return true;
+        });
+        // Then rejection performs no refresh or mirror/config publication.
+        assert.equal(await fs.readFile(sourceFile, 'utf8'), stale);
+        assert.equal(await pathExists(path.join(tempRoot, '.agents')), false);
+        assert.equal(await pathExists(path.join(tempRoot, '.codex')), false);
+    });
+});
+
+// Intent: a malformed later workflow aborts the coordinator before any source or mirror publication.
+test('invalid later workflow aborts migration without publishing earlier valid candidates', async () => {
+    await withWorkflowRunnerFixture(async ({ tempRoot, run, document, saveRegistry, sourceFile, stale }) => {
+        // Given an earlier valid candidate followed by an invalid workflow.
+        document.workflows['workflow-broken'] = { sequence: ['missing-skill'] };
+        await saveRegistry();
+        // When the documented copied coordinator would regenerate and migrate.
+        await assert.rejects(run(['--only=migrate', '--copy-skills']), error => {
+            assert.equal(error.code, 1);
+            assert.match(error.stderr, /aborted at stage 'migrate'/);
+            return true;
+        });
+        // Then no earlier source candidate or generated Codex surface was published.
+        assert.equal(await fs.readFile(sourceFile, 'utf8'), stale);
+        assert.equal(await pathExists(path.join(tempRoot, '.agents')), false);
+        assert.equal(await pathExists(path.join(tempRoot, '.codex')), false);
+    });
+});
+
 
 test('migrate refuses unmanaged .agents skills in skills-only project', async () => {
     const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-sync-unmanaged-agents-'));
@@ -637,7 +745,7 @@ test('a manual-only skill whose own openai.yaml allows implicit invocation fails
 const COMMAND_ONLY_UTILITIES = [
     'custom-agent', 'docx-convert', 'pdf-convert', 'playwright-cli',
     'presentation-builder', 'remotion', 'sync-skills-shared-protocols', 'release-doc',
-    'git-developer-performance', 'skill-creator', 'scan-codebase-health', 'graph-export',
+    'git-developer-performance', 'skill-creator', 'scan-codebase-health',
     'project-help', 'custom-prompt',
 ];
 
@@ -663,6 +771,18 @@ test('TC-ADS-009 command-only utility skills mirror to Codex with implicit invoc
         await fs.mkdir(path.join(tempRoot, '.claude', 'skills', 'invocable-control'), { recursive: true });
         await fs.writeFile(path.join(tempRoot, '.claude', 'skills', 'invocable-control', 'SKILL.md'),
             ['---', 'name: invocable-control', 'description: Control skill', '---', '', '# Control', ''].join('\n'), 'utf8');
+        // The graph export utility now lives in the model-selectable graph-code owner (TC-GCM-008).
+        const graphSource = await fs.readFile(path.join(repoRoot, '.claude', 'skills', 'graph-code', 'SKILL.md'), 'utf8');
+        const graphFrontmatter = /^---\r?\n[\s\S]*?\r?\n---(?=\r?\n|$)/.exec(graphSource);
+        assert.ok(graphFrontmatter, 'graph-code: source SKILL.md has YAML frontmatter');
+        await fs.mkdir(path.join(tempRoot, '.claude', 'skills', 'graph-code'), { recursive: true });
+        await fs.writeFile(path.join(tempRoot, '.claude', 'skills', 'graph-code', 'SKILL.md'), `${graphFrontmatter[0]}\n\n# Graph code\n`, 'utf8');
+        // A previous generated mirror is a real upgrade state: the retired alias must be pruned.
+        const retiredMirror = path.join(tempRoot, '.agents', 'skills', 'graph' + '-export');
+        await fs.mkdir(retiredMirror, { recursive: true });
+        await fs.writeFile(path.join(retiredMirror, 'SKILL.md'), '# Previous export alias\n', 'utf8');
+        await fs.writeFile(path.join(tempRoot, '.agents', 'skills', '.codex-mirror.json'),
+            `${JSON.stringify({ managedBy: 'codex-sync', source: '.claude/skills' })}\n`, 'utf8');
 
         // When the Codex mirror is generated
         await execFileAsync(process.execPath, [migrateScript], { cwd: tempRoot, env });
@@ -681,6 +801,10 @@ test('TC-ADS-009 command-only utility skills mirror to Codex with implicit invoc
         // And the invocable control proves the policy is flag-driven, not blanket
         assert.equal(await pathExists(path.join(tempRoot, '.agents', 'skills', 'invocable-control', 'agents', 'openai.yaml')), false,
             'a model-invocable skill must keep Codex implicit invocation');
+        assert.equal(await pathExists(path.join(tempRoot, '.agents', 'skills', 'graph-code', 'agents', 'openai.yaml')), false,
+            'consolidating the export utility must not hide graph-code from Codex implicit invocation');
+        assert.equal(await pathExists(path.join(tempRoot, '.agents', 'skills', 'graph' + '-export')), false,
+            'the retired standalone export command must not return in the Codex catalog');
     } finally {
         await fs.rm(tempRoot, { recursive: true, force: true });
     }

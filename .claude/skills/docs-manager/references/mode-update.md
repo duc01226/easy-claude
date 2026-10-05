@@ -1,826 +1,141 @@
-# `/docs-manager --mode=update` — documentation sync reference
+# `/docs-manager --mode=update` — documentation sync
 
-> Loaded by `docs-manager/SKILL.md`'s Mode Dispatch when invoked as `/docs-manager --mode=update [modules=… changed_files=… phases=… skip_phases=… tc_mode=… freshness={impact|full|off} base=…]`. This contract is the whole mode, standalone or as a workflow step. "docs-manager" in prose below means this skill mode unless it names the `docs-manager` sub-agent (`subagent_type="docs-manager"`). `$ARGUMENTS` is the text after `--mode=update`; the `mode=update` caller flag (no dashes) only overrides `/spec` mode detection.
+Read this reference when updating documentation impacted by code, spec or test changes, standalone or inside a workflow.
 
-<!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
+## Contents
 
-> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
-> **[BLOCKING]** Before each step or sub-skill call, update task tracking: set `in_progress` when step starts, set `completed` when step ends.
-> **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
-> **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
-
-<!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:END -->
+- [Scope and inputs](#scope-and-inputs)
+- [Ownership and update boundaries](#ownership-and-update-boundaries)
+- [Context quality gates](#context-quality-gates)
+- [Stamp discipline](#stamp-discipline)
+- [Business intent and coverage gates](#business-intent-and-coverage-gates)
+- [Existing demo-guide relevance](#existing-demo-guide-relevance)
+- [Completion and report](#completion-and-report)
 
 ## Quick Summary
 
-**Goal:** Keep docs synchronized after every code/spec/test change: triage impact, route each doc type to its owner, and align project-reference/config docs, Feature Specs, §8 TCs, test-code links, and derived indexes with shipped behavior — zero silent drift.
+**Goal:** Keep impacted documentation, configuration and spec/test traceability accurate through their canonical owners.
 
-**Summary:**
+**Summary:** Resolve the exact change scope → verify affected context and route necessary owner updates → check business intent, coverage and derived outputs → report evidence and unresolved gaps. Choose tasks, tools and delegation to fit the work; no fixed task count or phase itinerary is required.
 
-- **Router, not author:** Phase 0 triage (git diff → categories → deduped modules → existing-doc state) routes each owner (`/spec`, `/spec [mode=tests]`, `/spec [mode=sync]`, `/spec [mode=index]`, `/tech-spec`). NEVER write §8, Feature Spec content, or derived technical views here — why: dual authorship diverges canonical docs and derived views.
-- **Ordered path:** Phase 0 → Phase 1 impact-scoped context sync → Phase 2 `/spec` → optional Phase 2.5 `/spec [mode=index]` and 2.6 `/tech-spec` → Phase 3 `/spec [mode=tests]` → Phase 4 `/spec [mode=sync]` → optional Phase 4.5 `/demo-guide` → Phase 5 report → final Step 2.4 sync-verify. TC modes: `TDD-first|implement-first|update|sync|from-integration-tests`; caller flags: `modules`, `changed_files`, `phases`, `mode`, `tc_mode`, `skip_phases`, `freshness={impact|full|off}`, `base`. Create/track all 9 tasks; every skip needs evidence and a reason.
-- **Gates:** Phase 1 is impact-scoped and parallel; missing Feature Spec with changed behavior BLOCKS at Phase 2; a weakened `[HARD]` BR BLOCKS final review; Phase 2.5/2.6 run only when derived outputs are affected; Phase 2.6 uses configured generation or read-only `--check`; Phase 4.5 runs only when a globbed demo guide is keyed to this change, records `DEFERRED` (detect and report, do NOT invoke) when a downstream `/demo-guide` step owns the refresh — `workflow-feature` and `workflow-bugfix` both order `docs-manager --mode=update → demo-guide` — and records `NOT-APPLICABLE` when no guide is keyed.
-- **Contract:** Keep prose tech-agnostic outside evidence fields, update `FR-`/`BR-`/`OP-`/`TC-` mappings before prose, report generated-mirror status, and ALWAYS write the Phase 5 audit trail.
+**Critical rules:**
 
-**Workflow:**
+- Patch context narrowly; route Feature Specs, TCs, derived views and demo guides to their owners.
+- Claim freshness only for checks actually completed. An unchanged verification writes nothing and never advances a full-scan stamp.
+- Resolve code/spec contradictions explicitly; passing tests do not excuse a weakened `[HARD]` business rule.
 
-- **MUST ATTENTION** run Phase 0 triage → Phase 1 impact-scoped context sync → Phase 2 `/spec` → optional Phase 2.5 `/spec [mode=index]` → optional Phase 2.6 `/tech-spec` → Phase 3 `/spec [mode=tests]` → Phase 4 `/spec [mode=sync]` → optional Phase 4.5 `/demo-guide` → Phase 5 report → final Step 2.4 code↔spec sync-verify; track each task before/after and record every skip.
+## Scope and inputs
 
-**Key Rules:**
+Resolve project paths and applicability from `.claude/hooks/lib/project-config-loader.cjs`, configured references and repository evidence. Absent config is supported; malformed declared capabilities require repair through `/project-config`. Business and reference roots come from `specRoots.business.path` and `docsRoots.projectReference.path` in `docs/project-config.json` (defaults `docs/specs` and `docs/project-reference`). Declared native `specArtifacts` profiles own section roles, IDs and evidence carriers; the §/AC/BR/TC names below describe the strict-default profile.
 
-- Router only — NEVER duplicate sub-skill logic or write Section 8 / Feature Spec content
-- **[BLOCKING] Freshness is impact-scoped, never assumed.** Phase 1 verifies only routed `docs/project-reference/**` docs and `docs/project-config.json` sections via `node .claude/scripts/doc-impact-map.cjs`; each gets `FRESH | PATCHED | RESCAN REQUIRED | UNVERIFIED`. Unchecked = UNVERIFIED, NEVER FRESH — why: stale injected context teaches downstream agents obsolete code.
-- **Claims must name their path role precisely.** Existing repository paths must resolve; a workspace package subpath must target an existing file and, when that package declares an `exports` map, the subpath must also resolve through that map. Packages without an `exports` map may expose an existing in-package path directly. Use a same-line `<!-- dead-link-ok -->` only for an intentionally absent historical/negative-control citation, or `<!-- path-role: generated-output|proposed|user-local -->` for a generated destination, suggested new file, or developer-local path. These markers are line-scoped; never use them to hide a stale source path. Unknown roles do not suppress a claim.
-- **[BLOCKING] Impact-scoped stamping follows the resolved local docs-index contract.** Only an explicit applicable local rule may require `Last verified`; without one, use the portable no-date-stamp default and retain the existing ledger/report routing. Only a full `/scan --target=X` may move `Last scanned`, and a no-op verify writes nothing — why: scan freshness and impact verification are separate signals, while a shared default must not invent local date churn.
-- **[BLOCKING] A `PATCHED` project-reference doc MUST run `/prompt-enhance` on the doc, then the AI-discovery gate, before its verdict**; skip only for stamp/count-only edits — why: injected docs need concise, useful context, and a doc no index routes to is never read.
-- **Demo guides are in scope, and their absence is a stated verdict.** Phase 4.5 globs the resolved `demoGuide.outputDir` (never a guessed filename), keys each found guide to this change via its `Sources` / `Governing spec` / case `TC-*` / `Scope` header fields, and routes the refresh to `/demo-guide --output {existing path}` — no guide, or none related → explicit `NOT-APPLICABLE` — why: a stale demo guide sends a presenter into a room with retired `TC-*` IDs and an outdated backlog block.
-- Phase 1/docs-manager MUST NOT own any `docs/specs/**` Feature Spec, test-spec, derived spec index/ERD, derived technical-view, or demo-guide path — that business spec root defaults to `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path.
-- Every excluded artifact is explicitly reserved to its child skill (`/spec`, `/spec [mode=index]`, or `/tech-spec`) so one canonical writer owns it.
-- Exclude `docs/specs/**` — the whole business spec tree (default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path) — and generated technical views from every docs-manager brief/write set; check each phase's trigger before invoking.
-- Step-to-skill order is fixed and sequential. ALWAYS report what was checked, including no-op phases.
-- Pass changed files, deduped modules, and impacted sections to each sub-skill via `$ARGUMENTS`.
-- MUST ATTENTION dedup module list — backend + frontend changes for same module = ONE entry
-- MUST ATTENTION track step state live: `in_progress` -> execute -> `completed` (or `completed` with skip reason)
-- **MUST ATTENTION** classify every `unrouted` file manually; **NEVER** treat a missing routing rule as proof of no impact.
-- For `.claude` skills/hooks/workflows/sync tooling changes, flag generated mirror sync status (`/sync-codex` completed or explicit N/A). `docs-manager --mode=update` routes and reports this check; it does not edit generated mirrors directly.
-- **[BLOCKING] Tech-agnostic output:** when updating spec/specs/README/INDEX, do NOT add framework/product/language/design-pattern names to prose/headings. Preserve evidence carriers (`**Evidence**`, `CoveredBy`, legacy `IntegrationTest`, `[Source:]`, frontmatter, Mermaid). Authority: `spec-principles.md` §3, in the project-reference docs root — default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path.
+Resolve scope once: explicit `changed_files` → caller `base` diff → default working-tree diff. Include deleted paths; record the source and immutable `resolved_changed_files`. Explicit paths exclude unrelated Git changes. If the default diff is empty, establish a relevant comparison from caller context or repository history and report it; do not assume a particular remote branch. If the resolved list is empty, record an empty-scope no-op and skip mapping. Pass paths as separate literal arguments, never interpolate raw caller text.
 
-> **AI-SDD Artifact Contract** — Keep reusable SDD rules in `.claude`; keep local paths, commands, ownership, and formats in project-reference docs. Require `spec -> plan -> tasks -> implement -> verify -> update spec/docs`, logical-ID traceability, explicit unknowns, and tests that guard intent.
->
-> **MUST ATTENTION READ** `.claude/skills/shared/sdd-artifact-contract.md` for full M1-M7 criteria.
-
-- **[BLOCKING] M3 Traceability Update:** See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M7)" for BLOCKING criteria. When syncing docs after code changes, update the logical-ID mappings (`FR-`/`BR-`/`OP-`/`TC-`) FIRST, then the prose. The `[Source: namespace/service/id]` abstract-anchor evidence is re-resolved ONLY if the logical artifact was renamed/split — a file move or stack change does NOT change the anchor (physical coords live only in the provenance sidecar) — and the logical-ID spine stays stable across the change — never drop or renumber a logical ID just because the code moved. Keep all synced prose M1/M2-clean.
-
-**Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80%.**
-
----
-
-## Mandatory Task Creation (ZERO TOLERANCE)
-
-> **[BLOCKING]** Create ALL 9 tasks via `TaskCreate` BEFORE touching any file. NEVER consolidate, rename, omit. Conditional tasks skipped: mark `completed` immediately with reason — NEVER silently omit.
-
-| #   | Task Subject                                                                                              | Conditional?                                                                             |
-| --- | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| 1   | `[docs-manager] Phase 0 — Triage: collect git diff, categorize files, detect modules, check existing docs` | No — always first                                                                        |
-| 2   | `[docs-manager] Phase 1 — Project context sync: impact-map → PARALLEL verify of impacted docs/project-reference/** + docs/project-config.json sections + README/project docs` | No — always, unless Step 0.3 declared a TRUE fast exit (empty impact map). Runs even when Phases 2-4 are all skipped |
-| 3   | `[docs-manager] Phase 2 — Invoke /spec: update business feature docs`                              | Yes — service/frontend files changed AND module has existing feature docs                |
-| 4   | `[docs-manager] Phase 2.5/2.6 — Refresh derived views via /spec [mode=index] and/or /tech-spec`              | Yes — Feature Spec changed and bucket maintains INDEX/ERD, OR technical tree is affected |
-| 5   | `[docs-manager] Phase 3 — Invoke /spec [mode=tests]: update/add §8 business test specifications`                    | Yes — business-visible functionality added OR existing business-visible behavior changed  |
-| 6   | `[docs-manager] Phase 4 — Invoke /spec [mode=sync]: sync §8 ↔ test code`                          | Yes — Phase 3 changed §8 TCs                                                              |
-| 7   | `[docs-manager] Phase 4.5 — Detect an existing demo guide, key it to this change, route the refresh to /demo-guide` | Yes — a guide exists under the resolved `demoGuide.outputDir` AND is keyed to this change |
-| 8   | `[docs-manager] Phase 5 — Write summary report to tmp/reports/docs-update-{YYMMDD}-{HHMM}.md`            | No — always                                                                              |
-| 9   | `[docs-manager] Final review — verify all impacted docs updated, no phases skipped without justification, AND run the Step 2.4 code↔spec sync-verify (AC/BR/TC drift) for every touched module` | No — always                                                                              |
-
-**Execution rules:**
-
-- Mark one task `in_progress` before work and `completed` after; NEVER batch-complete or run a phase before its task is active.
-- Add Phase 2/3 subtasks per module; add Task 2 subtasks per impacted doc/source-of-truth cluster so every verdict is tracked.
-- TRUE fast-exit (empty impact map) → complete Tasks 2-9 with reason "Skipped — impact map empty"; preserve fixed order token `0 → 1 → 2 → 2.5/2.6 → 3 → 4 → 4.5 → 5 → final review`.
-- PARTIAL exit (docs/config-only impact) → run Task 2, complete Tasks 3-7 with reason "Skipped — no business behavior changed", then run Tasks 8-9.
-- After each phase/skill call, record one-line evidence (`what ran`, `what changed`, or `why skipped`).
-- If `TaskCreate`/updates unavailable, maintain an equivalent 9-task tracker with identical transitions.
-
----
-
-## Step-Skill Call Order (Do Not Reorder)
-
-Use the nine task subjects above and the phase headings below as the execution map:
-`Phase 0 -> Phase 1 -> Phase 2 -> Phase 2.5/2.6 -> Phase 3 -> Phase 4 -> Phase 4.5 -> Phase 5 -> Final review`.
-Phase 1 finishes only when every routed doc/config section has a verdict; optional derived/demo phases finish with verified results or explicit skips. If a required step cannot run, STOP and ask the user before adapting. Never execute an untracked step.
-
----
-
-## Phase 0: Triage — Detect Impacted Documentation
-
-### Step 0.1: Collect Changed Files
-
-Resolve the changed-file scope ONCE, in this precedence: explicit `changed_files` → caller `base` diff → default working-tree diff. With `changed_files`, use exactly the supplied repository-relative paths (including deleted paths); do not inspect unrelated Git changes. With `base`, collect `git diff --name-only <base>...HEAD`; use the same list for categorization and mapping. With neither, run `git diff --name-only HEAD` (staged + unstaged); if empty, run `git diff --name-only HEAD~1` (last commit); if still empty, run `git diff --name-only origin/develop...HEAD` (branch changes). Record the selected source and immutable `resolved_changed_files` list.
-
-Pass every resolved path as a separate positional argument to each impact-map invocation through structured process arguments (or correctly shell-quoted arguments); never interpolate raw caller text. If the resolved list is empty, record an empty-scope no-op and skip mapping; calling the mapper without paths would rediscover an unrelated scope.
-
-### Step 0.2: Categorize Changes
-
-| Changed File Pattern                                                                | Impact Category                                | Phases to Run |
-| ----------------------------------------------------------------------------------- | ---------------------------------------------- | ------------- |
-| `{backend-source-paths}/**` from `docs/project-config.json`                         | **spec** + **spec [mode=tests]** + project-docs | 1 + 2 + 3 + 4 |
-| `{frontend-apps-dir}/**`, `{frontend-libs-dir}/{domain-lib}/**`                     | **spec** + **spec [mode=tests]** + project-docs | 1 + 2 + 3 + 4 |
-| `{legacy-frontend-dir}/**Client/**`                                                 | **spec** + **spec [mode=tests]** + project-docs | 1 + 2 + 3 + 4 |
-| `{configured-framework-source-paths}/**`                                            | project-docs only                              | 1 only        |
-| `docs/**` (outside `specRoots`)                                                     | project-docs only                              | 1 only        |
-| `.claude/**`, `.agents/**`, `.codex/**`, `CLAUDE.md`, `AGENTS.md`                    | **harness inventory** — skill/hook/agent/workflow counts, catalogs, module registry | 1 only |
-| Dependency manifests (`package.json`, `*.csproj`, `pyproject.toml`, lockfiles, …)   | project-docs — tech stack, versions, run commands | 1 only     |
-| Infra/CI/env (`docker-compose*`, `Dockerfile`, `.github/workflows/**`, `*.tf`, `appsettings*`, `.env*`) | project-docs — ports, deployment, env keys | 1 only |
-| `{frontend-libs-dir}/{framework-core-lib}/**`, `{frontend-libs-dir}/{common-lib}/**` | project-docs only                              | 1 only        |
-
-> This table classifies BUSINESS-doc impact (which of Phases 2-4 run). It is deliberately coarse. The precise `docs/project-reference/**` + `docs/project-config.json` routing is produced by the impact map in Step 1.1 — read it there, never guess it here.
-
-### Step 0.3: Fast Exit Check — decided by the impact map, never by path intuition
-
-Run the Step 1.1 impact map now and read `fastExit`:
-
-```bash
-node .claude/scripts/doc-impact-map.cjs --text <resolved_changed_files...>
-```
-
-| Map result | Route |
-| ---------- | ----- |
-| `fastExit: true` — no impacted reference doc, no impacted config section, no `unrouted` file | Report `"No documentation impacted by current changes."` → mark tasks 2-8 `completed` with reason "Skipped — impact map empty" → **exit early** |
-| Impacted docs/config but NO business behavior changed (harness, CI, manifests, docs tree) | **PARTIAL exit** — run Phase 1 in full, mark Phases 2-4 `completed` with reason "Skipped — no business behavior changed", continue to Phase 5 |
-| Any business/service/frontend code changed | Full sequence |
-| `unrouted` non-empty | NOT a fast exit — classify each unrouted file by hand first (add it to the wave, or record why it carries no doc impact) |
-
-> **[BLOCKING] A `.claude/**`-only (or tooling-only) diff is NOT a full fast exit.** Harness edits can stale glob-derived counts/catalogs in `CLAUDE.md`, `docs-index-reference.md`, and `project-structure-reference.md`; Phases 2-4 only inspect the business spec tree. — why: classifying tooling as no-impact skips the only freshness pass.
-
-### Step 0.4: Auto-Detect Affected Modules
-
-Extract module names from changed paths, then apply `unique()` before any sub-skill — backend + frontend changes in one module = ONE entry; this prevents duplicate `/spec` calls.
-
-| Changed File Path Pattern                           | Detected Module                  |
-| --------------------------------------------------- | -------------------------------- |
-| `{backend-module-path}/{Module}/**`                 | {Module}                         |
-| `{frontend-apps-dir}/{app-name}/**`                 | {Module} (map app to module)     |
-| `{frontend-libs-dir}/{domain-lib}/{configured-feature-path}/**` | {Module} (map feature to module) |
-| `{legacy-frontend-dir}/{Module}Client/**`           | {Module}                         |
-
-Build project-specific mapping from `docs/project-config.json` and project reference docs, not from hard-coded skill paths:
-
-```bash
-node -e "const cfg=require('./.claude/hooks/lib/project-config-loader.cjs').loadProjectConfig(); console.log(JSON.stringify({sourcePaths: cfg.codebaseHealth?.sourcePaths, contextGroups: cfg.contextGroups?.map(g => ({name:g.name,pathRegexes:g.pathRegexes})), specRoot: 'docs/specs/'}, null, 2))"
-node -e "process.stdout.write('docs/specs/')"
-```
-
-### Step 0.5: Check Existing Docs for Each Module
-
-For each detected module, verify its matching bucket under the business spec root — default `docs/specs/`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path — exists and contains `README.*.md` Feature Specs (or follows the project-reference feature-doc layout); record `hasFeatureSpec` (§1–§7), `hasTestSpecs` (§8), and `hasDerivedIndex` (bucket `INDEX.md`).
-
-### Step 0.6: Declare the Doc-Update Wave
-
-Detection is SEQ and FIRST; derive assignments from the impacted-doc set after Steps 0.1–0.5. Then update unrelated docs in parallel: one `docs-manager` sub-agent per doc/source-of-truth cluster, all spawned in ONE message.
-
-1. **Declare before dispatch** — `Parallel plan: wave 1 = [docs-manager: {doc A}, docs-manager: {cluster B}, …] · SEQ = [Phase 0 triage, the Phase 2 → 2.5/2.6 → 3 → 4 spec chain, Phase 5 report] (reason)`.
-2. **STRICT one-writer-per-file.** State each impacted doc's owned file set in EXACTLY ONE brief; nobody-owned docs are silent misses, and two writers create lost updates.
-3. **[HAZARD] Cluster shared source data with ONE agent.** Counts, catalogs, module maps, INDEX rows, ERD entities, and copied tables MUST be regenerated by ONE writer from ONE source read; cluster by SOURCE OF TRUTH, not directory.
-4. **Barrier before the spec chain.** Phase 2 → 2.5/2.6 → 3 → 4 stays FIXED SEQ: `/spec` feeds derived views, §8 TCs feed `[mode=sync]`; parallelize only independent modules inside a phase.
-5. **Per-module fan-out is PAR only when modules are disjoint.** Modules sharing one Feature Spec stay one task; Step 0.4 dedup is the reason.
-6. Every member returns a summary + `Full report:` path; merge only after ALL members return, including skipped members.
-
----
-
-## Phase 1: Project Context Sync — Reference Docs + project-config.json (PARALLEL, impact-scoped)
-
-> **Purpose:** Verify context that downstream skills read. Phase 1 checks diff-scoped reference docs/config; full `/scan-all` + `/project-config` owns the 60-day rebuild.
-
-**When to run:** ALWAYS, unless Step 0.3 declared a TRUE fast exit. Run it even when every one of Phases 2-4 is skipped.
-
-**Scope discipline:** verify ONLY map-routed content; escalate to full `/scan --target=X` when surgical repair cannot restore truth. NEVER regenerate all docs or hand-author a full reference doc — `scan` authors; this phase verifies and repairs narrowly.
-
-### Step 1.1: Build the Doc-Impact Map (SEQ — everything below derives from it)
-
-```bash
-node .claude/scripts/doc-impact-map.cjs --json <resolved_changed_files...> # same Step 0.1 list drives the wave
-node .claude/scripts/doc-impact-map.cjs --text <resolved_changed_files...> # same list goes in the report
-```
-
-The map routes changed files to at-risk docs/config sections and returns per doc: `doc`, `exists`, `lastScanned`/`ageDays`, the exact owner invocation in `scanTarget` (including a generic custom filename where applicable), `checks`, `changedFiles`/`addedFiles`/`deletedFiles`, and `heuristicOnly`. It derives routing from `docs/project-config.json` (`contextGroups`, `modules`, `testing`, `e2eTesting`, `styling`, `designSystem`, `specRoots`, and selected generic `referenceDocs`) plus change classes — never hardcoded paths.
-
-**Handling the map's output — [BLOCKING] rules:**
-
-1. `unrouted` means no routing rule, not no impact. Classify each manually: add it to the wave or report why it carries no doc impact. NEVER let one pass as fresh.
-2. `heuristicOnly` is a GUESS, not evidence. Verify it like any other; downgrade to not impacted only with a stated reason.
-3. `exists: false` means MISSING, not fresh → invoke `/<scanTarget>` exactly as returned, or `/docs-manager --mode=init` when the whole set is absent. A generic custom route already carries its exact `--filename` argument.
-4. If the script is unavailable, derive the same map manually from `docs/project-config.json`: match `contextGroups[].pathRegexes` → `guideDoc`/`patternsDoc`/`stylingDoc`/`designSystemDoc`, `modules[].pathRegex` → project structure/modules, tests/e2e/styles → their docs, manifests → stack, infra/CI → ports/deployment, `.claude/**` → inventory. Record the manual route.
-
-### Step 1.2: Declare the Verify Wave (PAR — one message, all members)
-
-`Parallel plan: wave 1 = [docs-manager: {doc A}, docs-manager: {cluster B}, docs-manager: project-config.json, …] · SEQ = [Step 1.1 impact map, the Phase 2 → 2.5/2.6 → 3 → 4 spec chain, Phase 5 report] (reason)`
-
-Wave construction applies Step 0.6 hazards, plus:
-
-- **STRICT one-writer-per-file.** `docs/project-config.json` always has exactly ONE owning agent; two JSON writers guarantee lost updates.
-- **Cluster by SOURCE OF TRUTH, not directory.** Keep `README.md` + `project-structure-reference.md` (module map), and `CLAUDE.md` + `docs-index-reference.md` + `project-structure-reference.md` (`.claude/` counts), with ONE agent per source cluster.
-- Every routed doc appears in exactly one brief; nobody-owned docs are silent misses.
-- Every member returns its verdict table + `Full report:` path; merge only after ALL members return.
-
-### Step 1.3: Per-Doc Verify Contract (what each wave member actually does)
-
-Verify FIRST; patch NARROW. Run only map-listed `checks`:
-
-| Check | Question it answers | How to answer it | On failure |
-| ----- | ------------------- | ---------------- | ---------- |
-| `claims` | Do the doc's cited paths/examples still exist? | `node .claude/scripts/doc-impact-map.cjs claims <doc>` (`missing` = dead, `ambiguous` = short-form that resolves by suffix), then grep each cited symbol at its cited file | Repoint or delete a dead citation, repo-root an ambiguous one (a citation is evidence — never leave a dead one). The `reference-doc-freshness` test suite fails the build on any dead citation |
-| `coverage` | Does every ADDED artifact of this doc's kind appear in it? | Diff the map's `addedFiles` against the doc's inventory/examples | Add the missing row/example with `file:line` |
-| `counts` | Do numeric claims match ground truth? | Re-derive by glob/grep (skills, hooks, agents, workflows, services, docs, tests) | Update the number — and the marker region if the count is generated |
-| `conventions` | Did the diff introduce a pattern the doc does not describe, or violate one it does? | Read the diff against the doc's rules | New pattern → document it. Violation → **report it, do NOT document it as a convention** |
-| `commands` | Do documented run/test commands still work? | Compare against manifests/scripts (`package.json`, test config, `integrationTestVerify`) | Patch the command |
-| `versions` | Do stated tech/framework versions match the manifests? | Read the manifest — never infer | Patch the version |
-| `ports` | Do documented ports/endpoints match infra config? | Read compose/k8s/appsettings — never infer | Patch the port |
-| `links` / `catalog` | Do cross-links and catalog rows resolve? | Existence-check each target | Fix or remove the row |
-
-**Verdict per doc (exactly one, evidence required):**
-
-| Verdict | Meaning | Required evidence |
-| ------- | ------- | ----------------- |
-| `FRESH` | Every applicable check ran and passed; no edit needed | Which checks ran + what was compared |
-| `PATCHED` | Surgical edit applied, then `/prompt-enhance <doc>` run to keep it concise | Sections touched + `file:line` evidence for each new claim + prompt-enhance run confirmation (or stated reason skipped) |
-| `RESCAN REQUIRED` | Beyond surgical repair — a new subsystem/pattern family appeared, most of the impacted section's examples are dead, or the doc's structure no longer fits the code | The `scanTarget` to run (`/scan --target=X`), and whether it ran in this session or is queued |
-| `UNVERIFIED` | Could not be checked (missing tooling, blocked read, budget) | Why, and what must run next |
-
-> **[BLOCKING] Never fabricate freshness.** "Looks fine", "probably unchanged", and "small diff" are not checks. Unverified = `UNVERIFIED`, never `FRESH` — false FRESH retires the suspicion that would catch later drift.
-
-> **[BLOCKING] Every `PATCHED` project-reference doc MUST run `/prompt-enhance <doc>` (default `--op=enhance`) before its verdict.** These docs enter every downstream context; re-compress surgical edits. `/scan --target=X` already performs this on full rescan (`scan/SKILL.md` Final Step), so an escalated rescan needs no separate call. Skip ONLY for a stamp/date/count-only edit, and record the reason.
-
-> **[BLOCKING] AI-discovery gate on every `PATCHED` doc (`SYNC:ai-discovery-doc-quality`), after `/prompt-enhance`.** Check the touched sections plus the top/bottom anchors: purpose + critical rules still on the first screen, closing reminders still present on a long doc, every new or edited pointer to another doc is `read <path> when <situation>` with an existing target. A doc this change added, renamed, or retired must be routed (or un-routed) in the docs index and root context — when it is not, record the docs-index doc as `RESCAN REQUIRED`, and route a new or renamed doc's `referenceDocs` entry through `/project-config` so the root Doc Lookup can route it, rather than leaving an orphan or a dead route.
-
-### Step 1.4: project-config.json Drift Check (single writer, schema-validated)
-
-Verify ONLY map-flagged sections:
-
-1. **Re-derive from evidence** — read changed files, not the old value.
-2. **Surgical merge** — add/update entries; NEVER rename, remove, or restructure a top-level section (`/project-config` Schema Protection Rules still apply).
-3. **Prove every touched `pathRegex`/path matches a real file** — zero matches silently disable dependent routers, and schema validation will not catch it:
-
-```bash
-node -e "const c=require('./.claude/hooks/lib/project-config-loader.cjs').loadProjectConfig();const {execSync}=require('child_process');const files=execSync('git ls-files',{encoding:'utf8'}).split('\n').filter(Boolean).map(f=>'/'+f);for(const m of c.modules||[]){const re=new RegExp(m.pathRegex,'i');const n=files.filter(f=>re.test(f)).length;console.log((n?'OK  ':'DEAD')+' modules.'+m.name+' -> '+n+' file(s)')}"
-```
-
-4. **Validate the schema** after merging:
-
-```bash
-node -e "const {validateConfig}=require('./.claude/hooks/lib/project-config-schema.cjs');console.log(JSON.stringify(validateConfig(require('./.claude/hooks/lib/project-config-loader.cjs').loadProjectConfig()),null,2))"
-```
-
-5. **Escalate; do not improvise.** A NEW top-level section, module class, tech stack, or failed validation requires `/project-config` re-scan; report it if unavailable.
-
-### Step 1.5: README & Project Docs (docs-manager)
-
-Pass Phase 0 diff context to a `docs-manager` sub-agent (`subagent_type="docs-manager"`) in the same wave:
-
-- `README.md` — update if project scope or setup changed (keep under 300 lines)
-- `project-structure-reference.md`, in the project-reference docs root — default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path — update if service architecture or cross-service patterns changed (same agent as README: shared source of truth)
-
-Standalone invocation may first delegate 2-4 read-only landscape threads to `researcher`; workflow invocation uses Phase 0 context directly.
-
-This agent NEVER owns Feature Specs, test specs, derived spec index/ERD, or derived technical views.
-
-### Step 1.6: Stamp Discipline (BLOCKING)
-
-| What ran | Stamp behavior |
-| -------- | -------------- |
-| Full `/scan --target=X` | Only a full scan may write or move `<!-- Last scanned: YYYY-MM-DD -->` (owned by `scan`, top of doc). An impact-scoped pass MUST NOT add, update, or move `Last scanned`. |
-| Impact-scoped verify/patch on a project-reference doc | Resolve and read `docs-index-reference.md` from the project's reference-doc root (default `docs/project-reference`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it). If an applicable local rule explicitly requires `Last verified`, write or update it exactly as specified; otherwise write NO tracked date stamp. Record the verdict in the Step 1.7 output, and record the pass in the untracked local ledger: `node .claude/hooks/lib/doc-stamp-guard.cjs --record-verified <doc filename>` (filename only, e.g. `backend-patterns-reference.md`). |
-| Impact-scoped verify/patch on any OTHER doc — `CLAUDE.md`, `.claude/docs/**`, any Feature Spec, any AI-facing instruction file | Follow an explicit applicable stamp rule in the resolved local docs-index; if no applicable explicit rule exists, the portable default is NO tracked date stamp. Record NO ledger entry for these non-reference docs; the Step 1.7 verdict is the whole record. — why: the ledger feeds the 60-day reference-doc staleness gate, which tracks built-ins in the shared registry plus selected generic custom docs; entries for other docs are unreadable by that gate and the CLI rejects them. |
-
-> **[BLOCKING] `Last verified` is governed by local documentation policy, not a universal framework rule.** Resolve and read `docs-index-reference.md` under the project's reference-doc root (default `docs/project-reference`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it). Follow any applicable explicit stamp rule exactly, including its scope, format, and placement. If the local docs-index is missing or has no applicable explicit rule, write NO tracked date stamp and preserve the ledger/report routing above. When the applicable rule does not allow this stamp—or no applicable rule exists—remove a pre-existing `Last verified` line only as part of an otherwise-required content patch, never in a stamp-only write. Never infer a rule from a pre-existing stamp or invent a local exception — why: stamp conventions belong to each project, and the portable framework must not create date churn where a local contract does not ask for it.
-
-> **[BLOCKING] An impact-scoped pass MUST NOT add, update, or move `Last scanned`.** It feeds the 60-day full-rescan gate (`getStaleReferenceDocs` → `refreshScanStaleFlag`, `.claude/hooks/lib/session-init-helpers.cjs:769-810`); moving it would disable the net that catches whole-doc rot.
-
-> **[BLOCKING] A verify pass that changes nothing writes nothing, regardless of any local stamp rule.** A `FRESH` verdict is a report, not an edit: do not re-save the file, do not normalize its whitespace, do not move or add any date. Before saving a patched doc, confirm the edit is real with `node .claude/hooks/lib/doc-stamp-guard.cjs --check <doc> --candidate <file>` (exit 3 = no-op → skip the write).
-
-After any doc in this run WAS fully rescanned, re-evaluate the gate:
-
-```bash
-node -e "require('./.claude/hooks/lib/session-init-helpers.cjs').refreshScanStaleFlag()"
-```
-
-### Step 1.7: Phase 1 Output
-
-Emit the freshness table in the Phase 5 report: one row per routed doc/config section with verdict, checks, and evidence. Carry `RESCAN REQUIRED`/`UNVERIFIED` docs into **Recommendations** so debt survives the session.
-
----
-
-## Phase 2: Business Feature Documentation — Invoke `/spec`
-
-**When to run:** `hasFeatureDocs = true` for a triaged module AND service/frontend files changed.
-
-**When to skip:** No service/frontend feature files changed; report `"No business feature docs impacted."`
-
-### Step 2.1: Determine Create vs Update
-
-| Scenario                                                              | Action                                                                                                                                                                              |
-| --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Module has existing feature docs                                      | Invoke `/spec` — auto-detect triggers update flow                                                                                                                         |
-| Module has NO feature docs **AND change adds/changes a feature** (new endpoint, command/query, entity, business rule, user-facing behavior) | **BLOCK** — Report: `"Module {Module} has NO Feature Spec but this change introduces feature behavior. Create the tech-free 8-section Feature Spec FIRST via /spec, then re-run docs-manager --mode=update."` Do NOT skip. This is the doc-first gate. |
-| Module has NO feature docs **AND change is tooling/style/config-only** (no behavioral impact) | Skip with reason `"No feature behavior changed — no Feature Spec required."` (matches Phase 0 fast-exit at `:113-120`).                                                            |
-| User explicitly asked for full doc creation                          | Invoke `/spec` with explicit module name                                                                                                                                  |
-
-### Step 2.2: Invoke `/spec`
-
-```
-/spec Update feature docs for modules: {detected modules}.
-Changed files: {list from triage}.
-Impacted sections based on change types: {section impact from triage}.
-Mode: update (existing docs only, do not create from scratch).
-```
-
-`/spec` owns the tech-free eight-section structure, evidence-backed section updates, bucket `INDEX.md`, and three-pass evidence/domain/cross-reference verification. Pass scope; review results without reproducing its authoring logic.
-
-### Step 2.3: Review `/spec` Output
-
-1. Updated sections match triage's impact mapping.
-2. No triage-flagged section is missed; if a gap appears, re-invoke `/spec` for it.
-
-### Step 2.4: Code↔Spec Sync-Verify (final pass — runs because docs-manager --mode=update is last in every sequence)
-
-> **Purpose:** docs-manager --mode=update runs LAST in feature/bugfix/big-feature; this is the workflow's final gate and the Phase 4 commit hook's order-time partner (this step guides; the hook enforces). Verify SHIPPED code matches its mapped tech-free 8-section Feature Spec before completion.
-
-For each touched module, diff changed code against its Feature Spec and check the three sets:
-
-| Spec set (Feature Spec section) | Sync check against changed code                                                                                           | On drift |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | -------- |
-| **§3 Acceptance Criteria** (AC-{FC}-NN) | Every changed user-facing behavior maps to an AC; new behavior with no AC = missing AC.                            | Report drift; re-invoke `/spec` to add the AC. |
-| **§4 Business Rules** (BR-{FC}-NNN, [HARD]/[SOFT]) | Each changed validation/invariant matches a BR; a [HARD] rule whose code path was removed/weakened = regression. | **BLOCK** — surface as a code-vs-spec contradiction for the author to resolve. |
-| **§8 Test Specifications** (TC-{FC}-NNN + `CoveredBy:`) | Each new/changed business-visible behavior has a TC; each `Tested` TC's `CoveredBy: {File}::{Method}` or approved coverage carrier still resolves. Legacy `IntegrationTest:` is migration input only. | Report; route to `/spec [mode=sync]`. |
-| **Derived technical views** (`specRoots.technical.path`) | Technical-only coverage or component topology changes may require a regenerated/audited derived view. The view is generated from code/tests and is never hand-authored. | Report; route to `/tech-spec [mode=generate|audit]`. |
-
-**Output:** append a short sync-verify table (module · AC drift · BR drift/contradiction · TC drift) to the docs-manager --mode=update report. Clean = no drift across all three. A `[HARD]`-BR contradiction blocks completion until resolved or owner-accepted.
-
-> **Scope:** business code↔spec drift only. Technical contracts (API routes/DTOs, bus/job mechanics) are code-canonical and NOT re-verified against prose. No new sequence step or `verify-sync` mode; this stays inside docs-manager --mode=update's final pass.
-
----
-
-## Phase 2.5: Derived Index / ERD Refresh (OPTIONAL — spec [mode=index])
-
-> **[SINGLE-HOME]** The canonical artifact is the Phase 2 8-section Feature Spec; `spec [mode=index]` regenerates only the DERIVED bucket `INDEX.md` / cross-capability ERD **from** those specs. It never re-extracts an A-E tree. Run only when Phase 2 made a maintained derived index/ERD stale.
-
-**When to run:** Phase 2 changed Feature Specs AND their bucket maintains a lagging derived `INDEX.md` / ERD.
-
-**When to skip:**
-
-- Only `docs/`, `.claude/`, or config files changed.
-- No Feature Spec under `{Bucket}/` in the business spec root (default `docs/specs/`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path) was touched.
-- Phase 2 was skipped (no feature impact).
-- No derived index/ERD is maintained, or `project-config.json` contains `"spec_discovery_update": false`.
-- `spec` already refreshed `INDEX.md` in Phase 2.
-
-### Step 2.5.1: Resolve the Bucket
-
-- Map changed services to an App Bucket via `spec-system-reference.md` → **App Bucket Mapping**, in the project-reference docs root (default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path).
-- Confirm `{Bucket}/` under the business spec root (default `docs/specs/`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path) holds updated Feature Specs.
-
-### Step 2.5.2: Invoke `spec [mode=index]` (Derived Index Mode)
-
-Resolve `<specs>` first — `node -e "console.log(require('./.claude/hooks/lib/project-config-loader.cjs').getSpecDocsPath())"` — then brief:
-
-```
-/spec [mode=index] bucket={Bucket} artifacts=INDEX[,ERD]
-Source: the canonical Feature Specs in <specs>{Bucket}/.
-Output: regenerated DERIVED <specs>{Bucket}/INDEX.md (+ {Bucket}.erd.md if maintained), each carrying the DERIVED banner.
-```
-
-### Step 2.5.3: Verify Refresh Complete
-
-- Confirm `INDEX.md` rows match current Feature Specs (no dangling links or missing capabilities).
-- Confirm DERIVED banner + regenerate date.
-- Report: `"Derived index refreshed: {Bucket} — {N} capabilities catalogued"`.
-
-> **Separation of concerns:** `docs-manager --mode=update` passes bucket scope to `spec [mode=index]`; NEVER hand-edit the derived index or recreate retired `M##`/A-E artifacts.
-
----
-
-## Phase 2.6: Derived Technical View Refresh (OPTIONAL — tech-spec)
-
-> **[SINGLE-HOME]** `docs/project-config.json` → `specRoots.technical.path` owns the derived technical root. `/tech-spec` owns its output; `docs-manager --mode=update` routes and verifies, never hand-edits.
-
-**When to run:** The impact map/source anchors show a code/test change affects the configured technical tree. Technical-only tooling changes may still need a generator freshness check.
-
-**When to skip:** Docs/config-only change; no technical source/annotation affected; technical scan not configured; or derived tree demonstrably unaffected. Record evidence/reason in Phase 5; absent `techSpecScan` is not permission to invent an annotation pattern.
-
-### Step 2.6.1: Resolve the Technical Scope
-
-- Resolve `specRoots.technical.path` and any `techSpecScan` settings from project configuration.
-- The generator CLI owns full configured-root generation and read-only `--check`; do not route to unsupported `--scope` or `--all`.
-- If technical source affects the derived tree, invoke `/tech-spec` with component context and let it determine output. Keep this router's write set empty.
-
-### Step 2.6.2: Invoke and Verify
+The impact mapper can identify reference docs, config sections, checks and exact scan routes:
 
 ```text
-node .claude/skills/tech-spec/scripts/generate-tech-specs.mjs
+node .claude/scripts/doc-impact-map.cjs --json <resolved_changed_files...>
 ```
 
-For a read-only gate, use `node .claude/skills/tech-spec/scripts/generate-tech-specs.mjs --check --optional`. If `techSpecScan` is absent, the sync orchestrator records `SKIP (not configured)`; direct generator invocation remains fail-closed for malformed declared contracts.
-
-Verify through `/tech-spec`: every emitted view has the DERIVED banner, the technical root has no retired artifacts, anchors are traceable, and a second unchanged check is byte-stable. Report paths, files written/removed/unchanged, and freshness verdict.
-
----
-
-## Phase 3: Test Specifications — Invoke `/spec [mode=tests]`
-
-**When to run:** New or changed business-visible behavior. Technical-only changes with no user/QC-visible outcome produce no business §8 edits; route technical coverage to tests and `/tech-spec`.
-
-**When to skip:** Cosmetic (styling/comments) or docs-only changes with no behavior impact.
-
-### Step 3.1: Determine TC Mode
-
-| Context                                | TC Mode                  |
-| -------------------------------------- | ------------------------ |
-| New feature code, no existing TCs      | `implement-first`        |
-| PBI/story exists, code not yet written | `TDD-first`              |
-| Existing TCs + code changes / bugfix   | `update`                 |
-| User says "sync test specs"            | `sync`                   |
-| Tests exist with annotations, no docs  | `from-integration-tests` |
-
-**PBI/idea artifact route:** When changed artifacts match configured PBI/idea artifact roots from `docs/project-config.json` or project reference docs, `docs-manager --mode=update` performs detection/delegation only: identify module, Feature Spec, and TC scope, then route to `/spec`, `/spec [mode=tests]`, or `/spec [mode=sync]`. NEVER generate TC content directly from PBI/idea artifacts or edit §8. If roots are absent, ask the user to initialize project config/reference docs before assuming a path.
-
-### Step 3.2: Invoke `/spec [mode=tests]`
-
-```
-/spec [mode=tests] Mode: {detected mode}.
-Modules: {detected modules}.
-Changed files: {list from triage}.
-Business-visible functionality detected: {new or changed user/QC-visible outcomes from diff analysis}.
-```
-
-`/spec [mode=tests]` owns canonical §8 TCs, `TC-{FEATURE}-{NNN}` decade numbering, interactive review, and phase/cross-service coverage (authorization, seed data, performance, migration). Pass the selected mode and outcomes; do not reproduce its analysis or author TCs here.
-
-### Step 3.3: Review `/spec [mode=tests]` Output
-
-1. New TCs cover all new business-visible functionality from triage.
-2. TC IDs do not collide with existing IDs; evidence fields are populated, not placeholders.
-
----
-
-## Phase 4: Test Spec ↔ Test Code Sync — Invoke `/spec [mode=sync]`
-
-**When to run:** Phase 3 produced new/updated §8 TCs.
-
-**When to skip:** No §8 test-spec changes.
-
-### Step 4.1: Invoke `/spec [mode=sync]`
-
-```
-/spec [mode=sync] Sync test specs for capabilities: {detected features}.
-Direction: forward (Feature Spec §8 Test Specifications → executing test code).
-Updated TCs from Phase 3: {list of new/changed TC IDs}.
-```
-
-`/spec [mode=sync]` compares canonical business §8 with executing test code (the technical source of truth), using configured `TestSpec` annotations and per-TC `CoveredBy:`. Legacy `IntegrationTest:` is migration input only.
-
-Keep §8 as the business TC registry. Do not route to root `README.md`/`PRIORITY-INDEX.md` dashboards or hand-maintained `A-E`/`M##` trees. Derived aids stay with Phase 2.5 bucket indexes and Phase 2.6 technical views.
-
-### Step 4.2: Review Sync Results
-
-1. All Phase 3 TCs appear in test code or are flagged `Untested` with rationale.
-2. No orphaned TCs: test code's `TestSpec` annotations all resolve to §8.
-
----
-
-## Phase 4.5: Demo Guide Refresh (OPTIONAL — demo-guide)
-
-> **[SINGLE-HOME]** `/demo-guide` owns every file under the resolved demo-guide output dir. `docs-manager --mode=update` detects, matches, routes, and reports; it NEVER hand-edits a demo guide — why: a guide is proof-carrying (REAL `TC-*` IDs, `file:line` storage claims, earned proof rungs), and a hand patch cannot re-earn a rung it did not run.
-
-**When to run:** a demo guide EXISTS (Step 4.5.1) **AND** it is keyed to this change (Step 4.5.2).
-
-**When to skip — every skip is a RECORDED verdict, never silence:**
-
-- No guide found → `NOT-APPLICABLE — no demo guide at {resolved dir}`, quoting the globs that were run.
-- Guides found, none keyed to this change → `NOT-APPLICABLE — {n} guide(s) checked, none related`, naming each path and the key that failed.
-- `/demo-guide` is a LATER step of the active workflow (`workflow-feature` and `workflow-bugfix` both order `docs-manager --mode=update → demo-guide`) → `DEFERRED — refresh owned by the downstream /demo-guide step`. Detect and report; do NOT invoke — why: two generators writing one guide in one run is the lost-update hazard of Step 0.6 rule 2.
-
-### Step 4.5.1: Resolve the Output Dir, Then Glob (the existence check)
-
-Resolve the directory FIRST and **never reconstruct a filename**: `/demo-guide` defines an output DIR (`demoGuide.outputDir`, default `docs/demo-guides` — `.claude/skills/demo-guide/SKILL.md:315-328`) but NO filename convention, so existence is decided by a directory glob, never by a guessed name.
-
-```bash
-node -e "const c=require('./.claude/hooks/lib/project-config-loader.cjs').loadProjectConfig();console.log(c.demoGuide?.outputDir||'docs/demo-guides (default — no demoGuide block)')"
-```
-
-Then glob the resolved dir, plus the default when the config block is absent:
-
-```
-Glob: {resolvedOutputDir}/**/*.md
-Glob: docs/demo-guides/**/*.md          # default rung, only when demoGuide.outputDir is unset
-```
-
-Zero hits → record the `NOT-APPLICABLE` verdict with both globs, complete the task, continue to Phase 5. A guide that landed in a temp file under the skill's fallback rung is out of scope — it was never a shared deliverable (`.claude/skills/demo-guide/SKILL.md:216`).
-
-### Step 4.5.2: Match Guide → Change (the relevance check)
-
-Read ONLY each found guide's header block and case headings — never the whole guide. A guide is RELATED when ANY key below intersects this run's evidence; **state which key decided**.
-
-| Key | Where it lives in the guide | Related when |
-| --- | --------------------------- | ------------ |
-| `**Sources:**` | header | a listed spec path, test file, changed dir, or migration intersects the Phase 0 changed-file list |
-| `**Governing spec / rules:**` | header | the cited spec is a Feature Spec that Phase 2 updated |
-| case `TC-*` IDs | case headings + main quick-reference table | any ID intersects the Phase 3/4 new-or-changed TC list |
-| `**Scope:**` | header | the named feature maps to a Step 0.4 deduped module |
-
-- **An unrelated guide is SKIPPED and the skip is STATED with its path** — a silent skip is indistinguishable from a missed refresh.
-- A guide carrying **no header block** cannot be keyed → `UNVERIFIED — {path} has no Scope/Sources header`, plus what must run next. NEVER downgrade an unkeyable guide to "unrelated".
-
-### Step 4.5.3: Route the Refresh (never hand-edit)
-
-`/demo-guide` has no update mode (`.claude/skills/demo-guide/SKILL.md:76-87`), so a refresh is a re-invocation written back to the SAME path:
-
-```
-/demo-guide {feature from the guide's **Scope:** header} --output {existing guide path}
-```
-
-Name the at-risk sections in the brief so the refresh is verifiable rather than assumed:
-
-| Changed in this run | Guide section that goes stale |
-| ------------------- | ----------------------------- |
-| §3 ACs / §4 BRs (Phase 2) | the `<!-- PBI:START -->` block — ACs, user stories, DoD |
-| §8 TCs added or renumbered (Phase 3) | per-case `TC-*` IDs and the main quick-reference table |
-| §8 ↔ test-code links (Phase 4) | per-case proof rung and the closing transparency note |
-| behavior, storage, or migration | the case's expected-result discriminator + its domain storage/solution part |
-| a new or removed user-facing surface | the header `🖥️ / 🔧` channel split and the technical appendix |
-
-### Step 4.5.4: Verify and Report
-
-Confirm the refreshed guide still carries its PBI fences, the header `Cases:` split, a proof rung per case, and the transparency note. Report `Demo guide refreshed: {path} — matched on {key} — sections {list}`, or the exact `NOT-APPLICABLE` / `DEFERRED` / `UNVERIFIED` verdict.
-
----
-
-## Section Ownership Reference
-
-`docs-manager --mode=update` delegates only; NEVER writes directly:
-
-| Section                          | Owner Skill                  | docs-manager --mode=update Role                                       |
-| -------------------------------- | ---------------------------- | ----------------------------------------------------- |
-| Project-reference docs (authoring) | `/scan --target=X`    | Verify impact-scoped + surgical patch; escalate to the scan when a patch cannot make it true — NEVER hand-author a full reference doc |
-| `docs/project-config.json` (structure)  | `/project-config`     | Verify + surgical merge of impacted sections with schema validation; escalate whole-section/new-tech changes |
-| §1–§7 (Feature Spec, tech-free)  | `/spec`              | Pass triage context; review output                    |
-| §8 (Test Specifications)         | `/spec [mode=tests]`                  | Pass TC mode + changed files; NEVER write TCs here    |
-| §8 ↔ test code sync              | `/spec [mode=sync]` | Pass capability list + direction; NEVER edit directly |
-| Derived bucket `INDEX.md` / ERD  | `/spec [mode=index]` (optional)     | Pass bucket scope; NEVER hand-edit the derived index  |
-| Derived technical spec view      | `/tech-spec` (optional)      | Pass service/component scope; NEVER hand-edit the derived technical file |
-| Demo guides (`demoGuide.outputDir`) | `/demo-guide` (optional)  | Glob for existence, key the guide to the change, re-invoke with `--output {existing path}`; NEVER hand-edit a guide |
-
----
-
-## Phase 5: Summary Report
-
-ALWAYS write full report to `tmp/reports/docs-update-{YYMMDD}-{HHMM}.md`:
-
-```markdown
-### Documentation Update Summary
-
-**Triage:** {N} files changed → {categories detected}
-**Modules detected:** {module list}
-**Generated mirror sync:** {Completed / N/A / Required before close}
-
-**Phase 1 — Project Context Sync (impact-scoped freshness):**
-
-Impact map: {N} changed files → {D} docs, {S} config sections, {U} unrouted ({map source: working tree / last commit / branch})
-
-| Reference doc | Verdict | Checks run | Evidence / action |
-| ------------- | ------- | ---------- | ----------------- |
-| {doc} | FRESH / PATCHED / RESCAN REQUIRED / UNVERIFIED | {claims, coverage, counts, …} | {what was compared; sections patched; scan target queued} |
-
-| project-config.json section | Verdict | Evidence / action |
-| --------------------------- | ------- | ----------------- |
-| {section} | FRESH / PATCHED / RESCAN REQUIRED / UNVERIFIED | {re-derived from …; schema validation result; dead pathRegex found} |
-
-- Unrouted files classified: {file → why no doc impact}
-- README / project docs: {Updated/Skipped}: {reason}
-- Stamps: {docs given `Last verified` by an explicit local docs-index rule} · {docs recorded in the local ledger via `--record-verified`} · {docs fully rescanned and given `Last scanned`} · {docs left untouched because nothing changed} · staleness flag refreshed: {yes/no}
-
-**Phase 2 — Feature Specs (/spec):**
-
-- {Capability X}: {Updated §1–§7 / No existing Feature Spec / Not impacted}
-- {Capability Y}: {Updated §4 Business Rules, §5 Domain Model / Skipped: no Feature Spec}
-
-**Phase 2.5 — Derived Index Refresh (/spec [mode=index], optional):**
-
-- {Refreshed {Bucket} INDEX.md ({N} capabilities) / Skipped: no derived index maintained / Skipped: spec_discovery_update=false}
-
-**Phase 3 — Test Specifications §8 (/spec [mode=tests]):**
-
-- Mode: {mode used}
-- New TCs: {list of TC IDs added}
-- Updated TCs: {list of TC IDs modified}
-- Skipped: {reason if skipped}
-
-**Phase 4 — Test Spec ↔ Test Code Sync (/spec [mode=sync]):**
-
-- {Synced N TCs to test code / Skipped: no §8 changes}
-- Discrepancies: {§8-vs-test-code comparison issues}
-
-**Phase 4.5 — Demo Guide Refresh (/demo-guide, optional):**
-
-- Existence check: {globs run} → {N} guide(s) found
-- {path}: {Refreshed — matched on {key}, sections {list} / Skipped — unrelated: {key that failed} / DEFERRED — downstream /demo-guide step owns it / UNVERIFIED — {reason}}
-- {NOT-APPLICABLE — no demo guide at {resolved dir}}
-
-**Recommendations:**
-
-- {New docs that should be created}
-- {Stale docs flagged but not auto-fixed}
-- {TCs flagged as Untested}
-```
-
----
-
-## Decision Matrix: When to Use docs-manager --mode=update vs Direct Skill
-
-| Scenario                                       | Use docs-manager --mode=update?             | Use skill directly?                        |
-| ---------------------------------------------- | ---------------------------- | ------------------------------------------ |
-| Post-implementation doc sync (any code change) | **Yes** — full orchestration | —                                          |
-| Keep project-reference docs + `project-config.json` fresh after a change | **Yes** — Phase 1 impact-scoped verify | `/scan --target=X` or `/project-config` when a single doc/section needs a full rebuild |
-| Refresh every reference doc regardless of the diff | No                        | `/scan-all` (+ `/project-config`)          |
-| Create new feature docs from scratch           | No                           | `/spec`                            |
-| Generate TCs for specific PBI (TDD-first)      | No                           | `/spec [mode=tests]`                                |
-| Route PBI/idea artifact changes                | Yes — detection/delegation   | `/spec` + `/spec [mode=tests]` owner skills |
-| Keep an existing demo guide current after a change | **Yes** — Phase 4.5 detects, keys, and routes | `/demo-guide` directly when no guide exists yet, or to author one for a new scope |
-| Sync dashboard only (no code changes)          | No                           | `/spec [mode=sync]`               |
-| Workflow step after `/plan --mode=execute` or `/fix`          | **Yes** — full orchestration | —                                          |
-| User asks "update docs after my changes"       | **Yes** — full orchestration | —                                          |
-
----
-
-## Additional Requests
-
-Pass caller context via `$ARGUMENTS` to avoid redundant triage or narrow scope:
-
-| Key             | Example                                              | Effect                                |
-| --------------- | ---------------------------------------------------- | ------------------------------------- |
-| `modules`       | `modules=ModuleA,ModuleB`                            | Skip auto-detect; use provided list   |
-| `changed_files` | `changed_files=<configured-source-path>/ModuleA/...` | Skip git diff; use provided file list |
-| `phases`        | `phases=2,3`                                         | Run only specified phases             |
-| `mode`          | `mode=update`                                        | Override spec mode detection  |
-| `tc_mode`       | `tc_mode=implement-first`                            | Override spec [mode=tests] mode detection      |
-| `skip_phases`   | `skip_phases=1,2.5`                                  | Skip specific phases                  |
-| `freshness`     | `freshness=impact` (default) / `full` / `off`        | `impact` = Phase 1 as specified; `full` = escalate every routed doc to its `/scan --target=X` (and `/project-config`); `off` = skip Phase 1 — allowed ONLY on explicit user instruction, and the report MUST record every routed doc as `UNVERIFIED` |
-| `base`          | `base=origin/main`                                   | Select the branch diff in Step 0.1 for every phase; explicit changed_files takes precedence |
+Classify every `unrouted` path manually and verify `heuristicOnly` matches. Missing routing does not establish no impact. When the mapper is unavailable, derive the same scope from config matchers, modules and changed artifacts. Deduplicate module assignments and keep one writer per artifact.
+
+| Input | Meaning |
+| --- | --- |
+| `modules` | Supplied module scope; otherwise derive from project evidence |
+| `changed_files` | Exact repository-relative paths, including deletions; overrides Git discovery |
+| `base` | Comparison base for `git diff --name-only <base>...HEAD` |
+| `mode` | The `mode=update` caller flag (no dashes) only overrides `/spec` mode detection; `--mode=update` selects this skill mode |
+| `tc_mode` | `TDD-first`, `implement-first`, `update`, `sync` or `from-integration-tests`; select by available intent, code and TCs |
+| `freshness` | `impact` (default): scoped checks; `full`: route affected docs/config to full owners; `off`: explicit user instruction only, report affected context as `UNVERIFIED` |
+| `phases`, `skip_phases` | Compatibility scope filters: 1=context, 2=feature intent, 2.5=index, 2.6=technical views, 3=TCs, 4=test links, 4.5=demo. Report excluded checks; these labels impose no execution itinerary and cannot waive a required quality gate |
 
 <additional_requests>
 $ARGUMENTS
 </additional_requests>
 
----
+## Ownership and update boundaries
 
-## Escalation: When docs-manager --mode=update Is Not Enough
+| Artifact | Canonical owner | This mode's responsibility |
+| --- | --- | --- |
+| Reference docs | `/scan --target=<key>` | Scoped verification and surgical patches; route full authoring/rebuilds to the exact map `scanTarget`, including generic `--filename` |
+| Project config | `/project-config` | Merge only impacted existing sections; validate schema and prove touched paths/matchers resolve. New sections, module classes, stacks or validation failures require the owner |
+| README and project context | Existing project owner; `/ai-context-refresh` for generated context sections | Update changed setup/scope claims; preserve unmanaged prose and generated boundaries |
+| Feature intent (§1–§7) | `/spec` | Pass changed paths, deduplicated modules and impacted intent; review the returned result |
+| Business test cases (§8) | `/spec [mode=tests]` | Pass business outcomes and selected `tc_mode`; never author TCs here |
+| TC ↔ executing-test links | `/spec [mode=sync]` | Pass changed capabilities/TCs; verify actual coverage and unresolved cases |
+| Maintained derived INDEX/ERD | `/spec [mode=index]` | Refresh only affected, lagging outputs; honor `spec_discovery_update=false` and avoid duplicate refreshes |
+| Derived technical views | `/tech-spec` | Route affected code/test topology and annotations; never hand-author generated output |
+| Existing demo guides | `/demo-guide` | Detect relevance and request refresh at the same path; never hand-edit proof claims |
 
-| Situation                                            | What to do instead                                                          |
-| ---------------------------------------------------- | --------------------------------------------------------------------------- |
-| Feature Spec missing but capability exists           | Run `/spec [mode=init]` to author the 8-section Feature Spec, then `docs-manager --mode=update` |
-| Derived bucket `INDEX.md`/ERD missing                | Run `/spec [mode=index] bucket={Bucket}` to (re)generate it              |
-| Integration tests don't match TCs                    | Run `/integration-test --mode=review` to diagnose, then `/integration-test` to fix |
-| Bug caused by wrong spec                             | Run `/spec [mode=update]` (fix the canonical spec) BEFORE `docs-manager --mode=update`; optionally `/spec [mode=index]` to re-derive the bucket index |
-| One reference doc is wrong beyond a surgical patch   | Invoke `/<scanTarget>` exactly as returned by the map, then re-run Phase 1 to confirm |
-| Most reference docs are stale, or the 60-day gate fired | Run `/scan-all` — impact scope cannot repair rot that predates the diff |
-| A reference doc does not exist at all                | Run `/docs-manager --mode=init` (whole set missing) or invoke the map's exact `scanTarget` owner for that single doc |
-| `project-config.json` needs a new section, module class, or tech stack, or fails schema validation | Run `/project-config` — that is a re-scan, not a merge |
-| Suspect long-standing rot that no current diff touches | Run `/scan-codebase-health` (count-drift, dead config references, broken cross-links) |
-| No demo guide exists for a shipped feature the team must demo | Run `/demo-guide {feature}` — Phase 4.5 refreshes existing guides, it never authors a first one |
+Keep Feature Specs, test specs, derived indexes/ERDs, technical views and demo guides outside every context-patching brief/write set. The owning child skill performs those writes. Full reference initialization belongs to `/docs-manager --mode=init`; whole-set staleness belongs to `/scan-all`, rather than expanding an impact-scoped patch.
 
----
+Read `.claude/skills/shared/sdd-artifact-contract.md` when checking spec ownership and traceability: canonical intent precedes derived views; preserve logical IDs and explicit unknowns; executing tests must guard intent. Read `spec-system-reference.md` and `spec-principles.md` under the resolved reference root when applying the project's formats and tech-agnostic prose rules.
 
-## Mode protocols
+## Context quality gates
 
-The protocols below apply to this mode only; their full text is inline so this reference is self-contained. `docs-manager/SKILL.md` carries none of them, so `--mode=init` never loads this text.
+For each affected doc/config section, check applicable claims, added/deleted-artifact coverage, generated counts, conventions, commands, versions, ports and links against current evidence. Report violations of a convention; do not document them as accepted practice. Re-derive inventories and values from their sources.
 
-<!-- SYNC:ai-discovery-doc-quality -->
+Repository path claims must resolve. Workspace package subpaths require an existing file and, when present, a resolving `exports` entry. Same-line `<!-- dead-link-ok -->` permits intentional historical/negative-control citations; `<!-- path-role: generated-output|proposed|user-local -->` marks those destinations. Unknown roles suppress nothing; markers never hide stale source paths.
 
-> **AI-Discovery Doc Quality** — Shared content-value contract for agent guides, root context, reference templates, indexes and registries. Read when authoring, scanning, enhancing or reviewing these documents. Lead with purpose and read-when trigger; preserve action-changing conditions; keep one substantive owner per rule.
->
-> 1. **Value:** Every retained section supports purpose/outcome, principle/invariant, actionable instruction, required protocol/decision sequence, exception/precondition, necessary rationale, or triggered navigation. Ask: “What decision or action would become worse if this content disappeared?” With no concrete answer, remove it or move supporting evidence to project-root `tmp/reports/` (disposable-report location); respect a configured disposable-report owner when declared.
-> 2. **Authority:** Resolve declared owners, accepted conventions, canonical contracts, public abstractions and enforcing callers/tests. Frequency, proximity and recency do not establish intended practice. Check exemplar preconditions: scope, lifecycle, transaction ownership, host compatibility and trust boundary. Distinguish required practice, permitted exception, legacy implementation, intended migration direction and unresolved behavior. Surface contradictions; never turn an observation into a mandate.
-> 3. **Guidance vs evidence:** Keep search transcripts, adoption/drift statistics, exhaustive inventories, incident chronology, repeated validation history, long copied implementations and unrelated audit findings in temporary reports. Preserve numbers that govern action: thresholds, limits, supported versions and machine values. Keep short rationale or examples when they prevent a likely mistake more efficiently than prose and navigation. No universal size, reduction, example or warning-keyword quotas; use readable sentences and visible priorities, not dense shorthand.
-> 4. **Discovery:** Write `read <path> when <situation>` and identify the owner and decision/contract/mechanism to inspect. Verify paths, commands, public APIs and symbols; prefer stable owner paths/symbols to fragile line ranges. Use live registries and supported discovery commands instead of parallel inventories. Every guide is reachable from root/index; missing or not-applicable targets are reported once, never routed as usable sources.
-> 5. **Retention:** Before substantial rewriting, inventory unique rules, protocols, exceptions/preconditions, safety/authority boundaries, lifecycle/state semantics, navigation and machine-consumed structures in the temporary report. Afterward map each to retained, consolidated into a named owner, replaced by sufficient triggered discovery, or removed with an obsolete/redundant/outside-purpose reason. A pointer replaces a rule only when reliably discoverable at the moment it matters.
-> 6. **Ownership:** Inspect heading/anchor/frontmatter/table/header/parser consumers before changes. Preserve required syntax/data. Curated registries, historical audits and durable lessons keep their separate owner contracts; scan never silently edits lessons or operating authority. Fix generated output at its source and regenerate.
-> 7. **Attention:** First screen: purpose, read-when and critical rules. Long or rule-bearing guides close with brief reminders of those priorities. For truncating hosts, put irreversible-action boundaries/routing first and measure offsets.
->
-> **Final gate:** After enhancement, review decision value, intended practice, exceptions/rationale, discovery validity, semantic dispositions, ownership and readability against the baseline. Use existing structural validators for applicable contracts; section presence or fewer words alone proves nothing. Enhancement cannot reintroduce removed report bulk. Enhance changed hand-owned guides unless the owner records a supported skip; generated guides are enhanced at source. Apply surgically to the changed scope and attention anchors. Preserve action-changing conditions, verified discovery and canonical ownership.
+| Verdict | Required evidence |
+| --- | --- |
+| `FRESH` | All applicable scoped checks passed; no edit needed |
+| `PATCHED` | Changed sections, source evidence and verified result |
+| `RESCAN REQUIRED` | Why a surgical patch cannot restore truth, exact owner route and whether completed or queued |
+| `UNVERIFIED` | Missing check/evidence and next action; unchecked content is never `FRESH` |
 
-<!-- /SYNC:ai-discovery-doc-quality -->
+Enhance changed hand-owned reference guidance with `/prompt-enhance`; record a skip for stamp/count-only edits or an owner scan that already enhanced its output. Keep useful conditions and discoverable owner references. Route added/renamed/retired docs through the docs-index owner; route changed `referenceDocs` selection through `/project-config` and generated root context through `/ai-context-refresh`.
 
-<!-- SYNC:cross-service-check -->
+## Stamp discipline
 
-> **Cross-Service Check** — Microservices/event-driven: MANDATORY before concluding investigation, plan, spec, or feature doc. Missing downstream consumer = silent regression.
->
-> | Boundary            | Grep terms                                                                      |
-> | ------------------- | ------------------------------------------------------------------------------- |
-> | Event producers     | `Publish`, `Dispatch`, `Send`, `emit`, `EventBus`, `outbox`, `IntegrationEvent` |
-> | Event consumers     | `Consumer`, `EventHandler`, `Subscribe`, `@EventListener`, `inbox`              |
-> | Sagas/orchestration | `Saga`, `ProcessManager`, `Choreography`, `Workflow`, `Orchestrator`            |
-> | Sync service calls  | HTTP/gRPC calls to/from other services                                          |
-> | Shared contracts    | OpenAPI spec, proto, shared DTO — flag breaking changes                         |
-> | Data ownership      | Other service reads/writes same table/collection → Shared-DB anti-pattern       |
->
-> **Per touchpoint:** owner service · message name · consumers · risk (NONE / ADDITIVE / BREAKING).
->
-> **BLOCKED until:** Producers scanned · Consumers scanned · Sagas checked · Contracts reviewed · Breaking-change risk flagged
+Resolve and read `docs-index-reference.md` under `docsRoots.projectReference.path` in `docs/project-config.json` (default `docs/project-reference`) before applying local stamp policy.
 
-<!-- /SYNC:cross-service-check -->
+- Only a full scan may add, update or move `<!-- Last scanned: YYYY-MM-DD -->`. An impact-scoped pass MUST NOT add, update, or move `Last scanned`.
+- If an applicable local rule explicitly requires `Last verified`, write or update it exactly as specified. Honor its scope, format, placement and no-stamp exceptions; otherwise write NO tracked date stamp. Existing stamps do not establish policy.
+- Remove a disallowed pre-existing `Last verified` only during an otherwise-required content patch, never a stamp-only write.
+- A verify pass that changes nothing writes nothing, regardless of any local stamp rule. Guard a candidate before application:
 
+```text
+node .claude/hooks/lib/doc-stamp-guard.cjs --check <doc> --candidate <file> --baseline <baseline-file>
+```
 
-<!-- SYNC:subagent-return-contract -->
+Exit 3 = no-op: skip the write. Exit 4 = concurrent change: retain both versions and reconcile against live content. Read `.claude/skills/shared/protocols/scan-and-update-reference-doc.md` when applying candidates for baseline, no-op and freshness ownership. Only completed full owner scans record `--record-verified <doc filename>` in the reference freshness ledger; scoped/editorial checks remain in the run report and never clear full-scan staleness. Non-reference docs receive no ledger entry. After a full rescan, refresh the staleness flag through `.claude/hooks/lib/session-init-helpers.cjs`'s `refreshScanStaleFlag()`.
 
-> **Sub-Agent Return Contract** — When this skill spawns a sub-agent, the sub-agent MUST return ONLY the structured envelope below. Main agent reads the envelope first, then opens the referenced report for synthesis, acceptance, deduplication, or repair planning; a full report is never pasted inline.
->
-> ```markdown
-> ## Sub-Agent Result: [skill-name]
->
-> Status: ✅ PASS | ⚠️ PARTIAL | ❌ FAIL
-> Confidence: [0-100]%
-> Run ID: [stable run identifier]
-> Task ID: [parent task or phase identifier]
-> Attempt ID: [monotonic attempt/revision identifier]
-> Target: [exact files/paths or scope] @ [target fingerprint/commit]
-> Changed paths: [none | exact paths]
-> Finding totals: Critical=[n] | High=[n] | Medium=[n] | Low=[n]
-> Acceptance: PENDING | ACCEPTED | REJECTED — parent records the decision
->
-> ### Findings (Critical/High surfaced — max 10 bullets)
->
-> - [severity] [file:line] [finding]
->
-> ### Gaps / Unverified
->
-> - [missing host, runtime, coverage, or evidence limitation]
->
-> ### Actions Taken
->
-> - [file changed] [what changed]
->
-> ### Blockers (if any)
->
-> - [blocker description, or `none`]
->
-> Full report: tmp/reports/[skill-name]-[date]-[slug].md
-> ```
->
-> The ten-bullet limit is a transport limit, not a visibility limit: the full report may contain more than ten Medium/Low findings when no named blocker exists, and the parent MUST read it when synthesizing or deduplicating. The parent MUST reject a stale, duplicate, or superseded `Attempt ID` and MUST accept the current attempt before advancing a dependent step. Read-only leaves write repair proposals/reports only; they do not edit source, generated carriers, or user files.
->
-> **Context budget** — the return payload is a SUMMARY, not a transcript: no raw file contents / full diffs / verbatim logs inline, no re-pasted source. Everything beyond the envelope lives in the incrementally-written report. A sub-agent that would exceed the summary shape MUST persist the detail and return only the pointer; bounded transport must never become bounded visibility.
+## Business intent and coverage gates
 
-<!-- /SYNC:subagent-return-contract -->
+Derive impact from changed behavior, not file category alone. Tooling, technical coverage or style-only changes need no invented business TCs. Changed business behavior without a governing Feature Spec blocks completion: route creation through `/spec`, then continue synchronization.
 
-<!-- SYNC:task-tracking-external-report -->
+- Verify changed outcomes against Acceptance Criteria, Business Rules and TCs (or their native equivalents). Preserve intended behavior instead of rewriting the spec to excuse an implementation defect. A weakened/removed `[HARD]` rule blocks until resolved or explicitly owner-accepted; record accepted contradictions as residuals, never a clean result.
+- Update logical `FR-`/`BR-`/`OP-`/`TC-` mappings before dependent prose. Retain IDs across file moves; logical renames/splits require re-resolution, while physical coordinates belong in provenance sidecars.
+- Keep governed business prose and headings tech-agnostic. Preserve permitted evidence carriers: `**Evidence**`, `CoveredBy`, legacy `IntegrationTest`, `[Source:]`, frontmatter and Mermaid. API/DTO/bus/job mechanics remain code-canonical.
+- New/changed business outcomes need noncolliding, evidence-backed TCs. Use configured PBI/idea artifact roots from `docs/project-config.json` or reference docs for detection/delegation only; route content to `/spec` and its tests/sync modes. Missing artifact roots need owner/config clarification, not guessed paths.
+- Every `Tested` case's `CoveredBy: {File}::{Method}` (or approved native carrier) must reach an executing assertion. Flag uncovered cases `Untested` with rationale; every test `TestSpec` annotation must resolve to the canonical registry. Legacy `IntegrationTest:` is migration input only.
+- Derived indexes must reflect current canonical specs, with valid links and the DERIVED banner. Refresh only when affected and maintained. Technical outputs belong to `/tech-spec`; absent `techSpecScan` is a reported skip, malformed declarations block. Do not invent annotations or unsupported generator flags.
 
-> **Task Tracking & External Report Persistence** — Bootstrap this before execution; then run project-reference doc prefetch before target/source work.
->
-> 1. Create a small task breakdown before target file reads, grep, edits, or analysis. On context loss, inspect the current task list first.
-> 2. Mark one task `in_progress` before work and `completed` immediately after evidence; never batch transitions.
-> 3. For plan/review work, create `tmp/reports/{skill}-{YYMMDD}-{HHmm}-{slug}.md` before first finding.
-> 4. Append findings after each file/section/decision and synthesize from the report file at the end.
-> 5. Final output cites `Full report: tmp/reports/{filename}`.
->
-> **Blocked until:** task breakdown exists, report path declared for plan/review work, first finding persisted before the next finding.
+Before completion, check each touched module for AC/BR/TC drift and affected derived-view freshness. Route remaining gaps to the corresponding owner; show coverage limitations explicitly.
 
-<!-- /SYNC:task-tracking-external-report -->
+## Existing demo-guide relevance
 
-<!-- SYNC:ai-discovery-doc-quality:reminder -->
+Discover guides under `demoGuide.outputDir` in `docs/project-config.json` (default `docs/demo-guides`); never guess filenames. Check headers, case IDs and quick-reference rows. A match in Sources, Governing spec/rules, changed TC IDs or mapped Scope establishes relevance; record the deciding key.
 
-**MUST ATTENTION** AI-read guides: purpose/read-when and priorities first; retain action-changing rules, exceptions and rationale; verify triggered discovery and parser contracts. Use the content-value and semantic-disposition gate after enhancement; keep evidence in temporary reports and fix generated output at its source.
+- No guide, or verified unrelated guides: `NOT-APPLICABLE`, with paths/globs and reasons.
+- Insufficient relevance metadata: `UNVERIFIED`, with required follow-up.
+- A downstream workflow `/demo-guide` step owns refresh: `DEFERRED`; detect/report without creating another writer.
+- Related existing guide: invoke `/demo-guide --output {existing path}` with its scope and affected sections. Recheck PBI fences, Cases split, TC IDs, expected outcomes, storage evidence, proof rungs and transparency note. Do not invent execution proof. New guide authoring requires its own request.
 
-<!-- /SYNC:ai-discovery-doc-quality:reminder -->
+Read `.claude/skills/demo-guide/SKILL.md` when routing a refresh; it owns output paths, case identity and proof requirements.
 
-<!-- SYNC:task-tracking-external-report:reminder -->
+## Completion and report
 
-- **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
-- **MANDATORY** Persist plan/review findings to `tmp/reports/` incrementally and synthesize from disk.
+Write `tmp/reports/docs-update-{YYMMDD}-{HHMM}.md`, including empty-scope results. Record scope/source, affected modules, doc/config verdicts with checks/evidence, owner updates/skips, AC/BR/TC drift, coverage and derived/demo status, stamp actions, unresolved gaps and next owner actions. No fixed report inventory or task subjects are required.
 
-<!-- /SYNC:task-tracking-external-report:reminder -->
-
-
-<!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:START -->
-
-## Prompt-Enhance Closing Anchors
-
-**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval
-**IMPORTANT MUST ATTENTION** for every step/sub-skill call: set `in_progress` before execution, set `completed` after execution
-**IMPORTANT MUST ATTENTION** every skipped step MUST include explicit reason; every completed step MUST include concise evidence
-**IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses
-
-<!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
-
+For skills/hooks/workflows/sync-tool changes, record `/sync-codex` completion or an explicit N/A reason; never hand-edit generated mirrors. An unavailable required owner/check remains `UNVERIFIED` or blocked, not completed. Final consistency review confirms affected claims are true, owner boundaries hold and every scoped artifact has a result.
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Keep docs synchronized after every code/spec/test change: triage impact, route each doc type to its owner, and align project-reference/config docs, Feature Specs, §8 TCs, test-code links, and derived indexes with shipped behavior — zero silent drift.
+**Goal:** Keep impacted documentation, configuration and spec/test traceability accurate through their canonical owners.
 
-**IMPORTANT MUST ATTENTION — Main steps/modes:** Phase 0 triage → Phase 1 impact-scoped context sync → Phase 2 `/spec` → optional Phase 2.5 `/spec [mode=index]` → optional Phase 2.6 `/tech-spec` → Phase 3 `/spec [mode=tests]` → Phase 4 `/spec [mode=sync]` → optional Phase 4.5 `/demo-guide` → Phase 5 report → final Step 2.4 code↔spec sync-verify. TC modes: `TDD-first|implement-first|update|sync|from-integration-tests`; caller flags: `modules`, `changed_files`, `phases`, `mode`, `tc_mode`, `skip_phases`, `freshness={impact|full|off}`, `base`. Track each task before/after; record every skip.
+Resolve scope → verify context and route owner updates → check intent/coverage/derived outputs → report evidence and gaps. Choose the execution plan to fit the work.
 
-**Critical rules:**
-
-- Create the nine tasks before action; track one active task, evidence-backed completions/skips, and final review. When nested, expand child tasks with `[N.M] /skill-name — phase` and `TaskUpdate(parentTaskId, addBlockedBy: [childIds])`; the workflow row is a container.
-- Route Feature Spec/§8/index/technical-view/demo writes to their owners. Phase 1 alone makes narrow context patches; inspect existing bucket/project conventions before deciding shape.
-- Require `file:line` or git-diff evidence (>80% to act; <60% do not act). Dedup modules, verify actual behavior impact, and ask via `AskUserQuestion` when routing remains ambiguous.
-- Give every Phase 1 routed doc a checked verdict; classify `unrouted` paths manually. Keep scan/scoped freshness separate under Step 1.6; a no-op writes nothing.
-- Preserve tech-agnostic prose/evidence exceptions and logical IDs. Final Step 2.4 verifies AC/BR/TC drift; a weakened `[HARD]` BR blocks until resolved or owner-accepted.
-- Demo refresh is existing-guide only: glob the configured dir, key each guide, and report refreshed/unrelated/`NOT-APPLICABLE`/`DEFERRED`/`UNVERIFIED`. A downstream `/demo-guide` workflow step owns refresh when present.
-- Report generated-mirror sync status and Phase 5 audit evidence. Honor inline discovery, cross-service, return-envelope and tracking protocols; use disjoint writer waves with an all-return barrier.
-
-**Anti-Rationalization:**
-
-| Evasion                                      | Rebuttal                                                               |
-| -------------------------------------------- | ---------------------------------------------------------------------- |
-| "Only docs/config changed — skip all phases" | Run Phase 0 triage anyway — fast-exit is a DECISION, not an assumption |
-| "Only `.claude/**` changed — tooling, fast exit" | Harness edits rot glob-derived inventory counts and catalogs in `CLAUDE.md` / docs-index / project-structure. Phase 1 STILL runs; only Phases 2-4 are skipped |
-| "The reference docs looked fine"              | "Looked fine" is not a check. Run the doc's routed checks or report it `UNVERIFIED` |
-| "I updated the doc, so I'll refresh `Last scanned`" | Only a full `/scan --target=X` may move `Last scanned`. For `Last verified`, follow an explicit applicable rule in the resolved local docs-index; without one, write no stamp and retain the existing ledger/report routing |
-| "Nothing changed, but I'll re-save the doc with today's date so it looks verified" | A no-op write is pure merge churn. Write nothing, record the ledger entry, and report the verdict |
-| "project-config.json is close enough"        | Re-derive the flagged sections from evidence, prove every touched `pathRegex` still matches a real file, and run schema validation |
-| "The mapper returned unrouted files — nothing to do" | Unrouted means the router had NO RULE, not that the doc is fresh. Classify each by hand |
-| "No feature docs exist — skip Phase 2"       | Mark task completed with reason. NEVER silently omit                   |
-| "[HARD] BR weakened but tests pass"          | BLOCK — code-vs-spec contradiction; resolve or owner-accept, never wave through. |
-| "No demo guide — nothing to record"          | Absence is a VERDICT. Record `NOT-APPLICABLE` with the globs you ran.   |
-| "I'll patch the demo guide's TC IDs by hand" | Invalid. Router only — a proof rung cannot be hand-edited; re-invoke `/demo-guide --output {path}`. |
-| "A guide exists, so it must be related"      | Key it first (`Sources` / `Governing spec` / `TC-*` / `Scope`). Unrelated → skip WITH the path stated. |
-
-**IMPORTANT MUST ATTENTION** create ALL 9 tasks via `TaskCreate` (or equivalent tracker) BEFORE any action and track each step live — `in_progress` before, `completed` after with evidence.
-**IMPORTANT MUST ATTENTION** router ONLY — delegate every §8 / Feature Spec / derived-index / derived technical view write; NEVER author them here — why: dual authorship diverges the spec from its generated views.
-**IMPORTANT MUST ATTENTION** every skip needs `file:line` evidence and a `completed` task with reason; run the fixed phase order — NEVER silently omit a phase.
+- Preserve canonical ownership; context patches exclude specs, generated views and demo guides.
+- Freshness requires evidence; no-op checks write nothing and scoped checks never advance full-scan freshness.
+- Resolve business-rule contradictions explicitly and report unverified coverage without inventing proof.

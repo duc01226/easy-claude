@@ -40,7 +40,7 @@
   deprecated_since: null
   description: '[Content] Use when a workflow step or the user asks for PO/BA brainstorming:
     new products, feature enhancement, roadmap framing. --mode={roadmap|scope}.'
-  has_references: false
+  has_references: true
   has_scripts: false
   name: brainstorm
   path: brainstorm/SKILL.md
@@ -301,22 +301,12 @@
   deprecated_by: null
   deprecated_since: null
   description: '[Code Intelligence] Use when building/syncing the code graph, querying
-    callers/imports/tests, tracing flow, checking blast radius or linking frontend-backend
-    APIs. --mode={build|query|trace|blast-radius|connect-api}.'
+    callers/imports/tests, tracing flow, checking blast radius, linking APIs or exporting
+    JSON/Mermaid. --mode={build|query|trace|blast-radius|connect-api|export}.'
   has_references: true
   has_scripts: false
   name: graph-code
   path: graph-code/SKILL.md
-  removal_after: null
-  status: active
-- category: other
-  deprecated_by: null
-  deprecated_since: null
-  description: '[Code Intelligence] Use when exporting the code knowledge graph. --format={json|mermaid}.'
-  has_references: false
-  has_scripts: false
-  name: graph-export
-  path: graph-export/SKILL.md
   removal_after: null
   status: active
 - category: other
@@ -493,8 +483,9 @@
   deprecated_by: null
   deprecated_since: null
   description: '[Planning] Use when a workflow step or the user asks for a concise
-    implementation plan, or --mode=review (one review pass) / --mode=validate (critical-questions
-    interview) / --mode=execute (code and test it) of a plan. --mode={ci|cro}.'
+    implementation plan, or --mode=review (one review pass on intent and rationale)
+    / --mode=validate (critical-questions interview) / --mode=execute (code and test
+    it) of a plan. --mode={ci|cro}.'
   has_references: true
   has_scripts: false
   name: plan
@@ -645,7 +636,7 @@
   deprecated_since: null
   description: '[User-Invoked] Use when creating, updating, or previewing Remotion
     videos.'
-  has_references: false
+  has_references: true
   has_scripts: false
   name: remotion
   path: remotion/SKILL.md
@@ -714,7 +705,7 @@
   description: '[Code Quality] Use when a workflow step or the user asks for a security
     review or audit: OWASP Top 10, secrets, supply-chain, infrastructure, CI/CD, AI-agent
     risks.'
-  has_references: false
+  has_references: true
   has_scripts: false
   name: security-audit
   path: security-audit/SKILL.md
@@ -725,7 +716,7 @@
   deprecated_since: null
   description: '[Dev Data] Use when a workflow step or the user asks for test-data
     seeders for QC happy paths. --mode=review audits a seeder read-only.'
-  has_references: false
+  has_references: true
   has_scripts: false
   name: seed-test-data
   path: seed-test-data/SKILL.md

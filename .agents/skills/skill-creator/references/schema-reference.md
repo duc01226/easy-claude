@@ -22,6 +22,8 @@ version: 1.0.0 # Project convention (non-official)
 
 Official fields: `name`, `description`, `argument-hint`, `disable-model-invocation`, `user-invocable`, `allowed-tools`, `model`, `context`, `agent`, `hooks`, `license`.
 
+`model` selects a runtime model where the host supports it; it does not declare all compatible or tested models. Document intended models, hosts and test evidence in the body or an evaluation reference linked directly from SKILL.md. Use custom compatibility metadata only when the host/schema accepts it.
+
 **Project-convention fields are config-driven (portability).** The validator ships generic — it does NOT hardcode any project's non-official fields. Each project declares its accepted conventions in `docs/project-config.json` under `skillConventions`; the validator flags those INFO instead of ERROR. With no config, only the official schema is accepted (strict mode).
 
 ```json

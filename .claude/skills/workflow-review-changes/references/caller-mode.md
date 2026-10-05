@@ -1,37 +1,23 @@
-# Caller-Mode Contract — `--report-only` and `--defer=<list>`
+# Review caller ownership
 
-> One contract for a review-family skill that runs under a caller: a workflow step, a parent review skill or a review batch. The caller passes the flags explicitly. A skill never infers a caller from context and never infers "an earlier step already did this" — no flag means standalone, and every phase of the skill runs exactly as its own `SKILL.md` documents. Read this file when `$ARGUMENTS` carries `--defer=`, and when you are the caller passing these flags.
+Read when a workflow delegates review duties or a review receives `--loop-owner=caller`, `--defer` or `--tests=defer`.
 
-## `--report-only` — read-only leaf
+- `--review-only` and `--report-only` return a validated one-pass report with no source edits. An explicit review-only request overrides the workflow's fix-loop default.
+- `--fix-loop --loop-owner=caller` opts a child into the caller's review/fix/re-review cycle. The child reviews and validates its assigned pass read-only; the caller waits for all reports, fixes once, and requests fresh passes. It is never permission for parallel source mutation or a nested loop.
+- Default workflow review calls use that caller-owned mode. Standalone `--fix-loop` owns its authorized fixes; standalone review otherwise defaults to review-only.
+- `--defer=whole-target,specialists,tests,entities,simplify` may assign named duties to a caller. Use only applicable names; record each duty's owner and completion evidence. Deferral never skips a gate. General review retains correctness and inline risk checks while specialists add depth.
+- `--tests=prove` runs required test proof for standalone review; `--tests=defer` retains static quality/coverage review and names the parent's later execution step. Remove `--prove-tests` in deferred integration review and propagate the setting through every round.
+- Terminal `--validate-findings` validates the supplied report once; it ignores fix-loop and never mutates source.
 
-The skill runs its analysis phases and hands findings to a caller that owns validation and every fix. Rules common to every skill that offers the flag; the skill's own **Report-Only Mode** section names its last phase and its return shape:
+Preserve complete target coverage, required rules and report findings. At exhausted rounds, children hand unresolved issues to the main session, which asks whether to extend by a stated bounded number of rounds or stop.
 
-1. **No fix, no restart.** No edit of source, test, config or doc; no fix loop; no fresh-context re-review round — the caller owns fixes and re-review. — why: two writers of one artifact inside a barrier race each other.
-2. **Scope from the caller's brief — never ask.** Record the scope in the report. — why: a leaf cannot reach the user, so an "ask" branch would stall the caller's barrier.
-3. **No nested fan-out.** A leaf specialist skill that is a member of the caller's barrier reviews sequentially in this context; no sub-agents. An orchestrating skill whose own `SKILL.md` declares review waves (`changes-review`) keeps them under `--report-only` — the flag removes fixing, asking and restarts, not its own fan-out. A `why-review` whole-target occurrence is a leaf. — why: a barrier-member leaf is already part of the caller's fan-out; an orchestrator is the fan-out.
-4. **No user questions.** An owner decision or material trade-off goes UNANSWERED into the returned summary for the caller to ask.
-5. **Write only the report** under `tmp/reports/`, appended per file or batch. A missing or stale project-reference doc is recorded as a `NOT VERIFIABLE` assumption, never a trigger to run `/scan`, `/project-init` or any other writer.
-6. **Return** the report path, validated findings by severity, and every unconfirmed trade-off, plus the local verdict or severity mapping the skill defines.
+## Duty ownership
 
-## `--defer=<list>` — duties the caller owns
+| Deferred duty | Caller must own |
+| --- | --- |
+| `whole-target` / `specialists` | Complete rationale and every applicable domain review, reconciled with general coverage. |
+| `tests` | Final execution evidence through the configured verification step; static coverage review still runs. |
+| `entities` | Conditional domain-reference refresh after settled repairs. |
+| `review` from `code-simplifier --defer=review` | A full fresh `/why-review` of the settled target after simplification. |
 
-A comma-separated list. Each value names one duty the caller runs and the skill skips; the skill records `<phase> deferred to the caller: <value>` where it would have run. A value the skill does not define is ignored and recorded, never guessed.
-
-| Value | Skill | Duty skipped | What the caller must run |
-| --- | --- | --- | --- |
-| `whole-target` | `changes-review` | Phase 0.8 whole-target rationale pass | a FULL `/why-review` over the whole review target |
-| `specialists` | `changes-review` | escalation to specialist skills (keeps the inline lens) | the specialist reviewers |
-| `tests` | `changes-review` | Phase 3.7 test-coverage gate | `/integration-test --mode=review` |
-| `entities` | `changes-review` | Phase 3.8 domain-entity gate | `/domain-analysis --mode=review` |
-| `simplify` | `changes-review` | Phase 3.5 simplification analysis | a mutating `/code-simplifier` over the same code, after the fixes |
-| `review` | `code-simplifier` | Self-Review Gate (`/code-quality-review` over its own edits) | a FULL `/why-review` over the settled whole target after the simplifier returns; the simplifier still returns the list of files it changed |
-
-**Caller obligations.** Pass a value only while the caller's own step for that duty will run; a caller that skips or merges the owning step omits the value, so the duty stays with the skill. — why: a deferral without an owner drops the check silently.
-
-**`/workflow-review-changes` passes:**
-
-- Step 1 `/changes-review`: `--report-only --defer=whole-target,specialists,tests,entities` and, when its `code-simplifier` occurrence will run, `,simplify`.
-- The `code-simplifier` occurrence: `--defer=review` — the post-fix `why-review` runs in FULL mode over the settled target whenever the simplifier changed a file (its registry applicability), so the simplifier's own edits are re-reviewed there.
-- Specialist occurrences: their registry `args` — `--report-only`, plus `--prove-tests` on `integration-test --mode=review` (dropped under `--tests=defer`).
-
-`--tests={prove|defer}` is a different flag: a parent passes it to `/workflow-review-changes` itself to decide whether this workflow runs tests at all.
+If a caller skips or merges the owning step, omit its deferral so the duty stays with the skill. Keep exact changed paths in the returned report.

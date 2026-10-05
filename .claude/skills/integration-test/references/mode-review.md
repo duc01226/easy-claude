@@ -1,34 +1,41 @@
-# `/integration-test --mode=review` — one-pass integration-test review reference
+# `/integration-test --mode=review` — integration-test review modes
 
-> Loaded by `integration-test/SKILL.md`'s Mode Dispatch when invoked as `/integration-test --mode=review [--report-only] [--prove-tests] <target>`. This contract REPLACES test generation for the invocation: review once, report, stop. It never writes or edits tests, source, specs or config (only its report under `tmp/reports/`).
+> Read in full on `/integration-test --mode=review [--review-only|--fix-loop]`. Standalone defaults to review-only; fix-loop repairs validated findings and freshly reviews, up to three rounds. Caller-owned leaves stay read-only. Apply the entrypoint’s shared `review-policy`.
 
 ## Quick Summary
 
-**Goal:** In one review pass, determine whether integration tests protect intended behavior through realistic, repeatable, observable boundaries and remain aligned with source and canonical specs.
+**Goal:** Determine whether integration tests protect intended behavior through realistic, repeatable, observable boundaries and remain aligned with source and canonical specs.
 
 **Summary:**
 
-- **ONE ROUND MAXIMUM per invocation.** Review once, validate/deduplicate findings, report, stop. Never fix tests/source or re-review inside this skill.
+- **Mode boundary:** review-only reports once; fix-loop repairs the validated test/source/spec findings within scope and re-runs all eight gates.
 - Review the package, not isolated test files: governing spec/cases + production path + integration tests + runner/config evidence.
-- `--report-only` is the normal workflow-specialist mode. `--prove-tests` may inspect existing runner evidence or run the configured relevant suite only when the caller owns test execution; it does not open another review round.
+- Workflow specialists join `--fix-loop --loop-owner=caller` and return a read-only current pass. `--prove-tests` may inspect existing runner evidence or run the configured relevant suite only when the caller owns test execution; it does not open another review round.
 - Preserve the AI-surface lens when the tested path calls a model, prompt, agent, tool/MCP, retrieval, or guardrail.
 
 **Workflow:** Resolve scope/profile → trace spec/test/source package → run eight quality gates once → validate/deduplicate → verdict/report → stop.
 
 **Key Rules:**
 
-- Maximum one review round per invocation; another pass requires a new explicit invocation after the caller revises the target.
-- Read-only on source, tests, specs, and config. Write only the review report under `tmp/reports/`.
+- Three review rounds by default in fix-loop; LOW-only at cap is accepted, MEDIUM+ or failed gates require a user-approved bounded extension.
+- Review-only/caller-owned leaves write reports only; the fix-loop owner performs authorized repairs.
 - Never weaken assertions, add skips, widen timeouts, or rewrite source/tests to force green.
 
-## One-Round Contract
+## Contents
 
-`round = 1`, `maxRounds = 1`, `minRounds = 1`.
+- [Quick Summary](#quick-summary)
+- [Modes and Round Ownership](#modes-and-round-ownership)
+- [Scope and Case Profile](#scope-and-case-profile)
+- [Single Review Pass — Eight Gates](#single-review-pass--eight-gates)
+- [Execution Evidence](#execution-evidence)
+- [Finding Validation and Verdict](#finding-validation-and-verdict)
+- [Report Shape](#report-shape)
+- [Mode protocols](#mode-protocols)
+- [Closing Reminders](#closing-reminders)
 
-- The round includes evidence loading, all quality gates, optional parallel batches/lenses, finding validation, deduplication, and verdict.
-- Findings return to the caller as `CHANGES_REQUESTED`; the caller owns fixes and final verification.
-- No internal fix loop, fresh-context re-review, round-2 severity floor, or review-policy continuation applies.
-- Test reruns used to diagnose a failure are verification/recovery, not review rounds, and remain owned by `integration-test --mode=verify` or the parent workflow.
+## Modes and Round Ownership
+
+Create tasks for triage/plan, review, findings validation, authorized fixes, fresh re-review and final checks before execution. In review-only, run the full domain pass once and hand off. In fix-loop, validate findings, repair at the owner, then freshly review the settled target. Keep one shared three-round budget and the LOW/extension rules in `review-policy`; caller-owned leaves never start another loop or edit.
 
 ## Scope and Case Profile
 
@@ -40,8 +47,6 @@
    - integration test and assertion path;
    - fixtures/builders/data isolation and runner configuration.
 4. Create `tmp/reports/integration-test-review-{YYMMDD}-{HHmm}-{slug}.md` before findings.
-
-**Resolved tests/source only:** follow `.claude/skills/shared/review-preparation.md` after locating the review package and before the eight gates. Use the actual skill/mode and selected required documents; inherit the parent decision, including explicit `--provider-decision skip` on children/rechecks, under the recipe’s read-only-leaf and exact-target limits. This does not run generation or runtime verification.
 
 ## Single Review Pass — Eight Gates
 
@@ -89,15 +94,13 @@ Judge each gate `PASS`, `FAIL`, `N/A`, or `NOT VERIFIABLE` with `file:line`/conf
 
 ### Conditional AI-surface lens
 
-When the path calls a model, prompt, agent, tool/MCP, retrieval, eval, or guardrail, also review: deterministic seams/mocks at the correct boundary, tool authorization, untrusted output handling, bounded retries/spend, eval/trace evidence, fallback/kill switch, and assertions on owned outcomes. Route deep AI concerns to `ai-engineering-review --report-only`; keep it inside this one pass.
-
-**AI surface?** Only if the tested path calls a model, prompt, agent, tool/MCP, retrieval, eval or guardrail (see `node .claude/scripts/ai-signal-scan.cjs`): read `.claude/skills/shared/protocols/ai-engineering-gate.md` and apply it inside this one pass; otherwise skip this line.
+If the tested path calls a model, prompt, agent, tool/MCP, retrieval, eval or guardrail (see `node .claude/scripts/ai-signal-scan.cjs`), read `.claude/skills/shared/protocols/ai-engineering-gate.md` and apply it within this pass; otherwise record N/A. Review deterministic seams/mocks at the correct boundary, tool authorization, untrusted outputs, bounded retries/spend, eval/trace evidence, fallback/kill switch and owned-outcome assertions. Route deep concerns to `ai-engineering-review --report-only` within the same pass.
 
 ## Execution Evidence
 
 - `--report-only`: do not run tests. Review source, specs, and any existing exact runner output supplied by the caller.
 - `--prove-tests`: run the configured relevant suite once only when this invocation is the final proof owner and no parent verify-last step will run it later. Record exact command, exit code, scope, and output location.
-- Any failure follows the test-failure investigation route. This skill reports the adjudicated finding; it does not edit or start another review pass.
+- Any failure follows the test-failure investigation route. Report the adjudicated finding; only the fix-loop owner may repair and re-review.
 
 ## Finding Validation and Verdict
 
@@ -108,7 +111,7 @@ When the path calls a model, prompt, agent, tool/MCP, retrieval, eval, or guardr
    - `PASS_WITH_NOTES` — LOW observations only.
    - `CHANGES_REQUESTED` — validated test/source/spec findings require caller action.
    - `BLOCKED` — required profile, environment, owner intent, or execution evidence is unavailable.
-4. Stop. Never fix or re-review.
+4. Review-only stops; fix-loop repairs validated findings and performs a fresh complete review.
 
 ## Report Shape
 
@@ -117,7 +120,7 @@ When the path calls a model, prompt, agent, tool/MCP, retrieval, eval, or guardr
 
 ## Verdict
 PASS | PASS_WITH_NOTES | CHANGES_REQUESTED | BLOCKED
-Review rounds: 1/1
+Review rounds: {spent}/{budget}
 
 ## Package Traced
 | spec/case | production owner | test/assertion | runner |
@@ -184,41 +187,29 @@ The protocols below are carried in full because only this mode needs them; the p
 
 <!-- SYNC:severity-rubric -->
 
-> **Severity Rubric** — Classify every finding by consequence, not by effort, reviewer preference, or how annoying the fix is. One scale applies to every review, skill, agent, workflow, and host so a tier means the same everywhere. Choose the highest credible consequence supported by evidence; do not lower a tier to make a round pass.
+> **Severity Rubric** — Use one consequence-based scale across reviews, skills, agents, workflows and hosts. Choose the highest credible tier supported by evidence; never lower it to pass a round. Effort, cost, preference, annoyance, frequency alone and round-budget pressure do not determine severity.
 >
-> **Finding vs observation (required):** An observation becomes a finding only when it names the affected user/system/data/contract, the shipped consequence, the evidence location, and the normalized tier. `INFO`, advice, preference, duplicate wording, or an unsubstantiated concern is not a finding and must not reopen a loop. If the concern might affect a required behavior or gate but evidence is incomplete, emit `NOT VERIFIABLE` with the missing evidence and keep it unresolved; never silently convert uncertainty into LOW.
+> **Finding vs observation:** admit a finding only with an affected user/system/data/contract, shipped consequence, reachable supported trigger (caller, input, state or event sequence), evidence location and confidence percentage. Assess exposure/likelihood and reversibility/detectability before assigning a tier.
 >
-> **Reachable trigger path (required):** a finding also names HOW a supported configuration reaches the defect — the caller, input, state or event sequence that drives execution or data there. A concern on a path nothing reaches (dead code, a branch its guard excludes, an impossible state) is an observation: record it as advice, never as a LOW to fix. Also never a finding: what a compiler, type checker, linter or test run for this change already reports in the review evidence; a behavior change the stated intent asks for; an issue silenced by a suppression that predates this change and states its reason (a suppression the change adds is itself reviewed); a pre-existing issue on a line the change neither touched nor made reachable. When reachability cannot be settled and the concern would be MEDIUM or higher, emit `NOT VERIFIABLE` naming what would settle it; a polish-level concern with unsettled reachability is an observation. — why: a speculative LOW admitted as a finding becomes build work in round 1.
+> **Keep as observations:** advice, preference, duplicates, unsupported concerns, unreachable paths, issues already reported by this change’s compiler/type checker/linter/tests, intended behavior changes, reasoned suppressions predating the change, and pre-existing issues neither touched nor made reachable. Review newly added suppressions. Observations/INFO do not reopen loops.
 >
-> | Severity | Action | Definition and examples |
+> | Tier | Consequence and boundary examples | Action |
 > | --- | --- | --- |
-> | CRITICAL | Block immediately; escalate | Immediate material risk if shipped: authentication/authorization or safety bypass; secrets/PII exposure; irreversible destructive action; data loss/corruption; a silent failure on a critical path. A failed binary gate is carried by the executable policy as a separate synthetic blocker, not an ordinary severity judgment. |
-> | HIGH | Must fix before PASS/merge | Material correctness or contract risk: wrong behavior on a supported path; violated business/data invariant; meaningful privacy or authority gap; breaking API/schema/compatibility change; likely harm to users/downstream systems; a missing proof for a behavior-changing fix. |
-> | MEDIUM | Must clear the current round; escalate if the fix needs an owner decision | Bounded but consequential risk: an edge case, resilience/observability/testability/maintainability gap, credible future defect, or local architectural drift — real impact, not immediate material loss. A recorded follow-up does not make an open MEDIUM a clean pass. |
-> | LOW | Record and defer; never opens another fix/re-review round from round 2 onward, never raises the round budget | Non-blocking polish with no credible present correctness, security, privacy, authority, availability, or data-integrity impact: wording/formatting, minor documentation or convention drift, optional defensive cleanup, cosmetic refinement. |
+> | CRITICAL | Immediate material security, safety or authority harm; auth bypass; secrets/PII exposure; irreversible destruction; data loss/corruption; critical-path silent failure. | Block immediately; escalate. |
+> | HIGH | Material supported-path correctness, invariant, privacy/authority, public-contract or compatibility failure; likely user/downstream harm; missing proof for a behavior-changing fix. | Fix before PASS/merge. |
+> | MEDIUM | Bounded consequential edge, resilience, observability, testability, maintainability or architectural gap; credible future defect. | Clear this round; escalate decisions needing an owner. A follow-up is not a clean pass. |
+> | LOW | Proven non-blocking polish with no credible present correctness, security, privacy, authority, availability or data-integrity impact: wording, formatting, minor docs/conventions, optional cleanup, cosmetics. | Record/defer; alone never opens another round from round 2 or increases the budget. |
 >
-> **Consequence decision tree (apply in order):** (1) A failed binary gate stays a separate hard blocker (synthetic CRITICAL in the executable helper) — never hide it behind an ordinary label. Otherwise, would shipping permit immediate material security/safety/authority harm, irreversible destruction, data loss/corruption, or a critical-path silent failure? → **CRITICAL**. (2) Does a supported path, invariant, public contract, privacy/authority boundary, compatibility promise, or behavior-changing proof fail with material impact? → **HIGH**. (3) A bounded but consequential edge, resilience, observability, testability, maintainability, or architectural gap with credible impact? → **MEDIUM**. (4) Evidence shows only non-blocking polish? → **LOW**. (5) Evidence to choose among 1–4 missing → **NOT VERIFIABLE**, not LOW. When several tiers fit, select the highest credible consequence; effort, cost, reviewer discomfort, frequency alone, proximity to the round cap, and obtaining another round never decide the tier.
+> **Consequence decision tree:** check binary gates separately, then select the first evidenced tier from CRITICAL → HIGH → MEDIUM → LOW. Missing evidence is **NOT VERIFIABLE**, not a fifth tier or a LOW fallback: name the missing proof. Unsettled reachability is NOT VERIFIABLE for potential MEDIUM+ impact and an observation for polish. Claims potentially affecting required behavior, security, privacy, authority, availability, data integrity or a gate remain evidence blockers until proved or explicitly owner-accepted with scope, rationale and residual risk. Owner acceptance does not make an open MEDIUM a clean pass or a failed gate pass.
 >
-> **Boundary examples:** auth bypass, exposed secret/PII, destructive command without an authority gate, or failed required test/generation/parity gate → **CRITICAL**; wrong supported response, broken invariant/API/schema, meaningful privacy/authority defect, or unproven behavior-changing fix → **HIGH**; bounded retry/timeout/alert/testability gap or credible maintainability drift → **MEDIUM**; typo, formatting, optional cleanup, or cosmetic suggestion proven not to affect behavior → **LOW**. A missing fact about any boundary is **NOT VERIFIABLE** until evidence or a documented residual-risk decision exists.
+> **Hard gates and rounds:** failed tests, required artifacts, security must-fix checks, generated parity and policy compliance block every round, independently of finding severity. The executable helper carries failures as synthetic CRITICAL blockers; reports name the gate and failure evidence. Default review budget is three rounds; unresolved findings or failed required checks at the cap ask the user for a bounded extension under `SYNC:review-policy`. Failed checks never pass by severity deferral.
 >
-> **Classification procedure (every finding):** (1) state the affected user, system, data, contract, or gate; (2) assess consequence if it ships; (3) assess exposure/likelihood and reversibility/detectability; (4) select the highest justified tier; (5) cite `file:line` or equivalent evidence and a confidence percentage. `NOT VERIFIABLE` is a pending evidence state, not a fifth tier and never a LOW escape hatch: if the claim could affect required behavior, security, privacy, authority, availability, data integrity, or a binary gate, it stays an open evidence blocker until resolved or explicitly owner-accepted with documented residual risk. Classify LOW only when evidence supports the absence of credible present material impact.
->
-> **Hard-gate rule:** Binary gates (tests, required artifacts, security must-fix checks, generated parity, policy compliance) are not severity-rated findings. The executable helper records a failed gate as a synthetic CRITICAL blocker so one predicate can carry it; the report still names the gate and failure evidence. A failed gate blocks at every round, even when all ordinary findings are LOW. A failed non-test gate is bounded by the three-round review cap; a failing test gate is outside the round budget and loops until the tests pass.
->
-> **Score-based skills** map their numeric scale onto these tiers — no parallel vocabulary:
->
-> - **0-2 criterion scoring** (e.g. production-readiness-review): `0` = CRITICAL/HIGH (unmet, blocks readiness), `1` = MEDIUM (partial, consequential gap), `2` = pass. A polish-only criterion is LOW, not a forced `0`.
-> - **Two-axis scoring** (e.g. performance-review, impact × likelihood): high impact + high exposure → CRITICAL/HIGH; material impact, bounded exposure → HIGH/MEDIUM; low impact and exposure → LOW. Record the axes and why the tier is the highest credible consequence.
-> - **Scorecards / `/20` grades** (e.g. `architecture --mode=scalability`): the aggregate score and verdict band are separate from finding severity. A sub-80 area is evidence to investigate, not an automatic tier; classify each underlying gap by the decision tree and keep advisory score deductions apart from blocking findings.
->
-> **Domain-vocabulary normalization (mandatory):** a skill may keep a local reporting vocabulary, but it MUST feed this same four-tier round predicate — never a second severity system:
->
-> - `BLOCKED`, `HARD FAIL`, or `FAIL` is a blocking local verdict, not an automatic CRITICAL: CRITICAL for an immediate material risk or failed binary gate, otherwise HIGH or MEDIUM with evidence, while the local block holds until the owning gate is satisfied.
-> - `WARN` is not permission to ignore: MEDIUM when consequential, LOW only when evidence shows no credible present material impact, HIGH/CRITICAL when the consequence warrants. `PASS`/compliant is not a finding.
-> - UI `P0`/`P1`/`P2`/`P3`/`P4` start as CRITICAL/HIGH/MEDIUM/LOW/LOW; override upward only on evidence of a higher shipped consequence. A P0/P1 accessibility or task-completion floor stays a blocking gate even when called a priority.
-> - Numeric SRE/readiness or impact/likelihood scores are evidence inputs, not tiers: emit the score, the consequence, and the normalized tier together. `INFO`/advisory observations are not findings unless evidence shows a material consequence.
->
-> A tier drives the gate: CRITICAL/HIGH/MEDIUM stay actionable and blocking under the round policy; all review blockers may use up to three rounds, then escalate; LOW may be tracked as a follow-up and, from round 2, never justifies another fix/re-review by itself. An owner decision may explain or schedule an open MEDIUM but never makes it a clean pass; owner acceptance never makes a failed binary gate pass and must record scope, rationale, and residual risk.
+> **Domain-vocabulary normalization and scores:**
+> - `BLOCKED`/`HARD FAIL`/`FAIL` are local blocking verdicts, not automatic CRITICAL; classify by consequence while preserving the owning gate. `WARN` can be any tier; `PASS`/compliant is not a finding. INFO/advisory remains observational unless material consequence is evidenced.
+> - UI `P0/P1/P2/P3/P4` start at CRITICAL/HIGH/MEDIUM/LOW/LOW; raise only with evidence. P0/P1 accessibility or task-completion floors remain blocking gates.
+> - Criterion `0/1/2` → CRITICAL or HIGH (unmet readiness)/MEDIUM (partial consequential gap)/pass; polish is LOW, never forced to `0`.
+> - Impact × likelihood: high impact/exposure → CRITICAL/HIGH; material impact with bounded exposure → HIGH/MEDIUM; low impact/exposure → LOW. Record both axes and justify the highest credible tier.
+> - Aggregate scorecards and `/20` verdict bands stay separate; sub-80 areas prompt investigation, not automatic severity. Keep advisory deductions separate from blockers. Emit numeric SRE/readiness or impact/likelihood scores with consequence and normalized tier.
 
 <!-- /SYNC:severity-rubric -->
 
@@ -240,10 +231,17 @@ The protocols below are carried in full because only this mode needs them; the p
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Complete one evidence-backed integration-test review pass over spec, source, test, and runner contracts.
+**IMPORTANT MUST ATTENTION Goal:** Determine whether integration tests protect intended behavior through realistic, repeatable, observable boundaries and remain aligned with source and canonical specs.
 
-- **MUST ATTENTION** maximum one review round per invocation: review → validate/deduplicate → verdict → stop.
-- **MUST ATTENTION** never edit tests/source/specs or start a re-review inside this mode.
+**MUST ATTENTION Route:** scope/profile → spec/test/source package and preparation → eight gates and applicable AI lens → validate/deduplicate → verdict/report → stop.
+
+- **MUST ATTENTION** review-only reports once; fix-loop validates → fixes → freshly reviews within the shared three-round cap.
+- **MUST ATTENTION** review-only and caller-owned leaves never edit; standalone fix-loop repairs validated findings at their owner and freshly re-reviews.
 - **MUST ATTENTION** preserve assertion value, owned outcome, repeatability, behavior ownership, traceability, three-way sync, change coverage, and fidelity.
-- **MUST ATTENTION** keep the conditional AI-surface lens and route deep findings to the AI reviewer within the same single pass.
+- **MUST ATTENTION** keep the conditional AI-surface lens and route deep findings to the AI reviewer within each current review pass.
 - **MUST ATTENTION** test execution is deferred when a parent verify-last gate owns it.
+
+| Temptation | Required action |
+| --- | --- |
+| Fix the test while reviewing | Return the adjudicated finding; the caller owns the repair. |
+| Add another round to settle uncertainty | Report missing proof; at the shared cap ask for a bounded extension, never claim uncertainty as clean. |

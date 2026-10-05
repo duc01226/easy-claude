@@ -18,8 +18,8 @@ test('TC-HARNESS-006: shared predicate applies round floor and never waives bina
     assert.equal(blockingFindings(1, [low]).length, 1);
     assert.equal(blockingFindings(2, [low]).length, 0);
     assert.equal(blockingFindings(3, [low]).length, 0);
-    // Rounds past the review budget exist only for failing test gates; the
-    // predicate itself stays defined there and keeps the floor.
+    // The pure predicate stays defined beyond the budget; evaluation and
+    // durable recording still reject completion or continuation there.
     assert.equal(blockingFindings(4, [low]).length, 0);
     assert.throws(() => blockingFindings(0, [low]), /round/);
     assert.equal(blockingFindings(2, [low], [{ id: 'tests', status: 'FAIL' }]).length, 1);
@@ -28,79 +28,28 @@ test('TC-HARNESS-006: shared predicate applies round floor and never waives bina
     assert.equal(evaluateRound({ round: 2, findings: [low], minRounds: 2 }).canComplete, true);
 });
 
-test('TC-HARNESS-044: a round-1 LOW closes by scoped check or deferral without buying another full round', () => {
-    const low = { id: 'L1', severity: 'LOW', summary: 'typo in log message' };
-    // Given a round-1 LOW with no closure, it still blocks: round 1 stays strict
-    assert.equal(blockingFindings(1, [low]).length, 1);
+test('TC-HARNESS-044: LOW deferral is disclosed, while a scoped fix cannot bypass fresh review', () => {
+    const low = { id: 'L', severity: 'LOW' };
     assert.equal(evaluateRound({ round: 1, findings: [low] }).canComplete, false);
-    // When the LOW was fixed locally and its scoped check passed, the round can end
-    const fixed = { ...low, resolution: 'scoped-fix-verified' };
-    const afterFix = evaluateRound({ round: 1, findings: [fixed] });
-    assert.equal(afterFix.canComplete, true, 'a scoped-verified LOW does not force a full re-review round');
-    assert.deepEqual(afterFix.scopedClosedLow.map(f => f.id), ['L1']);
-    assert.deepEqual(afterFix.deferredLow, []);
-    // When its fix needs new code or tests, deferral closes it and it stays on record
+    assert.deepEqual(LOW_RESOLUTIONS, ['deferred']);
+    assert.throws(() => evaluateRound({ round: 1, findings: [{ ...low, resolution: 'scoped-fix-verified' }] }), /resolution/);
     const deferred = evaluateRound({ round: 1, findings: [{ ...low, resolution: 'deferred' }] });
     assert.equal(deferred.canComplete, true);
-    assert.deepEqual(deferred.deferredLow.map(f => f.id), ['L1'], 'a deferred LOW is never silently dropped');
-    // A closed LOW never masks a real blocker in the same round
-    const mixed = evaluateRound({ round: 1, findings: [fixed, { id: 'M1', severity: 'MEDIUM', summary: 'unbounded retry' }] });
-    assert.equal(mixed.canComplete, false);
-    assert.deepEqual(mixed.blocking.map(f => f.id), ['M1']);
-    // And a failed binary gate still blocks
-    assert.equal(evaluateRound({ round: 1, findings: [fixed], hardGates: [{ id: 'tests', kind: 'test', status: 'FAIL' }] }).canComplete, false);
-});
-
-test('TC-HARNESS-045: only a LOW may carry a resolution, and only a known one', () => {
-    assert.deepEqual([...LOW_RESOLUTIONS], ['scoped-fix-verified', 'deferred']);
+    assert.deepEqual(deferred.deferredLow.map(f => f.id), ['L']);
     for (const severity of ['CRITICAL', 'HIGH', 'MEDIUM', 'NOT VERIFIABLE']) {
-        assert.throws(() => blockingFindings(1, [{ id: 'X', severity, resolution: 'scoped-fix-verified' }]), /only on a LOW/,
-            `${severity} must stay open until fixed and fully re-reviewed`);
-    }
-    assert.throws(() => blockingFindings(1, [{ id: 'L', severity: 'LOW', resolution: 'ignored' }]), /resolution must be one of/);
-});
-
-test('TC-HARNESS-046: deferred and scoped-closed LOW lists never overlap at any round', () => {
-    const fixed = { id: 'L1', severity: 'LOW', resolution: 'scoped-fix-verified' };
-    const open = { id: 'L2', severity: 'LOW' };
-    for (const round of [1, 2, 3]) {
-        const result = evaluateRound({ round, findings: [fixed, open, { id: 'L3', severity: 'LOW', resolution: 'deferred' }] });
-        const deferred = result.deferredLow.map(f => f.id);
-        const closed = result.scopedClosedLow.map(f => f.id);
-        assert.deepEqual(closed, ['L1'], `round ${round}: the scoped-fixed LOW is closed`);
-        assert.ok(!deferred.includes('L1'), `round ${round}: a fixed LOW is never also deferred`);
-        assert.ok(deferred.includes('L3'), `round ${round}: an explicitly deferred LOW stays on record`);
-        assert.equal(deferred.includes('L2'), round >= 2, `round ${round}: an open LOW is deferred only by the round-2 floor`);
+        assert.throws(() => blockingFindings(1, [{ id: 'X', severity, resolution: 'deferred' }]), /only on a LOW/);
     }
 });
 
-test('TC-HARNESS-047: the durable record closes round 1 once, after the LOW closure, naming what the full pass reviewed', () => {
-    const storeDir = fs.mkdtempSync(path.join(os.tmpdir(), 'review-policy-low-closure-'));
-    try {
-        const base = { storeDir, runId: 'low-closure' };
-        startRun({ ...base, targetFingerprint: 'sha256:reviewed', now: 1000 });
-        const fixedLow = { id: 'L1', severity: 'LOW', summary: 'typo', resolution: 'scoped-fix-verified' };
-        // A scoped-fixed LOW without the reviewed target is refused: the record would claim a full pass saw the fix
-        assert.throws(() => recordRound({ ...base, targetFingerprint: 'sha256:fixed', round: 1, findings: [fixedLow], now: 1100 }),
-            /reviewedFingerprint is required/);
-        // A reviewed target that differs without any scoped-checked fix is refused
-        assert.throws(() => recordRound({ ...base, targetFingerprint: 'sha256:fixed', reviewedFingerprint: 'sha256:reviewed', round: 1,
-            findings: [{ id: 'L2', severity: 'LOW', resolution: 'deferred' }], now: 1100 }), /may differ .* only when scoped-checked LOW fixes/);
-        // A malformed reviewed target is refused, and the error names that field rather than the post-fix target
-        assert.throws(() => recordRound({ ...base, targetFingerprint: 'sha256:fixed', reviewedFingerprint: 'bad fingerprint!', round: 1,
-            findings: [fixedLow], now: 1100 }), /reviewedFingerprint contains unsupported characters/);
-        // Recorded once after the closure, round 1 is complete without spending round 2
-        const recorded = recordRound({ ...base, targetFingerprint: 'sha256:fixed', reviewedFingerprint: 'sha256:reviewed', round: 1, findings: [fixedLow], now: 1200 });
-        assert.equal(recorded.roundsCompleted, 1, 'no phantom round 2 is consumed');
-        assert.equal(recorded.status, 'ready');
-        const record = recorded.rounds[recorded.rounds.length - 1];
-        assert.equal(record.targetFingerprint, 'sha256:fixed');
-        assert.equal(record.reviewedFingerprint, 'sha256:reviewed', 'the record keeps what the full pass actually saw');
-        const accepted = acceptRun({ ...base, targetFingerprint: 'sha256:fixed', now: 1300 });
-        assert.equal(accepted.status, 'accepted');
-    } finally {
-        fs.rmSync(storeDir, { recursive: true, force: true });
-    }
+test('TC-HARNESS-047: a post-fix target cannot claim evidence from the pre-fix full pass', t => {
+    const f = fixture(t);
+    startRun(f);
+    recordRound({ ...f, round: 1, findings: [{ id: 'L', severity: 'LOW' }] });
+    const fixed = { ...f, targetFingerprint: 'target-fixed' };
+    assert.throws(() => recordRound({ ...fixed, reviewedFingerprint: f.targetFingerprint, round: 2 }), /must match/);
+    assert.throws(() => acceptRun({ ...fixed, round: 1 }), /eligible|target|stale|round/i);
+    recordRound({ ...fixed, reviewedFingerprint: fixed.targetFingerprint, round: 2 });
+    assert.equal(acceptRun({ ...fixed, round: 2 }).acceptedRound, 2);
 });
 
 test('TC-HARNESS-006: severity definitions and round eligibility are shared and explicit', () => {
@@ -166,8 +115,8 @@ test('TC-HARNESS-ROUND-CAP-001: every blocker gets a fixed three-round ceiling',
     assert.equal(evaluateRound({ round: 3, minRounds: 3 }).status, 'PASS');
     assert.throws(() => evaluateRound({ round: 1, minRounds: 4 }), /minRounds/);
     const red = evaluateRound({ round: 4, hardGates: [{ id: 'unit', kind: 'test', status: 'FAIL' }] });
-    assert.equal(red.status, 'CONTINUE');
-    assert.equal(red.testLoopContinues, true);
+    assert.equal(red.status, 'ESCALATE');
+    assert.equal(red.testLoopContinues, false);
     assert.throws(() => evaluateRound({ round: 2, hardGates: [{ id: 'x', kind: 'flaky', status: 'FAIL' }] }), /kind/);
 });
 
@@ -285,51 +234,15 @@ test('TC-HARNESS-ROUND-CAP-002: durable MEDIUM/evidence runs can use round 3 but
     }
 });
 
-test('TC-HARNESS-TEST-LOOP-001: failing test gates keep a durable run going past the review cap until green', t => {
-    const f = fixture(t);
-    const failing = [{ id: 'unit', kind: 'test', status: 'FAIL', reason: 'suite red' }];
-    startRun({ ...f, now: 8000 });
-    for (let round = 1; round <= 5; round++) {
-        const state = recordRound({ ...f, targetFingerprint: `fix-${round}`, round, hardGates: failing, now: 8000 + round });
-        const evaluation = state.rounds[round - 1].evaluation;
-        assert.equal(evaluation.status, 'CONTINUE', `round ${round}`);
-        assert.equal(evaluation.testLoopContinues, true);
-        assert.equal(state.extension, null, 'a failing test never buys the review extension');
-        assert.equal(state.maxRounds, MAX_ROUNDS, 'the review budget itself is never raised by tests');
-        assert.throws(() => acceptRun({ ...f, targetFingerprint: `fix-${round}`, now: 8100 + round }), /not eligible/);
+test('TC-HARNESS-TEST-LOOP-001: failed tests exhaust the same cap and cannot silently continue', t => {
+    const f = fixture(t); startRun(f);
+    for (let round = 1; round <= 3; round++) {
+        const state = recordRound({ ...f, round, hardGates: [{ id: 'suite', kind: 'test', status: 'FAIL' }] });
+        assert.equal(state.rounds.at(-1).evaluation.status, round < 3 ? 'CONTINUE' : 'ESCALATE');
+        assert.throws(() => acceptRun(f), /not eligible/);
     }
-    const green = recordRound({ ...f, targetFingerprint: 'fix-6', round: 6,
-        hardGates: [{ id: 'unit', kind: 'test', status: 'PASS' }], now: 8200 });
-    assert.equal(green.status, 'ready');
-    assert.equal(acceptRun({ ...f, targetFingerprint: 'fix-6', round: 6, now: 8210 }).acceptedRound, 6);
-    assert.throws(() => recordRound({ ...f, targetFingerprint: 'fix-7', round: 7, now: 8220 }), /budget exhausted/,
-        'a green round never re-opens the loop');
-});
-
-test('TC-HARNESS-TEST-LOOP-002: review blockers beside failing tests still obey the round-3 rule', t => {
-    const medium = fixture(t);
-    startRun({ ...medium, now: 9000 });
-    recordRound({ ...medium, round: 1, findings: [{ id: 'm', severity: 'MEDIUM' }], now: 9010 });
-    const spent = recordRound({ ...medium, round: 2, findings: [{ id: 'm', severity: 'MEDIUM' }],
-        hardGates: [{ id: 'unit', kind: 'test', status: 'FAIL' }], now: 9020 });
-    assert.equal(spent.rounds[1].evaluation.status, 'CONTINUE');
-    const capped = recordRound({ ...medium, round: 3, findings: [{ id: 'm', severity: 'MEDIUM' }], hardGates: [{ id: 'unit', kind: 'test', status: 'FAIL' }], now: 9030 });
-    assert.equal(capped.rounds[2].evaluation.status, 'ESCALATE');
-    assert.throws(() => recordRound({ ...medium, round: 4, now: 9040 }), /budget exhausted/);
-
-    const high = fixture(t);
-    startRun({ ...high, now: 9100 });
-    recordRound({ ...high, round: 1, findings: [{ id: 'h', severity: 'HIGH' }], now: 9110 });
-    const extended = recordRound({ ...high, round: 2, findings: [{ id: 'h', severity: 'HIGH' }],
-        hardGates: [{ id: 'unit', kind: 'test', status: 'FAIL' }], now: 9120 });
-    assert.equal(extended.extension, null);
-    const third = recordRound({ ...high, targetFingerprint: 'fixed', round: 3,
-        hardGates: [{ id: 'unit', kind: 'test', status: 'FAIL' }], now: 9130 });
-    assert.equal(third.rounds[2].evaluation.status, 'CONTINUE');
-    const fourth = recordRound({ ...high, targetFingerprint: 'fixed-2', round: 4,
-        findings: [{ id: 'regression', severity: 'HIGH' }], hardGates: [{ id: 'unit', kind: 'test', status: 'FAIL' }], now: 9140 });
-    assert.equal(fourth.rounds[3].evaluation.status, 'ESCALATE', 'a new review blocker past the hard cap escalates');
-    assert.throws(() => recordRound({ ...high, targetFingerprint: 'fixed-3', round: 5, now: 9150 }), /budget exhausted/);
+    assert.throws(() => recordRound({ ...f, round: 4 }), /budget exhausted/);
+    assert.equal(evaluateRound({ round: 4 }).status, 'ESCALATE', 'a clean result cannot fabricate a fourth round');
 });
 
 test('TC-HARNESS-006: changed target invalidates evidence without resetting bounded budget', t => {
@@ -439,4 +352,4 @@ test('TC-HARNESS-PORT-014: project root resolves from nested cwd and copied bund
 
 assert.equal(MAX_ROUNDS, 3);
 assert.equal(HARD_MAX_ROUNDS, 3);
-assert.equal(POLICY_VERSION, 6);
+assert.equal(POLICY_VERSION, 7);

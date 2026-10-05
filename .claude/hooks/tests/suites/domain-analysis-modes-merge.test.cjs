@@ -39,6 +39,7 @@ const path = require('node:path');
 const { isFrameworkRepo } = require('../lib/framework-repo-guard.cjs');
 const { resolveAllWorkflowManifests } = require('../../../scripts/lib/workflow-manifest.cjs');
 const { extractSyncBody, normalizeEol } = require('../../../scripts/lib/extract-sync-block.cjs');
+const guideCarrier = require('../../../scripts/lib/protocol-guide-carrier.cjs');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..', '..');
 const SKIP = isFrameworkRepo(REPO_ROOT) ? false : 'asserts the framework repo\'s own domain-analysis skill and workflow registry (framework-repo signal)';
@@ -56,6 +57,16 @@ const REMOVED = 'domain-entities' + '-review';
 function htmlBody(text, tag) {
     const match = new RegExp(`<!-- SYNC:${tag} -->\\s*([\\s\\S]*?)\\s*<!-- /SYNC:${tag} -->`).exec(text);
     return match ? match[1] : null;
+}
+
+/** A guide is a carrier only when it points to the exact, canonical published body. */
+function carriesCanonicalProtocol(text, tag, projection, expected, acceptGuide = false) {
+    if (!expected || projection == null || normalizeEol(projection).trim() !== normalizeEol(expected).trim()) return false;
+    const inline = htmlBody(text, tag);
+    if (inline !== null) return normalizeEol(inline).trim() === normalizeEol(expected).trim();
+    if (text.includes(`<!-- SYNC:${tag} -->`)) return false;
+    const guide = guideCarrier.guideEntries(text).get(tag);
+    return acceptGuide && !!guide && guide.endsWith(` → .claude/skills/shared/protocols/${tag}.md`);
 }
 
 /** Tags of the guide lines inside the PROTOCOL-GUIDES block(s) of `text`. */
@@ -130,7 +141,7 @@ const tests = [
             assert.ok(routing > 0 && routing < text.indexOf('## Quick Summary'), 'mode detection sits at the top, before the Quick Summary');
             assert.match(text, /--mode=review/);
             // And the mode has a mandatory full-read line naming an existing reference
-            assert.match(text, /\*\*\[BLOCKING\]\*\* When `--mode=review`, read `references\/mode-review\.md` in full FIRST/);
+            assert.match(text, /\*\*\[BLOCKING\]\*\* Read `references\/mode-review\.md` in full FIRST when `--mode=review` is selected/);
             assert.ok(fs.existsSync(path.join(SKILLS, 'domain-analysis', 'references', 'mode-review.md')), 'references/mode-review.md exists');
             // And the dispatch table carries the row and the removed slash command resolves through a "formerly" mapping
             assert.match(text, /\| `--mode=review \[changes \\\| scan \[<module>\]\] \[--report-only\]` \|/);
@@ -143,7 +154,7 @@ const tests = [
         skip: SKIP,
         fn: () => {
             const text = skillText();
-            const reviewOnly = ['## Phase 5: Why-Review Self-Validation Gate', '#### M. Invariant vs Validation Ownership', '### 0.4 Modelling Paradigm Detection', '## Report-Only Mode (`--report-only`)', '## Systematic Review Protocol (10+ Entity Files)', '### 3.1 Model-Level Dimensions', 'Health Score'];
+            const reviewOnly = ['## Phase 5: Why-Review Self-Validation Gate', '#### M. Invariant vs Validation Ownership', '### 0.4 Modelling Paradigm Detection', '## Report-Only Mode (`--report-only`)', '## Systematic Review Strategy', '### 3.1 Model-Level Dimensions', 'Health Score'];
             for (const marker of reviewOnly) assert.ok(!text.includes(marker), `domain-analysis/SKILL.md must not inline review text: ${marker}`);
             for (const marker of reviewOnly) assert.ok(modeReview().includes(marker), `mode-review.md holds ${marker}`);
             // And the default analysis keeps its contract
@@ -166,8 +177,10 @@ const tests = [
             assert.match(text, /100 - \(CRITICAL×25 \+ HIGH×10 \+ MEDIUM×3 \+ LOW×1\), min 0/);
             assert.match(text, /\/why-review --validate-findings/);
             assert.match(text, /Round 1: zero open findings; Round 2: zero CRITICAL\/HIGH\/MEDIUM, LOW deferred/);
-            // Scale rule stays parallel, except under --report-only
-            assert.match(text, /NON-NEGOTIABLE:\*\* 10\+ entity files in scope → switch to parallel sub-agents automatically\. Not run under `--report-only`/);
+            // Assignment strategy follows the canonical risk/fit contract, with report-only isolation.
+            assert.match(text, /Follow `SYNC:systematic-review-batching` to choose from risk, related flows, working-set fit and delegation cost; file counts are planning cues/);
+            assert.match(text, /Not run under `--report-only` — that mode reviews sequentially in this context/);
+            assert.doesNotMatch(text, /10\+ entity files[^\n]*automatically/);
             // --report-only is a read-only leaf: caller-mode read, no fix/restart/fan-out/questions, severity mapping 1:1
             assert.match(text, /read `\.claude\/skills\/workflow-review-changes\/references\/caller-mode\.md` § `--report-only` in full FIRST/);
             assert.match(text, /Run Phases 0–4, then the Phase 5 Why-Review Self-Validation Gate only/);
@@ -188,7 +201,7 @@ const tests = [
         }
     },
     {
-        name: 'TC-DMM-004 mode-only protocols are canonical inline bodies in the mode reference, never in domain-analysis/SKILL.md; delivery names domain-analysis only',
+        name: 'TC-DMM-004 mode-only bodies stay in the reference; the router carries only review decision guidance; delivery names domain-analysis only',
         skip: SKIP,
         fn: () => {
             const skill = skillText();
@@ -205,7 +218,11 @@ const tests = [
             }
             // A references file keeps full bodies: no guide entry, no retired pointer line, balanced fences
             assert.deepEqual(guideTags(review), [], 'mode-review.md carries no guide entry');
-            assert.deepEqual(guideTags(skill), [], 'default domain analysis carries no guide entry (pays no protocol text)');
+            assert.deepEqual(guideTags(skill), ['review-decision-autonomy', 'review-policy'], 'shared decision and mode policies are routed at entry; domain-specific protocols stay isolated');
+            assert.ok(skill.includes('<!-- SYNC:review-decision-autonomy:reminder -->'), 'the review policy reminder remains discoverable');
+            assert.ok(skill.includes('<!-- SYNC:review-policy:reminder -->'), 'the shared modes/rounds reminder remains discoverable');
+            const autonomy = fs.readFileSync(path.join(SKILLS, 'shared', 'protocols', 'review-decision-autonomy.md'), 'utf8');
+            assert.match(autonomy, /Non-review creation, interviews and implementation retain their own contracts/, 'loading the guide cannot alter non-review mode authority');
             assert.ok(!review.includes('Root-carried protocols'), 'mode-review.md carries no retired pointer line');
             const opens = review.match(/<!-- SYNC:[a-z-]+(?::reminder)? -->/g) || [];
             const closes = review.match(/<!-- \/SYNC:[a-z-]+(?::reminder)? -->/g) || [];
@@ -230,14 +247,18 @@ const tests = [
             const review = document.workflows['workflow-review-changes'];
             const step = review.sequence.find(entry => entry && entry.skill === 'domain-analysis');
             assert.ok(step, 'workflow-review-changes keeps the domain specialist step');
-            assert.equal(step.args, '--mode=review --report-only');
+            assert.equal(review.defaultMode, 'fix-loop');
+            assert.equal(step.args, '--mode=review --fix-loop --loop-owner=caller');
             assert.equal(step.role, 'optional');
             assert.ok(step.applicability && step.applicability.when && step.applicability.skipReason, 'the conditional applicability contract survives');
-            // And its id is used consistently by the parallel group and the step metadata
-            const reviewers = review.parallelGroups.find(group => group.id === 'reviewers');
-            assert.ok(reviewers.members.includes(step.id), 'the specialist wave lists the step id');
-            assert.ok(reviewers.conditionalMembers.includes(step.id), 'the step stays a conditional member (skipped when no entity files changed)');
-            assert.ok(review.stepMeta[step.id], 'stepMeta keeps the execution mode for the step id');
+            // Every resolved variant keeps the same conditional owner and passes the mode's exact flags.
+            for (const manifest of resolveAllWorkflowManifests(document, 'workflow-review-changes', { rootDir: REPO_ROOT })) {
+                const leaf = manifest.occurrences.find(entry => entry.skill === 'domain-analysis');
+                assert.ok(leaf && leaf.id === step.id, 'conditional reviewer identity survives every variant');
+                assert.equal(leaf.args, manifest.mode === 'fix-loop'
+                    ? '--mode=review --fix-loop --loop-owner=caller' : '--mode=review --review-only');
+                assert.ok(leaf.applicability && leaf.applicability.when && leaf.applicability.skipReason);
+            }
             // The scan target of the same name family is a different skill and stays
             assert.ok(review.sequence.some(entry => (typeof entry === 'string' ? entry : `${entry.skill} ${entry.args || ''}`).includes('scan --target=domain-entities')), 'the domain-entities scan step is untouched');
             // And no resolved workflow step runs the removed name
@@ -258,7 +279,7 @@ const tests = [
             for (const { workflow, mode, occurrence } of found) {
                 const args = occurrence.args.trim();
                 if (!args) continue;
-                const match = /^--mode=([a-z]+)((?: --report-only)?)$/.exec(args);
+                const match = /^--mode=([a-z]+)((?: (?:--report-only|--review-only|--fix-loop|--loop-owner=caller))*)$/.exec(args);
                 assert.ok(match, `${workflow}/${mode}/${occurrence.id}: unsupported domain-analysis arguments "${args}"`);
                 assert.ok(dispatch.includes(`\`--mode=${match[1]}`), `${workflow}/${occurrence.id}: domain-analysis has no --mode=${match[1]}`);
                 reviewSteps += 1;
@@ -297,8 +318,8 @@ const tests = [
             assert.match(description, /^\[Architecture\] Use when a workflow step or the user asks for \S/);
             assert.ok(description.length <= 250, `description is ${description.length} chars, over 250`);
             assert.match(description, /--mode=review/);
-            for (const keyword of ['bounded contexts', 'aggregates', 'entities', 'ERD', 'domain events', 'value objects', 'DDD']) {
-                assert.ok(description.includes(keyword), `description keeps the routing keyword "${keyword}"`);
+            for (const intent of [/(?:bounded )?contexts/, /aggregates/, /entities/, /ERD/, /(?:domain )?events/, /value[- ]objects?/, /DDD/]) {
+                assert.match(description, intent, `description retains routing intent ${intent}`);
             }
         }
     },
@@ -313,9 +334,21 @@ const tests = [
             const projection = read(SKILLS, 'shared', 'protocols', 'domain-entity-change-gate.md');
             assert.equal(normalizeEol(projection).trim(), normalizeEol(canonicalGate).trim(), 'projection equals canonical');
             for (const rel of ['.claude/agents/backend-developer.md', '.claude/agents/code-reviewer.md', '.claude/agents/planner.md', '.claude/skills/changes-review/SKILL.md']) {
-                const carried = htmlBody(read(REPO_ROOT, ...rel.split('/')), 'domain-entity-change-gate');
-                assert.ok(carried, `${rel} carries the gate`);
-                assert.equal(normalizeEol(carried).trim(), normalizeEol(canonicalGate).trim(), `${rel} equals canonical`);
+                assert.ok(carriesCanonicalProtocol(read(REPO_ROOT, ...rel.split('/')), 'domain-entity-change-gate', projection, canonicalGate, rel.startsWith('.claude/skills/')),
+                    `${rel} carries the canonical gate (agents retain full bodies)`);
+            }
+            const tag = 'domain-entity-change-gate';
+            const guide = `<!-- PROTOCOL-GUIDES:START -->\n${guideCarrier.guideEntries(read(SKILLS, 'changes-review', 'SKILL.md')).get(tag)}\n<!-- PROTOCOL-GUIDES:END -->`;
+            for (const [label, text, published, acceptGuide] of [
+                ['missing published body', guide, null, true],
+                ['drifted published body', guide, `${projection}\ndrift`, true],
+                ['missing carrier', '', projection, true],
+                ['wrong published path', guide.replace('→ .claude/skills/shared/protocols/', '→ wrong/protocols/'), projection, true],
+                ['drifted inline body behind a guide', `${guide}\n<!-- SYNC:${tag} -->drift<!-- /SYNC:${tag} -->`, projection, true],
+                ['unclosed inline body behind a guide', `${guide}\n<!-- SYNC:${tag} -->`, projection, true],
+                ['guide-only agent', guide, projection, false]
+            ]) {
+                assert.equal(carriesCanonicalProtocol(text, tag, published, canonicalGate, acceptGuide), false, `${label} must fail`);
             }
         }
     },

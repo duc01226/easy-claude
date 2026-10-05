@@ -1,6 +1,6 @@
 ---
 name: release-doc
-version: 3.0.0
+version: 3.0.1
 description: '[Git] Use when creating release notes or a release document from git history at any scope (tag, branch, time range), as markdown plus a standalone HTML presentation.'
 disable-model-invocation: true
 triggers:
@@ -21,13 +21,19 @@ triggers:
 
 **Goal:** Generate a professional release document from git history at **any scope** — tag-to-tag, branch-to-branch, or a time range ("last 30 days") — with automated categorization, thematic AI analysis, service detection, and validation, **plus a rich standalone HTML release presentation written FOR REAL USERS** — user-visible features and enhancements only, with faithful mock-ups of the project's REAL screens for any UI change — which auto-opens in the browser. Both outputs are produced by default; the markdown carries the engineering detail, the HTML carries the user story.
 
+**Summary:**
+
+- Resolve refs or freeze the exact time inventory, then save Git evidence before parsing and categorizing changes.
+- Analyze significant diffs and any requested focus; render and validate Draft markdown with honest empty-scope results.
+- Unless `--no-html`, map the release, trace highlights, correlate specs and real UI, write the analysis report, assemble/save HTML, run its four gates, open best-effort and report. Keep review and approval before publication; honor `--no-open` and configured defaults.
+
 > **This is the single release skill.** Use `/release-doc` for every release-summary need.
 
 **Workflow:**
 
 0. **Resolve Scope** — refs (`base head`), a range (`--range`), or a time window (`--days N` / `--since DATE`); `--focus` deepens one area
 0b. **[BLOCKING] Dump Git Artifacts** — write log, file-status, diff-stat, and full diff to disk BEFORE analyzing anything
-1. **Parse Commits** — `parse-commits.cjs <base> <head>` extracts structured data from git
+1. **Parse Commits** — ref scopes use `parse-commits.cjs <base> <head>`; time scopes build the same JSON from the exact selected commit hashes
 2. **Categorize** — `categorize-commits.cjs` for user-facing vs internal sections; add the thematic area map for time-range scopes
 3. **Analyze Key Diffs** — read the most significant changes per category via `git show` / `git diff`
 4. **Render** — `render-template.cjs --version vX.Y.Z` generates markdown with Summary, What's New, Improvements, Bug Fixes, Breaking Changes, Technical Details
@@ -118,16 +124,12 @@ One skill, three scope shapes. Infer the shape from what the user gave; never as
 | User said                                  | Scope shape        | How to resolve                                                        |
 | ------------------------------------------ | ------------------ | ----------------------------------------------------------------------- |
 | Two refs / `--range` / "since v1.2"        | Tag or branch      | `base..head` directly                                                  |
-| "last 30 days" / `--days` / `--since`      | Time range         | Compute `SINCE_DATE`, then `OLDEST = git log --since=... --format=%H \| tail -1`, `HEAD` as head |
+| "last 30 days" / `--days` / `--since`      | Time range         | Freeze `HEAD` and `SINCE_DATE`; retain the exact hashes from `git log <frozen-head> --since=<ISO timestamp> --format=%H` |
 | Nothing                                    | Default            | Last tag → `HEAD`; if the repo has no tags, fall back to the last 30 days |
 
-```bash
-# Time-based → boundary commits
-SINCE_DATE=$(node -e "console.log(new Date(Date.now()-30*864e5).toISOString().slice(0,10))")   # portable (UTC): Windows Git Bash, macOS, Linux
-# Native alternatives — Linux: date -d "-30 days" +%Y-%m-%d · macOS: date -v-30d +%Y-%m-%d · Windows PowerShell: (Get-Date).AddDays(-30).ToString("yyyy-MM-dd")
-git log --since="$SINCE_DATE" --oneline --format="%H %ad %s" --date=short
-OLDEST=$(git log --since="$SINCE_DATE" --format="%H" | tail -1)
-```
+For time scopes, compute the UTC cutoff once (`--days N` means N × 24 hours before the recorded run time); validate `--since` and record its resolved timestamp/time zone. Resolve `HEAD` once with `git rev-parse HEAD`, then save the complete selected hash list from `git log <frozen-head> --since=<resolved-cutoff> --format=%H`. Invoke Git with literal argument vectors through the host process API (or Node `child_process`); use host file APIs for outputs on Windows, macOS and Linux.
+
+The selected list owns time membership. Never use an included commit as the exclusive `base`, or substitute its parent-to-HEAD interval: roots have no parent, and merged/nonlinear histories can include commits outside the window. A successful empty list is a valid “no changes in this window” result; a Git error blocks scope resolution.
 
 `{PERIOD}` — the artifact/output naming token — is the version (`v1.1.0`) for ref scopes, or a readable window (`30d`, `2026-03-15-to-2026-04-14`) for time scopes.
 
@@ -148,13 +150,15 @@ git diff {BASE}..{HEAD} --stat         > docs/release-notes/tmp/diff-stat-{PERIO
 git diff {BASE}..{HEAD}                > docs/release-notes/tmp/git-diff-{PERIOD}-full.txt
 ```
 
-Verify every artifact exists and is non-empty before proceeding.
+The commands above apply to ref scopes. For time scopes, dump metadata, file-status, stats and patches for each selected hash with `git show`, retaining the hash beside each record. Include root changes against the empty tree (`--root`); for merge commits, record the parent hashes and explicit parent comparisons so an omitted combined diff cannot hide changed files. Use these per-commit artifacts for the change map and claims. A consolidated snapshot diff may supplement them, but cannot define date membership or add out-of-window changes.
+
+Verify command success and artifact completeness against the selected hashes before analysis. Empty diffs (including empty commits) are valid when recorded; an empty successful scope produces an honest no-change deliverable. Missing artifacts or command failures block rather than becoming “no changes”.
 
 ## Workflow
 
 ### Step 1: Parse Commits
 
-Execute the commit parser to extract structured data from git history:
+For ref scopes, execute the commit parser to extract structured data from git history:
 
 ```bash
 node .claude/skills/release-doc/lib/parse-commits.cjs <base> <head> [--with-files]
@@ -167,6 +171,10 @@ node .claude/skills/release-doc/lib/parse-commits.cjs <base> <head> [--with-file
 - `breaking` - Boolean for breaking changes
 - `author`, `date` - Attribution
 - `files` - Changed files (with `--with-files` flag)
+
+For time scopes, build the same `{commits, stats}` JSON from the saved selected hashes and each commit's `git show` metadata. Reuse the exported `parseCommitMessage(subject)` for conventional fields; retain hash, shortHash, author, email, date, subject, body and body-based breaking-change detection. Derive files from the saved root/parent-aware evidence, and recompute totals, authors, types and date range from this exact list. Validate hash equality with the scope inventory before categorizing. The existing two-ref parser has no time-window or commit-list flag; do not invent one.
+
+Save this JSON once and supply it to the categorizer/render pipeline and HTML stage in place of every `<base> <head>` parser invocation below. For an empty time inventory, retain `commits: []`, zero totals and empty categories; replace the categorizer's generic internal-improvements fallback with “No commits matched the requested time window” before rendering. Verify the markdown and HTML contain no invented features, fixes or maintenance claims; retain Draft status and the normal validation, HTML/opt-out and review gates. Time-scope analysis reads its per-commit dumps instead of `{BASE}..{HEAD}` diffs. Preserve the remaining categorization, focus, validation, audience and review gates.
 
 ### Step 2: Categorize Commits
 

@@ -50,7 +50,7 @@ test('Claude tool translation preserves the required operation and gate constrai
   );
   // Then only tool vocabulary changes; execution and gate constraints remain.
   assert.equal(output,
-    'Execute the skill invocation. Gate steps ALWAYS run; NEVER skip a gate. Ask using ask user tool only for a missing required capability.');
+    'Execute the skill invocation. Gate steps ALWAYS run; NEVER skip a gate. Ask using ask user question tool only for a missing required capability.');
 });
 
 // Read only the shipped canonical protocol, never an adopter's config/docs/git state.
@@ -73,13 +73,13 @@ test('universal workflow guidance supports every host while preserving authority
 });
 
 // Intent: generic ask-user instructions retain explicit tool use in every mirror.
-test('user-question instructions use the ask user tool', () => {
+test('user-question instructions use the ask user question tool', () => {
   const output = prependCodexCompatibilityNote('# Review\nAsk the user before proceeding.\n');
-  assert.match(output, /Use ask user tool to ask user\./);
+  assert.match(output, /Use ask user question tool to ask user\./);
   assert.ok(output.endsWith('Ask the user before proceeding.\n'));
-  for (const input of ['via `AskUserQuestion`', 'via AskUserQuestion', '`AskUserQuestion` decision', 'Use `AskUserQuestion`', 'Use AskUserQuestion']) {
+  for (const input of ['via `AskUserQuestion`', 'via AskUserQuestion', '`AskUserQuestion` decision', 'Use `AskUserQuestion`', 'Use AskUserQuestion', 'Use ask user question tool']) {
     const rewritten = rewriteClaudeToolTermsForCodex(input);
-    assert.match(rewritten, /ask user tool/);
+    assert.match(rewritten, /ask user question tool/);
     assert.doesNotMatch(rewritten, /AskUserQuestion|ask the user directly/);
     assert.equal(rewriteClaudeToolTermsForCodex(rewritten), rewritten);
   }
@@ -87,5 +87,5 @@ test('user-question instructions use the ask user tool', () => {
 
 test('shared question guidance is available to all harnesses', () => {
   const protocol = readCanonicalProtocol(bundleRoot, 'critical-thinking-mindset');
-  assert.match(protocol, /Use ask user tool to ask user\./);
+  assert.match(protocol, /Use ask user question tool to ask user\./);
 });

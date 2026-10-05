@@ -1,6 +1,6 @@
 ---
 name: security-audit
-description: '[Code Quality] Use when a workflow step or the user asks for a security review or audit: OWASP Top 10, secrets, supply-chain, infrastructure, CI/CD, AI-agent risks.'
+description: '[Code Quality] Use when a workflow step or the user asks for security audits: OWASP, secrets, supply chain, infrastructure, CI/CD and AI-agent risks.'
 disable-model-invocation: false
 ---
 
@@ -10,28 +10,27 @@ disable-model-invocation: false
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - Use ask user tool to ask user.
+> - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
 > - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
 > - For workflow skills, steps follow the guided contract in `$start-workflow` (gate steps fixed; other steps may flex with a logged reason); report step-by-step evidence.
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
-<!-- REVIEW-POLICY-SOURCES:START -->
-```json
-{
-  "version": 1,
-  "defaultMode": "changes",
-  "modes": {
-    "changes": [],
-    "full": [],
-    "deps": [],
-    "vet": [],
-    "host": []
-  }
-}
-```
-<!-- REVIEW-POLICY-SOURCES:END -->
+## Quick Summary
+
+> **Review modes:** For review/audit work, standalone defaults to `--review-only` (`--report-only` alias); `--fix-loop` enables review → validate → authorized fix → fresh re-review, default cap 3. `--fix-loop --loop-owner=caller` returns a read-only pass to the caller that owns fixes/re-review. Create triage, review, validation and re-review todo tasks first; apply the carried `review-policy` contract for LOW deferral and user-approved bounded extensions. Non-review modes and terminal findings validation keep their own dispatch.
+
+**Goal:** Review application, secrets, supply-chain, configuration, pipeline and host risks against OWASP Top 10 (2025) and D1–D10, so credible security failures are exposed and resolved with evidence before handoff.
+
+**Summary:**
+
+- **Route:** Scope (`changes`/`full`/`deps`/`vet`/`host`) → Audit selected D1–D10 domains → Report severity, confidence and remediation → Validate Findings with `$why-review --validate-findings` → approved Fix + Full Re-Review with a fresh `security-auditor`. Round 1 clears every severity; Round 2 clears CRITICAL/HIGH/MEDIUM and defers LOW; binary gates always block.
+- Cover every selected surface, beyond application code. D2 secrets always runs; D4 vetting precedes the first third-party install/clone/run, including automation.
+- Prove findings with `file:line` or exact command+output; trace exploitability or label "potential risk, not confirmed". Save findings to `tmp/reports/security-audit-{YYMMDD}-{HHmm}-{slug}.md`.
+- **`--report-only`:** steps 1–4 only; no fix, restart, nested agents, user question or writer beyond the report. The caller owns fixes; see [Report-Only Mode](#report-only-mode---report-only).
+
+> Use `$security-audit`; `/security` and `/arch-security-review` do not resolve.
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
@@ -41,23 +40,6 @@ disable-model-invocation: false
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:END -->
-
-<!-- NOTE: this skill consolidates the former `security` and `arch-security-review` skills into one. -->
-
-## Quick Summary
-
-**Goal:** Ensure the reviewed scope resists credible security failures — exploitable authorization, injection, data, dependency, supply-chain, configuration, pipeline, and host-level risks — via a comprehensive review against OWASP Top 10 (2025), supply-chain/malware threats, secrets exposure, infrastructure misconfiguration, and host compromise indicators, proven with evidence before handoff.
-
-**Summary:**
-
-- **Main steps (run in order):** (1) **Scope** — resolve mode (`changes`/`full`/`deps`/`vet`/`host`) + select domains; (2) **Audit** — run each in-scope D1–D10 checklist with `file:line` / command-output evidence; (3) **Report** — findings with severity + confidence + remediation to `tmp/reports/security-audit-{YYMMDD}-{HHmm}-{slug}.md`; (4) **Validate Findings** — `$why-review --validate-findings` BEFORE any fix; (5) **Fix + Full Re-Review** — fix only validated findings that block the current round, then restart the FULL review from Scope with a fresh `security-auditor` sub-agent (never `code-reviewer`); Round 1 blocks on every severity, Round 2 blocks only CRITICAL/HIGH/MEDIUM, LOW-only is deferred, and binary security gates always block. — why: AI keeps forgetting the skill's own pipeline; surface every step or steps silently merge/skip.
-- Code being clean is not the verdict — security spans ten domains (D1 OWASP app code, D2 secrets ALWAYS, D3 dependencies, D4 third-party vetting, D5 host/VPS, D6 frontend, D7 API boundaries, D8 infra, D9 CI/CD, D10 AI/agent); resolve the scope mode first (`changes`/`full`/`deps`/`vet`/`host`), then run the matching domain checklists. — why: nine non-code domains each can be the breach the clean-code verdict misses.
-- Every finding needs `file:line` or exact command+output evidence with severity and confidence; if you cannot prove exploitability with a trace, say "potential risk, not confirmed" — never "looks secure" without proof.
-- D4 third-party vetting is a hard gate BEFORE the first install/clone/run (install-time is infection-time), and D2 secrets runs in every mode regardless — automation does not bypass either.
-- **`--report-only`:** read-only leaf mode for a caller that owns every fix — steps 1–4 only, no nested sub-agents, no user prompt, no writer beyond the report; see [Report-Only Mode](#report-only-mode---report-only).
-- Findings are not fix-eligible until `$why-review --validate-findings` confirms them; after any validated fix that blocks the current round, restart the FULL review from Scope (fresh `security-auditor` sub-agent, not `code-reviewer`), never a targeted re-check of only the changed files. Round 2 LOW-only findings are recorded as deferred and do not trigger another cycle.
-
-> `/security` and `/arch-security-review` no longer resolve; use `$security-audit`.
 
 **Workflow:**
 
@@ -73,13 +55,13 @@ disable-model-invocation: false
 - Check backend, frontend, dependency, pipeline, AND host attack surfaces — code being clean does not mean the system is clean
 - Use project authorization attributes and entity-level access expressions (see `backend-patterns-reference.md` in the project-reference docs root — default `docs/project-reference/`; path from `docsRoots.projectReference.path` in `docs/project-config.json`)
 - NEVER install or execute unvetted third-party code as part of this review — vet first (Domain D4)
-- Findings are not eligible for fix until `$why-review --validate-findings` confirms them; every validated fix that blocks the current round restarts the full security review from the beginning. Round 1 requires zero open findings (Round-1 LOW closure); Round 2 requires zero CRITICAL/HIGH/MEDIUM, with LOW deferred and binary gates still blocking.
+- Findings are not eligible for fix until `$why-review --validate-findings` confirms them; every validated fix that blocks the current round restarts the full security review from the beginning. Round 1 requires zero open findings (LOW deferral); Round 2 requires zero CRITICAL/HIGH/MEDIUM, with LOW deferred and binary gates still blocking.
 
 <scope>$ARGUMENTS</scope>
 
 ## Report-Only Mode (`--report-only`)
 
-> **Use when** a caller runs this skill as a read-only leaf — e.g. a workflow parallel review barrier over a plan or design, or a review batch — and another step owns every fix. `--report-only` in `$ARGUMENTS` is an execution flag, not a scope mode; without it every step below applies unchanged.
+> **Use when** a caller runs this skill as a read-only leaf — e.g. a workflow parallel review barrier over a plan or design, or a review batch — and another step owns every fix. `--report-only` in `$ARGUMENTS` is an execution flag, not a scope mode; review-only is the default; standalone `--fix-loop` alone runs repair/restart phases.
 >
 > **MANDATORY — when `--report-only` is passed, read `.claude/skills/workflow-review-changes/references/caller-mode.md` § `--report-only` in full FIRST.** It holds the rules every read-only leaf shares (no fix or restart, scope from the caller's brief, no nested fan-out, no user questions, write only the report, return contract); the rules below are this skill's own.
 >
@@ -91,17 +73,13 @@ disable-model-invocation: false
 
 ## Analysis Mindset (NON-NEGOTIABLE)
 
-**Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
+Apply skeptical, critical and sequential thinking. Every claim needs traced proof and confidence; >80% to act, verify uncertainty first.
 
-- Verify security by reading the actual implementations — never assume code is secure at face value
-- Every vulnerability finding must include `file:line` evidence (or exact command + output for deps/host findings)
-- If you cannot prove a vulnerability with a code trace, state "potential risk, not confirmed"
-- Question assumptions: "Is this actually exploitable?" → trace the input path to confirm
-- Challenge completeness: "Are there other attack vectors?" → check all input boundaries AND all non-code surfaces (deps, config, pipeline, host)
-- No "looks secure" without proof — state what you verified and how
-- "Keys are in .env, repo is on Git, no secrets committed" is NOT a security posture — it covers one domain out of ten
+- Read implementations and trace untrusted inputs to prove exploitability; otherwise label "potential risk, not confirmed".
+- Cite `file:line` or exact command+output, and state what was verified. Never report "looks secure" without proof.
+- Check every input boundary and selected non-code surface (deps, config, pipeline, host). Clean code or secrets kept in `.env` does not establish system security.
 
-**CRITICAL**: Present your security findings. Wait for explicit user approval before implementing fixes. (Under `--report-only`, return the validated report instead — no fix follows.)
+Present validated security findings. Review-only and caller-owned passes return the report. Standalone `--fix-loop` authorizes scoped repairs; ask only for genuinely missing operation authority or the shared round-extension decision.
 
 ---
 
@@ -116,8 +94,6 @@ Resolve mode from `<scope>` arguments. When ambiguous, default to `changes` if d
 | `deps`             | "check dependencies", "scan packages", after `npm install` issues | D3 (+ D2)                                                       |
 | `vet <repo/pkg>`   | BEFORE installing/cloning/running any third-party repo or package | D4 (+ D3)                                                       |
 | `host`             | "is this server compromised", VPS audit, post-incident            | D5 (+ D2)                                                       |
-
-**Source-review preparation:** for the resolved source subset of `changes`/`full` only, follow `.claude/skills/shared/review-preparation.md` before audit. Use the actual skill/mode and selected required documents; inherit the parent decision, including explicit `--provider-decision skip` on children/rechecks, under the recipe’s read-only-leaf and exact-target limits. Exclude deps/vet/host and plan-only review; retain sensitive-file exclusions and D2/D4 safeguards.
 
 **D2 (Secrets) is ALWAYS in scope regardless of mode.** Cheap to check, catastrophic to miss.
 
@@ -337,7 +313,8 @@ pip-audit                                             # python, if present
 
 Every finding: `[severity] [confidence %] [file:line OR command+output] [finding] [remediation]`. Confirmed vs "potential risk, not confirmed" must be explicit. Findings report: `tmp/reports/security-audit-{YYMMDD}-{HHmm}-{slug}.md`.
 
-> **Spec-Loop Discipline (Dual-Feedback half — tailored).** Security is **orthogonal** to functional correctness, so the property/metamorphic generation and the MUTATION-SCORE assertion gate are scoped to functional core-logic and do **NOT** apply here — N/A. Apply only the **dual-feedback half**: every confirmed security finding that changes intended behavior (a new authz/tenant-scope rule, an input-validation boundary, a fail-closed requirement, a rate limit) feeds BOTH (a) the **spec** — record the security rule / trust boundary as a §4/§5 invariant so it is documented intent, not tribal knowledge — AND (b) a **guarding test** — a negative test that proves the unauthorized/abusive path is rejected. A fix that patches code but leaves the rule undocumented OR untested is **INCOMPLETE**, never a code-only fix.
+> **Spec-Loop Discipline (Dual-Feedback half — tailored).** Security is orthogonal to functional correctness: property/metamorphic generation and MUTATION-SCORE gates apply to functional core logic and are N/A here. Every confirmed finding that changes intended behavior must feed BOTH the **spec** (§4/§5 security-rule or trust-boundary invariant) AND a **negative test** proving the unauthorized/abusive path is rejected. Examples include authz/tenant scope, input validation, fail-closed behavior and rate limits. Undocumented or untested fixes are **INCOMPLETE**.
+
 
 ---
 
@@ -352,13 +329,13 @@ Every finding: `[severity] [confidence %] [file:line OR command+output] [finding
 2. **Findings exist:** run `$why-review --validate-findings <security-report-path>` before any fix; do not spawn a fresh sub-agent only to re-review the same findings before validation/fix
 3. **After validated fixes:** restart the full security review from Scope over the full current security target. If the restarted review needs a fresh reviewer, spawn a NEW `security-auditor` sub-agent (`agent_type: "security-auditor"`) — ZERO memory of prior rounds. Include in prompt: the domain checklist set (D1–D10) selected for the scope mode, OWASP Top 10 2025, auth flows, injection risks, dependency CVEs/supply-chain, microservices boundary security.
 4. **Repeat:** if issues remain, validate the new findings before more fixes, then restart the full review after fixes with a brand-new task breakdown
-5. **Stop:** A clean review pass ENDS the review once the persisted `minRounds` is met. If the same blocker repeats across 2 full invocations with no progress, escalate using ask user tool.
+5. **Stop:** A clean review pass ENDS the review once the persisted `minRounds` is met. If the same blocker repeats across 2 full invocations with no progress, escalate via `ask user question tool`.
 
 > Optional: `python .claude/scripts/code_graph query callers_of <function> --json` can hint at entry points into sensitive functions (verify by reading).
 
 ## Graph Intelligence — Security-Specific Queries (optional advice)
 
-> Optional: when grep and reading files alone may not reveal a high-risk blast radius (shared contract, many callers, cross-module/cross-service flow, public API), the code graph (`.code-graph/graph.db`) can add callers, dependents and impacted tests. Treat it as a hint, NOT proof: the graph can be stale or incomplete (it lags uncommitted edits and unindexed paths) — verify anything that matters by reading the files/grep. Skip it for low-risk or local changes. These security-specific queries extend the canonical **Graph-Assisted Investigation** advice (below):
+> For high-risk shared contracts, many callers or cross-module/service/public flows, `.code-graph/graph.db` may add callers, dependents and impacted tests. It can lag uncommitted/unindexed paths: verify every hint with grep/read. Skip low-risk/local changes; absence never blocks. These queries extend **Graph-Assisted Investigation** below:
 
 - **Trace data flow to sensitive functions:** `python .claude/scripts/code_graph query callers_of <function> --json`
 - **What does this function call?** `python .claude/scripts/code_graph query callees_of <function> --json`
@@ -436,13 +413,13 @@ Optionally, when a graph DB exists, `trace` can hint at data flow paths for secu
 
 ## Next Steps
 
-**MANDATORY — NO EXCEPTIONS** after completing this skill, you MUST use ask user tool to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
+**MANDATORY — NO EXCEPTIONS** after completing this skill, you MUST use `ask user question tool` to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
 
 - **"$production-readiness-review (Recommended)"** — Production readiness review
 - **"$performance-review"** — Analyze performance next
 - **"Skip, continue manually"** — user decides
 
-> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI must ask user whether to skip.
+> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. Keep task depth proportional to the work.
 
 - `domain-entities-reference.md`, in the project-reference docs root (default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path) — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models)
 
@@ -460,12 +437,14 @@ Optionally, when a graph DB exists, `trace` can hint at data flow paths for secu
 - `graph-assisted-investigation` — Optional hint: a code-graph query can add callers and dependents when grep may miss a high-risk blast radius, and it can be stale; a high-risk change where grep and reading alone may miss the blast radius → .claude/skills/shared/protocols/graph-assisted-investigation.md
 - `incremental-persistence` — Persist results per file or section while the work proceeds; a sub-agent or heavy step processes more than three files → .claude/skills/shared/protocols/incremental-persistence.md
 - `measured-capacity-engineering` — Model demand, reduce measured work safely and prove capacity before scaling; planning, building, testing or reviewing hot paths, caches or capacity → .claude/skills/shared/protocols/measured-capacity-engineering.md
+- `review-decision-autonomy` — Choose supported review decisions and ask before extending the round budget; running any review or audit skill or mode → .claude/skills/shared/protocols/review-decision-autonomy.md
+- `review-policy` — Review-only or a three-round fix loop with explicit extension and fresh post-fix evidence; deciding round eligibility, blocking findings or review state → .claude/skills/shared/protocols/review-policy.md
 - `review-principle-awareness` — Classify the change context first, then apply the current principles that fit it; starting any review → .claude/skills/shared/protocols/review-principle-awareness.md
 - `severity-rubric` — One consequence-based Critical, High, Medium, Low scale for every finding and gate; classifying a finding or deciding whether a review round passes → .claude/skills/shared/protocols/severity-rubric.md
 - `source-test-drift-check` — When source behavior changes, reconcile the affected tests from evidence; code, fix, test or review work changes behavior → .claude/skills/shared/protocols/source-test-drift-check.md
 - `sub-agent-selection` — Pick the sub-agent type from the routing guide; choosing which sub-agent to spawn → .claude/skills/shared/protocols/sub-agent-selection.md
 - `subagent-return-contract` — Sub-agents return a structured envelope and a report path, never an inline report; spawning a sub-agent → .claude/skills/shared/protocols/subagent-return-contract.md
-- `systematic-review-batching` — Map-reduce review: size-capped batches, one sub-agent per batch, then reduce; reviewing a large changeset → .claude/skills/shared/protocols/systematic-review-batching.md
+- `systematic-review-batching` — Triage all files and plan adaptive review with complete coverage and no fixed size caps; choosing review assignments or handling working-set overflow → .claude/skills/shared/protocols/systematic-review-batching.md
 - `task-tracking-external-report` — Task breakdown before the work and report files written incrementally; starting any multi-step skill, plan or review → .claude/skills/shared/protocols/task-tracking-external-report.md
 - `trade-off-interrogation-gate` — Three trade-off questions before any verdict, score or recommendation; rendering a verdict or recommending an option → .claude/skills/shared/protocols/trade-off-interrogation-gate.md
 
@@ -493,9 +472,7 @@ Optionally, when a graph DB exists, `trace` can hint at data flow paths for secu
 
 <!-- SYNC:systematic-review-batching:reminder -->
 
-- **MANDATORY** Large changeset → risk-weighted batches, one parallel sub-agent per batch: high-risk ≤8 files OR ≤2000 diff-lines; low-risk (styling, tests, docs, config text) may pool to ≤20 files OR ≤4000 diff-lines; mechanical churn is verified by pattern, not batched. Never review many files one-by-one.
-- **MANDATORY** Each batch agent validates its own findings (`$why-review --validate-findings` in its own session); the reducer deduplicates by root cause FIRST, then re-validates only CRITICAL/HIGH (including in-batch rejections and demotions), reviewer conflicts, unvalidated findings and a MEDIUM sample.
-- **MANDATORY** > 6 categories OR > 40 files → add the hierarchical synthesis tier; each concern-synthesizer emits cross-concern interaction candidates and the orchestrator runs the cross-concern pass before concluding.
+**MUST ATTENTION** Triage all files, write a short review plan and create review/validation/fix/re-review tasks first. Choose inline work or authorized specialists from risk, relationships and context headroom; no fixed file/line/byte caps. Persist coverage, reconcile interactions and validate findings before fixes or PASS.
 
 <!-- /SYNC:systematic-review-batching:reminder -->
 
@@ -537,11 +514,14 @@ Optionally, when a graph DB exists, `trace` can hint at data flow paths for secu
 
 <!-- SYNC:trade-off-interrogation-gate:reminder -->
 
-- **MANDATORY MUST ATTENTION ALWAYS ASK THE 3 TRADE-OFF QUESTIONS** — on the thing under review AND on every recommendation you make: (1) **what does it SACRIFICE?** name the dimensions checked (change cost · complexity · perf · coupling · reversibility · migration · ops load · blast radius · security · testability · delivery time · UX) — "none"/"pure win" is an unfinished analysis; (2) **is it worth it?** gain (with a metric) vs cost, WHO pays, WHEN → emit **WORTH IT / NOT WORTH IT / UNCLEAR**; NOT WORTH IT → withdraw or replace it; (3) **is it MATERIAL enough to confirm with the user?** irreversible/one-way door · cost shifted onto another team/ops/maintainer/user · one quality attribute traded for another · a tier/service/event/library boundary crossed · auth/money/data-integrity/breaking-change/High-or-Medium-risk path · verdict UNCLEAR → **STOP and confirm using ask user tool BEFORE the verdict**.
+**Review/audit invocations:** follow `SYNC:review-decision-autonomy` for every decision prompt; choose supported recommendations without asking, preserve round-extension approval and actual authority.
+
+- **MANDATORY MUST ATTENTION ALWAYS ASK THE 3 TRADE-OFF QUESTIONS** — on the thing under review AND on every recommendation you make: (1) **what does it SACRIFICE?** name the dimensions checked (change cost · complexity · perf · coupling · reversibility · migration · ops load · blast radius · security · testability · delivery time · UX) — "none"/"pure win" is an unfinished analysis; (2) **is it worth it?** gain (with a metric) vs cost, WHO pays, WHEN → emit **WORTH IT / NOT WORTH IT / UNCLEAR**; NOT WORTH IT → withdraw or replace it; (3) **is it MATERIAL enough to confirm with the user?** irreversible/one-way door · cost shifted onto another team/ops/maintainer/user · one quality attribute traded for another · a tier/service/event/library boundary crossed · auth/money/data-integrity/breaking-change/High-or-Medium-risk path · verdict UNCLEAR → **STOP and confirm via `ask user question tool` BEFORE the verdict**.
 - **MANDATORY** A MATERIAL trade-off with no user confirmation can NEVER be PASS; never bury one as a Low-severity note, never decide it silently, and never let delivery or convergence pressure authorize a one-way door — an un-walked-back one-way door is the user's call, not the reviewer's.
-- **MANDATORY — a context that cannot ask escalates BY HANDOFF, never by silence.** ask user tool reaches only the main interactive agent, so a sub-agent or a terminal/verdict-only mode cannot ask. There the duty is REDIRECTED, not waived: still name the trade-off, still decide materiality, record `confirmed? = NO — cannot ask from this context`, and **state the unconfirmed MATERIAL trade-off in your RETURNED verdict so the CALLER escalates it** (a note only in an on-disk report is not a handoff); never emit an unqualified PASS. If you CAN ask, you MUST ask.
+- **MANDATORY — a context that cannot ask escalates BY HANDOFF, never by silence.** `ask user question tool` reaches only the main interactive agent, so a sub-agent or a terminal/verdict-only mode cannot ask. There the duty is REDIRECTED, not waived: still name the trade-off, still decide materiality, record `confirmed? = NO — cannot ask from this context`, and **state the unconfirmed MATERIAL trade-off in your RETURNED verdict so the CALLER escalates it** (a note only in an on-disk report is not a handoff); never emit an unqualified PASS. If you CAN ask, you MUST ask.
 
 <!-- /SYNC:trade-off-interrogation-gate:reminder -->
+
 
 
 <!-- SYNC:review-principle-awareness:reminder -->
@@ -556,41 +536,37 @@ Optionally, when a graph DB exists, `trace` can hint at data flow paths for secu
 
 <!-- /SYNC:measured-capacity-engineering:reminder -->
 
+<!-- SYNC:review-decision-autonomy:reminder -->
+
+**MUST ATTENTION** Decide supported review choices and recommendations, record the rationale, and finish without routine user questions. Keep round-limit extension, indispensable facts and actual action authority; preserve source coverage, validation, tests, read-only boundaries and budgets. Review decisions do not accept open risks or make a failed gate pass.
+
+<!-- /SYNC:review-decision-autonomy:reminder -->
+
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Ensure the reviewed scope resists credible security failures — exploitable authorization, injection, data, dependency, supply-chain, configuration, pipeline, and host-level risks — via a comprehensive review against OWASP Top 10 (2025), supply-chain/malware threats, secrets exposure, infrastructure misconfiguration, and host compromise indicators, proven with evidence before handoff.
+**IMPORTANT MUST ATTENTION Goal:** Review application, secrets, supply-chain, configuration, pipeline and host risks against OWASP Top 10 (2025) and D1–D10, so credible security failures are exposed and resolved with evidence before handoff.
 
-**IMPORTANT MUST ATTENTION Main steps (run in declared order, none skipped/merged):** Scope (resolve mode + select domains) → Audit (run each in-scope D1–D10 checklist with `file:line`/command-output evidence) → Report (severity + confidence + remediation to `tmp/reports/`) → Validate Findings (`$why-review --validate-findings` BEFORE any fix) → Fix + Full Re-Review (fix only validated findings that block the current round, then restart the FULL review from Scope with a fresh `security-auditor`, never `code-reviewer`; Round 1 = all severities, Round 2 = CRITICAL/HIGH/MEDIUM, LOW-only deferred, binary gates always block). — why: surfacing every step at the recency anchor stops the pipeline collapsing after the long middle.
+**IMPORTANT MUST ATTENTION Main steps:** Scope (mode + domains) → Audit D1–D10 in scope → Report severity/confidence/remediation → Validate Findings (`$why-review --validate-findings`) → approved Fix + Full Re-Review from Scope with a fresh `security-auditor`, never `code-reviewer`. Round 1 clears all severities; Round 2 clears CRITICAL/HIGH/MEDIUM and defers LOW; binary gates always block. `--report-only` ends at step 4.
 
-**Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
+**Protocols in force:** Apply the unchanged protocol guides and reminders above for specialist selection, optional graph hints, persistence/return contracts, nested tasks, evidence, source/test drift, bounded batching, severity, category reasoning and PAR/SEQ wave barriers.
 
-- **Sub-Agent Selection:** Route specialized domains to matching specialist agent; NEVER `code-reviewer`.
-- **Graph-Assisted Investigation (optional):** the code graph is a stale-able hint for high-risk blast radius, never required.
-- **Incremental Persistence:** Append findings to `tmp/reports/` per file; NEVER hold in memory.
-- **Subagent Return Contract:** Sub-agents return summary only; full detail lives on disk.
-- **Nested Task Creation:** Expand child phases and link parent workflow row when nested.
-- **Task Tracking External Report:** Bootstrap tasks; persist findings to report incrementally.
-- **Evidence:** Cite `file:line` for EVERY claim; speculation forbidden.
-- **Source Test Drift Check:** When source behavior changes, reconcile affected tests from evidence.
-- **Systematic Batching:** Large changeset → size-capped parallel batches, then reduce.
-- **Severity Rubric:** Classify by consequence using `SYNC:severity-rubric`; round 1 blocks on every open validated finding (Round-1 LOW closure), round 2 blocks only CRITICAL/HIGH/MEDIUM, LOW is recorded/deferred, and failed binary gates always block.
-- **Category Review Thinking:** Derive each category's concerns from first principles, NEVER a fixed checklist.
-- **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
+- **Scope and trust:** Clean code does not prove a clean system. Resolve `changes`/`full`/`deps`/`vet`/`host`, cover every selected domain, always run D2, and vet third-party code under D4 before any install/clone/run, including automation.
+- **Evidence:** Cite `file:line` or exact command+output with severity and confidence. Trace exploitability; unproven risks are "potential risk, not confirmed". >80% act, 60–80% verify, <60% do not recommend. Search 3+ fitting patterns before flagging conventions; read `backend-patterns-reference.md` under the configured project-reference root for project authorization/entity access rules, rather than assume generic defaults.
+- **Fix authority and convergence:** Review-only/caller-owned passes return validated findings; standalone fix-loop authorizes scoped repairs. Ask only for missing operation authority or a bounded round extension. After every applied fix, freshly review the full target from Scope with new tasks; use a fresh `security-auditor` when delegating. From Round 2 onward defer LOW-only findings. Honor `minRounds`, the Phase 1 validation cap and no-progress escalation.
+- **Read-only leaf:** `--report-only` resolves scope from the brief and runs steps 1–4: no fix, restart, nested fan-out, user question or writer beyond the report. Return validated findings to the caller.
+- **Compromise and feedback:** Confirmed host compromise requires isolation, rotation of EVERY credential that touched the host, a clean-image rebuild and lateral-movement checks; do not trust in-place cleanup. Behavior-changing confirmed findings require BOTH a §4/§5 spec invariant and a guarding negative test.
+- **Tracking:** Create small task tracking todos before work and a final review todo; persist findings incrementally to `tmp/reports/security-audit-{YYMMDD}-{HHmm}-{slug}.md`. Expand nested child phases and link the parent workflow row. Tag PAR/SEQ, dispatch disjoint waves together and wait at the barrier.
+- **Graph advice:** Optional `callers_of` / `trace --direction downstream` hints can size exploitability; verify reachability by reading code. Graph use is never required.
 
-**IMPORTANT MUST ATTENTION** code clean ≠ system clean — security spans ten domains (D1 OWASP, D2 secrets, D3 deps, D4 vetting, D5 host, D6 frontend, D7 API, D8 infra, D9 CI/CD, D10 AI/agent); resolve scope mode (`changes`/`full`/`deps`/`vet`/`host`) FIRST, then run matching checklists — why: nine non-code domains each can be the breach.
-**IMPORTANT MUST ATTENTION** D2 secrets runs in EVERY mode; D4 vetting gate runs BEFORE any first install/clone/run — why: install-time is infection-time, automation does not bypass it.
-**IMPORTANT MUST ATTENTION** every finding needs `file:line` OR exact command+output evidence with severity + confidence; unprovable → state "potential risk, not confirmed" — NEVER "looks secure" without proof — why: AI reports inherit confirmation bias the orchestrator absorbs as ground truth.
-**IMPORTANT MUST ATTENTION** confidence gate — >80% act, 60-80% verify first, <60% DO NOT recommend; trace the input path to confirm exploitability, do not assume.
-**IMPORTANT MUST ATTENTION** search 3+ existing patterns before flagging convention deviations; use project authorization attributes + entity-level access expressions (`backend-patterns-reference.md` in the project-reference docs root — default `docs/project-reference/`; path from `docsRoots.projectReference.path` in `docs/project-config.json`), not generic framework defaults — why: local conventions differ and pattern fit must be evidence-confirmed.
-**IMPORTANT MUST ATTENTION** findings NOT fix-eligible until `$why-review --validate-findings` confirms them; after any validated fix that blocks the current round RESTART the FULL review from Scope — NEVER a targeted re-check of only changed files; from Round 2 onward, LOW-only findings are deferred instead of starting another cycle — why: a fix can open a new hole the targeted pass never sees, while low-consequence polish does not justify unbounded looping.
-**IMPORTANT MUST ATTENTION** restarted review spawns a fresh `security-auditor` sub-agent with zero memory — NEVER `code-reviewer` — why: `code-reviewer` lacks OWASP/auth-flow/injection/CVE/boundary protocols and misses security-specific issues.
-**IMPORTANT MUST ATTENTION** `--report-only` declares steps 1–4 only — scope resolved from the brief, no fix, no restart, no batching fan-out, no user question, no writer beyond the report; return the validated report — why: a read-only leaf that fixes, fans out, or regenerates docs races its barrier siblings.
-**IMPORTANT MUST ATTENTION** confirmed host compromise → isolate first, rotate EVERY credential that touched the host, rebuild from a clean image — NEVER trust an in-place "cleaned" rooted box — why: rootkits hide from the tools you would clean with.
-**IMPORTANT MUST ATTENTION** every confirmed finding that changes intended behavior feeds BOTH the spec (§4/§5 invariant) AND a guarding negative test — a code-only fix is INCOMPLETE — why: undocumented + untested security rules become tribal knowledge that regresses silently.
-**IMPORTANT MUST ATTENTION** break work into small todo tasks via task tracking BEFORE starting; persist findings incrementally to `tmp/reports/security-audit-{YYMMDD}-{HHmm}-{slug}.md`; add a final review todo.
-**Optional advice:** to size exploitability reachability across a wide call graph, `callers_of` / `trace --direction downstream` can add hints — the graph may be stale, so confirm reachability by reading the code. Never required.
+| Evasion | Required action |
+| --- | --- |
+| "Code is clean" | Check every selected non-code surface and always run D2 |
+| "Only the fixed files need review" | Restart the full target from Scope with new tasks and a fresh security specialist |
+| "Automation makes installation safe" | Complete D4 vetting before the first install/clone/run |
 
 
-**IMPORTANT MUST ATTENTION** code clean ≠ system clean — resolve scope mode, run ALL in-scope domains, D2/D4 never bypassed.
-**IMPORTANT MUST ATTENTION** every finding needs `file:line`/command+output evidence at >80% confidence; validate via `$why-review` before any fix.
-**IMPORTANT MUST ATTENTION Goal:** Ensure the reviewed scope resists credible security failures — exploitable authorization, injection, data, dependency, supply-chain, configuration, pipeline, and host-level risks — via a comprehensive review against OWASP Top 10 (2025), supply-chain/malware threats, secrets exposure, infrastructure misconfiguration, and host compromise indicators, proven with evidence before handoff.
+<!-- SYNC:review-policy:reminder -->
+
+**MUST ATTENTION** Triage all targets, plan and create review/validation/fix/fresh re-review tasks first. Review-only reports without edits; fix-loop freshly reviews every repair under one fixing owner. Default cap three rounds: disclose deferred LOWs, ask and wait before a bounded extension for MEDIUM+ or failed required checks. Preserve scope, coverage and actual operation authority.
+
+<!-- /SYNC:review-policy:reminder -->

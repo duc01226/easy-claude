@@ -1,555 +1,109 @@
 ---
 name: experience-review
-version: 1.2.0
-description: '[Testing] Use when a workflow step or the user asks for a running-experience review (UI, API, CLI, service): end-to-end drive, runtime-log and screen gates. --rounds=N (default 3; 0 = report-only).'
+version: 1.2.1
+description: '[Testing] Use when a workflow step or the user asks for runtime review of a UI, API, CLI or service against intended behavior. --rounds=0 reports only; --rounds=N bounds repairs.'
 ---
-
-<!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
-
-> **[BLOCKING]** Execute the steps in order. Before each step, update task tracking; mark it completed with evidence or an explicit skip reason.
-> **[BLOCKING]** If task tools are unavailable, maintain an equivalent step tracker. Never mark an experience verified from source reading, test-writing, or artifact generation alone.
-
-<!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:END -->
-
-> **E2E Quality Protocol** — the shared gate covers user-flow intent, stable object ownership, isolated fixtures/data, auth/permissions, applicable accessibility/responsive/visual checks, bounded waits, readable failure evidence, cleanup, and test-to-spec traceability.
-> **MUST ATTENTION READ** `.claude/skills/shared/e2e-quality-protocol.md` when the observed surface is E2E/browser/user-flow-backed; apply only its relevant rows and keep this skill's runtime/visual ownership.
 
 ## Quick Summary
 
-**Goal:** Exercise and inspect an applicable running/observable feature against its intended purpose, drive its BLOCKING defects to zero in a bounded remediation loop, then leave durable evidence and a truthful acceptance or limitation status.
+> **Review modes:** For review/audit work, standalone defaults to `--review-only` (`--report-only` alias); `--fix-loop` enables review → validate → authorized fix → fresh re-review, default cap 3. `--fix-loop --loop-owner=caller` returns a read-only pass to the caller that owns fixes/re-review. Create triage, review, validation and re-review todo tasks first; apply the carried `review-policy` contract for LOW deferral and user-approved bounded extensions. Non-review modes and terminal findings validation keep their own dispatch.
 
-**Summary:**
+**Goal:** Exercise the real interface and inspect evidence so acceptance decisions reflect observed behavior.
 
-- **Main path:** set round budget → read intent → classify surface → start/instrument the whole system → exercise actual behavior → inspect logs/screens → judge → remediate and re-exercise → preserve expectations → tear down → report.
-- **Modes and gates:** `--rounds=0` is report-only; other rounds fix only validated blocking defects; `ENVIRONMENT-BLOCKED`/`UNVERIFIED` stays honest and human acceptance is required.
-- **E2E quality handoff:** For an E2E/browser/user-flow surface, apply the shared protocol's GWT/invariant, auth/data, evidence, cleanup, and traceability rows; this skill owns runtime/console/screenshot observation and visual acceptance, while static test-code findings route to the test/UI owner.
-
-**Workflow:** Resolve round budget → read intent → classify surface/capability → **bring the system up locally and instrument it** → exercise actual behavior end to end → inspect evidence (including runtime logs and captured screens) → judge against purpose → **remediate and re-exercise until zero BLOCKING defects or the budget is spent** → compare/preserve expectations → tear down → recommend acceptance and request an explicit human decision.
+**Summary:** Resolve intent → plan evidence/capability → start, instrument and exercise → inspect/judge → repair/re-exercise within budget → compare, tear down and hand off. Keep observations, judgments and human acceptance separate.
 
 **Key Rules:**
 
-- `OBSERVED` is witnessed evidence; `JUDGED` is an agent assessment; `HUMAN-ACCEPTED` requires an explicit named owner/human record. Confidence is never approval.
-- **Run the real system, then use it like a person.** Bring the surface up locally as a WHOLE — its backing services, then the app — poll a readiness signal, drive the actual journey end to end through the real interface, and tear down what you started. A surface that never ran is `ENVIRONMENT-BLOCKED`, never a pass.
-- **Runtime logs and captured screens are evidence channels, not extras.** Capture them on every exercise and re-capture them every round. A runtime ERROR is BLOCKING. A WARNING is ADVISORY — attempt a bounded fix, never let one hold the review open. For a visual surface, capture each state/viewport and READ the images; unread captures are not observations.
-- **The loop converges on defects, never on taste.** Only a BLOCKING defect — objectively checkable against the stated purpose — opens a round. An ADVISORY finding (preference, polish, visual identity) is recorded, never looped on.
-- **Bounded: `--rounds=N`, default 3.** Every round adjudicates before editing, fixes at the owning layer through `/fix`, `/changes-review`s its own fix diff, and re-exercises from scratch. Cap reached, defects not shrinking across two rounds, defects increasing, or `ENVIRONMENT-BLOCKED` → STOP and escalate via `AskUserQuestion`. `--rounds=0` returns the single-pass report-only review.
-- **E2E visual-gate handoff:** when invoked as `/experience-review --rounds=0` by `e2e-test --mode=verify --fix-loop --visual-review=true`, apply `.claude/skills/shared/ui-state-capture-protocol.md`: reload the project's design/UI convention authority, then open and record EVERY capture in the manifest — declared matrix states and per-action transition captures alike, as the resolved `uiStateCapture.mode` produced them (a `declared-only` run lists every state-changing action as an uncaptured transition; `off` keeps the matrix and records transition coverage as `N/A`) — one at a time, case by case, before synthesizing clustered owner-routed findings and coverage gaps for the parent. The parent owns UI fixes and must rerun the same E2E command; this report-only invocation must not mutate snapshots, baselines, or expectations.
-- MUST ATTENTION apply `.claude/skills/shared/e2e-quality-protocol.md` for E2E/browser/user-flow observations and record each applicable gate row; do not duplicate or replace its detailed checklist.
-- **Fix the defect, never the evidence of it.** Expectations, baselines, snapshots, fixtures, assertions, and acceptance criteria stay read-only in every round. A review that got clean by looking at less did not converge — it regressed.
-- Convergence yields `AGENT-RECOMMENDED-ACCEPT`, which is a named agent judgment, **not** an acceptance. The record stays `ACCEPTANCE-PENDING` until an owner signs; no baseline is promoted before that signature exists.
-- Record `NOT-APPLICABLE`, `ENVIRONMENT-BLOCKED`, and `UNVERIFIED` honestly. Do not claim success when the required runner, device, service, or inspection capability is unavailable.
-- Ordinary application operation and regression tests remain deterministic and model-free.
+- `--rounds=N`: integers `0–3`; review-only defaults to `0`, standalone `--fix-loop` defaults to `3`. A numeric budget never grants repair authority; caller-owned passes stay read-only. State mode and budget before observation.
+- Keep the evidence matrix and expectations intact; only BLOCKING defects open repair rounds.
+- A clean review recommends acceptance; explicit owner acceptance is required before promoting any baseline.
 
----
-
-## First Principle — Convergence, Not Motion
-
-> A round that changes the product is progress **only if** the next fresh exercise records fewer BLOCKING defects.
-> The loop exists to reach a fixed point — a surface that does its job with nothing objectively wrong — not to keep editing until something looks acceptable.
-> When the defect count stops shrinking, that is a signal to **escalate**, not to spin another round.
-> And a surface that got clean because the matrix shrank, a state was dropped, or a criterion was softened did not converge — it regressed.
-> The agent may **recommend** the result. It never signs for the person who owns it.
-
----
+**Workflow:** Follow the six steps in order; track each with evidence or an explicit skip reason using host task tools or an equivalent tracker. Source reading, test-writing and artifact generation alone never verify an experience.
 
 ## Procedure
 
-### 0. Resolve the round budget and fix authority
+### 1. Resolve intent and scope
 
-Read `--rounds=N` from the invocation; default `3` when absent. Accept integers `0–3` only; larger values cannot exceed the three-round review cap. `--rounds=0`
-disables remediation and runs steps 1–4 then 6–7 as the original single-pass
-report-only review — use it when the caller has no authority to change the
-product, or when the review is an audit rather than a convergence.
+**MUST READ** the loader-resolved project config when present, its docs index and `lessons.md`, relevant surface references, and the governing spec, acceptance criteria, design decision, API/CLI/library contract or operator runbook. Absent config is supported; derive facts from repository evidence. Missing or contradictory intent is `AMBIGUOUS`: ask the owner before choosing an expectation.
 
-State the resolved budget before the first observation, and record every round
-against it. A loop whose bound was never stated is unbounded in practice.
+Record actor, job, expected outcome, invariants, unchanged behavior, impacted surfaces/states, accepted evidence and conditions. Review the smallest scope that protects these behaviors.
 
-### 1. Resolve intent and impact
+For E2E/browser/user-flow surfaces, read `.claude/skills/shared/e2e-quality-protocol.md` and record its applicable gate rows: intent/invariant, auth/data, evidence, cleanup and traceability. Route static test-code findings to the test owner and static styling/component findings to `/ui-design --mode=review`; this skill owns runtime and inspected visual evidence.
 
-Read `docs/project-config.json`, then `docs-index-reference.md` and
-`lessons.md` from the reference-docs root (default `docs/project-reference`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides), and the project-specific reference docs
-matched by the changed surface. Read the governing Feature Spec, acceptance
-criteria, design artifact, API/CLI/library contract, or operator runbook before
-touching the feature. If intent is absent or contradictory, record
-`AMBIGUOUS` and ask the canonical owner; do not choose the implementation as
-the expected result.
+### 2. Plan evidence and resolve capability
 
-Inspect the change and identify:
+Create a matrix before execution:
 
-- actor, job, expected result, invariants, and unchanged behavior;
-- impacted surface(s) and state(s), including error/empty/loading/offline/
-  permission/recovery/boundary states where the surface supports them;
-- existing accepted evidence and its exact conditions;
-- the smallest meaningful review scope. Do not demand a full application
-  re-review when the changed surface and protected behavior are unaffected.
+`surface id/kind | applicability | purpose/states | entry point/runner | localRun/log channels | fixture/identity | platform/device/viewport/locale/network | evidence root | accepted expectation`
 
-### 2. Build the evidence matrix
+Classify from project, repository and tool evidence:
 
-When the surface is E2E/browser/user-flow-backed, read `.claude/skills/shared/e2e-quality-protocol.md` before building the matrix and carry its GWT/invariant, auth/data, evidence, cleanup, and traceability fields into the report.
+- `APPLICABLE`: the surface and required runner, data, services and inspection capability are available.
+- `NOT-APPLICABLE`: the surface does not exist; cite config and repository evidence.
+- `ENVIRONMENT-BLOCKED`: a relevant surface lacks a required capability; name it and preserve diagnostics.
+- `UNVERIFIED`: required observations or judgments remain missing; never relabel this as N/A.
 
-For every configured surface, create one row before execution:
+Without `experienceVerification`, use an evidenced existing runner and record the adoption limitation; never invent defaults. Keep disposable reports/evidence under project `tmp/` or `temp/`, including configured evidence storage.
 
-`surface id | kind | applicability | purpose | entry point | runner/tool | local-run recipe | log channels | fixture/identity | platform/device/viewport/locale/network | evidence root | accepted expectation | impacted states`
+Resolve lifecycle from `experienceVerification.surfaces[].localRun`: dependency/start/readiness/log/teardown. When absent, derive commands from package/task/compose/CI scripts or run instructions, cite `file:line` and propose the derived `localRun` in the report. Unresolved commands, ports, accounts or fixtures remain blocked.
 
-Use only project configuration, repository files, and host/tool evidence.
+When `e2eTesting.execution` exists, match `surfaceIds[]` to the configured surfaces: surface `localRun` owns lifecycle; the E2E profile owns auth/data/browser/evidence/convergence. Fill missing values only from evidenced project references, runner config, scripts and fixture/auth docs.
 
-- `APPLICABLE`: the configured entry point and a runnable runner/tool exist, and
-  the required fixture, data, service, device, or inspection capability is
-  available.
-- `NOT-APPLICABLE`: the surface does not exist for this project; cite the config
-  and repository scan. An empty framework config is a valid N/A, not a failure.
-- `ENVIRONMENT-BLOCKED`: the surface is relevant but a required capability is
-  unavailable. Name the missing capability and preserve diagnostics.
-- `UNVERIFIED`: the review started but required observations or judgments were
-  not collected. Never convert it to N/A after the fact.
+### 3. Start, instrument and exercise
 
-If a project has no `experienceVerification` configuration, do not invent
-defaults. Record the missing configuration as an adoption/setup limitation and
-use the project’s documented existing runner only when it provides evidence.
+Bring up the whole system: backing services → supported migration/seed path → surface. Poll the declared readiness check within its timeout; process-started, an open port and a fixed sleep are insufficient. Record recipe, versions/profile, readiness and diagnostics. Never disable auth or stub a failing dependency to make review possible.
 
-For an E2E-backed surface, resolve `e2eTesting.execution` alongside this
-matrix. Match `surfaceIds[]` to the configured surface, keep dependency/start/
-readiness/log/teardown ownership in that surface's `localRun`, and use the
-E2E profile only for auth/data/browser/evidence/convergence facts. If the
-profile is missing or partial, derive values from the E2E reference, runner
-configuration, package/task/compose/CI scripts, fixture/seed/auth docs, and
-bounded repository search in that order. Record `file:line` evidence; missing
-capability is `ENVIRONMENT-BLOCKED`, never a guessed default or pass.
+Attach runtime capture before the first interaction, include startup evidence, and keep it through teardown. For web surfaces capture console levels, page errors/unhandled rejections, failed requests and applicable server logs; otherwise capture stdout/stderr and configured log channels. An empty capture requires proof that the listener was attached.
 
-For a web surface whose profile requests human QC, use the project's configured
-browser runner and visibility setting when supported. Before each UI-control
-operation, rely on the runner's bounded native actionability waits or an
-evidenced project helper; after the operation, wait for the expected observable
-outcome, including applicable success, error, and selection states. Apply
-`e2eTesting.execution.browser.actionDelayMs` only when the project config and
-reference document a presentation need, and only after the outcome is stable.
-That delay is never a readiness or settle signal. Attach console/page-error/
-request capture before the first interaction, capture configured
-screenshots/trace/video, read them, and redact sensitive values before
-persistence.
+Drive the journey through the real user interface, chaining outputs from earlier actions. Use the configured browser/device/desktop driver, real CLI, API client, supported service input or generator as appropriate. Do not bypass the interface through internal calls or direct state writes.
 
-### 2b. Bring the system up locally and instrument it
+Use the runner's bounded native waits or an evidenced helper for actionability and observable postconditions. Apply action delays/visibility only as the project contract requires; delays never prove readiness. Record relevant preconditions, actions, expected/actual results, settle signals, conditions, timestamps and evidence references. Cover matrix states: relevant failure, empty, loading, offline, permission, recovery and boundary cases.
 
-A review reads what the system DOES, and the system only does anything while it
-is running. Bring every `APPLICABLE` surface up on this machine as a whole
-system before the first observation — not the one process the change touched.
-
-**Resolve the recipe from project evidence, in this order.** Use
-`experienceVerification.surfaces[].localRun` (`dependencyCommand`,
-`startCommand`, `workingDir`, `readyCheck`, `readyTimeoutSeconds`,
-`teardownCommand`, `logSources`, `credentialsRef`) when the project declares it.
-When it does not, DERIVE the recipe from repository evidence — package/task
-scripts, compose or container manifests, Makefile/justfile targets, IDE or CI
-run configurations, the README's run section — and record the exact file and
-line each command came from. Never invent a port, script name, or default
-command; a recipe you could not source is `ENVIRONMENT-BLOCKED`. When you
-derived a working recipe that the config lacks, propose it as a `localRun`
-block in the report so the next review does not re-derive it.
-
-**Bring-up order, each step gated on the previous:**
-
-1. **Backing services first** — database, broker, cache, object store, emulator,
-   external stubs. A UI driven against a half-present backend produces defects
-   that belong to the environment, and every one of them costs a round.
-2. **Migrations/seed through the project's own supported path**, when the
-   project has one. Never hand-write rows to make a screen render.
-3. **The surface itself**, started in the background so the session can keep
-   driving it.
-4. **Readiness is POLLED, never assumed.** Wait on `readyCheck` — a health
-   endpoint/command returning success, or the declared ready log line — up to
-   `readyTimeoutSeconds`. Process-started is not ready, an open port is not
-   ready, and a fixed sleep is not a readiness signal. Record what you polled
-   and how long it took.
-5. **Attach the log channels BEFORE the first interaction** (see step 3), so the
-   startup window is captured too — a large share of runtime errors fire during
-   boot and first paint, and a listener attached afterwards will never see them.
-
-Record the resolved recipe, its evidence source, the readiness observation, and
-the versions/ports/profile actually used. If bring-up fails, capture the failing
-command, exit status, and logs, and record the surface `ENVIRONMENT-BLOCKED` —
-diagnose it as an environment defect. Do NOT weaken the system to get it up:
-stubbing a failing dependency, disabling auth, or skipping a service turns every
-later observation into evidence about a system nobody ships.
-
-**Tear down what you started** once step 6 has run — stop the processes and
-services through `teardownCommand` or the way you started them, and say so in
-the report. Data and containers a reviewer leaves behind become the next
-reviewer's phantom defect. Leave anything the developer already had running
-untouched; you did not start it, so it is not yours to stop.
-
-### 3. Exercise the actual behavior
-
-Run the configured feature through the narrowest representative journey. Use
-the available browser/device/desktop/terminal/API/client or project command;
-never substitute a skill-local demo. Exercise realistic actor pacing with a
-reusable bounded `waitUntil` predicate before and after each interactive
-action, and wait on observable settle signals instead of blind sleeps.
-
-For each action, record the action, expected observable, actual observable,
-`waitUntil` condition/result, settle signal, and evidence reference. The
-evidence must come from the running
-or invoked feature:
-
-- visual surface: navigate, interact, and inspect the rendered screen at the
-  relevant viewport/device and states; open/read screenshots or recordings;
-- terminal/API/library: invoke the real command/call and inspect the complete
-  transcript, response, return value, errors, persisted state, or side effect;
-- background service: trigger the supported input and inspect the externally
-  observable result, emitted message, job outcome, or durable state;
-- generated output: run the generator and inspect the resulting artifact and
-  its provenance, not only the generator exit code.
-
-**Drive it the way a person would, through the real interface.** Reach the
-result by the route a user has — sign in, navigate, type, click, submit, wait,
-read what came back — not by calling an internal function, posting to the
-endpoint the button would have called, or setting state directly. A shortcut
-skips exactly the layer the review exists to check: the wiring between the
-interface and the logic. Use whatever control mechanism the host actually
-offers for the surface — a browser automation/devtools driver (for a web
-surface, use the project's configured visible browser runner when
-supported — for example Playwright, Selenium, or Cypress), a device/desktop driver, the real CLI in a
-terminal, an HTTP client for an API. Chain the journey's steps so later steps
-consume what earlier steps really produced, and cover the states the matrix
-lists, not only the happy path.
-
-**Capture the runtime log stream for the whole session.** Attach before the
-first interaction (step 2b.5) and keep capturing until teardown:
-
-- **web surface:** browser console messages at every level, uncaught exceptions,
-  unhandled promise rejections, and failed network requests (4xx/5xx, blocked,
-  aborted, CORS) — plus the server-side log of whatever backend it called;
-- **terminal/CLI, API, service, job:** the process's stdout/stderr and every
-  channel named in `localRun.logSources`, including the dependency containers.
-
-Save the captured stream under the evidence root and READ it. Attribute each
-entry to the action that produced it, and note the startup window separately
-from the interaction window. An empty capture is only evidence when you can show
-the listener was attached — "no errors appeared" and "nothing was listening"
-look identical in a report, so record which one it was.
-
-**Capture the screen for every visual surface.** Take a screenshot of each
-matrix state at each matrix viewport — including the loading, empty, error,
-permission, and post-submit states, not just the settled happy path — plus a
-full-page capture where the surface scrolls. Name each file for its state and
-viewport and store it under the evidence root. Then OPEN and read the images:
-capture produces a file, and only reading it produces an observation.
-
-If interaction or visual inspection is unavailable, stop that branch as
-`ENVIRONMENT-BLOCKED`. A screenshot that was saved but not inspected is not an
-observation. Do not paste credentials into a report; use redacted identities
-and reference secure setup without copying secrets.
+Read the captured logs and actual responses, transcripts, persisted outcomes or generated artifacts; redact secrets. For visual reviews, **read [references/visual-captures.md](references/visual-captures.md) before the first image** and follow the configured capture contract. Unavailable interaction/inspection is blocked; saved but unread evidence is unverified.
 
 ### 4. Inspect and judge
 
-Write observations as facts with references first. Then write separate
-judgments against the stated purpose and acceptance criteria. Use the
-project’s UI/design review for visual-source and accessibility checks when
-applicable; use the project’s API/CLI/library contract for non-visual output.
-Do not infer usability, accessibility, reliability, or correctness from an
-image alone when the claim needs interaction, timing, assistive technology, or
-data evidence.
+Persist observations before judgments, linked to evidence. Judge against intent as `PASS`, `FAIL`, `PARTIAL` or `NOT-VERIFIABLE`; confidence is metadata, never approval. Do not infer interaction, accessibility, timing or data correctness from an image alone.
 
-Every judgment names one of `PASS`, `FAIL`, `PARTIAL`, or `NOT-VERIFIABLE` and
-links to the observation(s). A confidence percentage may describe uncertainty,
-but it never changes the evidence level or grants acceptance. Keep the
-agent’s judgment separate from human/owner acceptance.
+Classify findings:
 
-**Classify every non-`PASS` judgment BLOCKING or ADVISORY — the loop converges
-on the first only.**
+- **BLOCKING:** objective acceptance/invariant failure, broken required state, unusable layout, measured accessibility-floor failure, wrong/missing output, runtime ERROR, uncaught exception, unhandled rejection or journey-critical failed request. Route errors outside your ownership to their owner without downgrading them.
+- **ADVISORY:** polish, taste, visual identity and warnings/deprecations. Attempt a small behavior-preserving warning fix only within an already authorized round; otherwise record emitter and disposition. Advisory findings never open a round or hold acceptance open.
 
-- **BLOCKING** — objectively checkable against the stated purpose: a `FAIL` or
-  `PARTIAL` against acceptance criteria; a broken, overflowing, or unreadable
-  layout at a matrix viewport; a required state the surface never reaches
-  (loading, empty, error, permission, offline, recovery); an accessibility-floor
-  violation; a console/runtime error or unhandled rejection; a wrong or missing
-  value in a response, transcript, persisted record, or generated artifact.
-- **ADVISORY** — a preference or identity call: visual distinctiveness
-  (`DD-1`–`DD-8`), polish, copy tone, spacing taste, a nicer alternative. Record
-  it as a recommendation with its location and rationale.
+Inspect the environment as a competing cause before attributing a defect. Missing proof is `UNVERIFIED` or `ENVIRONMENT-BLOCKED`, not a proven defect or pass. Never suppress/filter logs, lower their level, swallow errors or invent measurements to clear a finding.
 
-**NEVER open a round for an ADVISORY finding.** Taste has no fixed point: a loop
-that runs on it will keep editing a surface that was already correct, and each
-edit costs a fresh full re-exercise. If a finding cannot be stated as "this
-observably fails to do X, which the intent requires", it is ADVISORY.
+### 5. Repair and re-exercise
 
-**Runtime log verdict — errors open a round, warnings never do.**
+Skip repairs in review-only, report-only, caller-owned passes or `--rounds=0`. Only standalone `--fix-loop` repairs within the selected budget; each round follows this sequence:
 
-- An **ERROR**, uncaught exception, unhandled rejection, or failed request the
-  journey depended on is **BLOCKING** — including when the screen still looked
-  right. A caught-and-logged error is a defect the interface hid, and the log is
-  the only place it surfaced.
-- A **WARNING**, deprecation, or noisy info line is **ADVISORY**, with a bounded
-  best effort: fix it inside the round when the cause is this project's code and
-  the fix is small and behavior-preserving. Otherwise record it with its emitter
-  and why it stands. Never hold a review open on a warning.
-- Third-party or framework noise you do not own is ADVISORY — name the emitter
-  and the reason it is not yours. An ERROR you cannot fix at this layer is
-  **routed to its owner as BLOCKING**, never downgraded to make the round close.
-- **Never silence a log to clear it.** Suppressing a line, lowering its level,
-  filtering the capture, or wrapping the call in a catch that swallows is fixing
-  the EVIDENCE, which the boundary rule forbids in every round.
+1. Adjudicate BLOCKING findings with observation and `file:line` evidence: `SOURCE-WRONG`, `EXPECTATION-WRONG`, `TEST-CONDITION-INVALID`, `ENVIRONMENT-BLOCKED` or `AMBIGUOUS`. Ask the owner for ambiguity; an expectation issue is routed, not rewritten here.
+2. Use `/fix` at the invariant's owning layer (`--target=ui` for visual/layout defects). Expectations, baselines, snapshots, tests, fixtures, assertions and acceptance criteria remain read-only.
+3. Run `/changes-review` INLINE, report-only, on the round's fix diff; fold validated findings into that round. Record a skip when nothing changed.
+4. Re-exercise and judge the current build over the SAME matrix with fresh logs and required captures. Restart and poll readiness if startup/config/dependencies/schema/build changed.
+5. **Round Integrity Check:** no dropped surface/state/viewport/condition, applicability downgrade, weakened journey/criterion, omitted required capture or detached/filtered log channel. Restore coverage and rerun if this fails.
+6. Append round number, BLOCKING counts in/out, verdicts, changed paths and review outcome.
 
-**Capture-set review — case by case, then synthesis.** When the surface produced
-a capture set with a `capture-manifest.json` (see
-`.claude/skills/shared/ui-state-capture-protocol.md`), the visual judgment is a
-two-pass job, and the order is not optional.
+Convergence requires a fresh full exercise with zero BLOCKING defects AND a passed integrity check. Stop and escalate through the host's question tool when defects remain at the cap, fail to shrink across two consecutive rounds, increase, or a round becomes `ENVIRONMENT-BLOCKED`. Report `NOT-CONVERGED` or the actual capability limitation, never a partial pass.
 
-*Pass 0 — reload the authority, before the first image.* Read the project's own
-UI convention sources and cite which resolved: `docs/project-config.json`
-→ `designSystem.canonicalDoc`, `tokenFiles`, `appMappings[]`; the resolved
-design-system doc, `frontend-patterns-reference.md`, `configured styling reference`;
-`.claude/docs/design-knowledge.md` and `.claude/docs/design-review-checklist.md`;
-and the governing brief or accepted `/ui-design` decision. Judging a design from
-memory is how a deliberate house convention gets reported as a bug — and a
-sub-agent inherits none of this from the calling conversation.
+### 6. Compare, tear down and hand off
 
-*Pass 1 — one capture at a time.* Open exactly ONE image, inspect it, append its
-record, and only then open the next (per `SYNC:incremental-persistence`):
-
-```text
-CASE {seq} — {tc} · {action_label} · {surface} @ {viewport} · {phase}
-IMAGE      {path}   READ: yes
-EXPECTED   {expected_delta from the manifest}
-OBSERVED   <facts visible in the image, with locations>
-CONSOLE    <errors/warnings attributed to this transition, or none>
-FINDINGS   <UIX code · BLOCKING|ADVISORY · location · what IN the image shows it>  |  none
-VERDICT    PASS | FAIL | PARTIAL | NOT-VERIFIABLE
-```
-
-An explicit `none` is required for a clean capture. Taxonomy: `UIX-BROKEN`
-(blank/error boundary/failed render), `UIX-UNSTYLED` (styles not applied, raw
-controls, persisted FOUC), `UIX-OVERFLOW` (clipped, truncated, escaping its
-container, unintended horizontal scroll), `UIX-OVERLAP` (occlusion, z-index,
-sticky element covering content), `UIX-LAYOUT` (collapsed grid, broken
-responsive reflow, off-scale spacing), `UIX-STATE` (the action produced no
-visible change where `expected_delta` required one; missing
-loading/empty/error/disabled/selected feedback; stale data after a mutation),
-`UIX-A11Y` (measurable floor only), `UIX-CONVENTION` (deviates from the
-project's own tokens/components/pattern — **cite the authority clause it
-breaks**), `UIX-FLOW` (dead end, context loss, missing confirmation, no
-feedback between action and result), `UIX-POLISH` (identity and taste).
-
-*Pass 2 — synthesis.* Reconcile the records against the manifest and report
-`reviewed/total`; a row with no record is `UNVERIFIED`, never clean. Cluster a
-defect repeating across captures into ONE finding owned by its
-`Common`/`Domain-Shared`/`Page` component — a header overflowing on nine screens
-is one shared-component fix, and reporting it nine times hides that. Report the
-findings that exist only in the sequence: no feedback between an action and its
-result, layout shifting between consecutive steps, the same component rendered
-inconsistently across surfaces, convention drift accumulating through a flow, a
-state the journey never reached. Then list the state-changing actions that
-produced no capture (under `uiStateCapture.mode: off`, record transition coverage
-once as `N/A — uiStateCapture off: {reason}` instead), plus anything deduped,
-sampled, or capped out — a recorded blind spot, never an implicit pass.
-
-**Visual verdict — separate the floor from the taste.** Judge the captured
-images, not a memory of the design:
-
-- **BLOCKING — the usability/accessibility floor** (`UI-1.1`–`UI-9.4`, and
-  `P0`–`P2` findings from the review checklist `CL-1`–`CL-6`): content clipped,
-  overlapping, or unreadable; a control off-screen or unreachable with no scroll
-  path; a state the surface never reaches; contrast below the measured floor; a
-  touch target under the floor; a missing or invisible focus ring; layout broken
-  at a matrix viewport.
-- **ADVISORY — visual identity and polish** (`DD-1`–`DD-8`): distinctiveness,
-  palette and type character, spacing taste, a nicer alternative. Recorded with
-  its location and rationale, never looped on.
-- Cite the image and the location, and say what IN the image shows it. **Never
-  invent a measurement** — if a claim needs a number the capture cannot give,
-  record it `NOT VERIFIABLE` and name what would settle it.
-- The project's design-system, SCSS, and frontend-pattern docs and ADRs
-  **outrank** these clauses. A repo-wide convention is an intentional identity,
-  not a finding; a genuine conflict goes to the user, never resolved silently.
-
-`NOT-VERIFIABLE` is never BLOCKING — it is missing capability, not a defect.
-Route it to `ENVIRONMENT-BLOCKED` or `UNVERIFIED` and say what would settle it.
-
-### 5. Remediate and re-exercise (bounded loop)
-
-One observation proves what the surface does today, not that it does the right
-thing. When step 4 recorded any BLOCKING defect and the round budget is above
-zero, run remediation rounds until a FRESH full exercise records none, or the
-budget is spent.
-
-**One round is all six of these, in order:**
-
-1. **Adjudicate before editing.** Write one verdict per BLOCKING defect —
-   `SOURCE-WRONG` · `EXPECTATION-WRONG` · `TEST-CONDITION-INVALID` ·
-   `ENVIRONMENT-BLOCKED` · `AMBIGUOUS` — each with its observation reference,
-   `file:line` evidence, and confidence. `AMBIGUOUS` goes to `AskUserQuestion`;
-   never guess an owner. An unadjudicated defect gets "fixed" by whatever is
-   nearest, which is almost always the surface rather than the cause.
-2. **Fix at the owning layer** through `/fix` (`--target=ui` for a visual,
-   layout, or responsiveness defect). Ask whose responsibility it is — the
-   component that rendered it, the service that supplied the data, or the entity
-   that owns the rule — and repair there, never at the symptom site.
-3. **Review the round's fix diff.** Any round that lands a change runs
-   `/changes-review` INLINE and report-only, scoped to that round's diff;
-   validated findings fold into the SAME round's fix set. A round that changed
-   nothing skips this with a recorded reason. — why: a screen that now looks
-   right cannot show you a wrong-layer fix, a broken invariant elsewhere, or a
-   security/performance regression the eye never reaches.
-4. **Re-exercise from scratch.** Repeat steps 3 and 4 over the CURRENT build
-   with the SAME evidence matrix — fresh log capture attached before the first
-   interaction and fresh screenshots of every matrix state. A capture taken
-   before the fix is not evidence for the build after it, and a partial re-check
-   is not a round. When the fix touched startup, configuration, dependencies,
-   schema, or build output, **restart through step 2b** and re-gate on
-   readiness; a hot-reloaded process can still be serving the old wiring.
-5. **Round Integrity Check.** The round counts only if the matrix did not
-   shrink: no surface dropped, no state removed, no viewport/device/locale
-   narrowed, no `APPLICABLE` row quietly reclassified `NOT-APPLICABLE`, no log
-   channel detached, filtered, or level-raised, no state left uncaptured, and no
-   acceptance criterion, assertion, or journey weakened. Fail this check →
-   restore the matrix and re-run the round; it is a regression, not progress.
-6. **Log the round** in the report: round number, BLOCKING defects in, verdicts,
-   fix paths, `/changes-review` outcome, BLOCKING defects out.
-
-**Convergence** = a fresh full exercise over the post-fix build records **zero
-BLOCKING defects across the whole matrix**, with the Round Integrity Check
-passed. Both, or it is not converged.
-
-**STOP and escalate via `AskUserQuestion`** — never silently spin — when any of
-these holds: the round cap is reached with BLOCKING defects still open; the
-BLOCKING count fails to shrink across two consecutive rounds; the count
-increases (the fixes are regressing); or a round hits `ENVIRONMENT-BLOCKED`.
-Never loop against an unhealthy environment — a broken runner produces a broken
-verdict every round, faster each time.
-
-### 6. Compare expectations safely
-
-Run this ONCE, on the settled evidence the loop converged to — not per round.
-Rounds change the product; comparison judges the result against what was already
-accepted, and comparing a mid-loop capture would classify a half-fixed surface as
-a regression against its own in-progress state.
-
-Use the deterministic contract when a baseline or accepted output exists:
+Compare the settled evidence once. When an accepted expectation exists, use the read-only classifier with JSON through its supported input:
 
 ```text
 node .claude/scripts/lib/experience-verification.cjs compare
 ```
 
-Provide JSON through the repository’s normal safe input mechanism. The helper
-classifies the decision; it does not modify files.
+No accepted expectation → `CANDIDATE-BASELINE-PENDING-ACCEPTANCE`; same expectation → `NO-REGRESSION`; changed output with unchanged intent → `POTENTIAL-REGRESSION`; intended change → `INTENDED-CHANGE-PENDING-ACCEPTANCE`. Record invalid conditions, ambiguity or missing evidence explicitly. Preserve prior expectations; never run snapshot updates or replace a baseline to clear a mismatch.
 
-- No accepted expectation → `CANDIDATE-BASELINE-PENDING-ACCEPTANCE`.
-- `NOT-APPLICABLE` → record the evidence-backed N/A result; do not create a
-  candidate baseline.
-- Same accepted expectation → `NO-REGRESSION`; retain it.
-- Difference with unchanged intent → `POTENTIAL-REGRESSION`; investigate
-  source, test, and environment while retaining the old evidence.
-- Difference with intended changed behavior →
-  `INTENDED-CHANGE-PENDING-ACCEPTANCE`; re-review the changed experience.
-- Invalid condition, blocked environment, missing evidence, or ambiguous intent
-  → classify it explicitly and do not rewrite expectations.
+Tear down only processes/services you started, including on blocked/failed branches, and record the result. Leave pre-existing developer processes alone.
 
-The `e2e-test`/project test workflow may later convert an explicitly accepted
-record into ordinary deterministic regression material. This skill never runs
-an update-snapshots flag, edits assertions, or replaces a baseline as part of
-comparison.
+## Output
 
-### 7. Record, hand off, and close
+Maintain an incremental report with scope/budget, intent/authority, matrix, exact commands/exit statuses, lifecycle/readiness/teardown, actions/settle signals, inspected evidence, runtime errors/warnings and disposition, observations/judgments, BLOCKING/ADVISORY findings, repair log, expectation decision, gaps and next owner/action. Visual reviews include capture records and reconciliation from the visual reference.
 
-Write a report under the configured evidence root (default only when the
-project explicitly adopts that default). Use a durable, versioned record with:
+Keep the final reply concise: verdict, material findings or limits, acceptance status, next action and full report link. Distinguish `OBSERVED`, `JUDGED`, `HUMAN-ACCEPTED`, `UNVERIFIED`, `ENVIRONMENT-BLOCKED` and `NOT-APPLICABLE`.
 
-```text
-review id / surface / mode / applicability
-round budget, rounds used, and per-round log
-intended purpose and governing references
-exact execution command/tool, entry point, identity, fixture, conditions
-local-run recipe actually used + where each command came from + readiness
-  observation + teardown result (or the proposed localRun block when derived)
-actions and settle signals
-runtime-log summary: capture window and channels, every ERROR with its
-  disposition, every WARNING with its emitter and why it stands or was fixed
-screenshot inventory: one entry per capture — matrix state x viewport and
-  per-action transition alike — with the observation each image supports
-capture-set record (when a manifest exists): manifest path, row count,
-  reviewed/total reconciliation, design-authority sources reloaded, one CASE
-  record per row, clustered findings with their owning component, sequence-level
-  findings, and uncaptured/deduped/capped coverage gaps
-OBSERVED observations + evidence references
-JUDGED judgments + BLOCKING/ADVISORY class + rationale + confidence metadata
-remediation verdicts, fix paths, and each round's /changes-review outcome
-baseline/comparison decision and retained expectation
-AGENT-RECOMMENDED-ACCEPT recommendation, or the open BLOCKING defects
-HUMAN-ACCEPTED record, or ACCEPTANCE-PENDING
-unverified areas, environment limits, redactions, and next action
-```
-
-On convergence, state the agent's recommendation explicitly and keep it visibly
-separate from the human decision:
-
-> `AGENT-RECOMMENDED-ACCEPT` — a fresh full exercise over the post-fix build
-> recorded zero BLOCKING defects across the whole matrix, with the Round
-> Integrity Check passed. The agent recommends this evidence for acceptance and
-> lists every residual ADVISORY finding, so the owner decides with the taste
-> calls in front of them, not hidden behind a green result.
-
-That recommendation is a `JUDGED` result with a name attached — it is **not** an
-acceptance and never substitutes for one. The record stays `ACCEPTANCE-PENDING`
-until an owner signs, and no baseline, snapshot, fixture, or assertion is
-promoted before that signature exists.
-
-Only copy a `HUMAN-ACCEPTED` record from an explicit owner/human decision.
-Require `acceptedBy`, `acceptedAt`, `intentRef`, `evidenceRefs`, and the
-accepted scope; require residual risk when the acceptance is not a full pass.
-If no such decision exists, leave acceptance pending and hand off the exact
-evidence needed. Never sign acceptance on behalf of another person.
-
-**The boundary this skill never crosses is the EXPECTATION, not the product.**
-Product tests, fixtures, snapshots, assertions, accepted baselines, and
-acceptance criteria stay read-only in every round: the loop repairs the DEFECT
-at its owning layer, never the evidence or the yardstick that exposed it. A
-BLOCKING defect still open when the budget is spent, or one owned by a layer
-outside this change, is classified and routed to the owning workflow — never
-forced green here, and never resolved by softening what was asked for.
-
-With `--rounds=0` the skill is read-only for the product too, and behaves
-exactly as the original single-pass review: report the classification, route it,
-repair nothing.
-
-## Report verdicts
-
-Use one primary status and do not collapse these into a green check:
-
-| Status | Meaning |
-| --- | --- |
-| `HUMAN-ACCEPTED` | Explicit acceptance record exists for the stated scope; it is not proof of unreviewed areas. |
-| `AGENT-RECOMMENDED-ACCEPT` | The loop converged: a fresh full exercise recorded zero BLOCKING defects with the Round Integrity Check passed, and the agent recommends the evidence. A `JUDGED` result, never an acceptance — it always ships as `ACCEPTANCE-PENDING`. |
-| `ACCEPTANCE-PENDING` | Evidence was observed/judged but no explicit acceptance exists. |
-| `NOT-CONVERGED` | The round budget was spent, the defect count stopped shrinking, or defects increased, with BLOCKING defects still open. List them and the next owner; never report this as a partial pass. |
-| `OBSERVED` | Output was directly inspected, but no judgment was completed. |
-| `UNVERIFIED` | Required evidence or judgment is missing. |
-| `ENVIRONMENT-BLOCKED` | Applicable review could not run because capability was unavailable. |
-| `NOT-APPLICABLE` | The project has no such surface, with evidence. |
-
-Close with exact commands and exit statuses for automated checks, exact
-observations for the running feature, and the next owner/action. Do not claim
-this framework repository has live application evidence merely because its own
-contract tests pass.
-
-## How the loop sits inside the acceptance contract
-
-The contract below is the floor and is unchanged by the remediation loop — read
-the two together, because the loop is what makes the contract reachable rather
-than a permission to bypass it:
-
-- **Clause 6 (first-run rule) is untouched.** Convergence produces
-  `AGENT-RECOMMENDED-ACCEPT`, which is `JUDGED` evidence with a name on it. It
-  never promotes a baseline, and it never becomes `HUMAN-ACCEPTED` without the
-  explicit owner record clause 6 requires.
-- **Clause 7 (mismatch rule) is untouched.** The loop fixes the product so the
-  accepted expectation is met; it never edits a snapshot, fixture, assertion, or
-  generated expectation to close the gap from the other side.
-- **Clause 8 (automation boundary) is untouched.** Ordinary tests stay
-  deterministic and model-free. The loop adds a repair-and-re-prove cycle at
-  development time; it adds no authority to approve, and an `ENVIRONMENT-BLOCKED`
-  round still escalates instead of converging.
-
-If a round ever seems to require softening an expectation, that is the signal
-that the fix belongs elsewhere — stop the round and escalate.
+A complete clean review yields `AGENT-RECOMMENDED-ACCEPT` as a judgment and stays `ACCEPTANCE-PENDING` until an explicit owner decision exists. Copy `HUMAN-ACCEPTED` only from a record with `acceptedBy`, `acceptedAt`, `intentRef`, `evidenceRefs`, scope and any residual risk. Hand off evidence for that decision; never sign for the owner. Accepted evidence may later become deterministic regression material through the owning test workflow; ordinary tests remain model-free.
 
 <!-- PROTOCOL-GUIDES:START -->
 
@@ -559,6 +113,8 @@ that the fix belongs elsewhere — stop the round and escalate.
 - `environment-fault-hypothesis` — Weigh the environment as a competing cause, with a named discriminator; judging a bug report, failing test, error or unexpected output → .claude/skills/shared/protocols/environment-fault-hypothesis.md
 - `experience-acceptance-contract` — Review and evidence contract for a user-facing or observable surface; a change creates or changes a user-facing or observable surface → .claude/skills/shared/protocols/experience-acceptance-contract.md
 - `incremental-persistence` — Persist results per file or section while the work proceeds; a sub-agent or heavy step processes more than three files → .claude/skills/shared/protocols/incremental-persistence.md
+- `review-decision-autonomy` — Choose supported review decisions and ask before extending the round budget; running any review or audit skill or mode → .claude/skills/shared/protocols/review-decision-autonomy.md
+- `review-policy` — Review-only or a three-round fix loop with explicit extension and fresh post-fix evidence; deciding round eligibility, blocking findings or review state → .claude/skills/shared/protocols/review-policy.md
 - `review-principle-awareness` — Classify the change context first, then apply the current principles that fit it; starting any review → .claude/skills/shared/protocols/review-principle-awareness.md
 
 <!-- PROTOCOL-GUIDES:END -->
@@ -568,7 +124,6 @@ that the fix belongs elsewhere — stop the round and escalate.
 **MUST ATTENTION** visual E2E/QC resolves the project design authority first, applies project design-system and frontend decisions plus applicable `UI-*`/`DD-*`/`CL-*` roles, records component ownership using the project's taxonomy or observed boundaries, sends static source findings to `/ui-design --mode=review` and runtime image evidence to `/experience-review`, captures states and transitions required by the configured evidence contract, reloads the convention docs then reads and records each required capture before synthesizing findings with coverage gaps, treats `UIX`/UI/accessibility-floor findings as blocking and `UIX-POLISH`/DD identity as advisory, never invents measurements, and never auto-promotes baselines; non-visual runs state `N/A`.
 
 <!-- /SYNC:e2e-visual-design-contract:reminder -->
-
 
 <!-- SYNC:review-principle-awareness:reminder -->
 
@@ -582,33 +137,34 @@ that the fix belongs elsewhere — stop the round and escalate.
 
 <!-- /SYNC:environment-fault-hypothesis:reminder -->
 
-## Closing Reminders
-
-**IMPORTANT MUST ATTENTION Goal:** Exercise and inspect an applicable running/observable feature against its intended purpose, drive its BLOCKING defects to zero in a bounded remediation loop, then leave durable evidence and a truthful acceptance or limitation status.
-
-**IMPORTANT MUST ATTENTION** read intent first, classify capability from project evidence, exercise the actual observable feature, inspect the evidence, separate observation/judgment/acceptance, and report every limitation.
-
-**IMPORTANT MUST ATTENTION** bring the WHOLE system up locally before the first observation — backing services, then migrations/seed, then the surface — POLL a readiness signal (a started process, an open port, or a sleep is not readiness), attach the log channels BEFORE the first interaction, and tear down only what you started. Never stub dependencies or disable auth to get the system up. Bring-up that fails is `ENVIRONMENT-BLOCKED`, never a pass.
-
-**IMPORTANT MUST ATTENTION** drive the journey through the REAL interface the user has — never an internal call, direct state write, or the endpoint the button would have called.
-
-**IMPORTANT MUST ATTENTION** runtime logs and captured screens are mandatory evidence channels on every exercise and every round. A runtime ERROR / uncaught exception / unhandled rejection / journey-critical failed request is BLOCKING even when the screen looked right; a WARNING is ADVISORY with a bounded best-effort fix and NEVER holds the review open. NEVER silence a log, lower its level, filter the capture, or swallow it in a catch . For a visual surface capture every matrix state x viewport and READ the images: floor breakage (`UI-1.1`–`UI-9.4`, checklist `P0`–`P2`) is BLOCKING, identity and polish (`DD-1`–`DD-8`) is ADVISORY, no measurement is ever invented, and the project's design-system docs outrank the clauses.
-
-**IMPORTANT MUST ATTENTION** state the round budget (`--rounds=N`, default 3) BEFORE the first observation; every round = adjudicate → `/fix` at the owning layer → `/changes-review` the round's fix diff → re-exercise FRESH over the same matrix → Round Integrity Check → log. A capture taken before the fix is not evidence for the build after it.
-
-**IMPORTANT MUST ATTENTION** only a BLOCKING defect opens a round — record ADVISORY findings (preference, polish, visual identity), NEVER loop on them.
-
-**IMPORTANT MUST ATTENTION** STOP and escalate via `AskUserQuestion` when the cap is reached with defects open, the defect count stops shrinking across two rounds, the count increases, or a round hits `ENVIRONMENT-BLOCKED` — report `NOT-CONVERGED`, never a partial pass.
-
-**IMPORTANT MUST ATTENTION** fix the DEFECT, never the evidence of it: expectations, baselines, snapshots, fixtures, assertions, and acceptance criteria stay read-only in every round, and a review that got clean because the matrix shrank REGRESSED.
-
-**IMPORTANT MUST ATTENTION** first-run evidence is candidate evidence; preserve accepted expectations on mismatch; no automatic snapshot/assertion/fixture update; explicit owner acceptance is required for promotion. `AGENT-RECOMMENDED-ACCEPT` is a named agent judgment that always ships as `ACCEPTANCE-PENDING` — the agent recommends, the owner signs.
-
 <!-- SYNC:experience-acceptance-contract:reminder -->
 
 **MUST ATTENTION** classify the configured surface, read intended purpose, bring the whole system up locally and POLL readiness before observing, exercise the actual observable feature through its real interface, synchronize browser/UI actions with the project's configured runner waits and observable pre/postconditions, and apply action delays only when its contract requires them. Capture and READ the runtime log stream and relevant evidence, separate OBSERVED/JUDGED/HUMAN-ACCEPTED/UNVERIFIED/ENVIRONMENT-BLOCKED/NOT-APPLICABLE, preserve old expectations on mismatch, and require explicit acceptance before baseline promotion. A runtime ERROR is a defect even when the output looked right; a WARNING is advisory. Never silence a log, invent a measurement, or infer acceptance from a screenshot, passing test, or agent confidence; ordinary tests remain model-free.
 
 <!-- /SYNC:experience-acceptance-contract:reminder -->
 
-**IMPORTANT MUST ATTENTION** if the runner, device, service, or inspection tool is unavailable, record `ENVIRONMENT-BLOCKED` or `UNVERIFIED`; never present incomplete evidence as successful verification.
-**IMPORTANT MUST ATTENTION** for E2E/browser/user-flow surfaces, apply the shared E2E quality protocol and preserve its gate-row verdicts alongside runtime and visual evidence; static test-code findings route to the owning test/UI review.
+<!-- SYNC:review-decision-autonomy:reminder -->
+
+**MUST ATTENTION** Decide supported review choices and recommendations, record the rationale, and finish without routine user questions. Keep round-limit extension, indispensable facts and actual action authority; preserve source coverage, validation, tests, read-only boundaries and budgets. Review decisions do not accept open risks or make a failed gate pass.
+
+<!-- /SYNC:review-decision-autonomy:reminder -->
+
+## Closing Reminders
+
+**IMPORTANT MUST ATTENTION Goal:** Exercise the real interface and inspect evidence so acceptance decisions reflect observed behavior.
+
+**IMPORTANT MUST ATTENTION Main steps:** resolve intent → plan evidence/capability → start, instrument and exercise → inspect/judge → repair/re-exercise → compare, tear down and hand off.
+
+Review-only, caller-owned passes and `--rounds=0` are product-read-only; standalone `--fix-loop --rounds=1–3` permits only validated BLOCKING repairs within budget and actual authority. Preserve the matrix and expectations; human acceptance alone permits baseline promotion.
+
+| Evasion | Required action |
+|---|---|
+| “The final screen passed” | Read required logs and evidence; runtime errors remain defects. |
+| “Update the snapshot to clear it” | Preserve expectations and hand candidate evidence to the owner. |
+
+
+<!-- SYNC:review-policy:reminder -->
+
+**MUST ATTENTION** Triage all targets, plan and create review/validation/fix/fresh re-review tasks first. Review-only reports without edits; fix-loop freshly reviews every repair under one fixing owner. Default cap three rounds: disclose deferred LOWs, ask and wait before a bounded extension for MEDIUM+ or failed required checks. Preserve scope, coverage and actual operation authority.
+
+<!-- /SYNC:review-policy:reminder -->

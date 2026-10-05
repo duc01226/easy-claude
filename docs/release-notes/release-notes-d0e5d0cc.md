@@ -19,9 +19,9 @@ This release makes the framework lighter and quieter for adopting projects witho
 `workflow-big-feature`, `workflow-greenfield-init`, `workflow-idea-to-pbi`, and `workflow-spec-to-pbi` are now `manual`; `workflow-feature` is `confirm` (the assistant asks once). Any workflow still runs when you ask for it.
 Migration: to restore the old behavior, set `portability.workflowActivation.overrides` in `docs/project-config.json`, e.g. `{ "workflow-feature": "auto" }`.
 
-### 15 utility skills are command-only on every host (Skills)
+### 14 utility skills are command-only on every host (Skills)
 
-`ck-help`, `custom-agent`, `custom-prompt`, `docx-convert`, `git-developer-performance`, `graph-export`, `pdf-convert`, `playwright-cli`, `presentation-builder`, `project-help`, `release-notes`, `remotion`, `scan-codebase-health`, `skill-creator`, `sync-skills-shared-protocols` run only via `/name` (`$name` on Codex). `commit` and `learn` stay selectable.
+`ck-help`, `custom-agent`, `custom-prompt`, `docx-convert`, `git-developer-performance`, `pdf-convert`, `playwright-cli`, `presentation-builder`, `project-help`, `release-notes`, `remotion`, `scan-codebase-health`, `skill-creator`, `sync-skills-shared-protocols` run only via `/name` (`$name` on Codex). `commit` and `learn` stay selectable. Graph exports use `/graph-code --mode=export --format=json|mermaid` (`$graph-code` on Codex); `graph-code` stays selectable.
 Migration: run `/sync-codex` and `/sync-opencode` to regenerate host policies and the 22 OpenCode `/name` commands.
 
 ### Code graph is opt-in (Code graph)

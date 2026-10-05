@@ -2,6 +2,19 @@
 
 Manage cookies, localStorage, sessionStorage, and browser storage state.
 
+<!-- SKILL-NAV:START -->
+## Contents
+
+- Storage State
+- Cookies
+- Local Storage
+- Session Storage
+- IndexedDB
+- Common Patterns
+- Security Notes
+
+<!-- SKILL-NAV:END -->
+
 ## Storage State
 
 Save and restore complete browser state including cookies and storage.

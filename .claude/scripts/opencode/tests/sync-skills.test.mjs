@@ -648,7 +648,7 @@ test("TC-ADS-062: commands are repeatable, --check catches edit/delete/unhide, a
   // Given three hidden skills, and an unmarked file with a generated-looking name (boundary: never
   // counted, changed or removed)
   const root = await createProject({
-    skills: { "pdf-convert": { commandOnly: true }, "docx-convert": { commandOnly: true }, "graph-export": { commandOnly: true }, "release-doc": {} },
+    skills: { "pdf-convert": { commandOnly: true }, "docx-convert": { commandOnly: true }, "manual-export": { commandOnly: true }, "release-doc": {} },
   });
   const lookalike = "Not generated: $ARGUMENTS\n";
   await fs.mkdir(path.join(root, COMMANDS_RELATIVE), { recursive: true });
@@ -665,7 +665,7 @@ test("TC-ADS-062: commands are repeatable, --check catches edit/delete/unhide, a
   // When a command is edited, one is deleted and one skill is un-hidden
   await fs.writeFile(path.join(root, commandPath("pdf-convert")), `${first["pdf-convert.md"]}edited\n`, "utf8");
   await fs.rm(path.join(root, commandPath("docx-convert")));
-  await fs.writeFile(path.join(root, ".claude", "skills", "graph-export", "SKILL.md"), skillDocument({ name: "graph-export" }), "utf8");
+  await fs.writeFile(path.join(root, ".claude", "skills", "manual-export", "SKILL.md"), skillDocument({ name: "manual-export" }), "utf8");
 
   // Then the check names each drift and never the lookalike
   const drift = await checkOpencodeSkills({ rootDir: root });
@@ -673,7 +673,7 @@ test("TC-ADS-062: commands are repeatable, --check catches edit/delete/unhide, a
   for (const reason of [
     "changed generated command .opencode/commands/pdf-convert.md",
     "missing generated command .opencode/commands/docx-convert.md",
-    "stale generated command .opencode/commands/graph-export.md",
+    "stale generated command .opencode/commands/manual-export.md",
   ]) {
     assert.ok(drift.reasons.includes(reason), `check lists: ${reason}`);
   }
@@ -686,6 +686,40 @@ test("TC-ADS-062: commands are repeatable, --check catches edit/delete/unhide, a
   assert.equal(await readText(root, commandPath("docx-convert")), first["docx-convert.md"], "the deleted command is restored");
   assert.equal(await readText(root, commandPath("release-doc")), lookalike, "the lookalike is untouched");
   assert.equal((await checkOpencodeSkills({ rootDir: root })).ok, true);
+});
+
+test("TC-GCM-008: retiring the export alias removes its owned OpenCode entry and command while graph-code stays selectable", async () => {
+  // Intent: a real upgrade removes only generated retirement state and preserves other host policy.
+  // Given the old manual alias, its selectable mode owner, another utility and user-owned state
+  const retired = "graph" + "-export";
+  const userCommand = "User-authored command.\n";
+  const root = await createProject({
+    skills: { [retired]: { commandOnly: true }, "graph-code": {}, "pdf-convert": { commandOnly: true } },
+    projectConfig: { project: { name: "fixture" } },
+    opencode: { theme: "light", permission: { skill: { "user-owned": "ask" } } },
+    files: { [commandPath("user-owned")]: userCommand },
+  });
+  await materializeOpencodeSkills({ rootDir: root });
+  assert.equal((await readJson(root, "opencode.json")).permission.skill[retired], "deny", "the prior alias was governed");
+  assert.ok(await exists(root, commandPath(retired)), "the prior explicit alias command exists");
+  const otherCommand = await readText(root, commandPath("pdf-convert"));
+
+  // When the alias source is removed and the existing host generator reconciles the upgrade
+  await fs.rm(path.join(root, ".claude", "skills", retired), { recursive: true });
+  assert.equal((await checkOpencodeSkills({ rootDir: root })).ok, false, "stale retirement output is drift");
+  const result = await materializeOpencodeSkills({ rootDir: root });
+
+  // Then the retired skill is absent, the mode owner stays selectable, and unrelated state survives
+  const config = await readJson(root, "opencode.json");
+  assert.deepEqual(config.permission.skill, { "user-owned": "ask", "pdf-convert": "deny" });
+  assert.deepEqual((await readJson(root, LEDGER_RELATIVE)).skill, { "pdf-convert": "deny" });
+  assert.equal(await exists(root, commandPath(retired)), false, "the generated explicit alias command is gone");
+  assert.equal(await exists(root, commandPath("graph-code")), false, "the selectable mode owner needs no hidden-skill command");
+  assert.ok(result.commandsDeleted.includes(path.join(root, commandPath(retired))), "the owner reports the stale command removal");
+  assert.equal(config.theme, "light");
+  assert.equal(await readText(root, commandPath("pdf-convert")), otherCommand);
+  assert.equal(await readText(root, commandPath("user-owned")), userCommand);
+  assert.equal((await checkOpencodeSkills({ rootDir: root })).ok, true, "retirement converges through the same owner");
 });
 
 // ---- P41: the skill profile on opencode (skillProfile -> permission.skill + commands) ----

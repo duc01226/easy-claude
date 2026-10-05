@@ -9,7 +9,7 @@ description: '[Git] Use when resolving git merge, cherry-pick, rebase or stash-a
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - Use ask user tool to ask user.
+> - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -19,6 +19,8 @@ description: '[Git] Use when resolving git merge, cherry-pick, rebase or stash-a
 ## Quick Summary
 
 **Goal:** Resolve git merge/cherry-pick/rebase conflicts with backup, analysis, and structured reporting.
+
+**Summary:** Detect the operation and conflict paths → back up distinct paths → analyze both sides and callers → resolve → verify → hand off or continue under caller authority → report → final review. Preserve recovery files and the owning review/commit gate.
 
 **Workflow:**
 
@@ -79,10 +81,9 @@ Classify each conflict:
 
 ```bash
 mkdir -p {BACKUP_PATH}
-
-# For each conflicted file, copy WITH conflict markers preserved
-cp <conflicted-file> {BACKUP_PATH}/<filename>.conflict
 ```
+
+Use the host's file APIs to copy each conflicted file's exact bytes, including markers, to `{BACKUP_PATH}/<repository-relative-path>.conflict`. Create its parent directories first and refuse to overwrite an existing backup. Preserve the full relative path: `src/a/config.json` and `src/b/config.json` must have separate backups. If a conflicted working-tree file is absent, record that absence and preserve the available index-stage versions before resolving it. Verify every saved copy before editing; a missing/failed backup blocks resolution. Use a new run directory when a prior backup already occupies the destination.
 
 Create a task tracking item for each conflicted file PLUS report and review tasks.
 
@@ -105,9 +106,11 @@ For each conflicted file, perform this analysis:
 git show <source-commit>:<file-path>
 
 # Optionally extract clean versions
-git show HEAD:<file-path> > {BACKUP_PATH}/<filename>.ours
-git show <source-commit>:<file-path> > {BACKUP_PATH}/<filename>.theirs
+git show HEAD:<file-path> > {BACKUP_PATH}/<repository-relative-path>.ours
+git show <source-commit>:<file-path> > {BACKUP_PATH}/<repository-relative-path>.theirs
 ```
+
+Create parent directories and reserve distinct, nonexisting paths before extracting these optional versions. Use host file/process APIs on Windows rather than assuming POSIX `mkdir` or redirection; a failed extraction is not a valid backup.
 
 #### 3c. Analyze dependencies
 
@@ -255,6 +258,8 @@ Create a comprehensive report at `{REPORT_PATH}` with:
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Resolve git merge/cherry-pick/rebase conflicts with backup, analysis, and structured reporting.
+
+**MUST ATTENTION Route:** detect → verify path-preserving backups → analyze both sides/callers → resolve → verify → authorized handoff/continuation → report → final review. Never overwrite recovery data or bypass the caller's review/commit gate.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 

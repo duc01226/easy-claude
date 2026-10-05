@@ -1,7 +1,7 @@
 ---
 name: prioritize
 version: 2.0.0
-description: '[Project Management] Use when a workflow step or the user asks for backlog prioritization: RICE, MoSCoW or Value-Effort ranking.'
+description: '[Project Management] Use when a workflow step or the user asks for backlog prioritization using RICE, MoSCoW or Value-Effort ranking.'
 ---
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
@@ -22,7 +22,7 @@ description: '[Project Management] Use when a workflow step or the user asks for
 - **1. Track + detect/collect** — track each declared step (`in_progress` → `completed` + evidence); identify file/inline input and require ≥3 items; fewer → direct discussion, NEVER force a framework.
 - **2. Select + score** — honor a specified framework; otherwise RICE for quantitative data, MoSCoW for stakeholder alignment, Value-Effort 2x2 for a quick call; default RICE when unsure; apply exact criteria, formula, and scales.
 - **3. Rank + report** — rank by framework; emit a prioritized table with scores, tech-agnostic value/effort/risk/business-impact rationale, and Do-first/Plan-next/Defer recommendations.
-- **4. Propagate + tie gate** — when PBI files exist, write `rank` (1–999) + `priority` to EACH PBI frontmatter; near-tie/disagreement → `AskUserQuestion` for `/llm-council` vs accept, otherwise end without prompting.
+- **4. Propagate + tie gate** — when PBI files exist, write `rank` (1–999) + `priority` to EACH PBI frontmatter; near-tie/disagreement → `ask user question tool` for `/llm-council` vs accept, otherwise end without prompting.
 
 **Workflow:**
 
@@ -31,7 +31,7 @@ description: '[Project Management] Use when a workflow step or the user asks for
 3. **Score Each Item** — apply exact framework criteria and calculate scores
 4. **Rank & Report** — emit prioritized table, rationale, and recommendations
 5. **Propagate Priority** — if PBI files exist, MANDATORY write `rank` + `priority` to EACH PBI frontmatter
-6. **Tie Gate** — near-tie → `AskUserQuestion` (`/llm-council` vs accept); otherwise end without prompting
+6. **Tie Gate** — near-tie → `ask user question tool` (`/llm-council` vs accept); otherwise end without prompting
 
 **Key Rules:**
 
@@ -183,7 +183,7 @@ Use a data-driven framework → ranked list with scores + rationale.
 - Multi-stakeholder disagreement flagged in input → gate fires
 - None of the above → gate does NOT fire; skill ends without prompting
 
-**MANDATORY ATTENTION** — when the gate fires, you MUST use `AskUserQuestion` to present these options (identical preamble pattern to `architecture --mode=design`'s `## Next Steps` MANDATORY ATTENTION block):
+**MANDATORY ATTENTION** — when the gate fires, you MUST use `ask user question tool` to present these options (identical preamble pattern to `architecture --mode=design`'s `## Next Steps` MANDATORY ATTENTION block):
 
 - **"Escalate to /llm-council (Recommended)"** — Tie/disagreement detected. Run 11 sub-agent council (5 advisors + 5 reviewers + chairman). Council's Contrarian + Outsider lenses are well-suited to multi-PBI ranking ties. Cheaper alternatives: `/why-review`, `/plan --mode=validate` (use these instead if the tie is narrow but stakes are routine).
 - **"Skip — accept current ranking"** — Acknowledge the tie; proceed with current ranking.
@@ -223,7 +223,7 @@ If gate does NOT fire, the prioritization decision stands; do NOT prompt.
 - **IMPORTANT MUST ATTENTION** emit the prioritized table (scores + rationale) AND Do-first/Plan-next/Defer recommendations — NEVER stop at raw scores — why: the consumable output is the ranked table plus an action call, not a number column
 - **IMPORTANT MUST ATTENTION** keep every rationale tech-agnostic per M1 — justify by value/effort/risk/business impact, NEVER by named stack/framework/product/language/design-pattern; effort may cite story points + relative complexity only — why: spec-principles §3 BLOCKING, a tech-named rationale leaks implementation into a priority call
 - **IMPORTANT MUST ATTENTION** score with the EXACT framework formula (RICE = Reach×Impact×Confidence ÷ Effort, fixed Impact/Confidence scales, story-point Effort), then rank descending (RICE) / by band (MoSCoW) / by quadrant (V-E) — NEVER invent ad-hoc scores — why: a defensible rank needs a reproducible number
-- **IMPORTANT MUST ATTENTION** on a near-tie (top-2 RICE within 15%, same-band MoSCoW overlap, flagged stakeholder disagreement) the gate FIRES — use `AskUserQuestion` to offer `/llm-council` escalation vs. accepting the ranking; if the gate does NOT fire, end WITHOUT prompting — why: tie-breaking is a judgment call the user owns, but a clear winner needs no interruption
+- **IMPORTANT MUST ATTENTION** on a near-tie (top-2 RICE within 15%, same-band MoSCoW overlap, flagged stakeholder disagreement) the gate FIRES — use `ask user question tool` to offer `/llm-council` escalation vs. accepting the ranking; if the gate does NOT fire, end WITHOUT prompting — why: tie-breaking is a judgment call the user owns, but a clear winner needs no interruption
 - **IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting; mark one `in_progress`, `completed` immediately after evidence
 - **IMPORTANT MUST ATTENTION** search codebase/artifacts for 3+ similar patterns before creating new structure; evaluate pattern FIT (same constraints/scope) before copying a nearby example — why: closest example ≠ matching preconditions
 - **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act, <60% DO NOT recommend); NEVER present a guess as fact
@@ -236,7 +236,7 @@ If gate does NOT fire, the prioritization decision stands; do NOT prompt.
 | ------------------------------------ | ----------------------------------------------------------------------------- |
 | "Only 2 items, just rank them"       | Below the 3-item floor → discuss directly; a framework adds ceremony, not signal |
 | "I'll cite the framework in the rationale" | Tech-agnostic per M1 — justify by value/effort/risk only, never by named stack |
-| "Scores are close enough, I'll pick" | Near-tie fires the gate → `AskUserQuestion` for `/llm-council`, never silently break |
+| "Scores are close enough, I'll pick" | Near-tie fires the gate → `ask user question tool` for `/llm-council`, never silently break |
 | "RICE feels right, skip the formula" | Apply the EXACT formula with fixed scales — a defensible rank needs a number   |
 | "The backlog file has the ranking, PBIs don't need it" | When PBI files exist, priority write-back to each PBI frontmatter is MANDATORY — mockup + presentation read priority from the PBI, not the backlog |
 | "Already know the patterns"          | Show `file:line` evidence — no proof = no search                              |

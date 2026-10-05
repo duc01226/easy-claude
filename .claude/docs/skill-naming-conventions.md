@@ -107,7 +107,7 @@ Reference guide for naming Claude Code skills consistently in YourProject.
 
 **Location:** `.claude/skills/shared/sync-inline-versions.md` (single canonical file)
 
-**Architecture:** One canonical file owns every protocol; every other copy is a projection of it (hybrid policy, `SYNC:shared-protocol-duplication-policy`). Converted skills carry guide lines and a hook delivers the full text from the generated `.claude/skills/shared/protocols/`; the four converging review-family skills, `references/*.md` bodies and agents keep full `<!-- SYNC:tag -->` blocks. Single-pass `plan --mode=review` uses guides. Never hand-write a protocol file or a file reference: the projection is generated, and guide lines are written only by `sync-update-blocks.py --mode=guide`.
+**Architecture:** One canonical file owns every protocol; every other copy is a generated projection (`SYNC:shared-protocol-duplication-policy`). All skill entrypoints, including the four review-family skills, carry guide lines. Hooks deliver full text from `.claude/skills/shared/protocols/`; read absent applicable full text before acting, including when delivery overflows. The live registry `inlineSkills` list is empty. Agents and mode-reference SYNC bodies retain full text, role reminders remain, and each fresh reviewer prompt receives all 11 complete review-protocol bodies VERBATIM. Universal protocols remain hook-only. The projection is generated; guide lines are written only by `sync-update-blocks.py --mode=guide`.
 
 **To update protocols:**
 

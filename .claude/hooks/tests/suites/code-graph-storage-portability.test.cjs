@@ -11,24 +11,13 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
+const { resolvePythonCommand: findPythonCommand } = require('../lib/python-command.cjs');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..', '..');
 const SCRIPTS_DIR = path.join(REPO_ROOT, '.claude', 'scripts');
-const PYTHON_CANDIDATES = [
-  { command: 'python', baseArgs: [] },
-  { command: 'py', baseArgs: ['-3'] }
-];
 
 function resolvePythonCommand() {
-  for (const candidate of PYTHON_CANDIDATES) {
-    const result = spawnSync(
-      candidate.command,
-      [...candidate.baseArgs, '-c', 'import sys; assert sys.version_info >= (3, 10)'],
-      { cwd: REPO_ROOT, encoding: 'utf8', timeout: 10000, windowsHide: true }
-    );
-    if (!result.error && result.status === 0) return candidate;
-  }
-  throw new Error('Python 3.10 or newer is required for the code-graph portability suite.');
+  return findPythonCommand({ cwd: REPO_ROOT, minMinor: 10 });
 }
 
 function generateStorage(root) {

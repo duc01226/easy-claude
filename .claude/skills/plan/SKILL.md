@@ -1,23 +1,25 @@
 ---
 name: plan
 version: 2.0.0
-description: '[Planning] Use when a workflow step or the user asks for a concise implementation plan, or --mode=review (one review pass) / --mode=validate (critical-questions interview) / --mode=execute (code and test it) of a plan. --mode={ci|cro}.'
+description: '[Planning] Use when a workflow step or the user asks for implementation planning. --mode=review supports review-only or --fix-loop; validate interviews, execute implements. --mode=ci plans CI fixes; --mode=cro plans conversion optimization.'
 disable-model-invocation: false
 ---
 
-> **[BLOCKING] Mode routing — detect FIRST.** Explicit `--mode=review`, `--mode=validate`, `--mode=execute`, `--mode=ci` or `--mode=cro` selects that mode; no mode is default plan creation (everything below, unchanged). `/plan --mode=review <plan-path>`, `/plan --mode=validate <plan-path>` and `/plan --mode=execute <plan-path>` are the former `/plan-review`, `/plan-validate` and `/plan-execute`: those slash commands no longer exist, and each mode works called directly with no workflow. Read the mode file in full before anything else (see [Mode Dispatch](#mode-dispatch)).
+> **[BLOCKING] Mode routing — detect FIRST.** Select explicit `--mode=review|validate|execute|ci|cro`; otherwise create a plan. Read the selected reference in full before acting (see [Mode Dispatch](#mode-dispatch)). Every mode works directly without a workflow. `/plan-review`, `/plan-validate` and `/plan-execute` do not resolve.
 
 ## Quick Summary
 
+> **Review modes:** For review/audit work, standalone defaults to `--review-only` (`--report-only` alias); `--fix-loop` enables review → validate → authorized fix → fresh re-review, default cap 3. `--fix-loop --loop-owner=caller` returns a read-only pass to the caller that owns fixes/re-review. Create triage, review, validation and re-review todo tasks first; apply the carried `review-policy` contract for LOW deferral and user-approved bounded extensions. Non-review modes and terminal findings validation keep their own dispatch.
+
 **Goal:** Produce a concise, evidence-backed implementation plan that fixes direction and proof while leaving code-level discovery and mechanics to the executing agent.
 
-**Summary:**
+**Summary:** Select the mode first: create a plan, review once, interview for validation, execute, or add CI/CRO intake. For creation: resolve evidence → settle decisions → derive gates → write → self-check → hand back.
 
-- PLANNING ONLY. Record important decisions, affected owners/areas, dependency order, risks, discovery obligations, and final quality gates; do not write code or method-by-method instructions.
-- Analyze the task and write a `## Quality Gates & Concerns Checklist` before the phases: every quality gate and concern THIS task triggers, how each is verified, the evidence expected and the owner phase, plus open concerns with a way to settle each. It is the bar the executor, reviewer and user hold the work to.
-- Keep one `plan.md` by default. Add phase files only when independent execution, context isolation, or disjoint parallel ownership genuinely needs them.
-- Plan creation never runs `--mode=review` or another review skill. Standalone only: after saving the plan, ask once whether the user wants `/plan --mode=review`. Workflow invocation: return the artifact and let the parent advance without a next-step prompt.
-- Tests are authored with implementation but executed only after all implementation and static review. Never schedule per-phase test or review runs.
+- **Creation is planning only:** decide direction, ownership, dependencies, risks, bounded discovery and proof; leave code and edit mechanics to execution.
+- Derive the task-specific `## Quality Gates & Concerns Checklist` before phases: verification, evidence, owner and how open concerns will be settled.
+- Keep one `plan.md`; separate phase files only for independent execution, context isolation or disjoint ownership.
+- Plan creation never runs `--mode=review` or another review skill. After saving, standalone asks once about `/plan --mode=review`; a workflow returns to its parent without next-step prompts.
+- Write tests with implementation; schedule suites after all implementation and static review, never per phase.
 
 **Workflow:** Resolve context → inspect governing evidence and representative patterns → settle material decisions → derive the quality-gates checklist → write the lean plan → self-check scope, discovery, checklist, and verify-last order → hand back.
 
@@ -42,14 +44,14 @@ Detect the mode from the invocation arguments before any other work; do not load
 | Mode | Purpose | Read in full FIRST |
 | --- | --- | --- |
 | _(none)_ | Default plan creation — this file | — |
-| `--mode=review [plan-path]` | One evidence-backed review pass of an existing plan: one round, read-only, verdict. Formerly `/plan-review` | `references/mode-review.md` |
+| `--mode=review [plan-path]` | Intent, necessity, alternatives, trade-offs and proof; review-only default, --fix-loop repairs and re-reviews. | `references/mode-review.md` |
 | `--mode=validate [plan-path]` | Critical-questions interview that validates an existing plan's decisions and records a `## Validation Summary`. Formerly `/plan-validate` | `references/mode-validate.md` |
 | `--mode=execute [plan-path] [--approval=off] [--tests=off] [--parallel={auto\|on\|off}]` | Implement an existing plan phase by phase: code and tests together, static review, one verify, approval, finalize. Formerly `/plan-execute` | `references/mode-execute.md` |
 | `--mode=ci <log-url>` | CI failure-analysis intake | `references/mode-ci.md` |
 | `--mode=cro` | Conversion-optimization intake | `references/mode-cro.md` |
 
-- **[BLOCKING]** When `--mode=review`, read `references/mode-review.md` in full FIRST; it replaces plan creation for the invocation (it reads and reports, never writes or edits a plan) and its one-round cap and read-only rules govern. Workflow invocation returns the report path and verdict to the parent; standalone reports the same result.
-- **[BLOCKING]** When `--mode=validate`, read `references/mode-validate.md` in full FIRST; it replaces plan creation for the invocation (interview via `AskUserQuestion`, annotate `plan.md` only). Workflow invocation and standalone both run the interview.
+- **[BLOCKING]** When `--mode=review`, read `references/mode-review.md` in full FIRST; it replaces creation with review-only or --fix-loop. Apply the shared mode/round policy; return the report path and verdict to the caller.
+- **[BLOCKING]** When `--mode=validate`, read `references/mode-validate.md` in full FIRST; it replaces plan creation for the invocation (interview via `ask user question tool`, annotate `plan.md` only). Workflow invocation and standalone both run the interview.
 - **[BLOCKING]** When `--mode=execute`, read `references/mode-execute.md` in full FIRST; it replaces plan creation for the invocation and owns the `--approval`, `--tests` and `--parallel` flags (no flag is set by default: no flags = the full spine, run sequentially). Workflow invocation runs Steps 0–2, the Checklist Walk (parent-owned rows carried as `PENDING-PARENT`) and Step 6 only; standalone runs the full spine.
 - **[BLOCKING]** When `--mode=ci`, read `references/mode-ci.md` in full FIRST; when `--mode=cro`, read `references/mode-cro.md` in full FIRST. Both add domain intake only; they do not add review or change the plan-creation contract.
 - `--mode=review`, `--mode=validate` and `--mode=execute` are separate invocations over an existing plan; plan creation never chains into them.
@@ -166,6 +168,8 @@ Persist the plan path and a short summary. Standalone asks once about optional `
 - `plan-granularity` — Outcome phases name decisions, boundaries and bounded discovery without replaying implementation; breaking a plan into phases → .claude/skills/shared/protocols/plan-granularity.md
 - `plan-quality` — Plans decide direction, affected owners, risks and final proof without pre-writing implementation; writing or reviewing a plan → .claude/skills/shared/protocols/plan-quality.md
 - `preservation-inventory` — Table of behavior a bugfix plan must preserve, written before the implementation steps; writing a bugfix plan → .claude/skills/shared/protocols/preservation-inventory.md
+- `review-decision-autonomy` — Choose supported review decisions and ask before extending the round budget; running any review or audit skill or mode → .claude/skills/shared/protocols/review-decision-autonomy.md
+- `review-policy` — Review-only or a three-round fix loop with explicit extension and fresh post-fix evidence; deciding round eligibility, blocking findings or review state → .claude/skills/shared/protocols/review-policy.md
 - `ux-journey-gate` — Journey-first UX gate UX-1 to UX-11: report journeys, read the design authority, generate, then check every UI/UX gate; generating, specifying, planning, mocking up or reviewing a user-facing surface → .claude/skills/shared/protocols/ux-journey-gate.md
 - `verify-last-order` — Build all phases and write tests, review statically, then verify once with a mutation check; planning or running any code-changing task → .claude/skills/shared/protocols/verify-last-order.md
 
@@ -177,9 +181,17 @@ Persist the plan path and a short summary. Standalone asks once about optional `
 
 <!-- /SYNC:measured-capacity-engineering:reminder -->
 
+<!-- SYNC:review-decision-autonomy:reminder -->
+
+**MUST ATTENTION** Decide supported review choices and recommendations, record the rationale, and finish without routine user questions. Keep round-limit extension, indispensable facts and actual action authority; preserve source coverage, validation, tests, read-only boundaries and budgets. Review decisions do not accept open risks or make a failed gate pass.
+
+<!-- /SYNC:review-decision-autonomy:reminder -->
+
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Deliver a concise decision-and-boundary plan that enables safe execution without replaying implementation.
+**IMPORTANT MUST ATTENTION Goal:** Produce a concise, evidence-backed implementation plan that fixes direction and proof while leaving code-level discovery and mechanics to the executing agent.
+
+**MUST ATTENTION Main steps:** select mode → read its reference when selected; creation resolves evidence → settles decisions → derives gates → writes → self-checks → hands back. Review follows the selected review-only/fix-loop mode; validation interviews; execution follows its flags; CI/CRO add intake.
 
 - **MUST ATTENTION** record outcome/non-goals, important decisions, affected owners/areas, bounded discovery, risks, and final quality gates.
 - **MUST ATTENTION** write a task-specific `## Quality Gates & Concerns Checklist` before the phases (per `references/plan-quality-checklist.md`): every applicable gate with how it is verified, the evidence expected and the owner phase; NO rows with reasons; open concerns with a way to settle each.
@@ -189,3 +201,10 @@ Persist the plan path and a short summary. Standalone asks once about optional `
 - **MUST ATTENTION** write tests with implementation and run test suites only after all implementation and static review; never plan per-phase test/review cycles.
 - **MUST ATTENTION** one `plan.md` by default; add phases/files only for real dependency, verification, context, or ownership boundaries.
 - **MUST ATTENTION** cite known facts and never fabricate future symbols, paths, assertions, or `file:line` evidence.
+
+
+<!-- SYNC:review-policy:reminder -->
+
+**MUST ATTENTION** Triage all targets, plan and create review/validation/fix/fresh re-review tasks first. Review-only reports without edits; fix-loop freshly reviews every repair under one fixing owner. Default cap three rounds: disclose deferred LOWs, ask and wait before a bounded extension for MEDIUM+ or failed required checks. Preserve scope, coverage and actual operation authority.
+
+<!-- /SYNC:review-policy:reminder -->

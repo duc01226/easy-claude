@@ -10,7 +10,7 @@ Read in full before `--mode=explain`. Entry-point-wide read-only/evidence rules 
 ### Contract (read first)
 
 - **DERIVE SCOPE FROM THE PROMPT.** No target → current context: active tasks (`TaskList`), working-tree changes (`git diff --name-only` + untracked via `git ls-files --others --exclude-standard`), active plan, and latest `/watzup` summary.
-- **NEVER ASK THE USER A QUESTION.** Stay one-way: no teach-back, quiz, `AskUserQuestion`, ambiguity question, or comprehension gate. Infer the likeliest target, state the assumption once, proceed. The explicit-skill workflow-detection exemption still applies.
+- **NEVER ASK THE USER A QUESTION.** Stay one-way: no teach-back, quiz, `ask user question tool`, ambiguity question, or comprehension gate. Infer the likeliest target, state the assumption once, proceed. The explicit-skill workflow-detection exemption still applies.
 - **OPT-IN, NEVER BLOCKS.** Explain and end; never loop or gate commit, implementation, or workflow progress.
 - **ALWAYS EXPLAIN IN FULL.** Cover purpose + how + why every time.
 - **EXPLAIN THE WHOLE SCOPE, LEAD WITH THE NON-OBVIOUS.** Cover all scope, order by blast radius, future-change cost, and surprise; treat boilerplate/CRUD briefly.

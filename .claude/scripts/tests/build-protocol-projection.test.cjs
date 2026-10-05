@@ -457,12 +457,25 @@ test('TC-PDL-080: an inlineSkills entry that is not a skill name or has no skill
     }
 });
 
-test('TC-PDL-080: the shipped groups file bins every universal tag once and keeps the four fix-loop review-family inline skills', { skip: LIVE_SKIP }, () => {
+test('TC-PDL-080: the shipped groups file bins every universal tag once and uses guide-backed review entrypoints with an empty inline list', { skip: LIVE_SKIP }, () => {
     // Given the framework repo's groups file
     const groups = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, ...SHARED, 'protocol-groups.json'), 'utf8'));
     // When it is read, Then the authored bins hold each universal tag exactly once and inlineSkills is the owner's list (BR-PDL-11)
     assert.deepEqual(groups.groups.universal.bins.flat().sort(), Object.keys(groups.groups.universal.tags).sort());
-    assert.deepEqual(groups.inlineSkills, ['changes-review', 'code-quality-review', 'why-review', 'workflow-review-changes']);
+    assert.deepEqual(groups.inlineSkills, []);
+    for (const name of ['changes-review', 'code-quality-review', 'why-review', 'workflow-review-changes']) {
+        const text = fs.readFileSync(path.join(REPO_ROOT, '.claude', 'skills', name, 'SKILL.md'), 'utf8');
+        assert.match(text, /<!-- PROTOCOL-GUIDES:START -->/);
+        assert.match(text, /If a protocol's text is not in your context, read its file below before you act on it/);
+        const guides = [...text.matchAll(/^- `([^`]+)` — [^\n]+ → (\.claude\/skills\/shared\/protocols\/[^\s]+\.md)$/gm)];
+        assert.ok(guides.length > 0, `${name} has no guides`);
+        for (const [, tag, relative] of guides) {
+            assert.ok(!Object.hasOwn(groups.groups.universal.tags, tag), `${name} leaks universal guide ${tag}`);
+            assert.equal(fs.existsSync(path.join(REPO_ROOT, ...relative.split('/'))), true, `${name}: ${tag} has no published fallback`);
+            assert.ok(!text.includes(`<!-- SYNC:${tag} -->`), `${name} still carries full ${tag}`);
+        }
+        assert.match(text, /<!-- SYNC:severity-rubric:reminder -->/);
+    }
 });
 
 /** Compression ceiling for one canonical body (F3): every tag fits one bin with headroom. */

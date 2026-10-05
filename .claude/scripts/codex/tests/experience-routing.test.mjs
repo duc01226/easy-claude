@@ -36,11 +36,9 @@ test("TC-EA-ROUTE-001: changes review routes the conditional experience gate aft
   assert.match(experience.applicability.skipReason, /NOT-APPLICABLE/i);
   assert.match(experience.applicability.skipReason, /evidence/i);
   assert.ok(indexOfSkill(workflow.sequence, "why-review") < workflow.sequence.indexOf(experience));
-  assert.ok(workflow.sequence.indexOf(experience) < indexOfSkill(workflow.sequence, "scan --target=domain-entities"));
-  assert.deepEqual(workflow.stepMeta["experience-review"], {
-    executionMode: "inline",
-    contextBudget: "medium",
-  });
+  assert.ok(workflow.sequence.indexOf(experience) < workflow.sequence.indexOf(occurrence(workflow.sequence, "domain-refresh")));
+  assert.match(experience.args, /--fix-loop --loop-owner=caller/, "experience review joins the coordinator loop read-only");
+  assert.ok(occurrence(workflow.sequence, "domain-refresh"), "the domain refresh remains present");
 });
 
 test("TC-EA-ROUTE-002: unified E2E workflow routes authoring into one convergence loop", () => {

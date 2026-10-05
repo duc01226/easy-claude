@@ -1,7 +1,7 @@
 ---
 name: business-evaluation
 version: 1.0.0
-description: '[Content] Use when a workflow step or the user asks for a business idea viability evaluation: Business Model Canvas, financials, risks, go-to-market.'
+description: '[Content] Use when a workflow step or the user asks for business viability: Business Model Canvas, financials, risks and go-to-market recommendation.'
 ---
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
@@ -22,7 +22,7 @@ description: '[Content] Use when a workflow step or the user asks for a business
 - **Order:** Seven evaluation steps, preceded by a market-evidence precondition: load market evidence first, then run ALL 7 evaluation steps in order — detect idea/scope/evidence completeness; (1) capture idea (problem/solution/target), (2) 9-block BMC, (3) 3-year financials + assumptions, (4) 5+ risks + mitigation/residual risk, (5) phased execution, (6) GTM, (7) verdict. NEVER skip, reorder, or merge — why: partial evaluation invalidates the decision.
 - **Market gate:** In workflow parent, read exact `MARKET_ANALYSIS_PATH` (`{plan-dir}/research/market-analysis.md` only copy fallback); standalone, use supplied path. If absent, state `/market-analysis` did not run, mark TAM/SAM/SOM, share, and segment size N/A, cap verdict confidence at 60%; NEVER re-derive sizing.
 - **Evidence gate:** all 9 BMC blocks cite proof; every financial number has assumption + source; each 5+ risk has mitigation + residual risk; unbacked artifact fails.
-- **Decision/output:** verdict = 1-10 score + confidence tier (95/80/60/<60%) + basis + Pursue/Pivot/Pause/Pass + key success condition; write to `docs/knowledge/strategy/business/{descriptive-slug}.md` via enforced `.claude/templates/business-evaluation-template.md`, then `AskUserQuestion` for next route (domain-analysis recommended); NEVER auto-decide, favor skepticism.
+- **Decision/output:** verdict = 1-10 score + confidence tier (95/80/60/<60%) + basis + Pursue/Pivot/Pause/Pass + key success condition; write to `docs/knowledge/strategy/business/{descriptive-slug}.md` via enforced `.claude/templates/business-evaluation-template.md`, then `ask user question tool` for next route (domain-analysis recommended); NEVER auto-decide, favor skepticism.
 
 **Workflow:**
 
@@ -136,7 +136,7 @@ Write to `docs/knowledge/strategy/business/{descriptive-slug}.md` using enforced
 
 ## Next Steps
 
-**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** After completion, use `AskUserQuestion` to present these options. Do NOT skip because the task seems "simple" or "obvious"—the user decides:
+**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** After completion, use `ask user question tool` to present these options. Do NOT skip because the task seems "simple" or "obvious"—the user decides:
 
 - **"/domain-analysis (Recommended)"** — Analyze domain model from business evaluation
 - **"/plan"** — If ready to plan implementation
@@ -165,13 +165,13 @@ Write to `docs/knowledge/strategy/business/{descriptive-slug}.md` using enforced
 
 **IMPORTANT MUST ATTENTION** every claim, financial number, BMC block, and verdict carries evidence + confidence % (95/80/60/<60) — NEVER present a guess as fact — why: an unbacked number turns the go/no-go into optimism dressed as analysis.
 **IMPORTANT MUST ATTENTION** bias toward skepticism on the verdict — NEVER round optimism up; surface the single key condition that must hold and the residual risk if it fails — why: a falsely-rosy Pursue burns capital that an honest Pause would save.
-**IMPORTANT MUST ATTENTION** validate the next route with user via `AskUserQuestion` — NEVER auto-decide domain-analysis/plan — why: this skill judges viability, the human owns the go/no-go.
+**IMPORTANT MUST ATTENTION** validate the next route with user via `ask user question tool` — NEVER auto-decide domain-analysis/plan — why: this skill judges viability, the human owns the go/no-go.
 
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting; keep one `in_progress`, mark `completed` with evidence; add a final review todo — why: untracked multi-step work loses state on compaction.
 **MANDATORY IMPORTANT MUST ATTENTION** consume market data FROM market-analysis as evidence — NEVER re-derive market sizing here; if that producer did not run, mark the market figures N/A with the reason and cap verdict confidence at 60% rather than inventing them — why: this skill judges viability, it does not research the market; duplicated sizing diverges from the source.
 **MANDATORY IMPORTANT MUST ATTENTION** all 9 BMC blocks present, each citing proof; every financial number lists its assumption + source in the assumptions table — why: a missing block or bare number is a silent gap the verdict then rests on.
 **MANDATORY IMPORTANT MUST ATTENTION** minimum 5 risks, each with mitigation AND a residual-risk entry across market/execution/financial/competitive/regulatory/technical — why: a risk without residual pretends mitigation is total.
-**MANDATORY IMPORTANT MUST ATTENTION** detect idea/scope/evidence completeness; load exact market-analysis evidence first (parent `MARKET_ANALYSIS_PATH`; `{plan-dir}/research/market-analysis.md` copy fallback; supplied standalone path; absent → market figures N/A + confidence cap 60%); then run ALL 7 steps in order: idea → 9-block BMC → 3-year financials → 5+ risks → 3-phase execution → GTM → verdict; output via template; `AskUserQuestion` for next route. NEVER re-derive sizing, skip/reorder/merge steps, drop financials/execution/GTM, or auto-decide — why: verdict quality follows the weakest step/evidence.
+**MANDATORY IMPORTANT MUST ATTENTION** detect idea/scope/evidence completeness; load exact market-analysis evidence first (parent `MARKET_ANALYSIS_PATH`; `{plan-dir}/research/market-analysis.md` copy fallback; supplied standalone path; absent → market figures N/A + confidence cap 60%); then run ALL 7 steps in order: idea → 9-block BMC → 3-year financials → 5+ risks → 3-phase execution → GTM → verdict; output via template; `ask user question tool` for next route. NEVER re-derive sizing, skip/reorder/merge steps, drop financials/execution/GTM, or auto-decide — why: verdict quality follows the weakest step/evidence.
 **MANDATORY IMPORTANT MUST ATTENTION** before writing any figure or claim, search market-analysis output + prior evaluations for 3+ comparable patterns and cite them — why: a number with no comparable anchor is a fabrication.
 **MANDATORY IMPORTANT MUST ATTENTION** write the result to `docs/knowledge/strategy/business/{descriptive-slug}.md` via the enforced `.claude/templates/business-evaluation-template.md` — NEVER hand-roll the structure — why: the template is the contract downstream skills (domain-analysis/plan) read.
 **MANDATORY IMPORTANT MUST ATTENTION** persist intermediate findings to `tmp/reports/` for lengthy evaluations — why: external memory survives context loss and serves as the deliverable.
@@ -184,6 +184,6 @@ Write to `docs/knowledge/strategy/business/{descriptive-slug}.md` using enforced
 | "Skip a BMC block — not relevant"        | Every block cites proof or states why N/A explicitly; silent omission fails the gate. |
 | "Estimate the number, source it later"   | No assumption + source = no number. Fill the assumptions table before the verdict.    |
 | "5 risks is a lot, 2 covers it"          | Minimum 5, each with residual risk. Thin risk lists hide the real downside.           |
-| "Recommendation is clear, skip the ask"  | Still `AskUserQuestion` for the next route — the human owns go/no-go.                  |
+| "Recommendation is clear, skip the ask"  | Still `ask user question tool` for the next route — the human owns go/no-go.                  |
 
-**IMPORTANT MUST ATTENTION** evidence + confidence % on every number — NEVER present a guess as fact. **IMPORTANT MUST ATTENTION** bias toward skepticism — NEVER round optimism up. **IMPORTANT MUST ATTENTION** `AskUserQuestion` for the next route — NEVER auto-decide.
+**IMPORTANT MUST ATTENTION** evidence + confidence % on every number — NEVER present a guess as fact. **IMPORTANT MUST ATTENTION** bias toward skepticism — NEVER round optimism up. **IMPORTANT MUST ATTENTION** `ask user question tool` for the next route — NEVER auto-decide.

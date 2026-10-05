@@ -1,5 +1,41 @@
 Read the relevant sections when implementing beyond basic scene creation. Paths beginning `refs/` resolve from the Remotion skill root; do not resolve them from this reference directory.
 
+<!-- SKILL-NAV:START -->
+## Contents
+
+- Animations (Core Rules)
+- Timing — interpolate & Bézier Easing
+- Sequencing & Trimming
+- Compositions
+- Assets — staticFile() & public folder
+- Images
+- Videos
+- Audio
+- GIFs & Animated Images
+- Fonts
+- Transitions (Full API)
+- Light Leaks (Overlay Effect)
+- 3D with Three.js (React Three Fiber)
+- Text Animations
+- Text Measurement
+- DOM Node Measurement
+- Captions & Subtitles
+- Dynamic Compositions — calculateMetadata
+- Parameters — Zod Schema
+- Mediabunny — Video/Audio Metadata
+- FFmpeg in Remotion
+- Silence Detection
+- Audio Visualization
+- Lottie Animations
+- Charts & Data Visualization
+- Maps with Mapbox
+- Transparent Video Rendering
+- AI Voiceover (ElevenLabs TTS)
+- Sound Effects
+- TailwindCSS
+
+<!-- SKILL-NAV:END -->
+
 ## Remotion API Reference
 
 > Authoritative Remotion API reference — apply when implementing beyond basic scene creation.

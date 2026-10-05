@@ -8,6 +8,19 @@ The recorder does not film the screen in real time. It stops the page's clock, m
 frame at a time, takes a PNG screenshot of each frame, and pipes the frames to ffmpeg. The same page
 therefore gives the same frames on every run, on any machine.
 
+<!-- SKILL-NAV:START -->
+## Contents
+
+- Run it
+- The time rule
+- Page hooks
+- Authoring rules for recordable pages
+- Output
+- Verifying a recording
+- Limits
+
+<!-- SKILL-NAV:END -->
+
 ## Run it
 
 ```text

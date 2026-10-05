@@ -14,6 +14,24 @@ The **single source of truth** for the rich, standalone HTML release presentatio
 
 ---
 
+<!-- SKILL-NAV:START -->
+## Contents
+
+- R0. Preconditions
+- R1. Comprehend the WHOLE change set first (breadth before depth)
+- R2. Investigate each highlight END-TO-END (depth, one highlight at a time)
+- R3. Correlate SPEC changes (canonical behavior, not just code)
+- R4. Detect UI change + [BLOCKING] inventory the REAL existing UI
+- R5. [BLOCKING] Write the temp analysis report — BEFORE any HTML
+- R6. Assemble the standalone HTML release document
+- R7. Save
+- R8. [BLOCKING] Gates — run ALL FOUR before reporting done
+- R9. Auto-open the HTML
+- R10. Report to the user
+- Closing Reminders
+
+<!-- SKILL-NAV:END -->
+
 ## R0. Preconditions
 
 | Input                     | Where it comes from                                                                                              |

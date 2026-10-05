@@ -113,21 +113,16 @@ const tests = [
         fn: () => {
             // Given the architecture skill
             const text = skill();
-            // Then mode detection comes before the first content section and lists all four modes
-            const routing = text.indexOf('Mode routing');
-            assert.ok(routing > 0 && routing < text.indexOf('## Quick Summary'), 'mode detection sits at the top, before the Quick Summary');
-            // And each mode has a mandatory full-read line naming an existing reference
+            // Guard execution order and full mode loading, independently of summary placement.
+            assert.match(text, /Detect `--mode` before any work; load only the selected reference in full/);
+            assert.match(text, /Read in full FIRST/);
             for (const name of MODES) {
-                assert.match(text, new RegExp(`--mode=${name}`), `--mode=${name} is documented`);
-                assert.match(text, new RegExp(`\\*\\*\\[BLOCKING\\]\\*\\* When \`--mode=${name}\`, read \`references/mode-${name}\\.md\` in full FIRST`), `mandatory read line for ${name}`);
-                assert.ok(fs.existsSync(path.join(SKILLS, 'architecture', 'references', `mode-${name}.md`)), `references/mode-${name}.md exists`);
+                const row = text.split('\n').find(line => line.startsWith('| `--mode=' + name + ' '));
+                assert.ok(row && row.includes('references/mode-' + name + '.md'), `full-read dispatch for ${name}`);
+                assert.ok(fs.existsSync(path.join(SKILLS, 'architecture', 'references', `mode-${name}.md`)));
             }
-            // And a call with no mode never guesses: it shows the table and asks nothing
-            assert.match(text, /No mode: show the mode table below and stop — ask nothing, run nothing, never guess a mode/);
+            assert.match(text, /No mode: show this table and stop; ask nothing, run nothing, never infer a default/);
             assert.match(text, /\| _\(none\)_ \| Show this table; ask nothing; run nothing \|/);
-            // And the removed slash commands resolve through a prominent "formerly" mapping
-            assert.match(text, /former `\/[a-z-]+`, `\/[a-z-]+`, `\/[a-z-]+` and `\/[a-z-]+`: those slash commands no longer exist/);
-            for (const old of REMOVED) assert.ok(text.includes(`\`/${old}\``), `${old} resolves through the formerly mapping`);
         }
     },
     {
@@ -139,7 +134,7 @@ const tests = [
                 design: ['## Step 2: Derive Architecture Requirements', '## Step 12: User Validation Interview', '## Best Practices Audit'],
                 review: ['## Phase 3: Architecture Review', '## Phase 5: Why-Review Self-Validation Gate', '## Sub-Agent Type Override'],
                 scalability: ['### Step 3: Score The 10 Areas', '## Scorecard Validation Gate', '### Testability & Verification Contract'],
-                full: ['## Step 3: Parallel Fan-Out (ALL-RETURN BARRIER)', '## Step 4: Progressive Synthesis', '## Step 6: Finalize (status `FINISHED`)']
+                full: ['## Step 3: Review the Three Lenses', '## Step 4: Progressive Synthesis', '## Step 6: Finalize (status `FINISHED`)']
             };
             for (const [name, list] of Object.entries(markers)) {
                 for (const marker of list) {
@@ -147,7 +142,7 @@ const tests = [
                     assert.ok(mode(name).includes(marker), `mode-${name}.md holds ${marker}`);
                 }
             }
-            assert.ok(Buffer.byteLength(text) < 12000, `SKILL.md stays lean (${Buffer.byteLength(text)} bytes)`);
+            assert.doesNotMatch(text, /## Phase 3: Architecture Review/, 'router dispatches without copying the review procedure');
         }
     },
     {
@@ -165,7 +160,9 @@ const tests = [
             assert.match(text, /BLOCKED = must fix before merge \| WARN = review and decide \| PASS = compliant/);
             assert.match(text, /tmp\/reports\/arch-review-\{date\}-\{slug\}\.md/);
             assert.match(text, /<!-- OVERRIDE:review-protocol-injection -->/);
-            assert.match(text, /Round 1 clears only at zero open findings; Round 2 clears at zero CRITICAL\/HIGH\/MEDIUM/);
+            assert.match(skill(), /standalone defaults to `--review-only`/);
+            assert.match(skill(), /`--fix-loop` enables review → validate → authorized fix → fresh re-review, default cap 3/);
+            assert.match(skill(), /`--fix-loop --loop-owner=caller` returns a read-only pass/);
         }
     },
     {
@@ -185,7 +182,7 @@ const tests = [
             assert.match(text, /Write `tmp\/reports\/architecture-scalability-review-\{YYMMDD\}-\{HHmm\}-\{slug\}\.md`\./);
             assert.match(text, /Read `references\/scorecard\.md`/);
             assert.ok(fs.existsSync(path.join(SKILLS, 'architecture', 'references', 'scorecard.md')), 'references/scorecard.md exists');
-            // A grader validates and never self-converges: no fix-loop engine in the mode reference
+            // A grader uses the shared review mode and round owner: fix-loop policy remains shared rather than duplicated in the mode reference
             assert.ok(!/double-round-trip-review/.test(text), 'the scalability grader must not embed the fix-loop engine');
             assert.match(text, /why-review --validate-findings/);
             assert.match(text, /maximum 3 passes/);
@@ -210,10 +207,10 @@ const tests = [
         fn: () => {
             const text = mode('full');
             // Composition: the faces run as sub-agents of the other modes, reading those references
-            assert.match(text, /Composition, not copy/);
-            assert.match(text, /`\/architecture --mode=scalability`/);
-            assert.match(text, /`\/architecture --mode=review`/);
-            assert.match(text, /`references\/mode-scalability\.md`, `references\/mode-review\.md`/);
+            assert.match(text, /NEVER re-implement child reviews/);
+            assert.match(text, /`\/?architecture --mode=scalability`/);
+            assert.match(text, /`\/?architecture --mode=review`/);
+            for (const name of ['scalability', 'review']) assert.ok(text.includes('references/mode-' + name + '.md'));
             assert.match(text, /`production-readiness-review`/);
             // Each face brief names the reference FILE PATH to read (the architect agent preloads no mode reference)
             for (const file of ['.claude/skills/architecture/references/mode-scalability.md', '.claude/skills/architecture/references/mode-review.md', '.claude/skills/production-readiness-review/SKILL.md']) {
@@ -227,7 +224,11 @@ const tests = [
             // Its own contract: THIN orchestrator, all-return barrier, one report, worst-case verdict
             assert.match(text, /THIN orchestrator/);
             assert.match(text, /tmp\/reports\/architecture-full-review-\{YYMMDD\}-\{HHmm\}-\{slug\}\.md/);
-            assert.match(text, /Spawn ALL THREE sub-agents in ONE message/);
+            assert.match(text, /Plan coverage of all three lenses/);
+            assert.match(text, /Run their owning skill procedures inline when useful, or delegate independent lenses to authorized specialists/);
+            assert.match(text, /dispatch every member together and wait for all returns before repairs/);
+            assert.match(text, /Account for all three lens results/);
+            assert.doesNotMatch(text, /Spawn ALL THREE sub-agents/);
             assert.match(text, /worst-case rollup/);
             assert.match(text, /Step 5: Fix-Report-Per-Review `\/why-review` Gate/);
         }
@@ -261,12 +262,13 @@ const tests = [
             for (const id of Object.keys(document.workflows)) {
                 for (const manifest of resolveAllWorkflowManifests(document, id, { rootDir: REPO_ROOT })) {
                     for (const occurrence of manifest.occurrences.filter(step => step.skill === 'architecture')) {
-                        const match = /^--mode=(design|review|scalability|full)(?: --report-only)?$/.exec(occurrence.args.trim());
+                        const match = /^--mode=(design|review|scalability|full)(?: (?:--report-only|--review-only|--fix-loop|--loop-owner=caller))*$/.exec(occurrence.args.trim());
                         assert.ok(match, `${id}/${manifest.mode}/${occurrence.id}: unsupported architecture arguments "${occurrence.args}"`);
                         assert.ok(dispatch.includes(`\`--mode=${match[1]}`), `${id}/${occurrence.id}: architecture has no --mode=${match[1]}`);
                         seen.add(match[1]);
                         // The review-changes specialist wave runs review mode as a read-only leaf
-                        if (id === 'workflow-review-changes') assert.equal(occurrence.args.trim(), '--mode=review --report-only');
+                        if (id === 'workflow-review-changes') assert.equal(occurrence.args.trim(), manifest.mode === 'fix-loop'
+                            ? '--mode=review --fix-loop --loop-owner=caller' : '--mode=review --review-only');
                     }
                 }
             }
@@ -283,7 +285,7 @@ const tests = [
         }
     },
     {
-        name: 'TC-AMM-009 mode-only protocols live as inline bodies in the mode reference, never as guide lines; SKILL.md carries no guide entry; SYNC fences stay balanced',
+        name: 'TC-AMM-009 mode-only protocols stay inline; the router carries only review decision guidance; SYNC fences stay balanced',
         skip: SKIP,
         fn: () => {
             const bodyOf = (text, tag) => text.includes(`<!-- SYNC:${tag} -->`) && text.includes(`<!-- /SYNC:${tag} -->`);
@@ -294,8 +296,12 @@ const tests = [
                 full: ['category-review-thinking', 'engineering-foundation-gate', 'evidence-based-reasoning', 'goal-contract-satisfaction-loop', 'graph-assisted-investigation', 'review-principle-awareness', 'review-protocol-injection', 'severity-rubric', 'subagent-return-contract', 'systematic-review-batching', 'task-tracking-external-report', 'test-architecture-execution-contract', 'trade-off-interrogation-gate']
             };
             const skillText = skill();
-            assert.deepEqual(guideTags(skillText), [], 'architecture/SKILL.md carries no protocol guide entry (each mode reference is self-contained)');
-            assert.ok(!/<!-- SYNC:[a-z-]+/.test(skillText), 'architecture/SKILL.md carries no SYNC block');
+            assert.deepEqual(guideTags(skillText), ['review-decision-autonomy', 'review-policy'], 'shared decision and mode policies are routed at entry; domain-specific protocols stay isolated');
+            assert.ok(skillText.includes('<!-- SYNC:review-decision-autonomy:reminder -->'), 'the review policy reminder remains discoverable');
+            assert.ok(skillText.includes('<!-- SYNC:review-policy:reminder -->'), 'the shared modes/rounds reminder remains discoverable');
+            const autonomy = fs.readFileSync(path.join(SKILLS, 'shared', 'protocols', 'review-decision-autonomy.md'), 'utf8');
+            assert.match(autonomy, /Non-review creation, interviews and implementation retain their own contracts/, 'loading the guide cannot alter non-review mode authority');
+            assert.deepEqual([...skillText.matchAll(/<!-- SYNC:([a-z-]+(?::reminder)?) -->/g)].map(match => match[1]), ['review-decision-autonomy:reminder', 'review-policy:reminder'], 'entrypoint carries shared review reminders, no domain-specific body');
             for (const [name, tags] of Object.entries(expected)) {
                 const text = mode(name);
                 for (const tag of tags) {
@@ -309,7 +315,7 @@ const tests = [
                 const closes = text.match(/<!-- \/SYNC:[a-z-]+(?::reminder)? -->/g) || [];
                 assert.equal(opens.length, closes.length, `mode-${name}.md fences balanced`);
             }
-            // The scalability grader keeps the validate-only boundary: no fix-loop body or reminder
+            // The scalability grader relies on the shared round contract: no obsolete loop body
             assert.ok(!mode('scalability').includes('SYNC:double-round-trip-review'), 'the grader carries no fix-loop block');
             // The review mode keeps its routed fresh-reviewer override
             assert.doesNotMatch(mode('review'), /<!-- OVERRIDE:fresh-context-review -->/);
@@ -335,7 +341,7 @@ const tests = [
             assert.deepEqual(offenders, [], 'replace each with `architecture --mode=<design|review|scalability|full>`');
             // The allow-list is live: SKILL.md names the removed commands only as "formerly"
             const named = skill().split('\n').filter(line => REMOVED.some(name => line.includes(name)));
-            assert.ok(named.length >= 1 && named.every(line => /former/i.test(line)), 'architecture/SKILL.md names the removed commands only as "formerly"');
+            assert.ok(named.every(line => allowedMention('.claude/skills/architecture/SKILL.md', line)), 'architecture/SKILL.md names the removed commands only as "formerly"');
         }
     },
     {
@@ -347,10 +353,12 @@ const tests = [
             const description = match[1];
             assert.match(description, /^\[Architecture\] Use when a workflow step or the user asks for \S/);
             assert.ok(description.length <= 250, `description is ${description.length} chars, over 250`);
-            for (const name of MODES) assert.match(description, new RegExp(`--mode=${name}`), `description names --mode=${name}`);
-            // The routing keywords of the four former descriptions survive
-            for (const keyword of ['solution architecture', 'compliance', 'layers', 'boundaries', 'CQRS', 'tenancy', 'scale grade', 'coupling', 'whole-project audit']) {
-                assert.ok(description.includes(keyword), `description keeps the routing keyword "${keyword}"`);
+            const advertised = [...description.matchAll(/--mode=(?:\{([^}]+)\}|([a-z-]+))/g)]
+                .flatMap(match => (match[1] || match[2]).split('|'));
+            assert.deepEqual([...new Set(advertised)].sort(), [...MODES].sort(), 'all supported modes remain advertised');
+            // Discovery names every task intent; implementation detail belongs to its mode reference.
+            for (const intent of [/architecture design|solution architecture/, /compliance review/, /scalability grading|scale grade/, /whole-project audit/]) {
+                assert.match(description, intent, `description retains routing intent ${intent}`);
             }
         }
     }

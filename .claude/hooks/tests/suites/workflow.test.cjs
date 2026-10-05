@@ -932,7 +932,7 @@ const annotatedRegistryTests = [
             assertDeepEqual(strictOrderClaims([
                 '2. **`gate` steps ALWAYS run and are NEVER skipped, merged away, simplified away or reordered** (BR-GWF-01).',
                 '`gate` steps never skip.',
-                '- Confirm mode via `AskUserQuestion` BEFORE any action — NEVER skip Step 0',
+                '- Confirm mode via `ask user question tool` BEFORE any action — NEVER skip Step 0',
                 '- NEVER skip mandatory workflow or skill gates.',
                 'preserve evidence, and never batch or skip mandatory steps.',
                 '**IMPORTANT MUST ATTENTION — Main steps (execute in order, NEVER skip/merge):** detect → analyze'
@@ -1236,13 +1236,14 @@ const verifyLastTests = [
             // Given the review workflow skill
             const text = fs.readFileSync(path.join(PROJECT_ROOT, '.claude', 'skills', 'workflow-review-changes', 'SKILL.md'), 'utf8').replace(/\r\n/g, '\n');
             // Then --tests=defer is documented, defaults to prove, and drops --prove-tests
-            assertContains(text, '`--tests={prove|defer}` (default `prove`)');
+            assertContains(text, '`--tests={prove|defer}`');
+            assertContains(text, '`--tests=prove` is default for standalone review');
             assertContains(text, 'without `--prove-tests`');
             // And the registry still keeps the review's own test prover for the standalone default
             const config = loadWorkflowConfig();
             const prover = config.workflows['workflow-review-changes'].sequence.find(step => step.id === 'integration-tests-review');
             assertEqual(prover.skill, 'integration-test');
-            assertEqual(prover.args, '--mode=review --report-only --prove-tests');
+            assertEqual(prover.args, '--mode=review --prove-tests --fix-loop --loop-owner=caller');
         }
     }
 ];

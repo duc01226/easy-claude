@@ -1,7 +1,7 @@
 ---
 name: scenario
 version: 1.0.0
-description: '[Planning] Use when a workflow step or the user asks for adversarial scenarios: failure modes, data integrity, state boundaries, access risks.'
+description: '[Planning] Use when a workflow step or the user asks for adversarial scenarios for failure, data integrity, access, replay and recovery risks before planning.'
 argument-hint: '[owning artifact, scope brief, or explicit milestone]'
 disable-model-invocation: false
 ---
@@ -82,7 +82,7 @@ For each scenario assign `SCN-{MILESTONE}-{NNN}`, severity (`Critical`, `High`, 
 
 ## Phase 3: Decision and Risk Gate
 
-Use `AskUserQuestion` for each material choice the scenario analysis cannot resolve, such as conflict policy, deletion semantics, status meaning, audit/history expectations, access boundary, or acceptable recovery behavior. Present 2–4 concrete options and a recommendation. Record each decision as `confirmed`, `deferred`, or `blocked`.
+Use `ask user question tool` for each material choice the scenario analysis cannot resolve, such as conflict policy, deletion semantics, status meaning, audit/history expectations, access boundary, or acceptable recovery behavior. Present 2–4 concrete options and a recommendation. Record each decision as `confirmed`, `deferred`, or `blocked`.
 
 A scenario may be deferred only when the owning decomposition block or explicit roadmap names the deferred item and its owner/follow-up artifact. “AI will handle it later” is not a decision.
 

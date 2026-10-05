@@ -36,7 +36,7 @@ A change is progress **only if** the next fresh verify has fewer failures. Reach
 - **Goal Contract first.** Resolve or create it per the Goal Contract protocol; its single required criterion is a fresh full verify over `{scope}` with zero failed tests across the configured consecutive fresh runs (default 2), real runner output, and no test deleted, skipped, weakened, or de-scoped to get there. Record round cap (default 3) and baseline executed/skipped counts.
 - **Protocol loop is primary, `/goal` is an optional accelerator.** The loop binds on every host with or without the command; if `/goal` is unavailable, record one Goal Contract line `/goal accelerator unavailable — loop bound by protocol` and proceed.
 - **Each round runs the skill's DEFAULT pass, never the flag.** No self-invocation with `--fix-loop`; one outer loop, no nesting. The round's default pass reports; every edit lands through the round's fix step.
-- **One written Fault Verdict per failure BEFORE any edit** (`SOURCE-WRONG` · `TEST-WRONG` · `TEST-NOT-OPTIMAL` · `ENVIRONMENT-BLOCKED` · `AMBIGUOUS`, per the fault-adjudication protocol), with `file:line` evidence and confidence. `AMBIGUOUS` → `AskUserQuestion`; `ENVIRONMENT-BLOCKED` → stop and escalate.
+- **One written Fault Verdict per failure BEFORE any edit** (`SOURCE-WRONG` · `TEST-WRONG` · `TEST-NOT-OPTIMAL` · `ENVIRONMENT-BLOCKED` · `AMBIGUOUS`, per the fault-adjudication protocol), with `file:line` evidence and confidence. `AMBIGUOUS` → `ask user question tool`; `ENVIRONMENT-BLOCKED` → stop and escalate.
 - **Fresh task plan per round.** Regenerate the round's task list before every re-run; never reuse the prior round's.
 - **Never force green.** No skips, weakened assertions, widened assertion timeouts, retries around a failing assertion, repository-hacked data, hidden logs, or narrowed scope.
 
@@ -65,7 +65,7 @@ A round converges ONLY when all five hold; each blocks a different false-green p
 
 **Working-tree-unchanged backstop:** the converging verify pass must land no fix. If it mutates files, the round DID fix things; run another round.
 
-### 2.5 Escalation — STOP and `AskUserQuestion`, never spin
+### 2.5 Escalation — STOP and `ask user question tool`, never spin
 
 - Failing count did not shrink across 2 consecutive rounds, or failures increased (more failures than round `R-1` is regression).
 - Round cap hit with failures still open: report the still-failing tests with their Fault Verdicts.

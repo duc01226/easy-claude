@@ -32,7 +32,7 @@
 → 3. HMW Questions → 4. SCAMPER → 5. RICE-score EVERY opportunity
 → 6. Rank into a 3–8-item opportunity map (do NOT pick ONE)
 → 7. Write plans/{plan-dir}/brainstorm-opportunity-map.md  (plans root default plans/; docsRoots.plans.path in docs/project-config.json overrides)
-→ 8. ask user tool multiSelect → hand selected opportunities to the per-opportunity PBI loop
+→ 8. ask user question tool multiSelect → hand selected opportunities to the per-opportunity PBI loop
 ```
 
 > **Key difference from A/B/C:** converge to a RANKED MAP for multi-select, never a single recommendation. See [Multi-Opportunity Discovery Mode](../SKILL.md#multi-opportunity-discovery-mode).

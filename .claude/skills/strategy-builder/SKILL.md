@@ -1,7 +1,7 @@
 ---
 name: strategy-builder
 version: 1.0.0
-description: '[Content] Use when a workflow step or the user asks for a marketing strategy: positioning, channels, messaging, campaigns, budget, KPIs.'
+description: '[Content] Use when a workflow step or the user asks for marketing strategy: positioning, channels, messaging, campaigns, budget and KPIs.'
 ---
 
 ## Quick Summary

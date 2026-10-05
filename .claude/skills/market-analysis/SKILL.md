@@ -1,7 +1,7 @@
 ---
 name: market-analysis
 version: 1.0.0
-description: '[Research] Use when a workflow step or the user asks for a market landscape analysis: competitors, TAM/SAM/SOM, trends, SWOT, segments.'
+description: '[Research] Use when a workflow step or the user asks for market analysis: competitors, TAM/SAM/SOM, trends, SWOT and customer segments.'
 ---
 
 ## Quick Summary

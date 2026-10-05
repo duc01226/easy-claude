@@ -7,6 +7,16 @@
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Workflow](#workflow)
+- [Checklist](#checklist-self-contained-dor-m1-m7-gate-below)
+- [Output](#output)
+- [Key Rules](#key-rules)
+- [Next Steps](#next-steps)
+- [Closing Reminders](#closing-reminders)
+
 ## Quick Summary
 
 **Goal:** Validate each PBI against the self-contained DoR 8-criteria and M1-M7 gates so only evidence-backed, unambiguous, implementable, releasable PBIs reach grooming, with every failure cited to its PBI section/line.
@@ -14,7 +24,7 @@
 **Summary:**
 
 - **Purpose:** Automated quality gate, not collaborative review (`$pbi --mode=challenge` handles collaboration). Run 8 required DoR criteria plus M1-M7; any failure returns `FAIL`.
-- **Execution:** Before step 1, use task tracking for every step plus a final review; keep one `in_progress` and record evidence/skips. Then run: (1) locate PBI → (2) apply self-contained DoR checklist → (3) evaluate all 8 criteria (story template; GIVEN/WHEN/THEN ×3 + auth; full-flow surface; UI design; AI review; estimate; dependencies; releasable outcome) → (4) run M1-M7 → (5) verify estimation → (6) classify → (7) emit result template → (8) route using ask user tool (`$prioritize`, `$pbi --mode=refine`, `$pbi --mode=challenge`, or skip).
+- **Execution:** Before step 1, use task tracking for every step plus a final review; keep one `in_progress` and record evidence/skips. Then run: (1) locate PBI → (2) apply self-contained DoR checklist → (3) evaluate all 8 criteria (story template; GIVEN/WHEN/THEN ×3 + auth; full-flow surface; UI design; AI review; estimate; dependencies; releasable outcome) → (4) run M1-M7 → (5) verify estimation → (6) classify → (7) emit result template → (8) route via `ask user question tool` (`$prioritize`, `$pbi --mode=refine`, `$pbi --mode=challenge`, or skip).
 - **Evidence/gates:** the Checklist below is self-contained; cite concrete PBI section + line/AC for every verdict; any M1-M5 or M7 violation forces `FAIL`; M1/M2 carriers are exempt.
 - **Contract/estimate:** Apply the shared releasable-PBI contract; technical-only/foundation/setup PBIs fail, UI PBIs need a connected multi-view flow, and story-point frontmatter needs Fibonacci 1-21, complexity, man-day, risk, and blast-radius evidence. `>13` SP = SHOULD-SPLIT `WARN`, not `FAIL`.
 
@@ -29,7 +39,7 @@
 5. **Verify estimation** — Check frontmatter against the SYNC estimation framework: `story_points` Fibonacci 1-21, complexity, man-day range, risk, and blast radius. `>13` SP is a SHOULD-SPLIT `WARN`, not a `FAIL`.
 6. **Classify result** — `PASS` only when all 8 criteria and applicable M1-M5/M7 checks pass; otherwise `FAIL` and list fixes.
 7. **Output verdict** — Emit the DoR Gate Result template; cite evidence for every criterion and mandate.
-8. **Route next step** — After output, use ask user tool to present the options in **Next Steps**; never decide the user's route.
+8. **Route next step** — After output, use `ask user question tool` to present the options in **Next Steps**; never decide the user's route.
 
 ### Shared contract references
 
@@ -107,7 +117,7 @@ If ANY criterion fails → DoR result is FAIL; list each violated mandate ID wit
 
 ## Next Steps
 
-**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use ask user tool to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
+**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use `ask user question tool` to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
 
 - **"$prioritize (Recommended)"** — If PASS: PBI is grooming-ready; prioritize into the backlog
 - **"$pbi --mode=refine"** — If FAIL: revise PBI
@@ -301,7 +311,7 @@ If ANY criterion fails → DoR result is FAIL; list each violated mandate ID wit
 
 **IMPORTANT MUST ATTENTION Purpose:** Automated DoR gate, NOT collaborative review: run 8 required criteria plus M1-M7; the user chooses the next route.
 
-**IMPORTANT MUST ATTENTION Main steps (1-8):** Before step 1, use task tracking for every step plus final review and track evidence/skips → (1) locate PBI → (2) apply self-contained DoR → (3) evaluate story, AC, full-flow/UI, AI review, estimate, dependencies, and releasable outcome → (4) run M1-M7 → (5) verify estimation frontmatter → (6) classify `PASS`/`FAIL` → (7) emit DoR Gate Result → (8) use ask user tool for `$prioritize`, `$pbi --mode=refine`, `$pbi --mode=challenge`, or skip. NEVER skip, reorder, or merge without approval.
+**IMPORTANT MUST ATTENTION Main steps (1-8):** Before step 1, use task tracking for every step plus final review and track evidence/skips → (1) locate PBI → (2) apply self-contained DoR → (3) evaluate story, AC, full-flow/UI, AI review, estimate, dependencies, and releasable outcome → (4) run M1-M7 → (5) verify estimation frontmatter → (6) classify `PASS`/`FAIL` → (7) emit DoR Gate Result → (8) use `ask user question tool` for `$prioritize`, `$pbi --mode=refine`, `$pbi --mode=challenge`, or skip. NEVER skip, reorder, or merge without approval.
 
 **IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries; each is a signpost to its canonical body above, NEVER a replacement):**
 
@@ -314,7 +324,7 @@ If ANY criterion fails → DoR result is FAIL; list each violated mandate ID wit
 **IMPORTANT MUST ATTENTION** verify estimation frontmatter via the SYNC framework: Fibonacci 1-21 + complexity, bottom-up `man_days` range, risk, and blast radius; `>13` SP = SHOULD-SPLIT `WARN`, NOT `FAIL`. — why: a WARN must not block a groomable story.
 **IMPORTANT MUST ATTENTION** Decision Model: 2/3 BA majority; Dev BA PIC has technical veto; grooming override requires >75% remaining-team vote.
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small task tracking tasks, keep one `in_progress`, record evidence/skips, and add a final review task.
-**MANDATORY IMPORTANT MUST ATTENTION** emit the DoR Gate Result template (checklist table + Blocking Items + Verdict), then use ask user tool — never auto-decide the next step.
+**MANDATORY IMPORTANT MUST ATTENTION** emit the DoR Gate Result template (checklist table + Blocking Items + Verdict), then use `ask user question tool` — never auto-decide the next step.
 
 **Anti-Rationalization:**
 
@@ -325,7 +335,7 @@ If ANY criterion fails → DoR result is FAIL; list each violated mandate ID wit
 | "No tech words in it — M7 passes"                | M1 ≠ M7. Apply the demo test to the BODY: what would a stakeholder SEE change? No answer → FAIL, however clean the prose. |
 | "Source name in `[Source: ...]` — flag it M1/M2" | Carriers are EXEMPT. Flag leakage ONLY in narrative prose, never in evidence carriers.            |
 | "Story points >13, fail the gate"                | >13 SP = SHOULD-SPLIT WARN, not a FAIL. Do not escalate a WARN to a FAIL.                         |
-| "Skip ask user tool, result is obvious"      | NEVER auto-decide. Emit the result template, then route using ask user tool — the user decides. |
+| "Skip `ask user question tool`, result is obvious"      | NEVER auto-decide. Emit the result template, then route via `ask user question tool` — the user decides. |
 
 **[TASK-PLANNING]** Before acting, analyze scope and break it into small tasks and sub-tasks with task tracking.
 
@@ -333,4 +343,4 @@ If ANY criterion fails → DoR result is FAIL; list each violated mandate ID wit
 
 **IMPORTANT MUST ATTENTION** FAIL blocks grooming on ANY required-criterion or M1-M5/M7 failure — name the violated ID + cite PBI section/line; NEVER PASS over an M1-M5 or M7 violation.
 **IMPORTANT MUST ATTENTION** cite `file:line`/section for EVERY verdict (>80% confidence to act); NEVER guess a check's status.
-**IMPORTANT MUST ATTENTION** emit the DoR Gate Result template, then route using ask user tool — never auto-decide.
+**IMPORTANT MUST ATTENTION** emit the DoR Gate Result template, then route via `ask user question tool` — never auto-decide.

@@ -73,7 +73,7 @@ test('Native design intent uses the declared profile rather than demanding defau
 test('D4 every documented map handoff consumes one resolved file list; explicit scope survives unrelated work', t => {
     const update = read('skills/docs-manager/references/mode-update.md');
     const commands = [...update.matchAll(/^node \.claude\/scripts\/doc-impact-map\.cjs (.+)$/gm)].map(match => match[1]);
-    assert.ok(commands.length >= 3);
+    assert.ok(commands.length >= 1, 'mapper remains discoverable without prescribing repeated calls');
     for (const command of commands) assert.ok(command.includes('<resolved_changed_files...>'), command);
     assert.match(update, /explicit `changed_files` → caller `base` diff → default working-tree diff/);
     assert.match(update, /resolved list is empty, record an empty-scope no-op and skip mapping/);

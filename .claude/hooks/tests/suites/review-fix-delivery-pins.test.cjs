@@ -5,8 +5,8 @@
  * framework file (`.claude/` travels with the bundle, so this reads the framework's own published text, never
  * the adopter's project files) and fails when the corrected contract is lost:
  *
- * - caller-mode rule 3 binds leaf specialists only; an orchestrating skill keeps its own review waves under
- *   `--report-only`, and the orchestrator's own mode line says the same;
+ * - caller-owned review children stay read-only while the coordinator owns fixes and fresh passes;
+ *   review-only overrides the workflow default without dropping coverage or deferred duties;
  * - the architect agent invokes the security and performance audits only when asked for by name;
  * - `/fix` reads a target reference first when inference selects the branch, as an explicit flag does.
  *
@@ -40,21 +40,22 @@ function lineStarting(text, prefix, label) {
 
 const tests = [
     {
-        name: '[review-fix-delivery-pins] caller-mode rule 3 binds leaf specialists; an orchestrating skill keeps its review waves under --report-only',
+        name: '[review-fix-delivery-pins] caller-owned leaves validate read-only; the coordinator owns fixes, fresh passes and deferred duties',
         ...guarded(() => {
-            // Given the caller-mode contract and the orchestrator's own mode line
+            // Given the shared caller contract and the general review executor
             const contract = shipped('skills', 'workflow-review-changes', 'references', 'caller-mode.md');
-            const rule = lineStarting(contract, '**No nested fan-out.**', 'caller-mode rule 3');
-            const modes = lineStarting(shipped('skills', 'changes-review', 'SKILL.md'), '**Modes:**', 'changes-review Modes line');
-            // Then rule 3 scopes the no-sub-agents ban to barrier-member leaves, exempts the skill that declares its own waves,
-            assert.ok(/leaf specialist/.test(rule), 'rule 3 no longer scopes the ban to leaf specialist skills');
-            assert.ok(/`changes-review`/.test(rule) && /keeps them under `--report-only`/.test(rule), 'rule 3 lost the orchestrator exemption for changes-review');
-            // and states what the flag removes (fixing, asking, restarts) and what it leaves alone (its own fan-out)
-            assert.ok(/removes fixing, asking and restarts, not its own fan-out/.test(rule), 'rule 3 lost the statement of what --report-only removes');
-            // and keeps the leaf ban itself (a blanket exemption would let every leaf spawn sub-agents)
-            assert.ok(/no sub-agents/.test(rule), 'rule 3 lost the leaf "no sub-agents" ban');
-            // And the orchestrator's own mode line repeats the exemption next to the flag
-            assert.ok(/--report-only` \(Phases 0–5 only;[^)]*own review waves and gates still run[^)]*not its own fan-out/.test(modes), 'changes-review --report-only line lost its review-wave exemption');
+            const changes = shipped('skills', 'changes-review', 'SKILL.md');
+            const policy = shipped('skills', 'shared', 'protocols', 'review-policy.md');
+            assert.match(contract, /explicit review-only request overrides the workflow's fix-loop default/);
+            assert.match(contract, /child reviews and validates its assigned pass read-only; the caller waits for all reports, fixes once, and requests fresh passes/);
+            assert.match(contract, /never permission for parallel source mutation or a nested loop/);
+            assert.match(contract, /Deferral never skips a gate/);
+            assert.match(contract, /Preserve complete target coverage, required rules and report findings/);
+            assert.match(policy, /it never edits source, starts another loop or asks the user/);
+            // The executor may choose its review topology, but cannot create another fixing owner.
+            assert.match(changes, /Decide inline work or authorized reviewers and group related flows as useful/);
+            assert.match(changes, /all readers join its loop without concurrent writers/);
+            assert.match(changes, /Review-only returns the validated report without source changes/);
             // And no other leaf's report-only section was loosened by the exemption
             for (const [leaf, file] of [['security-audit', ['SKILL.md']], ['performance-review', ['SKILL.md']], ['ui-design --mode=review', ['references', 'mode-review.md']]]) {
                 const text = shipped('skills', leaf.split(' ')[0], ...file);

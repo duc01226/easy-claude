@@ -1,7 +1,7 @@
 > **Context Engineering Principles** — Read when writing or enhancing prompts, skills or agents. Make the purpose and critical rules visible; preserve semantic conditions and readable discovery.
 >
 > - **Attention:** Lead with the goal, read-when trigger and critical rules; close long instructions with brief reminders. Adapt placement to the host's truncation budget and owner format.
-> - **Signal:** Remove low-value repetition and report bulk. For agent guides, apply `ai-discovery-doc-quality`; word savings and warning labels are not proof of useful guidance.
+> - **Signal:** Remove low-value repetition and report bulk. For agent guides, word savings and warning labels are not proof of useful guidance.
 > - **Structure:** Use headings, bullets or tables when they clarify decisions. Keep connected prose for rationale and conditions; avoid dense shorthand.
 > - **Context:** Supply the relevant role, evidence, constraints and output contract. Preserve checkboxes or other syntax when an owner/consumer requires them.
 > - **Examples:** Retain a short example only when it communicates a necessary distinction more efficiently than prose and a source pointer. No fixed example quota.

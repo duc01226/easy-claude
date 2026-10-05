@@ -1,129 +1,74 @@
-# `/plan --mode=review` — one-pass plan review reference
+# `/plan --mode=review` — plan review modes
 
-> Loaded by `plan/SKILL.md`'s Mode Dispatch when invoked as `/plan --mode=review [plan-path]`. This contract REPLACES default plan creation for the invocation: read the plan, review it once, report, stop. It never writes or edits a plan.
+> Read in full on `/plan --mode=review [--review-only|--fix-loop]`. Standalone defaults to review-only; fix-loop repairs validated findings and freshly reviews, up to three rounds. Caller-owned leaves stay read-only. Apply the entrypoint’s shared `review-policy`.
 
 ## Quick Summary
 
-**Goal:** Decide in one review pass whether a plan gives an executor sound direction, bounded discovery, complete affected-area coverage, and credible final quality gates without pre-writing the implementation.
+**Goal:** Check whether the plan serves the user's intent and whether its important choices are necessary and worth their cost.
 
-**Summary:**
+**Summary:** Resolve goal, plan and evidence → read the checklist owner → challenge rationale → validate findings → report verdict and hand off → stop. Review-only reports once; fix-loop revises the plan and re-runs the complete review under the common policy. Test execution remains with the verification owner.
 
-- **ONE ROUND MAXIMUM per invocation.** Review once, report once, stop. Never fix the plan, start a re-review, or loop through findings.
-- Review the whole plan at decision-and-boundary altitude: intent, important decisions, owners/areas, dependencies, discovery obligations, risks, spec/test/code sync, and final proof.
-- Use conditional specialist lenses inside the single pass only when their risk warrants the context cost. An AI-feature plan retains the AI-engineering lens; UI, security, data/domain, integration-test, and architecture lenses remain evidence-triggered.
-- Findings are validated and deduplicated before the verdict, but validation is not a second review round.
+- **Mode boundary:** review-only writes only the report; fix-loop may revise the requested plan after findings validation.
+- Apply the simplified rationale pass; write the concise review report under `tmp/reports/`. Review-only and caller-owned leaves keep the target read-only.
 
-**Workflow:** Resolve plan and scope → load governing evidence → run one core pass plus warranted lenses → validate/deduplicate findings → emit report and verdict → stop.
+## Contents
 
-**Key Rules:**
+- [Modes and Round Ownership](#modes-and-round-ownership)
+- [Scope and Evidence](#scope-and-evidence)
+- [Simplified Why-Review Pass](#simplified-why-review-pass)
+- [Finding Validation and Verdict](#finding-validation-and-verdict)
+- [Report and Handoff](#report-and-handoff)
+- [Mode protocols](#mode-protocols)
+- [Closing Reminders](#closing-reminders)
 
-- Maximum one review round per invocation; a caller may revise and explicitly invoke `/plan --mode=review` again as a new run.
-- Read-only on plan/source/spec artifacts. Write only the review report under `tmp/reports/`.
-- Do not manufacture work: a clean plan passes; missing evidence is `NOT VERIFIABLE`, not a speculative finding.
+## Modes and Round Ownership
 
-## One-Round Contract
-
-`round = 1`, `maxRounds = 1`, `minRounds = 1`.
-
-- The single round includes reading, core review, any parallel specialist lenses, finding validation, deduplication, scoring, and verdict.
-- It does **not** include editing `plan.md`, applying fixes, asking another reviewer to re-read fixed content, or starting round 2.
-- When findings survive validation, return `CHANGES_REQUESTED` with owner and evidence. The plan author/caller owns revision. Another review requires a new explicit invocation and a new report.
-- A missing required artifact, unresolved material user decision, or evidence gap that prevents judgment returns `BLOCKED` or `NOT_VERIFIABLE`; never consume another round trying to manufacture certainty.
-- Test execution is outside this mode. Review whether the plan schedules verify-last correctly; do not run suites.
+Create tasks for triage/plan, review, findings validation, authorized fixes, fresh re-review and final checks before execution. In review-only, run the full domain pass once and hand off. In fix-loop, validate findings, repair at the owner, then freshly review the settled target. Keep one shared three-round budget and the LOW/extension rules in `review-policy`; caller-owned leaves never start another loop or edit.
 
 ## Scope and Evidence
 
-1. Resolve and read the active Goal Contract per `SYNC:goal-contract-satisfaction-loop`, then resolve the target `plan.md` (the path argument, else the active plan), any phase files it intentionally uses, its spec owner, and the configured project references.
-2. Read current plan artifacts and cited evidence. For code-bearing plans, spot-check the key owners/consumers and representative patterns (an optional graph hint may help; it can be stale).
-3. Establish the requested change and non-goals. If a supplied spec baseline exists, review against that baseline and separate proposed additions.
-4. Create `tmp/reports/plan-review-{YYMMDD}-{HHmm}-{slug}.md` before recording findings.
+Read the active Goal Contract, target plan and intentional phase files, governing intent/spec, and cited evidence needed to judge material choices. Spot-check affected owners/consumers where the decision depends on them. Create `tmp/reports/plan-review-{YYMMDD}-{HHmm}-{slug}.md` before recording findings.
 
-## Single Review Pass
+If a supplied spec baseline exists, review against that baseline and separate proposed additions.
 
-### Core review
+## Simplified Why-Review Pass
 
-**[BLOCKING]** Read `references/plan-quality-checklist.md` in full before the core review; its Review duty owns the checklist findings and severities below. Judge each dimension `PASS`, `FAIL`, `N/A`, or `NOT VERIFIABLE` with evidence:
+**[BLOCKING]** Read `references/plan-quality-checklist.md` in full before the core review; its Review duty owns the defect classes and severities.
 
-| Dimension | Review question |
+Challenge the reasoning, not section length or presentation:
+
+1. **Purpose:** What outcome does this serve? Does every phase advance it without expanding scope? Is the outcome governed by a clear owner/spec, with non-goals and no silent expansion?
+2. **Necessity:** Why is each important change needed? Could reuse, a smaller change, or doing nothing satisfy the same intent?
+3. **Choice and cost:** Steel-man the strongest alternative. What does the chosen approach sacrifice, who pays, and is the gain worth it? Hand unresolved material trade-offs to the caller/user before PASS.
+4. **Assumptions:** Stress-test the top 2–3 assumptions and one plausible failure. Does the plan bound discovery and name how uncertainty is settled?
+5. **Proof:** Will acceptance evidence demonstrate the intended outcome and preserved invariants? Apply the loaded checklist owner's Review duty and required gates within this pass.
+
+| Execution check | Question |
 | --- | --- |
-| Intent and scope | Is the outcome governed by a clear owner/spec, with non-goals and no silent expansion? |
-| Technical decisions | Are material choices, rationale, alternatives, trade-offs, reversibility, and owners explicit? |
-| Areas and consumers | Are modules, contracts, state/data, tests, specs/docs, mirrors, and downstream consumers covered where applicable? |
+| Plan altitude | Does the plan give direction, owners and bounded discovery without prescribing every edit? |
 | Dependency order | Do phases reflect real dependencies or disjoint ownership rather than ceremony? |
-| Executor discovery | Are unknowns bounded by source/owner, purpose, and stop condition instead of hidden or pre-solved? |
-| Plan altitude | Is the plan actionable without becoming method-by-method implementation replay? |
-| Failure and compatibility | Are rollback, migration, security/data/platform, error paths, and compatibility concerns covered where material? |
-| Spec/test/code drift | Does the plan preserve intent/cases before build and reconcile actual tests/code/spec evidence before completion? |
 | Verify-last | Are tests authored with implementation and executed only after all implementation and static review? |
-| Future change cost | Is there one owner per rule, bounded growth, and a named test for each protected invariant without speculative abstraction? |
-| Quality gates checklist | Does `## Quality Gates & Concerns Checklist` exist before the phases, derived from THIS task (not the same rows for any task), with every YES row carrying a verification method, expected evidence and owner phase, every NO row a reason, open concerns with a way to settle each, and every gate the task clearly triggers present (a behavior change has a test row, a UI change an accessibility row, a data/contract change a migration/compatibility row)? Missing section = at least MEDIUM; generic or evidence-less rows = MEDIUM; a missing gate for a triggered high-risk concern = HIGH (severity rubric; location = plan section, evidence = the task text that triggers the gate). |
 
-### Conditional lenses
+**User-facing UI:** apply journey, design-system, accessibility, state, and container-fit plan checks.
 
-Use a lens only when evidence triggers it. Run warranted independent lenses in one parallel wave with an all-return barrier; otherwise review inline.
+Apply required domain/safety protocols only where the plan triggers them, inline in this pass. For an AI-feature plan, retain the AI-engineering gate. This mode does not dispatch a panel of specialist reviewers or invoke full `/why-review`; it uses the concise rationale protocol above.
 
-- **AI feature:** invoke or apply `ai-engineering-review --report-only` over the plan's model/tool/retrieval/eval/guardrail/operations decisions. This preserves the existing AI-feature review lane.
-- **User-facing UI:** apply journey, design-system, accessibility, state, and container-fit plan checks.
-- **Domain/data/security/public contract:** inspect the owning specialist rules and surface material unresolved decisions.
-- **Integration/E2E:** verify case ownership, observable outcomes, fidelity, isolation, and final execution evidence; do not prescribe runner mechanics without project evidence.
-- **Architecture/performance:** use only for cross-boundary, irreversible, scale, or SLA decisions.
+## Finding Validation and Verdict
 
-Sub-agents are optional, not a quality signal. Use them only when independent risk lenses clearly outweigh their context load. Every lens is part of round 1, never a new round.
+Keep only evidenced consequences for intent, execution or future change cost; deduplicate by root cause. When findings exist, run `/why-review --validate-findings <report-path>` as terminal validation within this pass. Missing evidence is `NOT VERIFIABLE`, never an invented defect.
 
-### Finding validation and verdict
+- `PASS`: no validated blocking finding, required evidence gap or failed Goal Contract criterion.
+- `PASS_WITH_NOTES`: only non-blocking LOW observations.
+- `CHANGES_REQUESTED`: validated findings require plan revision.
+- `BLOCKED`: required intent, evidence or user decision is unavailable.
 
-1. Deduplicate by root cause and owning location.
-2. For every potential finding, confirm reachable consequence, evidence, confidence, and normalized severity. Validate findings with `/why-review --validate-findings <report-path>`; this terminal adjudication belongs to the same pass and never edits the plan or opens another review round.
-3. Ask the three trade-off questions for plan decisions and for each recommendation. Hand material unconfirmed trade-offs to the caller/user as blocking questions.
-4. Verdict:
-   - `PASS` — no validated blocking finding, unresolved required evidence, or failed required Goal Contract criterion.
-   - `PASS_WITH_NOTES` — only evidence-backed LOW observations that do not require plan changes.
-   - `CHANGES_REQUESTED` — one or more validated findings require revision.
-   - `BLOCKED` — required intent/evidence/user decision is unavailable.
-5. Stop. Do not apply fixes or re-review.
+Review-only stops after the validated report. Fix-loop repairs validated findings, then repeats the complete review; defer LOWs and ask at the shared cap as the common policy requires.
 
-## Report Shape
+## Report and Handoff
 
-```markdown
-# Plan Review — {plan}
+Keep the report short: verdict and `Review rounds: {spent}/{budget}`; purpose-fit judgment; material findings with location/evidence, consequence and plan-level correction; trade-off assessment; evidence limits; Goal Satisfaction matrix. End with `Bias check:` stating the strongest alternative and what would change the verdict. Omit repeated plan descriptions and empty audit sections.
 
-## Verdict
-PASS | PASS_WITH_NOTES | CHANGES_REQUESTED | BLOCKED
-Review rounds: 1/1
-
-## Scope and Evidence
-- Plan artifacts reviewed (incl. the Quality Gates & Concerns Checklist)
-- Governing spec/decision/reference sources
-- Code evidence spot-checked
-
-## Dimension Results
-| dimension | status | evidence | note |
-
-## Findings
-### [SEVERITY] Short title
-- Location/evidence:
-- Reachable consequence:
-- Why it matters to execution:
-- Recommended plan-level correction:
-- Confidence:
-
-## Trade-Off Assessment
-| decision | sacrifice | gain | who pays/when | worth it | material | confirmed |
-
-## Coverage and Limits
-- Conditional lenses run or N/A with evidence
-- Unverified evidence and owner
-
-## Goal Satisfaction
-| Success Criterion | Evidence | Status |
-| --- | --- | --- |
-
-## Handoff
-- Plan author/caller owns revisions.
-- This invocation is complete; no automatic second round.
-```
-
-Inside a workflow, return the report path and verdict to the parent without a next-step prompt. Standalone, report the same result; the user decides whether to revise or invoke another review.
+Return the verdict/report path and any unresolved material decision to the caller. The fixing owner owns revisions; inside workflows, return the report to that owner.
 
 ## Mode protocols
 
@@ -190,41 +135,29 @@ The protocols below apply to this mode only; their full text is inline so this r
 
 <!-- SYNC:severity-rubric -->
 
-> **Severity Rubric** — Classify every finding by consequence, not by effort, reviewer preference, or how annoying the fix is. One scale applies to every review, skill, agent, workflow, and host so a tier means the same everywhere. Choose the highest credible consequence supported by evidence; do not lower a tier to make a round pass.
+> **Severity Rubric** — Use one consequence-based scale across reviews, skills, agents, workflows and hosts. Choose the highest credible tier supported by evidence; never lower it to pass a round. Effort, cost, preference, annoyance, frequency alone and round-budget pressure do not determine severity.
 >
-> **Finding vs observation (required):** An observation becomes a finding only when it names the affected user/system/data/contract, the shipped consequence, the evidence location, and the normalized tier. `INFO`, advice, preference, duplicate wording, or an unsubstantiated concern is not a finding and must not reopen a loop. If the concern might affect a required behavior or gate but evidence is incomplete, emit `NOT VERIFIABLE` with the missing evidence and keep it unresolved; never silently convert uncertainty into LOW.
+> **Finding vs observation:** admit a finding only with an affected user/system/data/contract, shipped consequence, reachable supported trigger (caller, input, state or event sequence), evidence location and confidence percentage. Assess exposure/likelihood and reversibility/detectability before assigning a tier.
 >
-> **Reachable trigger path (required):** a finding also names HOW a supported configuration reaches the defect — the caller, input, state or event sequence that drives execution or data there. A concern on a path nothing reaches (dead code, a branch its guard excludes, an impossible state) is an observation: record it as advice, never as a LOW to fix. Also never a finding: what a compiler, type checker, linter or test run for this change already reports in the review evidence; a behavior change the stated intent asks for; an issue silenced by a suppression that predates this change and states its reason (a suppression the change adds is itself reviewed); a pre-existing issue on a line the change neither touched nor made reachable. When reachability cannot be settled and the concern would be MEDIUM or higher, emit `NOT VERIFIABLE` naming what would settle it; a polish-level concern with unsettled reachability is an observation. — why: a speculative LOW admitted as a finding becomes build work in round 1.
+> **Keep as observations:** advice, preference, duplicates, unsupported concerns, unreachable paths, issues already reported by this change’s compiler/type checker/linter/tests, intended behavior changes, reasoned suppressions predating the change, and pre-existing issues neither touched nor made reachable. Review newly added suppressions. Observations/INFO do not reopen loops.
 >
-> | Severity | Action | Definition and examples |
+> | Tier | Consequence and boundary examples | Action |
 > | --- | --- | --- |
-> | CRITICAL | Block immediately; escalate | Immediate material risk if shipped: authentication/authorization or safety bypass; secrets/PII exposure; irreversible destructive action; data loss/corruption; a silent failure on a critical path. A failed binary gate is carried by the executable policy as a separate synthetic blocker, not an ordinary severity judgment. |
-> | HIGH | Must fix before PASS/merge | Material correctness or contract risk: wrong behavior on a supported path; violated business/data invariant; meaningful privacy or authority gap; breaking API/schema/compatibility change; likely harm to users/downstream systems; a missing proof for a behavior-changing fix. |
-> | MEDIUM | Must clear the current round; escalate if the fix needs an owner decision | Bounded but consequential risk: an edge case, resilience/observability/testability/maintainability gap, credible future defect, or local architectural drift — real impact, not immediate material loss. A recorded follow-up does not make an open MEDIUM a clean pass. |
-> | LOW | Record and defer; never opens another fix/re-review round from round 2 onward, never raises the round budget | Non-blocking polish with no credible present correctness, security, privacy, authority, availability, or data-integrity impact: wording/formatting, minor documentation or convention drift, optional defensive cleanup, cosmetic refinement. |
+> | CRITICAL | Immediate material security, safety or authority harm; auth bypass; secrets/PII exposure; irreversible destruction; data loss/corruption; critical-path silent failure. | Block immediately; escalate. |
+> | HIGH | Material supported-path correctness, invariant, privacy/authority, public-contract or compatibility failure; likely user/downstream harm; missing proof for a behavior-changing fix. | Fix before PASS/merge. |
+> | MEDIUM | Bounded consequential edge, resilience, observability, testability, maintainability or architectural gap; credible future defect. | Clear this round; escalate decisions needing an owner. A follow-up is not a clean pass. |
+> | LOW | Proven non-blocking polish with no credible present correctness, security, privacy, authority, availability or data-integrity impact: wording, formatting, minor docs/conventions, optional cleanup, cosmetics. | Record/defer; alone never opens another round from round 2 or increases the budget. |
 >
-> **Consequence decision tree (apply in order):** (1) A failed binary gate stays a separate hard blocker (synthetic CRITICAL in the executable helper) — never hide it behind an ordinary label. Otherwise, would shipping permit immediate material security/safety/authority harm, irreversible destruction, data loss/corruption, or a critical-path silent failure? → **CRITICAL**. (2) Does a supported path, invariant, public contract, privacy/authority boundary, compatibility promise, or behavior-changing proof fail with material impact? → **HIGH**. (3) A bounded but consequential edge, resilience, observability, testability, maintainability, or architectural gap with credible impact? → **MEDIUM**. (4) Evidence shows only non-blocking polish? → **LOW**. (5) Evidence to choose among 1–4 missing → **NOT VERIFIABLE**, not LOW. When several tiers fit, select the highest credible consequence; effort, cost, reviewer discomfort, frequency alone, proximity to the round cap, and obtaining another round never decide the tier.
+> **Consequence decision tree:** check binary gates separately, then select the first evidenced tier from CRITICAL → HIGH → MEDIUM → LOW. Missing evidence is **NOT VERIFIABLE**, not a fifth tier or a LOW fallback: name the missing proof. Unsettled reachability is NOT VERIFIABLE for potential MEDIUM+ impact and an observation for polish. Claims potentially affecting required behavior, security, privacy, authority, availability, data integrity or a gate remain evidence blockers until proved or explicitly owner-accepted with scope, rationale and residual risk. Owner acceptance does not make an open MEDIUM a clean pass or a failed gate pass.
 >
-> **Boundary examples:** auth bypass, exposed secret/PII, destructive command without an authority gate, or failed required test/generation/parity gate → **CRITICAL**; wrong supported response, broken invariant/API/schema, meaningful privacy/authority defect, or unproven behavior-changing fix → **HIGH**; bounded retry/timeout/alert/testability gap or credible maintainability drift → **MEDIUM**; typo, formatting, optional cleanup, or cosmetic suggestion proven not to affect behavior → **LOW**. A missing fact about any boundary is **NOT VERIFIABLE** until evidence or a documented residual-risk decision exists.
+> **Hard gates and rounds:** failed tests, required artifacts, security must-fix checks, generated parity and policy compliance block every round, independently of finding severity. The executable helper carries failures as synthetic CRITICAL blockers; reports name the gate and failure evidence. Default review budget is three rounds; unresolved findings or failed required checks at the cap ask the user for a bounded extension under `SYNC:review-policy`. Failed checks never pass by severity deferral.
 >
-> **Classification procedure (every finding):** (1) state the affected user, system, data, contract, or gate; (2) assess consequence if it ships; (3) assess exposure/likelihood and reversibility/detectability; (4) select the highest justified tier; (5) cite `file:line` or equivalent evidence and a confidence percentage. `NOT VERIFIABLE` is a pending evidence state, not a fifth tier and never a LOW escape hatch: if the claim could affect required behavior, security, privacy, authority, availability, data integrity, or a binary gate, it stays an open evidence blocker until resolved or explicitly owner-accepted with documented residual risk. Classify LOW only when evidence supports the absence of credible present material impact.
->
-> **Hard-gate rule:** Binary gates (tests, required artifacts, security must-fix checks, generated parity, policy compliance) are not severity-rated findings. The executable helper records a failed gate as a synthetic CRITICAL blocker so one predicate can carry it; the report still names the gate and failure evidence. A failed gate blocks at every round, even when all ordinary findings are LOW. A failed non-test gate is bounded by the three-round review cap; a failing test gate is outside the round budget and loops until the tests pass.
->
-> **Score-based skills** map their numeric scale onto these tiers — no parallel vocabulary:
->
-> - **0-2 criterion scoring** (e.g. production-readiness-review): `0` = CRITICAL/HIGH (unmet, blocks readiness), `1` = MEDIUM (partial, consequential gap), `2` = pass. A polish-only criterion is LOW, not a forced `0`.
-> - **Two-axis scoring** (e.g. performance-review, impact × likelihood): high impact + high exposure → CRITICAL/HIGH; material impact, bounded exposure → HIGH/MEDIUM; low impact and exposure → LOW. Record the axes and why the tier is the highest credible consequence.
-> - **Scorecards / `/20` grades** (e.g. `architecture --mode=scalability`): the aggregate score and verdict band are separate from finding severity. A sub-80 area is evidence to investigate, not an automatic tier; classify each underlying gap by the decision tree and keep advisory score deductions apart from blocking findings.
->
-> **Domain-vocabulary normalization (mandatory):** a skill may keep a local reporting vocabulary, but it MUST feed this same four-tier round predicate — never a second severity system:
->
-> - `BLOCKED`, `HARD FAIL`, or `FAIL` is a blocking local verdict, not an automatic CRITICAL: CRITICAL for an immediate material risk or failed binary gate, otherwise HIGH or MEDIUM with evidence, while the local block holds until the owning gate is satisfied.
-> - `WARN` is not permission to ignore: MEDIUM when consequential, LOW only when evidence shows no credible present material impact, HIGH/CRITICAL when the consequence warrants. `PASS`/compliant is not a finding.
-> - UI `P0`/`P1`/`P2`/`P3`/`P4` start as CRITICAL/HIGH/MEDIUM/LOW/LOW; override upward only on evidence of a higher shipped consequence. A P0/P1 accessibility or task-completion floor stays a blocking gate even when called a priority.
-> - Numeric SRE/readiness or impact/likelihood scores are evidence inputs, not tiers: emit the score, the consequence, and the normalized tier together. `INFO`/advisory observations are not findings unless evidence shows a material consequence.
->
-> A tier drives the gate: CRITICAL/HIGH/MEDIUM stay actionable and blocking under the round policy; all review blockers may use up to three rounds, then escalate; LOW may be tracked as a follow-up and, from round 2, never justifies another fix/re-review by itself. An owner decision may explain or schedule an open MEDIUM but never makes it a clean pass; owner acceptance never makes a failed binary gate pass and must record scope, rationale, and residual risk.
+> **Domain-vocabulary normalization and scores:**
+> - `BLOCKED`/`HARD FAIL`/`FAIL` are local blocking verdicts, not automatic CRITICAL; classify by consequence while preserving the owning gate. `WARN` can be any tier; `PASS`/compliant is not a finding. INFO/advisory remains observational unless material consequence is evidenced.
+> - UI `P0/P1/P2/P3/P4` start at CRITICAL/HIGH/MEDIUM/LOW/LOW; raise only with evidence. P0/P1 accessibility or task-completion floors remain blocking gates.
+> - Criterion `0/1/2` → CRITICAL or HIGH (unmet readiness)/MEDIUM (partial consequential gap)/pass; polish is LOW, never forced to `0`.
+> - Impact × likelihood: high impact/exposure → CRITICAL/HIGH; material impact with bounded exposure → HIGH/MEDIUM; low impact/exposure → LOW. Record both axes and justify the highest credible tier.
+> - Aggregate scorecards and `/20` verdict bands stay separate; sub-80 areas prompt investigation, not automatic severity. Keep advisory deductions separate from blockers. Emit numeric SRE/readiness or impact/likelihood scores with consequence and normalized tier.
 
 <!-- /SYNC:severity-rubric -->
 
@@ -232,13 +165,15 @@ The protocols below apply to this mode only; their full text is inline so this r
 
 > **Trade-Off Interrogation Gate** — ALWAYS ask these THREE questions before ANY verdict, score, finding, or recommendation — about the thing under review AND about every recommendation YOU make. — why: naming a benefit without its price is an endorsement, not a review; the costliest trade-offs are the ones nobody wrote down.
 >
+> **Review/audit decisions:** apply `SYNC:review-decision-autonomy` before any user-choice or confirmation prompt below. Select the supported recommendation and record its rationale; round-limit extension, indispensable missing facts and operation authority retain their explicit boundaries.
+>
 > 1. **Is there any trade-off?** Name what it SACRIFICES. "None" / "pure win" is an unfinished analysis, NOT an answer — to claim none, state which dimensions you checked and why each is unaffected: future change cost · complexity · performance/latency · memory/cost · coupling · reversibility · migration burden · operational load · blast radius · security posture · testability · team skill/ramp · delivery time · UX.
 > 2. **Is it worth it?** Weigh gain against sacrifice EXPLICITLY — what is gained (with a metric) · what it costs · WHO pays · WHEN it comes due — then emit **WORTH IT / NOT WORTH IT / UNCLEAR**. "Better" with no metric and no cost FAILS this question. NOT WORTH IT → withdraw or replace the recommendation, never keep it as-is.
 > 3. **Is the trade-off material enough to CONFIRM WITH THE USER?** A material trade-off is the user's call, never yours. **MATERIAL** when ANY holds: irreversible / one-way door (data migration, public contract, storage format, vendor lock-in) · cost shifted onto someone else (another team, ops/on-call, future maintainer, end user) · one quality attribute traded for another (correctness↔speed, security↔convenience, latency↔cost, simplicity↔flexibility) · a boundary crossed (client↔server tier, service contract, event contract, shared library) · a high-consequence path (auth, money, data integrity, breaking change, High/Medium residual risk) · the worth-it verdict is UNCLEAR.
 >
-> **MATERIAL → STOP and confirm via `AskUserQuestion` BEFORE the verdict stands** — state the trade-off, both options, what each sacrifices, and your recommendation. **NOT material →** record it inline with a one-line justification and proceed.
+> **MATERIAL → STOP and confirm via `ask user question tool` BEFORE the verdict stands** — state the trade-off, both options, what each sacrifices, and your recommendation. **NOT material →** record it inline with a one-line justification and proceed.
 >
-> **Non-asking execution contexts — ESCALATE BY HANDOFF, never by silence.** `AskUserQuestion` reaches only the main interactive agent: a sub-agent cannot ask the user, and a terminal/verdict-only mode asks nothing by design. When you are running in such a context, the obligation is **redirected, never waived** — do ALL of: (a) complete questions 1 and 2 normally; (b) decide materiality and record it in the Trade-Off Assessment row with `confirmed? = NO — cannot ask from this context`; (c) **name the unconfirmed MATERIAL trade-off explicitly in your returned summary/verdict so the CALLER (or parent orchestrator) escalates it via `AskUserQuestion` on your behalf** — a material trade-off mentioned only inside a report file on disk is NOT a handoff; (d) do not emit an unqualified PASS — mark the verdict as carrying an unconfirmed material trade-off, so the caller's gate stays closed until the user answers. The caller inherits the escalation duty the moment it reads your return.
+> **Non-asking execution contexts — ESCALATE BY HANDOFF, never by silence.** `ask user question tool` reaches only the main interactive agent: a sub-agent cannot ask the user, and a terminal/verdict-only mode asks nothing by design. When you are running in such a context, the obligation is **redirected, never waived** — do ALL of: (a) complete questions 1 and 2 normally; (b) decide materiality and record it in the Trade-Off Assessment row with `confirmed? = NO — cannot ask from this context`; (c) **name the unconfirmed MATERIAL trade-off explicitly in your returned summary/verdict so the CALLER (or parent orchestrator) escalates it via `ask user question tool` on your behalf** — a material trade-off mentioned only inside a report file on disk is NOT a handoff; (d) do not emit an unqualified PASS — mark the verdict as carrying an unconfirmed material trade-off, so the caller's gate stays closed until the user answers. The caller inherits the escalation duty the moment it reads your return.
 >
 > This carve-out is about **reachability, not convenience**: it applies ONLY where the tool genuinely cannot reach the user (spawned sub-agent, terminal validate/verdict-only mode, non-interactive/headless run). It is NEVER a licence to skip the question, to self-approve a one-way door, or to downgrade materiality because asking is inconvenient — if you CAN ask, you MUST ask.
 >
@@ -252,11 +187,21 @@ The protocols below apply to this mode only; their full text is inline so this r
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Complete one evidence-backed plan review pass that improves execution confidence without becoming another implementation or review loop.
+**IMPORTANT MUST ATTENTION Goal:** Check whether the plan serves the user's intent and whether its important choices are necessary and worth their cost.
 
-- **MUST ATTENTION** maximum one review round per invocation: review → validate/deduplicate → verdict → stop.
+**MUST ATTENTION Main steps:** resolve goal/plan/evidence → read checklist owner → challenge rationale → validate findings → report and hand off → stop.
+
+- **MUST ATTENTION** review-only reports once; fix-loop validates → fixes → freshly reviews within the shared three-round cap.
 - **MUST ATTENTION** resolve the active Goal Contract and emit its Goal Satisfaction matrix before a PASS verdict.
-- **MUST ATTENTION** never edit the plan, fix findings, or start a fresh re-review inside this mode.
-- **MUST ATTENTION** judge intent, decisions, areas/consumers, bounded discovery, risks, drift control, and verify-last order at plan altitude.
-- **MUST ATTENTION** keep the AI-engineering lens when AI-feature evidence triggers it; all other specialist lenses remain evidence-triggered and part of the same single pass.
+- **MUST ATTENTION** review-only and caller-owned leaves never edit; standalone fix-loop repairs validated plan findings and freshly re-reviews.
+- **MUST ATTENTION** challenge purpose, necessity, alternatives, trade-offs and proof; keep the report concise.
+- **MUST ATTENTION** apply triggered safety gates inline; do not dispatch multiple perspective reviews.
 - **MUST ATTENTION** inside workflows return the verdict/report path without a next-step prompt.
+
+**Anti-Rationalization:**
+
+| Evasion | Required action |
+| --- | --- |
+| "Fixing it is faster" | Review-only/caller-owned passes report the correction; standalone fix-loop repairs validated findings before fresh review. |
+| "One more round will prove it" | Review-only stops after its pass; fix-loop uses the shared three-round cap and asks before a bounded extension. |
+| "The report mentions the trade-off" | Hand off every unconfirmed material decision in the returned verdict. |

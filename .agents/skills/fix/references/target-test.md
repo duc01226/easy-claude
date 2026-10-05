@@ -20,7 +20,7 @@
 2. Use the `tester` subagent to run the tests; report back. Write failure analysis to `tmp/analysis/{test-issue}.analysis.md`; re-read before fixing.
 3. If tests fail, use the `debugger` subagent to find the root cause; report back.
 4. Use the `planner` subagent to create an implementation plan; report back.
-5. **🛑 Present root cause + fix plan → ask user tool → wait for approval.**
+5. **🛑 Present root cause + fix plan → `ask user question tool` → wait for approval.**
 6. Implement the plan step by step.
 7. Use the `tester` subagent to verify; report back.
 8. Use the `code-reviewer` subagent to review the changes; report back.

@@ -1,10 +1,12 @@
 # `/docs-manager --mode=init` — reference-doc initialization reference
 
-> Loaded by `docs-manager/SKILL.md`'s Mode Dispatch when invoked as `/docs-manager --mode=init`. This contract is the whole mode: first-time initialization or reconciliation of the project reference-doc set, delegating each applicable target to `scan`. It takes no other arguments.
+Read this full contract for explicit `/docs-manager --mode=init`: initialize or reconcile the selected reference-doc set through applicable `scan` targets. It takes no other arguments.
 
 ## Quick Summary
 
 **Goal:** Initialize or reconcile project reference documentation from optional validated project config, the repository's actual capabilities, and the configured document selection.
+
+**Summary:** Validate optional config → resolve always-on inputs and exact doc selection → identify placeholders → select applicable owners → scan and verify results → report. Preserve curated docs and native spec formats.
 
 **Workflow:**
 
@@ -12,17 +14,16 @@
 2. **Resolve** -- Separate project-init-owned always-on inputs from task-specific reference docs; resolve the effective selection.
 3. **Select** -- Resolve selected built-in targets, explicitly generic custom targets, and manual custom docs; check capability evidence where a built-in target defines one.
 4. **Populate** -- Run only applicable selected scans, then verify each changed or unchanged result.
-5. **Discovery gate** -- Every initialized or changed doc leads with purpose + critical rules and routes to related docs by trigger; the docs index routes to each of them (Step 5).
 
 **Key Rules:**
 
-- `docs/project-config.json` (or its configured path) is OPTIONAL. When it is absent, initialize on the framework's portable defaults and derive project facts from repository evidence (manifests, lockfiles, scripts, CI definitions, directory layout) — an adopter with no config is a supported, first-class state, never a blocker. When it is present, the minimum valid config is a non-empty `project.name`; omitted capability properties use neutral defaults or cause that capability to be skipped, and a DECLARED but invalid section fails closed for that section rather than being silently replaced by a default.
+- `docs/project-config.json` (or its configured path) is OPTIONAL; absent config uses portable defaults and repository evidence. Present config needs a non-empty `project.name`; omitted capabilities use neutral defaults or evidence-backed skips.
 - A declared but malformed or incomplete config section fails visibly. Repair it through `project-init` / `project-config` before scanning; do not infer replacement values.
 - Let the configured docs owner create placeholders; do not hand-create generated scan output.
 - The built-in target list is an option catalog, not a required document floor. Scan only a selected, applicable target.
 - `lessons.md` and `docs-index-reference.md` are project-init-owned always-on inputs; they are ensured independently from the task-specific `referenceDocs` selection.
 
-**Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
+Ground claims in traced evidence; confidence >80% to act, otherwise verify first.
 
 ## Step 1: Validate Project Config
 
@@ -42,7 +43,7 @@ For task-specific docs, use the resolved `referenceDocs` selection from `.claude
 
 - If the property is absent, the resolver supplies the portable baseline plus only capability-supported docs.
 - If it is an array, that selection is exact, including `[]`; never append the full registry or infer extra docs.
-- `docsRoots.projectReference.path` relocates the reference-doc directory; otherwise it defaults to `docs/project-reference/` (a `docsRoots.projectReference.path` entry in `docs/project-config.json` relocates it).
+- `docsRoots.projectReference.path` in `docs/project-config.json` relocates the reference-doc directory (default `docs/project-reference/`).
 - A custom doc is declared in `referenceDocs` with required `filename` and `purpose`, and optional `sections`, `templatePath`, and `scanTarget`. The filename is relative to the configured reference-doc root; `templatePath` is project-relative. Both paths use safe POSIX-relative segments and runtime containment checks.
 - Built-in filenames use only the exact framework-owned target in `scan/references/targets.md`. A custom doc defaults to manual ownership; `scanTarget: "generic"` opts it into `/scan --target=generic-reference-doc --filename="<filename>"`. Never infer a built-in scanner from a basename.
 
@@ -74,54 +75,18 @@ Apply the shared SDD quality contract only when the selected scan produces or up
 
 Run the exact verifier declared by the project/framework contract and resolve failures before reporting completion. Do not invent a verifier command; report when none is configured or applicable.
 
-## Step 5: AI-Discovery Gate (final)
-
-Apply the shared content-value and semantic-retention gate in `SYNC:ai-discovery-doc-quality` to each doc this run initialized or changed and to the docs index. Pass requires: purpose, when-to-read and critical rules on the first screen; closing reminders on a long or rule-bearing doc; every pointer to another doc written as `read <path> when <situation>` with an existing target; each selected doc reachable from the docs index or root context (no orphan). Route a failure back to the doc's owner (`/scan --target=<key>`, the docs-index target for index routing gaps, or a `referenceDocs` entry via `/project-config` for a root-context route) instead of patching generated output by hand; a placeholder-only doc still names its purpose and when to read it.
-
-## Configuration
-
-Reference-doc definitions are in the configured project-config file under `referenceDocs`; `.claude/hooks/lib/session-init-helpers.cjs` resolves the portable default selection and templates. The project config schema, not this skill, defines accepted properties.
+The project config schema owns accepted properties; `.claude/hooks/lib/session-init-helpers.cjs` resolves selection and templates.
 
 ---
 
 > **[IMPORTANT]** Track multi-target initialization as small tasks with a final consistency review. Do not interrupt an otherwise clear initialization to ask which applicable configured scans to run.
 
-## Mode protocols
-
-The protocol below applies to this mode only; its full text is inline so this reference is self-contained. `docs-manager/SKILL.md` carries none, so `--mode=update` never loads this text.
-
-<!-- SYNC:ai-discovery-doc-quality -->
-
-> **AI-Discovery Doc Quality** — Shared content-value contract for agent guides, root context, reference templates, indexes and registries. Read when authoring, scanning, enhancing or reviewing these documents. Lead with purpose and read-when trigger; preserve action-changing conditions; keep one substantive owner per rule.
->
-> 1. **Value:** Every retained section supports purpose/outcome, principle/invariant, actionable instruction, required protocol/decision sequence, exception/precondition, necessary rationale, or triggered navigation. Ask: “What decision or action would become worse if this content disappeared?” With no concrete answer, remove it or move supporting evidence to project-root `tmp/reports/` (disposable-report location); respect a configured disposable-report owner when declared.
-> 2. **Authority:** Resolve declared owners, accepted conventions, canonical contracts, public abstractions and enforcing callers/tests. Frequency, proximity and recency do not establish intended practice. Check exemplar preconditions: scope, lifecycle, transaction ownership, host compatibility and trust boundary. Distinguish required practice, permitted exception, legacy implementation, intended migration direction and unresolved behavior. Surface contradictions; never turn an observation into a mandate.
-> 3. **Guidance vs evidence:** Keep search transcripts, adoption/drift statistics, exhaustive inventories, incident chronology, repeated validation history, long copied implementations and unrelated audit findings in temporary reports. Preserve numbers that govern action: thresholds, limits, supported versions and machine values. Keep short rationale or examples when they prevent a likely mistake more efficiently than prose and navigation. No universal size, reduction, example or warning-keyword quotas; use readable sentences and visible priorities, not dense shorthand.
-> 4. **Discovery:** Write `read <path> when <situation>` and identify the owner and decision/contract/mechanism to inspect. Verify paths, commands, public APIs and symbols; prefer stable owner paths/symbols to fragile line ranges. Use live registries and supported discovery commands instead of parallel inventories. Every guide is reachable from root/index; missing or not-applicable targets are reported once, never routed as usable sources.
-> 5. **Retention:** Before substantial rewriting, inventory unique rules, protocols, exceptions/preconditions, safety/authority boundaries, lifecycle/state semantics, navigation and machine-consumed structures in the temporary report. Afterward map each to retained, consolidated into a named owner, replaced by sufficient triggered discovery, or removed with an obsolete/redundant/outside-purpose reason. A pointer replaces a rule only when reliably discoverable at the moment it matters.
-> 6. **Ownership:** Inspect heading/anchor/frontmatter/table/header/parser consumers before changes. Preserve required syntax/data. Curated registries, historical audits and durable lessons keep their separate owner contracts; scan never silently edits lessons or operating authority. Fix generated output at its source and regenerate.
-> 7. **Attention:** First screen: purpose, read-when and critical rules. Long or rule-bearing guides close with brief reminders of those priorities. For truncating hosts, put irreversible-action boundaries/routing first and measure offsets.
->
-> **Final gate:** After enhancement, review decision value, intended practice, exceptions/rationale, discovery validity, semantic dispositions, ownership and readability against the baseline. Use existing structural validators for applicable contracts; section presence or fewer words alone proves nothing. Enhancement cannot reintroduce removed report bulk. Enhance changed hand-owned guides unless the owner records a supported skip; generated guides are enhanced at source. Apply surgically to the changed scope and attention anchors. Preserve action-changing conditions, verified discovery and canonical ownership.
-
-<!-- /SYNC:ai-discovery-doc-quality -->
-
-<!-- SYNC:ai-discovery-doc-quality:reminder -->
-
-**MUST ATTENTION** AI-read guides: purpose/read-when and priorities first; retain action-changing rules, exceptions and rationale; verify triggered discovery and parser contracts. Use the content-value and semantic-disposition gate after enhancement; keep evidence in temporary reports and fix generated output at its source.
-
-<!-- /SYNC:ai-discovery-doc-quality:reminder -->
-
 ## Closing Reminders
 
-**Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
+**Goal:** Initialize or reconcile selected reference documentation through its applicable owners.
 
-- **AI-Discovery Doc Quality:** purpose + critical rules on top, reminders at the bottom when long, trigger-based routing to existing docs, no orphan doc.
+**MUST ATTENTION Main steps:** validate optional config → resolve always-on inputs and exact selection → identify placeholders → select applicable scans → populate and verify → report.
 
-- **MANDATORY IMPORTANT MUST ATTENTION** finish with the Step 5 AI-discovery gate on every initialized or changed doc and the docs index
-- **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting
-- **MANDATORY IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code
-- **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
-- **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
-
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.
+- Preserve exact selection, capability gates and curated-document ownership; do not hand-create generated scan output.
+- Repair malformed declarations through their owner; do not invent a verifier command or unsupported project facts.
+- Track tasks before acting, cite `file:line` evidence (confidence >80% to act), and finish with a consistency review.

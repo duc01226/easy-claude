@@ -1,6 +1,6 @@
 ---
 name: pdf-convert
-version: 2.0.0
+version: 2.0.1
 description: '[Document Processing] Use when converting between PDF and Markdown: text PDFs to Markdown (scanned PDFs are reported, not OCR''d), Markdown to styled PDF. --to={markdown|pdf}.'
 disable-model-invocation: true
 ---
@@ -9,10 +9,12 @@ disable-model-invocation: true
 
 **Goal:** Convert PDF to Markdown, or Markdown to PDF, through one entry point.
 
+**Summary:** Select the required direction → probe its dependencies → install only if missing → convert → check JSON status and the output file. Native text extraction and PDF rendering are supported; scanned-PDF OCR is unavailable.
+
 **Workflow:**
 
 1. **Pick a direction** — `--to markdown` (PDF in, Markdown out) or `--to pdf` (Markdown in, PDF out)
-2. **Install that direction** — each one has its own `package.json`; install only the one you need
+2. **Check that direction** — probe its dependencies; each has its own `package.json`, so install only missing dependencies for the selected direction
 3. **Convert** — run `scripts/convert.cjs --to <direction>` with the direction's own options
 4. **Output** — the converter returns JSON with the success status and output path
 
@@ -38,7 +40,14 @@ Markdown files to high-quality PDF (with code syntax highlighting and custom CSS
 
 ## Installation Required
 
-**Each direction installs separately.** Install only the one you need:
+Use Node.js >=18 for PDF → Markdown; for Markdown → PDF, use the runtime range in `to-pdf/package.json`. From the project root, probe the selected consumer's dependencies with `createRequire` before installing:
+
+```bash
+node -e "const p=require('node:path'); const r=require('node:module').createRequire(p.resolve('.claude/skills/pdf-convert/to-markdown/package.json')); r.resolve('@opendocsg/pdf2md');"
+node -e "const p=require('node:path'); const r=require('node:module').createRequire(p.resolve('.claude/skills/pdf-convert/to-pdf/package.json')); r.resolve('md-to-pdf'); r.resolve('gray-matter');"
+```
+
+**Each direction installs separately.** Run only the probe and setup for the direction you need; its manifest owns package versions. Install missing dependencies with:
 
 ```bash
 # PDF -> Markdown
@@ -53,7 +62,7 @@ npm install
 `ck init` (which runs `install.sh`) handles every skill at once.
 
 **Note:** `--to pdf` may download Chromium (~150MB) on first run unless system Chrome is detected.
-OCR for scanned PDFs under `--to markdown` needs extra setup (see OCR Setup below).
+Scanned-PDF OCR is unimplemented. Installing optional OCR packages does not enable it.
 
 ## Quick Start
 
@@ -132,9 +141,9 @@ reports that the document appears to be scanned.
 
 Fast direct text extraction. Best for PDFs with selectable text.
 
-### OCR (scanned PDFs) — coming soon
+### OCR (scanned PDFs) — unsupported
 
-Not yet implemented; the skill tells you when a PDF appears to be scanned.
+The converter returns a failure for OCR mode. Report the limitation for scanned documents; native mode is suitable only when the PDF contains selectable text.
 
 ## Default Styling (`--to pdf`)
 
@@ -167,21 +176,9 @@ Both directions return JSON on success:
 ## Limitations
 
 - Complex multi-column layouts may not preserve structure
-- Scanned PDF OCR accuracy depends on image quality
+- Scanned PDFs cannot be transcribed by this converter
 - Mathematical formulas may not convert perfectly
-- First-run OCR downloads language data (~15MB)
 - Large documents converted to PDF may need more memory — consider splitting the input
-
-## OCR Setup (optional)
-
-For scanned PDF support, add these to the `to-markdown` direction:
-
-```bash
-cd .claude/skills/pdf-convert/to-markdown
-npm install tesseract.js pdfjs-dist canvas
-```
-
-**Note:** the `canvas` package may require build tools on some systems.
 
 ## Troubleshooting
 
@@ -208,6 +205,8 @@ cd .claude/skills/pdf-convert/to-pdf && node tests/run-tests.cjs
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Convert PDF to Markdown, or Markdown to PDF, through one entry point — `scripts/convert.cjs --to {markdown|pdf}`.
+
+**MUST ATTENTION Route:** select direction → probe dependencies → install only if missing → convert → verify JSON status and the output file. Report unsupported OCR; optional package installation cannot enable it.
 
 **IMPORTANT MUST ATTENTION** `--to` is required — never guess the direction for the user
 **IMPORTANT MUST ATTENTION** each direction installs its own dependencies; the error `hint` names the exact directory

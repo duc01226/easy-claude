@@ -12,14 +12,15 @@
  *      recognizer (never the path text of a guide line);
  *   3. looks each tag up in the published protocol index (unknown tags are dropped; text comes only
  *      from the projection files the index names);
- *   4. keeps this group's tags, drops inline review-family skills, drops tags the ledger view reports
+ *   4. keeps this group's tags, drops explicit full-body skill exceptions, drops tags the ledger view reports
  *      as delivered, drops tags the starting agent already inlines as a full SYNC body, and drops trigger-gated tags
  *      (`trigger` in the group data) unless their trigger applies — the skill's guide line stays the
  *      path for those (see `triggerApplies`);
  *   5. packs the result into one message of at most `binChars` characters; what does not fit is
  *      named by its index path ("read these"), never dropped.
  *
- * Inline review-family skills receive nothing from any group (their role protocols are full bodies).
+ * Explicit inline-list exceptions receive nothing from role groups because they retain full bodies.
+ * The live list is empty; review-family entrypoints declare guides with full-source fallback.
  * The universal bundle is not a skill-load group: `universal-delivery.cjs` delivers it on prompts and
  * sub-agent starts.
  *

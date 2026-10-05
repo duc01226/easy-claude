@@ -1,20 +1,20 @@
 ---
 name: graph-code
-description: '[Code Intelligence] Use when building/syncing the code graph, querying callers/imports/tests, tracing flow, checking blast radius or linking frontend-backend APIs. --mode={build|query|trace|blast-radius|connect-api}.'
-version: 1.0.0
+description: '[Code Intelligence] Use when building/syncing the code graph, querying callers/imports/tests, tracing flow, checking blast radius, linking APIs or exporting JSON/Mermaid. --mode={build|query|trace|blast-radius|connect-api|export}.'
+version: 1.1.1
 ---
 
-> **[BLOCKING] Mode routing — detect FIRST.** The mode is `--mode=build|query|trace|blast-radius|connect-api`, or the first argument when it is exactly one of those five words (`/graph-code trace <file>`). Everything after the mode is that mode's own arguments (`--scope=`, `--direction`, `--node-mode`, `--json`, a target). Read the mode file in full before anything else (see [Mode Dispatch](#mode-dispatch)). `/graph-code --mode=build` (with `--scope=`), `--mode=query`, `--mode=trace`, `--mode=blast-radius` and `--mode=connect-api` are the former `/graph-build`, `/graph-query`, `/graph-trace`, `/graph-blast-radius` and `/graph-connect-api`: those slash commands no longer exist, and each mode works called directly with no workflow.
+> **[BLOCKING] Mode routing — detect FIRST.** The mode is `--mode=build|query|trace|blast-radius|connect-api|export`, or the first argument when it is exactly one of those six words (`/graph-code export --format=mermaid <file>`). Everything after the mode is that mode's own arguments (`--scope=`, `--direction`, `--node-mode`, `--format=`, `--json`, a target). Read the mode file in full before anything else (see [Mode Dispatch](#mode-dispatch)). Each of the six modes works called directly with no workflow.
 
 ## Quick Summary
 
-**Goal:** [Code Intelligence] Operate the structural code knowledge graph (Tree-sitter nodes and edges in `.code-graph/graph.db`, SQLite) through the `python .claude/scripts/code_graph` CLI: build or sync it, query relationships, trace system flow, analyze the blast radius of a change, and match frontend calls to backend routes.
+**Goal:** [Code Intelligence] Operate the structural code knowledge graph (Tree-sitter nodes and edges in `.code-graph/graph.db`, SQLite) through the `python .claude/scripts/code_graph` CLI: build or sync it, query relationships, trace system flow, analyze the blast radius of a change, match frontend calls to backend routes, and export JSON snapshots or single-file Mermaid diagrams.
 
 **Workflow:** Detect the mode → read its `references/mode-<x>.md` in full → run the CLI live → report the JSON result with `file:line` evidence.
 
 **Key Rules:**
 
-- One mode per invocation. No mode and no mode word: show the [Mode Dispatch](#mode-dispatch) table and ask which mode via `AskUserQuestion`; a natural-language request that matches exactly one row of the Intent column selects that row's mode (the Intent column holds action phrases only: a prompt that merely names "code graph", "knowledge graph" or "uncommitted changes" carries no action and gets the table); anything else gets the table, never a guess.
+- One mode per invocation. No mode and no mode word: show the [Mode Dispatch](#mode-dispatch) table and ask which mode via `ask user question tool`; a natural-language request that matches exactly one row of the Intent column selects that row's mode (the Intent column holds action phrases only: a prompt that merely names "code graph", "knowledge graph" or "uncommitted changes" carries no action and gets the table); anything else gets the table, never a guess.
 - Always pass `--json` to the CLI so the output is structured and parseable.
 - Graph not built (`.code-graph/graph.db` absent): report plainly — "graph not built — run /graph-code --mode=build, or continue with grep" — and stop that mode. It is never an error for a caller.
 - MUST ATTENTION keep claims evidence-based (`file:line`) with confidence >80% to act; MUST ATTENTION keep task tracking updated as each step starts/completes.
@@ -36,14 +36,16 @@ Detect the mode from the invocation arguments before any other work; do not load
 | `--mode=trace <target> [--direction …] [--depth N] [--edge-kinds …] [--node-mode …]` | Trace full system flow through CALLS, events, bus messages and API endpoints. Formerly `/graph-trace` | "what happens when X", "what triggers X", "full flow through X", "trace", "execution flow", "frontend-to-backend flow" | `references/mode-trace.md` |
 | `--mode=blast-radius` | Impact of the current git changes: impacted files and functions, test gaps, risk level. Formerly `/graph-blast-radius` | "blast radius", "impact analysis", "structural impact of my changes" | `references/mode-blast-radius.md` |
 | `--mode=connect-api` | Detect frontend-to-backend API connections and create `API_ENDPOINT` edges. Formerly `/graph-connect-api` | "connect api", "api connections", "frontend backend" | `references/mode-connect-api.md` |
+| `--mode=export [--format={json\|mermaid}] [<path>]` | Export a full or filtered JSON graph snapshot, or one file as a Mermaid diagram. | "export graph", "JSON dump", "export Mermaid", "graph diagram", "visualize graph" | `references/mode-export.md` |
 
 - **[BLOCKING]** When `--mode=build`, read `references/mode-build.md` in full FIRST; it owns the tooling-install Step 0, the `--scope=full|update|sync` branches (default: auto-detect) and the Python/CLI preconditions.
 - **[BLOCKING]** When `--mode=query`, read `references/mode-query.md` in full FIRST; it owns intent mapping, the `status` handling (`ok`/`ambiguous`/`not_found`/`error`) and the result formats.
 - **[BLOCKING]** When `--mode=trace`, read `references/mode-trace.md` in full FIRST; it owns direction choice, the bug/failure upstream-first rule and the CLI flags.
 - **[BLOCKING]** When `--mode=blast-radius`, read `references/mode-blast-radius.md` in full FIRST; it owns the live CLI run, the risk bands and the recommendations.
 - **[BLOCKING]** When `--mode=connect-api`, read `references/mode-connect-api.md` in full FIRST; it owns the matching strategies, zero-config detection and the optional `graphConnectors.apiEndpoints` config.
-- The five modes share one CLI and one database, never one body: a mode never loads another mode's file. Cross-mode hints are plain pointers (`/graph-code --mode=build` builds the graph).
-- The CLI verbs `blast-radius`, `connect-api`, `connect-implicit`, `export`, `export-mermaid`, `review-context` and `describe` are not skills; `/graph-export` (full dump / Mermaid) stays a separate skill. The hooks `graph-session-init`, `graph-prompt-sync` and `graph-auto-update` keep the graph current without this skill.
+- **[BLOCKING]** When `--mode=export`, read `references/mode-export.md` in full FIRST; it owns `--format=json|mermaid` (default JSON), file selection, required Mermaid target, output paths and result reporting.
+- The six modes share one CLI and one database, never one body: a mode never loads another mode's file. Cross-mode hints are plain pointers (`/graph-code --mode=build` builds the graph).
+- The CLI verbs `blast-radius`, `connect-api`, `connect-implicit`, `export`, `export-mermaid`, `review-context` and `describe` are not skills; `/graph-code --mode=export` owns JSON and Mermaid exports. The hooks `graph-session-init`, `graph-prompt-sync` and `graph-auto-update` keep the graph current without this skill.
 
 <!-- PROTOCOL-GUIDES:START -->
 

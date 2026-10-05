@@ -1,6 +1,6 @@
 ---
 name: workflow-seed-test-data
-description: '[Workflow] Use when seeding test data or implementing idempotent QC happy-path seeders.'
+description: '[Workflow] Build or extend idempotent, environment-gated development/QC seeders with realistic data, change review and verified tests.'
 disable-model-invocation: false
 ---
 
@@ -10,13 +10,33 @@ disable-model-invocation: false
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - Use ask user tool to ask user.
+> - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
 > - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
 > - For workflow skills, steps follow the guided contract in `$start-workflow` (gate steps fixed; other steps may flex with a logged reason); report step-by-step evidence.
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
+<!-- WORKFLOW-CALLS:START -->
+## Workflow Calls and Todo Bootstrap
+
+Read [the registry](../../../.claude/workflows.json) → `workflows.workflow-seed-test-data` together with this skill. Call [`$start-workflow workflow-seed-test-data`](../start-workflow/SKILL.md) to resolve the selected mode, pre-actions and fingerprint.
+
+**Todo FIRST:** create ALL selected occurrence tasks before triage, analysis or step execution, including conditional/optional tasks; preserve occurrence IDs, roles and barrier groups. Use native task tools or an equivalent persistent ledger. Then mark the first task `in_progress`; attach evidence before `completed`.
+Mode selection and registry loading prepare tracking; any 'first action' below means the first substantive action after this bootstrap.
+
+**Call each step skill:** read its linked SKILL.md and execute its protocol through the active host with the registry args. Reading or naming a skill alone is not execution. Required gates and core/optional flex follow the linked start-workflow Step Execution Protocol; keep this skill's quality gates, loops and evidence requirements.
+
+**Conditions:** load each occurrence's registry `applicability.when` and `skipReason` verbatim, and record its run/skip evidence through the linked start-workflow protocol. Do not silently omit a task or turn a conditional skill into an unconditional call. Declared parallel groups retain their all-return barrier.
+
+Explicit step-skill calls by mode (registry order; roles and conditions remain owned by the registry):
+
+- Mode `default`: [`$investigate`](../investigate/SKILL.md) (core) → [`$seed-test-data`](../seed-test-data/SKILL.md) (core) → [`$experience-review`](../experience-review/SKILL.md) (optional; conditional) → [`$code-simplifier`](../code-simplifier/SKILL.md) (core) → [`$changes-review`](../changes-review/SKILL.md) (gate) → [`$test`](../test/SKILL.md) (gate) → [`$docs-manager --mode=update`](../docs-manager/SKILL.md) (core) → [`$workflow-end`](../workflow-end/SKILL.md) (gate) → [`$watzup`](../watzup/SKILL.md) (core)
+<!-- workflow-mode:default fingerprint:843709f52e82d29753894ea4c241e48173ccc6eb2ebebed9862842aad3f55da1 -->
+
+Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs --write` after registry edits; [`$sync-codex`](../sync-codex/SKILL.md) refreshes it before mirroring.
+<!-- WORKFLOW-CALLS:END -->
+
 ## Quick Summary
 
 **Goal:** Add or extend idempotent, command-based seeders that create realistic QC happy-path data for a feature area — environment-gated, count-configurable, restart-safe — proven by tests that ran green in this run, a converged review and, when the data is observable, an inspection of the seeded state itself.
@@ -83,7 +103,7 @@ You choose inline vs sub-agent, batching and ordering, optimizing wall-clock and
 
 Validate each finding (evidence-backed, reproducible) before fixing. A failing test follows the test-investigation protocol before either side changes. Fix at the owning layer: a seeder that violates an invariant is fixed in the seeder; a command that rejects valid inputs or breaks a domain rule is a product defect — trace its root cause and route it, never work around it in the seeder. Re-run the test or reviewer that raised the finding, plus a holistic pass when fixes were non-trivial. Use `$plan` only when the fix set is large, cross-module or ambiguous.
 
-Review loop: round 1 zero open findings (Round-1 LOW closure) converges; round 2 converges on zero CRITICAL/HIGH/MEDIUM with LOWs deferred; cap 3 review rounds; failing tests are uncapped; no progress → escalate using ask user tool.
+Review loop: round 1 zero open findings (LOW deferral) converges; round 2 converges on zero CRITICAL/HIGH/MEDIUM with LOWs deferred; cap 3 review rounds; failed checks block and at the three-round cap require explicit user-approved bounded extension; no progress → escalate via `ask user question tool`.
 
 <!-- PROTOCOL-GUIDES:START -->
 

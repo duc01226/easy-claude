@@ -11,6 +11,17 @@ Plan / generate / heal lean on the same mechanic: run `npx playwright test --deb
 
 ---
 
+<!-- SKILL-NAV:START -->
+## Contents
+
+- 0. How generation works
+- 1. Planning
+- 2. Generate
+- 3. Heal
+- Cross-references
+
+<!-- SKILL-NAV:END -->
+
 ## 0. How generation works
 
 Every action you perform with `playwright-cli` generates corresponding Playwright TypeScript code. This code appears in the output and can be copied directly into your test files.

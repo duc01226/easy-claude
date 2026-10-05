@@ -1,9 +1,29 @@
 ---
 name: workflow-big-feature
 version: 1.2.0
-description: '[Workflow] Use when implementing a large, ambiguous, or research-driven feature.'
+description: "[Workflow] Research, design, specify and implement a large, ambiguous or research-heavy feature in an existing codebase."
 disable-model-invocation: false
 ---
+
+<!-- WORKFLOW-CALLS:START -->
+## Workflow Calls and Todo Bootstrap
+
+Read [the registry](../../../.claude/workflows.json) → `workflows.workflow-big-feature` together with this skill. Call [`/start-workflow workflow-big-feature`](../start-workflow/SKILL.md) to resolve the selected mode, pre-actions and fingerprint.
+
+**Todo FIRST:** create ALL selected occurrence tasks before triage, analysis or step execution, including conditional/optional tasks; preserve occurrence IDs, roles and barrier groups. Use native task tools or an equivalent persistent ledger. Then mark the first task `in_progress`; attach evidence before `completed`.
+Mode selection and registry loading prepare tracking; any 'first action' below means the first substantive action after this bootstrap.
+
+**Call each step skill:** read its linked SKILL.md and execute its protocol through the active host with the registry args. Reading or naming a skill alone is not execution. Required gates and core/optional flex follow the linked start-workflow Step Execution Protocol; keep this skill's quality gates, loops and evidence requirements.
+
+**Conditions:** load each occurrence's registry `applicability.when` and `skipReason` verbatim, and record its run/skip evidence through the linked start-workflow protocol. Do not silently omit a task or turn a conditional skill into an unconditional call. Declared parallel groups retain their all-return barrier.
+
+Explicit step-skill calls by mode (registry order; roles and conditions remain owned by the registry):
+
+- Mode `default`: [`/idea`](../idea/SKILL.md) (core) → [`/web-research`](../web-research/SKILL.md) (optional; conditional) → [`/source-deep-dive`](../source-deep-dive/SKILL.md) (optional; conditional) → [`/market-analysis`](../market-analysis/SKILL.md) (optional; conditional) → [`/business-evaluation`](../business-evaluation/SKILL.md) (optional; conditional) → [`/spec [mode=discovery]`](../spec/SKILL.md) (optional; conditional) → [`/domain-analysis`](../domain-analysis/SKILL.md) (optional; conditional) → [`/why-review`](../why-review/SKILL.md) (optional; conditional) → [`/tech-stack-research`](../tech-stack-research/SKILL.md) (optional; conditional) → [`/architecture --mode=design`](../architecture/SKILL.md) (core) → [`/architecture --mode=scalability`](../architecture/SKILL.md) (core) → [`/why-review`](../why-review/SKILL.md) (core) → [`/scenario`](../scenario/SKILL.md) (optional; conditional) → [`/plan`](../plan/SKILL.md) (core) → [`/plan --mode=review`](../plan/SKILL.md) (core) → [`/pbi --mode=refine`](../pbi/SKILL.md) (core) → [`/pbi --mode=review --type=pbi`](../pbi/SKILL.md) (core) → [`/pbi --mode=story`](../pbi/SKILL.md) (core) → [`/pbi --mode=review --type=story`](../pbi/SKILL.md) (core) → [`/pbi --mode=challenge --reuse=pbi-review`](../pbi/SKILL.md) (core) → [`/pbi --mode=dor --reuse=pbi-review`](../pbi/SKILL.md) (core) → [`/pbi --mode=mockup --explore`](../pbi/SKILL.md) (optional; conditional) → [`/spec`](../spec/SKILL.md) (core) → [`/spec [mode=tests]`](../spec/SKILL.md) (core) → [`/pbi --mode=review --type=spec-tests`](../pbi/SKILL.md) (core) → [`/spec [mode=clarify]`](../spec/SKILL.md) (optional; conditional) → [`/plan`](../plan/SKILL.md) (core) → [`/plan --mode=review`](../plan/SKILL.md) (core) → [`/scaffold`](../scaffold/SKILL.md) (optional; conditional) → [`/architecture --mode=full`](../architecture/SKILL.md) (optional; conditional) → [`/scan --target=ui-system`](../scan/SKILL.md) (optional; conditional) → [`/scan --target=backend-patterns`](../scan/SKILL.md) (optional; conditional) → [`/scan --target=integration-tests`](../scan/SKILL.md) (optional; conditional) → [`/scan --target=project-structure`](../scan/SKILL.md) (optional; conditional) → [`/plan --mode=validate`](../plan/SKILL.md) (gate) → [`/plan --mode=execute`](../plan/SKILL.md) (core) → [`/seed-test-data`](../seed-test-data/SKILL.md) (optional; conditional) → [`/integration-test`](../integration-test/SKILL.md) (core) → [`/spec [mode=sync]`](../spec/SKILL.md) (core) → [`/workflow-review-changes --tests=defer`](../workflow-review-changes/SKILL.md) (gate) → [`/integration-test --mode=verify`](../integration-test/SKILL.md) (core) → [`/workflow-e2e --source=context`](../workflow-e2e/SKILL.md) (core) → [`/test`](../test/SKILL.md) (gate) → [`/workflow-end`](../workflow-end/SKILL.md) (gate) → [`/watzup`](../watzup/SKILL.md) (core)
+<!-- workflow-mode:default fingerprint:c6b499c8d04c6c382667a8fc283e7a8a0cd3a8fb0e6ff59a0454af657462da86 -->
+
+Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs --write` after registry edits; [`/sync-codex`](../sync-codex/SKILL.md) refreshes it before mirroring.
+<!-- WORKFLOW-CALLS:END -->
 
 ## Quick Summary
 
@@ -139,7 +159,7 @@ You choose inline vs sub-agent, parallel waves vs sequential, batching and order
 
 ## Fix Path & Loop Bounds
 
-Findings are validated (evidence-backed, reproducible) before fixing; fix at the owning layer; re-run the reviewer or test that raised each finding, plus a holistic pass after non-trivial fixes. Plan ceremony for fixes only when the fix set is large, cross-module or ambiguous. Review loops: round 1 exits on zero open validated findings (Round-1 LOW closure); from round 2 only CRITICAL/HIGH/MEDIUM block (LOW deferred); cap 3 review rounds; failing tests are uncapped; no progress → `AskUserQuestion`.
+Findings are validated (evidence-backed, reproducible) before fixing; fix at the owning layer; re-run the reviewer or test that raised each finding, plus a holistic pass after non-trivial fixes. Plan ceremony for fixes only when the fix set is large, cross-module or ambiguous. Review loops: round 1 exits on zero open validated findings (LOW deferral); from round 2 only CRITICAL/HIGH/MEDIUM block (LOW deferred); cap 3 review rounds; failed checks block and at the three-round cap require explicit user-approved bounded extension; no progress → `ask user question tool`.
 
 ## Step Chain
 

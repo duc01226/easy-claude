@@ -1,7 +1,7 @@
 ---
 name: idea
 version: 1.1.0
-description: '[Project Management] Use when a workflow step or the user asks for an idea to be captured: ideas, feature requests, concepts for refinement.'
+description: '[Project Management] Use when a workflow step or the user asks for structured product ideas or feature requests ready for PBI refinement.'
 ---
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
@@ -25,7 +25,7 @@ description: '[Project Management] Use when a workflow step or the user asks for
 **Summary:**
 
 - **Purpose:** capture raw idea as structured, validated backlog artifact; preserve problem intent, keep the problem statement tech-agnostic with no solution/stack/IDs, and hand clean narrative to `/pbi --mode=refine`.
-- **Main steps/tasks (run in order):** (1) Gather problem/value/users/scope; (2) Generate `IDEA-{YYMMDD}-{NNN}` draft from `idea-template.md`; (3) Capture problem/value/users; (4) Detect module by globbing `*/README.md` under the business spec root (default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path) silently, prompting only if ambiguous/no match; (5) Load feature context (8-12K tokens: entities, BR-/TC patterns); (6) Save canonical artifact; (6.5) **Discovery Interview** — ONE interview of 4-6 `AskUserQuestion` questions; (7) **Validation Summary** — written from those answers, then ONE short unconditional `AskUserQuestion` confirming the revised problem statement / scope (not a second interview); (8) Suggest `/pbi --mode=refine`.
+- **Main steps/tasks (run in order):** (1) Gather problem/value/users/scope; (2) Generate `IDEA-{YYMMDD}-{NNN}` draft from `idea-template.md`; (3) Capture problem/value/users; (4) Detect module by globbing `*/README.md` under the business spec root (default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path) silently, prompting only if ambiguous/no match; (5) Load feature context (8-12K tokens: entities, BR-/TC patterns); (6) Save canonical artifact; (6.5) **Discovery Interview** — ONE interview of 4-6 `ask user question tool` questions; (7) **Validation Summary** — written from those answers, then ONE short unconditional `ask user question tool` confirming the revised problem statement / scope (not a second interview); (8) Suggest `/pbi --mode=refine`.
 - **Modes/gates:** Existing repo → silently detect module and load context; Greenfield → skip module detection and structure reads, use market/WebSearch context, ask business questions more often, and NEVER ask about tech stack. The Discovery Interview (Step 6.5: 4-6 questions incl. always-on testability, each category asked once) and the Validation Summary with its one confirm question (Step 7) are NON-NEGOTIABLE.
 - **Output:** Persist to `ideas/{YYMMDD}-{role}-idea-{slug}.md` under the team-artifacts root (default `team-artifacts`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path) with `t_shirt_size`; downstream PBI owns `FR-`/`BR-` IDs and inherits the clean narrative.
 
@@ -39,8 +39,8 @@ description: '[Project Management] Use when a workflow step or the user asks for
 4. **Detect Module** — Auto-match module and load feature context from docs
 5. **Load Context** — Read related module/feature docs within the 8-12K budget
 6. **Save Artifact** — Persist to the canonical ideas path
-6.5. **Discovery Interview** — ONE interview: `AskUserQuestion` 4-6 structured questions (MANDATORY)
-7. **Validation Summary** — derived from the interview answers, then ONE unconditional confirm `AskUserQuestion` on the revised problem statement / scope (MANDATORY)
+6.5. **Discovery Interview** — ONE interview: `ask user question tool` 4-6 structured questions (MANDATORY)
+7. **Validation Summary** — derived from the interview answers, then ONE unconditional confirm `ask user question tool` on the revised problem statement / scope (MANDATORY)
 8. **Suggest Next** — Point to `/pbi --mode=refine` for PBI creation
 
 **Key Rules:**
@@ -63,7 +63,7 @@ description: '[Project Management] Use when a workflow step or the user asks for
 3. Focus on market gap, competitors, differentiation
 4. Keep problem statement tech-agnostic
 5. Enable WebSearch for market/competitor context
-6. Increase `AskUserQuestion` frequency — capture vision, constraints, team profile, scale expectations
+6. Increase `ask user question tool` frequency — capture vision, constraints, team profile, scale expectations
 7. **[CRITICAL] NEVER ask about tech stack during idea capture.** Stack is a research-driven decision AFTER full business analysis (business-evaluation phase); acknowledge volunteered preferences, then defer to tech-stack research.
 
 ## Detailed Workflow
@@ -112,7 +112,7 @@ description: '[Project Management] Use when a workflow step or the user asks for
 
 ### Step 6.5: Discovery Interview (MANDATORY — the ONE interview)
 
-Use `AskUserQuestion` for 4-6 structured questions, batched into as few calls as the tool allows; each question MUST ATTENTION have 2-4 options, one marked "(Recommended)". Every category is asked AT MOST ONCE across this skill — there is no second question round on the same category.
+Use `ask user question tool` for 4-6 structured questions, batched into as few calls as the tool allows; each question MUST ATTENTION have 2-4 options, one marked "(Recommended)". Every category is asked AT MOST ONCE across this skill — there is no second question round on the same category.
 
 | Category        | Purpose                           | Example                                   |
 | --------------- | --------------------------------- | ----------------------------------------- |
@@ -133,7 +133,7 @@ Document all answers under `## Discovery Interview` (`/pbi --mode=refine` reads 
 
 ### Step 7: Validation Summary (MANDATORY — derived summary + ONE confirm question, not a second interview)
 
-Write `## Validation Summary` from the Discovery Interview answers: the confirmed decisions and the follow-up action items, and update the artifact from them. Then ALWAYS ask ONE short `AskUserQuestion` ("Is the revised problem statement / scope right?") confirming it, whether or not the answers changed the Step 3 text; no other question is asked in this step.
+Write `## Validation Summary` from the Discovery Interview answers: the confirmed decisions and the follow-up action items, and update the artifact from them. Then ALWAYS ask ONE short `ask user question tool` ("Is the revised problem statement / scope right?") confirming it, whether or not the answers changed the Step 3 text; no other question is asked in this step.
 
 **Validation Output Format:**
 
@@ -153,7 +153,7 @@ Write `## Validation Summary` from the Discovery Interview answers: the confirme
 
 ### Step 8: Suggest Next Step
 
-After capture, use `AskUserQuestion`:
+After capture, use `ask user question tool`:
 
 1. `/pbi --mode=refine` — Refine into PBI (Recommended)
 2. `/spec [mode=tests]` — Jump straight to test spec
@@ -220,7 +220,7 @@ Paths below show the default team-artifacts root; a `docsRoots.teamArtifacts.pat
 
 ## Next Steps
 
-**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** After completion, use `AskUserQuestion`:
+**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** After completion, use `ask user question tool`:
 
 - **"/pbi --mode=refine (Recommended)"** — Transform idea into actionable PBI
 - **"/web-research"** — Idea needs market research first
@@ -264,7 +264,7 @@ Paths below show the default team-artifacts root; a `docsRoots.teamArtifacts.pat
 
 **IMPORTANT MUST ATTENTION Goal:** Turn a vague product idea into a validated, tech-agnostic, module-anchored backlog artifact ready for `/pbi --mode=refine` to convert into a PBI — preserving problem intent without leaking solution or stack choices.
 
-**IMPORTANT MUST ATTENTION — Main steps (run in order, NEVER skip/reorder):** (1) Gather info; (2) Generate artifact `IDEA-{YYMMDD}-{NNN}` draft from `idea-template.md`; (3) Capture problem/value/users; (4) Detect module by globbing `*/README.md` under the business spec root (default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path); (5) Load feature context (8-12K budget); (6) Save to canonical path; (6.5) Discovery Interview (ONE interview, `AskUserQuestion` 4-6); (7) Validation Summary derived from its answers + ONE confirm `AskUserQuestion`; (8) Suggest next → `/pbi --mode=refine`. — why: AI keeps dropping the skill's own mid-pipeline steps; the interview and module detection are the most-forgotten.
+**IMPORTANT MUST ATTENTION — Main steps (run in order, NEVER skip/reorder):** (1) Gather info; (2) Generate artifact `IDEA-{YYMMDD}-{NNN}` draft from `idea-template.md`; (3) Capture problem/value/users; (4) Detect module by globbing `*/README.md` under the business spec root (default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path); (5) Load feature context (8-12K budget); (6) Save to canonical path; (6.5) Discovery Interview (ONE interview, `ask user question tool` 4-6); (7) Validation Summary derived from its answers + ONE confirm `ask user question tool`; (8) Suggest next → `/pbi --mode=refine`. — why: AI keeps dropping the skill's own mid-pipeline steps; the interview and module detection are the most-forgotten.
 
 **IMPORTANT MUST ATTENTION** Mode gate: existing codebase → detect module and load context; Greenfield → skip module and structure reads, use market/WebSearch context, ask business questions more often, and NEVER ask about tech stack.
 
@@ -274,11 +274,11 @@ Paths below show the default team-artifacts root; a `docsRoots.teamArtifacts.pat
 - **AI-SDD M1–M3:** Keep idea prose tech-agnostic business intent; defer logical IDs and `[Source: ...]` carriers to the downstream PBI.
 - **Sequential Thinking:** multi-step Thought N/M with REVISION/BRANCH/HYPOTHESIS markers and confidence closer.
 
-**IMPORTANT MUST ATTENTION** Discovery Interview (Step 6.5) + Validation Summary (Step 7) NEVER optional — run the ONE `AskUserQuestion` interview and the ONE Step 7 confirm question even for "simple" ideas and never re-ask a category — why: discovery uncovers hidden constraints and confirms problem framing, and a repeated question burns the PO's time.
+**IMPORTANT MUST ATTENTION** Discovery Interview (Step 6.5) + Validation Summary (Step 7) NEVER optional — run the ONE `ask user question tool` interview and the ONE Step 7 confirm question even for "simple" ideas and never re-ask a category — why: discovery uncovers hidden constraints and confirms problem framing, and a repeated question burns the PO's time.
 **IMPORTANT MUST ATTENTION** ALWAYS keep problem statement tech-agnostic (M1, `spec-principles.md` §3, all modes) — name no framework/product/language/design-pattern; defer any stack preference to the later tech-research phase — why: PBI inherits the narrative cleanly downstream
 **IMPORTANT MUST ATTENTION** in greenfield mode NEVER ask about tech stack — acknowledge a volunteered preference, then defer to the business-evaluation phase — why: stack is a research-driven decision after business analysis, not a capture-time guess
 **IMPORTANT MUST ATTENTION** `TaskCreate` break ALL work into small tasks BEFORE starting — including a task to READ `project-structure-reference.md` (skip in greenfield — it won't exist)
-**IMPORTANT MUST ATTENTION** validate all decisions with user via `AskUserQuestion` — NEVER auto-decide — and NEVER show confidence levels on an auto-detected module match
+**IMPORTANT MUST ATTENTION** validate all decisions with user via `ask user question tool` — NEVER auto-decide — and NEVER show confidence levels on an auto-detected module match
 **IMPORTANT MUST ATTENTION** auto-detect module silently by globbing `*/README.md` under the business spec root (default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path) — prompt only when ambiguous or no match; greenfield → skip module detection — why: confirm with `Glob()` evidence, not assumption
 **IMPORTANT MUST ATTENTION** assign NO logical IDs (M3) — an idea is tech-agnostic business intent only; the downstream PBI owns `FR-`/`BR-` assignment and `[Source: namespace/service/id]` anchors — why: keep the problem/value narrative free of source identifiers so the PBI inherits it cleanly
 **IMPORTANT MUST ATTENTION** include `t_shirt_size` (XS/S/M/L/XL) in the artifact and keep the feature-context load within the 8-12K token budget — why: early sizing feeds prioritization; over-budget reads dilute attention
@@ -301,4 +301,4 @@ Paths below show the default team-artifacts root; a `docsRoots.teamArtifacts.pat
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.
 
-**IMPORTANT MUST ATTENTION** the 3 rules to never skip: (1) run BOTH Discovery + Validation `AskUserQuestion` gates; (2) keep the problem statement tech-agnostic (no stack/IDs); (3) cite `file:line` evidence, confidence >80% to act.
+**IMPORTANT MUST ATTENTION** the 3 rules to never skip: (1) run BOTH Discovery + Validation `ask user question tool` gates; (2) keep the problem statement tech-agnostic (no stack/IDs); (3) cite `file:line` evidence, confidence >80% to act.

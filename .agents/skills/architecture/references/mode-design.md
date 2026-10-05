@@ -21,7 +21,7 @@
 - **Purpose:** fit architecture to workload, constraints, team, and risk while preserving upstream decisions and giving downstream steps an ADR-backed report plus Scaffold/Harness choices.
 - **Decision gates:** choose Greenfield/Brownfield first; rank one-way doors; quantify workload/NFRs; choose ≤3 drivers + sacrifices; interrogate each irreversible choice, design it twice, then self-audit.
 - **Evidence gates:** read project docs/ADRs; research ≥3 options per applicable concern; prescribe tactics before products; cite sources + confidence; complete the testability/execution matrix; get user confirmation; NEVER skip the Step-12 gate.
-- **Ordered work:** 1 Context (+mode) → 2 Requirements (+workload/scaling, reversibility, NFRs, interrogation, validation) → 3A/3B backend styles/patterns → 3C data (when persistence/tenancy/consistency) → 3D integration (when a boundary exists) → 4 frontend → 4B UI (when UI exists) → 5 libraries → 6 testing → 7 delivery → 8 observability → 9 quality/Scaffold → 10 dependency risk → 11 report/ADRs → 12 ask user tool user validation → Next Steps ask user tool + independent council offer.
+- **Ordered work:** 1 Context (+mode) → 2 Requirements (+workload/scaling, reversibility, NFRs, interrogation, validation) → 3A/3B backend styles/patterns → 3C data (when persistence/tenancy/consistency) → 3D integration (when a boundary exists) → 4 frontend → 4B UI (when UI exists) → 5 libraries → 6 testing → 7 delivery → 8 observability → 9 quality/Scaffold → 10 dependency risk → 11 report/ADRs → 12 ask user question tool user validation → Next Steps ask user question tool + independent council offer.
 
 **Workflow (12 steps):**
 
@@ -132,7 +132,7 @@ Map signals to architecture constraints:
 
 ### Quality-Attribute Scenarios (quantify — these drive the style choice)
 
-Qualitative "Must/Should" cannot select a style (e.g. modular monolith vs microservices). Capture **measurable** targets; ask the user about unknowns using ask user tool (assumptions require a label + confidence %). These targets become ADR budgets that `architecture --mode=review` Category 9 checks against changes — why: style without numbers is guesswork, not an enforceable decision.
+Qualitative "Must/Should" cannot select a style (e.g. modular monolith vs microservices). Capture **measurable** targets; ask the user about unknowns via `ask user question tool` (assumptions require a label + confidence %). These targets become ADR budgets that `architecture --mode=review` Category 9 checks against changes — why: style without numbers is guesswork, not an enforceable decision.
 
 | Quality attribute     | Scenario (stimulus → measurable response)                             | Target (fill in) |
 | --------------------- | -------------------------------------------------------------------- | ---------------- |
@@ -185,7 +185,7 @@ Quality attributes CONFLICT, and that conflict IS the architecture: consistency�
 
 **Cost is a quality attribute, not a later phase.** Model unit economics now: architecture whose UNIT cost RISES with scale eventually fails, regardless of elegance. Major web drivers: egress + cross-AZ/cross-region traffic · idle over-provisioned compute · unbounded log/metric/trace retention/cardinality · per-request managed-service pricing at steady high volume · always-on non-prod. Serverless vs always-on **inverts with utilization** — model, never assume.
 
-**MANDATORY IMPORTANT MUST ATTENTION** validate derived requirements with user using ask user tool before proceeding.
+**MANDATORY IMPORTANT MUST ATTENTION** validate derived requirements with user via `ask user question tool` before proceeding.
 
 ### 2-2: Pre-Decision Interrogation (MANDATORY for every one-way door from 2-0)
 
@@ -388,7 +388,7 @@ WebSearch top 3 frontend architecture styles. Candidates:
 
 > **Skip if:** Backend-only project, no frontend component.
 
-Research and recommend design-system architecture; ask the user each decision using ask user tool.
+Research and recommend design-system architecture; ask the user each decision via `ask user question tool`.
 
 ### 4B-1: Styling Approach
 
@@ -427,7 +427,7 @@ WebSearch top 3 styling approaches for confirmed frontend framework:
 | Breakpoints | 320/768/1024/1280 / Custom              | Standard           |
 | Grid system | CSS Grid / Flexbox / Framework grid     | CSS Grid + Flexbox |
 
-**MANDATORY IMPORTANT MUST ATTENTION** validate all UI system decisions with user using ask user tool before proceeding to Step 5.
+**MANDATORY IMPORTANT MUST ATTENTION** validate all UI system decisions with user via `ask user question tool` before proceeding to Step 5.
 
 ---
 
@@ -790,7 +790,7 @@ graph TB
 
 ## Step 12: User Validation Interview
 
-**MANDATORY IMPORTANT MUST ATTENTION** present findings; ask 8-12 questions using ask user tool:
+**MANDATORY IMPORTANT MUST ATTENTION** present findings; ask 8-12 questions via `ask user question tool`:
 
 ### Required Questions
 
@@ -870,7 +870,7 @@ docs/adr/{NNNN}-{slug}.md                       # One ADR per hard-to-reverse de
 ---
 
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting.
-**MANDATORY IMPORTANT MUST ATTENTION** validate EVERY architecture recommendation with user using ask user tool — never auto-decide.
+**MANDATORY IMPORTANT MUST ATTENTION** validate EVERY architecture recommendation with user via `ask user question tool` — never auto-decide.
 **MANDATORY IMPORTANT MUST ATTENTION** include confidence % and evidence citations for all claims.
 **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality.
 
@@ -878,7 +878,7 @@ docs/adr/{NNNN}-{slug}.md                       # One ADR per hard-to-reverse de
 
 ## Next Steps
 
-**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after this skill, use ask user tool to present these options. NEVER skip because the task seems "simple" or "obvious"; the user decides:
+**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after this skill, use `ask user question tool` to present these options. NEVER skip because the task seems "simple" or "obvious"; the user decides:
 
 - **"$plan (Recommended)"** — Create implementation plan from architecture design
 - **"$pbi --mode=refine"** — If need to create PBIs first
@@ -886,7 +886,7 @@ docs/adr/{NNNN}-{slug}.md                       # One ADR per hard-to-reverse de
 
 ### Council escalation (always-offer, second prompt)
 
-After the `## Next Steps` prompt resolves, make a **second**, independent ask user tool call (NEVER merge it with the first):
+After the `## Next Steps` prompt resolves, make a **second**, independent `ask user question tool` call (NEVER merge it with the first):
 
 - **"Skip council — proceed (Recommended)"** — Continue with the architecture decision as-is. Recommended default.
 - **"Escalate to $llm-council"** — Run 11 sub-agent council (5 advisors + 5 reviewers + chairman). Use when this architecture pick is hard to reverse and you need adversarial framing. Cheaper alternatives: `$why-review`, `$plan --mode=validate` (run these first if you haven't).
@@ -1020,7 +1020,7 @@ The protocols below apply to this mode only; their full text is inline so this r
 >
 > **Mandatory closers:** Confidence % stated · Assumptions listed · Open questions surfaced · Next action concrete.
 >
-> **Stop conditions:** confidence <60% on any critical decision → stop and escalate using ask user tool (60-80% → verify first) · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
+> **Stop conditions:** confidence <70% on any critical decision → stop and escalate via ask user question tool (70-80% → verify first) · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
 >
 > **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
 
@@ -1101,7 +1101,7 @@ The protocols below apply to this mode only; their full text is inline so this r
 <!-- /SYNC:engineering-foundation-gate:reminder -->
 
 **MANDATORY IMPORTANT MUST ATTENTION** use task tracking to break ALL work into small tasks BEFORE starting.
-**MANDATORY IMPORTANT MUST ATTENTION** use ask user tool at EVERY decision point — never assume user preferences.
+**MANDATORY IMPORTANT MUST ATTENTION** use `ask user question tool` at EVERY decision point — never assume user preferences.
 **MANDATORY IMPORTANT MUST ATTENTION** research top 3 options per architecture concern, compare with evidence, present report with recommendation + confidence %.
 
 > **External Memory:** For complex or lengthy work (research, analysis, scan, review), write intermediate findings and final results to a report file in `tmp/reports/` — prevents context loss and serves as deliverable.
@@ -1138,7 +1138,7 @@ The protocols below apply to this mode only; their full text is inline so this r
 **MANDATORY IMPORTANT MUST ATTENTION** name at most 3 DRIVING quality attributes AND the SACRIFICED ones ("we accepted cost C to buy property P"); quantify Step-2 scenarios — an unknown target becomes an explicit `Unresolved question`, never a silent guess; profile workload before technology and choose the simplest architecture that satisfies measured needs — why: unnamed sacrifices and unmeasured needs resurface as production surprises.
 **MANDATORY IMPORTANT MUST ATTENTION** correctness floors: name the ISOLATION LEVEL on every critical write path and a fencing token on every distributed lock; write-then-publish uses an outbox or CDC (never a dual write); consumers are idempotent; queues are bounded with a monitored DLQ; tenant isolation is enforced at the data-access boundary from the authenticated principal — why: these defects pass every single-user functional test and corrupt data under production concurrency.
 **MANDATORY IMPORTANT MUST ATTENTION** research ≥3 options per concern with cited evidence (stars, last release, downloads, CVE scan), cite `file:line`/URL and a confidence % for EVERY claim (>80% recommend, <60% DO NOT recommend), and evaluate fit before copying a nearby pattern; brownfield: read project reference docs + accepted ADRs FIRST and never re-litigate a settled ADR without a superseding one — why: familiarity and closest-example bias ship mismatched or unmaintained choices.
-**MANDATORY IMPORTANT MUST ATTENTION** validate decisions with the user using ask user tool (Step 12) — NEVER auto-decide a hard-to-reverse choice — and emit the two binding downstream contracts: one ADR per one-way door AND the Step-9 Scaffold Handoff, where every machine-checkable ADR constraint becomes an executable fitness function and existing debt is paid with a CI RATCHET — why: a rule not automatically verified is a suggestion, and the user owns irreversible decisions.
+**MANDATORY IMPORTANT MUST ATTENTION** validate decisions with the user via `ask user question tool` (Step 12) — NEVER auto-decide a hard-to-reverse choice — and emit the two binding downstream contracts: one ADR per one-way door AND the Step-9 Scaffold Handoff, where every machine-checkable ADR constraint becomes an executable fitness function and existing debt is paid with a CI RATCHET — why: a rule not automatically verified is a suggestion, and the user owns irreversible decisions.
 **MANDATORY IMPORTANT MUST ATTENTION** reason FROM `.claude/docs/architecture-knowledge.md`, but the project's OWN reference docs and accepted ADRs OUTRANK it on any conflict — why: universal reasoning must not be mistaken for binding project convention.
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting; mark one `in_progress`, mark `completed` immediately after evidence lands; add a final review todo — why: external task state survives context compaction; memory does not.
 

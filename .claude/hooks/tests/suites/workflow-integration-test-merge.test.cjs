@@ -247,7 +247,7 @@ const tests = [
             }
             // Variant selection sits above the variant sections and the flag is advertised in the frontmatter.
             assert.ok(text.indexOf('## Mode Selection') > 0 && text.indexOf('## Mode Selection') < text.indexOf('## Variant `write`'));
-            assert.match(text, /^description: .*Flag: --mode=\{write\|green\}\./m);
+            assert.match(text, /^description: .*--mode=\{write\|green\}\./m);
             // The registry's pre-read pointer and the context both name this skill and both variant references.
             const context = entry().preActions.injectContext;
             for (const mode of Object.keys(resolved)) assert.ok(context.includes(`references/variant-${mode}.md`), `injectContext points to variant-${mode}.md`);
@@ -274,9 +274,11 @@ const tests = [
             assert.match(merged.description, /`write` \(default\)/);
             assert.match(merged.description, /`green`/);
             // the skill description keeps the routing keywords of both old descriptions
-            const description = /^description: '(.*)'$/m.exec(wrapper())[1].toLowerCase();
-            for (const phrase of ['writing integration tests spec-first', 'converting test specs into test code', 'adding coverage to untested code', 'to green', '[workflow] use when']) {
-                assert.ok(description.includes(phrase), `the skill description keeps "${phrase}"`);
+            const match = /^description: (["'])(.*)\1$/m.exec(wrapper());
+            assert.ok(match, 'description uses a supported single-line YAML quote style');
+            const description = match[2].toLowerCase();
+            for (const intent of [/\[workflow\]/, /write/, /spec.traced integration tests/, /diagnose/, /fix failing suites/, /repeatable green/, /--mode=\{write\|green\}/]) {
+                assert.match(description, intent, `description retains routing intent ${intent}`);
             }
             // the intent line covers both variants and stays one line
             assert.match(merged.intent, /\(write\)/);

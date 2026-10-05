@@ -1,6 +1,6 @@
 ---
 name: e2e-test
-description: '[Testing] Use when a workflow step or the user asks for E2E test work: select, generate or update tests, or --mode=verify (run with runner evidence; --fix-loop, --visual-review={true|false}).'
+description: '[Testing] Use when a workflow step or the user asks for E2E test selection, generation or updates. --mode=verify runs tests; --fix-loop repairs failures; --visual-review={true|false}.'
 ---
 
 > **[BLOCKING] Mode routing — detect FIRST.** Explicit `--mode=verify` selects verification; no mode is default E2E test authoring (everything below, unchanged). `/e2e-test --mode=verify` is the former `/e2e-test-verify`: that slash command no longer exists, and the mode works called directly with no workflow. Read the mode file in full before anything else (see [Mode Dispatch](#mode-dispatch)).
@@ -52,15 +52,15 @@ description: '[Testing] Use when a workflow step or the user asks for E2E test w
 
 ## Mode Dispatch
 
-Detect the mode from the invocation arguments before any other work; do not load a mode file the invocation did not select.
+Select the invocation route before execution; load only its mode reference.
 
 | Mode | Purpose | Read in full FIRST |
 | --- | --- | --- |
 | _(none)_ | Default E2E test authoring — this file | — |
-| `--mode=verify [--fix-loop] [--visual-review={true\|false}] [scope]` | Verify an existing configured E2E scope with exact runner evidence: a report-only default pass, or with `--fix-loop` the bounded convergence engine (`workflow-e2e` calls it). Formerly `/e2e-test-verify` | `references/mode-verify.md` |
+| `--mode=verify [--fix-loop] [--visual-review={true\|false}] [scope]` | Verify an existing configured E2E scope with exact runner evidence: a report-only default pass, or with `--fix-loop` the bounded convergence engine (`workflow-e2e` calls it). | [references/mode-verify.md](references/mode-verify.md) |
 
 - **[BLOCKING]** When `--mode=verify`, read `references/mode-verify.md` in full FIRST; it replaces test authoring for the invocation and owns `--fix-loop` and `--visual-review={true|false}` (no flag is set by default: no `--fix-loop` = one report-only pass that edits nothing). Workflow invocation and standalone both run it; report-only callers never pass `--fix-loop`.
-- `--mode=verify` is a separate invocation over existing tests; authoring never chains into it on its own. The `verify` row of the Workflow Modes table below names the same intent.
+- Authoring never chains into verification. The `verify` row of the Workflow Modes table names this separate invocation over existing tests.
 
 ## ⚠️ MANDATORY: Read Project E2E Reference (FIRST)
 
@@ -323,7 +323,6 @@ Document what must exist before test runs:
 7. **Select or generate/update tests** following the configured project organization; spawn `e2e-runner` for generation/maintenance.
 8. **Bring up and exercise** the configured whole system, authenticate/seed through supported project paths, use a visible web browser when applicable, capture/read evidence, and classify missing capability honestly.
 9. **Run tests** using the project's configured commands and report exact counts/exit status and repeat proof.
-10. **Update e2e-test-reference.md** with any evidence-backed learnings, then pass the AI-discovery gate on it (`SYNC:ai-discovery-doc-quality`): a learning that changes what an agent must never do reaches the doc's top rules or closing reminders only when it outranks an existing one; new pointers to other docs are `read <path> when <situation>` with existing targets.
 
 ---
 
@@ -372,11 +371,11 @@ Standalone (no parent workflow): after writing or updating E2E tests, suggest `/
 
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
-- `ai-discovery-doc-quality` — Agent-guide content value, authority, retention and verified discovery; writing a doc that an agent reads → .claude/skills/shared/protocols/ai-discovery-doc-quality.md
 - `core-engineering-principles` — Core quality gate: easy to change, easy to scale, easy to maintain, judged by future change cost; planning, implementing or reviewing any change → .claude/skills/shared/protocols/core-engineering-principles.md
 - `e2e-visual-design-contract` — Evidence and baseline rules for visual review in E2E and human QC; handling visual-review evidence or visual baseline updates → .claude/skills/shared/protocols/e2e-visual-design-contract.md
 - `measured-capacity-engineering` — Model demand, reduce measured work safely and prove capacity before scaling; planning, building, testing or reviewing hot paths, caches or capacity → .claude/skills/shared/protocols/measured-capacity-engineering.md
 - `real-world-fidelity-testing` — Integration, E2E and system tests exercise real boundaries; authoring, reviewing or repairing integration, E2E or system tests → .claude/skills/shared/protocols/real-world-fidelity-testing.md
+- `review-decision-autonomy` — Choose supported review decisions and ask before extending the round budget; running any review or audit skill or mode → .claude/skills/shared/protocols/review-decision-autonomy.md
 - `source-test-drift-check` — When source behavior changes, reconcile the affected tests from evidence; code, fix, test or review work changes behavior → .claude/skills/shared/protocols/source-test-drift-check.md
 - `sub-agent-selection` — Pick the sub-agent type from the routing guide; choosing which sub-agent to spawn → .claude/skills/shared/protocols/sub-agent-selection.md
 - `test-architecture-execution-contract` — Testability as an architecture condition: required test types and execution modes; setting up or reviewing a test architecture → .claude/skills/shared/protocols/test-architecture-execution-contract.md
@@ -384,11 +383,6 @@ Standalone (no parent workflow): after writing or updating E2E tests, suggest `/
 
 <!-- PROTOCOL-GUIDES:END -->
 
-<!-- SYNC:ai-discovery-doc-quality:reminder -->
-
-**MUST ATTENTION** AI-read guides: purpose/read-when and priorities first; retain action-changing rules, exceptions and rationale; verify triggered discovery and parser contracts. Use the content-value and semantic-disposition gate after enhancement; keep evidence in temporary reports and fix generated output at its source.
-
-<!-- /SYNC:ai-discovery-doc-quality:reminder -->
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:START -->
 
@@ -421,6 +415,12 @@ Standalone (no parent workflow): after writing or updating E2E tests, suggest `/
 **MUST ATTENTION** capacity work: model demand/SLO and distinguish sessions from RPS/in-flight work; disclose load model and offered vs achieved demand; reduce measured work at a safe owner; preserve cache authorization/freshness/bounds; prove cold-state, overload recovery and justified headroom before scaling. Static review returns a verification plan, not invented throughput. Retain the hosting skill's scores, gates and authority.
 
 <!-- /SYNC:measured-capacity-engineering:reminder -->
+
+<!-- SYNC:review-decision-autonomy:reminder -->
+
+**MUST ATTENTION** Decide supported review choices and recommendations, record the rationale, and finish without routine user questions. Keep round-limit extension, indispensable facts and actual action authority; preserve source coverage, validation, tests, read-only boundaries and budgets. Review decisions do not accept open risks or make a failed gate pass.
+
+<!-- /SYNC:review-decision-autonomy:reminder -->
 
 ## Closing Reminders
 
@@ -457,10 +457,7 @@ Standalone (no parent workflow): after writing or updating E2E tests, suggest `/
 
 ---
 
-**IMPORTANT MUST ATTENTION** read `e2eTesting` config + `e2e-test-reference.md` FIRST, resolve the configured owner root and optional case profile, and detect the framework — NEVER assume a stack or ID.
-**IMPORTANT MUST ATTENTION** every configured requirement/acceptance and owner-qualified case/variant maps, under profile cardinality, to its actual assertion(s) and run result(s); when no native profile exists, use TC→§8; for browser E2E prefer accessible semantics, then explicit stable test hooks, then documented stable fallbacks — NEVER use styling classes as semantic locators or generated/positional selectors without a documented exception.
-**IMPORTANT MUST ATTENTION** use the project's fixture/data strategy and isolate mutable state; never delete/reset persistent, seeded, additive, or shared data; use only configured current-run ephemeral cleanup after evidence capture; spawn `e2e-runner` for generation and only explicitly accepted baseline updates.
-**IMPORTANT MUST ATTENTION** when the task requests or project contract requires visual review, follow the configured `uiStateCapture.mode` and runner: capture the project-declared state × viewport matrix, and capture transitions only under explicit `every-action` mode with a verified boundary. Use the configured evidence index, preserve candidate screenshots, let `/experience-review` read and adjudicate each required image before synthesis, and never promote a baseline automatically. A false value cannot waive a project-required gate; validated blocking UI findings require an owner-layer fix and a same-scope E2E rerun.
+**IMPORTANT MUST ATTENTION Visual handoff:** When requested or project-required, capture the declared state × viewport matrix and transitions only under explicit `every-action` mode with a verified boundary. Preserve and index candidates; `/experience-review` reads and adjudicates each required image before synthesis. Never auto-promote baselines or waive a required gate with `false`; validated blocking UI findings require an owner-layer fix and same-scope E2E rerun.
 
 <!-- SYNC:core-engineering-principles:reminder -->
 

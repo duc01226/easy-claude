@@ -15,7 +15,7 @@
 **Workflow:**
 
 1. Use the `debugger` subagent to read the CI logs via the configured CI tool/API (from `docs/project-config.json`), analyze the final failing log/error **backward** to the root cause, and report back. Write findings to `tmp/analysis/{ci-issue}.analysis.md`; re-read before implementing.
-2. **🛑 Present root cause + proposed fix → `AskUserQuestion` → wait for approval.**
+2. **🛑 Present root cause + proposed fix → `ask user question tool` → wait for approval.**
 3. Implement the fix from the report.
 4. Use the `tester` subagent to verify; report back.
 5. If tests fail, repeat from step 2.

@@ -2,6 +2,21 @@
 
 Read this before you use a `--to=png` run as evidence that a page renders. To an agent, a blank page or an error overlay looks exactly like success: the command finished and a PNG file exists. The png target exists to turn those two invisible failures into an exit code.
 
+<!-- SKILL-NAV:START -->
+## Contents
+
+- Rule 0
+- Exit codes
+- What exit 0 proves, and what it does not
+- report.json
+- Failure signatures
+- Default viewports
+- Slides and screens by producer
+- Self-check
+- Known limits of the evidence
+
+<!-- SKILL-NAV:END -->
+
 ## Rule 0
 
 **Read the exit code first, then open the PNGs. Never claim a render works because a file was written.** A PNG always gets written, even for a blank or broken page. Only exit `0` plus your own look at the image count as evidence, and only for the scope below.

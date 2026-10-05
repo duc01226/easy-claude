@@ -153,7 +153,7 @@ Reports go under `tmp/reports/` using the `{date}-{slug}` naming convention.
 >
 > **Mandatory closers:** Confidence % stated · Assumptions listed · Open questions surfaced · Next action concrete.
 >
-> **Stop conditions:** confidence <60% on any critical decision → stop and escalate via AskUserQuestion (60-80% → verify first) · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
+> **Stop conditions:** confidence <70% on any critical decision → stop and escalate via ask user question tool (70-80% → verify first) · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
 >
 > **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
 
@@ -230,7 +230,7 @@ Reports go under `tmp/reports/` using the `{date}-{slug}` naming convention.
 >
 > - Omit derivable inventories, statistics, trees and repeated histories from guides unless their owner/consumer contract needs them; use live discovery and keep detailed investigation evidence in temporary reports.
 > - Keep actionable numbers, required structures and a short example when it clarifies a necessary distinction. Do not impose universal example or warning quotas.
-> - For agent guidance, apply the shared `ai-discovery-doc-quality` content-value and retention contract; review both excess detail and over-compression. Word reduction alone is not quality proof.
+> - For agent guidance, review both excess detail and over-compression. Word reduction alone is not quality proof.
 > - Honor the requested report/registry format; put remaining questions and limitations where the reader can act on them.
 
 <!-- /SYNC:output-quality-principles -->

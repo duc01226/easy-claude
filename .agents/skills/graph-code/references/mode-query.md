@@ -11,6 +11,24 @@
 - MUST ATTENTION keep claims evidence-based (`file:line`) with confidence >80% to act.
 - MUST ATTENTION keep task tracking updated as each step starts/completes.
 
+<!-- SKILL-NAV:START -->
+## Contents
+
+- Prerequisites
+- Intent Mapping
+- Workflow
+- Semantic Query Protocol (When User Query is Not File-Specific)
+- Available Query Patterns
+- Search (Find Nodes by Keyword)
+- Find Path (Shortest Path Between Nodes)
+- Query Filtering and Limiting
+- Batch Query (Multiple Files)
+- Trace (Full System Flow)
+- Anti-Patterns
+- Related Modes and Skills
+
+<!-- SKILL-NAV:END -->
+
 ## Prerequisites
 
 1. **Graph must exist** -- check `.code-graph/graph.db`. If missing, report "graph not built — run $graph-code --mode=build, or continue with grep" and stop.
@@ -72,7 +90,7 @@ This returns `file_summary`, `imports_of`, `importers_of`, `callers_of`, and `te
 ### Step 4: Handle response status
 
 - **`status: "ok"`** -- Parse `results[]` and `edges[]`, format report (Step 5)
-- **`status: "ambiguous"`** -- Multiple matches found. Show `candidates[]` list and ask user to pick one using ask user tool
+- **`status: "ambiguous"`** -- Multiple matches found. Show `candidates[]` list and ask user to pick one using `ask user question tool`
 - **`status: "not_found"`** -- No match. Suggest: check spelling, use relative file path, try a different name. Optionally run `file_summary` on the parent file to show available names.
 - **`status: "error"`** -- Show error message. Common: graph.db missing, Python version too old.
 
@@ -262,12 +280,12 @@ Returns a multi-level tree of connected nodes grouped by BFS depth, with edge ty
 
 - **Don't rebuild graph** -- use `$graph-code --mode=build` for that. This mode only queries.
 - **Don't use for change-driven analysis** -- use `$graph-code --mode=blast-radius` for git-diff-based impact.
-- **Don't use for bulk export** -- use `$graph-export` for full graph dump.
-- **Don't use for diagrams** -- use `$graph-export --format=mermaid` for Mermaid visualization.
+- **Don't use for bulk export** -- use `$graph-code --mode=export` for full graph dump.
+- **Don't use for diagrams** -- use `$graph-code --mode=export --format=mermaid` for Mermaid visualization.
 - **Always use `--json` flag** -- ensures structured parseable output.
 
 ## Related Modes and Skills
 
 - `$graph-code --mode=build` -- Build or update the graph (prerequisite)
 - `$graph-code --mode=blast-radius` -- Change-driven impact analysis from git diff
-- `$graph-export` -- Export full graph to JSON (`--format=json`) or a single file as a Mermaid diagram (`--format=mermaid`)
+- `$graph-code --mode=export` -- Export full graph to JSON (`--format=json`) or a single file as a Mermaid diagram (`--format=mermaid`)

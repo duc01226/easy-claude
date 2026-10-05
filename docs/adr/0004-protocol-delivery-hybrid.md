@@ -6,6 +6,8 @@
 - **Spec:** `docs/specs/ContextDelivery/README.ProtocolDelivery.md` (feature code PDL)
 - **Supersedes:** None. This ADR reverses two earlier decisions that were never recorded as ADRs: the no-reference duplication policy (`SYNC:shared-protocol-duplication-policy`, `.claude/skills/shared/sync-inline-versions.md:1336`) and the removal of agent-start context injection (`.claude/hooks/tests/test-all-hooks.cjs:649-654`).
 
+**Current decision:** the decisions and earlier amendments below record their historical state. The [2026-10-04 amendment](#amendment-2026-10-04-review-family-entrypoints-use-guides-with-full-source-fallback) supersedes the four review-family skill exceptions in Decision 3; agents, mode references and fresh reviewer prompts retain their full applicable bodies.
+
 ## Context
 
 ### What the duplication policy bought
@@ -33,7 +35,7 @@ Agent-start (`SubagentStart`) context injection was removed deliberately. The di
 
 1. **Converted skills keep guides.** Each protocol a converted skill follows becomes one guide entry in a `PROTOCOL-GUIDES` block: the tag, a one-line summary, when it applies, and the path of its published text. Its `:reminder` digest stays.
 2. **Hooks deliver the full text** once per session per scope. Each of six groups is one entry file and one `additionalContext` string of at most 9,500 characters. Delivery re-arms after compaction and after 4,500,000 bytes of transcript growth (`reinjectAfterBytes`, the value used by `.claude/hooks/workflow-route-inject.cjs:54` and `.claude/hooks/lib/file-conventions.cjs:45-48`).
-3. **Inline where hooks cannot carry the load.** The four review-family skills keep every full body (`inlineSkills` in `.claude/skills/shared/protocol-groups.json`). So do all `references/*.md` carriers and all agents.
+3. **Inline where hooks cannot carry the load.** The four review-family skills keep every full body (`inlineSkills` in `.claude/skills/shared/protocol-groups.json`). So do all `references/*.md` carriers and all agents. **The skill-entrypoint exception is superseded by the [2026-10-04 amendment](#amendment-2026-10-04-review-family-entrypoints-use-guides-with-full-source-fallback); reference and agent carriers remain full.**
 4. **Universal rules.** The universal rules are hook-delivered only: one hook per authored bin (`protocol-inject-universal-<n>.cjs`) on the first prompt, after a compaction and at every agent start; no root file, skill or agent carries them. (This replaces the earlier decision that the root file carries four universal rules; see the amendments of 2026-09-30 and 2026-10-01.)
 5. **Never silent.** A miss degrades to read-by-path. An unwritable ledger delivers without de-dup. This deliberately reverses the ledger's shipped "IO failure ⇒ caller skips delivery" (`.claude/hooks/lib/convention-ledger.cjs:176-178`) for protocol delivery. Only a live peer lock on the same record skips.
 6. **Compliance gate.** Groups are converted one at a time. A review scored before and after on a fixed diff must not lose any check it passed; a confirmed regression holds the next group for the owner.
@@ -242,3 +244,13 @@ The owner requested a shorter reading-protocol injection dedup window. This supe
 The shorter window refreshes the reading gate more often during long sessions. Its price is up to twice as many growth-triggered universal deliveries; it does not add a per-prompt delivery. The separate full-document loaded-content reuse horizon and the default per-file convention window remain approximately 200K tokens.
 
 Guard: BR-PDL-18 and TC-PDL-088/095/111/114 in the canonical protocol-delivery spec; `UNIVERSAL_REINJECT_TOKENS` in `.claude/hooks/lib/universal-delivery.cjs` is the single runtime owner. TC-PDL-088 verifies silence one byte below the boundary, delivery at the boundary and silence on a repeat for all four bins.
+
+## Amendment (2026-10-04): review-family entrypoints use guides with full-source fallback
+
+This amendment supersedes the four review-family skill exceptions in Decision 3, its D-1 refinement and later statements retaining those exceptions. The owner approved guide transport for `changes-review`, `code-quality-review`, `why-review` and `workflow-review-changes`; the live registry's `inlineSkills` list is empty. Their entrypoints carry official guides and all role reminders. Hooks deliver the full applicable text; if delivery is absent or overflows, the reviewer reads every applicable unread published source before acting. A guide, tag or pointer never substitutes for consumed full text.
+
+The change reduces repeated entrypoint text while retaining complete review rules. Its accepted cost is the required full-source read when delivery cannot carry the text. Guide transport changes discovery and loading cost, never coverage, validation, severity, material-decision ownership, recursion guards or dispatch obligations. A future full-body skill exception requires an explicit owner decision.
+
+Agents retain their full applicable role protocols. Mode-only references retain their full SYNC bodies and load first on mode entry. Every fresh reviewer prompt still embeds the complete `review-protocol-injection` template, with all eleven full protocol bodies VERBATIM and only its declared placeholders replaced. Universal protocols retain their separate hook-only delivery contract.
+
+Read `.claude/skills/shared/sync-inline-versions.md` → `SYNC:shared-protocol-duplication-policy` when updating transport or carriers; it is the canonical protocol owner. Read `docs/specs/ContextDelivery/README.ProtocolDelivery.md` → BR-PDL-07/11/12/14 when assessing guide fallback, mode loading and full-text retention. These current contracts supersede the historical skill exceptions above; required full text and review gates remain mandatory.

@@ -2,6 +2,18 @@
 >
 > **`{TechRoot}` = `docs/project-config.json` → `specRoots.technical.path`.** Resolve it at run time. NEVER hardcode a root. `{Service}` and `{Component}` are **patterns**, never literal names.
 
+## Contents
+
+- [Profile and generator applicability](#profile-and-generator-applicability)
+- [The Determinism Contract — read before emitting anything](#the-determinism-contract--read-before-emitting-anything)
+- [Step G1 — Derive the Use Case Inventory](#step-g1--derive-the-use-case-inventory)
+- [Step G2 — Derive the TC ↔ Test Map](#step-g2--derive-the-tc--test-map)
+- [Step G3 — Derive the Cross-Service Topology](#step-g3--derive-the-cross-service-topology)
+- [Step G4 — The Technical Coverage Report (derived, reported — never a gate on the business tree)](#step-g4--the-technical-coverage-report-derived-reported--never-a-gate-on-the-business-tree)
+- [Step G5 — The Harvest Candidate Report (REPORT ONLY — C9)](#step-g5--the-harvest-candidate-report-report-only--c9)
+- [The Emit Template — fixed sections, declared order](#the-emit-template--fixed-sections-declared-order)
+- [Mode: Audit](#mode-audit)
+
 ## Profile and generator applicability
 
 Resolve `specArtifacts`, `techSpecScan`, and the generator's supported annotation contract before deriving anything. This reference applies only to the annotation-derived `TestSpec` / `TechnicalSpec` view. If a native artifact profile applies, return `UNSUPPORTED` for native technical-view generation before invoking the generator; do not translate native scenarios into duplicate TC annotations or emit an empty view. With no native profile, preserve the strict §8/TC default for annotation adopters. An absent `techSpecScan` is `NOT CONFIGURED`, never a successful zero-case map.

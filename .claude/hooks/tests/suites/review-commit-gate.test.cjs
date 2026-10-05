@@ -255,7 +255,7 @@ const tests = [
                     '> - `Skip — commit without review`'
                 ].map(option => commitSkill.indexOf(option, menuStart));
                 assert.ok(menuEnd > menuStart && skillOptions.every(index => index >= menuStart && index < menuEnd),
-                    'commit skill AskUserQuestion must offer all three reviews and Skip');
+                    'commit skill ask user question tool must offer all three reviews and Skip');
                 assert.ok(skillOptions[3] > Math.max(...skillOptions.slice(0, 3)), 'Skip must be the last menu option');
 
                 issueCandidate(receipt(), fx.store, snapshot(receipt(), fx.repoA), 'skip', {

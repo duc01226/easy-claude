@@ -15,7 +15,7 @@ disable-model-invocation: false
 - Read the schema and required project references, then select only the capability areas supported by the task or repository evidence.
 - Omitted properties use documented defaults or evidence-backed skips. A declared but incomplete or unsupported section must be repaired or removed explicitly; never treat it as absent.
 - Merge and validate selected changes; report omitted capabilities and follow-up work without inventing architecture or test cases.
-- OCR-only status/enable/off uses the focused project preference route below; configure only the accepted preference, with no tool acquisition. Selected grouping setup: inspect classifiers/rules → preview groups → merge accepted proposals → validate; preserve manual policy and independent machine permissions.
+- Inspect configured owners and conventions, apply the requested changes, then validate. Preserve unrelated project facts and native machine permissions.
 
 **IMPORTANT MUST ATTENTION** follow Recon → Plan → Execute → Validate. **IMPORTANT MUST ATTENTION** use exact schema field names (`--describe`). **IMPORTANT MUST ATTENTION** validate after each phase. **NEVER** use `classPattern`/`keyExtractor` — correct fields: `contentPattern`/`keyGroup`.
 
@@ -80,20 +80,6 @@ node .claude/skills/project-config/scripts/project-config-help.cjs --search=<ter
 - For framework-wide help beyond the config file (skills, workflows, hooks, project architecture), suggest the user run `/project-help`, or read `.claude/docs/README.md`. For init-time routing decisions, route to `/project-init --help`.
 
 ---
-
-## OCR project preference — focused route
-
-For an OCR-only status/enable/off request, use this route without scanning unrelated capabilities; help remains read-only. From the consuming project root, run:
-
-```text
-node .claude/skills/project-config/scripts/review-setup.cjs --action inspect
-```
-
-Report its actual `configPath`, `provider` (`null` = Unset, `none` = Off, `open-code-review` = Enabled) and retain its exact `expectedSource`. For an explicit owner enable/off request or the real adoption answer, run the same helper with `--action enable` or `--action off` and `--expected-source <exact-inspect-token>`. A general setup request does not select OCR for the owner: leave Unset unless the owner accepts that preference. Read `.claude/skills/shared/review-preparation.md` when resolving the review-time three-choice question; it owns the single answer and invocation-only Skip.
-
-The helper resolves the same canonical loader/config location as review policy, including full relocation; do not create a competing default file. It changes only the provider, creates minimum valid project identity when absent, and preserves unrelated settings, `ruleDocs` and groups. Before-publication refusal leaves settings unchanged; report “Review assistance settings not saved” with the bounded reason. Verify saved status, actual path/provider and validated readback. For `config-publication-unverified`, report “Review assistance settings may have changed; confirmation unavailable”; preserve the destination, invalidate prior preparation/evidence, re-inspect and freshly capture current target/policy before continued review. Never silently retry/acquire from this uncertain result. Never manufacture a token or overwrite through another writer after refusal.
-
-This configuration route performs no provider invocation/acquisition and grants no machine permission. Saved Enabled means preference saved, not tool Ready. A continuing review must discard earlier artifacts and freshly capture exact target/policy into a new directory before its permitted readiness lane; Off stays quiet until deliberate re-enable. Skip is never saved or implemented as a dismissal timer. General configuration/group work follows the workflow below.
 
 ## ⛔ Plan → Review → Execute Workflow
 
@@ -455,24 +441,6 @@ Declare `framework` only when the repository uses an identifiable framework or s
 
 Declare `contextGroups[]` only for stable path-scoped conventions that materially improve work on those files. Every declared group needs a real matcher and evidence-backed rules/references; do not add an empty catch-all just to fill the section. Keep rules concise and checkable, and follow project-specific patterns instead of importing examples from another stack.
 
-### 2e.1. Review Preparation — Propose & Preserve
-
-Run only when review preparation/grouping is selected. **MUST ATTENTION** inspect existing `modules` and `contextGroups`, representative matching and unmatched files, overlapping rules, and selected review documents before recommending groups. Read `.claude/skills/shared/review-preparation.md` when explaining how these inputs drive review: the host retains every required rule and gate; optional criteria never establish acceptance.
-
-- Propose `reviewGroups` with unique nonblank trimmed `id` values (case/Unicode preserved; `general` reserved), existing uniquely resolved `modules[].name` / `contextGroups[].name` references, optional safe-integer `priority` (default 500), and optional declared `relatedGroups` IDs for bounded context. Every group needs at least one classifier reference. Reuse classifier semantics; do not add a second matcher dialect or copy another project's layout.
-- Preview sample file → primary group, overlaps, unmatched `general`, related context and rules with `file:line` evidence. Lowest priority wins; equal priorities use declaration order. Rules apply independently of primary ownership. Show uncertain classification conservatively; AI suggestions remain proposals until the accepted subset is known.
-- Optional `reviewPreparation` holds only `provider: "open-code-review" | "none"` and additional required `ruleDocs` project-relative forward-slash paths. Omitted provider means Unset: no provider invocation/acquisition until the review owner accepts setup. Explicit `open-code-review` is Enabled; `none` is Off and suppresses later adoption questions. Use the focused OCR preference helper above for accepted enable/off changes; valid ruleDocs-only settings remain Unset. Verify full source bodies and configured review-reference selection, including exact `referenceDocs: []`; preserve independently present docs-index, lessons and overlays. Missing declared sources are policy errors. Keep universal rules in their framework owner; preserve additive project rules and surface semantic conflicts.
-- **MUST ATTENTION** merge only accepted proposals through the existing ownership primitive; preview its added/refreshed/kept result before the configured file is written:
-
-  ```javascript
-  const { mergeDetected } = require('./.claude/hooks/lib/convention-merge.cjs');
-  const preview = mergeDetected(config.reviewGroups || [], acceptedProposals, { identityKey: 'id' });
-  config.reviewGroups = preview.groups;
-  ```
-
-  The caller supplies validated `config` and the accepted proposal subset. Preserve absent/user-owned and edited-detected entries byte-for-byte, refresh only unchanged detected entries, never remove groups. Validate the complete candidate and related references after subset selection; unresolved references block writing. Do not reuse the legacy name-based CLI merge for review groups.
-- Setup performs no acquisition. Machine execution/network/install decisions and paths belong to personal or ignored local tool policy; team config grants none. Apply the existing phase read-back, matcher spot-check and schema-validation gates to accepted changes.
-
 ### 2f–2h. Design System, Styling, Component System
 
 These are separate optional capabilities. Add `designSystem` only when the project owns maintained design tokens/components or a normative design guide; add `styling` only when there is a real styling technology and stable patterns; add `componentSystem` only when an established component convention helps route work. Omit unused sections and do not create placeholder docs or mappings.
@@ -670,7 +638,9 @@ Run `/prompt-enhance` only on selected generated/updated project guidance when i
 
 ## Phase 7: Self-Review Verification (MANDATORY)
 
-Re-invoke skill: `/project-config Self review and verify everything again, ensure all is correct with current source code`. Catches regressions and issues missed in first pass.
+Perform one additional read-only verification of the saved config against current source evidence. Repeat Phase 4's schema and path/matcher checks; confirm the required identity, selected capabilities, intentional omissions and preserved user-owned values. Record the evidence and result without creating another plan or re-invoking the whole skill.
+
+If verification fails, mark the outcome blocked, return to the affected selected phase for a scoped correction, then validate and repeat this verification. If the same failure recurs without progress, stop and report the unresolved evidence or decision needed; never expand the scan or restart the full workflow to hide a failed check.
 
 ## Output
 

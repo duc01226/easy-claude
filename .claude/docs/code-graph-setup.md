@@ -48,7 +48,7 @@ The tool auto-creates `.code-graph/.gitignore` with `*` content (prevents commit
 | --------------------------- | ----------------------------------------------------------------------------------------------- |
 | `/graph-code --mode=build`              | Build or update the knowledge graph                                                             |
 | `/graph-code --mode=blast-radius`       | Analyze impact of current changes                                                               |
-| `/graph-export`             | Export full graph to JSON (`--format=json`) or single-file Mermaid diagram (`--format=mermaid`) |
+| `/graph-code --mode=export`             | Export full graph to JSON (`--format=json`) or single-file Mermaid diagram (`--format=mermaid`) |
 | `/graph-code --mode=query`              | Natural language queries (callers, imports, tests)                                              |
 | `/graph-code --mode=connect-api`        | Detect frontend-backend API connections                                                         |
 | `/graph-code --mode=trace`              | Trace full system flow (upstream/downstream/both)                                               |

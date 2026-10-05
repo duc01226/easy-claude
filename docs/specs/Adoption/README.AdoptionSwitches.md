@@ -79,7 +79,7 @@ A project that adopts the framework gets a set of project-level switches that de
 | Graph-Not-Built Note                    | A one-line reminder that the graph is chosen but not yet built                                                                           | Only in mode on, once per session                                           |
 | Graph Command                           | The command-line entry the assistant and skills use to query or build the graph                                                          | Refuses every command in off mode                                           |
 | Fix-Origin Trailer                      | An optional commit-message line naming where a fixed defect came from                                                                    | Opt-in; new commits only                                                    |
-| Utility Skill                           | One of fifteen skills no workflow, agent or automatic step calls                                                                         | Command-only by default                                                     |
+| Utility Skill                           | One of the command-only utility skills no workflow, agent or automatic step calls                                                                         | Command-only by default                                                     |
 | Command-Only Skill                      | A skill the assistant never selects by itself; a user runs it by explicit command                                                        | Keeps working on every host                                                 |
 | Called Skill                            | A skill named as a step of a workflow or preloaded by an agent                                                                           | Never hidden unless the project opts in                                     |
 | Effective Tier                          | A workflow's activation tier after project settings (see the Workflow Routing spec)                                                      | auto, confirm or manual                                                     |
@@ -132,7 +132,7 @@ A project that adopts the framework gets a set of project-level switches that de
 
 **Acceptance Criteria:**
 
-- **AC-ADS-06** — **Given** the fifteen utility skills **When** the primary and second host copies are read **Then** each is marked command-only
+- **AC-ADS-06** — **Given** the command-only utility skills **When** the primary and second host copies are read **Then** each is marked command-only
 - **AC-ADS-07** — **Given** a command-only skill **When** a user invokes it explicitly on any of the three hosts **Then** it runs
 
 ### US-ADS-04: The third host enforces the same policy safely
@@ -261,7 +261,7 @@ A project that adopts the framework gets a set of project-level switches that de
 
 ### BR-ADS-06: Utility skills are command-only on every host [HARD]
 
-**Statement:** The fifteen utility skills are never selected by the assistant on its own on any host: the primary host marks them command-only, the second host copy stops their implicit selection, and the third host hides them. An explicit command runs each of them on all three hosts. The commit, learn, git-conflict-resolve and sync-codex skills stay selectable. A skill that any workflow, agent or automatic step calls is never in this set.
+**Statement:** The command-only utility skills are never selected by the assistant on its own on any host: the primary host marks them command-only, the second host copy stops their implicit selection, and the third host hides them. An explicit command runs each of them on all three hosts. The commit, learn, git-conflict-resolve and sync-codex skills stay selectable. A skill that any workflow, agent or automatic step calls is never in this set.
 
 ### BR-ADS-07: Third-host entries follow the effective tier [HARD]
 
@@ -1138,9 +1138,9 @@ And it says the trailer applies to new commits only
 
 ### Command-Only Skill Tests
 
-#### TC-ADS-008: The fifteen utility skills are command-only on the primary host [P1]
+#### TC-ADS-008: The command-only utility skills are command-only on the primary host [P1]
 
-**Objective:** Prove that each of the fifteen utility skills is marked so the assistant never selects it by itself.
+**Objective:** Prove that each of the command-only utility skills is marked so the assistant never selects it by itself.
 
 **Business Intent / Invariant Guarded:** Utilities run only when a user asks, so they never self-trigger and never crowd the model skill list (BR-ADS-06).
 
@@ -1155,7 +1155,7 @@ And it says the trailer applies to new commits only
 **Demo Flow:** Inspect the settings of each utility skill.
 
 ```gherkin
-Given the fifteen utility skills
+Given the command-only utility skills
 When their settings are read
 Then each is marked as command-only
 ```
@@ -1171,7 +1171,7 @@ Then each is marked as command-only
 
 **Acceptance Criteria:**
 
-- ✅ All fifteen marked
+- ✅ All command-only utilities marked
 - ❌ Any utility left selectable by the assistant
 
 **Test Data:**
@@ -1190,7 +1190,6 @@ Then each is marked as command-only
         "git-developer-performance",
         "skill-creator",
         "scan-codebase-health",
-        "graph-export",
         "ck-help",
         "project-help",
         "custom-prompt"
@@ -1244,7 +1243,7 @@ Then each has a policy that stops the assistant from selecting it by itself
 
 **Acceptance Criteria:**
 
-- ✅ Policy present for all fifteen
+- ✅ Policy present for every command-only utility
 - ❌ A utility without the policy
 
 **Test Data:**

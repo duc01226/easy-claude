@@ -5,7 +5,7 @@
  * sections can the CURRENT code changes have made stale?
  *
  * The `/docs-manager --mode=update` skill uses this to run an IMPACT-SCOPED freshness pass
- * (Phase 1) instead of a full `/scan-all` + `/project-config` rebuild: the
+ * instead of a full `/scan-all` + `/project-config` rebuild: the
  * routing is deterministic and derived from `docs/project-config.json`, so the
  * model spends its budget verifying the few docs a diff can actually rot
  * instead of re-deriving every doc from scratch.
@@ -18,9 +18,9 @@
  *   node .claude/scripts/doc-impact-map.cjs [--json|--text] [--base=<ref>] [files...]
  *   node .claude/scripts/doc-impact-map.cjs claims [--json] [doc...]
  *
- * With no explicit file list, `map` collects the changed set exactly the way
- * docs-manager --mode=update Phase 0 does: uncommitted -> last commit -> branch diff, plus
- * untracked files (new files are the top source of doc COVERAGE gaps).
+ * With no explicit file list, `map` discovers uncommitted changes, then tries
+ * last-commit and branch comparisons, plus untracked files. The docs-manager
+ * caller passes its resolved file list explicitly to preserve caller scope.
  *
  * Fail-open by contract: every unreadable config, bad regex, or git failure
  * degrades to "route it anyway / report a warning" — a broken mapper must
@@ -163,7 +163,7 @@ function ext(relPath) {
 }
 
 // ---------------------------------------------------------------------------
-// Changed-file collection (mirrors docs-manager --mode=update Phase 0, Step 0.1)
+// Changed-file collection (standalone fallback; callers may supply exact scope)
 // ---------------------------------------------------------------------------
 
 // `git ls-files` on a large monorepo runs to megabytes, well past execFileSync's

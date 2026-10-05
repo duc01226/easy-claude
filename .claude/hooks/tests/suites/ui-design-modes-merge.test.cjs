@@ -100,8 +100,10 @@ function* walk(rel) {
 /** A line that names the removed skill but is an allowed mention. */
 function allowedMention(rel, line) {
     if (rel === '.claude/skills/ui-design/SKILL.md' && /former/i.test(line)) return true;
+    if (rel === '.claude/skills/ui-design/SKILL.md' && /^\| `\/ui-review` \| `\/ui-design --mode=review \[scope\] \[--report-only\]`/.test(line)) return true;
     if (rel === '.claude/skills/ui-design/references/mode-review.md') {
         if (/Formerly `\/ui-review`/.test(line)) return true;
+        if (/^>[^\n]*Reports use the `ui-review-` prefix\./.test(line)) return true;
         if (line.includes('tmp/reports/' + REMOVED + '-')) return true;
     }
     // A project-doc filename the scaffold skill writes into adopter projects; it names no skill.
@@ -144,15 +146,15 @@ const tests = [
             assert.ok(routing > 0 && routing < text.indexOf('## Quick Summary'), 'mode detection sits at the top, before the Quick Summary');
             assert.match(text, /--mode=review/);
             // And an explicit mode wins while no mode stays the default fast design
-            assert.match(text, /An explicit mode always wins/);
-            assert.match(text, /no `--mode` is the default `fast` design/);
+            assert.match(text, /An explicit `--mode` always wins/);
+            assert.match(text, /omitted `--mode` defaults to `fast`/);
             // And the mode has a mandatory full-read line naming an existing reference
             assert.match(text, /\*\*\[BLOCKING\] When `--mode=review`, read `references\/mode-review\.md` in full FIRST\*\*/);
             assert.ok(fs.existsSync(path.join(SKILLS, 'ui-design', 'references', 'mode-review.md')), 'references/mode-review.md exists');
             // And the dispatch table carries the row and the removed slash command resolves through a "formerly" mapping
             assert.match(text, /\| `review` +\| changed UI files \/ surfaces \|/);
-            assert.match(text, /is the former `\/[a-z-]+`: that slash command no longer exists/);
-            assert.match(text, /the former `\/[a-z-]+` is `--mode=review`/);
+            assert.match(text, /the old commands do not resolve/);
+            assert.match(text, /\| `\/ui-review` \| `\/ui-design --mode=review \[scope\] \[--report-only\]`/);
             // And the review mode is never the default and never inferred
             assert.match(text, /`--mode=review` is never inferred from the brief and is never the default/);
         }
@@ -280,15 +282,18 @@ const tests = [
             const review = document.workflows['workflow-review-changes'];
             const step = review.sequence.find(entry => entry && entry.skill === 'ui-design');
             assert.ok(step, 'workflow-review-changes keeps the UI specialist step');
-            assert.equal(step.args, '--mode=review --report-only');
+            assert.equal(review.defaultMode, 'fix-loop');
+            assert.equal(step.args, '--mode=review --fix-loop --loop-owner=caller');
             assert.equal(step.role, 'optional');
             assert.ok(step.applicability && step.applicability.when && step.applicability.skipReason, 'the conditional applicability contract survives');
-            // And its id is used consistently by the parallel group and the step metadata
-            const reviewers = review.parallelGroups.find(group => group.id === 'reviewers');
-            assert.ok(reviewers.members.includes(step.id), 'the specialist wave lists the step id');
-            assert.ok(reviewers.conditionalMembers.includes(step.id), 'the step stays a conditional member (skipped when no UI files changed)');
-            assert.ok(review.stepMeta[step.id], 'stepMeta keeps the execution mode for the step id');
-            assert.equal(review.stepMeta[step.id].executionMode, 'subagent', 'the review runs as a sub-agent step');
+            // Every resolved variant keeps the same conditional owner and passes the mode's exact flags.
+            for (const manifest of resolveAllWorkflowManifests(document, 'workflow-review-changes', { rootDir: REPO_ROOT })) {
+                const leaf = manifest.occurrences.find(entry => entry.skill === 'ui-design');
+                assert.ok(leaf && leaf.id === step.id, 'conditional reviewer identity survives every variant');
+                assert.equal(leaf.args, manifest.mode === 'fix-loop'
+                    ? '--mode=review --fix-loop --loop-owner=caller' : '--mode=review --review-only');
+                assert.ok(leaf.applicability && leaf.applicability.when && leaf.applicability.skipReason);
+            }
             // The mockup workflow keeps its always-run review gate on the merged mode
             const mockup = document.workflows['workflow-spec-to-mockup'];
             const gate = mockup.sequence.find(entry => entry && entry.skill === 'ui-design');
@@ -312,7 +317,7 @@ const tests = [
             assert.ok(found.length >= 2, `tripwire: the registry runs ui-design as a step (${found.length})`);
             for (const { workflow, mode, occurrence } of found) {
                 const args = occurrence.args.trim();
-                const match = /^--mode=([a-z]+)((?: --report-only)?)$/.exec(args);
+                const match = /^--mode=([a-z]+)((?: (?:--report-only|--review-only|--fix-loop|--loop-owner=caller))*)$/.exec(args);
                 assert.ok(match, `${workflow}/${mode}/${occurrence.id}: unsupported ui-design arguments "${args}"`);
                 assert.ok(dispatch.includes(`\`--mode=${match[1]}`) || dispatch.includes(`| \`${match[1]}\``), `${workflow}/${occurrence.id}: ui-design has no --mode=${match[1]}`);
                 // --report-only belongs to the review mode only
@@ -330,11 +335,13 @@ const tests = [
             assert.match(description, /^\[Design\] Use when a workflow step or the user asks for \S/);
             assert.ok(description.length <= 250, `description is ${description.length} chars, over 250`);
             for (const mode of ['fast', 'good', 'explore', 'describe', 'screenshot', 'video', 'review']) {
-                assert.ok(description.includes(mode), `description names the ${mode} mode`);
+                assert.ok(skillText().includes(`\`${mode}\``) || skillText().includes(`--mode=${mode}`), `dispatch retains the ${mode} mode`);
             }
-            for (const keyword of ['UI design', 'UI review', 'content fit', 'layouts', 'styling conventions', 'accessibility', 'async states']) {
-                assert.ok(description.includes(keyword), `description keeps the routing keyword "${keyword}"`);
+            for (const intent of [/UI (?:design|creation)/, /explor(?:ation|e)/, /descrip(?:tion|be)/, /screenshots?/, /videos?/, /--mode=review/, /layout/, /styling/, /accessibility/, /async states/]) {
+                assert.match(description, intent, `description retains routing intent ${intent}`);
             }
+            // Content-fit requirements belong to the mandatory review reference.
+            assert.match(modeReview(), /content.fit|Container fits the task|container.fit/i);
         }
     },
     {
@@ -345,7 +352,8 @@ const tests = [
             for (const id of ['workflow-review-changes', 'workflow-spec-to-mockup']) {
                 const line = read(SKILLS, id, 'SKILL.md').split('\n').find(candidate => candidate.startsWith('**IMPORTANT MANDATORY Steps:**'));
                 assert.ok(line, `${id} has its mandatory steps line`);
-                const [manifest] = resolveAllWorkflowManifests(document, id, { rootDir: REPO_ROOT });
+                const manifests = resolveAllWorkflowManifests(document, id, { rootDir: REPO_ROOT });
+                const manifest = manifests.find(item => item.mode === document.workflows[id].defaultMode) || manifests[0];
                 const expected = manifest.occurrences.map(occurrence => `/${occurrence.skill}${occurrence.args ? ` ${occurrence.args}` : ''}`).join(' -> ');
                 assert.equal(line, `**IMPORTANT MANDATORY Steps:** ${expected}`, `${id} step line equals the resolved manifest`);
                 assert.ok(line.includes('/ui-design --mode=review'), `${id} step line runs the merged review mode`);
@@ -372,7 +380,7 @@ const tests = [
             assert.deepEqual(offenders, [], 'replace each with `ui-design --mode=review`');
             // The allow-list is live: SKILL.md names the removed command only as "formerly"
             const named = skillText().split('\n').filter(line => line.includes(REMOVED));
-            assert.ok(named.length >= 1 && named.every(line => /former/i.test(line)), 'ui-design/SKILL.md names the removed command only as "formerly"');
+            assert.ok(named.length >= 1 && named.every(line => allowedMention('.claude/skills/ui-design/SKILL.md', line)), 'ui-design/SKILL.md names the removed command only as "formerly"');
         }
     }
 ];

@@ -9,7 +9,7 @@ description: '[Skill Management] Use when enhancing, compressing or expanding pr
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - Use ask user tool to ask user.
+> - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -27,6 +27,7 @@ description: '[Skill Management] Use when enhancing, compressing or expanding pr
 - **Anti-forget rule (task/purpose targets):** when the target performs a task or has a purpose, the Summary AND Closing Reminders MUST carry the goal + purpose + ALL important main steps/tasks (compact enumeration) — why: this framework repeats a compact route at the entry and exit; anchors aid navigation but do not guarantee compliance.
 - Preserve meaningful rules and consumer-required code/YAML/tables/tags; agent-guide removals require semantic dispositions, not blanket example retention.
 - Route on `--op` (default `enhance`): `compress` = token-strip only, `expand` = reconstruct compressed text.
+- For skill enhancement, preserve direct reference discovery, control by consequence, bounded feedback, dependency setup and model evaluation; use the authoring-quality reference below.
 
 **Workflow:**
 
@@ -57,7 +58,7 @@ description: '[Skill Management] Use when enhancing, compressing or expanding pr
 Compress and enhance this file:
 <target>$ARGUMENTS</target>
 
-No file? Ask using ask user tool. Text passed (not file path)? Apply caveman compression directly and output result.
+No file? Ask via `ask user question tool`. Text passed (not file path)? Apply caveman compression directly and output result.
 
 ---
 
@@ -94,7 +95,7 @@ Verify (expand): no semantic loss (all facts/numbers/paths present), semantic re
 
 ## Agent-Guide Branch (before general transforms)
 
-When the target output is root context, a project-reference guide/template, docs index or prompt/protocol registry, read `.claude/skills/shared/protocols/ai-discovery-doc-quality.md` for the content-value and retention contract. Classify by resolved output identity and ownership, not the scratch candidate filename. Curated lessons/audits keep their owner contract and require authorized scope.
+When the target output is root context, a project-reference guide/template, docs index or prompt/protocol registry, use the branch below. Classify by resolved output identity and ownership, not the scratch candidate filename. Curated lessons/audits keep their owner contract and require authorized scope.
 
 For these targets, use this branch instead of caveman compression, blanket example/table preservation or generic skill scaffolding:
 
@@ -124,6 +125,12 @@ Return this review to the caller; a scan candidate remains unapplied until its f
 
 Target `.claude/skills/**/*.md` (any `SKILL.md`)? Apply **Universal Skill-Building Principles** AFTER caveman compression, BEFORE writing enhanced output.
 
+> **Skill authoring quality** — Keep required references discoverable, match control to consequence, and verify outputs through bounded feedback with explicit dependencies and model evidence. Read `.claude/skills/skill-creator/references/authoring-quality.md` when enhancing a skill or its bundled references; it owns the detailed acceptance checks. This is a reference read, not an invocation of the command-only creator skill.
+
+Apply that gate to `--op=enhance`. For `compress` or `expand`, preserve these contracts without adding new procedures. Inventory referenced resources before moving text; edit companion resources only within the requested scope and report needed changes outside it. Treat a preview as discovery, then read required content. Preserve tested model claims separately from intended support; record unavailable comparisons as `NOT RUN`.
+
+Read `.claude/skills/skill-creator/references/schema-reference.md` when changing headers or model metadata; it owns accepted fields and distinguishes runtime model selection from compatibility evidence.
+
 **Risk-profile gate (blocking):** Enhancement preserves the target skill's job,
 input/output, mutation authority, delegation boundary, and terminal states.
 Classify the target as `content`, `analysis`, `conversion`, `implementation`,
@@ -143,13 +150,13 @@ After caveman compression, evaluate skill against each principle, add missing st
 | Principle                    | Check                                    | Action if missing                                      |
 | ---------------------------- | ---------------------------------------- | ------------------------------------------------------ |
 | Detect Before Act            | Phase 0 / classification step present?   | Add artifact-type detection before Phase 1             |
-| Derive, Don't Enumerate      | Thinking framework vs. fixed checklist?  | Replace checklist with "understand → derive → execute" |
+| Derive, Don't Enumerate      | Are choices flexible while dependent gates stay ordered? | Use decision criteria for variable work; preserve required sequences and progress checklists |
 | Evidence Gates               | Every claim requires `file:line`?        | Add evidence requirement to all review steps           |
 | Fresh Eyes Protocol          | Required by risk profile and target contract? | Add Round 2 fresh sub-agent protocol only when required; otherwise record N/A |
 | Specialize by Type           | Required by risk profile and target contract? | Add specialist routing only when required; otherwise record N/A |
 | Embed Protocols Verbatim     | A sub-agent prompt is actually emitted? | Inline the needed protocol body at that call site; do not add delegation to a non-delegating target |
 | Search-Based Discovery       | Any hardcoded paths/formats/IDs?         | Replace with search instructions                       |
-| Dimensions > Checklists      | Named dimensions with `Think:` prompts?  | Convert checklist to dimension framework               |
+| Dimensions > Checklists      | Is analysis flexible and execution progress observable? | Use dimensions for analysis; retain checklists that protect dependencies and exit conditions |
 | Recursive Quality Loop       | Required by risk profile and target contract? | Add the bounded loop only when required; otherwise record N/A and preserve the target's terminal state |
 | Anti-Rationalization Anchors | Closing reminders include evasion table? | Add evasion → rebuttal table                           |
 
@@ -350,6 +357,7 @@ For each `.claude/` protocol reference:
 | Readability         | Clear priorities and conditions; no report bulk packed into dense prose |
 | Formatting          | Blank lines between sections, headers correct  |
 | READ classification | `.claude/` → inline summary, `docs/` → skipped |
+| Skill authoring quality | Enhance → authoring-quality gate recorded; compress/expand → discovery, freedom, checks, dependencies and compatibility retained. Unrun behavioral/model comparisons remain `NOT RUN` |
 
 ---
 
@@ -363,7 +371,7 @@ For each `.claude/` protocol reference:
 >
 > 1. **Detect Before Act** — Every skill starts with a classification phase. Detect artifact type (plan type, code category, change nature) before applying any logic. Detection drives: sub-agent selection, which dimensions to emphasize, mandatory vs. optional checks.
 >    Anti-pattern: same checklist applied regardless of input type.
-> 2. **Derive, Don't Enumerate** — Teach AI HOW to reason about a domain, not WHAT items to tick. Replace "check X, Y, Z" with "understand role → read conventions → derive concerns from first principles → execute with evidence." Fixed checklist = ceiling. Thinking framework = floor.
+> 2. **Derive, Don't Enumerate** — Teach decision criteria for variable analysis: understand role → read conventions → derive concerns → execute with evidence. Preserve ordered gates and progress checklists when they protect dependencies or completion conditions; one skill may mix flexible analysis and strict execution.
 >    Test: Can this skill run on a Python/Go project without modification? If not → it's enumerating, not teaching.
 > 3. **Evidence Gates** — Every claim, finding, recommendation requires `file:line` proof or traced call chain. Confidence thresholds: >80% act freely, 60-80% verify first, <60% DO NOT recommend. "Insufficient evidence" is valid output. Speculation is forbidden output.
 > 4. **Fresh Eyes Protocol** — For implementation, orchestration, and security/authority targets, Round 1 is in the main session and Round 2 uses a fresh sub-agent (zero memory of Round 1); the main agent reads the report but NEVER filters or overrides findings. Max 3 review rounds; use a fresh sub-agent for any further round, then escalate to the user if blockers remain. For content, analysis, and conversion targets, apply only when the target contract explicitly requires an independent review; otherwise record N/A and preserve the target's simpler terminal state.
@@ -382,7 +390,7 @@ For each `.claude/` protocol reference:
 >     - "Search for `coding-standards`, `style-guide`, `contributing`" not "read `docs/X/code-review-rules.md`"
 >     - "Find the project's test format near changed files" not "look for `TC-{FEATURE}-{NNN}` in the business spec root (default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path)"
 >       This is what makes a skill work across any project without modification.
-> 8. **Dimensions > Checklists** — Structure review/analysis as named thinking dimensions, each with a `Think:` prompt that forces first-principles reasoning: (1) state dimension's role, (2) derive what could go wrong if weak, (3) apply to artifact with evidence. Produces targeted, evidence-backed findings — not generic "add more detail" suggestions.
+> 8. **Dimensions > Checklists** — Structure variable review/analysis as named thinking dimensions: (1) state the dimension's role, (2) derive what could go wrong, (3) apply with evidence. Retain execution checklists for dependencies and exit conditions; mark completion only after checks pass.
 >    **Serial attention:** When applying a dimension-based framework, NEVER scan all dimensions simultaneously. One focused pass per dimension. AI misses violations when attention is split across concurrent concerns. Pattern: identify applicable dimensions → sequential focused passes → aggregate.
 >    **Threshold invariant:** 3+ similar patterns in any dimension pass = MANDATORY extraction. 2+ violations of same kind = structural/architectural finding, not individual instance.
 > 9. **Recursive Quality Loop** — For targets whose contract includes review/fix convergence, use Fix → Re-review; each round uses a NEW fresh sub-agent and stops at 2 rounds with escalation. For other targets, do not invent a loop: preserve their declared terminal state and record this principle as N/A.
@@ -425,6 +433,7 @@ For each `.claude/` protocol reference:
 - Task/purpose targets need Goal + purpose + every main step, conditional mode/flag and gate in both anchors. Keep Summary distinct from detailed Workflow/Key Rules. Skills and sub-agents share this structure; preserve agent Role/Workflow/Key Rules/Output sections.
 - Read referenced protocols before summarizing them; inline summaries apply to `.claude/` protocols, not project `docs/`. State the correct action and retain non-obvious rationale and examples that clarify necessary distinctions.
 - Preserve owner-specific structure, meaningful rules, exceptions and consumer contracts. Verify semantic dispositions and YAML integrity; length and warning counts prove neither quality nor retention.
+- For skills, apply the directly linked authoring-quality gate: reference discovery, control by consequence, bounded feedback, dependency setup and model evidence. Preserve ordered gates and progress checklists; report unrun comparisons honestly.
 - Ground claims in `file:line` evidence; >80% confidence to act, verify uncertainty first. READ `CLAUDE.md` before starting.
 
 **Anti-Rationalization:**

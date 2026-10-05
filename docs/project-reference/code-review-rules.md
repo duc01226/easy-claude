@@ -109,6 +109,8 @@ Focused injection does not authorize truncating required reference-document read
 
 ## Skill Definition Conventions
 
+When reviewing `SKILL.md` or any Markdown under `.claude/skills/`, `.agents/skills/`, or `.codex/skills/`, read the host's `skill-creator/SKILL.md` and `skill-creator/references/authoring-quality.md`; apply the relevant quality gate to preserve intent, authority, useful guidance, and discovery. Trace mirror findings to their canonical `.claude` source.
+
 ### Directory Structure
 
 ```
@@ -147,7 +149,7 @@ description: '...' # Include trigger keywords for discoverability
 
 - Shared knowledge has one canonical owner; extract an abstraction for a real second consumer or an evidenced change axis, with matched lifecycle and trust constraints. Read `.claude/skills/shared/protocols/core-engineering-principles.md` when deciding reuse versus extraction.
 - Keep modules cohesive with explicit dependencies; progressive disclosure carries supporting detail. Word counts and consumer quotas do not establish abstraction quality.
-- Shared protocol bodies follow the hybrid projection contract. Read `.claude/skills/shared/protocols/shared-protocol-duplication-policy.md` when changing a protocol or carrier; skills use generated guides, agents retain role bodies, and the named review-family exceptions keep inline bodies.
+- Shared protocol bodies follow the hybrid projection contract. Read `.claude/skills/shared/protocols/shared-protocol-duplication-policy.md` when changing a protocol or carrier; skill entrypoints use generated guides with full-source fallback; agents and selected mode references retain role bodies.
 
 ### Skill Content Rules
 

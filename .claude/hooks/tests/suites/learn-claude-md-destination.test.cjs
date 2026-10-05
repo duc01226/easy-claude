@@ -82,8 +82,8 @@ const tests = [
             // The size budget matches the generator's own overflow threshold (one number, two places)
             const generator = read('.claude', 'skills', 'ai-context-refresh', 'scripts', 'generate-claude-md.cjs');
             assert.match(generator, /bytes > 32768/, 'the generator still warns at 32768 bytes');
-            // Consent: exact line + target section shown, AskUserQuestion, nothing written on reject
-            assert.match(section, /\*\*Confirm \(BLOCKING\)\*\*[^\n]*`AskUserQuestion`[^\n]*`\(Recommended\)`/);
+            // Consent: exact line + target section shown, ask user question tool, nothing written on reject
+            assert.match(section, /\*\*Confirm \(BLOCKING\)\*\*[^\n]*`ask user question tool`[^\n]*`\(Recommended\)`/);
             assert.match(section, /Show the exact proposed line, the target section, and `size before → after \/ 32768`/);
             assert.match(section, /A rejected or unanswered question writes nothing/);
             assert.match(text, /NEVER silently self-edit an instruction file/);

@@ -1,9 +1,31 @@
 ---
 name: workflow-integration-test
 version: 1.0.0
-description: '[Workflow] Use when writing integration tests spec-first, converting test specs into test code, adding coverage to untested code, or driving failing integration tests to green. Flag: --mode={write|green}.'
+description: "[Workflow] Write and verify spec-traced integration tests, or diagnose and fix failing suites to repeatable green. --mode={write|green}."
 disable-model-invocation: false
 ---
+
+<!-- WORKFLOW-CALLS:START -->
+## Workflow Calls and Todo Bootstrap
+
+Read [the registry](../../../.claude/workflows.json) → `workflows.workflow-integration-test` together with this skill. Call [`/start-workflow workflow-integration-test`](../start-workflow/SKILL.md) to resolve the selected mode, pre-actions and fingerprint.
+
+**Todo FIRST:** create ALL selected occurrence tasks before triage, analysis or step execution, including conditional/optional tasks; preserve occurrence IDs, roles and barrier groups. Use native task tools or an equivalent persistent ledger. Then mark the first task `in_progress`; attach evidence before `completed`.
+Mode selection and registry loading prepare tracking; any 'first action' below means the first substantive action after this bootstrap.
+
+**Call each step skill:** read its linked SKILL.md and execute its protocol through the active host with the registry args. Reading or naming a skill alone is not execution. Required gates and core/optional flex follow the linked start-workflow Step Execution Protocol; keep this skill's quality gates, loops and evidence requirements.
+
+**Conditions:** load each occurrence's registry `applicability.when` and `skipReason` verbatim, and record its run/skip evidence through the linked start-workflow protocol. Do not silently omit a task or turn a conditional skill into an unconditional call. Declared parallel groups retain their all-return barrier.
+
+Explicit step-skill calls by mode (registry order; roles and conditions remain owned by the registry):
+
+- Mode `write`: [`/investigate`](../investigate/SKILL.md) (core) → [`/spec [mode=tests]`](../spec/SKILL.md) (optional; conditional) → [`/pbi --mode=review --type=spec-tests`](../pbi/SKILL.md) (optional; conditional) → [`/integration-test`](../integration-test/SKILL.md) (core) → [`/integration-test --mode=review`](../integration-test/SKILL.md) (gate) → [`/integration-test --mode=verify`](../integration-test/SKILL.md) (gate) → [`/spec [mode=sync]`](../spec/SKILL.md) (gate) → [`/docs-manager --mode=update`](../docs-manager/SKILL.md) (optional; conditional) → [`/workflow-end`](../workflow-end/SKILL.md) (gate) → [`/watzup`](../watzup/SKILL.md) (core)
+<!-- workflow-mode:write fingerprint:071bb578e2c0e60dee60b25e71f697de3877702e3f2d136946521c7677671ca3 -->
+- Mode `green`: [`/investigate`](../investigate/SKILL.md) (core) → [`/integration-test --mode=verify --fix-loop`](../integration-test/SKILL.md) (gate) → [`/spec [mode=sync]`](../spec/SKILL.md) (optional; conditional) → [`/docs-manager --mode=update`](../docs-manager/SKILL.md) (optional; conditional) → [`/workflow-end`](../workflow-end/SKILL.md) (gate) → [`/watzup`](../watzup/SKILL.md) (core)
+<!-- workflow-mode:green fingerprint:c14f48f8443e22a37d8a3e67ed87eaa724301f1beff12b53438e875f14b7cd9e -->
+
+Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs --write` after registry edits; [`/sync-codex`](../sync-codex/SKILL.md) refreshes it before mirroring.
+<!-- WORKFLOW-CALLS:END -->
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
@@ -17,6 +39,8 @@ disable-model-invocation: false
 ## Quick Summary
 
 **Goal:** Get integration behavior proven through one workflow with two variants chosen by `--mode`: `write` (default) authors or updates spec-traced integration tests and proves them green with real assertion value; `green` drives a red, flaky or unproven suite to a truthful, repeatable green by fixing each failure at its owning layer.
+
+**Python readiness:** when the selected runner requires Python, read `integration-test/references/mode-verify.md` → **Persistent Python readiness** before verification. Repair missing Python on Windows, macOS and Linux through that policy; reuse a compatible installation and prove discovery from a fresh shell before tests.
 
 **Use when:** `write` — covering untested or changed behavior with integration tests, converting existing cases into test code, or auditing and stabilising an existing suite. `green` — a suite or a named test is red, flaky, or must be proven repeatably green. To reconcile specs and tests after a code change, use `/workflow-spec-sync`; for case authoring with no test code, run `/spec [mode=tests]` directly. Formerly `/workflow-write-integration-test` (`--mode=write`) and `/workflow-integration-test-green` (`--mode=green`).
 
@@ -120,6 +144,6 @@ Pick the variant from the prompt (or an explicit `--mode=`) BEFORE creating task
 - **MUST ATTENTION** a failing test gets ONE written five-way Fault Verdict (`SOURCE-WRONG` · `TEST-WRONG` · `TEST-NOT-OPTIMAL` · `ENVIRONMENT-BLOCKED` · `AMBIGUOUS`) BEFORE any edit; NEVER force green — no weakened or removed assertions, skips, widened assertion timeouts, retried assertions, or narrowed scope — why: a weakened assertion protects nothing.
 - **MUST ATTENTION** never claim verification without runner output; every pass/fail claim cites the command, exact counts and exit status.
 - **MUST ATTENTION** `write`: read the production and test source BEFORE writing any assertion; every test names the invariant it protects and asserts an outcome the system owns — NEVER smoke-only. `green`: run the fix-loop and the skills it drives INLINE, and review every round's fix diff.
-- **MUST ATTENTION** bootstrap one task per selected step plus a final review task, write the report FIRST, cite `file:line` evidence, and end with the lessons-learned check.
+- **MUST ATTENTION** bootstrap exactly one task per selected occurrence before triage; record final consistency and lessons-learned checks under closure, write the report FIRST and cite `file:line` evidence.
 
-**[TASK-PLANNING]** Before acting, resolve the variant and run its triage, then break the selected steps into small tasks with `TaskCreate`.
+**[TASK-PLANNING]** Resolve the variant, create all occurrence tasks with `TaskCreate`, then run its triage and execute the selected steps.

@@ -26,6 +26,16 @@
 
 ---
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Section 8 Header](#section-8-header)
+- [Individual TC Entry](#individual-tc-entry)
+- [Category Sections](#category-sections)
+- [Priority Definitions](#priority-definitions)
+- [TDD-First Mode Notes](#tdd-first-mode-notes)
+- [Closing Reminders](#closing-reminders)
+
 ## Section 8 Header
 
 ```markdown

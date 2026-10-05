@@ -10,7 +10,7 @@ disable-model-invocation: true
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - Use ask user tool to ask user.
+> - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -19,9 +19,9 @@ disable-model-invocation: true
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
 ## Quick Summary
 
-**Goal:** Two operations — (A) propagate updated content for existing SYNC: blocks across all skills, or (B) add a new SYNC: block to all skill/agent files that don't have it yet.
+**Goal:** Propagate canonical protocol updates or new tiered blocks to their declared carriers and published projection, with verified parity.
 
-**Summary:** Use `$sync-skills-shared-protocols` for Operation A (update existing blocks) or Operation B (add a new tiered block); `/sync-protocols` no longer resolves.
+**Summary:** A: select tags → read canonical → inspect updater dry-run inventory → propagate → rebuild/check projection and carriers → sync reminders only when requested. B: author canonical → update tiers/connections → dry-run → insert → rebuild/check coverage and parity. Preserve guide entrypoints, full-text carriers and dispatch overrides.
 
 **Canonical source:** `.claude/skills/shared/sync-inline-versions.md`
 
@@ -53,30 +53,35 @@ For each tag to sync:
 1. Read `.claude/skills/shared/sync-inline-versions.md`
 2. Extract content under `## SYNC:{tag-name}` heading (everything between that heading and the next `---` or `## SYNC:`)
 
-### Step 3: Find All Skills with Tag
+### Step 3: Inspect the Updater's Carrier Inventory
 
 ```bash
-grep -rl "SYNC:{tag-name}" .claude/skills/*/SKILL.md
+# macOS/Linux; on Windows use py -3 instead of python3
+python3 .claude/scripts/sync-update-blocks.py "{tag-name}" --dry-run
 ```
 
-### Step 4: Replace Content in Each Skill
+The updater discovers skill entrypoints, skill templates, mode references and agents. Inspect its dry-run results before writing; searching only `*/SKILL.md` misses full-text carriers. The helper uses Python 3 and framework-local modules, with no third-party package requirement. Probe it with `--help` when runtime availability is uncertain.
 
-For each file found:
+### Step 4: Propagate with the Owning Helper
 
-1. Find `<!-- SYNC:{tag-name} -->` open tag
-2. Find `<!-- /SYNC:{tag-name} -->` close tag
-3. Replace everything between them with the canonical content
-4. Do NOT touch `:reminder` blocks while syncing the plain tag — they are a SEPARATE fence pair with their own canonical section, and the script never crosses between them (`sync-update-blocks.py:64-66`). Sync one by passing `{tag}:reminder` as its own tag.
+```bash
+# macOS/Linux; on Windows use py -3 instead of python3
+python3 .claude/scripts/sync-update-blocks.py "{tag-name}"
+node .claude/scripts/build-protocol-projection.cjs
+```
+
+Require successful exit status; report malformed/missing fences rather than hand-replacing a failed carrier. Keep generated guide entrypoints as guides. A plain tag does not modify its separate `:reminder` fence pair; pass `{tag}:reminder` only when reminders are requested. Preserve the OVERRIDE handling below.
 
 ### Step 5: Verify
 
-Run these checks after all replacements:
+Run these checks after propagation and projection rebuild:
 
-```python
-# 1. SYNC tag balance (all opens have matching closes)
-# 2. Content matches canonical source
-# 3. No content outside SYNC blocks was modified
+```bash
+node .claude/scripts/codex/verify-sync-adoption-parity.mjs
+rg -n "SYNC:{tag-name}" .claude
 ```
+
+Verify balanced fences, exact canonical bodies and unchanged unrelated authored content. Inspect the search for carriers outside the updater's inventory, including framework docs, and reconcile them through their owner. Verify every requested tag and applicable tier; a command success alone is not full coverage. Projection tooling uses Node >=18 built-ins.
 
 Report:
 
@@ -163,7 +168,7 @@ The connection map is explicit routing metadata. It links the agent prompt to th
 
 This is a bulk-insert operation, not a content update. Verify the computed target set before writing so orchestration-only rules never leak into every skill.
 
-**When to use:** A new protocol rule is added to `.claude/skills/shared/sync-inline-versions.md` and should appear in static carriers (`CLAUDE.md`, `AGENTS.md`, Codex, skills, and agents).
+**When to use:** A new protocol rule is added to `.claude/skills/shared/sync-inline-versions.md` and needs declared skill/agent carriers and hook projection. Roots carry project information only; universal protocols remain hook-only.
 
 #### Step B1: Add block content to canonical source
 
@@ -202,7 +207,7 @@ CODE_BLOCK_ORDER = CORE_BLOCK_ORDER + ["understand-code-first", "evidence-based-
 READONLY_CODE_BLOCK_ORDER = CORE_BLOCK_ORDER + ["understand-code-first", "evidence-based-reasoning"]
 ```
 
-**Universal protocols are not tier blocks.** The protocols of the `universal` group in `.claude/skills/shared/protocol-groups.json` are delivered by the universal hook, in the authored `bins` layout of that group; no skill (the four `inlineSkills` included) and no agent carries a body, `:reminder` or guide line of one. `py -3 .claude/scripts/sync-update-blocks.py --mode=strip-root-pointer` removes any that reappear, together with a retired `Root-carried protocols` pointer line (agents also drop `task-tracking-external-report`, which `agent-bootstrap` states); `sync-hooks-to-skills.py` runs the same step on every target and never inserts a universal block. Never add a universal tag to a tier list, `BODY_TAGS` or `AGENT_QUALITY_BLOCKS`; `agent_protocol_matrix.py --validate` check (j) and TC-UAR-011 fail on it.
+**Universal protocols are not tier blocks.** The protocols of the `universal` group in `.claude/skills/shared/protocol-groups.json` are delivered by the universal hook, in the authored `bins` layout of that group; no skill (including any explicitly approved `inlineSkills` exception) and no agent carries a body, `:reminder` or guide line of one. `py -3 .claude/scripts/sync-update-blocks.py --mode=strip-root-pointer` removes any that reappear, together with a retired `Root-carried protocols` pointer line (agents also drop `task-tracking-external-report`, which `agent-bootstrap` states); `sync-hooks-to-skills.py` runs the same step on every target and never inserts a universal block. Never add a universal tag to a tier list, `BODY_TAGS` or `AGENT_QUALITY_BLOCKS`; `agent_protocol_matrix.py --validate` check (j) and TC-UAR-011 fail on it.
 
 **Agent tiering:** agents no longer share one block list. `find_target_files()` classifies each `.claude/agents/*.md` by explicit membership in one of three sets:
 
@@ -257,6 +262,8 @@ node .claude/hooks/tests/run-all-tests.cjs --filter=agent-universal
 
 Check a representative file of each affected tier manually to confirm placement and formatting.
 
+Rebuild the published projection with `node .claude/scripts/build-protocol-projection.cjs`, run `node .claude/scripts/codex/verify-sync-adoption-parity.mjs`, and search `.claude` for out-of-inventory carriers before reporting completion.
+
 ---
 
 ## Usage Examples
@@ -271,7 +278,7 @@ $sync-skills-shared-protocols                            # Interactive — asks 
 ## Rules
 
 - ALWAYS edit `sync-inline-versions.md` FIRST, then run this skill
-- NEVER modify content outside `<!-- SYNC:tag -->` boundaries
+- For Operation A, preserve unrelated authored content outside the selected SYNC fences; rebuild generated projections through their owner. Operation B inserts only the declared tier blocks and connection metadata.
 - NEVER touch `:reminder` blocks unless explicitly asked — and when asked, sync them WITH THE SCRIPT on the `{tag}:reminder` tag; never hand-write one
 - If close tag is missing in a target file, SKIP that file and report it as an error
 - Use the `Grep` tool (not shell grep) per project conventions
@@ -296,17 +303,17 @@ $sync-skills-shared-protocols                            # Interactive — asks 
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Two operations — (A) propagate updated content for existing SYNC: blocks across all skills, or (B) add a new SYNC: block to all skill/agent files that don't have it yet.
+**IMPORTANT MUST ATTENTION Goal:** Propagate canonical protocol updates or new tiered blocks to their declared carriers and published projection, with verified parity.
 
-**IMPORTANT MUST ATTENTION Workflow:** Operation A: identify tag(s) → read canonical content → find targets → replace only block bodies → verify balance/parity/outside-block diff → handle reminders as separately requested; Operation B: edit canonical → update inserter tiers → dry-run → run → verify tier coverage and balance → report tags/files/errors.
+**IMPORTANT MUST ATTENTION Workflow:** A: select tags → read canonical → inspect updater dry-run inventory → propagate → rebuild/check projection and all carriers → sync reminders only when requested. B: author canonical → update tiers/connections → dry-run → insert → rebuild/check coverage/parity → report. Preserve guides, full-text carriers, overrides and unrelated authored content.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
-- **Shared Protocol Duplication:** follow the hybrid duplication policy (`SYNC:shared-protocol-duplication-policy`) — skills keep guide lines, the review-family skills and agents keep full bodies, and only the sync tool converts or propagates them.
+- **Shared Protocol Duplication:** follow the hybrid duplication policy (`SYNC:shared-protocol-duplication-policy`) — skills keep guide lines, agents and mode-reference SYNC carriers keep full bodies, and every fresh reviewer prompt keeps all 11 bodies VERBATIM, and only the sync tool converts or propagates them.
 
 **IMPORTANT MUST ATTENTION** edit `sync-inline-versions.md` FIRST before syncing to skills
 **IMPORTANT MUST ATTENTION** verify SYNC tag balance after every sync run
-**IMPORTANT MUST ATTENTION** NEVER modify content outside `<!-- SYNC:tag -->` boundaries
+**IMPORTANT MUST ATTENTION** preserve unrelated authored content; projections are regenerated by their owner
 **IMPORTANT MUST ATTENTION** skip files with missing close tags and report as errors
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.

@@ -31,7 +31,7 @@ Each spec has the same five fields: **purpose · derivation source · skeleton �
 
 - **Purpose:** the one picture that orients a reviewer before they open any file — what talks to what, and where the change landed.
 - **Derivation source:** `code_graph trace <file> --direction both --node-mode file --json` → grep+read of imports/references → the diff's own file list grouped by directory.
-- **Labelling:** reuse `graph-export`'s vocabulary — nodes are files/classes/functions, edges are labelled with the relationship (`-->|calls|`, `-->|imports|`), and layer grouping uses `subgraph`. Mark changed nodes so the reader sees the blast site at a glance.
+- **Labelling:** reuse `graph-code --mode=export`'s vocabulary — nodes are files/classes/functions, edges are labelled with the relationship (`-->|calls|`, `-->|imports|`), and layer grouping uses `subgraph`. Mark changed nodes so the reader sees the blast site at a glance.
 - **Skeleton:**
 
 ```mermaid

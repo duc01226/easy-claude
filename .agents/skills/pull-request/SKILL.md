@@ -9,7 +9,7 @@ description: '[Git] Use when asked to create, open, finish, update or mark ready
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - Use ask user tool to ask user.
+> - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -23,7 +23,7 @@ description: '[Git] Use when asked to create, open, finish, update or mark ready
 **Summary:**
 
 - **Purpose:** one invocation creates a new PR, finishes the current PR, or flips a draft to ready. Invocation IS explicit authority for add/commit/push/PR operations on the selected branch — nothing more.
-- **Main session, user choices:** run inline, but STOP for the test and review questions in the [User Choice Contract](#user-choice-contract). Include explicit Skip options; never answer for the user. A PR request or `skillAutoTrigger: false` does not settle these choices.
+- **Main session, user choices:** run inline; call the available ask-user question tool BEFORE pausing for the test and review questions in the [User Choice Contract](#user-choice-contract). Include explicit Skip options; never answer for the user. A PR request or `skillAutoTrigger: false` does not settle these choices.
 - **Review decision before commit:** review the whole branch or obtain an explicit user-approved skip for that scope and exact commit candidate. Every later candidate change invalidates earlier evidence and skip decisions.
 - **Main steps:** (1) target → (2) fresh branch at the latest target → (3) stage + guard + test choice → (4) whole-branch review choice → (5) verify final evidence → (6) `commit` skill → (7) push + create/ready PR → (8) CI loop until green → (9) mergeable check + report.
 
@@ -112,7 +112,7 @@ A PR branch starts at the latest `<target>` (`R` from Step 1.4). Name for a new 
 
 ### Step 3.5 — Ask about local tests
 
-STOP and ask: **Run local tests before publishing, confirm already verified, or skip?** Offer:
+Call the ask-user question tool under the [User Choice Contract](#user-choice-contract) BEFORE pausing: **Run local tests before publishing, confirm already verified, or skip?** Offer:
 
 1. **Run local tests (Recommended)** — execute the configured delta-scoped commands using the project phase rules and managed runners.
 2. **Already verified** — show any existing evidence; the user confirms it covers this candidate. Do not choose this answer yourself.
@@ -124,7 +124,7 @@ For documentation-only changes, explain that no local test lane is required and 
 
 **Review scope invariant.** A pull-request review covers the TOTAL net change of the branch against the target: `git diff <base-ref>...HEAD` (three-dot, from the merge-base, every branch commit) ∪ uncommitted changes. NEVER only the latest commit (`HEAD~1..HEAD`, `git show`), never only the current working-tree changes, and never just the fix made since the last round — a later CI fix or merge is reviewed as part of the whole branch diff. Reviewing an existing PR (no local edits) uses the same scope from the PR's base (`baseRefName`) after `git fetch origin`. Record the scope proof in the report: base ref, merge-base SHA, `git rev-list --count <base-ref>..HEAD` and the changed-file count of `git diff --stat <base-ref>...HEAD`.
 
-STOP and ask: **Review the whole branch before publishing, use an existing review, or skip?** Offer all three `--fix-loop` review choices from `commit` Step 3.6, recommending one using its size/risk selection rule (whole-branch signals), plus **Use existing review** when its evidence covers this full scope, and **Skip review** last. Wait for the user's selection; a PR request is not an answer. A commit-only receipt does not prove the whole branch was reviewed.
+Call the ask-user question tool under the [User Choice Contract](#user-choice-contract) BEFORE pausing: **Review the whole branch before publishing, use an existing review, or skip?** Offer all three `--fix-loop` review choices from `commit` Step 3.6, recommending one using its size/risk selection rule (whole-branch signals), plus **Use existing review** when its evidence covers this full scope, and **Skip review** last. Wait for the user's selection; a PR request is not an answer. A commit-only receipt does not prove the whole branch was reviewed.
 
 For a review selection, run the selected `changes-review`, `why-review` or `workflow-review-changes` fix-loop inline via the skill invocation over the whole scope. For the full workflow, run `$workflow-review-changes --fix-loop` inline via the skill invocation, scope `<base-ref>...HEAD ∪ current uncommitted changes` — the three-dot base is the fixed merge-base, so the review covers every branch commit + pending work, a Step 2 rebase included. Follow that workflow's `references/fix-loop.md` as written: each round re-runs the whole default workflow over the recomputed scope (parallel reviewers, validated fixes at the owning layer, `$docs-manager --mode=update`); converges on a zero-fix round; keeps round cap + severity floor; mints the `workflow-review-changes` receipt.
 
@@ -177,6 +177,15 @@ Read `gh pr view <n> --json isDraft,mergeable,mergeStateStatus,reviewDecision,st
 
 ## User Choice Contract
 
+**Deliver the question before waiting.** For every unsettled test/review choice (Steps 3.5, 4, refreshed candidates, failed-review skip decisions and resume), invoke the available native ask-user question tool with the actual question and selectable options. A statement such as “waiting for your choice” or “STOP” does not display a question and cannot satisfy this step. Use the tool's exposed schema; do not merely name the tool in prose.
+
+- **Claude Code:** call `ask user question tool`.
+- **Codex:** call the available ask-user question tool, such as `functions.request_user_input_async` in Default mode. Use `request_user_input` only when its tool contract and the current mode permit this kind of question; do not switch to Plan mode just to ask for confirmation. Discover the available equivalent rather than assuming a tool name exists.
+- **OpenCode:** call its native `question` tool.
+- **Option limits:** preserve every applicable choice from Steps 3.5 and 4. If the tool limits option count, split into sequential questions (for example, run a review / use existing evidence / skip, then which review); never drop Skip or silently choose a review.
+- **Asynchronous delivery:** a tool acknowledgement means the question was posted, not answered. Record the question, candidate/scope and status `pending` in the PR report, pause dependent steps, and wait for the human reply. Preselection, silence and elapsed time are not consent. Resume only the answered branch; retain a pending question across compaction/resume without treating it as answered or posting duplicates.
+- **Unavailable tool:** if no permitted question tool exists, visibly present the exact question and numbered choices in the response, explain the tool limitation, and wait for an explicit reply. Never end with only a status statement. This fallback applies only after checking the active host's capabilities; when a permitted tool is available, call it.
+
 Both `commit` and `pull-request` ask the user about tests and review, including explicit Skip options, independently of `portability.skillAutoTrigger`, workflow routing mode or a general request to finish autonomously. Do not auto-answer, infer consent from silence, select a default without an answer, or treat evidence alone as the user's choice. A prior explicit answer for this exact candidate in the current run may be reused when calling `commit`.
 
 - **Tests:** Run, user-confirmed Already verified, or user-approved Skip; documentation-only candidates also offer Confirm no tests required.
@@ -219,7 +228,7 @@ A **Blocker** ends the run. Pending user choices pause only dependent steps. If 
 **IMPORTANT MUST ATTENTION Goal:** Drive current work to a pull request **ready to merge** — not draft, whole-branch review and local tests run or explicitly skipped by the user, every CI check green — with test and review choices before publishing.
 
 - **MUST ATTENTION — MAIN STEPS IN ORDER:** (1) target: request → open PR base → `pullRequest.targetBranch` → `main` · (2) branch: merged → new branch at latest target; unpushed + behind → rebase (stash, `$git-conflict-resolve`); pushed → never rebased · (3) stage + guard · (3.5) test choice · (4) whole-branch review choice · (5) verify final evidence · (6) `commit` skill · (7) push + create/ready PR · (8) CI loop until green · (9) mergeable check + report.
-- **MUST ATTENTION — ASK TESTS AND REVIEW:** run inline, STOP for both user choices including Skip, and wait. Auto-trigger restrictions never suppress these questions or block the selected review and its required dependencies.
+- **MUST ATTENTION — ASK TESTS AND REVIEW:** run inline, call the ask-user question tool BEFORE pausing for both user choices including Skip, and wait for actual answers. Auto-trigger restrictions never suppress these questions or block the selected review and its required dependencies.
 - **MUST ATTENTION — REVIEW BEFORE COMMIT:** the receipt binds the exact candidate. Every later edit, CI fix included, refreshes the user choices and requires a matching review or explicitly approved skip before commit. NEVER self-approve a skip.
 - **MUST ATTENTION — REVIEW THE TOTAL BRANCH DIFF:** every review round in a PR run covers `<base-ref>...HEAD ∪ uncommitted` (all branch commits against the merge-base), never only the latest commit or the working tree.
 - **MUST ATTENTION — CI FIXES:** root cause first, environment hypothesis included; one rerun only for a named infrastructure cause. NEVER weaken, skip or delete a test or check.

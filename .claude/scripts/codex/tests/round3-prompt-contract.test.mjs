@@ -107,7 +107,7 @@ test('R3-PROMPT-027/031: advisory scores and category labels cannot bypass eligi
     assert.equal(policy.evaluateRound({ round: 3, findings: [{ id: 'material', severity: 'HIGH' }] }).status, 'ESCALATE');
     // Past the hard cap a review blocker still escalates; only failing test gates continue.
     assert.equal(policy.evaluateRound({ round: 4, findings: [{ id: 'material', severity: 'HIGH' }] }).status, 'ESCALATE');
-    assert.equal(policy.evaluateRound({ round: 4, hardGates: [{ id: 'suite', kind: 'test', status: 'FAIL' }] }).status, 'CONTINUE');
+    assert.equal(policy.evaluateRound({ round: 4, hardGates: [{ id: 'suite', kind: 'test', status: 'FAIL' }] }).status, 'ESCALATE');
     assert.equal(policy.evaluateRound({ round: 1, findings: [{ id: 'polish', severity: 'LOW' }] }).canComplete, false);
     const deferred = policy.evaluateRound({ round: 2, findings: [{ id: 'polish', severity: 'LOW' }] });
     assert.equal(deferred.canComplete, true);
@@ -236,79 +236,20 @@ const CONVERGENCE_ROW = {
 // The zero-fix predicate leaves "edits landed but no review blocker is open" (a simplifier-only
 // round) needing its own row: the user-decided rule proves a zero-fix pass within budget and
 // escalates at a spent budget, so the workflow loop has one extra row before the blocker row.
-function assertLoopBudget(text, name) {
-    const rule = local(text);
-    assert.match(rule, /Cap at `?\{N=3\}`? review rounds/);
-    assert.doesNotMatch(rule, /N=2|ONE extension round|extendable ONCE/);
-    assert.match(rule, /\*\*in this order — the first matching row decides\*\*/);
-    const table = rule.match(/\| Condition \| Action \|([\s\S]*?)\n\n>/)?.[1] ?? '';
-    const rows = table.trim().split('\n').slice(1);
-    assert.match(rows[0], /Review blockers increased.*STOP & escalate/);
-    assert.match(rows[1], /still open.*not shrink.*2 consecutive rounds.*STOP & escalate/);
-    assert.match(rows[2], /Round cap.*round 3.*STOP & escalate/);
-    assert.match(rows[3], /test gate.*no review blocker is open.*Keep looping — NO round cap/);
-    const convergence = rows.filter(row => /\| \*\*CONVERGED/.test(row));
-    assert.ok(convergence.length >= 2);
-    for (const row of convergence) {
-        assert.match(row, /unchanged since.*before-snapshot AND no test gate is failing/);
+test('R3-PROMPT-042/043/044: shared review cap blocks MEDIUM+, missing proof and failed gates, with explicit extension', () => {
+    const source = read('skills/shared/protocols/review-policy.md');
+    assert.match(source, /three review rounds/);
+    assert.match(source, /host question tool/);
+    assert.match(source, /Wait for an explicit answer/);
+    assert.match(source, /fresh review of the updated target/);
+    for (const round of [1, 2, 3]) {
+        for (const severity of ['HIGH', 'MEDIUM', 'CRITICAL', 'NOT VERIFIABLE']) {
+            assert.equal(policy.evaluateRound({ round, findings: [{ id: 'open', severity }] }).status, round < 3 ? 'CONTINUE' : 'ESCALATE');
+        }
+        for (const kind of ['test', 'binary']) {
+            assert.equal(policy.evaluateRound({ round, hardGates: [{ id: 'gate', kind, status: 'FAIL' }] }).status, round < 3 ? 'CONTINUE' : 'ESCALATE');
+        }
     }
-    assert.match(rule, /LOW findings from round 2 and failing test gates never count/);
-    assert.match(rule, /\*\*Keep looping — NO round cap\.\*\*/);
-    if (name === 'workflow-review-changes') {
-        assert.match(rule, /At a spent review budget: \*\*STOP & escalate/);
-        assert.match(rule, /Round applied \*\*ZERO fixes\*\* \(clean no-op pass\).*AND no test gate is failing/);
-    }
-}
-
-test('R3-PROMPT-042: all looping review contracts enforce three rounds and truthful convergence', () => {
-    for (const name of ['why-review', 'changes-review', 'workflow-review-changes']) {
-        const source = skillContract(name);
-        const check = text => assertLoopBudget(text, name);
-        check(source);
-        rejects(check, source, '{N=3}', '{N=2}');
-        rejects(check, source, 'first matching row decides', 'any row decides');
-        rejects(check, source, 'no review blocker is open, at any round within or past the budget', 'a review blocker is open');
-        rejects(check, source, 'AND no test gate is failing', '');
-        rejects(check, source, 'unchanged since', 'changed since');
-        // A test continuation must never pre-empt cap exhaustion on review blockers.
-        const capRow = source.split('\n').find(row => row.startsWith('| Round cap'));
-        const testRow = source.split('\n').find(row => row.startsWith('| A **test gate**'));
-        assert.ok(capRow && testRow);
-        const swapped = source.replace(capRow, '__CAP_ROW__').replace(testRow, capRow).replace('__CAP_ROW__', testRow);
-        assert.throws(() => check(swapped), { code: 'ERR_ASSERTION' });
-    }
-    for (const severity of ['HIGH', 'MEDIUM', 'NOT VERIFIABLE']) {
-        assert.equal(policy.evaluateRound({ round: 2, findings: [{ id: 'open', severity }] }).status, 'CONTINUE');
-        assert.equal(policy.evaluateRound({ round: 3, findings: [{ id: 'open', severity }] }).status, 'ESCALATE');
-    }
-});
-
-test('R3-PROMPT-044: inner review workflow has a three-round ceiling and regression stop', () => {
-    const source = local(skillContract('workflow-review-changes'));
-    const check = text => {
-        assert.match(text, /bounded at \*\*3 rounds MAX\*\*/);
-        assert.match(text, /review blockers increasing round-over-round/);
-        assert.doesNotMatch(text, /round 2 blocked by MEDIUM|takes the one extension round first/);
-    };
-    check(source);
-    rejects(check, source, '**3 rounds MAX**', '**2 rounds MAX**');
-});
-
-function assertGateBudget(text) {
-    assert.match(text, /test-green gates use `kind: 'test'`/);
-    assert.match(text, /Failed binary gates are synthetic CRITICAL every round/);
-    assert.match(text, /MAX_ROUNDS=3.*HARD_MAX_ROUNDS=3/);
-    assert.match(text, /While they are the ONLY blockers, status stays `CONTINUE`/);
-}
-
-test('R3-PROMPT-043: SYNC:review-policy preserves the test-only budget exception', () => {
-    const source = read('skills/shared/sync-inline-versions.md');
-    assertGateBudget(source);
-    rejects(assertGateBudget, source, 'MAX_ROUNDS=3', 'MAX_ROUNDS=2');
-    rejects(assertGateBudget, source, 'ONLY blockers', 'blockers');
-    assert.equal(policy.evaluateRound({ round: 2, hardGates: [{ id: 'security', status: 'FAIL' }] }).status, 'CONTINUE');
-    assert.equal(policy.evaluateRound({ round: 3, hardGates: [{ id: 'security', status: 'FAIL' }] }).status, 'ESCALATE');
-    const red = policy.evaluateRound({ round: 4, hardGates: [{ id: 'suite', kind: 'test', status: 'FAIL' }] });
-    assert.equal(red.status, 'CONTINUE');
-    assert.equal(red.extensionGranted, false);
+    assert.equal(policy.evaluateRound({ round: 3, findings: [{ id: 'polish', severity: 'LOW' }] }).status, 'PASS');
+    assert.equal(policy.evaluateRound({ round: 4 }).status, 'ESCALATE');
 });

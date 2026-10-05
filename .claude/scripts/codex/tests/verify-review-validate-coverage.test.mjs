@@ -67,11 +67,11 @@ test('TC-CONVLOOP-042: all real review-family skills pass both rules', () => {
     assert.deepEqual(failures, [], `real review-family skills must have zero gaps:\n${failures.join('\n')}`);
 });
 
-// TC-CONVLOOP-043 — the allow-list is exactly the 7 SC3 review skills plus the integration-test, domain-analysis, architecture, ui-design and pbi review mode
+// TC-CONVLOOP-043 — the allow-list is the finding-producing review skills plus the integration-test, domain-analysis, architecture, ui-design and pbi review mode
 // references (and the architecture scalability grader mode); no non-review skill leaks in (so a skill merely using the word "finding"/"Severity" is never
 // scanned = no false positive).
-test('TC-CONVLOOP-043: allow-list is the 7 review-family skills plus the review-mode references, no non-review skill included', () => {
-    assert.equal(REVIEW_FAMILY_SKILLS.length, 7);
+test('TC-CONVLOOP-043: allow-list includes the review-family skills plus the review-mode references, no non-review skill included', () => {
+    assert.deepEqual(REVIEW_FAMILY_SKILLS, ['changes-review', 'code-quality-review', 'security-audit', 'performance-review', 'production-readiness-review', 'knowledge-review', 'ai-engineering-review', 'web-design-guidelines']);
     assert.deepEqual(REVIEW_MODE_REFERENCES, [
         'integration-test/references/mode-review.md',
         'domain-analysis/references/mode-review.md',

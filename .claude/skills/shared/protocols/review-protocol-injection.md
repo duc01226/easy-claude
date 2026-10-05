@@ -39,6 +39,7 @@ Speculation FORBIDDEN; prove every claim.
 2. Confidence: >80% act freely; 60-80% verify first; <60% DO NOT recommend
 3. Cross-service validation required for architectural changes
 4. Insufficient evidence is valid/expected output
+5. Review decision autonomy: choose evidence-supported review approaches, recommendations and next steps without asking the user. Record rationale and preserve every evidence gate. Read-only leaves return remedies to their owner. Only round-limit extension, indispensable facts with no defensible default, and actual missing action authority require a question; never infer consent, accept an open risk or perform an unauthorized operation.
 BLOCKED until: Evidence file path (file:line) provided; Grep search performed; 3+ similar patterns found; Confidence level stated.
 Forbidden without proof: "obviously", "I think", "should be", "probably", "this is because".
 If incomplete → output: "Insufficient evidence. Verified: [...]. Not verified: [...]."

@@ -5,6 +5,14 @@
 > decides which categories fire, and the **budget defaults** used when no `Spec Validation:` line is injected.
 > Keep it in sync with `mode-clarify.md` — it carries detail; `mode-clarify.md` carries the workflow and gates.
 
+## Contents
+
+- [How the interview uses this catalog](#how-the-interview-uses-this-catalog)
+- [Budget defaults (when `Spec Validation: questions=MIN-MAX` is absent)](#budget-defaults-when-spec-validation-questionsmin-max-is-absent)
+- [Per-context audit matrix](#per-context-audit-matrix)
+- [Category catalog](#category-catalog)
+- [Classification reminder (mirrors mode-clarify.md Step 2)](#classification-reminder-mirrors-mode-clarifymd-step-2)
+
 ## How the interview uses this catalog
 
 1. Resolve the validation **context** (Phase-0 of `mode-clarify.md`): `AUTHORED-SPEC` | `EXISTING-SPEC` | `TEST-SPEC`.
@@ -14,7 +22,7 @@
    each, run the audit prompts to surface encoded assumptions / defaults / scope-boundaries / ambiguities.
 4. Classify each surfaced item **OBVIOUS / NON-OBVIOUS / CONFLICTS** (per `mode-clarify.md` Step 2). OBVIOUS items are
    documented-and-proceeded; **NON-OBVIOUS + CONFLICTS + high-impact** items become gate questions.
-5. Take gate questions to the user using ask user tool: **ask ≥MIN when ≥MIN real decisions exist**, never
+5. Take gate questions to the user via `ask user question tool`: **ask ≥MIN when ≥MIN real decisions exist**, never
    exceed MAX, ≤4 options per call, recommended option first, issue multiple calls when there are >4 decisions.
    When fewer than MIN genuine decisions exist, ask only the genuine ones and record "below-MIN: only N real
    decisions surfaced" — NEVER invent filler questions to hit MIN.

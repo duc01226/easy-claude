@@ -9,7 +9,7 @@ description: '[Implementation] Use when implementing a feature step by step.'
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - Use ask user tool to ask user.
+> - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -179,7 +179,7 @@ mistakes compound through later tasks.
 ### 4. Mandatory Code Review (static)
 
 - Use `code-reviewer` subagent over the whole changeset; the review reads code and tests and runs NO test suite
-- Apply the canonical review policy: Round 1 exits on zero open validated findings (Round-1 LOW closure);
+- Apply the canonical review policy: Round 1 exits on zero open validated findings (LOW deferral);
   Round 2 fixes only validated CRITICAL/HIGH/MEDIUM findings, while
   LOW-only findings are recorded as deferred and do not reopen the loop.
 - Failed binary gates (tests, required artifacts, security must-fix, parity)
@@ -195,7 +195,7 @@ mistakes compound through later tasks.
 - Tests cover: happy path scenarios, edge cases from research, error handling paths
 - NO mocks or fake data
 - Any red test or surviving mutant: record the provisional verdict, fix at the owner, re-run until all tests pass and every mutant is killed
-- If fixing edited any source or test file, re-run the Step 4 review over the settled tree; a re-review that applies a fix sends you back here (capped at 3 turns, then escalate using ask user tool)
+- If fixing edited any source or test file, re-run the Step 4 review over the settled tree; a re-review that applies a fix sends you back here (capped at 3 turns, then escalate via `ask user question tool`)
 - Done = a green verify AND no edit after the last review; an edit after the last green run invalidates it
 
 ### 6. Documentation Update
@@ -232,9 +232,9 @@ mistakes compound through later tasks.
 
 ---
 
-## Next Steps (Standalone: MUST ATTENTION ask user using ask user tool. Skip only when `nested=true` — a `[Workflow]` row that merely exists in the current task list does not count.)
+## Next Steps (Standalone: MUST ATTENTION ask user via `ask user question tool`. Skip only when `nested=true` — a `[Workflow]` row that merely exists in the current task list does not count.)
 
-> **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If this skill was called **outside a workflow**, MUST ATTENTION use ask user tool to present these options. Do NOT skip because task seems "simple" or "obvious" — user decides:
+> **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If this skill was called **outside a workflow**, MUST ATTENTION use `ask user question tool` to present these options. Do NOT skip because task seems "simple" or "obvious" — user decides:
 
 - **"Proceed with full workflow (Recommended)"** — Detect best workflow to continue from here (feature implemented). Ensures review, testing, docs steps aren't skipped.
 - **"$code-simplifier"** — Simplify and clean up implementation
@@ -376,7 +376,7 @@ mistakes compound through later tasks.
 - **MANDATORY IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code
 - **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
 - **MANDATORY IMPORTANT MUST ATTENTION** add final review todo task to verify work quality
-- **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user using ask user tool — never auto-decide
+- **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via `ask user question tool` — never auto-decide
 - **MANDATORY IMPORTANT MUST ATTENTION** NEVER skip `code-reviewer` review or test execution on non-trivial change
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break into small todo tasks and sub-tasks via task tracking.

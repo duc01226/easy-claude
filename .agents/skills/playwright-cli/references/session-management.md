@@ -2,6 +2,21 @@
 
 Run multiple isolated browser sessions concurrently with state persistence.
 
+<!-- SKILL-NAV:START -->
+## Contents
+
+- Named Browser Sessions
+- Browser Session Isolation Properties
+- Browser Session Commands
+- Environment Variable
+- Common Patterns
+- Attaching to a Running Browser
+- Default Browser Session
+- Browser Session Configuration
+- Best Practices
+
+<!-- SKILL-NAV:END -->
+
 ## Named Browser Sessions
 
 Use `-s` flag to isolate browser contexts:

@@ -16,10 +16,11 @@ const reviewReceipt = createRequire(import.meta.url)('../../../hooks/lib/review-
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..', '..', '..', '..');
+const read = relative => fs.readFile(path.join(root, relative), 'utf8');
 const canonicalPath = path.join(root, '.claude', 'skills', 'shared', 'sync-inline-versions.md');
-// Carriers that embed the canonical multi-round `SYNC:review-policy` body byte-exact.
-// `plan --mode=review` and `integration-test --mode=review` are bounded read-only specialists instead: each owns a
-// one-pass contract and deliberately carries no multi-round review-policy body or override.
+// Consumers carry canonical multi-round review-policy inline, or an official guide backed by
+// the exact published full body (BR-PDL-11). Both forms retain the consumer-specific anchors.
+// Plan and integration reviews default to read-only and join the shared loop when opted in.
 const consumers = [
     '.claude/skills/changes-review/SKILL.md',
     '.claude/skills/workflow-review-changes/SKILL.md'
@@ -162,28 +163,46 @@ function withReceiptFixture(fn) {
     }
 }
 
-test('TC-HARNESS-006: all canonical review consumers use exact policy body and required anchors', async () => {
+test('TC-HARNESS-006: all canonical review consumers use exact inline or guide-backed policy and required anchors', async () => {
     const canonical = await fs.readFile(canonicalPath, 'utf8');
     const expected = canonicalBody(canonical, 'review-policy');
     assert.ok(expected && expected.includes('blockingFindings(round, findings, hardGates)'));
+    const tag = 'review-policy';
+    const projection = projectionTextOf(tag);
+    // Reuse the existing canonical-carrier seam: discovery never replaces exact full-text parity.
+    const guided = [guideCarrier.GUIDE_BLOCK_START, '',
+        guideCarrier.formatGuideLine({ tag, summary: 'Review policy', when: 'deciding review round eligibility', path: '.claude/skills/shared/protocols/review-policy.md' }),
+        '', guideCarrier.GUIDE_BLOCK_END].join('\n');
+    const inline = `<!-- SYNC:${tag} -->\n\n${expected}\n\n<!-- /SYNC:${tag} -->`;
+    assert.equal(carriesCanonicalProtocol(guided, tag, `${expected}\r\n`, expected), true);
+    assert.equal(carriesCanonicalProtocol(inline, tag, null, expected), true);
+    assert.equal(carriesCanonicalProtocol('# Skill\n', tag, `${expected}\n`, expected), false);
+    assert.equal(carriesCanonicalProtocol(guided, tag, null, expected), false);
+    assert.equal(carriesCanonicalProtocol(guided, tag, '> Drifted policy.\n', expected), false);
+    // A correct guide cannot mask an edited inline body on the same consumer.
+    assert.equal(carriesCanonicalProtocol(`${guided}\n<!-- SYNC:${tag} -->\n\n> Edited policy.\n\n<!-- /SYNC:${tag} -->`, tag, `${expected}\n`, expected), false);
     for (const relative of consumers) {
         const text = await fs.readFile(path.join(root, relative), 'utf8');
-        assert.equal(body(text, 'review-policy'), expected, `${relative} must match canonical policy body`);
-        assert.match(text, /review-policy\.cjs/);
-        assert.match(text, /target fingerprint/);
-        assert.match(text, /deferred LOW/i);
+        assert.ok(carriesCanonicalProtocol(text, tag, projection, expected),
+            `${relative} must carry exact canonical review-policy inline, or an official guide whose published full body equals canonical`);
+        // Policy anchors belong to the full body, delivered inline or through its verified guide.
+        const effectivePolicy = body(text, tag) ?? normalizeEol(projection).trim();
+        assert.match(effectivePolicy, /review-policy\.cjs/);
+        assert.match(effectivePolicy, /target fingerprint/);
+        assert.match(effectivePolicy, /deferred LOW/i);
     }
 });
 
-test('TC-HARNESS-006: plan --mode=review is a one-round read-only reviewer', async () => {
+test('TC-HARNESS-006: plan review supports read-only and the shared fix-loop', async () => {
     const text = await fs.readFile(path.join(root, planModeReviewPath), 'utf8');
-    assert.match(text, /maximum one review round per invocation/i);
-    assert.match(text, /`round = 1`, `maxRounds = 1`, `minRounds = 1`/);
-    assert.match(text, /Review once, report once, stop/);
-    assert.match(text, /Do not apply fixes or re-review/);
-    assert.match(text, /Another review requires a new explicit invocation/i);
-    assert.doesNotMatch(text, /OVERRIDE:review-policy|SYNC:review-policy|double-round-trip-review|extendable ONCE|fresh full re-review/i);
+    assert.match(text, /standalone defaults to review-only/i);
+    assert.match(text, /fix-loop/i);
+    assert.match(text, /fresh.*review/i);
+    assert.match(text, /three-round/);
+    assert.match(text, /caller-owned leaves.*read-only/i);
+    assert.doesNotMatch(text, /maxRounds = 1|ONE ROUND MAXIMUM/);
 });
+
 test('TC-HARNESS-006: shared severity rubric normalizes domain vocabularies', async () => {
     const canonical = await fs.readFile(canonicalPath, 'utf8');
     const expected = canonicalBody(canonical, 'severity-rubric');
@@ -222,21 +241,18 @@ test('TC-PDL-065: a severity consumer passes with a guide entry backed by a cano
     assert.equal(carriesSeverityRubric('<!-- SYNC:severity-rubric -->\n\n> Edited.\n\n<!-- /SYNC:severity-rubric -->', `${expected}\n`, expected), false);
 });
 
-test('TC-HARNESS-006: consumer-specific anchors preserve loop ownership', async () => {
-    const [changes, workflow, plan] = [...consumers, planModeReviewPath].map(relative => readSkillContract(relative));
-    assert.match(changes, /Phase 6.*Why-Review Findings Validation/s);
-    assert.match(workflow, /all-return barrier/i);
-    assert.match(workflow, /--fix-loop[\s\S]*zero fixes/i);
-    assert.match(plan, /one review round per invocation/i);
-    assert.match(plan, /another review requires a new explicit invocation/i);
+test('TC-HARNESS-006: workflow owns fixes and fresh review after all reports', () => {
+    const workflow = readSkillContract('.claude/skills/workflow-review-changes/SKILL.md');
+    assert.match(workflow, /Wait for every report before fixing/);
+    assert.match(workflow, /--loop-owner=caller/);
+    assert.match(workflow, /Re-run general, whole-target rationale and every applicable specialist lens/);
 });
 
-test('TC-HARNESS-006: changes-review fix prose cannot reopen a round for LOW-only findings', async () => {
+test('TC-HARNESS-006: concise changes review preserves validation before fix and fresh review', () => {
     const changes = readSkillContract('.claude/skills/changes-review/SKILL.md');
-    assert.match(changes, /SELF-FIX each validated finding that blocks the current round/);
-    assert.match(changes, /round-2 LOW-only findings are recorded and deferred, not fixed/);
-    assert.match(changes, /fixing only findings that block the current round and re-running until that bar is clear/);
-    assert.doesNotMatch(changes, /SELF-FIX each validated finding →|fixing and re-running until it is clean/);
+    assert.match(changes, /validate-findings/);
+    assert.match(changes, /fresh.*review/i);
+    assert.match(changes, /LOW/);
 });
 
 test('TC-HARNESS-006: fix preserves explicit LOW requests while honoring the loop floor', async () => {
@@ -255,7 +271,7 @@ test('TC-HARNESS-006: simplifier loop uses the shared round floor', async () => 
     const simplifier = await fs.readFile(path.join(root, '.claude', 'skills', 'code-simplifier', 'SKILL.md'), 'utf8');
     assert.match(simplifier, /Self-Recursive Check.*current round's exit bar/s);
     assert.match(simplifier, /Round 1 requires zero validated findings at any severity/s);
-    assert.match(simplifier, /from Round 2 onward only validated CRITICAL\/HIGH\/MEDIUM findings reopen the loop/s);
+    assert.match(simplifier, /from Round 2 onward only validated CRITICAL\/HIGH\/MEDIUM findings reopen the loop/is);
     assert.match(simplifier, /LOW findings are recorded as deferred and do not justify another cycle/s);
     assert.doesNotMatch(simplifier, /Self-Recursive Check.*until no simplification findings remain/);
 });
@@ -271,19 +287,14 @@ test('TC-HARNESS-006: plan --mode=execute does not collapse review acceptance to
     assert.doesNotMatch(executeMode, /tests 100% · 0 critical · explicit approval/);
 });
 
-test('TC-HARNESS-006: integration-test review is capped at one review round', async () => {
-    const review = await fs.readFile(path.join(root, '.claude', 'skills', 'integration-test', 'references', 'mode-review.md'), 'utf8');
-    const discipline = await fs.readFile(path.join(root, '.claude', 'skills', 'shared', 'protocols', 'integration-test-execution-discipline.md'), 'utf8');
-    const verify = await fs.readFile(path.join(root, '.claude', 'skills', 'integration-test', 'references', 'mode-verify.md'), 'utf8');
-    assert.match(review, /ONE ROUND MAXIMUM per invocation/);
-    assert.match(review, /`round = 1`, `maxRounds = 1`, `minRounds = 1`/);
-    assert.match(review, /Review once, validate\/deduplicate findings, report, stop/);
-    assert.match(review, /another pass requires a new explicit invocation/i);
-    assert.match(review, /Test reruns used to diagnose a failure are verification\/recovery, not review rounds/);
-    assert.doesNotMatch(review, /double-round-trip-review|extendable ONCE|fresh full re-review/i);
-    assert.match(discipline, /performs one read-only adjudication pass and the caller fixes the test at the root/);
-    assert.doesNotMatch(discipline, /integration-test --mode=review` to fix the test/);
-    assert.doesNotMatch(verify, /fixes\/re-reviews|P5 fix|P6 re-review|already applied its P5 fixes/);
+test('TC-HARNESS-006: integration review supports both modes without weakening its eight gates', async () => {
+    const review = await fs.readFile(path.join(root, '.claude/skills/integration-test/references/mode-review.md'), 'utf8');
+    assert.match(review, /standalone defaults to review-only/i);
+    assert.match(review, /fix-loop.*eight gates/i);
+    assert.match(review, /caller-owned leaves.*read-only/i);
+    assert.match(review, /three-round/);
+    assert.doesNotMatch(review, /ONE ROUND MAXIMUM|maxRounds = 1/);
+    for (const gate of ['Assertion value','Owned outcome','Repeatability and isolation','Behavior ownership','Spec/case traceability','Spec ↔ tests ↔ code consistency','Change coverage','Real-world fidelity']) assert.ok(review.includes(gate));
 });
 
 test('TC-HARNESS-006: the write variant of the integration-test workflow invokes one review pass without an internal review loop', async () => {
@@ -315,8 +326,8 @@ test('TC-HARNESS-006: seeded stale-policy mutant is rejected by exact-body parit
     const expected = canonicalBody(canonical, 'review-policy');
     const mutant = '<!-- SYNC:review-policy -->\n> maxRounds=2; LOW findings are discarded\n<!-- /SYNC:review-policy -->';
     assert.notEqual(body(mutant, 'review-policy'), expected);
-    assert.match(expected, /MAX_ROUNDS.*3/);
-    assert.match(expected, /Keep full reports on disk/);
+    assert.match(expected, /Default maximum is three review rounds/);
+    assert.match(expected, /checkpoint the report under `tmp\/reports\/`/);
 });
 
 test('retired double-round review body and reminder cannot be loaded', async () => {
@@ -466,20 +477,17 @@ test('TC-FIT-012: every review receipt issuer binds the pre-review full candidat
         'every in-scope receipt issuer is in the reviewed consumer inventory');
     for (const issuer of receiptIssuers) {
         const source = stripSyncBlocks(readSkillContract(issuer.file));
-        const captureAt = source.indexOf(issuer.captureAnchor);
-        const reviewAt = source.indexOf(issuer.reviewAnchor, captureAt);
-        assert.ok(captureAt >= 0 && reviewAt > captureAt, `${issuer.file}: candidate capture precedes the qualifying review`);
-        assert.match(source.slice(captureAt, reviewAt), /snapshot --target=<worktree\|staged\|commit-descriptor>/);
-        assert.match(source.slice(captureAt, reviewAt), /complete JSON output|retain its complete JSON/i);
-        assert.match(source, /Artifact-only,/i, `${issuer.file}: artifact-only reviews cannot qualify`);
-        assert.match(source, /subset/i, `${issuer.file}: subset reviews cannot qualify`);
-        assert.match(source, /CLEAN/);
-        assert.match(source, /ERROR/);
-
+        const ref = fsSync.readFileSync(path.join(root, path.dirname(issuer.file), 'references/fix-loop.md'), 'utf8');
+        const captureAt = ref.indexOf('snapshot --target=<worktree|staged|commit-descriptor>');
+        const issueAt = ref.indexOf('review-receipt.cjs issue');
+        assert.ok(captureAt >= 0 && issueAt > captureAt, 'capture precedes final receipt issuance');
+        assert.match(ref, /original pre-review snapshot/);
+        assert.match(ref, /Never reconstruct or capture a new snapshot at issuance/);
+        assert.match(ref, /Subset, artifact-only and historical/);
         const issueLines = source.match(new RegExp(`review-receipt\\.cjs issue --kind=${issuer.kind}[^\\r\\n]*`, 'g')) || [];
         assert.equal(issueLines.length, 1, `${issuer.file}: exactly one terminal issuer command`);
         assert.match(issueLines[0], /--scope=full-changeset --snapshot-json=/);
-        assert.match(issueLines[0], /exact JSON captured before/);
+        assert.match(issueLines[0], /exact saved JSON/);
         assert.doesNotMatch(source, new RegExp(`review-receipt\\.cjs issue --kind=${issuer.kind}(?![^\\r\\n]*--snapshot-json=)`),
             `${issuer.file}: no bare or terminally recaptured receipt is allowed`);
     }
@@ -537,4 +545,76 @@ test('TC-FIT-012: receipt issuance rejects a changed candidate and identical sta
         assert.equal(reviewReceipt.matchReviewReceipt({ repository, storeDir, snapshot: staged }), 'changes-review',
             'a commit candidate with the identical tree can use the reviewed worktree candidate');
     });
+});
+
+
+test('review mode authority stays consistent at repair branches and closing reminders', async () => {
+    const policy = await read('.claude/skills/shared/protocols/review-policy.md');
+    assert.match(policy, /normalize absent `--fix-loop`/);
+    assert.match(policy, /Local fix\/restart sections execute only in standalone fix-loop/);
+    for (const skill of ['plan', 'integration-test']) {
+        const mode = await read(`.claude/skills/${skill}/references/mode-review.md`);
+        assert.match(mode, /review-only and caller-owned leaves never edit; standalone fix-loop repairs/);
+        assert.doesNotMatch(mode, /never edit .*inside this mode/);
+    }
+    const experience = await read('.claude/skills/experience-review/SKILL.md');
+    assert.match(experience, /Skip repairs in review-only, report-only, caller-owned passes or `--rounds=0`/);
+    assert.match(experience, /numeric budget never grants repair authority/);
+    const rationale = await read('.claude/skills/why-review/SKILL.md');
+    assert.doesNotMatch(rationale, /2 re-dos|3 full cycles/);
+    assert.match(rationale, /Reconcile report defects in the current pass/);
+});
+
+test('standalone fix-loop remains reachable in plan, audit and knowledge modes', async () => {
+    const ai = await read('.claude/skills/ai-engineering-review/SKILL.md');
+    assert.match(ai, /standalone.*fix-loop.*repairs.*artifact/is);
+    assert.doesNotMatch(ai, /read-only always|never under[^\n]*--mode=plan|not in plan mode/i);
+    const security = await read('.claude/skills/security-audit/SKILL.md');
+    assert.match(security, /standalone fix-loop authorizes scoped repairs/i);
+    assert.doesNotMatch(security, /wait for explicit approval before fixes/i);
+    const full = await read('.claude/skills/architecture/references/mode-full.md');
+    assert.match(full, /standalone.*fix-loop.*repairs.*repeat/is);
+    assert.match(full, /No fixed agent count is required/);
+    assert.doesNotMatch(full, /Applies NO fixes|fixes are NEVER applied here|NEVER re-implement[^\n]*inline|spawn ALL THREE/i);
+    const scale = await read('.claude/skills/architecture/references/mode-scalability.md');
+    assert.match(scale, /Standalone `--fix-loop` repairs authorized findings/);
+    assert.doesNotMatch(scale, /does not self-converge a fix-loop|No fix-loop:|do not restart this review over its own fixes/);
+    const knowledge = await read('.claude/skills/knowledge-review/SKILL.md');
+    assert.match(knowledge, /standalone fix-loop repairs validated findings between passes/i);
+    assert.doesNotMatch(knowledge, /NEVER modify the audited artifact|output is a verdict, NEVER an edit|READ-ONLY — do not modify the artifact/);
+});
+
+test('every applied LOW repair requires fresh review across local consumers', async () => {
+    const files = [
+        '.claude/skills/architecture/references/mode-review.md',
+        '.claude/skills/ui-design/references/mode-review.md',
+        '.claude/skills/code-simplifier/SKILL.md',
+        '.claude/skills/plan/references/mode-execute.md',
+        '.claude/docs/claude-ai-agent-framework-guide.md',
+        '.claude/docs/claude-ai-agent-framework-guide.html'
+    ];
+    for (const file of files) {
+        const source = await read(file);
+        assert.doesNotMatch(source, /except a round-1 LOW-only fix set|none for a round-1 LOW-only fix set|LOW closes by[^\n]*scoped check|LOW closed by scoped check/);
+        assert.match(source, /(?:every applied fix|every applied.*repair)[^\n]*(?:fresh|review)/i, file);
+    }
+});
+
+
+test('local closing rules preserve bounded review and complete adaptive dispatch', async () => {
+    const plan = await read('.claude/skills/plan/references/mode-review.md');
+    assert.doesNotMatch(plan, /Stop at 1\/1|Report the correction; the author owns revision/);
+    assert.match(plan, /standalone fix-loop repairs validated findings before fresh review/);
+    const pbi = await read('.claude/skills/pbi/references/mode-review.md');
+    assert.doesNotMatch(pbi, /omit code-specific protocols|10\+ artifacts|using a fresh `general-purpose` artifact reviewer/);
+    assert.match(pbi, /all 11 complete protocol bodies VERBATIM/);
+    assert.match(pbi, /no artifact-count threshold or forced delegation/);
+    for (const file of [
+        '.claude/skills/workflow-spec-sync/SKILL.md',
+        '.claude/skills/workflow-integration-test/references/variant-write.md'
+    ]) {
+        const source = await read(file);
+        assert.doesNotMatch(source, /Failing tests are not capped|loop until green/i, file);
+        assert.match(source, /at exhaustion ask and wait before a bounded extension/i, file);
+    }
 });

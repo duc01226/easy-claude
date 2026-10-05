@@ -148,7 +148,8 @@ const tests = [
             assert.match(text, /With no mode, show the \[Mode Dispatch\]\(#mode-dispatch\) table and stop: ask nothing, guess nothing, run nothing/);
             assert.match(text, /no mode, or an unknown mode value, prints the table below and stops\. Never infer a mode/i);
             for (const mode of MODES) {
-                assert.match(text, new RegExp(`\\*\\*\\[BLOCKING\\]\\*\\* When \`--mode=${mode}\`, read \`references/mode-${mode}\\.md\` in full FIRST`), `BLOCKING read line for ${mode}`);
+                assert.match(text, /\*\*\[BLOCKING\]\*\* Read the selected mode's reference in full FIRST/);
+                assert.ok(text.split('\n').some(line => line.startsWith('| `--mode=' + mode + ' ') && line.includes('`references/mode-' + mode + '.md`')), `full-read dispatch for ${mode}`);
                 assert.ok(fs.existsSync(path.join(SKILLS, 'pbi', 'references', `mode-${mode}.md`)), `references/mode-${mode}.md exists`);
                 assert.match(text, new RegExp(`\\| \`--mode=${mode}[ \\]\`]`), `dispatch row for ${mode}`);
             }
@@ -264,7 +265,7 @@ const tests = [
         }
     },
     {
-        name: 'TC-PBM-004 mode-only protocols are canonical inline bodies in the mode references; pbi/SKILL.md carries no body and no guide line; fences balance',
+        name: 'TC-PBM-004 mode-only bodies stay in references; the router carries only review decision guidance; fences balance',
         skip: SKIP,
         fn: () => {
             const skill = skillText();
@@ -295,7 +296,11 @@ const tests = [
                 assert.equal(opens.length, closes.length, `${file}: fences balanced`);
                 assert.ok((text.match(/<!-- SYNC:[a-z-]+:reminder -->/g) || []).length >= MIN_REMINDERS[file], `${file}: the :reminder digests moved with the bodies`);
             }
-            assert.deepEqual(guideTags(skill), [], 'pbi/SKILL.md carries no guide entry');
+            assert.deepEqual(guideTags(skill), ['review-decision-autonomy', 'review-policy'], 'shared decision and mode policies are routed at entry; domain-specific protocols stay isolated');
+            assert.ok(skill.includes('<!-- SYNC:review-decision-autonomy:reminder -->'), 'the review policy reminder remains discoverable');
+            assert.ok(skill.includes('<!-- SYNC:review-policy:reminder -->'), 'the shared modes/rounds reminder remains discoverable');
+            const autonomy = fs.readFileSync(path.join(SKILLS, 'shared', 'protocols', 'review-decision-autonomy.md'), 'utf8');
+            assert.match(autonomy, /Non-review creation, interviews and implementation retain their own contracts/, 'loading the guide cannot alter non-review mode authority');
             assert.equal((skill.match(/Root-carried protocols/g) || []).length, 0, 'pbi/SKILL.md holds no retired pointer line');
             // Protocol delivery no longer names a removed skill
             const groups = read(SKILLS, 'shared', 'protocol-groups.json');
@@ -351,7 +356,9 @@ const tests = [
             assert.match(description, /^\[Project Management\] Use when a workflow step or the user asks for \S/);
             assert.ok(description.length <= 250, `description is ${description.length} chars, over 250`);
             for (const mode of MODES) assert.ok(description.includes(mode), `description names the ${mode} mode`);
-            for (const keyword of ['--mode=', '--explore', '--type=', 'Definition of Ready', 'Dev BA PIC', 'acceptance criteria']) assert.ok(description.includes(keyword), `description keeps the routing keyword "${keyword}"`);
+            for (const intent of ['PBI refinement', 'story slicing', 'HTML mockups', 'draft challenges', 'artifact review', 'Definition of Ready']) assert.ok(description.includes(intent), `description retains routing intent ${intent}`);
+            // Operational flags and role/acceptance details remain in the dispatch contract.
+            for (const keyword of ['--mode=', '--explore', '--type=', 'Dev BA PIC', 'acceptance criteria']) assert.ok(skillText().includes(keyword), `dispatch retains ${keyword}`);
         }
     },
     {

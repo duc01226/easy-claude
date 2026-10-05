@@ -197,10 +197,10 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
       <h1>Claude AI Agent Framework Guide</h1>
       <p class="lead">A portable <code>.claude/</code> framework that makes Claude Code project-aware, evidence-driven and gated at every quality step, from idea and spec to reviewed commit and pull request. This page is the map; each topic links to its owner doc.</p>
       <div class="stats" aria-label="Framework inventory">
-        <div class="stat"><b><!-- COUNT:skills -->102<!-- /COUNT --></b><span>skills</span></div>
+        <div class="stat"><b><!-- COUNT:skills -->101<!-- /COUNT --></b><span>skills</span></div>
         <div class="stat"><b><!-- COUNT:workflows -->19<!-- /COUNT --></b><span>workflows</span></div>
         <div class="stat"><b><!-- COUNT:agents -->24<!-- /COUNT --></b><span>agents</span></div>
-        <div class="stat"><b><!-- COUNT:hooks -->29<!-- /COUNT --></b><span>hook files</span></div>
+        <div class="stat"><b><!-- COUNT:hooks -->30<!-- /COUNT --></b><span>hook files</span></div>
         <div class="stat"><b><!-- COUNT:lib-modules -->45<!-- /COUNT --></b><span>hook libraries</span></div>
       </div>
       <details class="toc-mobile"><summary>Contents</summary><ol id="toc-mobile-list"></ol></details>
@@ -375,7 +375,7 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
         <div class="cat"><span>Workflows</span><div class="cat-bar"><i style="width:220px"></i><b>22</b><span>workflow-*, start-workflow, workflow-end</span></div></div>
         <div class="cat"><span>Review &amp; quality</span><div class="cat-bar"><i style="width:80px"></i><b>8</b><span>changes-review, why-review, security-audit</span></div></div>
         <div class="cat"><span>Planning &amp; architecture</span><div class="cat-bar"><i style="width:70px"></i><b>7</b><span>plan (review, validate, execute modes), scenario</span></div></div>
-        <div class="cat"><span>Understand, fix, debug, graph</span><div class="cat-bar"><i style="width:50px"></i><b>5</b><span>investigate (debug mode), fix, graph-code, graph-export</span></div></div>
+        <div class="cat"><span>Understand, fix, debug, graph</span><div class="cat-bar"><i style="width:40px"></i><b>4</b><span>investigate (debug mode), understand, fix, graph-code (export mode)</span></div></div>
         <div class="cat"><span>Testing</span><div class="cat-bar"><i style="width:60px"></i><b>6</b><span>test, integration-test, e2e-test</span></div></div>
         <div class="cat"><span>Specs &amp; reference docs</span><div class="cat-bar"><i style="width:60px"></i><b>6</b><span>spec, tech-spec, docs-manager, scan</span></div></div>
         <div class="cat"><span>Project setup &amp; help</span><div class="cat-bar"><i style="width:90px"></i><b>9</b><span>project-init, ai-context-refresh, learn</span></div></div>
@@ -388,7 +388,7 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
         <div class="cat"><span>Design &amp; UI</span><div class="cat-bar"><i style="width:30px"></i><b>3</b><span>design, design-spec, pbi --mode=mockup</span></div></div>
       </div>
       <div class="grid">
-        <div class="card"><h4>Who can start a skill</h4><p>Most are model-invocable. 17 are command-only (<code>disable-model-invocation: true</code>): only you start them with <code>/name</code>.</p></div>
+        <div class="card"><h4>Who can start a skill</h4><p>Most are model-invocable. 15 are command-only (<code>disable-model-invocation: true</code>): only you start them with <code>/name</code>.</p></div>
         <div class="card"><h4>Skill profiles</h4><p><code>skillProfile</code> preset <code>full</code> · <code>standard</code> · <code>minimal</code>, plus <code>nameOnly</code>, <code>commandOnly</code>, <code>off</code>. Applied by <code>sync-skill-profile.cjs</code>; hiding a skill a workflow calls is refused.</p></div>
         <div class="card"><h4>Review modes</h4><p><code>--fix-loop</code> reviews, validates, fixes and re-reviews until converged. <code>--report-only</code> is a silent leaf reviewer for a caller that owns the fixes.</p></div>
       </div>
@@ -448,7 +448,7 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
     <section id="quality" aria-labelledby="quality-h">
       <h2 id="quality-h">The quality chain — review, commit, pull request</h2>
       <ol class="steps">
-        <li><div><b>Review</b><span>Round 1 must reach zero open findings (Round-1 LOW closure: a LOW closed by scoped check or deferred is not open); from round 2 only Critical/High/Medium block; two rounds plus one extension, then ask the user.</span></div></li>
+        <li><div><b>Review</b><span>Triage all changes and create review tasks first. Standalone reviews default to review-only; the review workflow defaults to fix-loop. Every applied fix needs fresh review; LOW may be deferred without edits. Default cap three rounds; LOW-only at the cap is acceptable, while Critical/High/Medium or failed required checks ask the user for a bounded extension.</span></div></li>
         <li><div><b>Validate findings</b><span><code>why-review --validate-findings</code> checks each finding against evidence before any fix, and never recurses.</span></div></li>
         <li><div><b>Fix at the owner</b><span><code>fix --target=review</code> records FIXED / REJECTED / DEFERRED; an unexplained defect is traced first.</span></div></li>
         <li><div><b>Receipt</b><span>A converged fix-loop mints a receipt for that exact changeset; any later edit invalidates it.</span></div></li>

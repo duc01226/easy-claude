@@ -9,6 +9,7 @@ const require = createRequire(import.meta.url);
 const { resolveWorkflowManifest, resolveAllWorkflowManifests } = require("../lib/workflow-manifest.cjs");
 const { resolveProjectRoot, isInvokedAsScript } = require("../lib/project-root.cjs");
 const { buildWorkflowPointerCatalog } = require("../lib/workflow-skills-catalog.cjs");
+const { checkWorkflowSkillContract } = require("../lib/workflow-skill-contract.cjs");
 
 // Prose-only semantic anchor for the advancement+barrier rule in the runtime routing payload:
 // "advance only after ALL/EVERY member(s) return". Deliberately
@@ -1219,6 +1220,9 @@ async function main() {
       }
 
       const skillContent = await fs.readFile(skillPath, "utf8");
+      failures.push(...checkWorkflowSkillContract(workflowId, workflow, manifests, skillContent, {
+        dialect: skillRoot.label === ".agents" ? "$" : "/",
+      }));
       // Source wrappers only: the mirrors are regenerated from them.
       if (skillRoot.label === ".claude") {
         failures.push(...checkWorkflowWrapperStepContract(normalizePath(skillPath, rootDir), skillContent));

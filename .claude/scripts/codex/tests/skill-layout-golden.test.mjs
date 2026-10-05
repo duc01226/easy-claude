@@ -5,6 +5,7 @@ import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
+import { resolvePythonCommand } from '../../../hooks/tests/lib/python-command.cjs';
 
 import { checkMainContentBeforeSyncBlocks } from '../verify-skill-protocol-compliance.mjs';
 
@@ -35,7 +36,10 @@ test('TC-SLT-005: migrator transforms indented input → canonical (round-trip)'
         await fs.rm(goldenSkillDir, { recursive: true, force: true });
     });
 
-    await execFileAsync('python', [migratorScript, '--only=__golden__'], { cwd: repoRoot });
+    const python = resolvePythonCommand({ cwd: repoRoot });
+    await execFileAsync(python.command, [...python.baseArgs, migratorScript, '--only=__golden__'], {
+        cwd: repoRoot, timeout: 10000, windowsHide: true
+    });
 
     const migrated = normalizeEol(await fs.readFile(goldenSkillFile, 'utf8'));
     const canonical = normalizeEol(await fs.readFile(canonicalPath, 'utf8'));

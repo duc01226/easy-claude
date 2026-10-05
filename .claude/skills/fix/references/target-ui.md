@@ -28,7 +28,7 @@ py -3 .claude/skills/ui-design/scripts/search.py "z-index animation" --domain ux
 
 If the user provides screenshots/videos, use the `visual analysis tooling` skill to describe the issue in detail so developers can predict the root causes.
 
-> **🛑 After identifying the UI root cause, present findings + proposed fix → `AskUserQuestion` → wait for approval before any code change.**
+> **🛑 After identifying the UI root cause, present findings + proposed fix → `ask user question tool` → wait for approval before any code change.**
 
 1. Use the `ui-ux-designer` subagent to implement the fix against the configured design authority, or the brief and observed project conventions when no design system is configured.
 2. Capture the affected view and state with platform-supported visual tooling when available, then analyze it with the appropriate visual-analysis skill. Repeat until addressed.

@@ -1,6 +1,6 @@
 # `/spec [mode=clarify]` — spec clarification gate reference
 
-> Loaded by `spec/SKILL.md`'s Mode Dispatch when invoked as `/spec [mode=clarify]`. This contract REPLACES the spec authoring body for the invocation: it audits a finished artifact against the discovered system, walks the clarification interview catalog (`clarify-interview.md`, beside this file), and blocks on every unresolved non-obvious decision via `AskUserQuestion`. It runs INLINE on the main agent; the profile gate below is its own and replaces the authoring profile resolution.
+> Loaded by `spec/SKILL.md`'s Mode Dispatch when invoked as `/spec [mode=clarify]`. This contract REPLACES the spec authoring body for the invocation: it audits a finished artifact against the discovered system, walks the clarification interview catalog (`clarify-interview.md`, beside this file), and blocks on every unresolved non-obvious decision via `ask user question tool`. It runs INLINE on the main agent; the profile gate below is its own and replaces the authoring profile resolution.
 
 > **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
 > **[BLOCKING]** Before each step or sub-skill call, update task tracking: set `in_progress` when step starts, set `completed` when step ends.
@@ -18,7 +18,7 @@
 - Runs in the validation slot of its flow — AFTER the artifact exists (and, for AUTHORED, after `/pbi --mode=review` checks it in isolation against the artifact-facing mandates (M1-M5 + M7) and `/why-review` checks rationale). This skill adds the two things neither does: completeness-vs-the-discovered-system, and a BLOCKING user-confirmation loop on every non-obvious decision.
 - It is NOT a duplicate of `pbi --mode=review`: that one judges the artifact against itself (sections present, ACs testable, M1-M5 + M7 clean). `spec [mode=clarify]` judges it against the SYSTEM (does it reflect every related spec, every existing invariant, every operation the idea implies) and against the USER (are the encoded assumptions actually what the user wants).
 - **Exhaustive within a budget:** walk EVERY applicable validation category (per the matrix), classify every assumption/default/scope-boundary/ambiguity the artifact encodes as **OBVIOUS** (document and proceed), **NON-OBVIOUS** (must confirm with the user), or **CONFLICTS** (disagrees with a discovered spec or invariant → must reconcile), then route NON-OBVIOUS + CONFLICTS + high-impact items to the gate up to a configured `Spec Validation: questions=MIN-MAX` budget (per-context defaults when absent). NEVER silently pick a NON-OBVIOUS decision — the whole value is the active question; the budget (not "ask only a few") is the fatigue control.
-- Runs INLINE on the main agent (NOT a sub-agent): the Step 4 clarification gate is a BLOCKING `AskUserQuestion` loop, and `AskUserQuestion` only works on the main interactive agent — a sub-agent cannot ask the user. Before applying confirmed decisions, validate this skill's OWN findings through the terminal `/why-review --validate-findings` gate, at parity with the other review-family skills.
+- Runs INLINE on the main agent (NOT a sub-agent): the Step 4 clarification gate is a BLOCKING `ask user question tool` loop, and `ask user question tool` only works on the main interactive agent — a sub-agent cannot ask the user. Before applying confirmed decisions, validate this skill's OWN findings through the terminal `/why-review --validate-findings` gate, at parity with the other review-family skills.
 
 **Workflow:**
 
@@ -26,7 +26,7 @@
 1. **Completeness pass** — cross-reference the artifact against the discovered system landscape (per-context emphasis); find missing outcomes, requirements, profile-owned cases, and uncovered invariants
 2. **Hypothesis & decision audit (category-driven)** — walk every applicable category in `references/clarify-interview.md`; enumerate and classify every encoded assumption as OBVIOUS / NON-OBVIOUS / CONFLICTS
 3. **Brainstorm open questions** — questions whose answers would change the artifact + a pre-mortem
-4. **Clarification gate** — BLOCKING `AskUserQuestion` on NON-OBVIOUS + CONFLICTS + high-impact items, exhaustive within the MIN-MAX budget (≤4/call, recommended-first)
+4. **Clarification gate** — BLOCKING `ask user question tool` on NON-OBVIOUS + CONFLICTS + high-impact items, exhaustive within the MIN-MAX budget (≤4/call, recommended-first)
 5. **Apply** — write confirmed decisions back into the artifact + a Decisions Log
 6. **Report + verdict** — CLARIFIED or NEEDS-AUTHORING-FIX, after validating own findings
 
@@ -36,8 +36,23 @@
 - Completeness is judged against the SYSTEM, not the artifact alone — every related/affected behavior must be reflected.
 - Walk EVERY applicable category (breadth is mandatory); route NON-OBVIOUS + CONFLICTS + high-impact items to the gate up to the configured/default budget. The budget — not "surface only a few" — is the fatigue control.
 - NON-OBVIOUS and CONFLICTS decisions MUST go to the user; only OBVIOUS decisions are documented-and-proceeded.
-- Runs INLINE (no `execution-mode: subagent`) because the clarification gate needs `AskUserQuestion`, which requires the main interactive agent.
+- Runs INLINE (no `execution-mode: subagent`) because the clarification gate needs `ask user question tool`, which requires the main interactive agent.
 - This complements — never duplicates — `pbi --mode=review` (isolation / M1-M5 + M7) and `why-review` (rationale).
+
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Artifact and Case Profile Gate (BLOCKING)](#artifact-and-case-profile-gate-blocking)
+- [Why This Skill Exists](#why-this-skill-exists)
+- [Risk Assessment](#risk-assessment)
+- [Phase 0: Profile and Spec-Context Detection (run FIRST)](#phase-0-profile-and-spec-context-detection-run-first)
+- [Inputs (Step 0)](#inputs-step-0)
+- [Workflow](#workflow)
+- [Output](#output)
+- [Key Rules](#key-rules)
+- [Mode protocols](#mode-protocols)
+- [Prompt-Enhance Closing Anchors](#prompt-enhance-closing-anchors)
+- [Closing Reminders](#closing-reminders)
 
 ## Artifact and Case Profile Gate (BLOCKING)
 
@@ -51,7 +66,7 @@ A root/template/filename change alone does not select a native model. After prof
 
 The semantic duties do not change: completeness against the discovered system; evidence for every gap; property and boundary coverage for universal invariants; preservation of existing behavior; business visibility where applicable; and confirmation of every non-obvious/conflicting decision before applying it. Previous user acceptance may be reused only with cited evidence that the exact decision and scope match; it never authorizes new or adjacent decisions.
 
-Step 4 remains blocking. When a non-obvious decision, profile ambiguity, or conflict needs the user and `AskUserQuestion` is unavailable, the environment is unattended, or no user answer can be obtained, MUST ATTENTION preserve the unresolved questions and return `BLOCKED`/`NEEDS-CLARIFICATION`; NEVER mutate the artifact, infer a choice, or emit `CLARIFIED`. This skill stays inline for interactive confirmation; no routing or prior approval waives the active decision gate.
+Step 4 remains blocking. When a non-obvious decision, profile ambiguity, or conflict needs the user and `ask user question tool` is unavailable, the environment is unattended, or no user answer can be obtained, MUST ATTENTION preserve the unresolved questions and return `BLOCKED`/`NEEDS-CLARIFICATION`; NEVER mutate the artifact, infer a choice, or emit `CLARIFIED`. This skill stays inline for interactive confirmation; no routing or prior approval waives the active decision gate.
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
@@ -70,10 +85,10 @@ A Feature Spec can be internally perfect — all 8 sections present, every AC te
 | Skill                            | Judges the spec against… | Output                                   | Asks the user?                  |
 | -------------------------------- | ------------------------ | ---------------------------------------- | ------------------------------- |
 | `pbi --mode=review --type=spec-tests` / `--type=design` | ITSELF — artifact-facing mandates (M1-M5 + M7), AC testability, adversarial section quality | PASS / WARN / FAIL | No (AI self-review)            |
-| `why-review`                     | the RATIONALE of its decisions | PASS / NEEDS-WORK + validated findings   | Only to escalate (`AskUserQuestion`) |
+| `why-review`                     | the RATIONALE of its decisions | PASS / NEEDS-WORK + validated findings   | Only to escalate (`ask user question tool`) |
 | `spec [mode=clarify]` (this skill)      | the SYSTEM + the USER — completeness vs discovered landscape, confirmed decisions | CLARIFIED / NEEDS-AUTHORING-FIX | **YES — blocking gate on every non-obvious decision** |
 
-**Why not just extend `pbi --mode=review`?** Self-review cannot ask the user, and adding a blocking interactive gate to a skill designed to run as a fresh sub-agent breaks the sub-agent contract (a sub-agent cannot run `AskUserQuestion`). The completeness-vs-system pass and the human-confirmation loop need a distinct, inline invocation point.
+**Why not just extend `pbi --mode=review`?** Self-review cannot ask the user, and adding a blocking interactive gate to a skill designed to run as a fresh sub-agent breaks the sub-agent contract (a sub-agent cannot run `ask user question tool`). The completeness-vs-system pass and the human-confirmation loop need a distinct, inline invocation point.
 
 ## Risk Assessment
 
@@ -81,7 +96,7 @@ A Feature Spec can be internally perfect — all 8 sections present, every AC te
 | ------------------------------------------------------------------------------------------ | ---------- | ------ | --------------------------------------------------------------------------------------------------------------- |
 | **Silent decision** — AI classifies a NON-OBVIOUS choice as OBVIOUS to avoid asking        | High       | High   | Step 2 forces an explicit OBVIOUS/NON-OBVIOUS/CONFLICTS label per item; the Anti-Rationalization table rebuts "it's obvious"; ambiguity defaults to NON-OBVIOUS |
 | **Overlap creep** — drifts into re-checking M1-M5 + M7 / AC testability and duplicates `pbi --mode=review` | Medium     | Medium | Scope is fixed to completeness-vs-system + confirmation; profile-owned invariant-to-case coverage is a CROSS-CHECK only — the detailed property/case quality audit is deferred to `pbi --mode=review --type=spec-tests` |
-| **Question fatigue** — the widened, category-driven audit asks too many questions                  | Medium     | Medium | The configured `Spec Validation: questions=MIN-MAX` budget (per-context default when absent) is the hard cap; ask ≥MIN only when ≥MIN genuine decisions exist, never invent filler; ≤4 options per `AskUserQuestion` call; recommended option first. Only NON-OBVIOUS + CONFLICTS + high-impact items become questions — breadth of *probing* is exhaustive, breadth of *asking* is budget-bounded |
+| **Question fatigue** — the widened, category-driven audit asks too many questions                  | Medium     | Medium | The configured `Spec Validation: questions=MIN-MAX` budget (per-context default when absent) is the hard cap; ask ≥MIN only when ≥MIN genuine decisions exist, never invent filler; ≤4 options per `ask user question tool` call; recommended option first. Only NON-OBVIOUS + CONFLICTS + high-impact items become questions — breadth of *probing* is exhaustive, breadth of *asking* is budget-bounded |
 | **Context mis-detection** — Phase 0 picks the wrong context and audits the wrong sections          | Medium     | High   | Resolve profile-owned roles plus active workflow/provisional state; ambiguous → blocking user confirmation, or `BLOCKED` if no user/tool is available |
 | **Unvalidated findings applied** — AI rewrites a canonical owner from a phantom completeness gap | Medium     | High   | Step 6 runs `/why-review --validate-findings` on this skill's own findings BEFORE applying any decision          |
 | **Stale landscape** — the discovered-system report is outdated, so completeness is judged against a wrong baseline | Low        | Medium | Step 0 verifies the discovery inputs exist and are current; a missing/stale landscape is itself a NEEDS-AUTHORING-FIX finding |
@@ -188,7 +203,7 @@ Run **Phase 0 (Spec-Context Detection)** above first — it sets the context + b
 - **Completeness is judged against the SYSTEM** — every related/affected behavior from the discovered landscape must be reflected, or its absence deliberately noted. The artifact passing in isolation is NOT enough.
 - **NON-OBVIOUS and CONFLICTS go to the user** — only OBVIOUS decisions are documented-and-proceeded; ambiguity in the classification itself defaults to NON-OBVIOUS.
 - **NEVER silently pick a non-obvious decision** — the blocking user-confirmation gate is the entire value of this skill; no user/tool response means `BLOCKED`/`NEEDS-CLARIFICATION` with no mutation.
-- **Runs INLINE, not as a sub-agent** — the clarification gate needs `AskUserQuestion`, which only the main interactive agent can run; do NOT add `execution-mode: subagent`.
+- **Runs INLINE, not as a sub-agent** — the clarification gate needs `ask user question tool`, which only the main interactive agent can run; do NOT add `execution-mode: subagent`.
 - **Complements, never duplicates** — `pbi --mode=review` owns isolation/M1-M5 + M7, `why-review` owns rationale; cross-check each universal invariant against the profile-owned case and defer detailed property/case quality to `pbi --mode=review --type=spec-tests`.
 - **Validate before applying** — run `/why-review --validate-findings` on this skill's own findings before updating any canonical owner.
 - **Evidence-based** — every completeness gap, classification, and conflict cites `file:line` / a spec section / an invariant ref with a confidence percentage.
@@ -247,6 +262,7 @@ Speculation FORBIDDEN; prove every claim.
 2. Confidence: >80% act freely; 60-80% verify first; <60% DO NOT recommend
 3. Cross-service validation required for architectural changes
 4. Insufficient evidence is valid/expected output
+5. Review decision autonomy: choose evidence-supported review approaches, recommendations and next steps without asking the user. Record rationale and preserve every evidence gate. Read-only leaves return remedies to their owner. Only round-limit extension, indispensable facts with no defensible default, and actual missing action authority require a question; never infer consent, accept an open risk or perform an unauthorized operation.
 BLOCKED until: Evidence file path (file:line) provided; Grep search performed; 3+ similar patterns found; Confidence level stated.
 Forbidden without proof: "obviously", "I think", "should be", "probably", "this is because".
 If incomplete → output: "Insufficient evidence. Verified: [...]. Not verified: [...]."
@@ -387,41 +403,29 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:severity-rubric -->
 
-> **Severity Rubric** — Classify every finding by consequence, not by effort, reviewer preference, or how annoying the fix is. One scale applies to every review, skill, agent, workflow, and host so a tier means the same everywhere. Choose the highest credible consequence supported by evidence; do not lower a tier to make a round pass.
+> **Severity Rubric** — Use one consequence-based scale across reviews, skills, agents, workflows and hosts. Choose the highest credible tier supported by evidence; never lower it to pass a round. Effort, cost, preference, annoyance, frequency alone and round-budget pressure do not determine severity.
 >
-> **Finding vs observation (required):** An observation becomes a finding only when it names the affected user/system/data/contract, the shipped consequence, the evidence location, and the normalized tier. `INFO`, advice, preference, duplicate wording, or an unsubstantiated concern is not a finding and must not reopen a loop. If the concern might affect a required behavior or gate but evidence is incomplete, emit `NOT VERIFIABLE` with the missing evidence and keep it unresolved; never silently convert uncertainty into LOW.
+> **Finding vs observation:** admit a finding only with an affected user/system/data/contract, shipped consequence, reachable supported trigger (caller, input, state or event sequence), evidence location and confidence percentage. Assess exposure/likelihood and reversibility/detectability before assigning a tier.
 >
-> **Reachable trigger path (required):** a finding also names HOW a supported configuration reaches the defect — the caller, input, state or event sequence that drives execution or data there. A concern on a path nothing reaches (dead code, a branch its guard excludes, an impossible state) is an observation: record it as advice, never as a LOW to fix. Also never a finding: what a compiler, type checker, linter or test run for this change already reports in the review evidence; a behavior change the stated intent asks for; an issue silenced by a suppression that predates this change and states its reason (a suppression the change adds is itself reviewed); a pre-existing issue on a line the change neither touched nor made reachable. When reachability cannot be settled and the concern would be MEDIUM or higher, emit `NOT VERIFIABLE` naming what would settle it; a polish-level concern with unsettled reachability is an observation. — why: a speculative LOW admitted as a finding becomes build work in round 1.
+> **Keep as observations:** advice, preference, duplicates, unsupported concerns, unreachable paths, issues already reported by this change’s compiler/type checker/linter/tests, intended behavior changes, reasoned suppressions predating the change, and pre-existing issues neither touched nor made reachable. Review newly added suppressions. Observations/INFO do not reopen loops.
 >
-> | Severity | Action | Definition and examples |
+> | Tier | Consequence and boundary examples | Action |
 > | --- | --- | --- |
-> | CRITICAL | Block immediately; escalate | Immediate material risk if shipped: authentication/authorization or safety bypass; secrets/PII exposure; irreversible destructive action; data loss/corruption; a silent failure on a critical path. A failed binary gate is carried by the executable policy as a separate synthetic blocker, not an ordinary severity judgment. |
-> | HIGH | Must fix before PASS/merge | Material correctness or contract risk: wrong behavior on a supported path; violated business/data invariant; meaningful privacy or authority gap; breaking API/schema/compatibility change; likely harm to users/downstream systems; a missing proof for a behavior-changing fix. |
-> | MEDIUM | Must clear the current round; escalate if the fix needs an owner decision | Bounded but consequential risk: an edge case, resilience/observability/testability/maintainability gap, credible future defect, or local architectural drift — real impact, not immediate material loss. A recorded follow-up does not make an open MEDIUM a clean pass. |
-> | LOW | Record and defer; never opens another fix/re-review round from round 2 onward, never raises the round budget | Non-blocking polish with no credible present correctness, security, privacy, authority, availability, or data-integrity impact: wording/formatting, minor documentation or convention drift, optional defensive cleanup, cosmetic refinement. |
+> | CRITICAL | Immediate material security, safety or authority harm; auth bypass; secrets/PII exposure; irreversible destruction; data loss/corruption; critical-path silent failure. | Block immediately; escalate. |
+> | HIGH | Material supported-path correctness, invariant, privacy/authority, public-contract or compatibility failure; likely user/downstream harm; missing proof for a behavior-changing fix. | Fix before PASS/merge. |
+> | MEDIUM | Bounded consequential edge, resilience, observability, testability, maintainability or architectural gap; credible future defect. | Clear this round; escalate decisions needing an owner. A follow-up is not a clean pass. |
+> | LOW | Proven non-blocking polish with no credible present correctness, security, privacy, authority, availability or data-integrity impact: wording, formatting, minor docs/conventions, optional cleanup, cosmetics. | Record/defer; alone never opens another round from round 2 or increases the budget. |
 >
-> **Consequence decision tree (apply in order):** (1) A failed binary gate stays a separate hard blocker (synthetic CRITICAL in the executable helper) — never hide it behind an ordinary label. Otherwise, would shipping permit immediate material security/safety/authority harm, irreversible destruction, data loss/corruption, or a critical-path silent failure? → **CRITICAL**. (2) Does a supported path, invariant, public contract, privacy/authority boundary, compatibility promise, or behavior-changing proof fail with material impact? → **HIGH**. (3) A bounded but consequential edge, resilience, observability, testability, maintainability, or architectural gap with credible impact? → **MEDIUM**. (4) Evidence shows only non-blocking polish? → **LOW**. (5) Evidence to choose among 1–4 missing → **NOT VERIFIABLE**, not LOW. When several tiers fit, select the highest credible consequence; effort, cost, reviewer discomfort, frequency alone, proximity to the round cap, and obtaining another round never decide the tier.
+> **Consequence decision tree:** check binary gates separately, then select the first evidenced tier from CRITICAL → HIGH → MEDIUM → LOW. Missing evidence is **NOT VERIFIABLE**, not a fifth tier or a LOW fallback: name the missing proof. Unsettled reachability is NOT VERIFIABLE for potential MEDIUM+ impact and an observation for polish. Claims potentially affecting required behavior, security, privacy, authority, availability, data integrity or a gate remain evidence blockers until proved or explicitly owner-accepted with scope, rationale and residual risk. Owner acceptance does not make an open MEDIUM a clean pass or a failed gate pass.
 >
-> **Boundary examples:** auth bypass, exposed secret/PII, destructive command without an authority gate, or failed required test/generation/parity gate → **CRITICAL**; wrong supported response, broken invariant/API/schema, meaningful privacy/authority defect, or unproven behavior-changing fix → **HIGH**; bounded retry/timeout/alert/testability gap or credible maintainability drift → **MEDIUM**; typo, formatting, optional cleanup, or cosmetic suggestion proven not to affect behavior → **LOW**. A missing fact about any boundary is **NOT VERIFIABLE** until evidence or a documented residual-risk decision exists.
+> **Hard gates and rounds:** failed tests, required artifacts, security must-fix checks, generated parity and policy compliance block every round, independently of finding severity. The executable helper carries failures as synthetic CRITICAL blockers; reports name the gate and failure evidence. Default review budget is three rounds; unresolved findings or failed required checks at the cap ask the user for a bounded extension under `SYNC:review-policy`. Failed checks never pass by severity deferral.
 >
-> **Classification procedure (every finding):** (1) state the affected user, system, data, contract, or gate; (2) assess consequence if it ships; (3) assess exposure/likelihood and reversibility/detectability; (4) select the highest justified tier; (5) cite `file:line` or equivalent evidence and a confidence percentage. `NOT VERIFIABLE` is a pending evidence state, not a fifth tier and never a LOW escape hatch: if the claim could affect required behavior, security, privacy, authority, availability, data integrity, or a binary gate, it stays an open evidence blocker until resolved or explicitly owner-accepted with documented residual risk. Classify LOW only when evidence supports the absence of credible present material impact.
->
-> **Hard-gate rule:** Binary gates (tests, required artifacts, security must-fix checks, generated parity, policy compliance) are not severity-rated findings. The executable helper records a failed gate as a synthetic CRITICAL blocker so one predicate can carry it; the report still names the gate and failure evidence. A failed gate blocks at every round, even when all ordinary findings are LOW. A failed non-test gate is bounded by the three-round review cap; a failing test gate is outside the round budget and loops until the tests pass.
->
-> **Score-based skills** map their numeric scale onto these tiers — no parallel vocabulary:
->
-> - **0-2 criterion scoring** (e.g. production-readiness-review): `0` = CRITICAL/HIGH (unmet, blocks readiness), `1` = MEDIUM (partial, consequential gap), `2` = pass. A polish-only criterion is LOW, not a forced `0`.
-> - **Two-axis scoring** (e.g. performance-review, impact × likelihood): high impact + high exposure → CRITICAL/HIGH; material impact, bounded exposure → HIGH/MEDIUM; low impact and exposure → LOW. Record the axes and why the tier is the highest credible consequence.
-> - **Scorecards / `/20` grades** (e.g. `architecture --mode=scalability`): the aggregate score and verdict band are separate from finding severity. A sub-80 area is evidence to investigate, not an automatic tier; classify each underlying gap by the decision tree and keep advisory score deductions apart from blocking findings.
->
-> **Domain-vocabulary normalization (mandatory):** a skill may keep a local reporting vocabulary, but it MUST feed this same four-tier round predicate — never a second severity system:
->
-> - `BLOCKED`, `HARD FAIL`, or `FAIL` is a blocking local verdict, not an automatic CRITICAL: CRITICAL for an immediate material risk or failed binary gate, otherwise HIGH or MEDIUM with evidence, while the local block holds until the owning gate is satisfied.
-> - `WARN` is not permission to ignore: MEDIUM when consequential, LOW only when evidence shows no credible present material impact, HIGH/CRITICAL when the consequence warrants. `PASS`/compliant is not a finding.
-> - UI `P0`/`P1`/`P2`/`P3`/`P4` start as CRITICAL/HIGH/MEDIUM/LOW/LOW; override upward only on evidence of a higher shipped consequence. A P0/P1 accessibility or task-completion floor stays a blocking gate even when called a priority.
-> - Numeric SRE/readiness or impact/likelihood scores are evidence inputs, not tiers: emit the score, the consequence, and the normalized tier together. `INFO`/advisory observations are not findings unless evidence shows a material consequence.
->
-> A tier drives the gate: CRITICAL/HIGH/MEDIUM stay actionable and blocking under the round policy; all review blockers may use up to three rounds, then escalate; LOW may be tracked as a follow-up and, from round 2, never justifies another fix/re-review by itself. An owner decision may explain or schedule an open MEDIUM but never makes it a clean pass; owner acceptance never makes a failed binary gate pass and must record scope, rationale, and residual risk.
+> **Domain-vocabulary normalization and scores:**
+> - `BLOCKED`/`HARD FAIL`/`FAIL` are local blocking verdicts, not automatic CRITICAL; classify by consequence while preserving the owning gate. `WARN` can be any tier; `PASS`/compliant is not a finding. INFO/advisory remains observational unless material consequence is evidenced.
+> - UI `P0/P1/P2/P3/P4` start at CRITICAL/HIGH/MEDIUM/LOW/LOW; raise only with evidence. P0/P1 accessibility or task-completion floors remain blocking gates.
+> - Criterion `0/1/2` → CRITICAL or HIGH (unmet readiness)/MEDIUM (partial consequential gap)/pass; polish is LOW, never forced to `0`.
+> - Impact × likelihood: high impact/exposure → CRITICAL/HIGH; material impact with bounded exposure → HIGH/MEDIUM; low impact/exposure → LOW. Record both axes and justify the highest credible tier.
+> - Aggregate scorecards and `/20` verdict bands stay separate; sub-80 areas prompt investigation, not automatic severity. Keep advisory deductions separate from blockers. Emit numeric SRE/readiness or impact/likelihood scores with consequence and normalized tier.
 
 <!-- /SYNC:severity-rubric -->
 
@@ -498,7 +502,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 - **Task Tracking External Report:** Bootstrap tasks; persist clarification findings to `tmp/reports/`.
 - **Evidence Based Reasoning:** No claim without cited evidence; state confidence.
 - **Understand Code First:** Read code, grep 3+ patterns before any change.
-- **Fresh Context Review:** Validate findings, fix only current-round blocking findings, and restart the full review until the severity bar is clear (Round 1: zero open findings (Round-1 LOW closure); Round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred); spawn a fresh zero-memory sub-agent after each fix cycle (re-review only — this skill itself runs inline).
+- **Fresh Context Review:** Validate findings, fix only current-round blocking findings, and restart the full review until the severity bar is clear (Round 1: zero open findings (LOW deferral); Round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred); spawn a fresh zero-memory sub-agent after each fix cycle (re-review only — this skill itself runs inline).
 - **Review Protocol Injection:** Embed all 11 protocol bodies verbatim in any fresh sub-agent prompt.
 - **Severity Rubric:** Classify findings Critical/High/Medium/Low by consequence.
 - **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
@@ -508,7 +512,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 **IMPORTANT MUST ATTENTION** resolve the configured/native artifact profile FIRST, then detect `AUTHORED-SPEC` / `EXISTING-SPEC` / separately declared `TEST-SPEC` from owner roles, provisional state, and active workflow; ambiguous or unavailable user confirmation → `BLOCKED`/`NEEDS-CLARIFICATION`, no mutation — why: the wrong context audits the wrong owner and unattended execution cannot confirm intent.
 **IMPORTANT MUST ATTENTION** probe EVERY applicable category (the 9-category catalog × per-context matrix in `references/clarify-interview.md`) but ask only within the `Spec Validation: questions=MIN-MAX` budget (per-context default when absent) — ask ≥MIN only when ≥MIN genuine decisions exist, never invent filler, never exceed MAX — why: breadth of probing catches every gap; the budget is the fatigue control, not "ask only a few".
 **IMPORTANT MUST ATTENTION** the Step 4 user-confirmation gate is BLOCKING — present NON-OBVIOUS + CONFLICTS + high-impact items as ≤4 structured options (recommended first), issue multiple calls as needed, NEVER silently pick a non-obvious decision; if no user/tool response is available, preserve questions and return `BLOCKED`/`NEEDS-CLARIFICATION` — why: unanswered intent cannot authorize artifact mutation.
-**IMPORTANT MUST ATTENTION** this skill runs INLINE on the main agent (no `execution-mode: subagent`) — the gate needs `AskUserQuestion`, which only the main interactive agent can run; a sub-agent cannot ask the user — why: a blocking confirmation loop is structurally impossible in an isolated sub-agent.
+**IMPORTANT MUST ATTENTION** this skill runs INLINE on the main agent (no `execution-mode: subagent`) — the gate needs `ask user question tool`, which only the main interactive agent can run; a sub-agent cannot ask the user — why: a blocking confirmation loop is structurally impossible in an isolated sub-agent.
 **IMPORTANT MUST ATTENTION** before applying any decision, validate this skill's OWN findings via `/why-review --validate-findings <report-path>`, then apply only confirmed, validated decisions through the owner procedure and re-run Step 1 — why: rewriting canonical intent from a phantom gap is worse than the gap.
 **IMPORTANT MUST ATTENTION** complement, never duplicate — cross-check universal invariant → profile-owned property-case existence only; defer quantified property and boundary-case quality to `pbi --mode=review --type=spec-tests` — why: re-running that audit here drifts this skill into overlap and wastes the budget.
 **IMPORTANT MUST ATTENTION** cite `file:line` / spec-section / invariant evidence for every completeness gap, classification, and conflict with a confidence percentage (>80% to act, <60% DO NOT recommend); "Insufficient evidence" is valid output — why: speculation produces non-fixable findings and false conflicts.
@@ -529,5 +533,5 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 | "Findings are clearly right, apply them now"     | Validate via `/why-review --validate-findings` and get required user confirmation BEFORE changing the canonical owner — a phantom gap rewrites intent wrongly. |
 
 **IMPORTANT MUST ATTENTION** judge completeness against the SYSTEM + confirm every NON-OBVIOUS / CONFLICTS decision with the user — the distinct value vs isolation review.
-**IMPORTANT MUST ATTENTION** the clarification gate is a BLOCKING `AskUserQuestion` loop; runs INLINE on the main agent — if the user/tool cannot answer, preserve open questions and return `BLOCKED`/`NEEDS-CLARIFICATION`; NEVER silently pick a non-obvious decision.
+**IMPORTANT MUST ATTENTION** the clarification gate is a BLOCKING `ask user question tool` loop; runs INLINE on the main agent — if the user/tool cannot answer, preserve open questions and return `BLOCKED`/`NEEDS-CLARIFICATION`; NEVER silently pick a non-obvious decision.
 **IMPORTANT MUST ATTENTION** validate own findings via `/why-review --validate-findings` before applying; cite `file:line`/section evidence with confidence for every claim.

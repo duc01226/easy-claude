@@ -47,29 +47,6 @@ const CK_SCHEMA = {
   trust: { type: "object", required: false, freeform: true },
   project: { type: "object", required: false, freeform: true },
   codeReview: { type: "object", required: false, freeform: true },
-  reviewTools: {
-    type: "object",
-    required: false,
-    rejectNull: true,
-    closed: true,
-    describe: "Machine review-tool preferences in personal ~/.claude/.ck.json or ignored .claude/.ck.local.json only. Committed team configuration grants no execution, network or acquisition permission. Any machine denial dominates; malformed declared policy produces supplemental fallback.",
-    properties: {
-      openCodeReview: {
-        type: "object",
-        required: false,
-        rejectNull: true,
-        closed: true,
-        describe: "Optional native OCR delegation preferences, applied only during explicit review preparation. Omit for execution=true, acquisition=auto and network=true, subject to host permissions and deny-only environment overrides.",
-        properties: {
-          execution: { type: "boolean", required: false, rejectNull: true, describe: "False forbids every native invocation, including provided, cached and PATH binaries. A true preference cannot reverse another machine denial." },
-          acquisition: { type: "string", required: false, rejectNull: true, enum: ["auto", "never"], describe: "auto permits isolated pinned acquisition when all machine and host permissions allow it; never forbids acquisition while retaining permitted existing tools." },
-          network: { type: "boolean", required: false, rejectNull: true, describe: "False forbids acquisition network access; existing compatible tools remain usable when execution is permitted." },
-          binaryPath: { type: "string", required: false, rejectNull: true, nonBlank: true, describe: "Optional absolute path to a provisioned native executable; the acquisition-policy owner validates its path, native identity and compatibility. Local preference takes precedence over personal without reversing denial." },
-          cacheDir: { type: "string", required: false, rejectNull: true, nonBlank: true, describe: "Optional absolute private tool-cache location; the acquisition-policy owner verifies containment, ownership and integrity before reuse or publication. Never committed as team policy." }
-        }
-      }
-    }
-  },
   subagent: { type: "object", required: false, freeform: true },
   referenceDocs: {
     type: "object",

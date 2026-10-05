@@ -5306,7 +5306,7 @@ And file names with spaces and non-Latin characters are listed intact
 
 > **Evidence:** `[Source: operation/scripts/scan-ai-signals]`
 > **Related Behaviors:** `operation/scripts/scan-ai-signals` · `test/hooks/ai-signal-scan`
-> **CoveredBy:** `.claude/hooks/tests/suites/ai-signal-scan.test.cjs::TC-AIS-001 --files lists AI surfaces with the path matcher or the matched content, and omits everything else`, `.claude/hooks/tests/suites/ai-signal-scan.test.cjs::TC-AIS-012 neither the text form nor --json carries text taken from the scanned file`, `.claude/hooks/tests/suites/ai-signal-scan.test.cjs::TC-AIS-002 default, --staged, --unstaged and --base each scan exactly their own change set`, `.claude/hooks/tests/suites/ai-signal-scan.test.cjs::TC-AIS-003 paths with spaces and non-ASCII characters are listed intact`, `.claude/hooks/tests/suites/ai-signal-scan.test.cjs::TC-AIS-008 --base is the merge-base range UNION the local changes, without duplicates and without the base branch's own changes` · **Status:** Tested
+> **CoveredBy:** `.claude/hooks/tests/suites/ai-signal-scan.test.cjs::TC-AIS-001 --files lists AI surfaces with the path matcher or the matched content, and omits everything else`, `.claude/hooks/tests/suites/ai-signal-scan.test.cjs::TC-AIS-012 neither the text form nor --json carries text taken from the scanned file`, `.claude/hooks/tests/suites/ai-signal-scan.test.cjs::TC-AIS-002 default, --staged, --unstaged and --base each scan exactly their own change set`, `.claude/hooks/tests/suites/ai-signal-scan.test.cjs::TC-AIS-003 paths with spaces and non-ASCII characters are listed intact`, `.claude/hooks/tests/suites/ai-signal-scan.test.cjs::TC-AIS-008 --base is the merge-base range UNION the local changes, without duplicates and without the base branch's own changes` · **Status:** Planned
 
 ---
 
@@ -5370,7 +5370,7 @@ boundaryCounterCase: 'a plain revision expression → accepted and scanned'
 
 > **Evidence:** `[Source: operation/scripts/scan-ai-signals]`
 > **Related Behaviors:** `operation/scripts/scan-ai-signals` · `rule/hooks/class-membership` · `test/hooks/ai-signal-scan`
-> **CoveredBy:** `.claude/hooks/tests/suites/ai-signal-scan.test.cjs::TC-AIS-004 the scan applies the project's own ai-feature-gate class, else the built-in one, through the hook matcher`, `.claude/hooks/tests/suites/ai-signal-scan.test.cjs::TC-AIS-005 failures and odd input are reported in the output and never change the exit code`, `.claude/hooks/tests/suites/ai-signal-scan.test.cjs::TC-AIS-006 a hostile --base value is rejected before git runs; legal ref names are accepted`, `.claude/hooks/tests/suites/ai-signal-scan.test.cjs::TC-AIS-007 framework folders, docs, prose and dependency output are never AI surfaces in a change set` · **Status:** Tested
+> **CoveredBy:** `.claude/hooks/tests/suites/ai-signal-scan.test.cjs::TC-AIS-004 the scan applies the project's own ai-feature-gate class, else the built-in one, through the hook matcher`, `.claude/hooks/tests/suites/ai-signal-scan.test.cjs::TC-AIS-005 failures and odd input are reported in the output and never change the exit code`, `.claude/hooks/tests/suites/ai-signal-scan.test.cjs::TC-AIS-006 a hostile --base value is rejected before git runs; legal ref names are accepted`, `.claude/hooks/tests/suites/ai-signal-scan.test.cjs::TC-AIS-007 framework folders, docs, prose and dependency output are never AI surfaces in a change set` · **Status:** Planned
 
 ---
 
@@ -6264,7 +6264,7 @@ And no timeout raises an error or blocks the assistant's work
 
 > **Evidence:** `[Source: constraint/hooks/bounded-location-matching]`
 > **Related Behaviors:** `constraint/hooks/bounded-location-matching` · `operation/scripts/scan-ai-signals` · `rule/hooks/never-block` · `test/hooks/ai-signal-scan`
-> **CoveredBy:** `.claude/hooks/tests/suites/ai-signal-scan.test.cjs::TC-AIS-014 hostile project regexes are bounded: content regexes match nothing, location regexes make an incomplete scan unknown` · **Status:** Tested
+> **CoveredBy:** `.claude/hooks/tests/suites/ai-signal-scan.test.cjs::TC-AIS-014 a hostile content regex in the project class ends on the time budget and matches nothing` · **Status:** Tested
 
 ---
 

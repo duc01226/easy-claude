@@ -143,12 +143,12 @@ const tests = [
             const text = investigateSkill();
             // Then none of the debug-only contract markers appear in it
             const debugOnly = [
-                '## Phase 0: Classify Bug Scenario',
+                '## Phase 0: Classify and Route (BLOCKING)',
                 '### Phase 0.5: Fault Adjudication',
-                '## Root Cause Validation (`/why-review` Gate)',
-                '### Dim 4: Confirm',
-                '## Debug Mindset (NON-NEGOTIABLE)',
-                'Skip `/why-review`, findings look solid'
+                '## Phase 3: Trace End-to-Start',
+                '## Phase 4: Confirm Ownership and Completeness',
+                '## Phase 5: Root Cause Validation (`/why-review` Gate)',
+                '## Phase 6: Report and Hand Off'
             ];
             for (const marker of debugOnly) assert.ok(!text.includes(marker), `investigate/SKILL.md must not inline debug text: ${marker}`);
             // And the debug body does live in its reference file
@@ -165,29 +165,29 @@ const tests = [
         fn: () => {
             const text = modeDebug();
             // Investigation-only: never patches, hands the confirmed cause to /fix
-            assert.match(text, /NEVER patch here/);
-            assert.match(text, /hand confirmed cause to `\/fix`/);
+            assert.match(text, /Never patch here/i);
+            assert.match(text, /Investigate and recommend; `\/fix` implements/);
             // Phase 0 is BLOCKING and routes the specialist agents
-            assert.match(text, /## Phase 0: Classify Bug Scenario \(BLOCKING — Do Before ANY Investigation\)/);
+            assert.match(text, /## Phase 0: Classify and Route \(BLOCKING\)/);
             for (const agent of ['debugger', 'performance-optimizer', 'security-auditor']) assert.ok(text.includes(`\`${agent}\``), `routes ${agent}`);
             // Failing/flaky integration test: read the protocol, never invoke it, emit ONE of five verdicts before any trace
-            assert.match(text, /\*\*MUST NOT invoke `\/integration-test(?:-review| --mode=review)` from here — READ its protocol instead\.\*\*/);
+            assert.match(text, /Read `\.claude\/skills\/integration-test\/references\/mode-review\.md`[^\n]*apply it; NEVER invoke `\/integration-test --mode=review` here/);
             for (const verdict of ['TEST-WRONG', 'TEST-NOT-OPTIMAL', 'SOURCE-WRONG', 'ENVIRONMENT-BLOCKED', 'AMBIGUOUS']) assert.ok(text.includes(`**${verdict}**`), `verdict ${verdict}`);
-            assert.match(text, /\*\*STOP and ask the user\*\* via `AskUserQuestion` — never self-resolve/);
+            assert.match(text, /STOP and ask the user or canonical owner/);
             // End-to-start trace with the hypothesis matrix
-            assert.match(text, /### Dim 3: End-to-Start Debugger Trace/);
-            assert.match(text, /build hypothesis matrix: primary, contributing, ruled out, latent, unknown/);
-            assert.match(text, /forward convergence proof/);
+            assert.match(text, /## Phase 3: Trace End-to-Start/);
+            assert.match(text, /Classify hypotheses as primary, contributing, ruled out, latent or unknown/);
+            assert.match(text, /Walk origin → observed end state forward, mapping each cause to a correction and each correction to tests\/proof/);
             // The why-review gate runs in the SAME main session with a two-round cap
-            assert.match(text, /SAME session, SAME main agent \(do NOT spawn a sub-agent\)/);
-            assert.match(text, /2 validation rounds without passing → STOP, escalate to user via `AskUserQuestion`/);
+            assert.match(text, /SAME session and SAME main agent; do NOT delegate this gate/);
+            assert.match(text, /Two rounds without PASS:\*\* STOP and escalate through `ask user question tool`/);
             // Confidence thresholds survive
-            assert.match(text, /\| <60%\s+\| Insufficient evidence\s+\| DO NOT report — gather more evidence\s+\|/);
+            assert.match(text, /\| <60%\s+\| Insufficient evidence\s+\| Gather evidence; report only the unconfirmed hypothesis and named gaps, never a root-cause verdict \|/);
             // Standalone completion asks for the next step; never auto-decides
-            assert.match(text, /## Next Steps \(Standalone only — skip only when `nested=true`/);
-            assert.match(text, /use `AskUserQuestion`; NEVER auto-decide next step/);
+            assert.match(text, /\*\*Standalone next steps:\*\* Use `ask user question tool`; never auto-continue/);
+            assert.match(text, /Skip this choice ONLY for `nested=true`[^\n]*an abandoned\/existing row alone does not qualify/);
             // The dependency-tracing section keeps its graph queries (whether the graph is required is the graph policy's call, not this mode's)
-            assert.match(text, /## Dependency Tracing \([^)\n]+\)/);
+            assert.match(text, /\*\*Optional graph advice:\*\*/);
             assert.match(text, /code_graph query callers_of <function> --json/);
             assert.match(text, /code_graph trace <suspect-file> --direction both --json/);
             // The report keeps the filename prefix that /fix's evidence gate recognizes
@@ -339,7 +339,7 @@ const tests = [
             assert.match(description, /^\[Fix & Debug\] Use when a workflow step or the user asks for \S/);
             assert.ok(description.length <= 250, `description is ${description.length} chars, over 250`);
             // Both routing intents: code-flow trace and the bug root cause
-            assert.match(description, /code-flow trace/);
+            assert.match(description, /code-flow (?:trace|investigation)/);
             assert.match(description, /--mode=debug/);
             assert.match(description, /root cause/);
             assert.match(description, /--mode=explain/);

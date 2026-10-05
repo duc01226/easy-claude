@@ -1,6 +1,6 @@
 ---
 name: ai-engineering-review
-description: '[Code Quality] Use when a workflow step or the user asks for an AI-feature review: LLM calls, prompts, agents, RAG, evals, guardrails. --mode={code|plan}, --report-only.'
+description: '[Code Quality] Use when a workflow step or the user asks for AI code or plan review: LLM calls, prompts, agents, RAG, evals and guardrails. --mode={code|plan}; --report-only is read-only.'
 ---
 
 > Codex compatibility note:
@@ -9,25 +9,24 @@ description: '[Code Quality] Use when a workflow step or the user asks for an AI
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - Use ask user tool to ask user.
+> - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
 > - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
 > - For workflow skills, steps follow the guided contract in `$start-workflow` (gate steps fixed; other steps may flex with a logged reason); report step-by-step evidence.
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
-<!-- REVIEW-POLICY-SOURCES:START -->
-```json
-{
-  "version": 1,
-  "defaultMode": "code",
-  "modes": {
-    "code": [],
-    "plan": []
-  }
-}
-```
-<!-- REVIEW-POLICY-SOURCES:END -->
+## Quick Summary
+
+> **Review modes:** For review/audit work, standalone defaults to `--review-only` (`--report-only` alias); `--fix-loop` enables review → validate → authorized fix → fresh re-review, default cap 3. `--fix-loop --loop-owner=caller` returns a read-only pass to the caller that owns fixes/re-review. Create triage, review, validation and re-review todo tasks first; apply the carried `review-policy` contract for LOW deferral and user-approved bounded extensions. Non-review modes and terminal findings validation keep their own dispatch.
+
+**Goal:** Review a plan or a change that calls a model — LLM calls, prompts, agents, tool use, RAG, MCP, evals, guardrails, fine-tuned or classical ML — against the AI-engineering protocol, and report evidence-backed findings ranked by real consequence. Skip when nothing in scope touches a model.
+
+**Summary:**
+
+- Load protocols and project policy → detect AI surfaces and skip when none → map kind, autonomy, data, sinks and trifecta legs.
+- Check framing (`AF-1`–`AF-6`) → nine focused engineering passes (`AE-1.1`–`AE-9.4`) → conditional RAG / agent / ML sweeps → verify provider facts from current docs.
+- Write the AI Gate Report → validate findings with `$why-review` → report, or repair and freshly re-review under standalone `--fix-loop`. Code and plan modes share this authority rule.
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
@@ -38,27 +37,21 @@ description: '[Code Quality] Use when a workflow step or the user asks for an AI
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:END -->
 
-## Quick Summary
-
-**Goal:** Review a plan or a change that calls a model — LLM calls, prompts, agents, tool use, RAG, MCP, evals, guardrails, fine-tuned or classical ML — against the AI-engineering protocol, and report evidence-backed findings ranked by real consequence. Skip when nothing in scope touches a model.
-
-**Summary:** Detect the AI surfaces objectively, map each one (kind, autonomy, data reaching the model, output sinks, trifecta legs), run the plan-time framing pass (`AF-1`–`AF-6`), then nine focused engineering passes (`AE-1.1`–`AE-9.4`) and the conditional RAG / agent / ML sweeps, verify every provider fact against current provider documentation, write the AI Gate Report, validate the findings with `$why-review`, and fix only validated findings through a full re-review loop.
-
 **Default scope:** The change set under review — uncommitted changes (staged + unstaged) by default, or the branch / PR range when a review base exists (`--base <the review base>`) — that the AI-signal scan or the signal-grep fallback marks as an AI surface, expanded from each file to the whole surface it belongs to (call site → prompt → tools → sinks → data sources). Override: specify files, directories, a surface, or a plan path.
 
-**Modes:** `--mode=code` (default) reviews source, prompts, tool schemas, config and tests · `--mode=plan` reviews a plan, spec or design against `AF-1`–`AF-6` and returns plan gaps plus REQUIRED plan additions, read-only · `--report-only` is an execution flag valid in either mode.
+**Modes:** `--mode=code` (default) reviews source, prompts, tool schemas, config and tests · `--mode=plan` reviews a plan, spec or design against `AF-1`–`AF-6` and returns plan gaps plus REQUIRED plan additions. Both default to read-only; standalone `--fix-loop` authorizes scoped repairs followed by fresh review.
 
 > **CONDITIONAL — SKIP when no AI-feature surface is in scope.** In workflow context this skill is SKIPPED when Phase 1 finds no AI surface. Standalone with no AI surface → announce `No AI-feature surface detected — ai-engineering-review skipped` and report clean; never run an AI review to manufacture coverage.
 
-> **ROUTING BOUNDARY (read before starting):**
->
-> - **`ai-engineering-review` (this skill)** — the AI-specific lens: does the feature need a model, is it contained, bounded, evaluated, observable and correctable. When the local agent catalog provides the `ai-engineering-reviewer` sub-agent, a workflow dispatches this skill to it; otherwise the skill runs inline.
-> - **`security-audit`** — owns exploit-class security and OWASP generally (D10 covers AI-agent workflow risks). This skill owns the AI-specific lens (`AE-2`, checklist §B) and calls `security-audit` for depth on injection classes, secrets, dependencies and supply chain. Report a defect ONCE.
-> - **`architecture --mode=review`** — layering, boundaries and structure. This skill judges only AI-specific architecture: autonomy level, trust boundaries, tool and agent design.
-> - **`integration-test --mode=review`** — assertion quality of tests in general. This skill judges what tests of an AI feature must contain (checklist §N, `AE-6`) and leaves assertion-value gates to it.
-> - **`production-readiness-review`** — general release readiness. This skill covers the AI-specific parts (`AE-5` reliability and cost, `AE-7` operations).
-> - **`plan --mode=review`** — runs an inline AI-feature dimension over every plan. This skill goes deep when a plan is AI-heavy (`--mode=plan`) or the user asks for a dedicated AI review.
-> - **`changes-review`** — general diff review. This skill is the dedicated AI dimension that complements it.
+**Routing boundary — read before starting:**
+
+- **This skill:** model fit, containment, bounds, evals, observability and correction. Workflows use `ai-engineering-reviewer` when the local catalog provides it; otherwise run inline.
+- **`security-audit`:** exploit-class security and OWASP (D10 covers AI-agent risks). Keep the AI lens here (`AE-2`, checklist §B); call it for injection classes, secrets, dependencies and supply-chain depth. Report each defect once.
+- **`architecture --mode=review`:** layering, boundaries and structure; this skill owns AI autonomy, trust boundaries, tools and agents.
+- **`integration-test --mode=review`:** general assertion quality; this skill checks AI test content (checklist §N, `AE-6`).
+- **`production-readiness-review`:** general release readiness; this skill checks AI reliability/cost (`AE-5`) and operations (`AE-7`).
+- **`plan --mode=review`:** inline AI dimension on every plan; use this skill for AI-heavy plans (`--mode=plan`) or a dedicated AI review.
+- **`changes-review`:** general diff review, complemented by this AI dimension.
 
 > **MANDATORY MUST ATTENTION** Plan tasks to READ the protocol and docs BEFORE reviewing:
 >
@@ -79,12 +72,12 @@ description: '[Code Quality] Use when a workflow step or the user asks for an AI
 7. **Phase 6: Provider-fact verification** — current model IDs, parameters, limits, retention terms, deprecations from provider docs; else `NOT VERIFIABLE`
 8. **Phase 7: Finalize** — write `tmp/reports/ai-engineering-review-{date}-{slug}.md` with the AI Gate Report
 9. **Phase 8: Why-review validation gate** — `$why-review --validate-findings` before any fix
-10. **Phase 9: Validated fix loop** — fix only validated findings that block the round, then a full re-review from Phase 0. Not run under `--report-only` or in plan mode.
+10. **Phase 9: Validated fix loop** — standalone `--fix-loop` repairs validated blocking findings, then freshly reviews from Phase 0. Review-only and caller-owned passes return findings without repairs.
 
 **Key Rules:**
 
 - **`--report-only`:** read-only leaf for a caller that owns every fix — Phases 0–8 only, no fix of any size, no nested sub-agents, no user question, no writer beyond the report; see [Report-Only Mode](#report-only-mode---report-only).
-- **`--mode=plan`:** read-only always; output is plan gaps per `AF-*` clause plus REQUIRED plan additions; see [Plan Mode](#plan-mode---modeplan).
+- **`--mode=plan`:** report gaps per `AF-*` clause and REQUIRED plan additions; standalone fix-loop may repair the plan artifact after validation; see [Plan Mode](#plan-mode---modeplan).
 - Project policy outranks these clauses: a documented decision is never a defect; a genuine conflict goes to the user with both sides.
 - Every finding names a clause (`AF-n` / `AE-x.y`), a checklist ID, `file:line` (or plan section), a P-level, a trigger path and a concrete fix at the owner of the violated contract. Never invent a cost, latency or accuracy number — unmeasurable is `NOT VERIFIABLE`.
 - Review is read-only until `$why-review --validate-findings` confirms findings; a fix that blocks the current round restarts a full review from Phase 0 with brand-new tasks.
@@ -97,7 +90,7 @@ $ARGUMENTS
 
 ## Report-Only Mode (`--report-only`)
 
-> **Use when** a caller runs this skill as a read-only leaf — a workflow parallel review barrier, a review dimension of another review skill, or a review batch — and another step owns every fix. `--report-only` in `$ARGUMENTS` selects it; without the flag every phase applies unchanged.
+> **Use when** a caller runs this skill as a read-only leaf — a workflow parallel review barrier, a review dimension of another review skill, or a review batch — and another step owns every fix. `--report-only` in `$ARGUMENTS` selects it; review-only is the default; standalone `--fix-loop` alone runs repair/restart phases.
 >
 > **MANDATORY — when `--report-only` is passed, read `.claude/skills/workflow-review-changes/references/caller-mode.md` § `--report-only` in full FIRST.** It holds the rules every read-only leaf shares (no fix or restart, scope from the caller's brief, no nested fan-out, no user questions, write only the report, return contract); the rules below are this skill's own.
 >
@@ -117,13 +110,13 @@ $ARGUMENTS
 
 ## Plan Mode (`--mode=plan`)
 
-> **Use when** the target is a plan, spec or design that creates or changes an AI surface. Read-only always; no Phase 9.
+> **Use when** the target is a plan, spec or design that creates or changes an AI surface. Default review-only and caller-owned passes stop after validation; standalone `--fix-loop` repairs the artifact through Phase 9, then freshly reviews it.
 >
 > 1. **Phase 0** loads the same protocol and docs. **Phase 1** resolves the plan path from `$ARGUMENTS` (else the active plan) and lists the plan phases that create or change an AI surface; a plan with none → announce the skip line.
 > 2. **Phase 2** builds the AI-surface map and trifecta table FROM THE PLAN — planned call sites, tools, data sources, sinks, autonomy level. A row the plan cannot fill is a gap.
 > 3. **Phase 3** is the main pass: apply checklist §M per AI phase — for each `AF-1`–`AF-6` clause, does the plan state the required items (model + pinned version + fallback · eval + baseline · cost and latency budget · failure modes + fallback · autonomy + approval · data flow + sinks · rollout + kill switch + owner)? Missing item = plan gap.
 > 4. **Phase 4** becomes "does the plan state a control for this?" per `AE-*` dimension; runtime and eval-only claims are `NOT VERIFIABLE`. **Phase 5** applies only to the surface kinds the plan names. **Phase 6** verifies provider facts the plan asserts (model, limit, price, region).
-> 5. **Output** — `tmp/reports/ai-engineering-review-{date}-{slug}.md` with: gaps per `AF` clause (`the plan does not state X — add Y`, severity per checklist §M: P1 when the action is irreversible, external or affects people, P2 otherwise, P3 for a suggest-only helper with a dated fill-in), the AI Gate Report, and a REQUIRED plan additions list the plan author can paste per phase. Phase 8 validates; the plan owner or `plan` skill applies the additions.
+> 5. **Output** — `tmp/reports/ai-engineering-review-{date}-{slug}.md` with: gaps per `AF` clause (`the plan does not state X — add Y`, severity per checklist §M: P1 when the action is irreversible, external or affects people, P2 otherwise, P3 for a suggest-only helper with a dated fill-in), the AI Gate Report, and REQUIRED plan additions. Phase 8 validates; review-only/caller-owned passes hand additions to the plan owner, while standalone fix-loop applies authorized artifact repairs before a fresh plan review.
 > 6. **Plan vs code:** when both the plan and its code are in scope, additionally report a code path the plan never mentions (new tool, data source, sink) and a plan promise the code does not implement.
 
 ## First Principle — Easy to Change · Easy to Scale · Easy to Maintain
@@ -174,8 +167,6 @@ git status && git diff && git diff --cached                          # the chang
 - Optional: when a changed call site, prompt or tool has a high-risk blast radius grep may miss and `.code-graph/graph.db` exists, `python .claude/scripts/code_graph trace <file> --direction both --json` (`--node-mode file` first) can hint at callers and covering tests (`tests_for`). The graph can be stale or incomplete — verify by reading; an absent graph is never a finding.
 
 **Expand files → surfaces (MANDATORY).** A file does not behave; a surface does. For every matched file find the call site → prompt → tools → sinks → data sources it belongs to and review the surface WHOLE, including its unchanged parts. A shared prompt, tool schema, model constant or retriever config changes every call site that reads it: review the highest-fan-out consumers and state the sample. Record `surface → changed files` at the top of the report.
-
-**Source-review preparation:** in code mode, after resolving the AI source/surface scope, follow `.claude/skills/shared/review-preparation.md` before review. Use the actual skill/mode and selected required documents; inherit the parent decision, including explicit `--provider-decision skip` on children/rechecks, under the recipe’s read-only-leaf and exact-target limits. Plan and provider-fact-only lookup are excluded; existing paid-call restrictions remain.
 
 **Plan mode:** see [Plan Mode](#plan-mode---modeplan).
 
@@ -269,7 +260,7 @@ Finish the report in the checklist §O shape: Context (+ known gaps) · AI-surfa
 
 Round verdict: **FAIL** when any failed binary gate or unresolved `NOT VERIFIABLE` blocker exists, any validated finding remains in round 1, any validated Critical/High/Medium remains in round 2, or the persisted `minRounds` is not met; otherwise **PASS**, with round-2 Low findings recorded as deferred. `Ship` / `Ship with fixes` / `Do not ship` is the reader-facing label for the same evidence, never a second severity scale.
 
-## Systematic Review Protocol (10+ AI-surface files; never under `--report-only`)
+## Adaptive Review Planning
 
 Group files by AI SURFACE first (one sub-agent owns a surface end to end so no surface is split), then by shared prompt / tool / retriever concern; launch one `ai-engineering-reviewer` sub-agent per group when the local catalog provides it (per `SYNC:sub-agent-selection`; `code-reviewer` only as a stated fallback), synchronize on shared prompts, tools and sinks, and consolidate into ONE report that clusters defects repeated across surfaces.
 
@@ -286,11 +277,11 @@ Group files by AI SURFACE first (one sub-agent owns a surface end to end so no s
 
 **Why this exists:** AI reports inherit confirmation bias — severity claims get absorbed as ground truth. Adversarial validation catches over-flagged Highs and false positives at the source.
 
-## Phase 9: Validated Fix + Full Re-Review Loop (MANDATORY when validated findings remain; never under `--report-only` or `--mode=plan`)
+## Phase 9: Validated Fix + Full Re-Review Loop (standalone `--fix-loop` only, code or plan)
 
 1. Create a fresh fix-cycle task list before editing; never reuse review tasks.
 2. Fix only findings that survived `$why-review --validate-findings`, at the owner of the violated contract; inside a workflow hand the validated report to the caller's fix step (standalone: `$fix --target=review`). Tests that protect the fixed behavior are part of the fix.
-3. Run targeted verification for the fixed files and their consumers.
+3. Update the guarding tests/docs and plan final verification for the fixed behavior and its consumers; preserve the configured verification order.
 4. Restart the full `$ai-engineering-review` from Phase 0 over the complete current scope — brand-new tasks, protocol reloaded, scan rerun, every surface reviewed from the start. When a fresh reviewer is used, spawn a NEW `ai-engineering-reviewer` sub-agent (`agent_type: "ai-engineering-reviewer"`) with ZERO memory of prior rounds, carrying the `AF` / `AE` / `AR` protocol texts inline in its prompt; use `code-reviewer` only when the local catalog lacks it.
 5. Repeat validate → fix → full re-review until a complete pass clears the current round's exit bar (round 1: zero open findings; round 2: zero Critical/High/Medium, Low deferred; binary gates always block). If the same validated blocker repeats across 2 full invocations with no progress, stop and ask the user.
 
@@ -298,7 +289,7 @@ Group files by AI SURFACE first (one sub-agent owns a surface end to end so no s
 
 ## Next Steps
 
-**MANDATORY — NO EXCEPTIONS:** after completing, use ask user tool to present (skip under `--report-only`, when invoked by a parent skill, or as a sub-agent — return the report and next-step recommendations instead):
+**MANDATORY — NO EXCEPTIONS:** after completing, use `ask user question tool` to present (skip under `--report-only`, when invoked by a parent skill, or as a sub-agent — return the report and next-step recommendations instead):
 
 - **"$security-audit" (Recommended when a P0/P1 touches injection, secrets or authorization)** — exploit-class depth
 - **"$integration-test --mode=review"** — assertion quality of the AI feature's tests
@@ -314,7 +305,7 @@ Before reporting ANY work done:
 4. **Verify ALL outputs.** One prompt change reaches every call site that reads it
 5. **Report-only means report-only.** No fix, no fan-out, no question, no writer beyond the report
 
-> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting. Simple tasks: ask the user whether to skip.
+> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting. Keep task depth proportional to the work.
 
 > **External Memory:** complex or lengthy work → write findings to `tmp/reports/` incrementally; prevents context loss and serves as the deliverable.
 
@@ -334,13 +325,15 @@ Before reporting ANY work done:
 - `graph-assisted-investigation` — Optional hint: a code-graph query can add callers and dependents when grep may miss a high-risk blast radius, and it can be stale; a high-risk change where grep and reading alone may miss the blast radius → .claude/skills/shared/protocols/graph-assisted-investigation.md
 - `incremental-persistence` — Persist results per file or section while the work proceeds; a sub-agent or heavy step processes more than three files → .claude/skills/shared/protocols/incremental-persistence.md
 - `measured-capacity-engineering` — Model demand, reduce measured work safely and prove capacity before scaling; planning, building, testing or reviewing hot paths, caches or capacity → .claude/skills/shared/protocols/measured-capacity-engineering.md
+- `review-decision-autonomy` — Choose supported review decisions and ask before extending the round budget; running any review or audit skill or mode → .claude/skills/shared/protocols/review-decision-autonomy.md
+- `review-policy` — Review-only or a three-round fix loop with explicit extension and fresh post-fix evidence; deciding round eligibility, blocking findings or review state → .claude/skills/shared/protocols/review-policy.md
 - `review-principle-awareness` — Classify the change context first, then apply the current principles that fit it; starting any review → .claude/skills/shared/protocols/review-principle-awareness.md
 - `sequential-thinking-protocol` — Structured multi-step reasoning with revision, branch and hypothesis markers; planning, debugging or reviewing complex or ambiguous work → .claude/skills/shared/protocols/sequential-thinking-protocol.md
 - `severity-rubric` — One consequence-based Critical, High, Medium, Low scale for every finding and gate; classifying a finding or deciding whether a review round passes → .claude/skills/shared/protocols/severity-rubric.md
 - `source-test-drift-check` — When source behavior changes, reconcile the affected tests from evidence; code, fix, test or review work changes behavior → .claude/skills/shared/protocols/source-test-drift-check.md
 - `sub-agent-selection` — Pick the sub-agent type from the routing guide; choosing which sub-agent to spawn → .claude/skills/shared/protocols/sub-agent-selection.md
 - `subagent-return-contract` — Sub-agents return a structured envelope and a report path, never an inline report; spawning a sub-agent → .claude/skills/shared/protocols/subagent-return-contract.md
-- `systematic-review-batching` — Map-reduce review: size-capped batches, one sub-agent per batch, then reduce; reviewing a large changeset → .claude/skills/shared/protocols/systematic-review-batching.md
+- `systematic-review-batching` — Triage all files and plan adaptive review with complete coverage and no fixed size caps; choosing review assignments or handling working-set overflow → .claude/skills/shared/protocols/systematic-review-batching.md
 - `task-tracking-external-report` — Task breakdown before the work and report files written incrementally; starting any multi-step skill, plan or review → .claude/skills/shared/protocols/task-tracking-external-report.md
 - `trade-off-interrogation-gate` — Three trade-off questions before any verdict, score or recommendation; rendering a verdict or recommending an option → .claude/skills/shared/protocols/trade-off-interrogation-gate.md
 
@@ -374,9 +367,7 @@ Before reporting ANY work done:
 
 <!-- SYNC:systematic-review-batching:reminder -->
 
-- **MANDATORY** Large changeset → risk-weighted batches, one parallel sub-agent per batch: high-risk ≤8 files OR ≤2000 diff-lines; low-risk (styling, tests, docs, config text) may pool to ≤20 files OR ≤4000 diff-lines; mechanical churn is verified by pattern, not batched. Never review many files one-by-one.
-- **MANDATORY** Each batch agent validates its own findings (`$why-review --validate-findings` in its own session); the reducer deduplicates by root cause FIRST, then re-validates only CRITICAL/HIGH (including in-batch rejections and demotions), reviewer conflicts, unvalidated findings and a MEDIUM sample.
-- **MANDATORY** > 6 categories OR > 40 files → add the hierarchical synthesis tier; each concern-synthesizer emits cross-concern interaction candidates and the orchestrator runs the cross-concern pass before concluding.
+**MUST ATTENTION** Triage all files, write a short review plan and create review/validation/fix/re-review tasks first. Choose inline work or authorized specialists from risk, relationships and context headroom; no fixed file/line/byte caps. Persist coverage, reconcile interactions and validate findings before fixes or PASS.
 
 <!-- /SYNC:systematic-review-batching:reminder -->
 
@@ -417,11 +408,14 @@ Before reporting ANY work done:
 
 <!-- SYNC:trade-off-interrogation-gate:reminder -->
 
-- **MANDATORY MUST ATTENTION ALWAYS ASK THE 3 TRADE-OFF QUESTIONS** — on the thing under review AND on every recommendation you make: (1) **what does it SACRIFICE?** name the dimensions checked (change cost · complexity · perf · coupling · reversibility · migration · ops load · blast radius · security · testability · delivery time · UX) — "none"/"pure win" is an unfinished analysis; (2) **is it worth it?** gain (with a metric) vs cost, WHO pays, WHEN → emit **WORTH IT / NOT WORTH IT / UNCLEAR**; NOT WORTH IT → withdraw or replace it; (3) **is it MATERIAL enough to confirm with the user?** irreversible/one-way door · cost shifted onto another team/ops/maintainer/user · one quality attribute traded for another · a tier/service/event/library boundary crossed · auth/money/data-integrity/breaking-change/High-or-Medium-risk path · verdict UNCLEAR → **STOP and confirm using ask user tool BEFORE the verdict**.
+**Review/audit invocations:** follow `SYNC:review-decision-autonomy` for every decision prompt; choose supported recommendations without asking, preserve round-extension approval and actual authority.
+
+- **MANDATORY MUST ATTENTION ALWAYS ASK THE 3 TRADE-OFF QUESTIONS** — on the thing under review AND on every recommendation you make: (1) **what does it SACRIFICE?** name the dimensions checked (change cost · complexity · perf · coupling · reversibility · migration · ops load · blast radius · security · testability · delivery time · UX) — "none"/"pure win" is an unfinished analysis; (2) **is it worth it?** gain (with a metric) vs cost, WHO pays, WHEN → emit **WORTH IT / NOT WORTH IT / UNCLEAR**; NOT WORTH IT → withdraw or replace it; (3) **is it MATERIAL enough to confirm with the user?** irreversible/one-way door · cost shifted onto another team/ops/maintainer/user · one quality attribute traded for another · a tier/service/event/library boundary crossed · auth/money/data-integrity/breaking-change/High-or-Medium-risk path · verdict UNCLEAR → **STOP and confirm via `ask user question tool` BEFORE the verdict**.
 - **MANDATORY** A MATERIAL trade-off with no user confirmation can NEVER be PASS; never bury one as a Low-severity note, never decide it silently, and never let delivery or convergence pressure authorize a one-way door — an un-walked-back one-way door is the user's call, not the reviewer's.
-- **MANDATORY — a context that cannot ask escalates BY HANDOFF, never by silence.** ask user tool reaches only the main interactive agent, so a sub-agent or a terminal/verdict-only mode cannot ask. There the duty is REDIRECTED, not waived: still name the trade-off, still decide materiality, record `confirmed? = NO — cannot ask from this context`, and **state the unconfirmed MATERIAL trade-off in your RETURNED verdict so the CALLER escalates it** (a note only in an on-disk report is not a handoff); never emit an unqualified PASS. If you CAN ask, you MUST ask.
+- **MANDATORY — a context that cannot ask escalates BY HANDOFF, never by silence.** `ask user question tool` reaches only the main interactive agent, so a sub-agent or a terminal/verdict-only mode cannot ask. There the duty is REDIRECTED, not waived: still name the trade-off, still decide materiality, record `confirmed? = NO — cannot ask from this context`, and **state the unconfirmed MATERIAL trade-off in your RETURNED verdict so the CALLER escalates it** (a note only in an on-disk report is not a handoff); never emit an unqualified PASS. If you CAN ask, you MUST ask.
 
 <!-- /SYNC:trade-off-interrogation-gate:reminder -->
+
 
 
 <!-- SYNC:review-principle-awareness:reminder -->
@@ -454,39 +448,29 @@ Before reporting ANY work done:
 
 <!-- /SYNC:measured-capacity-engineering:reminder -->
 
+<!-- SYNC:review-decision-autonomy:reminder -->
+
+**MUST ATTENTION** Decide supported review choices and recommendations, record the rationale, and finish without routine user questions. Keep round-limit extension, indispensable facts and actual action authority; preserve source coverage, validation, tests, read-only boundaries and budgets. Review decisions do not accept open risks or make a failed gate pass.
+
+<!-- /SYNC:review-decision-autonomy:reminder -->
+
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Review plans and changes that call a model against the AI-engineering protocol — evidence-backed findings ranked by consequence, provider facts verified, project policy respected — and skip when no AI surface exists.
+**IMPORTANT MUST ATTENTION Goal:** Review a plan or a change that calls a model — LLM calls, prompts, agents, tool use, RAG, MCP, evals, guardrails, fine-tuned or classical ML — against the AI-engineering protocol, and report evidence-backed findings ranked by real consequence. Skip when nothing in scope touches a model.
 
-**IMPORTANT MUST ATTENTION Workflow:** Phase 0 load protocol, checklist, calibration and project policy → Phase 1 scope and AI-surface detection (scan, expand file → surface; skip with the announcement when none) → Phase 2 surface map, trifecta table, autonomy and action map → Phase 3 framing `AF-1`–`AF-6` → Phase 4 nine `AE` dimension passes with `Think:` first → Phase 5 conditional RAG / agent / ML sweeps → Phase 6 verify provider facts → Phase 7 write the AI Gate Report → Phase 8 validate findings with `$why-review` → Phase 9 fix only validated blocking findings and restart the full review (not under `--report-only`, not in plan mode).
+**IMPORTANT MUST ATTENTION Workflow:** Phase 0 load protocol, checklist, calibration and project policy → Phase 1 scope and AI-surface detection (scan, expand file → surface; skip with the announcement when none) → Phase 2 surface map, trifecta table, autonomy and action map → Phase 3 framing `AF-1`–`AF-6` → Phase 4 nine `AE` dimension passes with `Think:` first → Phase 5 conditional RAG / agent / ML sweeps → Phase 6 verify provider facts → Phase 7 write the AI Gate Report → Phase 8 validate findings with `$why-review` → Phase 9 repair validated blocking findings and freshly review code or plan in standalone fix-loop; review-only/caller-owned passes return findings.
 
-**Protocols in force (concise digest of the protocols this skill carries — MUST ATTENTION honor each):**
+**Critical reminders:**
 
-- **AI Feature Framing Gate:** `AF-1`–`AF-6` at plan time — job and fit, eval first, blast radius, autonomy, data boundaries, operate.
-- **AI Engineering Gate:** `AE-1.1`–`AE-9.4` — 38 pass/fail clauses; report each as PASS / FAIL / N/A / NOT VERIFIABLE.
-- **AI Review Checklist:** `AR-1`–`AR-6` — context first, evidence or nothing, severity by consequence, sweeps, report shape, triage.
-- **Severity Rubric:** classify by consequence via the checklist §0.3 P-level map; round 1 blocks on every open validated finding, round 2 on Critical/High/Medium, failed binary gates always block.
-- **Double Round-Trip Review:** validate findings, fix only current-round blocking findings, full re-review until the bar clears.
-- **Trade-Off Interrogation:** three questions before any verdict or recommendation; a sub-agent hands an unconfirmed material trade-off to its caller.
-- **Evidence-Based Reasoning / Critical Thinking:** `file:line` or plan section for every claim; >80% to act; never present a guess as fact.
-- **Task Tracking External Report:** track tasks; persist findings incrementally to `tmp/reports/`.
-- **Subagent Return Contract:** a spawned sub-agent returns the envelope and a report path.
-- **Parallel Sub-Agent Dispatch:** tag PAR/SEQ, disjoint waves, one message per wave, barrier before advancing.
-
-**MUST ATTENTION** break work into small tasks using task tracking BEFORE starting
-**MUST ATTENTION** SKIP this skill when nothing in scope touches a model — announce `No AI-feature surface detected — ai-engineering-review skipped`
-**MUST ATTENTION** read the AF / AE / AR protocol and the checklist BEFORE the first finding; the project's own AI policy and ADRs outrank them
-**MUST ATTENTION** every finding needs a clause, a checklist ID, `file:line` (or plan section), a P-level, a trigger path and a fix at the owner — NEVER invent a cost, latency or accuracy number; unmeasurable is `NOT VERIFIABLE`
-**MUST ATTENTION** verify provider facts (models, parameters, limits, retention, deprecations) against current provider docs and cite the URL — memory is not evidence
-**MUST ATTENTION** a prompt, a classifier or a guardrail is never the only boundary — find the code that enforces authorization, approval, bounds and validation; de-escalate only with a cited working control
-**MUST ATTENTION** run the nine `AE` passes one dimension at a time with `Think:` reasoning first — derive violations, do not recite checklists
-**MUST ATTENTION** route `[LEGAL-OWNER]` items to the owner as a question; NEVER decide legality
-**MUST ATTENTION** report a defect ONCE across `AF` / `AE` / `AR`, UI and `security-audit` overlaps; cap the report at the top 10 by severity; cluster systemic defects
-**MUST ATTENTION** write the report to `tmp/reports/ai-engineering-review-{date}-{slug}.md` incrementally, then validate findings with `$why-review --validate-findings` before any fix
-**MUST ATTENTION** after validated fixes restart the FULL review from Phase 0; spawn a fresh `ai-engineering-reviewer` (not `code-reviewer`) when the local catalog provides it
-**MUST ATTENTION** `--report-only` runs Phases 0–8 only — no fix, no nested fan-out, no user question, no writer beyond the report; return validated findings grouped Critical/High/Medium/Low (P0 → Critical, P1 → High, P2 → Medium, P3 → Low) — why: a read-only leaf that fixes, fans out or asks races or stalls its barrier siblings
-**MUST ATTENTION** `--mode=plan` is read-only — return plan gaps per `AF` clause and REQUIRED plan additions; never edit the plan
-**MUST ATTENTION** use ask user tool for next steps — except under `--report-only`, when invoked by a parent skill, or as a sub-agent, which ask nothing and return next steps in the summary
+- Create small tasks before starting; persist the report incrementally, then validate findings with `$why-review --validate-findings` before any fix.
+- Skip only when no AI surface exists, announcing `No AI-feature surface detected — ai-engineering-review skipped`. Read AF / AE / AR and the checklist before findings; project policy and ADRs outrank them.
+- Every finding needs a clause, checklist ID, `file:line` (or plan section), confidence, P-level, reachable trigger and owner-level fix. Never invent measurements; unmeasurable claims are `NOT VERIFIABLE`. Verify provider facts from current docs with a URL.
+- Require code-enforced authorization, approval, bounds and validation; prompts, classifiers and guardrails cannot be the only boundary. De-escalate only with a cited working control. Route `[LEGAL-OWNER]` questions to their owner; never decide legality.
+- Run nine AE passes serially with `Think:` first. Report every AF / AE / AR gate; deduplicate across AI, UI and security lenses, cluster systemic defects, and retain the top-10 cap unless a full audit was requested.
+- Respect the round bar: round 1 clears at zero open validated findings, with no-edit LOW deferral; round 2 clears Critical/High/Medium and defers Low. Binary gates always block. Every applied fix needs fresh Phase 0 review and tasks; when delegating, use a fresh `ai-engineering-reviewer` if available.
+- Review-only and caller-owned passes: Phases 0–8 only; no fix, nested fan-out, user question or writer beyond the report. Return validated Critical/High/Medium/Low groups (P0/P1/P2/P3 respectively). Standalone fix-loop may repair code or plan after validation, then freshly review it.
+- Ask for next steps only standalone; under `--report-only`, parent invocation or delegation, return next-step recommendations without asking.
+- Honor the protected protocol guides/reminders: evidence and critical thinking, task/report persistence, subagent return envelope, trade-off confirmation or caller handoff, and PAR/SEQ disjoint waves, one message per wave, with an all-return barrier.
 
 **Anti-Rationalization:**
 
@@ -500,3 +484,10 @@ Before reporting ANY work done:
 **MUST ATTENTION** Core Engineering Principles — every plan, implementation and review must be **Easy to change** (reuse first, one owner per rule, interfaces/adapters at volatile boundaries, no speculative abstraction) · **Easy to scale** (extend by addition, bounded growth, explicit boundaries, sized to the project's real profile) · **Easy to maintain** (intent-named tests that fail when the rule breaks across happy/error/edge paths; harness green locally and in CI). Before done: next change → how many edit sites? 10× → what breaks? which test goes red?
 
 <!-- /SYNC:core-engineering-principles:reminder -->
+
+
+<!-- SYNC:review-policy:reminder -->
+
+**MUST ATTENTION** Triage all targets, plan and create review/validation/fix/fresh re-review tasks first. Review-only reports without edits; fix-loop freshly reviews every repair under one fixing owner. Default cap three rounds: disclose deferred LOWs, ask and wait before a bounded extension for MEDIUM+ or failed required checks. Preserve scope, coverage and actual operation authority.
+
+<!-- /SYNC:review-policy:reminder -->

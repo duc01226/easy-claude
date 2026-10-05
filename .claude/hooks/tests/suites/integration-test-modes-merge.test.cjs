@@ -12,7 +12,7 @@
  * Coverage:
  *   TC-ITM-001 — mode detection sits at the top; both modes have a BLOCKING read line and an existing reference.
  *   TC-ITM-002 — default generation text stays free of the review and verify mode bodies.
- *   TC-ITM-003 — the review mode keeps the one-round cap, read-only boundary, eight gates, verdicts and flags.
+ *   TC-ITM-003 — the review mode keeps default read-only and bounded fix-loop ownership, read-only boundary, eight gates, verdicts and flags.
  *   TC-ITM-004 — the verify mode keeps the precondition gate, repeat policy, flake adjudication, the
  *                --fix-loop pointer and the G1 Next-Steps nested=true rule.
  *   TC-ITM-005 — the old skill folders stay deleted and no workflow step or id references them.
@@ -97,6 +97,7 @@ function* walk(rel) {
 /** A line that names a removed skill but is an allowed mention. */
 function allowedMention(rel, line) {
     if (rel === '.claude/skills/integration-test/SKILL.md' && /former/i.test(line)) return true;
+    if (rel === '.claude/skills/integration-test/SKILL.md' && /do not resolve\.$/.test(line) && REMOVED.every(name => line.includes('`/' + name + '`'))) return true;
     if (rel === '.claude/skills/integration-test/references/mode-review.md' && line.includes('tmp/reports/' + REMOVED[0] + '-{YYMMDD}')) return true;
     return false;
 }
@@ -119,17 +120,19 @@ const tests = [
             const text = skill();
             // Mode detection comes before the first content section
             const routing = text.indexOf('Mode routing');
-            assert.ok(routing > 0 && routing < text.indexOf('## Quick Summary'), 'mode detection sits at the top, before the Quick Summary');
+            assert.ok(routing > 0 && routing < text.indexOf('## Mode Dispatch'), 'mode routing precedes execution dispatch');
+            assert.match(text, /\[BLOCKING\].*Mode routing — detect FIRST[^\n]*Read its reference in full before executing/);
+            assert.match(text, /Read in full FIRST/);
             assert.match(text, /## Mode Dispatch/);
             // Each merged mode has a mandatory full-read line naming an existing reference
             for (const mode of ['review', 'verify']) {
-                assert.match(text, new RegExp(`\\*\\*\\[BLOCKING\\]\\*\\* When \`--mode=${mode}\`, read \`references/mode-${mode}\\.md\` in full FIRST`), `mandatory read line for ${mode}`);
+                assert.ok(text.split('\n').some(line => line.startsWith('| `--mode=' + mode + ' ') && line.includes('`references/mode-' + mode + '.md`')), `full-read dispatch for ${mode}`);
                 assert.ok(fs.existsSync(path.join(SKILLS, 'integration-test', 'references', `mode-${mode}.md`)), `references/mode-${mode}.md exists`);
             }
             assert.ok(fs.existsSync(path.join(SKILLS, 'integration-test', 'references', 'fix-loop.md')), 'references/fix-loop.md exists');
             assert.match(text, /read `references\/fix-loop\.md` in full before any loop work/);
             // The removed slash commands resolve through a prominent "formerly" mapping
-            assert.match(text, /former `\/[a-z-]+` and `\/[a-z-]+`: those slash commands no longer exist/);
+            assert.match(text, /`\/integration-test-review` and `\/integration-test-verify` do not resolve/);
             // The existing positional branches keep their place (default behavior unchanged)
             assert.match(text, /# REVIEW Mode — Test Quality Audit/);
             assert.match(text, /# VERIFY-TRACEABILITY Mode/);
@@ -140,7 +143,7 @@ const tests = [
         skip: SKIP,
         fn: () => {
             const text = skill();
-            const reviewOnly = ['`round = 1`, `maxRounds = 1`', '## One-Round Contract', '## Single Review Pass — Eight Gates', '### 1. Assertion value', 'Finding Validation and Verdict'];
+            const reviewOnly = ['## Modes and Round Ownership', '## Single Review Pass — Eight Gates', '### 1. Assertion value', 'Finding Validation and Verdict'];
             const verifyOnly = ['## Step 1: Read Project Config + Reference Docs', '### Step 1b: Harvest the Environment Precondition Checklist', '## Fallback Mode (No Project Config)', '## On Test Failure Protocol', 'Intermittent (flaky) failure adjudication', '### Step 3b: Test Architecture Contract Scope'];
             const loopOnly = ['FL-0 — Resolve Verification Scope + Goal Contract', 'FL-1 — Round Loop'];
             for (const marker of [...reviewOnly, ...verifyOnly, ...loopOnly]) assert.ok(!text.includes(marker), `integration-test/SKILL.md must not inline mode text: ${marker}`);
@@ -157,15 +160,15 @@ const tests = [
         }
     },
     {
-        name: 'TC-ITM-003 --mode=review keeps the one-round cap, read-only boundary, eight gates, verdict set and execution flags',
+        name: 'TC-ITM-003 --mode=review preserves read-only leaves and bounded fix-loop, eight gates, verdicts and proof flags',
         skip: SKIP,
         fn: () => {
             const text = modeReview();
-            assert.match(text, /`round = 1`, `maxRounds = 1`, `minRounds = 1`/);
-            assert.match(text, /\*\*ONE ROUND MAXIMUM per invocation\.\*\*/);
-            assert.match(text, /Never fix tests\/source or re-review inside this skill/);
-            assert.match(text, /another pass requires a new explicit invocation/i);
-            assert.match(text, /Read-only on source, tests, specs, and config\. Write only the review report under `tmp\/reports\/`/);
+            assert.match(text, /Standalone defaults to review-only/);
+            assert.match(text, /Review-only\/caller-owned leaves write reports only; the fix-loop owner performs authorized repairs/);
+            assert.match(text, /one shared three-round budget and the LOW\/extension rules/);
+            assert.match(text, /caller-owned leaves never start another loop or edit/);
+            assert.match(text, /validate findings, repair at the owner, then freshly review the settled target/);
             assert.match(text, /Never weaken assertions, add skips, widen timeouts, or rewrite source\/tests to force green/);
             // Eight gates
             for (const gate of ['1. Assertion value', '2. Owned outcome', '3. Repeatability and isolation', '4. Behavior ownership', '5. Spec/case traceability', '6. Spec ↔ tests ↔ code consistency', '7. Change coverage', '8. Real-world fidelity']) {
@@ -178,12 +181,13 @@ const tests = [
             for (const verdict of ['PASS', 'PASS_WITH_NOTES', 'CHANGES_REQUESTED', 'BLOCKED']) assert.ok(text.includes(`\`${verdict}\``), `verdict ${verdict}`);
             assert.match(text, /\/why-review --validate-findings <report-path>/);
             assert.match(text, /terminal validation is part of round 1 and never opens another review round/);
-            // No convergence loop and no second review round
-            assert.doesNotMatch(text, /SYNC:double-round-trip-review|OVERRIDE:double-round-trip-review|extendable ONCE|fresh full re-review/i);
+            // No retired prohibition can silently disable the opted-in loop.
+            assert.doesNotMatch(text, /ONE ROUND MAXIMUM per invocation|Never fix tests\/source or re-review inside this skill|another pass requires a new explicit invocation/i);
+            assert.match(text, /Review-only stops; fix-loop repairs validated findings and performs a fresh complete review/);
             // The AI-surface lens stays inside the single pass
             assert.match(text, /### Conditional AI-surface lens/);
             // And the parent skill states the cap at the point of dispatch
-            assert.match(skill(), /its one-round cap and read-only rules govern/);
+            assert.match(skill(), /Flagged modes replace generation for the invocation and govern their own caps, flags and terminal states/);
         }
     },
     {
@@ -251,7 +255,7 @@ const tests = [
             for (const { workflow, mode, occurrence } of occurrencesOf(document, 'integration-test')) {
                 const args = occurrence.args.trim();
                 if (!args) continue;
-                const match = /^--mode=(review|verify)(?: (?:--report-only|--prove-tests|--fix-loop))*$/.exec(args);
+                const match = /^--mode=(review|verify)(?: (?:--report-only|--review-only|--prove-tests|--fix-loop|--loop-owner=caller))*$/.exec(args);
                 assert.ok(match, `${workflow}/${mode}/${occurrence.id}: unsupported integration-test arguments "${args}"`);
                 assert.ok(dispatch.includes(`\`--mode=${match[1]}`), `${workflow}/${occurrence.id}: integration-test has no --mode=${match[1]}`);
                 counts[match[1]] += 1;
@@ -313,7 +317,7 @@ const tests = [
                 assert.equal(opens.length, closes.length, `${label} fences balanced`);
             }
             // The AI floor is one conditional pointer in the review reference, never a guide line or body
-            assert.match(modeReview(), /\*\*AI surface\?\*\* Only if the tested path calls a model[^\n]*\.claude\/skills\/shared\/protocols\/ai-engineering-gate\.md[^\n]*otherwise skip this line/);
+            assert.match(modeReview(), /If the tested path calls a model[^\n]*\.claude\/skills\/shared\/protocols\/ai-engineering-gate\.md[^\n]*otherwise record N\/A/);
             assert.ok(!modeReview().includes('SYNC:ai-engineering-gate') && !skillTags.includes('ai-engineering-gate'), 'default generation pays nothing for the AI floor guide');
             // And the skill keeps the protocols test generation shares with the modes
             for (const tag of ['integration-test-execution-discipline', 'test-failure-fault-adjudication', 'test-architecture-execution-contract', 'verify-last-order', 'real-world-fidelity-testing', 'repeatable-test-principle']) {
@@ -343,7 +347,7 @@ const tests = [
             assert.ok(scanned > 500, `tripwire: the scan covers the framework sources (${scanned} files)`);
             assert.deepEqual(offenders, [], 'replace each with `integration-test --mode=review` / `integration-test --mode=verify`');
             const formerly = skill().split('\n').filter(line => REMOVED.some(name => line.includes(name)));
-            assert.ok(formerly.length >= 1 && formerly.every(line => /former/i.test(line)), 'integration-test/SKILL.md names the removed commands only as "formerly"');
+            assert.ok(formerly.length >= 1 && formerly.every(line => allowedMention('.claude/skills/integration-test/SKILL.md', line)), 'integration-test/SKILL.md names the removed commands only as "formerly"');
         }
     },
     {
@@ -358,7 +362,7 @@ const tests = [
             assert.match(description, /--mode=review/);
             assert.match(description, /--mode=verify/);
             assert.match(description, /--fix-loop/);
-            assert.match(description, /integration tests/);
+            assert.match(description, /integration tests?\b/);
         }
     },
     {
@@ -371,9 +375,17 @@ const tests = [
             const prover = review.sequence.find(step => step && step.id === 'integration-tests-review');
             assert.ok(prover, 'the integration-test review specialist step exists');
             assert.equal(prover.skill, 'integration-test');
-            assert.equal(prover.args, '--mode=review --report-only --prove-tests');
+            assert.equal(review.defaultMode, 'fix-loop');
+            assert.equal(prover.args, '--mode=review --prove-tests --fix-loop --loop-owner=caller');
             assert.equal(prover.role, 'gate');
-            assert.ok(review.parallelGroups.some(group => group.members.includes('integration-tests-review')), 'the specialist is a barrier member');
+            for (const manifest of resolveAllWorkflowManifests(document, 'workflow-review-changes', { rootDir: REPO_ROOT })) {
+                const leaf = manifest.occurrences.find(step => step.id === prover.id);
+                assert.ok(leaf && leaf.skill === 'integration-test', 'prover gate survives every variant');
+                assert.equal(leaf.args, manifest.mode === 'fix-loop'
+                    ? '--mode=review --prove-tests --fix-loop --loop-owner=caller'
+                    : '--mode=review --prove-tests --review-only');
+                assert.equal(leaf.role, 'gate');
+            }
             // why-review: the linkage reads the review mode's gates and keeps its recursion-guard rows
             const linkage = read(SKILLS, 'why-review', 'references', 'full-mode.md');
             assert.match(linkage, /### Integration-Test-Review Linkage/);
@@ -385,7 +397,7 @@ const tests = [
                 assert.ok(linkage.includes(rowStart), `the recursion guard keeps the row ${rowStart}`);
             }
             // changes-review Phase 3.7 routes the coverage gate to the review mode
-            assert.match(read(SKILLS, 'changes-review', 'SKILL.md'), /Phase 3\.7 — test coverage[^\n]*`\/integration-test --mode=review --report-only`/);
+            assert.match(read(SKILLS, 'changes-review', 'SKILL.md'), /`\/integration-test --mode=review --report-only`/);
         }
     },
     {

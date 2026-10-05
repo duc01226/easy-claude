@@ -29,7 +29,7 @@ Connected contracts:
 **Summary:**
 
 - Business-first: run Stages 1-6 (discovery, market, domain) before any tech talk — NEVER ask about tech stack upfront; derive it from the business analysis.
-- Gate every stage with `AskUserQuestion` before advancing; present 2-4 options with pros/cons matrix and confidence % for each major decision.
+- Gate every stage with `ask user question tool` before advancing; present 2-4 options with pros/cons matrix and confidence % for each major decision.
 - Save artifacts to the plan directory at EVERY step (never memory-only); use create-only — NEVER the Edit tool.
 
 **Workflow:**
@@ -44,12 +44,12 @@ Connected contracts:
 
 - **AI surface?** Only if the system adds or changes a model call, agent, tool/MCP, retrieval or eval (see `node .claude/scripts/ai-signal-scan.cjs`): read `.claude/skills/shared/protocols/ai-feature-framing-gate.md` and apply it in the stack and architecture stages; otherwise skip this line.
 - NEVER ask about tech stack upfront — derive from business analysis (Stages 1-6 first)
-- Every stage MUST end with `AskUserQuestion` before proceeding
+- Every stage MUST end with `ask user question tool` before proceeding
 - Save artifacts at EVERY step — never keep findings only in memory
 - All tech recommendations require confidence % and evidence (sources, benchmarks)
 - Present 2-4 options for every major decision
 
-> **[IMPORTANT]** NEVER skip user validation at decision points. NEVER recommend tech without comparison of alternatives. Every stage MUST end with `AskUserQuestion`.
+> **[IMPORTANT]** NEVER skip user validation at decision points. NEVER recommend tech without comparison of alternatives. Every stage MUST end with `ask user question tool`.
 > **Evidence Gate:** MANDATORY IMPORTANT MUST ATTENTION — every claim, finding, and recommendation requires `file:line` proof or traced evidence with confidence percentage (>80% to act, <80% must verify first).
 > **External Memory:** For complex or lengthy work (research, analysis, scan, review), write intermediate findings and final results to a report file in `tmp/reports/` — prevents context loss and serves as deliverable.
 
@@ -72,7 +72,7 @@ Connected contracts:
 
 ## Workflow (Full Waterfall)
 
-Every stage MUST ATTENTION end with `AskUserQuestion` to validate decisions before proceeding.
+Every stage MUST ATTENTION end with `ask user question tool` to validate decisions before proceeding.
 
 | Stage | Action                                                                                                                                                                                                                                                                              | Output Artifact                                                                      |
 | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
@@ -91,7 +91,7 @@ Every stage MUST ATTENTION end with `AskUserQuestion` to validate decisions befo
 ## Key Rules
 
 - **No guessing** — investigate first; NEVER fabricate file paths, function names, behavior. Unsure → say so. — why: fabricated foundation propagates into every downstream stage.
-- **Full Waterfall** — EVERY stage MUST end with `AskUserQuestion` validation before advancing.
+- **Full Waterfall** — EVERY stage MUST end with `ask user question tool` validation before advancing.
 - **Save Artifacts** — write output to plan directory at EVERY step; NEVER keep findings only in memory. — why: context cutoff silently drops in-memory findings.
 - **Evidence-Based** — every tech recommendation states confidence % plus evidence (web sources, benchmarks); NEVER recommend without proof.
 - **Multiple Options** — present 2-4 options for every major decision (tech stack, architecture, hosting).
@@ -320,7 +320,7 @@ After tech stack confirmed, generate starter `CLAUDE.md` containing:
 >
 > **Mandatory closers:** Confidence % stated · Assumptions listed · Open questions surfaced · Next action concrete.
 >
-> **Stop conditions:** confidence <60% on any critical decision → stop and escalate via AskUserQuestion (60-80% → verify first) · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
+> **Stop conditions:** confidence <70% on any critical decision → stop and escalate via ask user question tool (70-80% → verify first) · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
 >
 > **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
 
@@ -754,7 +754,7 @@ Assess quality, error handling, async interaction, runtime/deployment, and integ
 - **Estimation Framework:** bottom-up hours, SP derived, risk margin.
 - **Module Detection:** detect module from keywords, load specs context.
 
-**IMPORTANT MUST ATTENTION** NEVER skip user validation — every stage MUST end with `AskUserQuestion` before proceeding — why: a waterfall stage built on an unvalidated decision corrupts every downstream stage.
+**IMPORTANT MUST ATTENTION** NEVER skip user validation — every stage MUST end with `ask user question tool` before proceeding — why: a waterfall stage built on an unvalidated decision corrupts every downstream stage.
 **IMPORTANT MUST ATTENTION** NEVER ask about tech stack upfront — derive it from business analysis (Stages 1-6 first); capture volunteered preferences as constraint signals only — why: tech chosen before the domain is understood fits the tool, not the problem.
 **IMPORTANT MUST ATTENTION** ALWAYS save artifacts to the plan directory at every stage; use create-only — NEVER the Edit tool — why: findings kept only in memory are lost on context cutoff, and Edit risks corrupting existing files.
 **IMPORTANT MUST ATTENTION** NEVER recommend tech without comparing 2-4 alternatives in a pros/cons matrix, each scored with confidence % plus evidence (web sources, benchmarks) — why: a single unbenchmarked recommendation is a guess wearing an architect's hat.
@@ -770,9 +770,9 @@ Assess quality, error handling, async interaction, runtime/deployment, and integ
 | Evasion                                         | Rebuttal                                                                                        |
 | ----------------------------------------------- | ----------------------------------------------------------------------------------------------- |
 | "Team already knows React, skip the comparison" | Note it as a constraint signal, then still run full tech-stack research to validate or beat it. |
-| "Stage is obvious, skip the `AskUserQuestion`"  | Every stage gate is mandatory — an unvalidated decision corrupts all downstream stages.         |
+| "Stage is obvious, skip the `ask user question tool`"  | Every stage gate is mandatory — an unvalidated decision corrupts all downstream stages.         |
 | "I'll keep these findings in context"           | Context cutoff drops them. Save to the plan directory at every step, no exceptions.             |
 | "85% sure this framework wins"                  | Show the comparison matrix + sources. No `file:line`/benchmark = no recommendation.             |
 | "Edit the existing file, it's faster"           | NEVER use Edit — create new plan artifacts only; Edit risks corrupting existing files.          |
 
-**IMPORTANT MUST ATTENTION Goal echo (recency):** raw idea → validated, evidence-backed, implementable greenfield plan — business analysis BEFORE tech, `AskUserQuestion` gate every stage, save every artifact, confidence % on every recommendation.
+**IMPORTANT MUST ATTENTION Goal echo (recency):** raw idea → validated, evidence-backed, implementable greenfield plan — business analysis BEFORE tech, `ask user question tool` gate every stage, save every artifact, confidence % on every recommendation.

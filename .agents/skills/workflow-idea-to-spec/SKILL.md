@@ -1,6 +1,6 @@
 ---
 name: workflow-idea-to-spec
-description: '[Workflow] Use when turning a raw idea, vision or problem into one reviewed provisional canonical spec. Stops at the spec; backlog: chain workflow-spec-to-pbi.'
+description: '[Workflow] Turn a raw idea, vision or problem into reviewed provisional canonical specs with planned test cases; stop before backlog or implementation.'
 disable-model-invocation: false
 ---
 
@@ -10,26 +10,50 @@ disable-model-invocation: false
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - Use ask user tool to ask user.
+> - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
 > - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
 > - For workflow skills, steps follow the guided contract in `$start-workflow` (gate steps fixed; other steps may flex with a logged reason); report step-by-step evidence.
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
+<!-- WORKFLOW-CALLS:START -->
+## Workflow Calls and Todo Bootstrap
+
+Read [the registry](../../../.claude/workflows.json) → `workflows.workflow-idea-to-spec` together with this skill. Call [`$start-workflow workflow-idea-to-spec`](../start-workflow/SKILL.md) to resolve the selected mode, pre-actions and fingerprint.
+
+**Todo FIRST:** create ALL selected occurrence tasks before triage, analysis or step execution, including conditional/optional tasks; preserve occurrence IDs, roles and barrier groups. Use native task tools or an equivalent persistent ledger. Then mark the first task `in_progress`; attach evidence before `completed`.
+Mode selection and registry loading prepare tracking; any 'first action' below means the first substantive action after this bootstrap.
+
+**Call each step skill:** read its linked SKILL.md and execute its protocol through the active host with the registry args. Reading or naming a skill alone is not execution. Required gates and core/optional flex follow the linked start-workflow Step Execution Protocol; keep this skill's quality gates, loops and evidence requirements.
+
+**Conditions:** load each occurrence's registry `applicability.when` and `skipReason` verbatim, and record its run/skip evidence through the linked start-workflow protocol. Do not silently omit a task or turn a conditional skill into an unconditional call. Declared parallel groups retain their all-return barrier.
+
+Explicit step-skill calls by mode (registry order; roles and conditions remain owned by the registry):
+
+- Mode `default`: [`$web-research`](../web-research/SKILL.md) (optional; conditional) → [`$source-deep-dive`](../source-deep-dive/SKILL.md) (optional; conditional) → [`$brainstorm`](../brainstorm/SKILL.md) (core) → [`$spec [mode=discovery]`](../spec/SKILL.md) (optional; conditional) → [`$scenario`](../scenario/SKILL.md) (optional; conditional) → [`$domain-analysis`](../domain-analysis/SKILL.md) (optional; conditional) → [`$why-review`](../why-review/SKILL.md) (optional; conditional) → [`$idea`](../idea/SKILL.md) (optional; conditional) → [`$spec [mode=draft]`](../spec/SKILL.md) (core) → [`$spec [mode=tests]`](../spec/SKILL.md) (core) → [`$pbi --mode=review --type=spec-tests`](../pbi/SKILL.md) (core) → [`$pbi --mode=review`](../pbi/SKILL.md) (gate) → [`$design-spec`](../design-spec/SKILL.md) (optional; conditional) → [`$spec [mode=clarify]`](../spec/SKILL.md) (gate) → [`$why-review`](../why-review/SKILL.md) (core) → [`$docs-manager --mode=update`](../docs-manager/SKILL.md) (core) → [`$feature-presentation`](../feature-presentation/SKILL.md) (optional; conditional) → [`$workflow-end`](../workflow-end/SKILL.md) (gate) → [`$watzup`](../watzup/SKILL.md) (core)
+<!-- workflow-mode:default fingerprint:a8a8eea2d05f431bb6c986f0642a676ca248359724527dc7cfc48612e5d9d18e -->
+
+Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs --write` after registry edits; [`$sync-codex`](../sync-codex/SKILL.md) refreshes it before mirroring.
+<!-- WORKFLOW-CALLS:END -->
+
 ## Quick Summary
 
-**Goal:** turn a raw idea, vision or problem into ONE reviewed, docs-synced, provisional canonical spec per converged capability — with planned test/evidence cases in the configured artifact contract — and STOP there. **MUST ATTENTION** no PBI, story, backlog, mockup or roadmap artifact is produced here.
+**Goal:** Turn a raw idea, vision or problem into one reviewed, docs-synced provisional canonical spec per converged capability, with planned cases under the configured artifact contract; stop before backlog or implementation.
 
-**Use it when** a PO/BA wants intended behavior captured as the source of truth BEFORE code exists (spec-first). **Use a sibling instead when:** code already exists → `workflow-code-to-spec`; the user wants the backlog in one pass → `workflow-idea-to-pbi`; a spec already exists and needs PBIs → `workflow-spec-to-pbi`; the behavior is already written and needs building → `workflow-implement-spec`; a bug → `workflow-bugfix`.
+**Summary:** Triage/profile → conditional research/deep dive → brainstorm/discovery → scenario/domain/framing review → idea → draft/tests → case/spec review → UI design → clarify/rationale → docs sync → presentation → close/wrap-up. Gates remain fixed; conditions below select optional work. Produce planned evidence, not implemented proof.
+
+**Use when:** PO/BA needs canonical intent before code exists. **Adjacent routes:** existing code → `workflow-code-to-spec`; idea + backlog → `workflow-idea-to-pbi`; spec + PBIs → `workflow-spec-to-pbi`; specified behavior to build → `workflow-implement-spec`; bug → `workflow-bugfix`.
 
 **IMPORTANT MANDATORY Steps:** $web-research -> $source-deep-dive -> $brainstorm -> $spec [mode=discovery] -> $scenario -> $domain-analysis -> $why-review -> $idea -> $spec [mode=draft] -> $spec [mode=tests] -> $pbi --mode=review --type=spec-tests -> $pbi --mode=review -> $design-spec -> $spec [mode=clarify] -> $why-review -> $docs-manager --mode=update -> $feature-presentation -> $workflow-end -> $watzup
 
-**Step contract:** steps follow `$start-workflow` → Step Execution Protocol — `gate` steps always run, a step that runs invokes its skill invocation, and every other deviation is logged to the run's deviation log. The list above is the recommended default order; the triage below decides which recommendations earn their cost.
+**Key Rules:** Confirm scope with the user; resolve artifact roles before authoring; create no PBI, story, backlog, mockup or roadmap artifact.
+
+**Step contract:** Follow `$start-workflow` → Step Execution Protocol: gates always run; invoke every selected skill through the active host; log deviations. Triage selects recommendations and depth.
 
 ## 1. Triage (FIRST action, before choosing steps)
 
-Classify the idea and record the result in the run report. Escalate depth on ambiguity and risk, not on length alone.
+Record size, kinds and risk in the run report before selecting steps. Escalate depth on ambiguity and risk, not length.
 
 | Band     | Signal                                                                            | Default depth                                                                                                                           |
 | -------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
@@ -38,23 +62,23 @@ Classify the idea and record the result in the run report. Escalate depth on amb
 | **M**    | one capability with many rules/states, UI surface, or overlap with existing specs | full framing (why-review), design-spec when UI, presentation when stakeholders review                                                   |
 | **L/XL** | several capabilities, release scope, research-heavy or ambiguous idea             | `isLargeIdea` true → decomposition block; one spec per capability; 4+ capabilities → one `spec` sub-agent per capability in ONE message |
 
-**Kinds** (each selects optional steps): external market/competitor evidence would change the spec → `web-research` (+ `source-deep-dive`) · specs or code already exist for the area → `spec [mode=discovery]` · new/changed domain entities → `domain-analysis` · adversarial replay/state/ownership/recovery/evidence analysis needed → `scenario` · user-facing UI → `design-spec` · multiple stakeholders or M+ spec → `feature-presentation`.
+**Kinds:** Apply the conditions in Recommended Skills below to select optional steps.
 
-**Large-idea rule (MANDATORY, shared):** evaluate `isLargeIdea = multipleIndependentOutcomes || ambiguousOrResearchHeavy || releaseScopeDecomposition || oversizedPbiThatMustSplit` before authoring. Any true signal → the complete `large_idea_decomposition` block (`outcome_slices`, `dependencies_order`, `non_goals`, `risks_evidence`, `deferred_work_owner`) goes in the spec role the native profile or local artifact reference declares for slice plans, and its stable slice IDs carry into downstream inputs. All false → omit the block. When neither the profile nor the local reference declares such a role, stop and resolve the mapping; never invent a section. A supplied roadmap is read-only context; the standalone `product-roadmap` skill runs only on an explicit user request.
+**Large-idea rule (MANDATORY):** Evaluate `isLargeIdea = multipleIndependentOutcomes || ambiguousOrResearchHeavy || releaseScopeDecomposition || oversizedPbiThatMustSplit` before authoring. Any true signal → the complete `large_idea_decomposition` block (`outcome_slices`, `dependencies_order`, `non_goals`, `risks_evidence`, `deferred_work_owner`) goes in the spec role the native profile or local artifact reference declares for slice plans, and its stable slice IDs carry into downstream inputs. All false → omit it. If neither profile nor local reference declares the slice-plan role, stop and resolve it; never invent a section. A supplied roadmap is read-only; `product-roadmap` requires an explicit user request.
 
 ## 2. Required Quality Gates (non-negotiable)
 
 | Gate                                                        | Evidence that proves it                                                                                                                                                                                                                                                                                                                                                               |
 | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Artifact profile resolved** before discovery or authoring | Read `docs/project-config.json` (`specRoots.business.path`, `workflowPatterns.featureDocTemplate`, `docsRoots.projectReference.path`, `specArtifacts`), the configured template, local `spec-system-reference.md` and `spec-principles.md`; the report names the resolved path, section roles and carriers. A malformed or conflicting contract is BLOCKED — never a silent fallback. |
-| **Scope confirmed with the user**                           | Brainstorm convergence and the spec [mode=discovery] scope decision (NEW spec · EXTEND existing spec via `spec [mode=update]` · SPLIT into N) confirmed using ask user tool; never auto-select scope.                                                                                                                                                                                      |
+| **Scope confirmed with the user**                           | Brainstorm convergence and the spec [mode=discovery] scope decision (NEW spec · EXTEND existing spec via `spec [mode=update]` · SPLIT into N) confirmed via `ask user question tool`; never auto-select scope.                                                                                                                                                                                      |
 | **Spec authored**                                           | The canonical provisional spec at its configured path (`spec [mode=draft]`, or `spec [mode=update]` for EXTEND) with planned test/evidence cases (`spec [mode=tests]`) — each case names its **Business Intent / Invariant Guarded** and would fail if that intent broke.                                                                                                             |
 | **Spec review converged** (`review-converged`)              | `$pbi --mode=review` on the spec and on its test/evidence cases, including the BLOCKING **M1-M7** gate (tech-agnostic intent prose, business-visible cases); validated findings fixed and re-reviewed.                                                                                                                                                                                  |
 | **Decisions clarified**                                     | `$spec [mode=clarify]` in authored-spec context: every NON-OBVIOUS, CONFLICTS and high-impact decision confirmed by the user and written to the native role and its decision record; residual confidence below 80% stays an Open Question. Depth scales with the triage; it always records at least the OBVIOUS decisions and its verdict.                                                   |
 | **Docs synced**                                             | `$docs-manager --mode=update` synced the spec, its configured test/evidence carrier, and only declared derived indexes.                                                                                                                                                                                                                                                                              |
 | **Run closed** (`run-closed`)                               | `$workflow-end` checked every outcome gate (top-level runs only).                                                                                                                                                                                                                                                                                                                     |
 
-**Profile rules.** The native profile or local artifact contract owns paths, section roles, identifiers, provisional state and test/evidence carriers. Keep intent roles tech-agnostic; put permitted technical detail only in declared contract/evidence roles. The portable form — `{SPEC_ROOT}/{Bucket}/README.{Feature}.md`, tech-free eight sections with the inline §5 Mermaid ERD and §6.2–§6.5 interaction intent for UI features, Section 8 `TC-{FEATURE}-{NNN}` cases carrying `Evidence: TBD`, `Status: Planned`, `provisional: true` — applies only when neither exists. Unknown mapping or missing required coverage is BLOCKED/UNKNOWN, never PASS or NOT-APPLICABLE. Never invent a section, ID, provisional field or second case registry.
+**Profile rules.** Native profile/local contract owns paths, section roles, IDs, provisional state and case/evidence carriers. Keep intent tech-agnostic; permitted technical detail belongs only in declared contract/evidence roles. Only when neither contract exists, use `{SPEC_ROOT}/{Bucket}/README.{Feature}.md`: eight tech-free sections, inline §5 Mermaid ERD, §6.2–§6.5 UI interaction intent, and Section 8 `TC-{FEATURE}-{NNN}` cases with `Evidence: TBD`, `Status: Planned`, `provisional: true`. Unknown mapping or missing coverage stays BLOCKED/UNKNOWN, never PASS or NOT-APPLICABLE. Never invent sections, IDs, provisional fields or a second case registry.
 
 ## 3. Recommended Skills
 
@@ -78,14 +102,14 @@ Classify the idea and record the result in the run report. Escalate depth on amb
 
 ## 4. Orchestration Freedom
 
-You choose inline vs sub-agent, parallel waves vs sequential, batching and ordering — optimize wall-clock and token cost at equal quality. Fixed data dependencies only: the spec exists before it is reviewed or clarified; clarification fixes land before the rationale review and docs sync that check them; fixes are re-verified after they land; `$workflow-end` runs last; user-approval gates are never parallelized. XS/S work runs inline; for 4+ capabilities spawn one `spec` sub-agent per capability in ONE message, each brief carrying the framing, the resolved profile and its output path.
+Choose inline/delegated work, waves, batching and order through the Step Execution Protocol. Preserve dependencies: author before review/clarification; land clarification fixes before rationale review and docs sync; re-verify fixes; `$workflow-end` closes the run; never parallelize user approvals. XS/S runs inline. For 4+ capabilities spawn one `spec` agent per capability in ONE message, with framing, resolved profile and output path.
 
 ## 5. Memory, Reporting and Fix Path
 
-- One task per selected step (per capability when several) so nothing is lost after compaction; write the run report under `tmp/reports/` FIRST and append per step; after compaction re-read the report and the current task list before continuing.
-- Write every artifact immediately to its configured root (plans, team artifacts, business spec root) — never batch.
-- Findings are validated (evidence-backed) before fixing; fix in the owning spec role; re-run the review that raised them. Review loop: round 1 exits on zero open findings (Round-1 LOW closure); round 2 on zero CRITICAL/HIGH/MEDIUM with LOWs recorded as deferred; cap 3 review rounds; escalate using ask user tool on no progress.
-- **Provisional output:** no code exists yet, so use the provisional/planned-evidence convention of the native profile. The first `workflow-code-to-spec` / `spec [mode=update]` run against real code reconciles planned cases with executable proof and clears provisional markers only when the profile's acceptance rule is met.
+- Track each selected step per capability. Write the `tmp/reports/` report FIRST; append per step and re-read it with the task list after compaction.
+- Write artifacts immediately to their configured roots (plans, team artifacts, business specs); never batch.
+- Validate findings with evidence, fix in the owning spec role, then re-run the raising review. Round 1 exits on zero open findings (LOW deferral); round 2 on zero CRITICAL/HIGH/MEDIUM with LOWs deferred. Cap 3 review rounds; escalate via `ask user question tool` on no progress.
+- **Provisional output:** use the profile's planned-evidence convention before code exists. The first `workflow-code-to-spec` / `spec [mode=update]` against real code reconciles planned cases with executable proof; clear provisional markers only when the profile's acceptance rule passes.
 - **Handoff at close:** canonical spec paths, case/evidence coverage, open questions below 80% confidence, the presentation path when produced, and the next route — `workflow-spec-to-pbi` for a backlog or `workflow-implement-spec` to build.
 
 <!-- PROTOCOL-GUIDES:START -->
@@ -116,10 +140,17 @@ You choose inline vs sub-agent, parallel waves vs sequential, batching and order
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** one reviewed, docs-synced, provisional canonical spec per converged capability under the configured artifact contract — then STOP; chain `workflow-spec-to-pbi` for a backlog or `workflow-implement-spec` to build.
+**IMPORTANT MUST ATTENTION Goal:** Turn a raw idea, vision or problem into one reviewed, docs-synced provisional canonical spec per converged capability, with planned cases under the configured artifact contract; stop before backlog or implementation.
+
+**MUST ATTENTION Main steps:** Triage/profile → conditional research/deep dive → brainstorm/discovery → scenario/domain/framing review → idea → draft/tests → case/spec review → UI design → clarify/rationale → docs sync → presentation → close/wrap-up.
 
 - **MUST ATTENTION** triage FIRST (size band, kinds, risk, `isLargeIdea`); it selects the optional steps and their depth. Any large-idea signal → the complete `large_idea_decomposition` block in the profile's slice-plan role.
 - **MUST ATTENTION** resolve the artifact profile before authoring; the portable eight-section/`TC-{FEATURE}-{NNN}` form applies only when no native profile or local contract exists; unknown mappings stay BLOCKED.
 - **MUST ATTENTION** the spec quality gates always hold: spec + planned cases authored, `$pbi --mode=review` converged with the M1-M7 gate, `$spec [mode=clarify]` confirmed every non-obvious decision with the user, `$docs-manager --mode=update` synced, `$workflow-end` closed.
 - **NEVER** produce PBIs, stories, mockups or a roadmap artifact here; never auto-select scope — confirm it with the user.
 - **MUST ATTENTION** one task per selected step, report in `tmp/reports/` written first and re-read after compaction; every case names the business intent it guards.
+
+| Evasion | Required action |
+| --- | --- |
+| "Small idea, skip gates" | Scale depth; keep scope confirmation, review, clarity, sync and closure. |
+| "Planned cases prove implementation" | Keep provisional markers until executable proof meets the profile's acceptance rule. |

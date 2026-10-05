@@ -1,6 +1,6 @@
 ---
 name: knowledge-review
-description: '[Research] Use when a workflow step or the user asks for a knowledge artifact review: completeness, citations, confidence accuracy, template compliance.'
+description: '[Research] Use when a workflow step or the user asks for knowledge artifact review: completeness, citation accuracy, confidence and template compliance.'
 ---
 
 > Codex compatibility note:
@@ -9,7 +9,7 @@ description: '[Research] Use when a workflow step or the user asks for a knowled
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - Use ask user tool to ask user.
+> - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -18,11 +18,13 @@ description: '[Research] Use when a workflow step or the user asks for a knowled
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
 ## Quick Summary
 
+> **Review modes:** For review/audit work, standalone defaults to `--review-only` (`--report-only` alias); `--fix-loop` enables review → validate → authorized fix → fresh re-review, default cap 3. `--fix-loop --loop-owner=caller` returns a read-only pass to the caller that owns fixes/re-review. Create triage, review, validation and re-review todo tasks first; apply the carried `review-policy` contract for LOW deferral and user-approved bounded extensions. Non-review modes and terminal findings validation keep their own dispatch.
+
 **Goal:** Ensure knowledge artifacts are evidence-backed, complete, protocol-compliant, and safe to use for decisions — reviewing for quality, completeness, citation accuracy, and template compliance.
 
 **Summary:**
 
-- PURPOSE: READ-ONLY audit of a knowledge artifact (research report / course / strategy) for completeness, citation accuracy, confidence calibration, source quality, and template compliance — output is a verdict, NEVER an edit.
+- PURPOSE: audit a knowledge artifact (research report / course / strategy) for completeness, citation accuracy, confidence calibration, source quality and template compliance. Review-only returns a verdict; standalone fix-loop validates, repairs and freshly audits the artifact.
 - MAIN STEPS in order: (1) read the artifact → (2) run the 7-checklist audit — template compliance · citation audit · confidence accuracy · source quality · knowledge gaps · cross-validation · actionability, verifying presence AND quality depth (never just that a section exists) → (3) run the adversarial Anti-Bias Gate → (4) emit PASS/WARN/FAIL per-check + verdict (APPROVED/REVISE/BLOCKED) → (5) conditional Round 2 focused re-review.
 - Default to SKEPTIC: run the Anti-Bias Gate before any verdict — find a contradicting source per major claim, stress-test every score ≥80%, state the strongest alternative conclusion, check supporting-vs-contradicting source ratio, run a pre-mortem, and argue the opposite verdict in 2+ sentences.
 - Calibrate confidence to evidence: a single source ≠ 80%, scores >80% need 2+ independent sources with contradicting evidence addressed, single-source claims marked unverified must be <60%, and findings <60% must be flagged prominently.
@@ -41,9 +43,9 @@ description: '[Research] Use when a workflow step or the user asks for a knowled
 - Every section from template must be present and non-empty
 - Every factual claim must have inline citation
 - Confidence scores must match evidence basis
-- READ-ONLY — do not modify the artifact
+- Each review pass is read-only. Standalone fix-loop repairs validated findings between passes; review-only and caller-owned leaves never modify the artifact.
 
-**Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
+**Apply skeptical, sequential thinking; trace every claim and state confidence (>80% to act).**
 
 ## First Principle — Easy to Change · Easy to Scale · Easy to Maintain
 
@@ -79,11 +81,7 @@ Before writing any verdict, generate 2+ sentences arguing OPPOSITE conclusion ab
 
 ### Forbidden Patterns
 
-- **"Sources are cited"** → Presence of citations ≠ quality. Do they actually support the claim?
-- **"Confidence scores look reasonable"** → What would LOWER the confidence score? Name it.
-- **"Comprehensive coverage"** → What perspective is MISSING from this research?
-- **"Recommendations are actionable"** → On what evidence? What's the confidence of the evidence chain?
-- **Approving a knowledge artifact without challenging the evidence quality** → Forbidden.
+Citation presence, plausible scores, broad coverage, and actionable wording are insufficient without source support, confidence stress tests, missing-perspective checks, and an evidence chain. Never approve without challenging evidence quality; the closing Anti-Rationalization table gives the corresponding checks.
 
 ### Anti-Bias Gate (MANDATORY before finalizing verdict) (MUST ATTENTION)
 
@@ -100,63 +98,65 @@ Any item unmet → adversarial review incomplete. Go back. — why: skipping the
 
 ## Review Checklist
 
+Check both presence and substantive quality for every row; headings, placeholders, or generic filler do not pass.
+
 ### 1. Template Compliance
 
-| #   | Check                                                                                                     | Presence                                                                                 | Quality Depth                                                                                                                                                       |
-| --- | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | **All enforced sections present** — every required section from the template exists in the artifact       | Are ALL required sections present (not just most)? Is any section empty vs. placeholder? | Does each section contain substantive content, or is it a heading with nothing beneath it? A partially-filled section is as dangerous as a missing one.             |
-| 2   | **No sections are empty placeholders** — section bodies contain real content, not "TBD" or "to be filled" | Are section bodies substantive or just "TBD / to be filled"?                             | Is the content specific to this artifact, or generic filler? A section that says "risks will be identified later" has negative value — it creates false confidence. |
-| 3   | **Section order matches template** — sections appear in prescribed sequence                               | Do sections appear in the prescribed order?                                              | Does reordering break any cross-references between sections? If section 3 references section 2, out-of-order placement creates reading confusion.                   |
+| Check | Verify presence and depth |
+| --- | --- |
+| All enforced sections present | Every template section has substantive content; missing or partially filled sections fail. |
+| No empty placeholders | Reject “TBD”, “to be filled”, and generic filler such as “risks will be identified later”. |
+| Section order matches template | Preserve prescribed order and verify cross-references still make sense. |
 
 ### 2. Citation Audit
 
-| #   | Check                                                                                                                            | Presence                                                                                                                  | Quality Depth                                                                                                                                                       |
-| --- | -------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | **Every factual claim has inline citation `[N]`** — all assertions are backed by a numbered source reference                     | Are ALL claims cited, or only the obvious ones? Uncited claims are assertions, not findings.                              | Do the cited sources actually say what the text claims? A source cited for a paraphrase is different from a source cited for a direct claim.                        |
-| 2   | **Every source in Sources table is referenced in text** — no source appears in the table without a corresponding `[N]` reference | Are all table sources referenced in the text body? Orphan sources = sources added for credibility, not used for evidence. | Are sources cited at the most specific claim they support, or cited vaguely at section level? Section-level citation hides which sub-claims are actually supported. |
-| 3   | **No orphan citations** — every `[N]` reference in the text matches a Sources table row                                          | Are there `[N]` references that don't match any Sources table row?                                                        | Are citation numbers consistent throughout (no gaps, no duplicates)? Broken citation numbering signals the artifact was edited without maintaining integrity.       |
-| 4   | **Sources table has: Title, URL, Author, Date, Tier** — all five fields present for every source                                 | Are ALL 5 fields filled? Is Tier assigned (not just blank)?                                                               | Are the Tier assignments accurate? A blog post assigned Tier 1 inflates perceived source quality. Is the Date current enough for the topic?                         |
+| Check | Verify presence and depth |
+| --- | --- |
+| Every factual claim has inline `[N]` | Read the source: it must support the specific claim or paraphrase. |
+| Every Sources row is cited | Cite at the most specific supported claim; reject unused credibility-padding sources and vague section-level citations. |
+| No orphan citations | Every `[N]` resolves to a Sources row; numbering stays consistent, without gaps or duplicates. |
+| Sources table has: Title, URL, Author, Date, Tier | Verify all five fields, accurate Tier and topic-appropriate Date. A blog labeled Tier 1 inflates authority. |
 
 ### 3. Confidence Accuracy
 
-| #   | Check                                                                                                                     | Presence                                                                                         | Quality Depth                                                                                                                                                                              |
-| --- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 1   | **Per-finding confidence scores declared** — each finding has its own explicit confidence percentage                      | Does EACH finding have its own score, or is one artifact-level score applied everywhere?         | Are scores at the finding level, not the section level? A single score per section hides that some findings within it may be poorly supported.                                             |
-| 2   | **Overall confidence declared** — an aggregate confidence score for the artifact is stated                                | Is the overall score present and explicitly stated?                                              | Is the overall score a reasoned aggregate, or just the highest per-finding score? An average of 85%, 60%, and 40% is NOT 85%.                                                              |
-| 3   | **Scores match evidence basis (not inflated)** — confidence percentages are calibrated to actual source count and quality | Is each score justified by the number and quality of independent sources? A single source ≠ 80%. | What would LOWER this confidence score? If no answer exists, the score is likely inflated. Are scores above 80% supported by 2+ independent sources with contradicting evidence addressed? |
-| 4   | **Findings <60% flagged prominently** — low-confidence findings are visually distinct from high-confidence ones           | Are low-confidence findings visually distinct (e.g., ⚠️ prefix), not buried in body text?        | Are low-confidence findings positioned to prevent downstream misuse? A low-confidence finding mentioned once in passing will be treated as fact by readers who skim.                       |
+| Check | Verify presence and depth |
+| --- | --- |
+| Per-finding scores | Each finding has its own explicit percentage; section/artifact scores cannot substitute. |
+| Overall confidence | Require a reasoned aggregate, not the highest finding score; 85%, 60%, and 40% do not aggregate to 85%. |
+| Scores match evidence | Justify source count, independence and quality; name what would lower each score. A single source ≠ 80%; scores >80% require 2+ independent sources and addressed counterevidence. |
+| Findings <60% flagged prominently | Visually distinguish and position low-confidence findings so skimming readers cannot mistake them for facts. |
 
 ### 4. Source Quality
 
-| #   | Check                                                                                                    | Presence                                                               | Quality Depth                                                                                                                                                                   |
-| --- | -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | **Tier distribution appropriate (not all Tier 4)** — source tiers are spread across quality levels       | Is the Tier distribution recorded? Are Tier 4 sources a minority?      | Does Tier distribution match the claim importance? A Tier 4 source for a core claim is a risk regardless of how many Tier 1 sources exist elsewhere.                            |
-| 2   | **At least 50% Tier 1-2 sources for key claims** — high-stakes conclusions rest on authoritative sources | Do key claims cite Tier 1-2 sources? Is the 50% threshold met overall? | Are the Tier 1-2 sources actually authoritative for THIS specific claim domain, or just prestigious in a different domain? Domain mismatch inflates perceived authority.        |
-| 3   | **Recency appropriate for topic type** — sources are current relative to how fast the topic evolves      | Are sources dated? Is recency assessed for each source?                | Is "recency" calibrated to the topic's rate of change? A 2019 source on cloud pricing is stale; a 2019 source on database theory may be fine. Are any outdated sources flagged? |
+| Check | Verify presence and depth |
+| --- | --- |
+| Appropriate Tier distribution | Record distribution; Tier 4 must be a minority, never the entire set. Assess authority per claim: unrelated Tier 1 sources do not rescue a core Tier 4 claim. |
+| At least 50% Tier 1-2 for key claims | Verify the overall threshold and authoritative support for key/high-stakes claims; prestige outside the claim's domain is insufficient. |
+| Topic-appropriate recency | Date and assess each source against the topic's rate of change; flag stale sources. Cloud pricing ages faster than database theory. |
 
 ### 5. Knowledge Gaps
 
-| #   | Check                                                                                                     | Presence                                                                                   | Quality Depth                                                                                                                                                                                                                        |
-| --- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 1   | **Gaps section is present and honest** — a dedicated section describes what the research did NOT find     | Is a Gaps section present? Does it list specific gaps, not just "more research needed"?    | Are the gaps specific enough to guide follow-up research? "Unknown pricing" is actionable; "some uncertainty exists" is not. Are gaps ranked by impact on the artifact's conclusions?                                                |
-| 2   | **Known limitations declared** — methodological or coverage limitations are explicitly stated             | Are limitations listed (not inferred)? Does the section distinguish limitations from gaps? | Are limitations acknowledged BEFORE they are used to discount findings, or only in a footnote after conclusions are stated? A limitation that invalidates a key finding must appear near that finding, not only in the Gaps section. |
-| 3   | **Suggestions for further research included** — the artifact proposes next steps to close identified gaps | Are 1+ follow-up research suggestions present? Are they tied to specific gaps?             | Are suggestions actionable (specific query + source type) or vague ("investigate further")? Do suggestions address the gaps that most affect decision-making?                                                                        |
+| Check | Verify presence and depth |
+| --- | --- |
+| Honest Gaps section | State specific unanswered questions, ranked by impact on conclusions, to guide follow-up; “some uncertainty exists” is insufficient. |
+| Explicit limitations | Distinguish methodological/coverage limitations from gaps. State a limitation near any finding it invalidates, before using it to discount the finding; a late footnote is insufficient. |
+| Further research | Include 1+ suggestions tied to gaps, with specific query + source type; prioritize gaps affecting decisions. |
 
 ### 6. Cross-Validation
 
-| #   | Check                                                                                                           | Presence                                                                       | Quality Depth                                                                                                                                                               |
-| --- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | **Key claims verified by 2+ sources** — core conclusions are supported by multiple independent sources          | Are 2+ sources cited for each key claim?                                       | Are the sources truly independent, or do they cite each other (amplification, not validation)? Two sources from the same original study do not constitute cross-validation. |
-| 2   | **Discrepancies noted where sources conflict** — when sources contradict each other, the conflict is documented | Are source conflicts recorded in the artifact?                                 | Are conflicts resolved or just noted? If sources conflict, the artifact should explain which source was weighted more and why — not just acknowledge the conflict exists.   |
-| 3   | **Single-source claims marked as unverified** — any finding backed by only one source is explicitly labeled     | Are single-source claims identified with an "unverified" marker or equivalent? | Are single-source claims given confidence scores below 60% as required? A single source labeled "unverified" but assigned 75% confidence is self-contradictory.             |
+| Check | Verify presence and depth |
+| --- | --- |
+| Key claims have 2+ sources | Verify genuine independence; sources citing each other or the same original study are amplification, not validation. |
+| Conflicts documented and resolved | Explain which source was weighted more and why; merely noting disagreement is insufficient. |
+| Single-source claims unverified | Explicitly label them “unverified” or equivalent, with confidence <60%; an unverified claim at 75% contradicts itself. |
 
 ### 7. Actionability
 
-| #   | Check                                                                                                                   | Presence                                                                     | Quality Depth                                                                                                                                                                               |
-| --- | ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | **Recommendations are concrete (not vague)** — each recommendation specifies who should do what                         | Are recommendations present? Do they name an action (not just "consider X")? | Are recommendations actionable enough to assign to a specific role without further clarification? "Improve monitoring" is not actionable; "add P99 latency alert at 500ms threshold" is.    |
-| 2   | **Next steps are evidence-based** — proposed actions are traceable to findings in the artifact                          | Are next steps present and linked to specific findings?                      | Is each next step traceable to a specific finding and confidence score? A next step driven by a 40%-confidence finding should be labeled speculative, not presented as a directive.         |
-| 3   | **Executive summary captures key findings** — the summary conveys findings accurately without omitting critical caveats | Is an executive summary present? Does it list key findings?                  | Does the summary preserve confidence caveats and limitations, or does it strip them out for readability? A summary that presents 60%-confidence findings as facts is worse than no summary. |
+| Check | Verify presence and depth |
+| --- | --- |
+| Concrete recommendations | State who does what, assignable to a role without clarification. “Improve monitoring” is vague; “add P99 latency alert at 500ms” is actionable. |
+| Evidence-based next steps | Trace each action to a finding and confidence score; label actions based on low-confidence evidence (e.g. 40%) speculative, not directives. |
+| Accurate executive summary | Capture key findings with confidence caveats and limitations; never turn a 60%-confidence finding into fact for readability. |
 
 ## Output Format
 
@@ -213,6 +213,8 @@ When Round 1 surfaces findings, run this focused re-review as part of that full 
 
 - `core-engineering-principles` — Core quality gate: easy to change, easy to scale, easy to maintain, judged by future change cost; planning, implementing or reviewing any change → .claude/skills/shared/protocols/core-engineering-principles.md
 - `goal-contract-satisfaction-loop` — Save the goal in a file and loop until every saved criterion passes; executing work against a user goal → .claude/skills/shared/protocols/goal-contract-satisfaction-loop.md
+- `review-decision-autonomy` — Choose supported review decisions and ask before extending the round budget; running any review or audit skill or mode → .claude/skills/shared/protocols/review-decision-autonomy.md
+- `review-policy` — Review-only or a three-round fix loop with explicit extension and fresh post-fix evidence; deciding round eligibility, blocking findings or review state → .claude/skills/shared/protocols/review-policy.md
 - `review-principle-awareness` — Classify the change context first, then apply the current principles that fit it; starting any review → .claude/skills/shared/protocols/review-principle-awareness.md
 - `review-protocol-injection` — Verbatim template and protocol blocks for every fresh sub-agent review prompt; spawning a fresh sub-agent to review → .claude/skills/shared/protocols/review-protocol-injection.md
 - `severity-rubric` — One consequence-based Critical, High, Medium, Low scale for every finding and gate; classifying a finding or deciding whether a review round passes → .claude/skills/shared/protocols/severity-rubric.md
@@ -256,11 +258,14 @@ When Round 1 surfaces findings, run this focused re-review as part of that full 
 
 <!-- SYNC:trade-off-interrogation-gate:reminder -->
 
-- **MANDATORY MUST ATTENTION ALWAYS ASK THE 3 TRADE-OFF QUESTIONS** — on the thing under review AND on every recommendation you make: (1) **what does it SACRIFICE?** name the dimensions checked (change cost · complexity · perf · coupling · reversibility · migration · ops load · blast radius · security · testability · delivery time · UX) — "none"/"pure win" is an unfinished analysis; (2) **is it worth it?** gain (with a metric) vs cost, WHO pays, WHEN → emit **WORTH IT / NOT WORTH IT / UNCLEAR**; NOT WORTH IT → withdraw or replace it; (3) **is it MATERIAL enough to confirm with the user?** irreversible/one-way door · cost shifted onto another team/ops/maintainer/user · one quality attribute traded for another · a tier/service/event/library boundary crossed · auth/money/data-integrity/breaking-change/High-or-Medium-risk path · verdict UNCLEAR → **STOP and confirm using ask user tool BEFORE the verdict**.
+**Review/audit invocations:** follow `SYNC:review-decision-autonomy` for every decision prompt; choose supported recommendations without asking, preserve round-extension approval and actual authority.
+
+- **MANDATORY MUST ATTENTION ALWAYS ASK THE 3 TRADE-OFF QUESTIONS** — on the thing under review AND on every recommendation you make: (1) **what does it SACRIFICE?** name the dimensions checked (change cost · complexity · perf · coupling · reversibility · migration · ops load · blast radius · security · testability · delivery time · UX) — "none"/"pure win" is an unfinished analysis; (2) **is it worth it?** gain (with a metric) vs cost, WHO pays, WHEN → emit **WORTH IT / NOT WORTH IT / UNCLEAR**; NOT WORTH IT → withdraw or replace it; (3) **is it MATERIAL enough to confirm with the user?** irreversible/one-way door · cost shifted onto another team/ops/maintainer/user · one quality attribute traded for another · a tier/service/event/library boundary crossed · auth/money/data-integrity/breaking-change/High-or-Medium-risk path · verdict UNCLEAR → **STOP and confirm via `ask user question tool` BEFORE the verdict**.
 - **MANDATORY** A MATERIAL trade-off with no user confirmation can NEVER be PASS; never bury one as a Low-severity note, never decide it silently, and never let delivery or convergence pressure authorize a one-way door — an un-walked-back one-way door is the user's call, not the reviewer's.
-- **MANDATORY — a context that cannot ask escalates BY HANDOFF, never by silence.** ask user tool reaches only the main interactive agent, so a sub-agent or a terminal/verdict-only mode cannot ask. There the duty is REDIRECTED, not waived: still name the trade-off, still decide materiality, record `confirmed? = NO — cannot ask from this context`, and **state the unconfirmed MATERIAL trade-off in your RETURNED verdict so the CALLER escalates it** (a note only in an on-disk report is not a handoff); never emit an unqualified PASS. If you CAN ask, you MUST ask.
+- **MANDATORY — a context that cannot ask escalates BY HANDOFF, never by silence.** `ask user question tool` reaches only the main interactive agent, so a sub-agent or a terminal/verdict-only mode cannot ask. There the duty is REDIRECTED, not waived: still name the trade-off, still decide materiality, record `confirmed? = NO — cannot ask from this context`, and **state the unconfirmed MATERIAL trade-off in your RETURNED verdict so the CALLER escalates it** (a note only in an on-disk report is not a handoff); never emit an unqualified PASS. If you CAN ask, you MUST ask.
 
 <!-- /SYNC:trade-off-interrogation-gate:reminder -->
+
 
 
 <!-- SYNC:review-principle-awareness:reminder -->
@@ -269,31 +274,37 @@ When Round 1 surfaces findings, run this focused re-review as part of that full 
 
 <!-- /SYNC:review-principle-awareness:reminder -->
 
+<!-- SYNC:review-decision-autonomy:reminder -->
+
+**MUST ATTENTION** Decide supported review choices and recommendations, record the rationale, and finish without routine user questions. Keep round-limit extension, indispensable facts and actual action authority; preserve source coverage, validation, tests, read-only boundaries and budgets. Review decisions do not accept open risks or make a failed gate pass.
+
+<!-- /SYNC:review-decision-autonomy:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Ensure knowledge artifacts are evidence-backed, complete, protocol-compliant, and safe to use for decisions — reviewing for quality, completeness, citation accuracy, and template compliance.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
-- **Double Round-Trip Review:** review → validate → fix only current-round blocking findings → full re-review; Round 1 requires zero open findings (Round-1 LOW closure), while Round 2 requires zero CRITICAL/HIGH/MEDIUM with LOW deferred.
+- **Double Round-Trip Review:** review → validate → fix only current-round blocking findings → full re-review; Round 1 requires zero open findings (LOW deferral), while Round 2 requires zero CRITICAL/HIGH/MEDIUM with LOW deferred.
 - **Fresh Context Review:** after a fix, re-review with zero-memory fresh sub-agents.
 - **Review Protocol Injection:** MUST ATTENTION embed all 11 protocol bodies VERBATIM into each fresh sub-agent prompt.
 - **Nested Task Creation:** expand child phase tasks and link the parent when nested.
 - **Task Tracking & External Report:** bootstrap tasks; persist plan/review findings to `tmp/reports/` incrementally.
 - **Web Research:** cite 2+ independent sources per claim; NEVER fabricate.
-- **Severity Rubric:** classify findings Critical/High/Medium/Low by consequence using `SYNC:severity-rubric`; round 1 blocks on every open validated finding (Round-1 LOW closure), round 2 blocks only CRITICAL/HIGH/MEDIUM, and LOW is recorded/deferred. Failed binary gates always block.
+- **Severity Rubric:** classify findings Critical/High/Medium/Low by consequence using `SYNC:severity-rubric`; round 1 blocks on every open validated finding (LOW deferral), round 2 blocks only CRITICAL/HIGH/MEDIUM, and LOW is recorded/deferred. Failed binary gates always block.
 - **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
 
-**IMPORTANT MUST ATTENTION** default SKEPTIC, not VALIDATOR — run the full Anti-Bias Gate before ANY verdict: 1+ contradicting source per major claim, stress-test every score ≥80%, state the strongest alternative conclusion, check supporting-vs-contradicting source ratio, run a pre-mortem, argue the opposite verdict in 2+ sentences — why: AI gravitates to confirming sources, so an ungated review ships confirmation-biased verdicts as fact.
-**IMPORTANT MUST ATTENTION** calibrate confidence to evidence — a single source ≠ 80%; scores >80% need 2+ independent sources with contradicting evidence addressed; single-source claims marked unverified MUST be <60%; findings <60% flagged prominently — why: an inflated confidence score is read downstream as a fact and drives bad decisions.
-**IMPORTANT MUST ATTENTION** main steps in order — read artifact → 7-checklist audit (presence AND quality depth) → adversarial Anti-Bias Gate → emit PASS/WARN/FAIL per-check + verdict (APPROVED/REVISE/BLOCKED) → conditional Round 2 re-review — why: AI forgets the skill's own pipeline and skips the audit or the gate.
-**IMPORTANT MUST ATTENTION** verify presence AND quality depth across all 7 checklists (template compliance, citation audit, confidence accuracy, source quality, knowledge gaps, cross-validation, actionability) — a section that exists but is filler/placeholder has negative value — why: "section present" ≠ "section sound"; false confidence is worse than an honest gap.
-**IMPORTANT MUST ATTENTION** READ-ONLY — review and report, NEVER modify the audited artifact; emit fixes as findings for the author — why: a reviewer that edits the artifact destroys the independent second opinion the review exists to provide.
+**IMPORTANT MUST ATTENTION** default SKEPTIC, not VALIDATOR — run the full Anti-Bias Gate before ANY verdict: 1+ contradicting source per major claim, stress-test every score ≥80%, state the strongest alternative conclusion, check supporting-vs-contradicting source ratio, run a pre-mortem, argue the opposite verdict in 2+ sentences
+**IMPORTANT MUST ATTENTION** calibrate confidence to evidence — a single source ≠ 80%; scores >80% need 2+ independent sources with contradicting evidence addressed; single-source claims marked unverified MUST be <60%; findings <60% flagged prominently
+**IMPORTANT MUST ATTENTION** main steps in order — read artifact → 7-checklist audit (presence AND quality depth) → adversarial Anti-Bias Gate → emit PASS/WARN/FAIL per-check + verdict (APPROVED/REVISE/BLOCKED) → conditional Round 2 re-review
+**IMPORTANT MUST ATTENTION** verify presence AND quality depth across all 7 checklists (template compliance, citation audit, confidence accuracy, source quality, knowledge gaps, cross-validation, actionability)
+**IMPORTANT MUST ATTENTION** Review-only/caller-owned passes report without artifact edits; standalone fix-loop repairs validated findings between passes, then freshly audits citations and the full artifact.
 - break work into small todo tasks using task tracking BEFORE starting; add a final review todo to verify work quality
 - cite evidence for every claim — for a knowledge artifact that is the supporting source citation `[N]` / source-table row (use `file:line` only for the rare code-linked claim); confidence >80% to act, <60% DO NOT recommend
-- read required project-reference docs (always `lessons.md`) before the target review; classify findings Critical/High/Medium/Low by consequence (severity rubric) — round 1 blocks on every open validated finding (Round-1 LOW closure); round 2 blocks only CRITICAL/HIGH/MEDIUM, while LOW is recorded/deferred and failed binary gates always block
-- verify every factual claim has an inline citation, every source in the table is referenced, no orphan citations, all 5 source fields present with accurate Tier — why: citation presence ≠ citation correctness; the cited source must actually support the specific claim
-- execute the review loop: review → validate findings → fix validated findings that block the current round → full re-review; round 1 requires zero open findings, while from round 2 onward zero CRITICAL/HIGH/MEDIUM ends the loop and LOW-only findings are recorded/deferred — NEVER fix unvalidated findings, NEVER skip the full re-review after a blocking fix cycle — why: every fix invalidates the prior verdict, but round-2 LOW polish must not create another loop
+- read required project-reference docs (always `lessons.md`) before the target review; classify findings Critical/High/Medium/Low by consequence (severity rubric) — round 1 blocks on every open validated finding (LOW deferral); round 2 blocks only CRITICAL/HIGH/MEDIUM, while LOW is recorded/deferred and failed binary gates always block
+- verify every factual claim has an inline citation, every source in the table is referenced, no orphan citations, all 5 source fields present with accurate Tier
+- execute the review loop: review → validate findings → fix validated findings that block the current round → full re-review; round 1 requires zero open findings, while from round 2 onward zero CRITICAL/HIGH/MEDIUM ends the loop and LOW-only findings are recorded/deferred — NEVER fix unvalidated findings, NEVER skip the full re-review after a blocking fix cycle
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
 
@@ -306,12 +317,19 @@ When Round 1 surfaces findings, run this focused re-review as part of that full 
 | "Comprehensive coverage"             | State the strongest alternative conclusion and the perspective MISSING — absence of counterevidence ≠ consensus.   |
 | "Recommendations are actionable"     | On what evidence, at what confidence? A directive from a 40%-confidence finding must be labeled speculative.       |
 | "Clean enough, skip the Anti-Bias Gate" | The gate is MANDATORY before any verdict — skipping it ships confirmation-biased approval as fact.              |
-| "I'll just fix the artifact while here" | READ-ONLY — emit findings; editing the artifact collapses the independent review into the authoring it audits.  |
+| "I'll fix while judging citations" | Keep each review pass read-only; only the standalone fix-loop owner repairs after validation, then runs a fresh independent audit. |
 
-**IMPORTANT MUST ATTENTION Goal (recency anchor):** ship only evidence-backed, complete, protocol-compliant knowledge artifacts — verdict via the Anti-Bias Gate (SKEPTIC default), confidence calibrated to source count/quality, READ-ONLY, severity-tiered findings, and re-review until the current severity bar is clear (Round 1: zero open findings; Round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred).
+**IMPORTANT MUST ATTENTION Goal (recency anchor):** ship only evidence-backed, complete, protocol-compliant knowledge artifacts — Anti-Bias Gate, confidence calibrated to source count/quality and validated severity-tiered findings. Review-only reports; standalone fix-loop repairs between read-only passes and freshly reviews until the shared round bar is clear, default cap three.
 
 <!-- SYNC:core-engineering-principles:reminder -->
 
 **MUST ATTENTION** Core Engineering Principles — every plan, implementation and review must be **Easy to change** (reuse first, one owner per rule, interfaces/adapters at volatile boundaries, no speculative abstraction) · **Easy to scale** (extend by addition, bounded growth, explicit boundaries, sized to the project's real profile) · **Easy to maintain** (intent-named tests that fail when the rule breaks across happy/error/edge paths; harness green locally and in CI). Before done: next change → how many edit sites? 10× → what breaks? which test goes red?
 
 <!-- /SYNC:core-engineering-principles:reminder -->
+
+
+<!-- SYNC:review-policy:reminder -->
+
+**MUST ATTENTION** Triage all targets, plan and create review/validation/fix/fresh re-review tasks first. Review-only reports without edits; fix-loop freshly reviews every repair under one fixing owner. Default cap three rounds: disclose deferred LOWs, ask and wait before a bounded extension for MEDIUM+ or failed required checks. Preserve scope, coverage and actual operation authority.
+
+<!-- /SYNC:review-policy:reminder -->

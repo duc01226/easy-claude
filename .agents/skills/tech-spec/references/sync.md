@@ -1,5 +1,19 @@
 > The `tech-spec` skill (`../SKILL.md`) loads this body only for the strict-default TC profile. A configured native artifact profile reconciles through `$spec [mode=sync]` and does not enter the §8/TC procedure below. This body owns the default annotation-mode sync report; it never authors or amends the business source.
 
+## Contents
+
+- [Profile dispatch — resolve before TC scanning](#profile-dispatch--resolve-before-tc-scanning)
+- [Direction Detection](#direction-detection)
+- [Quality Gate (Before Any Sync)](#quality-gate-before-any-sync)
+- [TC ↔ Test Join Evidence Gate](#tc--test-join-evidence-gate)
+- [Forward Drift Report (§8 TCs → Test Code)](#forward-drift-report-8-tcs--test-code)
+- [Reverse Candidate Report (Test Code → §8)](#reverse-candidate-report-test-code--8)
+- [Invariant Harvest Candidate Report (Code / Tests / Review → §4·§5·§8)](#invariant-harvest-candidate-report-code--tests--review--458)
+- [Orphan Detection](#orphan-detection)
+- [Staleness Tracking](#staleness-tracking)
+- [Phase 5 (sync detail): Reconcile Section 8 TCs ↔ Integration Test Code](#phase-5-sync-detail-reconcile-section-8-tcs--integration-test-code)
+- [Next Steps (sync mode)](#next-steps-sync-mode)
+
 ### Profile dispatch — resolve before TC scanning
 
 Read `docs/project-config.json` and resolve `specArtifacts` before scanning any case IDs. If a valid native profile is declared, route through `$spec [mode=sync]`, consume its native reconciliation report, and stop this procedure. Preserve owner-qualified case/scenario/variant identity and configured requirement/acceptance/evidence fields; map each to its actual executor, assertion, and observed runner result. Keep missing or ambiguous owner, case, assertion, or run evidence `UNKNOWN` / `UNVERIFIED`. Never scan for or add duplicate TC/§8 records as a compatibility layer. A malformed declared profile blocks; it never falls back to TC.
@@ -142,7 +156,7 @@ Report drift between the canonical §8 TCs and the test suite (§8 is canonical;
 
 ## Next Steps (sync mode)
 
-Based on the reconciliation outcome, suggest using ask user tool:
+Based on the reconciliation outcome, suggest via `ask user question tool`:
 
 ```
 1. "$integration-test or owning test route — Generate tests for any §8 TCs flagged with no covering test (Recommended)"

@@ -1,8 +1,14 @@
 ---
 name: framework-config
-version: 1.2.0
+version: 1.2.1
 description: '[Utilities] Use when asking about or configuring the .claude/.codex/.agents/.opencode skills framework: command discovery/help, settings, hooks, workflows, activation or framework usage. Explains options; changes only requested settings.'
 ---
+
+## Quick Summary
+
+**Goal:** Explain framework options and apply only requested settings at their correct scope, with validated saved and effective results.
+
+**Summary:** Choose help/settings/workflow → discover exact keys and effective layers → answer questions read-only or apply the requested change → validate and read back → report the winning value/source.
 
 # Framework Configuration and Help
 
@@ -28,8 +34,6 @@ language when no flag is given; no arguments shows the three modes and a few com
 - Default write scope is **checkout** for settings. Workflow mode defaults to **session** for a bare
   ask/auto/off selection. Explicit `--scope=session|checkout|user|team` wins; session scope is supported
   only for workflow routing. User means every project; team means the configured project default.
-  OCR enable/off/status uses the project preference route below, outside these generic scope defaults;
-  unsupported OCR preference scopes are explained without writing a different layer.
 - Application configuration and unrelated product/API questions are outside this skill. Project facts
   use the configured project information; do not invent project facts from generic framework docs.
 
@@ -89,14 +93,6 @@ Work from the adopting project's root; use that project's copied framework, neve
 4. Never guess a key or silently substitute a different setting. An unsupported option needs an explanation,
    not invented JSON. Existing environment overrides can mask a saved choice; report that explicitly.
 
-## OCR project preference
-
-OCR status/enable/off is a **project preference**, including when generic settings default to checkout. Route it through `.claude/skills/project-config/SKILL.md` → “OCR project preference — focused route”; never save it into personal/local framework settings or use the workflow-only path resolver for it. Explicit personal machine permission requests still use their independent `reviewTools.openCodeReview` policy.
-
-From the consuming project root, run `node .claude/skills/project-config/scripts/review-setup.cjs --action inspect`. Show its actual `configPath` and preference (`provider: null` Unset, `none` Off, `open-code-review` Enabled). Questions/status write nothing. For explicit owner enable/off, use that same helper with `--action enable|off --expected-source <exact-inspect-token>`; retain the inspected `expectedSource` unchanged. It uses the full canonical project loader/relocation, validates the complete candidate and readback, and preserves unrelated settings, rules and grouping. Before-publication nonzero/status `refused` means “Review assistance settings not saved”. For `config-publication-unverified`, report “Review assistance settings may have changed; confirmation unavailable”; invalidate prior preparation/evidence, re-inspect current settings and freshly capture current target/policy before continued review. Report the bounded reason, never silently retry/acquire or overwrite through the generic setting writer.
-
-No provider is invoked/acquired by configuration. Report only verified saved preference, actual destination and readback; Enabled does not imply tool Ready or expanded machine authority. A continuing review needs fresh exact target/policy/output after a save. Read `.claude/skills/shared/review-preparation.md` when a source review reaches Unset: that owner asks exactly Accept setup / Turn off OCR for this project / Skip this time once; Skip never persists. Off stays quiet on later reviews until deliberate re-enable. OCR project requests use this route instead of the generic procedure below; unsupported scope requests are explained without writing a different layer.
-
 ## Apply a requested setting
 
 1. Resolve the selected destination: team → configured project config; user → `~/.claude/.ck.json`;
@@ -136,3 +132,8 @@ This runtime switch is model guidance, not a hard permission boundary.
 Examples of automatic matches: “How do these .claude skills work?”, “What can I configure in this
 .codex framework?”, “Disable heavy skill auto-trigger for me”, “Explain framework hooks”, and
 “Which setting controls workflows?”. No file is changed by the questions.
+
+## Closing Reminders
+
+**Goal:** Explain framework options and apply only requested settings at their correct scope, with validated saved and effective results.
+**MUST ATTENTION Route:** choose mode → discover keys/layers → answer or apply the requested change → validate/read back → report effective value/source. Keep questions read-only, preserve unrelated keys, and route project facts through project-config. Missing session identity limits persistence; configuration does not authorize heavy tasks or waive their gates.

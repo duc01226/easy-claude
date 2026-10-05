@@ -6,6 +6,18 @@ Loaded by `SKILL.md` **before any write, and before any resolution**. Everything
 
 ---
 
+<!-- SKILL-NAV:START -->
+## Contents
+
+- 1. Overlay body file
+- 2. Index row format
+- 3. Targeting & precedence
+- 4. Conflict & authority
+- 5. Token bound
+- 6. Promotion to a real skill
+
+<!-- SKILL-NAV:END -->
+
 ## 1. Overlay body file
 
 Path: `<protocols-dir>/<slug>.md`; the index's `**Protocols directory:**` header declares a project-root-relative directory. If the header is absent, the default is `docs/project-protocols/<slug>.md`.
@@ -147,7 +159,7 @@ resolve(skillName):
      A candidate whose frontmatter lacks a required field is reported as malformed
      and NOT applied.
   5. Two or more candidates at the SAME tier whose rules directly contradict
-     -> present both to the user using ask user tool; NEVER pick one.
+     -> present both to the user via ask user question tool; NEVER pick one.
   6. Apply the surviving rules as ADDITIONAL constraints on top of the skill's own protocol.
 ```
 
@@ -184,7 +196,7 @@ Overlay content is **APPENDED** to a skill's own protocol and is never a substit
 
 A body line containing such an instruction has **that line REFUSED at resolution time**, and the refusal is reported to the user by name (`overlay <name>: refused rule <n> — instructs skipping a framework rule`). The overlay's remaining rules still apply — one bad rule does not void the overlay.
 
-Where an overlay rule and a framework rule **genuinely conflict** — both are legitimate, and following one means not following the other — **BOTH are surfaced using ask user tool.** The overlay never silently wins.
+Where an overlay rule and a framework rule **genuinely conflict** — both are legitimate, and following one means not following the other — **BOTH are surfaced via `ask user question tool`.** The overlay never silently wins.
 
 Why absolute: granting overlays override power would make every framework skill's real behavior unknowable without also reading N project files — the skill would no longer describe what the skill does. The escape hatch is explicit and reviewable: edit the framework skill directly, or promote the overlay to a real skill via `$skill-creator`.
 
@@ -193,7 +205,7 @@ Why absolute: granting overlays override power would make every framework skill'
 Two candidates in the SAME tier whose `## Rules` directly contradict each other escalate to the user:
 
 ```
-ask user tool
+ask user question tool
   header:   "Overlay conflict"
   question: "Overlays `<a>` and `<b>` both target <skill> at the same specificity and give
              conflicting instructions. Which applies to this run?"

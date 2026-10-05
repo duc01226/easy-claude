@@ -24,7 +24,7 @@ description: '[Utilities] Use when a project adds, changes, lists or removes its
 2. **Load contract + index** — read `references/registry.md`, then the index; empty registry branches early
 3. **Execute mode** — LIST (Phase 1) · ADD (Phase 2) · UPDATE (Phase 3) · DELETE (Phase 4)
 4. **Two writes** — body and index row, in the same turn
-5. **Discovery check** — a written body states its target, scope and when it applies before its rules; the index keeps its purpose header on top and stays routed from the docs index (`SYNC:ai-discovery-doc-quality`)
+5. **Discovery check** — a written body states its target, scope and when it applies before its rules; the index keeps its purpose header on top and stays routed from the docs index
 6. **Report** — state every path touched; never commit
 
 **Key Rules:**
@@ -77,7 +77,7 @@ Parse the invocation text. An explicit flag always wins; otherwise the **leading
 | leading `delete`, `remove`, `drop` | **DELETE** |
 | anything else | **ADD**, but only after the ambiguity gate confirms it is not a list request |
 
-**Ambiguity gate (BLOCKING).** A leading write-verb that is plausibly part of the rule text (`/project-skill-protocol add a context tag to every review finding` — where "add a context tag …" is itself the rule) → do NOT pick silently. `AskUserQuestion`: *"Create a new overlay whose rule is '…'"* vs *"Show the overlays already defined"*. — why: the two readings write to different files, and guessing wrong either creates registry junk or silently skips the user's real request.
+**Ambiguity gate (BLOCKING).** A leading write-verb that is plausibly part of the rule text (`/project-skill-protocol add a context tag to every review finding` — where "add a context tag …" is itself the rule) → do NOT pick silently. `ask user question tool`: *"Create a new overlay whose rule is '…'"* vs *"Show the overlays already defined"*. — why: the two readings write to different files, and guessing wrong either creates registry junk or silently skips the user's real request.
 
 There is deliberately **no MATCH mode.** Matching happens at skill-invocation time via the universal `project-protocol-overlay` protocol and the `skill-overlay-remind` hook — both implementing `references/registry.md` §3. A fourth resolution path here could disagree with them. — why: two resolvers that can disagree is the exact drift class this registry exists to avoid.
 
@@ -127,7 +127,7 @@ LIST reads the index ONLY. Reading bodies here is a defect — it costs the whol
     **This pass never adds authority.** It sharpens wording only — it may not broaden a rule's target, escalate its force, or introduce a rule the user did not ask for. Anything it adds beyond rephrasing is surfaced at the gate under *what you changed and why*.
 
 6. **Additive-only screen (BLOCKING).** Read every drafted rule against the targeted skill's own protocol. Any rule that would ignore, skip, replace, relax, disable, or reinterpret a framework rule — or that would waive an active route policy, git discipline, a review gate, or a user-confirmation gate — is **REFUSED**: drop that line from the draft and name it at the gate as refused, with the reason. The remaining rules proceed. — why: a stored overlay is a persistent instruction; an override rule turns the registry into a standing bypass of every safety control in the harness.
-7. **Target-collision check (BLOCKING).** An existing index row with the same `Target` **and** `Scope` → `AskUserQuestion`: *update the existing `<name>`* vs *create a second overlay for the same target*. NEVER overwrite silently. — why: silent overwrite destroys a body the user cannot recover from the index.
+7. **Target-collision check (BLOCKING).** An existing index row with the same `Target` **and** `Scope` → `ask user question tool`: *update the existing `<name>`* vs *create a second overlay for the same target*. NEVER overwrite silently. — why: silent overwrite destroys a body the user cannot recover from the index.
 8. **Contradiction pre-check (BLOCKING).** Resolve the draft's target per `references/registry.md` §3 and compare its rules against every overlay that would land in the SAME tier. A direct contradiction → surface BOTH rules to the user and let them choose; never resolve it yourself, and never write an overlay you know contradicts a live one without saying so.
 9. **PROPOSAL GATE (BLOCKING).** Present the draft before writing anything to disk:
     - the proposed **name**, **target**, **scope**, and **description**, each on its own line
@@ -138,7 +138,7 @@ LIST reads the index ONLY. Reading bodies here is a defect — it costs the whol
     - **any rule you REFUSED** under step 6, quoted, with the reason
     - **open assumptions** you had to make
 
-    Then `AskUserQuestion` with: *Save the improved version (Recommended)* · *Let me correct the name/target/scope first* · *Save my wording verbatim instead* · *Cancel*.
+    Then `ask user question tool` with: *Save the improved version (Recommended)* · *Let me correct the name/target/scope first* · *Save my wording verbatim instead* · *Cancel*.
 
     **NEVER write a draft the user has not seen.** — why: an overlay changes how a skill behaves on every future run; an unreviewed rewrite silently substitutes your inference for the user's intent, and the divergence only surfaces later when the skill does the wrong thing.
 
@@ -163,7 +163,7 @@ LIST reads the index ONLY. Reading bodies here is a defect — it costs the whol
 ## Phase 4: DELETE
 
 1. Resolve the target by exact name; no exact hit → list the close matches and confirm which one.
-2. `AskUserQuestion` to confirm, showing the **description, target, and body path** being removed.
+2. `ask user question tool` to confirm, showing the **description, target, and body path** being removed.
 3. Delete the body file and remove the index row — same turn.
 4. When the removal empties the registry, the index table gets its `_(none yet)_` sentinel row back. Never leave a table header with no rows.
 5. Report both removals. Do not commit.
@@ -206,19 +206,7 @@ Write **both or neither.** Nothing else is written: no `CLAUDE.md` block, no `AG
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. For simple tasks (LIST, single DELETE), AI MUST ATTENTION ask user whether to skip.
 
-<!-- PROTOCOL-GUIDES:START -->
 
-> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
-
-- `ai-discovery-doc-quality` — Agent-guide content value, authority, retention and verified discovery; writing a doc that an agent reads → .claude/skills/shared/protocols/ai-discovery-doc-quality.md
-
-<!-- PROTOCOL-GUIDES:END -->
-
-<!-- SYNC:ai-discovery-doc-quality:reminder -->
-
-**MUST ATTENTION** AI-read guides: purpose/read-when and priorities first; retain action-changing rules, exceptions and rationale; verify triggered discovery and parser contracts. Use the content-value and semantic-disposition gate after enhancement; keep evidence in temporary reports and fix generated output at its source.
-
-<!-- /SYNC:ai-discovery-doc-quality:reminder -->
 
 ## Closing Reminders
 

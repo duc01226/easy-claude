@@ -130,7 +130,7 @@ const tests = [
             const text = specSkill();
             // Then none of the mode-only contract markers appear in it
             const markers = {
-                discovery: ['### Step 0.5: Declare the Discovery Wave', '## Phase 0: Classify Corpus & Short-Circuit', '### Step 5: Scope-Decision Gate (BLOCKING `AskUserQuestion`)'],
+                discovery: ['### Step 0.5: Declare the Discovery Wave', '## Phase 0: Classify Corpus & Short-Circuit', '### Step 5: Scope-Decision Gate (BLOCKING `ask user question tool`)'],
                 clarify: ['## Phase 0: Profile and Spec-Context Detection (run FIRST)', '## Why This Skill Exists', '## Artifact and Case Profile Gate (BLOCKING)'],
                 index: ['## Step 0 — Project Context and Scope Gate (MANDATORY)', '## Step 3 — Stamp & Write', '## Ownership Boundary (NON-NEGOTIABLE)']
             };
@@ -150,7 +150,7 @@ const tests = [
         skip: SKIP,
         fn: () => {
             const text = reference('discovery');
-            assert.match(text, /### Step 5: Scope-Decision Gate \(BLOCKING `AskUserQuestion`\)/);
+            assert.match(text, /### Step 5: Scope-Decision Gate \(BLOCKING `ask user question tool`\)/);
             assert.match(text, /NEVER auto-pick — OVERLAPS detection is the whole reason this skill exists/);
             assert.match(text, /\*\*Optional input `--investigation=<report path>`\*\*/);
             assert.match(text, /delegate to `\/investigate` ONLY for keyword slices the report does not cover/);
@@ -194,7 +194,7 @@ const tests = [
             const text = reference('index');
             assert.match(text, /Output is \*\*DERIVED and regenerable\*\*/);
             assert.match(text, /regenerate via \/spec \[mode=index\]; do NOT hand-edit/);
-            assert.match(text, /use `AskUserQuestion` to confirm scope and output\. Do not read canonical source bodies until the user confirms/);
+            assert.match(text, /use `ask user question tool` to confirm scope and output\. Do not read canonical source bodies until the user confirms/);
             assert.match(text, /doc-stamp-guard\.cjs --check/);
             assert.match(text, /A regeneration that produces the same content writes NOTHING/);
             assert.match(text, /## Ownership Boundary \(NON-NEGOTIABLE\)/);
@@ -311,11 +311,9 @@ const tests = [
             const description = match[1];
             assert.match(description, /^\[Documentation\] Use when a workflow step or the user asks for \S/);
             assert.ok(description.length <= 250, `description is ${description.length} chars, over 250`);
-            assert.match(description, /\[mode=discovery\|clarify\|index\]/);
-            // The routing keywords of the three former descriptions still reach this skill
-            const frontmatter = /^---\n([\s\S]*?)\n---/.exec(specSkill())[1];
-            for (const keyword of ['spec discovery', 'overlapping specs', 'invariant landscape', 'spec clarify', 'unresolved spec intent', 'derived spec index', 'cross-capability ERD', 'reimplementation guide']) {
-                assert.ok(frontmatter.includes(keyword), `triggers keep "${keyword}"`);
+            for (const mode of ['discovery', 'clarify', 'index']) assert.match(description, new RegExp(`\\b${mode}\\b`), `description advertises ${mode}`);
+            for (const intent of [/canonical feature specs/, /test scenarios/, /discovery[^;]*overlaps/, /clarify[^;]*decisions/, /index[^.]*navigation\/ERD/]) {
+                assert.match(description, intent, `description retains routing intent ${intent}`);
             }
         }
     },

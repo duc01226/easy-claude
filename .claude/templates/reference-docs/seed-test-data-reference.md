@@ -17,4 +17,4 @@ Explain the actual idempotency, convergence or cleanup contract. Preserve action
 Document transaction/resource scope and registration only where evidenced. Keep a short rationale or example only when it prevents a likely misuse; route detailed implementations to their owner with a read-when trigger.
 
 ## Discovery and Verification
-Name existing sources and tests that prove safety and repeated execution. Read `.claude/skills/shared/protocols/ai-discovery-doc-quality.md` when replacing this scaffold to apply the content-value and retention gate; detailed scan evidence belongs in temporary reports.
+Name existing sources and tests that prove safety and repeated execution. Keep detailed scan evidence in temporary reports.

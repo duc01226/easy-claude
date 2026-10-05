@@ -9,7 +9,7 @@ description: '[Documentation] Use when generating the DERIVED technical spec vie
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - Use ask user tool to ask user.
+> - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -35,15 +35,12 @@ description: '[Documentation] Use when generating the DERIVED technical spec vie
 
 **Summary:**
 
-- **Purpose:** a DERIVED-view annotation generator ONLY — it reads code plus the configured `TestSpec` / `TechnicalSpec` contract and never authors business content. It has no native-case carrier adapter.
-- **Profile gate:** resolve `specArtifacts` and `specRoots` first. A valid native profile routes `sync` through `$spec [mode=sync]`; `generate` is `UNSUPPORTED` until a compatible generator exists. If no native profile applies, keep the strict §8/TC default. Missing or invalid required contracts remain `NOT CONFIGURED` / blocked; never fall back or claim empty success.
-- **Main steps (run in order):** **Step 0** Resolve config/profile/root and scope/mode; ask only for ambiguous scope or mode. Native generation → report `UNSUPPORTED` and stop before the generator; absent `techSpecScan` → `NOT CONFIGURED`. **Step 1** Derive supported annotation facts — use-case inventory, annotation joins, topology. **Step 2** Instantiate the fixed templates. **Step 3** Stamp & write each artifact immediately. **Step 4** Verify no retired artifacts, banners, business content, canonical claims, or secrets.
-- **Modes:** `generate` only when the annotation generator contract applies · `audit` reports freshness only for a configured derived view · `sync` routes native profiles to `$spec [mode=sync]`, or reports canonical §8 TC ↔ test-code drift under the strict default (`references/sync.md`).
-- Hard prohibition is the load-bearing rule: never emit the retired A-E engineering tree, `M##` dirs, `00-module-registry.md`, `01-domain-erd.md`, or `06-reimplementation-guide.md` under the technical root — why: an A-E bundle becomes a second source of truth competing with the Feature Spec, and a generator able to recreate it resurrects the retired tree on its next run (this has occurred once already, via rebase).
-- Every generated file carries the `> DERIVED — regenerate with the tech-spec skill; do NOT hand-edit` banner + a regenerate date, anchors each fact back to its source, and makes **no canonical claim**.
-- **This skill is M1-EXEMPT** (`specRoots.technical.m1Policy: "exempt"`) — its prose MAY name technology. That exemption is the whole reason this tree exists; it is NOT a licence to carry business content (see **Hard Prohibitions**).
+- Project code and configured `TestSpec` / `TechnicalSpec` annotations into a DERIVED technical view; business content belongs to `$spec`.
+- Resolve profile/root/scope/mode → derive facts → instantiate fixed templates → stamp/write each artifact immediately → verify banners, anchors, emit set, secrets and idempotency.
+- Native profiles route `sync` to `$spec [mode=sync]` and return `UNSUPPORTED` for generation. Absent `techSpecScan` is `NOT CONFIGURED`; malformed profiles block. Never substitute strict §8/TC defaults for a declared native profile or claim empty success.
+- Read [references/author.md](references/author.md) before `generate` or `audit`, and [references/sync.md](references/sync.md) before strict-default `sync`. Audit reports freshness without mutation; sync reports/routes drift without authoring.
 
-> **[SCOPE]** This skill generates a **DERIVED** technical view over code + tests under `specRoots.technical.path`. It MUST NOT emit a per-module A-E engineering bundle (`A-domain-model`, `B-business-rules`, `C-api-contracts`, `D-events`, `E-user-journeys`), `M##` directories, `00-module-registry.md`, `01-domain-erd.md`, or `06-reimplementation-guide.md` — those are not part of the spec model. It MUST NOT author business content: the Feature Spec under `specRoots.business.path` owns §1–§8, and this skill neither writes nor amends it. Authority: [`docs/project-reference/spec-system-reference.md`](../../../docs/project-reference/spec-system-reference.md) — project-reference docs root default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path — and [`.claude/skills/shared/sdd-artifact-contract.md`](../shared/sdd-artifact-contract.md).
+**Scope:** Write only under `specRoots.technical.path`; the Feature Spec under `specRoots.business.path` owns §1–§8. Technical prose is M1-exempt (`m1Policy: "exempt"`), but business content and the forbidden emit set below remain banned. Read `spec-system-reference.md` under the configured project-reference root when resolving project ownership (default `docs/project-reference`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides the path; open it directly through docs-index routing). Read [the SDD artifact contract](../shared/sdd-artifact-contract.md) when resolving shared artifact obligations: one authored business owner, derived technical views only.
 
 **Inputs:** supported annotation mode reads the code tree (command/query handlers, event consumers, background jobs, producers, sagas, outbox) and configured test annotations (`TestSpec` / `TechnicalSpec`). **Code is the technical source of truth** — this skill projects a view and never populates a parallel canonical layer. A native profile is not an input to this annotation generator.
 
@@ -56,6 +53,8 @@ description: '[Documentation] Use when generating the DERIVED technical spec vie
 | `sync`     | "sync tests" / "reconcile tests" / harvest  | native profile, or §8 TCs under strict default | Native: `$spec [mode=sync]` report. Default: §8/test drift and route-only `CoveredBy:` / orphan report (`references/sync.md`) |
 
 **Tooling:**
+
+Run from the project root with Node.js (`node --version` to probe); the generator uses built-ins and bundled framework modules, with no third-party package install. These Node commands work on Windows, macOS and Linux. If Node is unavailable, use the host’s supported runtime setup and re-probe; report a missing required runtime instead of claiming generation.
 
 These are the ONLY invocations. `.claude/` is portable and self-running — never route this tooling
 through a host `package.json` script, which does not exist in a project that copied only the bundle.
@@ -73,21 +72,16 @@ Before an interactive generation, resolve the profile and require the supported 
 1. Read `docs/project-config.json`; resolve `specArtifacts`, `specRoots.technical.path`, and `techSpecScan` before selecting a procedure. A malformed declared profile blocks; it never falls back to TC.
 2. Parse the mode from the invocation: explicit `[mode=<x>]` wins; otherwise infer from the request.
 3. A native profile routes `sync` to `$spec [mode=sync]`; its `generate` view is `UNSUPPORTED` and must stop before the annotation generator. Without a native profile, strict §8/TC sync remains the default; generation still requires the configured annotation contract.
-4. If scope/mode remains ambiguous, ask using ask user tool before mutation.
+4. If scope/mode remains ambiguous, ask via `ask user question tool` before mutation.
 5. **Read the matching `references/` body** — it owns that mode's procedure and output contract. Do not run a mode from memory.
 
 **Workflow:** `$investigate` (locate the component) → `$tech-spec` (project the view) → `$changes-review` → `$watzup`
 
 **Key Rules:**
 
-- **MUST ATTENTION** resolve `specArtifacts`, `techSpecScan`, `specRoots.technical.path`, and mode before generation; never hardcode roots or component names.
-- **MUST ATTENTION** route native-profile reconciliation through `$spec [mode=sync]`; keep strict §8/TC behavior only when no native profile applies.
-- **MUST ATTENTION** require `$spec [mode=sync]` to return its configured native reconciliation report; **NEVER** treat a missing report as a successful sync.
-- **MUST ATTENTION** map each selected owner/case/variant through the actual executor, assertion, and run evidence; **NEVER** infer coverage from title or identity alone.
-- **MUST ATTENTION** report native generation as `UNSUPPORTED` and absent annotation configuration as `NOT CONFIGURED` before invoking the generator; never emit or accept an empty success.
-- **NEVER** author business content or emit retired A-E artifacts; code/tests remain the source of truth.
-- **MUST ATTENTION** derive facts mechanically, anchor them to sources, write each artifact immediately, and verify regeneration is idempotent.
-- **NEVER** let the harvest detector gate generation; it reports candidates while C1/C2/C6/C7 remain hard errors.
+- Resolve config/profile/root and mode before generation; roots, services, components and identifiers are discovered, never hardcoded.
+- Native `sync` succeeds only with the configured reconciliation report. Trace each owner/case/variant to its actual executor, assertion and run evidence; names or IDs alone do not prove coverage.
+- Generate mechanically, never author or judge: fixed templates, source anchors, immediate writes, whole-tree idempotency. Harvest reports candidates; C1/C2/C6/C7 remain hard errors.
 
 ---
 
@@ -153,7 +147,7 @@ Harvest **detection** is a structural signal — *an invariant enforced at ≥2 
 
 ## Step 0 — Scope Gate (MANDATORY FIRST)
 
-Before deriving facts or invoking a generator, read the project config and resolve the profile and technical root. Use ask user tool only if scope or mode remains ambiguous. A native-profile generation request returns `UNSUPPORTED` here; do not continue to the annotation generator.
+Before deriving facts or invoking a generator, read the project config and resolve the profile and technical root. Use `ask user question tool` only if scope or mode remains ambiguous. A native-profile generation request returns `UNSUPPORTED` here; do not continue to the annotation generator.
 
 | Dimension       | Question                                                                                          | Auto-Default          |
 | --------------- | ------------------------------------------------------------------------------------------------- | --------------------- |
@@ -209,7 +203,7 @@ Per `references/author.md`: fixed sections, **declared order**, **pinned table s
 
 ## Hard Prohibitions (NON-NEGOTIABLE)
 
-This skill produces only the DERIVED technical view. Emitting an A-E engineering tree would create a second source of truth competing with the Feature Spec — and a generator still able to recreate A-E would **resurrect the retired tree on its next run**, which is an active hazard rather than a theoretical one: the tree has come back once already through a rebase and had to be re-deleted. Therefore this skill MUST NEVER create:
+This skill produces only the DERIVED technical view. An A-E engineering tree would compete with the Feature Spec and could be recreated on regeneration. Never create:
 
 | Forbidden output                                                                                          | Why                                                                |
 | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
@@ -239,17 +233,12 @@ If a user explicitly asks for an A-E bundle, explain it is retired and offer the
 | `$integration-test`  | **Consumer** — generates the tests whose annotations this skill joins                                           | When `sync` flags a TC with no covering integration test      |
 | `$docs-manager --mode=update`       | **Orchestrator** — may call `$tech-spec` to refresh the derived view after code changes                         | After code changes need a full doc sync                       |
 
-## What Is `$tech-spec`?
-
-A **derived-view generator** over code + configured annotations, not a native-case adapter. For supported annotation projects it assembles a regenerable projection without creating a second source of truth. Native profile reconciliation belongs to `$spec [mode=sync]`; native technical-view generation stays explicitly unsupported until a compatible generator contract is declared. When no native profile applies, this skill retains the strict §8/TC default.
-
----
-
 <!-- PROTOCOL-GUIDES:START -->
 
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
 - `cross-service-check` — Scan producers, consumers, sagas and shared contracts for cross-service impact; concluding an investigation, plan or spec in a service-based system → .claude/skills/shared/protocols/cross-service-check.md
+- `review-decision-autonomy` — Choose supported review decisions and ask before extending the round budget; running any review or audit skill or mode → .claude/skills/shared/protocols/review-decision-autonomy.md
 
 <!-- PROTOCOL-GUIDES:END -->
 
@@ -270,28 +259,22 @@ A **derived-view generator** over code + configured annotations, not a native-ca
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
 
+<!-- SYNC:review-decision-autonomy:reminder -->
+
+**MUST ATTENTION** Decide supported review choices and recommendations, record the rationale, and finish without routine user questions. Keep round-limit extension, indispensable facts and actual action authority; preserve source coverage, validation, tests, read-only boundaries and budgets. Review decisions do not accept open risks or make a failed gate pass.
+
+<!-- /SYNC:review-decision-autonomy:reminder -->
 
 ## Closing Reminders
 
-- **IMPORTANT MUST ATTENTION Goal:** For compatible annotation projects, produce a regenerable technical view without a second source of truth; route native reconciliation to `$spec [mode=sync]` and never treat unsupported generation as empty success.
+- **IMPORTANT MUST ATTENTION Goal:** For annotation-compatible projects, project code and configured test annotations into a regenerable technical view without creating a second source of truth; route native-case reconciliation to its canonical owner and never report unsupported generation as empty success.
 - **IMPORTANT MUST ATTENTION Main steps (in order):** resolve `specArtifacts`, `techSpecScan`, and roots → native `sync` to `$spec [mode=sync]` or strict-default §8/TC sync; native generation `UNSUPPORTED`, absent generator config `NOT CONFIGURED` → for supported annotation generation derive facts → instantiate fixed templates → stamp/write immediately → verify outputs. Ask only for unresolved scope/mode; do not fall back or skip the explicit unsupported result.
 
-**Protocols in force (concise digest of the SYNC/shared blocks this skill carries — MUST ATTENTION each canonical body above):**
-
-- **Cross-Service Check:** scan producers/consumers/sagas/contracts; flag breaking-change risk.
-
-- **IMPORTANT MUST ATTENTION [BLOCKING]** This skill GENERATES; it NEVER authors. No user story, acceptance criterion, business rule, or §8 TC is ever written here — route to `$spec` — why: carrying the Feature Spec's own artifact types is how a rival tree competes on its turf
-- **IMPORTANT MUST ATTENTION [BLOCKING]** Output is DERIVED + regenerable — never a second source of truth; when the view disagrees with code, **code is right and the view is stale — regenerate it**
-- **IMPORTANT MUST ATTENTION [BLOCKING]** Never emit `M##`/A-E/`00-module-registry`/`01-domain-erd`/`06-reimplementation-guide` under the technical root — why: an A-E bundle becomes a second source of truth, and a generator able to recreate it resurrects the retired tree on its next run
-- **IMPORTANT MUST ATTENTION [BLOCKING]** Stamp the DERIVED banner + regenerate date on every generated file; write after each artifact, never accumulate large outputs in context
-- **IMPORTANT MUST ATTENTION [BLOCKING]** **Never judge at generation time** (**C8**) — mechanical detect + route only; judgment is not stable across runs, so a judging generator stops being idempotent and fails **C6** against its own tree while reporting the cause as `hand-edited`
-- **IMPORTANT MUST ATTENTION [BLOCKING]** The harvest detector **REPORTS, never gates** (**C9**) — never `error`, never a build gate, never a precondition on regeneration — why: a false positive that blocks a build gets suppressed, and a suppressed detector is a dead detector. **This does NOT soften C1/C2/C6/C7 or M1 — all stay at `error`; C6 is an oracle, not a proxy**
-- **IMPORTANT MUST ATTENTION [BLOCKING]** Resolve config/profile before work; ask only for ambiguity. Native generation → `UNSUPPORTED`, absent `techSpecScan` → `NOT CONFIGURED`, invalid profile → blocked; never claim empty success
-- **IMPORTANT MUST ATTENTION [REQUIRED]** Read `specArtifacts`, `techSpecScan`, and `specRoots.technical.path`; `{TechRoot}/{Service}/{Component}.md` is a PATTERN — never hardcode a root, project, service, native case, or TC ID
-- **IMPORTANT MUST ATTENTION [REQUIRED]** Templated prose over grepped facts ONLY — a fact that cannot be templated goes in a table, never a sentence — why: free composition is where non-determinism lives, and it breaks the idempotency oracle **and** is how a secret gets incidentally pasted
-- **IMPORTANT MUST ATTENTION** Cite `[Source:]` anchor evidence for every derived fact (confidence >80% to act, <60% mark `[UNVERIFIED]`) — NEVER fabricate a handler, consumer, job, native case, or TC ID; grep to confirm
-- **IMPORTANT MUST ATTENTION** Break task scope into small task tracking todos (one per emitted artifact) before acting; mark each `completed` immediately after its file is written; keep exactly one `in_progress`
-- **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
+- **IMPORTANT MUST ATTENTION** Generate, never author: write only the DERIVED technical view, with banner/date, verified `[Source:]` anchors and no canonical claim, business content, retired A-E/`M##` artifacts or secrets. Technology names are allowed by M1 exemption; business types remain banned.
+- **IMPORTANT MUST ATTENTION** Never judge or cache judgments during generation. Use fixed templates and pinned sorts; untemplatable facts go in tables. The harvest detector reports, never gates; C1/C2/C6/C7 and business-tree M1 stay at `error`. Whole-tree empty-diff regeneration is the C6 oracle.
+- **IMPORTANT MUST ATTENTION** Cite source evidence; confidence >80% to act, <60% marks `[UNVERIFIED]`. Read the selected mode body and require native reconciliation's actual report/executor/assertion/run evidence.
+- **IMPORTANT MUST ATTENTION** Track one task per artifact, exactly one `in_progress`, and complete it after writing with evidence. Parallel readers remain optional; tag PAR/SEQ, dispatch disjoint waves together and wait at the barrier. Include final consistency review.
+- **Cross-Service Check:** scan producers, consumers, sagas and contracts; record owners, consumers and breaking risk.
 
 **Anti-Rationalization:**
 
@@ -305,13 +288,3 @@ A **derived-view generator** over code + configured annotations, not a native-ca
 | "Hand-editing this one file is faster than regenerating"      | A hand-edited derived file is a build failure. Fix the generator or the source, then regenerate.                   |
 | "I'll cache the judgment so the next run is consistent"       | Generator-owned state is a staleness problem invisible to review and to `git`. Verdicts live in the artifact.      |
 | "A-E would express this better for engineers"                 | A-E is retired and has resurrected once already. Emit the derived view.                                            |
-
-**[TASK-PLANNING]** MUST ATTENTION analyze task scope and break into small todo tasks/sub-tasks via task tracking before acting.
-
-> **[IMPORTANT]** Break into many small todo tasks systematically before starting — this is critical.
-
-**IMPORTANT MUST ATTENTION** GENERATE, never author — output is DERIVED + regenerable; code + tests are the source of truth.
-**IMPORTANT MUST ATTENTION** Never judge at generation time; the harvest detector reports and never gates — but C1/C2/C6/C7 stay at `error`.
-**IMPORTANT MUST ATTENTION** Resolve profile and root first; native `sync` goes to `$spec [mode=sync]`, strict TC remains only the absent-profile default, and native generation is explicitly unsupported until a compatible generator exists. Never emit A-E/`M##`/retired filenames or business content.
-
----
