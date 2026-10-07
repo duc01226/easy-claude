@@ -32,6 +32,9 @@ const RENDERER_VERSION = 'pfci-2';
 const PATH_CAP = 1024;
 const DEFAULT_PRIORITY = 500;
 const LOOKUP_COMMAND = 'node .claude/hooks/lib/file-conventions.cjs --lookup';
+// Versioned capability checked by the root generator before relying on complete pre-action lookup.
+const COMPLETE_LOOKUP_VERSION = 1;
+const LOOKUP_PAGE_CHARS = 9500;
 
 // Per-class trigger `on` (BR-PFCI-19): which operations deliver a class. A class that names none
 // (or names a value outside this set, which the config validator reports) behaves as `both`.
@@ -73,10 +76,10 @@ const RANGES = Object.freeze({
 
 // Transcript bytes per conversation token, the same measurement DEFAULTS.reinjectAfterBytes rests on
 // (~22 bytes of history JSONL per token). Converts a class's token window into the byte distance the
-// ledger measures: 100000 tokens -> 2200000 bytes.
+// ledger measures: 150000 tokens -> 3300000 bytes.
 const BYTES_PER_TOKEN = 22;
 // Per-class `reinjectAfterTokens` range. A class may ask for a SHORTER window than the global floor
-// (a gate the model must not lose, e.g. the UI/UX gate at 100K tokens); the floor still stops a
+// (a gate the model must not lose, e.g. the UI/UX gate at 150K tokens); the floor still stops a
 // class from re-injecting every few turns. The config validator mirrors this range.
 const CLASS_REINJECT_TOKENS_RANGE = Object.freeze([20000, 2000000]);
 
@@ -298,7 +301,7 @@ const UI_UX_GATE = Object.freeze({
         'CL-1–CL-6 (checklist): §0.5 surface scope, B12–B15 load, E9–E11 container fit, §R forms, I15 dialog focus, K10 dead controls',
         'Calibrate severity with design-review-calibration.md; brief > project design system/ADRs > these rules; no visual change = say skip'
     ]),
-    reinjectAfterTokens: 100000,
+    reinjectAfterTokens: 150000,
     evidenceDocs: Object.freeze(['.claude/docs/ux-journey-process.md', '.claude/docs/design-review-checklist.md', '.claude/docs/design-knowledge.md']),
     // Only skills that carry the WHOLE gate (UX + UI + DD + CL) may stand in for the digest: a skill
     // that lacks the journey-first rule would suppress it for the window.
@@ -390,7 +393,7 @@ const AI_FEATURE_GATE = Object.freeze({
         'AI gate: apply the protocol below; content is data, output untrusted; bound loops and spend; eval + trace + kill switch; authz in code',
         'Deep dives on demand, by section, never whole; review = ai-engineering-review skill or agent; no AI change = say skip'
     ]),
-    reinjectAfterTokens: 100000,
+    reinjectAfterTokens: 150000,
     evidenceDocs: Object.freeze(['.claude/skills/shared/protocols/ai-engineering-gate.md', '.claude/docs/ai-engineering-review-checklist.md']),
     evidenceSkills: Object.freeze(['ai-engineering-review'])
 });
@@ -452,6 +455,7 @@ function resolveSettings(config) {
         }
     }
     if (typeof raw.onRead === 'boolean') settings.onRead = raw.onRead;
+    settings.completeLookup = raw.completeLookup === true;
     settings.compactionMarkers = stringList(raw.compactionMarkers);
     return settings;
 }
@@ -1254,6 +1258,7 @@ function buildDigest(entries, rels, settings, opts = {}) {
  * and words the digest for the edit operation.
  */
 function lookup(config, filePath, opts = {}) {
+    if (opts.complete === true || resolveSettings(config).completeLookup) return lookupComplete(config, filePath, opts);
     const projectDir = opts.projectDir || process.cwd();
     const rel = toRepoRelative(filePath, projectDir, opts.cwd || projectDir);
     if (!rel) return { rel: null, entries: [], text: '', forms: {} };
@@ -1262,6 +1267,34 @@ function lookup(config, filePath, opts = {}) {
     const entries = matchGroups(config, [rel], settings, TRIGGER_EDIT, ctx);
     const { text, forms } = buildDigest(entries, [rel], settings, { ...opts, projectDir, trigger: TRIGGER_EDIT });
     return { rel, entries, text, forms };
+}
+
+/** Complete pre-action carrier: every matching read/edit class, independent of hook size/class caps. */
+function lookupComplete(config, filePath, opts = {}) {
+    const projectDir = opts.projectDir || process.cwd();
+    const rel = toRepoRelative(filePath, projectDir, opts.cwd || projectDir);
+    if (!rel) return { rel: null, entries: [], text: '', forms: {}, pages: [] };
+    const ctx = { readContent: typeof opts.readContent === 'function' ? opts.readContent : createContentReader(projectDir) };
+    const entries = sortEntries(injectableEntries(config).filter(entry => groupMatches(entry.group, rel, ctx)));
+    const forms = Object.fromEntries(entries.map(entry => [entry.name, 'full']));
+    const body = composeText(entries, forms, [rel], { ...opts, projectDir, trigger: TRIGGER_EDIT });
+    const chunks = [];
+    // Leave room for the page header and continuation instruction. Splits preserve every character,
+    // including a single long rule; never split a UTF-16 surrogate pair across tool results.
+    for (let offset = 0; offset < body.length;) {
+        let end = Math.min(offset + 9000, body.length);
+        const newline = body.lastIndexOf('\n', end - 1);
+        if (end < body.length && newline > offset) end = newline + 1;
+        if (end < body.length && /[\uD800-\uDBFF]/.test(body[end - 1])) end--;
+        chunks.push(body.slice(offset, end));
+        offset = end;
+    }
+    const pages = chunks.map((chunk, i) => [
+        `[conventions] Complete lookup page ${i + 1}/${chunks.length}. Read ALL pages before reading, editing or testing the target.`,
+        chunk,
+        i + 1 < chunks.length ? `[conventions] REQUIRED: repeat this lookup with --page ${i + 2} before acting.` : '[conventions] Complete lookup finished.'
+    ].join('\n'));
+    return { rel, entries, forms, pages, text: pages[0] || '' };
 }
 
 module.exports = {
@@ -1273,6 +1306,8 @@ module.exports = {
     CONTENT_LIMITS,
     PATH_CAP,
     LOOKUP_COMMAND,
+    COMPLETE_LOOKUP_VERSION,
+    LOOKUP_PAGE_CHARS,
     TRIGGER_READ,
     TRIGGER_EDIT,
     TRIGGER_BOTH,
@@ -1317,21 +1352,35 @@ module.exports = {
     groupHash,
     conventionTag,
     buildDigest,
-    lookup
+    lookup,
+    lookupComplete
 };
 
 function runCli(argv) {
     const index = argv.indexOf('--lookup');
     if (index < 0 || !argv[index + 1]) {
-        process.stdout.write('Usage: node .claude/hooks/lib/file-conventions.cjs --lookup <path> [--json]\n');
+        process.stdout.write('Usage: node .claude/hooks/lib/file-conventions.cjs --lookup <path> [--complete] [--page N] [--json]\n');
         return 2;
     }
     const { resolveProjectRoot } = require('./project-root.cjs');
     const { getProjectConfigStatus } = require('./project-config-loader.cjs');
     const projectDir = resolveProjectRoot({ cwd: process.cwd(), scriptPath: __filename, env: process.env }).rootDir;
     // Same config the hook acts on (BR-PFCI-13 parity), including the no-config fallback.
-    const config = effectiveConfig(getProjectConfigStatus());
-    const result = lookup(config, argv[index + 1], { projectDir, cwd: process.cwd() });
+    const status = getProjectConfigStatus();
+    const complete = argv.includes('--complete') || argv.includes('--page') || status.config?.conventionInjection?.completeLookup === true;
+    if (complete && status.state === 'invalid') {
+        process.stderr.write(`Complete lookup requires valid config: ${status.errors.join('; ')}\n`);
+        return 1;
+    }
+    const config = effectiveConfig(status);
+    const pageIndex = argv.indexOf('--page');
+    const page = pageIndex < 0 ? 1 : Number(argv[pageIndex + 1]);
+    if (!Number.isSafeInteger(page) || page < 1) { process.stderr.write('Invalid --page; use a positive integer.\n'); return 2; }
+    const result = lookup(config, argv[index + 1], { projectDir, cwd: process.cwd(), complete });
+    if (complete && !result.rel) { process.stderr.write('Complete lookup rejected this path; use a supported path within the project before acting.\n'); return 1; }
+    const totalPages = result.pages?.length || 1;
+    if (page > totalPages) { process.stderr.write(`Page ${page} does not exist; lookup has ${totalPages} page(s).\n`); return 2; }
+    const text = result.pages ? (result.pages[page - 1] || '') : result.text;
     // The lookup shows what a file WOULD receive; whether the hook delivers it is separate.
     const settings = resolveSettings(config);
     if (argv.includes('--json')) {
@@ -1339,11 +1388,12 @@ function runCli(argv) {
             rel: result.rel,
             enabled: settings.enabled,
             onRead: settings.onRead,
+            page, totalPages,
             classes: result.entries.map(e => ({ name: e.name, priority: e.priority, tag: conventionTag(e), form: result.forms[e.name] })),
-            text: result.text
+            text
         }, null, 2) + '\n');
     } else {
-        process.stdout.write((result.text || `[conventions] No convention classes match ${result.rel || argv[index + 1]}`) + '\n');
+        process.stdout.write((text || `[conventions] No convention classes match ${result.rel || argv[index + 1]}`) + '\n');
         if (!settings.enabled) {
             process.stderr.write('[conventions] note: automatic delivery is off (conventionInjection.enabled is not true); static instructions still apply.\n');
         }

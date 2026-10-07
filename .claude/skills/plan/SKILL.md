@@ -7,7 +7,7 @@ disable-model-invocation: false
 
 > **[BLOCKING] Mode routing — detect FIRST.** Select explicit `--mode=review|validate|execute|ci|cro`; otherwise create a plan. Read the selected reference in full before acting (see [Mode Dispatch](#mode-dispatch)). Every mode works directly without a workflow. `/plan-review`, `/plan-validate` and `/plan-execute` do not resolve.
 
-> **Work tracking:** Read [the linked work integration guide](../task-track/references/integration-guide.md) at capture, start, saved-work, verification, handoff and close-out checkpoints. Inspect exact selected owners and declared spec/PBI/task/plan concerns before planning, incorporate applicable unresolved concerns into task-derived quality gates, and reread after an actual artifact save. Execute mode retains actual linked producer/run/occurrence and the primary saving owner's one checkpoint. Continue untracked; report partial/unavailable scope and saved/pending secondary results. Plan prose and passing checks never authorize readiness, acceptance or publication.
+> **Work tracking:** Read [the linked work integration guide](../task-track/references/integration-guide.md) at capture, start, saved-work, verification, handoff and close-out checkpoints. Inspect exact selected owners and declared spec/task/subtask/plan concerns before planning, incorporate applicable unresolved concerns into task-derived quality gates, and reread after an actual artifact save. Execute mode retains actual linked producer/run/occurrence and the primary saving owner's one checkpoint. Continue untracked; report partial/unavailable scope and saved/pending secondary results. Plan prose and passing checks never authorize readiness, acceptance or publication.
 
 ## Quick Summary
 

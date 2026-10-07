@@ -36,7 +36,7 @@
 | Context | Default MIN-MAX | Rationale |
 | --- | --- | --- |
 | `AUTHORED-SPEC` | `5-10` | A freshly-authored §1-8 encodes the most unconfirmed author assumptions → widest audit. |
-| `EXISTING-SPEC` | `4-8` | A canonical §1-8 is already vetted; validate the decisions that drive decomposition before PBIs. |
+| `EXISTING-SPEC` | `4-8` | A canonical §1-8 is already vetted; validate the decisions that drive decomposition before tasks. |
 | `TEST-SPEC` | `3-6` | A refined-idea + §8 TC set is narrower; validate coverage + implied-rule decisions. |
 
 Workflow `injectContext` overrides these per flow (Phase 02 supplies `questions=5-10` / `3-6` / `4-8`). The
@@ -60,10 +60,10 @@ Legend: ✅ always probe · ◑ probe when present/relevant · ▫ usually out o
 
 - **AUTHORED-SPEC** — full §1-8 audit; every author assumption is a candidate. Widest matrix.
 - **EXISTING-SPEC** — weight the categories that DRIVE decomposition (§3 US/AC, §4 BR, §5 ERD, §6 flows, §7 perms,
-  §8 TCs); the spec is canonical input, so validate decisions before PBIs, do NOT re-author (confirmed changes
+  §8 TCs); the spec is canonical input, so validate decisions before tasks, do NOT re-author (confirmed changes
   route via `$spec [mode=update]`).
 - **TEST-SPEC** — center on refined-idea coverage, §8 TC decisions, and implied rules the §8 set assumes but no
-  §4 rule states yet (idea-to-pbi deep mode has no §1-7 draft).
+  §4 rule states yet (initiative-to-task deep mode has no §1-7 draft).
 
 ## Category catalog
 
@@ -113,7 +113,7 @@ surface encoded decisions — each surfaced decision that is NON-OBVIOUS/CONFLIC
   property/invariant TC. **CROSS-CHECK that the TC exists — do NOT audit TC quality here.**
 - **Audit prompts:** Which implied operation or edge case has no §8 TC at all? Which `[HARD]` rule has no covering
   property TC? (Defer universal-quantification / boundary-counter-case / mutation depth to
-  `pbi --mode=review --type=spec-tests` — surfacing a *missing* TC is in scope; judging an *existing* TC's rigor is not.)
+  `work-item --mode=review --type=spec-tests` — surfacing a *missing* TC is in scope; judging an *existing* TC's rigor is not.)
 
 ### 8. Cross-Spec Conflicts & Overlaps (discovered landscape)
 - **Audits:** behaviors an adjacent/related spec already owns; duplicate or contradictory rules; shared entities;

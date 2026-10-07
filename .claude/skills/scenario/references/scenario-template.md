@@ -7,7 +7,7 @@ Use this structure for `{plan-id}/scenario-analysis.md` under the plans root (de
 
 ## Scope Inputs
 - Applicability: EMBEDDED | EXPLICIT-ROADMAP | FRAMEWORK-LIBRARY | EXEMPT
-- Owning artifact: {PBI/spec path and slice ID, or explicit scope owner}
+- Owning artifact: {task/spec path and slice ID, or explicit scope owner}
 - Roadmap: {the product-roadmap artifact, default docs/product-roadmap.md, relocated by docsRoots.productRoadmap.path in docs/project-config.json — explicit branch only | NOT APPLICABLE — embedded/framework/EXEMPT}
 - Scope handoff: {{plan-id}/scope-brief.md under the plans root, default plans/, relocated by docsRoots.plans.path in docs/project-config.json | owning artifact reference | N/A with reason}
 - Outcome: {actor can... | technical/operational proof...}

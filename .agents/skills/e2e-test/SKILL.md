@@ -8,7 +8,7 @@ description: '[Testing] Use when a workflow step or the user asks for E2E test s
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -21,7 +21,7 @@ description: '[Testing] Use when a workflow step or the user asks for E2E test s
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
 > **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
-> **[BLOCKING]** Before each step or sub-skill call, update task tracking: set `in_progress` when step starts, set `completed` when step ends.
+> **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
 
@@ -451,7 +451,7 @@ Standalone (no parent workflow): after writing or updating E2E tests, suggest `$
 **IMPORTANT MUST ATTENTION** apply `.claude/skills/shared/e2e-quality-protocol.md` before authoring; record its GWT + invariant, gate-row verdicts, exact evidence, cleanup, and test-to-spec traceability without duplicating the detailed checklist.
 **IMPORTANT MUST ATTENTION** read `docs/project-reference/e2e-test-reference.md` + `docs/project-config.json` FIRST, then detect the framework and resolve `specRoots.business.path` plus optional `specArtifacts` — NEVER assume a stack, case ID, root, carrier, or evidence section — why: the configured framework, paths, identifiers, owner model, and evidence headings are project-specific.
 **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act, <60% DO NOT recommend) — NEVER speculate without proof.
-**MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting; mark one `in_progress`, set `completed` immediately after each finishes; add a final review todo.
+**MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using todo tracking BEFORE starting; mark one `in_progress`, set `completed` immediately after each finishes; add a final review todo.
 **MANDATORY IMPORTANT MUST ATTENTION** inspect 3+ comparable E2E tests and helpers, plus page/component objects when present, before creating new code; follow the configured local pattern over generic framework defaults — why: projects carry local locator, fixture, and organization conventions.
 **IMPORTANT MUST ATTENTION** evaluate fit before copying a nearby test — verify the new scenario shares the relevant organization, fixtures, and preconditions — why: closest example ≠ matching preconditions.
 **MANDATORY IMPORTANT MUST ATTENTION** every E2E case resolves its owner-qualified identity and configured requirement/acceptance refs, evidence section, actual executor(s), assertion(s), and run result(s), preserving profile cardinality — missing/unknown owner or ID remains unresolved and never PASS; only when no native profile is declared use TC IDs traced to §8/Test Specifications — so it fails on intended-behavior breaks, not cosmetic UI churn.

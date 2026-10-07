@@ -42,7 +42,7 @@ const severityConsumers = [
     '.claude/skills/fix/SKILL.md',
     '.claude/skills/integration-test/references/mode-review.md',
     '.claude/skills/knowledge-review/SKILL.md',
-    '.claude/skills/pbi/references/mode-review.md',
+    '.claude/skills/work-item/references/mode-review.md',
     '.claude/skills/performance-review/SKILL.md',
     '.claude/skills/plan/references/mode-review.md',
     '.claude/skills/production-readiness-review/SKILL.md',
@@ -605,10 +605,10 @@ test('local closing rules preserve bounded review and complete adaptive dispatch
     const plan = await read('.claude/skills/plan/references/mode-review.md');
     assert.doesNotMatch(plan, /Stop at 1\/1|Report the correction; the author owns revision/);
     assert.match(plan, /standalone fix-loop repairs validated findings before fresh review/);
-    const pbi = await read('.claude/skills/pbi/references/mode-review.md');
-    assert.doesNotMatch(pbi, /omit code-specific protocols|10\+ artifacts|using a fresh `general-purpose` artifact reviewer/);
-    assert.match(pbi, /all 11 complete protocol bodies VERBATIM/);
-    assert.match(pbi, /no artifact-count threshold or forced delegation/);
+    const workItem = await read('.claude/skills/work-item/references/mode-review.md');
+    assert.doesNotMatch(workItem, /omit code-specific protocols|10\+ artifacts|using a fresh `general-purpose` artifact reviewer/);
+    assert.match(workItem, /all 11 complete protocol bodies VERBATIM/);
+    assert.match(workItem, /no artifact-count threshold or forced delegation/);
     for (const file of [
         '.claude/skills/workflow-spec-sync/SKILL.md',
         '.claude/skills/workflow-integration-test/references/variant-write.md'

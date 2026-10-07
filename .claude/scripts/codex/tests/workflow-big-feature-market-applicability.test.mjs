@@ -14,11 +14,11 @@ const expectedApplicability = {
   skipReason: "This scope has no commercial market to size (for example, an internal tool, migration, or infrastructure-only change), or this product's addressable market is already sized and unchanged by this feature.",
 };
 const expectedSequence = [
-  "idea", "web-research", "source-deep-dive", "market-analysis", "business-evaluation",
+  "initiative", "web-research", "source-deep-dive", "market-analysis", "business-evaluation",
   "spec [mode=discovery]", "domain-analysis", "why-review", "tech-stack-research", "architecture --mode=design",
   "architecture --mode=scalability", "why-review", "scenario", "plan", "plan --mode=review",
-  "pbi --mode=refine", "pbi --mode=review --type=pbi", "pbi --mode=story", "pbi --mode=review --type=story", "pbi --mode=challenge --reuse=pbi-review",
-  "pbi --mode=dor --reuse=pbi-review", "pbi --mode=mockup --explore", "spec", "spec [mode=tests]", "pbi --mode=review --type=spec-tests",
+  "work-item --mode=refine", "work-item --mode=review --type=task", "work-item --mode=story", "work-item --mode=review --type=story", "work-item --mode=challenge --reuse=task-review",
+  "work-item --mode=dor --reuse=task-review", "work-item --mode=mockup --explore", "spec", "spec [mode=tests]", "work-item --mode=review --type=spec-tests",
   "spec [mode=clarify]", "plan", "plan --mode=review", "scaffold", "architecture --mode=full",
   "scan --target=ui-system", "scan --target=backend-patterns", "scan --target=integration-tests",
   "scan --target=project-structure", "plan --mode=validate", "plan --mode=execute", "seed-test-data",

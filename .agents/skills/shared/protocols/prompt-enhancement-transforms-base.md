@@ -30,7 +30,7 @@
 > Required structure (first 20 lines after frontmatter):
 >
 > ```markdown
-> > **[IMPORTANT]** task tracking instruction...
+> > **[IMPORTANT]** todo tracking instruction...
 >
 > > **Protocol Name** — [inline summary]. MUST ATTENTION READ `path` for details.
 >

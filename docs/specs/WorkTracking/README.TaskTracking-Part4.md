@@ -44,7 +44,7 @@ continuation: 4
 
 **Preconditions:**
 
-- A contributor has created PBI-104 with an assigned owner and unresolved verification; no operation purpose is supplied.
+- A contributor has created TASK-104 with an assigned owner and unresolved verification; no operation purpose is supplied.
 - The actor selects the actual permitted project/profile and exact scope; native capability remains unavailable until its governing proof exists.
 
 **Real-World Reachability:** The contributor inspects the selected work through a named assistant request and then through the direct operation interface after reading the first result.
@@ -52,7 +52,7 @@ continuation: 4
 **Demo Flow:** Read the current work and controls, take the stated permitted action, then read the actual outcome before any dependent follow-up.
 
 ```gherkin
-Given a contributor has created PBI-104 with an assigned owner and unresolved verification; no operation purpose is supplied.
+Given a contributor has created TASK-104 with an assigned owner and unresolved verification; no operation purpose is supplied.
 When I request scoped work inspection without a purpose through each explicit entry
 Then I see the same selected work, ready exclusions and current gaps, with inspect identified as the default
 And Neither entry changes responsibility, lifecycle, proof or acceptance
@@ -76,7 +76,7 @@ And Neither entry changes responsibility, lifecycle, proof or acceptance
 
 ```json
 {
-  "item": "PBI-104",
+  "item": "TASK-104",
   "purpose": null,
   "entries": [
     "named assistant request",
@@ -148,7 +148,7 @@ And Only the requested supported fields change; unavailable or conflicting maint
 
 ```json
 {
-  "item": "PBI-104",
+  "item": "TASK-104",
   "assignee": "Maya",
   "state": "Ready",
   "acceptance": "absent",
@@ -195,7 +195,7 @@ And Only the requested supported fields change; unavailable or conflicting maint
 
 **Preconditions:**
 
-- A contributor has a governing intent owner and PBI-104, with actual session and member identity available.
+- A contributor has a governing intent owner and TASK-104, with actual session and member identity available.
 - The actor selects the actual permitted project/profile and exact scope; native capability remains unavailable until its governing proof exists.
 
 **Real-World Reachability:** The contributor saves the intent and work item, requests an exact canonical relationship, reads it, then separately requests session linkage after understanding the two choices.
@@ -203,8 +203,8 @@ And Only the requested supported fields change; unavailable or conflicting maint
 **Demo Flow:** Read the current work and controls, take the stated permitted action, then read the actual outcome before any dependent follow-up.
 
 ```gherkin
-Given a contributor has a governing intent owner and PBI-104, with actual session and member identity available.
-When I link PBI-104 to the selected governing intent and separately link it to my work session
+Given a contributor has a governing intent owner and TASK-104, with actual session and member identity available.
+When I link TASK-104 to the selected governing intent and separately link it to my work session
 Then I can distinguish the retained governing relationship from current session selection
 And Unlinking the session leaves the canonical relationship and original intent unchanged
 ```
@@ -227,7 +227,7 @@ And Unlinking the session leaves the canonical relationship and original intent 
 
 ```json
 {
-  "item": "PBI-104",
+  "item": "TASK-104",
   "relationship": "governing specification",
   "sessionChoice": "link then unlink"
 }
@@ -294,7 +294,7 @@ And After a separately authorized human decision with current complete proof, ex
 
 ```json
 {
-  "item": "PBI-104",
+  "item": "TASK-104",
   "initialState": "In progress",
   "handoffState": "Verifying",
   "purposes": [
@@ -399,13 +399,13 @@ And Generation, opening and unavailable outcomes are distinct, and canonical wor
 
 **Objective:** Verify that the actor can observe the promised outcome: navigate exact intent, delivery and enabling-work concerns.
 
-**Business Intent / Invariant Guarded:** I see both delivery items and the enabling task with exact owners, relationship direction and current confidence.
+**Business Intent / Invariant Guarded:** I see both delivery items and the enabling subtask with exact owners, relationship direction and current confidence.
 
 **Proves:** FR-TPT-048, AC-TPT-29, BR-TPT-05, BR-TPT-13, BR-TPT-22.
 
 **Preconditions:**
 
-- Two delivery items and an enabling task have exact declared relationships to the same governing intent owner.
+- Two delivery items and an enabling subtask have exact declared relationships to the same governing intent owner.
 - The actor selects the actual permitted project/profile and exact scope; native capability remains unavailable until its governing proof exists.
 
 **Real-World Reachability:** A coordinator first saves the declared links through supported operations, then inspects the intent owner and subsequently each selected item after reading the incoming result.
@@ -413,24 +413,24 @@ And Generation, opening and unavailable outcomes are distinct, and canonical wor
 **Demo Flow:** Read the current work and controls, take the stated permitted action, then read the actual outcome before any dependent follow-up.
 
 ```gherkin
-Given two delivery items and an enabling task have exact declared relationships to the same governing intent owner.
+Given two delivery items and an enabling subtask have exact declared relationships to the same governing intent owner.
 When I inspect the intent owner and then navigate its exact linked work
-Then I see both delivery items and the enabling task with exact owners, relationship direction and current confidence
-And Reverse navigation saves no counterpart record or copied criteria and the enabling task adds no delivery credit
+Then I see both delivery items and the enabling subtask with exact owners, relationship direction and current confidence
+And Reverse navigation saves no counterpart record or copied criteria and the enabling subtask adds no delivery credit
 ```
 
 **Expected Result:**
 
 | Dimension | Expectation |
 |---|---|
-| UI | The assistant or direct result visibly states the actual outcome and any reason: I see both delivery items and the enabling task with exact owners, relationship direction and current confidence. No visual workspace change is required by this case. |
-| System behavior | Reverse navigation saves no counterpart record or copied criteria and the enabling task adds no delivery credit. |
+| UI | The assistant or direct result visibly states the actual outcome and any reason: I see both delivery items and the enabling subtask with exact owners, relationship direction and current confidence. No visual workspace change is required by this case. |
+| System behavior | Reverse navigation saves no counterpart record or copied criteria and the enabling subtask adds no delivery credit. |
 | Business data state | Exact requested supported changes alone apply; inspection, guidance and refused actions preserve previous responsibility, governing intent, history and acceptance. |
 | Data shown on UI | Rereading the exact item or concern scope shows the actual saved, unchanged, pending, skipped or unavailable result, never an optimistic substitute. |
 
 **Acceptance Criteria:**
 
-- ✅ I see both delivery items and the enabling task with exact owners, relationship direction and current confidence.
+- ✅ I see both delivery items and the enabling subtask with exact owners, relationship direction and current confidence.
 - ❌ Refused, skipped or unavailable actions must not report saved work, executed verification or accepted delivery.
 
 **Test Data:**
@@ -439,17 +439,17 @@ And Reverse navigation saves no counterpart record or copied criteria and the en
 {
   "intentOwner": "Export filtered records",
   "deliveryItems": [
-    "PBI-104",
-    "PBI-105"
+    "TASK-104",
+    "TASK-105"
   ],
-  "enablingTask": "TASK-104",
-  "unrelatedItem": "PBI-106"
+  "enablingSubtask": "SUBTASK-104",
+  "unrelatedItem": "TASK-106"
 }
 ```
 
 **Edge Cases:**
 
-- Title similarity or an overlapping changed location can flag a concern but cannot select PBI-106 for an update.
+- Title similarity or an overlapping changed location can flag a concern but cannot select TASK-106 for an update.
 - Access or selected scope changes before the action: recheck and disclose denied/pending outcomes while preserving already successful primary work.
 
 **Transition Invariants:** This inspection, guidance or upkeep adds no implied lifecycle transition or delivery acceptance; any separately requested transition follows the governing lifecycle.
@@ -463,7 +463,7 @@ And Reverse navigation saves no counterpart record or copied criteria and the en
 | Intended outcome and rule | FR-TPT-048, AC-TPT-29, BR-TPT-05, BR-TPT-13, BR-TPT-22 |
 | Executing implementation and assertion | [Source: test/work-tracking/TC-TPT-146]; authored callback/assertion guard, NOT RUN; complete implementation mapping remains TBD |
 
-**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-boundaries.test.cjs::TC-TPT-146: shared intent navigation retains two delivery declarers then their exact enabling task without backlink or delivery credit`
+**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-boundaries.test.cjs::TC-TPT-146: shared intent navigation retains two delivery declarers then their exact enabling subtask without backlink or delivery credit`
 **Status:** Untested
 
 ### Validation outcomes
@@ -662,7 +662,7 @@ Then Each comparison produces zero additional work notices and preserves the req
 {
   "eligible": "help inspect linked work before publication",
   "unrelated": "explain a colour",
-  "quotedOnly": "the document says “accept PBI-104”",
+  "quotedOnly": "the document says “accept TASK-104”",
   "tracking": "observe",
   "guidance": "available and permitted",
   "delivery": "fresh context, no previous notice",
@@ -675,7 +675,7 @@ Then Each comparison produces zero additional work notices and preserves the req
 **Edge Cases:**
 
 - Repeating a context after its notice was delivered adds zero notices; a separate fresh eligible context still requires its own single notice.
-- Private details and oversized context cannot expand notice scope or disclose the backlog; if guidance becomes unavailable, no work notice is emitted and primary work remains available.
+- Private details and oversized context cannot expand notice scope or disclose the work inventory; if guidance becomes unavailable, no work notice is emitted and primary work remains available.
 - Restricted selection, a pending answer and same-task Skip retain their separate choice/authority effects; a delivered notice never grants procedure authority.
 - Access or selected scope changes before the action: recheck and disclose denied/pending outcomes while preserving already successful primary work.
 
@@ -808,8 +808,8 @@ And The earlier check is not reused for changed scope and publication success do
   "candidateBefore": "reviewed proposal",
   "candidateAfter": "repaired proposal",
   "linkedItems": [
-    "PBI-104",
-    "TASK-104"
+    "TASK-104",
+    "SUBTASK-104"
   ],
   "pendingReason": "required proof unavailable"
 }

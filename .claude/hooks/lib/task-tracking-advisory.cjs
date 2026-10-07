@@ -7,6 +7,7 @@ const { trackingContext } = require('./task-tracking-config.cjs');
 const files = require('./task-tracking-files.cjs');
 const ledger = require('./convention-ledger.cjs');
 const routing = require('../../scripts/lib/workflow-routing-config.cjs');
+const { promptTerms } = require('./task-tracking-vocabulary.cjs');
 
 // Protective budgets, not measured capacity; none depend on the work inventory.
 const MAX_PROMPT_CHARS = 32768;
@@ -16,6 +17,9 @@ const MAX_STATE_BYTES = 32768;
 const MAX_NOTICE_CHARS = 900;
 const MARKER = '<!-- CK:TASK-TRACKING-GUIDANCE -->';
 const GROUP = 'task-tracking-advisory';
+
+// The work words of the current vocabulary, and the earlier ones a person may still type.
+const WORK = new RegExp(`\\b(work|${promptTerms().join('|')}|concerns?|tracking|publication|pull request)\\b`, 'i');
 
 /** Quoted examples are data. Unclosed quotations conservatively hide the remaining text. */
 function unquotedPrompt(prompt) {
@@ -42,12 +46,12 @@ function relevantPrompt(prompt) {
     const text = unquotedPrompt(prompt);
     if (/\b(?:do not|don't|never|avoid|skip)\s+(?:\w+\s+){0,2}(?:track|inspect|review|check|publish|commit)\b/i.test(text)) return '';
     const action = /\b(help|inspect|check|review|show|list|update|create|assign|refine|retire|track|link|implement|fix|commit|publish|prepare|open)\b/i;
-    const work = /\b(work|tasks?|pbis?|stories|story|backlog|epics?|visions?|ideas?|concerns?|tracking|publication|pull request)\b/i;
+    const work = WORK;
     const publication = /\b(commit|publish|pull request)\b/i;
     if (text && action.test(text) && (work.test(text) || publication.test(text))) return text;
     // Read-oriented hierarchy guidance uses the same trusted prose and bounded input owner.
     const readAction = /\b(?:show|inspect|check|open|list|report)\b/i;
-    const hierarchy = /\b(?:modules?|areas?|capabilit(?:y|ies)|features?|initiatives?)\b/i;
+    const hierarchy = /\b(?:modules?|areas?|capabilit(?:y|ies)|features?|initiatives?|programs?)\b/i;
     const intent = /\b(?:status|progress|report|delivery)\b/i;
     const negatedRead = /\b(?:do not|don't|never|avoid|skip)\s+(?:\w+\s+){0,2}(?:show|inspect|check|open|list|report)\b/i;
     return text && text.split(/[.!?;]/).some(clause => readAction.test(clause) && hierarchy.test(clause)
@@ -64,7 +68,7 @@ function notice(context, automatic) {
     return `${MARKER}\nTask tracking guidance (${context.mode}): inspect selected work and exact related concerns before publication using the available task-track instructions. ${selection} Pending choices and same-task Skip remain authoritative through follow-up and recovery; native permissions still apply. ${upkeep} This notice saves no work, starts no procedure and supplies no verification proof or acceptance.\n`;
 }
 
-/** No backlog scan or store writer: this checks only genuine prompt intent and selected controls. */
+/** No work scan or store writer: this checks only genuine prompt intent and selected controls. */
 function eligibleNotice(input, options = {}) {
     if (!input || typeof input !== 'object' || Array.isArray(input)
         || input.hook_event_name !== 'UserPromptSubmit'

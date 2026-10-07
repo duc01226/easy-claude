@@ -96,9 +96,9 @@ module.exports = {
             // Given a restricted preference and ordinary requests with potentially suitable skills.
             fx.write('docs/project-config.json', settings(false));
             for (const host of ['claude', 'codex']) {
-                for (const text of ['fix this bug', 'review these changes', 'implement this feature', 'explain this function']) {
+                for (const [i, text] of ['fix this bug', 'review these changes', 'implement this feature', 'explain this function'].entries()) {
                     // When the real host launcher delivers prompt context.
-                    const context = JSON.parse(runProcess(fx, { ...prompt, prompt: text }, host)).hookSpecificOutput.additionalContext;
+                    const context = JSON.parse(runProcess(fx, { ...prompt, session_id: `${host}-ordinary-${i}`, prompt: text }, host)).hookSpecificOutput.additionalContext;
                     // Then the human chooses skill execution or direct work before any activation.
                     assert.match(context, /ask ONE skill-choice question before loading or executing it/);
                     assert.match(context, /Use ask user tool to ask user when available, otherwise ask in plain text/);
@@ -125,7 +125,7 @@ module.exports = {
         { name: 'TC-SAP-004 commit route and risk-based review chain remain eligible without automatic Skip', fn: () => withFixture(fx => {
             fx.write('docs/project-config.json', settings(false));
             for (const host of ['claude', 'codex']) {
-                const context = JSON.parse(runProcess(fx, { ...prompt, prompt: 'commit this' }, host)).hookSpecificOutput.additionalContext;
+                const context = JSON.parse(runProcess(fx, { ...prompt, session_id: `${host}-commit`, prompt: 'commit this' }, host)).hookSpecificOutput.additionalContext;
                 assert.match(context, /required dependency\/step of a skill or workflow already authorized/);
                 assert.match(context, /review selected by the user or the commit decision policy authorizes its workflow and required nested reviewers/);
                 assert.match(context, /Selection eligibility is not a skip approval or Git authority/);
@@ -149,7 +149,9 @@ module.exports = {
                     { ...prompt, hook_event_name: 'SubagentStart', agent_id: 'pr-reviewer' }
                 ];
                 for (const event of events) {
-                    const context = JSON.parse(runProcess(fx, event, host)).hookSpecificOutput.additionalContext;
+                    const context = JSON.parse(runProcess(fx, { ...event, session_id: `${host}-continuity` }, host)).hookSpecificOutput.additionalContext;
+                    assert.equal(context, hook.buildPolicy({ enabled: false, source: 'project-config' }),
+                        'every ordinary and recovery event must carry the complete current policy');
                     assert.match(context, /follow the Test and review decision policy in \.claude\/skills\/commit\/SKILL\.md/);
                     assert.match(context, /reuse recorded preferences for small same-task\/branch follow-ups/);
                     assert.match(context, /automatically run fresh checks and whole-branch review for routine PR CI repairs/);
@@ -162,6 +164,89 @@ module.exports = {
                     assert.doesNotMatch(context, /MUST ask the human about tests and review/);
                 }
             }
+        }) },
+        { name: 'TC-SAP-012 full policy retries failed writes and replays after mode, source and context changes', fn: () => withFixture(async fx => {
+            fx.write('docs/project-config.json', settings(false));
+            const deps = { projectDir: fx.root, env: {}, homeDir: fx.temp, write: (text, done) => done(true) };
+            const read = output => JSON.parse(output).hookSpecificOutput.additionalContext;
+            const full = output => assert.equal(read(output), hook.buildPolicy({ enabled: false, source: 'project-config' }));
+            // A live or interrupted peer claim is not proof that full guidance reached this context.
+            const ledger = require('../../lib/convention-ledger.cjs');
+            const store = routing.resolveSessionStoreRoot(fx.root);
+            const peer = { ...prompt, session_id: 'peer-delivery' };
+            const lock = ledger.lockFile(store, peer.session_id, ledger.scopeFor(peer), hook.HOOK_NAME);
+            const token = ledger.acquireLock(lock, Date.now());
+            assert.ok(token, 'fixture must hold a live delivery claim');
+            try {
+                assert.equal(await hook.run(peer, { ...deps, write: (text, done) => done(false) }), '');
+                full(await hook.run(peer, deps));
+                assert.equal(ledger.readRecord(store, peer.session_id, ledger.scopeFor(peer), hook.HOOK_NAME), null,
+                    'fallback delivery must not claim or replace a peer-owned record');
+            } finally {
+                ledger.releaseLock(lock, token);
+            }
+            full(await hook.run(peer, deps));
+            full(await hook.run(peer, deps));
+            // Recovery cannot depend on deleting a readable old record (ACL/read-only directory).
+            const recovery = { ...prompt, session_id: 'undeletable-recovery' };
+            full(await hook.run(recovery, deps));
+            const oldRecord = ledger.recordFile(store, recovery.session_id, ledger.scopeFor(recovery), hook.HOOK_NAME);
+            // Seed obsolete presence credit independently: policy delivery no longer creates it.
+            ledger.writeRecordAtomic(store, recovery.session_id, ledger.scopeFor(recovery), hook.HOOK_NAME, {
+                hash: require('node:crypto').createHash('sha256').update(hook.buildPolicy({ enabled: false, source: 'project-config' })).digest('hex'),
+                deliveredAt: Date.now(), transcriptBytes: 0, form: 'full'
+            });
+            assert.ok(fs.existsSync(oldRecord), 'old presence credit must actually exist');
+            const remove = fs.rmSync;
+            try {
+                fs.rmSync = (target, ...args) => {
+                    if (String(target) === oldRecord) throw Object.assign(new Error('record deletion denied'), { code: 'EACCES' });
+                    return remove(target, ...args);
+                };
+                for (const source of ['resume', 'startup', 'clear', 'compact']) {
+                    const event = { ...recovery, hook_event_name: 'SessionStart', source };
+                    assert.equal(await hook.run(event, { ...deps, write: (text, done) => done(false) }), '');
+                    assert.equal(read(await hook.run(recovery, deps)), hook.buildPolicy({ enabled: false, source: 'project-config' }),
+                        `${source}: ordinary prompt after failed recovery must replay the full policy`);
+                    assert.equal(read(await hook.run(event, deps)), hook.buildPolicy({ enabled: false, source: 'project-config' }), source);
+                }
+            } finally { fs.rmSync = remove; }
+            assert.equal(await hook.run(prompt, { ...deps, write: (text, done) => done(false) }), '');
+            full(await hook.run(prompt, deps));
+            full(await hook.run(prompt, deps));
+            assert.match(read(await hook.run(prompt, { ...deps, env: { CK_SKILL_AUTO_TRIGGER: 'false' } })), /ask ONE skill-choice question/);
+            assert.match(read(await hook.run(prompt, { ...deps, env: { CK_SKILL_AUTO_TRIGGER: 'true' } })), /replaces the earlier restricted/);
+            full(await hook.run(prompt, deps));
+            // A failed automatic reset cannot consume this context's pending restriction.
+            const failedReset = { ...prompt, session_id: 'failed-reset-proof' };
+            full(await hook.run(failedReset, deps));
+            const automatic = { ...deps, env: { CK_SKILL_AUTO_TRIGGER: 'true' } };
+            assert.equal(await hook.run(failedReset, { ...automatic, write: (text, done) => done(false) }), '');
+            assert.equal(ledger.readSessionState(store, failedReset.session_id,
+                `${hook.HOOK_NAME}-${ledger.scopeFor(failedReset)}`).enabled, false);
+            assert.match(read(await hook.run(failedReset, automatic)), /replaces the earlier restricted/);
+            assert.equal(await hook.run(failedReset, automatic), '');
+            // Hosts without agent IDs still start child contexts; their reset cannot mark main present.
+            const anonymousScope = { ...prompt, session_id: 'anonymous-scope-proof' };
+            full(await hook.run(anonymousScope, deps));
+            await hook.run({ ...anonymousScope, hook_event_name: 'SubagentStart', agent_id: undefined }, automatic);
+            assert.match(read(await hook.run(anonymousScope, automatic)), /replaces the earlier restricted/);
+            assert.equal(await hook.run(anonymousScope, automatic), '');
+            const transcript = path.join(fx.temp, 'transcript.jsonl');
+            fs.writeFileSync(transcript, '');
+            const growing = { ...prompt, session_id: 'growth', transcript_path: transcript };
+            full(await hook.run(growing, deps));
+            fs.appendFileSync(transcript, 'x'.repeat(2300000));
+            full(await hook.run(growing, deps));
+            full(await hook.run(growing, deps));
+            const compact = { ...growing, hook_event_name: 'SessionStart', source: 'compact' };
+            full(await hook.run(compact, deps));
+            fs.appendFileSync(transcript, '\n' + JSON.stringify({ type: 'system', subtype: 'compact_boundary', timestamp: new Date().toISOString() }) + '\n');
+            full(await hook.run(growing, deps));
+            for (const agent_id of ['agent-a', 'agent-b', undefined]) {
+                full(await hook.run({ ...prompt, hook_event_name: 'SubagentStart', agent_id }, deps));
+            }
+            full(await hook.run(prompt, deps));
         }) },
         { name: 'TC-SAP-005 prompts, subagents and recovery refresh restrictions; config removal restores auto', fn: () => withFixture(fx => {
             fx.write('docs/project-config.json', settings(false));

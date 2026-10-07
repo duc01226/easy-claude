@@ -8,7 +8,7 @@ description: '[Quality] Use when a workflow step or the user asks for an agent q
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -19,7 +19,7 @@ description: '[Quality] Use when a workflow step or the user asks for an agent q
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
 > **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
-> **[BLOCKING]** Before each step or sub-skill call, update task tracking: set `in_progress` when step starts, set `completed` when step ends.
+> **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
 
@@ -84,6 +84,8 @@ If any field is undetectable → `ask user question tool` before proceeding.
 ---
 
 ## Phase B — Feedforward Guide Setup (Inferential)
+
+Read `.claude/skills/shared/protocols/context-engineering-principles.md` when creating or changing persistent instruction files; apply its **Instruction-file audit** before finalizing those outputs, including later review-gate additions. Preserve generated ownership and existing confirmation gates.
 
 For each guide type, check existence; create it or enhance an existing guide:
 
@@ -228,7 +230,7 @@ Present inventory to user for review via `ask user question tool`.
 
 ---
 
-> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
+> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
 
 <!-- PROTOCOL-GUIDES:START -->
 
@@ -294,7 +296,7 @@ Present inventory to user for review via `ask user question tool`.
 **IMPORTANT MUST ATTENTION** harness inventory is a LIVING document — update it when new sensors are added later — why: a stale inventory misrepresents the active feedback loop
 **IMPORTANT MUST ATTENTION** grep 3+ existing guides/sensors before authoring a new one; verify fit (same stack, gate stage, lifecycle) before copying a nearby pattern — why: closest example ≠ matching preconditions
 **IMPORTANT MUST ATTENTION** cite `file:line` / config-path evidence for every detected sensor and stack fact (confidence >80% to act, <60% DO NOT recommend) — NEVER speculate a tool exists; grep the config to confirm — why: a hallucinated sensor leaves a real gap unguarded
-**IMPORTANT MUST ATTENTION** bootstrap task tracking before phases — task tracking one todo per phase, mark `in_progress`/`completed` as you go; on context loss the current task list first — why: resume work, never duplicate phases
+**IMPORTANT MUST ATTENTION** bootstrap task tracking before phases — todo tracking one todo per phase, mark `in_progress`/`completed` as you go; on context loss the current task list first — why: resume work, never duplicate phases
 
 **Anti-Rationalization:**
 

@@ -10,12 +10,12 @@ disable-model-invocation: false
 
 Read [the registry](../../../.claude/workflows.json) → `workflows.workflow-research` together with this skill. Call [`/start-workflow workflow-research`](../start-workflow/SKILL.md) to resolve the selected mode, pre-actions and fingerprint.
 
-**Todo FIRST:** create ALL selected occurrence tasks before triage, analysis or step execution, including conditional/optional tasks; preserve occurrence IDs, roles and barrier groups. Use native task tools or an equivalent persistent ledger. Then mark the first task `in_progress`; attach evidence before `completed`.
+**Todo FIRST:** create one todo for EVERY selected occurrence before triage, analysis or step execution, including conditional/optional ones; preserve occurrence IDs, roles and barrier groups. Use native todo tools or an equivalent persistent ledger. Then mark the first todo `in_progress`; attach evidence before `completed`.
 Mode selection and registry loading prepare tracking; any 'first action' below means the first substantive action after this bootstrap.
 
 **Call each step skill:** read its linked SKILL.md and execute its protocol through the active host with the registry args. Reading or naming a skill alone is not execution. Required gates and core/optional flex follow the linked start-workflow Step Execution Protocol; keep this skill's quality gates, loops and evidence requirements.
 
-**Conditions:** load each occurrence's registry `applicability.when` and `skipReason` verbatim, and record its run/skip evidence through the linked start-workflow protocol. Do not silently omit a task or turn a conditional skill into an unconditional call. Declared parallel groups retain their all-return barrier.
+**Conditions:** load each occurrence's registry `applicability.when` and `skipReason` verbatim, and record its run/skip evidence through the linked start-workflow protocol. Do not silently omit a todo or turn a conditional skill into an unconditional call. Declared parallel groups retain their all-return barrier.
 
 Explicit step-skill calls by mode (registry order; roles and conditions remain owned by the registry):
 
@@ -33,7 +33,7 @@ Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs
 
 ## Quick Summary
 
-**Goal:** Research a topic from web sources and deliver ONE cited, reviewed artifact in the form `--output` selects: a knowledge report (`synthesis`, default), a business/market viability evaluation (`business-eval`), a marketing strategy (`marketing`), or course material (`course`). The workflow produces research artifacts only, never code.
+**Goal:** Research a topic from web sources and deliver ONE cited, reviewed artifact in the form `--output` selects: a knowledge report (`synthesis`, default), a business/market viability evaluation (`business-eval`), a marketing strategy (`marketing`), or structured course material (`course`). The workflow produces research artifacts only, never code.
 
 **Use it when** the answer must come from external sources and end in a durable, cited deliverable. **Use a sibling instead** for a quick lookup with no artifact (plain `/web-research`) or for questions about this codebase (`/investigate`).
 
@@ -52,7 +52,7 @@ Pick the mode from the prompt BEFORE creating tasks. When the prompt is ambiguou
 | **synthesis** (default) | Cited knowledge report               | `/knowledge-synthesis`                      |
 | **business-eval**       | Business/market viability evaluation | `/market-analysis` → `/business-evaluation` |
 | **marketing**           | Marketing strategy                   | `/market-analysis` → `/strategy-builder`    |
-| **course**              | Structured course material           | `/course-builder`                           |
+| **course**              | Learner-ready course                 | `/course-builder`                          |
 
 **[BLOCKING] Evidence-artifact identity for `business-eval` and `marketing`:** before invoking the
 first research child, derive one stable `ARTIFACT_SLUG` from the user's topic and record the exact
@@ -61,7 +61,7 @@ workflow context/task handoff. Pass those exact values to every child skill. `ma
 only producer; it must write and return that path, and `business-evaluation`/`strategy-builder` must
 read that exact path rather than deriving a second slug. If a plan directory is active, its
 `{plan-dir}/research/market-analysis.md` file is a copy of the same producer artifact, not a second
-identity. This token is not needed for `synthesis` or `course` variants. — why: sequence ordering
+identity. This token is not needed for the `synthesis` variant. — why: sequence ordering
 without a shared artifact key still allows a producer/consumer miss that degrades the final evidence
 without failing the workflow.
 

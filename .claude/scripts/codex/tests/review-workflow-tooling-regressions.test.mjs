@@ -156,7 +156,7 @@ test('TC-WFADV-022: adaptive orchestration keeps full-target and post-fix review
     assert.match(source,/Wait for every report before fixing/);
     assert.match(source,/Re-run general, whole-target rationale and every applicable specialist lens/);
     assert.match(source,/no fixed file\/line\/byte caps/);
-    assert.match(source,/Always create occurrence tasks before running a skill/);
+    assert.match(source,/Always create occurrence todos before running a skill/);
 });
 
 test('TC-WFADV-021: parallelGroups structural guards reject malformed barrier configs (no silent false-pass)', async () => {

@@ -68,7 +68,7 @@ Each reference doc below sits in the project-reference docs root — default `do
 **Workflow:**
 
 1. **Mode Detection** — TDD-first, implement-first, update, sync, or from-integration-tests
-2. **Investigation** — Analyze PBI/codebase/existing TCs/git changes per mode
+2. **Investigation** — Analyze task/codebase/existing TCs/git changes per mode
 3. **TC Generation** — Generate TC outlines, interactive review with user
 4. **Write to Feature Doc** — Upsert TCs into Section 8
 5. **Test-Code Sync** — Optionally reconcile Section 8 TCs ↔ executing test code (forward-sync; §8 canonical) — see `sync.md`
@@ -159,7 +159,7 @@ Detect mode from prompt and context:
 
 | Mode                       | Signal                                            | Action                                                            |
 | -------------------------- | ------------------------------------------------- | ----------------------------------------------------------------- |
-| **TDD-first**              | PBI/story exists, code not yet written            | Generate specs from requirements                                  |
+| **TDD-first**              | Task/story exists, code not yet written            | Generate specs from requirements                                  |
 | **Implement-first**        | Code already exists, no/incomplete TCs            | Generate specs from codebase analysis                             |
 | **Update**                 | Existing TCs + code changes / bugfix / PR         | Diff existing TCs against current code/PR, find gaps, update both |
 | **Sync**                   | User says "sync test specs" or bidirectional need | Reconcile feature docs ↔ the business spec root (default `docs/specs/`, overridden by `specRoots.business.path` in `docs/project-config.json`), either direction — see `sync.md` |
@@ -204,13 +204,13 @@ If 2+ fail → `ask user question tool`: "Spec readiness below TC generation thr
 
 **TDD-first mode:**
 
-1. Read PBI/story from `pbis/` under the team-artifacts root (default `team-artifacts/`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path) or user-provided
+1. Read task/story from `tasks/` under the team-artifacts root (default `team-artifacts/`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path) or user-provided
 2. Extract acceptance criteria
 3. Identify TC categories: CRUD, validation, **authorization** (mandatory), workflows, edge cases, seed data, performance, data migration
 4. Cross-reference existing feature doc requirements (Sections 1-7)
-5. PBI Authorization section → generate authorization TCs (unauthorized rejection per role)
-6. PBI Seed Data section → generate seed data TCs if reference/config data needed
-7. PBI Data Migration section → generate migration TCs if schema changes exist
+5. Task Authorization section → generate authorization TCs (unauthorized rejection per role)
+6. Task Seed Data section → generate seed data TCs if reference/config data needed
+7. Task Data Migration section → generate migration TCs if schema changes exist
 
 **Implement-first mode:**
 
@@ -237,7 +237,7 @@ Use the discovered operations to check that **no business capability was missed*
 
 ⚠️ **[HARD] The operation count is NOT the TC floor.** `business_floor` is (`author.md` — *"The business TC floor"*). An operation that produces **no user-observable behavior and no business data-state change** gets **no business TC** — it is covered by the technical spec tree. Consumers, event handlers, sync processors and background jobs are architecture; a business TC exists only where a user or QC can **demo** the outcome.
 
-If `business_floor` > 20: split into operation-group batches (≤20 ops each per task tracking). NEVER generate all TCs in one pass for large features.
+If `business_floor` > 20: split into operation-group batches (≤20 ops each per todo tracking). NEVER generate all TCs in one pass for large features.
 
 **Actor Catalog Discovery — §2-AUTHORING ONLY (never a TC-count input):**
 
@@ -410,17 +410,17 @@ TC Blast Radius Analysis:
 >
 > **Count properties, not operations.** The Invariant-coverage row counts TCs that ASSERT a universally-quantified property (per the imported Test-Complete Gate), NOT TCs that merely name an invariant in the per-TC field. A §4 [HARD] rule or §5 invariant with zero property TC = FAIL even when every story/actor row passes. The Transition-coverage row operationalizes `sdd-artifact-contract.md` → Test-Complete Gate ("every state transition maps to ≥1 valid AND ≥1 invalid transition TC"); retain business-visible idempotency cases when they guard canonical intent. Purely architectural event/job idempotency coverage belongs to the technical spec tree and test owner, not an additional business TC-count row.
 
-**FAIL action:** task tracking for each FAIL row — list specific missing TC categories (and, for Invariant/Transition rows, the exact §4 rule / §5 invariant / lifecycle state left uncovered). NEVER proceed to Phase 3 until all gates PASS.
+**FAIL action:** todo tracking for each FAIL row — list specific missing TC categories (and, for Invariant/Transition rows, the exact §4 rule / §5 invariant / lifecycle state left uncovered). NEVER proceed to Phase 3 until all gates PASS.
 
 **Operation group decomposition:** If `business_floor` > 20, split TC generation into batches of ≤20 related operations:
 
 ```
-Task tracking: "Generate CRUD TCs for {feature} — ops {1-N}: {CommandA}, {CommandB}, {CommandC}"
-Task tracking: "Generate Read TCs for {feature} — ops {1-M}: {QueryA}, {QueryB}"
-Task tracking: "Generate Event TCs for {feature} — ops {1-K}: {EventConsumerA}, {BackgroundJobA}"
-Task tracking: "Generate Permission TCs for {feature} — actors: {Role1}, {Role2}"
-Task tracking: "Generate Edge Case TCs for {feature} — boundary conditions from §4 [HARD] rules + §5 invariants"
-Task tracking: "Generate Invariant/Property TCs for {feature} — per [HARD] §4 rule + §5 invariant: universally-quantified property + boundary counter-case (probe idempotency/round-trip/commutativity/monotonicity/conservation/state-transition)"
+Todo tracking: "Generate CRUD TCs for {feature} — ops {1-N}: {CommandA}, {CommandB}, {CommandC}"
+Todo tracking: "Generate Read TCs for {feature} — ops {1-M}: {QueryA}, {QueryB}"
+Todo tracking: "Generate Event TCs for {feature} — ops {1-K}: {EventConsumerA}, {BackgroundJobA}"
+Todo tracking: "Generate Permission TCs for {feature} — actors: {Role1}, {Role2}"
+Todo tracking: "Generate Edge Case TCs for {feature} — boundary conditions from §4 [HARD] rules + §5 invariants"
+Todo tracking: "Generate Invariant/Property TCs for {feature} — per [HARD] §4 rule + §5 invariant: universally-quantified property + boundary counter-case (probe idempotency/round-trip/commutativity/monotonicity/conservation/state-transition)"
 ```
 
 Each batch task completes before starting the next. Final ask user question tool review covers all batches together.
@@ -562,7 +562,7 @@ Based on mode, suggest via `ask user question tool`:
 **TDD-first:**
 
 ```
-1. "$pbi --mode=review --type=spec-tests — Validate TC quality before generating tests (Recommended)"
+1. "$work-item --mode=review --type=spec-tests — Validate TC quality before generating tests (Recommended)"
 2. "$integration-test — Generate test stubs from these TCs (skip review)"
 3. "$plan — Plan the feature implementation"
 4. "Done for now — I'll implement later"
@@ -571,7 +571,7 @@ Based on mode, suggest via `ask user question tool`:
 **Implement-first:**
 
 ```
-1. "$pbi --mode=review --type=spec-tests — Validate TC quality before generating tests (Recommended)"
+1. "$work-item --mode=review --type=spec-tests — Validate TC quality before generating tests (Recommended)"
 2. "$integration-test — Generate integration tests (skip review)"
 3. "$workflow-review-changes — Review all changes"
 4. "Done for now"
@@ -580,7 +580,7 @@ Based on mode, suggest via `ask user question tool`:
 **Update (post-change/PR):**
 
 ```
-1. "$pbi --mode=review --type=spec-tests — Validate updated TCs before regenerating tests (Recommended)"
+1. "$work-item --mode=review --type=spec-tests — Validate updated TCs before regenerating tests (Recommended)"
 2. "$integration-test — Generate/update tests for changed TCs (skip review)"
 3. "$test — Run existing tests to verify coverage"
 4. "spec [mode=sync] — Sync §8 TCs ↔ executing test code"
@@ -664,11 +664,11 @@ When feature behavior removed or significantly changed:
 
 ## See Also
 
-- `pbi --mode=review --type=spec-tests` — TC quality review (use AFTER this mode to validate TC coverage and correctness)
+- `work-item --mode=review --type=spec-tests` — TC quality review (use AFTER this mode to validate TC coverage and correctness)
 - `spec [mode=sync]` — Native sync mode (forward-syncs Section 8 TCs ↔ executing test code; see `sync.md`)
 - `integration-test` — Integration test code generator (use AFTER this mode to generate test stubs)
 - `$spec` — Feature doc creator (creates the Section 8 that this mode populates)
-- `pbi --mode=refine` — PBI refinement (feeds acceptance criteria into this mode's TDD-first path)
+- `work-item --mode=refine` — task refinement (feeds acceptance criteria into this mode's TDD-first path)
 
 ---
 

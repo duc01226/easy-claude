@@ -200,8 +200,8 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
         <div class="stat"><b><!-- COUNT:skills -->102<!-- /COUNT --></b><span>skills</span></div>
         <div class="stat"><b><!-- COUNT:workflows -->19<!-- /COUNT --></b><span>workflows</span></div>
         <div class="stat"><b><!-- COUNT:agents -->24<!-- /COUNT --></b><span>agents</span></div>
-        <div class="stat"><b><!-- COUNT:hooks -->31<!-- /COUNT --></b><span>hook files</span></div>
-        <div class="stat"><b><!-- COUNT:lib-modules -->56<!-- /COUNT --></b><span>hook libraries</span></div>
+        <div class="stat"><b><!-- COUNT:hooks -->32<!-- /COUNT --></b><span>hook files</span></div>
+        <div class="stat"><b><!-- COUNT:lib-modules -->61<!-- /COUNT --></b><span>hook libraries</span></div>
       </div>
       <details class="toc-mobile"><summary>Contents</summary><ol id="toc-mobile-list"></ol></details>
     </header>
@@ -246,7 +246,7 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
           <tr><td>Refactor safely</td><td><code>/workflow-refactor</code></td></tr>
           <tr><td>Review your changes</td><td><code>/changes-review</code> · full: <code>/workflow-review-changes --fix-loop</code></td></tr>
           <tr><td>Commit / open a PR</td><td><code>/commit</code> · <code>/pull-request</code></td></tr>
-          <tr><td>Design or mock up UI</td><td><code>/ui-design</code> · <code>/pbi --mode=mockup --explore</code> · <code>/workflow-spec-to-mockup</code></td></tr>
+          <tr><td>Design or mock up UI</td><td><code>/ui-design</code> · <code>/work-item --mode=mockup --explore</code> · <code>/workflow-spec-to-mockup</code></td></tr>
           <tr><td>Write or sync a spec</td><td><code>/spec</code> · <code>/workflow-feature-spec</code> · <code>/workflow-spec-sync</code></td></tr>
           <tr><td>Write or fix tests</td><td><code>/workflow-integration-test</code> (<code>--mode=write</code> · <code>--mode=green</code>) · <code>/workflow-e2e</code></td></tr>
           <tr><td>Set up a project</td><td><code>/project-init</code>, then <code>/scan-all</code></td></tr>
@@ -339,9 +339,9 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
           <tr><td><code>workflow-feature-spec</code></td><td><span class="pill auto">auto</span></td><td class="num">8</td><td>Create or update a canonical feature spec</td></tr>
           <tr><td><code>workflow-code-to-spec</code></td><td><span class="pill auto">auto</span></td><td class="num">6–11</td><td>Spec from existing code, sync, staleness audit</td></tr>
           <tr><td><code>workflow-spec-sync</code></td><td><span class="pill auto">auto</span></td><td class="num">11</td><td>Update test specs after code, bug or PR changes</td></tr>
-          <tr><td><code>workflow-idea-to-spec</code></td><td><span class="pill auto">auto</span></td><td class="num">19</td><td>Raw idea → one reviewed provisional spec</td></tr>
-          <tr><td><code>workflow-idea-to-pbi</code></td><td><span class="pill auto">auto</span></td><td class="num">30</td><td>Idea → grooming-ready PBI, stories, test specs</td></tr>
-          <tr><td><code>workflow-spec-to-pbi</code></td><td><span class="pill auto">auto</span></td><td class="num">22</td><td>Specs → prioritized, dependency-aware backlog</td></tr>
+          <tr><td><code>workflow-initiative-to-spec</code></td><td><span class="pill auto">auto</span></td><td class="num">19</td><td>Raw idea → one reviewed provisional spec</td></tr>
+          <tr><td><code>workflow-initiative-to-task</code></td><td><span class="pill auto">auto</span></td><td class="num">30</td><td>Initiative → ready-to-plan task, stories, test specs</td></tr>
+          <tr><td><code>workflow-spec-to-task</code></td><td><span class="pill auto">auto</span></td><td class="num">22</td><td>Specs → prioritized, dependency-aware planned work</td></tr>
           <tr><td><code>workflow-greenfield-init</code></td><td><span class="pill confirm">confirm</span></td><td class="num">55</td><td>A new project from scratch</td></tr>
           <tr><td><code>workflow-integration-test</code></td><td><span class="pill auto">auto</span></td><td class="num">6–10</td><td>Write or update integration tests spec-first, or drive a red suite to green</td></tr>
           <tr><td><code>workflow-e2e</code></td><td><span class="pill auto">auto</span></td><td class="num">6</td><td>Write, update and verify E2E tests</td></tr>
@@ -381,11 +381,11 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
         <div class="cat"><span>Project setup &amp; help</span><div class="cat-bar"><i style="width:90px"></i><b>9</b><span>project-init, ai-context-refresh, learn</span></div></div>
         <div class="cat"><span>Research &amp; business</span><div class="cat-bar"><i style="width:60px"></i><b>6</b><span>web-research, market-analysis</span></div></div>
         <div class="cat"><span>Documents &amp; media</span><div class="cat-bar"><i style="width:90px"></i><b>9</b><span>feature-presentation, html-export, watzup</span></div></div>
-        <div class="cat"><span>Product / PBI</span><div class="cat-bar"><i style="width:40px"></i><b>4</b><span>idea, pbi (refine, story, mockup, challenge, review, dor modes), prioritize</span></div></div>
+        <div class="cat"><span>Product / task</span><div class="cat-bar"><i style="width:40px"></i><b>4</b><span>initiative, work-item (refine, story, mockup, challenge, review, dor modes), prioritize</span></div></div>
         <div class="cat"><span>Framework maintenance</span><div class="cat-bar"><i style="width:60px"></i><b>6</b><span>sync-codex, skill-creator</span></div></div>
         <div class="cat"><span>Implementation</span><div class="cat-bar"><i style="width:60px"></i><b>6</b><span>feature-implement, code-simplifier</span></div></div>
         <div class="cat"><span>Git &amp; delivery</span><div class="cat-bar"><i style="width:50px"></i><b>5</b><span>commit, pull-request</span></div></div>
-        <div class="cat"><span>Design &amp; UI</span><div class="cat-bar"><i style="width:30px"></i><b>3</b><span>design, design-spec, pbi --mode=mockup</span></div></div>
+        <div class="cat"><span>Design &amp; UI</span><div class="cat-bar"><i style="width:30px"></i><b>3</b><span>design, design-spec, work-item --mode=mockup</span></div></div>
       </div>
       <div class="grid">
         <div class="card"><h4>Who can start a skill</h4><p>Most are model-invocable. 15 are command-only (<code>disable-model-invocation: true</code>): only you start them with <code>/name</code>.</p></div>

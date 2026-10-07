@@ -1,12 +1,14 @@
 'use strict';
 
+const fs = require('node:fs');
 const { TextDecoder } = require('node:util');
 const { LIMITS } = require('./task-tracking-config.cjs');
-const { fail, hash, readBytes, publishBytes, removeBytes } = require('./task-tracking-files.cjs');
+const { fail, hash, scopedPath, readBytes, publishBytes, removeBytes } = require('./task-tracking-files.cjs');
 const { inspectRecords, stableValue, parseRecord } = require('./task-artifact-store.cjs');
 const { bindRecordContext, string } = require('./task-tracking-policy.cjs');
 
-const recoveryPath = operationId => `tmp/task-tracking/deletions/${hash(operationId)}.json`;
+const RECOVERY_DIRECTORY = 'tmp/task-tracking/deletions';
+const recoveryPath = operationId => `${RECOVERY_DIRECTORY}/${hash(operationId)}.json`;
 // The journal embeds the whole record text as a JSON string, so the record budget cannot bound it: a control character
 // is one byte in the record and six once escaped. The constant covers the envelope (paths, identities, hashes, result).
 const JOURNAL_BYTES = LIMITS.recordBytes * 6 + 64 * 1024;
@@ -108,4 +110,23 @@ function deleteDraft(context, request, digest, authority, recordView) {
     return finish(context, request, prepared, false, removeBytes(context.root, record.ownerPath, record.contentHash));
 }
 
-module.exports = { recoveryPath, completedRecovery, deleteDraft };
+/**
+ * Deletion recoveries that have not reached completion, by project-relative path. Read-only: nothing is repaired here.
+ * A recovery that cannot be read is listed too, because it is not known to be complete.
+ */
+function unfinishedRecoveries(context) {
+    let names;
+    try { names = fs.readdirSync(scopedPath(context.root, RECOVERY_DIRECTORY)); }
+    catch (error) { if (error.code === 'ENOENT') return []; throw error; }
+    const unfinished = [];
+    for (const name of names.filter(entry => entry.endsWith('.json')).sort()) {
+        const relative = `${RECOVERY_DIRECTORY}/${name}`;
+        let value = null;
+        try { value = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(readBytes(context.root, relative, JOURNAL_BYTES))); }
+        catch { /* Listed below: unreadable is not complete. */ }
+        if (value?.phase !== 'complete') unfinished.push({ path: relative, ...(typeof value?.itemId === 'string' ? { itemId: value.itemId } : {}) });
+    }
+    return unfinished;
+}
+
+module.exports = { recoveryPath, completedRecovery, deleteDraft, unfinishedRecoveries };

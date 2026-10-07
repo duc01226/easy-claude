@@ -104,8 +104,8 @@ ALL_REVIEW_SKILLS = [
     # inline in `integration-test/references/mode-verify.md`, so `integration-test` is not a roster member.
     "security-audit", "ai-engineering-review", "performance-review",
     "production-readiness-review", "knowledge-review",
-    # `pbi --mode=review` converges the same way and carries its bodies inline in `pbi/references/mode-review.md`,
-    # so `pbi` is not a roster member.
+    # `work-item --mode=review` converges the same way and carries its bodies inline in `work-item/references/mode-review.md`,
+    # so `work-item` is not a roster member.
     "why-review",
     "workflow-review-changes",
 ]
@@ -125,10 +125,10 @@ TRADE_OFF = list(ALL_REVIEW_SKILLS)
 # The UX-1..UX-11 journey-first gate (catalog: .claude/docs/ux-journey-process.md). It fixes the
 # ORDER every design output follows -- report the main user journeys, read the project's design
 # authority, only then generate -- so it binds the skills that GENERATE or COMMIT a user-facing
-# surface (design, design-spec, `pbi --mode=mockup`) and the two that REVIEW such an artifact against
-# its journeys (ui-design --mode=review walks the journeys on the built surface; `pbi --mode=review --type=design`
-# checks the spec carries the Journey Report). The two `pbi` modes carry the body inline in
-# `pbi/references/mode-mockup.md` and `pbi/references/mode-review.md`, so `pbi` is not a target. Deliberately NARROWER than DESIGN_DISTINCTIVENESS:
+# surface (design, design-spec, `work-item --mode=mockup`) and the two that REVIEW such an artifact against
+# its journeys (ui-design --mode=review walks the journeys on the built surface; `work-item --mode=review --type=design`
+# checks the spec carries the Journey Report). The two `work-item` modes carry the body inline in
+# `work-item/references/mode-mockup.md` and `work-item/references/mode-review.md`, so `work-item` is not a target. Deliberately NARROWER than DESIGN_DISTINCTIVENESS:
 # the build spine (feature-implement, fix; plan --mode=execute keeps its UI guides in its mode reference) implements a design already derived from
 # journeys upstream, and web-design-guidelines / scaffold / presentation skills do not derive a
 # product surface from user journeys. Every body is self-gating on "has a user-facing surface".
@@ -141,7 +141,7 @@ UX_JOURNEY = [
 # The 40-clause UI/UX Design Principles. NOT an ALL_REVIEW_SKILLS tag — its carriers are the
 # UI-surface skills across THREE roles (review · design/plan · build), which is a different
 # population from "every review skill": most review skills never touch a user-facing surface,
-# and two of these carriers (design and `pbi --mode=mockup`) are not review skills at all.
+# and two of these carriers (design and `work-item --mode=mockup`) are not review skills at all.
 # Declared here so a canonical-body edit auto-propagates to every carrier and
 # verify-sync-adoption-parity.mjs can sense drift; without the tag in MATRIX the bodies would
 # silently fossilize at whatever they were on the day they were embedded.
@@ -150,8 +150,8 @@ UI_DESIGN_PRINCIPLES = [
     "web-design-guidelines",
     # design/plan role — clauses shape the artifact the skill authors
     "ui-design", "design-spec",
-    # build role — `pbi --mode=mockup` emits real markup, so clauses are build constraints; it and
-    # `pbi --mode=review --type=design` carry the body inline in `pbi/references/mode-*.md`.
+    # build role — `work-item --mode=mockup` emits real markup, so clauses are build constraints; it and
+    # `work-item --mode=review --type=design` carry the body inline in `work-item/references/mode-*.md`.
 ]
 
 # The DD-1..DD-8 design distinctiveness gate. A STRICT SUPERSET of UI_DESIGN_PRINCIPLES,
@@ -183,7 +183,7 @@ DESIGN_DISTINCTIVENESS = [
 # Words-as-design-content. NARROWER than DESIGN_DISTINCTIVENESS on purpose: its body governs
 # interface STRINGS (labels, CTAs, toasts, empty/error text), so it binds only skills that
 # author or review such strings. Deliberately EXCLUDES `plan`/`scaffold` (they commit visual
-# direction, not final copy), `pbi --mode=review` (it grades structure and a11y, not
+# direction, not final copy), `work-item --mode=review` (it grades structure and a11y, not
 # voice), and `feature-presentation` (slide prose is not interface copy -- only its rule 6
 # would apply, and a block that is 5/6 inapplicable trains the reader to skim it).
 UI_COPYWRITING = [
@@ -272,7 +272,7 @@ REVIEW_DECISIONS = [
     "workflow-architecture-audit",
     "workflow-review-changes",
     "plan",
-    "pbi",
+    "work-item",
     "spec",
     "seed-test-data",
     "e2e-test",

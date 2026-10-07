@@ -3,7 +3,7 @@
 > Loaded by `architecture/SKILL.md`'s Mode Dispatch when invoked as `$architecture --mode=design [brief]`. Formerly `/architecture-design`. This contract is the whole invocation: run it exactly as written, standalone or as a workflow step. `$ARGUMENTS` in this file means the invocation text after `--mode=design`.
 
 > **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
-> **[BLOCKING]** Before each step or sub-skill call, update task tracking: set `in_progress` when step starts, set `completed` when step ends.
+> **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
 
@@ -25,7 +25,7 @@
 
 **Workflow (12 steps):**
 
-1. **Load Context** — Read domain model, tech stack, business evaluation, refined PBI
+1. **Load Context** — Read domain model, tech stack, business evaluation, refined task
 2. **Derive Architecture Requirements** — Profile workload + ordered scaling ladder, rank reversibility, pick ≤3 driving attributes, quantify 6-part scenarios, run 2-2 pre-decision interrogation on every one-way door
 3. **Backend Architecture** — 3A styles (selection procedure) · 3B design patterns · **3C data & consistency** · **3D integration & APIs**
 4. **Frontend Architecture** — Research top 3 frontend architecture styles + design patterns
@@ -82,7 +82,7 @@ Read prior-step artifacts (search the plans root, default `plans/`, and the team
 - Domain model / ERD (complexity, bounded contexts, aggregate count)
 - Tech stack decisions (confirmed languages, frameworks, databases)
 - Business evaluation (scale, constraints, compliance)
-- Refined PBI (scope, acceptance criteria)
+- Refined task (scope, acceptance criteria)
 - Discovery interview (team skills, experience level)
 
 Extract + summarize:
@@ -96,7 +96,7 @@ Extract + summarize:
 | Expected scale          | ...          | business eval    |
 | Team architecture exp.  | ...          | discovery        |
 | Compliance requirements | ...          | business eval    |
-| Real-time needs         | Yes/No       | refined PBI      |
+| Real-time needs         | Yes/No       | refined task      |
 | Integration complexity  | Low/Med/High | domain model     |
 | Deployment target       | ...          | business eval    |
 
@@ -741,7 +741,7 @@ For each significant, costly-to-reverse decision — **every one-way door from S
 
 **ADR minimum:** Context (forces, constraints, quantified attributes) · Decision · **Alternatives considered WITH rejection reasons** (prevents relitigation and explains constraints) · Consequences (what we now CANNOT do easily) · Status · **Revisit trigger** (measurement that reopens the decision).
 
-**MUST ATTENTION** an architectural rule NOT automatically verified is a SUGGESTION and will be violated within a quarter. Every machine-checkable ADR constraint MUST also land in the Step-9 Scaffold Handoff as an executable fitness rule (layer/dependency rules, no module cycles, domain purity, API/event compatibility, tenant-isolation test, outbound-call timeouts, bundle/latency budgets, cost-per-request regression). Pay existing debt with a **RATCHET** — block new violations in CI, then reduce the baseline — never a cleanup sprint promised later.
+**MUST ATTENTION** an architectural rule NOT automatically verified is a SUGGESTION and will be violated within a quarter. Every machine-checkable ADR constraint MUST also land in the Step-9 Scaffold Handoff as an executable fitness rule (layer/dependency rules, no module cycles, domain purity, API/event compatibility, tenant-isolation test, outbound-call timeouts, bundle/latency budgets, cost-per-request regression). Pay existing debt with a **RATCHET** — block new violations in CI, then reduce the baseline — never a cleanup cycle promised later.
 
 ### Architecture Diagram Template
 
@@ -869,7 +869,7 @@ docs/adr/{NNNN}-{slug}.md                       # One ADR per hard-to-reverse de
 
 ---
 
-**MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting.
+**MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using todo tracking BEFORE starting.
 **MANDATORY IMPORTANT MUST ATTENTION** validate EVERY architecture recommendation with user via `ask user question tool` — never auto-decide.
 **MANDATORY IMPORTANT MUST ATTENTION** include confidence % and evidence citations for all claims.
 **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality.
@@ -881,7 +881,7 @@ docs/adr/{NNNN}-{slug}.md                       # One ADR per hard-to-reverse de
 **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after this skill, use `ask user question tool` to present these options. NEVER skip because the task seems "simple" or "obvious"; the user decides:
 
 - **"$plan (Recommended)"** — Create implementation plan from architecture design
-- **"$pbi --mode=refine"** — If need to create PBIs first
+- **"$work-item --mode=refine"** — If need to create tasks first
 - **"Skip, continue manually"** — user decides
 
 ### Council escalation (always-offer, second prompt)
@@ -1100,7 +1100,7 @@ The protocols below apply to this mode only; their full text is inline so this r
 
 <!-- /SYNC:engineering-foundation-gate:reminder -->
 
-**MANDATORY IMPORTANT MUST ATTENTION** use task tracking to break ALL work into small tasks BEFORE starting.
+**MANDATORY IMPORTANT MUST ATTENTION** use todo tracking to break ALL work into small tasks BEFORE starting.
 **MANDATORY IMPORTANT MUST ATTENTION** use `ask user question tool` at EVERY decision point — never assume user preferences.
 **MANDATORY IMPORTANT MUST ATTENTION** research top 3 options per architecture concern, compare with evidence, present report with recommendation + confidence %.
 
@@ -1114,7 +1114,7 @@ The protocols below apply to this mode only; their full text is inline so this r
 
 <!-- /SYNC:sequential-thinking-protocol:reminder -->
 
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
+**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using todo tracking.
 
 
 <!-- SYNC:measured-capacity-engineering:reminder -->
@@ -1140,7 +1140,7 @@ The protocols below apply to this mode only; their full text is inline so this r
 **MANDATORY IMPORTANT MUST ATTENTION** research ≥3 options per concern with cited evidence (stars, last release, downloads, CVE scan), cite `file:line`/URL and a confidence % for EVERY claim (>80% recommend, <60% DO NOT recommend), and evaluate fit before copying a nearby pattern; brownfield: read project reference docs + accepted ADRs FIRST and never re-litigate a settled ADR without a superseding one — why: familiarity and closest-example bias ship mismatched or unmaintained choices.
 **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with the user via `ask user question tool` (Step 12) — NEVER auto-decide a hard-to-reverse choice — and emit the two binding downstream contracts: one ADR per one-way door AND the Step-9 Scaffold Handoff, where every machine-checkable ADR constraint becomes an executable fitness function and existing debt is paid with a CI RATCHET — why: a rule not automatically verified is a suggestion, and the user owns irreversible decisions.
 **MANDATORY IMPORTANT MUST ATTENTION** reason FROM `.claude/docs/architecture-knowledge.md`, but the project's OWN reference docs and accepted ADRs OUTRANK it on any conflict — why: universal reasoning must not be mistaken for binding project convention.
-**MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting; mark one `in_progress`, mark `completed` immediately after evidence lands; add a final review todo — why: external task state survives context compaction; memory does not.
+**MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using todo tracking BEFORE starting; mark one `in_progress`, mark `completed` immediately after evidence lands; add a final review todo — why: external task state survives context compaction; memory does not.
 
 <!-- SYNC:core-engineering-principles:reminder -->
 

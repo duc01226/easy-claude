@@ -297,7 +297,7 @@ AGENT_QUALITY_BLOCKS = {
         "severity-rubric",
         "behavioral-delta-matrix", "spec-drift-adjudication",
         "test-spec-verification",
-        # wave 2 (twin: pbi --mode=review / spec)
+        # wave 2 (twin: work-item --mode=review / spec)
         "trade-off-interrogation-gate", "spec-tests-code-triangulation", "ui-intent-layer",
         # Judges spec<->test alignment, so it meets red tests and must reach a
         # verdict on the same five-way scale as the author (/why-review F-M2).
@@ -455,7 +455,7 @@ AGENT_QUALITY_BLOCKS = {
         # design plan + generic test (DD-3) and the interface voice.
         "design-distinctiveness-gate", "ui-copywriting", "design-review-checklist",
         "review-principle-awareness",
-        # Journey-first order (twin: ui-design / design-spec / pbi --mode=mockup): this agent
+        # Journey-first order (twin: ui-design / design-spec / work-item --mode=mockup): this agent
         # is where a brief turns into a surface, so it must report the main user journeys and
         # read the project's design authority BEFORE it generates anything.
         "ux-journey-gate",
@@ -583,7 +583,7 @@ AGENT_SKILL_CONNECTIONS = {
         "architecture", "scaffold", "harness-setup",
         "workflow-greenfield-init", "tech-stack-research",
     ],
-    "spec-compliance-reviewer": ["pbi", "spec"],
+    "spec-compliance-reviewer": ["work-item", "spec"],
     "tester": ["test"],
     "ui-ux-designer": ["ui-design", "design-spec"],
 }

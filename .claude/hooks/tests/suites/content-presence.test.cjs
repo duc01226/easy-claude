@@ -23,7 +23,7 @@
  *   TC-CP-004 — design-system-canonical-guide hook's "read the canonical design-system
  *               doc first for tokens/components/BEM" guidance relocated into the design skill.
  *   TC-CP-006 — ba-refinement-context hook's DoR / hypothesis-validation BA guidance
- *               relocated into the pbi refine mode reference.
+ *               relocated into the work-item refine mode reference.
  *   TC-CP-007 — graph-grep-suggester hook's post-grep graph hint ("a graph trace can hint at
  *               callers/consumers/events grep may not reveal") relocated into the investigate
  *               skill as OPTIONAL advice, never a mandate.
@@ -87,7 +87,7 @@
  *               it asserts this repo's own skill defaults, which an adopting project may change.
  *
  *   TC-HTMLX-052 — the skills that run html-export's script by path (presentation-builder,
- *               feature-presentation), the pbi mockup mode reference and the design motion-storyboard reference carry one
+ *               feature-presentation), the work-item mockup mode reference and the design motion-storyboard reference carry one
  *               identical `**html-export exit rule:**` line whose codes (0, 4, 3, 1/2 + NOT
  *               VERIFIABLE) are exactly the values of `EXIT` in html-export/scripts/lib/exit-codes.cjs;
  *               the design explore workflow's `| Exit |` table routes exactly those codes with the
@@ -189,8 +189,16 @@ const MODEL_CALLABLE_BY_DECISION = ['commit', 'learn', 'git-conflict-resolve', '
 
 // TC-HTMLX-052. Skills that run html-export's script by path and restate its exit rule in prose.
 const HTML_EXPORT_CALLERS = ['presentation-builder', 'feature-presentation'];
+// Skills renamed with the work-tracker vocabulary: [former name, current name].
+const RENAMED_TRACKING_SKILLS = [
+    ['pbi', 'work-item'],
+    ['idea', 'initiative'],
+    ['workflow-idea-to-pbi', 'workflow-initiative-to-task'],
+    ['workflow-spec-to-pbi', 'workflow-spec-to-task'],
+    ['workflow-idea-to-spec', 'workflow-initiative-to-spec'],
+];
 // Skill reference files (relative to the skills root) that carry the same one-line rule.
-const HTML_EXPORT_CALLER_REFERENCES = ['ui-design/references/lane-marketing/motion-storyboard.md', 'pbi/references/mode-mockup.md'];
+const HTML_EXPORT_CALLER_REFERENCES = ['ui-design/references/lane-marketing/motion-storyboard.md', 'work-item/references/mode-mockup.md'];
 // Skill reference files that restate the rule as a `| Exit | ... |` table with their own actions.
 const HTML_EXPORT_EXIT_TABLES = ['ui-design/references/explore/workflow.md'];
 const HTML_EXPORT_EXIT_RULE = /\*\*html-export exit rule:\*\*[^\r\n]*/g;
@@ -245,7 +253,7 @@ const EMPHASIS_ANCHOR_FLOORS = {
     'web-research': { top: 7, closing: 35 },
     'business-evaluation': { top: 9, closing: 39 },
     test: { top: 11, closing: 38 },
-    'pbi/references/mode-dor.md': { top: 6, closing: 35 },
+    'work-item/references/mode-dor.md': { top: 6, closing: 35 },
 };
 // Returns one line per anchor that lost markers (or is missing). Frontmatter and SYNC bodies are
 // excluded: they are not the skill's own anchor text.
@@ -594,7 +602,18 @@ module.exports = {
             fn: () => {
                 const claudeMd = readFile(path.resolve(PROJECT_DIR, 'CLAUDE.md'));
                 const missing = [];
-                if (!/Path Pattern/.test(claudeMd)) missing.push('Path Pattern routing table');
+                const { readProjectConfigAt } = require('../../lib/project-config-loader.cjs');
+                const { pathRulesDelivery } = require('../../../skills/ai-context-refresh/scripts/section-builders.cjs');
+                const loaded = readProjectConfigAt(PROJECT_DIR);
+                assertTrue(loaded.state !== 'invalid', `Invalid project config: ${loaded.errors.join('; ')}`);
+                if (pathRulesDelivery(loaded.config, PROJECT_DIR).completeLookup) {
+                    for (const fragment of [
+                        'BEFORE the first read, grep, edit or test',
+                        'file-conventions.cjs --lookup <path> --complete',
+                        'Read ALL returned pages and required references',
+                        'No duplicate path table is loaded',
+                    ]) if (!claudeMd.includes(fragment)) missing.push(`complete path lookup: ${fragment}`);
+                } else if (!/Path Pattern/.test(claudeMd)) missing.push('Path Pattern routing table');
                 if (!/Read first/.test(claudeMd)) missing.push('prompt → reference-doc lookup table');
                 // The path→doc pointer rows — each names the reference doc a hook used to inject.
                 for (const doc of [
@@ -1192,9 +1211,9 @@ module.exports = {
             ]),
         },
         {
-            name: '[content-presence] TC-CP-006 ba-refinement DoR/hypothesis guidance relocated into the pbi refine mode',
-            fn: () => assertRelocated('ba-refinement-context', 'pbi/references/mode-refine.md', [
-                'Definition of Ready',
+            name: '[content-presence] TC-CP-006 ba-refinement DoR/hypothesis guidance relocated into the work-item refine mode',
+            fn: () => assertRelocated('ba-refinement-context', 'work-item/references/mode-refine.md', [
+                'readiness check',
                 'hypothesis validation',
             ]),
         },
@@ -1204,6 +1223,30 @@ module.exports = {
                 'Post-Grep Graph Hint (optional)',
                 'grep may not reveal',
             ]),
+        },
+        {
+            // Guards the work-tracker vocabulary rename: an adopter refreshing `.claude/` learns the move from the
+            // skill itself and from the adopter table, and a leftover old folder would keep answering the old command.
+            name: '[content-presence] renamed work-tracking skills carry a "Renamed: formerly" note, their old folders stay removed and the adopter table lists every rename',
+            skip: IS_FRAMEWORK_REPO ? false : 'asserts the framework repo\'s own skills and adopter guide (framework-repo signal)',
+            fn: () => {
+                const defects = [];
+                const guide = fs.readFileSync(path.resolve(PROJECT_DIR, '.claude', 'config', 'README.md'), 'utf8');
+                const rows = guide.split(/\r?\n/).filter(line => line.trimStart().startsWith('|'));
+                for (const [former, current] of RENAMED_TRACKING_SKILLS) {
+                    if (fs.existsSync(path.join(SKILLS_DIR, former))) defects.push(`${former}: the old skill folder still exists`);
+                    const skillFile = path.join(SKILLS_DIR, current, 'SKILL.md');
+                    if (!fs.existsSync(skillFile)) { defects.push(`${current}: SKILL.md is missing`); continue; }
+                    const body = fs.readFileSync(skillFile, 'utf8');
+                    if (!new RegExp(`^name: ${current}\\r?$`, 'm').test(body)) defects.push(`${current}: frontmatter name is not ${current}`);
+                    const note = body.split(/\r?\n/).find(line => /\*\*Renamed:\*\*/.test(line));
+                    if (!note) defects.push(`${current}: no "**Renamed:** formerly" note`);
+                    else if (!new RegExp(`formerly \`/?${former}\``).test(note)) defects.push(`${current}: the Renamed note does not name the former ${former}`);
+                    const mentions = name => new RegExp(`\`/?${name}\``);
+                    if (!rows.some(row => mentions(former).test(row) && mentions(current).test(row))) defects.push(`adopter table: no row maps ${former} to ${current}`);
+                }
+                assertTrue(defects.length === 0, `renamed-skill guidance is incomplete:\n  ${defects.join('\n  ')}`);
+            },
         },
         {
             name: '[content-presence] TC-CP-009 integration-test execution-discipline rules present in EVERY integration-test-family skill',

@@ -57,7 +57,7 @@ Per item: **PASS / FAIL / N/A** with `file:line` evidence and confidence (>80% r
 - **PASS** → report the evidence table; if idempotency/count tests are absent, suggest `$integration-test`.
 - **FAIL** → list each violation, responsible `file:line` and correct pattern from [Anti-Patterns](../SKILL.md#anti-patterns) or the reference doc. Hand confirmed defects to Generate's **Classify** step as broken seeders; re-run `--mode=review` after correction. Never edit the seeder in Review.
 
-### Review-mode task plan (task tracking — required)
+### Review-mode task plan (todo tracking — required)
 
 1. Resolve the target (R0).
 2. Read the conventions, config, rules and targets (R1).

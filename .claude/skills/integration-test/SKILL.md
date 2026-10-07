@@ -27,7 +27,7 @@ context-budget: high
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
 > **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
-> **[BLOCKING]** Before each step or sub-skill call, update task tracking: set `in_progress` when step starts, set `completed` when step ends.
+> **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
 
@@ -107,7 +107,7 @@ Select from invocation arguments; load only the selected mode's references in fu
 
 > **CRITICAL: Synchronize with asynchronous outcomes.** When the selected behavior completes through background work or eventual consistency, wait on an observable completion signal with the configured helper and bounded diagnostics. For synchronous behavior, use the project's normal deterministic assertion path. Never retry a failing final assertion to hide a product defect.
 
-> **For test specifications and test case generation from PBIs, use `/spec [mode=tests]` skill instead.**
+> **For test specifications and test case generation from tasks, use `/spec [mode=tests]` skill instead.**
 
 > **Invariant coverage.** For rules that must hold across a broad input domain, prefer property/metamorphic checks plus relevant boundary counter-cases when the project's test tools support them; retain example-based cases for concrete user scenarios. Trace each check through the selected canonical carrier, and use Section 8's Invariant/Property TC only under the strict default profile. Use mutation results as evidence of assertion strength, not as a universal required tool.
 
@@ -498,7 +498,7 @@ find . -name "*IntegrationTestFixture.*" -type f
 | Skill                        | Relationship                                                                         | When to Call                                                                                               |
 | ---------------------------- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
 | `/spec [mode=tests]`                  | **Producer** — TCs in feature doc Section 8 are the source for test generation       | Must run spec [mode=tests] before integration-test (CREATE or UPDATE mode). TCs must exist before generating tests. |
-| `/pbi --mode=review --type=spec-tests`           | **Upstream reviewer** — validates TC quality before test generation                  | Run before integration-test to ensure TCs have real assertion value                                        |
+| `/work-item --mode=review --type=spec-tests`           | **Upstream reviewer** — validates TC quality before test generation                  | Run before integration-test to ensure TCs have real assertion value                                        |
 | `/spec [mode=sync]` | **Sync** — reconciles §8 TCs ↔ executing test code after tests are linked          | Run after integration-test to update the §8 `CoveredBy:` fields with the covering test links         |
 | `/spec`              | **TC host** — Section 8 of feature doc is where TCs live                             | If feature doc is missing or Section 8 is empty → run /spec first                                  |
 | `/spec [mode=index]`                | **Derived index** — regenerable navigation catalog over the Feature Specs (never a source of truth) | After §8 changes, to refresh the bucket `INDEX.md` TC counts                          |
@@ -533,7 +533,7 @@ integration-test (you are here)
   ├─ [RECOMMENDED] → /docs-manager --mode=update
   │     Updates feature doc evidence fields and version history if test coverage changed materially.
   │
-  └─ [RECOMMENDED] → /pbi --mode=review --type=spec-tests
+  └─ [RECOMMENDED] → /work-item --mode=review --type=spec-tests
         Re-run if the --mode=review pass (Gate 6) flagged TC issues requiring TC edits.
 
 ### Mode-Specific Chains

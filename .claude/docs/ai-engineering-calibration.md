@@ -95,7 +95,7 @@ The model reads emails from external senders; the panel runs in the mail app's o
 
 | ID | Severity | Why |
 | --- | --- | --- |
-| `F1` | P3 (A) | Flagged experimental, no user data, no production route: recorded as a backlog item with the plan's dated milestone cited. |
+| `F1` | P3 (A) | Flagged experimental, no user data, no production route: recorded for later with the plan's dated milestone cited. |
 | `F1` | P1 (B) | A production behavior change with no eval delta and no baseline. Behavior change shipped without proof. |
 | `D10` | P1 (B, if answers are policy claims) | Report together with `F1` when the eval gap hides ungrounded answers. |
 

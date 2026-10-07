@@ -54,7 +54,7 @@ test('TC-GWF-042 report acceptance: stale, unknown and mismatched targets block'
 }));
 
 test('TC-GWF-042 report acceptance: missing reports and non-satisfying occurrences cannot substitute', () => fixture((root, input) => {
-    input.satisfiedBy = ['pbi --mode=review'];
+    input.satisfiedBy = ['work-item --mode=review'];
     assert.equal(checkReportEvidence(input, root).status, 'BLOCKED');
     input.satisfiedBy = ['knowledge-review'];
     input.report.path = 'absent.md';

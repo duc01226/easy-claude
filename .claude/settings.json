@@ -210,8 +210,7 @@
             "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-end.cjs",
             "type": "command"
           }
-        ],
-        "matcher": "clear|exit|compact"
+        ]
       },
       {
         "hooks": [

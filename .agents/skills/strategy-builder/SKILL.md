@@ -8,7 +8,7 @@ description: '[Content] Use when a workflow step or the user asks for marketing 
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -100,7 +100,7 @@ Write to `docs/knowledge/strategy/marketing/{descriptive-slug}.md` using enforce
 
 ---
 
-> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting.
+> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting.
 
 ## Closing Reminders
 
@@ -108,10 +108,10 @@ Write to `docs/knowledge/strategy/marketing/{descriptive-slug}.md` using enforce
 
 **IMPORTANT MUST ATTENTION Main steps:** load market analysis → define positioning → plan channels, budget, and ROI → craft messaging → build campaign roadmap and KPIs → assess risks and mitigations.
 
-**IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting
+**IMPORTANT MUST ATTENTION** break work into small todo tasks using todo tracking BEFORE starting
 
 **IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code
 **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
 **IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
 
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
+**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using todo tracking.

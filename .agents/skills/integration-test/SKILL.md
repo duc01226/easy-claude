@@ -8,7 +8,7 @@ description: '[Testing] Use when a workflow step or the user asks for integratio
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -37,7 +37,7 @@ description: '[Testing] Use when a workflow step or the user asks for integratio
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
 > **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
-> **[BLOCKING]** Before each step or sub-skill call, update task tracking: set `in_progress` when step starts, set `completed` when step ends.
+> **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
 
@@ -117,7 +117,7 @@ Select from invocation arguments; load only the selected mode's references in fu
 
 > **CRITICAL: Synchronize with asynchronous outcomes.** When the selected behavior completes through background work or eventual consistency, wait on an observable completion signal with the configured helper and bounded diagnostics. For synchronous behavior, use the project's normal deterministic assertion path. Never retry a failing final assertion to hide a product defect.
 
-> **For test specifications and test case generation from PBIs, use `$spec [mode=tests]` skill instead.**
+> **For test specifications and test case generation from tasks, use `$spec [mode=tests]` skill instead.**
 
 > **Invariant coverage.** For rules that must hold across a broad input domain, prefer property/metamorphic checks plus relevant boundary counter-cases when the project's test tools support them; retain example-based cases for concrete user scenarios. Trace each check through the selected canonical carrier, and use Section 8's Invariant/Property TC only under the strict default profile. Use mutation results as evidence of assertion strength, not as a universal required tool.
 
@@ -198,7 +198,7 @@ ALWAYS create and execute tasks in this exact order:
     - Flag orphans: `TestSpec` TC absent from §8; technical-only method with business `TestSpec`; doc TC with **zero** tests. Many tests sharing one TC is NOT an orphan/duplicate.
     - Update each TC's `CoveredBy` with `{File}::{MethodName}` comma-separated **on one line**, or a large-set filter (field representative; code annotation authoritative). Unit tests MAY be included. Legacy `IntegrationTest:` is migration input only.
 
-    > **MANDATORY task — "Validate: no missing integration tests" (non-skippable inside a workflow, with staged/unstaged git changes, or by direct request — essentially every run; only exception: narrow read-only single-TC lookup with no generation).** Create as its OWN named task tracking item, not folded into step 3. Run the same bidirectional logic as VERIFY-TRACEABILITY, scoped to the feature area:
+    > **MANDATORY task — "Validate: no missing integration tests" (non-skippable inside a workflow, with staged/unstaged git changes, or by direct request — essentially every run; only exception: narrow read-only single-TC lookup with no generation).** Create as its OWN named todo tracking item, not folded into step 3. Run the same bidirectional logic as VERIFY-TRACEABILITY, scoped to the feature area:
     >
     > 1. Every changed command/query/handler/entity/event-handler file has **≥1** covering test (grep + read; name match alone NOT coverage).
     > 2. Every `TC-{FEATURE}-{NNN}` in the FULL Section 8 set of implicated feature docs has **≥1** covering test.
@@ -508,7 +508,7 @@ $integration-test verify {Service}
 | Skill                        | Relationship                                                                         | When to Call                                                                                               |
 | ---------------------------- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
 | `$spec [mode=tests]`                  | **Producer** — TCs in feature doc Section 8 are the source for test generation       | Must run spec [mode=tests] before integration-test (CREATE or UPDATE mode). TCs must exist before generating tests. |
-| `$pbi --mode=review --type=spec-tests`           | **Upstream reviewer** — validates TC quality before test generation                  | Run before integration-test to ensure TCs have real assertion value                                        |
+| `$work-item --mode=review --type=spec-tests`           | **Upstream reviewer** — validates TC quality before test generation                  | Run before integration-test to ensure TCs have real assertion value                                        |
 | `$spec [mode=sync]` | **Sync** — reconciles §8 TCs ↔ executing test code after tests are linked          | Run after integration-test to update the §8 `CoveredBy:` fields with the covering test links         |
 | `$spec`              | **TC host** — Section 8 of feature doc is where TCs live                             | If feature doc is missing or Section 8 is empty → run $spec first                                  |
 | `$spec [mode=index]`                | **Derived index** — regenerable navigation catalog over the Feature Specs (never a source of truth) | After §8 changes, to refresh the bucket `INDEX.md` TC counts                          |
@@ -543,7 +543,7 @@ integration-test (you are here)
   ├─ [RECOMMENDED] → $docs-manager --mode=update
   │     Updates feature doc evidence fields and version history if test coverage changed materially.
   │
-  └─ [RECOMMENDED] → $pbi --mode=review --type=spec-tests
+  └─ [RECOMMENDED] → $work-item --mode=review --type=spec-tests
         Re-run if the --mode=review pass (Gate 6) flagged TC issues requiring TC edits.
 
 ### Mode-Specific Chains
@@ -557,7 +557,7 @@ integration-test (you are here)
 | verify-traceability | N/A (read-only) | if orphaned TCs: $spec [mode=tests] UPDATE → $integration-test [from-prompt] |
 ```
 
-> **[IMPORTANT]** task tracking — break ALL work into small tasks BEFORE starting. NEVER skip task creation.
+> **[IMPORTANT]** todo tracking — break ALL work into small tasks BEFORE starting. NEVER skip task creation.
 
 <!-- PROTOCOL-GUIDES:START -->
 
@@ -691,9 +691,9 @@ integration-test (you are here)
 - **MANDATORY IMPORTANT MUST ATTENTION** NEVER fabricate state by direct repository writes — instead drive state through real command/query/seeder paths or valid seeded fixtures — why: shortcut data creates invalid state the suite then certifies
 - **MANDATORY IMPORTANT MUST ATTENTION** search 3+ existing tests in the SAME service and READ `references/integration-test-patterns.md` BEFORE writing — match collection, base class, helpers, unique-name generators — why: local conventions override generic templates
 - **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence (confidence >80% to act, <60% do NOT recommend) for every claim about field changes, entities, or handler behavior — why: AI hallucinates APIs/signatures; grep to confirm before asserting
-- **MANDATORY IMPORTANT MUST ATTENTION** task tracking — break ALL work into small tasks BEFORE starting; transition one task at a time, add a final review task — why: tracking survives context loss/compaction
+- **MANDATORY IMPORTANT MUST ATTENTION** todo tracking — break ALL work into small tasks BEFORE starting; transition one task at a time, add a final review task — why: tracking survives context loss/compaction
 - **MANDATORY IMPORTANT MUST ATTENTION** execute the main task ordering IN ORDER — (1) FIRST verify/upsert TCs in feature-doc §8 for business-visible behavior, or record `TECHNICAL-ONLY` for non-business behavior, (2) MIDDLE implement tests with the correct annotation, (3) FINAL verify traceability, feature-area-WIDE, across integration + unit suites — and run the per-mode loop Detect mode → Find targets → Gather context → Execute → Report — why: implementing before traceability exists produces orphans and skipping FINAL leaves drift undetected
-- **MANDATORY IMPORTANT MUST ATTENTION** run the named "Validate: no missing integration tests" task tracking item — non-skippable inside a workflow, with current git changes present, or by user request (essentially every run) — every changed file covered AND every §8 TC in the WHOLE feature area covered, zero GAP rows before marking done — why: a diff-scoped-only check misses pre-existing orphaned TCs outside this run
+- **MANDATORY IMPORTANT MUST ATTENTION** run the named "Validate: no missing integration tests" todo tracking item — non-skippable inside a workflow, with current git changes present, or by user request (essentially every run) — every changed file covered AND every §8 TC in the WHOLE feature area covered, zero GAP rows before marking done — why: a diff-scoped-only check misses pre-existing orphaned TCs outside this run
 - **MANDATORY IMPORTANT MUST ATTENTION** every test method carries a traceability annotation: `TestSpec=TC-{FEATURE}-{NNN}` for business §8 coverage, or `TechnicalSpec=...` for technical-only regression coverage. Auto-create in Section 8 ONLY for genuinely uncovered business behavior — why: the annotation is the join key for traceability
 - **MANDATORY IMPORTANT MUST ATTENTION** one business TC maps to MANY tests (1:N, integration + unit) — NEVER split or technicalize a TC to force 1:1 — why: 1:1 splitting breaks the spec's business/user-story orientation (M1/M5)
 - **MANDATORY IMPORTANT MUST ATTENTION** for a broad-input invariant, use property/metamorphic checks supported by the project plus relevant boundary counter-cases tied to the selected profile’s identity/carrier (strict default: §8 Invariant/Property TC) — why: example tests guard fixed points; the rule must fail across its whole input domain (mutation-kill, not line-coverage)
@@ -719,7 +719,7 @@ integration-test (you are here)
 | "My path doesn't mutate that parent" | A cross-cutting consumer can wipe the shared parent without you touching it. Sharing it is unsafe even without direct mutation. |
 | "The path under test is correct, so the test is right" | Provably-innocent path + wrong state = suspect cross-test interference FIRST. Grep other tests + cross-cutting consumers before blaming the code. |
 | "A second review will settle uncertainty" | One pass only. Return `NOT VERIFIABLE` with the missing evidence; a later pass requires a new explicit invocation. |
-| "Skip task creation, it's obvious" | task tracking is non-negotiable. Tracking prevents context loss.                                        |
+| "Skip task creation, it's obvious" | todo tracking is non-negotiable. Tracking prevents context loss.                                        |
 | "Split this TC so tests map 1:1"   | Preserve the selected profile's declared case-to-test cardinality; strict default allows one business TC to cover multiple tests. |
 | "Example tests cover the rule"     | Use property/metamorphic tests when a rule must hold across a broad input domain; retain focused examples for concrete scenarios. |
 | "Run `review` mode, it's the gate" | positional `review`/`verify` are inline passes; the workflow gates are `$integration-test --mode=review` + `$integration-test --mode=verify`. |

@@ -141,12 +141,12 @@
       "group": "spec-test",
       "summary": "Two-of-three BA vote and its escalation path",
       "when": "a BA team must reach a decision",
-      "chars": 729,
+      "chars": 727,
       "file": ".claude/skills/shared/protocols/ba-team-decision-model.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/ba-team-decision-model.md",
-          "chars": 729
+          "chars": 727
         }
       ]
     },
@@ -239,12 +239,12 @@
       "group": "workflow-task",
       "summary": "Prompt clarity and semantic retention principles",
       "when": "writing or enhancing prompts, skills or agents",
-      "chars": 1546,
+      "chars": 3473,
       "file": ".claude/skills/shared/protocols/context-engineering-principles.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/context-engineering-principles.md",
-          "chars": 1546
+          "chars": 3473
         }
       ]
     },
@@ -351,12 +351,12 @@
       "group": "design",
       "summary": "Executable front-end design review protocol CL-1 to CL-6",
       "when": "reviewing, planning or building front-end work",
-      "chars": 7072,
+      "chars": 7070,
       "file": ".claude/skills/shared/protocols/design-review-checklist.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/design-review-checklist.md",
-          "chars": 7072
+          "chars": 7070
         }
       ]
     },
@@ -379,12 +379,12 @@
       "group": "universal",
       "summary": "Discovery order, search-first rule and first principles",
       "when": "delivered by the universal hook",
-      "chars": 1909,
+      "chars": 1953,
       "file": ".claude/skills/shared/protocols/discovery-and-first-principles.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/discovery-and-first-principles.md",
-          "chars": 1909
+          "chars": 1953
         }
       ]
     },
@@ -461,14 +461,14 @@
     {
       "tag": "estimation-framework",
       "group": "workflow-task",
-      "summary": "Bottom-up estimation with derived story points and a min-max range",
+      "summary": "Bottom-up estimation with derived effort points and a min-max range",
       "when": "estimating effort",
-      "chars": 7886,
+      "chars": 8103,
       "file": ".claude/skills/shared/protocols/estimation-framework.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/estimation-framework.md",
-          "chars": 7886
+          "chars": 8103
         }
       ]
     },
@@ -742,13 +742,13 @@
       "tag": "module-detection",
       "group": "spec-test",
       "summary": "Detect the target module from keywords against the business spec root",
-      "when": "refining a PBI or an idea",
-      "chars": 428,
+      "when": "refining a task or an initiative",
+      "chars": 435,
       "file": ".claude/skills/shared/protocols/module-detection.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/module-detection.md",
-          "chars": 428
+          "chars": 435
         }
       ]
     },
@@ -841,12 +841,12 @@
       "group": "universal",
       "summary": "Read the project config and the right reference docs just in time",
       "when": "delivered by the universal hook",
-      "chars": 4834,
+      "chars": 4762,
       "file": ".claude/skills/shared/protocols/project-reference-docs-guide.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/project-reference-docs-guide.md",
-          "chars": 4834
+          "chars": 4762
         }
       ]
     },
@@ -909,14 +909,14 @@
     {
       "tag": "refinement-dor-checklist",
       "group": "spec-test",
-      "summary": "Eight Definition of Ready criteria before grooming",
-      "when": "challenging or grooming a PBI",
-      "chars": 1670,
+      "summary": "Eight readiness-check criteria before planning",
+      "when": "challenging or refining a task",
+      "chars": 1686,
       "file": ".claude/skills/shared/protocols/refinement-dor-checklist.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/refinement-dor-checklist.md",
-          "chars": 1670
+          "chars": 1686
         }
       ]
     },

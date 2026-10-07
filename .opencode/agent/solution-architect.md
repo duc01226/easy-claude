@@ -38,7 +38,7 @@ Connected contracts:
 2. **Market & Business Research** — Competitor analysis, viability assessment, risk matrix
 3. **Domain Analysis** — Bounded contexts, aggregates, entities, domain events, Mermaid ERD
 4. **Tech Stack Research** — Derive requirements from domain, WebSearch 3+ options per layer, comparison matrix
-5. **Project Structure + Test Strategy** — Folder layout, CI/CD, PBI backlog, final plan review
+5. **Project Structure + Test Strategy** — Folder layout, CI/CD, planned work, final plan review
 
 **Key Rules:**
 
@@ -85,7 +85,7 @@ Every stage MUST ATTENTION end with `ask user question tool` to validate decisio
 | 7     | **Tech Stack Research** (`/tech-stack-research` skill) — Derive tech requirements from domain + business analysis, WebSearch top 3 options per stack layer, produce comparison matrix with detailed pros/cons, present report with recommendation + confidence % for user to decide | `{plan-dir}/phase-02-tech-stack.md` + `{plan-dir}/research/tech-stack-comparison.md` |
 | 8     | **Project Structure** — Folder layout, monorepo/polyrepo, CI/CD, dev tooling                                                                                                                                                                                                        | `{plan-dir}/phase-03-project-structure.md`                                           |
 | 9     | **Test Strategy** — Test pyramid, frameworks, spec generation                                                                                                                                                                                                                       | `{plan-dir}/phase-04-test-strategy.md`                                               |
-| 10    | **PBI Generation** — Break into prioritized backlog items with dependencies                                                                                                                                                                                                         | `{plan-dir}/phase-05-backlog.md`                                                     |
+| 10    | **Task Generation** — Break into prioritized planned work items with dependencies                                                                                                                                                                                                         | `{plan-dir}/phase-05-backlog.md`                                                     |
 | 11    | **Plan Review** — Full plan review, risk assessment, final approval                                                                                                                                                                                                                 | `{plan-dir}/plan.md` (master plan)                                                   |
 
 ## Key Rules
@@ -364,7 +364,7 @@ After tech stack confirmed, generate starter `CLAUDE.md` containing:
 
 <!-- SYNC:estimation-framework -->
 
-> **Estimation Framework** — Bottom-up; derive SP; min-max range at likely ≥3d. Stack-agnostic baseline: 3-5yr dev, 6 productive hrs/day; AI assumes Claude Code + project context.
+> **Estimation Framework** — Bottom-up; derive EP; min-max range at likely ≥3d. Stack-agnostic baseline: 3-5yr dev, 6 productive hrs/day; AI assumes Claude Code + project context.
 >
 > **Method:**
 >
@@ -375,7 +375,9 @@ After tech stack confirmed, generate starter `CLAUDE.md` containing:
 > 5. `min_days = likely_days × 0.9`
 > 6. Range at `likely_days ≥3`; point allowed `<3`; always record margin
 > 7. `man_days_ai` = same range × AI speedup
-> 8. Derive `story_points` from `likely_days` via SP-Days; NEVER driver. >50% disagreement → trust bottom-up
+> 8. Derive `effort_points` from `likely_days` via EP-Days; NEVER driver. >50% disagreement → trust bottom-up
+>
+> **Existing estimates:** Read `effort_points` first; when absent, reuse an existing authored `story_points` value. Preserve historical metadata and commits. New artifacts write `effort_points` and use EP labels.
 >
 > **Productivity factor:** 0.8 strong scaffolding+codegen+AI hooks · 1.0 mature default · 1.2 weak patterns · 1.5 greenfield
 >
@@ -466,7 +468,7 @@ After tech stack confirmed, generate starter `CLAUDE.md` containing:
 > **Collapse:** margin >100% → STOP/split, never pad past 2x. Margin <15% at `likely_days ≥5` → widen.
 >
 > **Work-Type Caps (hard ceilings on `likely_days`):**
-> | Work type | Max SP | Max likely |
+> | Work type | Max EP | Max likely |
 > | --- | --- | --- |
 > | Single field / config flag / style fix | 1 | 0.5d |
 > | Add property to existing model + bind to existing UI | 2 | 1d |
@@ -477,13 +479,13 @@ After tech stack confirmed, generate starter `CLAUDE.md` containing:
 > | Cross-service contract + migration combined | 13 | SHOULD split |
 > | Beyond | 21 | MUST split |
 >
-> **SP→Days (validation only):** 1=0.5d/0.25d · 2=1d/0.35d · 3=2d/0.65d · 5=4d/1.0d · 8=6d/1.5d · 13=10d/2.0d (Trad/AI likely)
-> **AI speedup:** SP 1≈2x · 2-3≈3x · 5-8≈4x · 13+≈5x. AI cost = `(code_gen × 1.3) + (test_gen × 1.3)` (30% review overhead).
+> **EP→Days (validation only):** 1=0.5d/0.25d · 2=1d/0.35d · 3=2d/0.65d · 5=4d/1.0d · 8=6d/1.5d · 13=10d/2.0d (Trad/AI likely)
+> **AI speedup:** EP 1≈2x · 2-3≈3x · 5-8≈4x · 13+≈5x. AI cost = `(code_gen × 1.3) + (test_gen × 1.3)` (30% review overhead).
 >
 > **MANDATORY frontmatter:**
 >
 > ```yaml
-> story_points: <n>
+> effort_points: <n>
 > complexity: low | medium | high | critical
 > man_days_traditional: '<min>-<max>d' # range when likely ≥3d; '<N>d' when <3d
 > man_days_ai: '<min>-<max>d'
@@ -517,18 +519,18 @@ After tech stack confirmed, generate starter `CLAUDE.md` containing:
 > - Margin >100% → STOP/split
 > - Complex touch without regression budget in `(c)` → reject
 > - Blast `>5` areas OR `>2` complex without split discussion → reject
-> - Additive existing model AND UI → cap SP 3 unless tests >1.5d
-> - NEW page/complex form/dashboard → SP 5+ even with one backend endpoint
-> - Cross-service/migration/multi-aggregate backend → SP 8+ regardless of UI
-> - `bottom_up_hours / 6` vs SP-Days >50% disagreement → trust bottom-up, downgrade SP
-> - Without tests SP drops ≥1 bucket → state tests dominate
+> - Additive existing model AND UI → cap EP 3 unless tests >1.5d
+> - NEW page/complex form/dashboard → EP 5+ even with one backend endpoint
+> - Cross-service/migration/multi-aggregate backend → EP 8+ regardless of UI
+> - `bottom_up_hours / 6` vs EP-Days >50% disagreement → trust bottom-up, downgrade EP
+> - Without tests EP drops ≥1 bucket → state tests dominate
 > - Reasoning must cover UI/backend/blast/risk factors; add omissions
 
 <!-- /SYNC:estimation-framework -->
 
 <!-- SYNC:module-detection -->
 
-> **Module Detection** — Detect target module from PBI/idea keywords. Match against the directory names under the business spec root (default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path) and load `<that root>/{module}/` for domain rules. If ambiguous, ask user. The module list is DERIVED by listing that root at run time — hardcode neither a module name nor the root itself.
+> **Module Detection** — Detect target module from task/initiative keywords. Match against the directory names under the business spec root (default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path) and load `<that root>/{module}/` for domain rules. If ambiguous, ask user. The module list is DERIVED by listing that root at run time — hardcode neither a module name nor the root itself.
 
 <!-- /SYNC:module-detection -->
 
@@ -751,7 +753,7 @@ Assess quality, error handling, async interaction, runtime/deployment, and integ
 - **Sequential Thinking:** multi-step Thought N/M with confidence closer.
 - **Design Patterns Quality:** DRY/SOLID, lowest layer, 3+ extract.
 - **Scaffold Production Readiness:** 5 foundations before feature-implement.
-- **Estimation Framework:** bottom-up hours, SP derived, risk margin.
+- **Estimation Framework:** bottom-up hours, EP derived, risk margin.
 - **Module Detection:** detect module from keywords, load specs context.
 
 **IMPORTANT MUST ATTENTION** NEVER skip user validation — every stage MUST end with `ask user question tool` before proceeding — why: a waterfall stage built on an unvalidated decision corrupts every downstream stage.

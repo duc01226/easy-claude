@@ -8,7 +8,7 @@ disable-model-invocation: false
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
 > **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
-> **[BLOCKING]** Before each step or sub-skill call, update task tracking: set `in_progress` when step starts, set `completed` when step ends.
+> **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
 
@@ -75,7 +75,7 @@ Collect six inventories for each group:
 | Inventory | Evidence and fallback |
 | --- | --- |
 | **Diagram sources → §2** | Components from callers/imports; domain model from an existing spec ERD (reuse verbatim), then entity fields, then schema/migrations; sequence from entry/handler chains. Lifecycle field/enum/guard triggers state diagrams. Trace → grep/read → spec/plan → stated blocker; never invent a node or edge. |
-| **Stories and cases → §3/§11** | Main capabilities, protected rules, enforcement `file:line`, and real spec IDs/test names. Reconcile the union of spec and test cases; name uncovered stories. Specs → tests → PBIs/release/commit notes → diff. Never invent a case ID. |
+| **Stories and cases → §3/§11** | Main capabilities, protected rules, enforcement `file:line`, and real spec IDs/test names. Reconcile the union of spec and test cases; name uncovered stories. Specs → tests → tasks/release/commit notes → diff. Never invent a case ID. |
 | **Review classification → §4** | Classify files using `references/review-path.md`. Walk one hop outward for invariant owners, satisfied interfaces, inherited contracts, and governing specs/tests. Mark unchanged context. Trace → imports/references; label grep-derived ordering approximate. |
 | **Concepts → §5** | Every load-bearing mechanism, with its code evidence; omit decoration, not essential concepts. |
 | **Options → §8** | For each significant decision, use recorded plan/ADR/PR/comment alternatives → log/blame and prior implementations → 3+ fitting sibling patterns → supported library approaches → engineering judgment. `[deliberated]` requires evidence it was weighed; otherwise label `[reconstructed]`. |

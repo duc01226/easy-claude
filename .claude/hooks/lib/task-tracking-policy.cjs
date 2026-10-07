@@ -1,15 +1,14 @@
 'use strict';
 
-const { KINDS, GROUP_ROLES, MEMBER_ID, isEmailId, relativePath, LIMITS } = require('./task-tracking-config.cjs');
+const { GROUP_ROLES, MEMBER_ID, isEmailId, relativePath, LIMITS } = require('./task-tracking-config.cjs');
+const { STATES, LINK_ROLES, GROUP_KINDS, PLANNED_STATE, ACYCLIC_LINK_ROLES } = require('./task-tracking-vocabulary.cjs');
 const { fail, hash, readBytes } = require('./task-tracking-files.cjs');
 const { ITEM_ID, stableValue } = require('./task-artifact-store.cjs');
 const { isPrivacySensitive } = require('./sensitive-path-policy.cjs');
 
-const STATES = Object.freeze(['draft', 'backlog', 'ready', 'in_progress', 'blocked', 'verifying', 'done', 'canceled']);
-const LINK_ROLES = Object.freeze(['dependency', 'parent', 'idea', 'spec', 'plan', 'source']);
-const TRANSITIONS = Object.freeze({ draft: ['backlog', 'canceled'], backlog: ['ready', 'canceled'], ready: ['in_progress', 'canceled'],
+const TRANSITIONS = Object.freeze({ draft: [PLANNED_STATE, 'canceled'], [PLANNED_STATE]: ['ready', 'canceled'], ready: ['in_progress', 'canceled'],
     in_progress: ['blocked', 'verifying', 'canceled'], blocked: ['in_progress', 'verifying', 'canceled'], verifying: ['done', 'canceled'],
-    done: ['backlog', 'ready', 'in_progress', 'canceled'], canceled: [] });
+    done: [PLANNED_STATE, 'ready', 'in_progress', 'canceled'], canceled: [] });
 const string = (value, maximum = 2000) => typeof value === 'string' && value.trim().length > 0 && value.length <= maximum;
 const list = (value, check, maximum = LIMITS.records) => Array.isArray(value) && value.length <= maximum && value.every(check);
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -83,9 +82,9 @@ function validateMetadata(record) {
     if (t.links !== undefined && !list(t.links, link => object(link) && LINK_ROLES.includes(link.relation)
         && ((typeof link.itemId === 'string' && ITEM_ID.test(link.itemId) && link.path === undefined)
             || (relativePath(link.path) && link.itemId === undefined && ['spec', 'plan', 'source'].includes(link.relation))))) fail('INVALID_RECORD', 'Links have an unsupported owner or identity');
-    if (t.memberItemIds !== undefined && (!['vision', 'epic'].includes(record.kind) || !list(t.memberItemIds, id => typeof id === 'string' && ITEM_ID.test(id))
+    if (t.memberItemIds !== undefined && (!GROUP_KINDS.includes(record.kind) || !list(t.memberItemIds, id => typeof id === 'string' && ITEM_ID.test(id))
         || new Set(t.memberItemIds).size !== t.memberItemIds.length)) fail('INVALID_RECORD', 'Group membership is invalid');
-    if (t.groupRole !== undefined && (!['vision', 'epic'].includes(record.kind) || (t.groupRole !== null && !GROUP_ROLES.includes(t.groupRole))))
+    if (t.groupRole !== undefined && (!GROUP_KINDS.includes(record.kind) || (t.groupRole !== null && !GROUP_ROLES.includes(t.groupRole))))
         fail('INVALID_RECORD', 'Group purpose is invalid');
     for (const key of ['receipts', 'proofs', 'acceptanceHistory', 'history']) if (t[key] !== undefined && !Array.isArray(t[key])) fail('INVALID_RECORD', `${key} must be a retained list`);
     if ((t.proofs || []).some(proof => !validProof(proof))
@@ -135,7 +134,7 @@ function graphFindings(records, index = recordIndex(records), visit) {
             malformed.add(record.id);
         }
     }
-    const graphs = Object.fromEntries(['dependency', 'parent', 'idea'].map(role => [role, new Map(records.map(r => [r.id, []]))]));
+    const graphs = Object.fromEntries(ACYCLIC_LINK_ROLES.map(role => [role, new Map(records.map(r => [r.id, []]))]));
     for (const record of records) {
         if (visit) visit(record, !malformed.has(record.id));
         const links = Array.isArray(record.tracking?.links) ? record.tracking.links : [];
@@ -152,7 +151,7 @@ function graphFindings(records, index = recordIndex(records), visit) {
             }
         }
     }
-    // Iterative traversal avoids stack growth with the size of an adopting backlog.
+    // Iterative traversal avoids stack growth with the size of an adopting project's planned work.
     for (const adjacency of Object.values(graphs)) {
     const colors = new Map();
     for (const record of records) {
@@ -312,7 +311,7 @@ function transition(record, patch, records, context, authority, at) {
         if (!string(patch.reason)) fail('INVALID_INPUT', 'Changing state outside the usual steps needs a reason');
     } else if (!STATES.includes(before) || !TRANSITIONS[before].includes(after)) fail('INVALID_TRANSITION', 'Transition is unavailable in the current state');
     if (after === 'done') fail('MISSING_PROOF', 'Use an actual scoped acceptance action with current proof');
-    if (after === 'backlog' && !string(record.data.intent)) fail('NOT_READY', 'Planning needs captured intent');
+    if (after === PLANNED_STATE && !string(record.data.intent)) fail('NOT_READY', 'Planning needs captured intent');
     const changes = {};
     if (after === 'canceled') {
         if (!string(patch.reason)) fail('INVALID_INPUT', 'Cancellation needs a reason');

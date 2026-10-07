@@ -129,7 +129,7 @@ When already authorized work needs missing or invalid project context repaired, 
 {
     "docsRoots": { "teamArtifacts": { "path": "team-artifacts" } },
     "taskTracking": {
-        "schemaVersion": 1,
+        "schemaVersion": 2,
         "mode": "linked",
         "profile": { "kind": "portable-markdown", "version": 1 },
         "members": [
@@ -142,19 +142,21 @@ When already authorized work needs missing or invalid project context repaired, 
 
 Replace the optional example member with actual custom identities, or omit `members` to use local Git identity. IDs survive display-name changes; aliases must resolve unambiguously. An absent section means mode `off` and an empty shared member registry; it does not prevent an explicitly permitted local-author action or change the existing explicit common-core capture route. A malformed declared section refuses affected operations. `off` disables automatic upkeep, `observe` gives reminders, and `linked` permits bounded activity at actual saved checkpoints for exact session-linked items. Off/observe optional checkpoints exit before author lookup. Explicit human actions remain separate. A ticket is optional.
 
+`taskTracking.schemaVersion` names the vocabulary the stored records use: `2` is the current vocabulary (task, subtask, initiative, project, state `planned`); `1` is the earlier one. A project at `1`, or an unconfigured project holding only earlier record folders, is read in the current words and is read-only: every save is refused with `MIGRATION_REQUIRED` and automatic upkeep is skipped until `migrate` has run. Read [the migration procedure](../../skills/task-track/references/manual-operations.md) before running it, and [Work-tracker vocabulary](../../config/README.md#work-tracker-vocabulary--migrating-an-adopting-project) for the upgrade steps.
+
 #### Optional group purpose and labels
 
-Existing vision/epic records may optionally declare `tracking.groupRole`. Omitted or null purpose stays generic; this introduces no record kind, required wrapper, fixed nesting depth, artifact folder or migration. Maintain purpose and/or membership through the existing `group` operation; omitted fields are preserved, and a purpose-only change cannot replace members. Read [the group recipe](../../skills/task-track/references/manual-operations.md#optional-group-purpose) for the actual retained request, preview, actor and conflict guards.
+Existing vision/project records may optionally declare `tracking.groupRole`. Omitted or null purpose stays generic; this introduces no record kind, required wrapper, fixed nesting depth, artifact folder or migration. Maintain purpose and/or membership through the existing `group` operation; omitted fields are preserved, and a purpose-only change cannot replace members. Read [the group recipe](../../skills/task-track/references/manual-operations.md#optional-group-purpose) for the actual retained request, preview, actor and conflict guards.
 
 | Role key | Default display label |
 | --- | --- |
 | `area` | Area |
 | `capability` | Feature |
-| `initiative` | Initiative |
+| `program` | Program |
 
 Optional `taskTracking.groupLabels` accepts only these three keys. Each declared value is nonblank text, at most 160 characters before trimming, with no control characters; display trims surrounding whitespace. Omitted keys use defaults, including when the object or tracking configuration is absent. Duplicate label text is legal. Labels supply no owner selection, membership, permission or executable instruction; commands select stable item IDs. Malformed declared labels refuse affected operations rather than silently defaulting. Pinned reads use labels and membership from the selected commit’s config, preserving local/shared source distinctions.
 
-Use `inspect --root CHECKOUT --group EXACT_GROUP_ID` or `check --root CHECKOUT --group EXACT_GROUP_ID` through `node .claude/skills/task-track/scripts/task-track.cjs`; omit `--group` for project scope. Delivery comes only from declared membership, counts each eligible PBI once, excludes canceled/retired PBIs and gives no credit to support or group records. Read exact `scope.eligiblePbiIds`, excluded/supporting identities and coverage before relying on counts. Partial, malformed or bounded scope retains reasons and withholds a complete percentage; an unavailable group has null metrics. Global work and exact linked concerns remain inspectable, with current proof, historical acceptance and owner health separate. Supported portable reads require no custom vocabulary or native adapter.
+Use `inspect --root CHECKOUT --group EXACT_GROUP_ID` or `check --root CHECKOUT --group EXACT_GROUP_ID` through `node .claude/skills/task-track/scripts/task-track.cjs`; omit `--group` for project scope. Delivery comes only from declared membership, counts each eligible task once, excludes canceled/retired tasks and gives no credit to subtask or group records. Read exact `scope.eligibleTaskIds`, excluded/supporting identities and coverage before relying on counts. Partial, malformed or bounded scope retains reasons and withholds a complete percentage; an unavailable group has null metrics. Global work and exact linked concerns remain inspectable, with current proof, historical acceptance and owner health separate. Supported portable reads require no custom vocabulary or native adapter.
 
 The core package requires Node 18+ and pins `yaml` 2.9.1 in its manifest and lockfile. The optional app requires Node 20+. From the selected checkout, the same commands work on Windows, macOS or Linux:
 
@@ -282,7 +284,7 @@ Four UserPromptSubmit accelerators are ON by default and inject a short directiv
 | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- | -------------------------------- |
 | `commit-skill-route.cjs`        | the prompt asks for a commit — run the `commit` skill, never a raw `git commit` (`review-commit-gate.cjs` still blocks an unreviewed commit) | `{ "commitSkillRoute": { "enabled": false } }`        | `CK_COMMIT_SKILL_ROUTE=0`        |
 | `judgement-integrity-route.cjs` | the prompt asks for a verdict, root cause, evaluation, or gap hunt — the `SYNC:judgement-integrity:reminder` directive                       | `{ "judgementIntegrityRoute": { "enabled": false } }` | `CK_JUDGEMENT_INTEGRITY_ROUTE=0` |
-| `core-principles-inject.cjs`    | first prompt or task step of a session scope, then again after ~`reinjectAfterTokens` (default 100000) of transcript growth or a compaction — the `SYNC:core-engineering-principles` gate | `{ "corePrinciplesInject": { "enabled": false } }`  | `CK_CORE_PRINCIPLES_INJECT=0`    |
+| `core-principles-inject.cjs`    | first prompt or task step of a session scope, then again after ~`reinjectAfterTokens` (default 150000) of transcript growth or a compaction — the `SYNC:core-engineering-principles` gate | `{ "corePrinciplesInject": { "enabled": false } }`  | `CK_CORE_PRINCIPLES_INJECT=0`    |
 | `ai-feature-route.cjs`          | the prompt asks to build, plan, change or review an AI feature (an AI technique such as LLM calls, RAG, embeddings, tool/function calling or the Claude API/SDK — not "Claude Code" — AND an action on it) and is not about the framework's own machinery — one short directive (one protocol pointer, the `ai-engineering-review` skill / reviewer sub-agent route) once per session window; questions and framework-meta prompts stay silent | `{ "aiFeatureRoute": { "enabled": false } }`        | `CK_AI_FEATURE_ROUTE=0`          |
 
 ### Hook-only delivery: host requirements
@@ -379,7 +381,11 @@ When inlined `contextGroups[].rules` push the generated root context past its by
 { "portability": { "inlinePathRules": false } }
 ```
 
-`SECTION:golden-rules` then names each rule-bearing group and points to the file-conventions hook and its `--lookup` CLI instead of repeating the rule text. It is honored only when `conventionInjection.enabled` is `true`, the conventions lib is available, every rule-bearing group is named, unique and ranked within `conventionInjection.maxClassesPerEdit`, and a worst-case digest fits `conventionInjection.maxChars` (raise it, up to 10000, when the warning names the size budget); otherwise the rules stay inline and `generate-claude-md.cjs` prints `[WARN] INLINE_PATH_RULES` naming the missing precondition. Read `.claude/skills/ai-context-refresh/SKILL.md` (Just-in-time path rules) when enabling it.
+`SECTION:golden-rules` then names the rule-bearing groups and requires pre-action lookup. Enable `conventionInjection.completeLookup: true` with `conventionInjection.enabled: true` to retrieve **every** matching read/edit class through `node .claude/hooks/lib/file-conventions.cjs --lookup <path>`. Read all returned pages, repeating with `--page N`. Pages stay within 9,500 characters; automatic PostToolUse reminders keep their caps and are only accelerators. This mode also replaces the generated path pre-read table with one pointer.
+
+The generator requires named, unique rule-bearing groups and a library advertising complete lookup support. Older libraries or configurations without this opt-in retain the legacy proof: all rule groups must fit the class cap and worst-case digest size. If either delivery proof fails, rules remain inline and `[WARN] INLINE_PATH_RULES` names the missing precondition. Read `.claude/skills/ai-context-refresh/SKILL.md` when enabling this mode.
+
+For task-scoped config discovery, run `node .claude/scripts/project-context.cjs --context`; add `--section <top-level-key>` for each required section. The loader validates the **entire** config before projection, preserves absent versus explicit-empty reference selection, and resolves relocated config/docs-index paths. Missing config is supported; malformed declarations fail with no projected output. Read the full config when editing it.
 
 ### Startup dependency installation
 
@@ -567,8 +573,10 @@ Restricted mode distinguishes **selection** from **execution**:
 - The competing automatic workflow catalog is suppressed. Existing workflow-route restrictions and
   native permissions/manual-only skills remain in force.
 
-The same `skill-activation-inject.cjs` emits a small scoped instruction on prompts, delegated starts
-and session recovery. Codex mirrors the runtime producer; OpenCode refreshes it at system-context
+The same `skill-activation-inject.cjs` emits the full policy on every restricted prompt, delegated
+start and recovery. It never substitutes a presence-based reminder. Isolated agent reset state records
+confirmed writes only; missing storage and failed output leave the next full replay eligible.
+Codex mirrors the runtime producer; OpenCode refreshes it at system-context
 transformation for main and child sessions and discards cached startup copies of this policy.
 Restoring auto mode emits a reset in scopes that previously received the restriction, then stays silent.
 
@@ -611,7 +619,7 @@ Apply it with `node .claude/scripts/sync-skill-profile.cjs` (`--check` is read-o
 
 **Schema:** Each workflow entry supports `activation`, `defaultMode`, `description`, `intent`, `name`, `outcomeGates`, `parallelGroups`, `preActions`, `sequence`, `stepMeta`, `variants`, `whenToUse` (`WorkflowEntry` in `.claude/workflows.schema.json`). `variants` holds one complete `sequence` per mode (plus optional `parallelGroups`, `stepMeta` and `outcomeGates`), `defaultMode` names the default mode, and a variant's own `outcomeGates` are added to the entry-level `outcomeGates` that every mode shares. There are NO `priority` or `triggers` properties. When runtime routing is enabled, the model semantically matches the prompt against `whenToUse`; otherwise the catalog remains available only through explicitly invoked workflow skills.
 
-**Live catalog (19 workflows):** `workflow-big-feature`, `workflow-bugfix`, `workflow-e2e`, `workflow-feature`, `workflow-implement-spec`, `workflow-feature-spec`, `workflow-greenfield-init`, `workflow-idea-to-pbi`, `workflow-idea-to-spec`, `workflow-refactor`, `workflow-research`, `workflow-review-changes`, `workflow-architecture-audit`, `workflow-code-to-spec`, `workflow-spec-to-pbi`, `workflow-spec-to-mockup`, `workflow-spec-sync`, `workflow-seed-test-data`, `workflow-integration-test`.
+**Live catalog (19 workflows):** `workflow-big-feature`, `workflow-bugfix`, `workflow-e2e`, `workflow-feature`, `workflow-implement-spec`, `workflow-feature-spec`, `workflow-greenfield-init`, `workflow-initiative-to-task`, `workflow-initiative-to-spec`, `workflow-refactor`, `workflow-research`, `workflow-review-changes`, `workflow-architecture-audit`, `workflow-code-to-spec`, `workflow-spec-to-task`, `workflow-spec-to-mockup`, `workflow-spec-sync`, `workflow-seed-test-data`, `workflow-integration-test`.
 
 | Workflow                  | Sequence (abridged, from `workflows.json`)                                                                                                                                          | whenToUse (abridged)                              |
 | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |

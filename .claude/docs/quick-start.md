@@ -32,7 +32,7 @@ git --version
 |-- settings.json     # Main configuration (hooks, features)
 |-- skills/           # 102 skills (invoked via / prefix, activated by context)
 |-- agents/           # Subagent configurations
-|-- hooks/            # 32 top-level hook files + 59 lib modules
+|-- hooks/            # 32 top-level hook files + 61 lib modules
 |   +-- lib/          # Shared hook libraries
 |-- workflows/        # Development rules and workflows
 +-- scripts/          # Utility scripts

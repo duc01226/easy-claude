@@ -51,7 +51,8 @@ const GATE_FILE = '.claude/skills/shared/protocols/ai-engineering-gate.md';
 const FRAMING_FILE = '.claude/skills/shared/protocols/ai-feature-framing-gate.md';
 const REVIEW_SKILL = 'ai-engineering-review';
 const REVIEW_AGENT = 'ai-engineering-reviewer';
-const DEFAULT_REINJECT_TOKENS = 100000;
+// Keep routing guidance available during long work, with less frequent repetition.
+const DEFAULT_REINJECT_TOKENS = 150000;
 const MAX_SIGNALS_SHOWN = 3;
 // Hard cap on the whole directive, markers included; buildDirective trims the signal list to honor it.
 const MAX_DIRECTIVE_CHARS = 700;

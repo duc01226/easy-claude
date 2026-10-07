@@ -217,7 +217,7 @@ Opt-in escalation hook from host skills. NEVER wire into `workflow-bugfix`, `wor
 | `architecture --mode=design`            | Always-offer after `## Next Steps`         | Skip                     | User chooses                                                     |
 | `tech-stack-research`            | Always-offer after `## Next Steps`         | Skip                     | User chooses                                                     |
 | `domain-analysis`                | Always-offer after `## Next Steps`         | Skip                     | User chooses                                                     |
-| `why-review`                     | Conditional on active plan/PBI frontmatter | Escalate when gate fires | Step A workflow blacklist suppression THEN 8-OR frontmatter gate |
+| `why-review`                     | Conditional on active plan/task frontmatter | Escalate when gate fires | Step A workflow blacklist suppression THEN 8-OR frontmatter gate |
 | `prioritize`                     | Conditional on ranking output              | Escalate when gate fires | RICE top-2 within 15%, MoSCoW tie, or stakeholder disagreement   |
 
 ### `why-review` Gate Schema
@@ -228,7 +228,7 @@ Gate fires when ANY field true. Absent fields default no-fire; gate opt-in via f
 | ---------------------- | -------------------------------------- | ------------------------------------------- |
 | `cross_service_impact` | `NONE` / `PARTIAL` / `FULL`            | value != `NONE`                             |
 | `breaking_changes`     | bool                                   | true                                        |
-| `complexity`           | `low` / `medium` / `high` / `critical` | `high`, `critical`, or `story_points >= 13` |
+| `complexity`           | `low` / `medium` / `high` / `critical` | `high`, `critical`, or `effort_points >= 13` |
 | `new_framework`        | bool                                   | true                                        |
 | `irreversible`         | bool                                   | true                                        |
 | `security_critical`    | bool                                   | true                                        |

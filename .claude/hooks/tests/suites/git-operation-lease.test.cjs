@@ -53,7 +53,7 @@ function childCall(command, input) {
 function sessionEndCall(input, env) {
     return spawnSync(process.execPath, [SESSION_END], {
         input: JSON.stringify(input), encoding: 'utf8', cwd: input.cwd,
-        windowsHide: true, env: { ...process.env, ...env }
+        windowsHide: true, env: osEssentialsEnv(env)
     });
 }
 
@@ -208,11 +208,31 @@ const tests = [
         assert.equal(api().checkLease({ ...o, sessionId: 'session-b', operation: 'commit' }), true);
         assert.ok(ownCommit.leaseId && ownPush.leaseId && foreign.leaseId);
     }) },
-    { name: 'TC-HARNESS-013 SessionEnd clear/exit revokes own leases and compact never refreshes', fn: async () => fixture(o => {
+    { name: 'TC-HARNESS-013 registered host endings revoke own leases and preserve recovery on resume/other/compact', fn: async () => fixture((o, root) => {
         // Lifecycle cleanup requires an accepted explicit project root.
         fs.mkdirSync(path.join(o.projectDir, '.claude'));
         const runtime = { ...o, now: Date.now() };
-        const env = { CLAUDE_PROJECT_DIR: runtime.projectDir, CK_GIT_LEASE_STORE: runtime.storeDir };
+        const env = { CLAUDE_PROJECT_DIR: runtime.projectDir, CK_GIT_LEASE_STORE: runtime.storeDir,
+            HOME: root, USERPROFILE: root, TMPDIR: root, TEMP: root, TMP: root };
+        const settings = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../../../settings.json'), 'utf8'));
+        const registration = settings.hooks.SessionEnd.find(group => group.hooks.some(hook => hook.command.includes('/session-end.cjs')));
+        assert.ok(registration, 'SessionEnd cleanup must be registered');
+        const swap = path.join(root, 'ck', 'swap', runtime.sessionId);
+        const snapshot = path.join(root, 'ck', 'snapshots', `${runtime.sessionId}.json`);
+        for (const reason of ['clear', 'resume', 'logout', 'prompt_input_exit', 'other', 'exit']) {
+            assert.ok(!registration.matcher || new RegExp(registration.matcher).test(reason), `host reason must reach cleanup: ${reason}`);
+            fs.mkdirSync(swap, { recursive: true });
+            fs.writeFileSync(path.join(swap, 'recent.txt'), 'recovery');
+            fs.mkdirSync(path.dirname(snapshot), { recursive: true });
+            fs.writeFileSync(snapshot, 'recovery');
+            api().issueLease({ ...runtime, operations: ['commit'] });
+            const result = sessionEndCall({ hook_event_name: 'SessionEnd', reason, session_id: runtime.sessionId, cwd: runtime.projectDir }, env);
+            assert.equal(result.status, 0, result.stderr);
+            assert.equal(api().checkLease({ ...runtime, operation: 'commit' }), false, reason);
+            const preserve = reason === 'resume' || reason === 'other';
+            assert.equal(fs.existsSync(swap), preserve, `swap recovery: ${reason}`);
+            assert.equal(fs.existsSync(snapshot), preserve, `snapshot recovery: ${reason}`);
+        }
         api().issueLease({ ...runtime, operations: ['commit'] });
         api().issueLease({ ...runtime, sessionId: 'session-b', operations: ['commit'] });
         const clear = sessionEndCall({ reason: 'clear', session_id: runtime.sessionId, cwd: runtime.projectDir }, env);

@@ -9,7 +9,7 @@ disable-model-invocation: false
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -35,7 +35,7 @@ disable-model-invocation: false
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
 > **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
-> **[BLOCKING]** Before each step or sub-skill call, update task tracking: set `in_progress` when step starts, set `completed` when step ends.
+> **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
 
@@ -419,7 +419,7 @@ Optionally, when a graph DB exists, `trace` can hint at data flow paths for secu
 - **"$performance-review"** — Analyze performance next
 - **"Skip, continue manually"** — user decides
 
-> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. Keep task depth proportional to the work.
+> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. Keep task depth proportional to the work.
 
 - `domain-entities-reference.md`, in the project-reference docs root (default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path) — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models)
 
@@ -555,7 +555,7 @@ Optionally, when a graph DB exists, `trace` can hint at data flow paths for secu
 - **Fix authority and convergence:** Review-only/caller-owned passes return validated findings; standalone fix-loop authorizes scoped repairs. Ask only for missing operation authority or a bounded round extension. After every applied fix, freshly review the full target from Scope with new tasks; use a fresh `security-auditor` when delegating. From Round 2 onward defer LOW-only findings. Honor `minRounds`, the Phase 1 validation cap and no-progress escalation.
 - **Read-only leaf:** `--report-only` resolves scope from the brief and runs steps 1–4: no fix, restart, nested fan-out, user question or writer beyond the report. Return validated findings to the caller.
 - **Compromise and feedback:** Confirmed host compromise requires isolation, rotation of EVERY credential that touched the host, a clean-image rebuild and lateral-movement checks; do not trust in-place cleanup. Behavior-changing confirmed findings require BOTH a §4/§5 spec invariant and a guarding negative test.
-- **Tracking:** Create small task tracking todos before work and a final review todo; persist findings incrementally to `tmp/reports/security-audit-{YYMMDD}-{HHmm}-{slug}.md`. Expand nested child phases and link the parent workflow row. Tag PAR/SEQ, dispatch disjoint waves together and wait at the barrier.
+- **Tracking:** Create small todo tracking todos before work and a final review todo; persist findings incrementally to `tmp/reports/security-audit-{YYMMDD}-{HHmm}-{slug}.md`. Expand nested child phases and link the parent workflow row. Tag PAR/SEQ, dispatch disjoint waves together and wait at the barrier.
 - **Graph advice:** Optional `callers_of` / `trace --direction downstream` hints can size exploitability; verify reachability by reading code. Graph use is never required.
 
 | Evasion | Required action |

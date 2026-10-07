@@ -64,7 +64,7 @@
  *                    includes review/fix-cycle validation.
  *   N (TC-UAR-016) — off-role protocol trim pins: architect carries NO
  *                    source-test-drift-check / scaffold-production-readiness;
- *                    the pbi refine mode reference carries NO scaffold-production-readiness /
+ *                    the work-item refine mode reference carries NO scaffold-production-readiness /
  *                    cross-cutting-quality.
  *                    Confirms the user-validated KEEPS survive: architect &
  *                    solution-architect keep fix-layer-accountability; architect &
@@ -596,8 +596,8 @@ module.exports = {
                 const removed = [
                     { kind: 'agent', name: 'architect', tag: 'source-test-drift-check', labels: ['Source-Test Drift Check', 'Source Test Drift'] },
                     { kind: 'agent', name: 'architect', tag: 'scaffold-production-readiness', label: 'Scaffold Production Readiness' },
-                    { kind: 'skill-file', name: 'pbi/references/mode-refine.md', tag: 'scaffold-production-readiness', label: 'Scaffold Production Readiness' },
-                    { kind: 'skill-file', name: 'pbi/references/mode-refine.md', tag: 'cross-cutting-quality', label: 'Cross-Cutting Quality' },
+                    { kind: 'skill-file', name: 'work-item/references/mode-refine.md', tag: 'scaffold-production-readiness', label: 'Scaffold Production Readiness' },
+                    { kind: 'skill-file', name: 'work-item/references/mode-refine.md', tag: 'cross-cutting-quality', label: 'Cross-Cutting Quality' },
                 ];
                 for (const { kind, name, tag, label, labels } of removed) {
                     const body = kind === 'agent' ? read(name) : kind === 'skill-file' ? fs.readFileSync(path.join(SKILLS_DIR, name), 'utf8') : readSkill(name);

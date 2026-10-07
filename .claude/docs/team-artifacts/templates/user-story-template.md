@@ -4,11 +4,11 @@ id: US-{YYMMDD}-{NNN}
 title: '{As a... I want... So that...}'
 intent: '{One sentence: what the persona can do after this story}'
 status: draft
-parent_pbi: '{PBI-XXXXXX-NNN}'
+parent_task: '{TASK-XXXXXX-NNN}'
 persona: '{User persona}'
 priority_label: P1 | P2 | P3
 effort: 1 | 2 | 3 | 5 | 8 | 13
-template_version: '1.1'
+template_version: '1.2'
 ---
 
 # User Story
@@ -66,4 +66,4 @@ Then {error handling}
 
 ---
 
-_Generated from PBI: {parent_pbi}_
+_Generated from task: {parent_task}_

@@ -8,7 +8,7 @@ Source: .claude/agents/knowledge-worker.md
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -55,7 +55,7 @@ Connected contracts:
 
 ---
 
-> **[IMPORTANT]** Use task tracking to break ALL research work into small tasks BEFORE starting; mark each done immediately on completion.
+> **[IMPORTANT]** Use todo tracking to break ALL research work into small tasks BEFORE starting; mark each done immediately on completion.
 > **Evidence Gate** — Every claim, finding, recommendation requires traced evidence + confidence percentage (>80% act, <80% verify first). NEVER speculate.
 > **Anti-Hallucination** — WebSearch returns empty → state "No evidence found." NEVER fabricate sources, statistics, or file paths — why: invented evidence is worse than declared gaps.
 > **External Memory** — Write intermediate findings to `tmp/reports/` after EACH step — prevents context loss. Final reports to `docs/knowledge/`.
@@ -295,7 +295,7 @@ Connected contracts:
 **IMPORTANT MUST ATTENTION** — Write intermediate findings to `tmp/reports/` after EACH research step, never as a final batch — why: context loss destroys unbatched work.
 **IMPORTANT MUST ATTENTION** — Classify EVERY source by Tier (1-4) before trusting it; NEVER present a Tier 3/4 claim without first corroborating it against a Tier 1/2 anchor — why: low-trust sources need a higher-trust anchor.
 **IMPORTANT MUST ATTENTION** — Declare a confidence score per finding AND overall (95/80/60/<60%); >80% to deliver, <60% DO NOT recommend — why: an undeclared-confidence finding is a quality failure.
-**IMPORTANT MUST ATTENTION** — Use task tracking to break research into small tasks BEFORE starting; keep one in progress; mark each done immediately — on context loss, the current task list first, never duplicate.
+**IMPORTANT MUST ATTENTION** — Use todo tracking to break research into small tasks BEFORE starting; keep one in progress; mark each done immediately — on context loss, the current task list first, never duplicate.
 **IMPORTANT MUST ATTENTION** — Form 3-5 specific, varied-angle search queries before trusting any single result; cross-validate across 2+ sources before citing — why: one query angle hides contradicting evidence.
 **IMPORTANT MUST ATTENTION** — Respect the budget cap: maximum 10 WebSearch + 8 WebFetch calls per session — why: unbounded research burns context before synthesis.
 **IMPORTANT MUST ATTENTION** — Synthesize into the enforced templates from `.claude/templates/` and write to the correct `docs/knowledge/` output path for the artifact type — why: consistent structure makes findings reusable downstream.
@@ -313,5 +313,5 @@ Connected contracts:
 
 > **[IMPORTANT — primacy-recency tail]** The 3 rules to never break: (1) every claim → 2+ independent sources + `[N]` citation; (2) empty search → "No evidence found", NEVER fabricate; (3) write findings to `tmp/reports/` after EACH step.
 
-**[TASK-PLANNING]** Before acting, analyze task scope and break it into small task tracking todos plus a final review todo.
+**[TASK-PLANNING]** Before acting, analyze task scope and break it into small todo tracking todos plus a final review todo.
 """

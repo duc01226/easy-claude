@@ -57,7 +57,7 @@ const REMOVED = ['workflow-write' + '-integration-test', 'workflow-integration-t
 // The documentation step is owned by whichever docs skill the registry names; its slot is pinned, not the name.
 const DOCS_SKILLS = new Set(['docs-manager']);
 
-const WRITE_STEPS = ['investigate', 'spec [mode=tests]', 'pbi --mode=review --type=spec-tests', 'integration-test', 'integration-test --mode=review', 'integration-test --mode=verify', 'spec [mode=sync]', '<docs>', 'workflow-end', 'watzup'];
+const WRITE_STEPS = ['investigate', 'spec [mode=tests]', 'work-item --mode=review --type=spec-tests', 'integration-test', 'integration-test --mode=review', 'integration-test --mode=verify', 'spec [mode=sync]', '<docs>', 'workflow-end', 'watzup'];
 const GREEN_STEPS = ['investigate', 'integration-test --mode=verify --fix-loop', 'spec [mode=sync]', '<docs>', 'workflow-end', 'watzup'];
 
 /** A manifest's commands with the documentation step collapsed to the `<docs>` placeholder. */
@@ -162,7 +162,7 @@ const tests = [
             const roleOf = (manifest, command) => manifest.occurrences.find(occurrence => shape({ occurrences: [occurrence] })[0] === command).role;
             // write: gates are the review, verify, sync and close steps; the two case steps and the docs step are optional
             for (const command of ['integration-test --mode=review', 'integration-test --mode=verify', 'spec [mode=sync]', 'workflow-end']) assert.equal(roleOf(write, command), 'gate', `write ${command}`);
-            for (const command of ['spec [mode=tests]', 'pbi --mode=review --type=spec-tests', '<docs>']) assert.equal(roleOf(write, command), 'optional', `write ${command}`);
+            for (const command of ['spec [mode=tests]', 'work-item --mode=review --type=spec-tests', '<docs>']) assert.equal(roleOf(write, command), 'optional', `write ${command}`);
             // green: the loop and the close are gates; the spec sync and docs steps are optional
             for (const command of ['integration-test --mode=verify --fix-loop', 'workflow-end']) assert.equal(roleOf(green, command), 'gate', `green ${command}`);
             for (const command of ['spec [mode=sync]', '<docs>']) assert.equal(roleOf(green, command), 'optional', `green ${command}`);

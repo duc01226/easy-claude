@@ -8,7 +8,7 @@ version: 2.3.0
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 > **[BLOCKING]** Execute phases in declared order. NEVER skip, reorder, or merge without explicit user approval.
-> **[BLOCKING]** Before each phase or skill call, update task tracking; mark `in_progress` at start and `completed` after evidence.
+> **[BLOCKING]** Before each phase or skill call, update todo tracking; mark `in_progress` at start and `completed` after evidence.
 > **[BLOCKING]** Record evidence for each completed/skipped phase; if task tools are unavailable, maintain an equivalent tracker.
 > **[BLOCKING]** Investigation stays READ-ONLY; report findings, never patch source.
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:END -->

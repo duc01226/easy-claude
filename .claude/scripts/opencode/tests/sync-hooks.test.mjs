@@ -362,15 +362,18 @@ test("TC-SAP-007 real policy reaches OpenCode main/child sessions, keeps commit 
     // then its context asks for skill confirmation or direct execution.
     const ordinary = userMessage("review these changes", { sessionID: "main" });
     await hooks["chat.message"]({ sessionID: "main" }, ordinary);
-    assert.ok(ordinary.parts.some(part => part.synthetic && /generic request.*NOT permission/.test(part.text)));
-    assert.ok(ordinary.parts.some(part => part.synthetic && /Run the matched skill.*Skip the skill and execute directly/.test(part.text)));
-    assert.ok(ordinary.parts.some(part => part.synthetic && /Stop and wait for the human answer/.test(part.text)));
-    assert.ok(ordinary.parts.some(part => part.synthetic && /Confirmation authorizes only the selected skill/.test(part.text)));
-    assert.ok(ordinary.parts.some(part => part.synthetic && /Do not re-ask the skill-choice question for the same task/.test(part.text)));
+    assert.ok(ordinary.parts.some(part => part.synthetic && /ask ONE skill-choice question before loading or executing it/.test(part.text)));
+    const main = { system: [] };
+    await hooks["experimental.chat.system.transform"]({ sessionID: "main" }, main);
+    assert.ok(main.system.some(text => /generic request.*NOT permission/.test(text)));
+    assert.ok(main.system.some(text => /Run the matched skill.*Skip the skill and execute directly/.test(text)));
+    assert.ok(main.system.some(text => /Stop and wait for the human answer/.test(text)));
+    assert.ok(main.system.some(text => /Confirmation authorizes only the selected skill/.test(text)));
+    assert.ok(main.system.some(text => /Do not re-ask the skill-choice question for the same task/.test(text)));
     const commit = userMessage("commit this", { sessionID: "main" });
     await hooks["chat.message"]({ sessionID: "main" }, commit);
     assert.ok(commit.parts.some(part => part.synthetic && /COMMIT-SKILL-ROUTE/.test(part.text)));
-    assert.ok(commit.parts.some(part => part.synthetic && /required nested reviewers/.test(part.text)));
+    assert.ok(commit.parts.some(part => part.synthetic && /changed content needs current evidence\/receipts, not a transferred Skip/.test(part.text)));
 
     await hooks.event({ event: { type: "session.created", properties: { info: { id: "child", parentID: "main" } } } });
     const child = { system: ["child base"] };

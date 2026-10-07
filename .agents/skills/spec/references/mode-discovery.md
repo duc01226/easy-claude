@@ -3,7 +3,7 @@
 > Loaded by `spec/SKILL.md`'s Mode Dispatch when invoked as `$spec [mode=discovery] [--investigation=<report path>]`. This contract REPLACES the spec authoring body for the invocation: it reads the spec corpus and related code, reports the landscape, gates the scope decision with the user, and hands off. It never authors or edits a spec. It runs INLINE on the main agent.
 
 > **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
-> **[BLOCKING]** Before each step or sub-skill call, update task tracking: set `in_progress` when step starts, set `completed` when step ends.
+> **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
 
@@ -162,7 +162,7 @@ From Steps 1–2, synthesize four lists (every item `file:line`-cited or marked 
 Write `<plans root>/{plan-dir}/research/spec-discovery-{slug}.md` — plans root default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path — (resolve `{plan-dir}` from the active plan; fall back to `tmp/reports/spec-discovery-{YYMMDD}-{HHmm}-{slug}.md`, a FIXED framework path, when no plan dir exists). Persist **incrementally** — append each section as it is produced, never hold the whole report in memory:
 
 ```markdown
-# Spec-Discovery: {idea}
+# Spec-Discovery: {initiative}
 
 ## Framed Scope
 {keywords, candidate entities/actors, target bucket}
@@ -214,7 +214,7 @@ Feed the discovery forward:
 Paths in the template below are DEFAULTS — spec root `docs/specs`, plans root `plans/`; `specRoots.business.path` and `docsRoots.plans.path` entries in `docs/project-config.json` override them. `tmp/reports/` is a fixed framework path.
 
 ```markdown
-## Spec-Discovery Results: {idea}
+## Spec-Discovery Results: {initiative}
 
 ### Recommended Scope
 **{NEW | EXTEND spec X | SPLIT into N}** — because {evidence-backed reason}
@@ -251,7 +251,7 @@ Paths in the template below are DEFAULTS — spec root `docs/specs`, plans root 
 
 ---
 
-> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting — including a task per candidate spec read. This prevents context loss from long specs. For trivial single-spec scopes, AI MUST ATTENTION ask user whether to skip.
+> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting — including a task per candidate spec read. This prevents context loss from long specs. For trivial single-spec scopes, AI MUST ATTENTION ask user whether to skip.
 
 These three filenames resolve inside the project-reference docs root — default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path.
 
@@ -315,7 +315,7 @@ The protocols below apply to this mode only; their full text is inline so this r
 > | "Too simple for a plan"      | Simple + wrong assumptions = wasted time. Plan anyway.        |
 > | "I'll test after"            | RED before GREEN. Write/verify test first.                    |
 > | "Already searched"           | Show grep evidence with `file:line`. No proof = no search.    |
-> | "Just do it"                 | Still need task tracking. Skip depth, never skip tracking.       |
+> | "Just do it"                 | Still need todo tracking. Skip depth, never skip tracking.       |
 > | "Just a small fix"           | Small fix in wrong location cascades. Verify file:line first. |
 > | "Code is self-explanatory"   | Future readers need evidence trail. Document anyway.          |
 > | "Combine steps to save time" | Combined steps dilute focus. Each step has distinct purpose.  |
@@ -438,4 +438,4 @@ The protocols below apply to this mode only; their full text is inline so this r
 | "Invariants are the author's problem"            | A spec contradicting a [HARD] rule ships a defect. List the invariant landscape now. |
 | "Delegate the whole skill to a sub-agent, faster"| The step 5 gate is BLOCKING and inline-only. Spawn sub-agents only for spec reads. |
 
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
+**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using todo tracking.

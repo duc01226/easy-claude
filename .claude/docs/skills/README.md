@@ -51,7 +51,7 @@ Read `.claude/scripts/lib/workflow-skill-contract.cjs` when changing workflow re
 | [Code Quality](#code-quality)                     | 10     | Graph-based code analysis, blast radius, sync  |
 | [Planning/Research](#planningresearch)            | 5      | Plans, research, implementation, investigation |
 | [Context/Memory](#contextmemory)                  | 2      | Code cleanup, learning                         |
-| [Team Collaboration](#team-collaboration)         | 6      | Test specs, UX design specs, backlog shaping   |
+| [Team Collaboration](#team-collaboration)         | 6      | Test specs, UX design specs, planned-work shaping   |
 | [Web/Frameworks](#webframeworks)                  | 2      | Package updates, markdown                      |
 | [Document Processing](#document-processing)       | 3      | PDF, DOCX, Markdown conversions, HTML export   |
 | [Utility](#utility)                               | 1      | Skill creation                                 |
@@ -95,7 +95,7 @@ See `frontend-patterns-reference.md` in the project-reference docs root for proj
 | `e2e-test`                | E2E, Playwright, browser test                                         | End-to-end test authoring and maintenance                                                                                                        |
 | `e2e-demo`                | E2E demo video, screenshots, commit demo, PR demo                      | Screenshot storyboards exported to MP4/GIF with every relevant case mapped to results and timestamps                                              |
 | `experience-review`       | user experience, acceptance, baseline                                 | Exercise and inspect applicable observable output; preserve expectations until explicit acceptance                                               |
-| `spec [mode=tests]`       | test specification, QA spec, test strategy, TC-IDs, test cases        | Unified test case writer — generates TC-{FEATURE}-{NNN} specs from PBIs and feature docs                                                         |
+| `spec [mode=tests]`       | test specification, QA spec, test strategy, TC-IDs, test cases        | Unified test case writer — generates TC-{FEATURE}-{NNN} specs from tasks and feature docs                                                         |
 | `spec [mode=sync]`        | sync test specs, update dashboard, reverse sync, sync to feature docs | Dashboard sync mode — syncs TCs from feature docs Section 8 to the business spec root (sync mode retires when dashboards are removed in Phase 7) |
 | `integration-test --mode=review` | integration test review, assertion quality, test gate review, TC gate | Review-only or --fix-loop through eight quality gates covering intended, observable, repeatable and source/spec-aligned behavior                                  |
 | `integration-test --mode=verify` | run integration tests, verify tests pass, test runner, dotnet test    | Run integration tests after writing/reviewing them — reads project-config.json for project-specific run guidance                                 |
@@ -160,10 +160,10 @@ See `frontend-patterns-reference.md` in the project-reference docs root for proj
 | ------------------- | ------------------------------------------------------------------------------------------------ | ----------------------------------------- |
 | `spec [mode=tests]` | test plan, test cases, coverage, automation                                                      | Test specification and case generation    |
 | `design-spec`       | UI specification, component spec, layout spec, wireframe, mockup, user flow, accessibility audit | Design specification documents, UX design |
-| `idea`              | capture idea, new idea, add to backlog                                                           | Idea capture and structuring              |
-| `pbi`               | refine idea, convert to PBI, acceptance criteria, user story, vertical slice, split story, interactive mockup, PBI challenge, artifact review, Definition of Ready | PBI lifecycle by `--mode`: refine, story, mockup, challenge, review, dor |
+| `initiative`              | capture idea, new idea, new initiative, add to planned work                                                       | Initiative capture and structuring              |
+| `work-item`               | refine initiative, convert to task, acceptance criteria, user story, vertical slice, split story, interactive mockup, task challenge, artifact review, readiness check | Task lifecycle by `--mode`: refine, story, mockup, challenge, review, dor |
 | `task-track` | team work, exact assignment, maintenance, lifecycle, verification, acceptance, status, local app, saved checkpoint | Default inspect; `--mode=inspect\|maintain\|link\|lifecycle\|verify\|accept\|report\|serve` routes to real commands and catalogue operations; unknown modes refuse. [Manual recipes](../../skills/task-track/references/manual-operations.md), [setup](../configuration/README.md#team-work-tracking), [exact concerns and integration](../../skills/task-track/references/integration-guide.md) |
-| `prioritize`        | RICE score, MoSCoW, value-effort matrix                                                          | Backlog prioritization frameworks         |
+| `prioritize`        | RICE score, MoSCoW, value-effort matrix                                                          | Planned-work prioritization frameworks         |
 
 ---
 
@@ -265,12 +265,12 @@ Skills are often activated alongside commands:
 | `/plan`              | `plan` (`--mode=review` is explicit opt-in) |
 | `/review`            | `code-quality-review`                          |
 | `/test`              | `spec [mode=tests]`, `e2e-test`        |
-| `/idea`              | `idea`                                 |
-| `/pbi --mode=refine` | `pbi --mode=refine`                    |
-| `/pbi --mode=story`  | `pbi --mode=story`                     |
+| `/initiative`              | `initiative`                                 |
+| `/work-item --mode=refine` | `work-item --mode=refine`                    |
+| `/work-item --mode=story`  | `work-item --mode=story`                     |
 | `/design-spec`       | `design-spec`                          |
 | `/spec [mode=tests]` | `spec [mode=tests]`                    |
-| `/pbi --mode=dor`          | `pbi --mode=dor`                             |
+| `/work-item --mode=dor`          | `work-item --mode=dor`                             |
 | `/prioritize`        | `prioritize`                           |
 
 ---

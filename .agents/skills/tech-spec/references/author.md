@@ -94,7 +94,7 @@ grep -r "{route-guard-markers}" {frontend-root}/ --include="{frontend-source-glo
 
 **[GATE — BLOCKING before emitting the operation catalog]:**
 
-- If Grand Total ≥ 20: MUST split the derivation into operation groups (≤20 ops each). Create one task tracking per group before starting any derivation phase.
+- If Grand Total ≥ 20: MUST split the derivation into operation groups (≤20 ops each). Create one todo tracking per group before starting any derivation phase.
 - Actor catalog must list ≥1 role or flag as "No roles found — verify auth attributes manually"
 
 > **The `≥20 ops → batch` mandate is a tractability control, not a floor.** It survives here verbatim because a large fan-out exhausts context mid-run and loses artifacts (C4). It is **not** a TC-count rule and it mints nothing.

@@ -8,7 +8,7 @@ description: '[Documentation] Use when a workflow step or the user asks for one 
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -157,7 +157,7 @@ Read the full report. Apply the fresh-eyes protocol:
 
 **MUST ATTENTION** for a changed candidate, run `$prompt-enhance` with the target output identity and its ownership contract before application when required by the manifest. Use its agent-guide branch; compare final semantic dispositions against the baseline so enhancement cannot restore removed bulk. A skipped or unchanged target is not rewritten or enhanced.
 
-**task tracking (last task when a doc changed):** `Enhance candidate and review semantic retention before applying <target doc>`
+**todo tracking (last task when a doc changed):** `Enhance candidate and review semantic retention before applying <target doc>`
 
 <!-- /SCAN:prompt-enhance-final-step -->
 
@@ -198,4 +198,4 @@ Read the full report. Apply the fresh-eyes protocol:
 | "Examples look right"                             | Glob-verify ALL file paths + Grep-verify ALL names — looking right ≠ verified       |
 | "Round 2 review not needed after fixing a small scan" | Size does not waive the issue-triggered gate: corrected Round 1 requires a fresh sub-agent; a clean Round 1 ends the scan. |
 
-**[TASK-PLANNING]** Before acting, analyze task scope and break into small todo tasks and sub-tasks using task tracking.
+**[TASK-PLANNING]** Before acting, analyze task scope and break into small todo tasks and sub-tasks using todo tracking.

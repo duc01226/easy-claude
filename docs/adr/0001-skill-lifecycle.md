@@ -446,6 +446,7 @@ as `--output`). This is the CI-ready signal consumed by Phase 4's drift gate.
 - `plans/260514-1407-harness-quality-refactor/phase-02a-deprecation-policy.md`
 - `plans/260514-1407-harness-quality-refactor/phase-02b-gc-script-and-poc.md`
 - `tmp/reports/council-260514-1407-harness-quality-refactor.md`
+- `docs/adr/0005-work-tracker-vocabulary-and-migration.md` → Decision 6: the second direct-rename path (vocabulary retirement)
 
 ## Amendments
 
@@ -512,3 +513,11 @@ Added [Built-in Name Collision Renames](#built-in-name-collision-renames-2026-09
 "third direct deletion" rule requires. It renamed five skills whose names hid Claude Code built-ins
 and added the guard test that keeps new collisions out. Deprecate-then-GC stays the rule for every
 other removal; this path covers only renames forced by a built-in name collision.
+
+### 2026-10-07 — vocabulary retirement rename path added by ADR-0005
+
+ADR-0005 (`0005-work-tracker-vocabulary-and-migration.md`, Decision 6) adds a second direct-rename path beside
+[Built-in Name Collision Renames](#built-in-name-collision-renames-2026-09-29): a skill whose name carries a word the owner has
+retired from the framework vocabulary is renamed directly, under the four conditions stated there. It renamed
+`pbi` → `work-item`, `idea` → `initiative` and three workflows. Deprecate-then-GC stays the rule for every removal with
+no successor.

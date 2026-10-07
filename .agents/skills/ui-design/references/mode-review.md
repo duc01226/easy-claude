@@ -5,7 +5,7 @@
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
 > **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
-> **[BLOCKING]** Before each step or sub-skill call, update task tracking: set `in_progress` when step starts, set `completed` when step ends.
+> **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
 
@@ -31,7 +31,7 @@
 
 **Workflow:**
 
-1. **Phase 0: Load UI Rules** — Resolve applicable project UI references and accepted ADRs; record N/A where a styling or design-system category does not apply; load the journey-first gate (`UX-*`) and record the journey source (spec / design-spec / PBI, or none)
+1. **Phase 0: Load UI Rules** — Resolve applicable project UI references and accepted ADRs; record N/A where a styling or design-system category does not apply; load the journey-first gate (`UX-*`) and record the journey source (spec / design-spec / task, or none)
 2. **Phase 1: Determine Scope** — Changed UI files (default) or user-specified scope, then expand to affected SURFACES (pages / views / dialogs that render them)
 3. **Phase 2: Blast Radius** — assess by grep/read; an optional graph trace can hint at upstream edges for the surface map
 4. **Phase 2B: Surface Composition** — Per surface: component tree, style-origin map (own · ancestor layout & stacking context · global/theme/reset · scoping mode), render + computed values + automated a11y scan when runnable, else `ENVIRONMENT-BLOCKED`
@@ -124,7 +124,7 @@ Skeptical. Every claim needs traced proof, confidence >80%.
 - read the configured design-system/token doc when present — extract the declared visual tokens and stacking/layer rules that apply to this surface
 - read the frontend architecture/patterns doc when it records project conventions — use base components, state, request, and lifecycle abstractions only when they are present and relevant
 - read the project code-review rules doc — extract frontend anti-patterns and review rules directly
-- load the journey-first gate (`SYNC:ux-journey-gate`, `UX-1`–`UX-11`; read `.claude/skills/shared/protocols/ux-journey-gate.md` when its text is not in context, catalog `.claude/docs/ux-journey-process.md` §9) and locate the journey source for Phase 2C: the governing Feature Spec's per-story flows, the design-spec's §0a User Journeys, or the PBI's stories/acceptance criteria — record which, or `none — journeys will be inferred`
+- load the journey-first gate (`SYNC:ux-journey-gate`, `UX-1`–`UX-11`; read `.claude/skills/shared/protocols/ux-journey-gate.md` when its text is not in context, catalog `.claude/docs/ux-journey-process.md` §9) and locate the journey source for Phase 2C: the governing Feature Spec's per-story flows, the design-spec's §0a User Journeys, or the task's stories/acceptance criteria — record which, or `none — journeys will be inferred`
 
 > **CROSS-SYSTEM WARNING (carry through every category):** Do NOT mix token systems with incompatible root-size, namespace, or layer assumptions in one file. When flagging a fix, recommend whichever token system the file already imports/uses; never introduce another system unless the project docs explicitly require migration.
 
@@ -602,7 +602,7 @@ Before reporting ANY work done:
 4. **Evaluate pattern fit.** Copying a nearby mixin/token? Verify the file imports/uses the SAME token system and does not mix incompatible project token systems
 5. **New artifact = wired artifact.** Prove every created view, style, component, or helper is referenced and reachable through the target platform's entry point
 
-> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting. Simple tasks: ask user whether to skip.
+> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting. Simple tasks: ask user whether to skip.
 
 
 ## Sub-Agent Type Override
@@ -732,7 +732,7 @@ AI skips steps via these evasions. Recognize and reject:
 - "Too simple for a plan" → Simple + wrong assumptions = wasted time. Plan anyway.
 - "I'll test after" → RED before GREEN. Write/verify test first.
 - "Already searched" → Show grep evidence with file:line. No proof = no search.
-- "Just do it" → Still need task tracking. Skip depth, never skip tracking.
+- "Just do it" → Still need todo tracking. Skip depth, never skip tracking.
 - "Just a small fix" → Small fix in wrong location cascades. Verify file:line first.
 - "Code is self-explanatory" → Future readers need evidence trail. Document anyway.
 - "Combine steps to save time" → Combined steps dilute focus. Each step has distinct purpose.
@@ -829,7 +829,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > - **Test coverage:** Are the changed paths covered by tests? Are existing tests still valid after the change?
 > - **Documentation:** Do related docs, specs, or READMEs reflect the changes?
 >
-> **Step 4 — Create sub-tasks and execute.** For each identified concern: create a task tracking sub-task, work through it with `file:line` evidence, mark done. No findings without proof.
+> **Step 4 — Create sub-tasks and execute.** For each identified concern: create a todo tracking sub-task, work through it with `file:line` evidence, mark done. No findings without proof.
 >
 > **Illustrative concern examples by category type** (not exhaustive — trust your knowledge beyond this):
 >
@@ -1239,7 +1239,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 **IMPORTANT MUST ATTENTION Workflow:** Phase 0 load project UI rules → Phase 1 determine and filter scope (skip with evidence when no frontend files), then expand files → affected surfaces → Phase 2 grep/read blast radius (graph optional) → Phase 2B reconstruct each surface's composition (component tree, style origins incl. ancestor/stacking/global layers, render or `ENVIRONMENT-BLOCKED`) → Phase 2C surface UX pass (task trace, Field Necessity Matrix, container fit, complexity budget, `UX-8` journey walkthrough + traceability) → Phase 3 review Categories 1–6 in surface context → Phase 3B run nine UI/UX dimensions → Phase 3C run four DD passes → Phase 4 write the compliance verdict → Phase 5 validate findings with `$why-review` → Phase 6 fix only validated findings that block the current round and restart the full UI review (Round 1: all severities; Round 2: CRITICAL/HIGH/MEDIUM; LOW-only deferred; binary gates always block); batch large scopes and use the UI/UX specialist only as the protocol requires.
 
-**MUST ATTENTION** break work into small tasks using task tracking BEFORE starting; expand child phases and link their parent when nested
+**MUST ATTENTION** break work into small tasks using todo tracking BEFORE starting; expand child phases and link their parent when nested
 **MUST ATTENTION** when delegation applies, tag tasks PAR/SEQ, dispatch disjoint-write PAR waves together, and wait for all returns before advancing
 **MUST ATTENTION** resolve and read project UI/styling docs BEFORE reviewing — rules come from docs, not general knowledge
 **MUST ATTENTION** SKIP this skill when no files match the project frontend path/extension patterns

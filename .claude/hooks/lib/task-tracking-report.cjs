@@ -53,10 +53,13 @@ async function ensureReport(root, options = {}) {
         const existing = inspectReport(context.root, relative);
         if (options.initializedOnly && !existing) return { kind: 'report', status: 'skipped', reason: 'No report initialized; open project status to create it' };
         const snapshot = readProgress(context.root, options);
+        // Mixed vocabularies or an unfinished migration: the refusal is the selected source's own, so the cause can be acted on.
+        const stored = snapshot.vocabulary?.project;
+        if (stored?.code && stored.storedVersion === null) fail(stored.code, `${stored.reason}; prior output preserved`);
         if (!snapshot.profile.available || snapshot.coverage === 'unavailable') fail('UNAVAILABLE_REPORT', 'Selected profile has no proved read-only report capability; prior output preserved');
         const identity = { schemaVersion: 1, rootIdentity: hash(context.root), scope: options.ref === undefined ? 'worktree' : `shared:${options.ref}`,
             groupId: options.groupId || null, fingerprint: snapshot.fingerprint,
-            rendererVersion: 5, policyIdentity: hash(stableValue(currentContext.report)) };
+            rendererVersion: 6, policyIdentity: hash(stableValue(currentContext.report)) };
         if (existing && Object.entries(identity).every(([key, value]) => existing.manifest[key] === value)) {
             return { kind: 'report', status: 'current', path: relative, fingerprint: snapshot.fingerprint, coverage: snapshot.coverage };
         }

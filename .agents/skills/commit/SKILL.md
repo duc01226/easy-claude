@@ -8,7 +8,7 @@ description: '[Git] Use when asked to commit, stage and commit, or save changes.
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -28,7 +28,7 @@ description: '[Git] Use when asked to commit, stage and commit, or save changes.
 - **STEP 2.5 — DOCS TRIAGE.** Staged files matching doc-impact patterns → run `$docs-manager --mode=update`, re-stage the doc changes.
 - **STEP 2.6 — NO-OP DOC GUARD (BLOCKING).** `doc-stamp-guard.cjs --staged` flags any staged file whose diff is only a date stamp or whitespace; on user approval `git restore --staged` those paths. NEVER revert the working tree.
 - **STEP 2.7 — IDENTIFY REVIEWERS** (pre-commit, read-only): last author per staged file vs `HEAD`, commit author EXCLUDED, grouped BY AREA with the focus each owns.
-- **STEP 2.9 — DERIVE THE ESTIMATE** via the carried `SYNC:estimation-framework` against the STAGED diff (or reuse the implemented plan/PBI/story frontmatter with `(source: <path>)`). SP is DERIVED from `likely_days`, never eyeballed; discount generated/lockfile/docs churn first.
+- **STEP 2.9 — DERIVE THE ESTIMATE** via the carried `SYNC:estimation-framework` against the STAGED diff (or reuse the implemented plan/task/story frontmatter with `(source: <path>)`). EP is DERIVED from `likely_days`, never eyeballed; discount generated/lockfile/docs churn first.
 - **STEP 3 — GENERATE MESSAGE.** Subject `type(scope): description`; body OPENS with the Estimate line, then purpose/kind → what changed → how it works, then the Reviewers block.
 - **STEP 3.5 — TEST-VERIFY GATE.** Apply the [decision policy](#test-and-review-decision-policy): ask initially/on escalation, reuse small same-branch preferences, auto-run checks for routine PR CI repairs. Fresh evidence for changed content; Skip stays user-only. Restage and re-derive after fixes.
 - **STEP 3.6 — REVIEW GATE (BLOCKING).** Apply the same decision policy, select a qualifying fix-loop by size/risk and check the exact prepared commit descriptor. `ERROR` blocks; changed candidates need matching review or explicit candidate-bound user Skip receipts. Preferences can persist; stale receipts cannot.
@@ -44,7 +44,7 @@ description: '[Git] Use when asked to commit, stage and commit, or save changes.
 2. **Stage Changes** — Add relevant files (specific or all)
 3. **Guard No-Op Docs** — unstage staged files whose diff is only a moved date stamp or whitespace (they cause merge conflicts and carry no information)
 4. **Identify Reviewers** — from git history, list relevant reviewers (last author per touched file vs `HEAD`, excluding the commit author) and the area each must focus on — computed BEFORE the commit so the block can be embedded in the message body
-5. **Derive Estimate** — Apply the carried `SYNC:estimation-framework` to the staged diff (or reuse the frontmatter of the plan/PBI/story this commit implements) to derive `story_points` + `man_days_ai` — computed BEFORE the message so the numbers can head the body
+5. **Derive Estimate** — Apply the carried `SYNC:estimation-framework` to the staged diff (or reuse the frontmatter of the plan/task/story this commit implements) to derive `effort_points` + `man_days_ai` — computed BEFORE the message so the numbers can head the body
 6. **Generate Message** — Detect type (feat/fix/refactor/etc.), extract scope from paths, write subject, open the body with the **Estimate** line from step 5, add a detailed body structured as **purpose/kind → what changed → how it works**, and append the **Reviewers** block from step 4
 7. **Test-Verify Gate** — Resolve the decision policy, run affected checks automatically on eligible follow-ups, or ask Run / Already verified / Skip. User-selected Verify drives `$workflow-integration-test --mode=green`; refresh evidence after edits.
 8. **Review Gate** — Select or ask under the decision policy; execute a qualifying fix-loop and check `--target=commit-descriptor` against the exact prepared invocation. `ERROR` blocks; changed content needs a matching full review or candidate-bound user Skip receipt. The hook checks the actual commit independently.
@@ -53,7 +53,7 @@ description: '[Git] Use when asked to commit, stage and commit, or save changes.
 
 **Key Rules:**
 
-- **Stamp the estimate on the FIRST body line** — every commit message opens its body with `Estimate: <n> SP | man_days_ai: <x>d | man_days_traditional: <y>d`. Story points and AI man-days are MANDATORY and DERIVED bottom-up per the carried `SYNC:estimation-framework` (or reused from the plan/PBI/story frontmatter this commit implements); the number describes THIS staged diff only
+- **Stamp the estimate on the FIRST body line** — every commit message opens its body with `Estimate: <n> EP | man_days_ai: <x>d | man_days_traditional: <y>d`. Effort points and AI man-days are MANDATORY and DERIVED bottom-up per the carried `SYNC:estimation-framework` (or reused from the plan/task/story frontmatter this commit implements); the number describes THIS staged diff only
 - Write a detailed body — **purpose/kind → what changed → how it works** — so the next human reading `git log`/`git blame` understands the change without opening the diff. As detailed as the change needs (wrap ~72 chars); no title-only commits for non-trivial changes
 - Embed a **Reviewers** block in the commit message — the per-area reviewers (last author per touched file vs `HEAD`, commit author excluded) — computed BEFORE committing so it lives in the message body, not just as a side report
 - **Tests and review choices:** record the last actual user answers and their scope; ask for the initial candidate and material risk/scope escalation. Reuse preferences for small continuous fixes, automatically verify routine PR CI repairs, and keep Skip candidate-bound. Read [Test and review decision policy](#test-and-review-decision-policy) before both gates.
@@ -242,30 +242,30 @@ Follow the table with a short **recommended review assignment by feature** list 
 
 ### Step 2.9: Derive the Estimate (pre-commit — feeds the message)
 
-Runs **BEFORE** the commit so `story_points` and `man_days_ai` can head the message body (Step 3). Apply the **`SYNC:estimation-framework`** block this skill carries (see below) to the **OBSERVED staged scope** — post-hoc, with full diff visibility.
+Runs **BEFORE** the commit so `effort_points` and `man_days_ai` can head the message body (Step 3). Apply the **`SYNC:estimation-framework`** block this skill carries (see below) to the **OBSERVED staged scope** — post-hoc, with full diff visibility.
 
 **Source of the numbers — prefer an approved artifact over a fresh guess:**
 
-| Situation                                                                       | Source of `story_points` / `man_days_ai`                                                         |
+| Situation                                                                       | Source of `effort_points` / `man_days_ai`                                                         |
 | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| Commit implements a plan / PBI / story whose frontmatter already carries estimates | REUSE its `story_points` + `man_days_ai`; append `(source: <path>)` to the Estimate line          |
+| Commit implements a plan / task / story whose frontmatter already carries estimates | REUSE its `effort_points` + `man_days_ai`; append `(source: <path>)` to the Estimate line          |
 | Commit is a PARTIAL slice of such an artifact                                    | Derive the slice bottom-up — NEVER copy the whole artifact's number onto a partial commit         |
 | No estimate artifact exists                                                      | Derive bottom-up from the staged diff per the framework                                           |
 
-**Derivation (bottom-up — SP is DERIVED, never eyeballed):**
+**Derivation (bottom-up — EP is DERIVED, never eyeballed):**
 
 1. **Blast-radius pass** on `git diff --cached --stat` — touched areas, complex files (>500 LOC / central / multi-handler), downstream consumers, shared/common code.
 2. Sum the **Reuse-vs-Create** tiers across UI + backend + tests → `bottom_up_hours`.
 3. `likely_days = ceil(bottom_up_hours / 6) × productivity_factor`.
-4. `story_points` = closest **SP→Days** bucket. Disagreement >50% → trust bottom-up and downgrade SP.
-5. `man_days_ai` = the AI likely column for that SP (1≈0.25d · 2≈0.35d · 3≈0.65d · 5≈1.0d · 8≈1.5d · 13≈2.0d), reconciled against the bottom-up result; it already includes the 30% review overhead.
+4. `effort_points` = closest **EP→Days** bucket. Disagreement >50% → trust bottom-up and downgrade EP.
+5. `man_days_ai` = the AI likely column for that EP (1≈0.25d · 2≈0.35d · 3≈0.65d · 5≈1.0d · 8≈1.5d · 13≈2.0d), reconciled against the bottom-up result; it already includes the 30% review overhead.
 6. `man_days_traditional` = the no-AI likely column (1≈0.5d · 2≈1d · 3≈2d · 5≈4d · 8≈6d · 13≈10d), same reconciliation.
 
-**Anti-inflation (discount BEFORE estimating — same guardrail `$git-developer-performance` applies):** generated code, lockfiles, ORM/designer snapshots, i18n re-sorting, bulk reformatting, and pure docs/spec churn earn **no** story points. A 4 000-line lockfile bump is 1 SP, not 8.
+**Anti-inflation (discount BEFORE estimating — same guardrail `$git-developer-performance` applies):** generated code, lockfiles, ORM/designer snapshots, i18n re-sorting, bulk reformatting, and pure docs/spec churn earn **no** effort points. A 4 000-line lockfile bump is 1 EP, not 8.
 
 **Scope of the number:** the estimate describes **THIS commit's staged diff only** — not the branch, not the whole feature it belongs to. A `--push` run does not change this.
 
-> **Never block on the estimate.** It is derived from evidence already on disk (the staged diff), so it never asks the user and never gates the commit. If the diff is genuinely unestimable (e.g. a pure merge commit with no resolved content), emit `Estimate: 0 SP | man_days_ai: 0d — integration only, no authored change` rather than omitting the line.
+> **Never block on the estimate.** It is derived from evidence already on disk (the staged diff), so it never asks the user and never gates the commit. If the diff is genuinely unestimable (e.g. a pure merge commit with no resolved content), emit `Estimate: 0 EP | man_days_ai: 0d — integration only, no authored change` rather than omitting the line.
 
 ### Step 3: Generate Commit Message
 
@@ -274,7 +274,7 @@ Analyze staged changes and generate message following **Conventional Commits**:
 ```
 <type>(<scope>): <subject>
 
-Estimate: <story_points> SP | man_days_ai: <x>d | man_days_traditional: <y>d
+Estimate: <effort_points> EP | man_days_ai: <x>d | man_days_traditional: <y>d
 
 <detailed summary of changes>
 
@@ -314,16 +314,16 @@ Extract from file paths:
 #### Estimate Line (MANDATORY — the FIRST line of the body)
 
 ```
-Estimate: <story_points> SP | man_days_ai: <x>d | man_days_traditional: <y>d
+Estimate: <effort_points> EP | man_days_ai: <x>d | man_days_traditional: <y>d
 ```
 
 - Placed **immediately after the blank line that follows the subject** — above purpose/what/how. NEVER in the footer, NEVER folded into the subject (the subject stays imperative, lowercase, ≤50 chars per Conventional Commits), NEVER omitted.
-- `story_points` — Fibonacci `1 | 2 | 3 | 5 | 8 | 13 | 21`, DERIVED per Step 2.9. **Required.** `0` is the ONE value outside that set, reserved for the unestimable case Step 2.9 names (a pure merge/integration commit with no authored content) — NEVER as a rounding-down of real work.
+- `effort_points` — Fibonacci `1 | 2 | 3 | 5 | 8 | 13 | 21`, DERIVED per Step 2.9. **Required.** `0` is the ONE value outside that set, reserved for the unestimable case Step 2.9 names (a pure merge/integration commit with no authored content) — NEVER as a rounding-down of real work.
 - `man_days_ai` — AI-assisted man-days for this staged diff (Claude Code + project context, review overhead included). **Required.**
 - `man_days_traditional` — the no-AI baseline (3–5yr dev, 6 productive hrs/day). **Recommended** — include it whenever derived — why: alone, `man_days_ai` is an absolute figure nobody can calibrate, while the pair makes the AI leverage on THIS diff readable straight from `git log`. Written for a human reader: `$git-developer-performance` derives its own numbers from the diff rather than reading this line (its `git log` format stops at `%s` — `.claude/skills/git-developer-performance/scripts/git-developer-performance.cjs:290`), so the pair earns its place by what a person reads, not by what a tool consumes.
 - **Ranges** are allowed and preferred once `likely_days ≥3`: `man_days_ai: 1.0-1.5d | man_days_traditional: 4-6d`.
-- Append ` (source: <path>)` when the numbers were REUSED from a plan/PBI/story frontmatter instead of derived from the diff.
-- SP ≥13 on a single commit → the commit is doing too much; say so in the body ("SHOULD have been split") rather than quietly shipping the number.
+- Append ` (source: <path>)` when the numbers were REUSED from a plan/task/story frontmatter instead of derived from the diff.
+- EP ≥13 on a single commit → the commit is doing too much; say so in the body ("SHOULD have been split") rather than quietly shipping the number.
 
 #### Body Rules (MANDATORY) — write so a human understands fastest
 
@@ -431,7 +431,7 @@ silently dropped:
 printf '%s\n' \
   'type(scope): subject' \
   '' \
-  'Estimate: 3 SP | man_days_ai: 0.65d | man_days_traditional: 2d' \
+  'Estimate: 3 EP | man_days_ai: 0.65d | man_days_traditional: 2d' \
   '' \
   '- summarize key change 1 with intent' \
   '- summarize key change 2 with impact' \
@@ -462,7 +462,7 @@ git status
 git log -1
 ```
 
-Confirm the committed body's FIRST line IS the **Estimate** line from Step 2.9 (`Estimate: <n> SP | man_days_ai: <x>d …`) — missing → the message is non-conformant; re-derive and record it, NEVER leave it out. Then confirm the body carries the **Reviewers** block from Step 2.7 (or the explicit `Reviewers: none (author-owned / new files)` line). Re-present the per-area reviewer assignment to the user as the final deliverable — why: they need it to request the right reviewers on the resulting PR.
+Confirm the committed body's FIRST line IS the **Estimate** line from Step 2.9 (`Estimate: <n> EP | man_days_ai: <x>d …`) — missing → the message is non-conformant; re-derive and record it, NEVER leave it out. Then confirm the body carries the **Reviewers** block from Step 2.7 (or the explicit `Reviewers: none (author-owned / new files)` line). Re-present the per-area reviewer assignment to the user as the final deliverable — why: they need it to request the right reviewers on the resulting PR.
 
 ### Step 6: Refresh Code Graph (post-commit — background, non-blocking)
 
@@ -488,7 +488,7 @@ if [ -d ".code-graph" ]; then python .claude/scripts/code_graph sync --json; fi
 ```
 feat(order): add warehouse filter to list
 
-Estimate: 3 SP | man_days_ai: 0.65d | man_days_traditional: 2d
+Estimate: 3 EP | man_days_ai: 0.65d | man_days_traditional: 2d
 
 - add warehouse query parameter in order list endpoint
 - wire frontend filter control to request payload
@@ -502,7 +502,7 @@ Generated by AI
 
 fix(validation): handle empty date range
 
-Estimate: 1 SP | man_days_ai: 0.25d | man_days_traditional: 0.5d
+Estimate: 1 EP | man_days_ai: 0.25d | man_days_traditional: 0.5d
 
 - guard null/empty date inputs before parsing
 - return validation message instead of throwing format exception
@@ -518,7 +518,7 @@ Generated by AI
 - **Stage only the user-authorized paths** before committing — never use a repository-wide `git add .` when unrelated work may be present; preserve other owners' index/worktree changes
 - **Test-Verify Gate (Step 3.5):** apply the decision policy, keep the last user answers separate from current evidence, and rerun affected checks for changed code. Ask initially or on escalation; automatically check safe continuous fixes. Never invent a Skip or passed result.
 - **Review Gate (Step 3.6, blocking):** check the exact prepared descriptor; `ERROR` blocks, `CLEAN` needs no receipt, `CHANGED` needs a matching review or explicit user Skip receipt. Apply the decision policy to select/run review or ask; candidate changes invalidate receipts. Never mint an automatic Skip.
-- **Estimate line is MANDATORY and comes FIRST in the body** — `Estimate: <n> SP | man_days_ai: <x>d | man_days_traditional: <y>d`, derived bottom-up per the carried `SYNC:estimation-framework` against the STAGED diff (Step 2.9), or reused from the implemented plan/PBI/story frontmatter with `(source: <path>)`. Story points and AI man-days are required; discount generated/lockfile/docs churn before estimating
+- **Estimate line is MANDATORY and comes FIRST in the body** — `Estimate: <n> EP | man_days_ai: <x>d | man_days_traditional: <y>d`, derived bottom-up per the carried `SYNC:estimation-framework` against the STAGED diff (Step 2.9), or reused from the implemented plan/task/story frontmatter with `(source: <path>)`. Effort points and AI man-days are required; discount generated/lockfile/docs churn before estimating
 - **Stop after the commit; push** to remote only when the user explicitly requests it
 - **Refresh the code graph after committing (Step 6)** — when `.code-graph/` exists, fire `$graph-code --mode=build --scope=sync` in the BACKGROUND (`run_in_background: true`) so the commit that moved HEAD is re-parsed and `last_synced_commit` advances with it; skip silently when the dir is absent. Non-blocking by design: it NEVER gates, delays, or fails the commit
 - **Review staged changes** before committing
@@ -553,20 +553,20 @@ A commit request that also mentions a PR routes to `pull-request`, which commits
 
 ---
 
-> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. Keep task depth proportionate; task tracking does not require another user question.
+> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. Keep task depth proportionate; task tracking does not require another user question.
 
 <!-- PROTOCOL-GUIDES:START -->
 
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
-- `estimation-framework` — Bottom-up estimation with derived story points and a min-max range; estimating effort → .claude/skills/shared/protocols/estimation-framework.md
+- `estimation-framework` — Bottom-up estimation with derived effort points and a min-max range; estimating effort → .claude/skills/shared/protocols/estimation-framework.md
 - `sub-agent-selection` — Pick the sub-agent type from the routing guide; choosing which sub-agent to spawn → .claude/skills/shared/protocols/sub-agent-selection.md
 
 <!-- PROTOCOL-GUIDES:END -->
 
 <!-- SYNC:estimation-framework:reminder -->
 
-- **MANDATORY MUST ATTENTION** estimation: bottom-up phase hours drive `man_days_traditional` (`Σh/6 × productivity_factor`); SP DERIVED. UI cost usually dominates — bump SP one bucket if NEW UI surface (page/complex form/dashboard). Frontmatter MUST include `story_points`, `complexity`, `man_days_traditional`, `man_days_ai`, `estimate_scope_included`, `estimate_scope_excluded`, `estimate_reasoning` (UI vs backend cost driver). Cap SP 3 for additive-on-existing-model+existing-UI unless test scope >1.5d. SP 13 SHOULD split, SP 21 MUST split.
+- **MANDATORY MUST ATTENTION** estimation: bottom-up phase hours drive `man_days_traditional` (`Σh/6 × productivity_factor`); EP DERIVED. UI cost usually dominates — bump EP one bucket if NEW UI surface (page/complex form/dashboard). Frontmatter MUST include `effort_points`, `complexity`, `man_days_traditional`, `man_days_ai`, `estimate_scope_included`, `estimate_scope_excluded`, `estimate_reasoning` (UI vs backend cost driver). Cap EP 3 for additive-on-existing-model+existing-UI unless test scope >1.5d. EP 13 SHOULD split, EP 21 MUST split.
 
 <!-- /SYNC:estimation-framework:reminder -->
 
@@ -582,10 +582,10 @@ A commit request that also mentions a PR routes to `pull-request`, which commits
 - **Sub-Agent Selection:** route specialized domains to the matching specialist; NEVER `code-reviewer`.
 
 - **MUST ATTENTION — QUESTION FREQUENCY:** initial candidate or material risk/scope escalation asks; small same-task/branch follow-ups reuse recorded preferences; routine PR CI repairs auto-run fresh tests and review. Keep the last human-answer baseline fixed across automatic commits; old verification and Skip never cover new content.
-- **MANDATORY MUST ATTENTION — FIRST BODY LINE:** every commit message opens with `Estimate: <n> SP | man_days_ai: <x>d | man_days_traditional: <y>d`, derived bottom-up per `SYNC:estimation-framework` against the staged diff (Step 2.9) — SP is DERIVED never eyeballed, generated/lockfile/docs churn is discounted first, and the number covers THIS diff only — why: the estimate must travel with the commit, or velocity data has to be reconstructed from diffs after the fact
+- **MANDATORY MUST ATTENTION — FIRST BODY LINE:** every commit message opens with `Estimate: <n> EP | man_days_ai: <x>d | man_days_traditional: <y>d`, derived bottom-up per `SYNC:estimation-framework` against the staged diff (Step 2.9) — EP is DERIVED never eyeballed, generated/lockfile/docs churn is discounted first, and the number covers THIS diff only — why: the estimate must travel with the commit, or velocity data has to be reconstructed from diffs after the fact
 - **OPTIONAL — AFTER THE COMMIT:** when `.code-graph/` exists, you may fire `$graph-code --mode=build --scope=sync` in the BACKGROUND (Step 6) so the commit that moved HEAD is re-parsed and `last_synced_commit` advances — why: the `graph-auto-update` hook only fires on `Edit|Write|MultiEdit` and never sees a commit; `sync` (not `update`) is the HEAD-movement verb, and it is an accelerator, so it NEVER blocks or fails the commit
-- **Estimation Framework:** bottom-up hours drive man-days; SP DERIVED from `likely_days`, never the driver.
-- **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting
+- **Estimation Framework:** bottom-up hours drive man-days; EP DERIVED from `likely_days`, never the driver.
+- **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using todo tracking BEFORE starting
 - **MANDATORY IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code
 - **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
 - **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
@@ -603,4 +603,4 @@ A commit request that also mentions a PR routes to `pull-request`, which commits
 | "Tiny commit needs no estimate" | Every message retains its derived first-body Estimate line. |
 | "Graph failure invalidates the commit" | Graph refresh is non-blocking; report the error and stop its work. |
 
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
+**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using todo tracking.

@@ -4,12 +4,14 @@
 /**
  * Runtime skill-selection policy for Claude, Codex and the OpenCode hook bridge. Advisory: host
  * permissions stay intact so a named user request or required hook call can load the real skill.
- * Confirmation policy is refreshed on every prompt/spawn and after compaction; defaults are silent.
+ * Every restricted prompt, delegated start and recovery receives the full policy. Delivery never
+ * depends on a cached presence claim; failed writes leave the next full replay eligible.
  * A transition back to auto emits a reset, including when the config key is removed mid-session.
  * @hook UserPromptSubmit, SubagentStart, SessionStart
  */
 const { isHookEntryPoint } = require('./lib/hook-runner.cjs');
 const { debugError } = require('./lib/debug-log.cjs');
+const crypto = require('node:crypto');
 const HOOK_NAME = 'skill-activation-inject';
 const MARKER = '<!-- CK:SKILL-ACTIVATION-POLICY -->';
 
@@ -37,8 +39,20 @@ function buildPolicy(resolved) {
     ].join('\n');
 }
 
-/** Write one host-native context envelope; only a successful delivery updates the reset record. */
-function run(input, deps = {}) {
+
+function defaultWrite(text, done) {
+    let settled = false;
+    const finish = ok => { if (!settled) { settled = true; done(ok); } };
+    const onError = () => finish(false);
+    process.stdout.once('error', onError);
+    process.stdout.write(text, error => {
+        if (!error) process.stdout.removeListener('error', onError);
+        finish(!error);
+    });
+}
+
+/** Only a confirmed full delivery updates the reset state; missing storage keeps full replay eligible. */
+async function run(input, deps = {}) {
     if (!isPolicyEvent(input)) return '';
     try {
         const { resolveProjectRoot } = require('./lib/project-root.cjs');
@@ -48,16 +62,23 @@ function run(input, deps = {}) {
         const rootDir = deps.projectDir || resolveProjectRoot({ cwd: input.cwd || process.cwd(), scriptPath: __filename, env }).rootDir;
         const resolved = require('./lib/prompt-route-utils.cjs').resolveHookSkillAutoTrigger({ projectDir: rootDir, env, homeDir: deps.homeDir });
         const store = routing.resolveSessionStoreRoot(rootDir);
-        const stateName = `${HOOK_NAME}-${ledger.scopeFor(input)}`;
+        // A host without agent IDs still starts an isolated context; never mark the main scope present.
+        const scoped = input.hook_event_name === 'SubagentStart' && !input.agent_id
+            ? { ...input, agent_id: `start-${crypto.randomBytes(6).toString('hex')}` } : input;
+        const stateName = `${HOOK_NAME}-${ledger.scopeFor(scoped)}`;
         const hasSession = typeof input.session_id === 'string' && input.session_id.trim() !== '';
         const previous = hasSession ? ledger.readSessionState(store, input.session_id, stateName) : null;
         if (resolved.enabled && previous?.enabled !== false) return '';
-        const payload = JSON.stringify({ hookSpecificOutput: { hookEventName: input.hook_event_name, additionalContext: buildPolicy(resolved) } });
-        const write = deps.write || (text => process.stdout.write(text));
-        // A backpressure return of false from stdout is still a queued write, not delivery failure.
-        write(payload);
-        if (hasSession) ledger.writeSessionState(store, input.session_id, stateName, { enabled: resolved.enabled });
-        return payload;
+        const envelope = text => JSON.stringify({ hookSpecificOutput: { hookEventName: input.hook_event_name, additionalContext: text } });
+        const write = deps.write || defaultWrite;
+        const fullText = buildPolicy(resolved);
+        const payload = envelope(fullText);
+        const send = text => new Promise(resolve => {
+            try { write(text, ok => resolve(ok === false ? '' : text)); } catch { resolve(''); }
+        });
+        const delivered = await send(payload);
+        if (delivered && hasSession) ledger.writeSessionState(store, input.session_id, stateName, { enabled: resolved.enabled });
+        return delivered;
     } catch (error) {
         debugError(HOOK_NAME, error);
         return ''; // advisory policy never blocks a prompt or overrides native access controls

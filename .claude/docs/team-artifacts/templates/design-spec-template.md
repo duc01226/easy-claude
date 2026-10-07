@@ -1,7 +1,7 @@
 ---
 id: DS-{YYMMDD}-{NNN}
 feature: '{Feature name}'
-source_pbi: '{PBI-XXXXXX-NNN}'
+source_task: '{TASK-XXXXXX-NNN}'
 designer: '{Designer name}'
 created: { YYYY-MM-DD }
 updated: { YYYY-MM-DD }
@@ -9,7 +9,7 @@ status: draft | review | approved | implemented
 design_links: # Design-tool links for the screens/components this spec covers
     - label: '{Screen/Component name}'
       url: '{Design link}'
-template_version: '2.0'
+template_version: '2.1'
 ---
 
 # Design Specification: {Feature Name}
@@ -166,7 +166,7 @@ template_version: '2.0'
 ### Other References
 
 - Design System: [{Link}](../../docs/project-reference/design-system/) — link assumes the default project-reference root; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it
-- PBI: [{PBI ID}](../pbis/{pbi-file}.md)
+- Task: [{task ID}](../tasks/{task-file}.md)
 
 ---
 

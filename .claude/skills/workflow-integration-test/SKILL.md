@@ -10,19 +10,19 @@ disable-model-invocation: false
 
 Read [the registry](../../../.claude/workflows.json) → `workflows.workflow-integration-test` together with this skill. Call [`/start-workflow workflow-integration-test`](../start-workflow/SKILL.md) to resolve the selected mode, pre-actions and fingerprint.
 
-**Todo FIRST:** create ALL selected occurrence tasks before triage, analysis or step execution, including conditional/optional tasks; preserve occurrence IDs, roles and barrier groups. Use native task tools or an equivalent persistent ledger. Then mark the first task `in_progress`; attach evidence before `completed`.
+**Todo FIRST:** create one todo for EVERY selected occurrence before triage, analysis or step execution, including conditional/optional ones; preserve occurrence IDs, roles and barrier groups. Use native todo tools or an equivalent persistent ledger. Then mark the first todo `in_progress`; attach evidence before `completed`.
 Mode selection and registry loading prepare tracking; any 'first action' below means the first substantive action after this bootstrap.
 
 **Call each step skill:** read its linked SKILL.md and execute its protocol through the active host with the registry args. Reading or naming a skill alone is not execution. Required gates and core/optional flex follow the linked start-workflow Step Execution Protocol; keep this skill's quality gates, loops and evidence requirements.
 
-**Conditions:** load each occurrence's registry `applicability.when` and `skipReason` verbatim, and record its run/skip evidence through the linked start-workflow protocol. Do not silently omit a task or turn a conditional skill into an unconditional call. Declared parallel groups retain their all-return barrier.
+**Conditions:** load each occurrence's registry `applicability.when` and `skipReason` verbatim, and record its run/skip evidence through the linked start-workflow protocol. Do not silently omit a todo or turn a conditional skill into an unconditional call. Declared parallel groups retain their all-return barrier.
 
 Explicit step-skill calls by mode (registry order; roles and conditions remain owned by the registry):
 
-- Mode `write`: [`/investigate`](../investigate/SKILL.md) (core) → [`/spec [mode=tests]`](../spec/SKILL.md) (optional; conditional) → [`/pbi --mode=review --type=spec-tests`](../pbi/SKILL.md) (optional; conditional) → [`/integration-test`](../integration-test/SKILL.md) (core) → [`/integration-test --mode=review`](../integration-test/SKILL.md) (gate) → [`/integration-test --mode=verify`](../integration-test/SKILL.md) (gate) → [`/spec [mode=sync]`](../spec/SKILL.md) (gate) → [`/docs-manager --mode=update`](../docs-manager/SKILL.md) (optional; conditional) → [`/workflow-end`](../workflow-end/SKILL.md) (gate) → [`/watzup`](../watzup/SKILL.md) (core)
-<!-- workflow-mode:write fingerprint:071bb578e2c0e60dee60b25e71f697de3877702e3f2d136946521c7677671ca3 -->
+- Mode `write`: [`/investigate`](../investigate/SKILL.md) (core) → [`/spec [mode=tests]`](../spec/SKILL.md) (optional; conditional) → [`/work-item --mode=review --type=spec-tests`](../work-item/SKILL.md) (optional; conditional) → [`/integration-test`](../integration-test/SKILL.md) (core) → [`/integration-test --mode=review`](../integration-test/SKILL.md) (gate) → [`/integration-test --mode=verify`](../integration-test/SKILL.md) (gate) → [`/spec [mode=sync]`](../spec/SKILL.md) (gate) → [`/docs-manager --mode=update`](../docs-manager/SKILL.md) (optional; conditional) → [`/workflow-end`](../workflow-end/SKILL.md) (gate) → [`/watzup`](../watzup/SKILL.md) (core)
+<!-- workflow-mode:write fingerprint:7ea549d045ce08701eac6701663b91643463ce8a56018c50270e6c828f229b7f -->
 - Mode `green`: [`/investigate`](../investigate/SKILL.md) (core) → [`/integration-test --mode=verify --fix-loop`](../integration-test/SKILL.md) (gate) → [`/spec [mode=sync]`](../spec/SKILL.md) (optional; conditional) → [`/docs-manager --mode=update`](../docs-manager/SKILL.md) (optional; conditional) → [`/workflow-end`](../workflow-end/SKILL.md) (gate) → [`/watzup`](../watzup/SKILL.md) (core)
-<!-- workflow-mode:green fingerprint:c14f48f8443e22a37d8a3e67ed87eaa724301f1beff12b53438e875f14b7cd9e -->
+<!-- workflow-mode:green fingerprint:6b23001aa3e3431ed2e4154f10df5e44f0e480814a9166ae979d0747d55e5708 -->
 
 Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs --write` after registry edits; [`/sync-codex`](../sync-codex/SKILL.md) refreshes it before mirroring.
 <!-- WORKFLOW-CALLS:END -->
@@ -30,7 +30,7 @@ Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
 > **[BLOCKING]** Workflow steps follow the guided contract in `/start-workflow` → Step Execution Protocol: `gate` steps are fixed; other steps may flex with a logged reason.
-> **[BLOCKING]** Before each step or sub-skill call, update task tracking: set `in_progress` when step starts, set `completed` when step ends.
+> **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
 
@@ -44,11 +44,11 @@ Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs
 
 **Use when:** `write` — covering untested or changed behavior with integration tests, converting existing cases into test code, or auditing and stabilising an existing suite. `green` — a suite or a named test is red, flaky, or must be proven repeatably green. To reconcile specs and tests after a code change, use `/workflow-spec-sync`; for case authoring with no test code, run `/spec [mode=tests]` directly. Formerly `/workflow-write-integration-test` (`--mode=write`) and `/workflow-integration-test-green` (`--mode=green`).
 
-**IMPORTANT MANDATORY Steps:** resolve the `workflow-integration-test` manifest variant for `--mode` first (default `write`), then create one task per returned occurrence (default: /investigate -> /spec [mode=tests] -> /pbi --mode=review --type=spec-tests -> /integration-test -> /integration-test --mode=review -> /integration-test --mode=verify -> /spec [mode=sync] -> /docs-manager --mode=update -> /workflow-end -> /watzup)
+**IMPORTANT MANDATORY Steps:** resolve the `workflow-integration-test` manifest variant for `--mode` first (default `write`), then create one task per returned occurrence (default: /investigate -> /spec [mode=tests] -> /work-item --mode=review --type=spec-tests -> /integration-test -> /integration-test --mode=review -> /integration-test --mode=verify -> /spec [mode=sync] -> /docs-manager --mode=update -> /workflow-end -> /watzup)
 
 Variant step chains (each equals the registry variant of that name; gates and optional steps are declared there and restated in the variant reference):
 
-- `write`: /investigate -> /spec [mode=tests] -> /pbi --mode=review --type=spec-tests -> /integration-test -> /integration-test --mode=review -> /integration-test --mode=verify -> /spec [mode=sync] -> /docs-manager --mode=update -> /workflow-end -> /watzup
+- `write`: /investigate -> /spec [mode=tests] -> /work-item --mode=review --type=spec-tests -> /integration-test -> /integration-test --mode=review -> /integration-test --mode=verify -> /spec [mode=sync] -> /docs-manager --mode=update -> /workflow-end -> /watzup
 - `green`: /investigate -> /integration-test --mode=verify --fix-loop -> /spec [mode=sync] -> /docs-manager --mode=update -> /workflow-end -> /watzup
 
 **Step contract:** steps follow `/start-workflow` → Step Execution Protocol — `gate` steps always run, a step that runs invokes its `Skill` tool, and every other deviation is logged. NEVER batch-complete validation gates.

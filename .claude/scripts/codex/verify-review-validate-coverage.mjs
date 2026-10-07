@@ -60,7 +60,7 @@ export const REVIEW_MODE_REFERENCES = [
     'architecture/references/mode-review.md', // `/architecture --mode=review`
     'architecture/references/mode-full.md', // `/architecture --mode=full` (whole-project audit that synthesizes the faces)
     'ui-design/references/mode-review.md', // `/ui-design --mode=review`
-    'pbi/references/mode-review.md' // `/pbi --mode=review`
+    'work-item/references/mode-review.md' // `/work-item --mode=review`
 ];
 
 // SC7 grader allow-list — validate-only graders that emit a JUDGMENT (a scorecard; a

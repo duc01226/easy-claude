@@ -8,7 +8,7 @@ description: '[Git] Use when resolving git merge, cherry-pick, rebase or stash-a
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -85,7 +85,7 @@ mkdir -p {BACKUP_PATH}
 
 Use the host's file APIs to copy each conflicted file's exact bytes, including markers, to `{BACKUP_PATH}/<repository-relative-path>.conflict`. Create its parent directories first and refuse to overwrite an existing backup. Preserve the full relative path: `src/a/config.json` and `src/b/config.json` must have separate backups. If a conflicted working-tree file is absent, record that absence and preserve the available index-stage versions before resolving it. Verify every saved copy before editing; a missing/failed backup blocks resolution. Use a new run directory when a prior backup already occupies the destination.
 
-Create a task tracking item for each conflicted file PLUS report and review tasks.
+Create a todo tracking item for each conflicted file PLUS report and review tasks.
 
 ### Step 3: Analyze each conflict (per file)
 
@@ -231,7 +231,7 @@ Create a comprehensive report at `{REPORT_PATH}` with:
 
 ---
 
-> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
+> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
 
 **Prerequisites:** **MUST ATTENTION READ** before executing:
 
@@ -265,9 +265,9 @@ Create a comprehensive report at `{REPORT_PATH}` with:
 
 - **Understand Code First:** search 3+ patterns and read code before any modification.
 
-- **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting
+- **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using todo tracking BEFORE starting
 - **MANDATORY IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code
 - **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
 - **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
 
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
+**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using todo tracking.

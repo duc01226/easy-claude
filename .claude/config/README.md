@@ -96,6 +96,35 @@ After refreshing `.claude/` from the framework:
 3. **Update project overlays** whose Target is an old name (`/project-skill-protocol list`). Targets match by exact name, so an old one stops applying without a warning.
 4. **Re-run `node .claude/scripts/sync-skill-profile.cjs`** when you use `skillProfile`: it removes the `skillOverrides` keys it wrote for the old names, and until then a committed `"code-review": "off"` still blocks the built-in. Then run `/sync-codex` to regenerate the Codex and OpenCode mirrors.
 
+### Work-tracker vocabulary — migrating an adopting project
+
+The work tracker and the skills around it use one vocabulary: task, subtask, initiative, project, and the state `planned`. Five skills, two templates and one shared contract were renamed with it. There is no alias: an old name no longer resolves.
+
+| Old name | New name | What changes for the caller |
+| --- | --- | --- |
+| `pbi` | `work-item` | `/work-item --mode={refine\|story\|mockup\|challenge\|review\|dor}`; modes unchanged, `--type=pbi` is `--type=task`, `--reuse=pbi-review` is `--reuse=task-review`. The record it writes is a task. |
+| `idea` | `initiative` | `/initiative`; the record it writes is an initiative. |
+| `workflow-idea-to-pbi` | `workflow-initiative-to-task` | Workflow id and step ids `idea-to-pbi-*` are `initiative-to-task-*`. |
+| `workflow-spec-to-pbi` | `workflow-spec-to-task` | Workflow id and step ids `spec-to-pbi-*` are `spec-to-task-*`. |
+| `workflow-idea-to-spec` | `workflow-initiative-to-spec` | Workflow id and step ids `idea-to-spec-*` are `initiative-to-spec-*`. |
+| `pbi-template.md`, `idea-template.md` | `task-template.md`, `initiative-template.md` | Framework template files (same folder as before, framework-owned path); new records use `TASK-{YYMMDD}-{NNN}` and `INITIATIVE-{YYMMDD}-{NNN}`. |
+| `shared/releasable-pbi-contract.md` | `shared/releasable-task-contract.md` | Update any pointer of your own. |
+| Frontmatter keys `source_idea`, `idea_reference`, `epic_reference`, `pbi_references`, `parent_pbi`, `source_pbi` (design spec and test spec) | `source_initiative`, `initiative_reference`, `project_reference`, `task_references`, `parent_task`, `source_task` | New artifacts write the new key. `migrate` does not rewrite authored keys: an existing artifact keeps the earlier key and it is read as the same link. |
+| Demo-guide fence `<!-- PBI:START -->` / `<!-- PBI:END -->` | `<!-- task:START -->` / `<!-- task:END -->` | `/demo-guide` recognises the earlier fence in an existing guide and replaces that block in place. |
+| Readiness-check verdict `READY_FOR_GROOMING` | `READY_TO_PLAN` | `/work-item --mode=dor` writes the new token. No framework code reads it: update any script of your own that parses the verdict text, and expect the earlier token in reports written before the upgrade. |
+| Mirror wording "Task tracker mandate", "create/update task tracking" | "Todo tracking mandate", "create/update todo tracking" | The session's step list is called todo tracking, so "task" names the tracker's delivery record only. Update any check of your own that matches the earlier sentence. |
+| Stored records in the earlier words (`pbis/`, `ideas/`, `epics/`, old `tasks/`, state `backlog`) | `tasks/`, `initiatives/`, `projects/`, `subtasks/`, state `planned` | **The project is read-only until `migrate` has run**: reads show the current words with the same numbers, every save is refused with `MIGRATION_REQUIRED`, and automatic upkeep is skipped. |
+
+After refreshing `.claude/` from the framework:
+
+1. **Delete the old skill folders** `.claude/skills/{pbi,idea,workflow-idea-to-pbi,workflow-spec-to-pbi,workflow-idea-to-spec}/`. Copying `.claude/` over an existing one never removes them, and a stale copy keeps producing save requests in the earlier vocabulary, which the tracker refuses.
+2. **Declare the earlier vocabulary first when the project has no tracker configuration and stores only an old `tasks/` folder** (no `pbis/`, `ideas/` or `epics/`): set `taskTracking.schemaVersion: 1` in the project configuration before upgrading. Without it the folder is read as current delivery tasks and its supporting work would count as delivery.
+3. **Migrate the stored records**: preview with `node .claude/skills/task-track/scripts/task-track.cjs migrate --root . --dry-run`, then run the same command without `--dry-run`. Read `.claude/skills/task-track/references/manual-operations.md` first; the record root and the project configuration must be clean in version control, and rollback is restoring both from there or from your own backup. The preview names the work that must be verified again afterwards. A migration that stopped part-way is completed by running the same command again; to abandon it instead, restore both, remove what the migration created as the result states, then run the command with `--abandon`, the only way to abandon: it checks that the earlier project is back whole and removes only the progress record.
+4. **Rename the old names in `docs/project-config.json`** (`skillProfile` lists, `contextGroups[].skills`, `contextGroups[].evidenceSkills`, steps of your own workflows) and in **project overlays** whose Target is an old name; then re-run `node .claude/scripts/sync-skill-profile.cjs` when you use `skillProfile`, and `/sync-codex` to regenerate the mirrors.
+5. **Relaunch a tracker app that was already running.** A local workspace started before the upgrade keeps serving what it loaded then. Close it and launch it again; a page that receives a response it cannot read refuses whole and asks for the relaunch.
+
+**Known blind spot after migration.** A record file with no tracker metadata carries no vocabulary mark, so it is read by its folder alone. One written as earlier supporting work that later lands in `tasks/`, for example merged from a branch cut before the migration, is read as a task and counts toward delivery. A record that carries the earlier mark, or sits in `pbis/`, `ideas/` or `epics/`, is flagged and left out of the counts. Check such merges by hand and correct the file, for example by moving it to `subtasks/`.
+
 ## Codex trust entries
 
 `codex exec -s workspace-write` adds a `trust_level = "trusted"` entry for its working directory to the user file `~/.codex/config.toml` without asking. A test fixture or spike that runs Codex in a temp project must snapshot that file first and restore it afterwards, so the run leaves no trusted temp paths behind.

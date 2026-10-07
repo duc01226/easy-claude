@@ -5,7 +5,7 @@
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
 > **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
-> **[BLOCKING]** Before each step or sub-skill call, update task tracking: set `in_progress` when step starts, set `completed` when step ends.
+> **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
 
@@ -385,7 +385,7 @@ If the system is unavailable, report `system not ready` and reference `startupSc
 - **"$docs-manager --mode=update"** — Update documentation if test counts changed
 - **"Skip, continue manually"** — user decides
 
-> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting.
+> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting.
 > **[IMPORTANT]** A verify step without 2 consecutive test runs is not repeatability verification.
 > Read project config FIRST for this project's run command.
 
@@ -540,7 +540,7 @@ The protocols below are carried in full because only this mode needs them; the p
 | "`--fix-loop`: review already fixed it, and so did $fix" | Report-only mode means `$fix` owns the fix. If review self-fixed, SKIP `$fix` that round — never double-fix. |
 | "`--fix-loop`: tests are green, no need to review the fix" | Green cannot see a wrong-layer fix, a broken invariant elsewhere, or a security/perf regression. Any fix landed → `$changes-review` that round. |
 
-> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting — analyze task size first.
+> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting — analyze task size first.
 
 > **Closing principle — Easy to Change:** judge every test, fix, or abstraction by whether it lowers future change cost; reject added coupling, hidden state, duplicated knowledge, or unclear intent.
 

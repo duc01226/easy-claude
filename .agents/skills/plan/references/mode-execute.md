@@ -3,7 +3,7 @@
 > Loaded by `plan/SKILL.md`'s Mode Dispatch when invoked as `$plan --mode=execute [plan-path] [--approval=off] [--tests=off] [--parallel={auto|on|off}]`. This contract REPLACES default plan creation for the invocation: it consumes an EXISTING plan, one phase per run. Flags default off; with no flags the full 7-step spine runs sequentially. Below, `$ARGUMENTS` means the text after `--mode=execute` with the flags removed.
 
 > **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
-> **[BLOCKING]** Before each step or sub-skill call, update task tracking: set `in_progress` when step starts, set `completed` when step ends.
+> **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
 
@@ -14,7 +14,7 @@
 **Summary:**
 
 - **Purpose:** consume an EXISTING plan, one phase per run — Step 0 detects `*.md` plan files under the plans root (default `plans`; a `docsRoots.plans.path` entry in `docs/project-config.json` wins, else `.ck.json` `paths.plans`) + selects the next incomplete phase (prefer IN_PROGRESS, else earliest Planned). Use `$feature-implement` instead when no plan exists yet — it creates plans, this consumes them.
-- **Ordered execution anchor (run in declared order; emit `✓ Step N:` each):** Step 0 detect/select the plan → Step 1 read the plan fully, read the Goal Contract and Trace Gate, seed task tracking 0–6 → Step 2 implement every phase step-by-step, code AND its tests written together (type-check + compile only, NO test run; UI → `ui-ux-designer`) → Step 3 static review (`code-reviewer` until the current severity bar is clear: round 1 zero open findings (LOW deferral), round 2 zero CRITICAL/HIGH/MEDIUM with LOW deferred; runs no tests) → Step 4 verify ONCE (`tester` full suite, then the main session's mutation check → `debugger` until 100% and every mutant killed; re-run Step 3 only if Step 4 edited anything) → **Checklist Walk (its own step — runs in standalone AND workflow-nested runs, see [Checklist Walk](#checklist-walk-own-step--standalone-and-workflow-nested))** → Step 5 explicit user approval (BLOCKING — stop and wait) → Step 6 finalize (main-session status update + `docs-manager`; optional `git-manager` only for an explicit user request).
+- **Ordered execution anchor (run in declared order; emit `✓ Step N:` each):** Step 0 detect/select the plan → Step 1 read the plan fully, read the Goal Contract and Trace Gate, seed todo tracking 0–6 → Step 2 implement every phase step-by-step, code AND its tests written together (type-check + compile only, NO test run; UI → `ui-ux-designer`) → Step 3 static review (`code-reviewer` until the current severity bar is clear: round 1 zero open findings (LOW deferral), round 2 zero CRITICAL/HIGH/MEDIUM with LOW deferred; runs no tests) → Step 4 verify ONCE (`tester` full suite, then the main session's mutation check → `debugger` until 100% and every mutant killed; re-run Step 3 only if Step 4 edited anything) → **Checklist Walk (its own step — runs in standalone AND workflow-nested runs, see [Checklist Walk](#checklist-walk-own-step--standalone-and-workflow-nested))** → Step 5 explicit user approval (BLOCKING — stop and wait) → Step 6 finalize (main-session status update + `docs-manager`; optional `git-manager` only for an explicit user request).
 - **Three BLOCKING gates cannot be faked-green:** Step 3 has no blocking finding under the current round bar (round 1: no open finding — LOW deferral; round 2: no CRITICAL/HIGH/MEDIUM; failed binary gates always block), Step 4 tests 100% pass with the mutation check clean and no edit after the last review, Step 5 explicit user approval before Finalize. These gates never grant Git authority. — why: quality acceptance and operation authority protect different boundaries.
 - **Two STOP-before-coding gates:** Pre-Implementation Granularity Gate (refuse planning verbs / unnamed files / unresolved decisions → sub-plan with `$plan`) + bugfix Trace Gate (require the End→Start debugger trace for any bug/regression/behavior-changing plan). Also the Spec-Loop Gate (property TC + mutation-killed test + Dual-Feedback) closes any behavior change.
 - **Step 2 is SEQUENTIAL by default; wave fan-out is OPT-IN.** `--parallel` / `--parallel=on` dispatches disjoint-write-set phases as one wave of `fullstack-developer` subagents in ONE message, barrier, then recomputes the next wave against the updated repo. `--parallel=auto` fans out ONLY when every in-scope phase carries the `## Parallel Execution` block (`PAR`/`SEQ` tag + declared write set) written by `$plan` — no block, no fan-out.
@@ -27,7 +27,7 @@
 **Workflow:**
 
 0. **Plan Detection** — Find latest plan or use provided path, select next incomplete phase
-1. **Analysis & Tasks** — Read the phase file fully and extract tasks into task tracking
+1. **Analysis & Tasks** — Read the phase file fully and extract tasks into todo tracking
 2. **Implementation** — Implement step-by-step, code and its tests together; run type checks only (no test run)
 3. **Code Review** — static: call code-reviewer subagent, no test run; must clear the current severity bar: Round 1 has zero open validated findings of any severity; Round 2 has zero validated CRITICAL/HIGH/MEDIUM findings, with LOW findings recorded/deferred. Failed binary gates always block.
 4. **Verify** — call tester subagent once for the full suite, then run the mutation check in the main session; fix and re-run to 100%; re-run Step 3 only if Step 4 edited anything
@@ -58,7 +58,7 @@
 
 > **MANDATORY — standalone `$plan --mode=execute` only.** When this skill is invoked OUTSIDE a workflow, wrap the core spine (Steps 0-6) in this quality loop; every review here is STATIC and runs before the single Step 4 verify (`SYNC:verify-last-order`). Detect nesting via the current task list FIRST: if THIS run is a step of a `[Workflow]` row (its own phase tasks are linked to that parent row, `nested=true` — a `[Workflow]` row that merely exists in the current task list, such as an abandoned one, does not count), SKIP this section — the surrounding workflow already sequences plan/review/why-review (e.g. `workflow-refactor`).
 >
-> Create these as task tracking tasks up front, in order, then execute them:
+> Create these as todo tracking tasks up front, in order, then execute them:
 >
 > 1. **`$plan`** — if Step 0 finds no plan for the request, author one first. If a plan already exists, record that and proceed.
 > 2. **Proceed to Step 3** — run Steps 0-3 (implement code + tests, static code review) against the plan.
@@ -126,7 +126,7 @@ Implement only phases with named files, concrete actions, and resolved decisions
 
 ## Workflow Sequence
 
-**Rules:** Follow steps 1-6 in order. Each step requires output marker `✓ Step N:`. Mark each complete in task tracking before proceeding. Do not skip steps.
+**Rules:** Follow steps 1-6 in order. Each step requires output marker `✓ Step N:`. Mark each complete in todo tracking before proceeding. Do not skip steps.
 
 ---
 
@@ -138,11 +138,11 @@ Read plan file completely. Map dependencies. List ambiguities. Identify required
 
 **Pre-Implementation Trace Gate:** If the plan is for a bugfix, failed verification, stale/incorrect final output, regression, or behavior-changing fix, MUST ATTENTION verify the plan or referenced analysis includes `Debugger Trace: End -> Start`, all feeder paths, hypothesis matrix, owning fix layer, and forward convergence proof. If missing, STOP and report the missing trace links instead of implementing.
 
-**task tracking Initialization:**
+**todo tracking Initialization:**
 
-- Initialize task tracking with `Step 0: [Plan Name] - [Phase Name]`, all steps (1-6) and the **Checklist Walk** task (between Step 4 and Step 5; seeded in standalone and workflow-nested runs alike)
+- Initialize todo tracking with `Step 0: [Plan Name] - [Phase Name]`, all steps (1-6) and the **Checklist Walk** task (between Step 4 and Step 5; seeded in standalone and workflow-nested runs alike)
 - Read phase file, look for tasks/steps/phases/sections/numbered/bulleted lists
-- Convert to task tracking tasks with UNIQUE names:
+- Convert to todo tracking tasks with UNIQUE names:
     - Phase Implementation tasks (the code AND its tests) → Step 2.X (Step 2.1, Step 2.2, etc.)
     - Phase Code Review tasks → Step 3.X
     - Phase Verify tasks (one run, one mutation check) → Step 4.X
@@ -157,7 +157,7 @@ Implement selected plan phase step-by-step following extracted tasks. Mark tasks
 
 ### Linked work during implementation and handoff
 
-Read [the common integration guide](../../task-track/references/integration-guide.md) before intake/start, actual code/artifact saves, verification and final handoff. Inspect exact linked spec/PBI/task/plan/source concerns before dependent decisions and reread after relevant saved changes; preserve visible partial/unavailable scope and current criteria/source confidence. A changed governing source can stale proof while historical acceptance remains recorded.
+Read [the common integration guide](../../task-track/references/integration-guide.md) before intake/start, actual code/artifact saves, verification and final handoff. Inspect exact linked spec/task/subtask/plan/source concerns before dependent decisions and reread after relevant saved changes; preserve visible partial/unavailable scope and current criteria/source confidence. A changed governing source can stale proof while historical acceptance remains recorded.
 
 Retain the actual parent producer, stable actor, session and current run/occurrence through nested calls. Only the primary saving owner observes public saved paths and records a checkpoint once; a nested helper returns its outcome to that owner instead of recording the same save again. Failed/interrupted work and read-only checks produce no saved checkpoint. Retry only the retained optional secondary request after a successful primary; never repeat the implementation save or publication to repair tracking.
 
@@ -280,7 +280,7 @@ This approval accepts the implementation; it does not authorize staging, committ
 
 **Step output format:** `✓ Step [N]: [Brief status] - [Key metrics]`
 
-**task tracking tracking required:** Initialize at Step 0, mark each step complete before next.
+**todo tracking tracking required:** Initialize at Step 0, mark each step complete before next.
 
 **Mandatory subagent calls:** Step 3: `code-reviewer` | Step 4: `tester` | Step 6: `docs-manager` (status updated inline)
 
@@ -311,11 +311,11 @@ Execute every step in declared order; proceed only when validation passes and th
 
 > **Post-gate:** follow the [Standalone Mode Pipeline](#standalone-mode-pipeline-skip-entirely-only-when-nestedtrue--a-workflow-row-that-merely-exists-in-tasklist-does-not-count) above. It owns `$changes-review` → `$why-review` between Step 3 and the single Step 4 verify; their fixes must be covered by that verify.
 >
-> **MANDATORY IMPORTANT MUST ATTENTION:** If this skill is called **outside a workflow** (standalone `$plan --mode=execute`), you MUST ATTENTION create task tracking todo tasks for `$changes-review` then `$why-review` between the Step 3 and Step 4 tasks (the last reviews before the verify). This ensures all changes are reviewed before commit even without a workflow enforcing it.
+> **MANDATORY IMPORTANT MUST ATTENTION:** If this skill is called **outside a workflow** (standalone `$plan --mode=execute`), you MUST ATTENTION create todo tracking todo tasks for `$changes-review` then `$why-review` between the Step 3 and Step 4 tasks (the last reviews before the verify). This ensures all changes are reviewed before commit even without a workflow enforcing it.
 >
 > If this run is a nested workflow step (`nested=true`, e.g., `workflow-feature`, `workflow-refactor`; a `[Workflow]` row that merely exists in the current task list does not count), skip this — the workflow sequence handles `$changes-review` at the appropriate step.
 
-> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. Keep task depth proportional to the work.
+> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. Keep task depth proportional to the work.
 
 **Prerequisites:** **MUST ATTENTION READ** before executing — every filename below resolves inside the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path):
 
@@ -365,7 +365,7 @@ The protocols below apply to this mode only; their full text is inline so this r
 >
 > **`CL-2` Evidence or nothing (§0.2).** Every finding cites a specific location (screen · element · `file:line`). NEVER invent a measurement — contrast, tap-target size, and load time that cannot be measured from the given artifact are `NOT VERIFIABLE`, never a guessed number. Tag every finding `MEASURED` · `OBSERVED` · `HEURISTIC`. Status values: `PASS` · `FAIL` · `PARTIAL` · `N/A` · `NOT VERIFIABLE`.
 >
-> **`CL-3` Severity, then a cap (§0.3).** `P0` blocks task completion / loses data / excludes a protected group (ship blocker) · `P1` significant friction or a legal accessibility floor (fix before release) · `P2` measurable inefficiency (next iteration) · `P3` polish (backlog) · `P4` note. Translate to other dialects (BLOCKED/WARN, Critical–Low, BLOCKING/ADVISORY) ONLY through the §0.3 severity map. Cap the report at the top 10 by severity unless a full audit was requested. A clean section reports "no issues found" — NEVER pad. Every `P0`/`P1` carries a concrete fix.
+> **`CL-3` Severity, then a cap (§0.3).** `P0` blocks task completion / loses data / excludes a protected group (ship blocker) · `P1` significant friction or a legal accessibility floor (fix before release) · `P2` measurable inefficiency (next iteration) · `P3` polish (later) · `P4` note. Translate to other dialects (BLOCKED/WARN, Critical–Low, BLOCKING/ADVISORY) ONLY through the §0.3 severity map. Cap the report at the top 10 by severity unless a full audit was requested. A clean section reports "no issues found" — NEVER pad. Every `P0`/`P1` carries a concrete fix.
 >
 > **`CL-4` Section sweep, in order — over whole SURFACES, not files (§0.5).** Map changed files to the pages/views/dialogs they render into, reconstruct each surface's composition (component tree + style origins; render when it can run, else `ENVIRONMENT-BLOCKED`), then sweep: §A core usability heuristics · §B cognitive load & surface complexity (B12–B15: surface load, progressive disclosure, one job per view, the project's complexity budget) · §C visual design & hierarchy · §D interaction and relevant product states · §E information architecture & container fit (E9–E11: dialog vs full view vs stepped flow vs side panel vs inline) · **§F web / §G mobile — conditional on platform; §H expert & data-heavy use — conditional on usage, not platform** · §I accessibility: use WCAG 2.2 AA as the web baseline and meet any stricter applicable legal or project requirement; for other platforms, use the documented platform standard. Record the selected standard and its source; severity follows the governing release contract · §J content & UX writing · §K trust, ethics & privacy · **§L AI & agentic patterns — conditional on the product having AI features** · §M cross-cutting consistency · **§R forms & data entry — conditional on input: fill the Field Necessity Matrix first** · §N edge-case probes. Make one focused pass per applicable section and record N/A with evidence for sections the surface does not support. Cluster a defect repeated across surfaces into ONE finding; calibrate against `.claude/docs/design-review-calibration.md`.
 >
@@ -546,10 +546,10 @@ The protocols below apply to this mode only; their full text is inline so this r
 - **Source/Test Drift Check:** When behavior changes, reconcile affected tests from evidence.
 - **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
 
-**IMPORTANT MUST ATTENTION** run the full step spine in declared order, emit `✓ Step N:` each: Step 0 detect plan + select next incomplete phase → Step 1 Analysis & Task Extraction (read plan, Goal-Contract read, Trace Gate, seed task tracking) → Step 2 Implementation (code + its tests written together, type-check/compile only, no test run; UI → `ui-ux-designer`) → Step 3 Code Review (static, `code-reviewer` until the current severity bar is clear: round 1 zero open findings, round 2 zero CRITICAL/HIGH/MEDIUM with LOW deferred) → Step 4 Verify (`tester` once for the full suite, then the main session's mutation check, `debugger` until 100%; re-run Step 3 only if Step 4 edited anything) → Checklist Walk (own step, standalone and nested) → Step 5 User Approval (BLOCKING, wait) → Step 6 Finalize (main-session status update + `docs-manager`; optional `git-manager` only for an explicit user request).
+**IMPORTANT MUST ATTENTION** run the full step spine in declared order, emit `✓ Step N:` each: Step 0 detect plan + select next incomplete phase → Step 1 Analysis & Task Extraction (read plan, Goal-Contract read, Trace Gate, seed todo tracking) → Step 2 Implementation (code + its tests written together, type-check/compile only, no test run; UI → `ui-ux-designer`) → Step 3 Code Review (static, `code-reviewer` until the current severity bar is clear: round 1 zero open findings, round 2 zero CRITICAL/HIGH/MEDIUM with LOW deferred) → Step 4 Verify (`tester` once for the full suite, then the main session's mutation check, `debugger` until 100%; re-run Step 3 only if Step 4 edited anything) → Checklist Walk (own step, standalone and nested) → Step 5 User Approval (BLOCKING, wait) → Step 6 Finalize (main-session status update + `docs-manager`; optional `git-manager` only for an explicit user request).
 **IMPORTANT MUST ATTENTION** execute Steps 0-6 in declared order; the three BLOCKING gates — no blocking findings under the current severity bar (Step 3), tests 100% with the mutation check clean and no edit after the last review (Step 4), explicit user approval (Step 5) — cannot be faked-green: NEVER skip a step, proceed on failed validation, or assume approval — why: a faked-green gate ships the regression the test exists to catch.
 **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim, finding, and recommendation with confidence % — >80% to act, <80% verify first, <60% do NOT recommend — why: speculation passed as fact is the root of every hallucinated fix.
-**IMPORTANT MUST ATTENTION** break work into small task tracking todos BEFORE the first read/edit, keep exactly one `in_progress`, mark `completed` immediately after each step's evidence, add a final review todo — on context loss call the current task list first, never duplicate — why: long files exhaust context and silently lose findings.
+**IMPORTANT MUST ATTENTION** break work into small todo tracking todos BEFORE the first read/edit, keep exactly one `in_progress`, mark `completed` immediately after each step's evidence, add a final review todo — on context loss call the current task list first, never duplicate — why: long files exhaust context and silently lose findings.
 
 **IMPORTANT MUST ATTENTION** Pre-Implementation Granularity Gate + Trace Gate STOP the run BEFORE coding — refuse phases with planning verbs / unnamed files / unresolved decisions (sub-plan instead), and require the End→Start `Debugger Trace` (final state → reader → storage → writer → producer → trigger, all feeder paths, hypothesis matrix, owning fix layer, forward convergence) for any bug/regression/behavior-changing plan — why: implementing a vague phase or fixing the symptom site wastes the run.
 **IMPORTANT MUST ATTENTION** search 3+ existing patterns and READ target code (cite `file:line`) before writing — match local conventions over generic framework defaults (the code graph is optional advice for a high-risk blast radius); never invent a pattern when one exists — why: projects carry local conventions that framework defaults violate.
@@ -586,7 +586,7 @@ The protocols below apply to this mode only; their full text is inline so this r
 **IMPORTANT MUST ATTENTION** the three BLOCKING gates (tests 100% · no blocking findings under the current review bar · explicit approval) cannot be faked-green — Round 1 blocks every validated severity, Round 2 defers LOW-only findings but still blocks CRITICAL/HIGH/MEDIUM and failed binary gates; NEVER bypass a gate to declare done.
 **IMPORTANT MUST ATTENTION** implementation completion, review approval and `--approval=off` never authorize Git: require explicit user operation/scope/sourceRequest, report completion independently, and run `git commit --amend` only on an explicit amend request, never a pushed commit or one this task did not create.
 **IMPORTANT MUST ATTENTION** cite `file:line` + confidence % for every claim; search 3+ patterns and read code before writing.
-**IMPORTANT MUST ATTENTION** break work into small task tracking todos BEFORE starting; add a final review todo; on context loss call the current task list first.
+**IMPORTANT MUST ATTENTION** break work into small todo tracking todos BEFORE starting; add a final review todo; on context loss call the current task list first.
 
 <!-- SYNC:core-engineering-principles:reminder -->
 

@@ -5,7 +5,7 @@ feature_code: SAP
 entities: [SkillActivationPolicy, AuthorizationScope]
 status: implemented
 owner: Framework maintainers
-last_updated: '2026-10-06'
+last_updated: '2026-10-07'
 scope_mode: FRAMEWORK-LIBRARY
 ---
 
@@ -75,9 +75,13 @@ As a developer, I want a personal preference without rewriting shared files, so 
 
 ## 4. Business Rules
 
-- **BR-SAP-01 [HARD]:** Automatic selection is enabled unless a valid preference disables it. The policy
+### BR-SAP-01: Default automatic selection and exceptions [HARD]
+
+Automatic selection is enabled unless a valid preference disables it. The policy
   affects framework procedures only, with commit, pull-request and lightweight framework configuration exempt.
-- **BR-SAP-02 [HARD]:** For every ordinary task with a suitable restricted procedure match, ask one
+### BR-SAP-02: Confirmed and scoped procedure choice [HARD]
+
+For every ordinary task with a suitable restricted procedure match, ask one
   choice question before loading or executing it: name the best fit and its reason, offer run (recommended)
   or skip and execute directly, and wait for the human answer. No suitable match means direct execution
   without a question. Confirmation authorizes only that candidate and its scoped required dependencies.
@@ -88,7 +92,9 @@ As a developer, I want a personal preference without rewriting shared files, so 
   and selected applicable steps within an authorized workflow’s declared scope, including planned steps
   executed later or after recovery. Ordinary task wording, generic discovery guidance,
   optional suggestions and merely reading a procedure do not create authorization.
-- **BR-SAP-03 [HARD]:** Commit and pull-request procedures own the risk-based test/review decision.
+### BR-SAP-03: Publication decisions retain human authority [HARD]
+
+Commit and pull-request procedures own the risk-based test/review decision.
   First candidates, material cumulative change, lost continuity and new high risk require human choices;
   small same-task/branch continuations reuse recorded preferences and routine active pull-request repairs
   automatically run fresh tests and whole-branch review. Preserve explicit human constraints and pending
@@ -96,13 +102,20 @@ As a developer, I want a personal preference without rewriting shared files, so 
   authored changes, including committed repairs. Changed content invalidates evidence and candidate-bound
   skips, never grants an automatic skip. A selected review authorizes only its required chain, not unrelated
   work or additional publication authority. Procedure-selection preferences never waive these rules.
-- **BR-SAP-04:** Later valid preferences win in this order: framework default, team, personal user,
+### BR-SAP-04: Preference precedence
+
+Later valid preferences win in this order: framework default, team, personal user,
   personal checkout, environment. Missing, unreadable, malformed and invalid layers express no preference.
-- **BR-SAP-05:** Restricted guidance refreshes for each ordinary prompt, delegated start and recovery.
-  Restoring automatic behavior replaces the earlier restriction; unchanged default behavior stays silent.
-- **BR-SAP-06:** Restricted mode suppresses competing automatic workflow routing. Native permission and
+### BR-SAP-05: Current full guidance and recovery
+
+Every restricted prompt, delegated start and recovery receives the current full guidance, retaining the one-choice question, wait, prior answers, scope, consent, Git authority and fresh-evidence boundaries. Earlier delivery credit never substitutes a reminder for full guidance. Missing state and failed output leave full replay eligible on the next prompt. Restoring automatic behavior replaces the earlier restriction; unchanged default behavior stays silent.
+### BR-SAP-06: Restricted routing and host permissions
+
+Restricted mode suppresses competing automatic workflow routing. Native permission and
   manual-only restrictions remain authoritative and are never relaxed by this policy.
-- **BR-SAP-07:** The capability controls selection through assistant instructions. Deterministic adapter
+### BR-SAP-07: Advisory delivery evidence
+
+The capability controls selection through assistant instructions. Deterministic adapter
   tests prove delivery and preserved reachability, not universal model compliance.
 
 ## 5. Domain Model
@@ -124,7 +137,7 @@ As a developer, I want a personal preference without rewriting shared files, so 
 4. On a named request or required call, execute the real procedure and preserve its human-choice gates.
 5. A commit review selected by the human or its risk-based decision runs its required chain under the
    same scope. Safe repairs refresh evidence without a repeated preference question; escalation asks again.
-6. Refresh guidance on subsequent prompts, delegated starts and recovery; replace an earlier restriction
+6. Deliver full guidance on every restricted prompt, delegated start and recovery; replace an earlier restriction
    when automatic selection is restored.
 
 There is no application screen. The observable surfaces are assistant instructions, procedure-choice
@@ -259,6 +272,8 @@ When the preference is removed
 Then a restoration notice replaces the earlier restriction in each scope
 And subsequent automatic-mode events stay silent
 ```
+
+**Delivery variants:** Every ordinary restricted prompt, delegated start and recovery receives the full policy. Missing state and failed delivery retain full replay on the next ordinary prompt; old delivery credit never replaces current full guidance.
 
 **Expected Result:** Restrictions refresh and removal emits one restoration per scope.
 **Acceptance Criteria:** AC-SAP-08, AC-SAP-09.
@@ -414,3 +429,34 @@ restoring mandatory questions on every repair or granting automatic skips.
 delivery tests verify the instructions, not a model's classification or live publication behavior.
 **Evidence:** [Source: event/SkillActivationPolicy/CommitDependency]
 > **CoveredBy:** `.claude/hooks/tests/suites/skill-activation-policy.test.cjs::TC-SAP-011` · **Status:** Tested
+
+### TC-SAP-012: Full guidance replays when its prior delivery is no longer usable [P1]
+
+**Objective:** Preserve complete current restrictions on every prompt and through failed recovery.
+**Business Intent / Invariant Guarded:** BR-SAP-05 / AC-SAP-08, AC-SAP-09.
+**Preconditions:** Restricted selection and an isolated conversation with delivery history.
+**Real-World Reachability:** A developer continues a long task, resumes it or delegates part of it.
+**Demo Flow:** Receive full guidance → continue with full guidance → fail recovery delivery → receive full guidance on the next ordinary prompt.
+
+```gherkin
+Given restricted guidance could not be delivered
+When the next prompt arrives
+Then full guidance is retried rather than credited as present
+Given full guidance was delivered successfully
+When an ordinary prompt arrives in the same context
+Then the full guidance preserves the choice, scope and consent boundaries
+When the preference source, selection mode, conversation size or recovery boundary changes
+Then current full guidance is delivered again
+When delegated work starts
+Then it receives full guidance without borrowing the main conversation's delivery credit
+```
+
+**Expected Result:** Every restricted event receives full guidance without depending on prior delivery credit.
+**Acceptance Criteria:** AC-SAP-08, AC-SAP-09.
+**Test Data:** Isolated restricted conversation; successful and failed deliveries, changed preferences and recovery events.
+**Related Behaviors:** Scoped authorization, restoration of automatic selection and delegated context isolation.
+**Recovery failure variant:** An old record remains readable but deleting it is rejected; every recovery start still receives full guidance. A rejected recovery output gives no success claim, and the following ordinary prompt still receives full guidance. Full replay does not depend on reading, deleting or replacing earlier presence credit.
+
+**Edge Cases:** A failed write never earns presence credit; missing storage retains full replay. An overlapping or interrupted delivery claim does not prove guidance arrived; full replay remains eligible until successful delivery is confirmed.
+**Evidence:** [Source: event/SkillActivationPolicy/Recovery]
+> **CoveredBy:** `.claude/hooks/tests/suites/skill-activation-policy.test.cjs::TC-SAP-012` · **Status:** Tested

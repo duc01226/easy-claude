@@ -5,6 +5,8 @@ const path = require('node:path');
 const { TextDecoder } = require('node:util');
 const { LIMITS, KINDS, FOLDERS, ITEM_ID, relativePath } = require('./task-tracking-config.cjs');
 const { fail, hash, scopedPath, readBytes, publishBytes } = require('./task-tracking-files.cjs');
+const vocabulary = require('./task-tracking-vocabulary.cjs');
+const { CURRENT_VERSION, EARLIER_VERSION } = vocabulary;
 
 const TRACKING_FIELDS = ['schemaVersion', 'revision', 'kind', 'assigneeId', 'collaboratorIds', 'criteria', 'readiness',
     'links', 'memberItemIds', 'groupRole', 'blocker', 'proofs', 'acceptanceHistory', 'history', 'receipts', 'context', 'activity', 'optOut', 'retired', 'health', 'memberProfiles'];
@@ -23,7 +25,11 @@ function mappingField(map, name) {
     return parser().isMap(map) ? map.items.find(pair => parser().isScalar(pair.key) && pair.key.value === name) : undefined;
 }
 
-function parseRecord(bytes, ownerPath, kind) {
+/**
+ * `version` names the vocabulary the record is expected to store; its stamp (`tracking.schemaVersion`) must agree.
+ * A record stamped for the earlier vocabulary where the current one is expected is named as such, never reinterpreted.
+ */
+function parseRecord(bytes, ownerPath, kind, version = CURRENT_VERSION) {
     if (!Buffer.isBuffer(bytes) || bytes.length > LIMITS.recordBytes) fail('LIMIT_EXCEEDED', 'Record exceeds the byte budget');
     let text;
     try { text = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes); }
@@ -50,9 +56,12 @@ function parseRecord(bytes, ownerPath, kind) {
     if (typeof data.id !== 'string' || !ITEM_ID.test(data.id) || typeof data.title !== 'string' || !data.title.trim()
         || typeof data.status !== 'string') fail('UNSUPPORTED', 'Record identity, title, or recorded status is missing');
     const tracking = data.tracking;
-    if (tracking !== undefined && (!tracking || typeof tracking !== 'object' || Array.isArray(tracking)
-        || tracking.schemaVersion !== 1 || !Number.isSafeInteger(tracking.revision) || tracking.revision < 1
-        || !KINDS.includes(tracking.kind) || (kind && tracking.kind !== kind))) fail('UNSUPPORTED', 'Custom or unsupported tracking metadata is preserved without adoption');
+    const mapping = tracking !== null && typeof tracking === 'object' && !Array.isArray(tracking);
+    if (mapping && version === CURRENT_VERSION && tracking.schemaVersion === EARLIER_VERSION)
+        throw Object.assign(new Error(vocabulary.REFUSALS.EARLIER_VOCABULARY_RECORD), { code: 'EARLIER_VOCABULARY_RECORD', itemId: data.id });
+    if (tracking !== undefined && (!mapping
+        || tracking.schemaVersion !== version || !Number.isSafeInteger(tracking.revision) || tracking.revision < 1
+        || !vocabulary.wordsFor(version).kinds.includes(tracking.kind) || (kind && tracking.kind !== kind))) fail('UNSUPPORTED', 'Custom or unsupported tracking metadata is preserved without adoption');
     const newline = header.includes('\r\n') ? '\r\n' : '\n';
     return { id: data.id, kind: tracking?.kind || kind, ownerPath, data, tracking: tracking || null,
         revision: tracking?.revision || 0, contentHash: hash(bytes), bytes, text, header, start, end,
@@ -87,6 +96,8 @@ function valueEdit(header, map, name, value, newline) {
 
 /** Patch owned values only. Authored body and every untouched interval remain exact bytes. */
 function patchRecord(record, fields, tracking) {
+    // A record read from an earlier-vocabulary project holds mapped words beside its stored bytes; it is never a write base.
+    if (record.storedVocabulary !== undefined) fail('MIGRATION_REQUIRED', vocabulary.REFUSALS.MIGRATION_REQUIRED);
     const edits = [];
     const root = record.document.contents;
     for (const [key, value] of Object.entries(fields)) {
@@ -104,7 +115,7 @@ function patchRecord(record, fields, tracking) {
         for (const [key, value] of Object.entries(tracking)) {
             if (stableValue(record.tracking[key]) !== stableValue(value)) edits.push(valueEdit(record.header, node, key, value, record.newline));
         }
-    } else edits.push(valueEdit(record.header, root, 'tracking', tracking, record.newline));
+    } else if (Object.keys(tracking).length) edits.push(valueEdit(record.header, root, 'tracking', tracking, record.newline));
     const combined = [];
     for (const edit of edits.sort((a, b) => a.start - b.start || a.end - b.end)) {
         const previous = combined[combined.length - 1];
@@ -116,7 +127,8 @@ function patchRecord(record, fields, tracking) {
     const bytes = Buffer.from(record.text.slice(0, record.start) + header + record.text.slice(record.end), 'utf8');
     const candidate = parseRecord(bytes, record.ownerPath, record.kind);
     if (candidate.body !== record.body) fail('UNSUPPORTED', 'Candidate changed authored body');
-    const expected = { ...record.data, ...fields, tracking: { ...(record.tracking || {}), ...tracking } };
+    // A record without tracking metadata keeps none when no tracking value is written.
+    const expected = { ...record.data, ...fields, ...(record.tracking || Object.keys(tracking).length ? { tracking: { ...(record.tracking || {}), ...tracking } } : {}) };
     if (JSON.stringify(candidate.data) !== JSON.stringify(expected)) {
         // YAML key order is not authority; compare sorted semantic values.
         if (stableValue(candidate.data) !== stableValue(expected)) fail('UNSUPPORTED', 'Candidate does not preserve the expected record semantics');
@@ -139,42 +151,97 @@ function newRecord({ id, kind, title, intent, tracking }, context) {
     return parseRecord(bytes, ownerPath, kind);
 }
 
-function inspectRecords(context) {
-    const records = [];
-    const diagnostics = [];
-    let entries = 0;
-    for (const kind of KINDS) {
-        const base = `${context.artifactsRoot}/${FOLDERS[kind]}`;
-        const pending = [base];
+/**
+ * Walks record locations once. `folders` maps a kind to its location; `read(bytes, ownerPath, kind)` returns a record
+ * or throws the finding for that file. One unreadable or oversize file is disclosed by its path and the rest of the
+ * project is still read; only the two enumeration budgets end the walk, which is then reported as stopped.
+ */
+function walkRecords(context, folders, read, state) {
+    const locations = new Set(Object.values(folders).map(folder => `${context.artifactsRoot}/${folder}`));
+    for (const [kind, folder] of Object.entries(folders)) {
+        const pending = [`${context.artifactsRoot}/${folder}`];
         while (pending.length) {
             const directory = pending.pop();
             let children;
             try { children = fs.readdirSync(scopedPath(context.root, directory), { withFileTypes: true }); }
-            catch (error) { if (error.code !== 'ENOENT') diagnostics.push({ path: directory, code: error.code, reason: 'Owner directory cannot be inspected' }); continue; }
+            catch (error) { if (error.code !== 'ENOENT') state.diagnostics.push({ path: directory, code: error.code, reason: 'Owner directory cannot be inspected' }); continue; }
             for (const child of children.sort((a, b) => a.name.localeCompare(b.name, 'en'))) {
-                if (++entries > LIMITS.records * 4) return { records, diagnostics: [...diagnostics, { code: 'LIMIT_EXCEEDED', reason: 'Owner enumeration budget exceeded' }], coverage: 'partial' };
+                if (++state.entries > LIMITS.records * 4) { state.diagnostics.push({ code: 'LIMIT_EXCEEDED', reason: 'Owner enumeration budget exceeded' }); return false; }
                 const ownerPath = `${directory}/${child.name}`;
                 if (child.isDirectory()) {
-                    if (!(kind === 'pbi' && ownerPath === `${base}/stories`)) pending.push(ownerPath);
+                    // A location nested in another kind's location belongs to its own kind and is walked once, as that kind.
+                    if (!locations.has(ownerPath)) pending.push(ownerPath);
                     continue;
                 }
                 if (!child.name.endsWith('.md')) continue;
-                if (records.length >= LIMITS.records) return { records, diagnostics: [...diagnostics, { code: 'LIMIT_EXCEEDED', reason: 'Record count exceeds selected budget' }], coverage: 'partial' };
+                if (state.records.length >= LIMITS.records) { state.diagnostics.push({ code: 'LIMIT_EXCEEDED', reason: 'Record count exceeds selected budget' }); return false; }
                 try {
-                    const bytes = readBytes(context.root, ownerPath);
-                    records.push(parseRecord(bytes, ownerPath, kind));
+                    const record = read(readBytes(context.root, ownerPath), ownerPath, kind);
+                    if (record) state.records.push(record);
                 } catch (error) {
-                    // One unreadable or oversize file is disclosed by its path and the rest of the project is still read;
-                    // only the two enumeration budgets above end the walk.
-                    diagnostics.push({ path: ownerPath, code: error.code || 'IO_FAILURE', reason: error.message });
+                    state.diagnostics.push({ path: ownerPath, ...(error.itemId ? { itemId: error.itemId } : {}), code: error.code || 'IO_FAILURE', reason: error.message });
                 }
             }
         }
     }
+    return true;
+}
+
+/** A file in a location only the earlier vocabulary uses is named and never counted; its identity is given when readable. Always throws that finding. */
+function earlierVocabularyRecord(bytes, ownerPath) {
+    let itemId;
+    try { itemId = parseRecord(bytes, ownerPath, undefined, EARLIER_VERSION).id; } catch { /* named by its path alone */ }
+    throw Object.assign(new Error(vocabulary.REFUSALS.EARLIER_VOCABULARY_RECORD), { code: 'EARLIER_VOCABULARY_RECORD', itemId });
+}
+
+const contextVocabulary = context => context.vocabulary
+    || vocabulary.projectVocabulary(context.root, context.artifactsRoot, context.config?.taskTracking?.schemaVersion);
+
+/**
+ * Every record of the selected project, in the current words whatever vocabulary the project stores.
+ * A project with mixed vocabularies or an unfinished migration is refused with its named outcome, never read.
+ */
+function inspectRecords(context) {
+    const project = contextVocabulary(context);
+    if (project.storedVersion === null) vocabulary.requireCurrentVocabulary(project);
+    const stored = vocabulary.wordsFor(project.storedVersion);
+    const state = { records: [], diagnostics: [], entries: 0 };
+    let whole = walkRecords(context, stored.folders, (bytes, ownerPath, kind) =>
+        vocabulary.normalizeRecord(parseRecord(bytes, ownerPath, kind, stored.version), stored.version), state);
+    // A current project may have received files written in the earlier vocabulary, for example from an older branch.
+    if (whole && stored.version === CURRENT_VERSION) whole = walkRecords(context,
+        Object.fromEntries(vocabulary.EARLIER_ONLY_LOCATIONS.map(name => [name, name])), earlierVocabularyRecord, state);
+    const { records, diagnostics } = state;
+    if (!whole) return { records, diagnostics, coverage: 'partial' };
     const counts = new Map();
     for (const record of records) counts.set(record.id, (counts.get(record.id) || 0) + 1);
     for (const [id, count] of counts) if (count > 1) diagnostics.push({ itemId: id, code: 'DUPLICATE_ID', reason: 'Identity has multiple authoritative homes' });
     return { records, diagnostics, coverage: diagnostics.length ? 'partial' : 'complete' };
+}
+
+/**
+ * Records exactly as stored, for migration only: no mapping to the current words and no vocabulary refusal.
+ * `version` is the vocabulary the records are expected to store and `folders` maps each of its kinds to the location
+ * to walk (by default that version's own locations). A record already stamped with the other version is returned as
+ * that version stores it, under the matching kind word. Every record carries `storedVersion`: its stamp, or null when
+ * it has no tracking metadata.
+ */
+function inspectStoredRecords(context, { version, folders } = {}) {
+    const expected = vocabulary.wordsFor(version ?? contextVocabulary(context).storedVersion);
+    if (!expected) fail('INVALID_INPUT', 'Select the vocabulary version the stored records are expected to use');
+    const other = expected.version === CURRENT_VERSION ? EARLIER_VERSION : CURRENT_VERSION;
+    const state = { records: [], diagnostics: [], entries: 0 };
+    const whole = walkRecords(context, folders || expected.folders, (bytes, ownerPath, kind) => {
+        let record;
+        try { record = parseRecord(bytes, ownerPath, kind, expected.version); }
+        catch (error) {
+            const otherKind = expected.version === EARLIER_VERSION ? vocabulary.toCurrent('kinds', kind, EARLIER_VERSION) : vocabulary.toStored('kinds', kind, EARLIER_VERSION);
+            try { record = parseRecord(bytes, ownerPath, otherKind, other); } catch { throw error; }
+            if (record.tracking?.schemaVersion !== other) throw error;
+        }
+        return { ...record, storedVersion: record.tracking?.schemaVersion ?? null };
+    }, state);
+    return { records: state.records, diagnostics: state.diagnostics, coverage: whole && !state.diagnostics.length ? 'complete' : 'partial' };
 }
 
 function saveRecord(context, candidate, expectedHash) {
@@ -182,4 +249,4 @@ function saveRecord(context, candidate, expectedHash) {
     return publishBytes(context.root, candidate.ownerPath, candidate.bytes, expectedHash);
 }
 
-module.exports = { ITEM_ID, TRACKING_FIELDS, parser, parseRecord, patchRecord, newRecord, inspectRecords, saveRecord, stableValue };
+module.exports = { ITEM_ID, TRACKING_FIELDS, parser, parseRecord, patchRecord, newRecord, earlierVocabularyRecord, inspectRecords, inspectStoredRecords, saveRecord, stableValue };

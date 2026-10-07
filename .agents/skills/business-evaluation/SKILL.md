@@ -8,7 +8,7 @@ description: '[Content] Use when a workflow step or the user asks for business v
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -19,7 +19,7 @@ description: '[Content] Use when a workflow step or the user asks for business v
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
 > **[BLOCKING]** Execute declared steps in order. NEVER skip, reorder, or merge without explicit user approval.
-> **[BLOCKING]** Before each step/sub-skill call, update task tracking: set `in_progress` at start, `completed` at end.
+> **[BLOCKING]** Before each step/sub-skill call, update todo tracking: set `in_progress` at start, `completed` at end.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools unavailable, maintain equivalent step tracker with same status transitions.
 
@@ -154,7 +154,7 @@ Write to `docs/knowledge/strategy/business/{descriptive-slug}.md` using enforced
 - **"$plan"** — If ready to plan implementation
 - **"Skip, continue manually"** — user decides
 
-> **[IMPORTANT]** Use task tracking to split ALL work into small tasks BEFORE starting.
+> **[IMPORTANT]** Use todo tracking to split ALL work into small tasks BEFORE starting.
 
 > **External Memory:** For complex/lengthy research, analysis, scans, or reviews, write intermediate findings + final results to `tmp/reports/`—preserves context and serves as deliverable.
 
@@ -179,7 +179,7 @@ Write to `docs/knowledge/strategy/business/{descriptive-slug}.md` using enforced
 **IMPORTANT MUST ATTENTION** bias toward skepticism on the verdict — NEVER round optimism up; surface the single key condition that must hold and the residual risk if it fails — why: a falsely-rosy Pursue burns capital that an honest Pause would save.
 **IMPORTANT MUST ATTENTION** validate the next route with user via `ask user question tool` — NEVER auto-decide domain-analysis/plan — why: this skill judges viability, the human owns the go/no-go.
 
-**MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting; keep one `in_progress`, mark `completed` with evidence; add a final review todo — why: untracked multi-step work loses state on compaction.
+**MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using todo tracking BEFORE starting; keep one `in_progress`, mark `completed` with evidence; add a final review todo — why: untracked multi-step work loses state on compaction.
 **MANDATORY IMPORTANT MUST ATTENTION** consume market data FROM market-analysis as evidence — NEVER re-derive market sizing here; if that producer did not run, mark the market figures N/A with the reason and cap verdict confidence at 60% rather than inventing them — why: this skill judges viability, it does not research the market; duplicated sizing diverges from the source.
 **MANDATORY IMPORTANT MUST ATTENTION** all 9 BMC blocks present, each citing proof; every financial number lists its assumption + source in the assumptions table — why: a missing block or bare number is a silent gap the verdict then rests on.
 **MANDATORY IMPORTANT MUST ATTENTION** minimum 5 risks, each with mitigation AND a residual-risk entry across market/execution/financial/competitive/regulatory/technical — why: a risk without residual pretends mitigation is total.

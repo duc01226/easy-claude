@@ -2,7 +2,7 @@
 
 > **Role:** the **authoritative knowledge body** for _how an expert UX designer derives an interface from the people who use it_. Owns the JOURNEY-FIRST LAWS, the NINE-STAGE EXPERT PROCESS, the JOURNEY REPORT template, the MAIN-JOURNEY selection rule, the INFORMATION-PRIORITY method, the BUSINESS-LOGIC → INTERACTION map, the UX LAWS reference, and the WALKTHROUGH validation method. Owns NO procedure — procedure lives in the consuming skills; the executable gate is `SYNC:ux-journey-gate` (`UX-1`–`UX-11`).
 >
-> **Consumed by:** `ui-design` (all modes and both lanes) · `design-spec` · `pbi --mode=mockup` · `plan` · `pbi --mode=review` · `workflow-spec-to-mockup` · `workflow-idea-to-pbi`, plus the `ui-ux-designer` agent. A carrier belongs here ONLY if it carries `SYNC:ux-journey-gate` (inline, as a guide line, or as a reminder) or an explicit pointer to this file. NEVER add an aspirational consumer.
+> **Consumed by:** `ui-design` (all modes and both lanes) · `design-spec` · `work-item --mode=mockup` · `plan` · `work-item --mode=review` · `workflow-spec-to-mockup` · `workflow-initiative-to-task`, plus the `ui-ux-designer` agent. A carrier belongs here ONLY if it carries `SYNC:ux-journey-gate` (inline, as a guide line, or as a reminder) or an explicit pointer to this file. NEVER add an aspirational consumer.
 >
 > **Drift-guard:** the `UX-*` clause text is single-sourced in `SYNC:ux-journey-gate` (`.claude/skills/shared/sync-inline-versions.md`); this file is the deep catalog behind it. On any change here, grep `ux-journey-process.md` and `SYNC:ux-journey-gate` and update every consumer.
 >
@@ -120,7 +120,7 @@ Run §9: a cognitive walkthrough per main journey and the traceability matrix. T
 Read in this order, and stop when the journeys are well evidenced. Cite each source by path, section or `file:line`.
 
 1. **Governing spec** — the feature spec's interaction surface (view inventory, navigation map, per-story action flows, observable states) and its business rules. Reuse its vocabulary verbatim (`SYNC:ui-intent-layer`).
-2. **Backlog artifacts** — PBIs, user stories (`As a / I want / So that`), acceptance criteria (`GIVEN / WHEN / THEN`), interaction flows, and priority.
+2. **Planned-work artifacts** — tasks, user stories (`As a / I want / So that`), acceptance criteria (`GIVEN / WHEN / THEN`), interaction flows, and priority.
 3. **Business logic in code** — commands and handlers, validators, permission checks, state machines and status enums, calculations, limits, side effects (notifications, emails, integrations). This is where the real rules live when docs are thin.
 4. **Existing UI** — related screens, routes and navigation, and the connected flows that link to or from the target (`SYNC:existing-ui-research`).
 5. **Domain model** — entities, relationships and statuses (the project's domain reference when it exists), for realistic content and state names.
@@ -139,7 +139,7 @@ Present this in the response, or save it in the artifact the skill produces, BEF
 ## Journey Report — {feature / surface}
 
 **Frame:** {problem} · **Business goal:** {goal} · **Success signal:** {metric} · **Constraints:** {platform, rules, legacy, budget}
-**Sources read:** {spec §, PBI/story, code paths file:line, existing screens} · **Confidence:** {%}
+**Sources read:** {spec §, task/story, code paths file:line, existing screens} · **Confidence:** {%}
 
 ### Actors & jobs
 | Actor | Context of use | Expertise · frequency | Job statement (When…, I want to…, so I can…) | Source |

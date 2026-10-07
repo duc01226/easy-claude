@@ -5,11 +5,11 @@
  *
  * Business intent: before the assistant edits a front-end file it must have the three binding UI rule
  * sets in context — UI-1.1..UI-9.4 (usability/a11y floor), DD-1..DD-8 (design identity) and CL-1..CL-6
- * (review checklist) — without re-sending them while they are still in the last ~100K tokens.
+ * (review checklist) — without re-sending them while they are still in the last ~150K tokens.
  * Invariants guarded here:
  *   - first front-end read/edit delivers the gate; a non-front-end file never does;
  *   - a read delivers it in the conditional wording, so the first change after it re-delivers once, mandatory;
- *   - no re-delivery inside the class window (100K tokens x 22 bytes); re-delivery at the window edge;
+ *   - no re-delivery inside the class window (150K tokens x 22 bytes); re-delivery at the window edge;
  *   - condensation (transcript mark or host report) voids the earlier delivery;
  *   - the protocol already loaded by a tool Read of the docs or by a UI skill counts as delivered,
  *     but only while it is inside the window and after the last condensation;
@@ -184,10 +184,10 @@ const tests = [
         })
     },
     {
-        // INTENT: dedup — no duplicate gate while the earlier one is inside the last ~100K tokens.
-        name: 'TC-UIG-003 no re-delivery inside the 100K-token window; re-delivery exactly at the window edge',
+        // INTENT: dedup — no duplicate gate while the earlier one is inside the last ~150K tokens.
+        name: 'TC-UIG-003 no re-delivery inside the 150K-token window; re-delivery exactly at the window edge',
         fn: async () => withFixture(async fx => {
-            assert.equal(WINDOW_BYTES, 2200000, '100000 tokens x 22 bytes');
+            assert.equal(WINDOW_BYTES, 3300000, '150000 tokens x 22 bytes');
             const config = gateConfig();
             // First delivery on a change: a read-form delivery would not cover the change below (BR-PFCI-05)
             assert.ok(gateDelivered(await deliver(fx, config, post(fx, 'Edit', 'web/a.css'))), 'first delivery');
@@ -209,7 +209,7 @@ const tests = [
             assert.equal(conventions.classSettings(entry, settings).reinjectAfterBytes, WINDOW_BYTES);
             assert.ok(WINDOW_BYTES < settings.reinjectAfterBytes, 'gate re-arms sooner than the global floor');
             const [min, max] = conventions.CLASS_REINJECT_TOKENS_RANGE;
-            for (const bad of [min - 1, max + 1, 150000.5, '100000']) {
+            for (const bad of [min - 1, max + 1, 150000.5, '150000']) {
                 const e = conventions.injectableEntries(gateConfig({}, { reinjectAfterTokens: bad }))[0];
                 assert.equal(conventions.classSettings(e, settings).reinjectAfterBytes, settings.reinjectAfterBytes, `${bad} ignored at runtime`);
             }
@@ -309,7 +309,7 @@ const tests = [
             assert.ok(names({ modules: [{ name: 'web', kind: 'frontend-app', pathRegex: 'web/' }] }).includes('ui-ux-gate'));
             assert.ok(names({ styling: { fileExtensions: ['.scss'] } }).includes('ui-ux-gate'));
             const detected = merge.detectGroups({ styling: { fileExtensions: ['.scss'] } }, { projectDir: fx.project, fileExists: exists }).find(g => g.name === 'ui-ux-gate');
-            assert.equal(detected.reinjectAfterTokens, 100000);
+            assert.equal(detected.reinjectAfterTokens, 150000);
             assert.deepEqual(detected.evidenceSkills, GATE.evidenceSkills);
             // A project that never switched delivery on receives nothing (BR-PFCI-01)
             const off = { contextGroups: gateConfig().contextGroups };
@@ -367,7 +367,7 @@ const tests = [
             assert.equal(spawnNoConfig(fx, edit('web/c.svelte', { agent_id: 'helper-1' })), '', 'helper dedups');
             assert.equal(spawnNoConfig(fx, edit('web/c.svelte')), '', 'the helper delivery does not re-arm the main context');
 
-            // The gate scrolled out of its ~100K-token window → delivered again, once
+            // The gate scrolled out of its ~150K-token window → delivered again, once
             fx.grow(WINDOW_BYTES + 100);
             assert.ok(gateDelivered(spawnNoConfig(fx, edit('web/a.tsx'))), 'window edge re-arms');
             assert.equal(spawnNoConfig(fx, edit('web/b.vue')), '', 'and dedups again right after');

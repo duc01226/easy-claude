@@ -8,7 +8,7 @@ description: '[Skill Management] Use when starting a detected workflow, initiali
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -20,7 +20,7 @@ description: '[Skill Management] Use when starting a detected workflow, initiali
 
 ## Quick Summary
 
-**Goal:** Activate a selected workflow or custom pipeline from its canonical contract with a complete task tracking plan.
+**Goal:** Activate a selected workflow or custom pipeline from its canonical contract with a complete todo tracking plan.
 
 **Summary:** Accept an explicitly named workflow or a workflow selected by the opt-in runtime route payload, then resolve the exact canonical mode through the shared manifest resolver—including non-empty `preActions.injectContext`—and read every `preActions.readFiles` file (the workflow's own SKILL.md) before creating tasks on every host. Persist the resolver fingerprint and occurrence IDs with the run so resume cannot silently switch modes or sequences.
 
@@ -28,7 +28,7 @@ description: '[Skill Management] Use when starting a detected workflow, initiali
 
 1. **Select** — Use the exact workflow named by the user, or one the route payload matched after the user picks it in the workflow question (Key Rules)
 2. **Confirm identity** — Resolve the workflow ID and requested mode/output; when neither source supplies an ID, stop and request the missing workflow identity
-3. **Activate** — Resolve the selected mode/output to a complete canonical manifest (`intent`, `outcomeGates`, ordered occurrence IDs with `role`, skill/args, applicability, barriers, fingerprint and context); create ALL task tracking items for the selected occurrences; materialize every declared `parallelGroups` group as a wave; mark first `in_progress`
+3. **Activate** — Resolve the selected mode/output to a complete canonical manifest (`intent`, `outcomeGates`, ordered occurrence IDs with `role`, skill/args, applicability, barriers, fingerprint and context); create ALL todo tracking items for the selected occurrences; materialize every declared `parallelGroups` group as a wave; mark first `in_progress`
 4. **Execute intent-first** — `gate` steps always run; `core` and `optional` steps are recommendations; every deviation is logged (Step Execution Protocol)
 
 **Key Rules:**
@@ -44,15 +44,15 @@ description: '[Skill Management] Use when starting a detected workflow, initiali
 - **Mid-session: never auto-activate a workflow or ask to start one.** The workflow question applies only to the first task of a session (its first user prompt; compaction or resume does not reset it). Once work is under way (follow-up, correction, next step, or a new ask), do it directly or with the best-fit skill or a lean chain of at most 3 skills; required gates (root-cause investigation for a bug, test, review, spec/doc sync, and any other required quality gate) still run and do not count toward that cap, and continuing a workflow already running is not activating one. An explicit workflow request always runs, mid-session included — a `/workflow-*` or `$start-workflow <id>` call, or the user asking in words to use a workflow; follow it.
 - Auto-select a Custom Pipeline when the route matches no catalog workflow (a focused change); declare it, never ask the user to choose. When the route matched a catalog workflow that fails catalog fit (>80% of its unconditional steps do real work = use catalog), take the Custom Pipeline as your route and proceed without a question; if you still choose to start the catalog workflow, its workflow question offers the Custom Pipeline as option (b)
 - `workflows.json` `workflows` field is an **OBJECT** — use `workflows[workflowId]`, NEVER `.find()` or `[index]`; resolve `variants[mode]` through `.claude/scripts/lib/workflow-manifest.cjs`
-- Create ALL task tracking items BEFORE marking the first task `in_progress` — batch creation, then execute
+- Create ALL todo tracking items BEFORE marking the first task `in_progress` — batch creation, then execute
 - Read the selected manifest's `occurrences` and `parallelGroups` at activation and tag its member tasks as one wave — 1:1 occurrence tasks still stand (a group never collapses members into one task)
 - No `parallelGroups` = `sequence` is the order — surface only adjacent read-only steps as a `Candidate wave`, NEVER a wave that contradicts `sequence`
 - **Intent-first step contract** — read the manifest's `intent` and `outcomeGates` first. `gate` steps always run. `core` and `optional` steps are recommendations: skip, merge, simplify or reorder one only when the outcome gates stay satisfiable and data dependencies hold. Log every deviation in the run's deviation log; never delete a task. Full rule: Step Execution Protocol (this skill is its single owner)
-- When the runtime `## Workflow Catalog` is present, use it for Tier 1. Otherwise use the exact user-supplied workflow ID. Then load and resolve the complete selected canonical entry (Tier 2) before task tracking for EVERY standard workflow. `preActions.injectContext` is required execution context, not optional hook output; this rule applies to every host. Never expose the full `workflows.json` to context
+- When the runtime `## Workflow Catalog` is present, use it for Tier 1. Otherwise use the exact user-supplied workflow ID. Then load and resolve the complete selected canonical entry (Tier 2) before todo tracking for EVERY standard workflow. `preActions.injectContext` is required execution context, not optional hook output; this rule applies to every host. Never expose the full `workflows.json` to context
 - EVERY workflow entry MUST have a non-empty `preActions.injectContext`; a missing or blank value is catalog drift and blocks activation
 - If another workflow is active, it auto-switches (ends current, starts new) — no manual cleanup needed
 
-**NOT for:** Manual step execution (follow task tracking items), workflow design (use `plan`), catalog management.
+**NOT for:** Manual step execution (follow todo tracking items), workflow design (use `plan`), catalog management.
 
 **Related:** `$start-workflow <workflowId>` | Catalog: opt-in runtime route payload derived from `.claude/workflows.json`
 
@@ -98,17 +98,17 @@ Route: custom-simple "Quick Fix + Docs" [investigate → fix → changes-review 
 
 ### Task creation for Custom Pipeline
 
-Same 1:1 protocol — one task tracking per step. Use `[Custom]` prefix to distinguish from catalog tasks:
+Same 1:1 protocol — one todo tracking per step. Use `[Custom]` prefix to distinguish from catalog tasks:
 
 ```
-Task tracking: subject="[Custom] {step-name} — {brief description}", description="Custom pipeline step N/{total}.", activeForm="Executing {step-name}"
+Todo tracking: subject="[Custom] {step-name} — {brief description}", description="Custom pipeline step N/{total}.", activeForm="Executing {step-name}"
 ```
 
 ---
 
 ## Workflow Lookup — Tier 1 Selection, Tier 2 Execution
 
-Use Tier 1 only when the opt-in runtime catalog is present; an exact user-supplied workflow ID is also sufficient. Use Tier 2 before task tracking for EVERY standard workflow to materialize the complete selected-mode execution contract, including ordered `occurrences`, non-empty `preActions.injectContext`, `parallelGroups`, and the resume `fingerprint`.
+Use Tier 1 only when the opt-in runtime catalog is present; an exact user-supplied workflow ID is also sufficient. Use Tier 2 before todo tracking for EVERY standard workflow to materialize the complete selected-mode execution contract, including ordered `occurrences`, non-empty `preActions.injectContext`, `parallelGroups`, and the resume `fingerprint`.
 
 ### Tier 1: Runtime Context or Explicit ID
 
@@ -116,10 +116,10 @@ When automatic routing is enabled, the prompt hook supplies the workflow catalog
 
 1. Search the available catalog surface for the exact workflow ID: `{workflowId}`.
 2. Use its name and `whenToUse` summary only to confirm the route.
-3. Do NOT parse the runtime catalog sequence or command syntax for task tracking; Tier 1 is route selection only for every standard workflow.
+3. Do NOT parse the runtime catalog sequence or command syntax for todo tracking; Tier 1 is route selection only for every standard workflow.
 
 ✅ Use Tier 1 for: route selection only.
-⚠️ Tier 2 is required immediately after selection and **before task tracking for every standard workflow**. The complete canonical entry resolves the requested `--mode`/`--output`, loads ordered `occurrences`, non-empty `preActions.injectContext`, `parallelGroups`, and a `fingerprint`.
+⚠️ Tier 2 is required immediately after selection and **before todo tracking for every standard workflow**. The complete canonical entry resolves the requested `--mode`/`--output`, loads ordered `occurrences`, non-empty `preActions.injectContext`, `parallelGroups`, and a `fingerprint`.
 
 ### Tier 2: Complete Canonical Entry Read (JSON-aware)
 
@@ -151,7 +151,7 @@ through an explicit `claim`; it never claims all current dirty files by default.
 require an approved regular UTF-8 path and the bounded policy (≤256 KiB/file, ≤2 MiB/run, ≤64 files)
 in a user-private OS temp directory; otherwise remain metadata-only.
 
-FIRST action after activation: create EXACTLY one task tracking for EACH entry in the selected manifest's `occurrences` array. The task subject carries the stable occurrence ID; the task description carries the resolved skill, opaque args, applicability and workflow fingerprint. Persist the run ID, mode, fingerprint and ordered occurrence IDs with the task ledger before marking the first task `in_progress`.
+FIRST action after activation: create EXACTLY one todo tracking for EACH entry in the selected manifest's `occurrences` array. The task subject carries the stable occurrence ID; the task description carries the resolved skill, opaque args, applicability and workflow fingerprint. Persist the run ID, mode, fingerprint and ordered occurrence IDs with the task ledger before marking the first task `in_progress`.
 
 ### Reading `workflows.json`
 
@@ -160,15 +160,15 @@ Never read the file directly: Tier 2 (`read-workflow-entry.mjs`) resolves the se
 ### Task creation steps
 
 1. **Tier 1 first (no file read):** search the available static catalog surface for `{workflowId}` only to select the route.
-2. **Tier 2 required before task tracking for every standard workflow:** `node .claude/scripts/codex/read-workflow-entry.mjs <workflowId> [--mode <mode> | --output <mode>]` → treat the complete selected manifest's `occurrences`, non-empty `preActions.injectContext`, `parallelGroups`, `applicability`, and `fingerprint` as canonical. If the static preview differs, stop and report catalog drift rather than choosing one silently.
-3. **Read every `preActions.readFiles` file BEFORE task tracking** — the workflow's own SKILL.md is listed there and owns its purpose, required gates and triage; `injectContext` is only a digest of it.
+2. **Tier 2 required before todo tracking for every standard workflow:** `node .claude/scripts/codex/read-workflow-entry.mjs <workflowId> [--mode <mode> | --output <mode>]` → treat the complete selected manifest's `occurrences`, non-empty `preActions.injectContext`, `parallelGroups`, `applicability`, and `fingerprint` as canonical. If the static preview differs, stop and report catalog drift rather than choosing one silently.
+3. **Read every `preActions.readFiles` file BEFORE todo tracking** — the workflow's own SKILL.md is listed there and owns its purpose, required gates and triage; `injectContext` is only a digest of it.
 4. **Apply selected-workflow pre-actions to task context:** preserve the selected entry's `preActions.injectContext` as workflow-level execution context. For every conditional step it governs, put the exact run condition and evidence-backed skip transition in that task's description; never infer or drop a predicate because the static catalog rendered only a step name.
-5. Create one task tracking per selected manifest occurrence IN ORDER; persist the manifest fingerprint and ordered occurrence IDs in the workflow run record before the first step starts.
+5. Create one todo tracking per selected manifest occurrence IN ORDER; persist the manifest fingerprint and ordered occurrence IDs in the workflow run record before the first step starts.
 
 **Task format:**
 
 ```
-Task tracking: subject="[Workflow] [{role}] {step-name} — {brief description}", description="Workflow step N/{total}. {conditional note}", activeForm="Executing {step-name}"
+Todo tracking: subject="[Workflow] [{role}] {step-name} — {brief description}", description="Workflow step N/{total}. {conditional note}", activeForm="Executing {step-name}"
 ```
 
 **Rules (NON-NEGOTIABLE):**
@@ -269,7 +269,7 @@ When `$workflow-review-changes` appears in any workflow sequence (e.g. `workflow
 
 **IMPORTANT MANDATORY Steps:** detect-workflow -> analyze-best-match -> select-execution-path -> ask-workflow-question (self-matched workflow only) -> activate-workflow -> create-task-tracking -> execute-sequence
 
-> **[MANDATORY]** task tracking FIRST — break every workflow into tasks before any action. NEVER skip.
+> **[MANDATORY]** todo tracking FIRST — break every workflow into tasks before any action. NEVER skip.
 > **[MANDATORY]** In mode `ask`, when your route is to start a catalog workflow, never activate it, whatever its tier, before the user answers the one workflow question (full workflow · slimmer custom route · execute directly); ask no other route question. Mode `auto` follows its route block; mode `off` activates no self-matched workflow. Explicit workflow invocation executes directly in every mode.
 > **[MANDATORY]** Host-native skill execution REQUIRED for every step that runs. A step completes without it only when skipped or merged with a deviation-log line; `gate` steps never skip. A foreign-host tool name is not a missing capability.
 
@@ -300,7 +300,7 @@ When `$workflow-review-changes` appears in any workflow sequence (e.g. `workflow
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Detect intent, select the direct/skill/workflow/custom route (a self-matched workflow only after the workflow question), then activate the canonical contract with a complete task tracking plan.
+**IMPORTANT MUST ATTENTION Goal:** Detect intent, select the direct/skill/workflow/custom route (a self-matched workflow only after the workflow question), then activate the canonical contract with a complete todo tracking plan.
 
 **IMPORTANT MUST ATTENTION — Main steps (execute in order, NEVER skip/merge):** detect workflow or route → analyze the best match → select direct/skill/standard/custom execution (ask the workflow question only before starting a standard workflow; direct, skill and custom routes ask nothing) → load Tier 1 catalog context and Tier 2 complete canonical selected-mode manifest (`occurrences`, non-empty `preActions.injectContext`, `parallelGroups`, `fingerprint`) → read every `preActions.readFiles` file → create exactly one task per occurrence → materialize declared waves and barriers → execute intent-first: `gate` steps always, `core`/`optional` steps as recommendations, every deviation logged, task status synchronized.
 
@@ -311,13 +311,13 @@ When `$workflow-review-changes` appears in any workflow sequence (e.g. `workflow
 - **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
 
 **MUST ATTENTION** explicit `/workflow-*` or `$start-workflow <id>` invocation executes directly; a catalog workflow you route to yourself, of ANY tier, waits for the one workflow question (full · slimmer custom route · direct, recommended first); direct, single-skill and custom-simple routes ask nothing. Mid-session, never auto-activate a workflow or ask to start one — do the work directly or with a lean skill chain; required gates still run.
-**MUST ATTENTION** create ALL task tracking items for the full sequence BEFORE marking the first task `in_progress`
+**MUST ATTENTION** create ALL todo tracking items for the full sequence BEFORE marking the first task `in_progress`
 **MUST ATTENTION** execute skills through the active host; a source read does not switch hosts and a foreign-host tool name is not a blocker. `gate` steps never skip; a `core`/`optional` step completes without skill execution only when skipped or merged with a deviation-log line (`<occurrence-id> · <deviation-kind> · <evidence>` in `tmp/workflow-runs/<runId>/skips.md`) and the outcome gates still hold; simplified and reordered steps log too — never delete a task — why: an unlogged deviation is invisible to review and to the close check
 **MUST ATTENTION** custom pipeline steps must be canonical step ids (each maps to a real `.claude/skills/<step>/SKILL.md`) — never invent step names
-**MUST ATTENTION** use Tier 1 context selection FIRST, then Tier 2 JSON-aware complete canonical-entry read before task tracking for EVERY standard workflow — resolve the selected mode and load `occurrences`, non-empty `preActions.injectContext`, `parallelGroups`, and `fingerprint`, and read every `preActions.readFiles` file; never use fixed-context grep output
+**MUST ATTENTION** use Tier 1 context selection FIRST, then Tier 2 JSON-aware complete canonical-entry read before todo tracking for EVERY standard workflow — resolve the selected mode and load `occurrences`, non-empty `preActions.injectContext`, `parallelGroups`, and `fingerprint`, and read every `preActions.readFiles` file; never use fixed-context grep output
 **MUST ATTENTION** materialize every declared `parallelGroups` group as a wave in the task list — one task per member, wave-tagged, spawned in ONE message, all-return barrier before the next step — why: a barrier that lives only in prose gets executed one step at a time
 **MUST ATTENTION** no `parallelGroups` → `sequence` IS the order — never invent a group that contradicts it; only adjacent read-only steps may be surfaced as a `Candidate wave (not declared)` — why: a self-authored wave silently reorders a validated workflow, and that costs more than the time it saves
 
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
+**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using todo tracking.
 
 > **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.

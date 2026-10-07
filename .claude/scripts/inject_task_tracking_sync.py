@@ -30,7 +30,7 @@ SKILL_NAMES = [
     "ai-engineering-review",
     "code-quality-review",
     "knowledge-review",
-    # `pbi` keeps its task-tracking body inline in pbi/references/mode-review.md, so it is not an injector target.
+    # `work-item` keeps its task-tracking body inline in work-item/references/mode-review.md, so it is not an injector target.
     "changes-review",
     "production-readiness-review",
     # `architecture` (review and full modes) keeps its task-tracking body inline in

@@ -5,7 +5,7 @@
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
 > **[BLOCKING]** Execute the steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
-> **[BLOCKING]** Before each step or sub-skill call, update task tracking; set `completed` only with evidence or an explicit skip reason.
+> **[BLOCKING]** Before each step or sub-skill call, update todo tracking; set `completed` only with evidence or an explicit skip reason.
 > **[BLOCKING]** The default pass is report-only: it may write its report, but it does not edit source, tests, fixtures, baselines, generated output, or user data. Only the opt-in `--fix-loop` mode lands repairs, and only through its owning-layer fix step.
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:END -->

@@ -8,7 +8,7 @@ description: '[Skill Management] Use when enhancing, compressing or expanding pr
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -98,6 +98,8 @@ Verify (expand): no semantic loss (all facts/numbers/paths present), semantic re
 When the target output is root context, a project-reference guide/template, docs index or prompt/protocol registry, use the branch below. Classify by resolved output identity and ownership, not the scratch candidate filename. Curated lessons/audits keep their owner contract and require authorized scope.
 
 For these targets, use this branch instead of caveman compression, blanket example/table preservation or generic skill scaffolding:
+
+For persistent instruction files (`CLAUDE.md`, `AGENTS.md` or host equivalents), apply the **Instruction-file audit** in `.claude/skills/shared/protocols/context-engineering-principles.md` during final verification for every operation; preserve generated ownership.
 
 1. Read/save the baseline and inventory meaningful rules, protocols, exceptions, rationale, discovery and parser structures.
 2. Remove low-value repetition/report material by explicit disposition. Keep clear sentences and necessary conditions; retain action-governing numbers and a useful short example. Preserve consumer-required data/syntax.
@@ -361,7 +363,7 @@ For each `.claude/` protocol reference:
 
 ---
 
-> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting.
+> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting.
 
 <!-- LOCAL:universal-skill-building-principles -->
 
@@ -446,4 +448,4 @@ For each `.claude/` protocol reference:
 | "Skill file, skip Universal Principles" | NEVER skip — Phase 0 detection is BLOCKING                                |
 | "Summary already has the goal, enough"  | Task/purpose target needs ALL main steps enumerated in Summary AND Reminders — a goal alone leaves middle-buried steps forgettable |
 
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
+**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using todo tracking.

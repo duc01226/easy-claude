@@ -3,7 +3,7 @@
 > Loaded by `architecture/SKILL.md`'s Mode Dispatch when invoked as `$architecture --mode=review [scope] [--report-only]`. Formerly `/architecture-review`. This contract is the whole invocation: run it exactly as written, standalone or as a workflow step. `$ARGUMENTS` in this file means the invocation text after `--mode=review`.
 
 > **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
-> **[BLOCKING]** Before each step or sub-skill call, update task tracking: set `in_progress` when step starts, set `completed` when step ends.
+> **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
 
@@ -709,7 +709,7 @@ Before reporting ANY work done:
 4. **Evaluate pattern fit.** Copying nearby code? Verify preconditions match — same scope, lifetime, base class, constraints.
 5. **New artifact = wired artifact.** Created something? Prove registered, imported, reachable by all consumers.
 
-> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting. Simple tasks: ask user whether to skip.
+> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting. Simple tasks: ask user whether to skip.
 
 
 ## Sub-Agent Type Override
@@ -839,7 +839,7 @@ AI skips steps via these evasions. Recognize and reject:
 - "Too simple for a plan" → Simple + wrong assumptions = wasted time. Plan anyway.
 - "I'll test after" → RED before GREEN. Write/verify test first.
 - "Already searched" → Show grep evidence with file:line. No proof = no search.
-- "Just do it" → Still need task tracking. Skip depth, never skip tracking.
+- "Just do it" → Still need todo tracking. Skip depth, never skip tracking.
 - "Just a small fix" → Small fix in wrong location cascades. Verify file:line first.
 - "Code is self-explanatory" → Future readers need evidence trail. Document anyway.
 - "Combine steps to save time" → Combined steps dilute focus. Each step has distinct purpose.
@@ -948,7 +948,7 @@ The protocols below apply to this mode only; their full text is inline so this r
 > - **Test coverage:** Are the changed paths covered by tests? Are existing tests still valid after the change?
 > - **Documentation:** Do related docs, specs, or READMEs reflect the changes?
 >
-> **Step 4 — Create sub-tasks and execute.** For each identified concern: create a task tracking sub-task, work through it with `file:line` evidence, mark done. No findings without proof.
+> **Step 4 — Create sub-tasks and execute.** For each identified concern: create a todo tracking sub-task, work through it with `file:line` evidence, mark done. No findings without proof.
 >
 > **Illustrative concern examples by category type** (not exhaustive — trust your knowledge beyond this):
 >
@@ -1364,7 +1364,7 @@ The protocols below apply to this mode only; their full text is inline so this r
 **IMPORTANT MUST ATTENTION** universal architecture knowledge (`.claude/docs/architecture-knowledge.md`) is a RECOGNITION aid, never authority — project reference docs and accepted ADRs OUTRANK it, an anti-pattern match is a HYPOTHESIS until `file:line`/config/topology evidence AND the damaged quality attribute are both named, and a grepped codebase convention beats any catalog entry — why: catalog-shaped false positives are confident, plausible, and the most expensive output this skill can produce.
 **IMPORTANT MUST ATTENTION** follow the phase order Phase 0 → 1 → 2 → 3 → 4 → 5 → Next Steps; Phase 5 `$why-review` self-validation is MANDATORY whenever any finding exists, and Next Steps MUST present `$code-simplifier` / `$code-quality-review` / skip via `ask user question tool` when standalone (under `--report-only`, a parent skill/workflow, or a sub-agent, return them in the summary instead) — why: the AI repeatedly forgets the validation gate and stops at Phase 4, shipping unvalidated severities downstream.
 **IMPORTANT MUST ATTENTION** `--report-only` declares Phases 0–5 only — scope from the caller's brief, no fix, no restart, no nested sub-agent fan-out, no `ask user question tool`, no writer beyond the report; return the report path plus validated findings grouped Critical/High/Medium/Low via the BLOCKED/WARN mapping — why: a read-only leaf that fixes, fans out, asks, or regenerates docs stalls or races its barrier siblings.
-**IMPORTANT MUST ATTENTION** break work into small tasks using task tracking BEFORE starting; mark one `in_progress`/`completed` at a time; on context loss call the current task list first — why: resume existing tasks, never duplicate after compaction.
+**IMPORTANT MUST ATTENTION** break work into small tasks using todo tracking BEFORE starting; mark one `in_progress`/`completed` at a time; on context loss call the current task list first — why: resume existing tasks, never duplicate after compaction.
 **IMPORTANT MUST ATTENTION** stay in lane — deep-review only what this skill OWNS (layers, messaging/CQRS/repos/service boundaries, entity events, frontend architecture, quality tooling, generated artifacts, ADRs); record a one-line `→ route to {sibling}` pointer for security/performance/DDD/UI/integration-test findings instead of expanding them
 **IMPORTANT MUST ATTENTION** each framework, base-class, directory, transport, storage, test, and file-layout check anywhere in this skill needs its own applicability evidence from config, project references, accepted ADRs, or established code; record unsupported or explicitly N/A patterns as N/A and NEVER flag their absence.
 **IMPORTANT MUST ATTENTION** scope tooling/ADR/spec-loop severity to the change — a pre-existing gap unrelated to the diff is WARN with one note, reserve BLOCKED for a new stack/service with no gate, a change removing an existing gate, an accepted-ADR contradiction with no superseding ADR, or an evidenced `[HARD]` rule/invariant lacking test protection required by the project's contract — why: blocking on standing change-unrelated conditions buries the regression the diff actually introduced.

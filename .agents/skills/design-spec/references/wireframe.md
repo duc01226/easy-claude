@@ -47,7 +47,7 @@ Emit this table linking each interactive component to the feature operations/rul
 
 ### Wireframe Output Formats
 
-- **Format A: PBI Section (default)** — output a standalone `## UI Layout` section compatible with PBI/story templates (consumed by `$pbi --mode=mockup`).
+- **Format A: Task Section (default)** — output a standalone `## UI Layout` section compatible with task/story templates (consumed by `$work-item --mode=mockup`).
 - **Format B: Standalone Spec** — output to `design-specs/{YYMMDD}-wireframe-spec-{slug}.md` in the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in `docs/project-config.json` overrides).
 
 ### Confidence & Review (wireframe)

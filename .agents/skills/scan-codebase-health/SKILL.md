@@ -9,7 +9,7 @@ disable-model-invocation: true
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -72,7 +72,7 @@ If `codebaseHealth` section is missing, discover source roots from project confi
 | Feature flag patterns found (`FeatureFlags`, `IFeatureManager`, `LaunchDarkly`) | Phase 6 (Dead Feature Flags)                      |
 | Cross-reference patterns in docs (`file:line`, `[link]()`)                      | Phase 7 (Broken Cross-References)                 |
 
-3. Create task tracking entries for each enabled phase before proceeding.
+3. Create todo tracking entries for each enabled phase before proceeding.
 
 **Evidence gate:** If `docs/project-config.json` not found and no detectable source paths, report and ask user for guidance. DO NOT guess project structure.
 
@@ -212,7 +212,7 @@ Write to `tmp/reports/codebase-health-scan-{YYMMDD}.md`:
 
 ---
 
-> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting.
+> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting.
 
 <!-- PROTOCOL-GUIDES:START -->
 
@@ -242,7 +242,7 @@ Write to `tmp/reports/codebase-health-scan-{YYMMDD}.md`:
 
 **MUST ATTENTION Main steps:** classify scope/tooling → doc counts → config references → unused exports → orphan files → pattern drift → feature flags → cross-references → fresh-eyes verification → report → actionable summary. Log graph/flag-dependent skips and retain optional CI detection.
 
-**IMPORTANT MUST ATTENTION** break work into small task tracking tasks BEFORE starting — one per phase
+**IMPORTANT MUST ATTENTION** break work into small todo tracking tasks BEFORE starting — one per phase
 
 **MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
@@ -265,7 +265,7 @@ Write to `tmp/reports/codebase-health-scan-{YYMMDD}.md`:
 | "No feature flags found, skip Phase 6"       | Log "Phase 6 skipped: no feature flag patterns detected" in report                    |
 | "Config reference might still exist"         | Grep to verify. Confidence <80% → flag as MEDIUM "unverified" not LOW "probably fine" |
 
-**[TASK-PLANNING]** Before acting, analyze task scope and break into small todo tasks and sub-tasks using task tracking.
+**[TASK-PLANNING]** Before acting, analyze task scope and break into small todo tasks and sub-tasks using todo tracking.
 
 
 <!-- SYNC:review-policy:reminder -->

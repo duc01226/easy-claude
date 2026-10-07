@@ -228,7 +228,7 @@ const SCHEMA = {
             teamArtifacts: {
                 type: 'object',
                 required: false,
-                describe: 'Team artifact tree (ideas, PBIs, stories). Default "team-artifacts".',
+                describe: 'Team artifact tree (initiatives, tasks, stories). Default "team-artifacts".',
                 properties: {
                     path: { type: 'string', required: true, describe: 'Team-artifact dir, relative to repo root (e.g. "team-artifacts").' }
                 }
@@ -356,6 +356,7 @@ const SCHEMA = {
             reinjectAfterMinutes: { type: 'number', required: false },
             blindReinjectAfterMinutes: { type: 'number', required: false },
             onRead: { type: 'boolean', required: false },
+            completeLookup: { type: 'boolean', required: false, describe: 'Require complete paged pre-action lookup of all matching classes. With inlinePathRules:false, replaces full root rules/table only when the generator supports complete lookup; bounded automatic reminders remain accelerators.' },
             compactionMarkers: { type: 'array', required: false, itemsAreRegex: true }
         }
     },
@@ -764,7 +765,15 @@ const SCHEMA = {
                 type: 'object',
                 required: false,
                 properties: {
-                    enforcedAreas: { type: 'array', required: false }
+                    enabled: { type: 'boolean', required: false },
+                    enforcedAreas: {
+                        type: 'arrayOf', required: false,
+                        itemSchema: {
+                            name: { type: 'string', required: true },
+                            codePathPrefixes: { type: 'array', required: true, itemType: 'string' },
+                            graceDays: { type: 'number', required: false }
+                        }
+                    }
                 }
             }
         }
@@ -802,7 +811,7 @@ const SCHEMA = {
             },
             // false = the generated golden-rules section names each context group and points to the
             // file-conventions hook + `--lookup` CLI instead of inlining every rule (root byte budget).
-            // Honored only with conventionInjection.enabled: true, the conventions lib available and every
+            // Complete lookup support can replace the legacy cap/size proof below. Otherwise honored only with conventionInjection.enabled: true, the conventions lib available and every
             // rule-bearing group ranked within maxClassesPerEdit with a worst-case digest within maxChars;
             // otherwise rules stay inline and the generator warns. Default true.
             inlinePathRules: { type: 'boolean', required: false },
@@ -1914,6 +1923,24 @@ function validatePortabilitySemantics(config, errors, warnings) {
  * @param {object} config - The parsed project-config.json
  * @returns {{ valid: boolean, errors: string[], warnings: string[] }}
  */
+function validateDocSyncGate(gate, label = 'workflowPatterns.docSyncGate') {
+    const errors = [];
+    validateField(gate, SCHEMA.workflowPatterns.properties.docSyncGate, label, errors, []);
+    if (Array.isArray(gate?.enforcedAreas)) {
+        gate.enforcedAreas.forEach((area, index) => {
+            const prefix = `${label}.enforcedAreas[${index}]`;
+            if (typeof area?.name === 'string' && !area.name.trim()) errors.push(`${prefix}.name: must not be blank`);
+            if (Array.isArray(area?.codePathPrefixes)) {
+                if (!area.codePathPrefixes.length) errors.push(`${prefix}.codePathPrefixes: needs at least one code prefix`);
+                area.codePathPrefixes.forEach((value, i) => {
+                    if (typeof value === 'string' && !value.trim()) errors.push(`${prefix}.codePathPrefixes[${i}]: must not be blank`);
+                });
+            }
+        });
+    }
+    return errors;
+}
+
 function validateConfig(config) {
     const errors = [];
     const warnings = [];
@@ -1953,6 +1980,9 @@ function validateConfig(config) {
     validatePortabilitySemantics(config, errors, warnings);
     validateSkillProfileSemantics(config, errors, warnings);
     validateTaskTracking(config, errors);
+    for (const error of validateDocSyncGate(config.workflowPatterns?.docSyncGate)) {
+        if (!errors.includes(error)) errors.push(error);
+    }
 
     // Check for unknown top-level keys
     const knownKeys = new Set(Object.keys(SCHEMA));
@@ -2135,6 +2165,7 @@ function describeSchema() {
 module.exports = {
     SCHEMA,
     validateConfig,
+    validateDocSyncGate,
     getRequiredSections,
     formatResult,
     validateRegex,

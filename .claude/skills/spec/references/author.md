@@ -1021,7 +1021,7 @@ spec [author mode] (you are here)
   │     CREATE: new feature doc just created → write TCs from spec.
   │     UPDATE: existing doc updated → update TCs to match changed behavior.
   │
-  ├─ [REQUIRED] → /pbi --mode=review --type=spec-tests
+  ├─ [REQUIRED] → /work-item --mode=review --type=spec-tests
   │     Validates TC coverage, GIVEN/WHEN/THEN completeness, no duplicate TC codes.
   │
   ├─ [REQUIRED] → spec [mode=sync]

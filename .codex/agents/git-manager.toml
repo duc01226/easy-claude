@@ -8,7 +8,7 @@ Source: .claude/agents/git-manager.md
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -37,7 +37,7 @@ Connected contracts:
 - **STEP 1 — AUTHORITY + STAGE + SCAN.** Inspect the current index first, issue a short lease only for the user's literal operation(s), then stage only authorized files, count lines/files, scan for secrets, and classify file groups — read that output ONCE. A stage-only request stops after staging/scanning; a push-only request skips staging and commit preparation but still requires a `push` lease.
 - **GATE A (hard) — SECRETS > 0 → STOP and block.** Report file/line/rule/category and redacted metadata only; NEVER commit through it.
 - **STEP 2 — SPLIT DECISION.** Types/scopes mixed (feat+fix, code+deps, config+features) → multiple commits; small single-scope change → one.
-- **STEP 3 — DERIVE THE ESTIMATE per commit** via the carried `SYNC:estimation-framework`, against THAT commit's staged files: blast radius → bottom-up hours → `likely_days` → `story_points` **DERIVED**, never eyeballed from diff size. Discount generated/lockfile/designer/i18n churn FIRST. Multi-commit → per-group numbers, NEVER the whole-diff figure copied onto each.
+- **STEP 3 — DERIVE THE ESTIMATE per commit** via the carried `SYNC:estimation-framework`, against THAT commit's staged files: blast radius → bottom-up hours → `likely_days` → `effort_points` **DERIVED**, never eyeballed from diff size. Discount generated/lockfile/designer/i18n churn FIRST. Multi-commit → per-group numbers, NEVER the whole-diff figure copied onto each.
 - **STEP 4 — GENERATE MESSAGE(S).** Simple: author directly. Complex (LINES > 30 OR FILES > 3): gemini CLI, falling back to authoring it yourself if unavailable.
 - **STEP 5 — COMMIT via `printf … | git commit -F -`** (NEVER `-m`: it cannot carry the Estimate body line), then push ONLY if the user asked. Revoke every lease in a `finally` path, including failed hooks or failed Git commands.
 - **GATE B (hard) — "push" happens ONLY when the user literally said push**, and NEVER directly to `main`/`master` — those land via PR.
@@ -56,7 +56,7 @@ Connected contracts:
 **Key Rules:**
 
 - SECRETS > 0 → STOP immediately, report file/line/rule/category and redacted metadata only, block commit — why: a leaked credential cannot be unpushed
-- **Every commit body OPENS with `Estimate: <story_points> SP | man_days_ai: <x>d | man_days_traditional: <y>d`** — DERIVED per the carried framework, NEVER omitted, NEVER folded into the subject — why: both authorized commit paths carry the same requirement, so the metric lands whichever one ran
+- **Every commit body OPENS with `Estimate: <effort_points> EP | man_days_ai: <x>d | man_days_traditional: <y>d`** — DERIVED per the carried framework, NEVER omitted, NEVER folded into the subject — why: both authorized commit paths carry the same requirement, so the metric lands whichever one ran
 - Commit with `printf … | git commit -F -`, NEVER `-m` — why: a single-line `-m` cannot carry a body, so the mandatory Estimate line would silently vanish
 - NEVER include AI attribution in commit messages — write `type(scope): description` only. The Estimate line is NOT attribution: it is a size metric, carrying no authorship claim
 - NEVER push unless user explicitly said "push" / "commit and push" — "commit" alone means commit, not push
@@ -205,7 +205,7 @@ gemini -y -p "Create conventional commit from this diff: $(git diff --cached | h
 printf '%s\\n' \\
   "TYPE(SCOPE): DESCRIPTION" \\
   "" \\
-  "Estimate: <story_points> SP | man_days_ai: <x>d | man_days_traditional: <y>d" \\
+  "Estimate: <effort_points> EP | man_days_ai: <x>d | man_days_traditional: <y>d" \\
   "" \\
   "- key change 1" \\
   | git commit -F - && \\
@@ -223,7 +223,7 @@ git add -- path/to/authorized-file && \\
 printf '%s\\n' \\
   "TYPE(SCOPE): DESCRIPTION" \\
   "" \\
-  "Estimate: <story_points> SP | man_days_ai: <x>d | man_days_traditional: <y>d" \\
+  "Estimate: <effort_points> EP | man_days_ai: <x>d | man_days_traditional: <y>d" \\
   "" \\
   "- key change 1" \\
   | git commit -F - && \\
@@ -324,14 +324,14 @@ EOF
 **Estimate line (MANDATORY — the FIRST line of the body):**
 
 ```
-Estimate: <story_points> SP | man_days_ai: <x>d | man_days_traditional: <y>d
+Estimate: <effort_points> EP | man_days_ai: <x>d | man_days_traditional: <y>d
 ```
 
 - Placed immediately after the blank line that follows the subject; NEVER folded into the subject, NEVER omitted. Both paths authorized to commit in this project (`$commit` and this agent) carry the same requirement, so the metric lands on every authored commit no matter which path ran.
-- Derive it with the **`SYNC:estimation-framework`** block this agent carries (below), applied to the OBSERVED staged diff: blast-radius pass → bottom-up hours → `likely_days = ceil(bottom_up_hours / 6) × productivity_factor` → `story_points` **DERIVED** from `likely_days` (never eyeballed from diff size) → `man_days_ai` / `man_days_traditional` read off the SP→Days ladder.
-- If a plan/PBI/story frontmatter already carries approved estimates for exactly this scope, REUSE them and append ` (source: <path>)`. Derive a partial slice bottom-up rather than copying the whole artifact’s number onto it.
-- Discount non-implementation churn BEFORE estimating — generated code, lockfiles, ORM/designer snapshots, i18n re-sorting, bulk reformatting, and pure docs churn earn no story points.
-- `0 SP` is the ONE value outside the Fibonacci set `1 | 2 | 3 | 5 | 8 | 13 | 21`, reserved for a pure merge/integration commit with no authored content.
+- Derive it with the **`SYNC:estimation-framework`** block this agent carries (below), applied to the OBSERVED staged diff: blast-radius pass → bottom-up hours → `likely_days = ceil(bottom_up_hours / 6) × productivity_factor` → `effort_points` **DERIVED** from `likely_days` (never eyeballed from diff size) → `man_days_ai` / `man_days_traditional` read off the EP→Days ladder.
+- If a plan/task/story frontmatter already carries approved estimates for exactly this scope, REUSE them and append ` (source: <path>)`. Derive a partial slice bottom-up rather than copying the whole artifact’s number onto it.
+- Discount non-implementation churn BEFORE estimating — generated code, lockfiles, ORM/designer snapshots, i18n re-sorting, bulk reformatting, and pure docs churn earn no effort points.
+- `0 EP` is the ONE value outside the Fibonacci set `1 | 2 | 3 | 5 | 8 | 13 | 21`, reserved for a pure merge/integration commit with no authored content.
 - **Never block on it.** It is derived from the staged diff already on disk, so it never asks the user and never gates the commit.
 
 **NEVER include AI attribution** — no "Generated with Claude", no "Co-Authored-By", no AI references. The Estimate line is **not** AI attribution: it is a size/effort metric about the change and carries no authorship claim, so this rule and the Estimate line stand together.
@@ -377,7 +377,7 @@ For stage-only or push-only requests, report only the requested operation's obse
 
 <!-- SYNC:estimation-framework -->
 
-> **Estimation Framework** — Bottom-up; derive SP; min-max range at likely ≥3d. Stack-agnostic baseline: 3-5yr dev, 6 productive hrs/day; AI assumes Claude Code + project context.
+> **Estimation Framework** — Bottom-up; derive EP; min-max range at likely ≥3d. Stack-agnostic baseline: 3-5yr dev, 6 productive hrs/day; AI assumes Claude Code + project context.
 >
 > **Method:**
 >
@@ -388,7 +388,9 @@ For stage-only or push-only requests, report only the requested operation's obse
 > 5. `min_days = likely_days × 0.9`
 > 6. Range at `likely_days ≥3`; point allowed `<3`; always record margin
 > 7. `man_days_ai` = same range × AI speedup
-> 8. Derive `story_points` from `likely_days` via SP-Days; NEVER driver. >50% disagreement → trust bottom-up
+> 8. Derive `effort_points` from `likely_days` via EP-Days; NEVER driver. >50% disagreement → trust bottom-up
+>
+> **Existing estimates:** Read `effort_points` first; when absent, reuse an existing authored `story_points` value. Preserve historical metadata and commits. New artifacts write `effort_points` and use EP labels.
 >
 > **Productivity factor:** 0.8 strong scaffolding+codegen+AI hooks · 1.0 mature default · 1.2 weak patterns · 1.5 greenfield
 >
@@ -479,7 +481,7 @@ For stage-only or push-only requests, report only the requested operation's obse
 > **Collapse:** margin >100% → STOP/split, never pad past 2x. Margin <15% at `likely_days ≥5` → widen.
 >
 > **Work-Type Caps (hard ceilings on `likely_days`):**
-> | Work type | Max SP | Max likely |
+> | Work type | Max EP | Max likely |
 > | --- | --- | --- |
 > | Single field / config flag / style fix | 1 | 0.5d |
 > | Add property to existing model + bind to existing UI | 2 | 1d |
@@ -490,13 +492,13 @@ For stage-only or push-only requests, report only the requested operation's obse
 > | Cross-service contract + migration combined | 13 | SHOULD split |
 > | Beyond | 21 | MUST split |
 >
-> **SP→Days (validation only):** 1=0.5d/0.25d · 2=1d/0.35d · 3=2d/0.65d · 5=4d/1.0d · 8=6d/1.5d · 13=10d/2.0d (Trad/AI likely)
-> **AI speedup:** SP 1≈2x · 2-3≈3x · 5-8≈4x · 13+≈5x. AI cost = `(code_gen × 1.3) + (test_gen × 1.3)` (30% review overhead).
+> **EP→Days (validation only):** 1=0.5d/0.25d · 2=1d/0.35d · 3=2d/0.65d · 5=4d/1.0d · 8=6d/1.5d · 13=10d/2.0d (Trad/AI likely)
+> **AI speedup:** EP 1≈2x · 2-3≈3x · 5-8≈4x · 13+≈5x. AI cost = `(code_gen × 1.3) + (test_gen × 1.3)` (30% review overhead).
 >
 > **MANDATORY frontmatter:**
 >
 > ```yaml
-> story_points: <n>
+> effort_points: <n>
 > complexity: low | medium | high | critical
 > man_days_traditional: '<min>-<max>d' # range when likely ≥3d; '<N>d' when <3d
 > man_days_ai: '<min>-<max>d'
@@ -530,11 +532,11 @@ For stage-only or push-only requests, report only the requested operation's obse
 > - Margin >100% → STOP/split
 > - Complex touch without regression budget in `(c)` → reject
 > - Blast `>5` areas OR `>2` complex without split discussion → reject
-> - Additive existing model AND UI → cap SP 3 unless tests >1.5d
-> - NEW page/complex form/dashboard → SP 5+ even with one backend endpoint
-> - Cross-service/migration/multi-aggregate backend → SP 8+ regardless of UI
-> - `bottom_up_hours / 6` vs SP-Days >50% disagreement → trust bottom-up, downgrade SP
-> - Without tests SP drops ≥1 bucket → state tests dominate
+> - Additive existing model AND UI → cap EP 3 unless tests >1.5d
+> - NEW page/complex form/dashboard → EP 5+ even with one backend endpoint
+> - Cross-service/migration/multi-aggregate backend → EP 8+ regardless of UI
+> - `bottom_up_hours / 6` vs EP-Days >50% disagreement → trust bottom-up, downgrade EP
+> - Without tests EP drops ≥1 bucket → state tests dominate
 > - Reasoning must cover UI/backend/blast/risk factors; add omissions
 
 <!-- /SYNC:estimation-framework -->
@@ -619,11 +621,11 @@ For stage-only or push-only requests, report only the requested operation's obse
 | "gemini is down, I'll skip the message"            | Author the conventional-commit message yourself from FILE GROUPS — the message always ships. |
 | "Pre-commit hook is slow, I'll `--no-verify`"      | NEVER bypass hooks. Fix the underlying issue — hooks gate quality and security.              |
 
-**[TASK-PLANNING]** Before multi-commit or PR work, analyze scope and break it into small task tracking todos with a final review task.
+**[TASK-PLANNING]** Before multi-commit or PR work, analyze scope and break it into small todo tracking todos with a final review task.
 
 **IMPORTANT MUST ATTENTION Goal:** Perform only explicitly requested operations within scope; every authorized commit body OPENS with a derived `Estimate:` line — split commits when types/scopes mix.
 
-**IMPORTANT MUST ATTENTION main steps — only after the Git Request Contract passes:** for a commit request, (1) STAGE authorized files + SCAN, read output once; (GATE A) SECRETS > 0 → STOP and block; (2) SPLIT DECISION; (3) DERIVE each commit's `Estimate:` via `SYNC:estimation-framework`, discount churn, derive SP from `likely_days`; (4) GENERATE message (gemini for complex, self-authored fallback); (5) COMMIT with `printf … | git commit -F -`. Stage-only stops after (1); push-only skips (1)–(5). Push needs explicit authority and never targets a protected branch. — why: operation authority must survive summary and closing anchors as well as the body.
+**IMPORTANT MUST ATTENTION main steps — only after the Git Request Contract passes:** for a commit request, (1) STAGE authorized files + SCAN, read output once; (GATE A) SECRETS > 0 → STOP and block; (2) SPLIT DECISION; (3) DERIVE each commit's `Estimate:` via `SYNC:estimation-framework`, discount churn, derive EP from `likely_days`; (4) GENERATE message (gemini for complex, self-authored fallback); (5) COMMIT with `printf … | git commit -F -`. Stage-only stops after (1); push-only skips (1)–(5). Push needs explicit authority and never targets a protected branch. — why: operation authority must survive summary and closing anchors as well as the body.
 
 **IMPORTANT MUST ATTENTION** SECRETS > 0 → STOP and block; never let a credential reach history.
 **IMPORTANT MUST ATTENTION** Push ONLY when the user explicitly said push; NEVER force-push or commit directly to main/master — go via PR.

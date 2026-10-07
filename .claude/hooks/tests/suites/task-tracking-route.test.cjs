@@ -34,13 +34,13 @@ function cleanEnv(root, extra = {}) {
 async function fixture(callback) {
     const root = makeHookTreeProject('task-tracking-advisory');
     const config = { project: { name: 'Guidance fixture' }, docsRoots: { teamArtifacts: { path: 'work' } },
-        taskTracking: { schemaVersion: 1, mode: 'observe' } };
+        taskTracking: { schemaVersion: 2, mode: 'observe' } };
     const skill = fs.readFileSync(path.join(FRAMEWORK_DIR, 'skills/task-track/SKILL.md'));
     write(root, '.claude/skills/task-track/SKILL.md', skill);
     write(root, '.claude/.ck.local.json', JSON.stringify({ portability: { projectConfigPath: 'docs/project-config.json' } }));
     const configPath = write(root, 'docs/project-config.json', JSON.stringify(config));
     // Adopter-owned bytes are unrelated preconditions, never fabricated tracking proof.
-    const workPath = write(root, 'work/tasks/owner.md', '# Contributor-owned work\nKeep this unchanged.\n');
+    const workPath = write(root, 'work/subtasks/owner.md', '# Contributor-owned work\nKeep this unchanged.\n');
     const workBefore = fs.readFileSync(workPath);
     try {
         return await callback({ root, config, configPath, workPath,
@@ -116,9 +116,9 @@ module.exports = {
         }),
         business('TC-TPT-221', 'hierarchy read guidance retains off invalid unavailable and native silence controls', f => {
             const prompt = 'show feature progress';
-            const declarations = [undefined, { schemaVersion: 1, mode: 'off' }, { schemaVersion: 2, mode: 'observe' },
-                { schemaVersion: 1, mode: 'observe', grant: true },
-                { schemaVersion: 1, mode: 'observe', profile: { kind: 'native', version: 1,
+            const declarations = [undefined, { schemaVersion: 2, mode: 'off' }, { schemaVersion: 3, mode: 'observe' },
+                { schemaVersion: 2, mode: 'observe', grant: true },
+                { schemaVersion: 2, mode: 'observe', profile: { kind: 'native', version: 1,
                     registration: 'fixture-native', sources: ['work/native.json'] } }];
             for (const [index, declaration] of declarations.entries()) {
                 if (declaration === undefined) delete f.config.taskTracking;
@@ -128,7 +128,7 @@ module.exports = {
                 assert.equal(launch(f.root, event(f.root, prompt, { session_id: `hierarchy-control-${index}` })).stdout, '');
                 assert.deepEqual(fs.readFileSync(f.configPath), before);
             }
-            f.config.taskTracking = { schemaVersion: 1, mode: 'observe' }; f.saveConfig();
+            f.config.taskTracking = { schemaVersion: 2, mode: 'observe' }; f.saveConfig();
             const asset = path.join(f.root, '.claude/skills/task-track/SKILL.md');
             const instruction = fs.readFileSync(asset);
             fs.unlinkSync(asset);
@@ -145,7 +145,7 @@ module.exports = {
             f.config.taskTracking.mode = 'linked'; f.saveConfig();
             const before = fs.readFileSync(f.configPath);
             for (const [index, choice] of ['Run', 'Skip', 'pending'].entries()) {
-                const output = launch(f.root, event(f.root, 'report initiative status', {
+                const output = launch(f.root, event(f.root, 'report program status', {
                     session_id: `hierarchy-authority-${index}`, choice, confirmed: true, canWrite: true,
                     canAccept: true, guidanceAllowed: true })).stdout;
                 oneNotice(output);
@@ -186,7 +186,7 @@ module.exports = {
             assert.deepEqual(fs.readFileSync(f.configPath), configBefore, 'Guidance must not enroll, configure or authorize work');
         }),
         business('TC-TPT-163', 'unrelated, quoted-only and host data preserve silence across the input domain', f => {
-            const prompts = ['Explain a colour', 'The document says “accept PBI-104”', '"Help inspect work before publication"',
+            const prompts = ['Explain a colour', 'The document says “accept TASK-104”', '"Help inspect work before publication"',
                 "'Help inspect work before publication'", '> Help inspect work before publication',
                 '`Help inspect work before publication`', '```text\nHelp inspect work before publication\n```',
                 '~~~text\nHelp inspect work before publication\n~~~',
@@ -199,7 +199,7 @@ module.exports = {
             oneNotice(launch(f.root, event(f.root, REQUEST, { session_id: 'positive-control' })).stdout);
         }),
         business('TC-TPT-149', 'genuine intent outside quoted data remains eligible', f => {
-            oneNotice(launch(f.root, event(f.root, 'The document says “accept PBI-104”. Help inspect work before publication.')).stdout);
+            oneNotice(launch(f.root, event(f.root, 'The document says “accept TASK-104”. Help inspect work before publication.')).stdout);
         }),
         business('TC-TPT-149', 'A-B-A follow-up and recovery do not replace same-context delivery credit', f => {
             const a = event(f.root);
@@ -221,7 +221,7 @@ module.exports = {
             await fixture(other => oneNotice(launch(other.root, event(other.root)).stdout));
         }),
         business('TC-TPT-163', 'absent config, absent enrollment and off preserve portable defaults', f => {
-            for (const config of [{}, { taskTracking: { schemaVersion: 1 } }, { taskTracking: { schemaVersion: 1, mode: 'off' } }]) {
+            for (const config of [{}, { taskTracking: { schemaVersion: 2 } }, { taskTracking: { schemaVersion: 2, mode: 'off' } }]) {
                 fs.writeFileSync(f.configPath, JSON.stringify(config));
                 assert.equal(launch(f.root, event(f.root)).stdout, '');
             }
@@ -233,9 +233,9 @@ module.exports = {
             assert.equal(fs.existsSync(path.join(f.root, '.gitignore')), false);
         }),
         business('TC-TPT-163', 'malformed declarations fail closed without rewriting selected config', f => {
-            for (const text of ['{', JSON.stringify({ taskTracking: { schemaVersion: 2, mode: 'observe' } }),
-                JSON.stringify({ taskTracking: { schemaVersion: 1, mode: 'unknown' } }),
-                JSON.stringify({ taskTracking: { schemaVersion: 1, mode: 'observe', grant: true } })]) {
+            for (const text of ['{', JSON.stringify({ taskTracking: { schemaVersion: 3, mode: 'observe' } }),
+                JSON.stringify({ taskTracking: { schemaVersion: 2, mode: 'unknown' } }),
+                JSON.stringify({ taskTracking: { schemaVersion: 2, mode: 'observe', grant: true } })]) {
                 fs.writeFileSync(f.configPath, text);
                 assert.equal(launch(f.root, event(f.root)).stdout, '');
                 assert.equal(fs.readFileSync(f.configPath, 'utf8'), text);

@@ -16,7 +16,7 @@ large_idea_decomposition:
     multiple_independent_outcomes: true
     ambiguous_or_research_heavy: true
     release_scope_decomposition: true
-    oversized_pbi_that_must_split: false
+    oversized_task_that_must_split: false
   outcome_slices:
     - {id: WT-INSPECT, outcome: "A team can inspect honest scoped progress without changing its existing records", releasable_when: "Accepted/current-proof/remaining scope and refusal/preservation journeys are proved", owning_artifact: "README.TaskTracking.md"}
     - {id: WT-MANAGE, outcome: "A contributor can manage responsibility and work in one local workspace", releasable_when: "Human and assistant actions share validated outcomes and conflict-safe saves", owning_artifact: "README.TaskTracking.md"}
@@ -43,17 +43,19 @@ large_idea_decomposition:
 |---|---|---|
 | Governing plan | `plans/261003-task-pbi-tracking/plan.md` | Selected scope and execution obligations |
 | Case continuations | `README.TaskTracking-Part2.md`, `README.TaskTracking-Part3.md`, `README.TaskTracking-Part4.md`, `README.TaskTracking-Part5.md`, `README.TaskTracking-Part6.md` | Same capability and stable case identity; Part4 owns operation discovery, linked concerns and publication checkpoints; Part5 owns local author identity and retained attribution; Part6 owns purpose-labelled grouping and exact stakeholder drilldown |
+| Case continuation | `README.TaskTracking-Part7.md` | Same capability and stable case identity; Part7 owns the vocabulary and migration cases |
+| Decision record | `docs/adr/0005-work-tracker-vocabulary-and-migration.md` | Vocabulary change, read-only earlier-vocabulary projects, explicit migration and the rejected alternatives |
 | Design intent | `team-artifacts/design-specs/task-tracking.md` | Shared preview views/data; P16 selected A, visual verification pending |
 | Derived index | `INDEX.md` (not yet created) | Navigation only; refresh through owning generator |
 | Test coverage | `.claude/hooks/tests/suites/task-tracking-*.test.cjs`, `.claude/skills/task-track/tests/workspace-browser.test.cjs` | Authored primary guards are mapped in each case; no test or visual execution result is claimed |
 
 ## 1. Overview
 
-Teams capture ideas, plan delivery and manage responsibility in their own working copies, then share proposed changes through their existing version-control process. Contributors can use an assistant or an optional local workspace to inspect and change the same authoritative work. Progress distinguishes accepted delivery, current verification and work still remaining.
+Teams capture initiatives, plan delivery and manage responsibility in their own working copies, then share proposed changes through their existing version-control process. Contributors can use an assistant or an optional local workspace to inspect and change the same authoritative work. Progress distinguishes accepted delivery, current verification and work still remaining.
 
-Scope includes ideas, visions, epics, delivery items, stories and enabling tasks; stable people identities; exact assignment; safe lifecycle changes; current and historical views; linked upkeep; and read-only reconciliation of manual changes. Existing project record owners retain their identity, states, history, metric meaning and acceptance rules. Unsupported operations leave their records intact and explain the gap.
+Scope includes initiatives, visions, project groups, delivery items, stories and enabling subtasks; stable people identities; exact assignment; safe lifecycle changes; current and historical views; linked upkeep; and read-only reconciliation of manual changes. Existing project record owners retain their identity, states, history, metric meaning and acceptance rules. Unsupported operations leave their records intact and explain the gap.
 
-Stakeholders can inspect project scope, select an enduring area, select a feature outcome and inspect the exact delivery items behind it. Existing groups may optionally describe an area, capability or initiative. Purpose is independent of group kind and lifecycle; existing generic groups and ungrouped outcomes stay useful without restructuring. A delivery item is an independently useful outcome for a person or consuming system; it need not have a visible screen. Supporting tasks and individual interface elements do not earn additional delivery credit.
+Stakeholders can inspect project scope, select an enduring area, select a feature outcome and inspect the exact delivery items behind it. Existing groups may optionally describe an area, capability or program. Purpose is independent of group kind and lifecycle; existing generic groups and ungrouped outcomes stay useful without restructuring. A delivery item is an independently useful outcome for a person or consuming system; it need not have a visible screen. Supporting subtasks and individual interface elements do not earn additional delivery credit.
 
 This hierarchy adds no compulsory taxonomy, depth, native conversion, separate membership authority, business-impact score or forecast. Display vocabulary may be customized without changing purpose, permissions or arithmetic. Selecting a scope retains exact source, coverage, intent, proof and contextual return navigation across the workspace and snapshot.
 
@@ -65,10 +67,10 @@ Each requirement's complete source mapping is **TBD (requirement-level evidence)
 
 | Requirement | Intended outcome |
 |---|---|
-| FR-TPT-001 | Save minimally defined ideas or tasks with stable identity and draft maturity. |
-| FR-TPT-002 | Link governing intent, plans and source ideas without copying their authority. |
+| FR-TPT-001 | Save minimally defined initiatives or other work items with stable identity and draft maturity. |
+| FR-TPT-002 | Link governing intent, plans and source initiatives without copying their authority. |
 | FR-TPT-003 | Refine releasable outcomes; readiness requires reviewed acceptance and decisions. |
-| FR-TPT-004 | Group delivery scope under optional visions/epics without duplicate credit or cycles. |
+| FR-TPT-004 | Group delivery scope under optional visions/project groups without duplicate credit or cycles. |
 | FR-TPT-005 | Find ready, unblocked work with explained prerequisites and stable ordering. |
 | FR-TPT-006 | Recognize supported record versions and reject malformed or unknown declarations. |
 | FR-TPT-007 | Apply each authorized record operation once, preserve newer work and return exact results. |
@@ -117,9 +119,11 @@ Each requirement's complete source mapping is **TBD (requirement-level evidence)
 | FR-TPT-050 | Reconcile exact linked work against the complete final publication candidate, reread saved updates and state unresolved concerns without accepting delivery. |
 | FR-TPT-051 | Use the selected working copy's local author identity without shared member setup when no explicit custom identity is chosen; preserve existing identity choices, permissions and tracking controls. |
 | FR-TPT-052 | Retain minimal names for locally attributed work across personal working copies without turning historical attribution into active membership, new assignment eligibility or owner-attested health. |
-| FR-TPT-053 | Optionally describe an existing group as an area, capability or initiative through permitted group maintenance; preserve generic groups, members, history and unrelated work. |
+| FR-TPT-053 | Optionally describe an existing group as an area, capability or program through permitted group maintenance; preserve generic groups, members, history and unrelated work. |
 | FR-TPT-054 | Inspect the exact unique delivery identities belonging to the selected project or group, with direct child groups, excluded scope and honest coverage; links and display filters cannot change membership or credit. |
 | FR-TPT-055 | Navigate labelled, generic, shared and ungrouped work with the chosen entry path and exact intent/proof links; vocabulary changes and alternative entry paths do not change work identity or authority. |
+| FR-TPT-056 | Read a project whose stored records use the earlier vocabulary in the current vocabulary, with unchanged progress and unchanged records; refuse every save and skip automatic upkeep there until migration; refuse a project holding both vocabularies and a save request written for the earlier vocabulary; refuse a status report for a project that holds both vocabularies or an unfinished migration, keeping the report made before. |
+| FR-TPT-057 | Move a project to the current vocabulary only through an explicit, previewable, resumable, one-way migration that changes tracker-owned vocabulary values alone, proves equal progress, names the work that must be verified again and can be abandoned only by an explicit abandon request made once the earlier project is restored whole; show the current vocabulary for all new work. |
 
 ## 2. Glossary
 
@@ -128,13 +132,13 @@ Each requirement's complete source mapping is **TBD (requirement-level evidence)
 | Contributor | Person finding, executing or maintaining team work in a personal working copy. |
 | Coordinator | Person organizing scope, responsibilities and competing proposals. |
 | Assistant | Delegated actor executing permitted work for a person; receives no independent acceptance authority. |
-| Work item | Identified idea, delivery item, story or enabling task; kind determines its contribution to delivery. |
-| Delivery item | Independently releasable, useful outcome for a person or consuming system, counted once in selected delivery scope; a screen is not required. |
-| Work group | Vision or epic linking work; its membership is a view of existing identities. |
-| Group purpose | Optional area, capability or initiative meaning on an existing group; absent or cleared purpose means generic. It grants no privilege and is independent of kind or state. |
+| Work item | Identified initiative, delivery item, story or enabling subtask; kind determines its contribution to delivery. |
+| Delivery item | Independently releasable, useful outcome for a person or consuming system, counted once in selected delivery scope; a screen is not required. Stored and shown as a task. |
+| Work group | Vision or project group linking work; its membership is a view of existing identities. |
+| Group purpose | Optional area, capability or program meaning on an existing group; absent or cleared purpose means generic. It grants no privilege and is independent of kind or state. |
 | Area | Enduring product or responsibility scope, such as a module; it need not have a finite delivery end. Default display label is Area. |
 | Capability | Feature outcome grouping useful delivery items. Default display label is Feature. |
-| Initiative | Finite coordinated scope grouping existing outcomes. Default display label is Initiative. |
+| Program | Finite coordinated scope grouping existing outcomes. Default display label is Program. |
 | Stakeholder | Person, including an executive, inspecting permitted work and evidence; the title grants no additional access or mutation authority. |
 | Selected scope | Project-wide work or one exact group's transitive declared members, independent of display search, person and state filters. |
 | Shared affiliation | The same work identity belongs to more than one group; every selected scope counts an eligible delivery identity once. |
@@ -155,6 +159,10 @@ Each requirement's complete source mapping is **TBD (requirement-level evidence)
 | Saving producer | The actual work owner that successfully saves an artifact or completes a publication checkpoint; nested work retains that owner and its actual context. |
 | Local author identity | Stable author address and chosen author name from the selected working copy; supplies attribution when no explicit custom identity is chosen, without establishing access or shared membership. |
 | Retained attribution | Minimal stable identity and display name recorded during a permitted save so another person can recognize prior responsibility; historical display alone grants no operational eligibility. |
+| Current vocabulary | The words every view shows and every new record stores: task (the delivery item counted once toward progress), subtask (supporting work without delivery credit), initiative (captured intent that may later be refined into tasks), project group (a finite group), program (the group purpose for finite coordinated scope), Planned (the lifecycle label that follows Draft) and the initiative link. Story, vision, sprint and story-point wording are unchanged. |
+| Earlier vocabulary | The words stored by projects created before the current vocabulary: PBI for the delivery item, task for supporting work, idea, epic, initiative as a group purpose, Backlog and the idea link. The word task names different kinds in the two vocabularies. This spec uses an earlier word only where it describes the earlier vocabulary itself. |
+| Vocabulary declaration | The single project-level statement of which vocabulary the project's stored records use. |
+| Vocabulary migration | The explicit one-way action that moves a project's stored records from the earlier to the current vocabulary without changing authored content, identities or progress. |
 
 Actors are Contributor, Coordinator, Assistant and Stakeholder. These are participation roles, not a new account or access-control hierarchy.
 
@@ -164,8 +172,8 @@ Each row is a story in the form **As a** named actor, **I want to** the action, 
 
 | Story | Actor; action; value | Acceptance criterion |
 |---|---|---|
-| US-TPT-01 | Contributor; capture an idea; retain useful future intent | AC-TPT-01: Given a requested title/intent, when I save, then one identified draft is readable; absent save intent creates nothing (BR-TPT-01/02). |
-| US-TPT-02 | Coordinator; refine releasable outcomes; avoid counting technical chores as delivery | AC-TPT-02: Given an idea, when I request refinement, then requested delivery items retain lineage; incomplete decisions cannot promote Ready (BR-TPT-03/04). |
+| US-TPT-01 | Contributor; capture an initiative; retain useful future intent | AC-TPT-01: Given a requested title/intent, when I save, then one identified draft is readable; absent save intent creates nothing (BR-TPT-01/02). |
+| US-TPT-02 | Coordinator; refine releasable outcomes; avoid counting technical chores as delivery | AC-TPT-02: Given an initiative, when I request refinement, then requested delivery items retain lineage; incomplete decisions cannot promote Ready (BR-TPT-03/04). |
 | US-TPT-03 | Coordinator; group/prioritize scope; select a useful next outcome | AC-TPT-03: Given valid membership, when I plan, then unique scope and explained ready ordering are visible; cycles or unknown prerequisites are refused/flagged (BR-TPT-04/05). |
 | US-TPT-04 | Contributor; start a selected item; make actual work visible | AC-TPT-04: Given exact ready work and responsible member, when I start, then that item becomes active; ambiguous/all-linked selection changes nothing (BR-TPT-03/06). |
 | US-TPT-05 | Contributor; record and resolve a blocker; resume valid work | AC-TPT-05: Given active work, when I block with a reason then the reason/prior state remain visible; resume without resolution/current prerequisites is refused (BR-TPT-06). |
@@ -200,6 +208,8 @@ Each row is a story in the form **As a** named actor, **I want to** the action, 
 | US-TPT-34 | Coordinator; set or clear group purpose; organize useful scope without rewriting its members | AC-TPT-34: Given an exact permitted group and current saved work, when I preview and save a purpose or membership change then only requested group facts change; omitted purpose or membership preserves that fact, clearing purpose restores generic meaning, and invalid, empty, denied or stale changes retain saved work and the pending draft (BR-TPT-02/05/12/15/27). |
 | US-TPT-35 | Stakeholder; drill from project through an area and feature to delivery items; understand exactly what supports progress | AC-TPT-35: Given a permitted selected source, when I select an area and feature then the displayed eligible delivery identities exactly match that scope's denominator and direct child groups are separately identified; unavailable, duplicate, cyclic or partial inputs show reasons without a complete percentage, and returning preserves selected scope (BR-TPT-04/05/08/10/18/28/29). |
 | US-TPT-36 | Stakeholder; inspect shared, generic and ungrouped work; avoid mistaking organization for additional delivery | AC-TPT-36: Given overlapping groups and optional vocabulary, when I enter shared work through either valid path or select generic/ungrouped work then exact identity, acceptance and proof remain the same, the chosen path and other direct affiliations are disclosed, and filters or labels cannot change scope, hide reachable legacy work or grant access (BR-TPT-04/09/15/27/28/29). |
+| US-TPT-37 | Stakeholder; inspect a project that still stores the earlier vocabulary; read honest progress in the current words without its records changing | AC-TPT-37: Given a project whose stored records use the earlier vocabulary, when I inspect it in the workspace or status report then every kind, state, group purpose and link is shown in the current vocabulary with identical total, accepted, remaining and eligible delivery identities and nothing stored changes; every save is refused as migration required, automatic upkeep is skipped, a project holding both vocabularies or a save request written for the earlier vocabulary is refused rather than counted or reinterpreted, and a status report requested for a project that holds both vocabularies is refused with that reason while the report made before is kept (BR-TPT-02/10/28/30). |
+| US-TPT-38 | Coordinator; migrate a project to the current vocabulary by an explicit previewed action; resume saving without losing authored content or progress meaning | AC-TPT-38: Given an earlier-vocabulary project that meets every migration precondition of BR-TPT-30, when I preview and then explicitly run migration then the preview changes nothing, the run rewrites only tracker-owned vocabulary values with authored content, identities and record names conserved, and the project ends in the current vocabulary with progress equal to the values captured before it started; the preview and the result name the work whose currently verified standing changes, with no proof altered; an unmet precondition refuses with nothing changed, an interrupted run refuses all reads, saves and status reports as in progress until a repeated run completes it or, once the earlier project is restored whole, an explicit abandon request reports migration abandoned; an abandon request for a project not restored whole is refused as restore incomplete with nothing changed, a run without that request never abandons and stops on a project restored from outside with both ways on named, repeating a finished migration changes nothing, and a record later reintroduced in the earlier vocabulary is flagged and not counted (BR-TPT-02/20/28/30). |
 
 ## 4. Business Rules
 
@@ -210,7 +220,7 @@ All rules below are **[HARD]**. Each universal statement applies to every operat
 | BR-TPT-01 Requested scope | For all discussion, quotation and work requests, only trusted exact save/update intent or established allowed linkage can change work. No guessed ticket or acceptance. | “No tracked item selected”; continue untracked and offer linkage at a checkpoint. |
 | BR-TPT-02 Preservation | For all supported edits, only explicitly owned fields change; identity, authored body/custom content and unrelated history are retained. Root changes never migrate automatically. | “Existing content preserved; requested change was not saved” on collision/unsafe format. |
 | BR-TPT-03 Readiness | For all Ready transitions, defined outcome/criteria/required decisions and current prerequisites meet reviewed readiness policy; implementation evidence is not readiness. | “Not ready: required scope, decision or prerequisite is unresolved.” |
-| BR-TPT-04 Unique scope | For all project rollups, count each eligible delivery identity once; groups/stories/tasks/ideas never add delivery credit. Canceled scope is disclosed/excluded; partially known scope stays qualified. | “Scope incomplete” or “No delivery scope”, never a guessed complete percentage. |
+| BR-TPT-04 Unique scope | For all project rollups, count each eligible delivery identity once; groups/stories/subtasks/initiatives never add delivery credit. Canceled scope is disclosed/excluded; partially known scope stays qualified. | “Scope incomplete” or “No delivery scope”, never a guessed complete percentage. |
 | BR-TPT-05 Relationships | For all links/memberships/dependencies, targets have one valid owner and no forbidden cycle/self-link/cross-project ambiguity. Ready selection uses priority then stable identity, with excluded reasons. | “Link unresolved or cycle detected”; no guessed relink or readiness. |
 | BR-TPT-06 Lifecycle | For all state actions, only declared transitions with current prerequisites apply; blocker reason/resolution and valid prior state are required. A person may, by a separate explicit action with a stated reason, place work in any other recorded state except Done, including canceled work back to draft; the target state keeps every fact it requires, history keeps both states and the reason, and no automatic action can do this. Age/stop is attention only. | “Transition unavailable in the current state”; pre-state is preserved. |
 | BR-TPT-07 Acceptance | For all certified Done decisions, exact applicable passing current proof and actual scoped authorization are required. Each required criterion uses its latest applicable observation; a newer failed or skipped observation cannot borrow an older pass, and contradictory observations at the same time cannot certify that criterion. Planning, assignment, edit, merge, workflow completion or a green unrelated result cannot accept. | “Acceptance pending: required current proof or authority is missing.” |
@@ -226,16 +236,17 @@ All rules below are **[HARD]**. Each universal statement applies to every operat
 | BR-TPT-17 Responsibility | For all assignment changes, resolve an active stable member or currently validated local author, exact item and scope; aliases/history survive renaming/deactivation; local self-preference is not authorization. Historical display does not make a person an available assignment target. Assignment does not start/accept; coordinator is not leaf ownership. Existing permitted unassignment by an inactive custom actor remains permitted; inactivity is not a blanket denial of every operation. | “Member inactive, unknown or ambiguous” for an ineligible new assignment; no impersonation or silent change of actor. |
 | BR-TPT-18 Sharing | For all local/shared views, label proposals versus one locally pinned baseline and disclose missing/unknown freshness. Personal copies have no global exclusive claim. Sharing/merge success cannot replace semantic checks or authorize publishing. | “Shared baseline unavailable” or a semantic conflict; no silent scope substitution. |
 | BR-TPT-19 Retirement | For all removals, referenced work and open, started or accepted work retain identity/history/incoming references through supported retirement; no child cascade. Deletion is limited to an exact authorized unreferenced draft or, by a separate explicit action with a stated reason and a current preview of what is removed, exact unreferenced ended work (canceled or retired) whatever its history; undo rechecks current revision. | “Use cancel/archive/retire” or “Undo conflicts with newer work”; preserve affected records. |
-| BR-TPT-20 Bounds/operability | For all operations, declared limits, supported capabilities and partial results remain visible. Closing a workspace stops new work and allows already admitted work to settle within its declared shutdown bound; closure cannot claim success before that work and its result settle. If the bound expires, the outcome remains explicitly uncertain until reread or retry with the original operation identity; interrupted communication does not prove cancellation. Repeated close requests share the same outcome. No background full-backlog surveillance or generated-output loop. Optional app failure keeps explicit operations/allowed snapshot usable. | Useful bounded recovery or unavailable capability; never fictitious completed upkeep or a saved/canceled claim for an uncertain operation. |
+| BR-TPT-20 Bounds/operability | For all operations, declared limits, supported capabilities and partial results remain visible. Closing a workspace stops new work and allows already admitted work to settle within its declared shutdown bound; closure cannot claim success before that work and its result settle. If the bound expires, the outcome remains explicitly uncertain until reread or retry with the original operation identity; interrupted communication does not prove cancellation. Repeated close requests share the same outcome. No background full-inventory surveillance or generated-output loop. Optional app failure keeps explicit operations/allowed snapshot usable. | Useful bounded recovery or unavailable capability; never fictitious completed upkeep or a saved/canceled claim for an uncertain operation. |
 | BR-TPT-21 Operation purposes | For all named work purposes, inspect, maintain, link, lifecycle, verify, accept, report and serve expose only supported existing operations and their actual prerequisites. An omitted purpose is inspect; an unknown purpose refuses without change. The assistant and direct operation interface use the same authority and result meanings. Verify inspects current evidence and gaps; it cannot manufacture proof. Test/review proof and arbitrary activity without an actual supported observation path are unavailable; explicit manual proof remains labelled and requires its own authority. Accept requires the actual scoped human decision and current proof. | “Unknown work purpose”, “Unsupported capability” or the exact prerequisite/refusal reason; no invented write or observation permission. |
 | BR-TPT-22 Exact concern navigation | For all relationship inspections, derive incoming and outgoing navigation from exact declared relationships without saving reciprocal copies or duplicating requirements. Name each governing owner, relation, direction and current confidence. Matching text or overlapping changed locations can signal a concern but cannot select an item for mutation or establish semantic equivalence. Missing, duplicate, deleted, foreign or ambiguous owners and unsupported owner-qualified cases remain unresolved. Bound inspection and disclose visited scope, omissions and unavailable capabilities. | “Relationship unresolved”, “Coverage partial” or “No exact linked work”; no guessed join, repair, replacement record or falsely complete coverage. |
 | BR-TPT-23 Advisory guidance | For all ordinary work or publication requests, including trusted read-oriented module/feature/initiative status, progress and report requests, guidance is concise, relevant, bounded and advisory; it never changes canonical work or proves that a procedure was executed. Unrelated requests, quoted instructions and a generic request to implement a feature alone produce no hierarchy-read notice. Preserve the governing selection policy: a restricted unrequested heavy procedure requires its single choice and answer; named requests and authorized required calls retain eligibility, and Skip is not replaced by another unrequested procedure. Tracking off suppresses optional work guidance, observe allows guidance without optional saves, and linked mode allows only exact authorized checkpoint updates; opt-out remains enforced. | Silent ineligible guidance, or a useful scoped notice/choice; unavailable guidance preserves the primary task and grants no authority. |
 | BR-TPT-24 Publication reconciliation | For all publication checkpoints, inspect the complete actual candidate against its receiving baseline, including earlier proposed changes and pending work. A pending integration excludes unrelated receiving-side changes from the candidate. Candidate changes during review or repair invalidate the prior concern check. Check exact linked work, save only authorized supported updates, reread results, and explicitly self-check whether final linked concerns are saved or pending with reasons. Standalone publication uses its actual saving producer; nested work retains the actual linked producer/context and one owner records each actual checkpoint once. Optional failure retains the primary success and retries only the unresolved update with its original request identity. | “Checked final candidate; linked updates saved” or exact pending/skipped/untracked reasons; no acceptance, fictitious proof, duplicate checkpoint or repeated successful publication. |
 | BR-TPT-25 Local identity | For all identity-dependent actions, an explicit custom identity takes precedence and retains its operation-specific eligibility; invalid or inactive explicit choices never silently become another author. With no explicit choice, use only the selected working copy's usable author address/name; an unambiguous declared identity match keeps that custom identity, and missing name alone uses the full address. Author addresses and email aliases use visible basic Latin letters, digits and punctuation, exactly one at-sign with nonempty portions, and no spaces or control characters; they are at most 254 characters. Compare email addresses without letter case; an automatic local identity uses the lower-case address, while a matched declared custom identity keeps its spelling. Local display names are at most 254 characters; declared custom display names retain their 160-character limit. No mailbox or remote validation is required. Missing, malformed, ambiguous or overlong identity refuses the affected action without changing work or shared membership/settings. Identity supplies attribution only; existing explicit capture without declared members, inactive custom-owner unassignment, access, proof and acceptance rules remain intact. An implicit identity change before a write requires renewed selection; retries cannot switch the retained request's actor. Ordinary inspection, reports and advisory guidance require no local author lookup, and optional off/observe upkeep stops before identity lookup. | “Local author identity unavailable”, “Identity ambiguous”, “Identity exceeds the allowed length” or “Selected actor changed”; permitted reads and primary untracked work remain available without guessed enrollment or broader authority. |
 | BR-TPT-26 Attribution and health | For all permitted saves using a validated local author absent from declared members, retain only bounded stable identity and display name needed to recognize that contributor. Preserve earlier attribution; declared member names take precedence and need no redundant captured name. Viewing or sharing cannot add membership or rewrite earlier attribution. Historical names remain display-only, unavailable for new assignment and ineligible to establish owner-attested health. A permitted dated attestation may remain recorded, but a later inspection without an eligible declared owner shows health Unknown with that limitation; an eligible declared owner's actual dated attestation remains recognizable under the existing policy. | Historical responsibility remains readable; “Historical attribution only” or “Health Unknown: eligible declared owner unavailable”; no new acting authority, fabricated health, acceptance or delivery credit. |
-| BR-TPT-27 Group purpose and vocabulary | For all group changes, purpose is absent, cleared, area, capability or initiative on a vision or epic only. Omitted purpose preserves it; omitted membership preserves it; at least one of these facts must be explicitly requested. A purpose-only change cannot rewrite members, children, kind, identity, authored content, acceptance or unrelated history. No purpose or nesting depth implies completion, hierarchy privilege or a required wrapper. Only these three display labels are customizable: omitted labels default to Area, Feature and Initiative; a declared label is nonblank text of at most 160 characters, trimmed for display, without control characters. Labels are inert display text and cannot select owners, membership, permissions or an executable instruction. | “Group purpose invalid”, “No group change requested”, or “Group label invalid”; preserve current work and draft. Ordinary supported reads with absent configuration require no setup or record rewrite. |
-| BR-TPT-28 Exact selected work | For all selected project/group scopes, derive membership solely from the group's declared member list; a parent, governing-intent, source or dependency link adds no membership. Group inventory contains every admitted transitive declared member, including supporting ideas, stories, tasks and groups; project inventory contains all admitted work. The primary delivery list contains only eligible delivery identities and equals the unique denominator after existing canceled/retired exclusions. All selected delivery identities remain available: canceled/retired outcomes appear separately as excluded, and supporting work is inspectable on demand without credit. Direct child groups are separately identified for navigation. Partial, missing, ambiguous or cyclic membership cannot yield a complete percentage. Display filtering cannot alter that set. Scoped inspection does not remove other permitted work from management or exact linked-concern inspection. | “Scope incomplete”, “Selected group unavailable”, or “No delivery scope”, with inspected identities and omitted/unresolved reasons. No arbitrary duplicate owner is selected and no outside project is consulted. |
+| BR-TPT-27 Group purpose and vocabulary | For all group changes, purpose is absent, cleared, area, capability or program on a vision or project group only. Omitted purpose preserves it; omitted membership preserves it; at least one of these facts must be explicitly requested. A purpose-only change cannot rewrite members, children, kind, identity, authored content, acceptance or unrelated history. No purpose or nesting depth implies completion, hierarchy privilege or a required wrapper. Only these three display labels are customizable: omitted labels default to Area, Feature and Program; a declared label is nonblank text of at most 160 characters, trimmed for display, without control characters. Labels are inert display text and cannot select owners, membership, permissions or an executable instruction. | “Group purpose invalid”, “No group change requested”, or “Group label invalid”; preserve current work and draft. Ordinary supported reads with absent configuration require no setup or record rewrite. |
+| BR-TPT-28 Exact selected work | For all selected project/group scopes, derive membership solely from the group's declared member list; a parent, governing-intent, source or dependency link adds no membership. Group inventory contains every admitted transitive declared member, including supporting initiatives, stories, subtasks and groups; project inventory contains all admitted work. The primary delivery list contains only eligible delivery identities and equals the unique denominator after existing canceled/retired exclusions. All selected delivery identities remain available: canceled/retired outcomes appear separately as excluded, and supporting work is inspectable on demand without credit. Direct child groups are separately identified for navigation. Partial, missing, ambiguous or cyclic membership cannot yield a complete percentage. Display filtering cannot alter that set. Scoped inspection does not remove other permitted work from management or exact linked-concern inspection. | “Scope incomplete”, “Selected group unavailable”, or “No delivery scope”, with inspected identities and omitted/unresolved reasons. No arbitrary duplicate owner is selected and no outside project is consulted. |
 | BR-TPT-29 Truthful scope navigation | For all hierarchy views, expose labelled groups, reachable generic groups and ungrouped delivery work at project scope without compulsory nesting. Selecting a group shows its direct child groups and exact delivery work. The return trail follows one chosen valid membership path; other direct group affiliations are disclosed without multiplying identities or expanding every possible ancestry path. A direct entry without a chosen parent claims no invented ancestry. Workspace, snapshot, print and reading without enhanced interactions preserve selected source, delivery scope, coverage, intent links, acceptance and current proof meanings. A generated snapshot keeps one explicitly chosen Delivery scope and its exact eligible list; following its separately labelled Inspected group or record links does not change delivery metrics or claim a percentage for that inspected group. Missing or denied links show their reason and a safe return, never a guessed substitute. | “Path unavailable”, “Relationship unresolved”, or an explicit unavailable/partial scope; retain readable work, exact identities and current location. |
+| BR-TPT-30 Vocabulary and migration | For all projects, stored records use exactly one vocabulary, declared once for the project. A project with no declaration is recognised from which record locations it holds; that recognition cannot see an undeclared project holding only the earlier supporting-work location, which needs the explicit declaration. An undeclared project holding locations from both vocabularies is refused rather than counted, and so is a project declared as earlier that holds a current-only location; a status report requested for such a project is refused with the same reason and the report made before is kept. The current vocabulary names the delivery item task (earlier PBI), supporting work subtask (earlier task), captured intent initiative (earlier idea), the finite group project group (earlier epic), the finite-scope group purpose program (earlier initiative), the lifecycle label Planned (earlier Backlog) and the link relation initiative (earlier idea). Story, vision, sprint and story-point wording are unchanged; stories stay with their delivery kind; no transition, delivery credit or permission changes. Every view shows the current words. A project in the earlier vocabulary is fully readable in the current words with identical total, accepted, remaining and eligible delivery identities, and is read-only: every save is refused and automatic upkeep is skipped until migration. A save request written for the earlier vocabulary is refused, never reinterpreted, because the same word names different kinds. Migration is only ever an explicit action and offers a preview that changes nothing. It starts only when the project is in the earlier vocabulary and uses the portable record profile; no record location or progress record is a link to elsewhere; every record file can be read as stored and none is already in the current form; no deletion recovery is unfinished; no destination name is already taken, compared without regard to letter case; a project under version control has no uncommitted or untracked file in its record root and no uncommitted change to the project configuration that migration will rewrite, and version control can say so; and no rewrite would alter authored content. Otherwise it is refused with every unmet precondition named and nothing changed; an uncommitted file is named by its place in the project, also when the project sits below the top of a larger working copy. A finding about what a readable record means, such as a link that no longer resolves, does not block it. A project outside version control, or one whose record root version control ignores, is not refused: the preview says that version control cannot restore it. When version control cannot say whether the record root is clean, the refusal is worded by its cause with what resolves it. It moves the earlier supporting-work location first, then the delivery location into the freed name, then the remaining kinds. It rewrites only tracker-owned vocabulary values: kind, current and historical states, group purpose, link relation, links into moved locations and the kind and location named in receipts; it marks each record as migrated. A stored link path that differs from a moved location only in letter case follows that location where the storage ignores letter case; where it does not, it is left as written and listed. The project configuration is migrated wherever in the working copy it is kept. Authored body, title, intent, reasons, identities, record names, members, actors, times and revision are conserved. It keeps a durable progress record: while migration is unfinished every read, save and status report request is refused, and running it again completes it. An unfinished migration can instead be abandoned, and only by an explicit abandon request, because stored state cannot tell a person who restored the project and wants out from one who wants to finish. Every interrupted or failed outcome states the steps: restore the record locations and the project configuration from version control or the person's own backup, remove what the migration created, then make the abandon request. In every state a migration can stop in, also before its first move, that request checks that the earlier project is back whole: each earlier location that held a record is back, nothing the migration created remains, the declaration reads as before, and the identities and progress values equal those captured before the migration began. An earlier location that held no record is not waited for. Whole, the request removes only the progress record and reports migration abandoned; otherwise it is refused as restore incomplete, naming exactly what is not back or still remains, with nothing changed. It never removes or moves a location, cannot be previewed, and reports nothing to abandon where no migration is unfinished. Running migration again without that request never abandons: it completes the migration, and when it finds the project restored from outside it stops with nothing changed, even when the project is back whole, and names both ways on, the abandon steps and what to undo so that a further run completes. A progress record that cannot be read, or that this migration did not write, is never acted on by either request: after restoring the project the person sets it aside by hand. It finishes by declaring the current vocabulary and confirming that total, accepted, remaining and eligible delivery identities equal the values captured before it started; a project with no declaration is migrated without gaining one or being enrolled. Currently verified work is not conserved, because a proof names the location and content of the record it was checked against: the preview and the result name the work whose verification goes stale, the work that leaves the ready list and the work newly held by a prerequisite that is no longer verified. No proof is altered; a person verifies the named work again. Repeating a finished migration changes nothing. Migration is one-way; the earlier version is recovered only through version control or the person's own backup. Afterwards no stored value uses an earlier word, existing identities and record names are unchanged and only new identities follow the current naming. In a project declared current, a record that carries the earlier mark or sits in an earlier-only location is flagged and excluded from every count. A file with no tracker metadata at all carries neither mark: it stays adoptable work wherever it sits, so one written as earlier supporting work and later placed where tasks are kept cannot be told apart and is read as a task. | “Migration required”, “Migration in progress”, “Mixed vocabularies”, “Request uses the earlier vocabulary”, “Nothing to migrate”, “Restore incomplete”, “Restored from outside”, “Migration abandoned”, “Nothing to abandon”, the exact unmet migration precondition, or “Earlier-vocabulary record: not counted”; nothing saved and existing records preserved. |
 
 ### Work operation purposes
 
@@ -276,7 +287,7 @@ erDiagram
 |---|---|---|
 | Work item | Stable identity; kind; nonempty title/intent; recorded state; current revision. Optional parent, priority, assignee/collaborators, criteria/reference links, blocker and minimal retained attribution. | Identity has one owner; no body rewriting outside requested fields; kind determines delivery or execution meaning. Retained attribution is added only during an already permitted save and preserves earlier names. |
 | Member | Stable identity; display name; active flag; aliases/history. A currently validated local author can supply responsibility without shared enrollment; retained historical names are separate display information. | Rename changes display only; inactive or historical-only people remain attributable but unavailable for new assignment. Historical display grants no acting or health-owner eligibility. |
-| Work group | Stable identity; vision/epic kind; referenced members; scope revision; optional coordinator and purpose. | Purpose is generic, area, capability or initiative, independent of lifecycle. Only its declared member list owns membership; it may overlap and nest without a fixed taxonomy. Rollups use unique identity union; no duplicate child status authority. |
+| Work group | Stable identity; vision/project-group kind; referenced members; scope revision; optional coordinator and purpose. | Purpose is generic, area, capability or program, independent of lifecycle. Only its declared member list owns membership; it may overlap and nest without a fixed taxonomy. Rollups use unique identity union; no duplicate child status authority. |
 | Proof | Kind/result; applicable criterion/case identities; relevant source and criteria identities; actual observed time; selected retained summary/reference. | Passing unrelated/stale/skipped/missing proof does not satisfy required completion. Manual proof follows selected policy and is labelled. |
 | Acceptance | Exact item/scope; actual accepting actor/action/time; applicable proof references and historical context. | Later stale proof does not erase history. Material new scope cannot inherit copied acceptance. |
 | Project scope | Actual project/source selection; eligible unique identities; excluded delivery identities; direct child groups; scope revision; complete/partial/unavailable coverage; chosen entry path and direct affiliations. | Displayed eligible identities equal the denominator. Filters, labels and navigation are display-only. Global permitted work remains available to management/concerns. Native scope/unit semantics remain with their owner. |
@@ -286,36 +297,37 @@ erDiagram
 - INV-TPT-01: Every work identity has one authoritative home; ambiguous duplicate identity cannot be silently selected (BR-TPT-02/05/11).
 - INV-TPT-02: Every assignment refers to a stable eligible identity and changes responsibility without granting delivery; prior attribution survives sharing, renaming and deactivation without making historical people eligible for new assignment (BR-TPT-17/25/26).
 - INV-TPT-03: Every acceptance certifies only its exact delivered scope with required applicable proof (BR-TPT-07).
-- INV-TPT-04: Every scoped delivery count conserves unique eligible membership; duplicate views and enabling tasks add no credit (BR-TPT-04).
+- INV-TPT-04: Every scoped delivery count conserves unique eligible membership; duplicate views and enabling subtasks add no credit (BR-TPT-04).
 - INV-TPT-05: Every saved result describes actual primary/secondary outcomes and preserves a newer unaccepted edit when a stale save is refused (BR-TPT-12).
 - INV-TPT-06: Every projection preserves the selected authority/scope and discloses unknown confidence or coverage (BR-TPT-09/10/11/18).
 - INV-TPT-07: Every scope view's eligible delivery identities equal its unique delivery denominator; chosen paths and shared affiliations preserve one identity and do not change that scope's membership or authority (BR-TPT-27/28/29).
+- INV-TPT-08: Every project stores its records in exactly one vocabulary; reading in the current words, migration preview, migration, interruption and repetition conserve work identities, authored content and the total, accepted, remaining and eligible delivery identities (BR-TPT-30).
 
 Purpose is descriptive group metadata; its permitted set/change/clear edits introduce no lifecycle states or transitions. These edits require an exact current authorized group. Invalid purpose, purpose on a nongroup, a request changing neither purpose nor membership, or a stale/denied save is refused without changing its prior facts. The same purpose may be nested under itself or under any other purpose; only the existing membership validity and cycle rules restrict the graph.
 
 ### Portable lifecycle
 
-Native projects keep their own lifecycle. Portable record labels are Draft, Backlog, Ready, In progress, Blocked, Verifying, Done, Canceled; archived/retired is retained visibility/history rather than implicit delivery. Enabling tasks complete only their own execution policy and contribute no delivered-item credit. Old recorded Done without acceptance is labelled recorded/unverified.
+Native projects keep their own lifecycle. Portable record labels are Draft, Planned, Ready, In progress, Blocked, Verifying, Done, Canceled; archived/retired is retained visibility/history rather than implicit delivery. Enabling subtasks complete only their own execution policy and contribute no delivered-item credit. Old recorded Done without acceptance is labelled recorded/unverified.
 
 | Transition | Required decision | Visible result |
 |---|---|---|
-| Draft → Backlog | Requested planning with captured intent | Planned candidate, no readiness/delivery credit |
-| Backlog → Ready | Reviewed readiness and current dependencies | Selectable ready outcome, no implementation-proof requirement |
+| Draft → Planned | Requested planning with captured intent | Planned candidate, no readiness/delivery credit |
+| Planned → Ready | Reviewed readiness and current dependencies | Selectable ready outcome, no implementation-proof requirement |
 | Ready → In progress | Exact target, valid responsibility and allowed start | Actual scoped activity |
 | In progress → Blocked | Actual obstacle, reason and prior state | Reason visible, delivery pending |
 | Blocked → prior active state | Actual resolution and rechecked prerequisites | Resume exactly the valid prior state |
 | In progress → Verifying | Implementation handoff, evidence pending/attached | Acceptance still pending |
 | Verifying → Done | Actual scoped acceptance plus current required proof | Accepted history and separate current verification |
-| Done → explicit active state | Authorized reopen/rescope; choose Backlog/Ready/In progress only when that state's prerequisites hold | Historical receipt retained; accepted scope changes explicitly |
+| Done → explicit active state | Authorized reopen/rescope; choose Planned/Ready/In progress only when that state's prerequisites hold | Historical receipt retained; accepted scope changes explicitly |
 | Draft → Canceled | Current revision, actual owner authority, explicit decision and reason | Canceled history retained; removed from active delivery denominator |
-| Backlog → Canceled | Current revision, actual owner authority, explicit decision and reason | Canceled history retained; removed from active delivery denominator |
+| Planned → Canceled | Current revision, actual owner authority, explicit decision and reason | Canceled history retained; removed from active delivery denominator |
 | Ready → Canceled | Current revision, actual owner authority, explicit decision and reason | Canceled history retained; removed from active delivery denominator |
 | In progress → Canceled | Current revision, actual owner authority, explicit decision and reason | Canceled history retained; removed from active delivery denominator |
 | Blocked → Canceled | Current revision, actual owner authority, explicit decision and reason | Canceled history retained; removed from active delivery denominator |
 | Verifying → Canceled | Current revision, actual owner authority, explicit decision and reason | Canceled history retained; removed from active delivery denominator |
 | Done → Canceled | Current revision, actual owner authority, explicit decision and reason | Historical acceptance/proof retained for attribution; removed from accepted numerator and active delivery denominator |
 
-Cancellation eligibility is exactly Draft, Backlog, Ready, In progress, Blocked, Verifying and Done. Canceled has no outgoing cancellation transition. An identical completed operation identity/payload returns its original receipt within the retained retry horizon without revision/history growth. A new redundant cancellation of Canceled work is a no-op or refusal with no revision/history growth. A changed request under a reused operation identity is refused. Native cancellation eligibility remains with its native owner; unsupported or unproved actions preserve the original records.
+Cancellation eligibility is exactly Draft, Planned, Ready, In progress, Blocked, Verifying and Done. Canceled has no outgoing cancellation transition. An identical completed operation identity/payload returns its original receipt within the retained retry horizon without revision/history growth. A new redundant cancellation of Canceled work is a no-op or refusal with no revision/history growth. A changed request under a reused operation identity is refused. Native cancellation eligibility remains with its native owner; unsupported or unproved actions preserve the original records.
 
 Any undeclared transition is refused with state/references/history preserved. Repeating an already applied action is a recorded no-op or replay, never another acceptance or delivery credit. Retirement does not cascade. Business occurrences: assignment changes responsibility; blocker changes current work availability; acceptance records delivered scope; relevant later changes reduce confidence; scope change explains numerator/denominator movement.
 
@@ -345,6 +357,8 @@ Stakeholder inspection: Overview → select area or another labelled/generic gro
 
 Purpose maintenance: select exact group → inspect current purpose/members → choose purpose, clear purpose or change members → preview requested facts → save under current authority/revision → reread group and unchanged children. A conflict retains the draft for comparison; unchanged membership is not silently replaced.
 
+Vocabulary migration: open a project that stores the earlier vocabulary → read it in the current words with unchanged progress and a visible migration-required notice → preview migration and review what would move → explicitly run it → reread the project in the current vocabulary with equal progress and resume saving. A save before migration is refused with nothing changed. An interrupted run shows migration in progress for every read and save until a repeated run completes it, or until the earlier project is restored whole and an explicit abandon request reports migration abandoned. Nothing migrates as a side effect of reading, saving or upkeep.
+
 ### 6.2 View inventory
 
 | View / container | Now: primary task and information | Later/on demand | Not here / owner |
@@ -359,10 +373,10 @@ Purpose maintenance: select exact group → inspect current purpose/members → 
 | Changes and proof / full view | Actual local/shared difference, criterion/proof applicability and pending/conflict; primary Inspect selected change | History, current-source identity, detailed evidence | Automatic publish, acceptance from a green label |
 | Saved result / item detail | Actual saved change and one return action; unchanged state/acceptance/proof visible | Receipt and secondary pending recovery | Optimistic durable-success claim |
 | Progress snapshot / read-only full view | Source/as-of/coverage, unique scoped metrics; primary Inspect remaining work | Search/filter/detail/print and source links | Persistent drag/edit/save; use workspace or explicit operations |
-| Work guidance / conversational notice | Relevant purpose or exact concern and one next action; selection choice when required | Full operation details after selection | Full backlog, private details, automatic item updates or acceptance |
+| Work guidance / conversational notice | Relevant purpose or exact concern and one next action; selection choice when required | Full operation details after selection | Full work inventory, private details, automatic item updates or acceptance |
 | Linked concerns / read-only result | Selected owner/item, exact relation/direction, current confidence and complete/partial scope | Individual owner details and permitted recovery | Copied intent or criteria, guessed selection and automatic repair |
 | Publication self-check / conversational result | Final candidate coverage, exact linked saved/pending/skipped outcomes and reasons | Evidence or unchanged history on demand | Acceptance from publication, unrelated receiving changes or repeated successful publication |
-| Scope drilldown / full view | Selected source/coverage and group identity/purpose; exact eligible delivery identities and denominator; separately labelled direct child groups; primary Inspect child or outcome | Excluded canceled/retired outcomes, current health rationale, proof/intent details and other direct affiliations | Global backlog mixed into selected delivery counts, member editing, rankings or forecasts |
+| Scope drilldown / full view | Selected source/coverage and group identity/purpose; exact eligible delivery identities and denominator; separately labelled direct child groups; primary Inspect child or outcome | Excluded canceled/retired outcomes, current health rationale, proof/intent details and other direct affiliations | Global work inventory mixed into selected delivery counts, member editing, rankings or forecasts |
 | Group maintenance / full editor | Exact group and current purpose/members; requested change and Preview, then Save | Shared affiliations, history and optional coordinator | Child status editing, implicit acceptance or a required organizational wrapper |
 | Contextual return / inline navigation | Chosen scope path and Back; direct-entry source/scope when no parent was chosen | Other direct affiliations, explicitly selected by the reader | Every ancestry path, invented unique parent or expanded write authority |
 
@@ -391,6 +405,8 @@ Overview exposes labelled scopes, generic groups and ungrouped outcomes. Area �
 | Saved | Acknowledge only actual successful change; next action returns to retained context. |
 | Saved + secondary pending | Primary result remains saved; retry only unresolved link/report outcome. |
 | Stale confidence | Preserve accepted history; explain relevant proof gap and offer re-verification. |
+| Migration required | The project is readable in the current words and marked read-only; a save explains that migration is required and retains the draft. Recovery is the explicit previewed migration. |
+| Migration in progress | No count, record or editor is shown as current; every read, save and status report request names the unfinished migration. Recovery is running migration again, which never abandons; the way out without completing it is the stated restore followed by an explicit abandon request, which reports migration abandoned. |
 
 Every view exposes its applicable states, current location, one primary next step and a useful exit. Accessible labels/text statuses, keyboard/focus and narrow reflow are required; colours alone cannot convey state. Snapshot counts/details remain readable when enhanced interactions are unavailable.
 
@@ -399,7 +415,7 @@ Every view exposes its applicable states, current location, one primary next ste
 | Story | Entry → action → visible result → return |
 |---|---|
 | US-TPT-01 | Work/Create or capture prompt → title/intent → identified Draft → Work with context retained |
-| US-TPT-02 | Idea detail/refine request → preview outcome slices → requested items/lineage → group or source idea |
+| US-TPT-02 | Initiative detail/refine request → preview outcome slices → requested items/lineage → group or source initiative |
 | US-TPT-03 | Group/Work → set memberships/priorities/readiness → unique scope/selectable ordering/reasons → Work |
 | US-TPT-04 | Work/item → exact start action → In progress or prerequisite refusal → item/Work |
 | US-TPT-05 | Item → block/resume reason → blocked/prior state with current prerequisites → item |
@@ -420,7 +436,7 @@ Every view exposes its applicable states, current location, one primary next ste
 | US-TPT-20 | Native inspection → history/metric reasons → preserved native meaning → native work |
 | US-TPT-21 | Open workspace → confirm selected copy/profile → capability-aware scope → Work |
 | US-TPT-22 | Item editor or exact prompt → requested save → same current rule/result → item/Work |
-| US-TPT-23 | Work/PBI-104 → detail/Assign → choose active Maya/Save → owner Maya, Ready/not accepted/no proof → Back to Work |
+| US-TPT-23 | Work/TASK-104 → detail/Assign → choose active Maya/Save → owner Maya, Ready/not accepted/no proof → Back to Work |
 | US-TPT-24 | Item/group → inspect references/remove → cancel/archive/retire, exact permitted draft delete or explicit delete of exact unreferenced ended work (canceled or retired) with a reason and current preview → surviving scope |
 | US-TPT-25 | Changes/shared selector → inspect proposal and baseline → semantic conflicts/reconciled source → affected item |
 | US-TPT-26 | Exact linked execution → actual checkpoints → scoped activity/proof, no automatic acceptance → item/result |
@@ -434,6 +450,8 @@ Every view exposes its applicable states, current location, one primary next ste
 | US-TPT-34 | Group detail → inspect purpose/members → choose exact change or clear purpose → preview → save/reread group → retained scope; invalid/stale/denied result retains draft and children |
 | US-TPT-35 | Overview → choose area → choose direct feature → compare exact delivery list with denominator → open outcome/intent/proof → Back restores feature and area; incomplete/denied scope retains reasons and safe return |
 | US-TPT-36 | Overview → choose generic or ungrouped work, or enter shared feature through another area → inspect same exact outcome and direct affiliations → filter/clear → return along chosen path; vocabulary supplies no new authority |
+| US-TPT-37 | Open earlier-vocabulary project → inspect Overview, Work and status report in the current words → same progress with a read-only migration-required notice → attempted save refused with records preserved → return to inspection or migration preview |
+| US-TPT-38 | Migration preview → review locations, records and values that would change → explicit run → reread current-vocabulary project with equal progress → resume normal work; an unmet precondition, interruption or repeat shows its named outcome and safe next step |
 
 ## 7. Permissions & Roles
 
@@ -452,13 +470,17 @@ Local author information is attribution, not authentication or permission. Expli
 
 Group purpose and custom vocabulary confer no permission. Every purpose/membership save follows the same preview, exact actor, revision, independent controls and retry rules as other group maintenance. A pinned baseline or read-only snapshot never becomes writable through drilldown, and selecting a scope does not disclose denied global work.
 
+Vocabulary confers no permission. Reading an earlier-vocabulary project needs only the existing read access. Migration is an explicit maintenance action inside the selected working copy under the same local authority as any other save; a stakeholder view, a pinned baseline or a read-only snapshot cannot start it, and an assistant runs it only on an exact request, never as upkeep.
+
 ## 8. Test Specifications
 
-All 143 cases are **Untested**. Each Evidence anchor resolves to at least one authored primary guard, and CoveredBy names its actual registered executors. This is source mapping, not an observed passing result or proof of every property value and condition. The governing cases are split across this owner and its five continuations. Technical execution variants and native consumer scenarios retain their own evidence owners. Native positive operations remain conditional and unsupported until the selected owner supplies the required capability proof.
+All 154 cases are **Untested**. Each Evidence anchor resolves to at least one authored primary guard, and CoveredBy names its actual registered executors. This is source mapping, not an observed passing result or proof of every property value and condition. The governing cases are split across this owner and its six continuations. Technical execution variants and native consumer scenarios retain their own evidence owners. Native positive operations remain conditional and unsupported until the selected owner supplies the required capability proof.
 
-Numbering reserves feature-outcome continuation 081–098, refused-transition extension 101–109, visible-state extension 111–112, property extension 121–137, operation/concern/choice extension 141–149, publication/recovery extension 151–155, integration-property extension 161–164, local-identity journeys 171–173, identity/control boundaries 181–183 and attribution properties 191–193. The sixth carrier adds optional-purpose/scope journeys 201–205, validation/edge outcomes 211–213, permission outcome 221, properties 231–234 and stakeholder UI journey 241. Existing identities are never reused or renumbered. The registry contains 143 raw and unique cases: 129 conserved existing bodies plus fourteen new bodies in `README.TaskTracking-Part6.md`. Priorities are P0: 29, P1: 111, P2: 3; all remain Untested with authored guard anchors and executor mappings. The recomputed business-derived minimum is 121 (36 story outcomes + 29 hard rules + 7 invariants + 15 declared lifecycle decisions ×2 allowed/refused witnesses + 4 participation actors ×2 permission cases + 11 observable UI states). Purpose metadata adds no lifecycle state. Case counts are obligations, not executed coverage; every source planning variant still requires independent executing evidence before release.
+Numbering reserves feature-outcome continuation 081–098, refused-transition extension 101–109, visible-state extension 111–112, property extension 121–137, operation/concern/choice extension 141–149, publication/recovery extension 151–155, integration-property extension 161–164, local-identity journeys 171–173, identity/control boundaries 181–183 and attribution properties 191–193. The sixth carrier adds optional-purpose/scope journeys 201–205, validation/edge outcomes 211–213, permission outcome 221, properties 231–234 and stakeholder UI journey 241. Existing identities are never reused or renumbered. The seventh carrier adds vocabulary and migration cases 242–252, which continue the sequence after 241 instead of opening new category decades. The registry contains 154 raw and unique cases: 129 conserved existing bodies, fourteen bodies in `README.TaskTracking-Part6.md` and eleven in `README.TaskTracking-Part7.md`. Priorities are P0: 36, P1: 115, P2: 3; all remain Untested with authored guard anchors and executor mappings. The recomputed business-derived minimum is 127 (38 story outcomes + 30 hard rules + 8 invariants + 15 declared lifecycle decisions ×2 allowed/refused witnesses + 4 participation actors ×2 permission cases + 13 observable UI states). Purpose metadata adds no lifecycle state. Case counts are obligations, not executed coverage; every source planning variant still requires independent executing evidence before release.
 
-#### TC-TPT-001: Capture an idea [P1]
+Vocabulary and migration: cases 242–252 guard BR-TPT-30 with stories 37–38, invariant 08 and the two added visible states. The vocabulary change renames one lifecycle label and adds no state or transition.
+
+#### TC-TPT-001: Capture an initiative [P1]
 
 **Objective:** Verify retain useful future intent through the stated observable action.
 
@@ -501,7 +523,7 @@ And absent save intent creates nothing
 ```json
 {
   "project": "Team workspace",
-  "kind": "Idea",
+  "kind": "Initiative",
   "title": "Schedule a weekly export",
   "intent": "People can receive an export at an agreed weekly time.",
   "state": "Draft",
@@ -539,7 +561,7 @@ And absent save intent creates nothing
 
 **Preconditions:**
 
-- An idea.
+- An initiative.
 - The actor selects the actual project/profile and permitted scope before acting; native actions require the native capability and proof gate.
 
 **Real-World Reachability:** The named actor first arranges the stated work through permitted capture, planning or inspection. The action follows after the actor has reviewed the selected item; no fixed clock delay is required. For an external edit, the teammate saves it before the next permitted inspection, so an immediate observation is not assumed.
@@ -547,7 +569,7 @@ And absent save intent creates nothing
 **Demo Flow:** Arrange the stated permitted work, I request refinement,, then read back the affected item or scoped result. Repeat the stated failure/boundary with the invalid condition; inspect the preserved previous facts.
 
 ```gherkin
-Given an idea
+Given an initiative
 When I request refinement,
 Then requested delivery items retain lineage
 And incomplete decisions cannot promote Ready
@@ -571,7 +593,7 @@ And incomplete decisions cannot promote Ready
 
 ```json
 {
-  "sourceIdea": "IDEA-012",
+  "sourceInitiative": "INITIATIVE-012",
   "requestedOutcomes": [
     "Download records as a file",
     "Export filtered records"
@@ -620,9 +642,9 @@ And incomplete decisions cannot promote Ready
 ```gherkin
 Given the three eligible Ready items and separately excluded candidates in Test Data
 When the contributor inspects ready work and the next suggestion
-Then the ready identities are exactly PBI-900, PBI-901, PBI-104 and next is PBI-900
+Then the ready identities are exactly TASK-900, TASK-901, TASK-104 and next is TASK-900
 And higher priority precedes lower priority despite the lower item's earlier identity
-And equal-priority PBI-900 precedes PBI-901 under the declared exact-identity order
+And equal-priority TASK-900 precedes TASK-901 under the declared exact-identity order
 And no excluded identity appears as ready; its unmet or unresolved reason is visible
 And item content, links, owners, lifecycle, acceptance, proof and history remain unchanged
 ```
@@ -634,12 +656,12 @@ And item content, links, owners, lifecycle, acceptance, proof and history remain
 | UI | Unique scoped ready identities and next identity match the explicit witness order; exclusions show their actual reasons. Partial scope is qualified. |
 | System behavior | Compare selected priority first, then exact stable identity for ties; listing/next is read-only. Do not guess readiness from missing or invalid prerequisites. |
 | Business data state | Every inspected source retains its pre-inspection identity, authored/custom content, links, owner, state, acceptance, proof and history. |
-| Data shown on UI | Ready order PBI-900/PBI-901/PBI-104, next PBI-900; all excluded identities remain outside that list. Source and scope limitations remain labelled. |
+| Data shown on UI | Ready order TASK-900/TASK-901/TASK-104, next TASK-900; all excluded identities remain outside that list. Source and scope limitations remain labelled. |
 
 **Acceptance Criteria:**
 
 - ✅ Both different-priority and equal-priority identity witnesses match the declared expected order; each exclusion is checked independently, and source facts are unchanged.
-- ❌ ID-first ordering PBI-104 before PBI-900, a reversed tie, any excluded identity marked ready, or any source mutation fails this case.
+- ❌ ID-first ordering TASK-104 before TASK-900, a reversed tie, any excluded identity marked ready, or any source mutation fails this case.
 
 **Test Data:**
 
@@ -651,45 +673,45 @@ And item content, links, owners, lifecycle, acceptance, proof and history remain
     "Lower"
   ],
   "selectedExactIdentityOrder": [
-    "PBI-104",
-    "PBI-900",
-    "PBI-901"
+    "TASK-104",
+    "TASK-900",
+    "TASK-901"
   ],
   "eligible": [
     {
-      "id": "PBI-104",
+      "id": "TASK-104",
       "priority": "Lower",
       "state": "Ready",
       "prerequisites": "resolved and satisfied"
     },
     {
-      "id": "PBI-900",
+      "id": "TASK-900",
       "priority": "Higher",
       "state": "Ready",
       "prerequisites": "resolved and satisfied"
     },
     {
-      "id": "PBI-901",
+      "id": "TASK-901",
       "priority": "Higher",
       "state": "Ready",
       "prerequisites": "resolved and satisfied"
     }
   ],
   "expectedReadyIds": [
-    "PBI-900",
-    "PBI-901",
-    "PBI-104"
+    "TASK-900",
+    "TASK-901",
+    "TASK-104"
   ],
-  "expectedNextId": "PBI-900",
+  "expectedNextId": "TASK-900",
   "excluded": {
-    "PBI-201": "Blocked",
-    "PBI-202": "blocked prerequisite",
-    "PBI-203": "canceled unresolved prerequisite",
-    "PBI-204": "unknown prerequisite",
-    "PBI-205": "self dependency",
-    "PBI-206": "cycle",
-    "PBI-207": "foreign-project prerequisite",
-    "PBI-208": "partially read prerequisite"
+    "TASK-201": "Blocked",
+    "TASK-202": "blocked prerequisite",
+    "TASK-203": "canceled unresolved prerequisite",
+    "TASK-204": "unknown prerequisite",
+    "TASK-205": "self dependency",
+    "TASK-206": "cycle",
+    "TASK-207": "foreign-project prerequisite",
+    "TASK-208": "partially read prerequisite"
   }
 }
 ```
@@ -757,7 +779,7 @@ And ambiguous/all-linked selection changes nothing
 ```json
 {
   "project": "Team workspace",
-  "item": "PBI-104",
+  "item": "TASK-104",
   "scope": "Current checkout; local proposal",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters."
@@ -830,7 +852,7 @@ And resume without resolution/current prerequisites is refused
 ```json
 {
   "project": "Team workspace",
-  "item": "PBI-104",
+  "item": "TASK-104",
   "scope": "Current checkout; local proposal",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters."
@@ -903,7 +925,7 @@ And missing/failed/stale proof refuses certification
 ```json
 {
   "project": "Team workspace",
-  "item": "PBI-104",
+  "item": "TASK-104",
   "scope": "Current checkout; local proposal",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters.",
@@ -984,7 +1006,7 @@ And generation/opening failures remain separate
 ```json
 {
   "project": "Team workspace",
-  "item": "PBI-104",
+  "item": "TASK-104",
   "scope": "Current checkout; local proposal",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters."
@@ -1059,7 +1081,7 @@ And historical acceptance is retained
 ```json
 {
   "project": "Team workspace",
-  "item": "PBI-104",
+  "item": "TASK-104",
   "scope": "Current checkout; local proposal",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters.",
@@ -1136,14 +1158,14 @@ And filters cannot change that scope
 ```json
 {
   "eligibleDelivery": [
-    "PBI-101",
-    "PBI-102",
-    "PBI-103"
+    "TASK-101",
+    "TASK-102",
+    "TASK-103"
   ],
   "accepted": [
-    "PBI-101"
+    "TASK-101"
   ],
-  "newOutcome": "PBI-104",
+  "newOutcome": "TASK-104",
   "expectedAccepted": "1/4",
   "expectedRemaining": 3
 }
@@ -1212,7 +1234,7 @@ And participation role must not grant broader access
 ```json
 {
   "actor": "Contributor",
-  "item": "PBI-104",
+  "item": "TASK-104",
   "allowedScope": "Team workspace",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters."
@@ -1351,7 +1373,7 @@ And participation role must not grant broader access
 ```json
 {
   "actor": "Coordinator",
-  "item": "PBI-104",
+  "item": "TASK-104",
   "allowedScope": "Team workspace",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters."
@@ -1490,7 +1512,7 @@ And participation role must not grant broader access
 ```json
 {
   "actor": "Assistant",
-  "item": "PBI-104",
+  "item": "TASK-104",
   "allowedScope": "Team workspace",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters."
@@ -1586,7 +1608,7 @@ And no saved receipt, cached broader disclosure or changed item
 **CoveredBy:** `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-026: linked upkeep records only actual observations and never manufactures approval`
 **Status:** Untested
 
-#### TC-TPT-031: Allowed Draft → Backlog [P1]
+#### TC-TPT-031: Allowed Draft → Planned [P1]
 
 **Objective:** Verify current prerequisites control the requested lifecycle change through the stated observable action.
 
@@ -1606,7 +1628,7 @@ And no saved receipt, cached broader disclosure or changed item
 ```gherkin
 Given captured intent and an explicit planning request
 When plan the captured draft
-Then Backlog; no readiness or delivery credit
+Then Planned; no readiness or delivery credit
 And undeclared or unmet transition must preserve the previous state
 ```
 
@@ -1614,21 +1636,21 @@ And undeclared or unmet transition must preserve the previous state
 
 | Dimension | Expectation |
 |---|---|
-| UI | The workspace or read-only status view shows: Backlog; no readiness or delivery credit. Unsupported capabilities have an explicit reason. |
+| UI | The workspace or read-only status view shows: Planned; no readiness or delivery credit. Unsupported capabilities have an explicit reason. |
 | System behavior | Perform or refuse only the requested supported action; undeclared or unmet transition must preserve the previous state. |
 | Business data state | Only the exact authorized requested facts change, if successful; all other item, owner, scope and history facts remain. A refused action retains pre-state. |
 | Data shown on UI | Rereading the selected item/scope shows the actual result above, with local/shared source, acceptance and current verification distinctly labelled where applicable. |
 
 **Acceptance Criteria:**
 
-- ✅ Backlog; no readiness or delivery credit.
+- ✅ Planned; no readiness or delivery credit.
 - ❌ undeclared or unmet transition must preserve the previous state.
 
 **Test Data:**
 
 ```json
 {
-  "transition": "Draft → Backlog",
+  "transition": "Draft → Planned",
   "prerequisites": "satisfied",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters."
@@ -1658,7 +1680,7 @@ And undeclared or unmet transition must preserve the previous state
 **CoveredBy:** `.claude/hooks/tests/suites/task-tracking-invariants.test.cjs::TC-TPT-031: the allowed lifecycle records actual decisions while delivery begins only at proof-backed acceptance`
 **Status:** Untested
 
-#### TC-TPT-032: Allowed Backlog → Ready [P1]
+#### TC-TPT-032: Allowed Planned → Ready [P1]
 
 **Objective:** Verify current prerequisites control the requested lifecycle change through the stated observable action.
 
@@ -1673,11 +1695,11 @@ And undeclared or unmet transition must preserve the previous state
 
 **Real-World Reachability:** The stated actor first creates or selects work through permitted actions and reviews its current result. A competing teammate save, policy change or actual work checkpoint occurs before the next action when stated; the gap is the real review/work interval, with no invented delay or back-to-back race requirement.
 
-**Demo Flow:** Arrange the stated permitted work, make the selected backlog item ready, then read back the affected item or scoped result. Repeat the stated failure/boundary with the invalid condition; inspect the preserved previous facts.
+**Demo Flow:** Arrange the stated permitted work, make the selected planned item ready, then read back the affected item or scoped result. Repeat the stated failure/boundary with the invalid condition; inspect the preserved previous facts.
 
 ```gherkin
 Given reviewed outcome, criteria, resolved required decisions and current dependencies
-When make the selected backlog item ready
+When make the selected planned item ready
 Then Ready; implementation proof is not required for readiness
 And undeclared or unmet transition must preserve the previous state
 ```
@@ -1700,7 +1722,7 @@ And undeclared or unmet transition must preserve the previous state
 
 ```json
 {
-  "transition": "Backlog → Ready",
+  "transition": "Planned → Ready",
   "prerequisites": "satisfied",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters."
@@ -2180,7 +2202,7 @@ And undeclared or unmet transition must preserve the previous state
 
 **Preconditions:**
 
-- The item is in one of Draft, Backlog, Ready, In progress, Blocked, Verifying, Done; the actor has current revision, actual owner authority, explicit cancellation decision and a nonempty reason.
+- The item is in one of Draft, Planned, Ready, In progress, Blocked, Verifying, Done; the actor has current revision, actual owner authority, explicit cancellation decision and a nonempty reason.
 - The actor selects the actual project/profile and permitted scope before acting; native actions require the native capability and proof gate.
 
 **Real-World Reachability:** The stated actor first creates or selects work through permitted actions and reviews its current result. A competing teammate save, policy change or actual work checkpoint occurs before the next action when stated; the gap is the real review/work interval, with no invented delay or back-to-back race requirement.
@@ -2188,7 +2210,7 @@ And undeclared or unmet transition must preserve the previous state
 **Demo Flow:** Arrange the stated permitted work, cancel the selected scope with its reason, then read back the affected item or scoped result. Repeat the stated failure/boundary with the invalid condition; inspect the preserved previous facts.
 
 ```gherkin
-Given an item in one of Draft, Backlog, Ready, In progress, Blocked, Verifying, Done with current revision, actual owner authority, explicit cancellation decision and a nonempty reason
+Given an item in one of Draft, Planned, Ready, In progress, Blocked, Verifying, Done with current revision, actual owner authority, explicit cancellation decision and a nonempty reason
 When cancel the selected scope with its reason
 Then Canceled history retained and excluded from active delivery scope; prior Done acceptance/proof stays attributable but leaves the accepted numerator
 And undeclared or unmet transition must preserve the previous state
@@ -2213,7 +2235,7 @@ And undeclared or unmet transition must preserve the previous state
 ```json
 {
   "transition": "Declared non-Canceled state → Canceled",
-  "eligibleInitialStates": ["Draft", "Backlog", "Ready", "In progress", "Blocked", "Verifying", "Done"],
+  "eligibleInitialStates": ["Draft", "Planned", "Ready", "In progress", "Blocked", "Verifying", "Done"],
   "acceptanceBeforeDoneCancellation": "retained history only; no accepted numerator afterward",
   "guards": "current revision, actual owner authority, explicit cancellation decision and a nonempty reason",
   "prerequisites": "satisfied",
@@ -2295,7 +2317,7 @@ And no automatic delivery item, readiness, rewritten derived owner or certificat
 ```json
 {
   "project": "Team workspace",
-  "item": "PBI-104",
+  "item": "TASK-104",
   "scope": "Current checkout; local proposal",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters."
@@ -2365,7 +2387,7 @@ And no duplicate credit, date backfill, guessed ownership or new ticket
 ```json
 {
   "project": "Team workspace",
-  "item": "PBI-104",
+  "item": "TASK-104",
   "scope": "Current checkout; local proposal",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters."
@@ -2435,7 +2457,7 @@ And no current-copy substitution, implicit remote fetch or proposal counted as s
 ```json
 {
   "project": "Team workspace",
-  "item": "PBI-104",
+  "item": "TASK-104",
   "scope": "Current checkout; local proposal",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters."
@@ -2505,7 +2527,7 @@ And no alternate record tree, broader refresh, invented writer or partial unappr
 ```json
 {
   "project": "Team workspace",
-  "item": "PBI-104",
+  "item": "TASK-104",
   "scope": "Current checkout; local proposal",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters."
@@ -2575,7 +2597,7 @@ And no reuse of the old project authority after a project switch
 ```json
 {
   "project": "Team workspace",
-  "item": "PBI-104",
+  "item": "TASK-104",
   "scope": "Current checkout; local proposal",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters."
@@ -2645,7 +2667,7 @@ And no automatic status change, instruction execution or sensitive disclosure
 ```json
 {
   "project": "Team workspace",
-  "item": "PBI-104",
+  "item": "TASK-104",
   "scope": "Current checkout; local proposal",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters."
@@ -2715,7 +2737,7 @@ And no hanging or fictitious complete result, blind duplicate retry or false cap
 ```json
 {
   "project": "Team workspace",
-  "item": "PBI-104",
+  "item": "TASK-104",
   "scope": "Current checkout; local proposal",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters."
@@ -2786,7 +2808,7 @@ And no generated author/time, automated health score or copied child state
 ```json
 {
   "project": "Team workspace",
-  "item": "PBI-104",
+  "item": "TASK-104",
   "scope": "Current checkout; local proposal",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters."
@@ -2856,7 +2878,7 @@ And no empty/all-canceled 100%, incompatible-unit effort total, forecast or filt
 ```json
 {
   "project": "Team workspace",
-  "item": "PBI-104",
+  "item": "TASK-104",
   "scope": "Current checkout; local proposal",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters."
@@ -2880,7 +2902,7 @@ And no empty/all-canceled 100%, incompatible-unit effort total, forecast or filt
 | Intended observable outcome | AC-TPT-09, BR-TPT-04, BR-TPT-08, INV-TPT-04 |
 | Executing implementation/assertion | [Source: test/work-tracking/TC-TPT-049]; authored callback/assertion guard, NOT RUN; complete implementation mapping remains TBD |
 
-**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-049: overlapping groups count unique PBIs and exclude support items`, `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-049: retirement and cancellation expose exclusions without deleting child work`, `.claude/hooks/tests/suites/task-tracking-boundaries.test.cjs::TC-TPT-049: four of ten accepted outcomes retain six remaining while one stale proof and support/canceled/retired groups stay distinct`, `.claude/skills/task-track/tests/workspace-browser.test.cjs::Filters and print preserve four accepted out of ten with three currently verified [variant: ten-outcomes-filter-print]`
+**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-049: overlapping groups count unique tasks and exclude support items`, `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-049: retirement and cancellation expose exclusions without deleting child work`, `.claude/hooks/tests/suites/task-tracking-boundaries.test.cjs::TC-TPT-049: four of ten accepted outcomes retain six remaining while one stale proof and support/canceled/retired groups stay distinct`, `.claude/skills/task-track/tests/workspace-browser.test.cjs::Filters and print preserve four accepted out of ten with three currently verified [variant: ten-outcomes-filter-print]`
 **Status:** Untested
 
 #### TC-TPT-051: Visible Loading with recovery [P1]
@@ -2926,7 +2948,7 @@ And no erased draft/context, fabricated success or falsely complete scope
 ```json
 {
   "state": "Loading",
-  "selectedItem": "PBI-104",
+  "selectedItem": "TASK-104",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters."
 }
@@ -2995,7 +3017,7 @@ And no erased draft/context, fabricated success or falsely complete scope
 ```json
 {
   "state": "Empty",
-  "selectedItem": "PBI-104",
+  "selectedItem": "TASK-104",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters."
 }
@@ -3064,7 +3086,7 @@ And no erased draft/context, fabricated success or falsely complete scope
 ```json
 {
   "state": "Filter-empty",
-  "selectedItem": "PBI-104",
+  "selectedItem": "TASK-104",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters."
 }
@@ -3133,7 +3155,7 @@ And no erased draft/context, fabricated success or falsely complete scope
 ```json
 {
   "state": "Invalid input",
-  "selectedItem": "PBI-104",
+  "selectedItem": "TASK-104",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters."
 }
@@ -3202,7 +3224,7 @@ And no erased draft/context, fabricated success or falsely complete scope
 ```json
 {
   "state": "Unavailable",
-  "selectedItem": "PBI-104",
+  "selectedItem": "TASK-104",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters."
 }
@@ -3271,7 +3293,7 @@ And no erased draft/context, fabricated success or falsely complete scope
 ```json
 {
   "state": "Partial",
-  "selectedItem": "PBI-104",
+  "selectedItem": "TASK-104",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters."
 }
@@ -3340,7 +3362,7 @@ And no erased draft/context, fabricated success or falsely complete scope
 ```json
 {
   "state": "Conflict",
-  "selectedItem": "PBI-104",
+  "selectedItem": "TASK-104",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters.",
   "openedRevision": 7,

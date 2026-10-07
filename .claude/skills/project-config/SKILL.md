@@ -305,7 +305,7 @@ Before deriving a native profile, read **§2t Native Spec Artifact Profile** bel
 | `docsRoots.adr.path` in `docs/project-config.json` | The Architecture Decision Record tree. | `docs/adr` | Find the dir of ADRs (or the one an existing ADR index points at). |
 | `docsRoots.templates.path` in `docs/project-config.json` | The document-template tree. | `docs/templates` | Find the dir the project's doc/spec templates live in. |
 | `docsRoots.plans.path` in `docs/project-config.json` | The implementation-plan tree `/plan` writes. | `plans/` | Find the dir of plan folders. `.ck.json` `paths.plans` is a legacy fallback — this key WINS when both are set. |
-| `docsRoots.teamArtifacts.path` in `docs/project-config.json` | The idea / PBI / story tree. | `team-artifacts` | Find the dir holding the project's team artifacts. |
+| `docsRoots.teamArtifacts.path` in `docs/project-config.json` | The initiative / task / story tree. | `team-artifacts` | Find the dir holding the project's team artifacts. |
 | `docsRoots.productRoadmap.path` in `docs/project-config.json` | The roadmap document. | `docs/product-roadmap.md` | A FILE path, not a dir — the single roadmap doc `/product-roadmap` maintains. |
 
 Rules that bind every one of the six — identical to `specRoots`, and enforced by the schema, not by convention:

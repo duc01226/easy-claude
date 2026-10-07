@@ -25,6 +25,7 @@ const { loadProjectConfig, getSpecDocsPath } = require('./project-config-loader.
 const { resolveProjectRoot } = require('./project-root.cjs');
 const { isPathWithinRoot, joinRoot } = require('./ck-path-utils.cjs');
 const { reportHookInternalError } = require('./debug-log.cjs');
+const { validateDocSyncGate } = require('./project-config-schema.cjs');
 
 const PROJECT_DIR = resolveProjectRoot({ cwd: process.cwd(), scriptPath: __filename, env: process.env }).rootDir;
 const CONFIG_PATH = path.join(PROJECT_DIR, '.claude', 'hooks', 'config', 'doc-sync-gate.json');
@@ -40,8 +41,14 @@ function loadConfig() {
     const cfg = JSON.parse(raw);
     if (!cfg || typeof cfg !== 'object') return { enabled: false };
     const projectConfig = loadProjectConfig();
-    const projectAreas = projectConfig.workflowPatterns?.docSyncGate?.enforcedAreas
-      || projectConfig.docSyncGate?.enforcedAreas;
+    const projectGate = projectConfig.workflowPatterns?.docSyncGate ?? projectConfig.docSyncGate;
+    const errors = [
+      ...validateDocSyncGate(cfg, 'doc-sync-gate'),
+      ...validateDocSyncGate(projectGate)
+    ];
+    if (errors.length) throw new Error(errors.join('; '));
+    cfg.enabled = projectGate?.enabled ?? cfg.enabled;
+    const projectAreas = projectGate?.enforcedAreas;
     cfg.enforcedAreas = Array.isArray(projectAreas)
       ? projectAreas
       : Array.isArray(cfg.enforcedAreas) ? cfg.enforcedAreas : [];
@@ -52,7 +59,7 @@ function loadConfig() {
       if (!area || typeof area !== 'object') continue;
       if (Array.isArray(area.codePathPrefixes)) {
         area.codePathPrefixes = area.codePathPrefixes.map(pre =>
-          typeof pre === 'string' && pre && !pre.endsWith('/') ? `${pre}/` : pre
+          pre.replace(/\\/g, '/').replace(/\/+$/, '') + '/'
         );
       }
     }

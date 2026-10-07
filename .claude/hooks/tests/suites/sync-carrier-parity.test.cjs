@@ -378,7 +378,7 @@ module.exports = {
                     '.claude/skills/why-review/SKILL.md',
                     '.claude/skills/workflow-review-changes/SKILL.md',
                     '.claude/skills/architecture/references/mode-full.md',
-                    '.claude/skills/pbi/references/mode-review.md',
+                    '.claude/skills/work-item/references/mode-review.md',
                     '.claude/skills/spec/references/mode-clarify.md',
                 ];
                 assertEqual(

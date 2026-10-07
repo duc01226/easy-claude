@@ -55,7 +55,7 @@
 
 ## SYNC:estimation-framework
 
-> **Estimation Framework** — Bottom-up; derive SP; min-max range at likely ≥3d. Stack-agnostic baseline: 3-5yr dev, 6 productive hrs/day; AI assumes Claude Code + project context.
+> **Estimation Framework** — Bottom-up; derive EP; min-max range at likely ≥3d. Stack-agnostic baseline: 3-5yr dev, 6 productive hrs/day; AI assumes Claude Code + project context.
 >
 > **Method:**
 >
@@ -66,7 +66,9 @@
 > 5. `min_days = likely_days × 0.9`
 > 6. Range at `likely_days ≥3`; point allowed `<3`; always record margin
 > 7. `man_days_ai` = same range × AI speedup
-> 8. Derive `story_points` from `likely_days` via SP-Days; NEVER driver. >50% disagreement → trust bottom-up
+> 8. Derive `effort_points` from `likely_days` via EP-Days; NEVER driver. >50% disagreement → trust bottom-up
+>
+> **Existing estimates:** Read `effort_points` first; when absent, reuse an existing authored `story_points` value. Preserve historical metadata and commits. New artifacts write `effort_points` and use EP labels.
 >
 > **Productivity factor:** 0.8 strong scaffolding+codegen+AI hooks · 1.0 mature default · 1.2 weak patterns · 1.5 greenfield
 >
@@ -157,7 +159,7 @@
 > **Collapse:** margin >100% → STOP/split, never pad past 2x. Margin <15% at `likely_days ≥5` → widen.
 >
 > **Work-Type Caps (hard ceilings on `likely_days`):**
-> | Work type | Max SP | Max likely |
+> | Work type | Max EP | Max likely |
 > | --- | --- | --- |
 > | Single field / config flag / style fix | 1 | 0.5d |
 > | Add property to existing model + bind to existing UI | 2 | 1d |
@@ -168,13 +170,13 @@
 > | Cross-service contract + migration combined | 13 | SHOULD split |
 > | Beyond | 21 | MUST split |
 >
-> **SP→Days (validation only):** 1=0.5d/0.25d · 2=1d/0.35d · 3=2d/0.65d · 5=4d/1.0d · 8=6d/1.5d · 13=10d/2.0d (Trad/AI likely)
-> **AI speedup:** SP 1≈2x · 2-3≈3x · 5-8≈4x · 13+≈5x. AI cost = `(code_gen × 1.3) + (test_gen × 1.3)` (30% review overhead).
+> **EP→Days (validation only):** 1=0.5d/0.25d · 2=1d/0.35d · 3=2d/0.65d · 5=4d/1.0d · 8=6d/1.5d · 13=10d/2.0d (Trad/AI likely)
+> **AI speedup:** EP 1≈2x · 2-3≈3x · 5-8≈4x · 13+≈5x. AI cost = `(code_gen × 1.3) + (test_gen × 1.3)` (30% review overhead).
 >
 > **MANDATORY frontmatter:**
 >
 > ```yaml
-> story_points: <n>
+> effort_points: <n>
 > complexity: low | medium | high | critical
 > man_days_traditional: '<min>-<max>d' # range when likely ≥3d; '<N>d' when <3d
 > man_days_ai: '<min>-<max>d'
@@ -208,18 +210,18 @@
 > - Margin >100% → STOP/split
 > - Complex touch without regression budget in `(c)` → reject
 > - Blast `>5` areas OR `>2` complex without split discussion → reject
-> - Additive existing model AND UI → cap SP 3 unless tests >1.5d
-> - NEW page/complex form/dashboard → SP 5+ even with one backend endpoint
-> - Cross-service/migration/multi-aggregate backend → SP 8+ regardless of UI
-> - `bottom_up_hours / 6` vs SP-Days >50% disagreement → trust bottom-up, downgrade SP
-> - Without tests SP drops ≥1 bucket → state tests dominate
+> - Additive existing model AND UI → cap EP 3 unless tests >1.5d
+> - NEW page/complex form/dashboard → EP 5+ even with one backend endpoint
+> - Cross-service/migration/multi-aggregate backend → EP 8+ regardless of UI
+> - `bottom_up_hours / 6` vs EP-Days >50% disagreement → trust bottom-up, downgrade EP
+> - Without tests EP drops ≥1 bucket → state tests dominate
 > - Reasoning must cover UI/backend/blast/risk factors; add omissions
 
 ---
 
 ## SYNC:estimation-framework:reminder
 
-- **MANDATORY MUST ATTENTION** estimation: bottom-up phase hours drive `man_days_traditional` (`Σh/6 × productivity_factor`); SP DERIVED. UI cost usually dominates — bump SP one bucket if NEW UI surface (page/complex form/dashboard). Frontmatter MUST include `story_points`, `complexity`, `man_days_traditional`, `man_days_ai`, `estimate_scope_included`, `estimate_scope_excluded`, `estimate_reasoning` (UI vs backend cost driver). Cap SP 3 for additive-on-existing-model+existing-UI unless test scope >1.5d. SP 13 SHOULD split, SP 21 MUST split.
+- **MANDATORY MUST ATTENTION** estimation: bottom-up phase hours drive `man_days_traditional` (`Σh/6 × productivity_factor`); EP DERIVED. UI cost usually dominates — bump EP one bucket if NEW UI surface (page/complex form/dashboard). Frontmatter MUST include `effort_points`, `complexity`, `man_days_traditional`, `man_days_ai`, `estimate_scope_included`, `estimate_scope_excluded`, `estimate_reasoning` (UI vs backend cost driver). Cap EP 3 for additive-on-existing-model+existing-UI unless test scope >1.5d. EP 13 SHOULD split, EP 21 MUST split.
 
 ---
 
@@ -1304,17 +1306,17 @@ Assess quality, error handling, async interaction, runtime/deployment, and integ
 
 ## SYNC:module-detection
 
-> **Module Detection** — Detect target module from PBI/idea keywords. Match against the directory names under the business spec root (default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path) and load `<that root>/{module}/` for domain rules. If ambiguous, ask user. The module list is DERIVED by listing that root at run time — hardcode neither a module name nor the root itself.
+> **Module Detection** — Detect target module from task/initiative keywords. Match against the directory names under the business spec root (default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path) and load `<that root>/{module}/` for domain rules. If ambiguous, ask user. The module list is DERIVED by listing that root at run time — hardcode neither a module name nor the root itself.
 
 ---
 
 ## SYNC:ba-team-decision-model
 
-> **BA Team Decision Model** — 2/3 majority vote: Dev BA PIC + UX BA + Designer BA per squad. 2 of 3 agree = decision final. 3-way split = escalate to full squad + Tech Leads + Engineering Manager.
+> **BA Team Decision Model** — 2/3 majority vote: Dev BA PIC + UX BA + Designer BA per team. 2 of 3 agree = decision final. 3-way split = escalate to full team + Tech Leads + Engineering Manager.
 >
 > **Technical Veto:** Dev BA PIC can unilaterally veto on: architecture feasibility, dependency correctness, cross-service impact, performance, security. CANNOT veto: UI/UX design, visual design, business value, user research.
 >
-> **Rules:** Disagree-and-commit after vote. Grooming override requires >75% non-BA squad vote. Record decisions in PBI Validation Summary (member, role, vote, notes).
+> **Rules:** Disagree-and-commit after vote. Planning override requires >75% non-BA team vote. Record decisions in Task Validation Summary (member, role, vote, notes).
 >
 > **Escalation:** Tech uncertainty → Engineering Manager. Business value → PO. Design feasibility → UX BA + Designer BA consensus.
 
@@ -1322,15 +1324,15 @@ Assess quality, error handling, async interaction, runtime/deployment, and integ
 
 ## SYNC:refinement-dor-checklist
 
-> **Refinement DoR Checklist** — ALL 8 criteria MUST ATTENTION pass before grooming:
+> **Refinement DoR Checklist** — ALL 8 criteria MUST ATTENTION pass before planning:
 >
 > 1. **User story template** — "As a {role}, I want {goal}, so that {benefit}" format
 > 2. **AC testable & unambiguous** — State the actor/precondition, trigger/action, and expected outcome in the project's accepted format (GWT is one option). No "should/might/TBD/various/appropriate". Min 3 scenarios (happy, edge, error) + 1 auth scenario
-> 3. **Releasable outcome defined** — one actor-facing outcome with an entry-to-result journey, visible/persisted truth, applicable access/failure/recovery behavior, scope, and evidence; enabling work is attached rather than emitted as a technical-only PBI
+> 3. **Releasable outcome defined** — one actor-facing outcome with an entry-to-result journey, visible/persisted truth, applicable access/failure/recovery behavior, scope, and evidence; enabling work is attached rather than emitted as a technical-only task
 > 4. **Full-flow wireframes/mock app attached** — UI features: `## UI Layout` or mock-app evidence covering every required page/view, navigation edge, common/domain/page component, applicable state, and end-to-end demo flow. Backend-only: explicit "N/A" plus no-UI reason
-> 5. **UI design ready** — Visual design + component decomposition tree + design-spec linked (`/design-spec` artifact or inline UI specs in `## UI Layout`) for any PBI with UI work. Backend-only: "N/A"
-> 6. **AI pre-review passed** — `/pbi --mode=review --type=pbi` or `/pbi --mode=challenge` returned PASS or WARN (not FAIL)
-> 7. **Story points estimated** — Fibonacci 1-21 + complexity (Low/Medium/High). >13 SP → recommend split
+> 5. **UI design ready** — Visual design + component decomposition tree + design-spec linked (`/design-spec` artifact or inline UI specs in `## UI Layout`) for any task with UI work. Backend-only: "N/A"
+> 6. **AI pre-review passed** — `/work-item --mode=review --type=task` or `/work-item --mode=challenge` returned PASS or WARN (not FAIL)
+> 7. **Effort points estimated** — Fibonacci 1-21 + complexity (Low/Medium/High). >13 EP → recommend split
 > 8. **Dependencies table complete** — Dependency, Type (must-before/can-parallel/blocked-by/independent), Status
 >
 > **Failure fixes:** Vague AC → specify exact CRUD + roles. Missing auth → add roles × CRUD table. No wireframes → UX BA creates. TBD in AC → replace with decision.
@@ -1355,7 +1357,7 @@ Assess quality, error handling, async interaction, runtime/deployment, and integ
 > **Project Reference Docs Gate (static JIT)** — Run after task-tracking bootstrap, immediately before target/source reads, grep, edits, tests, or analysis. Project docs override generic framework assumptions; hooks may remind or accelerate this gate but never prove it ran.
 >
 > 1. **Scope** — identify file types, domain area, and operation.
-> 2. **Project config is OPTIONAL.** Read the configured project-config file via its loader (default `docs/project-config.json`) when it exists. Absent is a supported state, not an error: run on portable defaults, derive project facts (paths, commands, conventions, architecture, test/spec layout) from repository evidence (manifests, lockfiles, scripts, CI, layout, root instruction files), state material assumptions, never block, and at most OFFER `/project-init` or `/project-config` once. Present → minimum valid shape is a non-empty `project.name`; omitted optional capabilities use neutral defaults or skip. A DECLARED section left malformed or incomplete is a configuration error: fail closed on it and run `/project-init` or `/project-config` before relying on it — why: silent defaults would present wrong facts as authoritative. Verify material config hints against repository evidence; generic defaults are never project facts.
+> 2. **Project config is OPTIONAL.** Start with `node .claude/scripts/project-context.cjs --context`: it resolves and validates the entire configured file, then returns discovery inputs and section names. Add `--section <key>` for each task-relevant section; read the full file for config edits. If the helper is absent, read via the loader. Missing config is supported: derive project facts from manifests, scripts, CI and layout, state material assumptions, never block, and at most OFFER `/project-init` or `/project-config` once. Minimum valid shape: non-empty `project.name`; omitted optional capabilities use neutral defaults or skip. Malformed DECLARED sections fail closed before projection: use `/project-config` or `/project-init` to repair before relying on them. Verify material hints against repository evidence; generic defaults are never project facts.
 > 3. **Select docs.** Always-on: the project-init-owned `lessons.md` and docs-index inputs at their configured owner paths — read independently, never appended to `referenceDocs`. Task-specific: an explicit `referenceDocs` array is the exact selection, subsets and `[]` included; absent → the runtime capability-aware resolver (portable baseline plus configuration- or repository-evidenced capabilities; may be empty). The scan-target manifest is a registry, not a default selection. Filenames resolve under the reference-docs root (default `docs/project-reference`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it). Custom-doc schema, ownership, and path-safety rules: `.claude/skills/scan/references/targets.md`.
 > 4. **Route by phase.** Just in time, read the selected docs the table names for the phase you are ABOUT to enter, plus any selected custom doc whose `purpose` covers that phase. An unmatched row is `Not applicable`, never a blocker.
 >
@@ -1382,7 +1384,7 @@ Assess quality, error handling, async interaction, runtime/deployment, and integ
 > Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
 
 >
-> A `skill-overlay-remind` hook names the matched overlay files when a skill activates (again only after about 100K tokens of growth for that skill); a missing reminder never waives this resolution.
+> A `skill-overlay-remind` hook names the matched overlay files when a skill activates (again only after about 150K tokens of growth for that skill); a missing reminder never waives this resolution.
 ---
 
 ## SYNC:shared-protocol-duplication-policy
@@ -1391,7 +1393,7 @@ Assess quality, error handling, async interaction, runtime/deployment, and integ
 >
 > - **Guides:** skill entrypoints, including `changes-review`, `code-quality-review`, `why-review` and `workflow-review-changes`, carry one `PROTOCOL-GUIDES` line per applicable protocol: tag, summary, read-when trigger and published path. Hooks deliver full text from `.claude/skills/shared/protocols/`; if the text is absent from the current context, read the published file before acting. Delivery overflow names the unread full sources; it never permits omission. Keep role-protocol `:reminder` digests in every carrier. The registry's `inlineSkills` list is empty; a future full-body exception requires an explicit owner decision.
 > - **Full-text carriers:** agents retain full role protocols and are never converted to guides. Mode-only `references/*.md` load first on mode entry and retain their SYNC bodies. Copy the complete `SYNC:review-protocol-injection` template, with all 11 full protocol bodies, VERBATIM into every fresh reviewer prompt; never substitute guide lines, tags or a read pointer. A guide entrypoint changes discovery, not review gates or dispatch obligations.
-> - **Universal:** the registry's `universal` group is hook-only, including for agents. Its `bins` are at most 9,500 characters, delivered on the first prompt, after about 100K tokens or compaction, and at every sub-agent start. Skills, agents, roots and mirrors carry no universal body, reminder, guide or pointer. Roots hold project information only; hosts without hooks are unsupported.
+> - **Universal:** the registry's `universal` group is hook-only, including for agents. Its `bins` are at most 9,500 characters, delivered on the first prompt, after about 150K tokens or compaction, and at every sub-agent start. Skills, agents, roots and mirrors carry no universal body, reminder, guide or pointer. Roots hold project information only; hosts without hooks are unsupported.
 >
 > **Update:** edit canonical first, then run `.claude/scripts/sync-update-blocks.py <tag>` (macOS/Linux `python3`; Windows `py -3`) to propagate skills and agents. Only that tool's `--mode=guide --tags <tag>` converts skill entrypoints; never convert a universal tag. Rebuild with `node .claude/scripts/build-protocol-projection.cjs`, then search `SYNC:<tag>` for copies outside the tool's scope, including `.claude/docs/development-rules.md`. Never hand-extract, deduplicate or replace a body outside this policy.
 
@@ -1761,6 +1763,17 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > - **Retention:** Map unique rules, preconditions, exceptions and navigation before/after enhancement. Check both excessive detail and over-compression; do not impose line limits, reduction percentages or warning-keyword quotas.
 > - **Affirmative instructions:** State the correct action and pair hard prohibitions with the permitted path. Keep short rationale when it prevents likely misuse.
 > - **Bounded context:** Load relevant owners/depth on demand; use verified triggered discovery instead of duplicating their entire protocols.
+>
+> **Instruction-file audit** — Before finalizing `CLAUDE.md`, `AGENTS.md` or equivalent persistent instructions, check the applicable dimensions below. This is an authoring audit, not runtime enforcement.
+>
+> - **Signal:** Keep essential project context, non-obvious constraints and useful navigation. Cut generic advice and duplicated linter rules; retain the command that runs the check.
+> - **Budget:** Treat roughly 200 lines for `CLAUDE.md` as a review signal, never a truncation target. Preserve required constraints and respect host byte limits; assess total loaded context, including imports, layered files and hook injections.
+> - **Loading and scope:** Claude Code `@` imports organize content but load it into context. Route occasional detail through verified read-when pointers, scoped rules or skills. Keep project-wide, folder and personal rules at their proper scope with one owner; remove conflicts rather than assuming child files override parents.
+> - **Clarity:** Verify commands and paths; state each rule's trigger, action and observable check. Use emphasis sparingly; it does not enforce compliance.
+> - **Maintenance:** Review/version shared instructions and prune stale entries. Diagnose recurring mistakes before adding rules; consolidate existing guidance and check whether behavior improves.
+> - **Mechanism:** Put reusable procedures in skills and mechanical guarantees in tested deterministic checks/hooks. Verify activation, coverage and failure handling; model-based checks remain judgment calls. Edit canonical owners and regenerate mirrors.
+>
+> Record material findings and justified exceptions in the task report; repair applicable gaps at their owner before claiming the audit complete. Length alone never proves quality. Loading guidance: [Claude Code memory](https://code.claude.com/docs/en/memory); maintenance guidance: [best practices](https://code.claude.com/docs/en/best-practices).
 
 ---
 
@@ -2162,7 +2175,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 ## Discovery Order
 
-Before investigating, planning, or coding, use `.claude/hooks/lib/project-config-loader.cjs` to resolve the project config (default `docs/project-config.json`) and docs index; read existing config, then the index and `lessons.md` at configured owner paths. Apply `project-reference-docs-guide` below: absent config is supported, derive facts from repository evidence; declared invalid sections need repair. Never require default paths when owners are relocated. Answer a project question from its root Doc Lookup row and cite the doc read, not memory or generic defaults. For framework questions read `.claude/docs/README.md` (`/project-help`). Report missing required docs through the gate's repair route; never invent rules or completion.
+Before investigating, planning, or coding, resolve and read task-relevant config through `node .claude/scripts/project-context.cjs --context [--section <key>]`, then read the docs index and `lessons.md` at configured owner paths. The helper uses `.claude/hooks/lib/project-config-loader.cjs`; if absent, read via that loader. Apply `project-reference-docs-guide` below: absent config is supported, declared invalid sections need repair, and full config is required for config edits. Never require default paths when owners are relocated. Answer a project question from its root Doc Lookup row and cite the doc read. For framework questions read `.claude/docs/README.md` (`/project-help`). Report missing required docs through the gate's repair route; never invent rules or completion.
 
 When you write or update a doc an agent reads (root context, reference docs, docs index, `lessons.md`), keep it discoverable: purpose and critical rules first, closing reminders last when long, and every pointer to another doc as `read <path> when <situation>` to a file that exists, routed from the Doc Lookup table or the docs index.
 
@@ -2595,7 +2608,7 @@ Critical reminders: use ask user question tool to ask user; operate only within 
 >
 > **`CL-2` Evidence or nothing (§0.2).** Every finding cites a specific location (screen · element · `file:line`). NEVER invent a measurement — contrast, tap-target size, and load time that cannot be measured from the given artifact are `NOT VERIFIABLE`, never a guessed number. Tag every finding `MEASURED` · `OBSERVED` · `HEURISTIC`. Status values: `PASS` · `FAIL` · `PARTIAL` · `N/A` · `NOT VERIFIABLE`.
 >
-> **`CL-3` Severity, then a cap (§0.3).** `P0` blocks task completion / loses data / excludes a protected group (ship blocker) · `P1` significant friction or a legal accessibility floor (fix before release) · `P2` measurable inefficiency (next iteration) · `P3` polish (backlog) · `P4` note. Translate to other dialects (BLOCKED/WARN, Critical–Low, BLOCKING/ADVISORY) ONLY through the §0.3 severity map. Cap the report at the top 10 by severity unless a full audit was requested. A clean section reports "no issues found" — NEVER pad. Every `P0`/`P1` carries a concrete fix.
+> **`CL-3` Severity, then a cap (§0.3).** `P0` blocks task completion / loses data / excludes a protected group (ship blocker) · `P1` significant friction or a legal accessibility floor (fix before release) · `P2` measurable inefficiency (next iteration) · `P3` polish (later) · `P4` note. Translate to other dialects (BLOCKED/WARN, Critical–Low, BLOCKING/ADVISORY) ONLY through the §0.3 severity map. Cap the report at the top 10 by severity unless a full audit was requested. A clean section reports "no issues found" — NEVER pad. Every `P0`/`P1` carries a concrete fix.
 >
 > **`CL-4` Section sweep, in order — over whole SURFACES, not files (§0.5).** Map changed files to the pages/views/dialogs they render into, reconstruct each surface's composition (component tree + style origins; render when it can run, else `ENVIRONMENT-BLOCKED`), then sweep: §A core usability heuristics · §B cognitive load & surface complexity (B12–B15: surface load, progressive disclosure, one job per view, the project's complexity budget) · §C visual design & hierarchy · §D interaction and relevant product states · §E information architecture & container fit (E9–E11: dialog vs full view vs stepped flow vs side panel vs inline) · **§F web / §G mobile — conditional on platform; §H expert & data-heavy use — conditional on usage, not platform** · §I accessibility: use WCAG 2.2 AA as the web baseline and meet any stricter applicable legal or project requirement; for other platforms, use the documented platform standard. Record the selected standard and its source; severity follows the governing release contract · §J content & UX writing · §K trust, ethics & privacy · **§L AI & agentic patterns — conditional on the product having AI features** · §M cross-cutting consistency · **§R forms & data entry — conditional on input: fill the Field Necessity Matrix first** · §N edge-case probes. Make one focused pass per applicable section and record N/A with evidence for sections the surface does not support. Cluster a defect repeated across surfaces into ONE finding; calibrate against `.claude/docs/design-review-calibration.md`.
 >

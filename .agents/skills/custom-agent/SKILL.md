@@ -9,7 +9,7 @@ disable-model-invocation: true
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -31,7 +31,7 @@ disable-model-invocation: true
 - Agent does NOT inherit Claude Code system prompt — write complete instructions
 - Minimize tools to only what the agent needs
 - System prompt structure: `## Role` → `## Workflow` → `## Key Rules` → `## Output`
-- Analyze scope and use task tracking for small tasks/subtasks before starting, including per-file reads and final review. For simple tasks, ask whether to skip.
+- Analyze scope and use todo tracking for small tasks/subtasks before starting, including per-file reads and final review. For simple tasks, ask whether to skip.
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
@@ -123,7 +123,7 @@ isolation: worktree # Run in temporary git worktree
 | Researcher           | `Read, Grep, Glob, WebFetch, WebSearch` |
 | Orchestrator         | `Read, Grep, Glob, Task(sub1, sub2)`    |
 
-Available tools: Read, Write, Edit, MultiEdit, Glob, Grep, Bash, WebFetch, WebSearch, Task, NotebookRead, NotebookEdit, task tracking, TaskUpdate, ask user question tool, + MCP tools.
+Available tools: Read, Write, Edit, MultiEdit, Glob, Grep, Bash, WebFetch, WebSearch, Task, NotebookRead, NotebookEdit, todo tracking, TaskUpdate, ask user question tool, + MCP tools.
 
 ## Model Selection
 
@@ -221,7 +221,7 @@ Same `name` across levels: higher-priority wins. Use `claude agents` CLI to list
 
 - **AI Mistakes:** holistic-first debug, fix at responsible layer, surgical diff, verify ALL outputs.
 
-- Use task tracking before starting, including per-file reads and final review; ask whether to skip for simple tasks.
+- Use todo tracking before starting, including per-file reads and final review; ask whether to skip for simple tasks.
 - Search 3+ similar patterns before creating code; cite `file:line` for every claim, with confidence >80% to act.
 
 | Evasion | Required action |

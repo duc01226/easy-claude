@@ -8,3 +8,14 @@
 > - **Retention:** Map unique rules, preconditions, exceptions and navigation before/after enhancement. Check both excessive detail and over-compression; do not impose line limits, reduction percentages or warning-keyword quotas.
 > - **Affirmative instructions:** State the correct action and pair hard prohibitions with the permitted path. Keep short rationale when it prevents likely misuse.
 > - **Bounded context:** Load relevant owners/depth on demand; use verified triggered discovery instead of duplicating their entire protocols.
+>
+> **Instruction-file audit** — Before finalizing `CLAUDE.md`, `AGENTS.md` or equivalent persistent instructions, check the applicable dimensions below. This is an authoring audit, not runtime enforcement.
+>
+> - **Signal:** Keep essential project context, non-obvious constraints and useful navigation. Cut generic advice and duplicated linter rules; retain the command that runs the check.
+> - **Budget:** Treat roughly 200 lines for `CLAUDE.md` as a review signal, never a truncation target. Preserve required constraints and respect host byte limits; assess total loaded context, including imports, layered files and hook injections.
+> - **Loading and scope:** Claude Code `@` imports organize content but load it into context. Route occasional detail through verified read-when pointers, scoped rules or skills. Keep project-wide, folder and personal rules at their proper scope with one owner; remove conflicts rather than assuming child files override parents.
+> - **Clarity:** Verify commands and paths; state each rule's trigger, action and observable check. Use emphasis sparingly; it does not enforce compliance.
+> - **Maintenance:** Review/version shared instructions and prune stale entries. Diagnose recurring mistakes before adding rules; consolidate existing guidance and check whether behavior improves.
+> - **Mechanism:** Put reusable procedures in skills and mechanical guarantees in tested deterministic checks/hooks. Verify activation, coverage and failure handling; model-based checks remain judgment calls. Edit canonical owners and regenerate mirrors.
+>
+> Record material findings and justified exceptions in the task report; repair applicable gaps at their owner before claiming the audit complete. Length alone never proves quality. Loading guidance: [Claude Code memory](https://code.claude.com/docs/en/memory); maintenance guidance: [best practices](https://code.claude.com/docs/en/best-practices).

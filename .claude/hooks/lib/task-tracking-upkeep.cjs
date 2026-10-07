@@ -5,13 +5,13 @@ const { trackingContext, relativePath, MEMBER_ID } = require('./task-tracking-co
 const { fail, hash, readBytes, publishBytes } = require('./task-tracking-files.cjs');
 const { inspectRecords, ITEM_ID, stableValue } = require('./task-artifact-store.cjs');
 const { withTrackingLock } = require('./task-tracking-lock.cjs');
-const { executeOperation } = require('./task-tracking.cjs');
+const { executeOperation, REQUEST_VERSION } = require('./task-tracking.cjs');
 const { instant, string, list } = require('./task-tracking-policy.cjs');
 const { resolveActor, revalidateActor, validateSelection } = require('./task-tracking-identity.cjs');
 const { isPrivacySensitive } = require('./sensitive-path-policy.cjs');
 const { resolveTrackingProfile } = require('./task-tracking-profile.cjs');
 
-const PRODUCERS = Object.freeze(['feature', 'implement-spec', 'bugfix', 'fix', 'spec', 'pbi', 'idea', 'plan', 'direct-code', 'review', 'pull-request']);
+const PRODUCERS = Object.freeze(['feature', 'implement-spec', 'bugfix', 'fix', 'spec', 'work-item', 'initiative', 'plan', 'direct-code', 'review', 'pull-request']);
 const linkPath = sessionId => {
     if (!string(sessionId, 200)) fail('INVALID_INPUT', 'Select the actual host session identity');
     return `tmp/task-tracking/links/${hash(sessionId)}.json`;
@@ -68,6 +68,8 @@ async function checkpoint({ root, sessionId, actor, producer, checkpointId, prim
         if (primary.status !== 'saved') return { primary, secondary: [{ kind: 'tracking', status: 'skipped', reason: 'Primary work was not saved; no optional item advancement' }] };
         const context = trackingContext(root);
         if (context.mode !== 'linked') return { primary, secondary: [{ kind: 'tracking', status: 'skipped', reason: context.mode === 'observe' ? 'Observe mode; no canonical upkeep' : 'Automatic tracking is off' }] };
+        // Nothing is written to a project that is not in the current vocabulary; the primary work continues.
+        if (context.vocabulary.code) return { primary, secondary: [{ kind: 'tracking', status: 'skipped', code: context.vocabulary.code, reason: context.vocabulary.reason }] };
         const link = readLink(context.root, sessionId);
         if (!link) return { primary, secondary: [{ kind: 'tracking', status: 'untracked', reason: 'Continue untracked; offer exact linking at a useful checkpoint' }] };
         actor = actor === undefined ? link.actor : actor;
@@ -87,7 +89,7 @@ async function checkpoint({ root, sessionId, actor, producer, checkpointId, prim
             const record = records[0];
             if (record.tracking?.optOut) { secondary.push({ kind: 'tracking', itemId, status: 'skipped', reason: 'Item opted out of automatic upkeep' }); continue; }
             if (link.identity) revalidateActor(context, link.identity);
-            let request = { schemaVersion: 1, operation: 'activity', operationId: `checkpoint-${hash(stableValue({ sessionId, producer, checkpointId, itemId })).slice(0, 48)}`,
+            let request = { schemaVersion: REQUEST_VERSION, operation: 'activity', operationId: `checkpoint-${hash(stableValue({ sessionId, producer, checkpointId, itemId })).slice(0, 48)}`,
                 target: { kind: record.kind, itemId }, expected: { revision: record.revision, contentHash: record.contentHash }, actor: { memberId: actor },
                 patch: { observation }, ...(link.context ? { context: link.context } : {}) };
             // Retain the original expected revision with the retry request. Rereading a
@@ -100,6 +102,8 @@ async function checkpoint({ root, sessionId, actor, producer, checkpointId, prim
                 const relative = `tmp/task-tracking/checkpoints/${request.operationId}.json`;
                 try {
                     const retained = JSON.parse(readBytes(context.root, relative).toString('utf8'));
+                    // Retained checkpoint state is disposable: one written for another request version is never replayed.
+                    if (retained.schemaVersion !== request.schemaVersion) fail('STALE_LINK', 'Checkpoint state was written for the earlier vocabulary; it is disposable, relink explicitly and use a new checkpoint');
                     if (retained.operationId !== request.operationId || retained.actor?.memberId !== actor
                         || retained.target?.itemId !== itemId || stableValue(retained.patch) !== stableValue(request.patch)
                         || stableValue(retained.context) !== stableValue(request.context)) fail('REUSED_OPERATION', 'Checkpoint identity was reused for changed observations');

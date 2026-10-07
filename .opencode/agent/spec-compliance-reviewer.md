@@ -15,7 +15,7 @@ Source: .claude/agents/spec-compliance-reviewer.md
 > The role-specific quality SYNC blocks in this prompt are the static sub-agent quality protocol; do not expand orchestrator-only instructions inside a leaf assignment.
 
 Connected contracts:
-- `pbi`
+- `work-item`
 - `spec`
 <!-- AGENT-SKILL-CONNECTIONS:END -->
 

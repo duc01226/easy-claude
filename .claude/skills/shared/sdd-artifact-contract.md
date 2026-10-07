@@ -82,7 +82,7 @@ Profile selection may change representation and cardinality only. It does not wa
 
 ## AI-SDD Mandates (M1-M7) — BLOCKING
 
-Every AI-SDD artifact (feature doc, engineering spec, test spec, PBI/story, idea) MUST satisfy the mandates that apply to its tree and authorship model or be REJECTED and reworked. M1-M6 are the default gates for canonical business artifacts; M7 is a business-tree gate and a routing rule for keeping architecture-derived cases in the technical tree. Derived technical specs declare their exemptions explicitly (for example, M1-exempt) and still MUST NOT author business content or weaken M7 for the business tree. These are hard gates, not guidance. Create/update skills MUST NOT emit violations; review/gate skills MUST FAIL on applicable mandate violations (M6). Each mandate points to the detailed gate/section that defines its full checklist, so this block stays a stable named anchor rather than a duplicate of the gates below.
+Every AI-SDD artifact (feature doc, engineering spec, test spec, task/story, initiative) MUST satisfy the mandates that apply to its tree and authorship model or be REJECTED and reworked. M1-M6 are the default gates for canonical business artifacts; M7 is a business-tree gate and a routing rule for keeping architecture-derived cases in the technical tree. Derived technical specs declare their exemptions explicitly (for example, M1-exempt) and still MUST NOT author business content or weaken M7 for the business tree. These are hard gates, not guidance. Create/update skills MUST NOT emit violations; review/gate skills MUST FAIL on applicable mandate violations (M6). Each mandate points to the detailed gate/section that defines its full checklist, so this block stays a stable named anchor rather than a duplicate of the gates below.
 
 | ID     | Mandate                       | Rule (one line)                                                                                                                                                                | Full checklist in            |
 | ------ | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------- |
@@ -98,8 +98,8 @@ Every AI-SDD artifact (feature doc, engineering spec, test spec, PBI/story, idea
 
 ### Enforcement Roles
 
-- **Create/update skills** (feature docs, engineering specs, test specs, PBIs/stories, ideas, doc sync) MUST enforce the applicable mandate set at authoring time. Business-tree artifacts enforce M1-M7. Derived technical specs enforce their generator contract and declared exemptions, and MUST route business content back to the business tree instead of authoring it.
-- **Review/gate skills** (feature-doc review, spec review, story/PBI review, challenge, artifact review, change review, definition-of-ready gate) MUST CHECK the applicable mandate set and FAIL with the violated mandate ID(s) and a specific reason. A review that passes an applicable violation is itself defective (M6).
+- **Create/update skills** (feature docs, engineering specs, test specs, tasks/stories, initiatives, doc sync) MUST enforce the applicable mandate set at authoring time. Business-tree artifacts enforce M1-M7. Derived technical specs enforce their generator contract and declared exemptions, and MUST route business content back to the business tree instead of authoring it.
+- **Review/gate skills** (feature-doc review, spec review, story/task review, challenge, artifact review, change review, readiness-check gate) MUST CHECK the applicable mandate set and FAIL with the violated mandate ID(s) and a specific reason. A review that passes an applicable violation is itself defective (M6).
 
 > Project repositories MAY extend these mandates with local banned-token lists, evidence formats, and ID namespaces in the project-reference docs root (default `docs/project-reference/**`; path from `docsRoots.projectReference.path` in `docs/project-config.json`), but MUST NOT weaken M1-M7.
 >
@@ -119,8 +119,8 @@ Bugfix workflows use the same cycle with a root-cause gate before regression tes
 
 | Artifact                     | Required For                       | Minimum Content                                                                             |
 | ---------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------- |
-| Requirements or bug analysis | Feature, PBI, bugfix               | User/business intent, scope, explicit non-goals, assumptions, unresolved clarifications     |
-| Acceptance criteria          | Feature, PBI, bugfix               | Given/When/Then, EARS, or equivalent testable conditions                                    |
+| Requirements or bug analysis | Feature, task, bugfix               | User/business intent, scope, explicit non-goals, assumptions, unresolved clarifications     |
+| Acceptance criteria          | Feature, task, bugfix               | Given/When/Then, EARS, or equivalent testable conditions                                    |
 | Design/plan                  | Code-changing work                 | chosen approach, rejected alternatives, risk, affected files, verification strategy         |
 | Task graph                   | Multi-step work                    | independently verifiable tasks, dependencies, safe parallelization notes                    |
 | Test specs                   | Behavior change                    | Canonical scenario/case identity (TC by default), intent/invariant guarded, priority, evidence, expected outcome/failure, and configured test mapping |

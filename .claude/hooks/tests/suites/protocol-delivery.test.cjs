@@ -320,6 +320,25 @@ function assertEachOnce(items, result, label) {
 
 const tests = [
     {
+        name: 'TC-PDL-064 fresh-reviewer template stays deferred for inline work and loads for dispatch or unreadable context',
+        fn: () => withFixture(fx => {
+            const shipped = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../../../skills/shared/protocol-groups.json'), 'utf8'));
+            const tag = 'review-protocol-injection';
+            assert.equal(shipped.groups.review.tags[tag].trigger, 'review-dispatch');
+            fx.projection([{ tag, group: 'review' }]);
+            fx.write('.claude/skills/shared/protocol-groups.json', JSON.stringify({ version: 1, inlineSkills: [], deliveryTriggers: { 'review-dispatch': shipped.deliveryTriggers['review-dispatch'] }, groups: { review: { tags: { [tag]: shipped.groups.review.tags[tag] } } } }));
+            fx.skill('why-review', guideBlock([tag]));
+            fx.skill('changes-review', guideBlock([tag]));
+            const context = prompts => ({ prompts, transcript: '', unreadable: false });
+            assertTags(plan(fx, skillLoad('why-review'), 'review', { triggerContext: () => context('evaluate this analysis inline') }), [], 'inline work');
+            for (const prompt of ['spawn a reviewer', 'delegate review', 'use sub-agents', 'parallel reviewers']) {
+                assertTags(plan(fx, skillLoad('why-review'), 'review', { triggerContext: () => context(prompt) }), [tag], prompt);
+            }
+            assertTags(plan(fx, skillLoad('changes-review'), 'review', { triggerContext: () => context('review this diff') }), [tag], 'dispatch-owning skill');
+            assertTags(plan(fx, skillLoad('why-review'), 'review', { triggerContext: () => ({ unreadable: true }) }), [tag], 'unreadable context');
+        })
+    },
+    {
         name: 'TC-PDL-009 a converted skill loaded through the skill tool receives its review protocols in full',
         fn: () => withFixture(fx => {
             // Given a converted skill that declares two review protocols (one listed twice) and no delivery recorded

@@ -9,7 +9,7 @@ disable-model-invocation: false
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -20,7 +20,7 @@ disable-model-invocation: false
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
 > **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
-> **[BLOCKING]** Before each step or sub-skill call, update task tracking: set `in_progress` when step starts, set `completed` when step ends.
+> **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
 
@@ -87,7 +87,7 @@ Collect six inventories for each group:
 | Inventory | Evidence and fallback |
 | --- | --- |
 | **Diagram sources → §2** | Components from callers/imports; domain model from an existing spec ERD (reuse verbatim), then entity fields, then schema/migrations; sequence from entry/handler chains. Lifecycle field/enum/guard triggers state diagrams. Trace → grep/read → spec/plan → stated blocker; never invent a node or edge. |
-| **Stories and cases → §3/§11** | Main capabilities, protected rules, enforcement `file:line`, and real spec IDs/test names. Reconcile the union of spec and test cases; name uncovered stories. Specs → tests → PBIs/release/commit notes → diff. Never invent a case ID. |
+| **Stories and cases → §3/§11** | Main capabilities, protected rules, enforcement `file:line`, and real spec IDs/test names. Reconcile the union of spec and test cases; name uncovered stories. Specs → tests → tasks/release/commit notes → diff. Never invent a case ID. |
 | **Review classification → §4** | Classify files using `references/review-path.md`. Walk one hop outward for invariant owners, satisfied interfaces, inherited contracts, and governing specs/tests. Mark unchanged context. Trace → imports/references; label grep-derived ordering approximate. |
 | **Concepts → §5** | Every load-bearing mechanism, with its code evidence; omit decoration, not essential concepts. |
 | **Options → §8** | For each significant decision, use recorded plan/ADR/PR/comment alternatives → log/blame and prior implementations → 3+ fitting sibling patterns → supported library approaches → engineering judgment. `[deliberated]` requires evidence it was weighed; otherwise label `[reconstructed]`. |

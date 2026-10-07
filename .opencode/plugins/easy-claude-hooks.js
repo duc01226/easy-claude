@@ -203,8 +203,7 @@ const HOOKS = {
           "type": "command",
           "command": ".claude/hooks/session-end.cjs"
         }
-      ],
-      "matcher": "clear|exit|compact"
+      ]
     },
     {
       "hooks": [

@@ -87,6 +87,8 @@ When the target output is root context, a project-reference guide/template, docs
 
 For these targets, use this branch instead of caveman compression, blanket example/table preservation or generic skill scaffolding:
 
+For persistent instruction files (`CLAUDE.md`, `AGENTS.md` or host equivalents), apply the **Instruction-file audit** in `.claude/skills/shared/protocols/context-engineering-principles.md` during final verification for every operation; preserve generated ownership.
+
 1. Read/save the baseline and inventory meaningful rules, protocols, exceptions, rationale, discovery and parser structures.
 2. Remove low-value repetition/report material by explicit disposition. Keep clear sentences and necessary conditions; retain action-governing numbers and a useful short example. Preserve consumer-required data/syntax.
 3. Make purpose/read-when and critical rules easy to find, with brief closing reminders when useful. Do not duplicate substantive protocols into summaries or invent missing implementation examples.

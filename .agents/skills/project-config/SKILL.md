@@ -9,7 +9,7 @@ disable-model-invocation: false
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -40,7 +40,7 @@ disable-model-invocation: false
 - MUST ATTENTION ensure the configured project-config file exists and validates; `project.name` is the only required project property
 - MUST ATTENTION route missing/invalid config through `$project-config` or `$project-init` before ordinary project-specific work
 - MUST ATTENTION add optional properties only for a selected capability or direct repository evidence; omit absent capabilities instead of creating empty sections
-- MUST ATTENTION one task tracking per selected config section or explicit section group — NEVER scan everything in one pass
+- MUST ATTENTION one todo tracking per selected config section or explicit section group — NEVER scan everything in one pass
 - MUST ATTENTION validate schema after each merge — `validateConfig(config)` returns PASSED or errors
 - MUST ATTENTION review-and-fix after each phase — read back, spot-check paths, self-review
 - MUST ATTENTION choose scan granularity and section grouping from repository size and evidence; ask only when product scope or an unresolved project decision is actually required
@@ -124,7 +124,7 @@ Phase E: Self-Review — confirm the required identity, declared capability evid
 
 ### Step 3: Execute
 
-Per selected phase: task tracking → inspect evidence → merge → validate → spot-check → fix → next phase. Record a capability as skipped when evidence shows it does not apply; do not create placeholder sections to make a phase appear complete.
+Per selected phase: todo tracking → inspect evidence → merge → validate → spot-check → fix → next phase. Record a capability as skipped when evidence shows it does not apply; do not create placeholder sections to make a phase appear complete.
 
 ### Review-and-Fix Cycle (MANDATORY per phase)
 
@@ -318,7 +318,7 @@ Before deriving a native profile, read **§2t Native Spec Artifact Profile** bel
 | `docsRoots.adr.path` in `docs/project-config.json` | The Architecture Decision Record tree. | `docs/adr` | Find the dir of ADRs (or the one an existing ADR index points at). |
 | `docsRoots.templates.path` in `docs/project-config.json` | The document-template tree. | `docs/templates` | Find the dir the project's doc/spec templates live in. |
 | `docsRoots.plans.path` in `docs/project-config.json` | The implementation-plan tree `$plan` writes. | `plans/` | Find the dir of plan folders. `.ck.json` `paths.plans` is a legacy fallback — this key WINS when both are set. |
-| `docsRoots.teamArtifacts.path` in `docs/project-config.json` | The idea / PBI / story tree. | `team-artifacts` | Find the dir holding the project's team artifacts. |
+| `docsRoots.teamArtifacts.path` in `docs/project-config.json` | The initiative / task / story tree. | `team-artifacts` | Find the dir holding the project's team artifacts. |
 | `docsRoots.productRoadmap.path` in `docs/project-config.json` | The roadmap document. | `docs/product-roadmap.md` | A FILE path, not a dir — the single roadmap doc `$product-roadmap` maintains. |
 
 Rules that bind every one of the six — identical to `specRoots`, and enforced by the schema, not by convention:
@@ -384,7 +384,7 @@ Read the configured file. Distinguish a missing/invalid required config from a v
 
 ## Phase 2: Evidence-Selected Config Areas
 
-Select only the config areas that the task requests or repository evidence supports. Each selected area becomes one task tracking or a named child inside a compact group. Per task: investigate → record evidence → merge → validate. Record why an absent capability is skipped. Never scan or populate every schema section just because the schema supports it.
+Select only the config areas that the task requests or repository evidence supports. Each selected area becomes one todo tracking or a named child inside a compact group. Per task: investigate → record evidence → merge → validate. Record why an absent capability is skipped. Never scan or populate every schema section just because the schema supports it.
 
 ### 2a. Modules — Backend
 
@@ -661,7 +661,7 @@ Report: required config path and project identity; optional sections updated; ev
 
 ---
 
-> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting.
+> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting.
 
 ## Closing Reminders
 
@@ -677,9 +677,9 @@ Report: required config path and project identity; optional sections updated; ev
 **IMPORTANT MUST ATTENTION** use exact schema field names — run `--describe`, copy verbatim. NEVER guess.
 **IMPORTANT MUST ATTENTION** validate after EACH phase — schema errors compound across phases.
 **NEVER** use `classPattern`/`keyExtractor` — correct fields: `contentPattern` (regex) + `keyGroup` (number).
-**IMPORTANT MUST ATTENTION** one task tracking per selected config section or explicit section group — NEVER scan everything in one pass.
+**IMPORTANT MUST ATTENTION** one todo tracking per selected config section or explicit section group — NEVER scan everything in one pass.
 **IMPORTANT MUST ATTENTION** keep absent `referenceDocs` distinct from explicit selection; an explicit array including `[]` stays exact, while lessons/index are initialized independently.
 **IMPORTANT MUST ATTENTION** preserve valid `specArtifacts`; absence uses strict TC/Section-8 defaults, while an invalid declaration blocks spec setup.
 
 
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
+**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using todo tracking.

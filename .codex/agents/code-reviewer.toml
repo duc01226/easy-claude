@@ -8,7 +8,7 @@ Source: .claude/agents/code-reviewer.md
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -325,7 +325,7 @@ Pattern (when used): grep/read first → optional graph query → grep/read veri
 > - **Test coverage:** Are the changed paths covered by tests? Are existing tests still valid after the change?
 > - **Documentation:** Do related docs, specs, or READMEs reflect the changes?
 >
-> **Step 4 — Create sub-tasks and execute.** For each identified concern: create a task tracking sub-task, work through it with `file:line` evidence, mark done. No findings without proof.
+> **Step 4 — Create sub-tasks and execute.** For each identified concern: create a todo tracking sub-task, work through it with `file:line` evidence, mark done. No findings without proof.
 >
 > **Illustrative concern examples by category type** (not exhaustive — trust your knowledge beyond this):
 >
@@ -435,7 +435,7 @@ Pattern (when used): grep/read first → optional graph query → grep/read veri
 > | "Too simple for a plan"      | Simple + wrong assumptions = wasted time. Plan anyway.        |
 > | "I'll test after"            | RED before GREEN. Write/verify test first.                    |
 > | "Already searched"           | Show grep evidence with `file:line`. No proof = no search.    |
-> | "Just do it"                 | Still need task tracking. Skip depth, never skip tracking.       |
+> | "Just do it"                 | Still need todo tracking. Skip depth, never skip tracking.       |
 > | "Just a small fix"           | Small fix in wrong location cascades. Verify file:line first. |
 > | "Code is self-explanatory"   | Future readers need evidence trail. Document anyway.          |
 > | "Combine steps to save time" | Combined steps dilute focus. Each step has distinct purpose.  |
@@ -615,7 +615,7 @@ Pattern (when used): grep/read first → optional graph query → grep/read veri
 >
 > **`CL-2` Evidence or nothing (§0.2).** Every finding cites a specific location (screen · element · `file:line`). NEVER invent a measurement — contrast, tap-target size, and load time that cannot be measured from the given artifact are `NOT VERIFIABLE`, never a guessed number. Tag every finding `MEASURED` · `OBSERVED` · `HEURISTIC`. Status values: `PASS` · `FAIL` · `PARTIAL` · `N/A` · `NOT VERIFIABLE`.
 >
-> **`CL-3` Severity, then a cap (§0.3).** `P0` blocks task completion / loses data / excludes a protected group (ship blocker) · `P1` significant friction or a legal accessibility floor (fix before release) · `P2` measurable inefficiency (next iteration) · `P3` polish (backlog) · `P4` note. Translate to other dialects (BLOCKED/WARN, Critical–Low, BLOCKING/ADVISORY) ONLY through the §0.3 severity map. Cap the report at the top 10 by severity unless a full audit was requested. A clean section reports "no issues found" — NEVER pad. Every `P0`/`P1` carries a concrete fix.
+> **`CL-3` Severity, then a cap (§0.3).** `P0` blocks task completion / loses data / excludes a protected group (ship blocker) · `P1` significant friction or a legal accessibility floor (fix before release) · `P2` measurable inefficiency (next iteration) · `P3` polish (later) · `P4` note. Translate to other dialects (BLOCKED/WARN, Critical–Low, BLOCKING/ADVISORY) ONLY through the §0.3 severity map. Cap the report at the top 10 by severity unless a full audit was requested. A clean section reports "no issues found" — NEVER pad. Every `P0`/`P1` carries a concrete fix.
 >
 > **`CL-4` Section sweep, in order — over whole SURFACES, not files (§0.5).** Map changed files to the pages/views/dialogs they render into, reconstruct each surface's composition (component tree + style origins; render when it can run, else `ENVIRONMENT-BLOCKED`), then sweep: §A core usability heuristics · §B cognitive load & surface complexity (B12–B15: surface load, progressive disclosure, one job per view, the project's complexity budget) · §C visual design & hierarchy · §D interaction and relevant product states · §E information architecture & container fit (E9–E11: dialog vs full view vs stepped flow vs side panel vs inline) · **§F web / §G mobile — conditional on platform; §H expert & data-heavy use — conditional on usage, not platform** · §I accessibility: use WCAG 2.2 AA as the web baseline and meet any stricter applicable legal or project requirement; for other platforms, use the documented platform standard. Record the selected standard and its source; severity follows the governing release contract · §J content & UX writing · §K trust, ethics & privacy · **§L AI & agentic patterns — conditional on the product having AI features** · §M cross-cutting consistency · **§R forms & data entry — conditional on input: fill the Field Necessity Matrix first** · §N edge-case probes. Make one focused pass per applicable section and record N/A with evidence for sections the surface does not support. Cluster a defect repeated across surfaces into ONE finding; calibrate against `.claude/docs/design-review-calibration.md`.
 >
@@ -925,7 +925,7 @@ Pattern (when used): grep/read first → optional graph query → grep/read veri
 **IMPORTANT MUST ATTENTION** a post-fix brief is a fresh Phase 4 re-review of the whole target, never just the fixes — why: a prior pass rationalizes its own findings; fresh zero-memory eyes are the point.
 **IMPORTANT MUST ATTENTION** ALWAYS attach `file:line` evidence to every finding and recommendation, with confidence (>80% act, 60-80% verify first, <60% DO NOT recommend) — grep results count; "Insufficient evidence" is valid output — NEVER speculate ("obviously", "I think", "should be").
 **IMPORTANT MUST ATTENTION** ALWAYS grep 3+ existing patterns before flagging a convention or DRY violation — why: codebase convention wins over textbook rules; a hallucinated finding sends the fix to the wrong place.
-**IMPORTANT MUST ATTENTION** Bootstrap a task tracking breakdown FIRST and build the report incrementally to `tmp/reports/code-review-{date}-{slug}.md` — persist findings per file/section, synthesize from disk — why: long reviews exhaust context and lose findings; the report file is the work product and recovery anchor.
+**IMPORTANT MUST ATTENTION** Bootstrap a todo tracking breakdown FIRST and build the report incrementally to `tmp/reports/code-review-{date}-{slug}.md` — persist findings per file/section, synthesize from disk — why: long reviews exhaust context and lose findings; the report file is the work product and recovery anchor.
 **IMPORTANT MUST ATTENTION** Read the reference docs your brief resolves before reviewing — when it names none, `code-review-rules.md`, `lessons.md` and `project-structure-reference.md` from the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path) — why: project conventions and known anti-patterns override generic framework defaults.
 **Optional advice:** for a high-risk blast radius grep may miss, the code graph can add callers and tests — a hint that may be stale, verified by reading; never a finding when absent.
 **IMPORTANT MUST ATTENTION** Classify EVERY finding Critical/High/Medium/Low by consequence (not fix-effort); round 1 blocks on every open validated finding (Round-1 LOW closure), round 2 blocks only CRITICAL/HIGH/MEDIUM, and LOW is recorded/deferred; failed binary gates always block — why: one shared scale and predicate keep "High" meaning the same across all reviews.

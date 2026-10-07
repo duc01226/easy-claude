@@ -19,7 +19,7 @@
  * by the design-group protocol hook, or this hook, marks the principles delivered for both, so a scope
  * receives the body once per window. The body is delivered again only when the content changes, the context is
  * compacted, or the transcript has grown by about `reinjectAfterTokens` tokens since the last
- * delivery (default 100,000; bytes = tokens × `BYTES_PER_TOKEN`, the measured transcript ratio in
+ * delivery (default 150,000; bytes = tokens × `BYTES_PER_TOKEN`, the measured transcript ratio in
  * `lib/file-conventions.cjs`). A host that exposes no transcript gets one delivery until the next
  * compaction or content change: elapsed time is not evidence that the context moved on.
  *
@@ -48,7 +48,9 @@ const MARKER_END = '<!-- /CK:CORE-ENGINEERING-PRINCIPLES -->';
 const SETTINGS_SECTION = 'corePrinciplesInject';
 const ENV_SWITCH = 'CK_CORE_PRINCIPLES_INJECT';
 const STEP_TOOLS = new Set(['TodoWrite', 'TaskCreate', 'TaskUpdate', 'update_plan']);
-const DEFAULT_REINJECT_TOKENS = 100000;
+// Refresh intent during long work before it fades from attention. The 150k default
+// reduces repetition without dropping the reminder; compaction still re-arms it.
+const DEFAULT_REINJECT_TOKENS = 150000;
 // Used only when the canonical file cannot be read, so the reminder is never empty. Must equal the
 // canonical `SYNC:core-engineering-principles:reminder` body (parity asserted by the hook suite).
 const FALLBACK_BODY =

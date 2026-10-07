@@ -3,7 +3,7 @@
 > Loaded by `plan/SKILL.md`'s Mode Dispatch when invoked as `/plan --mode=validate [plan-path]`. This contract REPLACES default plan creation for the invocation: interview the user about a finished plan, record the answers on `plan.md`, stop. It never rewrites the plan or its phase files.
 
 > **[BLOCKING]** Run declared steps in order. NEVER skip, reorder, or merge without explicit user approval.
-> **[BLOCKING]** Before each step/sub-skill, update task tracking: `in_progress` at start, `completed` at end.
+> **[BLOCKING]** Before each step/sub-skill, update todo tracking: `in_progress` at start, `completed` at end.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or an explicit skip reason.
 > **[BLOCKING]** If Task tools unavailable, maintain an equivalent step tracker with the same status transitions.
 
@@ -67,7 +67,7 @@ Classify plan type BEFORE generating questions; it drives category weighting:
 
 Before extracting technical questions, classify the plan's branch.
 
-- Embedded large-idea: read the owning PBI/spec; verify complete `large_idea_decomposition`, selected slice, non-goals/deferred owners, and conditional scenario artifact when needed. Do not require the product roadmap (default `docs/product-roadmap.md`; a `docsRoots.productRoadmap.path` entry in `docs/project-config.json` overrides the path) or a product milestone.
+- Embedded large-idea: read the owning task/spec; verify complete `large_idea_decomposition`, selected slice, non-goals/deferred owners, and conditional scenario artifact when needed. Do not require the product roadmap (default `docs/product-roadmap.md`; a `docsRoots.productRoadmap.path` entry in `docs/project-config.json` overrides the path) or a product milestone.
 - Explicit roadmap: read the product roadmap (default `docs/product-roadmap.md`; a `docsRoots.productRoadmap.path` entry in `docs/project-config.json` overrides the path), selected milestone scope brief, and `scenario-analysis.md`.
 - Framework/library: read technical scope, operational scenarios, generated-carrier evidence, and commands.
 - Verify one `## Plan Gate` in `plan.md`: matching branch/outcome/boundaries; explicit non-goals; lifecycle terms when applicable; branch decision state; known or explicitly inapplicable skeleton/configuration; build/test/run commands; redacted evidence; `Human approval: APPROVED`.
@@ -216,7 +216,7 @@ After validation:
 **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing, use `ask user question tool` to present:
 
 - **"/feature-implement (Recommended)"** — Begin implementation with validated plan
-- **"/pbi --mode=refine"** — If plan needs PBI refinement first
+- **"/work-item --mode=refine"** — If plan needs task refinement first
 - **"Skip, continue manually"** — User decides
 
 ---

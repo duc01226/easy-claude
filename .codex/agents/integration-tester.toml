@@ -8,7 +8,7 @@ Source: .claude/agents/integration-tester.md
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -294,7 +294,7 @@ Pattern (when used): grep/read first → optional graph query → grep/read veri
 > | "Too simple for a plan"      | Simple + wrong assumptions = wasted time. Plan anyway.        |
 > | "I'll test after"            | RED before GREEN. Write/verify test first.                    |
 > | "Already searched"           | Show grep evidence with `file:line`. No proof = no search.    |
-> | "Just do it"                 | Still need task tracking. Skip depth, never skip tracking.       |
+> | "Just do it"                 | Still need todo tracking. Skip depth, never skip tracking.       |
 > | "Just a small fix"           | Small fix in wrong location cascades. Verify file:line first. |
 > | "Code is self-explanatory"   | Future readers need evidence trail. Document anyway.          |
 > | "Combine steps to save time" | Combined steps dilute focus. Each step has distinct purpose.  |
@@ -350,7 +350,7 @@ Pattern (when used): grep/read first → optional graph query → grep/read veri
 > - **Test coverage:** Are the changed paths covered by tests? Are existing tests still valid after the change?
 > - **Documentation:** Do related docs, specs, or READMEs reflect the changes?
 >
-> **Step 4 — Create sub-tasks and execute.** For each identified concern: create a task tracking sub-task, work through it with `file:line` evidence, mark done. No findings without proof.
+> **Step 4 — Create sub-tasks and execute.** For each identified concern: create a todo tracking sub-task, work through it with `file:line` evidence, mark done. No findings without proof.
 >
 > **Illustrative concern examples by category type** (not exhaustive — trust your knowledge beyond this):
 >

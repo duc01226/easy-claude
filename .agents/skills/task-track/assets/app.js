@@ -29,30 +29,44 @@
     session: null, snapshot: null, scope: {}, view: 'Overview', layout: 'list', selectedKey: null,
     filters: noFilters(),
     form: null, busy: false, uncertain: null, result: null, message: '',
-    compare: null, checkpoint: null, returnFocus: null, limit: 100, recovery: null,
+    compare: null, checkpoint: null, returnFocus: null, limit: 100, recovery: null, stopped: '',
     panel: false, report: null, entryPath: [], contexts: [], concerns: null,
     // The status report last shown in this page, and whether it must be brought up to date before it is shown again.
     reportDoc: null, reportDue: false
   };
-  const kinds = ['idea', 'pbi', 'story', 'task', 'epic', 'vision'];
-  const kindNames = { idea: 'Idea', pbi: 'PBI', story: 'Story', task: 'Task', epic: 'Epic', vision: 'Vision' };
-  const kindWords = { idea: ['idea', 'ideas'], pbi: ['PBI', 'PBIs'], story: ['story', 'stories'], task: ['task', 'tasks'], epic: ['epic', 'epics'], vision: ['vision', 'visions'] };
-  const kindHelp = { idea: 'An idea is tracked outside the delivery count.', pbi: 'A PBI counts toward delivery, one block each.',
-    story: 'A story is tracked outside the delivery count.', task: 'A task is tracked outside the delivery count.',
-    epic: 'An epic groups work and can be chosen as a progress scope.', vision: 'A vision groups work and can be chosen as a progress scope.' };
+  // The tracker owns the words. Kinds, states, group purposes and link relations, and the name shown for each, arrive
+  // with every read; this page keeps no list of its own. What stays here is what a view decides: order, actions, sentences.
+  const vocabulary = () => state.snapshot?.vocabulary || {};
+  // A read that carries no words comes from a workspace started with another framework version. Nothing in it can be
+  // named, so it is refused whole: no view is drawn from it.
+  const READ_VERSION = 2;
+  const UNSUPPORTED = 'This workspace response is unsupported. Relaunch the project tool with the matching framework version.';
+  const usable = snapshot => snapshot?.schemaVersion === READ_VERSION && !!snapshot.vocabulary?.labels?.states
+    && [snapshot.vocabulary.kinds, snapshot.vocabulary.states].every(words => Array.isArray(words) && words.length > 0);
+  const named = (table, word) => vocabulary().labels?.[table]?.[word] || word;
+  const kinds = () => vocabulary().kinds || [];
+  const kindName = kind => named('kinds', kind);
+  const kindWords = kind => [kindName(kind), named('kindsPlural', kind)].map(name => name.toLocaleLowerCase());
+  const labels = () => vocabulary().labels?.states || {};
+  const isDelivery = item => item.kind === vocabulary().deliveryKind;
+  const isGroup = item => (vocabulary().groupKinds || []).includes(item.kind);
+  function kindHelp(kind) {
+    const name = kindName(kind).toLocaleLowerCase();
+    const one = `${/^[aeiou]/.test(name) ? 'An' : 'A'} ${name}`;
+    if (kind === vocabulary().deliveryKind) return `${one} counts toward delivery, one block each.`;
+    return isGroup({ kind }) ? `${one} collects work and can be chosen as a progress scope.` : `${one} is tracked outside the delivery count.`;
+  }
   const transitions = {
-    draft: ['backlog', 'canceled'], backlog: ['ready', 'canceled'], ready: ['in_progress', 'canceled'],
+    draft: ['planned', 'canceled'], planned: ['ready', 'canceled'], ready: ['in_progress', 'canceled'],
     in_progress: ['blocked', 'verifying', 'canceled'], blocked: [], verifying: ['canceled'],
-    done: ['backlog', 'ready', 'in_progress', 'canceled'], canceled: []
+    done: ['planned', 'ready', 'in_progress', 'canceled'], canceled: []
   };
-  const labels = { draft: 'Draft', backlog: 'Backlog', ready: 'Ready', in_progress: 'In progress',
-    blocked: 'Blocked', verifying: 'Verifying', done: 'Done', canceled: 'Canceled' };
   // The lifecycle line. Blocked work waits beside In progress; canceled work is off the line.
-  const STATIONS = ['draft', 'backlog', 'ready', 'in_progress', 'verifying', 'done'];
+  const STATIONS = ['draft', 'planned', 'ready', 'in_progress', 'verifying', 'done'];
   // The list reads from the work nearest to acceptance down to drafts, then finished work.
-  const LIST_ORDER = ['verifying', 'in_progress', 'ready', 'backlog', 'draft', 'done'];
+  const LIST_ORDER = ['verifying', 'in_progress', 'ready', 'planned', 'draft', 'done'];
   const proofNames = { current: 'Proved', stale: 'Proof stale', missing: 'No proof', unknown: 'Proof unknown' };
-  const forwardAction = { draft: 'Move to backlog', backlog: 'Review readiness', ready: 'Start work',
+  const forwardAction = { draft: 'Move to planned', planned: 'Review readiness', ready: 'Start work',
     in_progress: 'Request verification', blocked: 'Resume work', verifying: 'Accept work' };
   const cautiousActions = ['Cancel work', 'Retire work', 'Review draft deletion', 'Delete entirely'];
   // Work that has ended is outside every active scope; only that work, and an untouched draft, can be deleted.
@@ -60,7 +74,7 @@
   const actionIcons = { Assign: 'person', 'Refine work': 'edit', 'Edit links': 'link', 'Attest record health': 'pulse', 'Manage group': 'board', 'Record observed proof': 'check' };
   // One sentence per leading action: what the next recorded step is, and what it does not do.
   const nextStops = {
-    'Move to backlog': ['Next stop: the backlog', 'A draft stays out of planning until someone moves it to the backlog.'],
+    'Move to planned': ['Next stop: planned work', 'A draft stays out of planning until someone moves it to planned.'],
     'Review readiness': ['Next stop: a readiness review', 'Ready records that you reviewed the scope and acceptance criteria, and that required decisions are resolved.'],
     'Start work': ['Next stop: start the work', 'Starting is its own recorded step. Assignment alone never starts work.'],
     'Request verification': ['Next stop: verification', 'Verifying says the work is ready to be observed against its acceptance criteria. It does not accept the work.'],
@@ -74,7 +88,8 @@
   const historyPhrases = { create: 'captured this record', update: 'refined it', adopt: 'adopted tracking', assign: 'changed responsibility',
     link: 'changed links', group: 'changed group members', proof: 'recorded proof', accept: 'accepted the work',
     retire: 'retired it', restore: 'restored it', attest: 'attested record health' };
-  const relationNames = { dependency: 'Depends on', parent: 'Parent', idea: 'Idea', spec: 'Spec', plan: 'Plan', source: 'Source' };
+  // The version of a save request this page writes. The tracker refuses any other and says which it expects.
+  const REQUEST_VERSION = 2;
   const PIP_LIMIT = 8;
   const ROW_PIP_LIMIT = 5;
   const BLOCK_LIMIT = 120;
@@ -114,13 +129,16 @@
   const day = value => /^\d{4}-\d{2}-\d{2}/.test(value || '') ? value.slice(0, 10) : text(value);
   const clock = value => /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(value || '') ? `${value.slice(11, 16)} UTC` : '';
   const initials = name => name.split(/\s+/).filter(Boolean).slice(0, 2).map(part => Array.from(part)[0].toUpperCase()).join('') || '?';
-  const stateName = item => labels[item.state] ? item.state : 'other';
+  const stateName = item => labels()[item.state] ? item.state : 'other';
   const onLine = item => STATIONS.includes(item.state) || item.state === 'blocked';
   const acceptanceWord = item => item.retired ? 'Retired' : item.acceptance?.accepted ? 'Accepted' : 'Not accepted';
   const counted = (total, one, many) => `${total} ${total === 1 ? one : many}`;
+  const sentence = value => `${value}${/[.!?]$/.test(value) ? '' : '.'}`;
   const idTail = id => id.includes('-') ? id.slice(id.lastIndexOf('-') + 1) : id;
   const groupInfo = id => state.snapshot?.hierarchy?.groups?.find(group => group.id === id);
-  const groupLabel = item => item?.groupRole ? state.snapshot?.hierarchy?.labels?.[item.groupRole] || item.groupRole : 'Generic group';
+  // A project may name its group purposes; the tracker's own name stands in for one it has not named.
+  const purposeName = role => state.snapshot?.hierarchy?.labels?.[role] || named('groupRoles', role);
+  const groupLabel = item => item?.groupRole ? purposeName(item.groupRole) : 'Generic group';
   const groupName = id => { const item = items().find(record => record.id === id && hasUniqueId(id)); return item ? `${groupLabel(item)} ${id}: ${item.title}` : `Unavailable group ${id}`; };
   const scopeLabel = () => state.scope.groupId ? groupName(state.scope.groupId) : 'Whole project';
   const sourcePhrase = () => state.snapshot.source?.kind === 'worktree' ? 'your working copy' : state.snapshot.source?.kind === 'shared' ? `pinned ref ${state.snapshot.source.ref}` : 'the selected source';
@@ -248,7 +266,7 @@
     return element('span', { class: `avatar avatar--${tint}${sized}`, 'aria-hidden': 'true', title: memberName(id), text: initials(memberName(id)) });
   }
   // Four separately recorded facts get four separate marks: state, responsible person, proof and acceptance.
-  const kindMark = item => element('span', { class: `kind${item.kind === 'pbi' ? ' kind--pbi' : ''}`, text: kindNames[item.kind] || item.kind });
+  const kindMark = item => element('span', { class: `kind${isDelivery(item) ? ' kind--delivery' : ''}`, text: kindName(item.kind) });
   const proofStatus = item => proofNames[item.verification?.status] ? item.verification.status : 'unknown';
   const proofWord = item => item.criteria?.length ? proofNames[proofStatus(item)] : 'No criteria';
   function pips(item, limit = PIP_LIMIT) {
@@ -263,7 +281,24 @@
     title: accepted ? 'Accepted' : 'Not accepted' }, accepted ? icon('check') : []);
   const flag = (value, tone) => element('span', { class: `flag${tone ? ` flag--${tone}` : ''}`, text: value });
 
+  // What the selected source says about the vocabulary it stores. A pinned ref is read-only whatever it stores, so only
+  // the checkout is told to migrate.
+  const stored = () => state.snapshot?.vocabulary?.project || null;
+  // The migrate command and the two sentences that give it, each written once. A command word is set apart so a view can
+  // mark it; the plain form is the same sentence for a line of text.
+  const MIGRATE = 'migrate --root <checkout>';
+  const MIGRATION_STEPS = ['Preview the migration with the task tool: ', [`${MIGRATE} --dry-run`], '. Then run it without ', ['--dry-run'], '.'];
+  const MIGRATION_RERUN = [' The task tool command is ', [MIGRATE], '.'];
+  const marked = parts => parts.map(part => Array.isArray(part) ? mono(part[0]) : part);
+  const migrationSteps = MIGRATION_STEPS.flat().join('');
+  const needsMigration = () => stored()?.code === 'MIGRATION_REQUIRED' && state.scope.ref === undefined;
+  // Two vocabularies at once, or a migration that stopped part-way: nothing was read as work, so no view has a true thing to show.
+  const unreadable = () => !!stored()?.code && stored().storedVersion === null;
+  // The reason a source gives for holding no readable work, with the command when running it again is the way on.
+  const unreadableReason = project => [`${project.reason}.`, ...(project.code === 'MIGRATION_IN_PROGRESS' ? marked(MIGRATION_RERUN) : [])];
   function writableReason(item) {
+    if (needsMigration()) return `${stored().reason}. ${migrationSteps}`;
+    if (unreadable() && state.scope.ref === undefined) return `${stored().reason}.`;
     if (!state.session?.writable || !state.session.actor) return 'This session is read-only. Launch a writable workspace with your configured stable member identity to make changes.';
     if (state.scope.ref !== undefined || state.snapshot?.source?.kind !== 'worktree') return 'The selected shared snapshot is read-only. Choose the current checkout to propose changes.';
     if (!state.snapshot?.profile?.available) return 'This project’s native tracking capability is unavailable. Original records are preserved; no replacement format is created.';
@@ -284,20 +319,20 @@
     else if (item.retired) { add('Restore work', 'restore'); add('Delete entirely', 'delete'); }
     else {
       add('Assign', 'assign'); add('Refine work', 'update'); add('Edit links', 'link');
-      if (['epic', 'vision'].includes(item.kind)) add('Manage group', 'group');
+      if (isGroup(item)) add('Manage group', 'group');
       const allowed = item.state === 'blocked' ? [item.blocker?.resumeState, 'canceled'].filter(Boolean) : transitions[item.state] || [];
       for (const next of [...new Set(allowed)]) {
         if (next === 'in_progress' && item.state === 'ready' && (!state.snapshot.ready?.includes(item.id) || !members().some(member => member.id === item.assigneeId && member.active))) continue;
         const name = next === 'in_progress' ? item.state === 'blocked' ? 'Resume work' : item.state === 'done' ? 'Reopen in progress' : 'Start work'
           : next === 'ready' ? 'Review readiness' : next === 'verifying' ? 'Request verification'
-            : next === 'blocked' ? 'Record blocker' : next === 'canceled' ? 'Cancel work' : item.state === 'done' ? 'Reopen to backlog' : 'Move to backlog';
+            : next === 'blocked' ? 'Record blocker' : next === 'canceled' ? 'Cancel work' : item.state === 'done' ? 'Reopen to planned' : 'Move to planned';
         add(name, 'transition', { nextState: next });
       }
       if (item.verification?.criteriaIdentity && item.verification?.sourceIdentity && item.criteria?.length && !hasRedaction(item.criteria)) add('Record observed proof', 'proof');
       if (item.state === 'verifying' && item.verification?.status === 'current') add('Accept work', 'accept');
       if (members().some(member => member.id === state.session.actor && member.active)) add('Attest record health', 'attest');
       // Outside the usual steps: any other recorded state, such as canceled work taken back to draft.
-      if (labels[item.state]) add('Change state', 'transition', { correction: true });
+      if (labels()[item.state]) add('Change state', 'transition', { correction: true });
       add('Retire work', 'retire');
       if (item.state === 'draft') add('Review draft deletion', 'delete');
       else if (item.state === 'canceled') add('Delete entirely', 'delete');
@@ -406,7 +441,7 @@
     const snapshot = state.snapshot;
     const banner = (tone, mark, title, body, ...tools) => element('div', { class: `banner banner--${tone}` }, [
       element('span', { class: 'banner-mark', 'aria-hidden': 'true' }, icon(mark)),
-      element('div', { class: 'banner-text' }, [element('p', { class: 'banner-title' }, title), paragraph(body, 'banner-body')]), ...tools]);
+      element('div', { class: 'banner-text' }, [element('p', { class: 'banner-title' }, title), element('p', { class: 'banner-body' }, body)]), ...tools]);
     const reasons = () => button('See the reasons', showInspectionReasons);
     // On Changes the same action is already in the comparison card.
     const current = () => state.view === 'Changes' ? null : button('Inspect current checkout', inspectCurrent);
@@ -414,10 +449,18 @@
     const reportedLine = `${counted(reported, 'reason is', 'reasons are')} reported.`;
     const pinned = state.scope.ref !== undefined;
     if (pinned && snapshot.coverage === 'unavailable') {
-      notices.append(banner('alert', 'alert', [mono(state.scope.ref), ' could not be read'], `Nothing from the current checkout is shown in its place. ${reportedLine}`, reasons(), current()));
+      notices.append(banner('alert', 'alert', [mono(state.scope.ref), ' could not be read'], [`Nothing from the current checkout is shown in its place. ${reportedLine}`, ...(unreadable() ? [' ', ...unreadableReason(stored())] : [])], reasons(), current()));
     } else {
-      if (snapshot.coverage !== 'complete') notices.append(banner('alert', 'alert', snapshot.coverage === 'unavailable' ? 'Inspection is unavailable' : 'Inspection is incomplete',
-        `${snapshot.coverage === 'unavailable' ? 'No work can be counted or changed in this scope.' : 'Counts cover inspected work only, no percentage is shown, and nothing can be changed until this is resolved.'} ${reportedLine}`, reasons()));
+      // A record still stored in the earlier words is named here, so the reader need not open the reasons to find it.
+      const strays = (snapshot.diagnostics || []).filter(diagnostic => diagnostic.code === 'EARLIER_VOCABULARY_RECORD');
+      const found = diagnostic => [diagnostic.itemId, diagnostic.path].filter(Boolean).join(' at ');
+      const strayLine = strays.length ? ` ${strays[0].reason}: ${strays.slice(0, REASONS_SHOWN).map(found).join(', ')}${strays.length > REASONS_SHOWN ? ` and ${strays.length - REASONS_SHOWN} more` : ''}.` : '';
+      if (unreadable()) notices.append(banner('alert', 'alert', 'No work can be read from this project',
+        unreadableReason(stored())));
+      else if (snapshot.coverage !== 'complete') notices.append(banner('alert', 'alert', snapshot.coverage === 'unavailable' ? 'Inspection is unavailable' : 'Inspection is incomplete',
+        `${snapshot.coverage === 'unavailable' ? 'No work can be counted or changed in this scope.' : 'Counts cover inspected work only, no percentage is shown, and nothing can be changed until this is resolved.'} ${reportedLine}${strayLine}`, reasons()));
+      if (needsMigration()) notices.append(banner('pinned', 'lock', 'Migration required: this project is read-only',
+        ['It stores the earlier vocabulary. Work is shown in the current words and every count is unchanged. ', ...marked(MIGRATION_STEPS)]));
       if (pinned) notices.append(banner('pinned', 'lock', ['You are reading ', mono(state.scope.ref)], 'A pinned ref is read-only. Inspect the current checkout to propose changes.', current()));
     }
     notices.hidden = !notices.childElementCount;
@@ -483,9 +526,11 @@
       if (counts) node.append(element('span', { class: `tab-count${tone ? ` tab-count--${tone}` : ''}`, 'aria-hidden': 'true', text: total }));
       return node;
     };
-    const mine = state.session.actor ? items().filter(item => item.assigneeId === state.session.actor).length : null;
-    const differing = state.compare ? differences().length : null;
-    navigation.replaceChildren(tab('Overview'), tab('Work', items().length, 'record in the selected source', 'records in the selected source'),
+    // A source that could not be read has no count of zero; its tabs carry none.
+    const readable = state.snapshot.coverage !== 'unavailable';
+    const mine = state.session.actor && readable ? items().filter(item => item.assigneeId === state.session.actor).length : null;
+    const differing = compared() ? differences().length : null;
+    navigation.replaceChildren(tab('Overview'), tab('Work', readable ? items().length : null, 'record in the selected source', 'records in the selected source'),
       tab('My work', mine, 'record is assigned to you', 'records are assigned to you'), tab('People'),
       tab('Changes', differing, 'record differs from the current checkout', 'records differ from the current checkout', differing ? 'warn' : undefined), tab('Report'));
     if (state.form) navigation.append(button('Unsaved draft', () => { state.view = 'Editor'; render(true); }, { class: 'tab tab--draft', 'aria-current': state.view === 'Editor' ? 'page' : undefined }));
@@ -498,8 +543,9 @@
     if (hint) root.title = hint;
   }
   // The source and scope form opens under the app bar. On Changes the same form is part of the page, so the app-bar controls point at it instead.
+  const formInPage = () => state.view === 'Changes' && !unreadable();
   function togglePanel(focusId) {
-    if (state.view === 'Changes') { document.getElementById(focusId)?.focus(); return; }
+    if (formInPage()) { document.getElementById(focusId)?.focus(); return; }
     state.panel = !state.panel;
     renderContext();
     (state.panel ? document.getElementById(focusId) : document.querySelector(`[data-opens="${focusId}"]`))?.focus();
@@ -507,7 +553,7 @@
   function inspectCurrent() { checkpoint(() => { state.panel = false; reread(state.scope.groupId ? { groupId: state.scope.groupId } : {}); }); }
   function renderContext() {
     const snapshot = state.snapshot;
-    const onChanges = state.view === 'Changes';
+    const onChanges = formInPage();
     if (onChanges) state.panel = false;
     document.getElementById('project-name').textContent = snapshot.project?.name || 'Team work';
     setRoot(`Checkout: ${state.session.root}`, state.session.root);
@@ -570,16 +616,31 @@
     main.querySelector('h2')?.focus();
     return null;
   }
+  // The page stops showing a workspace it cannot name: the message, a way to try again, and nothing read before it.
+  // A draft and an unconfirmed save stay in this page and return when the workspace opens again.
+  function stop(message) {
+    Object.assign(state, { stopped: message, session: null, snapshot: null, scope: {}, compare: null, report: null, reportDoc: null, concerns: null,
+      panel: false, entryPath: [], contexts: [], selectedKey: null });
+  }
+  function renderStopped(message) {
+    feedback.replaceChildren(); notices.replaceChildren(); notices.hidden = true; sourcePanel.replaceChildren(); sourcePanel.hidden = true;
+    document.getElementById('session-tools').replaceChildren();
+    main.replaceChildren(heading('Project could not be opened'), paragraph(message, 'notice'), actions(button('Retry opening project', initialize, { disabled: false })));
+    document.getElementById('source-context').textContent = 'No project opened';
+    document.getElementById('actor-context').textContent = 'No actor established';
+  }
   function render(focus = false) {
+    if (state.stopped) { renderNavigation(); main.setAttribute('aria-busy', 'false'); renderStopped(state.stopped); return; }
     const focusBefore = focus ? null : focusKey(document.activeElement) || heldFocus;
     settleFeedback(); renderFeedback(); renderNavigation();
     main.setAttribute('aria-busy', String(state.busy));
     if (!state.snapshot) return;
     renderContext(); renderNotices();
     // The report frame stays in the page while its view is shown: a frame taken out of the page loads its document again.
-    const keptFrame = state.view === 'Report' && reportFrame?.parentNode === main ? reportFrame : null;
+    const keptFrame = state.view === 'Report' && !unreadable() && reportFrame?.parentNode === main ? reportFrame : null;
     for (const child of [...main.childNodes]) if (child !== keptFrame) child.remove();
     if (state.view === 'Editor' && state.form) renderEditor();
+    else if (unreadable()) renderUnreadable();
     else if (state.view === 'Overview') renderOverview();
     else if (state.view === 'People') renderPeople();
     else if (state.view === 'Changes') renderChanges();
@@ -588,14 +649,14 @@
     if (focus) main.querySelector('h2')?.focus();
     heldFocus = focusBefore ? restoreFocus(focusBefore) : null;
     // Opening the report and rereading the project each make the shown report due; it is brought up to date once per cause.
-    if (state.view === 'Report' && state.reportDue && !state.busy) loadReport();
+    if (state.view === 'Report' && state.reportDue && !state.busy && !unreadable()) loadReport();
   }
 
   function scopeControls() {
     const container = element('form', { id: 'scope-form', class: 'scope-form' });
     const ref = element('input', { id: 'scope-ref', value: state.scope.ref || '', maxlength: 200, autocomplete: 'off', autocapitalize: 'none', spellcheck: 'false' });
     const group = element('select', { id: 'scope-group' }, [element('option', { value: '', text: 'Whole project' }),
-      ...items().filter(item => ['epic', 'vision'].includes(item.kind) && hasUniqueId(item.id)).map(item => element('option', { value: item.id, text: groupName(item.id) }))]);
+      ...items().filter(item => isGroup(item) && hasUniqueId(item.id)).map(item => element('option', { value: item.id, text: groupName(item.id) }))]);
     group.value = state.scope.groupId || '';
     const inspect = () => checkpoint(async () => {
       const previous = currentContext();
@@ -616,7 +677,7 @@
     container.addEventListener('submit', event => { event.preventDefault(); inspect(); });
     return container;
   }
-  // One block per eligible PBI. The counted statement stays authoritative: nothing is drawn unless the blocks agree with it.
+  // One block per eligible task. The counted statement stays authoritative: nothing is drawn unless the blocks agree with it.
   function deliveryBlocks(metrics) {
     if (metrics.total > BLOCK_LIMIT) return [];
     const byId = new Map(items().map(item => [item.id, item]));
@@ -634,7 +695,7 @@
     const labelled = metrics.total <= LABELLED_BLOCKS;
     const density = metrics.total > DENSE_BLOCKS ? ' blocks--dense' : metrics.total <= FEW_BLOCKS ? ' blocks--few' : '';
     return [element('div', { class: `blocks${density}`, role: 'img',
-      'aria-label': `${metrics.total} PBIs, one block each: ${present.map(name => `${groups[name].length} ${names[name]}`).join('; ')}` },
+      'aria-label': `${metrics.total} tasks, one block each: ${present.map(name => `${groups[name].length} ${names[name]}`).join('; ')}` },
     present.flatMap(name => groups[name].map(item => element('span', { class: 'block-cell', title: `${item.id}: ${item.title}` }, [
       element('span', { class: `block block--${name}` }, marks[name] ? icon(marks[name]) : []), labelled ? element('span', { class: 'block-id', text: idTail(item.id) }) : null])))),
     element('ul', { class: 'legend' }, present.map(name => element('li', {}, [element('span', { class: `block block--${name}`, 'aria-hidden': 'true' }),
@@ -649,27 +710,27 @@
     }
     const complete = metrics.coverage === 'complete' && state.snapshot.coverage === 'complete';
     const percentage = complete && Number.isFinite(metrics.percentage) ? `${metrics.percentage.toFixed(1)}%` : 'Unknown; no complete nonempty denominator';
-    const ledger = `${metrics.total} eligible unique PBIs; ${metrics.canceled} canceled and ${metrics.retired} retired excluded. ${metrics.accepted} historical scoped acceptance decisions; `
-      + `${metrics.currentlyVerified} accepted PBIs with proof that still applies; ${metrics.remaining} eligible PBIs not accepted. Accepted percentage: ${percentage}.`;
+    const ledger = `${metrics.total} eligible unique tasks; ${metrics.canceled} canceled and ${metrics.retired} retired excluded. ${metrics.accepted} historical scoped acceptance decisions; `
+      + `${counted(metrics.currentlyVerified, 'accepted task', 'accepted tasks')} with proof that still applies; ${counted(metrics.remaining, 'eligible task', 'eligible tasks')} not accepted. Accepted percentage: ${percentage}.`;
     const tools = actions(button('Inspect all work', () => navigate('Work'), { class: 'quiet' }));
     let caption = `${ledger} List filters do not change this denominator.`;
     if (complete && metrics.total) {
       card.append(element('div', { class: 'hero' }, [
-        element('p', { class: 'hero-count' }, [element('span', { class: 'hero-figure', text: metrics.accepted }), element('span', { class: 'hero-unit', text: `of ${counted(metrics.total, 'PBI', 'PBIs')} accepted` })]),
+        element('p', { class: 'hero-count' }, [element('span', { class: 'hero-figure', text: metrics.accepted }), element('span', { class: 'hero-unit', text: `of ${counted(metrics.total, 'task', 'tasks')} accepted` })]),
         element('p', { class: 'hero-rate' }, [element('strong', { text: percentage }), element('span', { text: 'accepted in this exact scope' })])]), ...deliveryBlocks(metrics));
     } else if (complete) {
       card.append(element('div', { class: 'hero-lead' }, [paragraph('No delivery scope yet', 'hero-title'),
-        paragraph('Delivery counts PBIs, one block each. This scope has none, so there is no percentage to show. That is not the same as zero percent.', 'hero-copy')]),
+        paragraph('Delivery counts tasks, one block each. This scope has none, so there is no percentage to show. That is not the same as zero percent.', 'hero-copy')]),
       element('div', { class: 'blocks blocks--ghost', 'aria-hidden': 'true' }, Array.from({ length: GHOST_BLOCKS }, () => element('span', { class: 'block block--ghost' }))));
-      const excluded = metrics.canceled || metrics.retired ? ` ${metrics.canceled} canceled and ${metrics.retired} retired PBIs are excluded.` : '';
-      caption = `Your first PBI becomes the first block. Ideas, stories and tasks are tracked too, but they sit outside this count.${excluded} Accepted percentage: ${percentage}.`;
+      const excluded = metrics.canceled || metrics.retired ? ` ${metrics.canceled} canceled and ${metrics.retired} retired tasks are excluded.` : '';
+      caption = `Your first task becomes the first block. Initiatives, stories and subtasks are tracked too, but they sit outside this count.${excluded} Accepted percentage: ${percentage}.`;
     } else {
       card.append(element('div', { class: 'hero-lead' }, [paragraph('Delivery unknown', 'hero-title'),
         paragraph('Inspection is incomplete, so no delivery blocks are drawn. The counts below cover inspected work only.', 'hero-copy')]));
     }
     const canCapture = !writableReason() && state.snapshot.profile.capabilities?.includes('create');
     if (metrics.total || !complete) tools.append(button('Inspect remaining work', () => showWork({ remaining: true }), { class: 'primary', iconAfter: 'arrow' }));
-    else if (canCapture) tools.append(button('Capture a PBI', () => beginForm('create', undefined, { kind: 'pbi' }), { class: 'primary', icon: 'plus' }));
+    else if (canCapture) tools.append(button('Capture a task', () => beginForm('create', undefined, { kind: vocabulary().deliveryKind }), { class: 'primary', icon: 'plus' }));
     card.append(element('div', { class: 'sheet-foot' }, [paragraph(caption, 'caption'), tools]));
     return card;
   }
@@ -696,8 +757,8 @@
   function kindBreakdown(records) {
     const totals = new Map();
     for (const item of records) totals.set(item.kind, (totals.get(item.kind) || 0) + 1);
-    return [...kinds.filter(kind => totals.has(kind)), ...[...totals.keys()].filter(kind => !kinds.includes(kind))]
-      .map(kind => counted(totals.get(kind), kindWords[kind]?.[0] || kind, kindWords[kind]?.[1] || kind)).join(', ');
+    return [...kinds().filter(kind => totals.has(kind)), ...[...totals.keys()].filter(kind => !kinds().includes(kind))]
+      .map(kind => counted(totals.get(kind), ...kindWords(kind))).join(', ');
   }
   function lifecycleLine() {
     const open = items().filter(item => !item.retired);
@@ -706,14 +767,14 @@
     const line = element('ol', { class: 'line' });
     for (const key of STATIONS) {
       const records = inState(key);
-      const station = button('', () => showWork({ status: key }), { class: `station${records.length ? '' : ' station--none'}`, 'aria-label': `${labels[key]}: ${records.length} records. Show them in Work.` });
-      station.append(element('span', { class: 'count', text: records.length }), element('span', { class: 'dot-zone' }, dot(key)), element('span', { class: 'station-name', text: labels[key] }));
+      const station = button('', () => showWork({ status: key }), { class: `station${records.length ? '' : ' station--none'}`, 'aria-label': `${labels()[key]}: ${records.length} records. Show them in Work.` });
+      station.append(element('span', { class: 'count', text: records.length }), element('span', { class: 'dot-zone' }, dot(key)), element('span', { class: 'station-name', text: labels()[key] }));
       const cell = element('li', {}, [station, records.length ? element('span', { class: 'station-kinds', text: kindBreakdown(records) }) : null]);
       if (key === 'in_progress' && blocked) cell.append(element('span', { class: 'siding' }, [element('span', { class: 'siding-hook', 'aria-hidden': 'true' }),
         button(`${blocked} blocked`, () => showWork({ status: 'blocked' }))]));
       line.append(cell);
     }
-    const off = [[inState('canceled').length, 'canceled'], [items().length - open.length, 'retired'], [open.filter(item => !labels[item.state]).length, 'in another recorded state']]
+    const off = [[inState('canceled').length, 'canceled'], [items().length - open.length, 'retired'], [open.filter(item => !labels()[item.state]).length, 'in another recorded state']]
       .filter(([total]) => total).map(([total, name]) => `${total} ${name}`);
     const section = sheet('line-heading', 'Where work stands', `${counted(open.filter(onLine).length, 'open record', 'open records')} by recorded state.${off.length ? ` Off the line: ${off.join(', ')}.` : ''}`);
     section.append(line);
@@ -764,7 +825,7 @@
         ...responsible(item.assigneeId), openButton(item)]))));
     } else section.append(paragraph('No record is ready to start in this scope.', 'note'));
     // The snapshot lists every record that is not ready. Only work that has not started yet belongs under this question.
-    const notStarted = ['ready', 'backlog', 'draft'];
+    const notStarted = ['ready', 'planned', 'draft'];
     const held = (state.snapshot.excluded || []).filter(entry => notStarted.includes(byId.get(entry.itemId)?.state) && !byId.get(entry.itemId).retired)
       .sort((a, b) => notStarted.indexOf(byId.get(a.itemId).state) - notStarted.indexOf(byId.get(b.itemId).state));
     if (held.length) {
@@ -783,8 +844,8 @@
     const decision = accepted ? (item.acceptanceHistory || []).at(-1) : null;
     const attested = item.health?.status === 'attested';
     return [
-      ['Recorded state', [dot(stateName(item), 's'), labels[item.state] || item.state], entered?.at ? `Since ${day(entered.at)}` : null,
-        item.state === 'blocked' && item.blocker ? `Resumes to ${labels[item.blocker.resumeState] || item.blocker.resumeState}` : null],
+      ['Recorded state', [dot(stateName(item), 's'), labels()[item.state] || item.state], entered?.at ? `Since ${day(entered.at)}` : null,
+        item.state === 'blocked' && item.blocker ? `Resumes to ${labels()[item.blocker.resumeState] || item.blocker.resumeState}` : null],
       ['Responsible', [avatar(item.assigneeId, 's'), `${memberName(item.assigneeId)}${item.assigneeId ? ` (${item.assigneeId})` : ''}`],
         item.collaboratorIds?.length ? `Collaborating: ${item.collaboratorIds.map(memberName).join(', ')}` : null],
       ['Current proof', [element('span', { class: `mark proof proof--${proofStatus(item)}` }, pips(item)), proofWord(item)], `${item.verification?.status || 'unknown'}: ${item.verification?.reason || 'Not established'}`],
@@ -810,7 +871,7 @@
   function nextStopsCard(item) {
     const total = state.snapshot.metrics?.total || 0;
     const criteria = item.criteria?.length || 0;
-    const scope = [!!total, 'Capture a PBI', total ? `${counted(total, 'PBI is', 'PBIs are')} in this delivery scope.` : 'Delivery counts PBIs, and this scope has none yet.'];
+    const scope = [!!total, 'Capture a task', total ? `${counted(total, 'task is', 'tasks are')} in this delivery scope.` : 'Delivery counts tasks, and this scope has none yet.'];
     // Criteria and responsibility are next stops for open work only; a retired or canceled record has none.
     const steps = item.retired || item.state === 'canceled' ? [
       [false, 'Capture new work', `${item.id} is ${item.retired ? 'retired' : 'canceled'}, so no record is open.`], scope
@@ -839,6 +900,13 @@
       details('Inspection reasons and limitations', snapshot.diagnostics, 'inspection-reasons'),
       details('Scope and source identities', { source: snapshot.source, fingerprint: snapshot.fingerprint, scopeRevision: snapshot.metrics?.scopeRevision, profile: snapshot.profile })]);
   }
+  // Every view of a source that cannot be read: its own title, so the tabs still say where the reader is, and no work,
+  // count or earlier report. The reasons stay open to inspection.
+  const VIEW_TITLES = { Overview: 'Project progress', People: 'People', Changes: 'Changes and sharing', Report: 'Status report' };
+  function renderUnreadable() {
+    main.append(pageLead(heading(VIEW_TITLES[state.view] || state.view), paragraph('No work, count or report is shown while this source cannot be read. Resolve the condition named for it, then reread the project.', 'page-intro')),
+      inspectionStrip());
+  }
   function renderOverview() {
     const snapshot = state.snapshot;
     main.append(pageHead('Project progress', `${scopeLabel()}, read from ${sourcePhrase()} at ${snapshot.asOf ? instant(snapshot.asOf) : 'an unknown time'}`,
@@ -860,7 +928,7 @@
     const load = (owned, summary) => {
       const rows = byLifecycle(owned);
       return [element('div', { class: 'person-load' }, [paragraph(summary), element('div', { class: 'person-bar', 'aria-hidden': 'true' }, rows.slice(0, DENSE_BLOCKS).map(item => element('span', { class: `is-${stateName(item)}` })))]),
-        element('ul', { class: 'person-rows' }, [...rows.slice(0, PERSON_ROWS).map(item => element('li', {}, [element('span', { class: `state-word is-${stateName(item)}`, text: labels[item.state] || item.state }), element('span', { text: item.title })])),
+        element('ul', { class: 'person-rows' }, [...rows.slice(0, PERSON_ROWS).map(item => element('li', {}, [element('span', { class: `state-word is-${stateName(item)}`, text: labels()[item.state] || item.state }), element('span', { text: item.title })])),
           rows.length > PERSON_ROWS ? element('li', { class: 'note', text: `and ${rows.length - PERSON_ROWS} more` }) : null])];
     };
     const seeWork = (name, filters) => button('See this work', () => showWork(filters), { iconAfter: 'arrow', 'aria-label': `See this work: ${name}` });
@@ -892,7 +960,7 @@
 
   function filteredItems() {
     const f = state.filters;
-    const eligible = state.snapshot.scope?.eligiblePbiIds || state.snapshot.metrics?.eligibleIds || [];
+    const eligible = state.snapshot.scope?.eligibleTaskIds || state.snapshot.metrics?.eligibleIds || [];
     return items().filter(item => {
       if (state.scope.groupId && !eligible.includes(item.id)) return false;
       if (state.view === 'My work' && item.assigneeId !== state.session.actor) return false;
@@ -905,9 +973,9 @@
   function workEntry(item, variant, select) {
     const ambiguous = hasUniqueId(item.id) ? '' : `Ambiguous identity; owner: ${item.ownerPath}`;
     const entry = button('', select, { class: variant, 'aria-pressed': String(itemKey(item) === state.selectedKey),
-      'aria-label': `${item.id}: ${item.title}. ${labels[item.state] || item.state}; ${memberName(item.assigneeId)}; ${acceptanceWord(item)}; Proof: ${item.verification?.status || 'unknown'}${ambiguous ? `; ${ambiguous}` : ''}` });
+      'aria-label': `${item.id}: ${item.title}. ${labels()[item.state] || item.state}; ${memberName(item.assigneeId)}; ${acceptanceWord(item)}; Proof: ${item.verification?.status || 'unknown'}${ambiguous ? `; ${ambiguous}` : ''}` });
     const identity = element('span', { class: 'row-context' }, [kindMark(item), element('span', { class: 'id', text: item.id }),
-      variant === 'work-row' && item.state === 'blocked' ? flag('Blocked', 'blocked') : null, onLine(item) ? null : flag(labels[item.state] || item.state), item.retired ? flag('Retired') : null]);
+      variant === 'work-row' && item.state === 'blocked' ? flag('Blocked', 'blocked') : null, onLine(item) ? null : flag(labels()[item.state] || item.state), item.retired ? flag('Retired') : null]);
     const note = ambiguous ? element('span', { class: 'row-note', text: ambiguous }) : null;
     if (variant === 'card') {
       entry.append(item.state === 'blocked' ? element('span', { class: 'card-block' }, [icon('alert'), element('span', { text: `Blocked: ${item.blocker?.reason || 'no reason is recorded'}` })]) : '',
@@ -925,7 +993,7 @@
     ...legendMarks().map(([mark, name]) => element('li', {}, [mark, name]))]);
   // The same filtered records under a heading per recorded state. Blocked work stays with In progress; anything else sits off the line.
   function workList(shown, select) {
-    const groups = LIST_ORDER.map(key => ({ key, name: labels[key], records: shown.filter(item => item.state === key || key === 'in_progress' && item.state === 'blocked') }));
+    const groups = LIST_ORDER.map(key => ({ key, name: labels()[key], records: shown.filter(item => item.state === key || key === 'in_progress' && item.state === 'blocked') }));
     groups.push({ key: 'off', name: 'Off the line', records: shown.filter(item => !onLine(item)) });
     return element('div', { class: 'rows' }, [...groups.filter(group => group.records.length).flatMap(group => [
       element('h3', { class: 'group-head' }, [group.key === 'off' ? null : dot(group.key, 's'), element('span', { text: group.name }), ' ', element('span', { class: 'group-count', text: group.records.length })]),
@@ -933,7 +1001,7 @@
   }
   // The board groups the same filtered records by recorded state. It is read-only: no drag, no saved order.
   function board(shown, select, canCapture) {
-    const lanes = STATIONS.map(key => ({ key, name: labels[key], records: shown.filter(item => item.state === key || key === 'in_progress' && item.state === 'blocked') }));
+    const lanes = STATIONS.map(key => ({ key, name: labels()[key], records: shown.filter(item => item.state === key || key === 'in_progress' && item.state === 'blocked') }));
     const off = shown.filter(item => !onLine(item));
     if (off.length) lanes.push({ key: 'off', name: 'Off the line', records: off });
     const blockedIn = lane => lane.records.filter(item => item.state === 'blocked').length;
@@ -960,7 +1028,7 @@
     main.append(paragraph(reason || (!canCapture
       ? 'Capture is unavailable in the selected project profile. Original records remain owned by that profile.' : 'New work starts as a draft. Assignment does not start it.'), 'note'));
     const workbench = element('div', { class: `workbench workbench--${state.layout}` });
-    const listPane = element('section', { class: 'work-list', 'aria-label': state.scope.groupId ? 'Eligible delivery PBIs' : 'Work list' });
+    const listPane = element('section', { class: 'work-list', 'aria-label': state.scope.groupId ? 'Eligible delivery tasks' : 'Work list' });
     const detailPane = element('section', { class: 'record-sheet', 'aria-label': 'Selected work' });
     const filters = element('div', { class: 'filters' });
     const repaint = () => {
@@ -968,7 +1036,7 @@
       const matching = filteredItems();
       const count = `${matching.length} matching records; progress scope remains ${state.snapshot.metrics?.scope?.itemId || 'the project'}.`;
       if (summary.textContent !== count) summary.textContent = count;
-      if (!matching.length) listPane.append(paragraph(state.snapshot.coverage !== 'complete' ? 'No inspected records match. Inspection is incomplete, so some work may be unavailable.' : items().length ? 'No work matches these filters. Clear filters to return to the list.' : 'No work records were found in this complete inspection. Capture an idea or task to begin.', 'empty'));
+      if (!matching.length) listPane.append(paragraph(state.snapshot.coverage !== 'complete' ? 'No inspected records match. Inspection is incomplete, so some work may be unavailable.' : items().length ? 'No work matches these filters. Clear filters to return to the list.' : 'No work records were found in this complete inspection. Capture an initiative or task to begin.', 'empty'));
       const select = item => checkpoint(() => {
         selectWork(item); render(); main.querySelector('.record-sheet h3')?.focus();
       });
@@ -995,10 +1063,10 @@
     };
     filterField('search', 'Find work');
     filterField('owner', 'Owner', [['', 'Anyone'], ['__unassigned', 'Unassigned'], ...members().map(member => [member.id, `${member.displayName} (${member.id})`])]);
-    filterField('status', 'Recorded state', [['', 'Any state'], ...Object.entries(labels)]);
-    filterField('kind', 'Work kind', [['', 'Any kind'], ...kinds.map(kind => [kind, kindNames[kind]])]);
+    filterField('status', 'Recorded state', [['', 'Any state'], ...Object.entries(labels())]);
+    filterField('kind', 'Work kind', [['', 'Any kind'], ...kinds().map(kind => [kind, kindName(kind)])]);
     const remaining = element('input', { type: 'checkbox', checked: state.filters.remaining, onChange: event => { state.filters.remaining = event.target.checked; repaint(); } });
-    filters.append(element('label', { class: 'check' }, [remaining, 'Remaining eligible PBIs only']),
+    filters.append(element('label', { class: 'check' }, [remaining, 'Remaining eligible tasks only']),
       button('Clear filters', () => { state.filters = noFilters(); state.limit = 100; render(); }, { class: 'quiet' }));
     workbench.append(listPane, detailPane); main.append(...[contextNavigation(), filters, workbench, concernView(), hierarchyLists()].filter(Boolean));
     renderDetail(detailPane, selected()); repaint();
@@ -1006,19 +1074,19 @@
 
   function positionLine(item) {
     const at = STATIONS.indexOf(item.state === 'blocked' ? 'in_progress' : item.state);
-    if (at < 0) return paragraph(item.state === 'canceled' ? 'Canceled. This record is off the lifecycle line; its identity and history are kept.' : `Recorded state: ${labels[item.state] || item.state}.`, 'notice');
-    return element('ol', { class: `position position--at-${at}`, 'aria-label': `Lifecycle position: ${labels[item.state]}` }, STATIONS.map((key, index) => {
+    if (at < 0) return paragraph(item.state === 'canceled' ? 'Canceled. This record is off the lifecycle line; its identity and history are kept.' : `Recorded state: ${labels()[item.state] || item.state}.`, 'notice');
+    return element('ol', { class: `position position--at-${at}`, 'aria-label': `Lifecycle position: ${labels()[item.state]}` }, STATIONS.map((key, index) => {
       const here = index === at;
       return element('li', { class: `stop${here ? ` is-${item.state}` : ''}`, 'aria-current': here ? 'step' : undefined }, [
         element('span', { class: 'dot-zone' }, here ? dot(item.state, 'here') : dot(index < at ? 'passed' : 'ahead')),
-        element('span', { text: here ? labels[item.state] : labels[key] })]);
+        element('span', { text: here ? labels()[item.state] : labels()[key] })]);
     }));
   }
   function historyLine(entry) {
-    const moved = entry.beforeState !== entry.afterState ? `moved it from ${labels[entry.beforeState] || entry.beforeState} to ${labels[entry.afterState] || entry.afterState}` : '';
-    const filled = ['backlog', 'in_progress', 'verifying', 'done', 'blocked'].includes(entry.afterState);
+    const moved = entry.beforeState !== entry.afterState ? `moved it from ${labels()[entry.beforeState] || entry.beforeState} to ${labels()[entry.afterState] || entry.afterState}` : '';
+    const filled = ['planned', 'in_progress', 'verifying', 'done', 'blocked'].includes(entry.afterState);
     const mark = entry.operation === 'proof' ? ' event-mark--proof' : entry.operation === 'accept' ? ' event-mark--accept' : filled ? ' event-mark--filled' : '';
-    return element('li', { class: `is-${labels[entry.afterState] ? entry.afterState : 'other'}` }, [element('span', { class: `event-mark${mark}`, 'aria-hidden': 'true' }),
+    return element('li', { class: `is-${labels()[entry.afterState] ? entry.afterState : 'other'}` }, [element('span', { class: `event-mark${mark}`, 'aria-hidden': 'true' }),
       element('div', { class: 'event-text' }, [element('span', {}, [element('strong', { text: entry.actor ? memberName(entry.actor) : 'An unrecorded actor' }),
         ` ${entry.operation === 'transition' && moved ? moved : historyPhrases[entry.operation] || entry.operation}${entry.operation !== 'transition' && moved ? `, and ${moved}` : ''}`]),
       element('span', { class: 'id', text: instant(entry.at) }), entry.reason ? element('span', { class: 'note', text: entry.reason }) : null])]);
@@ -1040,11 +1108,11 @@
       element('ul', { class: 'link-list', 'aria-label': 'Direct child groups' }, children.map(item => element('li', {},
         button(`Inspect group ${item.id}: ${item.title}`, () => enterGroup(item.id, [...state.entryPath, item.id]), { class: 'quiet' }))))]));
     if (group) {
-      container.append(recordChoices('Excluded PBIs', pick(scope.excludedPbiIds)),
-        recordChoices('Supporting work', pick(scope.memberIds).filter(item => !['pbi', 'epic', 'vision'].includes(item.kind))),
+      container.append(recordChoices('Excluded tasks', pick(scope.excludedTaskIds)),
+        recordChoices('Supporting work', pick(scope.memberIds).filter(item => !isDelivery(item) && !isGroup(item))),
         recordChoices('Outside delivery scope', items().filter(item => item.id !== group && !scope.memberIds?.includes(item.id))));
       container.append(paragraph('Outside records can be inspected and managed here. That does not add them to this delivery scope.', 'note'));
-    } else container.append(recordChoices('Ungrouped PBIs', pick(state.snapshot.hierarchy?.ungroupedPbiIds)));
+    } else container.append(recordChoices('Ungrouped tasks', pick(state.snapshot.hierarchy?.ungroupedTaskIds)));
     return container;
   }
   async function inspectConcerns(query) {
@@ -1083,15 +1151,15 @@
     const { reason, offered, lead } = offeredActions(item);
     pane.append(element('div', { class: 'record-head' }, [kindMark(item), element('span', { class: 'id', text: item.id }), element('span', { class: 'rev', text: `rev ${item.revision}` }), item.retired ? flag('Retired') : null]),
       element('h3', { text: item.title, tabindex: '-1', 'aria-label': `${item.id}: ${item.title}` }), paragraph(item.intent || 'Intent not recorded.', 'intent'));
-    if (['epic', 'vision'].includes(item.kind)) pane.append(paragraph(`Group purpose: ${groupLabel(item)}${item.groupRole ? ` (${item.groupRole})` : ''}`, 'note'),
+    if (isGroup(item)) pane.append(paragraph(`Group purpose: ${groupLabel(item)}${item.groupRole ? ` (${item.groupRole})` : ''}`, 'note'),
       actions(button(`Inspect group ${item.id}: ${item.title}`, () => enterGroup(item.id), { class: 'quiet' })));
     const affiliations = (state.snapshot.scope?.affiliations || []).find(entry => entry.itemId === item.id)?.groupIds || [];
     if (affiliations.length) pane.append(element('details', {}, [element('summary', { text: 'Other direct affiliations' }),
-      ...affiliations.map(id => button(`Enter through ${id}`, () => enterGroup(['epic', 'vision'].includes(item.kind) ? item.id : id,
-        ['epic', 'vision'].includes(item.kind) ? [id, item.id] : [id]), { class: 'quiet' }))]));
+      ...affiliations.map(id => button(`Enter through ${id}`, () => enterGroup(isGroup(item) ? item.id : id,
+        isGroup(item) ? [id, item.id] : [id]), { class: 'quiet' }))]));
     const lane = element('div', { class: 'sheet-main' }, positionLine(item));
     if (hasRedaction(item)) lane.append(paragraph('Some displayed content is redacted. Redacted source fields cannot be edited here; inspect their canonical owner through your project’s tools.', 'notice'));
-    if (item.blocker) lane.append(paragraph(`Blocked: ${item.blocker.reason}; resume state: ${labels[item.blocker.resumeState] || item.blocker.resumeState}`, 'notice notice--stop'));
+    if (item.blocker) lane.append(paragraph(`Blocked: ${item.blocker.reason}; resume state: ${labels()[item.blocker.resumeState] || item.blocker.resumeState}`, 'notice notice--stop'));
     if (item.retired) lane.append(paragraph(`Retired: ${item.retired.reason}. History and references are retained.`, 'notice'));
     if (item.prerequisiteReasons?.length) lane.append(element('div', { class: 'notice' }, [element('strong', { text: 'Current prerequisite reasons' }), element('ul', {}, item.prerequisiteReasons.map(line => element('li', { text: line })))]));
     if (item.legacy) lane.append(paragraph('This is a legacy record. Review adoption before managing its tracking metadata. Existing content remains owned by this record.', 'notice'));
@@ -1109,7 +1177,7 @@
       item.history.length > HISTORY_LIMIT ? paragraph(`${item.history.length - HISTORY_LIMIT} earlier changes are in the full history below.`, 'note') : null));
     const byId = id => items().find(other => other.id === id);
     const incoming = items().filter(other => other.id !== item.id && (other.links?.some(link => link.itemId === item.id) || other.memberItemIds?.includes(item.id))).map(other => ({ id: other.id, owner: other.ownerPath }));
-    const linked = [...(item.links || []).map(link => [relationNames[link.relation] || link.relation, link.itemId ?? null, link.path ?? null]),
+    const linked = [...(item.links || []).map(link => [named('linkRoles', link.relation), link.itemId ?? null, link.path ?? null]),
       ...(item.memberItemIds || []).map(id => ['Group member', id, null]), ...incoming.map(other => ['Referenced by', other.id, null])];
     const rail = element('div', { class: 'rail' }, factCells(recordFacts(item), 'fact-list'));
     if (linked.length) rail.append(titled('Links', null, element('ul', { class: 'link-list' }, linked.map(([relation, id, path]) => element('li', {}, [element('span', { class: 'link-relation', text: relation }),
@@ -1131,7 +1199,7 @@
   const projections = [
     ['Work', record => `${record.id}: ${record.title}`], ['Outcome', record => record.intent],
     ['Owner', record => `${memberName(record.assigneeId)}${record.assigneeId ? ` (${record.assigneeId})` : ''}`],
-    ['State', record => labels[record.state] || record.state], ['Priority', record => record.priority],
+    ['State', record => labels()[record.state] || record.state], ['Priority', record => record.priority],
     ['Acceptance', record => record.acceptance?.accepted ? 'Accepted' : 'Not accepted'],
     ['Verification', record => `${record.verification?.status || 'unknown'}: ${record.verification?.reason || 'Not established'}`],
     ['Retired', record => record.retired ? record.retired.reason : 'No'],
@@ -1159,8 +1227,20 @@
   }
 
   // Records whose owner content differs between the selected source and the current checkout, once that checkout has been read for comparison.
+  // A checkout that could not be read has no records to set beside the selected source: it has a reason, and no difference.
+  const compared = () => state.compare && state.compare.coverage !== 'unavailable' ? state.compare : null;
+  function comparisonRefusal() {
+    const read = state.compare;
+    if (!read || compared()) return null;
+    const project = read.vocabulary?.project;
+    if (project?.code && project.storedVersion === null) return unreadableReason(project);
+    // Findings about single records are listed before the one that made the whole read unavailable: a selected group the
+    // checkout does not hold. That one is the reason; any other unavailable read gives its only or first finding.
+    const cause = (read.diagnostics || []).find(finding => finding.code === 'UNAVAILABLE_SCOPE') || read.diagnostics?.[0];
+    return [sentence(cause?.reason || 'The current checkout is unavailable')];
+  }
   function differences() {
-    if (!state.compare) return [];
+    if (!compared()) return [];
     const currentByKey = new Map((state.compare.items || []).map(item => [itemKey(item), item]));
     const selectedByKey = new Map(items().map(item => [itemKey(item), item]));
     const order = entry => entry.local && entry.baseline ? 0 : entry.local ? 1 : 2;
@@ -1171,20 +1251,26 @@
     const snapshot = state.snapshot;
     const shared = snapshot.source?.kind === 'shared';
     const differing = differences();
+    const refusal = comparisonRefusal();
     main.append(pageLead(heading('Changes and sharing'), paragraph('Local work is a proposal until shared through your team’s Git process. This app reads existing local refs and does not stage, commit, push, or infer remote freshness.', 'page-intro')));
     const label = String(snapshot.source?.label || 'Selected source unavailable');
     main.append(element('section', { class: 'sheet', 'aria-label': 'What is being compared' }, [element('div', { class: 'compare' }, [
       element('div', { class: 'compare-end' }, [element('span', { class: `end-dot end-dot--${sourceToneOf(snapshot)}`, 'aria-hidden': 'true' }), element('div', {}, [
         element('span', { class: 'label', text: shared ? 'Selected source, read-only' : 'Selected source' }), element('span', { class: `compare-name${shared ? ' mono' : ''}`, text: shared ? snapshot.source.ref : label.split(';')[0] }),
         element('span', { class: 'note', text: `${label}. Remote freshness ${snapshot.source?.remoteFreshness || 'unknown'}` })])]),
-      element('div', { class: 'compare-link' }, element('span', { class: `pill${state.compare ? differing.length ? ' pill--warn' : ' pill--good' : ''}`, text: state.compare ? counted(differing.length, 'record differs', 'records differ') : 'Not compared yet' })),
+      element('div', { class: 'compare-link' }, element('span', { class: `pill${refusal ? ' pill--stop' : state.compare ? differing.length ? ' pill--warn' : ' pill--good' : ''}`,
+        text: refusal ? 'Not compared' : state.compare ? counted(differing.length, 'record differs', 'records differ') : 'Not compared yet' })),
       element('div', { class: 'compare-end compare-end--checkout' }, [element('div', {}, [element('span', { class: 'label', text: 'Current checkout' }), element('span', { class: 'compare-name', text: 'Working copy' }),
         element('span', { class: 'note', text: state.compare ? `Read at ${state.compare.asOf ? instant(state.compare.asOf) : 'an unknown time'}, coverage ${state.compare.coverage}` : 'Read when you compare' })]),
       element('span', { class: 'end-dot end-dot--live', 'aria-hidden': 'true' })])]),
     element('div', { class: 'compare-form' }, [scopeControls(), actions(button('Compare with current checkout', compareCurrent, { class: 'primary' }))])]));
     const side = element('div', { class: 'stack side' });
     let section;
-    if (state.compare) {
+    if (refusal) {
+      section = sheet('difference-heading', 'What differs', null, 'sheet fill');
+      section.append(element('p', { class: 'notice notice--stop' }, ['Nothing is compared: the current checkout could not be read. ', ...refusal, ' Resolve it, then compare again.']),
+        details('Current inspection limitations', state.compare.diagnostics));
+    } else if (state.compare) {
       const both = differing.filter(entry => entry.local && entry.baseline).length;
       const added = differing.filter(entry => entry.local && !entry.baseline).length;
       const identical = new Set([...(state.compare.items || []), ...items()].map(itemKey)).size - differing.length;
@@ -1245,7 +1331,7 @@
     if (doc?.problem) lead.push(element('div', { class: 'banner banner--alert', role: 'alert' }, [
       element('span', { class: 'banner-mark', 'aria-hidden': 'true' }, icon('alert')),
       element('div', { class: 'banner-text' }, [paragraph(shown ? 'The report could not be brought up to date' : 'There is no report to show', 'banner-title'),
-        paragraph(`${doc.advice || `${doc.problem}${/[.!?]$/.test(doc.problem) ? '' : '.'}`}${shown ? ` The report below is the last one read: ${shown.label}, written ${instant(shown.generatedAt)}.` : ''}`, 'banner-body')]),
+        paragraph(`${doc.advice || sentence(doc.problem)}${shown ? ` The report below is the last one read: ${shown.label}, written ${instant(shown.generatedAt)}.` : ''}`, 'banner-body')]),
       button('Try again', () => { dismissFeedback(); loadReport(); })]));
     if (shown) {
       // The frame keeps the last report read while another is on its way, so the strip says which report that is:
@@ -1288,7 +1374,7 @@
     checkpoint(() => {
       const base = item ? clone(item) : null;
       state.form = { operation, base, values: {
-        kind: item?.kind || extra.kind || 'idea', title: item?.title || '', intent: item?.intent || '', priority: item?.priority || 999,
+        kind: item?.kind || extra.kind || kinds()[0], title: item?.title || '', intent: item?.intent || '', priority: item?.priority || 999,
         criteria: clone(item?.criteria || []), assigneeId: item?.assigneeId ?? '', collaboratorIds: clone(item?.collaboratorIds || []),
         links: clone(item?.links || []), memberItemIds: clone(item?.memberItemIds || []), groupRole: '', updateMembers: false, optOut: !!item?.optOut,
         nextState: extra.nextState || '', correction: !!extra.correction, reason: '', resolution: '', reviewed: false, decisionsResolved: false,
@@ -1374,7 +1460,7 @@
     if (unsafe) group.append(paragraph('Some original links are redacted. Replacing links is unavailable here; inspect the canonical owner.', 'notice'));
     for (const [index, link] of form.values.links.entries()) {
       const row = element('div', { class: 'link-row' });
-      const relation = element('select', { id: `relation-${index}` }, ['dependency', 'parent', 'idea', 'spec', 'plan', 'source'].map(value => element('option', { value, text: value })));
+      const relation = element('select', { id: `relation-${index}` }, (vocabulary().linkRoles || []).map(value => element('option', { value, text: value })));
       relation.value = link.relation;
       relation.addEventListener('change', () => {
         link.relation = relation.value; delete link.itemId; delete link.path;
@@ -1410,7 +1496,7 @@
     const form = state.form;
     const operation = form.operation;
     const titles = { create: 'Capture work', update: 'Refine work', adopt: 'Review tracking adoption', assign: 'Assign work', link: 'Edit exact links', group: 'Manage work group',
-      transition: form.values.correction ? 'Change state' : `Change work to ${labels[form.values.nextState]}`, proof: 'Record observed proof', accept: 'Accept work', retire: 'Retire work', restore: 'Restore work', attest: 'Attest record health', delete: ended(form.base) ? 'Delete work entirely' : 'Review draft deletion' };
+      transition: form.values.correction ? 'Change state' : `Change work to ${labels()[form.values.nextState]}`, proof: 'Record observed proof', accept: 'Accept work', retire: 'Retire work', restore: 'Restore work', attest: 'Attest record health', delete: ended(form.base) ? 'Delete work entirely' : 'Review draft deletion' };
     main.append(element('div', { class: 'page-head' }, [pageLead(
       element('p', { class: 'trail' }, ['Work', icon('chevronRight'), ...(form.base ? [mono(form.base.id), icon('chevronRight')] : []), titles[operation]]), heading(titles[operation]),
       paragraph(form.base ? `${form.base.id}: ${form.base.title} | Original revision ${form.base.revision} | ${form.base.ownerPath}` : 'Capture a small draft; refine its criteria and responsibility when ready.', 'note')),
@@ -1422,10 +1508,10 @@
     if (reason) inputs.append(paragraph(reason, 'notice'));
     if (operation === 'create' || operation === 'update') {
       if (operation === 'create') {
-        const kind = field(inputs, 'kind', 'Work kind', { choices: kinds.map(kind => [kind, kindNames[kind]]), required: true });
-        const help = element('p', { id: 'kind-help', class: 'note', text: kindHelp[form.values.kind] || '' });
+        const kind = field(inputs, 'kind', 'Work kind', { choices: kinds().map(kind => [kind, kindName(kind)]), required: true });
+        const help = element('p', { id: 'kind-help', class: 'note', text: kindHelp(form.values.kind) });
         kind.setAttribute('aria-describedby', 'kind-help');
-        kind.addEventListener('change', () => { help.textContent = kindHelp[kind.value] || ''; });
+        kind.addEventListener('change', () => { help.textContent = kindHelp(kind.value); });
         inputs.append(help);
       }
       field(inputs, 'title', 'Title', { required: true, max: 500, sourceValue: form.base?.title });
@@ -1451,7 +1537,7 @@
     } else if (operation === 'link') linksEditor(inputs);
     else if (operation === 'group') {
       field(inputs, 'groupRole', 'Group purpose', { choices: [['', `Keep current purpose: ${groupLabel(form.base)}`],
-        ...['area', 'capability', 'initiative'].map(role => [role, `${state.snapshot.hierarchy?.labels?.[role] || role} (${role})`]), ['clear', 'Clear purpose (generic group)']],
+        ...(vocabulary().groupRoles || []).map(role => [role, `${purposeName(role)} (${role})`]), ['clear', 'Clear purpose (generic group)']],
         help: 'Purpose describes this group. It does not change its kind, members, permissions or delivery credit.' });
       check(inputs, 'updateMembers', 'Update members');
       const membership = element('fieldset', { disabled: !form.values.updateMembers }, [element('legend', { text: 'Direct members' })]);
@@ -1468,12 +1554,12 @@
       inputs.append(paragraph('Preview adoption to compare the original and proposed record. Adoption adds tracking metadata without changing the record’s authored content or identity.'));
     } else if (operation === 'transition') {
       if (form.values.correction) {
-        inputs.append(paragraph(`This work is recorded as ${labels[form.base.state] || form.base.state}. Choose the state it should be in instead. Done is not offered: work becomes done only when it is accepted.`));
+        inputs.append(paragraph(`This work is recorded as ${labels()[form.base.state] || form.base.state}. Choose the state it should be in instead. Done is not offered: work becomes done only when it is accepted.`));
         // Started work always has a responsible member, so those states wait until someone active is assigned.
         const unowned = !members().some(member => member.id === form.base.assigneeId && member.active);
         const needsOwner = key => unowned && ['in_progress', 'blocked', 'verifying'].includes(key);
         field(inputs, 'nextState', 'New state', { required: true, choices: [['', 'Choose a state'],
-          ...Object.keys(labels).filter(key => key !== form.base.state && key !== 'done').map(key => [key, needsOwner(key) ? `${labels[key]} (needs a responsible member)` : labels[key], needsOwner(key)])] })
+          ...Object.keys(labels()).filter(key => key !== form.base.state && key !== 'done').map(key => [key, needsOwner(key) ? `${labels()[key]} (needs a responsible member)` : labels()[key], needsOwner(key)])] })
           .addEventListener('change', () => { render(); document.getElementById('edit-nextState')?.focus(); });
         if (['in_progress', 'blocked', 'verifying'].includes(form.values.nextState)) inputs.append(paragraph('Started work needs a responsible member and a reviewed readiness decision.', 'note'));
       }
@@ -1581,7 +1667,7 @@
       if (form.operation === 'accept' && !values.decision) throw new Error('Confirm your explicit acceptance decision before previewing.');
       patch = { reason: values.reason };
     }
-    const request = { schemaVersion: 1, operation: form.operation, operationId: crypto.randomUUID(), target: { kind: base?.kind || values.kind },
+    const request = { schemaVersion: REQUEST_VERSION, operation: form.operation, operationId: crypto.randomUUID(), target: { kind: base?.kind || values.kind },
       actor: { memberId: state.session.actor }, patch };
     if (base) { request.target.itemId = base.id; request.expected = { revision: base.revision, contentHash: base.contentHash }; }
     return request;
@@ -1640,6 +1726,7 @@
       || form.operation === 'adopt' && !form.values.adoptionReviewed || removing && !form.values.deletionConfirmed }),
     paragraph('Saves into your local checkout only. Sharing goes through your team’s Git process; this app never stages, commits or pushes.', 'note')]));
   }
+  const VOCABULARY_REFUSALS = ['MIGRATION_REQUIRED', 'MIGRATION_IN_PROGRESS', 'MIXED_VOCABULARY'];
   async function savePreview() {
     const form = state.form;
     if (state.busy || !form?.preview || writableReason(form.base) || form.operation === 'adopt' && !form.values.adoptionReviewed || form.operation === 'delete' && !form.values.deletionConfirmed) return;
@@ -1655,7 +1742,7 @@
       if ((result.secondary || []).some(item => item.kind === 'deletion-recovery' && item.status === 'pending')) state.recovery = { request: clone(request) };
       state.message = '';
       try {
-        state.snapshot = await api('/api/inspect', state.scope);
+        state.snapshot = await inspect(state.scope);
         const target = items().find(item => item.id === result.primary.itemId && item.ownerPath === result.primary.ownerPath);
         state.selectedKey = target ? itemKey(target) : null;
       } catch { state.message = 'The item was saved, but the current view could not be reread. Reread the project to update the list; do not repeat the item change.'; }
@@ -1665,6 +1752,9 @@
       else {
         state.uncertain = null;
         if (error.status === 409) form.conflict = { reason: error.message, original: clone(form.base), current: null };
+        // The refusal says the project stores another vocabulary than this page read. The page reads it again so its
+        // read-only state is shown; the draft and the refusal beside it stay.
+        if (VOCABULARY_REFUSALS.includes(error.code)) { try { show(await inspect(state.scope)); } catch { /* The refusal already says why nothing was saved. */ } }
       }
     } finally {
       state.busy = false; render();
@@ -1698,7 +1788,7 @@
     pane.append(element('h3', { text: 'Keep the draft; review the current owner' }), paragraph(conflict.reason || 'The save outcome is unknown. Read the current record separately.'),
       paragraph('Your entered fields and original expected revision are retained. Reading current work does not automatically merge or resubmit this draft.', 'note'),
       factCells([['Your draft', conflict.original ? `Opened at revision ${conflict.original.revision}` : 'New work'],
-        [conflict.current ? `Current, revision ${conflict.current.revision}` : 'Current record', conflict.current ? `${labels[conflict.current.state] || conflict.current.state}; ${memberName(conflict.current.assigneeId)}` : 'Not read yet']], 'fact-tiles'),
+        [conflict.current ? `Current, revision ${conflict.current.revision}` : 'Current record', conflict.current ? `${labels()[conflict.current.state] || conflict.current.state}; ${memberName(conflict.current.assigneeId)}` : 'Not read yet']], 'fact-tiles'),
       actions(button('Read current owner', readCurrentForConflict)));
     if (conflict.current) {
       pane.append(element('div', { class: 'strip strip--plain' }, [details('Original record opened', conflict.original), details('Current record read separately', conflict.current), details('Retained draft fields', form.values)]));
@@ -1721,7 +1811,7 @@
     if (!form.conflict) form.conflict = { original: clone(form.base), current: null, reason: 'Save outcome unknown; retained draft and original request remain separate.' };
     begin();
     try {
-      const snapshot = await api('/api/inspect', {});
+      const snapshot = await inspect({});
       const matching = (snapshot.items || []).filter(item => item.id === form.base?.id && item.ownerPath === form.base?.ownerPath);
       if (snapshot.coverage !== 'complete' || matching.length !== 1) throw new Error('The current owner cannot be resolved with complete coverage. Resolve diagnostics through project tools, then reread.');
       form.conflict.current = clone(matching[0]);
@@ -1729,12 +1819,20 @@
     finally { state.busy = false; render(); }
   }
 
+  // Every read of work after the first comes through here. A read without the words stops the page: see `stopped`.
+  async function inspect(scope) {
+    const snapshot = await api('/api/inspect', scope);
+    if (!usable(snapshot)) { stop(UNSUPPORTED); throw new Error(UNSUPPORTED); }
+    return snapshot;
+  }
+  // What was compared or reported belongs to the read it was made from; a new read of the selected source drops it.
+  function show(snapshot) { state.snapshot = snapshot; state.compare = null; state.report = null; state.concerns = null; state.reportDue = true; }
   async function reread(scope = state.scope) {
     if (state.busy) return;
     begin();
     try {
-      const snapshot = await api('/api/inspect', scope);
-      state.scope = clone(scope); state.snapshot = snapshot; state.compare = null; state.report = null; state.concerns = null; state.reportDue = true;
+      const snapshot = await inspect(scope);
+      state.scope = clone(scope); show(snapshot);
       // A path is lost only when the same group is read again and one of its edges is gone. A newly chosen scope starts its own entry.
       const sameGroup = state.entryPath.at(-1) === scope.groupId;
       const lostPath = state.entryPath.length > 0 && sameGroup && !validPath(state.entryPath, snapshot);
@@ -1747,7 +1845,7 @@
   async function compareCurrent() {
     if (state.busy) return;
     begin();
-    try { state.compare = await api('/api/inspect', state.scope.groupId ? { groupId: state.scope.groupId } : {}); }
+    try { state.compare = await inspect(state.scope.groupId ? { groupId: state.scope.groupId } : {}); }
     catch (error) { state.message = error.message; }
     finally { state.busy = false; render(); }
   }
@@ -1808,10 +1906,12 @@
     }
     if (!sessionToken) { sessionToken = kept(); restored = !!sessionToken; }
     if (!sessionToken) return detached();
+    // What a stopped page last said was about the read it refused.
+    if (state.stopped) { state.stopped = ''; state.message = ''; }
     state.busy = true; renderFeedback();
     try {
       const session = await api('/api/session');
-      if (session.schemaVersion !== 1 || !session.snapshot) throw new Error('This workspace response is unsupported. Relaunch the project tool with the matching framework version.');
+      if (session.schemaVersion !== 1 || !usable(session.snapshot)) throw new Error(UNSUPPORTED);
       keep(sessionToken);
       state.session = session; state.snapshot = session.snapshot;
       if (directItem !== null || directOwner !== null) {
@@ -1826,9 +1926,7 @@
         sessionToken = null; keep(null); state.busy = false;
         return detached('The workspace this tab was attached to has been launched again since, so its earlier session no longer applies.');
       }
-      main.replaceChildren(heading('Project could not be opened'), paragraph(error.message, 'notice'), actions(button('Retry opening project', initialize, { disabled: false })));
-      document.getElementById('source-context').textContent = 'No project opened';
-      document.getElementById('actor-context').textContent = 'No actor established';
+      renderStopped(error.message);
     } finally { state.busy = false; main.setAttribute('aria-busy', 'false'); render(); }
   }
   initialize();

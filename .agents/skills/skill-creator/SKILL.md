@@ -9,7 +9,7 @@ disable-model-invocation: true
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -221,7 +221,7 @@ If the skill needs shared protocol enforcement (most do), add them as SYNC block
 
 ---
 
-> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting.
+> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting.
 
 <!-- PROTOCOL-GUIDES:START -->
 
@@ -255,7 +255,7 @@ If the skill needs shared protocol enforcement (most do), add them as SYNC block
 - **Shared Protocol Duplication:** follow the hybrid duplication policy (`SYNC:shared-protocol-duplication-policy`) — skills keep guide lines, agents and mode-reference SYNC carriers keep full bodies, and every fresh reviewer prompt keeps all 11 bodies VERBATIM, and only the sync tool converts or propagates them.
 - **Output Quality:** Useful guidance and readable priorities; retain action-changing conditions and required structures.
 
-**IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting
+**IMPORTANT MUST ATTENTION** break work into small todo tasks using todo tracking BEFORE starting
 **IMPORTANT MUST ATTENTION** carry shared protocols as `<!-- SYNC:tag -->` blocks or tool-written guide lines per the hybrid policy — NEVER hand-written file references
 **IMPORTANT MUST ATTENTION** call `$prompt-enhance` on new/updated skills as final attention-anchoring quality pass
 **IMPORTANT MUST ATTENTION** include `## Quick Summary` within first 30 lines of every SKILL.md
@@ -270,4 +270,4 @@ If the skill needs shared protocol enforcement (most do), add them as SYNC block
 | "Need approval before updating" | A clear update request authorizes scoped edits; plan, edit and validate without a confirmation round |
 | "Reference preview is enough" | Use its contents to locate and read required instructions before acting |
 
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
+**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using todo tracking.

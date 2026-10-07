@@ -91,6 +91,8 @@ calls this same runner with `--skip=claude-md` so the root is not processed twic
 
 ## Coordination with ai-context-refresh
 
+When preflight changes root instruction content, read `.claude/skills/shared/protocols/context-engineering-principles.md` and apply its **Instruction-file audit** before claiming completion. Fix findings at the canonical owner and regenerate affected outputs; an unchanged mirror-only run needs no editorial audit.
+
 `sync-codex` owns generated Codex surfaces; `ai-context-refresh` owns the root AI-context lifecycle. Keep
 the user-facing skills separate, but use this runner as their one portable executable coordinator:
 

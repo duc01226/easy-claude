@@ -67,6 +67,8 @@ As a project maintainer, I want invalid recorded settings to be explained and re
 
 [Source: rule/framework.contextdelivery/MissingSettings]
 
+**Task-scoped discovery:** After accepting the entire recorded settings, a reader may request the discovery inputs and named sections needed for the task. The view preserves configured reference selection, including the difference between absent selection and an explicitly empty selection, and names other available sections. It never validates only the selected sections. Missing settings remain supported; rejected settings and unknown requested sections return an error without a misleading partial facts view. Editing settings requires the full source.
+
 ### BR-PCI-02: Rejected declared facts require exact repair [HARD]
 
 | Trigger | Rule | Failure outcome |
@@ -158,10 +160,12 @@ Then work proceeds and existing optional root-setup guidance remains available
 **Acceptance Criteria:** Success is the stated outcome; failure is any contrary permission or setup guidance.
 **Test Data:** valid configured location; no default settings.
 
+**Task-scoped variant:** Accepted relocated settings return discovery inputs and requested sections without unrelated bodies. Explicitly empty reference selection stays empty; absent selection stays absent. Rejected facts in an unselected section and an unknown requested section produce errors rather than a partial accepted view; missing settings remain supported.
+
 **Edge Cases:** An unrelated missing default location must not change acceptance.
 **Evidence:** `[Source: rule/framework.contextdelivery/ValidConfiguredPath]`
 **Related Behaviors:** `operation/framework.contextdelivery/ProjectContextIntake`, `test/framework.contextdelivery/ProjectContextIntake`
-**CoveredBy:** `.claude/hooks/tests/suites/init-prompt-gate.test.cjs::[init-prompt-gate] TC-PCI-001 valid custom config preserves root setup`
+**CoveredBy:** `.claude/hooks/tests/suites/context-efficiency.test.cjs::TC-PCI-001`, `.claude/hooks/tests/suites/init-prompt-gate.test.cjs::[init-prompt-gate] TC-PCI-001 valid custom config preserves root setup`
 **Status:** Tested
 
 ### Authorization / repair access

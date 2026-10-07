@@ -7,7 +7,7 @@ description: '[Architecture] Use when a workflow step or the user asks for tech-
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
 > **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
-> **[BLOCKING]** Before each step or sub-skill call, update task tracking: set `in_progress` when step starts, set `completed` when step ends.
+> **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
 
@@ -19,14 +19,14 @@ description: '[Architecture] Use when a workflow step or the user asks for tech-
 
 **Summary:**
 
-- **Purpose:** act as solution architect—load business/domain/PBI context, derive constraints, research current options, compare fit, and record only user-confirmed decisions.
+- **Purpose:** act as solution architect—load business/domain/task context, derive constraints, research current options, compare fit, and record only user-confirmed decisions.
 - **Ordered path:** (1) load context → (2) derive requirements + `ask user question tool` confirmation → (3) classify layer applicability and WebSearch unresolved required layers (2–3 viable alternatives; bounded searches) → (4) compare → (5) score/rank each layer with confidence % → (6) write `{plan-dir}/research/tech-stack-comparison.md` (<=200 lines) → (7) end interview (5-8 questions) and write `status: confirmed` to `{plan-dir}/phase-02-tech-stack.md`.
 - **Evidence gates:** cite a URL, benchmark, or case study for every claim/recommendation; score 8 criteria with High=3x/Medium=2x/Low=1x; NEVER choose by familiarity.
 - **Follow-up modes:** after Step 7, separate `ask user question tool` offers `/architecture --mode=design` (Recommended), `/plan` if architecture is decided, or skip; a second council prompt offers skip (Recommended) or `/llm-council` (11 sub-agents) for close scores or unfamiliar/strategic dependencies.
 
 **Workflow:**
 
-1. **Load Business Context** — Read prior business evaluation, domain/ERD, refined PBI, and discovery notes from the plans and team-artifacts roots (defaults `plans/` and `team-artifacts/`; `docsRoots.plans.path` / `docsRoots.teamArtifacts.path` in `docs/project-config.json` override them).
+1. **Load Business Context** — Read prior business evaluation, domain/ERD, refined task, and discovery notes from the plans and team-artifacts roots (defaults `plans/` and `team-artifacts/`; `docsRoots.plans.path` / `docsRoots.teamArtifacts.path` in `docs/project-config.json` override them).
 2. **Derive Technical Requirements** — Map signals to constraints; confirm via `ask user question tool`.
 3. **Research Per Layer** — Research only unresolved required layers; compare 2–3 viable alternatives within the agreed query budget.
 4. **Deep Compare** — Build pros/cons matrices with benchmarks, community health, and team fit.
@@ -51,7 +51,7 @@ Read artifacts from prior workflow steps — search the plans and team-artifacts
 
 - Business evaluation report (viability, scale, constraints)
 - Domain model / ERD (complexity, entity count, relationships)
-- Refined PBI (acceptance criteria, scope)
+- Refined task (acceptance criteria, scope)
 - Discovery interview notes (team skills, budget, timeline)
 
 Extract and summarize:
@@ -64,7 +64,7 @@ Extract and summarize:
 | Budget constraint      | ...          | business evaluation |
 | Timeline               | ...          | business evaluation |
 | Compliance needs       | ...          | business evaluation |
-| Real-time needs        | Yes/No       | refined PBI         |
+| Real-time needs        | Yes/No       | refined task         |
 | Integration complexity | Low/Med/High | domain model        |
 
 ## Step 2: Derive Technical Requirements
@@ -296,7 +296,7 @@ After the existing `## Next Steps` prompt above resolves, present a **second**, 
 
 > **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
 
-**IMPORTANT MUST ATTENTION** requirements come BEFORE research — load prior business/domain/PBI artifacts (Step 1), map business signals to technical requirements (Step 2), user-confirm them, THEN WebSearch (Step 3) — NEVER research before requirements are derived and confirmed — why: researching first picks tech then back-fits the problem, the reverse of architecture.
+**IMPORTANT MUST ATTENTION** requirements come BEFORE research — load prior business/domain/task artifacts (Step 1), map business signals to technical requirements (Step 2), user-confirm them, THEN WebSearch (Step 3) — NEVER research before requirements are derived and confirmed — why: researching first picks tech then back-fits the problem, the reverse of architecture.
 **IMPORTANT MUST ATTENTION** score every OPEN-REQUIRED layer with the weighted 8-criteria matrix (High=3x / Medium=2x / Low=1x), rank with confidence %, cap the `{plan-dir}/research/tech-stack-comparison.md` report at <=200 lines using tables over prose — why: an unscored or unbounded report hides the trade-off the decision turns on.
 **IMPORTANT MUST ATTENTION** only user-confirmed decisions get written to `phase-02-tech-stack.md` as `status: confirmed` — the end interview (5-8 `ask user question tool` questions) is mandatory and NEVER skipped even when the choice seems "obvious" — why: an unconfirmed stack is a guess the team will pay for.
 **IMPORTANT MUST ATTENTION** every claim, finding, and recommendation requires `file:line`/URL proof or traced evidence + confidence % (>80% act, 60-80% verify first, <60% DO NOT recommend) — NEVER present a guess as fact — why: a stack chosen on speculation fails silently until production.

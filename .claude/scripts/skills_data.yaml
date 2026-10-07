@@ -13,9 +13,9 @@
 - category: ai-ml
   deprecated_by: null
   deprecated_since: null
-  description: '[Code Quality] Use when a workflow step or the user asks for an AI-feature
-    review: LLM calls, prompts, agents, RAG, evals, guardrails. --mode={code|plan},
-    --report-only.'
+  description: '[Code Quality] Use when a workflow step or the user asks for AI code
+    or plan review: LLM calls, prompts, agents, RAG, evals and guardrails. --mode={code|plan};
+    --report-only is read-only.'
   has_references: false
   has_scripts: false
   name: ai-engineering-review
@@ -25,10 +25,8 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Architecture] Use when a workflow step or the user asks for --mode=design
-    (solution architecture), --mode=review (compliance: layers, boundaries, CQRS,
-    tenancy), --mode=scalability (scale grade, coupling) or --mode=full (whole-project
-    audit).'
+  description: '[Architecture] Use when a workflow step or the user asks for architecture
+    design, compliance review, scalability grading or whole-project audit via --mode={design|review|scalability|full}.'
   has_references: true
   has_scripts: false
   name: architecture
@@ -38,8 +36,8 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Content] Use when a workflow step or the user asks for PO/BA brainstorming:
-    new products, feature enhancement, roadmap framing. --mode={roadmap|scope}.'
+  description: '[Content] Use when a workflow step or the user asks for product/feature
+    ideation with ranked opportunities and validation tests. --mode={roadmap|scope}.'
   has_references: true
   has_scripts: false
   name: brainstorm
@@ -49,8 +47,8 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Content] Use when a workflow step or the user asks for a business
-    idea viability evaluation: Business Model Canvas, financials, risks, go-to-market.'
+  description: '[Content] Use when a workflow step or the user asks for business viability:
+    Business Model Canvas, financials, risks and go-to-market recommendation.'
   has_references: false
   has_scripts: false
   name: business-evaluation
@@ -60,9 +58,9 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Code Quality] Use when a workflow step or the user asks for a review
-    of current changes (staged/unstaged or branch diffs, focused scope). --fix-loop
-    reviews, fixes, re-reviews. Cross-module or risky: workflow-review-changes.'
+  description: '[Code Quality] Use when a workflow step or the user asks for staged,
+    unstaged or branch-diff review. --fix-loop reviews, fixes, re-reviews. Cross-module
+    or risky changes: workflow-review-changes.'
   has_references: true
   has_scripts: false
   name: changes-review
@@ -85,7 +83,7 @@
   deprecated_by: null
   deprecated_since: null
   description: '[Code Quality] Use when a workflow step or the user asks for code
-    simplification: clarity, consistency, maintainability, behavior preserved.'
+    simplification for clarity and maintainability without changing behavior.'
   has_references: false
   has_scripts: false
   name: code-simplifier
@@ -107,7 +105,7 @@
   deprecated_by: null
   deprecated_since: null
   description: '[Content] Use when a workflow step or the user asks for course material:
-    Bloom objectives, modules, lessons, exercises, assessments.'
+    Bloom objectives, modules, lessons, exercises and assessments.'
   has_references: false
   has_scripts: false
   name: course-builder
@@ -150,9 +148,9 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Documentation] Use when a workflow step or the user asks for a demo
-    guide, demo script or sprint-demo walkthrough: user stories, case identities,
-    evidence carriers.'
+  description: '[Documentation] Use when a workflow step or the user asks for demo
+    guides and delivery walkthroughs linking stories and canonical cases to runnable
+    flows and evidence.'
   has_references: true
   has_scripts: false
   name: demo-guide
@@ -163,9 +161,9 @@
   deprecated_by: null
   deprecated_since: null
   description: '[Project Management] Use when a workflow step or the user asks for
-    UI/UX design specs from requirements, PBIs or stories. --mode=wireframe converts
-    sketches.'
-  has_references: false
+    UI/UX specs for views, flows, states and accessibility. --mode=wireframe converts
+    sketches or wireframes.'
+  has_references: true
   has_scripts: false
   name: design-spec
   path: design-spec/SKILL.md
@@ -174,9 +172,9 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Documentation] Use when a workflow step or the user asks for a documentation
-    update of docs impacted by code/spec/test changes (--mode=update), or first-time
-    init of the reference-doc set from project-config (--mode=init).'
+  description: '[Documentation] Use when a workflow step or the user asks for documentation
+    sync after code/spec/test changes (--mode=update), or explicit reference-doc initialization
+    and reconciliation (--mode=init).'
   has_references: true
   has_scripts: false
   name: docs-manager
@@ -197,9 +195,9 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Architecture] Use when a workflow step or the user asks for a business
-    domain analysis (bounded contexts, aggregates, entities, ERD, domain events),
-    or --mode=review: a DDD design-quality review of domain entities and value objects.'
+  description: '[Architecture] Use when a workflow step or the user asks for DDD domain
+    modeling: contexts, aggregates, entities, ERD and events. --mode=review checks
+    entity and value-object design.'
   has_references: true
   has_scripts: false
   name: domain-analysis
@@ -209,9 +207,21 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Testing] Use when a workflow step or the user asks for E2E test work:
-    select, generate or update tests, or --mode=verify (run with runner evidence;
-    --fix-loop, --visual-review={true|false}).'
+  description: '[Testing] Use when generating a demo video from E2E screenshots for
+    current changes, a commit, pull request or named user journey, covering every
+    relevant case.'
+  has_references: true
+  has_scripts: false
+  name: e2e-demo
+  path: e2e-demo/SKILL.md
+  removal_after: null
+  status: active
+- category: other
+  deprecated_by: null
+  deprecated_since: null
+  description: '[Testing] Use when a workflow step or the user asks for E2E test selection,
+    generation or updates. --mode=verify runs tests; --fix-loop repairs failures;
+    --visual-review={true|false}.'
   has_references: true
   has_scripts: false
   name: e2e-test
@@ -221,10 +231,10 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Testing] Use when a workflow step or the user asks for a running-experience
-    review (UI, API, CLI, service): end-to-end drive, runtime-log and screen gates.
-    --rounds=N (default 3; 0 = report-only).'
-  has_references: false
+  description: '[Testing] Use when a workflow step or the user asks for runtime review
+    of a UI, API, CLI or service against intended behavior. --rounds=0 reports only;
+    --rounds=N bounds repairs.'
+  has_references: true
   has_scripts: false
   name: experience-review
   path: experience-review/SKILL.md
@@ -243,8 +253,9 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Documentation] Use when a workflow step or the user asks for a stakeholder
-    slide deck: specs, PBIs, ideas and mockups in one standalone HTML deck.'
+  description: '[Documentation] Use when a workflow step or the user asks for a standalone
+    HTML stakeholder deck combining specs, tasks, initiatives and mockups with journey
+    demos.'
   has_references: true
   has_scripts: false
   name: feature-presentation
@@ -254,9 +265,9 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Implementation] Use when a workflow step or the user asks for an
-    issue to be analyzed and fixed. --target={ci|issue|logs|review|test|types|ui}
-    scopes it.'
+  description: '[Implementation] Use when a workflow step or the user asks for root-cause
+    fixes with regression coverage. --target={ci|issue|logs|review|test|types|ui}
+    scopes the issue.'
   has_references: true
   has_scripts: false
   name: fix
@@ -289,7 +300,7 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Git] Use when generating developer KPI, contribution, story point,
+  description: '[Git] Use when generating developer KPI, contribution, effort point,
     man-day or code-quality reports from git history.'
   has_references: true
   has_scripts: true
@@ -313,7 +324,7 @@
   deprecated_by: null
   deprecated_since: null
   description: '[Quality] Use when a workflow step or the user asks for an agent quality
-    harness: feedforward guides and feedback sensors.'
+    harness with project guidance and automated/review feedback.'
   has_references: false
   has_scripts: false
   name: harness-setup
@@ -324,7 +335,7 @@
   deprecated_by: null
   deprecated_since: null
   description: '[Document Processing] Use when a workflow step or the user asks for
-    an HTML page, deck, mockup or animation export: PNG, vector PDF, MP4/GIF. --to={png|pdf|mp4|gif}.'
+    HTML page, deck, mockup or animation export to PNG, vector PDF, MP4 or GIF. --to={png|pdf|mp4|gif}.'
   has_references: true
   has_scripts: true
   name: html-export
@@ -335,19 +346,19 @@
   deprecated_by: null
   deprecated_since: null
   description: '[Project Management] Use when a workflow step or the user asks for
-    an idea to be captured: ideas, feature requests, concepts for refinement.'
+    an initiative: a structured product idea or feature request ready for task refinement.'
   has_references: false
   has_scripts: false
-  name: idea
-  path: idea/SKILL.md
+  name: initiative
+  path: initiative/SKILL.md
   removal_after: null
   status: active
 - category: other
   deprecated_by: null
   deprecated_since: null
   description: '[Testing] Use when a workflow step or the user asks for integration
-    tests: generate them, --mode=review (one-pass 8-gate review) or --mode=verify
-    (run with runner evidence; --fix-loop converges failures).'
+    test generation, diagnosis or traceability checks. --mode=review checks test quality;
+    --mode=verify runs tests, with optional --fix-loop.'
   has_references: true
   has_scripts: false
   name: integration-test
@@ -357,9 +368,9 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Fix & Debug] Use when a workflow step or the user asks for how an
-    existing feature works (read-only code-flow trace) or --mode=debug: a bug''s root
-    cause (reproduce, trace end-to-start). --mode=explain. Plans or decisions: understand.'
+  description: '[Fix & Debug] Use when a workflow step or the user asks for read-only
+    code-flow investigation. --mode=debug finds bug root causes; --mode=explain narrates
+    purpose, flow and impact. Plans/decisions: understand.'
   has_references: true
   has_scripts: false
   name: investigate
@@ -369,8 +380,8 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Research] Use when a workflow step or the user asks for a knowledge
-    artifact review: completeness, citations, confidence accuracy, template compliance.'
+  description: '[Research] Use when a workflow step or the user asks for knowledge
+    artifact review: completeness, citation accuracy, confidence and template compliance.'
   has_references: false
   has_scripts: false
   name: knowledge-review
@@ -380,8 +391,8 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Research] Use when a workflow step or the user asks for a research
-    synthesis: findings into a structured report.'
+  description: '[Research] Use when a workflow step or the user asks for synthesis
+    of existing evidence into a cited research report.'
   has_references: false
   has_scripts: false
   name: knowledge-synthesis
@@ -402,8 +413,8 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Quality] Use when a workflow step or the user asks for code quality
-    tooling: linters, formatters, static analysis, pre-commit hooks, CI gates.'
+  description: '[Quality] Use when a workflow step or the user asks for linters, formatters,
+    type checks and static analysis in pre-commit and CI gates.'
   has_references: false
   has_scripts: false
   name: linter-setup
@@ -424,8 +435,8 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Research] Use when a workflow step or the user asks for a market
-    landscape analysis: competitors, TAM/SAM/SOM, trends, SWOT, segments.'
+  description: '[Research] Use when a workflow step or the user asks for market analysis:
+    competitors, TAM/SAM/SOM, trends, SWOT and customer segments.'
   has_references: false
   has_scripts: false
   name: market-analysis
@@ -435,25 +446,12 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Code Quality] Use when analyzing package upgrades, outdated dependencies,
-    npm/NuGet update plans or breaking changes.'
+  description: '[Code Quality] Use when analyzing npm package upgrades, outdated dependencies
+    or breaking changes and preparing a phased upgrade plan.'
   has_references: false
   has_scripts: false
   name: package-upgrade
   path: package-upgrade/SKILL.md
-  removal_after: null
-  status: active
-- category: other
-  deprecated_by: null
-  deprecated_since: null
-  description: '[Project Management] Use when a workflow step or the user asks for
-    PBI work, --mode=refine (idea to PBI, acceptance criteria) | story (slicing) |
-    mockup (HTML, --explore) | challenge (Dev BA PIC) | review (--type=) | dor (Definition
-    of Ready, M1-M7).'
-  has_references: true
-  has_scripts: false
-  name: pbi
-  path: pbi/SKILL.md
   removal_after: null
   status: active
 - category: other
@@ -471,8 +469,9 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Debugging] Use when a workflow step or the user asks for a performance
-    review: slow queries, N+1, latency, memory, caching, frontend rendering, Web Vitals.'
+  description: '[Debugging] Use when a workflow step or the user asks for performance
+    bottleneck analysis and validated fixes: queries, memory, network, rendering and
+    concurrency.'
   has_references: true
   has_scripts: false
   name: performance-review
@@ -482,10 +481,9 @@
 - category: utilities
   deprecated_by: null
   deprecated_since: null
-  description: '[Planning] Use when a workflow step or the user asks for a concise
-    implementation plan, or --mode=review (one review pass on intent and rationale)
-    / --mode=validate (critical-questions interview) / --mode=execute (code and test
-    it) of a plan. --mode={ci|cro}.'
+  description: '[Planning] Use when a workflow step or the user asks for implementation
+    planning. --mode=review supports review-only or --fix-loop; validate interviews,
+    execute implements. --mode=ci plans CI fixes; --mode=cro plans conversion optimization.'
   has_references: true
   has_scripts: false
   name: plan
@@ -519,7 +517,7 @@
   deprecated_by: null
   deprecated_since: null
   description: '[Project Management] Use when a workflow step or the user asks for
-    backlog prioritization: RICE, MoSCoW or Value-Effort ranking.'
+    planned-work prioritization using RICE, MoSCoW or Value-Effort ranking.'
   has_references: false
   has_scripts: false
   name: prioritize
@@ -541,8 +539,8 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Code Quality] Use when a workflow step or the user asks for a production
-    readiness review of service-layer and API changes.'
+  description: '[Code Quality] Use when a workflow step or the user asks for service/API
+    readiness: observability, reliability, data integrity and database performance.'
   has_references: false
   has_scripts: false
   name: production-readiness-review
@@ -611,8 +609,8 @@
   deprecated_by: null
   deprecated_since: null
   description: '[Git] Use when asked to create, open, finish, update or mark ready
-    a pull request. Runs in the main session with user test and review choices, including
-    explicit skip: branch, commit, open PR, CI to green.'
+    a pull request. Runs in the main session with risk-based test/review choices and
+    automatic checks for routine CI repairs: branch, commit, open PR, CI to green.'
   has_references: false
   has_scripts: false
   name: pull-request
@@ -646,7 +644,7 @@
   deprecated_by: null
   deprecated_since: null
   description: '[Architecture] Use when a workflow step or the user asks for project
-    scaffolding: foundations and golden-path examples before feature implementation.'
+    architecture foundations, infrastructure and examples before feature implementation.'
   has_references: false
   has_scripts: false
   name: scaffold
@@ -657,8 +655,8 @@
   deprecated_by: null
   deprecated_since: null
   description: '[Documentation] Use when a workflow step or the user asks for one
-    project-reference doc to be regenerated. --target=<doc key> (project-structure,
-    code-review-rules, domain-entities, docs-index). All docs: scan-all.'
+    project-reference doc rebuild via --target=<key>, preserving verified rules. All
+    selected reference docs: scan-all.'
   has_references: true
   has_scripts: false
   name: scan
@@ -692,7 +690,8 @@
   deprecated_by: null
   deprecated_since: null
   description: '[Planning] Use when a workflow step or the user asks for adversarial
-    scenarios: failure modes, data integrity, state boundaries, access risks.'
+    scenarios for failure, data integrity, access, replay and recovery risks before
+    planning.'
   has_references: true
   has_scripts: false
   name: scenario
@@ -702,9 +701,8 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Code Quality] Use when a workflow step or the user asks for a security
-    review or audit: OWASP Top 10, secrets, supply-chain, infrastructure, CI/CD, AI-agent
-    risks.'
+  description: '[Code Quality] Use when a workflow step or the user asks for security
+    audits: OWASP, secrets, supply chain, infrastructure, CI/CD and AI-agent risks.'
   has_references: true
   has_scripts: false
   name: security-audit
@@ -714,8 +712,9 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Dev Data] Use when a workflow step or the user asks for test-data
-    seeders for QC happy paths. --mode=review audits a seeder read-only.'
+  description: '[Dev Data] Use when a workflow step or the user asks for idempotent
+    QC happy-path seeders using public commands. --mode=review audits seeder conventions
+    read-only.'
   has_references: true
   has_scripts: false
   name: seed-test-data
@@ -736,9 +735,9 @@
 - category: utilities
   deprecated_by: null
   deprecated_since: null
-  description: '[Research] Use when a workflow step or the user asks for deep research
-    on the top sources surfaced by web-research. Fetches, extracts, cross-validates
-    and builds the evidence base.'
+  description: '[Research] Use when a workflow step or the user asks for deep analysis
+    of a prior source map: fetch, extract and cross-validate findings into a cited
+    evidence base.'
   has_references: false
   has_scripts: false
   name: source-deep-dive
@@ -748,9 +747,9 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Documentation] Use when a workflow step or the user asks for spec
-    authoring, auditing, amending, test-speccing, reconciling, or [mode=discovery|clarify|index]:
-    pre-spec landscape, user-confirmed decisions, derived index/ERD.'
+  description: '[Documentation] Use when a workflow step or the user asks for canonical
+    feature specs and test scenarios: author, audit, amend, tests and sync. discovery
+    maps overlaps; clarify confirms decisions; index derives navigation/ERD.'
   has_references: true
   has_scripts: false
   name: spec
@@ -771,8 +770,8 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Content] Use when a workflow step or the user asks for a marketing
-    strategy: positioning, channels, messaging, campaigns, budget, KPIs.'
+  description: '[Content] Use when a workflow step or the user asks for marketing
+    strategy: positioning, channels, messaging, campaigns, budget and KPIs.'
   has_references: false
   has_scripts: false
   name: strategy-builder
@@ -816,6 +815,20 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
+  description: '[Project Management] Use when maintaining team work, inspecting linked
+    spec/task/subtask concerns, verifying tracker evidence, recording explicit acceptance,
+    opening status, migrating a project that stores the earlier vocabulary or maintaining
+    exact linked items at a saved-work checkpoint. Manual modes and shell recipes
+    use the shared tracker core.'
+  has_references: true
+  has_scripts: true
+  name: task-track
+  path: task-track/SKILL.md
+  removal_after: null
+  status: active
+- category: other
+  deprecated_by: null
+  deprecated_since: null
   description: '[Documentation] Use when generating the DERIVED technical spec view
     over code and tests, or reporting §8 TC drift. Generator only, never authors business
     content. generate|audit|sync.'
@@ -828,8 +841,8 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Architecture] Use when a workflow step or the user asks for tech
-    stack options, researched and compared as a solution architect.'
+  description: '[Architecture] Use when a workflow step or the user asks for tech-stack
+    research: alternatives, trade-offs and user-validated recommendations.'
   has_references: false
   has_scripts: false
   name: tech-stack-research
@@ -840,7 +853,7 @@
   deprecated_by: null
   deprecated_since: null
   description: '[Testing] Use when a workflow step or the user asks for a local test
-    run: runs tests and analyzes the summary report.'
+    run and read-only results summary.'
   has_references: false
   has_scripts: false
   name: test
@@ -850,9 +863,9 @@
 - category: frontend
   deprecated_by: null
   deprecated_since: null
-  description: '[Design] Use when a workflow step or the user asks for a UI design
-    (create, describe) or a UI review: content fit, layouts, styling conventions,
-    accessibility, async states. --mode={fast|good|explore|describe|screenshot|video|review}.'
+  description: '[Design] Use when a workflow step or the user asks for UI creation,
+    exploration or description from briefs, screenshots or videos for product/marketing
+    interfaces. --mode=review checks layout, styling, accessibility and async states.'
   has_references: true
   has_scripts: true
   name: ui-design
@@ -874,8 +887,8 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Utilities] Use when a workflow step or the user asks for a session
-    wrap-up: HTML report of what was done, changes, why; flags stale docs and lessons.'
+  description: '[Utilities] Use when a workflow step or the user asks for an HTML
+    session wrap-up: work, changes, rationale, how it works, stale docs and lessons.'
   has_references: true
   has_scripts: false
   name: watzup
@@ -896,9 +909,9 @@
 - category: utilities
   deprecated_by: null
   deprecated_since: null
-  description: '[Research] Use when a workflow step or the user asks for web research.
-    Gathers and triages candidate sources; `--chain=deep-dive` also deep-dives them
-    into an evidence base.'
+  description: '[Research] Use when a workflow step or the user asks for web source
+    discovery and triage into a source map and gaps. --chain=deep-dive also builds
+    a cross-validated evidence base.'
   has_references: true
   has_scripts: false
   name: web-research
@@ -908,9 +921,9 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Code Quality] Use when a workflow step or the user asks for rationale
-    review: why needed/chosen, trade-offs, good idea or best practice. Only explicit
-    rationale asks; not generic reviews or how-it-works. --fix-loop fixes/re-reviews.'
+  description: '[Code Quality] Use when a workflow step or the user asks for explicit
+    rationale review: necessity, choices and trade-offs. --validate-findings checks
+    review reports; --fix-loop fixes and re-reviews. Not generic reviews or how-it-works.'
   has_references: true
   has_scripts: false
   name: why-review
@@ -920,8 +933,20 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Workflow] Use when auditing the whole project''s architecture or
-    production readiness: read-only, one consolidated health report.'
+  description: '[Project Management] Use when a workflow step or the user asks for
+    task refinement, story slicing, HTML mockups, draft challenges, artifact review
+    or readiness checks via --mode={refine|story|mockup|challenge|review|dor}.'
+  has_references: true
+  has_scripts: false
+  name: work-item
+  path: work-item/SKILL.md
+  removal_after: null
+  status: active
+- category: other
+  deprecated_by: null
+  deprecated_since: null
+  description: '[Workflow] Audit project architecture, scalability and production
+    readiness without changing code; deliver one consolidated health report.'
   has_references: false
   has_scripts: false
   name: workflow-architecture-audit
@@ -931,8 +956,8 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Workflow] Use when implementing a large, ambiguous, or research-driven
-    feature.'
+  description: '[Workflow] Research, design, specify and implement a large, ambiguous
+    or research-heavy feature in an existing codebase.'
   has_references: false
   has_scripts: false
   name: workflow-big-feature
@@ -942,8 +967,8 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Workflow] Use when fixing a bug, error, or crash — root-cause investigation,
-    fix, verification.'
+  description: '[Workflow] Investigate and fix bugs, crashes or regressions at the
+    root cause, with reviewed changes and regression tests that prove the fix.'
   has_references: false
   has_scripts: false
   name: workflow-bugfix
@@ -953,9 +978,8 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Workflow] Use when authoring or maintaining the canonical feature/spec
-    artifact from existing code, keeping contract, implementation and tests in sync.
-    Idea-to-spec: workflow-idea-to-spec.'
+  description: '[Workflow] Author canonical specs from existing code, update them
+    after changes, or audit staleness; reconcile behavior and test evidence.'
   has_references: false
   has_scripts: false
   name: workflow-code-to-spec
@@ -965,9 +989,8 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Workflow] Use when writing, updating and verifying E2E tests through
-    a bounded green fix/retest loop. --source={changes|recording|update-ui|prompt|context|whole},
-    --visual-review={true|false}.'
+  description: '[Workflow] Write, update or fix E2E tests and verify them through
+    the configured runner in a bounded fix/retest loop.'
   has_references: false
   has_scripts: false
   name: workflow-e2e
@@ -977,7 +1000,8 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Process] Use when ending the active workflow and clearing its state.'
+  description: '[Process] Close the active workflow after checking outcome evidence
+    and owned changes; retain recovery state until explicit /clear.'
   has_references: true
   has_scripts: false
   name: workflow-end
@@ -987,9 +1011,9 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Workflow] Use when implementing a well-defined feature, component
-    or capability (incl. TDD/test-first) where no canonical spec has the behavior
-    yet. Spec-complete work: workflow-implement-spec.'
+  description: '[Workflow] Implement a well-defined feature spec-first and test-first
+    when its behavior is not yet captured in a canonical spec. Spec-complete behavior
+    uses workflow-implement-spec.'
   has_references: false
   has_scripts: false
   name: workflow-feature
@@ -999,9 +1023,8 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Workflow] Use when creating or updating the configured canonical
-    feature/spec artifact with its native paths, sections, identifiers and test-evidence
-    carriers; portable 8-section/README/TC form only when no native profile applies.'
+  description: '[Workflow] Create or revise the canonical spec for one capability
+    in the configured format, with reviewed cases and reconciled test evidence.'
   has_references: false
   has_scripts: false
   name: workflow-feature-spec
@@ -1011,8 +1034,8 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Workflow] Use when starting a new project from scratch: waterfall
-    inception from idea through implementation and integration testing.'
+  description: '[Workflow] Take a new product from idea through architecture and scaffolding
+    to a reviewed, tested first releasable slice.'
   has_references: false
   has_scripts: false
   name: workflow-greenfield-init
@@ -1022,30 +1045,9 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Workflow] Use when turning an idea or product vision into prioritized
-    PBIs and stories (single-PBI deep mode or multi-opportunity discovery).'
-  has_references: false
-  has_scripts: false
-  name: workflow-idea-to-pbi
-  path: workflow-idea-to-pbi/SKILL.md
-  removal_after: null
-  status: active
-- category: other
-  deprecated_by: null
-  deprecated_since: null
-  description: '[Workflow] Use when turning a raw idea, vision or problem into one
-    reviewed provisional canonical spec. Stops at the spec; backlog: chain workflow-spec-to-pbi.'
-  has_references: false
-  has_scripts: false
-  name: workflow-idea-to-spec
-  path: workflow-idea-to-spec/SKILL.md
-  removal_after: null
-  status: active
-- category: other
-  deprecated_by: null
-  deprecated_since: null
-  description: '[Workflow] Use when implementing behavior already written in a canonical
-    spec or TC set. Spec lacks the behavior: workflow-feature.'
+  description: '[Workflow] Implement behavior already captured in a canonical spec
+    or test-case set, with scope held, reviewed changes and verified tests. Spec gaps
+    use workflow-feature.'
   has_references: false
   has_scripts: false
   name: workflow-implement-spec
@@ -1055,9 +1057,30 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Workflow] Use when writing integration tests spec-first, converting
-    test specs into test code, adding coverage to untested code, or driving failing
-    integration tests to green. Flag: --mode={write|green}.'
+  description: '[Workflow] Turn a raw idea, vision or problem into reviewed provisional
+    canonical specs with planned test cases; stop before planned work or implementation.'
+  has_references: false
+  has_scripts: false
+  name: workflow-initiative-to-spec
+  path: workflow-initiative-to-spec/SKILL.md
+  removal_after: null
+  status: active
+- category: other
+  deprecated_by: null
+  deprecated_since: null
+  description: '[Workflow] Turn a product idea into reviewed, prioritized, readiness-checked
+    planned tasks and stories; stop before implementation.'
+  has_references: false
+  has_scripts: false
+  name: workflow-initiative-to-task
+  path: workflow-initiative-to-task/SKILL.md
+  removal_after: null
+  status: active
+- category: other
+  deprecated_by: null
+  deprecated_since: null
+  description: '[Workflow] Write and verify spec-traced integration tests, or diagnose
+    and fix failing suites to repeatable green. --mode={write|green}.'
   has_references: true
   has_scripts: false
   name: workflow-integration-test
@@ -1067,8 +1090,8 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Workflow] Use when restructuring, reorganizing, or cleaning up code
-    without changing behavior.'
+  description: '[Workflow] Restructure existing code while preserving observable behavior,
+    proven by baseline and final tests plus change review.'
   has_references: false
   has_scripts: false
   name: workflow-refactor
@@ -1078,8 +1101,8 @@
 - category: utilities
   deprecated_by: null
   deprecated_since: null
-  description: '[Workflow] Use when researching a topic from web sources then synthesizing.
-    Flag: --output={synthesis|business-eval|marketing|course}.'
+  description: '[Workflow] Research web sources and produce a cited, reviewed deliverable.
+    --output={synthesis|business-eval|marketing|course}.'
   has_references: false
   has_scripts: false
   name: workflow-research
@@ -1089,9 +1112,9 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Workflow] Use when reviewing uncommitted changes that are cross-module,
-    contract-changing or security-sensitive: specialist lenses, validated fixes, re-review
-    until clean; --fix-loop adds an outer convergence loop. Focused diff: changes-review.'
+  description: '[Workflow] Review risky or cross-module uncommitted changes with specialists,
+    validated fixes and re-review. Defaults to --fix-loop; --review-only reports without
+    edits.'
   has_references: true
   has_scripts: false
   name: workflow-review-changes
@@ -1101,8 +1124,8 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Workflow] Use when seeding test data or implementing idempotent QC
-    happy-path seeders.'
+  description: '[Workflow] Build or extend idempotent, environment-gated development/QC
+    seeders with realistic data, change review and verified tests.'
   has_references: false
   has_scripts: false
   name: workflow-seed-test-data
@@ -1112,8 +1135,8 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Workflow] Use when updating test specs and feature docs after code
-    changes, bug fixes, or PR reviews.'
+  description: '[Workflow] Reconcile canonical specs, test cases, integration tests
+    and docs after code changes, bug fixes or PR reviews; verify changed behavior.'
   has_references: false
   has_scripts: false
   name: workflow-spec-sync
@@ -1123,9 +1146,8 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Workflow] Use when turning canonical specs into a reviewed interactive
-    HTML mock-up: journey report, 1-3 design directions, then the full multi-view
-    mock app.'
+  description: '[Workflow] Turn UI-bearing canonical specs into reviewed, interactive
+    multi-view HTML mockups; stop before planned work or production code.'
   has_references: false
   has_scripts: false
   name: workflow-spec-to-mockup
@@ -1135,11 +1157,11 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Workflow] Use when converting canonical feature/spec artifacts into
-    prioritized, dependency-aware PBIs and stories.'
+  description: '[Workflow] Convert existing canonical specs into complete, dependency-ordered,
+    prioritized, readiness-checked planned tasks and stories.'
   has_references: false
   has_scripts: false
-  name: workflow-spec-to-pbi
-  path: workflow-spec-to-pbi/SKILL.md
+  name: workflow-spec-to-task
+  path: workflow-spec-to-task/SKILL.md
   removal_after: null
   status: active

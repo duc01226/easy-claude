@@ -47,7 +47,7 @@ disable-model-invocation: true
 
 Use for a decision deck, strategy, product story, teaching lesson, research readout, project update, technical explanation, sales narrative, demo, portfolio, or any other subject where an audience must understand, remember, decide, or act.
 
-Use it to audit an existing HTML presentation when the request mentions structure, notes, edit mode, navigation, accessibility, or quality. For a UI-only mockup, use `pbi --mode=mockup`. When the deck synthesizes one feature's artifacts (its spec, PBIs, mockups, design specs) for product, analysis, development and QA reviewers, use `feature-presentation` instead: it builds the feature review deck and passes this skill's validator with `--profile=review` — the same deck standard with editing features advisory, because review text must match the specifications it summarizes. Use this skill for a deck on any other subject.
+Use it to audit an existing HTML presentation when the request mentions structure, notes, edit mode, navigation, accessibility, or quality. For a UI-only mockup, use `work-item --mode=mockup`. When the deck synthesizes one feature's artifacts (its spec, tasks, mockups, design specs) for product, analysis, development and QA reviewers, use `feature-presentation` instead: it builds the feature review deck and passes this skill's validator with `--profile=review` — the same deck standard with editing features advisory, because review text must match the specifications it summarizes. Use this skill for a deck on any other subject.
 
 ## Workflow
 

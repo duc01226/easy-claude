@@ -3,4 +3,4 @@
 > Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
 
 >
-> A `skill-overlay-remind` hook names the matched overlay files when a skill activates (again only after about 100K tokens of growth for that skill); a missing reminder never waives this resolution.
+> A `skill-overlay-remind` hook names the matched overlay files when a skill activates (again only after about 150K tokens of growth for that skill); a missing reminder never waives this resolution.

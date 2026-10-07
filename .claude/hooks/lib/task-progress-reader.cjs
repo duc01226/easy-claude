@@ -6,6 +6,11 @@ const { readBytes, hash, fail } = require('./task-tracking-files.cjs');
 const { resolveTrackingProfile, nativeInventory } = require('./task-tracking-profile.cjs');
 const { bindRecordContext, prerequisiteReasons, requireReady, healthStatus } = require('./task-tracking-policy.cjs');
 const { recordView, sanitized } = require('./task-tracking.cjs');
+const { DELIVERY_KIND, GROUP_KINDS, LABELS, vocabularyBlock, projectVocabularyView } = require('./task-tracking-vocabulary.cjs');
+
+// The version of the read output itself: 2 names delivery identities as task identities and carries the vocabulary block.
+const READ_VERSION = 2;
+const vocabularyView = context => ({ ...vocabularyBlock(), project: projectVocabularyView(context?.vocabulary) });
 
 function evidenceReader(context) {
     const observed = new Map();
@@ -25,6 +30,10 @@ function inspectSnapshot(root, pinned) {
         return { context, profile, records: [], items: [], diagnostics: native.diagnostics, coverage: 'unavailable', native,
             fingerprint: hash(stableValue({ config: context.config, inventory: native.inventory })) };
     }
+    // Mixed vocabularies or an unfinished migration: nothing is read as work, so nothing can be counted.
+    const stored = context.vocabulary;
+    if (stored && stored.storedVersion === null) return { context, profile, records: [], items: [], coverage: 'unavailable', unreadable: true,
+        diagnostics: [{ code: stored.code, reason: stored.reason }], fingerprint: hash(stableValue({ config: context.config, vocabulary: projectVocabularyView(stored) })) };
     const scan = pinned?.scan || inspectRecords(context);
     const evidence = evidenceReader(context);
     context.readEvidence = relative => evidence.read(relative);
@@ -61,7 +70,7 @@ function scopeProjection(snapshot, groupId) {
             code, reason: `${reason}; additional scope findings were omitted`, ...(itemId ? { itemId } : {}) };
         if (coverage !== 'unavailable') coverage = 'partial';
     };
-    const isGroup = item => item && ['epic', 'vision'].includes(item.kind);
+    const isGroup = item => item && GROUP_KINDS.includes(item.kind);
     const items = new Map();
     // A duplicate remains ambiguous even if a later owner cannot be projected.
     const owners = snapshot.context?.recordAnalysis?.index;
@@ -107,11 +116,11 @@ function scopeProjection(snapshot, groupId) {
     const sort = values => [...values].sort();
     const hierarchy = { labels: groupLabels(snapshot.context?.config), groups: groups.map(item => ({ id: item.id, groupRole: item.groupRole ?? null,
         directGroupIds: sort(adjacency.get(item.id).filter(id => isGroup(items.get(id)))), parentGroupIds: sort(parents.get(item.id)) })),
-        ungroupedPbiIds: omitted ? [] : sort(admitted.filter(item => item.kind === 'pbi' && !parents.get(item.id).length).map(item => item.id)), coverage };
+        ungroupedTaskIds: omitted ? [] : sort(admitted.filter(item => item.kind === DELIVERY_KIND && !parents.get(item.id).length).map(item => item.id)), coverage };
     if (groupId && !isGroup(items.get(groupId))) {
-        diagnose('UNAVAILABLE_SCOPE', 'Selected group has no unique epic or vision owner', groupId);
-        return { hierarchy: { ...hierarchy, coverage }, scope: { kind: 'group', itemId: groupId, memberIds: [], pbiIds: [], eligiblePbiIds: [],
-            excludedPbiIds: [], directGroupIds: [], affiliations: [], coverage: 'unavailable' }, metrics: null, diagnostics, coverage: 'unavailable' };
+        diagnose('UNAVAILABLE_SCOPE', 'Selected group has no unique project or vision owner', groupId);
+        return { hierarchy: { ...hierarchy, coverage }, scope: { kind: 'group', itemId: groupId, memberIds: [], taskIds: [], eligibleTaskIds: [],
+            excludedTaskIds: [], directGroupIds: [], affiliations: [], coverage: 'unavailable' }, metrics: null, diagnostics, coverage: 'unavailable' };
     }
     const selected = new Set();
     const visited = new Set();
@@ -124,28 +133,28 @@ function scopeProjection(snapshot, groupId) {
         if (id !== groupId) selected.add(id);
         if (adjacency.has(id)) pending.push(...adjacency.get(id));
     }
-    const all = [...selected].map(id => items.get(id)).filter(item => item.kind === 'pbi');
+    const all = [...selected].map(id => items.get(id)).filter(item => item.kind === DELIVERY_KIND);
     const canceled = all.filter(item => item.state === 'canceled').length;
     const retired = all.filter(item => item.retired && item.state !== 'canceled').length;
     const eligible = all.filter(item => item.state !== 'canceled' && !item.retired);
     const accepted = eligible.filter(item => item.acceptance.accepted);
     const currentlyVerified = accepted.filter(item => item.verification.status === 'current').length;
-    const metrics = { unit: 'unique-pbi', scope: groupId ? { kind: 'group', itemId: groupId } : { kind: 'project' }, coverage,
+    const metrics = { unit: 'unique-task', scope: groupId ? { kind: 'group', itemId: groupId } : { kind: 'project' }, coverage,
         scopeRevision: hash(stableValue(eligible.map(i => i.id).sort())), eligibleIds: eligible.map(i => i.id).sort(),
         total: eligible.length, accepted: accepted.length, remaining: eligible.length - accepted.length, currentlyVerified,
         canceled, retired, percentage: coverage === 'complete' && eligible.length ? accepted.length / eligible.length * 100 : null };
     const affiliations = sort(groupId ? new Set([...selected, groupId]) : selected)
-        .filter(id => items.get(id).kind === 'pbi' || isGroup(items.get(id)))
+        .filter(id => items.get(id).kind === DELIVERY_KIND || isGroup(items.get(id)))
         .map(itemId => ({ itemId, groupIds: sort(parents.get(itemId)) }));
-    const scope = { ...metrics.scope, memberIds: sort(selected), pbiIds: sort(all.map(item => item.id)), eligiblePbiIds: [...metrics.eligibleIds],
-        excludedPbiIds: sort(all.filter(item => item.state === 'canceled' || item.retired).map(item => item.id)),
+    const scope = { ...metrics.scope, memberIds: sort(selected), taskIds: sort(all.map(item => item.id)), eligibleTaskIds: [...metrics.eligibleIds],
+        excludedTaskIds: sort(all.filter(item => item.state === 'canceled' || item.retired).map(item => item.id)),
         directGroupIds: groupId ? sort(adjacency.get(groupId).filter(id => isGroup(items.get(id)))) : omitted ? [] : sort(roots), affiliations, coverage };
     // The additive navigation payload has its own existing record-byte ceiling.
     // Conserve known identities/counts, omit navigation explicitly, never label it complete.
     if (Buffer.byteLength(JSON.stringify({ hierarchy, scope })) > LIMITS.recordBytes) {
         diagnose('LIMIT_EXCEEDED', 'Navigation affiliations were omitted at the projection byte budget');
         hierarchy.groups = hierarchy.groups.map(item => ({ ...item, directGroupIds: [], parentGroupIds: [] }));
-        hierarchy.ungroupedPbiIds = []; scope.directGroupIds = []; scope.affiliations = [];
+        hierarchy.ungroupedTaskIds = []; scope.directGroupIds = []; scope.affiliations = [];
         hierarchy.coverage = scope.coverage = metrics.coverage = coverage;
         metrics.percentage = null;
     }
@@ -153,6 +162,12 @@ function scopeProjection(snapshot, groupId) {
 }
 
 function scopeMetrics(snapshot, groupId) { return scopeProjection(snapshot, groupId).metrics; }
+
+/** The work that can be started now, most urgent first: recorded ready, not retired, and nothing unresolved before it. */
+function readyIds(items) {
+    return items.filter(i => i.state === 'ready' && !i.retired && !i.prerequisiteReasons.length)
+        .sort((a, b) => a.priority - b.priority || a.id.localeCompare(b.id, 'en')).map(i => i.id);
+}
 
 function readProgress(root, options = {}) {
     try {
@@ -167,17 +182,16 @@ function readProgress(root, options = {}) {
             if (before.fingerprint === after.fingerprint) { consistent = true; break; }
         }
         if (!consistent) { snapshot.coverage = 'partial'; snapshot.diagnostics.push({ code: 'SOURCE_CHANGED', reason: 'Selected sources changed during inspection; reread before relying on this snapshot' }); }
-        const projection = snapshot.profile.available ? scopeProjection(snapshot, options.groupId) : null;
+        const projection = snapshot.profile.available && !snapshot.unreadable ? scopeProjection(snapshot, options.groupId) : null;
         const metrics = projection?.metrics || null;
         const healthOwnerId = options.groupId || snapshot.context.config.taskTracking?.healthOwnerId;
         const healthOwners = snapshot.records.filter(record => record.id === healthOwnerId);
         const health = snapshot.profile.available && projection?.scope.coverage !== 'unavailable' && healthOwners.length === 1 ? healthStatus(healthOwners[0], snapshot.context)
             : { status: 'unknown', reason: healthOwnerId ? 'Exact health owner is unavailable or ambiguous' : 'No explicit project health owner selected' };
-        const ready = snapshot.items.filter(i => i.state === 'ready' && !i.retired && !i.prerequisiteReasons.length)
-            .sort((a, b) => a.priority - b.priority || a.id.localeCompare(b.id, 'en')).map(i => i.id);
+        const ready = readyIds(snapshot.items);
         const excluded = snapshot.items.filter(i => !ready.includes(i.id)).map(i => ({ itemId: i.id, reasons:
-            [...(i.state !== 'ready' ? [`Recorded state is ${i.state}`] : []), ...(i.retired ? ['Retired'] : []), ...i.prerequisiteReasons] }));
-        return sanitized({ schemaVersion: 1, project: { name: snapshot.context.config.project?.name || 'Selected project', root: snapshot.context.root },
+            [...(i.state !== 'ready' ? [`Recorded state is ${LABELS.states[i.state] ?? i.state}`] : []), ...(i.retired ? ['Retired'] : []), ...i.prerequisiteReasons] }));
+        return sanitized({ schemaVersion: READ_VERSION, vocabulary: vocabularyView(snapshot.context), project: { name: snapshot.context.config.project?.name || 'Selected project', root: snapshot.context.root },
             source: snapshot.context.source || { kind: 'worktree', label: 'Local working copy; proposals may be unshared', remoteFreshness: 'unknown' },
             asOf: new Date().toISOString(), coverage: projection?.coverage || snapshot.coverage, fingerprint: snapshot.fingerprint,
             profile: snapshot.profile, mode: snapshot.context.mode, enrolled: snapshot.context.enrolled,
@@ -185,10 +199,10 @@ function readProgress(root, options = {}) {
             health, ready, excluded, hierarchy: projection?.hierarchy || null, scope: projection?.scope || null,
             items: snapshot.items, diagnostics: [...snapshot.diagnostics, ...(projection?.diagnostics || [])], native: snapshot.native || null });
     } catch (error) {
-        return { schemaVersion: 1, coverage: 'unavailable', profile: { available: false, capabilities: [] }, metrics: null,
+        return { schemaVersion: READ_VERSION, vocabulary: vocabularyView(null), coverage: 'unavailable', profile: { available: false, capabilities: [] }, metrics: null,
             items: [], members: [], ready: [], excluded: [], diagnostics: [{ code: error.code || 'IO_FAILURE',
                 reason: error.code ? error.message : 'Selected project cannot be inspected' }] };
     }
 }
 
-module.exports = { inspectSnapshot, readProgress, scopeMetrics, scopeProjection, sanitized };
+module.exports = { READ_VERSION, inspectSnapshot, readProgress, readyIds, scopeMetrics, scopeProjection, sanitized };

@@ -45,7 +45,7 @@ continuation: 6
 
 **Preconditions:**
 
-- A contributor has an existing generic vision G containing an epic F and a delivery outcome P; F has a task and a separate delivery outcome Q. Existing intent, accepted history and current-proof gaps are recorded.
+- A contributor has an existing generic vision G containing a project group F and a delivery outcome P; F has a subtask and a separate delivery outcome Q. Existing intent, accepted history and current-proof gaps are recorded.
 - The selected permitted project has no declared purpose labels. Its existing configuration and work are recorded before inspection.
 
 **Real-World Reachability:** The contributor opens the existing project, reads G and F, then chooses a purpose for F after reading its current revision and members. No conversion, setup interview or migration step occurs.
@@ -56,7 +56,7 @@ continuation: 6
 Given G and F are existing generic groups in a permitted project
 When the contributor inspects them and explicitly saves F as a capability through group maintenance
 Then G remains generic and both delivery outcomes remain reachable with their original identities
-And tasks, history, configuration and the existing nesting remain unchanged
+And subtasks, history, configuration and the existing nesting remain unchanged
 ```
 
 **Expected Result:**
@@ -88,7 +88,7 @@ And tasks, history, configuration and the existing nesting remain unchanged
     ],
     "F": [
       "Q",
-      "task"
+      "subtask"
     ]
   },
   "configuredLabels": "absent",
@@ -127,7 +127,7 @@ And tasks, history, configuration and the existing nesting remain unchanged
 
 **Preconditions:**
 
-- A permitted maintainer selects epic F with current revision and declared members P and task. F has authored text, health assessment and accepted history.
+- A permitted maintainer selects project group F with current revision and declared members P and subtask. F has authored text, health assessment and accepted history.
 - Another group A also contains F; neither affiliation is being edited.
 
 **Real-World Reachability:** The maintainer reads F, previews a purpose-only edit and saves it. After each actual saved result is reread, the maintainer changes its purpose and later explicitly clears it; separate actor actions use the then-current revision.
@@ -135,10 +135,10 @@ And tasks, history, configuration and the existing nesting remain unchanged
 **Demo Flow:** Observe the stated source/location and permitted preconditions; perform the actor actions below, and observe each specified positive or refused postcondition before a dependent action. Actor review supplies normal pacing; no fixed delay establishes readiness.
 
 ```gherkin
-Given F contains P and task and is also a member of A
-When the maintainer previews and saves area, then initiative, then explicitly clears purpose, rereading between saves
+Given F contains P and subtask and is also a member of A
+When the maintainer previews and saves area, then program, then explicitly clears purpose, rereading between saves
 Then F displays each requested purpose and finally generic
-And F still contains P and task and A still contains F
+And F still contains P and subtask and A still contains F
 ```
 
 **Expected Result:**
@@ -162,11 +162,11 @@ And F still contains P and task and A still contains F
   "group": "F",
   "initialMembers": [
     "P",
-    "task"
+    "subtask"
   ],
   "purposeSequence": [
     "area",
-    "initiative",
+    "program",
     "clear"
   ],
   "otherAffiliation": "A"
@@ -199,7 +199,7 @@ And F still contains P and task and A still contains F
 
 **Preconditions:**
 
-- Area A directly contains capability F. F declares delivery outcomes P and Q, canceled R, retired S, a story and a task; P provides a useful integration outcome to a consuming system.
+- Area A directly contains capability F. F declares delivery outcomes P and Q, canceled R, retired S, a story and a subtask; P provides a useful integration outcome to a consuming system.
 - Q retains accepted history but has a relevant current-proof gap. Exact governing-intent and proof owners are readable; health is not attested.
 
 **Real-World Reachability:** A stakeholder opens the current project, selects A then F, reads the loaded selected scope, opens P and its governing intent, and returns after observing each new location.
@@ -207,10 +207,10 @@ And F still contains P and task and A still contains F
 **Demo Flow:** Observe the stated source/location and permitted preconditions; perform the actor actions below, and observe each specified positive or refused postcondition before a dependent action. Actor review supplies normal pacing; no fixed delay establishes readiness.
 
 ```gherkin
-Given F contains P, Q, R, S, story and task
+Given F contains P, Q, R, S, story and subtask
 When the stakeholder follows project to A to F to P and its exact governing intent and returns
 Then the primary delivery list is exactly P and Q and the denominator is two
-And R and S are separately inspectable as excluded and story and task are inspectable as supporting work
+And R and S are separately inspectable as excluded and story and subtask are inspectable as supporting work
 ```
 
 **Expected Result:**
@@ -225,7 +225,7 @@ And R and S are separately inspectable as excluded and story and task are inspec
 **Acceptance Criteria:**
 
 - ✅ The selected eligible identities explain the denominator and exact intent/proof links remain actionable.
-- ❌ Counting a task/widget, concealing exclusions or promoting Q to current proof fails this case.
+- ❌ Counting a subtask/widget, concealing exclusions or promoting Q to current proof fails this case.
 
 **Test Data:**
 
@@ -237,7 +237,7 @@ And R and S are separately inspectable as excluded and story and task are inspec
     "R",
     "S",
     "story",
-    "task"
+    "subtask"
   ],
   "eligible": [
     "P",
@@ -360,7 +360,7 @@ And each return trail names the chosen area and the other direct affiliation is 
 
 **Preconditions:**
 
-- The project contains labelled A and F, reachable generic G, ungrouped outcome U, and supporting task T. A has eligible P and Q.
+- The project contains labelled A and F, reachable generic G, ungrouped outcome U, and supporting subtask T. A has eligible P and Q.
 - P has no acceptance and Q has historical acceptance with a current-proof gap.
 
 **Real-World Reachability:** The stakeholder opens project choices, visits G and U, returns to A, applies a search with no matches, then clears it after the filter-empty result is visible.
@@ -408,7 +408,7 @@ And A still has the denominator P and Q with No work matches this view
 }
 ```
 
-**Edge Cases:** An entirely complete empty project differs from a nonempty project with no eligible PBIs. A retired ungrouped outcome remains separately inspectable as excluded, with no eligible credit.
+**Edge Cases:** An entirely complete empty project differs from a nonempty project with no eligible tasks. A retired ungrouped outcome remains separately inspectable as excluded, with no eligible credit.
 
 **Transition Invariants:** N/A — purpose, viewing and navigation do not introduce lifecycle transitions or acceptance.
 
@@ -456,7 +456,7 @@ Then the affected declaration is invalid instead of silently defaulted
 | Dimension | Expectation |
 |---|---|
 | UI | Explain the invalid fact beside the editor or scope capability and retain a useful exit. |
-| System behavior | Only three named purposes on vision/epic groups and their three inert labels are admitted; declared malformed configuration fails closed. |
+| System behavior | Only three named purposes on vision/project groups and their three inert labels are admitted; declared malformed configuration fails closed. |
 | Business data state | No requested invalid fact, inferred membership or unintended configuration repair is saved. |
 | Data shown on UI | A 160-character nonblank label is readable; a 161-character label is invalid; executable-looking text within the valid text domain displays as text. |
 
@@ -586,7 +586,7 @@ Then sharing remains valid and each outcome appears once
 
 **Preconditions:**
 
-- F declares only eligible outcome P and a supporting task. Outside F, outcome Q and P each declare a link to the same exact governing specification owner at its permitted location; neither declares a direct link to the other. Task Z has a parent link to P but is not declared as F’s member.
+- F declares only eligible outcome P and a supporting subtask. Outside F, outcome Q and P each declare a link to the same exact governing specification owner at its permitted location; neither declares a direct link to the other. Subtask Z has a parent link to P but is not declared as F’s member.
 - The shared governing specification is uniquely identified as SPEC-SHARED in the fixture. The contributor may inspect all four records and select that exact specification owner at the location declared by P and Q; a pending permitted edit of Q exists.
 
 **Real-World Reachability:** The contributor selects F and reads its delivery scope, opens P’s exact linked concerns and reads the declared specification link, then selects that exact shared governing specification owner at its declared location. After reviewing its incoming Q relationship, the contributor deliberately opens Q in management. Each subsequent selection follows review of the preceding visible result.
@@ -594,9 +594,9 @@ Then sharing remains valid and each outcome appears once
 **Demo Flow:** Observe the stated source/location and permitted preconditions; perform the actor actions below, and observe each specified positive or refused postcondition before a dependent action. Actor review supplies normal pacing; no fixed delay establishes readiness.
 
 ```gherkin
-Given F declares P and task while P and Q each link only to the same exact governing specification and Z has a parent link to P
+Given F declares P and subtask while P and Q each link only to the same exact governing specification and Z has a parent link to P
 When the contributor inspects F and then P’s exact linked concerns
-Then F’s eligible delivery list is only P and its supporting list includes task
+Then F’s eligible delivery list is only P and its supporting list includes subtask
 And P’s concern result exposes its declared specification link but excludes Q
 When the contributor selects the exact shared governing specification owner at the location declared by P
 Then its incoming concerns expose Q with its original declaring owner and specification relationship
@@ -625,7 +625,7 @@ Then Q’s pending draft is retained while neither Q nor Z becomes F membership
   "members": {
     "F": [
       "P",
-      "task"
+      "subtask"
     ]
   },
   "outsideLinked": [
@@ -773,7 +773,7 @@ And the separately authorized maintainer can save the current previewed group ed
 **Demo Flow:** Observe the stated source/location and permitted preconditions; perform the actor actions below, and observe each specified positive or refused postcondition before a dependent action. Actor review supplies normal pacing; no fixed delay establishes readiness.
 
 ```gherkin
-Given any valid vision or epic and any admitted purpose and display-label combination
+Given any valid vision or project group and any admitted purpose and display-label combination
 When a permitted current purpose-only edit is saved and the result is reread
 Then all members, child records, identity, authority, lifecycle, acceptance and proof are conserved
 And omitting purpose preserves it while explicit clear restores generic
@@ -787,7 +787,7 @@ But a nongroup, unknown purpose, invalid label or empty request is refused witho
 | UI | Valid vocabulary displays as inert text and each edit has its actual saved/refused outcome. |
 | System behavior | Exercise set/change/clear, round-trip back to generic and independent label changes; duplicate label text cannot merge roles or identities. |
 | Business data state | Only requested group facts change; no label creates history, membership, permission or execution. |
-| Data shown on UI | Configured text or default Area/Feature/Initiative appears with stable group identity. |
+| Data shown on UI | Configured text or default Area/Feature/Program appears with stable group identity. |
 
 **Acceptance Criteria:**
 
@@ -798,7 +798,7 @@ But a nongroup, unknown purpose, invalid label or empty request is refused witho
 
 ```json
 {
-  "inputDomain": "all vision/epic groups; absent/clear/area/capability/initiative purpose; nonblank trimmed control-free labels of 1..160 characters including markup-looking and duplicate text; omitted labels",
+  "inputDomain": "all vision/project groups; absent/clear/area/capability/program purpose; nonblank trimmed control-free labels of 1..160 characters including markup-looking and duplicate text; omitted labels",
   "invariant": "purpose/label description preserves identity, membership, authority, child bytes, lifecycle, acceptance and proof; omitted facts preserve",
   "boundaryCounterCase": [
     "purpose on delivery item",
@@ -1102,7 +1102,7 @@ Then the actual fresh result or dated stale/unavailable limitation is visible wi
   ],
   "support": [
     "story",
-    "task"
+    "subtask"
   ],
   "outside": [
     "U"

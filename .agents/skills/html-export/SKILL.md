@@ -9,7 +9,7 @@ disable-model-invocation: false
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -140,7 +140,7 @@ Target flags: `--fps=<1-60>` (default 30 for mp4, 15 for gif), `--duration=<seco
 | -------------------- | ------------------------------------------------------- | ------------------------------------------------------------------ |
 | presentation-builder | `--slides` (default selector)                           | `--page=1920x1080` (print mode)                                    |
 | feature-presentation | `--slides=section.deck__slide`, or `--slides` (default) | `--page=1920x1080` (print mode), or `--slides=section.deck__slide` |
-| pbi (mockup mode)    | `--slides='[data-state]'` (every screen)            | —                                                                  |
+| work-item (mockup mode)    | `--slides='[data-state]'` (every screen)            | —                                                                  |
 
 Any other page can mark its items with `data-export-slide`. feature-presentation slides carry both `slide` and `deck__slide` with a `data-slide-id`, so its existing `section.deck__slide` selector and the default selector find the same slides.
 

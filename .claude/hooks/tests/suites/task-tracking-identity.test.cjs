@@ -99,14 +99,14 @@ module.exports = { name: 'Task tracking local identity integration', tests: [
         assert.equal(selected.status, 0); assert.equal(selected.value.actor, ADDRESS);
         assert.equal(selected.value.member.displayName, 'Rowan Example'); assert.equal(selected.value.grantsAuthority, false);
         assert.deepEqual(tree(f.root), before);
-        const request = proposal(f, 'create', 'IDEA-LOCAL', { title: 'Improve onboarding', intent: 'Capture a useful idea' }, ADDRESS,
-            { target: { kind: 'idea', itemId: 'IDEA-LOCAL' } });
+        const request = proposal(f, 'create', 'INITIATIVE-LOCAL', { title: 'Improve onboarding', intent: 'Capture a useful idea' }, ADDRESS,
+            { target: { kind: 'initiative', itemId: 'INITIATIVE-LOCAL' } });
         const created = runCLI(f, 'apply', request);
         assert.equal(created.status, 0); assert.equal(created.value.primary.status, 'saved');
-        await save(f, 'assign', 'IDEA-LOCAL', { assigneeId: ADDRESS });
-        assert.equal(f.record('IDEA-LOCAL').tracking.assigneeId, ADDRESS);
-        assert.equal(f.view('IDEA-LOCAL').state, 'draft'); assert.equal(f.view('IDEA-LOCAL').acceptance.accepted, false);
-        assert.deepEqual(f.record('IDEA-LOCAL').tracking.memberProfiles, [{ id: ADDRESS, displayName: 'Rowan Example' }]);
+        await save(f, 'assign', 'INITIATIVE-LOCAL', { assigneeId: ADDRESS });
+        assert.equal(f.record('INITIATIVE-LOCAL').tracking.assigneeId, ADDRESS);
+        assert.equal(f.view('INITIATIVE-LOCAL').state, 'draft'); assert.equal(f.view('INITIATIVE-LOCAL').acceptance.accepted, false);
+        assert.deepEqual(f.record('INITIATIVE-LOCAL').tracking.memberProfiles, [{ id: ADDRESS, displayName: 'Rowan Example' }]);
         assert.equal(fs.readFileSync(path.join(f.root, 'docs/project-config.json'), 'utf8'), JSON.stringify(f.config));
     }),
     test('TC-TPT-171', 'writable HTTP offers only its validated local worktree actor for capture and self-assignment', async f => {
@@ -116,10 +116,10 @@ module.exports = { name: 'Task tracking local identity integration', tests: [
             assert.equal(session.value.actor, ADDRESS);
             assert.deepEqual(session.value.snapshot.members, [{ id: ADDRESS, displayName: 'Rowan Example', active: true }]);
             assert.notEqual(session.value.snapshot.fingerprint, f.progress().fingerprint);
-            const created = await api(current, '/api/operation', proposal(f, 'create', 'IDEA-APP', { title: 'Onboarding', intent: 'Capture from workspace' }, ADDRESS,
-                { target: { kind: 'idea', itemId: 'IDEA-APP' } }));
+            const created = await api(current, '/api/operation', proposal(f, 'create', 'INITIATIVE-APP', { title: 'Onboarding', intent: 'Capture from workspace' }, ADDRESS,
+                { target: { kind: 'initiative', itemId: 'INITIATIVE-APP' } }));
             assert.equal(created.status, 200); assert.equal(created.value.primary.status, 'saved');
-            const assigned = await api(current, '/api/operation', proposal(f, 'assign', 'IDEA-APP', { assigneeId: ADDRESS }));
+            const assigned = await api(current, '/api/operation', proposal(f, 'assign', 'INITIATIVE-APP', { assigneeId: ADDRESS }));
             assert.equal(assigned.value.primary.status, 'saved');
             const reread = await api(current, '/api/inspect', {});
             assert.equal(reread.value.items[0].assigneeId, ADDRESS); assert.equal(reread.value.items[0].state, 'draft');
@@ -129,7 +129,7 @@ module.exports = { name: 'Task tracking local identity integration', tests: [
             assert.equal(session.value.writable, false);
             assert.ok(session.value.snapshot.members.every(member => !member.active));
             const before = tree(f.root);
-            const denied = await api(current, '/api/operation', proposal(f, 'update', 'IDEA-APP', { title: 'Denied' }));
+            const denied = await api(current, '/api/operation', proposal(f, 'update', 'INITIATIVE-APP', { title: 'Denied' }));
             assert.equal(denied.status, 403); assert.equal(denied.value.code, 'READ_ONLY'); assert.deepEqual(tree(f.root), before);
         });
     }),
@@ -153,25 +153,25 @@ module.exports = { name: 'Task tracking local identity integration', tests: [
         assert.deepEqual(fs.readFileSync(path.join(f.root, customOwner)), conserved);
     }),
     test('TC-TPT-173', 'shared and pinned attribution remains inactive and local-only health stays Unknown with configured positive control', async f => {
-        f.config.taskTracking.healthOwnerId = 'PBI-LOCAL'; f.saveConfig(); author(f);
-        await save(f, 'create', 'PBI-LOCAL', { title: 'Local work', intent: 'Recognize contributor' });
-        await save(f, 'assign', 'PBI-LOCAL', { assigneeId: ADDRESS });
-        await save(f, 'attest', 'PBI-LOCAL', { health: { assessment: 'On track', ownerId: ADDRESS, observedAt: OBSERVED_AT, reason: 'Personally checked current work' } }, local(f, { canAttest: true }));
-        const recorded = f.bytes('PBI-LOCAL');
+        f.config.taskTracking.healthOwnerId = 'TASK-LOCAL'; f.saveConfig(); author(f);
+        await save(f, 'create', 'TASK-LOCAL', { title: 'Local work', intent: 'Recognize contributor' });
+        await save(f, 'assign', 'TASK-LOCAL', { assigneeId: ADDRESS });
+        await save(f, 'attest', 'TASK-LOCAL', { health: { assessment: 'On track', ownerId: ADDRESS, observedAt: OBSERVED_AT, reason: 'Personally checked current work' } }, local(f, { canAttest: true }));
+        const recorded = f.bytes('TASK-LOCAL');
         author(f, 'casey@example.test', 'Casey Example');
         assert.equal(f.progress().health.status, 'unknown');
         assert.deepEqual(f.progress().members.find(member => member.id === ADDRESS), { id: ADDRESS, displayName: 'Rowan Example', active: false });
-        assert.equal(f.record('PBI-LOCAL').tracking.health.reason, 'Personally checked current work');
+        assert.equal(f.record('TASK-LOCAL').tracking.health.reason, 'Personally checked current work');
         assert.equal(f.progress().diagnostics.some(value => value.code === 'UNKNOWN_MEMBER'), false);
         git(f, ['add', '.']); git(f, ['commit', '-m', 'Fixture shared work']);
         const pinned = f.progress({ ref: 'HEAD' });
         assert.equal(pinned.source.kind, 'shared');
         assert.deepEqual(pinned.members.find(member => member.id === ADDRESS), { id: ADDRESS, displayName: 'Rowan Example', active: false });
-        assert.equal(pinned.health.status, 'unknown'); assert.deepEqual(f.bytes('PBI-LOCAL'), recorded);
-        const denied = await f.core.executeOperation(proposal(f, 'assign', 'PBI-LOCAL', { assigneeId: ADDRESS }, 'casey@example.test'), local(f));
-        refused(denied, 'INVALID_MEMBER'); assert.deepEqual(f.bytes('PBI-LOCAL'), recorded);
-        await f.create('PBI-CONTROL'); f.config.taskTracking.healthOwnerId = 'PBI-CONTROL'; f.saveConfig();
-        await f.saved('attest', 'PBI-CONTROL', { health: { assessment: 'Checked', ownerId: 'owner', observedAt: OBSERVED_AT, reason: 'Declared owner checked' } }, {}, { canAttest: true });
+        assert.equal(pinned.health.status, 'unknown'); assert.deepEqual(f.bytes('TASK-LOCAL'), recorded);
+        const denied = await f.core.executeOperation(proposal(f, 'assign', 'TASK-LOCAL', { assigneeId: ADDRESS }, 'casey@example.test'), local(f));
+        refused(denied, 'INVALID_MEMBER'); assert.deepEqual(f.bytes('TASK-LOCAL'), recorded);
+        await f.create('TASK-CONTROL'); f.config.taskTracking.healthOwnerId = 'TASK-CONTROL'; f.saveConfig();
+        await f.saved('attest', 'TASK-CONTROL', { health: { assessment: 'Checked', ownerId: 'owner', observedAt: OBSERVED_AT, reason: 'Declared owner checked' } }, {}, { canAttest: true });
         assert.equal(f.progress().health.status, 'attested'); assert.equal(f.progress().health.displayName, 'Owner');
     }),
     test('TC-TPT-181', 'exact address and name limits preserve full fallback while malformed identity refuses', async f => {
@@ -296,15 +296,15 @@ module.exports = { name: 'Task tracking local identity integration', tests: [
         assert.equal(identity.resolveActor(f.context()).member.id, ADDRESS);
     }),
     test('TC-TPT-182', 'inactive owner unassignment remains permitted while unknown actor and inactive recipient refuse', async f => {
-        author(f); await f.create(); await f.saved('assign', 'PBI-101', { assigneeId: 'owner' });
+        author(f); await f.create(); await f.saved('assign', 'TASK-101', { assigneeId: 'owner' });
         f.config.taskTracking.members[0].active = false; f.saveConfig();
         const inactive = identity.resolveActor(f.context(), 'owner'); assert.equal(inactive.member.active, false);
-        await f.saved('assign', 'PBI-101', { assigneeId: null });
-        assert.equal(f.record('PBI-101').tracking.assigneeId, null); assert.equal(f.record('PBI-101').tracking.history.at(-1).actor, 'owner');
-        const before = f.bytes('PBI-101');
-        refused(await f.perform('assign', 'PBI-101', { assigneeId: 'owner' }), 'INVALID_MEMBER');
-        refused(await f.perform('update', 'PBI-101', { title: 'Unknown' }, { actor: { memberId: 'unknown' } }, { actor: 'unknown' }), 'INVALID_MEMBER');
-        assert.deepEqual(f.bytes('PBI-101'), before);
+        await f.saved('assign', 'TASK-101', { assigneeId: null });
+        assert.equal(f.record('TASK-101').tracking.assigneeId, null); assert.equal(f.record('TASK-101').tracking.history.at(-1).actor, 'owner');
+        const before = f.bytes('TASK-101');
+        refused(await f.perform('assign', 'TASK-101', { assigneeId: 'owner' }), 'INVALID_MEMBER');
+        refused(await f.perform('update', 'TASK-101', { title: 'Unknown' }, { actor: { memberId: 'unknown' } }, { actor: 'unknown' }), 'INVALID_MEMBER');
+        assert.deepEqual(f.bytes('TASK-101'), before);
         delete f.config.taskTracking; f.saveConfig();
         await f.create('UNENROLLED'); assert.equal(f.view('UNENROLLED').state, 'draft'); // Preserved TC085.
     }),
@@ -343,7 +343,7 @@ module.exports = { name: 'Task tracking local identity integration', tests: [
         assert.deepEqual(f.bytes('LINK-1'), bytes); assert.deepEqual(tree(journalDir), journals);
     }),
     test('TC-TPT-183', 'ordinary readers and off observe advisory paths never resolve a local author', async f => {
-        await f.create(); await upkeep.linkSession({ root: f.root, sessionId: 'reader-session', actor: 'owner', producer: 'feature', itemIds: ['PBI-101'] });
+        await f.create(); await upkeep.linkSession({ root: f.root, sessionId: 'reader-session', actor: 'owner', producer: 'feature', itemIds: ['TASK-101'] });
         // Explicit work remains permitted without enabling optional upkeep.
         author(f); await f.create('PRESERVED-183');
         const unrelated = f.bytes('PRESERVED-183'); const operations = new Set();
@@ -351,14 +351,14 @@ module.exports = { name: 'Task tracking local identity integration', tests: [
             .filter(([key]) => !['revision', 'context', 'history', 'receipts', 'memberProfiles'].includes(key)));
         for (const mode of ['off', 'observe']) {
             f.config.taskTracking.mode = mode; f.saveConfig();
-            const prior = f.record('PBI-101');
-            const request = proposal(f, 'update', 'PBI-101', { title: `Explicit ${mode} work` });
+            const prior = f.record('TASK-101');
+            const request = proposal(f, 'update', 'TASK-101', { title: `Explicit ${mode} work` });
             assert.equal(operations.has(request.operationId), false); operations.add(request.operationId);
             const requestBytes = stableValue(request); const before = tree(f.root);
             const result = runCLI(f, 'apply', request);
             assert.equal(result.status, 0); assert.equal(result.value.primary.status, 'saved');
-            assert.equal(result.value.primary.itemId, 'PBI-101'); assert.equal(result.value.primary.operationId, request.operationId);
-            const record = f.record('PBI-101');
+            assert.equal(result.value.primary.itemId, 'TASK-101'); assert.equal(result.value.primary.operationId, request.operationId);
+            const record = f.record('TASK-101');
             assert.equal(record.data.title, request.patch.title);
             assert.deepEqual({ ...record.data, title: prior.data.title, tracking: prior.data.tracking }, prior.data);
             assert.equal(record.revision, prior.revision + 1); assert.equal(record.ownerPath, prior.ownerPath);
@@ -379,18 +379,18 @@ module.exports = { name: 'Task tracking local identity integration', tests: [
             assert.deepEqual(record.tracking.proofs, []); assert.deepEqual(record.tracking.acceptanceHistory, []);
             assert.equal(record.tracking.readiness, undefined);
             const progress = f.progress(); assert.equal(progress.mode, mode);
-            const item = progress.items.find(value => value.id === 'PBI-101');
+            const item = progress.items.find(value => value.id === 'TASK-101');
             assert.equal(item.title, request.patch.title); assert.equal(item.state, 'draft'); assert.equal(item.acceptance.accepted, false);
             assert.equal(stableValue(request), requestBytes); assert.deepEqual(f.bytes('PRESERVED-183'), unrelated);
-            assert.deepEqual(tree(f.root), { ...before, [record.ownerPath]: hash(f.bytes('PBI-101')) });
+            assert.deepEqual(tree(f.root), { ...before, [record.ownerPath]: hash(f.bytes('TASK-101')) });
             // Valid identity still grants no write authority; keep the denied draft intact.
-            const deniedRequest = proposal(f, 'update', 'PBI-101', { title: `Denied ${mode} work` });
+            const deniedRequest = proposal(f, 'update', 'TASK-101', { title: `Denied ${mode} work` });
             assert.equal(operations.has(deniedRequest.operationId), false); operations.add(deniedRequest.operationId);
             const deniedRequestBytes = stableValue(deniedRequest); const deniedAuthority = local(f, { canWrite: false });
             const deniedBefore = tree(f.root);
             refused(await f.core.executeOperation(deniedRequest, deniedAuthority), 'NOT_PERMITTED');
             assert.equal(stableValue(deniedRequest), deniedRequestBytes); assert.deepEqual(tree(f.root), deniedBefore);
-            assert.equal(f.progress().mode, mode); assert.equal(f.view('PBI-101').title, request.patch.title);
+            assert.equal(f.progress().mode, mode); assert.equal(f.view('TASK-101').title, request.patch.title);
             assert.deepEqual(f.bytes('PRESERVED-183'), unrelated);
         }
         const spawn = childProcess.spawnSync;
@@ -398,9 +398,9 @@ module.exports = { name: 'Task tracking local identity integration', tests: [
         try {
             for (const mode of ['off', 'observe']) {
                 f.config.taskTracking.mode = mode; f.saveConfig();
-                const before = f.bytes('PBI-101');
+                const before = f.bytes('TASK-101');
                 const value = await upkeep.checkpoint({ root: f.root, sessionId: 'reader-session', producer: 'feature', checkpointId: 'off-check', primary: { status: 'saved' } });
-                assert.equal(value.secondary[0].status, 'skipped'); assert.deepEqual(f.bytes('PBI-101'), before);
+                assert.equal(value.secondary[0].status, 'skipped'); assert.deepEqual(f.bytes('TASK-101'), before);
                 const inspect = await cli.run(['inspect', '--root', f.root]); assert.ok(inspect.items.length);
                 const report = await cli.run(['report', '--root', f.root]); assert.ok(report);
             }
@@ -448,7 +448,7 @@ module.exports = { name: 'Task tracking local identity integration', tests: [
         const authority = local(f, { canAttest: true });
         await save(f, 'create', 'LONG-1', { title: 'Long identity', intent: 'Preserve full actor', criteria: [{ id: 'outcome', text: 'Observed result' }] }, authority);
         await save(f, 'assign', 'LONG-1', { assigneeId: address, collaboratorIds: [address] }, authority);
-        await save(f, 'transition', 'LONG-1', { state: 'backlog' }, authority);
+        await save(f, 'transition', 'LONG-1', { state: 'planned' }, authority);
         await save(f, 'transition', 'LONG-1', { state: 'ready', readiness: { reviewed: true, decisionsResolved: true } }, authority);
         await save(f, 'transition', 'LONG-1', { state: 'in_progress' }, authority);
         await save(f, 'transition', 'LONG-1', { state: 'blocked', reason: 'Dependency unavailable' }, authority);

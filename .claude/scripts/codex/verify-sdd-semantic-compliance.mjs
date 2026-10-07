@@ -43,7 +43,7 @@ const PROJECT_CONFIG_PATH = "docs/project-config.json";
 // ─── RELOCATABLE ROOTS ───────────────────────────────────────────────────────
 // This verifier is one of the `verify:all` build gates. Every root it probes is
 // declarable under `specRoots` / `docsRoots` in docs/project-config.json, so the
-// probes carry portability TOKENS (`{TEAM_ARTIFACTS_ROOT}/ideas`) and resolve at
+// probes carry portability TOKENS (`{TEAM_ARTIFACTS_ROOT}/initiatives`) and resolve at
 // run time. A gate that scans a path the project moved away from finds nothing,
 // and "found nothing" reads as PASS — a false green is worse than no gate, so
 // `probeConfiguredRootCoverage` below turns a configured root with ZERO candidate
@@ -132,7 +132,7 @@ function normalizeDirectoryRoot(root) {
 
 /**
  * The form-(b) default-plus-override sentence:
- *   default `team-artifacts/pbis`; a `docsRoots.teamArtifacts.path` entry in
+ *   default `team-artifacts/tasks`; a `docsRoots.teamArtifacts.path` entry in
  *   `docs/project-config.json` overrides the path
  *
  * A relocatable-root literal inside such a sentence is the documented idiom, not a
@@ -229,7 +229,7 @@ const STALE_QA_DASHBOARD_PATH_TERMS = [
 
 const UNCONFIGURED_ARTIFACT_ROOT_TERMS = [
   "{configured-idea-artifact-root}",
-  "{configured-pbi-artifact-root}",
+  "{configured-task-artifact-root}",
   "{configured-spec-docs-root}",
   "{configured-backlog-artifact-root}",
   "{configured-report-root}",
@@ -448,15 +448,15 @@ const ROADMAP_BOUNDARY_POLICY = {
     "workflow-big-feature",
     "workflow-feature",
     "workflow-greenfield-init",
-    "workflow-idea-to-pbi",
-    "workflow-idea-to-spec",
-    "workflow-spec-to-pbi",
+    "workflow-initiative-to-task",
+    "workflow-initiative-to-spec",
+    "workflow-spec-to-task",
   ],
   largeIdeaSignals: [
     "multipleIndependentOutcomes",
     "ambiguousOrResearchHeavy",
     "releaseScopeDecomposition",
-    "oversizedPbiThatMustSplit",
+    "oversizedTaskThatMustSplit",
   ],
   decompositionFields: [
     "outcome_slices",
@@ -685,29 +685,29 @@ const CHECKS = [
   },
   {
     code: "SDD003",
-    file: ".claude/skills/workflow-idea-to-pbi/SKILL.md",
+    file: ".claude/skills/workflow-initiative-to-task/SKILL.md",
     requireAll: [
       "Feature doc Section 8",
       "TC IDs",
       "docs-manager --mode=update",
-      "{TEAM_ARTIFACTS_ROOT}/ideas",
-      "{TEAM_ARTIFACTS_ROOT}/pbis",
+      "{TEAM_ARTIFACTS_ROOT}/initiatives",
+      "{TEAM_ARTIFACTS_ROOT}/tasks",
       "tmp/reports/docs-update",
     ],
     forbidAny: UNCONFIGURED_ARTIFACT_ROOT_TERMS,
-    message: "Idea-to-PBI workflow must route PBI artifacts to canonical TC/spec sync.",
+    message: "Initiative-to-task workflow must route task artifacts to canonical TC/spec sync.",
   },
   {
     code: "SDD004",
     file: ".claude/skills/docs-manager/references/mode-update.md",
-    requireAll: ["configured PBI/idea artifact roots", "detection/delegation", "docs/project-config.json"],
+    requireAll: ["configured task/initiative artifact roots", "detection/delegation", "docs/project-config.json"],
     forbidAny: [
-      "Generate TCs from PBI",
-      "{TEAM_ARTIFACTS_ROOT}/pbis",
-      "{TEAM_ARTIFACTS_ROOT}/ideas",
+      "Generate TCs from task",
+      "{TEAM_ARTIFACTS_ROOT}/tasks",
+      "{TEAM_ARTIFACTS_ROOT}/initiatives",
       ...PROJECT_LAYOUT_TERMS,
     ],
-    message: "docs-manager --mode=update must route PBI/idea artifacts without owning TC generation.",
+    message: "docs-manager --mode=update must route task/initiative artifacts without owning TC generation.",
   },
   {
     code: "SDD005",
@@ -798,29 +798,29 @@ const CHECKS = [
   },
   {
     code: "SDD015",
-    file: ".agents/skills/workflow-idea-to-pbi/SKILL.md",
+    file: ".agents/skills/workflow-initiative-to-task/SKILL.md",
     requireAll: [
       "Feature doc Section 8",
       "TC IDs",
       "docs-manager --mode=update",
-      "{TEAM_ARTIFACTS_ROOT}/ideas",
-      "{TEAM_ARTIFACTS_ROOT}/pbis",
+      "{TEAM_ARTIFACTS_ROOT}/initiatives",
+      "{TEAM_ARTIFACTS_ROOT}/tasks",
       "tmp/reports/docs-update",
     ],
     forbidAny: [LEGACY_CLAUDE_SDD_CONTRACT_REFERENCE, ...UNCONFIGURED_ARTIFACT_ROOT_TERMS],
-    message: "Codex idea-to-PBI workflow must preserve SDD gates without pointing at the Claude source path.",
+    message: "Codex initiative-to-task workflow must preserve SDD gates without pointing at the Claude source path.",
   },
   {
     code: "SDD016",
     file: ".agents/skills/docs-manager/references/mode-update.md",
-    requireAll: ["configured PBI/idea artifact roots", "detection/delegation", "docs/project-config.json"],
+    requireAll: ["configured task/initiative artifact roots", "detection/delegation", "docs/project-config.json"],
     forbidAny: [
-      "Generate TCs from PBI",
-      "{TEAM_ARTIFACTS_ROOT}/pbis",
-      "{TEAM_ARTIFACTS_ROOT}/ideas",
+      "Generate TCs from task",
+      "{TEAM_ARTIFACTS_ROOT}/tasks",
+      "{TEAM_ARTIFACTS_ROOT}/initiatives",
       ...PROJECT_LAYOUT_TERMS,
     ],
-    message: "Codex docs-manager --mode=update mirror must remain project-portable and route PBI/idea artifacts correctly.",
+    message: "Codex docs-manager --mode=update mirror must remain project-portable and route task/initiative artifacts correctly.",
   },
   {
     code: "SDD016",
@@ -1628,9 +1628,9 @@ const ROADMAP_BOUNDARY_ROUTE_FILES = new Map([
   ["workflow-big-feature", ".claude/skills/workflow-big-feature/SKILL.md"],
   ["workflow-feature", ".claude/skills/workflow-feature/SKILL.md"],
   ["workflow-greenfield-init", ".claude/skills/workflow-greenfield-init/SKILL.md"],
-  ["workflow-idea-to-pbi", ".claude/skills/workflow-idea-to-pbi/SKILL.md"],
-  ["workflow-idea-to-spec", ".claude/skills/workflow-idea-to-spec/SKILL.md"],
-  ["workflow-spec-to-pbi", ".claude/skills/workflow-spec-to-pbi/SKILL.md"],
+  ["workflow-initiative-to-task", ".claude/skills/workflow-initiative-to-task/SKILL.md"],
+  ["workflow-initiative-to-spec", ".claude/skills/workflow-initiative-to-spec/SKILL.md"],
+  ["workflow-spec-to-task", ".claude/skills/workflow-spec-to-task/SKILL.md"],
 ]);
 
 async function loadRoadmapBoundarySurface(rootDir, options = {}) {
@@ -1712,7 +1712,7 @@ async function runChecks(rootDir = process.cwd(), checks = CHECKS, options = {})
     warnings: 0,
     contractReferencesMissing: 0,
     unsafeDriftRulesFound: 0,
-    pbiIdeaRoutesFound: 0,
+    taskInitiativeRoutesFound: 0,
     performanceSddRoutesFound: 0,
     projectResidueFindings: 0,
     projectConfigGuidanceFound: 0,
@@ -1764,8 +1764,8 @@ async function runChecks(rootDir = process.cwd(), checks = CHECKS, options = {})
       metrics.contractReferencesMissing += 1;
     }
 
-    if (content.includes("configured PBI/idea artifact roots")) {
-      metrics.pbiIdeaRoutesFound += 1;
+    if (content.includes("configured task/initiative artifact roots")) {
+      metrics.taskInitiativeRoutesFound += 1;
     }
 
     if (content.includes("performance-review") && content.includes("SLA")) {

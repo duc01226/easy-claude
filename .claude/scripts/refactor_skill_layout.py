@@ -26,7 +26,7 @@ Caveats:
   - Currently safe in practice because `re.search` finds the FIRST occurrence and
     every live SKILL.md puts the real markers BEFORE any fence-internal duplicates.
     The known example of fence-internal duplicates is
-    .claude/skills/pbi/references/mode-story.md (a markdown template inside a
+    .claude/skills/work-item/references/mode-story.md (a markdown template inside a
     4-backtick fence); this migrator rewrites SKILL.md files only, so that
     reference is never carved.
   - If future skills place fence-internal markers BEFORE the real ones, this

@@ -219,6 +219,8 @@ The root `CLAUDE.md` is loaded into EVERY session automatically, so a line there
 
 **Procedure when C1–C5 hold:**
 
+Read `.claude/skills/shared/protocols/context-engineering-principles.md` when drafting a root-context entry; apply its **Instruction-file audit** before the existing confirmation/write gates. This does not waive C1–C5 or consent.
+
 1. **Measure** — read `CLAUDE.md` byte size (`node -e "console.log(require('fs').statSync('CLAUDE.md').size)"`, platform-neutral) and the section's current size; C5 fails → say so and fall back.
 2. **Draft** — one generic bullet, ≤ 3 lines, no incident nouns (Lesson Quality Gate; the project-convention exception keeps the convention's own terms). Check the section for an existing entry on the same rule — update it instead of adding a duplicate.
 3. **Confirm (BLOCKING)** — `ask user question tool` with the recommended option first, labelled `(Recommended)`. Show the exact proposed line, the target section, and `size before → after / 32768`. Options: *Root CLAUDE.md project note (+ sync-codex)* · *Reference doc (name the path)* · *lessons.md* · *Skill overlay / config field* when one applies (2–4 options; drop the weakest). A rejected or unanswered question writes nothing.

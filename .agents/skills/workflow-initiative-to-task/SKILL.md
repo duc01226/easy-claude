@@ -1,0 +1,209 @@
+---
+name: workflow-initiative-to-task
+description: '[Workflow] Turn a product idea into reviewed, prioritized, readiness-checked planned tasks and stories; stop before implementation.'
+disable-model-invocation: false
+---
+
+> Codex compatibility note:
+> - Invoke repository skills with `$skill-name` in Codex; this mirrored copy rewrites legacy Claude `/skill-name` references.
+> - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
+> - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
+> - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
+> - Use ask user question tool to ask user.
+> - Ignore Claude-specific mode-switch instructions when they appear.
+> - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
+> - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
+> - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
+> - For workflow skills, steps follow the guided contract in `$start-workflow` (gate steps fixed; other steps may flex with a logged reason); report step-by-step evidence.
+> - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
+<!-- WORKFLOW-CALLS:START -->
+## Workflow Calls and Todo Bootstrap
+
+Read [the registry](../../../.claude/workflows.json) → `workflows.workflow-initiative-to-task` together with this skill. Call [`$start-workflow workflow-initiative-to-task`](../start-workflow/SKILL.md) to resolve the selected mode, pre-actions and fingerprint.
+
+**Todo FIRST:** create one todo for EVERY selected occurrence before triage, analysis or step execution, including conditional/optional ones; preserve occurrence IDs, roles and barrier groups. Use native todo tools or an equivalent persistent ledger. Then mark the first todo `in_progress`; attach evidence before `completed`.
+Mode selection and registry loading prepare tracking; any 'first action' below means the first substantive action after this bootstrap.
+
+**Call each step skill:** read its linked SKILL.md and execute its protocol through the active host with the registry args. Reading or naming a skill alone is not execution. Required gates and core/optional flex follow the linked start-workflow Step Execution Protocol; keep this skill's quality gates, loops and evidence requirements.
+
+**Conditions:** load each occurrence's registry `applicability.when` and `skipReason` verbatim, and record its run/skip evidence through the linked start-workflow protocol. Do not silently omit a todo or turn a conditional skill into an unconditional call. Declared parallel groups retain their all-return barrier.
+
+Explicit step-skill calls by mode (registry order; roles and conditions remain owned by the registry):
+
+- Mode `default`: [`$web-research`](../web-research/SKILL.md) (optional; conditional) → [`$source-deep-dive`](../source-deep-dive/SKILL.md) (optional; conditional) → [`$brainstorm`](../brainstorm/SKILL.md) (optional; conditional) → [`$initiative`](../initiative/SKILL.md) (core) → [`$spec [mode=discovery]`](../spec/SKILL.md) (optional; conditional) → [`$work-item --mode=review`](../work-item/SKILL.md) (optional; conditional) → [`$work-item --mode=refine`](../work-item/SKILL.md) (core) → [`$why-review`](../why-review/SKILL.md) (core) → [`$spec [mode=draft]`](../spec/SKILL.md) (optional; conditional) → [`$spec [mode=tests]`](../spec/SKILL.md) (optional; conditional) → [`$work-item --mode=review --type=spec-tests`](../work-item/SKILL.md) (optional; conditional) → [`$spec [mode=clarify]`](../spec/SKILL.md) (optional; conditional) → [`$scenario`](../scenario/SKILL.md) (optional; conditional) → [`$domain-analysis`](../domain-analysis/SKILL.md) (optional; conditional) → [`$why-review`](../why-review/SKILL.md) (optional; conditional) → [`$plan`](../plan/SKILL.md) (optional; conditional) → [`$plan --mode=validate`](../plan/SKILL.md) (optional; conditional) → [`$work-item --mode=review --type=task`](../work-item/SKILL.md) (gate) → [`$work-item --mode=story`](../work-item/SKILL.md) (core) → [`$work-item --mode=review --type=story`](../work-item/SKILL.md) (core) → [`$work-item --mode=challenge --reuse=task-review`](../work-item/SKILL.md) (core) → [`$work-item --mode=dor --reuse=task-review`](../work-item/SKILL.md) (gate) → [`$work-item --mode=mockup --explore`](../work-item/SKILL.md) (optional; conditional) → [`$design-spec`](../design-spec/SKILL.md) (optional; conditional) → [`$prioritize`](../prioritize/SKILL.md) (optional; conditional) → [`$docs-manager --mode=update`](../docs-manager/SKILL.md) (core) → [`$feature-presentation`](../feature-presentation/SKILL.md) (optional; conditional) → [`$workflow-end`](../workflow-end/SKILL.md) (gate) → [`$watzup`](../watzup/SKILL.md) (core)
+<!-- workflow-mode:default fingerprint:004dbcbbe3c4aac9013df38b9ae9a9e11d8eade216e2fe44e6adcd7ae00b9daf -->
+
+Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs --write` after registry edits; [`$sync-codex`](../sync-codex/SKILL.md) refreshes it before mirroring.
+<!-- WORKFLOW-CALLS:END -->
+
+> **Renamed:** formerly `workflow-idea-to-pbi` — now `$workflow-initiative-to-task`. The old name no longer resolves as a slash command.
+
+## Quick Summary
+
+**Goal:** Turn a product idea into reviewed, readiness-checked, prioritized planned work — no implementation — with depth proportional to the idea's size, ambiguity and risk.
+
+**Purpose:** For PO/BA work. One concrete idea, ticket or brief becomes one fully refined task (**Single-Task track**: idea → draft Feature Spec → test specs → task → stories). A raw vision spanning several opportunities becomes ranked planned work of several tasks (**Multi-Opportunity track**, the brainstorm-driven MULTI-OPPORTUNITY DISCOVERY MODE). Use `workflow-initiative-to-spec` for a spec without planned work, `workflow-spec-to-task` when canonical specs already exist, `workflow-feature` / `workflow-big-feature` to build a DoR-ready task, `workflow-bugfix` for defects.
+
+- **Triage first** (track · size · kinds · risk · `isLargeIdea`); it selects which recommended skills run and how deep. A small, clear idea never runs the research → brainstorm → plan → cross-task prioritize → deck chain.
+- **Gates never flex:** releasable outcome, rationale review, spec clarity, artifact review, independent challenge, DoR, UI full-flow evidence, priority, docs sync, close.
+- Every generated artifact is a draft until its review or acceptance gate approves it.
+- **Work records:** initiative, task and story files are work records owned by `$task-track`. Child skills write them in the shape of [Records another skill authors](../task-track/references/integration-guide.md#records-another-skill-authors) (`status: draft`, no assignee, an `id` no other record uses) and offer tracking once after each save. Only record files live in `initiatives/`, `tasks/` and `tasks/stories/`; run reports, review and DoR results and planned-work rankings are saved outside them. A review, challenge or DoR PASS is evidence only: this workflow never sets a record ready, assigns it or accepts it; the person records that through `$task-track --mode=lifecycle`.
+- **[BLOCKING] Tech-agnostic output:** initiative / task / story prose follows `spec-principles.md` §3 in the project-reference docs root (default `docs/project-reference/`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides) — framework, product, language and pattern names appear only in evidence fields, frontmatter and Mermaid.
+- Apply the shared SDD Artifact Contract (`shared/sdd-artifact-contract.md` in the active skills root) and `.claude/skills/shared/releasable-task-contract.md`; local conventions come from `docs/project-config.json` and the docs index.
+
+## Triage — FIRST Action
+
+Classify before choosing steps; write the result as the first section of the run report.
+
+1. **Track** — one concrete idea/ticket/brief → **Single-Task**; a vision/problem spanning several independent opportunities → **Multi-Opportunity**. Ambiguous → ask via `ask user question tool` before any step.
+2. **Size** (guidance, not a law) — **XS/S**: one actor, one journey, evident acceptance criteria, no new domain entity, no open decision · **M**: one task with domain, UI or cross-module reach, or unresolved decisions · **L/XL**: several tasks, multi-capability or release-scope.
+3. **Kinds** — existing PO artifact supplied · new or reshaped UI surface · domain entity change · market uncertainty · security/PII/money · cross-module.
+4. **Large idea** — `isLargeIdea = multipleIndependentOutcomes || ambiguousOrResearchHeavy || releaseScopeDecomposition || oversizedTaskThatMustSplit`. True → the owning task/spec carries the complete `large_idea_decomposition` block (`outcome_slices`, `dependencies_order`, `non_goals`, `risks_evidence`, `deferred_work_owner`) and downstream stories, mockups and the deck inherit it read-only; all-false → omit the block. A genuinely isolated change records `Decomposition Applicability: EXEMPT` with reason and accepting owner. Never create the product-roadmap artifact (default `docs/product-roadmap.md`; `docsRoots.productRoadmap.path` in `docs/project-config.json` overrides) — only an explicit roadmap request routes to the standalone `product-roadmap` skill; a supplied roadmap is read-only context.
+5. **Risk & ambiguity** escalate depth (plan cycle, scenario, research), not idea length.
+
+| Triage result                      | Typical route (recommended skills below decide the rest)                                                                                                                                                   |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Single-Task, XS/S, clear            | initiative → work-item --mode=refine → why-review → draft spec → test specs → spec-tests review → spec [mode=clarify] → task review → work-item --mode=story → story review → work-item --mode=challenge → work-item --mode=dor → UI mockup/design-spec if UI → docs-manager --mode=update → close |
+| Single-Task, M+ / risky / ambiguous | adds domain-analysis + domain why-review, scenario, one lean plan → plan --mode=validate, prioritize against the planned work, presentation deck                                                                  |
+| Multi-Opportunity                  | optional research → brainstorm → opportunity-map why-review → domain-analysis once → per-opportunity loop → cross-task prioritize → docs-manager --mode=update → deck → close                                              |
+
+## Required Quality Gates (non-negotiable)
+
+| Gate                      | Evidence                                                                                                                                                                                                                                                                                |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Triage recorded           | track, size, kinds, risk, `isLargeIdea` verdict in the run report                                                                                                                                                                                                                       |
+| Releasable outcome        | every task names one independently releasable actor-facing outcome with a complete entry-to-result journey; technical/foundation/setup work is attached enabling work, never a standalone task; `BLOCKED` never advances by assumption                                                    |
+| Rationale reviewed        | `$why-review` after `$work-item --mode=refine` (and on the opportunity map in the Multi-Opportunity track) is PASS, or WARN with user acknowledgment; FAIL returns to `$work-item --mode=refine`                                                                                                                             |
+| Spec clarity (Single-Task) | draft Feature Spec + TC IDs routed to Feature doc Section 8, reviewed by `$work-item --mode=review --type=spec-tests`; `$spec [mode=clarify]` confirms every non-obvious, conflicting or high-impact decision with the user before the task is derived — never intent-skipped while a draft spec exists |
+| Artifact review converged | `$work-item --mode=review --type=task` (gate) and the story review: validated blocking findings fixed and re-reviewed                                                                                                                                                                            |
+| Independent challenge     | `$work-item --mode=challenge` run by a reviewer other than the drafter                                                                                                                                                                                                                               |
+| Readiness check           | `$work-item --mode=dor` PASS or WARN for every task before its mockup is finalized or it is handed off                                                                                                                                                                                               |
+| UI evidence               | UI tasks: journey-first mockup via `$work-item --mode=mockup --explore` (it owns the scope gate, Journey Report `UX-1`, design-authority read `UX-2`, direction pick and walkthrough `UX-8`; or a recorded `Mockup: SKIPPED by user`) — a navigable mock app with every required page/view, navigation edge, component, state and full-flow demo, plus `$design-spec`; one isolated screen fails. Backend-only: stated skip reason |
+| Priority                  | every task carries integer `priority` (rank) + `priority_label` (RICE/MoSCoW) in frontmatter; mockup header and deck show the final value                                                                                                                                                                           |
+| Docs synced               | `$docs-manager --mode=update` report (`tmp/reports/docs-update-{YYMMDD}-{HHMM}.md`) confirms feature docs, Feature doc Section 8 TC IDs and derived indexes, or records that none were impacted                                                                                                        |
+| Run closed                | `$workflow-end`, then `$watzup` handoff: tasks created, DoR results, blocking items, recommended next workflow                                                                                                                                                                           |
+
+No code changes here: the test-green gate does not apply; TC drafts stay reference-only until the review and DoR gates accept them.
+
+## Recommended Skills
+
+Skipping a step whose applicability is false, or that triage shows does no real work, is expected — log it (`when-false` / `intent-skip`) with evidence.
+
+| Skill                                                                                                   | Earns its cost when                                                                                                      | Feeds                         |
+| ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ----------------------------- |
+| `$web-research` → `$source-deep-dive`                                                                      | market, competitor or best-practice evidence would change the outcome; deep only after web research ran                  | brainstorm/refine evidence    |
+| `$brainstorm`                                                                                           | Multi-Opportunity track — 3–8 item RICE opportunity map                                                                  | opportunity selection         |
+| `$initiative`, `$work-item --mode=refine`                                                                                      | always (per opportunity in Multi-Opportunity) — `work-item --mode=refine` owns hypothesis, AC, RICE and the Releasable Outcome Gate         | releasable outcome            |
+| `$spec [mode=discovery]`                                                                                       | specs or related code already exist for the area                                                                         | no duplicate capability       |
+| `$work-item --mode=review` (no type)                                                                            | the PO supplied an existing artifact/ticket/brief                                                                        | input quality                 |
+| `$why-review`                                                                                           | after `$work-item --mode=refine` (always); after domain-analysis when it ran                                                                 | rationale gate                |
+| `$spec [mode=draft]`, `$spec [mode=tests]`, `$work-item --mode=review --type=spec-tests`, `$spec [mode=clarify]`       | Single-Task track                                                                                                         | spec clarity                  |
+| `$scenario`                                                                                             | the slice needs adversarial replay, state, ownership, recovery or evidence analysis before planning                      | risk coverage                 |
+| `$domain-analysis`                                                                                      | the idea adds or changes domain entities (Multi-Opportunity: once, up front)                                             | domain impact                 |
+| `$plan` → `$plan --mode=validate`                                                                              | Single-Task track and M+, cross-module, risky or ambiguous                                                                | story slicing, estimates, DoR |
+| `$work-item --mode=review --type=task`, `$work-item --mode=story`, `$work-item --mode=review --type=story`, `$work-item --mode=challenge`, `$work-item --mode=dor` | always, per task                                                                                                          | review, challenge, DoR        |
+| `$work-item --mode=mockup --explore` → `$design-spec`                                                                | the task has a user-facing UI surface; journey-first (see UI Mockup below) and gated by `SYNC:existing-ui-research` so both match the current UI system | UI evidence                   |
+| `$prioritize`                                                                                           | more than one task, or the task must be ranked against existing planned work; otherwise `work-item --mode=refine`'s frontmatter priority stands | priority                      |
+| `$docs-manager --mode=update`                                                                                          | always, after prioritize                                                                                                 | docs synced                   |
+| `$feature-presentation`                                                                                 | several tasks, M+ scope, or stakeholders asked for a deck                                                                 | stakeholder handoff           |
+
+The standalone why-review is deliberately absent before the spec-tests and story reviews and after plan --mode=validate: each artifact review owns its own rationale and finding-validation pass.
+
+## UI Mockup — Journey-First Explore (UI tasks)
+
+The `initiative-to-task-mockup` step runs `$work-item --mode=mockup --explore` after `$work-item --mode=dor`, per UI task. `work-item --mode=mockup` owns the whole sequence (Step 0 scope gate → Journey Report `UX-1` → design-authority read `UX-2` → direction drafts → the user's recorded pick → full build → journey walkthrough `UX-8`); this workflow adds only orchestration rules:
+
+- **The scope gate and the pick are the user's, in the main session** — never inside a sub-agent and never batched across tasks. In a sub-agent-per-opportunity run the orchestrator asks the Step 0 scope question and presents each task's rendered drafts itself; a scope answer recorded in the run report is reused, never asked twice.
+- **`$design-spec` follows the mockup** and takes its Journey Report and design-authority record as input (`design-spec` Step 0a reuse) instead of re-deriving them.
+
+**Spec-hub coupling (UI tasks):** the mockup and design-spec are deep companions of the governing spec's interaction surface (views, navigation, key states, per-story click-paths); record their paths in the spec's `design_spec:` / `mockup:` frontmatter where the artifact profile supports it and keep visual fidelity out of the spec (`SYNC:ui-intent-layer`).
+
+## Reuse Handoffs (caller-passed; every skill still runs standalone with full checks)
+
+- `$initiative` runs one Discovery Interview; `$work-item --mode=refine` receives the initiative file and asks only the categories that interview left unanswered.
+- After `$work-item --mode=review --type=task`, record its report path and the task identity (SHA-256 of the file bytes; size + mtime is not accepted — see the `--reuse` rules in `.claude/skills/shared/m1-m7-gates.md`) in the run report. `$work-item --mode=challenge --reuse=task-review` and `$work-item --mode=dor --reuse=task-review` (workflow args) resolve to that report and reuse only the criteria that coverage map allows (DoR- and challenge-owned checks always run in full); when the task changed after that review (a fix, a story edit that touched the task), drop the flag so both run every check.
+- `$design-spec` reuses the mockup's Journey Report; `$prioritize` runs only when the step's applicability holds.
+
+## Multi-Opportunity Loop
+
+1. `$brainstorm` (Double Diamond) writes the RICE-scored opportunity map to `{plan-dir}/brainstorm-opportunity-map.md` under the plans root (default `plans/`; `docsRoots.plans.path` in `docs/project-config.json` overrides).
+2. `ask user question tool` with `multiSelect: true`: "Which opportunities should we develop into tasks?"
+3. Opportunity-map why-review: are the top opportunities the right problems, are Reach/Impact founded, pre-mortem, systemic alternatives. FAIL on a high-ranked item → drop it or reframe; WARN → proceed with user acknowledgment.
+4. Create every loop todo up front — one todo per loop step per selected opportunity — before processing any opportunity.
+5. **Per-opportunity task loop:** `$initiative` → `$work-item --mode=refine` → `$work-item --mode=review --type=task` → `$work-item --mode=story` → `$work-item --mode=review --type=story` → `$work-item --mode=challenge` → `$work-item --mode=dor` → `$work-item --mode=mockup --explore` → `$design-spec` (UI steps skip for backend-only tasks; the scope gate and the explore pick are the user's, per task). When opportunities run as sub-agents, each sub-agent stops after `$work-item --mode=dor`; the main session then runs `$work-item --mode=mockup --explore` (scope gate + pick) and `$design-spec` for each UI task, because a sub-agent cannot ask the user. Draft spec, test specs, spec [mode=clarify], scenario and the plan cycle never run per opportunity.
+6. After all opportunities: cross-task `$prioritize` (RICE + dependency graph, Must/Should/Could per release scope) records `priority` + `priority_label` on EACH task, not only the planned-work file.
+
+## Artifacts
+
+| Output                      | Path                                                                                                                                         |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Initiative                  | `team-artifacts/initiatives/{YYMMDD}-{role}-initiative-{slug}.md` — default root; `docsRoots.teamArtifacts.path` in `docs/project-config.json` overrides |
+| Task (+ stories, DoR result) | `team-artifacts/tasks/{YYMMDD}-task-{slug}.md` — default root; `docsRoots.teamArtifacts.path` in `docs/project-config.json` overrides          |
+| Mockup                      | HTML file beside the task                                                                                                                     |
+| Test specs                  | Feature doc Section 8 (canonical TC registry), mapped to acceptance criteria by TC IDs                                                       |
+| Planned work                     | `team-artifacts/backlog/{YYMMDD}-backlog-update.md` — default root; `docsRoots.teamArtifacts.path` in `docs/project-config.json` overrides   |
+| Docs sync                   | `tmp/reports/docs-update-{YYMMDD}-{HHMM}.md`                                                                                                 |
+
+Each task carries: title, problem statement, hypothesis, GIVEN/WHEN/THEN acceptance criteria, RICE score and priority, user stories, TC IDs, DoR status, and mockup link when UI. Child skills (`initiative`, `work-item --mode=refine`, `work-item --mode=story`, `work-item --mode=mockup`, `prioritize`, `docs-manager --mode=update`) resolve the same roots; write each artifact immediately after its step.
+
+## Orchestration, Memory & Fix Path
+
+- **Orchestration freedom:** choose inline vs sub-agent, batching and order to minimize wall-clock and tokens at equal quality. XS/S work runs inline; with 6+ selected opportunities spawn one sub-agent per opportunity (brainstorm context + its task list) and keep `$prioritize` in the main context, updating a summary table every 3 opportunities. Fixed dependencies: an artifact exists before it is reviewed; the draft spec and its test specs are reviewed and clarified before the task is derived from them; DoR passes before the mockup is finalized; `$docs-manager --mode=update` follows `$prioritize`; gates awaiting user answers are never parallelized; `$workflow-end` runs last. When `$prioritize` changes a task's rank after its mockup was built, refresh the mockup's priority badge.
+- **Memory:** one todo per selected step (per opportunity in the loop). Create `tmp/reports/workflow-initiative-to-task-{YYMMDD}-{HHmm}-{slug}.md` first, append after every step, and re-read it plus the current task list after compaction. Sub-agent briefs make report writing their first deliverable.
+- **Fix path:** findings are validated before fixing; fix in the owning artifact (`$work-item --mode=refine` for the task, `$spec` for TCs, `$work-item --mode=story` for stories) and re-run the reviewer that raised it.
+- **Loop bounds:** round 1 zero open findings (LOW deferral), or round 2 zero CRITICAL/HIGH/MEDIUM with LOWs deferred; cap 3 review rounds; on no progress escalate via `ask user question tool`.
+
+---
+
+**IMPORTANT MANDATORY Steps:** $web-research -> $source-deep-dive -> $brainstorm -> $initiative -> $spec [mode=discovery] -> $work-item --mode=review -> $work-item --mode=refine -> $why-review -> $spec [mode=draft] -> $spec [mode=tests] -> $work-item --mode=review --type=spec-tests -> $spec [mode=clarify] -> $scenario -> $domain-analysis -> $why-review -> $plan -> $plan --mode=validate -> $work-item --mode=review --type=task -> $work-item --mode=story -> $work-item --mode=review --type=story -> $work-item --mode=challenge --reuse=task-review -> $work-item --mode=dor --reuse=task-review -> $work-item --mode=mockup --explore -> $design-spec -> $prioritize -> $docs-manager --mode=update -> $feature-presentation -> $workflow-end -> $watzup
+
+**Step contract:** the list above is the recommended default order from `.claude/workflows.json`; steps follow `$start-workflow` → Step Execution Protocol — `gate` steps (`work-item --mode=review --type=task`, `work-item --mode=dor`, `workflow-end`) always run, `optional` steps run when their `applicability.when` holds, and every skip, merge, simplification or reorder is logged with evidence. NEVER batch-complete validation gates.
+
+Activate with `$start-workflow workflow-initiative-to-task` and the user's prompt as context.
+
+<!-- PROTOCOL-GUIDES:START -->
+
+> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
+
+- `design-distinctiveness-gate` — Design identity gate DD-1 to DD-8: subject, design plan, generic test, restraint; designing, implementing or reviewing a visual surface → .claude/skills/shared/protocols/design-distinctiveness-gate.md
+- `incremental-persistence` — Persist results per file or section while the work proceeds; a sub-agent or heavy step processes more than three files → .claude/skills/shared/protocols/incremental-persistence.md
+- `session-goal-ledger` — Keep the original goal and every user prompt of the session; running a long or multi-prompt session → .claude/skills/shared/protocols/session-goal-ledger.md
+- `subagent-return-contract` — Sub-agents return a structured envelope and a report path, never an inline report; spawning a sub-agent → .claude/skills/shared/protocols/subagent-return-contract.md
+- `ui-intent-layer` — Tech-agnostic UI intent layer in every UI-bearing spec; writing a spec for a feature with a user interface → .claude/skills/shared/protocols/ui-intent-layer.md
+- `ui-ux-design-principles` — Forty usability and accessibility clauses, UI-1.1 to UI-9.4; designing, building or reviewing a user-facing interface → .claude/skills/shared/protocols/ui-ux-design-principles.md
+- `ux-journey-gate` — Journey-first UX gate UX-1 to UX-11: report journeys, read the design authority, generate, then check every UI/UX gate; generating, specifying, planning, mocking up or reviewing a user-facing surface → .claude/skills/shared/protocols/ux-journey-gate.md
+- `workflow-registry-binding` — Read the workflow registry entry and the workflow skill together, since they must agree; executing or editing a workflow → .claude/skills/shared/protocols/workflow-registry-binding.md
+
+<!-- PROTOCOL-GUIDES:END -->
+
+
+<!-- SYNC:ui-intent-layer:reminder -->
+
+- **MANDATORY** For UI-bearing specs, author/maintain the tech-agnostic interaction-surface layer (views with information priority now/later/not-here and container role + navigation map + observable states + user-action flows), resolving it through the configured profile's intent/evidence roles and logical IDs; an unresolved owner, role, ID, carrier, or link stays `UNKNOWN`/`BLOCKED`. **Strict portable fallback — only when neither config nor local references declares a native artifact contract:** trace each flow to the default `US-`/`OP-`/`BR-` IDs and record the companion artifact in the `design_spec:`/`mockup:` frontmatter keys. Name ZERO frameworks/routes/CSS/component classes; skip ONLY for backend-only features with a stated reason.
+
+<!-- /SYNC:ui-intent-layer:reminder -->
+
+<!-- SYNC:ux-journey-gate:reminder -->
+
+- **MUST ATTENTION** journey-first, BLOCKING order: REPORT the main user journeys (`UX-1`, evidence-tagged; confirm an inferred actor/job/outcome, or with no question tool record it `INFERRED — unconfirmed` and continue) → READ project design principles, design system, existing UI (`UX-2`) → generate → CHECK all gates. Checks: views = journey steps (`UX-3`) · important information first — one focal point, one primary action = next step, first viewport holds the primary tier (`UX-4`) · rules become prevention, states, recovery (`UX-5`) · the user's mental model (`UX-6`) · low-fi first (`UX-7`) · walkthrough + traceability, no unserved step or orphan (`UX-8`) · interaction cost per journey measured — steps, clicks, view changes, fields, decisions — every click confident, not a 3-click rule (`UX-9`) · wayfinding: where am I, where can I go, how do I get back, no dead ends (`UX-10`) · close with the **UI/UX Gate Report** covering `UX-*`, `UI-*`, `DD-*`, `CL-*` and UI copy — an unresolved `FAIL` blocks hand-off (`UX-11`). Catalog: `.claude/docs/ux-journey-process.md`. Skip ONLY with no user-facing surface, stated.
+
+<!-- /SYNC:ux-journey-gate:reminder -->
+
+
+<!-- SYNC:session-goal-ledger:reminder -->
+
+- **MANDATORY** Session goal ledger per the `Task Planning Rules`: pin `Original goal:`, keep `User prompts this session: P1…Pn`, and map the result to every prompt before claiming done; full text: `.claude/skills/shared/protocols/session-goal-ledger.md`.
+
+<!-- /SYNC:session-goal-ledger:reminder -->
+
+## Closing Reminders
+
+**IMPORTANT MUST ATTENTION Goal:** reviewed, DoR-ready, prioritized planned work where every task is an independently releasable actor-facing outcome — depth proportional to the idea, gates never skipped.
+
+- **MUST ATTENTION** triage first (track · size · kinds · risk · `isLargeIdea`) and record it; a small, clear idea skips research, brainstorm, plan cycle, cross-task prioritize and the deck — log each skip with evidence.
+- **MUST ATTENTION** keep every gate: rationale why-review, spec clarity (Single-Task), `work-item --mode=review --type=task`, independent `work-item --mode=challenge`, `work-item --mode=dor` PASS/WARN, UI full-flow mock app (or a recorded `Mockup: SKIPPED by user`) + design-spec, frontmatter priority, `docs-manager --mode=update`, `workflow-end`.
+- **MUST ATTENTION** UI mockups are journey-first and run through `$work-item --mode=mockup --explore` (scope gate first, Journey Report before any drafting, the user's recorded pick — never picked while the user can be asked; `Selection:` line when no question tool) — why: a direction chosen before the journeys, or for the user, styles the wrong surface.
+- **MUST ATTENTION** large ideas carry the complete `large_idea_decomposition` block (`outcome_slices` … `deferred_work_owner`); never create a roadmap artifact by default.
+- **MUST ATTENTION** one todo per selected step, report file first and appended per step; artifacts are drafts until their gate accepts them.
+- **MUST ATTENTION** tech-agnostic prose; implementation names only in evidence fields, frontmatter and Mermaid.

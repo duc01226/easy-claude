@@ -73,7 +73,7 @@ disable-model-invocation: false
 
 - When `--mode` is omitted, default to `--mode=fast`.
 - An explicit `--mode` always wins; `--mode=review` is never inferred from the brief and is never the default.
-- When `--lane` is omitted, default to `--lane=product` (the dominant PBI/app use). Pick `marketing` for landing pages, campaigns, and distinctive creative pieces.
+- When `--lane` is omitted, default to `--lane=product` (the dominant task/app use). Pick `marketing` for landing pages, campaigns, and distinctive creative pieces.
 - `--mode` (input carrier) and `--lane` (design tradition) are orthogonal — e.g. `--mode=screenshot --lane=product` recreates a dashboard screenshot in the product-UI craft tradition.
 - `$ARGUMENTS` carries the full input after the command. Interpret it per mode: `fast`/`good`/`explore` → a text design brief; `describe`/`screenshot` → a screenshot reference (path/URL/attachment); `video` → a video reference; `review` → the review scope (files, directories or surfaces; empty = all uncommitted UI changes) plus the optional `--report-only` flag.
 

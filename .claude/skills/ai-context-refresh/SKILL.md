@@ -49,7 +49,7 @@ Run `/ai-context-refresh` (or the generator directly) to produce `CLAUDE.md` fro
 tl;dr line, Doc Lookup, path-scoped rules, development commands and the skill-activation table. It
 carries none of the framework's universal rules (workflow step advancement, task planning, evidence,
 git discipline, code hierarchy, lesson extraction, closing reminders) and no workflow-route pointer:
-the universal hook delivers those protocols on the first prompt of a session and again after 100K
+the universal hook delivers those protocols on the first prompt of a session and again after 150K
 tokens of growth or a compaction. A host that runs no hook is unsupported.
 
 **Workflow routing is delivered only by the `workflow-route-inject` hook** (Claude, the mirrored Codex hook, the OpenCode bridge),
@@ -89,6 +89,12 @@ matching file is touched, and its `--lookup` CLI — the non-automatic carrier f
 conventions lib (`.claude/hooks/lib/file-conventions.cjs`), with every rule-bearing group deliverable (named,
 unique) and ranked within the per-path class cap (`conventionInjection.maxClassesPerEdit`), and a worst-case digest (longest accepted path, the largest rule sets the cap admits) within `conventionInjection.maxChars`; otherwise the rules stay inline and the generator prints `[WARN] INLINE_PATH_RULES` naming the missing
 precondition. Never hand-compact that section instead — `--mode update` regenerates it.
+
+With `conventionInjection.completeLookup: true`, a library advertising complete lookup support can
+replace the legacy rank/size proof. The mandatory pre-action CLI returns every matching read/edit class
+in pages (including overflow); read all pages with `--page N` before file or shell access. Named/unique
+groups and enabled delivery remain required; older libraries retain inline fallback. Automatic hook
+digests stay bounded. This mode also replaces the generated path pre-read table with the lookup pointer.
 
 ## Coordination with sync-codex
 
@@ -172,6 +178,7 @@ After the script generates the mechanical parts, AI reviews and fills:
 
 ## Phase 4: Verify
 
+- [ ] Apply the **Instruction-file audit** in `.claude/skills/shared/protocols/context-engineering-principles.md` before the final root edit is accepted and mirrors are synced; fix generated-section findings at their source.
 - [ ] CLAUDE.md is valid markdown
 - [ ] All section markers are properly paired (open + close)
 - [ ] No template placeholder text remains (e.g., `{project-name}`, `TODO`)
@@ -266,6 +273,7 @@ node .claude/hooks/tests/run-all-tests.cjs --filter=agent-files
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
 - `output-quality-principles` — Useful, readable guidance without lost conditions; writing generated docs or reports → .claude/skills/shared/protocols/output-quality-principles.md
+- `context-engineering-principles` — Prompt clarity and semantic retention principles; writing or enhancing prompts, skills or agents → .claude/skills/shared/protocols/context-engineering-principles.md
 
 <!-- PROTOCOL-GUIDES:END -->
 

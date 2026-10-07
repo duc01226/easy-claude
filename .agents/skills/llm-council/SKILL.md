@@ -8,7 +8,7 @@ description: '[Decision Support] Use when pressure-testing an irreversible, high
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -230,7 +230,7 @@ Opt-in escalation hook from host skills. NEVER wire into `workflow-bugfix`, `wor
 | `architecture --mode=design`            | Always-offer after `## Next Steps`         | Skip                     | User chooses                                                     |
 | `tech-stack-research`            | Always-offer after `## Next Steps`         | Skip                     | User chooses                                                     |
 | `domain-analysis`                | Always-offer after `## Next Steps`         | Skip                     | User chooses                                                     |
-| `why-review`                     | Conditional on active plan/PBI frontmatter | Escalate when gate fires | Step A workflow blacklist suppression THEN 8-OR frontmatter gate |
+| `why-review`                     | Conditional on active plan/task frontmatter | Escalate when gate fires | Step A workflow blacklist suppression THEN 8-OR frontmatter gate |
 | `prioritize`                     | Conditional on ranking output              | Escalate when gate fires | RICE top-2 within 15%, MoSCoW tie, or stakeholder disagreement   |
 
 ### `why-review` Gate Schema
@@ -241,7 +241,7 @@ Gate fires when ANY field true. Absent fields default no-fire; gate opt-in via f
 | ---------------------- | -------------------------------------- | ------------------------------------------- |
 | `cross_service_impact` | `NONE` / `PARTIAL` / `FULL`            | value != `NONE`                             |
 | `breaking_changes`     | bool                                   | true                                        |
-| `complexity`           | `low` / `medium` / `high` / `critical` | `high`, `critical`, or `story_points >= 13` |
+| `complexity`           | `low` / `medium` / `high` / `critical` | `high`, `critical`, or `effort_points >= 13` |
 | `new_framework`        | bool                                   | true                                        |
 | `irreversible`         | bool                                   | true                                        |
 | `security_critical`    | bool                                   | true                                        |

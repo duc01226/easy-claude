@@ -8,13 +8,13 @@ The structure the `demo-guide` skill writes. Fill from real project evidence; ke
 - **Understand before you script.** Nothing here is written until the skill's Step 1 comprehension bar is
   cleared with `file:line` per answer. A step derived from a screen name instead of the code is a step that
   fails live — in front of the room the guide was written for.
-- **Open with the backlog item, not the demo.** The document's first block is a copy-paste-ready PBI
+- **Open with the task, not the demo.** The document's first block is a copy-paste-ready task
   (purpose · overall requirements · ALL user stories · ALL acceptance criteria · authorization requirements ·
-  estimation · dependencies · DoD), fenced by `<!-- PBI:START -->` / `<!-- PBI:END -->` so a developer selects
-  it in one go and pastes it into the tracker. Its content is COPIED from the governing spec/PBI where one
+  estimation · dependencies · DoD), fenced by `<!-- task:START -->` / `<!-- task:END -->` so a developer selects
+  it in one go and pastes it into the tracker. Its content is COPIED from the governing spec/task where one
   exists, else derived from the traced demo cases and LABELLED as derived — never invented. The estimate is
   produced with the shared `SYNC:estimation-framework` protocol (bottom-up hours → man-days → derived story
-  points), the same one `$plan`, `$pbi --mode=refine`, `$pbi --mode=story`, and `$pbi --mode=dor` use, so the two artifacts cannot drift.
+  points), the same one `$plan`, `$work-item --mode=refine`, `$work-item --mode=story`, and `$work-item --mode=dor` use, so the two artifacts cannot drift.
   It sizes ONLY the estimate target — the current changes by default, the target the user names for
   estimation, or (no change set in scope) the labelled demo scope — never silently the entire feature.
 - **Show, then explain the data.** A demo is credible when the presenter shows the behaviour AND can point
@@ -65,13 +65,13 @@ a **stated blocker**, never a quiet promotion.
 ```markdown
 # Demo Guide — {Feature name}
 
-<!-- PBI:START -->
+<!-- task:START -->
 
-## Backlog item — copy this block into the tracker
+## Task — copy this block into the tracker
 
 **Title:** {item title}
 **Type:** {Feature | Enhancement | Bug | Tech}
-**Source of this block:** {`{x}.md` §{n} under the business spec root — default `docs/specs/`, overridable via `specRoots.business.path` in `docs/project-config.json` | PBI {id} | `derived from code + demo cases this session — not yet reviewed by the PO`}
+**Source of this block:** {`{x}.md` §{n} under the business spec root — default `docs/specs/`, overridable via `specRoots.business.path` in `docs/project-config.json` | task {id} | `derived from code + demo cases this session — not yet reviewed by the PO`}
 
 ### Purpose / business value
 
@@ -111,13 +111,13 @@ _{or}_ `None — no authorization behaviour in this item`
 
 ### Estimation
 
-**Estimate target:** _{current changes — {n} files on {diff source}}_ **|** _{user-named — {story / PBI / slice / whole feature}}_ **|** _{named scope (no change set) — {scope} ({scope source})}_
-_{When the target is narrower than the item above: `SP/man-days cover the estimate target only, not the full item above.`}_
-_{Retrospective sizing for the backlog record — the work is already implemented}_ **|** _{Forecast — work not yet done}_
-_{When a groomed PBI estimate covers exactly this target: reuse it verbatim and note the delta here. When it covers a wider item, cite it as context only.}_
+**Estimate target:** _{current changes — {n} files on {diff source}}_ **|** _{user-named — {story / task / slice / whole feature}}_ **|** _{named scope (no change set) — {scope} ({scope source})}_
+_{When the target is narrower than the item above: `EP/man-days cover the estimate target only, not the full item above.`}_
+_{Retrospective sizing for the task record — the work is already implemented}_ **|** _{Forecast — work not yet done}_
+_{When a team-agreed task estimate covers exactly this target: reuse it verbatim and note the delta here. When it covers a wider item, cite it as context only.}_
 
 ```yaml
-story_points: <n>                      # DERIVED from likely_days — never the driver
+effort_points: <n>                      # DERIVED from likely_days — never the driver
 complexity: low | medium | high | critical
 man_days_traditional: '<min>-<max>d'   # range when likely_days >= 3d; '<N>d' when < 3d
 man_days_ai: '<min>-<max>d'
@@ -147,7 +147,7 @@ estimate_reasoning: |
 
 - {… including any coverage gap this guide reports as still open}
 
-<!-- PBI:END -->
+<!-- task:END -->
 
 ---
 
@@ -247,15 +247,15 @@ demoted in order and prominence only. Omit the whole section when every case is 
 _Generated: {DATE} · Scope source: {source} · Evidence: {spec/test/migration paths}_
 ```
 
-## Filling the PBI block (the copy-paste contract)
+## Filling the task block (the copy-paste contract)
 
-- **Every field is sourced.** A governing spec/PBI/story exists → copy its wording and cite the path; none
+- **Every field is sourced.** A governing spec/task/story exists → copy its wording and cite the path; none
   exists → derive from the traced cases and code and LABEL the block `derived from code + demo cases this
   session — not yet reviewed by the PO`. A field with no evidence gets the explicit negative
   (`None — no authorization behaviour in this item`), never a plausible filler — an invented acceptance
   criterion enters the tracker as a commitment nobody agreed to.
 - **ALL of them, not a sample.** Every in-scope user story and every acceptance criterion appears; a story
-  the guide demos but the PBI omits is a drift the tracker will never catch.
+  the guide demos but the task omits is a drift the tracker will never catch.
 - **Trace each AC without changing its identity.** Preserve its source AC ID and wording, then link it to
   the guide-local case label, canonical owner/scenario/variant identity, and actual carrier reference(s):
   `AC-{source ID} ↔ {demo label} · {owner}/{scenario}[/{variant}] → {carrier ref}`. Under the strict
@@ -264,16 +264,16 @@ _Generated: {DATE} · Scope source: {source} · Evidence: {spec/test/migration p
   coverage verdict. NEVER invent an ID or treat a test name as the canonical case.
 - **Authorization is read from code, not assumed.** Cite the guard, policy, attribute, or scoping filter at
   `file:line`, or state there is none. A guessed permission ships as a requirement.
-- **Estimation follows `SYNC:estimation-framework` and nothing else** — the same protocol `$plan`, `$pbi --mode=refine`,
-  `$pbi --mode=story`, and `$pbi --mode=dor` apply: bottom-up hours → `likely_days` → risk margin → min–max range when
-  `likely_days ≥ 3`; **story points are DERIVED from days**, never chosen first; the full frontmatter goes in
+- **Estimation follows `SYNC:estimation-framework` and nothing else** — the same protocol `$plan`, `$work-item --mode=refine`,
+  `$work-item --mode=story`, and `$work-item --mode=dor` apply: bottom-up hours → `likely_days` → risk margin → min–max range when
+  `likely_days ≥ 3`; **effort points are DERIVED from days**, never chosen first; the full frontmatter goes in
   a fenced `yaml` block so it survives the paste. Size the TARGET WORK, never the writing of this guide.
 - **Estimate the change, not the feature.** The estimate target is exactly what `--estimate` or an explicit
   estimation instruction names (a demo scope alone never counts); else the current changes — the union of
   branch commits vs the default branch and the staged + unstaged diff, narrowed to the demo scope; else, with
   no change set in scope, the demo scope under the `named scope (no change set)` label. Unchanged feature code
   is demo context — name it in `estimate_reasoning` (e), never inside the number. State whether the number is
-  a retrospective sizing or a forecast; reuse a groomed estimate verbatim (noting the delta) only when it
+  a retrospective sizing or a forecast; reuse a team-agreed estimate verbatim (noting the delta) only when it
   covers exactly this target.
 
 ## Filling the "domain storage / solution" block (the distinctive value)

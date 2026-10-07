@@ -45,7 +45,7 @@
 
 - Use `/why-review` to validate design rationale before implementation
 - Before spec or test-spec work, resolve the project's configured spec-artifact profile or documented native spec contract
-- Use `/spec [mode=tests]`, `/pbi --mode=review --type=spec-tests`, and a Feature Spec Section 8 CREATE-before-implementation / UPDATE-after lifecycle only when the selected profile defines that format; otherwise follow its native artifact, identifier, and review contract
+- Use `/spec [mode=tests]`, `/work-item --mode=review --type=spec-tests`, and a Feature Spec Section 8 CREATE-before-implementation / UPDATE-after lifecycle only when the selected profile defines that format; otherwise follow its native artifact, identifier, and review contract
 - Every assertion-bearing test uses explicit `Given` → `When` → `Then` phases, names the guarded business intent/invariant or technical contract, and asserts an owned outcome; framework-native BDD, named helpers, or comments are valid, while bare Arrange/Act/Assert is insufficient unless all three GWT phases are also labeled
 - Every `changes-review` skill invocation or specialist review first applies `SYNC:review-principle-awareness`; route only contextually applicable scale-ready foundation, GWT test, AI-agent-as-user, and UI/component obligations to their detailed skill protocols, recording evidence-backed N/A/defer/block/unverified status rather than inventing findings or expanding scope
 - Large features (`workflow-big-feature`): two plans — PLAN1 (architecture) then PLAN2 (incorporating test strategy); other feature routes use one plan
@@ -113,11 +113,11 @@
 
 | Workflow ID             | When to use                                                                                                       |
 | ----------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `workflow-idea-to-pbi`  | Turn an idea or product opportunity into a grooming-ready backlog.                                                |
-| `workflow-idea-to-spec` | Turn an idea into one provisional feature specification.                                                          |
+| `workflow-initiative-to-task`  | Turn an idea or product opportunity into planned work that is ready to plan.                                         |
+| `workflow-initiative-to-spec` | Turn an idea into one provisional feature specification.                                                          |
 | `workflow-spec-to-mockup` | Turn canonical specs into a reviewed, journey-first interactive mockup (the user chooses 3 / 2 / 1 directions or skips). |
 | `workflow-code-to-spec` | Create or update capability documentation from existing code.                                                     |
-| `workflow-spec-to-pbi`  | Build a dependency-aware backlog from existing feature specifications.                                            |
+| `workflow-spec-to-task`  | Build dependency-aware planned work from existing feature specifications.                                            |
 | `workflow-feature-spec` | Create or maintain business feature documentation.                                                                |
 | `workflow-spec-sync`    | Reconcile affected spec and test-spec artifacts according to the project's configured profile or native contract. |
 

@@ -40,4 +40,4 @@ selected_milestone: M0
 - Approval: required | approved
 - Approved on/by: {date and role}
 ```
-Do not add dates, sprint commitments, framework names, database tables, endpoint lists, or screen inventories to this artifact.
+Do not add dates, delivery commitments, framework names, database tables, endpoint lists, or screen inventories to this artifact.

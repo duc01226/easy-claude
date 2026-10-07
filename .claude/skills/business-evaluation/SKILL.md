@@ -7,7 +7,7 @@ description: '[Content] Use when a workflow step or the user asks for business v
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
 > **[BLOCKING]** Execute declared steps in order. NEVER skip, reorder, or merge without explicit user approval.
-> **[BLOCKING]** Before each step/sub-skill call, update task tracking: set `in_progress` at start, `completed` at end.
+> **[BLOCKING]** Before each step/sub-skill call, update todo tracking: set `in_progress` at start, `completed` at end.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools unavailable, maintain equivalent step tracker with same status transitions.
 

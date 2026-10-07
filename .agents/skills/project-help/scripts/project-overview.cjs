@@ -354,7 +354,7 @@ function renderDocs() {
         ['Decisions (ADR)', root('ADR_ROOT'), 'WHY a choice was made. Durable, never renumbered.'],
         ['Templates', root('TEMPLATES_ROOT'), 'Document skeletons for the artifacts above.'],
         ['Plans', root('PLANS_ROOT'), 'Implementation plans produced by /plan.'],
-        ['Team artifacts', root('TEAM_ARTIFACTS_ROOT'), 'Ideas, PBIs, stories — product-side artifacts.'],
+        ['Team artifacts', root('TEAM_ARTIFACTS_ROOT'), 'Initiatives, tasks, stories — product-side artifacts.'],
         ['Product roadmap', root('PRODUCT_ROADMAP_DOC'), 'Milestone selection. Written only by an explicit roadmap request.'],
         ['Disposable output', 'tmp/', 'Regenerable output: reports, evidence, logs, traces. Never source, never docs.']
     ];

@@ -104,16 +104,16 @@ Analyze user request, not only literal argument shape. Determine target, then ch
 | User request / evidence                              | Review path                         | Required target work                                                                                                                |
 | ---------------------------------------------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | Explicit plan directory, `plan.md`, phase files      | Plan-rationale review               | Read `plan.md` and all `phase-*.md` files.                                                                                          |
-| PBI/story/spec planning artifact, rationale request  | PBI/artifact rationale review       | Read the named artifact and related acceptance/design/risk sections; if it references plan files, read those too.                    |
+| Task/story/spec planning artifact, rationale request  | Task/artifact rationale review       | Read the named artifact and related acceptance/design/risk sections; if it references plan files, read those too.                    |
 | Commit SHA, `Commit: ...`, PR/merge commit, git diff | Code-change review                  | Establish the diff range, read changed files, assess impact (an optional graph hint may help), and apply code-review/adversarial review protocols.  |
 | Branch comparison or uncommitted changes             | Code-change review                  | Use the requested branch/diff or `git diff`; read changed files and tests/docs touched by the diff.                                  |
-| Docs/spec/report/findings path                       | Artifact review                     | Read the target artifact and verify claims against source evidence; use rationale checklist only where the artifact is a plan/PBI.   |
+| Docs/spec/report/findings path                       | Artifact review                     | Read the target artifact and verify claims against source evidence; use rationale checklist only where the artifact is a plan/task.   |
 | Ambiguous request                                    | Infer from evidence; ask if unsafe  | Prefer a reasonable target from the request and repo evidence. Ask only when two plausible review paths would produce different work. |
 
 **Important defaults:**
 
 1. Commit hash / `Commit:` block => code-change review, not "no active plan."
-2. PBI file => review that PBI/artifact; no `**/plan.md` wrapper under the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path) required.
+2. Task file => review that task/artifact; no `**/plan.md` wrapper under the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path) required.
 3. "No active plan found. Run `/plan` first." valid ONLY for unresolved plan-rationale requests.
 4. MUST ATTENTION record target type, evidence, confidence; NEVER silently convert target types.
 
@@ -127,7 +127,7 @@ Analyze user request, not only literal argument shape. Determine target, then ch
 | Integration/E2E tests in the target, OR a behavior change whose code has covering integration tests | Apply the **Integration-Test-Review Linkage** below — `/integration-test --mode=review` owns the 8 test-quality gates; this skill reads its protocol (Mode A) or delegates to it (Mode B), never re-derives them. |
 | Auth, secrets, permissions, data | `security-auditor` if available; otherwise `code-reviewer` with explicit security pass.          |
 | Latency, scale, memory, queries  | `performance-optimizer` if available; otherwise `code-reviewer` with explicit performance pass.  |
-| Plan / PBI / doc / spec          | `general-purpose` with rationale/artifact dimensions.                                            |
+| Plan / task / doc / spec          | `general-purpose` with rationale/artifact dimensions.                                            |
 | Mixed target                     | Split focused passes by concern; aggregate findings after all passes.                            |
 
 ### Code-Change Review Path
@@ -139,7 +139,7 @@ When target is code changes:
     - Merge commit: default to first-parent diff unless the user specifies another parent/range.
     - Branch/range: use the user-supplied range.
     - Uncommitted changes: use `git diff` plus staged diff if relevant.
-2. **Comprehend change context + trace full pipeline across BOTH boundaries (MANDATORY for code-change targets; N/A for pure plan/PBI/doc targets).** Before deep file judging, write a one-line Change Context (what · intent · originating tier · main affected flow), then apply BOTH full protocols named by the router guides (read absent applicable text first): `SYNC:cross-stack-impact-trace` for the client↔server tier seam (BE→FE forward, FE→BE backward) and `SYNC:cross-service-check` for the microservice / event / external / loosely-coupled boundary. Classify each seam/touchpoint NONE / ADDITIVE / BREAKING; a BREAKING seam whose other-side consumer is un-updated in the same diff is a HIGH-min finding. State `Single-tier / monolith — N/A` when no cross-boundary seam exists.
+2. **Comprehend change context + trace full pipeline across BOTH boundaries (MANDATORY for code-change targets; N/A for pure plan/task/doc targets).** Before deep file judging, write a one-line Change Context (what · intent · originating tier · main affected flow), then apply BOTH full protocols named by the router guides (read absent applicable text first): `SYNC:cross-stack-impact-trace` for the client↔server tier seam (BE→FE forward, FE→BE backward) and `SYNC:cross-service-check` for the microservice / event / external / loosely-coupled boundary. Classify each seam/touchpoint NONE / ADDITIVE / BREAKING; a BREAKING seam whose other-side consumer is un-updated in the same diff is a HIGH-min finding. State `Single-tier / monolith — N/A` when no cross-boundary seam exists.
 3. Read the changed files and any nearby tests/docs required to prove behavior.
 4. **Integration-test detection (CONDITIONAL).** If the target contains integration/E2E test files, OR changes behavior-bearing code that has covering integration tests, run the **Integration-Test-Review Linkage** below before judging the `Test/spec/doc sync` dimension. State `No integration tests in target — linkage N/A` when neither holds.
 5. Read project reference docs based on changed file types before judging patterns.
@@ -185,7 +185,7 @@ Run one focused pass per applicable dimension; do NOT scan all dimensions simult
 
 ## Validation Checklist
 
-For plan/PBI/artifact rationale reviews, read resolved target first. If plan directory, read `plan.md` and all `phase-*.md` files. Check **presence AND quality depth**.
+For plan/task/artifact rationale reviews, read resolved target first. If plan directory, read `plan.md` and all `phase-*.md` files. Check **presence AND quality depth**.
 
 For code-change reviews, use Code-Change Review Path instead of forcing plan checklist. Still include adversarial analysis, pre-mortem, assumptions, evidence, findings validation.
 
@@ -221,7 +221,7 @@ For code-change reviews, use Code-Change Review Path instead of forcing plan che
 ## Why-Review Results
 
 **Plan:** {plan path}
-**Target Type:** {plan/PBI/code changes/docs/spec/report/artifact}
+**Target Type:** {plan/task/code changes/docs/spec/report/artifact}
 **Target:** {path, commit, branch range, or artifact}
 **Date:** {date}
 **Verdict:** PASS / NEEDS WORK
@@ -288,7 +288,7 @@ For code-change reviews, use Code-Change Review Path instead of forcing plan che
 
 ### Recommendation
 
-{Proceed to /feature-implement | Add missing sections first | Add adversarial analysis to plan/PBI | Fix code findings | Update docs or specs | Continue manually}
+{Proceed to /feature-implement | Add missing sections first | Add adversarial analysis to plan/task | Fix code findings | Update docs or specs | Continue manually}
 ```
 
 ## Round 2: Adversarial Re-Review (MANDATORY)
@@ -365,14 +365,14 @@ Terminal validation returns its verdict without a next-step prompt. Read-only le
 Preserve the existing council eligibility and workflow suppression before recommending deeper decision review:
 
 1. **Workflow suppression first:** resolve the current `workflowId` from host-injected workflow context; when it is not already present, read the host's documented state owner — `.claude/hooks/lib/workflow-state.cjs` owns `CK_TMP_DIR/workflow/{sessionId}.json` in this repository, while a host may use a legacy `.workflow-state.json` at the plans root (default `plans/`; relocated by `docsRoots.plans.path` in `docs/project-config.json`) only when that file is actually present. Never assume the legacy file exists. If no state is available, record `workflowId = unavailable` and continue to the frontmatter gate without fabricating a workflow. Suppress council for `workflow-refactor`, `workflow-bugfix`, and `test-*`; these routine/reversible/test-only workflows use the existing rationale review without the council's 11-call cost.
-2. **Frontmatter gate:** read active plan or PBI frontmatter. Consider council only for `cross_service_impact != NONE`, `breaking_changes`, `complexity in {high, critical}`, `story_points >= 13`, `new_framework`, `irreversible`, `security_critical`, `performance_critical` or `cost_high`. Absent fields default no-fire; `council_suppress: true` suppresses the recommendation and records its reason.
+2. **Frontmatter gate:** read active plan or task frontmatter. Consider council only for `cross_service_impact != NONE`, `breaking_changes`, `complexity in {high, critical}`, `effort_points >= 13`, `new_framework`, `irreversible`, `security_critical`, `performance_critical` or `cost_high`. Absent fields default no-fire; `council_suppress: true` suppresses the recommendation and records its reason.
 3. **Supported choice:** if suppressed or no-fire, return without a council prompt. If eligible, judge whether the existing review evidence is sufficient and select the best supported recommendation under review autonomy, recording cost and rationale. A read-only leaf returns that recommendation; the caller acts only within its existing authority and the council owner's invocation contract. Do not manufacture a second user-choice question.
 
 **Anti-Rationalization:**
 
 | Evasion                 | Rebuttal                                                                                |
 | ----------------------- | --------------------------------------------------------------------------------------- |
-| "No active plan"        | Valid only for unresolved plan-rationale requests; commits/diffs/PBIs/docs are targets. |
+| "No active plan"        | Valid only for unresolved plan-rationale requests; commits/diffs/tasks/docs are targets. |
 | "Just code review"      | Still resolve target, read docs, map tests/specs/docs.                       |
 | "Findings look obvious" | Validate every finding via terminal `--validate-findings`.                              |
 | "Report zero findings, skip the gate" | Suppressing/demoting findings to dodge validation is the exact bias the SKEPTIC stance forbids; surface them, THEN validate. |

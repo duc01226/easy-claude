@@ -247,17 +247,17 @@ pre { max-width: 100%; margin: 0; padding: 12px 14px; border: 1px solid var(--ha
 
 /* Record marks: kind, identity, state, responsible person, proof, acceptance */
 .kind { padding: 2px 6px; border: 1px solid var(--line-strong); border-radius: 4px; color: var(--record-note); font: 600 .65625rem/1.4 var(--font-mono); letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
-.kind--pbi { border-color: var(--record-ink); background: var(--record-ink); color: var(--record-sheet); }
+.kind--delivery { border-color: var(--record-ink); background: var(--record-ink); color: var(--record-sheet); }
 .id { font: 400 var(--micro)/1.5 var(--font-mono); color: var(--record-faint); }
 .rev { font: 400 var(--caption)/1.5 var(--font-mono); color: var(--record-faint); }
 .mark { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
-.is-draft, .is-backlog, .is-canceled, .is-other, .dot--draft, .dot--backlog, .dot--canceled, .dot--other { --state: var(--record-faint); }
+.is-draft, .is-planned, .is-canceled, .is-other, .dot--draft, .dot--planned, .dot--canceled, .dot--other { --state: var(--record-faint); }
 .is-ready, .is-in_progress, .dot--ready, .dot--in_progress, .dot--passed { --state: var(--ownership-action); }
 .is-blocked, .dot--blocked { --state: var(--blocked); }
 .is-verifying, .dot--verifying { --state: var(--verifying); }
 .is-done, .dot--done { --state: var(--proof-current); }
 .dot { flex-shrink: 0; width: 24px; height: 24px; border: 5px solid var(--state, var(--record-faint)); border-radius: 50%; background: var(--record-sheet); }
-.dot--backlog, .dot--in_progress, .dot--verifying, .dot--done, .dot--blocked, .dot--passed { background: var(--state); }
+.dot--planned, .dot--in_progress, .dot--verifying, .dot--done, .dot--blocked, .dot--passed { background: var(--state); }
 .dot--blocked { border-radius: 5px; }
 .dot--canceled, .dot--other { border-width: 2px; border-style: dashed; }
 .dot--s { width: 14px; height: 14px; border-width: 3px; }

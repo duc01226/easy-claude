@@ -227,7 +227,7 @@ And no requested new state, delivery credit or fictitious receipt
 ```json
 {
   "transition": "Invalid or redundant cancellation",
-  "eligibleStates": ["Draft", "Backlog", "Ready", "In progress", "Blocked", "Verifying", "Done"],
+  "eligibleStates": ["Draft", "Planned", "Ready", "In progress", "Blocked", "Verifying", "Done"],
   "alreadyCanceled": "new request no-op/refusal; same completed request replay original receipt",
   "missingOrInvalid": "missing reason; absent owner authority; stale revision; undeclared state; Canceled under new operation identity",
   "title": "Export filtered records",
@@ -304,7 +304,7 @@ And no erased draft/context, fabricated success or falsely complete scope
 ```json
 {
   "state": "Saved + secondary pending",
-  "selectedItem": "PBI-104",
+  "selectedItem": "TASK-104",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters."
 }
@@ -373,7 +373,7 @@ And no erased draft/context, fabricated success or falsely complete scope
 ```json
 {
   "state": "Done",
-  "selectedItem": "PBI-104",
+  "selectedItem": "TASK-104",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters.",
   "historicalAcceptance": "retained",
@@ -610,7 +610,7 @@ boundaryCounterCase: "changed request under reused identity or stale save \u2192
 
 **Preconditions:**
 
-- Any requested idea/specification/plan/design/refinement save with linked delivery records.
+- Any requested initiative/specification/plan/design/refinement save with linked delivery records.
 - The actor selects the actual project/profile and permitted scope before acting; native actions require the native capability and proof gate.
 
 **Real-World Reachability:** The stated actor first creates or selects work through permitted actions and reviews its current result. A competing teammate save, policy change or actual work checkpoint occurs before the next action when stated; the gap is the real review/work interval, with no invented delay or back-to-back race requirement.
@@ -618,7 +618,7 @@ boundaryCounterCase: "changed request under reused identity or stale save \u2192
 **Demo Flow:** Arrange the stated permitted work, perform the permitted actions and the stated boundary attempt for ALL inputs in this domain, then read back the affected item or scoped result. Repeat the stated failure/boundary with the invalid condition; inspect the preserved previous facts.
 
 ```gherkin
-Given any requested idea/specification/plan/design/refinement save with linked delivery records
+Given any requested initiative/specification/plan/design/refinement save with linked delivery records
 When perform the permitted actions and the stated boundary attempt for ALL inputs in this domain
 Then for ALL inputs: governing intent and cases retain their owners; defined provisional work needs no invented preexisting proof; boundary outcome: competing intent or required behavior undecided → owner/decision gap; no automatic partner ticket/promotion
 And the protected rule must not fail for any generated member of the declared domain
@@ -641,7 +641,7 @@ And the protected rule must not fail for any generated member of the declared do
 **Test Data:**
 
 ```yaml
-inputDomain: "any requested idea/specification/plan/design/refinement save with linked delivery records"
+inputDomain: "any requested initiative/specification/plan/design/refinement save with linked delivery records"
 invariant: "for ALL inputs: governing intent and cases retain their owners; defined provisional work needs no invented preexisting proof"
 boundaryCounterCase: "competing intent or required behavior undecided \u2192 owner/decision gap; no automatic partner ticket/promotion"
 ```
@@ -1011,7 +1011,7 @@ boundaryCounterCase: "missing baseline or conflicting duplicate/owner/proof \u21
 
 **Preconditions:**
 
-- Any work in Draft, Backlog, Ready, In progress, Blocked, Verifying, Done or Canceled, including referenced/accepted/historical work and newer edits during undo.
+- Any work in Draft, Planned, Ready, In progress, Blocked, Verifying, Done or Canceled, including referenced/accepted/historical work and newer edits during undo.
 - The actor selects the actual project/profile and permitted scope before acting; native actions require the native capability and proof gate.
 
 **Real-World Reachability:** The stated actor first creates or selects work through permitted actions and reviews its current result. A competing teammate save, policy change or actual work checkpoint occurs before the next action when stated; the gap is the real review/work interval, with no invented delay or back-to-back race requirement.
@@ -1019,7 +1019,7 @@ boundaryCounterCase: "missing baseline or conflicting duplicate/owner/proof \u21
 **Demo Flow:** Arrange the stated permitted work, perform the permitted actions and the stated boundary attempt for ALL inputs in this domain, then read back the affected item or scoped result. Repeat the stated failure/boundary with the invalid condition; inspect the preserved previous facts.
 
 ```gherkin
-Given any work in Draft, Backlog, Ready, In progress, Blocked, Verifying, Done or Canceled, including referenced/accepted/historical work and newer edits during undo
+Given any work in Draft, Planned, Ready, In progress, Blocked, Verifying, Done or Canceled, including referenced/accepted/historical work and newer edits during undo
 When perform the permitted actions and the stated boundary attempt for ALL inputs in this domain
 Then for ALL inputs: supported retirement preserves identity/history/incoming links and children; deletion only exact authorized unreferenced draft or, by its own explicit action, unreferenced ended work; boundary outcome: hard-delete referenced work or undo against newer edit → refusal; affected records retained
 And the protected rule must not fail for any generated member of the declared domain
@@ -1042,14 +1042,14 @@ And the protected rule must not fail for any generated member of the declared do
 **Test Data:**
 
 ```yaml
-inputDomain: "any work in Draft, Backlog, Ready, In progress, Blocked, Verifying, Done or Canceled, including referenced/accepted/historical work and newer edits during undo"
+inputDomain: "any work in Draft, Planned, Ready, In progress, Blocked, Verifying, Done or Canceled, including referenced/accepted/historical work and newer edits during undo"
 invariant: "for ALL inputs: supported retirement preserves identity/history/incoming links and children; deletion only exact authorized unreferenced draft or, by its own explicit action, unreferenced ended work"
 boundaryCounterCase: "hard-delete referenced work or undo against newer edit \u2192 refusal; affected records retained"
 ```
 
 **Edge Cases:**
 
-- Cancellation is available from exactly Draft, Backlog, Ready, In progress, Blocked, Verifying and Done under current revision, actual owner authority, explicit cancellation decision and a nonempty reason.
+- Cancellation is available from exactly Draft, Planned, Ready, In progress, Blocked, Verifying and Done under current revision, actual owner authority, explicit cancellation decision and a nonempty reason.
 - Canceling Done retains attributable acceptance/proof and incoming identity/history, removes active accepted credit, and never changes child work.
 - An identical completed operation identity/payload returns its original receipt within the retained retry horizon without revision/history growth. A new redundant cancellation of Canceled work is a no-op or refusal with no revision/history growth. A changed request under a reused operation identity is refused.
 
@@ -1360,7 +1360,7 @@ boundaryCounterCase: "materially new/split/cloned outcome copying acceptance \u2
 ```gherkin
 Given any nested overlapping delivery memberships and execution/group records
 When perform the permitted actions and the stated boundary attempt for ALL inputs in this domain
-Then for ALL inputs: duplicate views and enabling work add zero delivery credit; unique union is conserved; boundary outcome: adding duplicate membership or completed task → no extra accepted/denominator count
+Then for ALL inputs: duplicate views and enabling work add zero delivery credit; unique union is conserved; boundary outcome: adding duplicate membership or completed subtask → no extra accepted/denominator count
 And the protected rule must not fail for any generated member of the declared domain
 ```
 
@@ -1368,14 +1368,14 @@ And the protected rule must not fail for any generated member of the declared do
 
 | Dimension | Expectation |
 |---|---|
-| UI | The workspace or read-only status view shows: for ALL inputs: duplicate views and enabling work add zero delivery credit; unique union is conserved; boundary outcome: adding duplicate membership or completed task → no extra accepted/denominator count. Unsupported capabilities have an explicit reason. |
+| UI | The workspace or read-only status view shows: for ALL inputs: duplicate views and enabling work add zero delivery credit; unique union is conserved; boundary outcome: adding duplicate membership or completed subtask → no extra accepted/denominator count. Unsupported capabilities have an explicit reason. |
 | System behavior | Perform or refuse only the requested supported action; the protected rule must not fail for any generated member of the declared domain. |
 | Business data state | Only the exact authorized requested facts change, if successful; all other item, owner, scope and history facts remain. A refused action retains pre-state. |
 | Data shown on UI | Rereading the selected item/scope shows the actual result above, with local/shared source, acceptance and current verification distinctly labelled where applicable. |
 
 **Acceptance Criteria:**
 
-- ✅ for ALL inputs: duplicate views and enabling work add zero delivery credit; unique union is conserved; boundary outcome: adding duplicate membership or completed task → no extra accepted/denominator count.
+- ✅ for ALL inputs: duplicate views and enabling work add zero delivery credit; unique union is conserved; boundary outcome: adding duplicate membership or completed subtask → no extra accepted/denominator count.
 - ❌ the protected rule must not fail for any generated member of the declared domain.
 
 **Test Data:**
@@ -1383,12 +1383,12 @@ And the protected rule must not fail for any generated member of the declared do
 ```yaml
 inputDomain: "any nested overlapping delivery memberships and execution/group records"
 invariant: "for ALL inputs: duplicate views and enabling work add zero delivery credit; unique union is conserved"
-boundaryCounterCase: "adding duplicate membership or completed task \u2192 no extra accepted/denominator count"
+boundaryCounterCase: "adding duplicate membership or completed subtask \u2192 no extra accepted/denominator count"
 ```
 
 **Edge Cases:**
 
-- Boundary/failure: adding duplicate membership or completed task → no extra accepted/denominator count.
+- Boundary/failure: adding duplicate membership or completed subtask → no extra accepted/denominator count.
 - Native unavailable/unproved action: show the unsupported reason and preserve original owners; never substitute another authority.
 - Read or write access changed before the action: recheck actual scope and return denied/not saved, without fictitious success.
 
@@ -1403,7 +1403,7 @@ boundaryCounterCase: "adding duplicate membership or completed task \u2192 no ex
 | Intended observable outcome | INV-TPT-04 |
 | Executing implementation/assertion | [Source: test/work-tracking/TC-TPT-135]; authored callback/assertion guard, NOT RUN; complete implementation mapping remains TBD |
 
-**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-case-contracts.test.cjs::TC-TPT-135: overlap and membership permutations conserve unique delivery while completed enabling work adds no credit`, `.claude/hooks/tests/suites/task-tracking-maintenance-contracts.test.cjs::TC-TPT-135: completed stories and groups add no PBI credit and retirement changes an overlapping unique union exactly once`
+**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-case-contracts.test.cjs::TC-TPT-135: overlap and membership permutations conserve unique delivery while completed enabling work adds no credit`, `.claude/hooks/tests/suites/task-tracking-maintenance-contracts.test.cjs::TC-TPT-135: completed stories and groups add no task credit and retirement changes an overlapping unique union exactly once`
 **Status:** Untested
 
 #### TC-TPT-136: Property INV-TPT-05 idempotency [P0]

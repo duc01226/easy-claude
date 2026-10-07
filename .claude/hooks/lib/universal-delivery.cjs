@@ -42,8 +42,12 @@ const path = require('node:path');
 
 /** Name of the delivery group in `protocol-groups.json` and the published index. */
 const UNIVERSAL_GROUP = 'universal';
-/** Re-delivery distance of a bin, in conversation tokens. The one named constant of this bundle. */
-const UNIVERSAL_REINJECT_TOKENS = 100000;
+/**
+ * Long tasks need periodic attention refresh even before compaction. Keep the full
+ * rules available; 150k reduces repeated context while retaining that refresh.
+ * Compaction/clear still replays immediately, independently of this distance.
+ */
+const UNIVERSAL_REINJECT_TOKENS = 150000;
 /** The largest message the primary host shows in full is 10,000 characters; a bin never exceeds this. */
 const MAX_BIN = 9500;
 const GROUPS_REL = '.claude/skills/shared/protocol-groups.json';

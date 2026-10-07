@@ -3,8 +3,9 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
-const { trackingContext, FOLDERS, LIMITS, relativePath, validateTaskTracking } = require('../../../hooks/lib/task-tracking-config.cjs');
-const { parseRecord } = require('../../../hooks/lib/task-artifact-store.cjs');
+const { trackingContext, LIMITS, relativePath, validateTaskTracking } = require('../../../hooks/lib/task-tracking-config.cjs');
+const vocabulary = require('../../../hooks/lib/task-tracking-vocabulary.cjs');
+const { parseRecord, earlierVocabularyRecord } = require('../../../hooks/lib/task-artifact-store.cjs');
 const { fail } = require('../../../hooks/lib/task-tracking-files.cjs');
 const { isPrivacySensitive } = require('../../../hooks/lib/sensitive-path-policy.cjs');
 const { validateConfig } = require('../../../hooks/lib/project-config-schema.cjs');
@@ -169,7 +170,17 @@ function loadSharedSnapshot(root, ref) {
     const records = [];
     const tree = entries(git(['ls-tree', '-r', '-z', oid, '--', context.artifactsRoot]));
     if (tree.length > LIMITS.records * 4) fail('LIMIT_EXCEEDED', 'Shared owner inventory exceeds selected entry budget');
-    const folders = Object.entries(FOLDERS).map(([kind, folder]) => [kind, `${context.artifactsRoot}/${folder}/`]).sort((a, b) => b[1].length - a[1].length);
+    // The pinned commit's own declaration and record locations decide its vocabulary; the working copy's never does.
+    const below = listing => listing.path.slice(context.artifactsRoot.length + 1).split('/');
+    context.vocabulary = vocabulary.resolveVocabulary({ declaredVersion: config.taskTracking?.schemaVersion,
+        folderNames: [...new Set(tree.map(below).filter(parts => parts.length > 1).map(parts => parts[0]))],
+        journalPresent: tree.some(listing => listing.path === vocabulary.journalPath(context.artifactsRoot)) });
+    // Mixed vocabularies or an unfinished migration: no record is read; the reader reports the named outcome.
+    if (context.vocabulary.storedVersion === null) return { context, scan: { records: [], diagnostics: [{ code: context.vocabulary.code, reason: context.vocabulary.reason }], coverage: 'unavailable' } };
+    const stored = vocabulary.wordsFor(context.vocabulary.storedVersion);
+    // A current commit may hold files written in the earlier vocabulary; they are named and never counted.
+    const strays = stored.version === vocabulary.CURRENT_VERSION ? vocabulary.EARLIER_ONLY_LOCATIONS.map(name => [null, `${context.artifactsRoot}/${name}/`]) : [];
+    const folders = [...Object.entries(stored.folders).map(([kind, folder]) => [kind, `${context.artifactsRoot}/${folder}/`]), ...strays].sort((a, b) => b[1].length - a[1].length);
     const owners = [];
     let overflow = false;
     for (const listing of tree) {
@@ -188,10 +199,12 @@ function loadSharedSnapshot(root, ref) {
         }
         try {
             if (outcome.error) throw outcome.error;
-            records.push(parseRecord(outcome.bytes, owner.path, owner.kind));
+            if (owner.kind === null) earlierVocabularyRecord(outcome.bytes, owner.path);
+            records.push(vocabulary.normalizeRecord(parseRecord(outcome.bytes, owner.path, owner.kind, stored.version), stored.version));
         } catch (error) {
             // Each record is bounded on its own, so an oversize or unsafe one is named and the rest are still read.
-            diagnostics.push({ path: owner.path, code: error.code || 'UNSUPPORTED', reason: error.code === 'LIMIT_EXCEEDED' ? 'Pinned record exceeds the selected per-record budget' : 'Pinned record cannot be safely projected' });
+            diagnostics.push({ path: owner.path, ...(error.itemId ? { itemId: error.itemId } : {}), code: error.code || 'UNSUPPORTED', reason: error.code === 'LIMIT_EXCEEDED' ? 'Pinned record exceeds the selected per-record budget'
+                : error.code === 'EARLIER_VOCABULARY_RECORD' ? error.message : 'Pinned record cannot be safely projected' });
         }
     }
     if (overflow) diagnostics.push({ code: 'LIMIT_EXCEEDED', reason: 'Record count exceeds selected budget' });

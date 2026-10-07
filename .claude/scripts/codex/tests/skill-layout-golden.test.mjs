@@ -24,7 +24,7 @@ const normalizeEol = s => s.replace(/\r\n/g, '\n');
 test('TC-SLT-001: migrator docstring flags fence-blindness with a concrete fence-internal citation', async () => {
     const content = await fs.readFile(migratorScript, 'utf8');
     assert.match(content, /NOT\s+fence-aware/, "missing 'NOT fence-aware' caveat");
-    assert.ok(content.includes('pbi/references/mode-story.md'), 'missing pbi/references/mode-story.md citation');
+    assert.ok(content.includes('work-item/references/mode-story.md'), 'missing work-item/references/mode-story.md citation');
 });
 
 test('TC-SLT-005: migrator transforms indented input → canonical (round-trip)', async t => {

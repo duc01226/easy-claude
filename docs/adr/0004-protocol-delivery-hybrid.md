@@ -254,3 +254,10 @@ The change reduces repeated entrypoint text while retaining complete review rule
 Agents retain their full applicable role protocols. Mode-only references retain their full SYNC bodies and load first on mode entry. Every fresh reviewer prompt still embeds the complete `review-protocol-injection` template, with all eleven full protocol bodies VERBATIM and only its declared placeholders replaced. Universal protocols retain their separate hook-only delivery contract.
 
 Read `.claude/skills/shared/sync-inline-versions.md` → `SYNC:shared-protocol-duplication-policy` when updating transport or carriers; it is the canonical protocol owner. Read `docs/specs/ContextDelivery/README.ProtocolDelivery.md` → BR-PDL-07/11/12/14 when assessing guide fallback, mode loading and full-text retention. These current contracts supersede the historical skill exceptions above; required full text and review gates remain mandatory.
+
+
+## Amendment (2026-10-07): periodic reminders at 150K tokens
+
+The owner requested 150,000 tokens instead of 100,000 for the universal bundle, core principles, skill overlay discovery and AI-feature routing, including the UI/AI per-class windows. The full prompt content remains available. Periodic delivery intentionally refreshes attention during long work before compaction; the longer interval reduces growth-triggered repetition by one third for sustained conversation growth. This is a frequency decision, not a measured model-quality improvement. First delivery, content-change retry and compact/clear replay retain their existing behavior. Explicit configured intervals remain configurable; the separate approximately 200K full-document credit and generic convention horizon are unchanged.
+
+The existing boundary assertions cover silence one byte below 150K, delivery at the edge and re-arming after compaction. Read the protocol-delivery and per-file convention specs when changing those contracts.

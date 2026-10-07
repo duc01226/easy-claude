@@ -8,7 +8,7 @@ description: '[Research] Use when a workflow step or the user asks for knowledge
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -201,7 +201,7 @@ When Round 1 surfaces findings, run this focused re-review as part of that full 
 
 ---
 
-> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting.
+> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting.
 
 **Prerequisites:** **MUST ATTENTION READ** before executing:
 
@@ -300,13 +300,13 @@ When Round 1 surfaces findings, run this focused re-review as part of that full 
 **IMPORTANT MUST ATTENTION** main steps in order — read artifact → 7-checklist audit (presence AND quality depth) → adversarial Anti-Bias Gate → emit PASS/WARN/FAIL per-check + verdict (APPROVED/REVISE/BLOCKED) → conditional Round 2 re-review
 **IMPORTANT MUST ATTENTION** verify presence AND quality depth across all 7 checklists (template compliance, citation audit, confidence accuracy, source quality, knowledge gaps, cross-validation, actionability)
 **IMPORTANT MUST ATTENTION** Review-only/caller-owned passes report without artifact edits; standalone fix-loop repairs validated findings between passes, then freshly audits citations and the full artifact.
-- break work into small todo tasks using task tracking BEFORE starting; add a final review todo to verify work quality
+- break work into small todo tasks using todo tracking BEFORE starting; add a final review todo to verify work quality
 - cite evidence for every claim — for a knowledge artifact that is the supporting source citation `[N]` / source-table row (use `file:line` only for the rare code-linked claim); confidence >80% to act, <60% DO NOT recommend
 - read required project-reference docs (always `lessons.md`) before the target review; classify findings Critical/High/Medium/Low by consequence (severity rubric) — round 1 blocks on every open validated finding (LOW deferral); round 2 blocks only CRITICAL/HIGH/MEDIUM, while LOW is recorded/deferred and failed binary gates always block
 - verify every factual claim has an inline citation, every source in the table is referenced, no orphan citations, all 5 source fields present with accurate Tier
 - execute the review loop: review → validate findings → fix validated findings that block the current round → full re-review; round 1 requires zero open findings, while from round 2 onward zero CRITICAL/HIGH/MEDIUM ends the loop and LOW-only findings are recorded/deferred — NEVER fix unvalidated findings, NEVER skip the full re-review after a blocking fix cycle
 
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
+**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using todo tracking.
 
 **Anti-Rationalization:**
 

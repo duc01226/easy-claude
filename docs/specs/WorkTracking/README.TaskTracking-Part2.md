@@ -65,7 +65,7 @@ And no erased draft/context, fabricated success or falsely complete scope
 ```json
 {
   "state": "Saving",
-  "selectedItem": "PBI-104",
+  "selectedItem": "TASK-104",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters."
 }
@@ -134,7 +134,7 @@ And no erased draft/context, fabricated success or falsely complete scope
 ```json
 {
   "state": "Saved",
-  "selectedItem": "PBI-104",
+  "selectedItem": "TASK-104",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters."
 }
@@ -170,7 +170,7 @@ And no erased draft/context, fabricated success or falsely complete scope
 
 **Preconditions:**
 
-- PBI-104 is Ready, Unassigned, not accepted and has no proof; Maya is active.
+- TASK-104 is Ready, Unassigned, not accepted and has no proof; Maya is active.
 - The actor selects the actual project/profile and permitted scope before acting; native actions require the native capability and proof gate.
 
 **Real-World Reachability:** The contributor or coordinator arranges the prior work through authorized actions. Each view action follows after the person reads its result; a teammate action or substantive work occurs between checkpoints where stated, rather than assuming simultaneous back-to-back user actions. Waiting is only for the actual pending result, never an invented elapsed-time gate.
@@ -178,7 +178,7 @@ And no erased draft/context, fabricated success or falsely complete scope
 **Demo Flow:** Arrange the stated permitted work, open Work; Open item; Assign; choose Maya; Save assignment; Back to Work, then read back the affected item or scoped result. Repeat the stated failure/boundary with the invalid condition; inspect the preserved previous facts.
 
 ```gherkin
-Given PBI-104 is Ready, Unassigned, not accepted and has no proof; Maya is active
+Given TASK-104 is Ready, Unassigned, not accepted and has no proof; Maya is active
 When open Work; Open item; Assign; choose Maya; Save assignment; Back to Work
 Then owner reads Maya in saved result and Work; Ready, not accepted and no proof are unchanged; selected item/filter remain
 And inactive/unknown member cannot save; conflict retains choice without claiming durable success
@@ -203,7 +203,7 @@ And inactive/unknown member cannot save; conflict retains choice without claimin
 ```json
 {
   "project": "Team workspace",
-  "item": "PBI-104",
+  "item": "TASK-104",
   "scope": "Current checkout; local proposal",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters.",
@@ -278,7 +278,7 @@ And filters never alter global scope; unavailable input cannot become zero; open
 ```json
 {
   "project": "Team workspace",
-  "item": "PBI-104",
+  "item": "TASK-104",
   "scope": "Current checkout; local proposal",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters."
@@ -315,7 +315,7 @@ And filters never alter global scope; unavailable input cannot become zero; open
 
 **Preconditions:**
 
-- Exact linked PBI and permitted linked-upkeep policy; alternatively unlinked/off work.
+- Exact linked task and permitted linked-upkeep policy; alternatively unlinked/off work.
 - The actor selects the actual project/profile and permitted scope before acting; native actions require the native capability and proof gate.
 
 **Real-World Reachability:** The contributor or coordinator arranges the prior work through authorized actions. Each view action follows after the person reads its result; a teammate action or substantive work occurs between checkpoints where stated, rather than assuming simultaneous back-to-back user actions. Waiting is only for the actual pending result, never an invented elapsed-time gate.
@@ -323,7 +323,7 @@ And filters never alter global scope; unavailable input cannot become zero; open
 **Demo Flow:** Arrange the stated permitted work, perform authorized implementation or bugfix; inspect checkpoint/proof; inspect item, then read back the affected item or scoped result. Repeat the stated failure/boundary with the invalid condition; inspect the preserved previous facts.
 
 ```gherkin
-Given exact linked PBI and permitted linked-upkeep policy; alternatively unlinked/off work
+Given exact linked task and permitted linked-upkeep policy; alternatively unlinked/off work
 When perform authorized implementation or bugfix; inspect checkpoint/proof; inspect item
 Then only exact observed activity/blocker/proof changes; no edit/stop/green result becomes Done; unlinked work continues with checkpoint linking offer
 And no all-linked fanout, mandatory ticket, unsolicited flow or invented missing-host observation
@@ -348,7 +348,7 @@ And no all-linked fanout, mandatory ticket, unsolicited flow or invented missing
 ```json
 {
   "project": "Team workspace",
-  "item": "PBI-104",
+  "item": "TASK-104",
   "scope": "Current checkout; local proposal",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters."
@@ -418,7 +418,7 @@ And no body loss, hard deletion of accepted work, cascade or overwritten newer c
 ```json
 {
   "project": "Team workspace",
-  "item": "PBI-104",
+  "item": "TASK-104",
   "scope": "Current checkout; local proposal",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters."
@@ -491,7 +491,7 @@ And no global exclusive claim, implicit publishing, guessed repair or remote fre
 ```json
 {
   "project": "Team workspace",
-  "item": "PBI-104",
+  "item": "TASK-104",
   "scope": "Current checkout; local proposal",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters."
@@ -660,7 +660,7 @@ boundaryCounterCase: "a conflicting identity/unsafe record or changed root \u219
 
 **Preconditions:**
 
-- Any backlog item with reviewed outcome, criteria, required decisions and dependency combinations.
+- Any planned item with reviewed outcome, criteria, required decisions and dependency combinations.
 - The actor selects the actual project/profile and permitted scope before acting; native actions require the native capability and proof gate.
 
 **Real-World Reachability:** The stated actor first creates or selects work through permitted actions and reviews its current result. A competing teammate save, policy change or actual work checkpoint occurs before the next action when stated; the gap is the real review/work interval, with no invented delay or back-to-back race requirement.
@@ -668,7 +668,7 @@ boundaryCounterCase: "a conflicting identity/unsafe record or changed root \u219
 **Demo Flow:** Arrange the stated permitted work, perform the permitted actions and the stated boundary attempt for ALL inputs in this domain, then read back the affected item or scoped result. Repeat the stated failure/boundary with the invalid condition; inspect the preserved previous facts.
 
 ```gherkin
-Given any backlog item with reviewed outcome, criteria, required decisions and dependency combinations
+Given any planned item with reviewed outcome, criteria, required decisions and dependency combinations
 When perform the permitted actions and the stated boundary attempt for ALL inputs in this domain
 Then for ALL inputs: Ready is allowed only when all current readiness prerequisites hold, without demanding implementation proof; boundary outcome: one unresolved required decision → Not ready and prior state retained
 And the protected rule must not fail for any generated member of the declared domain
@@ -691,7 +691,7 @@ And the protected rule must not fail for any generated member of the declared do
 **Test Data:**
 
 ```yaml
-inputDomain: "any backlog item with reviewed outcome, criteria, required decisions and dependency combinations"
+inputDomain: "any planned item with reviewed outcome, criteria, required decisions and dependency combinations"
 invariant: "for ALL inputs: Ready is allowed only when all current readiness prerequisites hold, without demanding implementation proof"
 boundaryCounterCase: "one unresolved required decision \u2192 Not ready and prior state retained"
 ```
@@ -726,7 +726,7 @@ boundaryCounterCase: "one unresolved required decision \u2192 Not ready and prio
 
 **Preconditions:**
 
-- Any multiset of overlapping groups, delivery items, stories, tasks, ideas and canceled work.
+- Any multiset of overlapping groups, delivery items, stories, subtasks, initiatives and canceled work.
 - The actor selects the actual project/profile and permitted scope before acting; native actions require the native capability and proof gate.
 
 **Real-World Reachability:** The stated actor first creates or selects work through permitted actions and reviews its current result. A competing teammate save, policy change or actual work checkpoint occurs before the next action when stated; the gap is the real review/work interval, with no invented delay or back-to-back race requirement.
@@ -734,7 +734,7 @@ boundaryCounterCase: "one unresolved required decision \u2192 Not ready and prio
 **Demo Flow:** Arrange the stated permitted work, perform the permitted actions and the stated boundary attempt for ALL inputs in this domain, then read back the affected item or scoped result. Repeat the stated failure/boundary with the invalid condition; inspect the preserved previous facts.
 
 ```gherkin
-Given any multiset of overlapping groups, delivery items, stories, tasks, ideas and canceled work
+Given any multiset of overlapping groups, delivery items, stories, subtasks, initiatives and canceled work
 When perform the permitted actions and the stated boundary attempt for ALL inputs in this domain
 Then for ALL inputs: count uses the unique eligible delivery union, and only accepted outcomes gain delivery credit; boundary outcome: empty, all-canceled or partial vision → No delivery scope or Scope incomplete, not 100%
 And the protected rule must not fail for any generated member of the declared domain
@@ -757,7 +757,7 @@ And the protected rule must not fail for any generated member of the declared do
 **Test Data:**
 
 ```yaml
-inputDomain: "any multiset of overlapping groups, delivery items, stories, tasks, ideas and canceled work"
+inputDomain: "any multiset of overlapping groups, delivery items, stories, subtasks, initiatives and canceled work"
 invariant: "for ALL inputs: count uses the unique eligible delivery union, and only accepted outcomes gain delivery credit"
 boundaryCounterCase: "empty, all-canceled or partial vision \u2192 No delivery scope or Scope incomplete, not 100%"
 ```
@@ -779,7 +779,7 @@ boundaryCounterCase: "empty, all-canceled or partial vision \u2192 No delivery s
 | Intended observable outcome | BR-TPT-04 |
 | Executing implementation/assertion | [Source: test/work-tracking/TC-TPT-074]; authored callback/assertion guard, NOT RUN; complete implementation mapping remains TBD |
 
-**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-invariants.test.cjs::TC-TPT-074: six relationship permutations change only explicit membership and count the unique PBI union`
+**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-invariants.test.cjs::TC-TPT-074: six relationship permutations change only explicit membership and count the unique task union`
 **Status:** Untested
 
 #### TC-TPT-075: Property BR-TPT-05 state-transition [P1]
@@ -816,7 +816,7 @@ And invalid link attempts retain their prior relationships; inspection changes n
 | UI | Exact ready identity order and next identity match the selected comparison; excluded reasons and partial scope are explicit. |
 | System behavior | All generated differing-priority and tie branches obey the comparator; independently refuse self/cycle/foreign/unknown links and never manufacture readiness. |
 | Business data state | List/next preserves every original identity, body/custom content, relationship, owner, lifecycle, acceptance, proof and history. Refused links retain pre-state. |
-| Data shown on UI | In the witness set, ready PBI-900/PBI-901/PBI-104 and next PBI-900; no PBI-201 through PBI-208 exclusion appears as ready. |
+| Data shown on UI | In the witness set, ready TASK-900/TASK-901/TASK-104 and next TASK-900; no TASK-201 through TASK-208 exclusion appears as ready. |
 
 **Acceptance Criteria:**
 
@@ -828,7 +828,7 @@ And invalid link attempts retain their prior relationships; inspection changes n
 ```yaml
 inputDomain: "All permitted candidate sets under declared selected priority and exact-stable-identity orders; differing priorities with opposing ID order, equal-priority ties, satisfied prerequisites, and independent blocked/canceled unresolved/unknown/partial/self/cycle/foreign exclusions."
 invariant: "For ALL sets, only Ready candidates with resolved satisfied current prerequisites enter ready selection; selected priority comparison precedes exact stable-identity comparison for ties; list/next and refused link attempts preserve all original source facts."
-boundaryCounterCase: "Witness selected priority Higher before Lower, exact identity PBI-104 before PBI-900 before PBI-901: Higher Ready PBI-900/PBI-901 and Lower Ready PBI-104 must yield exactly [PBI-900,PBI-901,PBI-104], next PBI-900. Reject ID-first [PBI-104,PBI-900,PBI-901] and reversed tie [PBI-901,PBI-900,PBI-104]. Independently exclude PBI-201 Blocked, PBI-202 blocked prerequisite, PBI-203 canceled unresolved prerequisite, PBI-204 unknown, PBI-205 self, PBI-206 cycle, PBI-207 foreign, PBI-208 partial; any admitted excluded identity or changed source is a failure."
+boundaryCounterCase: "Witness selected priority Higher before Lower, exact identity TASK-104 before TASK-900 before TASK-901: Higher Ready TASK-900/TASK-901 and Lower Ready TASK-104 must yield exactly [TASK-900,TASK-901,TASK-104], next TASK-900. Reject ID-first [TASK-104,TASK-900,TASK-901] and reversed tie [TASK-901,TASK-900,TASK-104]. Independently exclude TASK-201 Blocked, TASK-202 blocked prerequisite, TASK-203 canceled unresolved prerequisite, TASK-204 unknown, TASK-205 self, TASK-206 cycle, TASK-207 foreign, TASK-208 partial; any admitted excluded identity or changed source is a failure."
 ```
 
 **Edge Cases:**
@@ -861,7 +861,7 @@ boundaryCounterCase: "Witness selected priority Higher before Lower, exact ident
 
 **Preconditions:**
 
-- All declared portable states crossed with requested plan, ready, start, block, resume, verify, accept, reopen and cancel actions; cancellation starts only from Draft, Backlog, Ready, In progress, Blocked, Verifying or Done under current revision, actual owner authority, explicit decision and reason.
+- All declared portable states crossed with requested plan, ready, start, block, resume, verify, accept, reopen and cancel actions; cancellation starts only from Draft, Planned, Ready, In progress, Blocked, Verifying or Done under current revision, actual owner authority, explicit decision and reason.
 - The actor selects the actual project/profile and permitted scope before acting; native actions require the native capability and proof gate.
 
 **Real-World Reachability:** The stated actor first creates or selects work through permitted actions and reviews its current result. A competing teammate save, policy change or actual work checkpoint occurs before the next action when stated; the gap is the real review/work interval, with no invented delay or back-to-back race requirement.
@@ -869,7 +869,7 @@ boundaryCounterCase: "Witness selected priority Higher before Lower, exact ident
 **Demo Flow:** Arrange the stated permitted work, perform the permitted actions and the stated boundary attempt for ALL inputs in this domain, then read back the affected item or scoped result. Repeat the stated failure/boundary with the invalid condition; inspect the preserved previous facts.
 
 ```gherkin
-Given all declared portable states crossed with requested plan, ready, start, block, resume, verify, accept, reopen and cancel actions; cancellation starts only from Draft, Backlog, Ready, In progress, Blocked, Verifying or Done under current revision, actual owner authority, explicit decision and reason
+Given all declared portable states crossed with requested plan, ready, start, block, resume, verify, accept, reopen and cancel actions; cancellation starts only from Draft, Planned, Ready, In progress, Blocked, Verifying or Done under current revision, actual owner authority, explicit decision and reason
 When perform the permitted actions and the stated boundary attempt for ALL inputs in this domain
 Then for ALL inputs: only declared transitions with current prerequisites change state; replay/no-op adds no credit; boundary outcome: any undeclared state/action pair, absent cancellation reason/authority or stale revision → refusal; exact pre-state/history retained; new Canceled cancellation is no-op/refusal without growth
 And the protected rule must not fail for any generated member of the declared domain
@@ -892,7 +892,7 @@ And the protected rule must not fail for any generated member of the declared do
 **Test Data:**
 
 ```yaml
-inputDomain: "all declared portable states crossed with requested plan, ready, start, block, resume, verify, accept, reopen and cancel actions; cancellation starts only from Draft, Backlog, Ready, In progress, Blocked, Verifying or Done under current revision, actual owner authority, explicit decision and reason"
+inputDomain: "all declared portable states crossed with requested plan, ready, start, block, resume, verify, accept, reopen and cancel actions; cancellation starts only from Draft, Planned, Ready, In progress, Blocked, Verifying or Done under current revision, actual owner authority, explicit decision and reason"
 invariant: "for ALL inputs: only declared transitions with current prerequisites change state; replay/no-op adds no credit"
 boundaryCounterCase: "any undeclared state/action pair, absent cancellation reason/authority or stale revision \u2192 refusal; exact pre-state/history retained; new Canceled cancellation is no-op/refusal without growth"
 ```
@@ -1168,7 +1168,7 @@ And no unrequested migration or invented proof occurs
 ```json
 {
   "project": "Team workspace",
-  "item": "PBI-104",
+  "item": "TASK-104",
   "scope": "Current checkout; local proposal",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters."
@@ -1238,7 +1238,7 @@ And completed retries cannot double-apply
 ```json
 {
   "project": "Team workspace",
-  "item": "PBI-104",
+  "item": "TASK-104",
   "scope": "Current checkout; local proposal",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters.",
@@ -1311,7 +1311,7 @@ And no automatic partner record/readiness/delivery is inferred
 ```json
 {
   "project": "Team workspace",
-  "item": "PBI-104",
+  "item": "TASK-104",
   "scope": "Current checkout; local proposal",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters."
@@ -1381,7 +1381,7 @@ And missing required behavior blocks only that decision
 ```json
 {
   "project": "Team workspace",
-  "item": "PBI-104",
+  "item": "TASK-104",
   "scope": "Current checkout; local proposal",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters."
@@ -1451,7 +1451,7 @@ And unsolicited records/flows are not created
 ```json
 {
   "project": "Team workspace",
-  "item": "PBI-104",
+  "item": "TASK-104",
   "scope": "Current checkout; local proposal",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters."
@@ -1521,7 +1521,7 @@ And no immediate observation or automatic semantic repair is claimed
 ```json
 {
   "project": "Team workspace",
-  "item": "PBI-104",
+  "item": "TASK-104",
   "scope": "Current checkout; local proposal",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters."
@@ -1591,7 +1591,7 @@ And retry touches only unresolved work
 ```json
 {
   "project": "Team workspace",
-  "item": "PBI-104",
+  "item": "TASK-104",
   "scope": "Current checkout; local proposal",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters."
@@ -1661,7 +1661,7 @@ And unsupported extra coverage creation leaves a pending gap
 ```json
 {
   "project": "Team workspace",
-  "item": "PBI-104",
+  "item": "TASK-104",
   "scope": "Current checkout; local proposal",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters."
@@ -1698,7 +1698,7 @@ And unsupported extra coverage creation leaves a pending gap
 
 **Preconditions:**
 
-- The coordinator reviews an exact preview of STORY-101 and STORY-102, their prior owners and current revisions, and selects active stable member member-leo. STORY-103 is unselected; member-sam independently coordinates EPIC-10.
+- The coordinator reviews an exact preview of STORY-101 and STORY-102, their prior owners and current revisions, and selects active stable member member-leo. STORY-103 is unselected; member-sam independently coordinates PROJECT-10.
 - The selected native owner proves the entire requested write footprint before any native write. Fully supported, permitted partial and pending branches use capability fixtures; these do not enable actual unproved native writes.
 
 **Real-World Reachability:** The coordinator reviews the group's leaves and proposed assignee, then confirms that exact preview. A supported per-leaf refusal or unavailable completion can occur during the operation; result inspection follows that attempt. A competing edit may occur after preview and is reread before recovery; no immediate external observation is assumed.
@@ -1710,7 +1710,7 @@ Given the exact two selected leaves, prior owners, active requested member and s
 When the coordinator confirms the previewed native assignment to member-leo
 Then a fully supported result marks both selected leaves applied and each reads back owner member-leo
 And every selected leaf has an explicit applied, refused or pending result with its reason and actual owner
-And the unselected STORY-103 owner and EPIC-10 coordinator remain unchanged
+And the unselected STORY-103 owner and PROJECT-10 coordinator remain unchanged
 And state, acceptance, proof and unrelated authored/history facts remain unchanged
 And an unproved whole native write footprint refuses every affected write before changing any leaf or other owner
 ```
@@ -1734,7 +1734,7 @@ And an unproved whole native write footprint refuses every affected write before
 ```json
 {
   "scope": "Current checkout; local proposal",
-  "group": "EPIC-10",
+  "group": "PROJECT-10",
   "requestedMember": {
     "id": "member-leo",
     "displayName": "Leo",
@@ -1870,7 +1870,7 @@ And unavailable shared revision cannot substitute current work or fetch implicit
 ```json
 {
   "project": "Team workspace",
-  "item": "PBI-104",
+  "item": "TASK-104",
   "scope": "Current checkout; local proposal",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters."
@@ -1940,7 +1940,7 @@ And no portable acceptance is fabricated
 ```json
 {
   "project": "Team workspace",
-  "item": "PBI-104",
+  "item": "TASK-104",
   "scope": "Current checkout; local proposal",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters."
@@ -2022,7 +2022,7 @@ Then I see the actual work outcome without applying a completed change twice
 ```json
 {
   "project": "Team workspace",
-  "item": "PBI-104",
+  "item": "TASK-104",
   "scope": "Current checkout; local proposal",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters."
@@ -2098,7 +2098,7 @@ And stale revisions retain drafts
 ```json
 {
   "project": "Team workspace",
-  "item": "PBI-104",
+  "item": "TASK-104",
   "scope": "Current checkout; local proposal",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters."
@@ -2168,7 +2168,7 @@ And unknown/inactive/ambiguous identity refuses change
 ```json
 {
   "project": "Team workspace",
-  "item": "PBI-104",
+  "item": "TASK-104",
   "scope": "Current checkout; local proposal",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters.",
@@ -2244,7 +2244,7 @@ And ended work is deleted only with a stated reason and a current preview that s
 ```json
 {
   "project": "Team workspace",
-  "item": "PBI-104",
+  "item": "TASK-104",
   "scope": "Current checkout; local proposal",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters."
@@ -2317,7 +2317,7 @@ And text merge alone cannot certify validity
 ```json
 {
   "project": "Team workspace",
-  "item": "PBI-104",
+  "item": "TASK-104",
   "scope": "Current checkout; local proposal",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters."
@@ -2387,7 +2387,7 @@ And editing/stopping/green results never accept work
 ```json
 {
   "project": "Team workspace",
-  "item": "PBI-104",
+  "item": "TASK-104",
   "scope": "Current checkout; local proposal",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters."
@@ -2460,7 +2460,7 @@ And unsupported immediate upkeep stays explicit
 ```json
 {
   "project": "Team workspace",
-  "item": "PBI-104",
+  "item": "TASK-104",
   "scope": "Current checkout; local proposal",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters."
@@ -2487,7 +2487,7 @@ And unsupported immediate upkeep stays explicit
 **CoveredBy:** `.claude/hooks/tests/suites/task-tracking-invariants.test.cjs::TC-TPT-098: outside-host code edits reconcile on inspection without a forced ticket or copied status`
 **Status:** Untested
 
-#### TC-TPT-101: Refused Draft → Backlog [P1]
+#### TC-TPT-101: Refused Draft → Planned [P1]
 
 **Objective:** Verify failure to satisfy the current transition must preserve work through the stated observable action.
 
@@ -2497,7 +2497,7 @@ And unsupported immediate upkeep stays explicit
 
 **Preconditions:**
 
-- Missing captured intent while the actor reviews a requested Draft → Backlog action.
+- Missing captured intent while the actor reviews a requested Draft → Planned action.
 - The actor selects the actual project/profile and permitted scope before acting; native actions require the native capability and proof gate.
 
 **Real-World Reachability:** The stated actor first creates or selects work through permitted actions and reviews its current result. A competing teammate save, policy change or actual work checkpoint occurs before the next action when stated; the gap is the real review/work interval, with no invented delay or back-to-back race requirement.
@@ -2505,7 +2505,7 @@ And unsupported immediate upkeep stays explicit
 **Demo Flow:** Arrange the stated permitted work, plan the captured draft, then read back the affected item or scoped result. Repeat the stated failure/boundary with the invalid condition; inspect the preserved previous facts.
 
 ```gherkin
-Given missing captured intent while the actor reviews a requested Draft → Backlog action
+Given missing captured intent while the actor reviews a requested Draft → Planned action
 When plan the captured draft
 Then Transition unavailable in the current state, or the specific readiness/acceptance reason; previous state and history remain
 And no requested new state, delivery credit or fictitious receipt
@@ -2529,7 +2529,7 @@ And no requested new state, delivery credit or fictitious receipt
 
 ```json
 {
-  "transition": "Draft → Backlog",
+  "transition": "Draft → Planned",
   "missingOrInvalid": "missing captured intent",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters."
@@ -2556,10 +2556,10 @@ And no requested new state, delivery credit or fictitious receipt
 | Intended observable outcome | BR-TPT-06 |
 | Executing implementation/assertion | [Source: test/work-tracking/TC-TPT-101]; authored callback/assertion guard, NOT RUN; complete implementation mapping remains TBD |
 
-**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-101: legacy draft without captured intent cannot become a planned backlog item`
+**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-101: legacy draft without captured intent cannot become planned work`
 **Status:** Untested
 
-#### TC-TPT-102: Refused Backlog → Ready [P1]
+#### TC-TPT-102: Refused Planned → Ready [P1]
 
 **Objective:** Verify failure to satisfy the current transition must preserve work through the stated observable action.
 
@@ -2569,16 +2569,16 @@ And no requested new state, delivery credit or fictitious receipt
 
 **Preconditions:**
 
-- An unresolved required scope decision while the actor reviews a requested Backlog → Ready action.
+- An unresolved required scope decision while the actor reviews a requested Planned → Ready action.
 - The actor selects the actual project/profile and permitted scope before acting; native actions require the native capability and proof gate.
 
 **Real-World Reachability:** The stated actor first creates or selects work through permitted actions and reviews its current result. A competing teammate save, policy change or actual work checkpoint occurs before the next action when stated; the gap is the real review/work interval, with no invented delay or back-to-back race requirement.
 
-**Demo Flow:** Arrange the stated permitted work, make the selected backlog item ready, then read back the affected item or scoped result. Repeat the stated failure/boundary with the invalid condition; inspect the preserved previous facts.
+**Demo Flow:** Arrange the stated permitted work, make the selected planned item ready, then read back the affected item or scoped result. Repeat the stated failure/boundary with the invalid condition; inspect the preserved previous facts.
 
 ```gherkin
-Given an unresolved required scope decision while the actor reviews a requested Backlog → Ready action
-When make the selected backlog item ready
+Given an unresolved required scope decision while the actor reviews a requested Planned → Ready action
+When make the selected planned item ready
 Then Transition unavailable in the current state, or the specific readiness/acceptance reason; previous state and history remain
 And no requested new state, delivery credit or fictitious receipt
 ```
@@ -2601,7 +2601,7 @@ And no requested new state, delivery credit or fictitious receipt
 
 ```json
 {
-  "transition": "Backlog → Ready",
+  "transition": "Planned → Ready",
   "missingOrInvalid": "an unresolved required scope decision",
   "title": "Export filtered records",
   "intent": "People can export only records matching current filters."
@@ -2628,7 +2628,7 @@ And no requested new state, delivery credit or fictitious receipt
 | Intended observable outcome | BR-TPT-06, BR-TPT-03 |
 | Executing implementation/assertion | [Source: test/work-tracking/TC-TPT-102]; authored callback/assertion guard, NOT RUN; complete implementation mapping remains TBD |
 
-**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-boundaries.test.cjs::TC-TPT-102: an explicitly unresolved required decision cannot make otherwise defined backlog work Ready`
+**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-boundaries.test.cjs::TC-TPT-102: an explicitly unresolved required decision cannot make otherwise defined planned work Ready`
 **Status:** Untested
 
 #### TC-TPT-103: Refused Ready → In progress [P1]

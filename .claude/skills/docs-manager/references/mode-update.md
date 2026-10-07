@@ -107,7 +107,7 @@ Derive impact from changed behavior, not file category alone. Tooling, technical
 - Verify changed outcomes against Acceptance Criteria, Business Rules and TCs (or their native equivalents). Preserve intended behavior instead of rewriting the spec to excuse an implementation defect. A weakened/removed `[HARD]` rule blocks until resolved or explicitly owner-accepted; record accepted contradictions as residuals, never a clean result.
 - Update logical `FR-`/`BR-`/`OP-`/`TC-` mappings before dependent prose. Retain IDs across file moves; logical renames/splits require re-resolution, while physical coordinates belong in provenance sidecars.
 - Keep governed business prose and headings tech-agnostic. Preserve permitted evidence carriers: `**Evidence**`, `CoveredBy`, legacy `IntegrationTest`, `[Source:]`, frontmatter and Mermaid. API/DTO/bus/job mechanics remain code-canonical.
-- New/changed business outcomes need noncolliding, evidence-backed TCs. Use configured PBI/idea artifact roots from `docs/project-config.json` or reference docs for detection/delegation only; route content to `/spec` and its tests/sync modes. Missing artifact roots need owner/config clarification, not guessed paths.
+- New/changed business outcomes need noncolliding, evidence-backed TCs. Use configured task/initiative artifact roots from `docs/project-config.json` or reference docs for detection/delegation only; route content to `/spec` and its tests/sync modes. Missing artifact roots need owner/config clarification, not guessed paths.
 - Every `Tested` case's `CoveredBy: {File}::{Method}` (or approved native carrier) must reach an executing assertion. Flag uncovered cases `Untested` with rationale; every test `TestSpec` annotation must resolve to the canonical registry. Legacy `IntegrationTest:` is migration input only.
 - Derived indexes must reflect current canonical specs, with valid links and the DERIVED banner. Refresh only when affected and maintained. Technical outputs belong to `/tech-spec`; absent `techSpecScan` is a reported skip, malformed declarations block. Do not invent annotations or unsupported generator flags.
 
@@ -120,7 +120,7 @@ Discover guides under `demoGuide.outputDir` in `docs/project-config.json` (defau
 - No guide, or verified unrelated guides: `NOT-APPLICABLE`, with paths/globs and reasons.
 - Insufficient relevance metadata: `UNVERIFIED`, with required follow-up.
 - A downstream workflow `/demo-guide` step owns refresh: `DEFERRED`; detect/report without creating another writer.
-- Related existing guide: invoke `/demo-guide --output {existing path}` with its scope and affected sections. Recheck PBI fences, Cases split, TC IDs, expected outcomes, storage evidence, proof rungs and transparency note. Do not invent execution proof. New guide authoring requires its own request.
+- Related existing guide: invoke `/demo-guide --output {existing path}` with its scope and affected sections. Recheck task fences (an existing `<!-- PBI:START -->` / `<!-- PBI:END -->` block is the same block and is replaced in place), Cases split, TC IDs, expected outcomes, storage evidence, proof rungs and transparency note. Do not invent execution proof. New guide authoring requires its own request.
 
 Read `.claude/skills/demo-guide/SKILL.md` when routing a refresh; it owns output paths, case identity and proof requirements.
 

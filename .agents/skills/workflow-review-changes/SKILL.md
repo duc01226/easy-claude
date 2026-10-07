@@ -8,7 +8,7 @@ description: '[Workflow] Review risky or cross-module uncommitted changes with s
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -21,12 +21,12 @@ description: '[Workflow] Review risky or cross-module uncommitted changes with s
 
 Read [the registry](../../../.claude/workflows.json) → `workflows.workflow-review-changes` together with this skill. Call [`$start-workflow workflow-review-changes`](../start-workflow/SKILL.md) to resolve the selected mode, pre-actions and fingerprint.
 
-**Todo FIRST:** create ALL selected occurrence tasks before triage, analysis or step execution, including conditional/optional tasks; preserve occurrence IDs, roles and barrier groups. Use native task tools or an equivalent persistent ledger. Then mark the first task `in_progress`; attach evidence before `completed`.
+**Todo FIRST:** create one todo for EVERY selected occurrence before triage, analysis or step execution, including conditional/optional ones; preserve occurrence IDs, roles and barrier groups. Use native todo tools or an equivalent persistent ledger. Then mark the first todo `in_progress`; attach evidence before `completed`.
 Mode selection and registry loading prepare tracking; any 'first action' below means the first substantive action after this bootstrap.
 
 **Call each step skill:** read its linked SKILL.md and execute its protocol through the active host with the registry args. Reading or naming a skill alone is not execution. Required gates and core/optional flex follow the linked start-workflow Step Execution Protocol; keep this skill's quality gates, loops and evidence requirements.
 
-**Conditions:** load each occurrence's registry `applicability.when` and `skipReason` verbatim, and record its run/skip evidence through the linked start-workflow protocol. Do not silently omit a task or turn a conditional skill into an unconditional call. Declared parallel groups retain their all-return barrier.
+**Conditions:** load each occurrence's registry `applicability.when` and `skipReason` verbatim, and record its run/skip evidence through the linked start-workflow protocol. Do not silently omit a todo or turn a conditional skill into an unconditional call. Declared parallel groups retain their all-return barrier.
 
 Explicit step-skill calls by mode (registry order; roles and conditions remain owned by the registry):
 
@@ -62,7 +62,7 @@ Before review, read the run's deviation log (`tmp/workflow-runs/<runId>/skips.md
 
 Inventory every file, intent, risks, required rules, dependencies and mechanical outputs. Write a short review plan and coverage record under `tmp/reports/` before reviewing. Choose inline work or authorized specialists and how to group connected changes from risk, context headroom and cost. There are no fixed file/line/byte caps. After compaction, resume from persisted tasks and evidence.
 
-Always create occurrence tasks before running a skill, including conditional ones. Each round also has explicit validation, fix, fresh re-review and final-check tasks. Mark inapplicable specialist tasks with evidence; never discard their duties silently.
+Always create occurrence todos before running a skill, including conditional ones. Each round also has explicit validation, fix, fresh re-review and final-check tasks. Mark inapplicable specialist tasks with evidence; never discard their duties silently.
 
 **IMPORTANT MANDATORY Steps:** $changes-review --defer=whole-target,specialists,tests,entities --fix-loop --loop-owner=caller -> $why-review --target=whole-review-target --fix-loop --loop-owner=caller -> $architecture --mode=review --fix-loop --loop-owner=caller -> $domain-analysis --mode=review --fix-loop --loop-owner=caller -> $performance-review --fix-loop --loop-owner=caller -> $integration-test --mode=review --prove-tests --fix-loop --loop-owner=caller -> $security-audit --fix-loop --loop-owner=caller -> $production-readiness-review --fix-loop --loop-owner=caller -> $ui-design --mode=review --fix-loop --loop-owner=caller -> $ai-engineering-review --fix-loop --loop-owner=caller -> $why-review --validate-findings -> $investigate --mode=debug -> $fix --target=review -> $code-simplifier --defer=review -> $why-review --fix-loop --loop-owner=caller -> $experience-review --fix-loop --loop-owner=caller -> $scan --target=domain-entities -> $docs-manager --mode=update -> $workflow-end -> $watzup
 

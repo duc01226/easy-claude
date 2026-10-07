@@ -2,7 +2,7 @@
 
 > **Purpose:** the one-page map of the portable `.claude/` framework — what it does, how the parts fit, how to use it day to day, and where each topic's detailed owner doc lives. Read it first when you adopt the framework, change it, or need to explain a hook block, a routing decision or a workflow step.
 >
-> **Framework inventory:** <!-- COUNT:hooks -->32<!-- /COUNT --> top-level hook files · <!-- COUNT:lib-modules -->59<!-- /COUNT --> hook-library modules · <!-- COUNT:skills -->102<!-- /COUNT --> skills · <!-- COUNT:workflows -->19<!-- /COUNT --> workflows · <!-- COUNT:agents -->24<!-- /COUNT --> agents · <!-- COUNT:shared -->15<!-- /COUNT --> shared reference/protocol entries.
+> **Framework inventory:** <!-- COUNT:hooks -->32<!-- /COUNT --> top-level hook files · <!-- COUNT:lib-modules -->61<!-- /COUNT --> hook-library modules · <!-- COUNT:skills -->102<!-- /COUNT --> skills · <!-- COUNT:workflows -->19<!-- /COUNT --> workflows · <!-- COUNT:agents -->24<!-- /COUNT --> agents · <!-- COUNT:shared -->15<!-- /COUNT --> shared reference/protocol entries.
 >
 > **Visual overview:** `.claude/docs/claude-ai-agent-framework-guide.html`. Use this Markdown guide for current inventories and source-owner pointers.
 
@@ -29,7 +29,7 @@ A generic LLM is capable but forgetful, confident without evidence, and unaware 
 | Drifts from the spec                 | Spec-first workflows, spec sync gates, doc-sync advisory     | `spec`, `docs-manager`, `doc-sync-gate.cjs`         |
 | Leaks one project into another       | Portable source + generated mirrors + residue verifiers     | `framework-portability.md`, `/sync-codex`          |
 
-The design bet: **hooks put the contract in context at the right moment.** The universal rules every task follows are delivered by the universal hook on the first prompt, again after 100K tokens or a compaction, and to every sub-agent; skill protocols arrive when a skill loads, and a skill's project overlays are named when it starts. `CLAUDE.md` holds project information only. Claude Code, Codex and OpenCode run the same hooks; a host with no hooks is unsupported. A few checks must be mechanical, so they are gates.
+The design bet: **hooks put the contract in context at the right moment.** The universal rules every task follows are delivered by the universal hook on the first prompt, again after 150K tokens or a compaction, and to every sub-agent; skill protocols arrive when a skill loads, and a skill's project overlays are named when it starts. `CLAUDE.md` holds project information only. Claude Code, Codex and OpenCode run the same hooks; a host with no hooks is unsupported. A few checks must be mechanical, so they are gates.
 
 ---
 
@@ -45,7 +45,7 @@ The design bet: **hooks put the contract in context at the right moment.** The u
 | Review your changes                   | `/changes-review` (quick) · `/workflow-review-changes --fix-loop` (full) |
 | Commit                                | `/commit` (the only agent commit path)                  |
 | Open a pull request                   | `/pull-request` (branch → review → commit → PR → CI green) |
-| Design or mock up UI                  | `/ui-design`, `/pbi --mode=mockup --explore`, `/workflow-spec-to-mockup` |
+| Design or mock up UI                  | `/ui-design`, `/work-item --mode=mockup --explore`, `/workflow-spec-to-mockup` |
 | Write or sync a spec                  | `/spec`, `/workflow-feature-spec`, `/workflow-spec-sync` |
 | Write or fix tests                    | `/workflow-integration-test` (`--mode=write` · `--mode=green`), `/workflow-e2e` |
 | Set up a project                      | `/project-init`, then `/scan-all`                       |
@@ -87,7 +87,7 @@ flowchart TB
 | Project reference docs   | `docs/project-reference`  | `docs/project-config.json` → `docsRoots.projectReference.path` |
 | ADRs                     | `docs/adr`                | `docs/project-config.json` → `docsRoots.adr.path` |
 | Plans                    | `plans`                   | `docs/project-config.json` → `docsRoots.plans.path` |
-| Team artifacts (PBIs, mockups) | `team-artifacts`    | `docs/project-config.json` → `docsRoots.teamArtifacts.path` |
+| Team artifacts (tasks, mockups) | `team-artifacts`    | `docs/project-config.json` → `docsRoots.teamArtifacts.path` |
 | Product roadmap          | `docs/product-roadmap.md` | `docs/project-config.json` → `docsRoots.productRoadmap.path` |
 | Disposable output        | `tmp/` (or `temp/`)       | fixed; both git-ignored                |
 
@@ -143,15 +143,15 @@ A workflow is an **intent** plus **outcome gates** plus an ordered list of **ste
 | `workflow-feature-spec`           | auto    | 8     | Create or update a canonical feature spec                         |
 | `workflow-code-to-spec`           | auto    | 6–11  | Spec from existing code, sync after changes, staleness audit      |
 | `workflow-spec-sync`              | auto    | 11    | Update test specs after code, bug or PR changes                   |
-| `workflow-idea-to-spec`           | auto    | 19    | Raw idea → one reviewed provisional spec                          |
-| `workflow-idea-to-pbi`            | auto    | 30    | Idea → grooming-ready PBI, stories and test specs                 |
-| `workflow-spec-to-pbi`            | auto    | 22    | Specs → prioritized, dependency-aware backlog                     |
+| `workflow-initiative-to-spec`           | auto    | 19    | Raw idea → one reviewed provisional spec                          |
+| `workflow-initiative-to-task`            | auto    | 30    | Initiative → ready-to-plan task, stories and test specs                  |
+| `workflow-spec-to-task`            | auto    | 22    | Specs → prioritized, dependency-aware planned work                     |
 | `workflow-greenfield-init`        | confirm | 55    | A new project from scratch                                        |
 | `workflow-integration-test`       | auto    | 6–10  | Write or update integration tests spec-first, or drive a red suite to green |
 | `workflow-e2e`                    | auto    | 6     | Write, update and verify E2E tests                                |
 | `workflow-seed-test-data`         | auto    | 9     | Idempotent seeders and realistic dev data                         |
 | `workflow-architecture-audit`     | auto    | 6     | Whole-project architecture and production-readiness check         |
-| `workflow-research`               | auto    | 5–6   | Web research → synthesis, business, marketing or course output    |
+| `workflow-research`               | auto    | 5–6   | Web research → synthesis, business, marketing or course output           |
 
 ### Key sequences (`gate` in bold)
 
@@ -159,7 +159,7 @@ A workflow is an **intent** plus **outcome gates** plus an ordered list of **ste
 - **Bug fix:** **root-cause investigation** → optional spec amend / plan → **regression test written** → fix → **review changes** (static) → **verify** (tests + mutation check: the test fails without the fix, passes with it) → **close**.
 - **Refactor:** investigate → **run tests (green baseline)** → plan → optional safety-net tests → execute → **review changes** → **test** → **close**.
 - **Implement spec:** investigate → spec [mode=clarify] → plan → execute → integration tests → **review changes** (static) → **verify** → **test** → **close**.
-- **Spec to mockup:** design spec → **design review** → `pbi --mode=mockup --explore` → `html-export` → **UI review** → **close**.
+- **Spec to mockup:** design spec → **design review** → `work-item --mode=mockup --explore` → `html-export` → **UI review** → **close**.
 - **Review changes:** `changes-review` ∥ whole-target `why-review` → triage-selected `--report-only` specialists (the integration-test review with `--prove-tests` always runs; a parent workflow that verifies once, last — `SYNC:verify-last-order` — passes `--tests=defer` and the review stays static) → validate findings → trace unexplained defects → `fix --target=review` → simplify → post-fix re-review → `scan --target=domain-entities → docs-manager --mode=update`. The domain-entity scan runs only when the final diff changes an entity/model, DTO/data contract, persistence schema/migration, or entity-sync evidence; otherwise complete the scan task with a cited skip reason. `docs-manager --mode=update` always applies the spec/doc gaps the reviewers flagged read-only.
 
 ---
@@ -177,8 +177,8 @@ A skill is a directory with `SKILL.md` (frontmatter `name`, `description` = `[Ca
 | Review & quality                 | 8     | `changes-review`, `why-review`, `security-audit`, `ui-design --mode=review` |
 | Testing                          | 6     | `test`, `integration-test`, `e2e-test`, `experience-review`          |
 | Specs & reference docs           | 6     | `spec` (modes `discovery`, `clarify`, `index`), `tech-spec`, `docs-manager` (modes `init`, `update`), `scan` |
-| Design & UI                      | 3     | `ui-design`, `design-spec`, `pbi --mode=mockup`                                |
-| Product / PBI                    | 4     | `idea`, `pbi` (modes `refine`, `story`, `mockup`, `challenge`, `review`, `dor`), `prioritize` |
+| Design & UI                      | 3     | `ui-design`, `design-spec`, `work-item --mode=mockup`                                |
+| Product / task                    | 4     | `initiative`, `work-item` (modes `refine`, `story`, `mockup`, `challenge`, `review`, `dor`), `prioritize` |
 | Research & business content      | 6     | `web-research`, `source-deep-dive`, `market-analysis`                   |
 | Documents, decks & media         | 9     | `feature-presentation`, `html-export`, `demo-guide`, `watzup`        |
 | Git & delivery                   | 5     | `commit`, `pull-request`, `git-conflict-resolve`, `release-doc`    |
@@ -231,10 +231,10 @@ Everything else is advisory or silent.
 
 **Key mechanisms**
 
-- **Universal bundle** — the framework rules every task follows, in four messages, once per session, again after ~100K tokens of growth or a compaction, and once per spawned sub-agent.
+- **Universal bundle** — the framework rules every task follows, in four messages, once per session, again after ~150K tokens of growth or a compaction, and once per spawned sub-agent.
 - **Routing injection** — the gate plus the workflow catalog, once per session, re-armed on change, compaction or ~200K tokens of growth.
 - **Protocol delivery** — when a skill loads, its group hook sends the full text of the protocols its guide lines name, once per session, capped per message.
-- **Skill overlay reminder** — when a skill starts, a three-line reminder names the project overlay files that apply to it (repeats after ~100K tokens).
+- **Skill overlay reminder** — when a skill starts, a three-line reminder names the project overlay files that apply to it (repeats after ~150K tokens).
 - **File conventions** — touching a file injects the matching `contextGroups[]` rules not already in context (opt-in `conventionInjection.enabled`; shell read: `node .claude/hooks/lib/file-conventions.cjs --lookup <path>`).
 - **Prompt ledger** — pins your first prompt as the session goal and records every later prompt in `tmp/prompt-ledger/<session>/ledger.md`, re-delivered after compaction.
 - **Token checkpoint** — an advisory note each time non-cached tokens pass a multiple of `hooks.tokenBudget.checkpointTokens` (default 500,000).
@@ -286,7 +286,7 @@ Any task that creates or reshapes a user-facing screen runs three rule sets in o
 | `DD-1`–`DD-8` | Is it this product's interface, not a generic template        | `.claude/docs/design-knowledge.md`    |
 | `CL-1`–`CL-6` | How to review: context, evidence, P0–P4 severity, sweep       | `.claude/docs/design-review-checklist.md` |
 
-Precedence: the brief's visual direction → the project's design system and ADRs → these clauses; genuine conflicts go to the user. **Explore mode** (`/pbi --mode=mockup --explore`, `/ui-design --mode=explore`) first asks how many drafts (3, 2, 1 or skip), opens them in the browser, recommends one with evidence and builds the full mockup only in the direction the user picks; with nobody to ask it builds one draft and records the automatic choice.
+Precedence: the brief's visual direction → the project's design system and ADRs → these clauses; genuine conflicts go to the user. **Explore mode** (`/work-item --mode=mockup --explore`, `/ui-design --mode=explore`) first asks how many drafts (3, 2, 1 or skip), opens them in the browser, recommends one with evidence and builds the full mockup only in the direction the user picks; with nobody to ask it builds one draft and records the automatic choice.
 
 ---
 
@@ -361,11 +361,11 @@ Codex transforms `/skill` into `$skill`, `Agent` into `spawn_agent` and strips C
 | Runner                                  | Tests  | Covers                                                                 |
 | --------------------------------------- | ------ | ---------------------------------------------------------------------- |
 | `test-all-hooks.cjs` (primary gate)  | **133** | Hook behaviors, bridged suites and the count guard                     |
-| `run-all-tests.cjs` (full aggregate) | **1764** | 115 discovered `tests/suites/*.test.cjs` files; primary gate runs separately |
+| `run-all-tests.cjs` (full aggregate) | **1839** | 118 discovered `tests/suites/*.test.cjs` files; primary gate runs separately |
 | `node --test .claude/scripts/codex/tests` | —      | Mirror generators and verifiers                                        |
 | `run-codex-sync.mjs --verify-only`      | —      | Every read-only gate before a commit                                   |
 
-> Source inventory: `test-all-hooks.cjs` = 133; `run-all-tests.cjs` = 1764 declared across 115 suites. Both runners fail when these numbers drift from the docs. Counts do not establish runtime results; read the actual runner output for outcomes.
+> Source inventory: `test-all-hooks.cjs` = 133; `run-all-tests.cjs` = 1839 declared across 118 suites. Both runners fail when these numbers drift from the docs. Counts do not establish runtime results; read the actual runner output for outcomes.
 
 **Portable test contract** — shipped tests must pass in any project layout on Windows, macOS and Linux: build a temp fixture project instead of reading this repository's config or git state; blank inherited feature switches and provider keys; point `HOME`, `USERPROFILE`, `TMPDIR`, `TEMP` and `TMP` at the temp dir; name OS differences explicitly (paths, symlinks, `py -3` vs `python3`); run the full suite twice to prove repeatability.
 

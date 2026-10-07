@@ -8,7 +8,7 @@ description: '[Architecture] Use when a workflow step or the user asks for tech-
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -19,7 +19,7 @@ description: '[Architecture] Use when a workflow step or the user asks for tech-
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
 > **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
-> **[BLOCKING]** Before each step or sub-skill call, update task tracking: set `in_progress` when step starts, set `completed` when step ends.
+> **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
 
@@ -31,14 +31,14 @@ description: '[Architecture] Use when a workflow step or the user asks for tech-
 
 **Summary:**
 
-- **Purpose:** act as solution architect—load business/domain/PBI context, derive constraints, research current options, compare fit, and record only user-confirmed decisions.
+- **Purpose:** act as solution architect—load business/domain/task context, derive constraints, research current options, compare fit, and record only user-confirmed decisions.
 - **Ordered path:** (1) load context → (2) derive requirements + `ask user question tool` confirmation → (3) classify layer applicability and WebSearch unresolved required layers (2–3 viable alternatives; bounded searches) → (4) compare → (5) score/rank each layer with confidence % → (6) write `{plan-dir}/research/tech-stack-comparison.md` (<=200 lines) → (7) end interview (5-8 questions) and write `status: confirmed` to `{plan-dir}/phase-02-tech-stack.md`.
 - **Evidence gates:** cite a URL, benchmark, or case study for every claim/recommendation; score 8 criteria with High=3x/Medium=2x/Low=1x; NEVER choose by familiarity.
 - **Follow-up modes:** after Step 7, separate `ask user question tool` offers `$architecture --mode=design` (Recommended), `$plan` if architecture is decided, or skip; a second council prompt offers skip (Recommended) or `$llm-council` (11 sub-agents) for close scores or unfamiliar/strategic dependencies.
 
 **Workflow:**
 
-1. **Load Business Context** — Read prior business evaluation, domain/ERD, refined PBI, and discovery notes from the plans and team-artifacts roots (defaults `plans/` and `team-artifacts/`; `docsRoots.plans.path` / `docsRoots.teamArtifacts.path` in `docs/project-config.json` override them).
+1. **Load Business Context** — Read prior business evaluation, domain/ERD, refined task, and discovery notes from the plans and team-artifacts roots (defaults `plans/` and `team-artifacts/`; `docsRoots.plans.path` / `docsRoots.teamArtifacts.path` in `docs/project-config.json` override them).
 2. **Derive Technical Requirements** — Map signals to constraints; confirm via `ask user question tool`.
 3. **Research Per Layer** — Research only unresolved required layers; compare 2–3 viable alternatives within the agreed query budget.
 4. **Deep Compare** — Build pros/cons matrices with benchmarks, community health, and team fit.
@@ -63,7 +63,7 @@ Read artifacts from prior workflow steps — search the plans and team-artifacts
 
 - Business evaluation report (viability, scale, constraints)
 - Domain model / ERD (complexity, entity count, relationships)
-- Refined PBI (acceptance criteria, scope)
+- Refined task (acceptance criteria, scope)
 - Discovery interview notes (team skills, budget, timeline)
 
 Extract and summarize:
@@ -76,7 +76,7 @@ Extract and summarize:
 | Budget constraint      | ...          | business evaluation |
 | Timeline               | ...          | business evaluation |
 | Compliance needs       | ...          | business evaluation |
-| Real-time needs        | Yes/No       | refined PBI         |
+| Real-time needs        | Yes/No       | refined task         |
 | Integration complexity | Low/Med/High | domain model        |
 
 ## Step 2: Derive Technical Requirements
@@ -224,7 +224,7 @@ After user confirms, update report with final decisions, mark `status: confirmed
 
 ---
 
-**MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting.
+**MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using todo tracking BEFORE starting.
 **MANDATORY IMPORTANT MUST ATTENTION** validate EVERY recommendation with user via `ask user question tool` — NEVER auto-decide.
 **MANDATORY IMPORTANT MUST ATTENTION** include confidence % and evidence citations for all claims.
 **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality.
@@ -302,13 +302,13 @@ After the existing `## Next Steps` prompt above resolves, present a **second**, 
 
 **IMPORTANT MUST ATTENTION** research 2–3 viable options per OPEN-REQUIRED layer only; record FIXED/N/A layers and honor the total query cap; every recommendation carries confidence % + cited evidence (URL, benchmark, case study) — NEVER recommend on familiarity alone — why: familiarity bias commits the team to the wrong stack that surfaces only at scale.
 **IMPORTANT MUST ATTENTION** gate on user via `ask user question tool` at EVERY decision point — confirm derived requirements before research (Step 2), confirm each open layer recommendation in the end interview (Step 7) — NEVER auto-decide — why: the team owns the stack, not the AI.
-**MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting; mark one `in_progress`, `completed` immediately after evidence; add a final review todo.
+**MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using todo tracking BEFORE starting; mark one `in_progress`, `completed` immediately after evidence; add a final review todo.
 
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
+**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using todo tracking.
 
 > **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
 
-**IMPORTANT MUST ATTENTION** requirements come BEFORE research — load prior business/domain/PBI artifacts (Step 1), map business signals to technical requirements (Step 2), user-confirm them, THEN WebSearch (Step 3) — NEVER research before requirements are derived and confirmed — why: researching first picks tech then back-fits the problem, the reverse of architecture.
+**IMPORTANT MUST ATTENTION** requirements come BEFORE research — load prior business/domain/task artifacts (Step 1), map business signals to technical requirements (Step 2), user-confirm them, THEN WebSearch (Step 3) — NEVER research before requirements are derived and confirmed — why: researching first picks tech then back-fits the problem, the reverse of architecture.
 **IMPORTANT MUST ATTENTION** score every OPEN-REQUIRED layer with the weighted 8-criteria matrix (High=3x / Medium=2x / Low=1x), rank with confidence %, cap the `{plan-dir}/research/tech-stack-comparison.md` report at <=200 lines using tables over prose — why: an unscored or unbounded report hides the trade-off the decision turns on.
 **IMPORTANT MUST ATTENTION** only user-confirmed decisions get written to `phase-02-tech-stack.md` as `status: confirmed` — the end interview (5-8 `ask user question tool` questions) is mandatory and NEVER skipped even when the choice seems "obvious" — why: an unconfirmed stack is a guess the team will pay for.
 **IMPORTANT MUST ATTENTION** every claim, finding, and recommendation requires `file:line`/URL proof or traced evidence + confidence % (>80% act, 60-80% verify first, <60% DO NOT recommend) — NEVER present a guess as fact — why: a stack chosen on speculation fails silently until production.

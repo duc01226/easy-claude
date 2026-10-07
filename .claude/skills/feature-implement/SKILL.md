@@ -9,7 +9,7 @@ context-budget: high
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
 > **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, merge steps without explicit user approval.
-> **[BLOCKING]** Before each step or sub-skill call, update task tracking: `in_progress` on start, `completed` on end.
+> **[BLOCKING]** Before each step or sub-skill call, update todo tracking: `in_progress` on start, `completed` on end.
 > **[BLOCKING]** Every completed/skipped step MUST include evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools unavailable, maintain equivalent step-by-step plan tracker with same status transitions.
 

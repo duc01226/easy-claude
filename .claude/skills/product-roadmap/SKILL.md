@@ -8,18 +8,18 @@ disable-model-invocation: true
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
-> **[BLOCKING]** Execute phases in order; update task tracking before and after each phase.
+> **[BLOCKING]** Execute phases in order; update todo tracking before and after each phase.
 > **[BLOCKING]** Every completed or skipped phase needs concise evidence or a reason.
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:END -->
 
 ## Quick Summary
 
-**Goal:** When explicitly requested, turn a product vision into an approved, outcome-based roadmap and one selected milestone—or route a genuinely isolated change through an explicit EXEMPT boundary—without making the roadmap artifact a prerequisite for ordinary idea, PBI, spec, presentation, or mock-up work.
+**Goal:** When explicitly requested, turn a product vision into an approved, outcome-based roadmap and one selected milestone—or route a genuinely isolated change through an explicit EXEMPT boundary—without making the roadmap artifact a prerequisite for ordinary initiative, task, spec, presentation, or mock-up work.
 
 **Summary:**
 
-- Detect create/update/select/exempt only after confirming that the user explicitly requested this standalone skill. Read the shared contract and existing roadmap before writing. A large or ambiguous idea alone is not an invocation; its decomposition belongs in the owning PBI/spec/presentation/mock-up artifacts.
+- Detect create/update/select/exempt only after confirming that the user explicitly requested this standalone skill. Read the shared contract and existing roadmap before writing. A large or ambiguous idea alone is not an invocation; its decomposition belongs in the owning task/spec/presentation/mock-up artifacts.
 - Define the product outcome, actors, business truth, and 3–8 outcome milestones; each milestone names user outcome, risk retired, non-goals, human decisions, dependencies, and evidence.
 - Ask the owner to confirm ambiguous terms and select one milestone; write the roadmap document (default `docs/product-roadmap.md`; a `docsRoots.productRoadmap.path` entry in `docs/project-config.json` overrides the path) and a linked `scope-brief.md` incrementally.
 - Hand off only an approved milestone, or an explicitly accepted EXEMPT scope, to `/scenario`; implementation planning remains blocked until the applicable Plan Gate is satisfied.
@@ -44,7 +44,7 @@ disable-model-invocation: true
 
 ## Phase 0: Explicit Invocation Gate and Applicability
 
-First confirm that the caller explicitly requested a product-roadmap deliverable or named this standalone skill. If not, STOP this route and return control to the active idea/PBI/spec workflow; do not infer `create`, do not create a scope brief, and do not write the roadmap document (default `docs/product-roadmap.md`; a `docsRoots.productRoadmap.path` entry in `docs/project-config.json` overrides the path).
+First confirm that the caller explicitly requested a product-roadmap deliverable or named this standalone skill. If not, STOP this route and return control to the active initiative/task/spec workflow; do not infer `create`, do not create a scope brief, and do not write the roadmap document (default `docs/product-roadmap.md`; a `docsRoots.productRoadmap.path` entry in `docs/project-config.json` overrides the path).
 
 For an explicit invocation, classify `$ARGUMENTS` as `create`, `update`, `select`, or `exempt`:
 
@@ -120,7 +120,7 @@ For an explicit roadmap request, handoff only after the roadmap document (defaul
 
 1. `/scenario {scope-brief}` to enumerate adversarial situations.
 2. `/brainstorm` for a selected capability’s detailed scope only when ideation is still needed; do not reopen the product roadmap silently.
-3. `/spec`, `/pbi --mode=refine`, or `/plan` only after the downstream skill confirms the roadmap/milestone references or the EXEMPT branch.
+3. `/spec`, `/work-item --mode=refine`, or `/plan` only after the downstream skill confirms the roadmap/milestone references or the EXEMPT branch.
 
 Stop and report `BLOCKED` when applicable roadmap artifacts are missing, no applicable milestone is selected, the EXEMPT reason/owner is missing, a material term has multiple plausible meanings, or the owner has not approved the selection/boundary.
 

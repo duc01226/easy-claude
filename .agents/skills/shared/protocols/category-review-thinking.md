@@ -16,7 +16,7 @@
 > - **Test coverage:** Are the changed paths covered by tests? Are existing tests still valid after the change?
 > - **Documentation:** Do related docs, specs, or READMEs reflect the changes?
 >
-> **Step 4 — Create sub-tasks and execute.** For each identified concern: create a task tracking sub-task, work through it with `file:line` evidence, mark done. No findings without proof.
+> **Step 4 — Create sub-tasks and execute.** For each identified concern: create a todo tracking sub-task, work through it with `file:line` evidence, mark done. No findings without proof.
 >
 > **Illustrative concern examples by category type** (not exhaustive — trust your knowledge beyond this):
 >

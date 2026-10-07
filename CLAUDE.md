@@ -167,19 +167,19 @@ When editing files matching these path patterns, pre-read the listed context fir
 | Agents      | <!-- COUNT:agents -->24<!-- /COUNT -->      |
 | Workflows   | <!-- COUNT:workflows -->19<!-- /COUNT -->   |
 | Shared      | <!-- COUNT:shared -->15<!-- /COUNT -->      |
-| Lib modules | <!-- COUNT:lib-modules -->59<!-- /COUNT --> |
+| Lib modules | <!-- COUNT:lib-modules -->61<!-- /COUNT --> |
 
 ---
 
 <!-- SECTION:doc-index -->
 
 ```
-docs/adr/  (4 files)
+docs/adr/  (5 files)
 docs/knowledge/  (1 files)
 docs/project-reference/  (18 files)
 docs/release/  (1 files)
 docs/release-notes/  (2 files)
-docs/specs/  (22 files)
+docs/specs/  (23 files)
 docs/templates/  (1 files)
 ```
 

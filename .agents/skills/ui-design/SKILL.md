@@ -9,7 +9,7 @@ disable-model-invocation: false
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -85,7 +85,7 @@ disable-model-invocation: false
 
 - When `--mode` is omitted, default to `--mode=fast`.
 - An explicit `--mode` always wins; `--mode=review` is never inferred from the brief and is never the default.
-- When `--lane` is omitted, default to `--lane=product` (the dominant PBI/app use). Pick `marketing` for landing pages, campaigns, and distinctive creative pieces.
+- When `--lane` is omitted, default to `--lane=product` (the dominant task/app use). Pick `marketing` for landing pages, campaigns, and distinctive creative pieces.
 - `--mode` (input carrier) and `--lane` (design tradition) are orthogonal — e.g. `--mode=screenshot --lane=product` recreates a dashboard screenshot in the product-UI craft tradition.
 - `$ARGUMENTS` carries the full input after the command. Interpret it per mode: `fast`/`good`/`explore` → a text design brief; `describe`/`screenshot` → a screenshot reference (path/URL/attachment); `video` → a video reference; `review` → the review scope (files, directories or surfaces; empty = all uncommitted UI changes) plus the optional `--report-only` flag.
 
@@ -268,7 +268,7 @@ Treat `$ARGUMENTS` as the video to recreate exactly. Same as `--mode=screenshot`
 
 ---
 
-> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. Keep task depth proportional to the work.
+> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. Keep task depth proportional to the work.
 
 Think hard to plan & start working on these tasks follow the Orchestration Protocol, Core Responsibilities, Subagents Team and Development Rules. Parse `--mode` from the input (default `fast`; an explicit mode wins) and route to the matching branch above:
 <tasks>$ARGUMENTS</tasks>
@@ -336,13 +336,13 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 **MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
 
-- **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting
+- **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using todo tracking BEFORE starting
 - **MANDATORY IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code
 - **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
 - **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
 - **MANDATORY IMPORTANT MUST ATTENTION** apply the 40 UI/UX Design Principles (`UI-1.1`–`UI-9.4`) to every design: empty/loading/error states designed FIRST (`UI-1.5`), all 5 interaction states per interactive element (`UI-5.2`), type scale (6 named steps, `UI-2.5`) and spacing unit (4/8px base, `UI-4.1`) DECLARED not improvised, contrast measured and stated (4.5:1 text / 3:1 edges, `UI-3.1`), ≥44×44pt touch targets + bottom-third primaries on mobile surfaces (`UI-8.1`, `UI-8.2`); `fast`/`good`/`explore` APPLY them, `describe`/`screenshot`/`video` also REPORT by clause ID which the observed design satisfies or violates — project design-system docs outrank the clauses, conflicts go to the user
 
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
+**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using todo tracking.
 
 
 <!-- SYNC:review-policy:reminder -->

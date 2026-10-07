@@ -9,6 +9,10 @@ const policy = require('./task-tracking-policy.cjs');
 const { actorContext } = require('./task-tracking-identity.cjs');
 const { isPrivacySensitive } = require('./sensitive-path-policy.cjs');
 const { redactSecrets } = require('./prompt-ledger-store.cjs');
+const vocabulary = require('./task-tracking-vocabulary.cjs');
+
+// A save request is written in one vocabulary, named by its version. A request for another version is refused whole.
+const REQUEST_VERSION = vocabulary.CURRENT_VERSION;
 
 const operation = (patchKeys, purpose, authority = 'Explicit write action') => Object.freeze({ patchKeys: Object.freeze(patchKeys), purpose, authority });
 const OPERATIONS = Object.freeze({
@@ -17,7 +21,7 @@ const OPERATIONS = Object.freeze({
     adopt: operation([], 'Preview and adopt preserved legacy content'),
     assign: operation(['assigneeId', 'collaboratorIds'], 'Assign stable responsible members'),
     link: operation(['links'], 'Save canonical relationships; separate from session linkage'),
-    group: operation(['memberItemIds', 'groupRole'], 'Maintain exact epic or vision members and optional purpose'),
+    group: operation(['memberItemIds', 'groupRole'], 'Maintain exact project or vision members and optional purpose'),
     transition: operation(['state', 'reason', 'resolution', 'readiness', 'correction'], 'Apply a permitted lifecycle transition, or with correction place work in any other recorded state', 'Readiness needs actual review; raw Done is refused; a correction needs its own explicit action and a reason'),
     proof: operation(['proof'], 'Record an actual scoped observation', 'Manual needs explicit manual-proof action; test/review needs trusted observedProof'),
     accept: operation(['reason'], 'Accept current complete proof on verifying work', 'Separate actual human accepting decision'),
@@ -46,7 +50,8 @@ const CLI_STATE_CORRECTION_FLAG = '--change-state';
 function operationCatalogue() {
     // Discovery describes the actual validator/authority boundary; it never grants permission.
     return { schemaVersion: 1, defaultPurpose: 'inspect', kinds: [...KINDS], states: [...policy.STATES], linkRoles: [...policy.LINK_ROLES],
-        request: { fields: [...REQUEST_FIELDS], required: ['schemaVersion', 'operation', 'operationId', 'target', 'actor', 'patch'],
+        vocabulary: vocabulary.vocabularyBlock(),
+        request: { schemaVersion: REQUEST_VERSION, fields: [...REQUEST_FIELDS], required: ['schemaVersion', 'operation', 'operationId', 'target', 'actor', 'patch'],
             shapes: Object.fromEntries(Object.entries(SHAPE_KEYS).map(([name, keys]) => [name, [...keys]])),
             existingItem: 'Exact itemId and expected revision/contentHash; creation forbids expected',
             context: 'Both actual runId and occurrenceId, matching caller authority',
@@ -67,7 +72,9 @@ function validateRequest(request) {
     exact(request, REQUEST_FIELDS, 'Request');
     // Omitting the version or the operation is malformed input; naming one this tool does not have is unsupported.
     if (request.schemaVersion === undefined || request.operation === undefined) fail('INVALID_INPUT', 'A request states its schema version and operation');
-    if (request.schemaVersion !== 1 || !Object.hasOwn(OPERATION_KEYS, request.operation)) fail('UNSUPPORTED', 'Unsupported tracking operation/version');
+    // The same word names different kinds in the two vocabularies, so an earlier request is never carried out as a current one.
+    if (request.schemaVersion === vocabulary.EARLIER_VERSION) fail('UNSUPPORTED', vocabulary.REFUSALS.EARLIER_VOCABULARY_REQUEST);
+    if (request.schemaVersion !== REQUEST_VERSION || !Object.hasOwn(OPERATION_KEYS, request.operation)) fail('UNSUPPORTED', 'Unsupported tracking operation/version');
     if (!policy.string(request.operationId, 120) || !ITEM_ID.test(request.operationId)) fail('INVALID_INPUT', 'An exact stable operation identity is required');
     exact(request.target, SHAPE_KEYS.target, 'Target');
     if (!KINDS.includes(request.target.kind) || (request.target.itemId !== undefined && (typeof request.target.itemId !== 'string' || !ITEM_ID.test(request.target.itemId)))) fail('INVALID_INPUT', 'Target kind or identity is invalid');
@@ -106,7 +113,7 @@ function authorize(request, authority, context) {
 }
 
 function metadata(kind) {
-    return { schemaVersion: 1, revision: 1, kind, assigneeId: null, collaboratorIds: [], criteria: [], links: [], proofs: [],
+    return { schemaVersion: vocabulary.CURRENT_VERSION, revision: 1, kind, assigneeId: null, collaboratorIds: [], criteria: [], links: [], proofs: [],
         acceptanceHistory: [], history: [], receipts: [], optOut: false, retired: null };
 }
 
@@ -163,7 +170,7 @@ const handlers = {
     },
     group({ request, record }) {
         const patch = request.patch;
-        if (!['epic', 'vision'].includes(record.kind)) fail('INVALID_INPUT', 'Group purpose and membership require an epic or vision');
+        if (!vocabulary.GROUP_KINDS.includes(record.kind)) fail('INVALID_INPUT', 'Group purpose and membership require a project or vision');
         if (!Object.keys(patch).length) fail('INVALID_INPUT', 'No group change requested');
         const tracking = {};
         if (Object.hasOwn(patch, 'memberItemIds')) {
@@ -252,11 +259,15 @@ async function apply(request, authority, digest) {
     if (skipped) return { schemaVersion: 1, primary: skipped, secondary: [] };
     const profile = resolveTrackingProfile(context);
     if (!profile.available) fail(profile.code, profile.reason);
+    // Checked again under the writer lock, before any record is read for writing or handed to deletion.
+    vocabulary.requireCurrentVocabulary(context.vocabulary);
     const deletion = require('./task-tracking-deletion.cjs');
     const deletedReceipt = deletion.completedRecovery(context, request, digest);
     if (deletedReceipt) return deletedReceipt;
     if (request.operation === 'delete') return deletion.deleteDraft(context, request, digest, authority, recordView);
     const scan = inspectRecords(context);
+    if (scan.diagnostics.some(finding => finding.code === 'EARLIER_VOCABULARY_RECORD' && finding.itemId !== undefined && finding.itemId === request.target.itemId))
+        fail('EARLIER_VOCABULARY_RECORD', vocabulary.REFUSALS.EARLIER_VOCABULARY_RECORD);
     if (scan.coverage !== 'complete') fail('INCOMPLETE_SCOPE', 'Canonical scope is incomplete; inspect diagnostics before saving');
     context = policy.bindRecordContext(context, scan.records);
     const matches = scan.records.filter(r => r.id === request.target.itemId);
@@ -337,6 +348,8 @@ async function executeOperation(request, authority) {
         if (skipped) return { schemaVersion: 1, primary: skipped, secondary: [] };
         const profile = resolveTrackingProfile(context);
         if (!profile.available) fail(profile.code, profile.reason);
+        // A project that is not in the current vocabulary is read-only: refused before the lock, a preview included.
+        vocabulary.requireCurrentVocabulary(context.vocabulary);
         const result = request.preview ? await apply(request, authority, digest) : await withTrackingLock(context.root, () => apply(request, authority, digest));
         if (result.primary.status === 'saved' && !request.preview) {
             try {
@@ -358,4 +371,4 @@ async function executeBatch(requests, authority) {
     return { schemaVersion: 1, atomicity: 'per-record', results };
 }
 
-module.exports = { OPERATION_KEYS, operationCatalogue, validateRequest, executeOperation, executeBatch, acceptanceStatus, recordView, sanitized };
+module.exports = { OPERATION_KEYS, REQUEST_VERSION, operationCatalogue, validateRequest, executeOperation, executeBatch, acceptanceStatus, recordView, sanitized };

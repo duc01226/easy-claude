@@ -803,9 +803,9 @@ function ensureWorkflowPolicy(workflowId, workflow, rawPolicySequence, failures)
   }
 
   if (TDD_WORKFLOW_IDS.has(workflowId)) {
-    if (!hasOrderedSubsequence(sequence, ["spec [mode=tests]", "pbi --mode=review --type=spec-tests"])) {
+    if (!hasOrderedSubsequence(sequence, ["spec [mode=tests]", "work-item --mode=review --type=spec-tests"])) {
       failures.push(
-        `Workflow policy violation (${workflowId}): missing ordered spec [mode=tests] -> pbi --mode=review --type=spec-tests`
+        `Workflow policy violation (${workflowId}): missing ordered spec [mode=tests] -> work-item --mode=review --type=spec-tests`
       );
     }
     if (!sequence.includes("spec [mode=sync]")) {

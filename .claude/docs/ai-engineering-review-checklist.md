@@ -29,7 +29,7 @@
 
 - **Context first (§0.1).** AI-surface map, autonomy level, data sensitivity, users, environment, project policy. Fewer than four known → say so and mark affected findings low confidence.
 - **Evidence or nothing (§0.2).** Cite `file:line`; NEVER invent a cost, latency or accuracy number; runtime-only claims are `NOT VERIFIABLE` without eval or trace output.
-- **Severity is consequence (§0.3).** P0 blocks ship · P1 fix before release · P2 next iteration · P3 backlog · P4 note; escalation and de-escalation rules are explicit and evidence-gated.
+- **Severity is consequence (§0.3).** P0 blocks ship · P1 fix before release · P2 next iteration · P3 later · P4 note; escalation and de-escalation rules are explicit and evidence-gated.
 - **Sweeps in order:** §A prompt & model contract → §B security & safety → §C agent & tool design → §D context & retrieval → §E reliability & cost → §F evaluation & testing → §G observability & operations → §H data, privacy & governance → §I human experience → **§J RAG · §K agent/multi-agent & MCP · §L fine-tune, ML, supply chain, multimodal (conditional)** → §M plan questions → §N test questions → §O report → §P triage.
 - **Calibrate before judging:** worked true-positive and false-positive cases live in `.claude/docs/ai-engineering-calibration.md` (cases `CAL-1`–`CAL-14`) — read it when a finding's severity or existence is unclear.
 - **No time?** Run §P (10 checks) — it catches the majority of serious defects.
@@ -75,7 +75,7 @@ Assign the consequence FIRST with the P-level definition, then translate to the 
 | **P0** | Exploitable or irreversible harm: security/authorization bypass, secret or PII exposure, destructive or external action without a control, cross-tenant data exposure, silent failure on a critical path | Critical | Ship blocker |
 | **P1** | Supported-path harm, violated invariant, meaningful privacy or authority gap, unbounded cost, breaking contract, behavior change shipped without proof | High | Fix before release |
 | **P2** | Bounded but consequential gap: resilience, observability, testability, cost-control or maintainability with real impact | Medium | Clear this round or record a follow-up with residual risk |
-| **P3** | Polish, minor convention or cache-efficiency drift, optional hardening with no present correctness, security or data impact | Low | Backlog |
+| **P3** | Polish, minor convention or cache-efficiency drift, optional hardening with no present correctness, security or data impact | Low | Later |
 | **P4** | Observation or opportunity, no defect | note (no finding) | Optional |
 
 **Escalate one level** when, with evidence: the path is unattended or background · multi-tenant or public/unauthenticated · private or regulated data is in context · the action is irreversible or external · the decision affects a person (hiring, credit, benefits, access, education, health) · the surface is production.

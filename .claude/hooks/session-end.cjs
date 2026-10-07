@@ -21,7 +21,7 @@ const { canonicalDirectory, revokeSessionLeases } = require('./lib/git-operation
 const { resolveProjectRoot } = require('./lib/project-root.cjs');
 
 function revokeGitLeases(reason, sessionId, projectDir) {
-    if (!sessionId || (reason !== 'clear' && reason !== 'exit')) return;
+    if (!sessionId || reason === 'compact') return;
 
     try {
         projectDir = canonicalDirectory(projectDir);
@@ -48,9 +48,8 @@ runHookSync('session-end', event => {
 
     debug('session-end', `Reason: ${reason}, Session: ${sessionId}`);
 
-    // Clear/exit revoke only this session's leases. Compact intentionally does
-    // not revoke, refresh or otherwise extend a lease; expiry remains the
-    // crash-recovery bound.
+    // Every actual end revokes only this session's leases, including a switch
+    // to another conversation. Legacy compact is not an end and keeps expiry.
     revokeGitLeases(reason, sessionId, resolution.rootDir);
 
     // Clean up tmpclaude temp files (project root + .claude/ recursively)
@@ -58,8 +57,9 @@ runHookSync('session-end', event => {
 
     // Clean up swap files based on reason
     if (sessionId) {
-        if (reason === 'clear' || reason === 'exit') {
-            // Full cleanup on clear/exit - delete entire swap directory
+        if (['clear', 'exit', 'logout', 'prompt_input_exit'].includes(reason)) {
+            // Known reset/exit reasons discard recovery; resume, other and
+            // future reasons preserve it. OpenCode still reports legacy exit.
             deleteSessionSwap(sessionId);
             debug('session-end', `Deleted swap directory for session ${sessionId}`);
             try {

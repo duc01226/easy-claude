@@ -9,7 +9,7 @@ disable-model-invocation: false
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -22,12 +22,12 @@ disable-model-invocation: false
 
 Read [the registry](../../../.claude/workflows.json) → `workflows.workflow-feature-spec` together with this skill. Call [`$start-workflow workflow-feature-spec`](../start-workflow/SKILL.md) to resolve the selected mode, pre-actions and fingerprint.
 
-**Todo FIRST:** create ALL selected occurrence tasks before triage, analysis or step execution, including conditional/optional tasks; preserve occurrence IDs, roles and barrier groups. Use native task tools or an equivalent persistent ledger. Then mark the first task `in_progress`; attach evidence before `completed`.
+**Todo FIRST:** create one todo for EVERY selected occurrence before triage, analysis or step execution, including conditional/optional ones; preserve occurrence IDs, roles and barrier groups. Use native todo tools or an equivalent persistent ledger. Then mark the first todo `in_progress`; attach evidence before `completed`.
 Mode selection and registry loading prepare tracking; any 'first action' below means the first substantive action after this bootstrap.
 
 **Call each step skill:** read its linked SKILL.md and execute its protocol through the active host with the registry args. Reading or naming a skill alone is not execution. Required gates and core/optional flex follow the linked start-workflow Step Execution Protocol; keep this skill's quality gates, loops and evidence requirements.
 
-**Conditions:** load each occurrence's registry `applicability.when` and `skipReason` verbatim, and record its run/skip evidence through the linked start-workflow protocol. Do not silently omit a task or turn a conditional skill into an unconditional call. Declared parallel groups retain their all-return barrier.
+**Conditions:** load each occurrence's registry `applicability.when` and `skipReason` verbatim, and record its run/skip evidence through the linked start-workflow protocol. Do not silently omit a todo or turn a conditional skill into an unconditional call. Declared parallel groups retain their all-return barrier.
 
 Explicit step-skill calls by mode (registry order; roles and conditions remain owned by the registry):
 
@@ -43,7 +43,7 @@ Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs
 
 **Summary:** Triage and resolve ownership → investigate → plan → confirm decisions → docs/spec/case sync → supplemental spec review when needed → change review → close → handoff. Depth varies with risk; confirmed decisions, reconciled evidence and converged review remain required.
 
-**Use it when** the user asks to write or revise the business spec for a capability. **Use a sibling instead when:** only a raw idea exists → `workflow-idea-to-spec`; the spec must be derived from or re-synced with existing code across capabilities → `workflow-code-to-spec`; code changes are the goal → `workflow-feature` / `workflow-implement-spec`.
+**Use it when** the user asks to write or revise the business spec for a capability. **Use a sibling instead when:** only a raw idea exists → `workflow-initiative-to-spec`; the spec must be derived from or re-synced with existing code across capabilities → `workflow-code-to-spec`; code changes are the goal → `workflow-feature` / `workflow-implement-spec`.
 
 **IMPORTANT MANDATORY Steps:** $investigate -> $plan -> $plan --mode=validate -> $docs-manager --mode=update -> $workflow-review-changes -> $workflow-end -> $watzup
 
@@ -57,7 +57,7 @@ Classify the change from the request plus the investigate evidence, and record i
 | -------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------- |
 | **XS**   | one rule, one case, or wording in an existing spec      | short plan inside the task list; plan --mode=validate confirms the one decision           |
 | **S**    | a few sections/cases of one existing spec, clear intent | written plan; plan --mode=validate confirms the non-obvious decisions                     |
-| **M**    | new spec, restructure, UI intent, or many rules/states  | one lean plan + `$plan --mode=validate` + `$pbi --mode=review` on the result                 |
+| **M**    | new spec, restructure, UI intent, or many rules/states  | one lean plan + `$plan --mode=validate` + `$work-item --mode=review` on the result                 |
 | **L/XL** | several capabilities or buckets                         | split: one spec per capability; route whole-bucket work to `workflow-code-to-spec` |
 
 **Kinds:** behavior change (cases/evidence must be reconciled) · public contract · UI surface (interaction-intent role) · parent/child features (cross-references) · docs-only wording. Escalate depth on ambiguity and risk, not length.
@@ -75,7 +75,7 @@ Classify the change from the request plus the investigate evidence, and record i
 ## 3. Execution Notes
 
 - `$investigate` checks the existing spec, related code and test evidence; `$plan` names the section/case changes at the triaged depth.
-- Add a task for `$pbi --mode=review` on the changed spec for M+ bands, new/restructured specs or doubt about M1-M7. It supplies an independent M1-M7 verdict after the docs-manager spec chain and before change review; it is not a registry step.
+- Add a task for `$work-item --mode=review` on the changed spec for M+ bands, new/restructured specs or doubt about M1-M7. It supplies an independent M1-M7 verdict after the docs-manager spec chain and before change review; it is not a registry step.
 
 ## 4. Orchestration Freedom
 
@@ -111,7 +111,7 @@ You choose inline vs sub-agent, batching and ordering — optimize wall-clock an
 
 **MUST ATTENTION Main steps:** triage/profile → investigate → plan → validate decisions → docs/spec/case sync → supplemental spec review when needed → change review → close → handoff.
 
-- **MUST ATTENTION** triage FIRST; it sets plan depth and whether `$pbi --mode=review` earns its cost.
+- **MUST ATTENTION** triage FIRST; it sets plan depth and whether `$work-item --mode=review` earns its cost.
 - **MUST ATTENTION** resolve the artifact profile before writing; the portable eight-section/`TC-{FEATURE}-{NNN}` form applies only when no native profile or local contract exists; unknown mappings stay BLOCKED.
 - **MUST ATTENTION** the gates always hold: user-confirmed decisions, spec chain synced with applicable M1-M7, `$workflow-review-changes` converged inline in the main session, `$workflow-end` closed.
 - **MUST ATTENTION** every case names the business intent or invariant it guards and would fail if that intent broke.

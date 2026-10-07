@@ -6,7 +6,7 @@
  *
  * Business intent: before the assistant edits code that calls a model, holds prompts, retrieval, agents,
  * tools or evals, it must have the AI-engineering protocol (AF-*, AE-*, AR-*) in context — including for a
- * file whose PATH says nothing about AI — without re-sending it while it is still in the last ~100K tokens,
+ * file whose PATH says nothing about AI — without re-sending it while it is still in the last ~150K tokens,
  * and without a reminder on unrelated code. Invariants guarded here:
  *   - a file that calls a model SDK gets the gate by its content; a path/name-only signal gets it too;
  *   - precision: SMS-style `messages.create`, plain imports, prose, framework folders and dependency output never do;
@@ -449,7 +449,7 @@ const tests = [
         // Then the read is conditional, the first change re-delivers once, dedup holds to the window edge and re-arms there
         name: 'TC-AIG-006 a read delivers the conditional wording, the first change re-delivers once, then dedup holds until the window edge',
         fn: async () => withFixture(async fx => {
-            assert.equal(WINDOW_BYTES, 2200000, '100000 tokens x 22 bytes');
+            assert.equal(WINDOW_BYTES, 3300000, '150000 tokens x 22 bytes');
             fx.write('src/service.ts', SDK_IMPORT);
             fx.write('src/other.ts', SDK_IMPORT);
             const config = gateConfig();

@@ -8,7 +8,7 @@ description: '[Content] Use when a workflow step or the user asks for course mat
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -25,7 +25,7 @@ description: '[Content] Use when a workflow step or the user asks for course mat
 - **Purpose:** Turn user/research scope into a template-compliant course with aligned outcomes, practice, and assessments.
 - **Main flow:** Phase 0 detect course context; (1) define audience, prerequisites, duration, outcomes; (2) map objectives to Bloom; (3) structure modules → lessons → exercises → assessments.
 - **Continue:** (4) develop each lesson's duration, concept, explanation, examples, exercise, assessment; (5) create module knowledge checks + comprehensive final; (6) review alignment, evidence, progression, prerequisites.
-- **Gates/output:** Create task tracking tasks before work; map every objective to Bloom; use the enforced template; write `docs/knowledge/courses/{descriptive-slug}.md`; no modes/flags specified.
+- **Gates/output:** Create todo tracking tasks before work; map every objective to Bloom; use the enforced template; write `docs/knowledge/courses/{descriptive-slug}.md`; no modes/flags specified.
 
 **Workflow:**
 
@@ -95,14 +95,14 @@ Write to `docs/knowledge/courses/{descriptive-slug}.md` using enforced template 
 
 ---
 
-> **[IMPORTANT]** Create small tasks with task tracking before work, including a final review task.
+> **[IMPORTANT]** Create small tasks with todo tracking before work, including a final review task.
 
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Build a learner-ready course with Bloom-aligned objectives, progressive modules, lessons, practice, and assessments so learners achieve and demonstrate intended outcomes.
 **IMPORTANT MUST ATTENTION** Course flow: Phase 0 detect context; (1) define scope; (2) map every objective to Bloom; (3) structure 3-8 modules with 2-5 lessons and prerequisite links; (4) develop each lesson's duration, concept, explanation, examples, exercise, and assessment; (5) create 3-5-question module checks plus a comprehensive final with every taught Bloom level; (6) review alignment, evidence, assumptions, progression, and prerequisites.
 
-**IMPORTANT MUST ATTENTION** Gate/output: create task tracking tasks before work and a final review task; search 3+ similar patterns before creating code; cite `file:line` evidence with confidence >80%; use enforced `.claude/templates/course-outline-template.md`; write `docs/knowledge/courses/{descriptive-slug}.md`; no modes/flags specified.
+**IMPORTANT MUST ATTENTION** Gate/output: create todo tracking tasks before work and a final review task; search 3+ similar patterns before creating code; cite `file:line` evidence with confidence >80%; use enforced `.claude/templates/course-outline-template.md`; write `docs/knowledge/courses/{descriptive-slug}.md`; no modes/flags specified.
 
 **IMPORTANT MUST ATTENTION** use user/research evidence, label assumptions, and state confidence; NEVER fabricate course facts.
 
@@ -114,4 +114,4 @@ Write to `docs/knowledge/courses/{descriptive-slug}.md` using enforced template 
 | "Already searched" | Show `file:line` evidence; no proof means no search. |
 | "Just do it" | Create task tracking first; skip depth only when justified, never skip tracking. |
 
-**[TASK-PLANNING]** **MUST ATTENTION** Before acting, analyze scope; create small task tracking tasks, search 3+ similar patterns before creating code, cite `file:line` evidence, and complete a final quality review.
+**[TASK-PLANNING]** **MUST ATTENTION** Before acting, analyze scope; create small todo tracking tasks, search 3+ similar patterns before creating code, cite `file:line` evidence, and complete a final quality review.

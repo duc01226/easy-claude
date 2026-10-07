@@ -7,7 +7,7 @@ description: '[Quality] Use when a workflow step or the user asks for an agent q
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
 > **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
-> **[BLOCKING]** Before each step or sub-skill call, update task tracking: set `in_progress` when step starts, set `completed` when step ends.
+> **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
 
@@ -72,6 +72,8 @@ If any field is undetectable → `ask user question tool` before proceeding.
 ---
 
 ## Phase B — Feedforward Guide Setup (Inferential)
+
+Read `.claude/skills/shared/protocols/context-engineering-principles.md` when creating or changing persistent instruction files; apply its **Instruction-file audit** before finalizing those outputs, including later review-gate additions. Preserve generated ownership and existing confirmation gates.
 
 For each guide type, check existence; create it or enhance an existing guide:
 

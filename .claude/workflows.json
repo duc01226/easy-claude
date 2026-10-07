@@ -5,7 +5,7 @@
   "workflows": {
     "workflow-big-feature": {
       "activation": "confirm",
-      "description": "Research-driven feature development for large, complex, or ambiguous features in an existing project \u2014 includes idea refinement, market research, business evaluation, domain analysis, tech stack research, full implementation, and required near-end workflow-e2e verification",
+      "description": "Research-driven feature development for large, complex, or ambiguous features in an existing project \u2014 includes initiative refinement, market research, business evaluation, domain analysis, tech stack research, full implementation, and required near-end workflow-e2e verification",
       "intent": "Research, specify, plan and build a large or ambiguous feature so it ships with an approved plan, synced specs, green tests and a converged review.",
       "name": "Big Feature (Research + Implement)",
       "outcomeGates": [
@@ -74,13 +74,13 @@
         }
       },
       "preActions": {
-        "injectContext": "BIG FEATURE (research-driven, existing codebase). Contract: .claude/skills/workflow-big-feature/SKILL.md \u2014 triage FIRST (size, kind, risk, isLargeIdea), then run only the research/design depth the idea needs; gate steps always run, core/optional steps follow the start-workflow Step Execution Protocol with every deviation logged.\nLARGE IDEA: evaluate isLargeIdea (multipleIndependentOutcomes || ambiguousOrResearchHeavy || releaseScopeDecomposition || oversizedPbiThatMustSplit) before any spec, PBI, story or plan. True -> embed the complete large_idea_decomposition block (outcome_slices, dependencies_order, non_goals, risks_evidence, deferred_work_owner) in the owning artifacts and carry its slice IDs downstream. False -> record Decomposition Applicability: EXEMPT with reason and owner. Never create {PRODUCT_ROADMAP_DOC}; a supplied roadmap is read-only context.\nRELEASABLE PBI: every PBI is one independently releasable actor-facing outcome with a complete entry-to-result journey (.claude/skills/shared/releasable-pbi-contract.md); technical/foundation work is enabling work under it; UI PBIs need the full connected multi-view mock-app flow, or a recorded Mockup: SKIPPED by user from the pre-generation scope gate.\nRESEARCH & DECISIONS: EVERY research stage requires ask user question tool validation before proceeding. Save artifacts to the plan directory per step. Present 2-4 options with confidence % for each major decision; evaluate the top 3 alternatives before adding any new dependency.\nARCHITECTURE GATES: architecture --mode=scalability (read-only architect sub-agent) and the design-rationale why-review (inline, full mode) form one all-return barrier; a why-review FAIL or a changed trade-off blocks /scenario until the design is revised and both re-run. Apply SYNC:scale-ready-foundation before PLAN1; scale-technique and scenario-stress gates are advisory right-sizing in both directions.\nPLANS: PLAN1 (after architecture) is strategic; PLAN2 (after test-spec review) is the sprint-ready implementation plan. /plan --mode=validate is the plan-approved gate.\nTAIL: /workflow-review-changes runs INLINE (owns security/performance/production-readiness review, the domain-entity reference refresh and docs-manager --mode=update); /workflow-e2e --source=context is required after it; /test and /workflow-end close the run.\nNEW-UI EXPLORE MOCKUP (BEFORE the implementation plan): the pbi --mode=mockup step runs with --explore; its Step 0 owns the scope gate and it runs in the main session only; PLAN2's UI Layout builds on the selected mockup.",
+        "injectContext": "BIG FEATURE (research-driven, existing codebase). Contract: .claude/skills/workflow-big-feature/SKILL.md \u2014 triage FIRST (size, kind, risk, isLargeIdea), then run only the research/design depth the idea needs; gate steps always run, core/optional steps follow the start-workflow Step Execution Protocol with every deviation logged.\nLARGE IDEA: evaluate isLargeIdea (multipleIndependentOutcomes || ambiguousOrResearchHeavy || releaseScopeDecomposition || oversizedTaskThatMustSplit) before any spec, task, story or plan. True -> embed the complete large_idea_decomposition block (outcome_slices, dependencies_order, non_goals, risks_evidence, deferred_work_owner) in the owning artifacts and carry its slice IDs downstream. False -> record Decomposition Applicability: EXEMPT with reason and owner. Never create {PRODUCT_ROADMAP_DOC}; a supplied roadmap is read-only context.\nRELEASABLE TASK: every task is one independently releasable actor-facing outcome with a complete entry-to-result journey (.claude/skills/shared/releasable-task-contract.md); technical/foundation work is enabling work under it; UI tasks need the full connected multi-view mock-app flow, or a recorded Mockup: SKIPPED by user from the pre-generation scope gate.\nRESEARCH & DECISIONS: EVERY research stage requires ask user question tool validation before proceeding. Save artifacts to the plan directory per step. Present 2-4 options with confidence % for each major decision; evaluate the top 3 alternatives before adding any new dependency.\nARCHITECTURE GATES: architecture --mode=scalability (read-only architect sub-agent) and the design-rationale why-review (inline, full mode) form one all-return barrier; a why-review FAIL or a changed trade-off blocks /scenario until the design is revised and both re-run. Apply SYNC:scale-ready-foundation before PLAN1; scale-technique and scenario-stress gates are advisory right-sizing in both directions.\nPLANS: PLAN1 (after architecture) is strategic; PLAN2 (after test-spec review) is the ready-to-start implementation plan. /plan --mode=validate is the plan-approved gate.\nTAIL: /workflow-review-changes runs INLINE (owns security/performance/production-readiness review, the domain-entity reference refresh and docs-manager --mode=update); /workflow-e2e --source=context is required after it; /test and /workflow-end close the run.\nNEW-UI EXPLORE MOCKUP (BEFORE the implementation plan): the work-item --mode=mockup step runs with --explore; its Step 0 owns the scope gate and it runs in the main session only; PLAN2's UI Layout builds on the selected mockup.",
         "readFiles": [
           ".claude/skills/workflow-big-feature/SKILL.md"
         ]
       },
       "sequence": [
-        "idea",
+        "initiative",
         {
           "id": "big-feature-web-research",
           "skill": "web-research",
@@ -178,33 +178,33 @@
           "skill": "plan",
           "args": "--mode=review"
         },
-        "pbi --mode=refine",
-        "pbi --mode=review --type=pbi",
-        "pbi --mode=story",
-        "pbi --mode=review --type=story",
+        "work-item --mode=refine",
+        "work-item --mode=review --type=task",
+        "work-item --mode=story",
+        "work-item --mode=review --type=story",
         {
           "id": "big-feature-challenge",
-          "skill": "pbi",
-          "args": "--mode=challenge --reuse=pbi-review"
+          "skill": "work-item",
+          "args": "--mode=challenge --reuse=task-review"
         },
         {
           "id": "big-feature-dor",
-          "skill": "pbi",
-          "args": "--mode=dor --reuse=pbi-review"
+          "skill": "work-item",
+          "args": "--mode=dor --reuse=task-review"
         },
         {
           "id": "big-feature-mockup",
-          "skill": "pbi",
+          "skill": "work-item",
           "args": "--mode=mockup --explore",
           "role": "optional",
           "applicability": {
-            "when": "The PBI has a user-facing UI surface; when it adds completely new UI (a new page/view, component or dialog) explore mockups run (scope gate first: 1-3 drafts or skip), are opened in the browser and, with 2-3 drafts, the user picks one before the implementation plan.",
-            "skipReason": "The PBI is backend-only, so there is no UI surface to mock."
+            "when": "The task has a user-facing UI surface; when it adds completely new UI (a new page/view, component or dialog) explore mockups run (scope gate first: 1-3 drafts or skip), are opened in the browser and, with 2-3 drafts, the user picks one before the implementation plan.",
+            "skipReason": "The task is backend-only, so there is no UI surface to mock."
           }
         },
         "spec",
         "spec [mode=tests]",
-        "pbi --mode=review --type=spec-tests",
+        "work-item --mode=review --type=spec-tests",
         {
           "id": "big-feature-spec-clarification",
           "skill": "spec",
@@ -365,7 +365,7 @@
         }
       ],
       "preActions": {
-        "injectContext": "BUG FIX (lean, TDD-first). Intent: fix the defect at the root cause its end-to-start trace proves, guarded by a regression test that is RED without the fix and GREEN with it. Read .claude/skills/workflow-bugfix/SKILL.md (triage, gates, Code Bug vs Spec Bug gate).\nFIRST: triage size (XS/S/M/L/XL), kind and risk per the SKILL.md; the triage selects which optional steps run. Gate steps always run; core and optional steps follow the /start-workflow Step Execution Protocol, one deviation-log line each.\nNON-NEGOTIABLE:\n- /investigate --mode=debug owns discovery AND root cause (there is no separate read-only /investigate step). END-TO-START TRACE: start at the observed final state/output, trace backward through reader, storage/projection, writer, consumer/job and producer, enumerate every feeder path, build a hypothesis matrix and weigh environment causes. BLOCKED until the owning fix layer and forward convergence proof are written.\n- CODE BUG vs SPEC BUG before any regression TC or test: Code Bug (spec right, code diverged) -> TCs for the intended behavior; Spec Bug (spec documents the wrong behavior) -> /spec [mode=amend] first; Ambiguous -> ask the user. Never encode buggy behavior into specs or tests.\n- RED/GREEN (verify last): the first /integration-test WRITES the regression test and does not run it; tests run once, after the static /workflow-review-changes --tests=defer, in /integration-test --mode=verify, whose mutation check reverts the fix by hand-edit (never git checkout/restore/stash) and expects the regression test to FAIL (RED), then restores it and the regression and affected tests must PASS (GREEN) in this run. Tests name the Business Intent / Invariant Guarded.\n- /workflow-review-changes runs INLINE in the main session and converges the review of the whole package (spec + tests + fix).\nPERFORMANCE-SDD ROUTE: a performance bug runs /performance-review with SLA/benchmark evidence (target metric, baseline, measurement command, regression budget); keep functional no-regression checks when behavior can change; update specs/docs for a changed SLA or behavior boundary.\nNEW-UI EXPLORE MOCKUP (conditional, BEFORE plan): only when the fix is size M+ and creates completely new user-facing UI (a new page/view, component or dialog); run /pbi --mode=mockup --explore --source=<investigation report or amended spec> \u2014 its Step 0 owns the scope gate and it runs in the main session only. A fix inside existing UI skips it with a stated reason.\nCONTEXT: shared/sdd-artifact-contract.md in the active skills root, docs/project-config.json and the docs index. Code-extracted specs are reference-only until accepted.",
+        "injectContext": "BUG FIX (lean, TDD-first). Intent: fix the defect at the root cause its end-to-start trace proves, guarded by a regression test that is RED without the fix and GREEN with it. Read .claude/skills/workflow-bugfix/SKILL.md (triage, gates, Code Bug vs Spec Bug gate).\nFIRST: triage size (XS/S/M/L/XL), kind and risk per the SKILL.md; the triage selects which optional steps run. Gate steps always run; core and optional steps follow the /start-workflow Step Execution Protocol, one deviation-log line each.\nNON-NEGOTIABLE:\n- /investigate --mode=debug owns discovery AND root cause (there is no separate read-only /investigate step). END-TO-START TRACE: start at the observed final state/output, trace backward through reader, storage/projection, writer, consumer/job and producer, enumerate every feeder path, build a hypothesis matrix and weigh environment causes. BLOCKED until the owning fix layer and forward convergence proof are written.\n- CODE BUG vs SPEC BUG before any regression TC or test: Code Bug (spec right, code diverged) -> TCs for the intended behavior; Spec Bug (spec documents the wrong behavior) -> /spec [mode=amend] first; Ambiguous -> ask the user. Never encode buggy behavior into specs or tests.\n- RED/GREEN (verify last): the first /integration-test WRITES the regression test and does not run it; tests run once, after the static /workflow-review-changes --tests=defer, in /integration-test --mode=verify, whose mutation check reverts the fix by hand-edit (never git checkout/restore/stash) and expects the regression test to FAIL (RED), then restores it and the regression and affected tests must PASS (GREEN) in this run. Tests name the Business Intent / Invariant Guarded.\n- /workflow-review-changes runs INLINE in the main session and converges the review of the whole package (spec + tests + fix).\nPERFORMANCE-SDD ROUTE: a performance bug runs /performance-review with SLA/benchmark evidence (target metric, baseline, measurement command, regression budget); keep functional no-regression checks when behavior can change; update specs/docs for a changed SLA or behavior boundary.\nNEW-UI EXPLORE MOCKUP (conditional, BEFORE plan): only when the fix is size M+ and creates completely new user-facing UI (a new page/view, component or dialog); run /work-item --mode=mockup --explore --source=<investigation report or amended spec> \u2014 its Step 0 owns the scope gate and it runs in the main session only. A fix inside existing UI skips it with a stated reason.\nCONTEXT: shared/sdd-artifact-contract.md in the active skills root, docs/project-config.json and the docs index. Code-extracted specs are reference-only until accepted.",
         "readFiles": [
           ".claude/skills/workflow-bugfix/SKILL.md"
         ]
@@ -389,7 +389,7 @@
         },
         {
           "id": "bugfix-ui-mockup-explore",
-          "skill": "pbi",
+          "skill": "work-item",
           "args": "--mode=mockup --explore",
           "role": "optional",
           "applicability": {
@@ -418,7 +418,7 @@
         },
         {
           "id": "bugfix-spec-tests-review",
-          "skill": "pbi",
+          "skill": "work-item",
           "args": "--mode=review --type=spec-tests",
           "role": "optional",
           "applicability": {
@@ -589,7 +589,7 @@
         }
       ],
       "preActions": {
-        "injectContext": "FEATURE WORKFLOW \u2014 spec-first, test-first. Read .claude/skills/workflow-feature/SKILL.md (triage, gates, contracts); the Step Execution Protocol in /start-workflow governs which steps flex.\nFIRST ACTION: triage size (XS/S/M/L/XL), kind and risk per the SKILL.md Size & Kind Triage; depth follows risk and ambiguity, not file count. Record the triage and every deviation in the run report.\nGATES (never flex): /test green in this run; nested /workflow-review-changes converged, run inline in the main session; when behavior or a public contract changed, Feature Spec \u00a71-7 re-verified against the built behavior (drift adjudicated per SYNC:spec-drift-adjudication) and \u00a78 TCs synced with test code via /spec [mode=sync]; /workflow-end emits the Goal Satisfaction matrix.\nINVARIANTS: the canonical Feature Spec precedes the first /plan; test specs (/spec [mode=tests]) are reviewed by /pbi --mode=review --type=spec-tests before /plan --mode=execute; a BLOCKED Plan Gate stops /plan --mode=execute; every test names the business intent or invariant it guards and fails when it breaks; lifecycle behavior asserts persisted state transitions and invalid-transition rejection.\nLARGE IDEA: evaluate the shared isLargeIdea rule before the first mutating /spec; when any signal is true the owning spec/PBI carries the complete five-field large_idea_decomposition block; a genuinely isolated brownfield change records EXEMPT with reason and accepting owner. This route never writes a product roadmap; an explicitly supplied roadmap is read-only context. A generated PBI follows .claude/skills/shared/releasable-pbi-contract.md.\nPERFORMANCE-SDD ROUTE: a performance enhancement runs /performance-review with SLA/benchmark evidence (target metric, baseline, measurement command, regression budget), still runs /plan --mode=execute, and runs functional no-regression checks whenever behavior can change.\nNEW-UI EXPLORE MOCKUP (conditional, BEFORE plan): completely new user-facing UI (a new page/view, component or dialog) runs /pbi --mode=mockup --explore --source=<spec or requirement report>; its Step 0 owns the scope gate and it runs in the main session only. Skip with a stated reason when no new UI surface is added.\nPROJECT CONTEXT: docs/project-config.json, {REF_DOCS_ROOT}/docs-index-reference.md and the shared SDD Artifact Contract (shared/sdd-artifact-contract.md in the active skills root) override generic defaults.",
+        "injectContext": "FEATURE WORKFLOW \u2014 spec-first, test-first. Read .claude/skills/workflow-feature/SKILL.md (triage, gates, contracts); the Step Execution Protocol in /start-workflow governs which steps flex.\nFIRST ACTION: triage size (XS/S/M/L/XL), kind and risk per the SKILL.md Size & Kind Triage; depth follows risk and ambiguity, not file count. Record the triage and every deviation in the run report.\nGATES (never flex): /test green in this run; nested /workflow-review-changes converged, run inline in the main session; when behavior or a public contract changed, Feature Spec \u00a71-7 re-verified against the built behavior (drift adjudicated per SYNC:spec-drift-adjudication) and \u00a78 TCs synced with test code via /spec [mode=sync]; /workflow-end emits the Goal Satisfaction matrix.\nINVARIANTS: the canonical Feature Spec precedes the first /plan; test specs (/spec [mode=tests]) are reviewed by /work-item --mode=review --type=spec-tests before /plan --mode=execute; a BLOCKED Plan Gate stops /plan --mode=execute; every test names the business intent or invariant it guards and fails when it breaks; lifecycle behavior asserts persisted state transitions and invalid-transition rejection.\nLARGE IDEA: evaluate the shared isLargeIdea rule before the first mutating /spec; when any signal is true the owning spec/task carries the complete five-field large_idea_decomposition block; a genuinely isolated brownfield change records EXEMPT with reason and accepting owner. This route never writes a product roadmap; an explicitly supplied roadmap is read-only context. A generated task follows .claude/skills/shared/releasable-task-contract.md.\nPERFORMANCE-SDD ROUTE: a performance enhancement runs /performance-review with SLA/benchmark evidence (target metric, baseline, measurement command, regression budget), still runs /plan --mode=execute, and runs functional no-regression checks whenever behavior can change.\nNEW-UI EXPLORE MOCKUP (conditional, BEFORE plan): completely new user-facing UI (a new page/view, component or dialog) runs /work-item --mode=mockup --explore --source=<spec or requirement report>; its Step 0 owns the scope gate and it runs in the main session only. Skip with a stated reason when no new UI surface is added.\nPROJECT CONTEXT: docs/project-config.json, {REF_DOCS_ROOT}/docs-index-reference.md and the shared SDD Artifact Contract (shared/sdd-artifact-contract.md in the active skills root) override generic defaults.",
         "readFiles": [
           ".claude/skills/workflow-feature/SKILL.md"
         ]
@@ -646,7 +646,7 @@
         },
         {
           "id": "feature-ui-mockup-explore",
-          "skill": "pbi",
+          "skill": "work-item",
           "args": "--mode=mockup --explore",
           "role": "optional",
           "applicability": {
@@ -655,7 +655,7 @@
           }
         },
         "spec [mode=tests]",
-        "pbi --mode=review --type=spec-tests",
+        "work-item --mode=review --type=spec-tests",
         "plan",
         {
           "id": "feature-plan-validation",
@@ -861,7 +861,7 @@
     },
     "workflow-greenfield-init": {
       "activation": "confirm",
-      "description": "Greenfield inception from idea to a reviewed first releasable slice on a verified foundation, with triage-selected research, architecture, backlog, build, integration testing and required near-end workflow-e2e verification",
+      "description": "Greenfield inception from idea to a reviewed first releasable slice on a verified foundation, with triage-selected research, architecture, planned work, build, integration testing and required near-end workflow-e2e verification",
       "intent": "Take a new product from idea to a reviewed first release built on a verified foundation, with an approved plan and green tests.",
       "name": "Greenfield Project Init",
       "outcomeGates": [
@@ -968,13 +968,13 @@
         }
       },
       "preActions": {
-        "injectContext": "GREENFIELD INCEPTION: take a new product from idea to a reviewed first releasable slice on a verified foundation. Read .claude/skills/workflow-greenfield-init/SKILL.md before step 1 \u2014 it owns triage, the required gates and orchestration; /start-workflow \u2192 Step Execution Protocol owns step flex and the deviation log.\nTRIAGE FIRST and record it in the run report: scale (prototype/internal \u00b7 product \u00b7 platform), UI surface yes/no, commercial market yes/no, criticality (auth, PII, money, regulated), isLargeIdea, and applicable test tiers. Judge every optional step's applicability from that record.\nLARGE IDEA: evaluate isLargeIdea = multipleIndependentOutcomes || ambiguousOrResearchHeavy || releaseScopeDecomposition || oversizedPbiThatMustSplit before any spec, PBI, story or plan. When true, embed the complete large_idea_decomposition block in the owning artifact and carry its stable slice IDs downstream. The roadmap artifact ({PRODUCT_ROADMAP_DOC}) is never a default output here \u2014 only an explicit roadmap request routes to its standalone skill; a supplied roadmap is read-only context.\nRELEASABLE PBIs: each PBI is one independently releasable actor-facing outcome with a complete entry-to-result journey; foundation/setup work attaches to it and is never a standalone technical PBI; UI PBIs carry the connected multi-view mock-app surface (.claude/skills/shared/releasable-pbi-contract.md).\nORDER: business and domain before technology \u2014 do not ask for the tech stack upfront; domain analysis (ERD + bounded contexts) precedes tech-stack research. Major decisions show 2-4 options with confidence % and evidence; validate each phase's decisions with the user via ask user question tool and never self-approve a one-way door.\nBLOCKING: before the first /plan completes, record the SYNC:scale-ready-foundation matrix and the SYNC:ai-agent-as-user-access decision (or an explicit evidence-backed omission). Before /plan --mode=execute, every Test Architecture & Execution Contract tier is APPLICABLE with runner, copy-ready full and focused commands, zero-match behavior and unique run/data identity \u2014 or N/A \u2014 <evidence>.\nFIXED: /plan --mode=validate, /workflow-review-changes, the final /test and /workflow-end are gates; the final /test is the single unit/system verify and runs after E2E. /workflow-review-changes runs INLINE in the main session. /e2e-test runs only when docs/project-config.json \u2192 e2eTesting declares a runnable framework, else N/A \u2014 <evidence>. /workflow-e2e --source=context runs after the review and before the final /test and records N/A or ENVIRONMENT-BLOCKED honestly. Tests use the project's native style, name the protected intent or invariant, and fail when it breaks.",
+        "injectContext": "GREENFIELD INCEPTION: take a new product from idea to a reviewed first releasable slice on a verified foundation. Read .claude/skills/workflow-greenfield-init/SKILL.md before step 1 \u2014 it owns triage, the required gates and orchestration; /start-workflow \u2192 Step Execution Protocol owns step flex and the deviation log.\nTRIAGE FIRST and record it in the run report: scale (prototype/internal \u00b7 product \u00b7 platform), UI surface yes/no, commercial market yes/no, criticality (auth, PII, money, regulated), isLargeIdea, and applicable test tiers. Judge every optional step's applicability from that record.\nLARGE IDEA: evaluate isLargeIdea = multipleIndependentOutcomes || ambiguousOrResearchHeavy || releaseScopeDecomposition || oversizedTaskThatMustSplit before any spec, task, story or plan. When true, embed the complete large_idea_decomposition block in the owning artifact and carry its stable slice IDs downstream. The roadmap artifact ({PRODUCT_ROADMAP_DOC}) is never a default output here \u2014 only an explicit roadmap request routes to its standalone skill; a supplied roadmap is read-only context.\nRELEASABLE TASKS: each task is one independently releasable actor-facing outcome with a complete entry-to-result journey; foundation/setup work attaches to it and is never a standalone technical task; UI tasks carry the connected multi-view mock-app surface (.claude/skills/shared/releasable-task-contract.md).\nORDER: business and domain before technology \u2014 do not ask for the tech stack upfront; domain analysis (ERD + bounded contexts) precedes tech-stack research. Major decisions show 2-4 options with confidence % and evidence; validate each phase's decisions with the user via ask user question tool and never self-approve a one-way door.\nBLOCKING: before the first /plan completes, record the SYNC:scale-ready-foundation matrix and the SYNC:ai-agent-as-user-access decision (or an explicit evidence-backed omission). Before /plan --mode=execute, every Test Architecture & Execution Contract tier is APPLICABLE with runner, copy-ready full and focused commands, zero-match behavior and unique run/data identity \u2014 or N/A \u2014 <evidence>.\nFIXED: /plan --mode=validate, /workflow-review-changes, the final /test and /workflow-end are gates; the final /test is the single unit/system verify and runs after E2E. /workflow-review-changes runs INLINE in the main session. /e2e-test runs only when docs/project-config.json \u2192 e2eTesting declares a runnable framework, else N/A \u2014 <evidence>. /workflow-e2e --source=context runs after the review and before the final /test and records N/A or ENVIRONMENT-BLOCKED honestly. Tests use the project's native style, name the protected intent or invariant, and fail when it breaks.",
         "readFiles": [
           ".claude/skills/workflow-greenfield-init/SKILL.md"
         ]
       },
       "sequence": [
-        "idea",
+        "initiative",
         {
           "id": "greenfield-web-research",
           "skill": "web-research",
@@ -1081,27 +1081,27 @@
             "skipReason": "No architecture risk review ran, or none returned findings, so PLAN\u2081 is unchanged."
           }
         },
-        "pbi --mode=refine",
-        "pbi --mode=review --type=pbi",
-        "pbi --mode=story",
-        "pbi --mode=review --type=story",
+        "work-item --mode=refine",
+        "work-item --mode=review --type=task",
+        "work-item --mode=story",
+        "work-item --mode=review --type=story",
         {
           "id": "greenfield-challenge",
-          "skill": "pbi",
-          "args": "--mode=challenge --reuse=pbi-review"
+          "skill": "work-item",
+          "args": "--mode=challenge --reuse=task-review"
         },
         {
           "id": "greenfield-dor",
-          "skill": "pbi",
-          "args": "--mode=dor --reuse=pbi-review"
+          "skill": "work-item",
+          "args": "--mode=dor --reuse=task-review"
         },
         {
           "id": "greenfield-mockup",
-          "skill": "pbi",
+          "skill": "work-item",
           "args": "--mode=mockup",
           "role": "optional",
           "applicability": {
-            "when": "The product has a user-facing UI surface, so UI PBIs need the connected mock-app flow.",
+            "when": "The product has a user-facing UI surface, so UI tasks need the connected mock-app flow.",
             "skipReason": "The product has no user-facing UI surface, such as an API, CLI, library or service."
           }
         },
@@ -1118,7 +1118,7 @@
         },
         {
           "id": "test-spec-initial-review",
-          "skill": "pbi",
+          "skill": "work-item",
           "args": "--mode=review --type=spec-tests"
         },
         {
@@ -1191,7 +1191,7 @@
         },
         {
           "id": "test-spec-post-impl-review",
-          "skill": "pbi",
+          "skill": "work-item",
           "args": "--mode=review --type=spec-tests",
           "role": "optional",
           "applicability": {
@@ -1281,16 +1281,16 @@
       ],
       "whenToUse": "User wants to start a new project from scratch, init a greenfield project, plan a new application, research and plan before coding, bootstrap a new codebase, build something new"
     },
-    "workflow-idea-to-pbi": {
+    "workflow-initiative-to-task": {
       "activation": "auto",
-      "description": "PO/BA idea \u2192 reviewed, Definition-of-Ready, prioritized PBI backlog (no implementation). Triage first: SINGLE-PBI track (one concrete idea/ticket/brief \u2192 draft Feature Spec \u2192 test specs \u2192 one PBI + stories) or MULTI-OPPORTUNITY track (raw vision \u2192 brainstorm \u2192 RICE opportunity map \u2192 multi-select \u2192 light per-opportunity PBI loop \u2192 cross-PBI ranked backlog). Depth scales with size and risk. For idea \u2192 ONE provisional Feature Spec only (no backlog) use workflow-idea-to-spec.",
-      "intent": "Turn a product idea into a grooming-ready, prioritized PBI backlog backed by a provisional spec, stories, test specs and Definition-of-Ready evidence.",
-      "name": "Idea to PBI",
+      "description": "PO/BA idea \u2192 reviewed, readiness-checked, prioritized planned work (no implementation). Triage first: SINGLE-TASK track (one concrete idea/ticket/brief \u2192 draft Feature Spec \u2192 test specs \u2192 one task + stories) or MULTI-OPPORTUNITY track (raw vision \u2192 brainstorm \u2192 RICE opportunity map \u2192 multi-select \u2192 light per-opportunity task loop \u2192 cross-task ranked planned work). Depth scales with size and risk. For idea \u2192 ONE provisional Feature Spec only (no planned work) use workflow-initiative-to-spec.",
+      "intent": "Turn a product idea into prioritized planned work that is ready to plan, backed by a provisional spec, stories, test specs and readiness-check evidence.",
+      "name": "Initiative to Task",
       "outcomeGates": [
         {
           "id": "review-converged",
           "satisfiedBy": [
-            "pbi --mode=review"
+            "work-item --mode=review"
           ]
         },
         {
@@ -1308,14 +1308,14 @@
         }
       ],
       "preActions": {
-        "injectContext": "IDEA TO PBI \u2014 turn an idea into a reviewed, Definition-of-Ready, prioritized PBI backlog (no implementation). Read .claude/skills/workflow-idea-to-pbi/SKILL.md first: it owns triage, gates, the recommended-skill table and the per-opportunity loop.\nTRIAGE FIRST and record it: track = SINGLE-PBI (one concrete idea/ticket/brief) or MULTI-OPPORTUNITY (raw vision spanning several opportunities; ask via ask user question tool when unclear); size XS\u2026XL; kinds (UI surface, domain change, existing artifact, market uncertainty); risk; isLargeIdea = multipleIndependentOutcomes || ambiguousOrResearchHeavy || releaseScopeDecomposition || oversizedPbiThatMustSplit. Each step's applicability follows the triage: a small clear idea skips research, brainstorm, scenario, the plan cycle, cross-PBI prioritize and the deck. Log every skip/merge with evidence.\nGATES (never skipped): pbi --mode=review --type=pbi, pbi --mode=dor (PASS or WARN), workflow-end; why-review after pbi --mode=refine (FAIL \u2192 pbi --mode=refine; WARN \u2192 user acknowledgment); SINGLE-PBI: draft spec + TC IDs in Feature doc Section 8 reviewed by pbi --mode=review --type=spec-tests, then spec [mode=clarify] confirms every non-obvious/conflicting decision with the user before the PBI is derived (Spec Validation: questions=3-6, TEST-SPEC context); pbi --mode=challenge reviewer \u2260 drafter; every PBI is one independently releasable actor-facing outcome (.claude/skills/shared/releasable-pbi-contract.md); UI PBIs get a navigable full-flow mock app (or a recorded Mockup: SKIPPED by user) + design-spec, backend-only states the skip; every PBI carries priority in frontmatter and mockup/deck show the final value; docs-manager --mode=update syncs specs and TC IDs before close.\nLARGE IDEA: when isLargeIdea is true, the owning artifacts carry the complete large_idea_decomposition block (outcome_slices, dependencies_order, non_goals, risks_evidence, deferred_work_owner) and downstream outputs inherit it read-only; all-false ideas omit it. Never create {PRODUCT_ROADMAP_DOC}; a roadmap is an explicit standalone request only and a supplied roadmap is read-only context.\nMULTI-OPPORTUNITY: brainstorm writes a 3\u20138 item RICE map to {PLANS_ROOT}/{plan-dir}/brainstorm-opportunity-map.md \u2192 user multi-select \u2192 opportunity-map why-review \u2192 domain-analysis once \u2192 per-opportunity loop (idea \u2192 pbi --mode=refine \u2192 PBI review \u2192 pbi --mode=story \u2192 story review \u2192 pbi --mode=challenge \u2192 pbi --mode=dor \u2192 UI mockup/design-spec), one task per loop step per opportunity, created up front \u2192 cross-PBI prioritize. Draft spec, test specs, spec [mode=clarify], scenario and the plan cycle never run per opportunity.\nUI MOCKUP: the idea-to-pbi-mockup step runs pbi --mode=mockup --explore for each UI PBI after pbi --mode=dor; pbi --mode=mockup owns the whole sequence (Step 0 mockup scope gate first, Journey Report UX-1, design-authority read UX-2, direction drafts, the user's recorded pick, full build, journey walkthrough UX-8, UI/UX Gate Report) and UI-1.1-UI-9.4, DD-1-DD-8 and CL-1-CL-6 apply after UX-*. The scope gate and the pick are user gates: main session only, never inside a sub-agent, never batched across PBIs; when opportunities run as sub-agents, each stops after pbi --mode=dor and the main session runs the mockup and design-spec per UI PBI. design-spec reuses the mockup's Journey Report and design-authority record.\nArtifacts stay drafts until their review gate accepts them; write each one immediately under {TEAM_ARTIFACTS_ROOT}. Goal-driven: define success criteria first and loop until observable checks pass.",
+        "injectContext": "INITIATIVE TO TASK \u2014 turn an idea into reviewed, readiness-checked, prioritized planned work (no implementation). Read .claude/skills/workflow-initiative-to-task/SKILL.md first: it owns triage, gates, the recommended-skill table and the per-opportunity loop.\nTRIAGE FIRST and record it: track = SINGLE-TASK (one concrete idea/ticket/brief) or MULTI-OPPORTUNITY (raw vision spanning several opportunities; ask via ask user question tool when unclear); size XS\u2026XL; kinds (UI surface, domain change, existing artifact, market uncertainty); risk; isLargeIdea = multipleIndependentOutcomes || ambiguousOrResearchHeavy || releaseScopeDecomposition || oversizedTaskThatMustSplit. Each step's applicability follows the triage: a small clear idea skips research, brainstorm, scenario, the plan cycle, cross-task prioritize and the deck. Log every skip/merge with evidence.\nGATES (never skipped): work-item --mode=review --type=task, work-item --mode=dor (PASS or WARN), workflow-end; why-review after work-item --mode=refine (FAIL \u2192 work-item --mode=refine; WARN \u2192 user acknowledgment); SINGLE-TASK: draft spec + TC IDs in Feature doc Section 8 reviewed by work-item --mode=review --type=spec-tests, then spec [mode=clarify] confirms every non-obvious/conflicting decision with the user before the task is derived (Spec Validation: questions=3-6, TEST-SPEC context); work-item --mode=challenge reviewer \u2260 drafter; every task is one independently releasable actor-facing outcome (.claude/skills/shared/releasable-task-contract.md); UI tasks get a navigable full-flow mock app (or a recorded Mockup: SKIPPED by user) + design-spec, backend-only states the skip; every task carries priority in frontmatter and mockup/deck show the final value; docs-manager --mode=update syncs specs and TC IDs before close.\nLARGE IDEA: when isLargeIdea is true, the owning artifacts carry the complete large_idea_decomposition block (outcome_slices, dependencies_order, non_goals, risks_evidence, deferred_work_owner) and downstream outputs inherit it read-only; all-false ideas omit it. Never create {PRODUCT_ROADMAP_DOC}; a roadmap is an explicit standalone request only and a supplied roadmap is read-only context.\nMULTI-OPPORTUNITY: brainstorm writes a 3\u20138 item RICE map to {PLANS_ROOT}/{plan-dir}/brainstorm-opportunity-map.md \u2192 user multi-select \u2192 opportunity-map why-review \u2192 domain-analysis once \u2192 per-opportunity loop (initiative \u2192 work-item --mode=refine \u2192 task review \u2192 work-item --mode=story \u2192 story review \u2192 work-item --mode=challenge \u2192 work-item --mode=dor \u2192 UI mockup/design-spec), one todo per loop step per opportunity, created up front \u2192 cross-task prioritize. Draft spec, test specs, spec [mode=clarify], scenario and the plan cycle never run per opportunity.\nUI MOCKUP: the initiative-to-task-mockup step runs work-item --mode=mockup --explore for each UI task after work-item --mode=dor; work-item --mode=mockup owns the whole sequence (Step 0 mockup scope gate first, Journey Report UX-1, design-authority read UX-2, direction drafts, the user's recorded pick, full build, journey walkthrough UX-8, UI/UX Gate Report) and UI-1.1-UI-9.4, DD-1-DD-8 and CL-1-CL-6 apply after UX-*. The scope gate and the pick are user gates: main session only, never inside a sub-agent, never batched across tasks; when opportunities run as sub-agents, each stops after work-item --mode=dor and the main session runs the mockup and design-spec per UI task. design-spec reuses the mockup's Journey Report and design-authority record.\nArtifacts stay drafts until their review gate accepts them; write each one immediately under {TEAM_ARTIFACTS_ROOT}. Goal-driven: define success criteria first and loop until observable checks pass.",
         "readFiles": [
-          ".claude/skills/workflow-idea-to-pbi/SKILL.md"
+          ".claude/skills/workflow-initiative-to-task/SKILL.md"
         ]
       },
       "sequence": [
         {
-          "id": "idea-to-pbi-web-research",
+          "id": "initiative-to-task-web-research",
           "skill": "web-research",
           "role": "optional",
           "applicability": {
@@ -1324,7 +1324,7 @@
           }
         },
         {
-          "id": "idea-to-pbi-deep-research",
+          "id": "initiative-to-task-deep-research",
           "skill": "source-deep-dive",
           "role": "optional",
           "applicability": {
@@ -1333,17 +1333,17 @@
           }
         },
         {
-          "id": "idea-to-pbi-brainstorm",
+          "id": "initiative-to-task-brainstorm",
           "skill": "brainstorm",
           "role": "optional",
           "applicability": {
             "when": "Multi-opportunity track: the input is a raw product vision or problem spanning several opportunities that need a RICE-scored opportunity map.",
-            "skipReason": "Single-PBI track: the input is one concrete idea, ticket or brief, so there is no opportunity set to map."
+            "skipReason": "Single-Task track: the input is one concrete idea, ticket or brief, so there is no opportunity set to map."
           }
         },
-        "idea",
+        "initiative",
         {
-          "id": "idea-to-pbi-spec-landscape",
+          "id": "initiative-to-task-spec-landscape",
           "skill": "spec",
           "args": "[mode=discovery]",
           "role": "optional",
@@ -1353,8 +1353,8 @@
           }
         },
         {
-          "id": "idea-to-pbi-supplied-review",
-          "skill": "pbi",
+          "id": "initiative-to-task-supplied-review",
+          "skill": "work-item",
           "args": "--mode=review",
           "role": "optional",
           "applicability": {
@@ -1362,31 +1362,31 @@
             "skipReason": "No existing PO artifact was supplied."
           }
         },
-        "pbi --mode=refine",
+        "work-item --mode=refine",
         "why-review",
         {
-          "id": "idea-to-pbi-spec-draft",
+          "id": "initiative-to-task-spec-draft",
           "skill": "spec",
           "args": "[mode=draft]",
           "role": "optional",
           "applicability": {
-            "when": "Single-PBI track: one PBI is derived from the idea, so a provisional draft Feature Spec is authored first.",
-            "skipReason": "Multi-opportunity track: draft spec authoring is single-PBI only and never runs per opportunity."
+            "when": "Single-Task track: one task is derived from the idea, so a provisional draft Feature Spec is authored first.",
+            "skipReason": "Multi-opportunity track: draft spec authoring is single-task only and never runs per opportunity."
           }
         },
         {
-          "id": "idea-to-pbi-spec-tests",
+          "id": "initiative-to-task-spec-tests",
           "skill": "spec",
           "args": "[mode=tests]",
           "role": "optional",
           "applicability": {
-            "when": "Single-PBI track: a draft Feature Spec was authored in this run and needs test specifications before the PBI is derived.",
-            "skipReason": "Multi-opportunity track: test-spec authoring is single-PBI only and never runs per opportunity."
+            "when": "Single-Task track: a draft Feature Spec was authored in this run and needs test specifications before the task is derived.",
+            "skipReason": "Multi-opportunity track: test-spec authoring is single-task only and never runs per opportunity."
           }
         },
         {
-          "id": "idea-to-pbi-spec-tests-review",
-          "skill": "pbi",
+          "id": "initiative-to-task-spec-tests-review",
+          "skill": "work-item",
           "args": "--mode=review --type=spec-tests",
           "role": "optional",
           "applicability": {
@@ -1395,7 +1395,7 @@
           }
         },
         {
-          "id": "idea-to-pbi-spec-clarification",
+          "id": "initiative-to-task-spec-clarification",
           "skill": "spec",
           "args": "[mode=clarify]",
           "role": "optional",
@@ -1405,16 +1405,16 @@
           }
         },
         {
-          "id": "idea-to-pbi-scenario",
+          "id": "initiative-to-task-scenario",
           "skill": "scenario",
           "role": "optional",
           "applicability": {
-            "when": "Single-PBI track and the selected slice or decomposition needs adversarial replay, state, ownership, recovery or evidence analysis before planning.",
+            "when": "Single-Task track and the selected slice or decomposition needs adversarial replay, state, ownership, recovery or evidence analysis before planning.",
             "skipReason": "The slice has no replay, state, ownership, recovery or evidence risk that scenario analysis would change, or the run is on the multi-opportunity track."
           }
         },
         {
-          "id": "idea-to-pbi-domain-analysis",
+          "id": "initiative-to-task-domain-analysis",
           "skill": "domain-analysis",
           "role": "optional",
           "applicability": {
@@ -1423,7 +1423,7 @@
           }
         },
         {
-          "id": "idea-to-pbi-domain-why-review",
+          "id": "initiative-to-task-domain-why-review",
           "skill": "why-review",
           "role": "optional",
           "applicability": {
@@ -1432,16 +1432,16 @@
           }
         },
         {
-          "id": "idea-to-pbi-plan",
+          "id": "initiative-to-task-plan",
           "skill": "plan",
           "role": "optional",
           "applicability": {
-            "when": "Single-PBI track and the idea is size M or larger, cross-module, risky or ambiguous, so an implementation plan materially shapes story slicing, estimates and readiness.",
+            "when": "Single-Task track and the idea is size M or larger, cross-module, risky or ambiguous, so an implementation plan materially shapes story slicing, estimates and readiness.",
             "skipReason": "Multi-opportunity track, or a small clear single idea whose stories and estimates need no implementation plan."
           }
         },
         {
-          "id": "idea-to-pbi-plan-validation",
+          "id": "initiative-to-task-plan-validation",
           "skill": "plan",
           "args": "--mode=validate",
           "role": "optional",
@@ -1451,36 +1451,36 @@
           }
         },
         {
-          "id": "idea-to-pbi-pbi-review",
-          "skill": "pbi",
-          "args": "--mode=review --type=pbi",
+          "id": "initiative-to-task-task-review",
+          "skill": "work-item",
+          "args": "--mode=review --type=task",
           "role": "gate"
         },
-        "pbi --mode=story",
-        "pbi --mode=review --type=story",
+        "work-item --mode=story",
+        "work-item --mode=review --type=story",
         {
-          "id": "idea-to-pbi-challenge",
-          "skill": "pbi",
-          "args": "--mode=challenge --reuse=pbi-review"
+          "id": "initiative-to-task-challenge",
+          "skill": "work-item",
+          "args": "--mode=challenge --reuse=task-review"
         },
         {
-          "id": "idea-to-pbi-dor",
-          "skill": "pbi",
-          "args": "--mode=dor --reuse=pbi-review",
+          "id": "initiative-to-task-dor",
+          "skill": "work-item",
+          "args": "--mode=dor --reuse=task-review",
           "role": "gate"
         },
         {
-          "id": "idea-to-pbi-mockup",
-          "skill": "pbi",
+          "id": "initiative-to-task-mockup",
+          "skill": "work-item",
           "args": "--mode=mockup --explore",
           "role": "optional",
           "applicability": {
-            "when": "The PBI has a user-facing UI surface.",
-            "skipReason": "The PBI is backend-only, so there is no UI surface to mock."
+            "when": "The task has a user-facing UI surface.",
+            "skipReason": "The task is backend-only, so there is no UI surface to mock."
           }
         },
         {
-          "id": "idea-to-pbi-design-spec",
+          "id": "initiative-to-task-design-spec",
           "skill": "design-spec",
           "role": "optional",
           "applicability": {
@@ -1489,42 +1489,42 @@
           }
         },
         {
-          "id": "idea-to-pbi-prioritize",
+          "id": "initiative-to-task-prioritize",
           "skill": "prioritize",
           "role": "optional",
           "applicability": {
-            "when": "More than one PBI was generated in this run, or the PBI must be ranked against an existing backlog.",
-            "skipReason": "Exactly one PBI was generated and no backlog ranking was requested; its priority is the RICE/MoSCoW value pbi --mode=refine wrote to its frontmatter."
+            "when": "More than one task was generated in this run, or the task must be ranked against existing planned work.",
+            "skipReason": "Exactly one task was generated and no planned-work ranking was requested; its priority is the RICE/MoSCoW value work-item --mode=refine wrote to its frontmatter."
           }
         },
         "docs-manager --mode=update",
         {
-          "id": "idea-to-pbi-presentation",
+          "id": "initiative-to-task-presentation",
           "skill": "feature-presentation",
           "role": "optional",
           "applicability": {
-            "when": "Several PBIs were generated, the scope is size M or larger, or stakeholders asked for a review deck.",
-            "skipReason": "A single small PBI whose artifacts are reviewed directly, and no stakeholder deck was requested."
+            "when": "Several tasks were generated, the scope is size M or larger, or stakeholders asked for a review deck.",
+            "skipReason": "A single small task whose artifacts are reviewed directly, and no stakeholder deck was requested."
           }
         },
         {
-          "id": "idea-to-pbi-end",
+          "id": "initiative-to-task-end",
           "skill": "workflow-end",
           "role": "gate"
         },
         "watzup"
       ],
-      "whenToUse": "PO/BA wants a grooming-ready PBI backlog from an idea. SINGLE-PBI DEEP: a raw idea \u2014 or a handed-off artifact/ticket/brief \u2014 through to ONE grooming-ready PBI with a provisional Feature Spec, user stories, TDD test specifications, Dev BA PIC challenge, DoR validation, wireframes, and prioritization. MULTI-OPPORTUNITY DISCOVERY: a raw product vision/problem statement \u2192 structured brainstorm \u2192 RICE opportunity map \u2192 user multi-select \u2192 multiple PBIs (light per-opportunity loop) \u2192 cross-PBI ranked backlog. For idea \u2192 ONE provisional Feature Spec only (no backlog), use workflow-idea-to-spec"
+      "whenToUse": "PO/BA wants ready-to-plan work from an idea. SINGLE-TASK DEEP: a raw idea \u2014 or a handed-off artifact/ticket/brief \u2014 through to ONE ready-to-plan task with a provisional Feature Spec, user stories, TDD test specifications, Dev BA PIC challenge, DoR validation, wireframes, and prioritization. MULTI-OPPORTUNITY DISCOVERY: a raw product vision/problem statement \u2192 structured brainstorm \u2192 RICE opportunity map \u2192 user multi-select \u2192 multiple tasks (light per-opportunity loop) \u2192 cross-task ranked planned work. For idea \u2192 ONE provisional Feature Spec only (no planned work), use workflow-initiative-to-spec"
     },
-    "workflow-idea-to-spec": {
-      "description": "Idea-to-spec: turn a raw idea, vision, or problem into one reviewed provisional canonical spec under the active artifact contract. Stop at the spec; chain workflow-spec-to-pbi for a backlog. Portable README/eight-section/TC details apply only when neither a native profile nor local artifact contract applies.",
-      "intent": "Turn a raw idea into one reviewed, provisional canonical spec, stopping before any backlog.",
-      "name": "Idea to Feature Spec",
+    "workflow-initiative-to-spec": {
+      "description": "Initiative-to-spec: turn a raw idea, vision, or problem into one reviewed provisional canonical spec under the active artifact contract. Stop at the spec; chain workflow-spec-to-task for planned work. Portable README/eight-section/TC details apply only when neither a native profile nor local artifact contract applies.",
+      "intent": "Turn a raw idea into one reviewed, provisional canonical spec, stopping before any planned work.",
+      "name": "Initiative to Feature Spec",
       "outcomeGates": [
         {
           "id": "review-converged",
           "satisfiedBy": [
-            "pbi --mode=review"
+            "work-item --mode=review"
           ]
         },
         {
@@ -1535,14 +1535,14 @@
         }
       ],
       "preActions": {
-        "injectContext": "IDEA-TO-SPEC (stops at the reviewed spec): turn a raw idea into ONE reviewed, docs-synced, provisional canonical spec per converged capability. No PBI, story, backlog, mockup or roadmap artifact here; chain workflow-spec-to-pbi for a backlog or workflow-implement-spec to build. A supplied roadmap is read-only context; the standalone product-roadmap skill is explicit-request only.\nTRIAGE FIRST (SKILL.md section 1): size band XS..XL by capabilities and ambiguity, kinds (external evidence, existing specs/code, new entities, UI, stakeholders) and risk select the optional steps and their depth. Evaluate isLargeIdea (multipleIndependentOutcomes || ambiguousOrResearchHeavy || releaseScopeDecomposition || oversizedPbiThatMustSplit); any true -> the complete large_idea_decomposition block (outcome_slices, dependencies_order, non_goals, risks_evidence, deferred_work_owner) in the profile role that permits slice plans; all false -> omit it.\nPROFILE FIRST: read docs/project-config.json (specRoots.business.path, workflowPatterns.featureDocTemplate, specArtifacts), the configured template, spec-system-reference.md and spec-principles.md. The native profile or local contract owns paths, section roles, IDs and test/evidence carriers; intent roles stay tech-agnostic. The portable eight-section README + Section 8 TC-{FEATURE}-{NNN} form applies only when neither exists (details: SKILL.md). Unknown mapping = BLOCKED/UNKNOWN, never PASS; a malformed contract blocks. Before code exists use the profile's provisional convention (portable: Evidence: TBD, Status: Planned, provisional: true); workflow-code-to-spec reconciles it once code lands.\nGATES: scope confirmed with the user (brainstorm convergence; spec [mode=discovery] NEW / EXTEND via spec [mode=update] / SPLIT); spec authored with planned cases (spec [mode=draft], spec [mode=tests]); pbi --mode=review converged incl. the M1-M7 gate; spec [mode=clarify] confirmed every non-obvious decision via ask user question tool (depth by triage); docs-manager --mode=update synced; workflow-end closed. 4+ capabilities -> one spec sub-agent per capability in ONE message.\nTests Verify Intent: every case names the business intent or invariant it guards and would fail if that intent broke. Goal-Driven Execution: define success criteria first; loop until observable checks pass.",
+        "injectContext": "INITIATIVE-TO-SPEC (stops at the reviewed spec): turn a raw idea into ONE reviewed, docs-synced, provisional canonical spec per converged capability. No task, story, planned work, mockup or roadmap artifact here; chain workflow-spec-to-task for planned work or workflow-implement-spec to build. A supplied roadmap is read-only context; the standalone product-roadmap skill is explicit-request only.\nTRIAGE FIRST (SKILL.md section 1): size band XS..XL by capabilities and ambiguity, kinds (external evidence, existing specs/code, new entities, UI, stakeholders) and risk select the optional steps and their depth. Evaluate isLargeIdea (multipleIndependentOutcomes || ambiguousOrResearchHeavy || releaseScopeDecomposition || oversizedTaskThatMustSplit); any true -> the complete large_idea_decomposition block (outcome_slices, dependencies_order, non_goals, risks_evidence, deferred_work_owner) in the profile role that permits slice plans; all false -> omit it.\nPROFILE FIRST: read docs/project-config.json (specRoots.business.path, workflowPatterns.featureDocTemplate, specArtifacts), the configured template, spec-system-reference.md and spec-principles.md. The native profile or local contract owns paths, section roles, IDs and test/evidence carriers; intent roles stay tech-agnostic. The portable eight-section README + Section 8 TC-{FEATURE}-{NNN} form applies only when neither exists (details: SKILL.md). Unknown mapping = BLOCKED/UNKNOWN, never PASS; a malformed contract blocks. Before code exists use the profile's provisional convention (portable: Evidence: TBD, Status: Planned, provisional: true); workflow-code-to-spec reconciles it once code lands.\nGATES: scope confirmed with the user (brainstorm convergence; spec [mode=discovery] NEW / EXTEND via spec [mode=update] / SPLIT); spec authored with planned cases (spec [mode=draft], spec [mode=tests]); work-item --mode=review converged incl. the M1-M7 gate; spec [mode=clarify] confirmed every non-obvious decision via ask user question tool (depth by triage); docs-manager --mode=update synced; workflow-end closed. 4+ capabilities -> one spec sub-agent per capability in ONE message.\nTests Verify Intent: every case names the business intent or invariant it guards and would fail if that intent broke. Goal-Driven Execution: define success criteria first; loop until observable checks pass.",
         "readFiles": [
-          ".claude/skills/workflow-idea-to-spec/SKILL.md"
+          ".claude/skills/workflow-initiative-to-spec/SKILL.md"
         ]
       },
       "sequence": [
         {
-          "id": "idea-to-spec-web-research",
+          "id": "initiative-to-spec-web-research",
           "skill": "web-research",
           "role": "optional",
           "applicability": {
@@ -1551,7 +1551,7 @@
           }
         },
         {
-          "id": "idea-to-spec-deep-research",
+          "id": "initiative-to-spec-deep-research",
           "skill": "source-deep-dive",
           "role": "optional",
           "applicability": {
@@ -1561,7 +1561,7 @@
         },
         "brainstorm",
         {
-          "id": "idea-to-spec-spec-landscape",
+          "id": "initiative-to-spec-spec-landscape",
           "skill": "spec",
           "args": "[mode=discovery]",
           "role": "optional",
@@ -1571,7 +1571,7 @@
           }
         },
         {
-          "id": "idea-to-spec-scenario",
+          "id": "initiative-to-spec-scenario",
           "skill": "scenario",
           "role": "optional",
           "applicability": {
@@ -1580,7 +1580,7 @@
           }
         },
         {
-          "id": "idea-to-spec-domain-analysis",
+          "id": "initiative-to-spec-domain-analysis",
           "skill": "domain-analysis",
           "role": "optional",
           "applicability": {
@@ -1589,7 +1589,7 @@
           }
         },
         {
-          "id": "idea-to-spec-framing-review",
+          "id": "initiative-to-spec-framing-review",
           "skill": "why-review",
           "role": "optional",
           "applicability": {
@@ -1598,25 +1598,25 @@
           }
         },
         {
-          "id": "idea-to-spec-idea",
-          "skill": "idea",
+          "id": "initiative-to-spec-initiative",
+          "skill": "initiative",
           "role": "optional",
           "applicability": {
-            "when": "A durable idea artifact is needed: several capabilities, a stakeholder handoff, or a later backlog chain.",
+            "when": "A durable initiative artifact is needed: several capabilities, a stakeholder handoff, or a later planned-work chain.",
             "skipReason": "A small single-capability idea whose converged intent is captured directly in the canonical spec."
           }
         },
         "spec [mode=draft]",
         "spec [mode=tests]",
-        "pbi --mode=review --type=spec-tests",
+        "work-item --mode=review --type=spec-tests",
         {
-          "id": "idea-to-spec-spec-review",
-          "skill": "pbi",
+          "id": "initiative-to-spec-spec-review",
+          "skill": "work-item",
           "args": "--mode=review",
           "role": "gate"
         },
         {
-          "id": "idea-to-spec-design-spec",
+          "id": "initiative-to-spec-design-spec",
           "skill": "design-spec",
           "role": "optional",
           "applicability": {
@@ -1625,7 +1625,7 @@
           }
         },
         {
-          "id": "idea-to-spec-clarification",
+          "id": "initiative-to-spec-clarification",
           "skill": "spec",
           "args": "[mode=clarify]",
           "role": "gate"
@@ -1633,7 +1633,7 @@
         "why-review",
         "docs-manager --mode=update",
         {
-          "id": "idea-to-spec-presentation",
+          "id": "initiative-to-spec-presentation",
           "skill": "feature-presentation",
           "role": "optional",
           "applicability": {
@@ -1642,13 +1642,13 @@
           }
         },
         {
-          "id": "idea-to-spec-end",
+          "id": "initiative-to-spec-end",
           "skill": "workflow-end",
           "role": "gate"
         },
         "watzup"
       ],
-      "whenToUse": "PO/BA wants to turn a raw product idea, vision, or problem into one reviewed provisional canonical spec under the configured root and active artifact contract, without creating a PBI backlog."
+      "whenToUse": "PO/BA wants to turn a raw product idea, vision, or problem into one reviewed provisional canonical spec under the configured root and active artifact contract, without creating planned work."
     },
     "workflow-refactor": {
       "description": "Code improvement and restructuring workflow with search-first approach and behavior-preservation proof (same tests green before and after)",
@@ -1720,7 +1720,7 @@
         },
         {
           "id": "refactor-spec-tests-review",
-          "skill": "pbi",
+          "skill": "work-item",
           "args": "--mode=review --type=spec-tests",
           "role": "optional",
           "applicability": {
@@ -2721,7 +2721,7 @@
         {
           "id": "review-converged",
           "satisfiedBy": [
-            "pbi --mode=review"
+            "work-item --mode=review"
           ]
         },
         {
@@ -2739,7 +2739,7 @@
         }
       ],
       "preActions": {
-        "injectContext": "CODE-TO-SPEC: modes init-full | update (default) | audit. Keep ONE canonical spec per capability in agreement with code (technical truth) and test evidence; the spec owns requirements and behavior. Create only project-declared derived aids, never a parallel spec tree.\nSTEP 0 (BLOCKING): detect the mode, map changed code to its capability owner (App Bucket Mapping in spec-system-reference.md), confirm mode, capabilities and target paths via ask user question tool.\nTRIAGE (SKILL.md section 2): 1-3 capabilities inline; 4-10 -> one spec sub-agent per capability in ONE message; >10 -> groups of 10 run sequentially; multi-bucket/whole-project keeps the resumable Coverage Ledger (tmp/reports) and the completeness gate (every capability REVIEWED or deferred with a reason). After compaction read the ledger and TaskList first; never re-author a done capability.\nPROFILE FIRST: read docs/project-config.json (specRoots.business.path, workflowPatterns.featureDocTemplate, specArtifacts), the configured template, spec-system-reference.md and spec-principles.md. The native profile or local contract owns paths, section roles, IDs and test/evidence carriers; intent roles stay tech-agnostic. The portable eight-section README + Section 8 TC-{FEATURE}-{NNN} form applies only when neither exists (details: SKILL.md). Unknown mapping = BLOCKED/UNKNOWN, never PASS; a malformed contract blocks.\nGATES: full vertical chain traced and reconciled per capability (UI -> API -> handler -> domain -> event -> read model -> UI); three-way sync of native intent/contract/acceptance roles <-> configured cases/evidence <-> executing test code (follow spec-system-reference.md incl. its STATE MACHINE DATA ASSERT mandate); pbi --mode=review converged incl. M1-M7; update mode runs workflow-review-changes inline in the main session; docs-manager --mode=update before workflow-end; Goal Satisfaction matrix before close.\nSpec-Loop Discipline: property cases with boundary counter-cases for every hard invariant; mutation-score gate, not line coverage, for protected core logic; feed uncovered behavior into spec and tests via a dual-feedback ledger.\nTests Verify Intent: every case names the business intent or invariant it guards and would fail if that intent broke. Goal-Driven Execution: define success criteria first; loop until observable checks pass.",
+        "injectContext": "CODE-TO-SPEC: modes init-full | update (default) | audit. Keep ONE canonical spec per capability in agreement with code (technical truth) and test evidence; the spec owns requirements and behavior. Create only project-declared derived aids, never a parallel spec tree.\nSTEP 0 (BLOCKING): detect the mode, map changed code to its capability owner (App Bucket Mapping in spec-system-reference.md), confirm mode, capabilities and target paths via ask user question tool.\nTRIAGE (SKILL.md section 2): 1-3 capabilities inline; 4-10 -> one spec sub-agent per capability in ONE message; >10 -> groups of 10 run sequentially; multi-bucket/whole-project keeps the resumable Coverage Ledger (tmp/reports) and the completeness gate (every capability REVIEWED or deferred with a reason). After compaction read the ledger and TaskList first; never re-author a done capability.\nPROFILE FIRST: read docs/project-config.json (specRoots.business.path, workflowPatterns.featureDocTemplate, specArtifacts), the configured template, spec-system-reference.md and spec-principles.md. The native profile or local contract owns paths, section roles, IDs and test/evidence carriers; intent roles stay tech-agnostic. The portable eight-section README + Section 8 TC-{FEATURE}-{NNN} form applies only when neither exists (details: SKILL.md). Unknown mapping = BLOCKED/UNKNOWN, never PASS; a malformed contract blocks.\nGATES: full vertical chain traced and reconciled per capability (UI -> API -> handler -> domain -> event -> read model -> UI); three-way sync of native intent/contract/acceptance roles <-> configured cases/evidence <-> executing test code (follow spec-system-reference.md incl. its STATE MACHINE DATA ASSERT mandate); work-item --mode=review converged incl. M1-M7; update mode runs workflow-review-changes inline in the main session; docs-manager --mode=update before workflow-end; Goal Satisfaction matrix before close.\nSpec-Loop Discipline: property cases with boundary counter-cases for every hard invariant; mutation-score gate, not line coverage, for protected core logic; feed uncovered behavior into spec and tests via a dual-feedback ledger.\nTests Verify Intent: every case names the business intent or invariant it guards and would fail if that intent broke. Goal-Driven Execution: define success criteria first; loop until observable checks pass.",
         "readFiles": [
           ".claude/skills/workflow-code-to-spec/SKILL.md"
         ]
@@ -2778,12 +2778,12 @@
             },
             {
               "id": "init-review-spec-tests",
-              "skill": "pbi",
+              "skill": "work-item",
               "args": "--mode=review --type=spec-tests"
             },
             {
               "id": "init-review",
-              "skill": "pbi",
+              "skill": "work-item",
               "args": "--mode=review",
               "role": "gate"
             },
@@ -2827,7 +2827,7 @@
             },
             {
               "id": "update-review-spec-tests",
-              "skill": "pbi",
+              "skill": "work-item",
               "args": "--mode=review --type=spec-tests",
               "role": "gate"
             },
@@ -2870,7 +2870,7 @@
             },
             {
               "id": "audit-review",
-              "skill": "pbi",
+              "skill": "work-item",
               "args": "--mode=review",
               "role": "gate"
             },
@@ -2897,24 +2897,24 @@
         "plan --mode=validate",
         "spec",
         "spec [mode=tests]",
-        "pbi --mode=review --type=spec-tests",
-        "pbi --mode=review",
+        "work-item --mode=review --type=spec-tests",
+        "work-item --mode=review",
         "docs-manager --mode=update",
         "workflow-end",
         "watzup"
       ],
       "whenToUse": "Initialize a canonical spec from existing code, sync it after code changes, audit staleness, or prepare for a migration. Use spec [mode=index] alone only for declared derived outputs."
     },
-    "workflow-spec-to-pbi": {
+    "workflow-spec-to-task": {
       "activation": "auto",
-      "description": "Generate a complete, dependency-aware PBI backlog from existing canonical specs under the active artifact contract. Audit freshness, preserve native IDs/evidence, decompose into releasable outcomes, create stories and DoR evidence, and rank the backlog.",
-      "intent": "Generate a complete, dependency-ordered and prioritized PBI backlog from existing canonical specs.",
-      "name": "Spec to PBI Backlog",
+      "description": "Generate complete, dependency-aware planned work from existing canonical specs under the active artifact contract. Audit freshness, preserve native IDs/evidence, decompose into releasable outcomes, create stories and DoR evidence, and rank the planned work.",
+      "intent": "Generate complete, dependency-ordered and prioritized planned work from existing canonical specs.",
+      "name": "Spec to Planned Tasks",
       "outcomeGates": [
         {
           "id": "review-converged",
           "satisfiedBy": [
-            "pbi --mode=review"
+            "work-item --mode=review"
           ]
         },
         {
@@ -2922,7 +2922,7 @@
           "satisfiedBy": [
             "docs-manager --mode=update"
           ],
-          "when": "Generated PBIs, clarified decisions or scenario proof changed canonical spec content or its test/evidence carriers"
+          "when": "Generated tasks, clarified decisions or scenario proof changed canonical spec content or its test/evidence carriers"
         },
         {
           "id": "run-closed",
@@ -2932,15 +2932,15 @@
         }
       ],
       "preActions": {
-        "injectContext": "SPEC TO PBI \u2014 turn existing canonical specs into a complete, dependency-ordered, prioritized, Definition-of-Ready PBI/story backlog (no implementation). Read .claude/skills/workflow-spec-to-pbi/SKILL.md first: it owns triage, gates, the coverage matrix and the recommended-skill table.\nCANONICAL INPUT: resolve the spec root, template, specArtifacts profile and local spec-system-reference.md / spec-principles.md from docs/project-config.json; map native intent, acceptance, rule, contract, UI-intent and test/evidence roles; carry native IDs as the citation spine and never mint replacement IDs or synthesize a missing section. The {SPEC_ROOT}/{Bucket}/README.{Feature}.md 8-section form is the fallback only when no native profile or local contract exists. An unknown role/owner/case mapping is UNKNOWN and blocks that mapping.\nTRIAGE FIRST and record it: capability count (1-3 inline \u00b7 4-10 split by capability \u00b7 10+ batched with coverage-matrix checkpoints), kinds (domain change, UI surface, implementation exists \u2192 freshness risk), risk, isLargeIdea. Each step's applicability follows the triage; log every skip/merge with evidence.\nGATES (never skipped): spec [mode=clarify] before decomposition (Spec Validation: questions=4-8, EXISTING-SPEC context; confirmed changes route through /spec [mode=update]), pbi --mode=review --type=pbi, pbi --mode=dor (PASS or WARN), workflow-end; coverage matrix maps every spec item to a PBI, attached enabling task, existing PBI or out-of-scope reason; every PBI is one independently releasable actor-facing outcome (.claude/skills/shared/releasable-pbi-contract.md) with business-visible (M7) acceptance criteria; pbi --mode=challenge reviewer \u2260 drafter; UI PBIs get a navigable full-flow mock app + design-spec; prioritize ranks all PBIs once (skipped only when exactly one PBI was generated and no backlog ranking was requested; pbi --mode=refine's frontmatter priority stands) and writes rank/priority into every PBI's frontmatter, shown by mockups and the deck; docs-manager --mode=update syncs canonical specs and their test/evidence carriers before close.\nLARGE SPEC: when isLargeIdea is true, carry the complete large_idea_decomposition block (outcome_slices, dependencies_order, non_goals, risks_evidence, deferred_work_owner) from the spec's declared slice-planning role through PBIs, stories, mockups and the deck; stop decomposition when no role permits slice plans. Never create {PRODUCT_ROADMAP_DOC}; a roadmap is an explicit standalone request only and a supplied roadmap is read-only context.\nWrite each PBI to {TEAM_ARTIFACTS_ROOT}/pbis and the ranked backlog to {TEAM_ARTIFACTS_ROOT}/backlog immediately; never hold all PBIs in memory. Goal-driven: define success criteria first and loop until observable checks pass.",
+        "injectContext": "SPEC TO TASK \u2014 turn existing canonical specs into complete, dependency-ordered, prioritized, readiness-checked planned tasks and stories (no implementation). Read .claude/skills/workflow-spec-to-task/SKILL.md first: it owns triage, gates, the coverage matrix and the recommended-skill table.\nCANONICAL INPUT: resolve the spec root, template, specArtifacts profile and local spec-system-reference.md / spec-principles.md from docs/project-config.json; map native intent, acceptance, rule, contract, UI-intent and test/evidence roles; carry native IDs as the citation spine and never mint replacement IDs or synthesize a missing section. The {SPEC_ROOT}/{Bucket}/README.{Feature}.md 8-section form is the fallback only when no native profile or local contract exists. An unknown role/owner/case mapping is UNKNOWN and blocks that mapping.\nTRIAGE FIRST and record it: capability count (1-3 inline \u00b7 4-10 split by capability \u00b7 10+ batched with coverage-matrix checkpoints), kinds (domain change, UI surface, implementation exists \u2192 freshness risk), risk, isLargeIdea. Each step's applicability follows the triage; log every skip/merge with evidence.\nGATES (never skipped): spec [mode=clarify] before decomposition (Spec Validation: questions=4-8, EXISTING-SPEC context; confirmed changes route through /spec [mode=update]), work-item --mode=review --type=task, work-item --mode=dor (PASS or WARN), workflow-end; coverage matrix maps every spec item to a task, attached enabling subtask, existing task or out-of-scope reason; every task is one independently releasable actor-facing outcome (.claude/skills/shared/releasable-task-contract.md) with business-visible (M7) acceptance criteria; work-item --mode=challenge reviewer \u2260 drafter; UI tasks get a navigable full-flow mock app + design-spec; prioritize ranks all tasks once (skipped only when exactly one task was generated and no planned-work ranking was requested; work-item --mode=refine's frontmatter priority stands) and writes rank/priority into every task's frontmatter, shown by mockups and the deck; docs-manager --mode=update syncs canonical specs and their test/evidence carriers before close.\nLARGE SPEC: when isLargeIdea is true, carry the complete large_idea_decomposition block (outcome_slices, dependencies_order, non_goals, risks_evidence, deferred_work_owner) from the spec's declared slice-planning role through tasks, stories, mockups and the deck; stop decomposition when no role permits slice plans. Never create {PRODUCT_ROADMAP_DOC}; a roadmap is an explicit standalone request only and a supplied roadmap is read-only context.\nWrite each task to {TEAM_ARTIFACTS_ROOT}/tasks and the ranked planned work to {TEAM_ARTIFACTS_ROOT}/backlog immediately; never hold all tasks in memory. Goal-driven: define success criteria first and loop until observable checks pass.",
         "readFiles": [
-          ".claude/skills/workflow-spec-to-pbi/SKILL.md"
+          ".claude/skills/workflow-spec-to-task/SKILL.md"
         ]
       },
       "sequence": [
         "investigate",
         {
-          "id": "spec-to-pbi-derived-index",
+          "id": "spec-to-task-derived-index",
           "skill": "spec",
           "args": "[mode=index]",
           "role": "optional",
@@ -2950,7 +2950,7 @@
           }
         },
         {
-          "id": "spec-to-pbi-domain-analysis",
+          "id": "spec-to-task-domain-analysis",
           "skill": "domain-analysis",
           "role": "optional",
           "applicability": {
@@ -2960,13 +2960,13 @@
         },
         "why-review",
         {
-          "id": "spec-to-pbi-spec-clarification",
+          "id": "spec-to-task-spec-clarification",
           "skill": "spec",
           "args": "[mode=clarify]",
           "role": "gate"
         },
         {
-          "id": "spec-to-pbi-scenario",
+          "id": "spec-to-task-scenario",
           "skill": "scenario",
           "role": "optional",
           "applicability": {
@@ -2975,16 +2975,16 @@
           }
         },
         {
-          "id": "spec-to-pbi-plan",
+          "id": "spec-to-task-plan",
           "skill": "plan",
           "role": "optional",
           "applicability": {
-            "when": "The spec is large (isLargeIdea true), spans four or more capabilities, or has cross-capability dependencies, so a decomposition plan drives PBI slicing and order.",
+            "when": "The spec is large (isLargeIdea true), spans four or more capabilities, or has cross-capability dependencies, so a decomposition plan drives task slicing and order.",
             "skipReason": "The spec covers one to three capabilities with no cross-capability dependency, so the coverage matrix decomposes it without a separate plan."
           }
         },
         {
-          "id": "spec-to-pbi-plan-validation",
+          "id": "spec-to-task-plan-validation",
           "skill": "plan",
           "args": "--mode=validate",
           "role": "optional",
@@ -2993,38 +2993,38 @@
             "skipReason": "The plan step was skipped, so there is no plan to validate."
           }
         },
-        "pbi --mode=refine",
+        "work-item --mode=refine",
         {
-          "id": "spec-to-pbi-pbi-review",
-          "skill": "pbi",
-          "args": "--mode=review --type=pbi",
+          "id": "spec-to-task-task-review",
+          "skill": "work-item",
+          "args": "--mode=review --type=task",
           "role": "gate"
         },
-        "pbi --mode=story",
-        "pbi --mode=review --type=story",
+        "work-item --mode=story",
+        "work-item --mode=review --type=story",
         {
-          "id": "spec-to-pbi-challenge",
-          "skill": "pbi",
-          "args": "--mode=challenge --reuse=pbi-review"
+          "id": "spec-to-task-challenge",
+          "skill": "work-item",
+          "args": "--mode=challenge --reuse=task-review"
         },
         {
-          "id": "spec-to-pbi-dor",
-          "skill": "pbi",
-          "args": "--mode=dor --reuse=pbi-review",
+          "id": "spec-to-task-dor",
+          "skill": "work-item",
+          "args": "--mode=dor --reuse=task-review",
           "role": "gate"
         },
         {
-          "id": "spec-to-pbi-mockup",
-          "skill": "pbi",
+          "id": "spec-to-task-mockup",
+          "skill": "work-item",
           "args": "--mode=mockup",
           "role": "optional",
           "applicability": {
-            "when": "The PBI has a user-facing UI surface.",
-            "skipReason": "The PBI is backend-only, so there is no UI surface to mock."
+            "when": "The task has a user-facing UI surface.",
+            "skipReason": "The task is backend-only, so there is no UI surface to mock."
           }
         },
         {
-          "id": "spec-to-pbi-design-spec",
+          "id": "spec-to-task-design-spec",
           "skill": "design-spec",
           "role": "optional",
           "applicability": {
@@ -3033,43 +3033,43 @@
           }
         },
         {
-          "id": "spec-to-pbi-prioritize",
+          "id": "spec-to-task-prioritize",
           "skill": "prioritize",
           "role": "optional",
           "applicability": {
-            "when": "More than one PBI was generated in this run, or the PBI must be ranked against an existing backlog.",
-            "skipReason": "Exactly one PBI was generated and no backlog ranking was requested; its priority is the RICE/MoSCoW value pbi --mode=refine wrote to its frontmatter."
+            "when": "More than one task was generated in this run, or the task must be ranked against existing planned work.",
+            "skipReason": "Exactly one task was generated and no planned-work ranking was requested; its priority is the RICE/MoSCoW value work-item --mode=refine wrote to its frontmatter."
           }
         },
         "docs-manager --mode=update",
         {
-          "id": "spec-to-pbi-presentation",
+          "id": "spec-to-task-presentation",
           "skill": "feature-presentation",
           "role": "optional",
           "applicability": {
-            "when": "Several PBIs were generated, the spec is large, or stakeholders asked for a review deck.",
-            "skipReason": "A single small PBI whose artifacts are reviewed directly, and no stakeholder deck was requested."
+            "when": "Several tasks were generated, the spec is large, or stakeholders asked for a review deck.",
+            "skipReason": "A single small task whose artifacts are reviewed directly, and no stakeholder deck was requested."
           }
         },
         {
-          "id": "spec-to-pbi-end",
+          "id": "spec-to-task-end",
           "skill": "workflow-end",
           "role": "gate"
         },
         "watzup"
       ],
-      "whenToUse": "User wants a complete prioritized PBI/story backlog from existing canonical specs under the active artifact contract, including capability slicing and implementation ordering."
+      "whenToUse": "User wants complete prioritized planned tasks and stories from existing canonical specs under the active artifact contract, including capability slicing and implementation ordering."
     },
     "workflow-spec-to-mockup": {
       "activation": "auto",
-      "description": "Spec to interactive mockup: turn UI-bearing canonical spec(s) into a reviewed, journey-validated, interactive multi-view HTML mock app. Journey-first: design-spec reports the main user journeys (UX-1) and reads the design authority (UX-2) before any design output; pbi --mode=review --type=design gates it; pbi --mode=mockup --explore asks the mockup scope gate first (1-3 drafts or skip; the run's first action) and renders that many divergent design directions for the user to pick, then builds the full mock app in the chosen direction; html-export renders the journey views; ui-design --mode=review walks every main journey (UX-8). Stops at the mockup \u2014 no PBI, story, plan or code.",
+      "description": "Spec to interactive mockup: turn UI-bearing canonical spec(s) into a reviewed, journey-validated, interactive multi-view HTML mock app. Journey-first: design-spec reports the main user journeys (UX-1) and reads the design authority (UX-2) before any design output; work-item --mode=review --type=design gates it; work-item --mode=mockup --explore asks the mockup scope gate first (1-3 drafts or skip; the run's first action) and renders that many divergent design directions for the user to pick, then builds the full mock app in the chosen direction; html-export renders the journey views; ui-design --mode=review walks every main journey (UX-8). Stops at the mockup \u2014 no task, story, plan or code.",
       "intent": "Turn UI-bearing canonical specs into a reviewed, journey-validated interactive mock app built in a user-picked design direction.",
       "name": "Spec to Interactive Mockup",
       "outcomeGates": [
         {
           "id": "review-converged",
           "satisfiedBy": [
-            "pbi --mode=review"
+            "work-item --mode=review"
           ]
         },
         {
@@ -3080,7 +3080,7 @@
         }
       ],
       "preActions": {
-        "injectContext": "SPEC TO INTERACTIVE MOCKUP \u2014 turn UI-bearing canonical spec(s) into ONE reviewed, journey-validated, interactive multi-view HTML mock app per spec, built in a visual direction the user picked (no PBI, story, plan or code). Read .claude/skills/workflow-spec-to-mockup/SKILL.md first: it owns triage, the journey-first order, gates and the fix path.\nSOURCE: resolve the canonical spec path(s) the user named or search {SPEC_ROOT}; read the spec's UI intent layer (view inventory with information priority and container role, navigation map, observable states, per-story action flows \u2014 SYNC:ui-intent-layer) and its business rules through the active artifact profile. No canonical spec \u2192 route to workflow-idea-to-spec. Backend-only spec \u2192 stop, no mockup applies, state the reason. A missing UI intent layer \u2192 spec [mode=update] first, or derive it in design-spec with every derived item tagged INFERRED.\nJOURNEY-FIRST ORDER (BLOCKING, SYNC:ux-journey-gate, every generation step): design-spec Step 0a writes the Journey Report (UX-1) and the design-authority record (UX-2) before anything else; pbi --mode=mockup --source=<spec path> reuses both as its Step 2a/3 evidence and re-confirms only deltas (a conflicting re-derivation goes to the user); ui-design --mode=review walks every main journey on the final mockup with a traceability matrix (UX-8); the mockup closes with the UI/UX Gate Report (UX-11) and an unresolved FAIL blocks hand-off. Catalogs: .claude/docs/ux-journey-process.md, .claude/docs/design-knowledge.md, .claude/docs/design-review-checklist.md.\nEXPLORE PICK GATE (the user's decision while the user can be asked): pbi --mode=mockup --explore owns the 1-3 direction drafts (tmp/design/<run>/direction-{a,b,c}.html), the browser open, the ask user question tool pick with your evidence-backed recommendation first, the recorded Selection: line in tmp/design/<run>/direction-approved.md, and the exemption when a brief or design system pins every axis; it reuses the scope-gate answer and the pick stays in the main session.\nMOCK-APP CONTRACT: the final mockup is ONE self-contained multi-view mock app per spec \u2014 every required view, navigation edge, common/domain/page component and applicable state (empty, loading and error first) plus a connected full-flow demo of each main journey; one static or disconnected screen fails. Apply .claude/skills/shared/releasable-pbi-contract.md.\nARTIFACTS: direction drafts, renders, product facts and run notes are disposable run output under tmp/design/<run>/ (<run> = YYMMDD-HHmm-<slug>); the design spec lives under {TEAM_ARTIFACTS_ROOT}; the final mockup lives at the pbi --mode=mockup spec-source output path, design-specs/ under {TEAM_ARTIFACTS_ROOT} \u2014 never inside {SPEC_ROOT}, which holds canonical specs only. html-export --to=png renders the final mockup's journey views before ui-design --mode=review: exit 0 = render evidence only, exit 4 = fix the mockup and re-render, exit 3 = NOT VERIFIABLE with a setup pointer (never install), exit 1/2 or any other code = tool failure, NOT VERIFIABLE. Record the design spec and mockup paths in the spec's companion-artifact frontmatter (design_spec:/mockup: in the portable fallback) \u2014 frontmatter only, spec body untouched.\nGATES (never skipped): pbi --mode=review --type=design, ui-design --mode=review (N/A only when Mockup: SKIPPED by user: no mockup to review), workflow-end. User confirmations and the explore pick are never parallelized or delegated, and never auto-answered while the user can be asked (only the recorded Selection: AUTO-SELECTED paths). Goal-driven: define success criteria first and loop until observable checks pass.\nSCOPE GATE FIRST (this workflow): pbi --mode=mockup Step 0 (3/2/1 mockup options, or skip) is the run's FIRST action, before /design-spec or any reading; record the answer in the run report. Skip -> run /design-spec, /pbi --mode=review --type=design and the /ui-design --mode=review gate (record N/A \u2014 no mockup to review); record Mockup: SKIPPED by user; log pbi --mode=mockup, html-export and docs-manager --mode=update as N/A (no mockup exists), then /workflow-end and /watzup. MAIN SESSION ONLY: the scope gate and the pick never run inside a delegated sub-agent; only the draft builders may be sub-agents.",
+        "injectContext": "SPEC TO INTERACTIVE MOCKUP \u2014 turn UI-bearing canonical spec(s) into ONE reviewed, journey-validated, interactive multi-view HTML mock app per spec, built in a visual direction the user picked (no task, story, plan or code). Read .claude/skills/workflow-spec-to-mockup/SKILL.md first: it owns triage, the journey-first order, gates and the fix path.\nSOURCE: resolve the canonical spec path(s) the user named or search {SPEC_ROOT}; read the spec's UI intent layer (view inventory with information priority and container role, navigation map, observable states, per-story action flows \u2014 SYNC:ui-intent-layer) and its business rules through the active artifact profile. No canonical spec \u2192 route to workflow-initiative-to-spec. Backend-only spec \u2192 stop, no mockup applies, state the reason. A missing UI intent layer \u2192 spec [mode=update] first, or derive it in design-spec with every derived item tagged INFERRED.\nJOURNEY-FIRST ORDER (BLOCKING, SYNC:ux-journey-gate, every generation step): design-spec Step 0a writes the Journey Report (UX-1) and the design-authority record (UX-2) before anything else; work-item --mode=mockup --source=<spec path> reuses both as its Step 2a/3 evidence and re-confirms only deltas (a conflicting re-derivation goes to the user); ui-design --mode=review walks every main journey on the final mockup with a traceability matrix (UX-8); the mockup closes with the UI/UX Gate Report (UX-11) and an unresolved FAIL blocks hand-off. Catalogs: .claude/docs/ux-journey-process.md, .claude/docs/design-knowledge.md, .claude/docs/design-review-checklist.md.\nEXPLORE PICK GATE (the user's decision while the user can be asked): work-item --mode=mockup --explore owns the 1-3 direction drafts (tmp/design/<run>/direction-{a,b,c}.html), the browser open, the ask user question tool pick with your evidence-backed recommendation first, the recorded Selection: line in tmp/design/<run>/direction-approved.md, and the exemption when a brief or design system pins every axis; it reuses the scope-gate answer and the pick stays in the main session.\nMOCK-APP CONTRACT: the final mockup is ONE self-contained multi-view mock app per spec \u2014 every required view, navigation edge, common/domain/page component and applicable state (empty, loading and error first) plus a connected full-flow demo of each main journey; one static or disconnected screen fails. Apply .claude/skills/shared/releasable-task-contract.md.\nARTIFACTS: direction drafts, renders, product facts and run notes are disposable run output under tmp/design/<run>/ (<run> = YYMMDD-HHmm-<slug>); the design spec lives under {TEAM_ARTIFACTS_ROOT}; the final mockup lives at the work-item --mode=mockup spec-source output path, design-specs/ under {TEAM_ARTIFACTS_ROOT} \u2014 never inside {SPEC_ROOT}, which holds canonical specs only. html-export --to=png renders the final mockup's journey views before ui-design --mode=review: exit 0 = render evidence only, exit 4 = fix the mockup and re-render, exit 3 = NOT VERIFIABLE with a setup pointer (never install), exit 1/2 or any other code = tool failure, NOT VERIFIABLE. Record the design spec and mockup paths in the spec's companion-artifact frontmatter (design_spec:/mockup: in the portable fallback) \u2014 frontmatter only, spec body untouched.\nGATES (never skipped): work-item --mode=review --type=design, ui-design --mode=review (N/A only when Mockup: SKIPPED by user: no mockup to review), workflow-end. User confirmations and the explore pick are never parallelized or delegated, and never auto-answered while the user can be asked (only the recorded Selection: AUTO-SELECTED paths). Goal-driven: define success criteria first and loop until observable checks pass.\nSCOPE GATE FIRST (this workflow): work-item --mode=mockup Step 0 (3/2/1 mockup options, or skip) is the run's FIRST action, before /design-spec or any reading; record the answer in the run report. Skip -> run /design-spec, /work-item --mode=review --type=design and the /ui-design --mode=review gate (record N/A \u2014 no mockup to review); record Mockup: SKIPPED by user; log work-item --mode=mockup, html-export and docs-manager --mode=update as N/A (no mockup exists), then /workflow-end and /watzup. MAIN SESSION ONLY: the scope gate and the pick never run inside a delegated sub-agent; only the draft builders may be sub-agents.",
         "readFiles": [
           ".claude/skills/workflow-spec-to-mockup/SKILL.md"
         ]
@@ -3092,13 +3092,13 @@
         },
         {
           "id": "spec-to-mockup-design-review",
-          "skill": "pbi",
+          "skill": "work-item",
           "args": "--mode=review --type=design",
           "role": "gate"
         },
         {
           "id": "spec-to-mockup-mockup",
-          "skill": "pbi",
+          "skill": "work-item",
           "args": "--mode=mockup --explore"
         },
         {
@@ -3132,7 +3132,7 @@
           "skill": "watzup"
         }
       ],
-      "whenToUse": "PO/BA/designer wants to see and click through how a UI-bearing canonical spec works: an interactive multi-view HTML mock-up built journey-first from existing specs, with one to three design directions to pick from, before any backlog or build; the user chooses how many or skips mockups."
+      "whenToUse": "PO/BA/designer wants to see and click through how a UI-bearing canonical spec works: an interactive multi-view HTML mock-up built journey-first from existing specs, with one to three design directions to pick from, before any planned work or build; the user chooses how many or skips mockups."
     },
     "workflow-spec-sync": {
       "description": "Update test specs and feature docs after code changes, bug fixes, or PR reviews",
@@ -3180,7 +3180,7 @@
         "spec [mode=tests]",
         {
           "id": "spec-sync-spec-tests-review",
-          "skill": "pbi",
+          "skill": "work-item",
           "args": "--mode=review --type=spec-tests",
           "role": "optional",
           "applicability": {
@@ -3359,7 +3359,7 @@
             },
             {
               "id": "write-spec-tests-review",
-              "skill": "pbi",
+              "skill": "work-item",
               "args": "--mode=review --type=spec-tests",
               "role": "optional",
               "applicability": {
@@ -3473,7 +3473,7 @@
       "sequence": [
         "investigate",
         "spec [mode=tests]",
-        "pbi --mode=review --type=spec-tests",
+        "work-item --mode=review --type=spec-tests",
         "integration-test",
         "integration-test --mode=review",
         "integration-test --mode=verify",

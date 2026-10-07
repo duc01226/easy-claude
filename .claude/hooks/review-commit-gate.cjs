@@ -79,7 +79,7 @@ function tokenValues(tokens) {
 // Adjacency rejects all three and still matches what the gate exists for: `git commit`,
 // `git -c user.name=x commit`, `git -C /repo commit` and `sh -c "git commit -m x"`.
 const GIT_COMMIT_ADJACENT_RE =
-  /(?:^|[\s'"(;|&])git(?:\.exe)?(?:\s+-{1,2}[A-Za-z][\w-]*(?:=\S+)?(?:\s+(?!-)\S+)?)*\s+commit\b/i;
+  /(?:^|[\s'"(;|&])git(?:\.exe)?(?:\s+-{1,2}[A-Za-z][\w-]*(?:=\S+)?(?:\s+(?!-)\S+)?)*\s+commit\b(?!-)/i;
 
 function isPotentialCommit(command, statements = []) {
   if (GIT_COMMIT_ADJACENT_RE.test(command)) return true;
@@ -192,9 +192,26 @@ function parseCommitDescriptor(classification) {
   return { descriptor };
 }
 
+function isLiteralCatHeredoc(inspected) {
+  if (inspected.statements.length !== 1 || !inspected.diagnostics.length
+      || inspected.diagnostics.some(item => item.code !== 'UNSUPPORTED_HEREDOC')) return false;
+  const statement = inspected.statements[0];
+  if (statement.command?.value !== 'cat' || statement.assignments.length
+      || statement.separator?.value !== '\n') return false;
+  const heredocs = statement.redirects.filter(item => ['<<', '<<-'].includes(item.operator.value));
+  return heredocs.length > 0 && statement.redirects.every(item => item.target?.static
+    && (['<<', '<<-'].includes(item.operator.value)
+      ? item.target.parts.some(part => part.quote !== 'unquoted' && !(part.quote === 'escape' && part.raw === '\\\n'))
+      : item.operator.static));
+}
+
 /** Preserve one descriptor per commit statement; never merge by repository. */
 function resolveCommitDescriptors(command, cwd) {
   const inspected = inspectCommand(command);
+  // Quoting makes heredoc input literal only for a data consumer. Never apply this
+  // exception to interpreters, pipelines, expansions or a following statement:
+  // a quoted shell heredoc can still execute its body, unlike this single cat.
+  if (isLiteralCatHeredoc(inspected)) return { known: true, descriptors: [] };
   if (inspected.status !== 'KNOWN' && inspected.statements.length === 0) {
     return { known: false, reason: 'command could not be inspected' };
   }

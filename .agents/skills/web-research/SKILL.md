@@ -8,7 +8,7 @@ description: '[Research] Use when a workflow step or the user asks for web sourc
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -19,7 +19,7 @@ description: '[Research] Use when a workflow step or the user asks for web sourc
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
 > **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
-> **[BLOCKING]** Before each step or sub-skill call, update task tracking: set `in_progress` when step starts, set `completed` when step ends.
+> **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
 
@@ -149,7 +149,7 @@ Note gaps for `source-deep-dive`.
 - **"$business-evaluation"** — If evaluating business viability. **Run `$market-analysis` first** — this skill consumes its sized-market output as evidence and MUST NOT re-derive market sizing.
 - **"Skip, continue manually"** — user decides
 
-> **[IMPORTANT MUST ATTENTION]** Use task tracking to break work into small tasks BEFORE starting.
+> **[IMPORTANT MUST ATTENTION]** Use todo tracking to break work into small tasks BEFORE starting.
 
 > **External Memory:** For complex/lengthy research, analysis, scans, or reviews, write intermediate + final results to `tmp/reports/`; prevents context loss and provides deliverable.
 
@@ -188,7 +188,7 @@ Note gaps for `source-deep-dive`.
 **MANDATORY IMPORTANT MUST ATTENTION** NEVER cite a Tier 4 / single source as authoritative — cross-validate every factual claim against 2+ independent sources and declare confidence (95/80/60/<60%) — why: one unverified source = a hallucination-amplifier downstream.
 **MANDATORY IMPORTANT MUST ATTENTION** the deliverable is the intermediate source map at `tmp/research/_sources-{slug}.md` (sources table + Gaps Identified), NOT a synthesized report — hand it off to `source-deep-dive`; mine the set for gaps (missing perspectives, missing quantitative data, stale recency) so the next step knows where to dig.
 **IMPORTANT MUST ATTENTION** with `--chain=deep-dive`, after Step 5 read `references/research-chain.md` and run `source-deep-dive` Steps 1-5 from its own SKILL.md (never from memory); without the flag stop at the source map — why: the flag is the only contract that lets one step own both halves while each skill still works alone.
-**MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting; add a final review todo task to verify work quality; transition one task at a time.
+**MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using todo tracking BEFORE starting; add a final review todo task to verify work quality; transition one task at a time.
 **IMPORTANT MUST ATTENTION** persist intermediate findings/results to a report file in `tmp/reports/` for complex or lengthy work — why: external memory prevents context loss and is itself the deliverable.
 **IMPORTANT MUST ATTENTION** a direct `$web-research` call is an explicit skill request: run it with no routing question and NEVER start a workflow from inside this skill; only the post-completion Next Steps question uses `ask user question tool`.
 **IMPORTANT MUST ATTENTION** every claim, finding, and recommendation requires `file:line` proof or traced evidence with confidence percentage (>80% to act, <80% verify first) — NEVER speculate without proof.
@@ -201,10 +201,10 @@ Note gaps for `source-deep-dive`.
 | "I'll just write the report now"             | Out of scope — output the source map + gaps; `source-deep-dive` synthesizes, not this  |
 | "Keep searching, more results help"          | Hard-cap is 10 WebSearch calls — breadth then triage, never an unbounded crawl      |
 | "Topic is simple, skip tiering/dedupe"       | Tier + dedupe every source — untiered feedstock degrades every downstream step      |
-| "Just do it, skip task tracking"             | Skip depth, never skip tracking — task tracking first, one task in progress          |
+| "Just do it, skip task tracking"             | Skip depth, never skip tracking — todo tracking first, one task in progress          |
 
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
+**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using todo tracking.
 
 **IMPORTANT MUST ATTENTION Goal:** triaged, tiered, deduplicated source map + gap list as feedstock for `source-deep-dive` — NOT a final report.
 **IMPORTANT MUST ATTENTION** cap WebSearch at 10; cross-validate every claim with 2+ sources; NEVER cite Tier 4 as fact.
-**IMPORTANT MUST ATTENTION** task tracking to break ALL work into small tasks BEFORE starting — this is very important.
+**IMPORTANT MUST ATTENTION** todo tracking to break ALL work into small tasks BEFORE starting — this is very important.

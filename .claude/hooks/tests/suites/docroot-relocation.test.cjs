@@ -240,9 +240,9 @@ const tests = [
             assertEqual(readDotted(RELOCATED_CONFIG, 'docsRoots.templates.path'), 'documentation\\blueprints');
             assertNotContains(loader.getDocsRoot('templates', RELOCATED_CONFIG), '\\', 'a backslashed root must normalise to slash form');
             // TRAILING-SLASH variance: declared `artifacts/`, resolved slash-FREE so callers can
-            // compose `${root}/ideas` without producing `artifacts//ideas`.
+            // compose `${root}/initiatives` without producing `artifacts//initiatives`.
             assertEqual(readDotted(RELOCATED_CONFIG, 'docsRoots.teamArtifacts.path'), 'artifacts/');
-            assertEqual(pathUtils.joinRoot(loader.getDocsRoot('teamArtifacts', RELOCATED_CONFIG), 'ideas'), 'artifacts/ideas');
+            assertEqual(pathUtils.joinRoot(loader.getDocsRoot('teamArtifacts', RELOCATED_CONFIG), 'initiatives'), 'artifacts/initiatives');
             // CASE variance: the value is case-PRESERVED (it may build a real path on a
             // case-sensitive host) while COMPARISON is case-insensitive.
             assertEqual(loader.getDocsRoot('adr', RELOCATED_CONFIG), 'documentation/Decisions', 'case must be preserved, not folded');
@@ -271,7 +271,7 @@ const tests = [
             const injectContext =
                 'Specs live in {SPEC_ROOT}/; derived views in {SPEC_ROOT_TECHNICAL}/. Reference docs: ' +
                 '{REF_DOCS_ROOT}/. Decisions: {ADR_ROOT}/. Templates: {TEMPLATES_ROOT}/. Plans: ' +
-                '{PLANS_ROOT}/{plan-id}/. Backlog: {TEAM_ARTIFACTS_ROOT}/pbis. Roadmap: {PRODUCT_ROADMAP_DOC}.';
+                '{PLANS_ROOT}/{plan-id}/. Tasks: {TEAM_ARTIFACTS_ROOT}/tasks. Roadmap: {PRODUCT_ROADMAP_DOC}.';
             const resolved = loader.resolvePortabilityTokens(injectContext, RELOCATED_CONFIG);
 
             for (const root of ROOT_MATRIX) {
@@ -760,7 +760,7 @@ const tests = [
                 {}
             );
             const terms = resolved.flatMap(c => [...(c.requireAll ?? []), ...(c.requireAny ?? []), ...(c.forbidAny ?? [])]);
-            for (const expected of ['artifacts/ideas', 'artifacts/pbis']) {
+            for (const expected of ['artifacts/initiatives', 'artifacts/tasks']) {
                 assertTrue(terms.includes(expected), `a probe must target the configured \`${expected}\`. got: ${terms.join(', ')}`);
             }
             assertTrue(
@@ -814,11 +814,11 @@ const tests = [
             const sdd = await importSdd();
             const [check] = await sdd.resolveChecks(RELOCATED, sdd.CHECKS.filter(c => c.code === 'SDD004'), {});
             assertTrue(!!check.rootTerms, 'SDD004 must carry a rootTerms map once its tokens resolve');
-            assertEqual(check.rootTerms.get('artifacts/pbis'), 'team-artifacts/pbis', 'the resolved term must remember its default literal');
+            assertEqual(check.rootTerms.get('artifacts/tasks'), 'team-artifacts/tasks', 'the resolved term must remember its default literal');
 
             const formB =
-                'Route PBI/idea artifacts to the configured PBI/idea artifact roots — default ' +
-                '`team-artifacts/pbis`; a `docsRoots.teamArtifacts.path` entry in ' +
+                'Route task/initiative artifacts to the configured task/initiative artifact roots — default ' +
+                '`team-artifacts/tasks`; a `docsRoots.teamArtifacts.path` entry in ' +
                 '`docs/project-config.json` overrides the path. detection/delegation only.';
             assertDeepEqual(
                 sdd.evaluateCheck(check, formB),
@@ -827,16 +827,16 @@ const tests = [
                     'even though the configured root is `artifacts`'
             );
             assertTrue(sdd.isFormBOverrideSentence(formB), 'the shared form-(b) predicate must recognise the sentence');
-            assertTrue(!sdd.hasBareOccurrence(formB, 'team-artifacts/pbis'), 'the default literal has no BARE occurrence here');
+            assertTrue(!sdd.hasBareOccurrence(formB, 'team-artifacts/tasks'), 'the default literal has no BARE occurrence here');
 
             // The other half of the contract: a BARE occurrence is still a violation.
-            const bare = formB + '\nWrite the PBI to team-artifacts/pbis and stop.';
+            const bare = formB + '\nWrite the task to team-artifacts/tasks and stop.';
             assertTrue(
                 sdd.evaluateCheck(check, bare).some(f => f.includes('forbidden text found')),
                 'a bare hardcoded artifact path must still fail, or the exemption would swallow the rule'
             );
             // ...and so is a bare occurrence of the RESOLVED root.
-            const bareResolved = formB + '\nWrite the PBI to artifacts/pbis and stop.';
+            const bareResolved = formB + '\nWrite the task to artifacts/tasks and stop.';
             assertTrue(
                 sdd.evaluateCheck(check, bareResolved).some(f => f.includes('forbidden text found')),
                 'a bare occurrence of the CONFIGURED root must fail too'

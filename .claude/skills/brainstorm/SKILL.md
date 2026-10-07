@@ -8,7 +8,7 @@ disable-model-invocation: false
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
 > **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
-> **[BLOCKING]** Before each step or sub-skill call, update task tracking: set `in_progress` when step starts, set `completed` when step ends.
+> **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
 
@@ -23,7 +23,7 @@ disable-model-invocation: false
 - **Ordered core:** P0 Setup (scenario/role/known + context) → P1 Problem Framing/diverge (POV, 5 Whys/Fishbone, JTBD, HMW) → P2 Opportunity Framing/converge (OST, Lean Canvas, ERRC, Value Proposition) → P3 Ideation/diverge (SCAMPER, Crazy 8s, Brainwriting, Impact Mapping, Analogy; 25–40 ideas) → P4 Evaluation/converge (Dot Vote, RICE, Kano, 2×2, MoSCoW; shortlist 3–5) → P5 Validation (problem/value cards, RAT, cheapest test, Build-Measure-Learn) → P6 Decision (one recommendation) → P7 Documentation/Handoff.
 - **Purpose and gates:** Run `ask user question tool` in P0 first; separate diverge from converge; test every top-3 candidate before build; Multi-Opportunity Discovery ranks 3–8 opportunities and uses multi-select.
 - **Routing:** Resolve `--mode=roadmap|scope` before P0. Roadmap hands outcome/milestone framing to `/product-roadmap`; scope amends one approved `plans/{plan-id}/scope-brief.md` and stops before scenario/plan work (plans root default `plans/`; `docsRoots.plans.path` in `docs/project-config.json` overrides it).
-- **Handoff boundary:** Apply `isLargeIdea`; when true, carry one complete `large_idea_decomposition` block in the owning handoff. Default mode offers user-selected handoff (`/idea`, `/pbi --mode=refine`, `/plan`, etc.); Multi-Opportunity Discovery hands selected items to the per-opportunity PBI loop.
+- **Handoff boundary:** Apply `isLargeIdea`; when true, carry one complete `large_idea_decomposition` block in the owning handoff. Default mode offers user-selected handoff (`/initiative`, `/work-item --mode=refine`, `/plan`, etc.); Multi-Opportunity Discovery hands selected items to the per-opportunity task loop.
 
 **Workflow:**
 
@@ -88,7 +88,7 @@ Default mode does not route to `--mode=roadmap` merely because the idea is broad
 isLargeIdea = multipleIndependentOutcomes
             || ambiguousOrResearchHeavy
             || releaseScopeDecomposition
-            || oversizedPbiThatMustSplit
+            || oversizedTaskThatMustSplit
 ```
 
 When true, the brainstorm handoff owns this portable block; downstream skills consume it read-only. When all four signals are false, omit the block and roadmap/milestone placeholders. An existing roadmap is context unless the user explicitly chose `--mode=roadmap`.
@@ -111,10 +111,10 @@ Ask:
     - Problem-solving — something is broken, users struggle, a metric is bad
     - New product — greenfield, no existing product in this space
     - Feature enhancement — existing product, add/improve/remove capability
-    - Multi-opportunity discovery — a raw product vision / problem statement spanning MULTIPLE distinct opportunities that should each become a separate PBI (do NOT converge to one — produce a ranked RICE opportunity map for multi-select; see [Multi-Opportunity Discovery Mode](#multi-opportunity-discovery-mode))
+    - Multi-opportunity discovery — a raw product vision / problem statement spanning MULTIPLE distinct opportunities that should each become a separate task (do NOT converge to one — produce a ranked RICE opportunity map for multi-select; see [Multi-Opportunity Discovery Mode](#multi-opportunity-discovery-mode))
     - Mixed — multiple of the above
 
-> **Mode routing:** A broad vision/problem spanning distinct opportunities (typically from `workflow-idea-to-pbi`'s MULTI-OPPORTUNITY DISCOVERY MODE) selects **Multi-opportunity discovery**. It changes Phase 6 from "pick ONE" to "rank a 3–8-item RICE map for multi-select." All other scenarios keep the single-recommendation default.
+> **Mode routing:** A broad vision/problem spanning distinct opportunities (typically from `workflow-initiative-to-task`'s MULTI-OPPORTUNITY DISCOVERY MODE) selects **Multi-opportunity discovery**. It changes Phase 6 from "pick ONE" to "rank a 3–8-item RICE map for multi-select." All other scenarios keep the single-recommendation default.
 
 2. **"What is the primary role in this session?"**
     - Product Owner — outcome-focused, business value, user outcomes
@@ -412,7 +412,7 @@ RICE Score = (Reach × Impact × Confidence) / Effort
 Reach:      Users affected per quarter (100 / 500 / 1000 / 5000+)
 Impact:     0.25 minimal | 0.5 low | 1 medium | 2 high | 3 massive
 Confidence: 0.5 low (gut feel) | 0.8 medium (some data) | 1.0 high (validated)
-Effort:     Story Points — 1 trivial | 3 small | 5 medium | 8 large | 13 very large
+Effort:     Effort points — 1 trivial | 3 small | 5 medium | 8 large | 13 very large
 ```
 
 Score all 10–15 candidates. Sort descending. Top 5 = shortlist.
@@ -456,7 +456,7 @@ Assign release priority to each shortlisted idea:
 | --------------- | ---------------------------------- | -------------------------------------- |
 | **Must Have**   | MVP is broken without it           | Include if >80% of value depends on it |
 | **Should Have** | Important but MVP works without it | Include if RICE > median               |
-| **Could Have**  | Nice to have, low risk to cut      | Include if effort ≤ 3 SP               |
+| **Could Have**  | Nice to have, low risk to cut      | Include if effort ≤ 3 EP               |
 | **Won't Have**  | Explicitly out of scope this cycle | Document for future                    |
 
 **Phase 4 output (all required):** Dot-voted shortlist (10–15 ideas); top-5 RICE table; Kano classification; 2×2 placement; MoSCoW assignment per idea.
@@ -533,9 +533,9 @@ Present final shortlist as a decision table:
 
 | Option   | RICE | Kano        | Effort | Risk   | RAT Test        | Recommendation |
 | -------- | ---- | ----------- | ------ | ------ | --------------- | -------------- |
-| Option A | 320  | Delighter   | 5 SP   | Medium | 3-day interview | ⭐ Recommended |
-| Option B | 180  | Performance | 8 SP   | Low    | Prototype       | Viable         |
-| Option C | 90   | Must-Be     | 13 SP  | High   | Pre-sell        | Defer          |
+| Option A | 320  | Delighter   | 5 EP   | Medium | 3-day interview | ⭐ Recommended |
+| Option B | 180  | Performance | 8 EP   | Low    | Prototype       | Viable         |
+| Option C | 90   | Must-Be     | 13 EP  | High   | Pre-sell        | Defer          |
 
 ### 6.2 — Recommendation Statement
 
@@ -560,17 +560,17 @@ Time to validation: [Days/weeks]
 
 > **Select in Phase 0.1 when the input is a raw product vision/problem spanning MULTIPLE distinct opportunities.** This is an additional mode; every other scenario keeps Phase 6's single-recommendation default.
 
-**When to use:** a broad vision, problem statement, or "explore this whole area" brief expects several distinct, independently shippable opportunities, each becoming its own downstream PBI. This is the mode driven by `workflow-idea-to-pbi`'s **MULTI-OPPORTUNITY DISCOVERY MODE**.
+**When to use:** a broad vision, problem statement, or "explore this whole area" brief expects several distinct, independently shippable opportunities, each becoming its own downstream task. This is the mode driven by `workflow-initiative-to-task`'s **MULTI-OPPORTUNITY DISCOVERY MODE**.
 
-**How convergence differs:** the default flow produces ONE opinionated recommendation (Phase 6); this mode does NOT. Use the SAME Phase 4 techniques (RICE / Kano / 2×2) to **RANK and present 3–8 distinct opportunities**, not a single winner. The user then multi-selects opportunities to develop; choosing one would discard downstream PBIs.
+**How convergence differs:** the default flow produces ONE opinionated recommendation (Phase 6); this mode does NOT. Use the SAME Phase 4 techniques (RICE / Kano / 2×2) to **RANK and present 3–8 distinct opportunities**, not a single winner. The user then multi-selects opportunities to develop; choosing one would discard downstream tasks.
 
 **Technique flow:** run Phases 1–4 normally (problem framing → opportunity framing → ideation → convergence). In Phase 2, use JTBD / Opportunity Solution Tree to surface the FULL landscape, not one focus; in Phase 4, use RICE / Kano / 2×2 to SCORE and RANK every distinct opportunity instead of collapsing to one recommendation.
 
-**Output contract (must match what `workflow-idea-to-pbi` consumes):**
+**Output contract (must match what `workflow-initiative-to-task` consumes):**
 
 - An **opportunity map of 3–8 distinct, RICE-scored opportunities**, ranked descending by RICE.
 - Documented in **`plans/{plan-dir}/brainstorm-opportunity-map.md`** (plans root default `plans/`; `docsRoots.plans.path` in `docs/project-config.json` overrides).
-- Each opportunity carries: a one-line problem/value framing, RICE components (Reach × Impact × Confidence / Effort) + RICE score, and (where known) a Kano class — so each can seed a downstream PBI.
+- Each opportunity carries: a one-line problem/value framing, RICE components (Reach × Impact × Confidence / Effort) + RICE score, and (where known) a Kano class — so each can seed a downstream task.
 
 ```markdown
 # Opportunity Map: [Vision/Problem]
@@ -581,7 +581,7 @@ Time to validation: [Days/weeks]
 | 2    | ...         | ...                    | ...   | ...    | ...        | ...    | ...  | ...  |
 ```
 
-**Multi-select handoff:** present the ranked map with `ask user question tool` and `multiSelect: true`: "Which opportunities should we develop into PBIs?". Selected opportunities feed `workflow-idea-to-pbi`'s **per-opportunity PBI loop** (idea → pbi --mode=refine → review → pbi --mode=story → challenge → DoR → mockup, then final cross-PBI prioritization). Do NOT author PBIs, specs, or plans here; the deliverable is only the scored, multi-selected map.
+**Multi-select handoff:** present the ranked map with `ask user question tool` and `multiSelect: true`: "Which opportunities should we develop into tasks?". Selected opportunities feed `workflow-initiative-to-task`'s **per-opportunity task loop** (initiative → work-item --mode=refine → review → work-item --mode=story → challenge → DoR → mockup, then final cross-task prioritization). Do NOT author tasks, specs, or plans here; the deliverable is only the scored, multi-selected map.
 
 ---
 
@@ -670,15 +670,15 @@ After the session, use `ask user question tool` to present next steps:
 
 | Next Step              | When                                                        | Skill/Workflow          |
 | ---------------------- | ----------------------------------------------------------- | ----------------------- |
-| `/idea`                | Capture top idea as backlog artifact                        | `idea` skill            |
-| `/pbi --mode=refine`  | Turn top idea into actionable PBI with AC                   | `pbi` skill             |
+| `/initiative`                | Capture top idea as an initiative                        | `initiative` skill            |
+| `/work-item --mode=refine`  | Turn the top idea into an actionable task with AC                         | `work-item` skill             |
 | `/web-research`        | Need deeper market/competitor research first                | `web-research` skill    |
 | `/plan`                | Problem is clear, solution is validated, ready to implement | `plan` skill            |
 | `/design-spec`         | UI-heavy idea, need wireframes before spec                  | `design-spec` skill     |
 | `/domain-analysis`     | Idea touches domain entities, need model first              | `domain-analysis` skill |
 | Continue brainstorming | More scenarios to explore                                   | Stay in this session    |
 
-**Multi-Opportunity Discovery handoff:** in discovery mode, do NOT pick one next step. Present the ranked 3–8-item RICE map (write to `plans/{plan-dir}/brainstorm-opportunity-map.md`; plans root default `plans/`, overridable via `docsRoots.plans.path` in `docs/project-config.json`) via `ask user question tool` with `multiSelect: true`, then hand selected opportunities to `workflow-idea-to-pbi`'s per-opportunity PBI loop. `workflow-idea-to-pbi` consumes this map directly.
+**Multi-Opportunity Discovery handoff:** in discovery mode, do NOT pick one next step. Present the ranked 3–8-item RICE map (write to `plans/{plan-dir}/brainstorm-opportunity-map.md`; plans root default `plans/`, overridable via `docsRoots.plans.path` in `docs/project-config.json`) via `ask user question tool` with `multiSelect: true`, then hand selected opportunities to `workflow-initiative-to-task`'s per-opportunity task loop. `workflow-initiative-to-task` consumes this map directly.
 
 ---
 
@@ -715,7 +715,7 @@ After the session, use `ask user question tool` to present next steps:
 
 **IMPORTANT MUST ATTENTION Goal:** Facilitate evidence-backed PO/BA Double-Diamond ideation that separates problem discovery from solution evaluation and delivers either a validated, ranked 3–5-candidate shortlist with problem/value hypotheses, each riskiest assumption, and cheapest validation test plus one recommendation—or, in **Multi-Opportunity Discovery mode**, a ranked 3–8-item RICE map for user selection—so the team commits to the right problem and solution, never a flat idea list.
 - **IMPORTANT MUST ATTENTION Roadmap mode:** `--mode=roadmap` is explicit-only; it frames outcome-based milestones, risks, non-goals, human decisions, and evidence, then hands off to `/product-roadmap`; it does not choose technology or implementation.
-- **IMPORTANT MUST ATTENTION Embedded decomposition:** when any shared `isLargeIdea` signal is true, write the complete five-field `large_idea_decomposition` block in the owning handoff and carry its stable slice IDs into PBIs, stories, mock-ups, and the all-PBI presentation; do not create a default roadmap file.
+- **IMPORTANT MUST ATTENTION Embedded decomposition:** when any shared `isLargeIdea` signal is true, write the complete five-field `large_idea_decomposition` block in the owning handoff and carry its stable slice IDs into tasks, stories, mock-ups, and the all-task presentation; do not create a default roadmap file.
 - **IMPORTANT MUST ATTENTION Scope mode:** `--mode=scope` resolves and amends exactly one approved `plans/{plan-id}/scope-brief.md` in place (plans root default `plans/`; `docsRoots.plans.path` in `docs/project-config.json` overrides), then stops before `/scenario` or `/plan`; it never creates a competing brief.
 - **IMPORTANT MUST ATTENTION Main steps (run in order, track each):** P0 Setup (detect scenario/role/known + context) → P1 Problem Framing/diverge (POV → 5 Whys/Fishbone → JTBD → HMW) → P2 Opportunity Framing/converge (OST / Lean Canvas / ERRC / Value Proposition) → P3 Ideation/diverge (SCAMPER → Crazy 8s → Brainwriting → Impact Mapping → Analogy, 25–40 ideas) → P4 Evaluation/converge (Dot Vote → RICE → Kano → 2×2 → MoSCoW, shortlist 3–5) → P5 Validation (problem/value cards + RAT + cheapest test + Build-Measure-Learn for top 3) → P6 Decision (one recommendation, or Multi-Opportunity map) → P7 Documentation/Handoff — why: phase steps are easy to forget in long sessions; re-anchor before each phase.
 
@@ -729,15 +729,15 @@ After the session, use `ask user question tool` to present next steps:
 - **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting; mark each `completed` immediately, add a final review todo — why: long brainstorm sessions lose context without external task tracking.
 - **MANDATORY IMPORTANT MUST ATTENTION** search 3+ existing patterns first — read the business spec root (default `docs/specs/`; `specRoots.business.path` in `docs/project-config.json` overrides) for domain (codebase) or `WebSearch` for market/competitor context (greenfield) before ideating — why: ideas ungrounded in domain or market evidence score on gut feel, not fit.
 - **MANDATORY IMPORTANT MUST ATTENTION** cite evidence for every claim, confidence >80% to recommend; RICE Confidence is a multiplier, not optional — why: low-evidence ideas without a Confidence score get over-ranked.
-- **MANDATORY IMPORTANT MUST ATTENTION** close with ONE opinionated recommendation + trade-offs (Phase 6). **Multi-Opportunity Discovery exception:** follow [its complete map/path/selection contract](#multi-opportunity-discovery-mode) instead: rank 3–8 opportunities, persist the map and use `ask user question tool` `multiSelect: true` for the per-opportunity PBI handoff; never collapse that backlog to one.
-- **MANDATORY IMPORTANT MUST ATTENTION** use `ask user question tool` for all user decisions and handoff routing (`/idea`, `/pbi --mode=refine`, `/plan`) — never auto-decide — why: the user owns scenario, prioritization, and next-step choices.
+- **MANDATORY IMPORTANT MUST ATTENTION** close with ONE opinionated recommendation + trade-offs (Phase 6). **Multi-Opportunity Discovery exception:** follow [its complete map/path/selection contract](#multi-opportunity-discovery-mode) instead: rank 3–8 opportunities, persist the map and use `ask user question tool` `multiSelect: true` for the per-opportunity task handoff; never collapse that planned work to one.
+- **MANDATORY IMPORTANT MUST ATTENTION** use `ask user question tool` for all user decisions and handoff routing (`/initiative`, `/work-item --mode=refine`, `/plan`) — never auto-decide — why: the user owns scenario, prioritization, and next-step choices.
 
 **Anti-Rationalization:**
 
 | Evasion                                          | Rebuttal                                                                              |
 | ------------------------------------------------ | ------------------------------------------------------------------------------------- |
 | "Scenario is obvious, skip Phase 0 detection"    | Misclassified scenario routes the wrong technique sequence. Run `ask user question tool` first. |
-| "Just list the ideas, evaluation can wait"       | A flat idea list is the deliverable failure. Score, rank, and hypothesis-test the top 3. |
+| "Just list the ideas, evaluation can wait"             | A flat idea list is the deliverable failure. Score, rank, and hypothesis-test the top 3. |
 | "Skip the RAT — the idea is clearly good"        | "Clearly good" is HiPPO bias. Design the cheapest test before any build commitment.   |
 | "Diverge and converge together to save time"     | Mixing modes kills creative output — the Golden Rule violation. Keep phases separate. |
 | "RICE without Confidence is close enough"        | No Confidence multiplier over-ranks low-evidence ideas. Always score Confidence.      |

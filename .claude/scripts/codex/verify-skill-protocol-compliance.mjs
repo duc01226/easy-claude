@@ -92,7 +92,7 @@ const DEBUGGER_TRACE_REQUIRED_GENERATED_SKILLS = DEBUGGER_TRACE_REQUIRED_SOURCE_
     .map(relPath => relPath.replace('.claude/skills/', '.agents/skills/').replace(/\/skill\.md$/i, '/SKILL.md'));
 
 const REQUIRED_CONTRACT_SNIPPETS = [
-    'Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.',
+    'Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.',
     'Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.',
     'Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.',
     'Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.',

@@ -3,7 +3,7 @@
 > Loaded by `architecture/SKILL.md`'s Mode Dispatch when invoked as `$architecture --mode=full [scope]`. Formerly `/architecture-review-full`. This contract is the whole invocation: run it exactly as written, standalone or as a workflow step. `$ARGUMENTS` in this file means the invocation text after `--mode=full`.
 
 > **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
-> **[BLOCKING]** Before each step or sub-skill call, update task tracking: set `in_progress` when step starts, set `completed` when step ends.
+> **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
 
@@ -193,7 +193,7 @@ The report is now validated — lock it and hand off a stable artifact.
 
 > **Repair ownership.** Review-only and caller-owned audits return validated findings without fixes. Standalone `--fix-loop` repairs authorized findings at their owner after Step 5 validation, then repeats Steps 1–6 over the updated target, including all three lenses and their interactions. Create fresh review tasks, retain spent rounds, and apply the shared cap/LOW/extension rules. A pre-fix scorecard never proves the repaired target clean.
 
-> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting. For simple tasks, ask the user whether to skip.
+> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting. For simple tasks, ask the user whether to skip.
 
 > **External Memory:** Complex/lengthy work → write intermediate findings + final results to `tmp/reports/` — prevents context loss, serves as deliverable.
 
@@ -223,7 +223,7 @@ The protocols below apply to this mode only; their full text is inline so this r
 > - **Test coverage:** Are the changed paths covered by tests? Are existing tests still valid after the change?
 > - **Documentation:** Do related docs, specs, or READMEs reflect the changes?
 >
-> **Step 4 — Create sub-tasks and execute.** For each identified concern: create a task tracking sub-task, work through it with `file:line` evidence, mark done. No findings without proof.
+> **Step 4 — Create sub-tasks and execute.** For each identified concern: create a todo tracking sub-task, work through it with `file:line` evidence, mark done. No findings without proof.
 >
 > **Illustrative concern examples by category type** (not exhaustive — trust your knowledge beyond this):
 >
@@ -461,7 +461,7 @@ AI skips steps via these evasions. Recognize and reject:
 - "Too simple for a plan" → Simple + wrong assumptions = wasted time. Plan anyway.
 - "I'll test after" → RED before GREEN. Write/verify test first.
 - "Already searched" → Show grep evidence with file:line. No proof = no search.
-- "Just do it" → Still need task tracking. Skip depth, never skip tracking.
+- "Just do it" → Still need todo tracking. Skip depth, never skip tracking.
 - "Just a small fix" → Small fix in wrong location cascades. Verify file:line first.
 - "Code is self-explanatory" → Future readers need evidence trail. Document anyway.
 - "Combine steps to save time" → Combined steps dilute focus. Each step has distinct purpose.
@@ -807,7 +807,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 The following are all MANDATORY:
 
-- **MANDATORY** break work into small todo tasks via task tracking BEFORE starting; mark one `in_progress`, complete it immediately after evidence.
+- **MANDATORY** break work into small todo tasks via todo tracking BEFORE starting; mark one `in_progress`, complete it immediately after evidence.
 - **MANDATORY** read required project-reference docs first (`project-structure-reference.md`, `backend-patterns-reference.md`, `code-review-rules.md`, always `lessons.md`) and cite `Reference docs read: ...` — why: project conventions override generic assumptions.
 - **MANDATORY** every merged finding carries `file:line` proof + confidence (>80% to act, <80% verify first) — NEVER synthesize a finding from inference.
 - **Optional advice:** the code graph (`.code-graph/graph.db`) can hint at a high-risk blast radius grep may miss; it may be stale — verify by reading. Never required.

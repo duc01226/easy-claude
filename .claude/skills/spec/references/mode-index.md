@@ -3,7 +3,7 @@
 > Loaded by `spec/SKILL.md`'s Mode Dispatch when invoked as `/spec [mode=index] [action=index|audit] [bucket=<scope>] [artifacts=INDEX[,ERD]]`. This contract REPLACES the spec authoring body for the invocation: it assembles regenerable navigation aids (index, cross-capability ERD, reimplementation guide) FROM canonical specs only, or audits them for staleness. It never authors canonical content and never becomes a source of truth.
 
 > **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
-> **[BLOCKING]** Before each step or sub-skill call, update task tracking: set `in_progress` when step starts, set `completed` when step ends.
+> **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
 

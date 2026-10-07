@@ -5,7 +5,7 @@
  *   deliver    the first prompt or task-step event of a session scope delivers the canonical
  *              `SYNC:core-engineering-principles` body (Easy to change · scale · maintain);
  *   dedup      a repeat event stays silent until the transcript grows by `reinjectAfterTokens`
- *              × BYTES_PER_TOKEN, then delivers again (the "about every 100k tokens" promise);
+ *              × BYTES_PER_TOKEN, then delivers again (the "about every 150k tokens" promise);
  *   scope      each sub-agent scope gets its own delivery (a sub-agent starts without it);
  *   fallback   the built-in reminder equals the canonical `:reminder` body, and the config schema's
  *              interval range equals the hook's accepted range;
@@ -228,16 +228,16 @@ const tests = [
         })
     },
     {
-        name: '[core-principles] TC-CEP-003 the default window is 100k tokens',
+        name: '[core-principles] TC-CEP-003 the default window is 150k tokens',
         fn: () => withFixture(async fx => {
             // Given no interval configured and a delivered session
-            assert.equal(hook.DEFAULT_REINJECT_TOKENS, 100000);
+            assert.equal(hook.DEFAULT_REINJECT_TOKENS, 150000);
             assert.ok(await fire(fx, promptEvent(fx)));
-            // When the transcript grows by just under 100k tokens / Then silent
-            grow(fx.main, 99000);
+            // When the transcript grows by just under 150k tokens / Then silent
+            grow(fx.main, 149999);
             assert.equal(await fire(fx, promptEvent(fx)), '');
-            // When it passes 100k / Then delivered
-            grow(fx.main, 1500);
+            // When it reaches 150k / Then delivered
+            grow(fx.main, 1);
             assert.ok(await fire(fx, promptEvent(fx)));
         })
     },
@@ -304,7 +304,7 @@ const tests = [
             grow(fx.main, 19000);
             assert.equal((await spawn()).stdout, '', 'under the configured 20k window: silent');
             grow(fx.main, 2000);
-            assert.ok((await spawn()).stdout.includes(hook.MARKER_START), 'past the configured window: re-delivered (not the 100k default)');
+            assert.ok((await spawn()).stdout.includes(hook.MARKER_START), 'past the configured window: re-delivered (not the 150k default)');
         })
     },
     {
@@ -404,7 +404,7 @@ const tests = [
     {
         name: '[core-principles] TC-CEP-008 out-of-range or malformed intervals fall back to the default',
         fn: () => {
-            for (const value of [undefined, 0, 19999, 2000001, 1.5, '100000', null]) {
+            for (const value of [undefined, 0, 19999, 2000001, 1.5, '150000', null]) {
                 assert.equal(hook.resolveReinjectTokens({ reinjectAfterTokens: value }), hook.DEFAULT_REINJECT_TOKENS, String(value));
             }
             assert.equal(hook.resolveReinjectTokens({ reinjectAfterTokens: 50000 }), 50000);

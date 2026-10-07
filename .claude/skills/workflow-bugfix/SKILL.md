@@ -10,17 +10,17 @@ disable-model-invocation: false
 
 Read [the registry](../../../.claude/workflows.json) → `workflows.workflow-bugfix` together with this skill. Call [`/start-workflow workflow-bugfix`](../start-workflow/SKILL.md) to resolve the selected mode, pre-actions and fingerprint.
 
-**Todo FIRST:** create ALL selected occurrence tasks before triage, analysis or step execution, including conditional/optional tasks; preserve occurrence IDs, roles and barrier groups. Use native task tools or an equivalent persistent ledger. Then mark the first task `in_progress`; attach evidence before `completed`.
+**Todo FIRST:** create one todo for EVERY selected occurrence before triage, analysis or step execution, including conditional/optional ones; preserve occurrence IDs, roles and barrier groups. Use native todo tools or an equivalent persistent ledger. Then mark the first todo `in_progress`; attach evidence before `completed`.
 Mode selection and registry loading prepare tracking; any 'first action' below means the first substantive action after this bootstrap.
 
 **Call each step skill:** read its linked SKILL.md and execute its protocol through the active host with the registry args. Reading or naming a skill alone is not execution. Required gates and core/optional flex follow the linked start-workflow Step Execution Protocol; keep this skill's quality gates, loops and evidence requirements.
 
-**Conditions:** load each occurrence's registry `applicability.when` and `skipReason` verbatim, and record its run/skip evidence through the linked start-workflow protocol. Do not silently omit a task or turn a conditional skill into an unconditional call. Declared parallel groups retain their all-return barrier.
+**Conditions:** load each occurrence's registry `applicability.when` and `skipReason` verbatim, and record its run/skip evidence through the linked start-workflow protocol. Do not silently omit a todo or turn a conditional skill into an unconditional call. Declared parallel groups retain their all-return barrier.
 
 Explicit step-skill calls by mode (registry order; roles and conditions remain owned by the registry):
 
-- Mode `default`: [`/investigate --mode=debug`](../investigate/SKILL.md) (gate) → [`/spec [mode=amend]`](../spec/SKILL.md) (optional; conditional) → [`/pbi --mode=mockup --explore`](../pbi/SKILL.md) (optional; conditional) → [`/plan`](../plan/SKILL.md) (optional; conditional) → [`/spec [mode=tests]`](../spec/SKILL.md) (optional; conditional) → [`/pbi --mode=review --type=spec-tests`](../pbi/SKILL.md) (optional; conditional) → [`/integration-test`](../integration-test/SKILL.md) (gate) → [`/fix`](../fix/SKILL.md) (core) → [`/integration-test`](../integration-test/SKILL.md) (core) → [`/spec [mode=sync]`](../spec/SKILL.md) (optional; conditional) → [`/workflow-review-changes --tests=defer`](../workflow-review-changes/SKILL.md) (gate) → [`/integration-test --mode=verify`](../integration-test/SKILL.md) (gate) → [`/workflow-e2e --source=context`](../workflow-e2e/SKILL.md) (optional; conditional) → [`/demo-guide`](../demo-guide/SKILL.md) (optional; conditional) → [`/workflow-end`](../workflow-end/SKILL.md) (gate) → [`/watzup`](../watzup/SKILL.md) (core)
-<!-- workflow-mode:default fingerprint:dfbd558a2785a4ad5179c2d88870cc645f87c4bb17473f0b43ca6ba76757fa45 -->
+- Mode `default`: [`/investigate --mode=debug`](../investigate/SKILL.md) (gate) → [`/spec [mode=amend]`](../spec/SKILL.md) (optional; conditional) → [`/work-item --mode=mockup --explore`](../work-item/SKILL.md) (optional; conditional) → [`/plan`](../plan/SKILL.md) (optional; conditional) → [`/spec [mode=tests]`](../spec/SKILL.md) (optional; conditional) → [`/work-item --mode=review --type=spec-tests`](../work-item/SKILL.md) (optional; conditional) → [`/integration-test`](../integration-test/SKILL.md) (gate) → [`/fix`](../fix/SKILL.md) (core) → [`/integration-test`](../integration-test/SKILL.md) (core) → [`/spec [mode=sync]`](../spec/SKILL.md) (optional; conditional) → [`/workflow-review-changes --tests=defer`](../workflow-review-changes/SKILL.md) (gate) → [`/integration-test --mode=verify`](../integration-test/SKILL.md) (gate) → [`/workflow-e2e --source=context`](../workflow-e2e/SKILL.md) (optional; conditional) → [`/demo-guide`](../demo-guide/SKILL.md) (optional; conditional) → [`/workflow-end`](../workflow-end/SKILL.md) (gate) → [`/watzup`](../watzup/SKILL.md) (core)
+<!-- workflow-mode:default fingerprint:c70d5b81774fdab40e667b46a5c2376c6680565771d987c941bb46cf700f0a73 -->
 
 Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs --write` after registry edits; [`/sync-codex`](../sync-codex/SKILL.md) refreshes it before mirroring.
 <!-- WORKFLOW-CALLS:END -->
@@ -82,10 +82,10 @@ Non-negotiable — `/workflow-end` checks each against its evidence before the r
 | --- | --- | --- |
 | `/investigate --mode=debug` | gate | root cause traced — owns discovery and root cause |
 | `/spec [mode=amend]` | optional | spec states intent |
-| `/pbi --mode=mockup --explore` | optional | selected mockup before planning — see below |
+| `/work-item --mode=mockup --explore` | optional | selected mockup before planning — see below |
 | `/plan` | optional | fix plan |
 | `/spec [mode=tests]` | optional | regression TC |
-| `/pbi --mode=review --type=spec-tests` | optional | TC quality |
+| `/work-item --mode=review --type=spec-tests` | optional | TC quality |
 | `/integration-test` | gate | guard written — write the regression test that reproduces the bug (not run here) |
 | `/fix` | core | the change, at the owning layer |
 | `/integration-test` | core | guard ready — adjust the regression test after the fix (not run here); may fold into the write step |
@@ -97,7 +97,7 @@ Non-negotiable — `/workflow-end` checks each against its evidence before the r
 | `/workflow-end` | gate | run closed |
 | `/watzup` | core | handoff |
 
-**New-UI Explore Mockup (conditional, BEFORE `/plan`).** Only when the fix is large (size M+) and creates completely new user-facing UI like a feature — a new page/view, component or dialog — run `/pbi --mode=mockup --explore`, passing the investigation report (or the amended spec) as `--source`. `pbi --mode=mockup` Step 0 owns the scope gate (asked first, before any analysis or drafting) and the direction pick; both run in the main session only. A fix inside existing UI skips it with the registry `skipReason`.
+**New-UI Explore Mockup (conditional, BEFORE `/plan`).** Only when the fix is large (size M+) and creates completely new user-facing UI like a feature — a new page/view, component or dialog — run `/work-item --mode=mockup --explore`, passing the investigation report (or the amended spec) as `--source`. `work-item --mode=mockup` Step 0 owns the scope gate (asked first, before any analysis or drafting) and the direction pick; both run in the main session only. A fix inside existing UI skips it with the registry `skipReason`.
 
 Without `/plan`, `/fix` plans inline and the investigation report records the fix layer, blast radius and rollback.
 
@@ -111,7 +111,7 @@ A recommended step the triage shows would do no real work is not run; record it 
 
 ## Orchestration Freedom
 
-You choose inline vs sub-agent, parallel waves vs sequential, batching and order — optimize wall-clock and token cost at equal quality. **Main session only:** the mockup scope gate and pick (`pbi --mode=mockup` Step 0) never run inside a delegated sub-agent. Fixed constraints (data dependencies):
+You choose inline vs sub-agent, parallel waves vs sequential, batching and order — optimize wall-clock and token cost at equal quality. **Main session only:** the mockup scope gate and pick (`work-item --mode=mockup` Step 0) never run inside a delegated sub-agent. Fixed constraints (data dependencies):
 
 - The root-cause trace exists before any fix plan, regression TC or fix; the RED proof is the verify step's mutation check (revert the fix, the regression test must fail) — no separate RED run.
 - A change exists before it is reviewed or tested; the spec sync runs before the review that checks it; tests run once, last, after the static review (`--tests=defer`); a fix made by the verify step re-runs `/workflow-review-changes --tests=defer`, and a fix made by that re-review re-runs the verify (`SYNC:verify-last-order`); `/workflow-end` runs last.
@@ -135,7 +135,7 @@ Activate the `workflow-bugfix` workflow: run `/start-workflow workflow-bugfix` w
 
 Recommended default order (roles in the table above):
 
-**IMPORTANT MANDATORY Steps:** /investigate --mode=debug -> /spec [mode=amend] -> /pbi --mode=mockup --explore -> /plan -> /spec [mode=tests] -> /pbi --mode=review --type=spec-tests -> /integration-test -> /fix -> /integration-test -> /spec [mode=sync] -> /workflow-review-changes --tests=defer -> /integration-test --mode=verify -> /workflow-e2e --source=context -> /demo-guide -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /investigate --mode=debug -> /spec [mode=amend] -> /work-item --mode=mockup --explore -> /plan -> /spec [mode=tests] -> /work-item --mode=review --type=spec-tests -> /integration-test -> /fix -> /integration-test -> /spec [mode=sync] -> /workflow-review-changes --tests=defer -> /integration-test --mode=verify -> /workflow-e2e --source=context -> /demo-guide -> /workflow-end -> /watzup
 
 <!-- PROTOCOL-GUIDES:START -->
 

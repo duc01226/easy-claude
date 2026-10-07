@@ -2,7 +2,7 @@
 
 > **Role:** the **executable review protocol** for any artifact carrying a user-facing UI surface. Every item has a stable ID, a verifiable check, an observable failure signal, and a default severity, so an agent can run it against screenshots, prototypes, live URLs, code, or design files and produce a consistent, evidence-backed report. Owns the REVIEW PROTOCOL (§0), the SURFACE-SCOPE & COMPOSITION rule (§0.5), the CHECK CATALOG (§A–§M, §R), the EDGE-CASE PROBE LIST (§N), the REPORT FORMAT (§O), the QUICK TRIAGE PASS (§P), and the SCORING model (§Q). Owns NO design reasoning — that lives in `design-knowledge.md`.
 >
-> **Consumed by:** `web-design-guidelines` · `pbi --mode=review` · `test-ui` · `changes-review` · `ui-design` · `design-spec` · `pbi --mode=mockup` · `feature-presentation` · `presentation-builder` · `plan` · `scaffold` · `feature-implement` · `fix`, plus the `ui-ux-designer`, `frontend-developer` and `fullstack-developer` agents. This list is the drift-guard's scope — a skill belongs here only when it carries the canonical block or generated protocol guide, so the list stays greppable and the sweep stays truthful. NEVER add an aspirational consumer.
+> **Consumed by:** `web-design-guidelines` · `work-item --mode=review` · `test-ui` · `changes-review` · `ui-design` · `design-spec` · `work-item --mode=mockup` · `feature-presentation` · `presentation-builder` · `plan` · `scaffold` · `feature-implement` · `fix`, plus the `ui-ux-designer`, `frontend-developer` and `fullstack-developer` agents. This list is the drift-guard's scope — a skill belongs here only when it carries the canonical block or generated protocol guide, so the list stays greppable and the sweep stays truthful. NEVER add an aspirational consumer.
 >
 > **Drift-guard:** this file is AUTHORITATIVE for the check IDs (`A1`…`Q`), the severity rubric, and the report format. Related but SEPARATE single-sources — NEVER duplicate them here: the 40 usability clauses `UI-1.1`–`UI-9.4` in `SYNC:ui-ux-design-principles`; the visual-identity clauses `DD-1`–`DD-8` in `SYNC:design-distinctiveness-gate` + `.claude/docs/design-knowledge.md`; the tech-agnostic spec layer in `SYNC:ui-intent-layer`; project tokens/components in `design-system/` under the project-reference docs root — default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path. On any change here, grep `design-review-checklist` and update every consuming carrier.
 >
@@ -29,7 +29,7 @@
 - **Judge the SURFACE, not the diff (§0.5).** Expand changed files to the pages/views they render into, reconstruct how each surface actually composes (component tree + style origins), and review each surface whole — load accumulated over many small diffs is invisible file by file.
 - **The sections, in order:** §0 protocol → §A heuristics → §B cognitive load & surface complexity → §C visual hierarchy → §D relevant interaction states → §E information architecture & container fit → **§F web / §G mobile (conditional on platform) / §H expert & data-heavy use (conditional on usage)** → §I accessibility (against the governing standard) → §J content → §K trust & ethics → **§L AI patterns (conditional)** → §M consistency → **§R forms & data entry (conditional on input)** → §N applicable edge-case probes → §O report format → §P quick triage → §Q scoring.
 - **Calibrate before judging.** Worked bad/good examples with their expected findings live in `.claude/docs/design-review-calibration.md`.
-- **Severity is the output, not the finding count.** P0 blocks ship · P1 fix before release · P2 next iteration · P3 backlog · P4 note. Cap at the top 10 by severity unless a full audit was requested; a clean section reports "no issues found" — NEVER pad.
+- **Severity is the output, not the finding count.** P0 blocks ship · P1 fix before release · P2 next iteration · P3 later · P4 note. Cap at the top 10 by severity unless a full audit was requested; a clean section reports "no issues found" — NEVER pad.
 - **No time for a full pass?** Run §P (10 checks) — it catches the majority of serious defects.
 
 ---
@@ -71,7 +71,7 @@ If fewer than four of these are known, state the gap at the top of the report an
 | **P0 — Critical** | Blocks task completion, causes data loss, or excludes a protected group        | Ship blocker       |
 | **P1 — High**     | Significant friction, high error rate, or violates a legal accessibility floor | Fix before release |
 | **P2 — Medium**   | Measurable inefficiency or inconsistency; degrades trust                       | Next iteration     |
-| **P3 — Low**      | Polish, refinement, minor inconsistency                                        | Backlog            |
+| **P3 — Low**      | Polish, refinement, minor inconsistency                                        | Later              |
 | **P4 — Note**     | Observation or opportunity, no defect                                          | Optional           |
 
 **Severity vocabulary map — the single translation table.** Consumers speak different dialects; this table is authoritative for converting between them. Assign the consequence FIRST with the rubric above, then translate — never translate a label into a different consequence.

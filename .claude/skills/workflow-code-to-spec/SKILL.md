@@ -10,21 +10,21 @@ disable-model-invocation: false
 
 Read [the registry](../../../.claude/workflows.json) → `workflows.workflow-code-to-spec` together with this skill. Call [`/start-workflow workflow-code-to-spec`](../start-workflow/SKILL.md) to resolve the selected mode, pre-actions and fingerprint.
 
-**Todo FIRST:** create ALL selected occurrence tasks before triage, analysis or step execution, including conditional/optional tasks; preserve occurrence IDs, roles and barrier groups. Use native task tools or an equivalent persistent ledger. Then mark the first task `in_progress`; attach evidence before `completed`.
+**Todo FIRST:** create one todo for EVERY selected occurrence before triage, analysis or step execution, including conditional/optional ones; preserve occurrence IDs, roles and barrier groups. Use native todo tools or an equivalent persistent ledger. Then mark the first todo `in_progress`; attach evidence before `completed`.
 Mode selection and registry loading prepare tracking; any 'first action' below means the first substantive action after this bootstrap.
 
 **Call each step skill:** read its linked SKILL.md and execute its protocol through the active host with the registry args. Reading or naming a skill alone is not execution. Required gates and core/optional flex follow the linked start-workflow Step Execution Protocol; keep this skill's quality gates, loops and evidence requirements.
 
-**Conditions:** load each occurrence's registry `applicability.when` and `skipReason` verbatim, and record its run/skip evidence through the linked start-workflow protocol. Do not silently omit a task or turn a conditional skill into an unconditional call. Declared parallel groups retain their all-return barrier.
+**Conditions:** load each occurrence's registry `applicability.when` and `skipReason` verbatim, and record its run/skip evidence through the linked start-workflow protocol. Do not silently omit a todo or turn a conditional skill into an unconditional call. Declared parallel groups retain their all-return barrier.
 
 Explicit step-skill calls by mode (registry order; roles and conditions remain owned by the registry):
 
-- Mode `init-full`: [`/investigate`](../investigate/SKILL.md) (core) → [`/plan`](../plan/SKILL.md) (core) → [`/plan --mode=validate`](../plan/SKILL.md) (optional; conditional) → [`/spec [mode=init]`](../spec/SKILL.md) (core) → [`/spec [mode=tests]`](../spec/SKILL.md) (core) → [`/pbi --mode=review --type=spec-tests`](../pbi/SKILL.md) (core) → [`/pbi --mode=review`](../pbi/SKILL.md) (gate) → [`/docs-manager --mode=update`](../docs-manager/SKILL.md) (core) → [`/workflow-end`](../workflow-end/SKILL.md) (gate) → [`/watzup`](../watzup/SKILL.md) (core)
-<!-- workflow-mode:init-full fingerprint:f2a5c1d1b6c8fe2bbd62f1ab62f7616f3b727279148c9564fac757397f01d392 -->
-- Mode `update`: [`/workflow-review-changes`](../workflow-review-changes/SKILL.md) (gate) → [`/spec [mode=update]`](../spec/SKILL.md) (core) → [`/spec [mode=tests]`](../spec/SKILL.md) (optional; conditional) → [`/pbi --mode=review --type=spec-tests`](../pbi/SKILL.md) (gate) → [`/spec [mode=sync]`](../spec/SKILL.md) (optional; conditional) → [`/docs-manager --mode=update`](../docs-manager/SKILL.md) (core) → [`/workflow-end`](../workflow-end/SKILL.md) (gate) → [`/watzup`](../watzup/SKILL.md) (core)
-<!-- workflow-mode:update fingerprint:7bcf750acd519016596a3ab653bddc7b7e4b8bb77df3c88242ef9cda700a6771 -->
-- Mode `audit`: [`/investigate`](../investigate/SKILL.md) (core) → [`/spec [mode=audit]`](../spec/SKILL.md) (core) → [`/pbi --mode=review`](../pbi/SKILL.md) (gate) → [`/docs-manager --mode=update`](../docs-manager/SKILL.md) (core) → [`/workflow-end`](../workflow-end/SKILL.md) (gate) → [`/watzup`](../watzup/SKILL.md) (core)
-<!-- workflow-mode:audit fingerprint:0735654e7a15eff96c235455200cc2a234075e9ccd945a74ce47d1eb5ed807e8 -->
+- Mode `init-full`: [`/investigate`](../investigate/SKILL.md) (core) → [`/plan`](../plan/SKILL.md) (core) → [`/plan --mode=validate`](../plan/SKILL.md) (optional; conditional) → [`/spec [mode=init]`](../spec/SKILL.md) (core) → [`/spec [mode=tests]`](../spec/SKILL.md) (core) → [`/work-item --mode=review --type=spec-tests`](../work-item/SKILL.md) (core) → [`/work-item --mode=review`](../work-item/SKILL.md) (gate) → [`/docs-manager --mode=update`](../docs-manager/SKILL.md) (core) → [`/workflow-end`](../workflow-end/SKILL.md) (gate) → [`/watzup`](../watzup/SKILL.md) (core)
+<!-- workflow-mode:init-full fingerprint:f9e34b77638408da6b818dc2d6aba5a468afe3e8cedf846602baf1cfd55680d8 -->
+- Mode `update`: [`/workflow-review-changes`](../workflow-review-changes/SKILL.md) (gate) → [`/spec [mode=update]`](../spec/SKILL.md) (core) → [`/spec [mode=tests]`](../spec/SKILL.md) (optional; conditional) → [`/work-item --mode=review --type=spec-tests`](../work-item/SKILL.md) (gate) → [`/spec [mode=sync]`](../spec/SKILL.md) (optional; conditional) → [`/docs-manager --mode=update`](../docs-manager/SKILL.md) (core) → [`/workflow-end`](../workflow-end/SKILL.md) (gate) → [`/watzup`](../watzup/SKILL.md) (core)
+<!-- workflow-mode:update fingerprint:6056609957e9d07231b9134865e32cdafc0b050b88c3ebf1d2c2c6a8cfa69154 -->
+- Mode `audit`: [`/investigate`](../investigate/SKILL.md) (core) → [`/spec [mode=audit]`](../spec/SKILL.md) (core) → [`/work-item --mode=review`](../work-item/SKILL.md) (gate) → [`/docs-manager --mode=update`](../docs-manager/SKILL.md) (core) → [`/workflow-end`](../workflow-end/SKILL.md) (gate) → [`/watzup`](../watzup/SKILL.md) (core)
+<!-- workflow-mode:audit fingerprint:95c294fbb9fe9c10f8f5da01c55794ea7c6b10edb57af702c148ee56d4474e1b -->
 
 Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs --write` after registry edits; [`/sync-codex`](../sync-codex/SKILL.md) refreshes it before mirroring.
 <!-- WORKFLOW-CALLS:END -->
@@ -32,7 +32,7 @@ Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
 > **[BLOCKING]** Workflow steps follow the guided contract in `/start-workflow` → Step Execution Protocol: `gate` steps are fixed; other steps may flex with a logged reason.
-> **[BLOCKING]** Before each step or sub-skill call, update task tracking: set `in_progress` when step starts, set `completed` when step ends.
+> **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
 
@@ -46,17 +46,17 @@ Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs
 
 **Key Rules:** Code owns technical truth; specs own requirements and behavior. Create only declared derived aids, never a parallel authored tree. Confirm scope first; resolve the profile before writing; unknown coverage stays BLOCKED/UNKNOWN.
 
-**Use it when** specs must be written from or reconciled with code: first-time specs for a capability or bucket, after significant code changes, onboarding/compliance handoff, before a migration, or a periodic health audit. **Use a sibling instead when:** no code exists yet → `workflow-idea-to-spec`; one small spec edit → `/spec` or `workflow-feature-spec`; post-change sync inside a delivery run → `workflow-spec-sync`; only a derived index/ERD → `/spec [mode=index]`.
+**Use it when** specs must be written from or reconciled with code: first-time specs for a capability or bucket, after significant code changes, onboarding/compliance handoff, before a migration, or a periodic health audit. **Use a sibling instead when:** no code exists yet → `workflow-initiative-to-spec`; one small spec edit → `/spec` or `workflow-feature-spec`; post-change sync inside a delivery run → `workflow-spec-sync`; only a derived index/ERD → `/spec [mode=index]`.
 
-**IMPORTANT MANDATORY Steps:** /investigate -> /plan -> /plan --mode=validate -> /spec -> /spec [mode=tests] -> /pbi --mode=review --type=spec-tests -> /pbi --mode=review -> /docs-manager --mode=update -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /investigate -> /plan -> /plan --mode=validate -> /spec -> /spec [mode=tests] -> /work-item --mode=review --type=spec-tests -> /work-item --mode=review -> /docs-manager --mode=update -> /workflow-end -> /watzup
 
 That line is the `init-full` preview. Each mode resolves its own manifest (fingerprint + occurrence IDs) through `/start-workflow` before any task is created:
 
 | Mode        | When                                             | Recommended sequence (**gate** in bold)                                                                                                                                                       |
 | ----------- | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `init-full` | no canonical spec exists for the target scope    | investigate → plan → plan --mode=validate* → spec [mode=init] → spec [mode=tests] → pbi --mode=review --type=spec-tests → **pbi --mode=review** → docs-manager --mode=update → **workflow-end** → watzup |
-| `update`    | code changed, new requirement or PBI             | **workflow-review-changes** → spec [mode=update] → spec [mode=tests]* → **pbi --mode=review --type=spec-tests** → spec [mode=sync]* → docs-manager --mode=update → **workflow-end** → watzup                   |
-| `audit`     | freshness check before a release or on a cadence | investigate → spec [mode=audit] → **pbi --mode=review** → docs-manager --mode=update → **workflow-end** → watzup                                                                                               |
+| `init-full` | no canonical spec exists for the target scope    | investigate → plan → plan --mode=validate* → spec [mode=init] → spec [mode=tests] → work-item --mode=review --type=spec-tests → **work-item --mode=review** → docs-manager --mode=update → **workflow-end** → watzup |
+| `update`    | code changed, new requirement or task             | **workflow-review-changes** → spec [mode=update] → spec [mode=tests]* → **work-item --mode=review --type=spec-tests** → spec [mode=sync]* → docs-manager --mode=update → **workflow-end** → watzup                   |
+| `audit`     | freshness check before a release or on a cadence | investigate → spec [mode=audit] → **work-item --mode=review** → docs-manager --mode=update → **workflow-end** → watzup                                                                                               |
 
 `*` = optional; apply the registry conditions and skip reasons below verbatim.
 
@@ -87,7 +87,7 @@ Split by independently nameable capabilities, never by line count; apply the nat
 | **Artifact profile resolved**                                 | Read `docs/project-config.json` (`specRoots.business.path`, `workflowPatterns.featureDocTemplate`, `docsRoots.projectReference.path`, `specArtifacts`), the configured template, local `spec-system-reference.md` and `spec-principles.md` before any author/update/audit step. A malformed or conflicting contract is BLOCKED. |
 | **Full vertical chain traced**                                | Per capability: UI view/action → API → handler → domain rule → event → consumer/read model → UI outcome, reconciled by the `/spec [mode=init]` chain-reconciliation step — no orphan UI, no orphan operation, event and read-side closure. A BROKEN chain is a spec finding, never silently dropped.                            |
 | **Three-way sync** (`spec-synced`, modes that write the spec) | Native intent/contract/acceptance roles ↔ configured cases/evidence ↔ executing test code agree; follow the local `spec-system-reference.md`, including its STATE MACHINE DATA ASSERT mandate. Each case names its **Business Intent / Invariant Guarded**, links to executing proof, and would fail if that intent broke.      |
-| **Spec review converged** (`review-converged`)                | `/pbi --mode=review` (and `--type=spec-tests` in update mode) including the BLOCKING **M1-M7** gate: zero `[UNVERIFIED]` without an exclusion reason, complete role/evidence coverage, tech-term checks only on designated intent roles.                                                                                          |
+| **Spec review converged** (`review-converged`)                | `/work-item --mode=review` (and `--type=spec-tests` in update mode) including the BLOCKING **M1-M7** gate: zero `[UNVERIFIED]` without an exclusion reason, complete role/evidence coverage, tech-term checks only on designated intent roles.                                                                                          |
 | **Change review** (update mode)                               | `/workflow-review-changes` converged, run INLINE in the main session; its output is the impact map for the spec update.                                                                                                                                                                                                         |
 | **Coverage complete** (multi-bucket)                          | Every ledger row REVIEWED or carrying a recorded deferral reason; `/watzup` reports `{reviewed}/{total}` capabilities.                                                                                                                                                                                                          |
 | **Goal satisfied**                                            | Resolve the active Goal Contract at start (active plan `goal.md`, else a new goal under the plans root); append per-cycle evidence to its Iteration Log; emit the Goal Satisfaction matrix (PASS/FAIL/BLOCKED) before `/workflow-end`.                                                                                          |
@@ -103,12 +103,12 @@ Follow the selected mode table; read each step's skill before executing. Apply t
 - `/plan`: init-full plans one task per capability, core domain first; TaskList count must cover capability count before authoring. Apply validation's registry condition above.
 - `/spec [mode=init|update|audit]`: use the selected mode; update only impacted roles. Tests mode checks existing IDs and preserves tested evidence. Each review's depth scales with case count.
 - `/spec [mode=sync]`: reconcile changed case/evidence links or declared outputs. Use `/spec [mode=index]` alone when only a project-maintained derived index/ERD lags.
-- `/pbi --mode=dor` and `/pbi --mode=mockup`: when making a new PBI implementation-ready; mockup only for UI/journey changes. Planned cases guide implementation and do not prove verified behavior.
+- `/work-item --mode=dor` and `/work-item --mode=mockup`: when making a new task implementation-ready; mockup only for UI/journey changes. Planned cases guide implementation and do not prove verified behavior.
 - `/docs-manager --mode=update` → `/workflow-end` → `/watzup`: near-final sync, outcome-gate closure, then handoff.
 
 **UI intent (conditional):** when changed code carries user-facing behavior, refresh the interaction-intent owner the profile declares and link its design-spec/mockup where the contract expects it (portable form: §6 View Inventory, Key UI States, per-story click-path with `US-`/`OP-`/`BR-` references). A profile with no UX owner → surface the gap; never invent a section.
 
-**New PBI / requirement update:** map requirement → domain entities → capabilities; record planned intent in native roles with the profile's planned-state convention; add planned cases in the native carrier; review them with `/pbi --mode=review --type=spec-tests`. They are implementation guidance, not verified spec.
+**New task / requirement update:** map requirement → domain entities → capabilities; record planned intent in native roles with the profile's planned-state convention; add planned cases in the native carrier; review them with `/work-item --mode=review --type=spec-tests`. They are implementation guidance, not verified spec.
 
 ## 5. Orchestration Freedom
 
@@ -117,7 +117,7 @@ Choose inline/delegated execution, waves and batching at equal quality under `/s
 ## 6. Memory, Reporting and Fix Path
 
 - One task per selected step and per capability; write the run report under `tmp/reports/` FIRST and append per section — never hold findings in memory.
-- Findings are validated before fixing; fix only validated gaps that block the current round, in the owning spec role, then repeat the full `/pbi --mode=review` pass. Review loop: round 1 exits on zero open findings (LOW deferral); round 2 on zero CRITICAL/HIGH/MEDIUM with LOWs recorded as deferred; binary gates always block; cap 3 review rounds; escalate via `ask user question tool` on no progress.
+- Findings are validated before fixing; fix only validated gaps that block the current round, in the owning spec role, then repeat the full `/work-item --mode=review` pass. Review loop: round 1 exits on zero open findings (LOW deferral); round 2 on zero CRITICAL/HIGH/MEDIUM with LOWs recorded as deferred; binary gates always block; cap 3 review rounds; escalate via `ask user question tool` on no progress.
 - **Spec-loop discipline:** derive property cases with boundary counter-cases for every hard invariant; protected core logic uses the mutation-score gate, not line coverage; feed uncovered behavior into both spec and tests through a dual-feedback ledger until no new gap or hidden rule remains.
 - **Audit output:** `tmp/reports/spec-audit-{date}-{Bucket}.md` — stale capabilities/roles, stale coverage %, priority order; `/watzup` recommends an `update` run scoped to the stale capabilities.
 
@@ -179,7 +179,7 @@ Choose inline/delegated execution, waves and batching at equal quality under `/s
 
 - **[BLOCKING]** Step 0 FIRST — confirm mode, capabilities and target paths via `ask user question tool`; then triage by capability count and breadth; multi-bucket scope keeps the Coverage Ledger and clears the completeness gate (`{reviewed}/{total}`) before `/workflow-end`.
 - **[BLOCKING]** resolve the artifact profile before authoring; the portable eight-section/`TC-{FEATURE}-{NNN}` form applies only when no native profile or local contract exists; unknown mappings stay BLOCKED.
-- **[BLOCKING]** trace the FULL vertical chain per capability and reconcile it; `/pbi --mode=review` converges with the M1-M7 gate; update mode runs `/workflow-review-changes` inline in the main session; `/docs-manager --mode=update` precedes `/workflow-end`.
+- **[BLOCKING]** trace the FULL vertical chain per capability and reconcile it; `/work-item --mode=review` converges with the M1-M7 gate; update mode runs `/workflow-review-changes` inline in the main session; `/docs-manager --mode=update` precedes `/workflow-end`.
 - **[BLOCKING]** 4+ capabilities → one `spec` sub-agent per capability, all spawned in ONE message; after compaction read the ledger and `TaskList` first and never re-author a done capability.
 - **MUST ATTENTION** resolve the active Goal Contract at start and emit the Goal Satisfaction matrix before close; every case names the business intent it guards.
 

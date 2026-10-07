@@ -9,7 +9,7 @@ disable-model-invocation: false
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -20,7 +20,7 @@ disable-model-invocation: false
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
 > **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, merge steps without explicit user approval.
-> **[BLOCKING]** Before each step or sub-skill call, update task tracking: `in_progress` on start, `completed` on end.
+> **[BLOCKING]** Before each step or sub-skill call, update todo tracking: `in_progress` on start, `completed` on end.
 > **[BLOCKING]** Every completed/skipped step MUST include evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools unavailable, maintain equivalent step-by-step plan tracker with same status transitions.
 
@@ -114,7 +114,7 @@ disable-model-invocation: false
 >
 > **Scope:** applies with no parent workflow. No-flag runs the full diagnose→fix path; `--target={ci|issue|logs|review|test|types|ui}` branches remain self-contained for diagnosis, skip §1/§2 duplication, and inherit mandatory §3 test-update, §4 spec-correctness, the production-code `$changes-review` gate, and §5 `$why-review` gates. A branch's own `tester` / `code-reviewer` sub-agent step does not replace `$changes-review`.
 >
-> **Detect mode:** call the current task list first (per Nested Task Expansion). A run that is a step of a `[Workflow]` row (THIS run's own phase tasks are linked to that parent row, `nested=true` — a `[Workflow]` row that merely exists in the current task list, such as an abandoned one, does not count) — or a `--target=review` call from a reviewer's fix phase (`$changes-review` Phase 7) — skips this section because the caller owns these steps, but the Root-Cause Prerequisite Gate still requires a completed, same-problem `investigate --mode=debug` (or, for `--target=review`, its validated-review-finding skip row); presence alone is insufficient. Not nested (no linked parent row, or only a stale/unrelated `[Workflow]` row) → standalone: before the first code edit, MUST ATTENTION create this ordered minimum spine as task tracking todos:
+> **Detect mode:** call the current task list first (per Nested Task Expansion). A run that is a step of a `[Workflow]` row (THIS run's own phase tasks are linked to that parent row, `nested=true` — a `[Workflow]` row that merely exists in the current task list, such as an abandoned one, does not count) — or a `--target=review` call from a reviewer's fix phase (`$changes-review` Phase 7) — skips this section because the caller owns these steps, but the Root-Cause Prerequisite Gate still requires a completed, same-problem `investigate --mode=debug` (or, for `--target=review`, its validated-review-finding skip row); presence alone is insufficient. Not nested (no linked parent row, or only a stale/unrelated `[Workflow]` row) → standalone: before the first code edit, MUST ATTENTION create this ordered minimum spine as todo tracking todos:
 >
 > 1. **`$investigate --mode=debug`** — root cause FIRST; §2 evidence decides whether it already ran. Trace symptom end-to-start to the invariant-owning layer with `file:line`, hypothesis matrix, and forward proof. This is standalone diagnosis and subsumes the spine's step-1 `debugger`; resume at planning with its report. Fast-mode-trivial bugs may inline the trace, but the trace remains required.
 > 2. **Fix spine** — this skill's `plan → 🛑 approve → implement` body below; Validate-Before-Fix remains unchanged.
@@ -191,7 +191,7 @@ Read `references/target-ci.md` in full FIRST (BLOCKING) — it holds this branch
 3. **🛑 Present root cause + proposed fix → `ask user question tool` → wait for approval before implementing.**
 4. Implement the approved fix.
 
-> **Standalone Review Gate (non-workflow only):** any standalone production-code fix — the no-flag spine (Standalone Mode Minimum Contract above) **or** any `--target={ci|issue|logs|review|test|types|ui}` branch — adds a `$changes-review` task tracking todo as the **final changes-review gate**, placed immediately before the contract's §5 `$why-review` terminal sign-off (test-update → spec-check → changes-review → why-review → verify once). A fix touching no production code (test-only, docs-only) skips it with that reason recorded. Inside a workflow, skip — the sequence handles `$changes-review`.
+> **Standalone Review Gate (non-workflow only):** any standalone production-code fix — the no-flag spine (Standalone Mode Minimum Contract above) **or** any `--target={ci|issue|logs|review|test|types|ui}` branch — adds a `$changes-review` todo tracking todo as the **final changes-review gate**, placed immediately before the contract's §5 `$why-review` terminal sign-off (test-update → spec-check → changes-review → why-review → verify once). A fix touching no production code (test-only, docs-only) skips it with that reason recorded. Inside a workflow, skip — the sequence handles `$changes-review`.
 
 > **Review-loop severity floor (when `$fix` is the fix half of a review loop):** use the canonical `.claude/scripts/lib/review-policy.cjs` predicate and fix only validated findings that block the current round. Classify by consequence: **CRITICAL** = immediate material security/safety/authority/data-loss risk or a failed binary gate; **HIGH** = material supported-path correctness, contract, privacy, authority, compatibility, or likely-harm risk; **MEDIUM** = bounded but consequential edge/resilience/observability/testability/maintainability risk; **LOW** = evidenced non-blocking polish with no credible present correctness, security, privacy, authority, availability, or data-integrity impact. Round 1 is strict (CRITICAL/HIGH/MEDIUM/LOW); from round 2 onward only CRITICAL/HIGH/MEDIUM reopen a fix or re-review round, while LOW-only findings are recorded as deferred and do **not** reopen the loop. `NOT VERIFIABLE` is unresolved evidence, not LOW, and failed binary gates always block. Never re-tier a finding to reach a pass. This bounds loop work only; a standalone user request to fix a LOW-severity issue remains valid and is not refused.
 
@@ -284,7 +284,7 @@ Use `investigate --mode=debug` for complex problems, and the skills catalog to a
 
 > If THIS run is a step of a `[Workflow]` row (`nested=true`: its own phase tasks are linked to that parent row; a `[Workflow]` row that merely exists in the current task list, such as an abandoned one, does not count), skip both the contract and this menu — the workflow sequence handles diagnosis, spec sync, review, and next steps.
 
-> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. Prevents context loss from long files. For simple tasks, MUST ATTENTION ask user whether to skip.
+> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. Prevents context loss from long files. For simple tasks, MUST ATTENTION ask user whether to skip.
 
 - `domain-entities-reference.md` under the reference-docs root (default `docs/project-reference`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides) — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models)
 
@@ -407,7 +407,7 @@ Use `investigate --mode=debug` for complex problems, and the skills catalog to a
 **IMPORTANT MUST ATTENTION** default mode HARD (full rigor) — opt out to fast mode ONLY when the bug is genuinely trivial (ALL 5 Default Mode Policy conditions met); when in doubt default hard — why: skipping diagnosis on a non-trivial bug fixes the symptom and leaves the disease
 **IMPORTANT MUST ATTENTION** standalone (not `nested=true`; a stale `[Workflow]` row alone does not count) self-assembles the spine `investigate --mode=debug → fix → $integration-test test-update (or justified $test unit-test fallback; write only) → $spec correctness check → $changes-review (production code) → $why-review → verify once (`$integration-test --mode=verify` or `$test` with the mutation check; fix and re-run to green; re-review only if that edited anything)`; invoke `$integration-test` after every standalone fix to add or update regression coverage, and use `$test` only for an evidence-backed unit-test seam — when `nested=true` SKIP the contract — but NEVER the Root-Cause Prerequisite Gate, which still demands proof the sequence's `investigate --mode=debug` step ran for this problem — why: standalone has no sequence supplying diagnosis, test updates, spec sync, or review; and a container row is not proof its diagnosis step ran
 **IMPORTANT MUST ATTENTION** spec-loop completion — the fix is NOT done until the violated §4/§5 invariant has a universally-quantified property TC + boundary case, the changed line is mutation-killed, and the finding fed BOTH spec and tests (Dual-Feedback) — why: a code-only patch leaves the bug case undocumented and able to silently return
-**IMPORTANT MUST ATTENTION** break work into small task tracking todos BEFORE starting (one read = one task); call the current task list first on context loss to resume, never duplicate — why: long debug files exhaust context and silently lose findings
+**IMPORTANT MUST ATTENTION** break work into small todo tracking todos BEFORE starting (one read = one task); call the current task list first on context loss to resume, never duplicate — why: long debug files exhaust context and silently lose findings
 **IMPORTANT MUST ATTENTION** read required project-reference docs (`lessons.md` always; `integration-test-reference.md` for test branch; the business spec root, default `docs/specs/` and overridable via `specRoots.business.path` in `docs/project-config.json`, for behavior) before target work — why: project conventions override generic debugging assumptions
 **IMPORTANT MUST ATTENTION** on a FAILED TEST (`--target=test` or any test failure), FIRST read the `$integration-test --mode=review` skill protocol (assertion-quality, coverage & spec↔test↔code fault gates) to set fix direction — decide whether the fault is a source-code root cause or a test-code setup/assertion issue — why: fixing without that verdict patches the wrong side and can green a broken invariant.
 **IMPORTANT MUST ATTENTION** search 3+ similar patterns and read existing code before any fix; evaluate fit before copying a nearby pattern — why: closest example ≠ matching preconditions
@@ -420,7 +420,7 @@ Use `investigate --mode=debug` for complex problems, and the skills catalog to a
 | "Add a `?.` / guard and move on"         | Scattered defensive checks = wrong layer. One authoritative fix beats many guards.               |
 
 
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break into small todo tasks and sub-tasks via task tracking.
+**[TASK-PLANNING]** Before acting, analyze task scope and systematically break into small todo tasks and sub-tasks via todo tracking.
 
 <!-- SYNC:core-engineering-principles:reminder -->
 

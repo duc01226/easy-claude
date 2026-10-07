@@ -320,7 +320,7 @@ grep -r "{route-guard-markers}" {frontend-root}/ --include="{frontend-source-glo
 **[GATE — BLOCKING before Phase A extraction]:**
 
 - **The minimum Section 8 (Test Specifications) TC count is `business_floor`** — defined below. **It is NOT a function of the operation count.** The enumeration above informs *what to write about*; it MUST NOT set *how many* business TCs exist.
-- If `business_floor` ≥ 20: MUST split extraction into operation groups (≤20 ops each). Create one task tracking per group before starting any extraction phase.
+- If `business_floor` ≥ 20: MUST split extraction into operation groups (≤20 ops each). Create one todo tracking per group before starting any extraction phase.
 - Actor catalog must list ≥1 role or flag as "No roles found — verify §2's actor list manually"
 
 **The business TC floor:**
@@ -531,7 +531,7 @@ Before writing any TCs, verify the planned TC count meets the **business** floor
 | Permission TCs | ≥ count(§2 actors) × 2    | {n}     | PASS/FAIL |
 | **Total**      | ≥ `business_floor`        | {n}     | PASS/FAIL |
 
-If any row FAILS or planned count < `business_floor`: split TC generation into operation-group batches (≤20 ops per task tracking). Do NOT write TCs until all batch tasks are planned and the total is ≥ `business_floor`.
+If any row FAILS or planned count < `business_floor`: split TC generation into operation-group batches (≤20 ops per todo tracking). Do NOT write TCs until all batch tasks are planned and the total is ≥ `business_floor`.
 
 ⚠️ **This gate deliberately does NOT contain rows for Write Ops (N), Read Ops (M), or Event-Driven (K) + Background (J).** Those rows made the business TC count a function of the architecture — a `K + J` row mints a business TC for every consumer, event handler, and background job, which is exactly how sync/consumer/event-handler test cases entered a tech-free business spec. **Those coverage obligations are real and are NOT abolished — they are owned by the technical spec tree**, where counting handlers is correct because a technical spec is architecture-bound by definition.
 
@@ -1021,7 +1021,7 @@ spec [author mode] (you are here)
   │     CREATE: new feature doc just created → write TCs from spec.
   │     UPDATE: existing doc updated → update TCs to match changed behavior.
   │
-  ├─ [REQUIRED] → $pbi --mode=review --type=spec-tests
+  ├─ [REQUIRED] → $work-item --mode=review --type=spec-tests
   │     Validates TC coverage, GIVEN/WHEN/THEN completeness, no duplicate TC codes.
   │
   ├─ [REQUIRED] → spec [mode=sync]

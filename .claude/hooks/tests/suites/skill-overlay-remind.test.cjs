@@ -8,7 +8,7 @@
  * second-host `$skill` prompt) the hook names the project overlay files that apply to it, at most two
  * lines: the most specific tier of the registry's `Target` column wins outright (exact name, then glob,
  * then `*`); bodies are derived from a bare-slug Name, never from the row's Body link; a skill is
- * reminded again only after about 100,000 tokens of conversation growth or a compaction.
+ * reminded again only after about 150,000 tokens of conversation growth or a compaction.
  *
  * Guards: silent (exit 0, no record) when the registry is absent, empty, sentinel-only or malformed, no row
  * matches, a body is missing, or the configuration is unusable; an exact, a glob and a `*` row each emit;
@@ -212,7 +212,7 @@ const tests = [
         })
     },
     {
-        name: 'TC-PDL-104 the reminder is deduplicated per skill and repeats only after 100,000 tokens of growth',
+        name: 'TC-PDL-104 the reminder is deduplicated per skill and repeats only after 150,000 tokens of growth',
         fn: () => withFixture(async fx => {
             fx.registry([{ target: '*', scope: 'all', name: 'house-style' }]);
             // Given a reminder delivered for one skill
@@ -224,8 +224,8 @@ const tests = [
             // Then nothing is printed, while another skill is still reminded (one record per skill)
             assert.ok((await run(fx, skillUse(fx, 'commit'))).text.startsWith('Before executing skill commit'));
             assert.deepEqual(fx.records(), ['skill-overlay-commit.json', 'skill-overlay-plan.json']);
-            // And the distance is one byte under 100,000 tokens x the measured bytes per token: still silent; at it: reminded again
-            assert.equal(hook.OVERLAY_REINJECT_TOKENS, 100000);
+            // And the distance is one byte under 150,000 tokens x the measured bytes per token: still silent; at it: reminded again
+            assert.equal(hook.OVERLAY_REINJECT_TOKENS, 150000);
             fx.append(`${'y'.repeat(DISTANCE - (fs.statSync(fx.transcript).size - start) - 2)}\n`);
             assert.equal(fs.statSync(fx.transcript).size - start, DISTANCE - 1);
             assertSilent(await run(fx, skillUse(fx, 'plan')), 'one byte under the window');

@@ -8,7 +8,7 @@ description: '[Project Management] Use when a workflow step or the user asks for
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -19,7 +19,7 @@ description: '[Project Management] Use when a workflow step or the user asks for
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
 > **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
-> **[BLOCKING]** Before each step or sub-skill call, update task tracking: set `in_progress` when step starts, set `completed` when step ends.
+> **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
 
@@ -32,14 +32,14 @@ description: '[Project Management] Use when a workflow step or the user asks for
 **Summary:**
 
 - Journey Report (`UX-1`) → existing UI/connected flows and governing intent → design-authority read (`UX-2`) precede every spec section. Reuse reviewed companion evidence and governing view/state vocabulary; confirm inferred actor/job/outcome, or record unconfirmed when no question tool exists.
-- Route input (design link → exported frames; image → visual analysis; sketch → `--mode=wireframe`; PBI/text → requirements), then choose Quick, Full, or Full + Flow Diagram. Specify components, applicable states, tokens, responsive/accessibility behavior and the complete releasable flow.
+- Route input (design link → exported frames; image → visual analysis; sketch → `--mode=wireframe`; task/text → requirements), then choose Quick, Full, or Full + Flow Diagram. Specify components, applicable states, tokens, responsive/accessibility behavior and the complete releasable flow.
 - Walk every main journey and trace its steps, interaction cost and wayfinding (`UX-8`–`UX-10`); finish the UI/UX Gate Report (`UX-11`). Save the design-spec/audit/component variant, update governing-spec companion frontmatter only, and satisfy M1–M5/M7 and logical-ID traceability.
 
 **Workflow:**
 
 1. **Journey Report** — Report main user journeys (`UX-1`) before any spec section
 2. **Ground Source** — Inventory UI/flows; seed governing §6 vocabulary; record design-authority read (`UX-2`)
-3. **Route Input** — Choose visual, wireframe, PBI, or text path
+3. **Route Input** — Choose visual, wireframe, task, or text path
 4. **Set Scope** — Choose Quick / Full / Flow Diagram
 5. **Specify** — Components, 7 states, tokens, responsive/accessibility/full-flow rules
 6. **Walk + Trace** — Walk each main journey; §8 traceability matrix (`UX-8`)
@@ -51,21 +51,21 @@ description: '[Project Management] Use when a workflow step or the user asks for
 - Input routing: design link (e.g. a Figma URL)→ask the user to export the frames as images, then visual analysis; wireframe/sketch→`--mode=wireframe`; screenshot→visual analysis.
 - Reuse `design-system/` tokens and `frontend-patterns-reference.md` component patterns from the reference-docs root (default `docs/project-reference`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides); include keyboard navigation, ARIA labels, and contrast.
 - **[BLOCKING] Tech-agnostic output:** spec prose/headings follow `spec-principles.md` §3 under the reference-docs root (default `docs/project-reference`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides) — describe components by UX role, not framework/library names; source paths and class names appear ONLY in evidence fields (`**Evidence**`, `[Source:]`), frontmatter, and Mermaid.
-- **[BLOCKING] Releasable UI surface:** apply `.claude/skills/shared/releasable-pbi-contract.md`; the design spec must deepen, not reduce, the PBI/mockup page/view, navigation, component, state, and full-flow inventories.
+- **[BLOCKING] Releasable UI surface:** apply `.claude/skills/shared/releasable-task-contract.md`; the design spec must deepen, not reduce, the task/mockup page/view, navigation, component, state, and full-flow inventories.
 
 > **Releasable outcome contract** — Preserve one complete actor-facing journey (entry/context → action/input → validation/decision → visible or persisted result → exit/next path) with every required view, navigation edge, component, and state; incomplete or ambiguous outcomes stay blocked.
 >
-> **MUST ATTENTION READ** `.claude/skills/shared/releasable-pbi-contract.md` for the full contract.
+> **MUST ATTENTION READ** `.claude/skills/shared/releasable-task-contract.md` for the full contract.
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
 # Design Specification
 
-Create structured UI/UX design specification documents from requirements or PBIs for developer handoff.
+Create structured UI/UX design specification documents from requirements or tasks for developer handoff.
 
 ## When to Use
 
-- A PBI or user story needs a design spec before implementation
+- A task or user story needs a design spec before implementation
 - Requirements need concrete layout, states, tokens, and responsive behavior
 - A component inventory and interaction patterns need documentation
 
@@ -79,7 +79,7 @@ Create structured UI/UX design specification documents from requirements or PBIs
 
 Read before executing:
 
-- The source PBI, user story, or requirements document
+- The source task, user story, or requirements document
 - `design-system/` under the reference-docs root (default `docs/project-reference`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides) -- project design tokens (if applicable)
 - Existing design specs in `design-specs/` under the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in `docs/project-config.json` overrides) for format consistency
 
@@ -98,7 +98,7 @@ All three live under the reference-docs root (default `docs/project-reference`; 
 > **[BLOCKING] Step 0a — Journey Report (`UX-1`).** Before ANY spec section, wireframe, design plan or token table, write §0a User Journeys (Output Format below; full template `.claude/docs/ux-journey-process.md` §4): frame (problem · business goal · success signal · constraints) · actors with context, expertise and frequency · one job statement per actor · the main journeys ranked by frequency × business value × risk × first-use criticality (catalog §5) · a step table per journey (intent · decision/action · information needed · business rule · system response · failure → recovery) · derived design requirements · assumptions and open questions.
 >
 > - **Evidence first:** when a governing Feature Spec exists, its profile-resolved interaction flows and view inventory (strict-default §6.5 and §6.2) are the primary evidence — read them here (Step 0b reuses the same read), then stories/acceptance criteria, business logic in code, and the existing UI (catalog §3). Tag every claim `SOURCED (<location>)` or `INFERRED (<reason>)`.
-> - **Companion mockup (reuse):** when a `$pbi --mode=mockup` run for the same feature already produced a reviewed Journey Report — `tmp/design/<run>/journey-report.md` (with its `direction-approved.md` and `Design authority read:` record), the Journey Report in its report, or a path the caller supplies — that report is the starting evidence: reuse it, re-confirm only what the source changed since, and surface (never silently re-derive) any journey that disagrees. An approved `direction-approved.md` seeds the §0 Design Plan (colour · type · layout recorded `ADOPTED`, still passing the `DD-3` generic test). With no companion mockup available (standalone run) derive the report and plan as above.
+> - **Companion mockup (reuse):** when a `$work-item --mode=mockup` run for the same feature already produced a reviewed Journey Report — `tmp/design/<run>/journey-report.md` (with its `direction-approved.md` and `Design authority read:` record), the Journey Report in its report, or a path the caller supplies — that report is the starting evidence: reuse it, re-confirm only what the source changed since, and surface (never silently re-derive) any journey that disagrees. An approved `direction-approved.md` seeds the §0 Design Plan (colour · type · layout recorded `ADOPTED`, still passing the `DD-3` generic test). With no companion mockup available (standalone run) derive the report and plan as above.
 > - **Confirm before generating:** an INFERRED primary actor, main job or success outcome is confirmed with the user via `ask user question tool` before any spec section is authored; with no question tool, record it `INFERRED — unconfirmed (no question tool)` in §0a assumptions and continue — never block.
 > - **Depth by spec size (catalog §10):** Quick Spec → actors + 1–2 main journeys with step tables for the view(s) in scope; Full Spec → the full template, 3–5 main journeys; multi-page flow → full template plus the cross-view navigation path. Never zero for a new or reshaped view.
 >
@@ -112,7 +112,7 @@ All three live under the reference-docs root (default `docs/project-reference`; 
 > - **Deepen, never diverge:** keep intent tech-agnostic; add visual fidelity (layout, tokens, pixel detail). Map each resolved interaction step/state to visual treatment and preserve its native or strict-default logical-ID cross-refs.
 > - This coupling is the `SYNC:ui-intent-layer` contract below; use that block for the full rule instead of restating it.
 >
-> **Skip ONLY** when no governing Feature Spec exists; author the interaction frame from the source PBI/story and state which case applies.
+> **Skip ONLY** when no governing Feature Spec exists; author the interaction frame from the source task/story and state which case applies.
 
 > **[BLOCKING] Design-authority read (`UX-2`).** Step 0 + Step 0b, together with reading `design-system/` under the reference-docs root and the project's design principles/guidelines, styling conventions and accepted design ADRs (resolved from `docs/project-config.json` and its reference docs), form the design-authority read. Record it in the spec header as `Design authority read: <paths>` or `N/A — none configured (checked: <paths>)` BEFORE authoring any spec section; adopt house patterns and never invent a token or component the project already defines.
 
@@ -123,8 +123,8 @@ All three live under the reference-docs root (default `docs/project-reference`; 
     | Design-tool link         | A design-tool URL (e.g. `figma.com`) in text   | Ask the user via `ask user question tool` to export the frames as images, then continue on the image path |
     | Image/screenshot         | Image file attached to prompt                  | Use `visual analysis tooling` to extract design guidelines, then continue          |
     | Hand-drawn wireframe     | Image + "wireframe"/"sketch" keyword           | Run `--mode=wireframe` (internal — see "Mode: wireframe" section)         |
-    | PBI/story text           | Acceptance criteria present                    | Extract UI requirements from text, continue                              |
-    | Verbal/text requirements | No image, no URL, no PBI                       | Clarify with user, then continue                                         |
+    | Task/story text           | Acceptance criteria present                    | Extract UI requirements from text, continue                              |
+    | Verbal/text requirements | No image, no URL, no task                       | Clarify with user, then continue                                         |
 
 For ANY visual input, extract design context FIRST, then generate the spec.
 
@@ -156,7 +156,7 @@ For ANY visual input, extract design context FIRST, then generate the spec.
     - Accessibility audit: `design-specs/{YYMMDD}-ux-audit-{feature-slug}.md`
     - Single-component doc: `design-specs/{YYMMDD}-ux-component-{component-name}.md`
 
-8. **Link back to the governing Feature Spec (when one exists).** After saving the artifact, keep the spec the navigable hub: open the governing Feature Spec under the business spec root (default `docs/specs/**`; `specRoots.business.path` in `docs/project-config.json` overrides) and set its frontmatter `design_spec:` key to this design-spec's saved path (add the key if absent, update it if stale). If a mockup was also produced (e.g. via `$pbi --mode=mockup`), set the `mockup:` key the same way. Edit **frontmatter only** — never touch the canonical intent/contracts/evidence body (strict-default §1–§8). This satisfies the `pbi --mode=review --type=design` link-back gate, which fails when a design-spec exists but its path is not recorded in the spec's `design_spec:` frontmatter. Skip ONLY when no governing Feature Spec exists (the design-spec is standalone) — state that.
+8. **Link back to the governing Feature Spec (when one exists).** After saving the artifact, keep the spec the navigable hub: open the governing Feature Spec under the business spec root (default `docs/specs/**`; `specRoots.business.path` in `docs/project-config.json` overrides) and set its frontmatter `design_spec:` key to this design-spec's saved path (add the key if absent, update it if stale). If a mockup was also produced (e.g. via `$work-item --mode=mockup`), set the `mockup:` key the same way. Edit **frontmatter only** — never touch the canonical intent/contracts/evidence body (strict-default §1–§8). This satisfies the `work-item --mode=review --type=design` link-back gate, which fails when a design-spec exists but its path is not recorded in the spec's `design_spec:` frontmatter. Skip ONLY when no governing Feature Spec exists (the design-spec is standalone) — state that.
 
 ### Role Context & Artifact Path (canonical)
 
@@ -171,14 +171,14 @@ For ANY visual input, extract design context FIRST, then generate the spec.
 
 ## Mode: wireframe (image → spec)
 
-Read [references/wireframe.md](references/wireframe.md) in full when `--mode=wireframe` is selected. It owns image analysis, business-operation mapping, PBI-section versus standalone output, confidence and human-review rules. This input adapter preserves Step 0a and continues through the normal output and M1–M5/M7 gates.
+Read [references/wireframe.md](references/wireframe.md) in full when `--mode=wireframe` is selected. It owns image analysis, business-operation mapping, task-section versus standalone output, confidence and human-review rules. This input adapter preserves Step 0a and continues through the normal output and M1–M5/M7 gates.
 
 ## Output Format
 
 ```markdown
 # Design Spec: {Feature Name}
 
-**Source:** {PBI/story reference}
+**Source:** {task/story reference}
 **Date:** {YYMMDD}
 **Status:** Draft | Review | Approved
 **Design authority read (`UX-2`):** {design principles · design-system docs · styling conventions · design ADRs · existing screens read} | `N/A — none configured (checked: {paths})`
@@ -186,7 +186,7 @@ Read [references/wireframe.md](references/wireframe.md) in full when `--mode=wir
 ## 0a. User Journeys (`UX-1`)
 
 **Frame:** {problem} · **Business goal:** {goal} · **Success signal:** {metric} · **Constraints:** {platform, rules, legacy, budget}
-**Sources read:** {profile-resolved interaction flows/view inventory (strict-default §6.5/§6.2), PBI/story, business-rule sources, existing screens} · **Confidence:** {%}
+**Sources read:** {profile-resolved interaction flows/view inventory (strict-default §6.5/§6.2), task/story, business-rule sources, existing screens} · **Confidence:** {%}
 
 | Actor | Context · expertise · frequency | Job statement (When…, I want to…, so I can…) | Source |
 | ----- | ------------------------------- | --------------------------------------------- | ------ |
@@ -402,7 +402,7 @@ Standalone (no parent workflow): after the spec is written, suggest `$ui-design 
 
 ---
 
-> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
+> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
 
 <!-- PROTOCOL-GUIDES:START -->
 
@@ -500,11 +500,11 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 
 | Evasion                                          | Rebuttal                                                                                              |
 | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
-| "The PBI is clear — skip the journey report"      | Step 0a is BLOCKING — then it takes five lines. An unwritten journey is an unchecked assumption (`UX-1`). |
+| "The task is clear — skip the journey report"      | Step 0a is BLOCKING — then it takes five lines. An unwritten journey is an unchecked assumption (`UX-1`). |
 | "I'll skip the existing-UI inventory and design" | Step 0 is BLOCKING — inventory existing screens/flows first or the spec contradicts the live UI.     |
 | "Naming the framework component is clearer"       | M1/M2 FAIL — name by UX role; framework/CSS names live only in Evidence/frontmatter/Mermaid.         |
 | "The spec already names views — I'll re-partition"| Reuse §6 view + state vocabulary verbatim; renaming breaks the navigable spec↔design hub.            |
-| "Saved the file — done"                           | Step 8 link-back is required; set the spec's `design_spec:` frontmatter or `pbi --mode=review` fails.   |
+| "Saved the file — done"                           | Step 8 link-back is required; set the spec's `design_spec:` frontmatter or `work-item --mode=review` fails.   |
 | "'Show feedback' describes the error state"       | M4 FAIL — every state needs one observable completion marker, not a vague phrase.                     |
 
-**[TASK-PLANNING]** Before acting, use task tracking to break the work into small tasks, including each file read; update statuses per step and add a final review task. For simple tasks, ask whether the user wants to skip workflow depth, never task tracking.
+**[TASK-PLANNING]** Before acting, use todo tracking to break the work into small tasks, including each file read; update statuses per step and add a final review task. For simple tasks, ask whether the user wants to skip workflow depth, never task tracking.

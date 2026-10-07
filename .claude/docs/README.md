@@ -18,6 +18,8 @@
 | **Graph intelligence?**        | [code-graph-mechanism.md](./code-graph-mechanism.md) - How structural code analysis works                                          |
 | **Setup graph?**               | [code-graph-setup.md](./code-graph-setup.md) - Install Python deps + build graph                                                   |
 
+For task-selected project configuration, run `node .claude/scripts/project-context.cjs --context`; add `--section <key>` as needed. Read [configuration/README.md](./configuration/README.md#just-in-time-path-rules) when enabling complete paged path lookup or changing context delivery.
+
 ## Documentation Map
 
 Project-owned branches below sit at their DEFAULT roots; `docs/project-config.json` (`specRoots` / `docsRoots`) relocates them.
@@ -31,7 +33,7 @@ Project-owned branches below sit at their DEFAULT roots; `docs/project-config.js
 |   |-- README.md             Skills overview + full catalog
 |   +-- (patterns)           → docs/project-reference/
 |
-|-- hooks/                    32 top-level hook files, 59 lib modules
+|-- hooks/                    32 top-level hook files, 61 lib modules
 |   |-- README.md             Hooks overview, lessons system, session lifecycle
 |   +-- extending-hooks.md    How to create custom hooks
 |
@@ -68,10 +70,10 @@ Project-owned branches below sit at their DEFAULT roots; `docs/project-config.js
 | Run tests                  | `/test`                              | `test`                        |
 | Review code                | `/review`                            | `code-quality-review`                 |
 | Debug issues               | `/investigate --mode=debug`          | `investigate --mode=debug`    |
-| Create user story          | `/pbi --mode=story`                             | `pbi --mode=story`            |
-| Prioritize backlog         | `/prioritize`                        | `prioritize`                  |
-| Quality gate (pre-dev)     | `/pbi --mode=dor`                          | `pbi --mode=dor`                    |
-| Quality gate (pre-qa)      | `/pbi --mode=review --type=spec-tests` | `pbi --mode=review`             |
+| Create user story          | `/work-item --mode=story`                             | `work-item --mode=story`            |
+| Prioritize planned work         | `/prioritize`                        | `prioritize`                  |
+| Quality gate (pre-dev)     | `/work-item --mode=dor`                          | `work-item --mode=dor`                    |
+| Quality gate (pre-qa)      | `/work-item --mode=review --type=spec-tests` | `work-item --mode=review`             |
 | Quality gate (pre-release) | `/production-readiness-review`       | `production-readiness-review` |
 | Create test cases          | `/spec [mode=tests]`                 | `spec [mode=tests]`           |
 | Create design spec         | `/design-spec`                       | `design-spec`                 |
@@ -81,7 +83,7 @@ Project-owned branches below sit at their DEFAULT roots; `docs/project-config.js
 | Verify test traceability   | `/integration-test --mode=verify`           | `integration-test --mode=verify`     |
 | Review an AI feature       | `/ai-engineering-review`             | `ai-engineering-review`       |
 | Enhance AI prompts         | `/prompt-enhance`                    | `prompt-enhance`              |
-| Create PBI visual mockup   | `/pbi --mode=mockup`                        | `pbi --mode=mockup`                  |
+| Create task visual mockup   | `/work-item --mode=mockup`                        | `work-item --mode=mockup`                  |
 
 ### "I want to learn about..."
 
@@ -161,12 +163,12 @@ Unprefixed filenames resolve inside the project-reference docs root — default 
 | ---------------------- | ----- |
 | Skills                 | <!-- COUNT:skills -->102<!-- /COUNT --> |
 | Hook files (top-level) | <!-- COUNT:hooks -->32<!-- /COUNT --> |
-| Lib Modules            | <!-- COUNT:lib-modules -->59<!-- /COUNT --> |
+| Lib Modules            | <!-- COUNT:lib-modules -->61<!-- /COUNT --> |
 | Hook Events            | 9     |
 | Agents                 | <!-- COUNT:agents -->24<!-- /COUNT --> |
 | Workflows              | <!-- COUNT:workflows -->19<!-- /COUNT --> |
 | Hook Tests             | 133   |
-| Hook Test Files        | 115 suites + 9 top-level test files |
+| Hook Test Files        | 118 suites + 9 top-level test files |
 | Framework Markdown Files | 41 (`.claude/docs/**/*.md`) |
 
 ---

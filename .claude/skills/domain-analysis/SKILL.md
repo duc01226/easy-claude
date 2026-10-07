@@ -57,7 +57,7 @@ Find the active `*/plan.md` by modification time. Read its scope/goals/decisions
 
 ### Step 1: Load Business Context
 
-Read the active plan, business evaluation, refined PBI and discovery notes from the resolved roots. Extract nouns (candidate entities), verbs (events), roles (permissions/views) and processes (business workflows).
+Read the active plan, business evaluation, refined task and discovery notes from the resolved roots. Extract nouns (candidate entities), verbs (events), roles (permissions/views) and processes (business workflows).
 
 ### Step 2: Identify Bounded Contexts
 

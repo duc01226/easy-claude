@@ -89,3 +89,11 @@ test('shared question guidance is available to all harnesses', () => {
   const protocol = readCanonicalProtocol(bundleRoot, 'critical-thinking-mindset');
   assert.match(protocol, /Use ask user question tool to ask user\./);
 });
+
+// Intent: Codex names one tracking concept; a list label and a prose mention of the same tool read alike.
+test('a task-creation label and a task-creation mention are both rewritten to todo tracking', () => {
+  // Given a source line that labels a list entry with the Claude tool and one that mentions it in prose.
+  const output = rewriteClaudeToolTermsForCodex('TaskCreate: "Review the change"\nUse TaskCreate before the first step.\n');
+  // Then both carry the same words, and no second name for the concept appears.
+  assert.equal(output, 'Todo tracking: "Review the change"\nUse todo tracking before the first step.\n');
+});

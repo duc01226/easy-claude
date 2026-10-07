@@ -7,10 +7,9 @@ const path = require('node:path');
 // project's records and linked evidence add up to: a project is read whole, however large its specs and sources are.
 const LIMITS = Object.freeze({ records: 2000, recordBytes: 2 * 1024 * 1024,
     membershipEdges: 20000, queue: 64, receipts: 128, lockWaitMs: 3000, lockPollMs: 100, readRetries: 1, processTimeoutMs: 10000 });
-const KINDS = Object.freeze(['idea', 'pbi', 'story', 'task', 'epic', 'vision']);
-const GROUP_ROLES = Object.freeze(['area', 'capability', 'initiative']);
-const DEFAULT_GROUP_LABELS = Object.freeze({ area: 'Area', capability: 'Feature', initiative: 'Initiative' });
-const FOLDERS = Object.freeze({ idea: 'ideas', pbi: 'pbis', story: 'pbis/stories', task: 'tasks', epic: 'epics', vision: 'visions' });
+// Every tracker word comes from the vocabulary owner; this module re-exports the current ones for its consumers.
+const vocabulary = require('./task-tracking-vocabulary.cjs');
+const { KINDS, GROUP_ROLES, DEFAULT_GROUP_LABELS, FOLDERS, CURRENT_VERSION, EARLIER_VERSION } = vocabulary;
 const CUSTOM_MEMBER_ID = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}$/;
 // An author address is a bounded local identifier, not mailbox verification.
 const EMAIL_ID = /^[\x21-\x3f\x41-\x7e]+@[\x21-\x3f\x41-\x7e]+$/;
@@ -22,11 +21,11 @@ const object = value => value !== null && typeof value === 'object' && !Array.is
 const TASK_TRACKING_SCHEMA = {
     type: 'object', required: false, describe: 'Optional local work tracking policy; absence leaves automation off.',
     properties: {
-        schemaVersion: { type: 'number', required: true, describe: 'Tracking configuration version; supported value is 1.' },
+        schemaVersion: { type: 'number', required: true, describe: `Vocabulary the stored records use: ${CURRENT_VERSION} is current; ${EARLIER_VERSION} is the earlier vocabulary, readable and read-only until migrated.` },
         mode: { type: 'string', required: false, describe: 'Automatic upkeep: off, observe, or linked. Default off.' },
         healthOwnerId: { type: 'string', required: false, describe: 'Exact existing item owning explicit project health attestations; never inferred from delivery.' },
-        groupLabels: { type: 'object', required: false, describe: 'Optional inert group vocabulary; omitted labels use defaults.', properties:
-            Object.fromEntries(GROUP_ROLES.map(role => [role, { type: 'string', required: false, describe: 'Nonblank display text, at most 160 characters, without control characters.' }])) },
+        groupLabels: { type: 'object', required: false, describe: 'Optional inert group vocabulary; omitted labels use defaults. Keys are the group purposes of the declared version.', properties:
+            Object.fromEntries([...new Set([...GROUP_ROLES, ...vocabulary.EARLIER.groupRoles])].map(role => [role, { type: 'string', required: false, describe: 'Nonblank display text, at most 160 characters, without control characters.' }])) },
         profile: { type: 'object', required: false, describe: 'One canonical record authority; default portable Markdown.', properties: {
             kind: { type: 'string', required: true, describe: 'portable-markdown or native.' },
             version: { type: 'number', required: true, describe: 'Positive capability contract version; portable supports 1.' },
@@ -63,11 +62,13 @@ function validateTaskTracking(config, errors = []) {
     const value = config?.taskTracking;
     if (value === undefined) return errors;
     if (!exactKeys(value, ['schemaVersion', 'mode', 'healthOwnerId', 'groupLabels', 'profile', 'members', 'report'], 'taskTracking', errors)) return errors;
-    if (value.schemaVersion !== 1) errors.push('taskTracking.schemaVersion: supported version is 1');
+    if (!vocabulary.supportedVersion(value.schemaVersion)) errors.push(`taskTracking.schemaVersion: supported versions are ${EARLIER_VERSION} (earlier vocabulary, read-only until migrated) and ${CURRENT_VERSION}`);
+    // Group-label keys are the group purposes of the vocabulary the project declares.
+    const roles = (vocabulary.wordsFor(value.schemaVersion) || vocabulary.CURRENT).groupRoles;
     if (value.mode !== undefined && !['off', 'observe', 'linked'].includes(value.mode)) errors.push('taskTracking.mode: expected off, observe, or linked');
     if (value.healthOwnerId !== undefined && (typeof value.healthOwnerId !== 'string' || !ITEM_ID.test(value.healthOwnerId))) errors.push('taskTracking.healthOwnerId: expected exact item identity');
-    if (value.groupLabels !== undefined && exactKeys(value.groupLabels, GROUP_ROLES, 'taskTracking.groupLabels', errors)) {
-        for (const role of GROUP_ROLES) if (Object.hasOwn(value.groupLabels, role)) {
+    if (value.groupLabels !== undefined && exactKeys(value.groupLabels, roles, 'taskTracking.groupLabels', errors)) {
+        for (const role of roles) if (Object.hasOwn(value.groupLabels, role)) {
             const label = value.groupLabels[role];
             if (typeof label !== 'string' || !label.trim() || label.length > 160 || /[\u0000-\u001f\u007f-\u009f]/.test(label))
                 errors.push(`taskTracking.groupLabels.${role}: group label invalid`);
@@ -104,12 +105,15 @@ function validateTaskTracking(config, errors = []) {
     return errors;
 }
 
-// Resolve from the selected snapshot config, never from a local convenience field.
+// Resolve from the selected snapshot config, never from a local convenience field. A project declaring the earlier
+// vocabulary keys its labels by the earlier purposes; they are exposed under the current ones.
 function groupLabels(config) {
-    return Object.fromEntries(GROUP_ROLES.map(role => [role, config?.taskTracking?.groupLabels?.[role]?.trim() ?? DEFAULT_GROUP_LABELS[role]]));
+    const version = config?.taskTracking?.schemaVersion;
+    return Object.fromEntries(GROUP_ROLES.map(role => [role,
+        config?.taskTracking?.groupLabels?.[vocabulary.toStored('groupRoles', role, version)]?.trim() ?? DEFAULT_GROUP_LABELS[role]]));
 }
 
-function trackingContext(rootDir) {
+function declaredContext(rootDir) {
     const root = fs.realpathSync(rootDir);
     const { readProjectConfigAt, getDocsRoot } = require('./project-config-loader.cjs');
     const loaded = readProjectConfigAt(root);
@@ -123,4 +127,10 @@ function trackingContext(rootDir) {
         artifactsRoot: getDocsRoot('teamArtifacts', loaded.config), limits: LIMITS };
 }
 
-module.exports = { LIMITS, KINDS, GROUP_ROLES, DEFAULT_GROUP_LABELS, groupLabels, FOLDERS, MEMBER_ID, CUSTOM_MEMBER_ID, isEmailId, ITEM_ID, TASK_TRACKING_SCHEMA, validateTaskTracking, trackingContext, relativePath };
+/** The selected checkout's policy, with its stored vocabulary resolved once for every consumer of this context. */
+function trackingContext(rootDir) {
+    const context = declaredContext(rootDir);
+    return { ...context, vocabulary: vocabulary.projectVocabulary(context.root, context.artifactsRoot, context.config.taskTracking?.schemaVersion) };
+}
+
+module.exports = { LIMITS, KINDS, GROUP_ROLES, DEFAULT_GROUP_LABELS, groupLabels, FOLDERS, MEMBER_ID, CUSTOM_MEMBER_ID, isEmailId, ITEM_ID, TASK_TRACKING_SCHEMA, validateTaskTracking, trackingContext, relativePath, vocabulary };

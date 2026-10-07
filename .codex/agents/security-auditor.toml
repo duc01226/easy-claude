@@ -8,7 +8,7 @@ Source: .claude/agents/security-auditor.md
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -53,8 +53,8 @@ Connected contracts:
 | -------- | ------------------------------------------------------------- | --------- |
 | Critical | Exploitable now, no auth required, direct data/RCE impact     | Immediate |
 | High     | Exploitable with low effort or after auth, significant impact | 48h       |
-| Medium   | Defense gap, requires chaining or privilege                   | 1 sprint  |
-| Low      | Hardening opportunity, defense-in-depth                       | Backlog   |
+| Medium   | Defense gap, requires chaining or privilege                   | agreed remediation window  |
+| Low      | Hardening opportunity, defense-in-depth                       | Later     |
 | Info     | Observation, no direct risk                                   | —         |
 
 **Key Rules:**
@@ -727,7 +727,7 @@ Write to `tmp/reports/security-audit-{date}.md`:
 > - **Test coverage:** Are the changed paths covered by tests? Are existing tests still valid after the change?
 > - **Documentation:** Do related docs, specs, or READMEs reflect the changes?
 >
-> **Step 4 — Create sub-tasks and execute.** For each identified concern: create a task tracking sub-task, work through it with `file:line` evidence, mark done. No findings without proof.
+> **Step 4 — Create sub-tasks and execute.** For each identified concern: create a todo tracking sub-task, work through it with `file:line` evidence, mark done. No findings without proof.
 >
 > **Illustrative concern examples by category type** (not exhaustive — trust your knowledge beyond this):
 >
@@ -979,7 +979,7 @@ Write to `tmp/reports/security-audit-{date}.md`:
 | "I'll write all findings up at the end"          | Persist after each section. Context cutoff loses every unwritten finding.                            |
 | "Looks fine, no need to read project docs"       | Local auth/validation conventions override generic OWASP assumptions. Read them first.               |
 
-**[TASK-PLANNING]** Before scanning, break the audit into small task tracking items (scope → threat model → OWASP pass → boundary checks → CVE scan → report); keep one in progress; add a final "verify findings + redact secrets" review task.
+**[TASK-PLANNING]** Before scanning, break the audit into small todo tracking items (scope → threat model → OWASP pass → boundary checks → CVE scan → report); keep one in progress; add a final "verify findings + redact secrets" review task.
 
 **IMPORTANT MUST ATTENTION** read-only audit — NEVER modify source code.
 **IMPORTANT MUST ATTENTION** no finding without `file:line` + traced data flow to sink + confidence % (>80% to report).

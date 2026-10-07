@@ -176,7 +176,7 @@ function condenseWhenToUse(
   return out.replace(/\|/g, "\\|");
 }
 
-// The base skill token of a sequence step ("pbi --mode=review --type=pbi" -> "pbi").
+// The base skill token of a sequence step ("work-item --mode=review --type=task" -> "work-item").
 function baseSkill(step) {
   return String(step).split(/\s+/)[0];
 }
@@ -303,7 +303,7 @@ function renderRoutingSection() {
 
 // `whenToUse` (and any `description` this module renders) is a ROUTED field: it lands in the
 // GENERATED catalog table, so portability tokens are resolved BEFORE condensing/rendering.
-// Unknown braces (`{Bucket}`, `{plan-id}`, `--type={pbi|story}`) are left verbatim by the resolver.
+// Unknown braces (`{Bucket}`, `{plan-id}`, `--type={task|story}`) are left verbatim by the resolver.
 //
 // `opts.compact` renders the runtime-hook form: the last column keeps only each mode's barrier
 // tokens (the step list is resolved by `start-workflow` at activation) and the hint is capped at

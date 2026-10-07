@@ -9,7 +9,7 @@ disable-model-invocation: false
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -22,17 +22,17 @@ disable-model-invocation: false
 
 Read [the registry](../../../.claude/workflows.json) → `workflows.workflow-spec-sync` together with this skill. Call [`$start-workflow workflow-spec-sync`](../start-workflow/SKILL.md) to resolve the selected mode, pre-actions and fingerprint.
 
-**Todo FIRST:** create ALL selected occurrence tasks before triage, analysis or step execution, including conditional/optional tasks; preserve occurrence IDs, roles and barrier groups. Use native task tools or an equivalent persistent ledger. Then mark the first task `in_progress`; attach evidence before `completed`.
+**Todo FIRST:** create one todo for EVERY selected occurrence before triage, analysis or step execution, including conditional/optional ones; preserve occurrence IDs, roles and barrier groups. Use native todo tools or an equivalent persistent ledger. Then mark the first todo `in_progress`; attach evidence before `completed`.
 Mode selection and registry loading prepare tracking; any 'first action' below means the first substantive action after this bootstrap.
 
 **Call each step skill:** read its linked SKILL.md and execute its protocol through the active host with the registry args. Reading or naming a skill alone is not execution. Required gates and core/optional flex follow the linked start-workflow Step Execution Protocol; keep this skill's quality gates, loops and evidence requirements.
 
-**Conditions:** load each occurrence's registry `applicability.when` and `skipReason` verbatim, and record its run/skip evidence through the linked start-workflow protocol. Do not silently omit a task or turn a conditional skill into an unconditional call. Declared parallel groups retain their all-return barrier.
+**Conditions:** load each occurrence's registry `applicability.when` and `skipReason` verbatim, and record its run/skip evidence through the linked start-workflow protocol. Do not silently omit a todo or turn a conditional skill into an unconditional call. Declared parallel groups retain their all-return barrier.
 
 Explicit step-skill calls by mode (registry order; roles and conditions remain owned by the registry):
 
-- Mode `default`: [`$workflow-review-changes --tests=defer`](../workflow-review-changes/SKILL.md) (gate) → [`$spec [mode=tests]`](../spec/SKILL.md) (core) → [`$pbi --mode=review --type=spec-tests`](../pbi/SKILL.md) (optional; conditional) → [`$spec [mode=sync]`](../spec/SKILL.md) (gate) → [`$integration-test`](../integration-test/SKILL.md) (optional; conditional) → [`$integration-test --mode=review`](../integration-test/SKILL.md) (optional; conditional) → [`$integration-test --mode=verify`](../integration-test/SKILL.md) (optional; conditional) → [`$test`](../test/SKILL.md) (gate) → [`$docs-manager --mode=update`](../docs-manager/SKILL.md) (core) → [`$workflow-end`](../workflow-end/SKILL.md) (gate) → [`$watzup`](../watzup/SKILL.md) (core)
-<!-- workflow-mode:default fingerprint:bd3f5f35d1ff30573ec4786e3a1286cd346d812987c1bb6fb3c6e0a9bb399a2c -->
+- Mode `default`: [`$workflow-review-changes --tests=defer`](../workflow-review-changes/SKILL.md) (gate) → [`$spec [mode=tests]`](../spec/SKILL.md) (core) → [`$work-item --mode=review --type=spec-tests`](../work-item/SKILL.md) (optional; conditional) → [`$spec [mode=sync]`](../spec/SKILL.md) (gate) → [`$integration-test`](../integration-test/SKILL.md) (optional; conditional) → [`$integration-test --mode=review`](../integration-test/SKILL.md) (optional; conditional) → [`$integration-test --mode=verify`](../integration-test/SKILL.md) (optional; conditional) → [`$test`](../test/SKILL.md) (gate) → [`$docs-manager --mode=update`](../docs-manager/SKILL.md) (core) → [`$workflow-end`](../workflow-end/SKILL.md) (gate) → [`$watzup`](../watzup/SKILL.md) (core)
+<!-- workflow-mode:default fingerprint:a9c2f281b3dc3a1f5cd7d757110c5b7a0342b03b20f47479b932df469d9d18e6 -->
 
 Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs --write` after registry edits; [`$sync-codex`](../sync-codex/SKILL.md) refreshes it before mirroring.
 <!-- WORKFLOW-CALLS:END -->
@@ -45,9 +45,9 @@ Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs
 
 **Use when:** code already changed and its specs, test cases or docs may be stale. To write tests for code nobody changed, use `$workflow-integration-test --mode=write`; to drive a red suite to green, use `$workflow-integration-test --mode=green`; for a change still being built, the feature/bugfix workflows own spec sync themselves.
 
-**IMPORTANT MANDATORY Steps:** $workflow-review-changes --tests=defer -> $spec [mode=tests] -> $pbi --mode=review --type=spec-tests -> $spec [mode=sync] -> $integration-test -> $integration-test --mode=review -> $integration-test --mode=verify -> $test -> $docs-manager --mode=update -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $workflow-review-changes --tests=defer -> $spec [mode=tests] -> $work-item --mode=review --type=spec-tests -> $spec [mode=sync] -> $integration-test -> $integration-test --mode=review -> $integration-test --mode=verify -> $test -> $docs-manager --mode=update -> $workflow-end -> $watzup
 
-**Steps:** $workflow-review-changes --tests=defer → $spec [mode=tests] → $pbi --mode=review --type=spec-tests → $spec [mode=sync] → $integration-test → $integration-test --mode=review → $integration-test --mode=verify → $test → $docs-manager --mode=update → $workflow-end → $watzup
+**Steps:** $workflow-review-changes --tests=defer → $spec [mode=tests] → $work-item --mode=review --type=spec-tests → $spec [mode=sync] → $integration-test → $integration-test --mode=review → $integration-test --mode=verify → $test → $docs-manager --mode=update → $workflow-end → $watzup
 
 The registry owns the recommended order, gates and optional conditions; see [Recommended Skills](#recommended-skills).
 
@@ -88,7 +88,7 @@ Record the triggering change's triage before choosing depth. Risk and ambiguity 
 | --- | --- | --- | --- |
 | `$workflow-review-changes --tests=defer` | gate | Always, first, INLINE in the main session; static review, the test gates below run the tests. | `review-converged` |
 | `$spec [mode=tests]` | core | Usually: diff existing cases against the changed code; add regression cases for bug fixes. A behavior-preserving change reduces it to that diff check. | Current cases. |
-| `$pbi --mode=review --type=spec-tests` | optional | When: The spec [mode=tests] step added or changed at least one test case in this run. · Skip reason: No test case was added or changed in this run, so there is no case to review. | Case quality. |
+| `$work-item --mode=review --type=spec-tests` | optional | When: The spec [mode=tests] step added or changed at least one test case in this run. · Skip reason: No test case was added or changed in this run, so there is no case to review. | Case quality. |
 | `$spec [mode=sync]` | gate | Always. | `spec-synced` |
 | `$integration-test` | optional | When: An added or changed test case has no executing integration test, or changed behavior is not yet covered by one. · Skip reason: Every added or changed test case already has an executing integration test covering it (see the case-to-test map). | Test code for new cases. |
 | `$integration-test --mode=review` | optional | When: Integration test code was written or changed in this run. · Skip reason: No integration test code was written or changed in this run, so there is no new test code to review. | Converged review of this run's test code. |
@@ -161,4 +161,4 @@ Choose inline vs sub-agent, batching and ordering at equal quality, subject to t
 | "Cases look current; skip the run" | Diff the cases; review, sync and test gates still run. |
 | "A test failed; change its assertion" | Establish the five-way Fault Verdict before editing. |
 
-**[TASK-PLANNING]** Create all selected occurrence tasks with task tracking before triage, analysis or step execution.
+**[TASK-PLANNING]** Create all selected occurrence tasks with todo tracking before triage, analysis or step execution.

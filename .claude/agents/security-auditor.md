@@ -45,8 +45,8 @@ Connected contracts:
 | -------- | ------------------------------------------------------------- | --------- |
 | Critical | Exploitable now, no auth required, direct data/RCE impact     | Immediate |
 | High     | Exploitable with low effort or after auth, significant impact | 48h       |
-| Medium   | Defense gap, requires chaining or privilege                   | 1 sprint  |
-| Low      | Hardening opportunity, defense-in-depth                       | Backlog   |
+| Medium   | Defense gap, requires chaining or privilege                   | agreed remediation window  |
+| Low      | Hardening opportunity, defense-in-depth                       | Later     |
 | Info     | Observation, no direct risk                                   | —         |
 
 **Key Rules:**

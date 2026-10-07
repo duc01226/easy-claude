@@ -8,7 +8,7 @@ description: '[Research] Use when a workflow step or the user asks for market an
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -134,7 +134,7 @@ When invoked inside a workflow that also writes to a plan directory, copy the fi
 
 ---
 
-> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting.
+> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting.
 
 ## Closing Reminders
 
@@ -143,7 +143,7 @@ When invoked inside a workflow that also writes to a plan directory, copy the fi
 **IMPORTANT MUST ATTENTION Main path:** Classify and clarify scope/evidence; then run in order: (1) research 5-10 competitors, (2) size TAM/SAM/SOM, (3) analyze growth, disruption, regulation, and behavior trends, (4) evidence-link SWOT, and (5) segment customers by demographics, psychographics, behavior, and jobs-to-be-done. Write via the enforced template and complete the exact handoff path. NEVER skip, reorder, or merge steps.
 **IMPORTANT MUST ATTENTION Modes/gates:** In `workflow-research` `business-eval`/`marketing`, use parent `ARTIFACT_SLUG` + `MARKET_ANALYSIS_PATH` exactly; otherwise use the fallback path; return the exact written path; copy the plan-dir artifact when required. Prefer Tier 1-2 sizing sources; every factual claim, number, table row, and inference ends `[N]` mapped to Sources or `N/A — {reason}`; cite size source/year/methodology; never invent metadata; link every SWOT item to evidence.
 **IMPORTANT MUST ATTENTION** Apply critical/sequential thinking; run one focused `Think:` pass per step; cite source evidence and confidence; preserve uncertainty; never present unsupported findings as fact.
-**IMPORTANT MUST ATTENTION** Create task tracking todos before starting; keep one `in_progress`, mark each completed with evidence, and add a final review todo. If task tools are unavailable, maintain equivalent synchronized statuses.
+**IMPORTANT MUST ATTENTION** Create todo tracking todos before starting; keep one `in_progress`, mark each completed with evidence, and add a final review todo. If task tools are unavailable, maintain equivalent synchronized statuses.
 
 **Anti-Rationalization:**
 

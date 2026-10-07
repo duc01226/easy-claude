@@ -8,7 +8,7 @@ description: '[Testing] Use when a workflow step or the user asks for a local te
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -19,7 +19,7 @@ description: '[Testing] Use when a workflow step or the user asks for a local te
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
 > **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
-> **[BLOCKING]** Before each step or sub-skill call, update task tracking: set `in_progress` when step starts, set `completed` when step ends.
+> **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
 
@@ -97,7 +97,7 @@ The `tester` subagent receives the resolved contract matrix and executes only co
 - **"$watzup"** — Wrap up session and review all changes
 - **"Skip, continue manually"** — user decides
 
-> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
+> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
 
 - `domain-entities-reference.md`, in the project-reference docs root (default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path) — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models)
 
@@ -183,7 +183,7 @@ The `tester` subagent receives the resolved contract matrix and executes only co
 **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim about a failure (confidence >80% to act, <80% verify first); NEVER speculate which test failed or why — read the report — why: a guessed failure verdict sends the user to fix the wrong thing.
 **MANDATORY IMPORTANT MUST ATTENTION** an INTERMITTENT failure is UNADJUDICATED, not a product defect — classify it as (a) unrealistic scenario / compressed actor pacing, (b) harness topology amplification (shared infra, fan-out consumers, suite parallelism, cold start), or (c) a genuine product race, with evidence, before reporting it as a defect; report it as UNADJUDICATED when the evidence is not there — why: a test-fidelity defect reported as a product defect sends the team to fix code that was never wrong.
 **MANDATORY IMPORTANT MUST ATTENTION** before asserting a test/source relationship, grep 3+ similar tests and match the local pattern; apply the source/test drift check — decide from evidence whether a failing test guards intended behavior or the source is the bug — why: a mismatched assumption mislabels a real bug as a flaky test.
-**MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting; mark one `in_progress`, complete immediately after evidence; add a final review todo to verify work quality.
+**MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using todo tracking BEFORE starting; mark one `in_progress`, complete immediately after evidence; add a final review todo to verify work quality.
 **MANDATORY IMPORTANT MUST ATTENTION** present the Next Steps via `ask user question tool` after the report — NEVER pick the follow-up skill (`$fix`, `$docs-manager`, `$watzup`) for the user — why: the user owns the hand-off, and this skill only reports.
 **IMPORTANT MUST ATTENTION** READ `CLAUDE.md` before starting.
 

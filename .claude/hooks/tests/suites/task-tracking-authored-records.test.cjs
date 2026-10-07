@@ -1,7 +1,7 @@
 /**
  * Authored work-record contract.
  *
- * Other skills write idea, PBI and story files into the folders the tracker reads. The tracker owns the record
+ * Other skills write initiative, task and story files into the folders the tracker reads. The tracker owns the record
  * shape (`task-track/references/integration-guide.md`, "Records another skill authors"); these cases prove that
  * every template those skills ship still fits it, so a competing status list, a label in `priority` or a
  * hand-written assignee cannot return unnoticed.
@@ -28,11 +28,11 @@ const TRACKER_OWNED = ['title', 'intent', 'status', 'priority', 'assigned_to'];
 // Every artifact template a skill ships: its source, the heading that introduces a fenced template (none when
 // the file is the template), the record kind and the file name the authoring skill uses.
 const TEMPLATES = [
-    { name: 'idea template', source: 'docs/team-artifacts/templates/idea-template.md', kind: 'idea', file: 'ideas/261007-po-idea-sample.md' },
-    { name: 'PBI template', source: 'docs/team-artifacts/templates/pbi-template.md', kind: 'pbi', file: 'pbis/261007-pbi-sample.md' },
-    { name: 'user story template', source: 'docs/team-artifacts/templates/user-story-template.md', kind: 'story', file: 'pbis/stories/261007-us-sample.md' },
-    { name: 'refine-mode PBI template', source: 'skills/pbi/references/mode-refine.md', heading: '### PBI Template', kind: 'pbi', file: 'pbis/261007-pbi-refined-sample.md' },
-    { name: 'story-mode template', source: 'skills/pbi/references/mode-story.md', heading: '## Story Artifact Template', kind: 'story', file: 'pbis/stories/261007-us-refined-sample.md' }
+    { name: 'initiative template', source: 'docs/team-artifacts/templates/initiative-template.md', kind: 'initiative', file: 'initiatives/261007-po-initiative-sample.md' },
+    { name: 'task template', source: 'docs/team-artifacts/templates/task-template.md', kind: 'task', file: 'tasks/261007-task-sample.md' },
+    { name: 'user story template', source: 'docs/team-artifacts/templates/user-story-template.md', kind: 'story', file: 'tasks/stories/261007-us-sample.md' },
+    { name: 'refine-mode task template', source: 'skills/work-item/references/mode-refine.md', heading: '### Task Template', kind: 'task', file: 'tasks/261007-task-refined-sample.md' },
+    { name: 'story-mode template', source: 'skills/work-item/references/mode-story.md', heading: '## Story Artifact Template', kind: 'story', file: 'tasks/stories/261007-us-refined-sample.md' }
 ];
 
 /** The frontmatter lines of a template: the first `---` pair after the heading, or at the top of the file. */
@@ -70,6 +70,7 @@ function shapeViolations(lines) {
     }
     if (fields.has('priority') && !/^(?:1-999|\{[^}]*\b1-999\b[^}]*\})$/.test(fields.get('priority'))) found.push('priority is not the integer 1-999 the tracker writes');
     for (const key of ['assigned_to', 'tracking']) if (fields.has(key)) found.push(`${key} is written only by the tracker`);
+    for (const key of ['sprint', 'story_points']) if (fields.has(key)) found.push(`${key} is not used in new work records`);
     return found;
 }
 
@@ -109,7 +110,7 @@ function writeAll(f) {
 }
 
 module.exports = { name: 'Task tracking authored records integration', tests: [
-    { name: 'TC-ARS-001: every shipped idea, PBI and story template keeps the tracker-owned fields in the tracker vocabulary',
+    { name: 'TC-ARS-001: every shipped initiative, task and story template keeps the tracker-owned fields in the tracker vocabulary',
         fn: () => {
             for (const template of TEMPLATES) {
                 assert.deepEqual(shapeViolations(frontmatterLines(read(template.source), template.heading)), [], `${template.name} (${template.source})`);
@@ -117,13 +118,15 @@ module.exports = { name: 'Task tracking authored records integration', tests: [
         } },
     { name: 'TC-ARS-002: a competing status list, a priority label or a hand-written assignee is reported as drift',
         fn: () => {
-            const drifted = lines => shapeViolations(['id: PBI-{YYMMDD}-{NNN}', "title: '{Title}'", "intent: '{Outcome}'", ...lines]);
+            const drifted = lines => shapeViolations(['id: TASK-{YYMMDD}-{NNN}', "title: '{Title}'", "intent: '{Outcome}'", ...lines]);
             assert.deepEqual(drifted(['status: draft']), []);
+            for (const key of ['sprint', 'story_points']) assert.deepEqual(drifted(['status: draft', `${key}: 1`]), [`${key} is not used in new work records`]);
+            assert.deepEqual(drifted(['status: draft', 'delivery_wave: foundation', 'effort_points: 3']), []);
             assert.deepEqual(drifted(['status: draft | refined | ready']), ['status refined is not a tracker state']);
-            assert.deepEqual(drifted(['status: backlog | ready']), ['a generated record starts as draft, not backlog']);
+            assert.deepEqual(drifted(['status: planned | ready']), ['a generated record starts as draft, not planned']);
             assert.deepEqual(drifted(['status: draft', "priority: Must Have | Should Have"]), ['priority is not the integer 1-999 the tracker writes']);
             assert.deepEqual(drifted(['status: draft', "assigned_to: '{Name or Unassigned}'"]), ['assigned_to is written only by the tracker']);
-            assert.deepEqual(shapeViolations(['id: PBI-1', "title: 'T'", 'status: draft']), ['intent is missing']);
+            assert.deepEqual(shapeViolations(['id: TASK-1', "title: 'T'", 'status: draft']), ['intent is missing']);
         } },
     test('TC-ARS-003', 'a record written from each shipped template is read without a diagnostic and adopted without loss', async f => {
         const written = writeAll(f);
@@ -163,17 +166,17 @@ module.exports = { name: 'Task tracking authored records integration', tests: [
         const written = writeAll(f);
         const first = kind => written.find(item => item.kind === kind);
         for (const item of written) await adopt(f, item.kind, item.id);
-        const pbi = first('pbi'); const idea = first('idea'); const story = first('story');
+        const task = first('task'); const initiative = first('initiative'); const story = first('story');
         const target = item => ({ target: { kind: item.kind, itemId: item.id } });
-        await f.saved('update', pbi.id, { intent: 'Let an operator export a selected subset', priority: 2,
-            criteria: [{ id: 'AC-01', text: 'Export contains exactly the selected rows' }] }, target(pbi));
-        await f.saved('link', pbi.id, { links: [{ relation: 'idea', itemId: idea.id }] }, target(pbi));
-        await f.saved('link', story.id, { links: [{ relation: 'parent', itemId: pbi.id }] }, target(story));
-        await f.saved('transition', pbi.id, { state: 'backlog' }, target(pbi));
-        const view = f.view(pbi.id);
-        assert.equal(view.state, 'backlog'); assert.equal(view.priority, 2); assert.deepEqual(view.criteria.map(entry => entry.id), ['AC-01']);
-        assert.equal(view.assigneeId, null); assert.equal(f.record(pbi.id).tracking.readiness, undefined);
-        assert.ok(f.bytes(pbi.id).toString().includes('Authored body stays as written.'));
+        await f.saved('update', task.id, { intent: 'Let an operator export a selected subset', priority: 2,
+            criteria: [{ id: 'AC-01', text: 'Export contains exactly the selected rows' }] }, target(task));
+        await f.saved('link', task.id, { links: [{ relation: 'initiative', itemId: initiative.id }] }, target(task));
+        await f.saved('link', story.id, { links: [{ relation: 'parent', itemId: task.id }] }, target(story));
+        await f.saved('transition', task.id, { state: 'planned' }, target(task));
+        const view = f.view(task.id);
+        assert.equal(view.state, 'planned'); assert.equal(view.priority, 2); assert.deepEqual(view.criteria.map(entry => entry.id), ['AC-01']);
+        assert.equal(view.assigneeId, null); assert.equal(f.record(task.id).tracking.readiness, undefined);
+        assert.ok(f.bytes(task.id).toString().includes('Authored body stays as written.'));
         assert.equal(inspectRecords(f.context()).coverage, 'complete');
     }),
     { name: 'TC-ARS-006: every skill that writes or orders these records names the tracker reference as the shape owner',
@@ -184,32 +187,32 @@ module.exports = { name: 'Task tracking authored records integration', tests: [
             assert.ok(heading, 'the owner section exists');
             const section = guide.slice(heading.index);
             for (const field of [...TRACKER_OWNED, 'tracking']) assert.ok(section.includes(`\`${field}\``), `owner section names ${field}`);
-            for (const surface of ['skills/idea/SKILL.md', 'skills/pbi/SKILL.md', 'skills/pbi/references/mode-refine.md', 'skills/pbi/references/mode-story.md',
-                'skills/pbi/references/mode-dor.md', 'skills/prioritize/SKILL.md', 'skills/workflow-idea-to-pbi/SKILL.md', 'skills/workflow-spec-to-pbi/SKILL.md',
-                'skills/workflow-idea-to-spec/SKILL.md']) {
+            for (const surface of ['skills/initiative/SKILL.md', 'skills/work-item/SKILL.md', 'skills/work-item/references/mode-refine.md', 'skills/work-item/references/mode-story.md',
+                'skills/work-item/references/mode-dor.md', 'skills/prioritize/SKILL.md', 'skills/workflow-initiative-to-task/SKILL.md', 'skills/workflow-spec-to-task/SKILL.md',
+                'skills/workflow-initiative-to-spec/SKILL.md']) {
                 assert.ok(read(surface).includes(GUIDE_ANCHOR), `${surface} points to the record shape owner`);
             }
             for (const template of TEMPLATES.filter(item => !item.heading)) assert.ok(read(template.source).includes('task-track/references/integration-guide.md'), `${template.source} points to the owner`);
         } },
     test('TC-ARS-007', 'an older record holding a label where the ordering number belongs is ordered last and keeps its authored value', async f => {
-        // Real scenario: a backlog written before the label moved to its own key. It must still read, and must not sort as a number.
-        f.write('work/pbis/older-backlog-item.md', '---\nid: PBI-OLDER\ntitle: Older backlog item\nintent: Keep an older backlog readable\nstatus: draft\npriority: Must Have\nrank: 3\n---\nAuthored body.\n');
-        await f.create('PBI-RANKED'); await f.saved('update', 'PBI-RANKED', { priority: 5 });
+        // Real scenario: planned work written before the label moved to its own key. It must still read, and must not sort as a number.
+        f.write('work/tasks/older-planned-item.md', '---\nid: TASK-OLDER\ntitle: Older planned item\nintent: Keep older planned work readable\nstatus: draft\npriority: Must Have\nrank: 3\n---\nAuthored body.\n');
+        await f.create('TASK-RANKED'); await f.saved('update', 'TASK-RANKED', { priority: 5 });
         const snapshot = f.progress(); assert.equal(snapshot.coverage, 'complete');
-        assert.equal(f.view('PBI-OLDER').priority, 999); assert.equal(f.view('PBI-RANKED').priority, 5);
+        assert.equal(f.view('TASK-OLDER').priority, 999); assert.equal(f.view('TASK-RANKED').priority, 5);
         // The ready list is the tracker's own priority order. By identity alone the older record would come first, so
         // this order holds only when its label reads as the last place and never as a number.
-        await adopt(f, 'pbi', 'PBI-OLDER'); await f.saved('update', 'PBI-OLDER', { criteria: [{ id: 'AC-1', text: 'An older backlog stays readable' }] });
-        await f.ready('PBI-OLDER'); await f.ready('PBI-RANKED');
-        assert.deepEqual(f.progress().ready, ['PBI-RANKED', 'PBI-OLDER']);
-        assert.ok(fs.readFileSync(path.join(f.root, 'work/pbis/older-backlog-item.md'), 'utf8').includes('priority: Must Have'));
+        await adopt(f, 'task', 'TASK-OLDER'); await f.saved('update', 'TASK-OLDER', { criteria: [{ id: 'AC-1', text: 'Older planned work stays readable' }] });
+        await f.ready('TASK-OLDER'); await f.ready('TASK-RANKED');
+        assert.deepEqual(f.progress().ready, ['TASK-RANKED', 'TASK-OLDER']);
+        assert.ok(fs.readFileSync(path.join(f.root, 'work/tasks/older-planned-item.md'), 'utf8').includes('priority: Must Have'));
     }),
     { name: 'TC-ARS-008: skills that read these records find one whatever its file is named, including a record the tracker created',
         fn: () => {
             // A tracker-created record is saved under its identity, without the date prefix the generating skills use.
-            const mockup = read('skills/pbi/references/mode-mockup.md');
-            assert.ok(mockup.includes('glob `pbis/*.md`'), 'mock-up auto-detect reads every PBI file in the folder');
-            assert.equal(/auto-detect the most recent PBI: glob `pbis\/\*-pbi-\*\.md`/.test(mockup), false, 'mock-up auto-detect is not limited to the date-named pattern');
+            const mockup = read('skills/work-item/references/mode-mockup.md');
+            assert.ok(mockup.includes('glob `tasks/*.md`'), 'mock-up auto-detect reads every task file in the folder');
+            assert.equal(/auto-detect the most recent task: glob `tasks\/\*-task-\*\.md`/.test(mockup), false, 'mock-up auto-detect is not limited to the date-named pattern');
             const accumulation = read('skills/feature-presentation/references/artifact-accumulation.md');
             assert.match(accumulation, /Never skip a record only because its file name lacks the date prefix/);
         } }

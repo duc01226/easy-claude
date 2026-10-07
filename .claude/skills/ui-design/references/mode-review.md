@@ -5,7 +5,7 @@
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
 > **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
-> **[BLOCKING]** Before each step or sub-skill call, update task tracking: set `in_progress` when step starts, set `completed` when step ends.
+> **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
 
@@ -31,7 +31,7 @@
 
 **Workflow:**
 
-1. **Phase 0: Load UI Rules** — Resolve applicable project UI references and accepted ADRs; record N/A where a styling or design-system category does not apply; load the journey-first gate (`UX-*`) and record the journey source (spec / design-spec / PBI, or none)
+1. **Phase 0: Load UI Rules** — Resolve applicable project UI references and accepted ADRs; record N/A where a styling or design-system category does not apply; load the journey-first gate (`UX-*`) and record the journey source (spec / design-spec / task, or none)
 2. **Phase 1: Determine Scope** — Changed UI files (default) or user-specified scope, then expand to affected SURFACES (pages / views / dialogs that render them)
 3. **Phase 2: Blast Radius** — assess by grep/read; an optional graph trace can hint at upstream edges for the surface map
 4. **Phase 2B: Surface Composition** — Per surface: component tree, style-origin map (own · ancestor layout & stacking context · global/theme/reset · scoping mode), render + computed values + automated a11y scan when runnable, else `ENVIRONMENT-BLOCKED`
@@ -124,7 +124,7 @@ Skeptical. Every claim needs traced proof, confidence >80%.
 - read the configured design-system/token doc when present — extract the declared visual tokens and stacking/layer rules that apply to this surface
 - read the frontend architecture/patterns doc when it records project conventions — use base components, state, request, and lifecycle abstractions only when they are present and relevant
 - read the project code-review rules doc — extract frontend anti-patterns and review rules directly
-- load the journey-first gate (`SYNC:ux-journey-gate`, `UX-1`–`UX-11`; read `.claude/skills/shared/protocols/ux-journey-gate.md` when its text is not in context, catalog `.claude/docs/ux-journey-process.md` §9) and locate the journey source for Phase 2C: the governing Feature Spec's per-story flows, the design-spec's §0a User Journeys, or the PBI's stories/acceptance criteria — record which, or `none — journeys will be inferred`
+- load the journey-first gate (`SYNC:ux-journey-gate`, `UX-1`–`UX-11`; read `.claude/skills/shared/protocols/ux-journey-gate.md` when its text is not in context, catalog `.claude/docs/ux-journey-process.md` §9) and locate the journey source for Phase 2C: the governing Feature Spec's per-story flows, the design-spec's §0a User Journeys, or the task's stories/acceptance criteria — record which, or `none — journeys will be inferred`
 
 > **CROSS-SYSTEM WARNING (carry through every category):** Do NOT mix token systems with incompatible root-size, namespace, or layer assumptions in one file. When flagging a fix, recommend whichever token system the file already imports/uses; never introduce another system unless the project docs explicitly require migration.
 

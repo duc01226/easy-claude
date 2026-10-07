@@ -801,8 +801,9 @@ function maybePrune(root, now = Date.now(), intervalMs = PRUNE_INTERVAL_MS) {
  * With `expectBoundary`, the caller says this delivery answers a host-reported compaction whose own
  * transcript boundary line may be written after it; the record then absorbs that one boundary
  * (see adoptExpectedBoundary).
+ * `onPresent`, when supplied, reports only a verified current record, never a peer lock or error.
  */
-function deliverOnce({ root, input, group, hash, payload, settings, now = Date.now(), write, failOpen = false, expectBoundary = false }) {
+function deliverOnce({ root, input, group, hash, payload, settings, now = Date.now(), write, failOpen = false, expectBoundary = false, onPresent }) {
     return new Promise(resolve => {
         let lock = null;
         let token = null;
@@ -837,7 +838,10 @@ function deliverOnce({ root, input, group, hash, payload, settings, now = Date.n
             };
             maybePrune(root, now);
             const first = context();
-            if (isPresent(storedRecord(first), hash, first, settings)) return resolve('');
+            if (isPresent(storedRecord(first), hash, first, settings)) {
+                onPresent?.();
+                return resolve('');
+            }
             lock = lockFile(root, sessionId, scope, group);
             token = acquireLock(lock, now);
             if (!token && (!failOpen || peerHoldsLock(lock, now))) return resolve('');
@@ -845,6 +849,7 @@ function deliverOnce({ root, input, group, hash, payload, settings, now = Date.n
                 const again = recheckContext(context());
                 if (isPresent(storedRecord(again), hash, again, settings)) {
                     release();
+                    onPresent?.();
                     return resolve('');
                 }
             }

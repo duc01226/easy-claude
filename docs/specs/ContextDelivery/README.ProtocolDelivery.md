@@ -156,9 +156,9 @@ Many skills follow the same shared protocols — evidence rules, review rules, t
 
 **Acceptance Criteria:**
 
-- **AC-PDL-09** — **Given** a session **When** its first prompt is processed **Then** the universal bundle arrives as its authored bins, each a message of at most 9,500 characters, once; it arrives again only after about 100,000 tokens of conversation growth or a compaction (a compaction reported at session start delivers it at once, and the prompt after it stays silent); and no skill (inline skills included), no agent and no root instruction file carries a body, reminder, guide entry or pointer line of a universal protocol
+- **AC-PDL-09** — **Given** a session **When** its first prompt is processed **Then** the universal bundle arrives as its authored bins, each a message of at most 9,500 characters, once; it arrives again only after about 150,000 tokens of conversation growth or a compaction (a compaction reported at session start delivers it at once, and the prompt after it stays silent); and no skill (inline skills included), no agent and no root instruction file carries a body, reminder, guide entry or pointer line of a universal protocol
 - **AC-PDL-10** — **Given** any agent type **When** it starts **Then** every bin is delivered to it once for that spawn, whether or not it preloads skills or has a definition file
-- **AC-PDL-11** — **Given** a skill that the project registry matches to overlay files **When** the skill starts **Then** a reminder of at most three lines names those files and states that overlays are additive only; after successful delivery it repeats for that skill only after about 100,000 tokens of growth, a compaction or a changed overlay set; a failed delivery leaves the reminder eligible at the next activation
+- **AC-PDL-11** — **Given** a skill that the project registry matches to overlay files **When** the skill starts **Then** a reminder of at most three lines names those files and states that overlays are additive only; after successful delivery it repeats for that skill only after about 150,000 tokens of growth, a compaction or a changed overlay set; a failed delivery leaves the reminder eligible at the next activation
 
 ### US-PDL-05: Every load path on every host delivers
 
@@ -383,13 +383,13 @@ The published text — one file per protocol in use plus the protocol index (gro
 
 ### BR-PDL-16: Trigger-gated protocols arrive only when their subject is in scope [HARD]
 
-A few protocols apply only to one subject: user-facing visual surfaces (design, journey, copy), domain-model changes, and AI features. The group data names each such protocol's delivery trigger — its owner skills, a text pattern and a path pattern. IF a converted skill declares a gated protocol THEN it is delivered in full only when (a) a loaded skill is one of the trigger's owner skills, (b) the text pattern matches the event text (skill arguments, typed-command arguments, the prompt) or the session's recorded prompts, or (c) the path pattern matches the files the session touched or those prompts. Otherwise it is neither delivered nor named, no delivery record is written (a later load whose context shows the subject still delivers it), and the skill's guide entry stays the read-by-path fallback (BR-PDL-05). A trigger that is unknown, has an unusable pattern, or whose context cannot be read delivers unconditionally. Protocols without a trigger are never gated.
+A few protocols apply only to one subject: user-facing visual surfaces (design, journey, copy), domain-model changes, AI features, and fresh-reviewer dispatch. The full reviewer template is deferred for inline rationale review until dispatch is in scope, while dispatch-owning review procedures always receive it. An actual fresh-reviewer prompt still contains all eleven full bodies verbatim (BR-PDL-11); the guide remains a mandatory full-source fallback. The group data names each such protocol's delivery trigger — its owner skills, a text pattern and a path pattern. IF a converted skill declares a gated protocol THEN it is delivered in full only when (a) a loaded skill is one of the trigger's owner skills, (b) the text pattern matches the event text (skill arguments, typed-command arguments, the prompt) or the session's recorded prompts, or (c) the path pattern matches the files the session touched or those prompts. Otherwise it is neither delivered nor named, no delivery record is written (a later load whose context shows the subject still delivers it), and the skill's guide entry stays the read-by-path fallback (BR-PDL-05). A trigger that is unknown, has an unusable pattern, or whose context cannot be read delivers unconditionally. Protocols without a trigger are never gated.
 
 `[Source: rule/hooks/protocol-trigger]`
 
 ### BR-PDL-17: Core principles share one delivery record [HARD]
 
-The core engineering principles reach the assistant from two hooks: the task-step and prompt reminder, and the design group of BR-PDL-03. Both write and read one record per session under the delivery record store, keyed by the same hash of the published text, so a delivery by either marks the protocol delivered for both. Each reader keeps its own re-delivery distance (the reminder about 100,000 tokens, the design group 4,500,000 bytes of conversation growth) and a compaction re-arms both. IF no published text exists THEN the reminder keeps a private record keyed by the content hash.
+The core engineering principles reach the assistant from two hooks: the task-step and prompt reminder, and the design group of BR-PDL-03. Both write and read one record per session under the delivery record store, keyed by the same hash of the published text, so a delivery by either marks the protocol delivered for both. Each reader keeps its own re-delivery distance (the reminder about 150,000 tokens, the design group 4,500,000 bytes of conversation growth) and a compaction re-arms both. IF no published text exists THEN the reminder keeps a private record keyed by the content hash.
 
 `[Source: rule/hooks/protocol-dedup]`
 
@@ -397,7 +397,7 @@ The core engineering principles reach the assistant from two hooks: the task-ste
 
 The universal group carries an authored layout: an ordered list of bins, each an ordered list of its protocols. Each bin is one message of at most 9,500 characters that opens with a numbered header and is delivered by its own hook step with its own delivery record, so a bin that went missing is delivered again without the others. The build fails when a universal protocol sits in no bin, a bin names a foreign or repeated protocol, or a rendered bin exceeds the bin size.
 
-- IF a prompt is the session's first THEN every bin is delivered; afterwards a bin is delivered again only after about 100,000 tokens of conversation growth since its last delivery (the growth distance is the token figure converted by the measured bytes per token; no age re-arm) or after a compaction, on every host that reports one.
+- IF a prompt is the session's first THEN every bin is delivered; afterwards a bin is delivered again only after about 150,000 tokens of conversation growth since its last delivery (the growth distance is the token figure converted by the measured bytes per token; no age re-arm) or after a compaction, on every host that reports one.
 - IF a session start reports a compaction (source `compact`) THEN every bin is delivered again at once, so a run that ends no prompt after the compaction still carries the rules; the bin's own record is replaced, so the prompt that follows finds the bundle present and stays silent.
 - IF the host writes its own compaction boundary after the compaction report was delivered THEN the first boundary stamped within 120 seconds after that delivery belongs to it: the bin's record moves just past the boundary and the expectation is spent, so the prompt that follows stays silent (one delivery per compaction, not two). A boundary beyond the 120-second window, a second boundary after the first was attributed, and a boundary after a clear (a clear writes none) are real compactions and deliver again; with no boundary the growth re-arm is unchanged. A genuine second compaction inside the window and before the next prompt reads as the same one and is delivered again only at the next boundary or after the growth distance.
 - IF a delivery was recorded while the conversation record did not exist yet (its size unknown) THEN growth counts from an empty record, so the bundle still returns after the growth distance; with the current size also unknown no growth is measured and the delivery stays present.
@@ -414,7 +414,7 @@ The universal group carries an authored layout: an ordered list of bins, each an
 
 ### BR-PDL-19: A skill start reminds the assistant of its project overlays [HARD]
 
-The project keeps a registry of overlay rules layered onto framework skills. IF a skill activates (a skill tool call, a read of its file, a typed command, or a second-host prompt or shell read naming it) and the registry matches it THEN a reminder of at most three lines names the matched overlay body files, at most eight, counting any more, and states that overlays are additive only and never waive the workflow route rules, git discipline, a review gate or a user-confirmation gate. The most specific matching tier wins outright (exact name, then pattern, then the catch-all); a body file is always derived from the registry row's bare name, never from its link text, and a malformed or directory-escaping name is skipped unread. The reminder is delivered once per skill and scope and again only after about 100,000 tokens of growth, a compaction or a changed overlay set. Only successful delivery starts that suppression window; IF delivery fails THEN the reminder remains eligible at the next activation. IF several eligible skills activate together THEN their reminders arrive in one message, and a failed delivery leaves each eligible for retry. IF the registry is absent or empty, no row matches, or any read or parse fails THEN nothing is emitted and nothing fails.
+The project keeps a registry of overlay rules layered onto framework skills. IF a skill activates (a skill tool call, a read of its file, a typed command, or a second-host prompt or shell read naming it) and the registry matches it THEN a reminder of at most three lines names the matched overlay body files, at most eight, counting any more, and states that overlays are additive only and never waive the workflow route rules, git discipline, a review gate or a user-confirmation gate. The most specific matching tier wins outright (exact name, then pattern, then the catch-all); a body file is always derived from the registry row's bare name, never from its link text, and a malformed or directory-escaping name is skipped unread. The reminder is delivered once per skill and scope and again only after about 150,000 tokens of growth, a compaction or a changed overlay set. Only successful delivery starts that suppression window; IF delivery fails THEN the reminder remains eligible at the next activation. IF several eligible skills activate together THEN their reminders arrive in one message, and a failed delivery leaves each eligible for retry. IF the registry is absent or empty, no row matches, or any read or parse fails THEN nothing is emitted and nothing fails.
 
 ## `[Source: rule/hooks/skill-overlay-reminder]`
 
@@ -4673,6 +4673,8 @@ invariant: 'for ALL eleven sections the body is present in the published file'
 boundaryCounterCase: 'a section replaced by a path → fails'
 ```
 
+**Delivery variants:** Inline rationale review may defer this large template. Dispatch text or a dispatch-owning review procedure delivers it; unreadable trigger context delivers conservatively. Deferral never reduces an actual fresh reviewer prompt or removes its full-source fallback.
+
 **Edge Cases:**
 
 - The template is the one protocol allowed over 9,000 characters
@@ -4681,7 +4683,7 @@ boundaryCounterCase: 'a section replaced by a path → fails'
 
 > **Evidence:** `[Source: rule/skills/review-mode-sections]`
 > **Related Behaviors:** `rule/skills/inline-skills` · `test/scripts/review-mode-sections`
-> **CoveredBy:** `.claude/hooks/tests/suites/review-mode-sections.test.cjs::TC-PDL-064` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/review-mode-sections.test.cjs:566` "[review-mode-sections] TC-PDL-064: a valid fixture injection template passes; each broken clause is named", `.claude/hooks/tests/suites/review-mode-sections.test.cjs:600` "[review-mode-sections] TC-PDL-064: the generated injection template equals canonical and both spawn steps copy it WHOLESALE" (written in P40, never executed; not run at the final gate)
+> **CoveredBy:** `.claude/hooks/tests/suites/protocol-delivery.test.cjs::TC-PDL-064`, `.claude/hooks/tests/suites/review-mode-sections.test.cjs::TC-PDL-064` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/review-mode-sections.test.cjs:566` "[review-mode-sections] TC-PDL-064: a valid fixture injection template passes; each broken clause is named", `.claude/hooks/tests/suites/review-mode-sections.test.cjs:600` "[review-mode-sections] TC-PDL-064: the generated injection template equals canonical and both spawn steps copy it WHOLESALE" (written in P40, never executed; not run at the final gate)
 
 ---
 
@@ -5262,7 +5264,7 @@ boundaryCounterCase: 'growth past the distance → delivered again (TC-PDL-088)'
 
 ---
 
-#### TC-PDL-088: Growth of 100,000 tokens re-delivers the bundle and one byte less does not [P1]
+#### TC-PDL-088: Growth of 150,000 tokens re-delivers the bundle and one byte less does not [P1]
 
 **Objective:** Prove the re-delivery distance is exactly the token figure converted by the measured bytes per token.
 
@@ -5314,7 +5316,7 @@ boundaryCounterCase: 'one byte below the distance → nothing'
 
 > **Evidence:** `[Source: rule/hooks/protocol-universal-bundle]`
 > **Related Behaviors:** `operation/hooks/universal-delivery`
-> **CoveredBy:** `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs::TC-PDL-088` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs` "TC-PDL-088 growth of 100,000 tokens re-delivers the bundle and one byte less does not"
+> **CoveredBy:** `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs::TC-PDL-088` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs` "TC-PDL-088 growth of 150,000 tokens re-delivers the bundle and one byte less does not"
 
 ---
 
@@ -5701,7 +5703,7 @@ boundaryCounterCase: 'an age-based re-arm → absent'
 
 **Edge Cases:**
 
-- The figure is 100,000 tokens
+- The figure is 150,000 tokens
 
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
@@ -6005,7 +6007,7 @@ boundaryCounterCase: 'a session start of source resume → nothing'
 
 **Objective:** Prove a universal bin or the workflow route whose source file cannot be read writes exactly one notice line, ends normally, and leaves no delivery record, so the next opportunity delivers it once the file is readable.
 
-**Business Intent / Invariant Guarded:** A corrupt or missing shipped file must be visible to the user and must not silently consume the delivery: a recorded failed render would suppress the rules for the next 100,000 tokens although the assistant never received them (BR-PDL-18, BR-PDL-02).
+**Business Intent / Invariant Guarded:** A corrupt or missing shipped file must be visible to the user and must not silently consume the delivery: a recorded failed render would suppress the rules for the next 150,000 tokens although the assistant never received them (BR-PDL-18, BR-PDL-02).
 
 **Traces:** AC-PDL-09 / BR-PDL-18
 
@@ -6189,7 +6191,7 @@ boundaryCounterCase: 'a boundary beyond the window → delivered again (a real c
 ---
 #### TC-PDL-114: A delivery recorded before the conversation record existed still returns after the growth distance [P1]
 
-**Objective:** Prove that a delivery recorded with an unknown conversation size re-delivers exactly when the record has grown by the 100,000-token distance.
+**Objective:** Prove that a delivery recorded with an unknown conversation size re-delivers exactly when the record has grown by the 150,000-token distance.
 
 **Business Intent / Invariant Guarded:** A record written blind would otherwise never age by growth and the rules would lapse for the whole session (BR-PDL-18, BR-PDL-02).
 
@@ -6242,7 +6244,7 @@ boundaryCounterCase: 'a known size under the distance → the delivery stays pre
 
 > **Evidence:** `[Source: rule/hooks/protocol-universal-bundle]`
 > **Related Behaviors:** `operation/hooks/universal-delivery`
-> **CoveredBy:** `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs::TC-PDL-114` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs` "TC-PDL-114 a delivery recorded while the conversation record did not exist yet still re-delivers after 100,000 tokens of growth"
+> **CoveredBy:** `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs::TC-PDL-114` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs` "TC-PDL-114 a delivery recorded while the conversation record did not exist yet still re-delivers after 150,000 tokens of growth"
 
 ---
 ### Skill Overlay Reminder Tests
@@ -6473,7 +6475,7 @@ boundaryCounterCase: 'an unrelated read → nothing'
 
 ---
 
-#### TC-PDL-104: The reminder is deduplicated per skill and repeats only after 100,000 tokens of growth [P1]
+#### TC-PDL-104: The reminder is deduplicated per skill and repeats only after 150,000 tokens of growth [P1]
 
 **Objective:** Prove the per-skill reminder distance and that failed delivery never suppresses the next activation.
 
@@ -6529,7 +6531,7 @@ boundaryCounterCase: 'one byte below the distance → nothing'
 
 > **Evidence:** `[Source: rule/hooks/skill-overlay-reminder]`
 > **Related Behaviors:** `operation/hooks/skill-overlay-remind`
-> **CoveredBy:** `.claude/hooks/tests/suites/skill-overlay-remind.test.cjs::TC-PDL-104` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/skill-overlay-remind.test.cjs` "TC-PDL-104 the reminder is deduplicated per skill and repeats only after 100,000 tokens of growth"
+> **CoveredBy:** `.claude/hooks/tests/suites/skill-overlay-remind.test.cjs::TC-PDL-104` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/skill-overlay-remind.test.cjs` "TC-PDL-104 the reminder is deduplicated per skill and repeats only after 150,000 tokens of growth"
 
 ---
 

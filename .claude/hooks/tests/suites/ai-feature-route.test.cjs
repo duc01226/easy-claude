@@ -481,16 +481,16 @@ module.exports = {
             }
         },
         {
-            // INTENT: the directive is re-sent only when the conversation could have lost it — after a compaction, or ~100K tokens of growth —
+            // INTENT: the directive is re-sent only when the conversation could have lost it — after a compaction, or ~150K tokens of growth —
             // and never while it is still inside the window. The assertions are on what the hook OWNS: whether a directive is emitted.
             // Given a delivered directive and a transcript of the conversation
             // When transcript growth reaches the window (one byte below, then exactly at it), a Codex compaction line is appended, and a second match repeats
             // Then nothing is emitted inside the window or on a repeat, and a directive is emitted at the window edge and after a Codex compaction
-            name: '[ai-feature-route] TC-AIR-013 re-arm: silent inside the ~100K-token window and on a repeat, delivered at the window edge and after a Codex compaction marker',
+            name: '[ai-feature-route] TC-AIR-013 re-arm: silent inside the ~150K-token window and on a repeat, delivered at the window edge and after a Codex compaction marker',
             fn: async () => {
                 const { BYTES_PER_TOKEN } = require(path.join(HOOKS_DIR, 'lib', 'file-conventions.cjs'));
                 const windowBytes = hook.DEFAULT_REINJECT_TOKENS * BYTES_PER_TOKEN;
-                assertTrue(windowBytes === 2200000, `the window is 100000 tokens x 22 bytes, got ${windowBytes}`);
+                assertTrue(windowBytes === 3300000, `the window is 150000 tokens x 22 bytes, got ${windowBytes}`);
                 const dir = makeProject();
                 const store = path.join(dir, 'store');
                 const prompt = 'add a RAG pipeline with embeddings to the search service';

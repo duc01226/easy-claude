@@ -66,10 +66,25 @@ function ensureDirectory(root, relative) {
  * `limit` bounds the published bytes and the reads of the content being replaced; it is the record byte budget unless the caller owns another.
  */
 function publishBytes(root, relative, bytes, expectedHash, limit = LIMITS.recordBytes) {
+    if (path.posix.dirname(relative.replace(/\\/g, '/')) === '.') fail('UNSAFE_PATH', 'Canonical records need a configured owner directory');
+    return publish(root, relative, bytes, expectedHash, limit);
+}
+
+/**
+ * Replaces one existing file that sits directly in the checkout root, with the same atomic visibility. It exists for a
+ * project file a person placed there, never for a record: it creates nothing, so it needs the inspected content hash,
+ * and it takes a bare file name only.
+ */
+function replaceRootFile(root, name, bytes, expectedHash, limit = LIMITS.recordBytes) {
+    if (typeof name !== 'string' || /[\\/]/.test(name)) fail('UNSAFE_PATH', 'Expected the name of a file directly in the checkout root');
+    if (typeof expectedHash !== 'string') fail('UNSAFE_PATH', 'A file in the checkout root is only replaced against its inspected content, never created');
+    return publish(root, name, bytes, expectedHash, limit);
+}
+
+function publish(root, relative, bytes, expectedHash, limit) {
     if (!Buffer.isBuffer(bytes) || bytes.length > limit) fail('LIMIT_EXCEEDED', 'Output exceeds the record byte budget');
     const parent = path.posix.dirname(relative.replace(/\\/g, '/'));
-    if (parent === '.') fail('UNSAFE_PATH', 'Canonical records need a configured owner directory');
-    const directory = ensureDirectory(root, parent);
+    const directory = parent === '.' ? fs.realpathSync(root) : ensureDirectory(root, parent);
     const target = scopedPath(root, relative);
     let mode = 0o644;
     if (expectedHash !== null) {
@@ -117,4 +132,4 @@ function removeBytes(root, relative, expectedHash) {
     return { directoryFlushed };
 }
 
-module.exports = { fail, hash, scopedPath, readBytes, ensureDirectory, publishBytes, removeBytes };
+module.exports = { fail, hash, scopedPath, readBytes, ensureDirectory, publishBytes, replaceRootFile, removeBytes };

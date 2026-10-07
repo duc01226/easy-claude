@@ -36,8 +36,8 @@
 const path = require('node:path');
 
 const HOOK_NAME = 'skill-overlay-remind';
-/** Re-remind distance for one skill, in conversation tokens. The one named constant of this hook. */
-const OVERLAY_REINJECT_TOKENS = 100000;
+/** Refresh overlay discovery during long tasks; 150k limits repetition without removing the reminder. */
+const OVERLAY_REINJECT_TOKENS = 150000;
 /** Ledger record group of one skill's reminder. */
 const GROUP_PREFIX = 'skill-overlay-';
 /** The most skills one event can remind about (a second-host prompt may name several). */

@@ -133,7 +133,7 @@ Detect by intersecting the changed-file list with the project's frontend roots a
 
 ### R4.2 Load the project's design context
 
-Same discovery ladder as `pbi --mode=mockup` Step 3 / `feature-presentation` — do not invent a third one:
+Same discovery ladder as `work-item --mode=mockup` Step 3 / `feature-presentation` — do not invent a third one:
 
 Paths named below without a directory sit in the project-reference docs root — default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path.
 
@@ -151,7 +151,7 @@ Also read `configured styling reference` from that same project-reference docs r
 
 > **[BLOCKING] Understand the existing UI before you render anything** — canonical rule: `SYNC:existing-ui-research` (source of truth: `.claude/skills/shared/sync-inline-versions.md`). Inventory the existing related UI, map the connected flows in and out, reuse before you invent, and record what matched — so the render faithfully matches the current UI system rather than generic HTML. **Skip ONLY** when the release is backend-only (no UI) — state that explicitly.
 
-This is `pbi --mode=mockup` Step 3b applied to a release scope. Concretely, for each `NEW-UI` / `CHANGED-UI` / `BEHIND-UI` highlight:
+This is `work-item --mode=mockup` Step 3b applied to a release scope. Concretely, for each `NEW-UI` / `CHANGED-UI` / `BEHIND-UI` highlight:
 
 1. Read `frontend-patterns-reference.md` from the project-reference docs root (default `docs/project-reference/`; path from `docsRoots.projectReference.path` in `docs/project-config.json`) (first ~200 lines) — base component classes, form/table/dialog/navigation patterns.
 2. **Open the actual component/template files the diff touched** and 2–3 sibling components of the same tier. Copy their real markup structure and real class names — the mock-up must be a faithful reproduction of the project's UI, not a generic card grid.
@@ -275,9 +275,9 @@ Every claim in sections 3–8 carries an **evidence chip** — a small inline `c
 
 For every `NEW-UI` / `CHANGED-UI` / `BEHIND-UI` highlight, render a **faithful HTML reproduction of the real screen** inside the doc.
 
-> **[BLOCKING] The mock-up procedure is the `pbi --mode=mockup` protocol — do not invent a second one.** How a screen is reproduced is owned by `.claude/skills/pbi/references/mode-mockup.md`: its **Step 3** (load the design system — canonical doc + the per-app doc matched from `docs/project-config.json`), **Step 3b** (`[BLOCKING]` inventory the existing UI and map connected flows by reading the real shared/module component files), **Step 3c** (real domain entity fields, types, enum values), and its **Step 7 fidelity validation**. R4.2–R4.4 above ARE that contract applied to a release scope — they must never drift from it. Where the two ever read differently, **`pbi --mode=mockup` governs HOW a screen is reproduced; this file governs WHAT gets rendered** (which highlights, before→after pairing, per-highlight scope, and the release document's own chrome).
+> **[BLOCKING] The mock-up procedure is the `work-item --mode=mockup` protocol — do not invent a second one.** How a screen is reproduced is owned by `.claude/skills/work-item/references/mode-mockup.md`: its **Step 3** (load the design system — canonical doc + the per-app doc matched from `docs/project-config.json`), **Step 3b** (`[BLOCKING]` inventory the existing UI and map connected flows by reading the real shared/module component files), **Step 3c** (real domain entity fields, types, enum values), and its **Step 7 fidelity validation**. R4.2–R4.4 above ARE that contract applied to a release scope — they must never drift from it. Where the two ever read differently, **`work-item --mode=mockup` governs HOW a screen is reproduced; this file governs WHAT gets rendered** (which highlights, before→after pairing, per-highlight scope, and the release document's own chrome).
 
-**Deliberate scope difference — do not import the whole PBI skill.** `pbi --mode=mockup` builds a clickable multi-view prototype of an **unbuilt** PBI, with guided narration and scripted flows. A release mock-up reproduces a screen that has **already shipped**: static or lightly toggled is enough (rule 7 below), and the ▶ Play / ⏭ Next walkthrough machinery is not required. Borrow the fidelity contract, not the prototype machinery. Its `⚠ Simulated` banner does carry over, as the `⚠ Illustrative mock-up` label in rule 8.
+**Deliberate scope difference — do not import the whole task skill.** `work-item --mode=mockup` builds a clickable multi-view prototype of an **unbuilt** task, with guided narration and scripted flows. A release mock-up reproduces a screen that has **already shipped**: static or lightly toggled is enough (rule 7 below), and the ▶ Play / ⏭ Next walkthrough machinery is not required. Borrow the fidelity contract, not the prototype machinery. Its `⚠ Simulated` banner does carry over, as the `⚠ Illustrative mock-up` label in rule 8.
 
 **Fidelity rules — these are what separate a real release doc from a generic template:**
 
@@ -290,7 +290,7 @@ For every `NEW-UI` / `CHANGED-UI` / `BEHIND-UI` highlight, render a **faithful H
 7. **Static or lightly interactive is enough.** A release doc reports; it does not need a clickable prototype. Any interactivity is **simulated only** — canned state toggles, zero `fetch`, zero auth, zero persistence.
 8. **Label every render `⚠ Illustrative mock-up — not a live screenshot`.** A reader must never mistake a reconstruction for a screenshot of the running app. This label is mandatory and non-removable.
 9. **Isolate each render** so the doc's own CSS and the reproduced app CSS cannot bleed into each other — scope the mock-up styles under a wrapper class, or embed via `<iframe srcdoc="…">`. When using `srcdoc`, apply the entity-escaping rule from `.claude/skills/feature-presentation/references/deck-template.md` §3 (`&`-first, escape once, unconditionally).
-10. **Reuse, never regenerate.** If a `pbis/*-mockup.html` under the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in `docs/project-config.json` overrides) already exists for the shipped feature, embed it via `<iframe srcdoc>` instead of rebuilding the screen.
+10. **Reuse, never regenerate.** If a `tasks/*-mockup.html` under the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in `docs/project-config.json` overrides) already exists for the shipped feature, embed it via `<iframe srcdoc>` instead of rebuilding the screen.
 
 **Design gates bind here.** The mock-ups are a user-facing visual surface, so the `UI-1.1`–`UI-9.4` usability floor and the `DD-1`–`DD-8` distinctiveness gate both apply — with one precedence note specific to this skill: **the project's real design system WINS outright over distinctiveness.** The mock-up's job is to look exactly like the existing app; matching an established house style is the goal, never a `DD` finding. `DD` applies only to the *release document's own* chrome (its header, cards, typography, and layout), which should look like a considered document for THIS project — not the default report template any generator emits. Cite `.claude/docs/design-knowledge.md` for `DD`, `.claude/docs/design-review-checklist.md` for the review sweep.
 
@@ -363,7 +363,7 @@ Record: `Release accuracy: PASS | FAIL`.
 - [ ] Responsive at 1440px and 375px; no horizontal body scroll; wide blocks scroll in their own container
 - [ ] Contrast 4.5:1, one `h1`, ordered headings, visible focus ring, reduced-motion honoured
 - [ ] `NO-UI` release: `UI surface: none` stated and no empty/broken mock-up frame rendered
-- [ ] Mock-ups satisfy the `pbi --mode=mockup` fidelity contract (Steps 3 / 3b / 3c, Step 7) — a second, self-invented procedure was not used
+- [ ] Mock-ups satisfy the `work-item --mode=mockup` fidelity contract (Steps 3 / 3b / 3c, Step 7) — a second, self-invented procedure was not used
 
 Record: `Release fidelity: PASS | FAIL`.
 

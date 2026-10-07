@@ -9,7 +9,7 @@ disable-model-invocation: false
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -19,7 +19,7 @@ disable-model-invocation: false
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
-> **[BLOCKING]** Run phases in order; update task tracking before and after each phase.
+> **[BLOCKING]** Run phases in order; update todo tracking before and after each phase.
 > **[BLOCKING]** Every completed or skipped phase needs concise evidence or a reason.
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:END -->
@@ -57,14 +57,14 @@ disable-model-invocation: false
 
 Find the active owning artifact/scope brief from `$ARGUMENTS`, `## Plan Context`, or the explicit milestone in the product-roadmap artifact (default `docs/product-roadmap.md`; `docsRoots.productRoadmap.path` in `docs/project-config.json` overrides). Classify applicability first, then confirm:
 
-- for embedded large-idea work, the parent PBI/spec has a complete `large_idea_decomposition` block, exactly one stable slice is selected, and its `outcome_slices`, dependencies, non-goals, risks/evidence, and deferred owners are readable;
+- for embedded large-idea work, the parent task/spec has a complete `large_idea_decomposition` block, exactly one stable slice is selected, and its `outcome_slices`, dependencies, non-goals, risks/evidence, and deferred owners are readable;
 - for explicit-roadmap work, the roadmap exists and is approved and exactly one milestone is selected;
 - for a framework/library change, the technical scope brief names affected carriers, operational risks, evidence owners, and commands;
 - for an isolated change, the scope brief contains the shared contract's explicit `Roadmap Applicability: EXEMPT` block with reason and accepting owner, and no roadmap or milestone is fabricated;
 - the owning artifact/scope brief states actor or technical owner, outcome, in-scope behavior, non-goals, terms, source of truth, and evidence;
 - scenario output has a concrete plan directory. Derive `plan-id` from the owning scope's parent directory; if a required scope artifact is not under `{plan-id}/` in the plans root (default `plans/`; `docsRoots.plans.path` in `docs/project-config.json` overrides), stop `BLOCKED` and route to the explicit roadmap writer only for the explicit roadmap branch, or to the owning decomposition/framework/EXEMPT scope step otherwise.
 
-If any applicable input is missing, stop `BLOCKED` and route to its owning branch. Do not infer a slice, milestone, technical outcome, or boundary from a screen, PBI title, or plan filename. If an embedded scope has no replay/state/ownership/recovery/evidence risk that needs adversarial analysis, record the conditional skip reason and do not create a standalone roadmap or scenario artifact.
+If any applicable input is missing, stop `BLOCKED` and route to its owning branch. Do not infer a slice, milestone, technical outcome, or boundary from a screen, task title, or plan filename. If an embedded scope has no replay/state/ownership/recovery/evidence risk that needs adversarial analysis, record the conditional skip reason and do not create a standalone roadmap or scenario artifact.
 
 ## Phase 1: Reconstruct the User Journey
 
@@ -72,7 +72,7 @@ Write the selected slice/milestone/technical outcome as an observable sequence:
 
 `actor intent → input/action → business state change → user-visible outcome → persisted/reopened truth → later action`
 
-Name states, transitions, ownership boundaries, and non-goals. Highlight terms that could be interpreted more than one way. Use existing Feature Specs, PBIs, or code only as evidence for an existing product; the scope brief remains the product boundary.
+Name states, transitions, ownership boundaries, and non-goals. Highlight terms that could be interpreted more than one way. Use existing Feature Specs, tasks, or code only as evidence for an existing product; the scope brief remains the product boundary.
 
 ## Phase 2: Generate Adversarial Scenarios
 
@@ -99,7 +99,7 @@ A scenario may be deferred only when the owning decomposition block or explicit 
 
 ## Phase 4: Write the Scenario Artifact
 
-Write `{plan-id}/scenario-analysis.md` under the plans root (default `plans/`; `docsRoots.plans.path` in `docs/project-config.json` overrides) incrementally using `references/scenario-template.md`, beside the resolved scope handoff when the selected branch requires a scenario artifact. Cite the owning decomposition/spec/PBI, explicit roadmap/scope brief, or framework technical brief and any existing spec/code evidence. Keep implementation choices out; record the expected behavior or operational proof that the future plan must protect.
+Write `{plan-id}/scenario-analysis.md` under the plans root (default `plans/`; `docsRoots.plans.path` in `docs/project-config.json` overrides) incrementally using `references/scenario-template.md`, beside the resolved scope handoff when the selected branch requires a scenario artifact. Cite the owning decomposition/spec/task, explicit roadmap/scope brief, or framework technical brief and any existing spec/code evidence. Keep implementation choices out; record the expected behavior or operational proof that the future plan must protect.
 
 ## Phase 5: Scenario Gate
 

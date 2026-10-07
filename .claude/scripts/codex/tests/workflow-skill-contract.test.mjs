@@ -48,7 +48,7 @@ test('all mode calls preserve occurrence order, flags, roles and bootstrap befor
   const content = updateWorkflowSkillContract(source, renderWorkflowSkillContract(workflowId, manifests(document)));
   assert.deepEqual(check(document, content), []);
   assert.ok(content.indexOf('Todo FIRST') < content.indexOf('## Quality'));
-  assert.match(content, /create ALL selected occurrence tasks before triage, analysis or step execution/);
+  assert.match(content, /create one todo for EVERY selected occurrence before triage, analysis or step execution/);
   assert.match(content, /review --mode=code`\]\(\.\.\/review\/SKILL\.md\) \(gate\)/);
   assert.match(content, /review --mode=ui`\]\(\.\.\/review\/SKILL\.md\) \(optional; conditional\)/);
   assert.ok(content.indexOf('/review --mode=code') < content.indexOf('/review --mode=ui'));

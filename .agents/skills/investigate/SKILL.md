@@ -8,7 +8,7 @@ description: '[Fix & Debug] Use when a workflow step or the user asks for read-o
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -20,7 +20,7 @@ description: '[Fix & Debug] Use when a workflow step or the user asks for read-o
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 > **[BLOCKING]** Execute phases in declared order. NEVER skip, reorder, or merge without explicit user approval.
-> **[BLOCKING]** Before each phase or skill call, update task tracking; mark `in_progress` at start and `completed` after evidence.
+> **[BLOCKING]** Before each phase or skill call, update todo tracking; mark `in_progress` at start and `completed` after evidence.
 > **[BLOCKING]** Record evidence for each completed/skipped phase; if task tools are unavailable, maintain an equivalent tracker.
 > **[BLOCKING]** Investigation stays READ-ONLY; report findings, never patch source.
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:END -->
@@ -305,7 +305,7 @@ Find working reference → compare implementations → identify differences → 
 
 ---
 
-> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting, including each file read; this prevents long-file context loss. For simple tasks, AI MUST ATTENTION ask the user whether to skip.
+> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting, including each file read; this prevents long-file context loss. For simple tasks, AI MUST ATTENTION ask the user whether to skip.
 
 - `domain-entities-reference.md` in the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path) — domain entity catalog, relationships, cross-service sync (when task involves business entities/models).
 
@@ -411,7 +411,7 @@ Find working reference → compare implementations → identify differences → 
 **MANDATORY IMPORTANT MUST ATTENTION** bug/behavior-changing scope → trace end-to-start, enumerate feeder paths, build the hypothesis matrix, identify the owning layer, and prove forward convergence before any fix recommendation.
 
 
-**[TASK-PLANNING]** Before acting, analyze scope and break work into small tasks/subtasks with task tracking.
+**[TASK-PLANNING]** Before acting, analyze scope and break work into small tasks/subtasks with todo tracking.
 
 **IMPORTANT MUST ATTENTION** READ-ONLY always; cite `file:line` or mark "inferred".
 **IMPORTANT MUST ATTENTION** classify and run the ordered phases; complete the required validation gates before concluding.

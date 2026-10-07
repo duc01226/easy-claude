@@ -137,7 +137,7 @@ test('the work-tracking reminder routes writes to task-track and offers only rea
     assert.match(reminder, /Update → `[/$]task-track --mode=maintain`.*`[/$]task-track --mode=lifecycle`/);
     assert.match(reminder, /Create → `[/$]task-track --mode=maintain` \(operation `create`; a new item starts as `draft`\)/);
     assert.match(reminder, /concerns --root CHECKOUT/);
-    assert.match(reminder, /NEVER match by title resemblance or search the backlog/);
+    assert.match(reminder, /NEVER match by title resemblance or search the planned work/);
     assert.match(reminder, /a path match never selects every returned item/);
     assert.match(reminder, /"Implemented" is not a tracker state/);
     assert.match(reminder, /closest to "implemented and in a pull request" is `verifying`/);

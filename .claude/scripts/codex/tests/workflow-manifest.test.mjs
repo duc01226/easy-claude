@@ -254,12 +254,12 @@ test("variants: shipped research/spec/integration-test workflows resolve every c
       course: ["web-research --chain=deep-dive", "course-builder", "knowledge-review", "workflow-end", "watzup"]
     },
     "workflow-code-to-spec": {
-      "init-full": ["investigate", "plan", "plan --mode=validate", "spec [mode=init]", "spec [mode=tests]", "pbi --mode=review --type=spec-tests", "pbi --mode=review", "docs-manager --mode=update", "workflow-end", "watzup"],
-      update: ["workflow-review-changes", "spec [mode=update]", "spec [mode=tests]", "pbi --mode=review --type=spec-tests", "spec [mode=sync]", "docs-manager --mode=update", "workflow-end", "watzup"],
-      audit: ["investigate", "spec [mode=audit]", "pbi --mode=review", "docs-manager --mode=update", "workflow-end", "watzup"]
+      "init-full": ["investigate", "plan", "plan --mode=validate", "spec [mode=init]", "spec [mode=tests]", "work-item --mode=review --type=spec-tests", "work-item --mode=review", "docs-manager --mode=update", "workflow-end", "watzup"],
+      update: ["workflow-review-changes", "spec [mode=update]", "spec [mode=tests]", "work-item --mode=review --type=spec-tests", "spec [mode=sync]", "docs-manager --mode=update", "workflow-end", "watzup"],
+      audit: ["investigate", "spec [mode=audit]", "work-item --mode=review", "docs-manager --mode=update", "workflow-end", "watzup"]
     },
     "workflow-integration-test": {
-      write: ["investigate", "spec [mode=tests]", "pbi --mode=review --type=spec-tests", "integration-test", "integration-test --mode=review", "integration-test --mode=verify", "spec [mode=sync]", "docs-manager --mode=update", "workflow-end", "watzup"],
+      write: ["investigate", "spec [mode=tests]", "work-item --mode=review --type=spec-tests", "integration-test", "integration-test --mode=review", "integration-test --mode=verify", "spec [mode=sync]", "docs-manager --mode=update", "workflow-end", "watzup"],
       green: ["investigate", "integration-test --mode=verify --fix-loop", "spec [mode=sync]", "docs-manager --mode=update", "workflow-end", "watzup"]
     }
   };

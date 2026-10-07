@@ -5,7 +5,7 @@
  *
  * The `universal` group of `.claude/skills/shared/protocol-groups.json` is the framework rules every
  * task follows. No file carries it: `protocol-inject-universal-<n>.cjs` (one hook process per bin)
- * delivers it on the session's first prompt, again after about 100,000 tokens of conversation growth
+ * delivers it on the session's first prompt, again after about 150,000 tokens of conversation growth
  * or a compaction, and at every sub-agent start.
  *
  * Guards: each bin is one message of at most 9,500 characters that covers the bundle exactly once
@@ -254,12 +254,12 @@ const tests = [
         })
     },
     {
-        name: 'TC-PDL-088 growth of 100,000 tokens re-delivers the bundle and one byte less does not',
+        name: 'TC-PDL-088 growth of 150,000 tokens re-delivers the bundle and one byte less does not',
         fn: () => withFixture(async fx => {
             // Given the bundle delivered with the conversation record at its starting size
             assertAllDelivered(await runAllBins(fx, prompt(fx)), 'first prompt');
             const start = fs.statSync(fx.transcript).size;
-            // When the record grows to one byte under the window (100,000 tokens x the measured bytes per token)
+            // When the record grows to one byte under the window (150,000 tokens x the measured bytes per token)
             fx.append(`${'y'.repeat(DISTANCE - 2)}\n`);
             assert.equal(fs.statSync(fx.transcript).size - start, DISTANCE - 1);
             // Then the next prompt delivers nothing
@@ -268,8 +268,8 @@ const tests = [
             fx.append('z');
             assertAllDelivered(await runAllBins(fx, prompt(fx)), 'at the window');
             assertAllSilent(await runAllBins(fx, prompt(fx)), 'right after the re-delivery');
-            // And the window is the named 100,000-token constant
-            assert.equal(universalLib.UNIVERSAL_REINJECT_TOKENS, 100000);
+            // And the window is the named 150,000-token constant
+            assert.equal(universalLib.UNIVERSAL_REINJECT_TOKENS, 150000);
         })
     },
     {
@@ -439,11 +439,11 @@ const tests = [
         name: 'TC-PDL-095 the re-delivery distance is the named token constant converted by the measured bytes per token, with no age re-arm',
         fn: () => {
             // Given the lib constants
-            assert.equal(universalLib.UNIVERSAL_REINJECT_TOKENS, 100000);
+            assert.equal(universalLib.UNIVERSAL_REINJECT_TOKENS, 150000);
             // When the ledger settings are built
             const settings = universalLib.getLedgerSettings();
             // Then the byte window is tokens x bytes-per-token, time alone never re-arms, and both hosts' compaction marks count
-            assert.equal(settings.reinjectAfterBytes, 100000 * BYTES_PER_TOKEN);
+            assert.equal(settings.reinjectAfterBytes, 150000 * BYTES_PER_TOKEN);
             assert.equal(settings.reinjectAfterMinutes, null);
             assert.equal(settings.blindReinjectAfterMinutes, null);
             assert.ok(settings.compactionMarkers.length >= 1);
@@ -611,7 +611,7 @@ const tests = [
         })
     },
     {
-        name: 'TC-PDL-114 a delivery recorded while the conversation record did not exist yet still re-delivers after 100,000 tokens of growth',
+        name: 'TC-PDL-114 a delivery recorded while the conversation record did not exist yet still re-delivers after 150,000 tokens of growth',
         fn: () => withFixture(async fx => {
             // Given the bundle delivered for a conversation whose record file is not on disk yet
             const later = path.join(fx.temp, 'later.jsonl');

@@ -1,17 +1,17 @@
 # Template Validation Checklist
 
-Use this checklist to validate idea and PBI templates before committing. The work-record fields (`id`, `title`, `intent`, `status`, `priority`, `assigned_to`, `tracking`) follow `.claude/skills/task-track/references/integration-guide.md`, section "Records another skill authors"; read it when a check below and the tracker disagree.
+Use this checklist to validate initiative and task templates before committing. The work-record fields (`id`, `title`, `intent`, `status`, `priority`, `assigned_to`, `tracking`) follow `.claude/skills/task-track/references/integration-guide.md`, section "Records another skill authors"; read it when a check below and the tracker disagree.
 
-## Idea Template Validation
+## Initiative Template Validation
 
 ### Frontmatter
 
-- [ ] `id` follows IDEA-YYMMDD-NNN format and is unused in every record folder
+- [ ] `id` follows INITIATIVE-YYMMDD-NNN format and is unused in every record folder
 - [ ] `intent` states the outcome in one sentence
-- [ ] `status` is a tracker state (`draft` for a new idea); the review decision sits in `review_outcome` (unset | under_review | approved | rejected)
+- [ ] `status` is a tracker state (`draft` for a new initiative); the review decision sits in `review_outcome` (unset | under_review | approved | rejected)
 - [ ] `priority_label` is valid (P1 | P2 | P3 | unset)
 - [ ] `tags` are lowercase and hyphenated
-- [ ] `template_version` is "2.1"
+- [ ] `template_version` is "2.2"
 
 ### Project Domain (if applicable)
 
@@ -27,22 +27,22 @@ Use this checklist to validate idea and PBI templates before committing. The wor
 - [ ] "Domain Context" section populated (if domain feature)
 - [ ] Business rules referenced (if applicable)
 
-## PBI Template Validation
+## Task Template Validation
 
 ### Frontmatter
 
-- [ ] `id` follows PBI-YYMMDD-NNN format and is unused in every record folder
+- [ ] `id` follows TASK-YYMMDD-NNN format and is unused in every record folder
 - [ ] `title` is clear and concise
 - [ ] `intent` states the releasable outcome in one sentence
-- [ ] `status` is a tracker state (`draft` for a new PBI); no `assigned_to` written by hand
+- [ ] `status` is a tracker state (`draft` for a new task); no `assigned_to` written by hand
 - [ ] `priority` is an integer 1-999 or absent; the label sits in `priority_label`
 - [ ] `effort` uses valid values (XS | S | M | L | XL)
-- [ ] `idea_reference` links to valid idea (if from refinement)
-- [ ] `template_version` is "2.2"
+- [ ] `initiative_reference` links to valid initiative (if from refinement). An existing task may carry the earlier key `idea_reference`; it is read as the same link, and migration does not rewrite authored keys.
+- [ ] `template_version` is "2.3"
 
 ### Project Domain (if applicable)
 
-- [ ] `module` matches idea template (if from refinement)
+- [ ] `module` matches initiative template (if from refinement)
 - [ ] `primary_feature_doc` points to existing file
 - [ ] Related business rules section populated
 - [ ] Existing BRs reference valid BR-{MOD}-XXX rules from docs
@@ -71,14 +71,14 @@ Use this checklist to validate idea and PBI templates before committing. The wor
 The commands below assume the DEFAULT team-artifacts root; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path, and the commands take that root instead.
 
 ```bash
-# Check idea frontmatter format
-grep -A 25 "^---$" team-artifacts/ideas/IDEA-*.md | head -n 27
+# Check initiative frontmatter format
+grep -A 25 "^---$" team-artifacts/initiatives/INITIATIVE-*.md | head -n 27
 
-# Check PBI frontmatter format
-grep -A 30 "^---$" team-artifacts/pbis/PBI-*.md | head -n 32
+# Check Task frontmatter format
+grep -A 30 "^---$" team-artifacts/tasks/TASK-*.md | head -n 32
 
 # List all modules referenced
-grep -h "^module:" team-artifacts/ideas/*.md team-artifacts/pbis/*.md 2>/dev/null | sort | uniq
+grep -h "^module:" team-artifacts/initiatives/*.md team-artifacts/tasks/*.md 2>/dev/null | sort | uniq
 
 # Validate feature doc paths exist
 for path in $(grep -h "feature_doc_path:" team-artifacts/**/*.md 2>/dev/null | cut -d'"' -f2); do
@@ -93,7 +93,7 @@ grep -rh "BR-[A-Z]\{3\}-[0-9]\{3\}" team-artifacts/ 2>/dev/null | sort | uniq
 
 ### Issue: Module not detected
 
-**Fix:** Add keywords matching module names in the business spec root — default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path — to the idea description
+**Fix:** Add keywords matching module names in the business spec root — default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path — to the initiative description
 
 ### Issue: related_features list empty
 

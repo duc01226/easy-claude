@@ -9,7 +9,7 @@ disable-model-invocation: false
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -22,17 +22,17 @@ disable-model-invocation: false
 
 Read [the registry](../../../.claude/workflows.json) → `workflows.workflow-refactor` together with this skill. Call [`$start-workflow workflow-refactor`](../start-workflow/SKILL.md) to resolve the selected mode, pre-actions and fingerprint.
 
-**Todo FIRST:** create ALL selected occurrence tasks before triage, analysis or step execution, including conditional/optional tasks; preserve occurrence IDs, roles and barrier groups. Use native task tools or an equivalent persistent ledger. Then mark the first task `in_progress`; attach evidence before `completed`.
+**Todo FIRST:** create one todo for EVERY selected occurrence before triage, analysis or step execution, including conditional/optional ones; preserve occurrence IDs, roles and barrier groups. Use native todo tools or an equivalent persistent ledger. Then mark the first todo `in_progress`; attach evidence before `completed`.
 Mode selection and registry loading prepare tracking; any 'first action' below means the first substantive action after this bootstrap.
 
 **Call each step skill:** read its linked SKILL.md and execute its protocol through the active host with the registry args. Reading or naming a skill alone is not execution. Required gates and core/optional flex follow the linked start-workflow Step Execution Protocol; keep this skill's quality gates, loops and evidence requirements.
 
-**Conditions:** load each occurrence's registry `applicability.when` and `skipReason` verbatim, and record its run/skip evidence through the linked start-workflow protocol. Do not silently omit a task or turn a conditional skill into an unconditional call. Declared parallel groups retain their all-return barrier.
+**Conditions:** load each occurrence's registry `applicability.when` and `skipReason` verbatim, and record its run/skip evidence through the linked start-workflow protocol. Do not silently omit a todo or turn a conditional skill into an unconditional call. Declared parallel groups retain their all-return barrier.
 
 Explicit step-skill calls by mode (registry order; roles and conditions remain owned by the registry):
 
-- Mode `default`: [`$investigate`](../investigate/SKILL.md) (core) → [`$test`](../test/SKILL.md) (gate) → [`$plan`](../plan/SKILL.md) (core) → [`$plan --mode=validate`](../plan/SKILL.md) (optional; conditional) → [`$integration-test`](../integration-test/SKILL.md) (optional; conditional) → [`$plan --mode=execute`](../plan/SKILL.md) (core) → [`$spec [mode=tests]`](../spec/SKILL.md) (optional; conditional) → [`$pbi --mode=review --type=spec-tests`](../pbi/SKILL.md) (optional; conditional) → [`$spec [mode=sync]`](../spec/SKILL.md) (optional; conditional) → [`$workflow-review-changes --tests=defer`](../workflow-review-changes/SKILL.md) (gate) → [`$integration-test --mode=verify`](../integration-test/SKILL.md) (optional; conditional) → [`$test`](../test/SKILL.md) (gate) → [`$workflow-end`](../workflow-end/SKILL.md) (gate) → [`$watzup`](../watzup/SKILL.md) (core)
-<!-- workflow-mode:default fingerprint:9ec8d52675019441cf412fca709dd1b0193a97a3590b4fe825f0c98007543307 -->
+- Mode `default`: [`$investigate`](../investigate/SKILL.md) (core) → [`$test`](../test/SKILL.md) (gate) → [`$plan`](../plan/SKILL.md) (core) → [`$plan --mode=validate`](../plan/SKILL.md) (optional; conditional) → [`$integration-test`](../integration-test/SKILL.md) (optional; conditional) → [`$plan --mode=execute`](../plan/SKILL.md) (core) → [`$spec [mode=tests]`](../spec/SKILL.md) (optional; conditional) → [`$work-item --mode=review --type=spec-tests`](../work-item/SKILL.md) (optional; conditional) → [`$spec [mode=sync]`](../spec/SKILL.md) (optional; conditional) → [`$workflow-review-changes --tests=defer`](../workflow-review-changes/SKILL.md) (gate) → [`$integration-test --mode=verify`](../integration-test/SKILL.md) (optional; conditional) → [`$test`](../test/SKILL.md) (gate) → [`$workflow-end`](../workflow-end/SKILL.md) (gate) → [`$watzup`](../watzup/SKILL.md) (core)
+<!-- workflow-mode:default fingerprint:a9676a0bae03aaf2d217cc9b2bb53c4f562c236382c3ac77659ebe2e32e97297 -->
 
 Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs --write` after registry edits; [`$sync-codex`](../sync-codex/SKILL.md) refreshes it before mirroring.
 <!-- WORKFLOW-CALLS:END -->
@@ -89,7 +89,7 @@ Specs normally do not change in a refactor; the spec steps below run only when c
 | `$integration-test` | optional | touched behavior has no test that would fail if it changed | characterization tests |
 | `$plan --mode=execute` | core | always in practice — small verifiable increments | the change |
 | `$spec [mode=tests]` | optional | TCs reference moved code/tests, or an invariant lacks a TC | TCs match |
-| `$pbi --mode=review --type=spec-tests` | optional | TC content changed beyond evidence paths | TC quality |
+| `$work-item --mode=review --type=spec-tests` | optional | TC content changed beyond evidence paths | TC quality |
 | `$spec [mode=sync]` | optional | specs/TCs reference moved or renamed code/test paths | specs match |
 | `$workflow-review-changes --tests=defer` | gate | always — INLINE in the main session | review converged |
 | `$integration-test --mode=verify` | optional | integration tests written or changed in this run — after the review | integration tests green |
@@ -129,7 +129,7 @@ Activate the `workflow-refactor` workflow: run `$start-workflow workflow-refacto
 
 Recommended default order (roles in the table above):
 
-**IMPORTANT MANDATORY Steps:** $investigate -> $test -> $plan -> $plan --mode=validate -> $integration-test -> $plan --mode=execute -> $spec [mode=tests] -> $pbi --mode=review --type=spec-tests -> $spec [mode=sync] -> $workflow-review-changes --tests=defer -> $integration-test --mode=verify -> $test -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $investigate -> $test -> $plan -> $plan --mode=validate -> $integration-test -> $plan --mode=execute -> $spec [mode=tests] -> $work-item --mode=review --type=spec-tests -> $spec [mode=sync] -> $workflow-review-changes --tests=defer -> $integration-test --mode=verify -> $test -> $workflow-end -> $watzup
 
 <!-- PROTOCOL-GUIDES:START -->
 

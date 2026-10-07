@@ -1,15 +1,15 @@
 # AI-SDD Mandate Gate (M1-M5 and M7) — shared criteria
 
-Single owner of the six per-artifact mandate checks that authoring and review skills apply to a PBI, story, design spec or test spec. Definitions, the M6 rule and carrier lists live in `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M7)"; this file holds the operational criteria only. Each consumer skill keeps its own role framing (verdict vocabulary, output template) and reads this file for the criteria.
+Single owner of the six per-artifact mandate checks that authoring and review skills apply to a task, story, design spec or test spec. Definitions, the M6 rule and carrier lists live in `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M7)"; this file holds the operational criteria only. Each consumer skill keeps its own role framing (verdict vocabulary, output template) and reads this file for the criteria.
 
 ## Consumers and framing
 
 | Consumer | Role | Failure result |
 | --- | --- | --- |
-| `pbi --mode=review` | reviewer of any artifact type | `NEEDS WORK` + mandate ID + section/line |
-| `pbi --mode=challenge` | cross-person challenge of a PBI | AI Verdict `REQUEST_REVISION` + challenge prompt naming the mandate |
-| `pbi --mode=dor` | Definition-of-Ready gate | `FAIL` + Blocking Item naming the mandate |
-| `pbi --mode=refine`, `pbi --mode=story` | author of the PBI / stories | rework before emitting; never write a violating artifact |
+| `work-item --mode=review` | reviewer of any artifact type | `NEEDS WORK` + mandate ID + section/line |
+| `work-item --mode=challenge` | cross-person challenge of a task | AI Verdict `REQUEST_REVISION` + challenge prompt naming the mandate |
+| `work-item --mode=dor` | Readiness-check gate     | `FAIL` + Blocking Item naming the mandate |
+| `work-item --mode=refine`, `work-item --mode=story` | author of the task / stories | rework before emitting; never write a violating artifact |
 
 M6 binds the reviewing consumer, not the artifact: a reviewer that passes an M1-M5 or M7 violation is itself defective. The artifact-facing set is M1-M5 **and** M7 (never "M1-M6").
 
@@ -28,31 +28,31 @@ Source identifiers are correct inside the selected profile's declared evidence c
 
 > **M1 vs M7 — the distinction this gate exists for.** M1 governs **vocabulary**; M7 governs **subject matter**. A technical case written in impeccably tech-free prose satisfies M1 while violating M7 — that gap is the most common way business specs rot, one tech-free-sounding bugfix case at a time. A clean M1 pass is NEVER evidence of an M7 pass; run both. Conversely do not fail a case merely for a technical-sounding noun: if a user or QC can demo the outcome it is business — M7 asks what the case is ABOUT, not which words it uses.
 
-## Authoring rules (producers: `pbi --mode=refine`, `pbi --mode=story`)
+## Authoring rules (producers: `work-item --mode=refine`, `work-item --mode=story`)
 
 - Keep a tech-agnostic **Business Intent** narrative (description, business value, acceptance criteria) free of framework/product/language/design-pattern names and source identifiers; optional implementation hints go in a clearly separated Implementation Notes / Technical Notes block, and source references only in evidence carriers.
 - Rework before emitting when ANY criterion above fails: tech-specific prose · source code in prose · missing logical ID or abstract-anchor evidence (or explicit `TBD (pre-implementation)` marker) · vague criteria · not implementable from the artifact alone · not demoable (TECHNICAL-ONLY belongs to the technical tree, not this artifact).
 
 ## Reusing an earlier verdict (`--reuse`)
 
-`pbi --mode=challenge` and `pbi --mode=dor` accept `--reuse=<pbi review report path>`; a workflow passes the symbolic `--reuse=pbi-review`, which resolves to the report written by that run's `pbi --mode=review --type=pbi` step (path recorded in the run report; unresolvable → treat as no `--reuse`).
+`work-item --mode=challenge` and `work-item --mode=dor` accept `--reuse=<task review report path>`; a workflow passes the symbolic `--reuse=task-review`, which resolves to the report written by that run's `work-item --mode=review --type=task` step (path recorded in the run report; unresolvable → treat as no `--reuse`).
 
 ### Artifact identity
 
-- The report header records `Artifact identity: {PBI path} · sha256:{hex digest}` — SHA-256 of the PBI file's raw bytes. A content hash is REQUIRED; size and mtime are NOT an identity (a same-size edit or a touched file defeats them) and never qualify a report for reuse.
-- Recompute the digest of the PBI under review now and compare it with the header's digest for THAT PBI path. When the report covers several PBIs, use only the section/path for this PBI; when more than one report matches the path, take the newest one for that path.
+- The report header records `Artifact identity: {task path} · sha256:{hex digest}` — SHA-256 of the task file's raw bytes. A content hash is REQUIRED; size and mtime are NOT an identity (a same-size edit or a touched file defeats them) and never qualify a report for reuse.
+- Recompute the digest of the task under review now and compare it with the header's digest for THAT task path. When the report covers several tasks, use only the section/path for this task; when more than one report matches the path, take the newest one for that path.
 - Any mismatch, missing or unreadable digest, missing path, or unresolvable report → reuse is OFF for the whole run: evaluate EVERY criterion and mandate.
 
 ### Coverage map (the ONLY reusable criteria)
 
 A consumer may satisfy a criterion from the report only when it appears in this map; everything not listed is NEVER reusable and is evaluated in full by the consumer on every run, even when the identity matches. A row is listed only when the consumer's criterion text is the same criterion as the report's.
 
-| `pbi --mode=review --type=pbi` report row | `pbi --mode=dor` criterion it may satisfy | `pbi --mode=challenge` criterion it may satisfy |
+| `work-item --mode=review --type=task` report row | `work-item --mode=dor` criterion it may satisfy | `work-item --mode=challenge` criterion it may satisfy |
 | --- | --- | --- |
 | M1, M2, M3, M4, M5, M7 verdicts (shared criteria above) | the M1-M7 compliance gate | the M1-M7 compliance gate |
 | Row 1 — releasable outcome and full flow | Required row 3 (releasable outcome) and row 4 (full-flow surface) | Step 5 releasable outcome and UI full-flow surface checks |
 
-Consumer-owned, never reusable: `pbi --mode=dor` — user-story template, AC format (GIVEN/WHEN/THEN, minimum 3 scenarios, 1 authorization scenario), UI design ready, story points and estimation frontmatter, AI pre-review presence, dependency table Type/Status columns; `pbi --mode=challenge` — module confirm, feasibility and estimate alignment, the vagueness-token check (`TBD`, `etc.`, `various`, `appropriate`), AC coverage (happy/edge/error/authorization), dependencies, seed/migration/performance/cross-service checks, challenge prompts and the human decision. Report rows 2-9 (problem statement, AC testability, scope, dependencies, value, priority, AC-set completeness, sign-off readiness) are review-only and never stand in for a consumer criterion.
+Consumer-owned, never reusable: `work-item --mode=dor` — user-story template, AC format (GIVEN/WHEN/THEN, minimum 3 scenarios, 1 authorization scenario), UI design ready, effort points and estimation frontmatter, AI pre-review presence, dependency table Type/Status columns; `work-item --mode=challenge` — module confirm, feasibility and estimate alignment, the vagueness-token check (`TBD`, `etc.`, `various`, `appropriate`), AC coverage (happy/edge/error/authorization), dependencies, seed/migration/performance/cross-service checks, challenge prompts and the human decision. Report rows 2-9 (problem statement, AC testability, scope, dependencies, value, priority, AC-set completeness, sign-off readiness) are review-only and never stand in for a consumer criterion.
 
 ### Rules
 

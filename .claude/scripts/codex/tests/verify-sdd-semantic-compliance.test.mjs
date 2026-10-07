@@ -47,16 +47,16 @@ const roadmapSignals = (overrides = {}) => ({
   multipleIndependentOutcomes: false,
   ambiguousOrResearchHeavy: false,
   releaseScopeDecomposition: false,
-  oversizedPbiThatMustSplit: false,
+  oversizedTaskThatMustSplit: false,
   ...overrides,
 });
 
 const completeRoadmapDecomposition = () => ({
-  outcome_slices: [{ id: "SLICE-001", outcome: "Actor completes the outcome", releasable_when: "Visible result", owning_artifact: "PBI-001" }],
+  outcome_slices: [{ id: "SLICE-001", outcome: "Actor completes the outcome", releasable_when: "Visible result", owning_artifact: "TASK-001" }],
   dependencies_order: [{ before: "SLICE-001", after: "N/A", reason: "No predecessor" }],
-  non_goals: [{ statement: "Later capability is deferred", owner: "PBI-001" }],
+  non_goals: [{ statement: "Later capability is deferred", owner: "TASK-001" }],
   risks_evidence: [{ risk: "Outcome may be unclear", evidence_needed: "Owner observes result", status: "open", owner: "PO" }],
-  deferred_work_owner: [{ item: "Later capability", owner: "PO", follow_up_artifact: "PBI-002", target_slice: "N/A" }],
+  deferred_work_owner: [{ item: "Later capability", owner: "PO", follow_up_artifact: "TASK-002", target_slice: "N/A" }],
 });
 
 const cleanRoadmapRoutes = () =>
@@ -186,7 +186,7 @@ test("roadmap surface coverage failure is hard and does not silently disable the
 
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "roadmap-boundary-surface-"));
   try {
-    for (const routeId of ["workflow-feature", "workflow-idea-to-pbi"]) {
+    for (const routeId of ["workflow-feature", "workflow-initiative-to-task"]) {
       const routeFile = path.join(tempRoot, ".claude", "skills", routeId, "SKILL.md");
       await fs.mkdir(path.dirname(routeFile), { recursive: true });
       await fs.writeFile(routeFile, "isLargeIdea large_idea_decomposition", "utf8");
@@ -667,12 +667,12 @@ test("runChecks passes positive SDD fixture", async () => {
         "Code Bug vs Spec Bug Spec Bug Code Bug performance-review SLA functional no-regression docs/project-config.json",
       ],
       [
-        ".claude/skills/workflow-idea-to-pbi/SKILL.md",
-        "Feature doc Section 8 TC IDs docs-manager --mode=update docs/project-config.json team-artifacts/ideas team-artifacts/pbis tmp/reports/docs-update",
+        ".claude/skills/workflow-initiative-to-task/SKILL.md",
+        "Feature doc Section 8 TC IDs docs-manager --mode=update docs/project-config.json team-artifacts/initiatives team-artifacts/tasks tmp/reports/docs-update",
       ],
       [
         ".claude/skills/docs-manager/references/mode-update.md",
-        "configured PBI/idea artifact roots detection/delegation docs/project-config.json",
+        "configured task/initiative artifact roots detection/delegation docs/project-config.json",
       ],
       [
         ".claude/skills/integration-test/SKILL.md",
@@ -719,12 +719,12 @@ test("runChecks passes positive SDD fixture", async () => {
         "Code Bug vs Spec Bug Spec Bug Code Bug shared/sdd-artifact-contract.md",
       ],
       [
-        ".agents/skills/workflow-idea-to-pbi/SKILL.md",
-        "Feature doc Section 8 TC IDs docs-manager --mode=update shared/sdd-artifact-contract.md team-artifacts/ideas team-artifacts/pbis tmp/reports/docs-update",
+        ".agents/skills/workflow-initiative-to-task/SKILL.md",
+        "Feature doc Section 8 TC IDs docs-manager --mode=update shared/sdd-artifact-contract.md team-artifacts/initiatives team-artifacts/tasks tmp/reports/docs-update",
       ],
       [
         ".agents/skills/docs-manager/references/mode-update.md",
-        "configured PBI/idea artifact roots detection/delegation docs/project-config.json",
+        "configured task/initiative artifact roots detection/delegation docs/project-config.json",
       ],
       [
         ".agents/skills/spec/references/sync.md",
@@ -935,7 +935,7 @@ const sdd004Check = () =>
   CHECKS.find((check) => check.code === "SDD004" && check.file === ".claude/skills/docs-manager/references/mode-update.md");
 
 const DOCS_UPDATE_REQUIRED_LINE =
-  "Routes configured PBI/idea artifact roots by detection/delegation from `docs/project-config.json`.";
+  "Routes configured task/initiative artifact roots by detection/delegation from `docs/project-config.json`.";
 
 async function withTempRoot(prefix, body) {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), prefix));
@@ -1001,22 +1001,22 @@ test("TC-DOCROOT-090: SDD probes the configured teamArtifacts root, not the defa
   await withTempRoot("codex-verify-sdd-teamartifacts-", async (tempRoot) => {
     await writeProjectConfig(tempRoot, { docsRoots: { teamArtifacts: { path: "artifacts" } } });
 
-    const ideaToPbi = CHECKS.find(
-      (check) => check.code === "SDD003" && check.file === ".claude/skills/workflow-idea-to-pbi/SKILL.md"
+    const initiativeToTask = CHECKS.find(
+      (check) => check.code === "SDD003" && check.file === ".claude/skills/workflow-initiative-to-task/SKILL.md"
     );
-    assert.ok(ideaToPbi);
-    assert.ok(ideaToPbi.requireAll.includes("{TEAM_ARTIFACTS_ROOT}/ideas"));
+    assert.ok(initiativeToTask);
+    assert.ok(initiativeToTask.requireAll.includes("{TEAM_ARTIFACTS_ROOT}/initiatives"));
 
-    const [resolved] = await resolveChecks(tempRoot, [ideaToPbi]);
-    assert.ok(resolved.requireAll.includes("artifacts/ideas"));
-    assert.ok(resolved.requireAll.includes("artifacts/pbis"));
+    const [resolved] = await resolveChecks(tempRoot, [initiativeToTask]);
+    assert.ok(resolved.requireAll.includes("artifacts/initiatives"));
+    assert.ok(resolved.requireAll.includes("artifacts/tasks"));
     assert.ok(!resolved.requireAll.some((term) => term.startsWith("team-artifacts/")));
     // The default is retained as the form-(b) fallback, never as the probe.
-    assert.equal(resolved.rootTerms.get("artifacts/ideas"), "team-artifacts/ideas");
+    assert.equal(resolved.rootTerms.get("artifacts/initiatives"), "team-artifacts/initiatives");
 
     const forbidCheck = sdd004Check();
     const [resolvedForbid] = await resolveChecks(tempRoot, [forbidCheck]);
-    assert.ok(resolvedForbid.forbidAny.includes("artifacts/pbis"));
+    assert.ok(resolvedForbid.forbidAny.includes("artifacts/tasks"));
     assert.ok(!resolvedForbid.forbidAny.some((term) => term.startsWith("team-artifacts/")));
   });
 });
@@ -1441,8 +1441,8 @@ test("TC-FIT-SEM-007: verifier config uses the requested root and staged index v
         docsRoots: { teamArtifacts: { path: "selected-artifacts" } },
       });
       const [resolved] = await resolveChecks(selectedRoot, [sdd004Check()]);
-      assert.ok(resolved.forbidAny.includes("selected-artifacts/pbis"));
-      assert.ok(!resolved.forbidAny.includes("team-artifacts/pbis"));
+      assert.ok(resolved.forbidAny.includes("selected-artifacts/tasks"));
+      assert.ok(!resolved.forbidAny.includes("team-artifacts/tasks"));
     });
   });
 
@@ -1454,8 +1454,8 @@ test("TC-FIT-SEM-007: verifier config uses the requested root and staged index v
     await writeProjectConfig(tempRoot, { docsRoots: { teamArtifacts: { path: "worktree-artifacts" } } });
 
     const [resolved] = await resolveChecks(tempRoot, [sdd004Check()], { staged: true });
-    assert.ok(resolved.forbidAny.includes("staged-artifacts/pbis"));
-    assert.ok(!resolved.forbidAny.includes("worktree-artifacts/pbis"));
+    assert.ok(resolved.forbidAny.includes("staged-artifacts/tasks"));
+    assert.ok(!resolved.forbidAny.includes("worktree-artifacts/tasks"));
   });
 });
 
@@ -1513,8 +1513,8 @@ test("TC-DOCROOT-096: SDD004 accepts a relocatable root inside a form-(b) overri
       ".claude/skills/docs-manager/references/mode-update.md",
       [
         DOCS_UPDATE_REQUIRED_LINE,
-        "PBI artifacts: default `team-artifacts/pbis`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path.",
-        "Idea artifacts: default `team-artifacts/ideas`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path.",
+        "Task artifacts: default `team-artifacts/tasks`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path.",
+        "Initiative artifacts: default `team-artifacts/initiatives`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path.",
         "",
       ].join("\n")
     );
@@ -1528,12 +1528,12 @@ test("TC-DOCROOT-097: SDD004 still rejects a bare standalone relocatable-root li
     await writeRepoFile(
       tempRoot,
       ".claude/skills/docs-manager/references/mode-update.md",
-      [DOCS_UPDATE_REQUIRED_LINE, "Write the PBI under team-artifacts/pbis.", ""].join("\n")
+      [DOCS_UPDATE_REQUIRED_LINE, "Write the task under team-artifacts/tasks.", ""].join("\n")
     );
     const result = await runChecks(tempRoot, [sdd004Check()]);
     assert.equal(result.failures.length, 1);
     assert.equal(result.failures[0].code, "SDD004");
-    assert.match(result.failures[0].message, /forbidden text found: team-artifacts\/pbis/);
+    assert.match(result.failures[0].message, /forbidden text found: team-artifacts\/tasks/);
   });
 
   // A file mixing both shapes still fails — the exemption is per LINE, never per file.
@@ -1543,14 +1543,14 @@ test("TC-DOCROOT-097: SDD004 still rejects a bare standalone relocatable-root li
       ".claude/skills/docs-manager/references/mode-update.md",
       [
         DOCS_UPDATE_REQUIRED_LINE,
-        "PBI artifacts: default `team-artifacts/pbis`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path.",
-        "Then copy it to team-artifacts/pbis/archive.",
+        "Task artifacts: default `team-artifacts/tasks`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path.",
+        "Then copy it to team-artifacts/tasks/archive.",
         "",
       ].join("\n")
     );
     const result = await runChecks(tempRoot, [sdd004Check()]);
     assert.equal(result.failures.length, 1);
-    assert.match(result.failures[0].message, /forbidden text found: team-artifacts\/pbis/);
+    assert.match(result.failures[0].message, /forbidden text found: team-artifacts\/tasks/);
   });
 
   // In a RELOCATED project the default literal is still bare hardcoding.
@@ -1559,7 +1559,7 @@ test("TC-DOCROOT-097: SDD004 still rejects a bare standalone relocatable-root li
     await writeRepoFile(
       tempRoot,
       ".claude/skills/docs-manager/references/mode-update.md",
-      [DOCS_UPDATE_REQUIRED_LINE, "Write the PBI under team-artifacts/pbis.", ""].join("\n")
+      [DOCS_UPDATE_REQUIRED_LINE, "Write the task under team-artifacts/tasks.", ""].join("\n")
     );
     const result = await runChecks(tempRoot, [sdd004Check()]);
     assert.equal(result.failures.length, 1);
@@ -1613,8 +1613,8 @@ test("TC-DOCROOT-099b: both build gates agree on what a form-(b) sentence looks 
   const { findLiteralOccurrences } = await import(pathToFileURL(literalVerifier).href);
 
   const legal =
-    "PBI artifacts: default `team-artifacts/pbis`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path.";
-  const bare = "Write the PBI under team-artifacts/pbis.";
+    "Task artifacts: default `team-artifacts/tasks`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path.";
+  const bare = "Write the task under team-artifacts/tasks.";
 
   assert.equal(isFormBOverrideSentence(legal), true);
   assert.equal(isFormBOverrideSentence(bare), false);

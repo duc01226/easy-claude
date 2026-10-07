@@ -9,7 +9,7 @@ disable-model-invocation: true
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -56,7 +56,7 @@ disable-model-invocation: true
 - **[BLOCKING] Quality goal: the HTML is beautiful, easy to read and easy to understand (R6.5)** — the first screen shows user-facing counts and, when anything requires action, an "Action required" defaults board (was → now → how to keep the old behaviour); each user-visible What's New / What Changed highlight is carried by one explanatory visual (mock-up, before → after pair, flow diagram, comparison bars of measured numbers, option matrix, or a terminal/chat frame of real text) plus 2–4 plain sentences and a "How to use / turn off" line; highlights are grouped by the reader's goal; the page is verified from wide and narrow rendered screenshots, not from the source — with no renderer, a source-only check recorded as such (R8.4)
 - **Never manufacture user value** — an internal change reworded to sound user-facing is a fabrication (R8.1). An honest "no user-facing changes this release" page beats a padded one.
 - **UI-bearing highlights lead with their mock-up** — the picture first, the prose explaining it second (R6.2 §4/§5)
-- **Mock-ups follow the `pbi --mode=mockup` protocol, not a second invented one (R6.3)** — `pbi --mode=mockup` Steps 3 (design system), 3b (inventory the real existing UI), 3c (real domain entities) and 7 (fidelity gate) govern HOW a screen is reproduced; this skill governs WHAT gets rendered. Real design tokens, real component structure and class names, real route and page shell, real domain field names; never Lorem ipsum, never a generic card layout. Borrow the fidelity contract, not the clickable-prototype machinery.
+- **Mock-ups follow the `work-item --mode=mockup` protocol, not a second invented one (R6.3)** — `work-item --mode=mockup` Steps 3 (design system), 3b (inventory the real existing UI), 3c (real domain entities) and 7 (fidelity gate) govern HOW a screen is reproduced; this skill governs WHAT gets rendered. Real design tokens, real component structure and class names, real route and page shell, real domain field names; never Lorem ipsum, never a generic card layout. Borrow the fidelity contract, not the clickable-prototype machinery.
 - **Backend-only ≠ `NO-UI`** — if the change's effect shows on an existing screen it is `BEHIND-UI` and gets a mock-up of that screen (R4.1)
 - **`NO-UI` release still gets the full HTML** — state `UI surface: none` and omit only the mock-up sections
 - **Auto-open is best-effort** — a failed browser launch is a warning with the printed path, NEVER a failed run; `--no-open` opts out
@@ -280,7 +280,7 @@ Run R1–R9 with the temp report at `docs/release-notes/tmp/{PERIOD}-release-ana
 2. **`categorize-commits.cjs` output is an input to R1, not a substitute for it.** Its type-based buckets are a starting point; R1.4 still re-ranks into *user outcomes* (merging N commits that ship one outcome, splitting one commit that ships two) and R1.5 still cross-checks that every added/deleted file and every breaking change is accounted for.
 3. **Step 3b's area map feeds R1.3.** When a thematic map was built, reuse it as the change map's `Area` column rather than deriving a second, divergent grouping.
 4. **The categorizer's `User-Facing` column is NOT the audience verdict.** It answers "what type of commit is this"; R1.4b answers "would a user notice this". A `docs` commit is marked user-facing by the table above yet is almost always `INTERNAL` for the HTML; a `refactor` that changes a visible label is `USER-VISIBLE`. Decide from the traced behavior (R2), never from the commit type.
-5. **Mock-ups defer to `$pbi --mode=mockup`.** R6.3 binds screen reproduction to that skill's fidelity contract (Steps 3/3b/3c/7). Read it rather than inventing a rendering procedure here.
+5. **Mock-ups defer to `$work-item --mode=mockup`.** R6.3 binds screen reproduction to that skill's fidelity contract (Steps 3/3b/3c/7). Read it rather than inventing a rendering procedure here.
 
 ## Complete Pipeline
 
@@ -328,7 +328,7 @@ Generated release notes are **Draft** status by default:
 
 - **`$commit`** - After generating notes, commit them
 - **`/git-manager`** - Create PR for release notes review
-- **`$pbi --mode=mockup`** - **Owns the mock-up protocol this skill's R6.3 defers to** — its Steps 3 (design system), 3b (inventory the real existing UI), 3c (real domain entities) and 7 (fidelity gate) govern HOW a screen is reproduced; R6.3 governs WHAT gets rendered. Borrow the fidelity contract, not the clickable-prototype machinery. And when a shipped feature already has a `pbis/*-mockup.html` under the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in `docs/project-config.json` overrides), R6.3 REUSES it via `<iframe srcdoc>` instead of rebuilding the screen.
+- **`$work-item --mode=mockup`** - **Owns the mock-up protocol this skill's R6.3 defers to** — its Steps 3 (design system), 3b (inventory the real existing UI), 3c (real domain entities) and 7 (fidelity gate) govern HOW a screen is reproduced; R6.3 governs WHAT gets rendered. Borrow the fidelity contract, not the clickable-prototype machinery. And when a shipped feature already has a `tasks/*-mockup.html` under the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in `docs/project-config.json` overrides), R6.3 REUSES it via `<iframe srcdoc>` instead of rebuilding the screen.
 
 ## Troubleshooting
 
@@ -374,15 +374,15 @@ Auto-open is best-effort by design (R9). A sandbox, headless runner, hook refusa
 
 ---
 
-> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read, plus one per Step 4 R-stage and one per release highlight found in R1.4. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
+> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read, plus one per Step 4 R-stage and one per release highlight found in R1.4. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting
+**IMPORTANT MUST ATTENTION** break work into small todo tasks using todo tracking BEFORE starting
 **IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code
 **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
 **IMPORTANT MUST ATTENTION** Step 6 (HTML presentation) is DEFAULT-ON: follow `references/html-release-report.md` R1–R9 verbatim — never restate or improvise that procedure
 **IMPORTANT MUST ATTENTION** preserve the user-audience, real-UI/mock-up notice and BEHIND-UI gates in Key Rules; write R5 analysis before HTML, verify R8 including source-only limitations, then R9 best-effort open. `--no-html`/`--no-open` and config precedence stay explicit.
 **IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
 
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
+**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using todo tracking.

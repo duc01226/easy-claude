@@ -8,7 +8,7 @@ description: '[Research] Use when a workflow step or the user asks for deep anal
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -160,7 +160,7 @@ Write findings incrementally to `tmp/research/_evidence-{slug}.md`:
 **IMPORTANT MUST ATTENTION** This deep-dive consumes the prior `tmp/research/_sources-{slug}.md` map; NEVER start a fresh search.
 **IMPORTANT MUST ATTENTION** Capture publication date, author credentials, source type, and methodology per source; verify facts, quotes, and numbers against fetched sources before recording — NEVER fabricate citations.
 **IMPORTANT MUST ATTENTION** Deliverable MUST include `## Unresolved Discrepancies` and `## Gaps Remaining`; NEVER hide unverifiable content.
-**IMPORTANT MUST ATTENTION** Break work into task tracking todos BEFORE starting; keep one `in_progress`; add a final review todo checking citation and confidence coverage.
+**IMPORTANT MUST ATTENTION** Break work into todo tracking todos BEFORE starting; keep one `in_progress`; add a final review todo checking citation and confidence coverage.
 **IMPORTANT MUST ATTENTION** Write findings incrementally to `tmp/research/_evidence-{slug}.md`; NEVER hold the full evidence base only in context.
 **IMPORTANT MUST ATTENTION** Run as called and NEVER start a workflow from inside this skill; only the post-completion next-step question uses `ask user question tool`.
 

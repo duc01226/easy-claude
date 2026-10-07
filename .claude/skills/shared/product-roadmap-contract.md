@@ -1,14 +1,14 @@
 # Product Roadmap and Plan-Gate Contract
 
-Project-neutral contract for outcome-first planning. This contract is upstream of Feature Specs, PBIs, stories, and implementation plans.
+Project-neutral contract for outcome-first planning. This contract is upstream of Feature Specs, tasks, stories, and implementation plans.
 
 ## Quick Summary
 
-**Goal:** Keep product boundaries outcome-first while preventing ordinary idea, spec, and PBI workflows from creating the product roadmap artifact (default `docs/product-roadmap.md`; a `docsRoots.productRoadmap.path` entry in `docs/project-config.json` overrides the path); embed decomposition only for genuinely large ideas, and reserve the standalone roadmap writer for explicit requests.
+**Goal:** Keep product boundaries outcome-first while preventing ordinary initiative, spec, and task workflows from creating the product roadmap artifact (default `docs/product-roadmap.md`; a `docsRoots.productRoadmap.path` entry in `docs/project-config.json` overrides the path); embed decomposition only for genuinely large ideas (`isLargeIdea`), and reserve the standalone roadmap writer for explicit requests.
 
 **Summary:**
 
-- **Default chain:** idea → four-signal `isLargeIdea` check → complete `large_idea_decomposition` in the owning PBI/spec only when true → read-only propagation to stories, scenarios, mock-ups, presentations, plans, and tests.
+- **Default chain:** idea → four-signal `isLargeIdea` check → complete `large_idea_decomposition` in the owning task/spec only when true → read-only propagation to stories, scenarios, mock-ups, presentations, plans, and tests.
 - **Ordinary chain:** all signals false → omit decomposition, roadmap, milestone, and scope-brief placeholders; continue the owning workflow without a roadmap writer.
 - **Explicit chain:** explicit roadmap request → `{roadmap-file}` → approved milestone/scope brief → scenario → `## Plan Gate` → plan/review/validation/implementation.
 - **Technical branches:** framework/library changes use `FRAMEWORK-LIBRARY`; isolated brownfield changes use `EXEMPT`; neither branch fabricates product roadmap artifacts.
@@ -33,8 +33,8 @@ The default idea chain is embedded and artifact-owned:
 ```text
 idea
   -> isLargeIdea signal check
-  -> large_idea_decomposition in the owning PBI/spec artifact (only when true)
-  -> stories, scenario, mock-up, and all-PBI presentation consume the same slice IDs
+  -> large_idea_decomposition in the owning task/spec artifact (only when true)
+  -> stories, scenario, mock-up, and all-task presentation consume the same slice IDs
   -> plan/test/review gates
 ```
 
@@ -68,7 +68,7 @@ When no active `plan.md` exists yet, an explicit roadmap selection, an embedded 
 
 | Artifact | Answers | Must not decide |
 | --- | --- | --- |
-| Product roadmap | What outcome is validated next, which risks are retired, what is not included, what requires human approval, and what evidence proves the milestone | Framework, database schema, class/module layout, implementation order, sprint dates |
+| Product roadmap | What outcome is validated next, which risks are retired, what is not included, what requires human approval, and what evidence proves the milestone | Framework, database schema, class/module layout, implementation order, delivery dates |
 | Scope brief | Which one milestone is selected, actors, user outcome, in-scope behavior, non-goals, terms, source-of-truth state, and success evidence | Technical design or file-level tasks |
 | Embedded decomposition block | Which independently releasable slices, dependencies, non-goals, risks/evidence, and deferred owners belong to a large idea | Creating a second roadmap artifact or changing product intent downstream |
 | Product outcome slice | Which independently releasable actor-facing outcome is delivered and how completion is observed | A list of implementation phases, modules, files, or test tasks |
@@ -86,7 +86,7 @@ The product-roadmap artifact is an explicit capability, not a default prerequisi
 isLargeIdea = multipleIndependentOutcomes
             || ambiguousOrResearchHeavy
             || releaseScopeDecomposition
-            || oversizedPbiThatMustSplit
+            || oversizedTaskThatMustSplit
 ```
 
 - When `isLargeIdea=true`, keep the milestone mindset inside `large_idea_decomposition`; do not create `{roadmap-file}` unless the user explicitly requests a roadmap deliverable.
@@ -100,7 +100,7 @@ isLargeIdea = multipleIndependentOutcomes
 
 ## Embedded large-idea decomposition schema
 
-When any `isLargeIdea` signal is true, the owning PBI or Feature Spec MUST include one complete `large_idea_decomposition` block. The block is the portable replacement for a default roadmap file:
+When any `isLargeIdea` signal is true, the owning task or Feature Spec MUST include one complete `large_idea_decomposition` block. The block is the portable replacement for a default roadmap file:
 
 ```yaml
 large_idea_decomposition:
@@ -109,19 +109,19 @@ large_idea_decomposition:
     multiple_independent_outcomes: true | false
     ambiguous_or_research_heavy: true | false
     release_scope_decomposition: true | false
-    oversized_pbi_that_must_split: true | false
+    oversized_task_that_must_split: true | false
   outcome_slices:
     - id: SLICE-{FEATURE}-{NNN}
       outcome: {one independently releasable actor-facing outcome}
       releasable_when: {observable completion condition}
-      owning_artifact: {PBI/spec path or stable artifact ID}
+      owning_artifact: {task/spec path or stable artifact ID}
   dependencies_order:
     - before: SLICE-{FEATURE}-{NNN}
       after: SLICE-{FEATURE}-{NNN}
       reason: {business or evidence dependency}
   non_goals:
     - statement: {explicitly deferred behavior}
-      owner: {slice, PBI, or named follow-up owner}
+      owner: {slice, task, or named follow-up owner}
   risks_evidence:
     - risk: {uncertainty or failure mode}
       evidence_needed: {observable validation}
@@ -130,7 +130,7 @@ large_idea_decomposition:
   deferred_work_owner:
     - item: {deferred work}
       owner: {named follow-up owner}
-      follow_up_artifact: {PBI/spec/decision artifact or N/A}
+      follow_up_artifact: {task/spec/decision artifact or N/A}
       target_slice: SLICE-{FEATURE}-{NNN} | N/A
 ```
 
@@ -141,7 +141,7 @@ Requiredness rules:
 - `non_goals` names what is deferred and who owns the boundary. Use `[]` only with an explicit `none_identified` statement.
 - `risks_evidence` names the evidence owner and status for each material risk. Use `[]` only with an explicit `none_identified` statement.
 - `deferred_work_owner` names every deferred item and its next owner. Use `[]` only when the artifact explicitly records that no work is deferred.
-- Downstream stories, scenarios, PBIs, mock-ups, presentations, plans, and reviews consume the block read-only. They may flag a missing, conflicting, or stale field; they must not reinterpret it or create a separate roadmap artifact.
+- Downstream stories, scenarios, tasks, mock-ups, presentations, plans, and reviews consume the block read-only. They may flag a missing, conflicting, or stale field; they must not reinterpret it or create a separate roadmap artifact.
 - For an ordinary all-false idea, omit the entire block and do not add roadmap, milestone, or scope-brief fields merely as placeholders.
 
 For a small isolated brownfield change or a bugfix, record an explicit exemption in the scope brief and plan:
@@ -268,7 +268,7 @@ For embedded large-idea work, use this branch:
 - Status: DECOMPOSITION-EMBEDDED | BLOCKED
 - Roadmap: NOT APPLICABLE — embedded large-idea decomposition
 - Milestone: NOT APPLICABLE — slice IDs live in the owning artifacts
-- Decomposition owner: {PBI/spec path or explicit ordinary-route owner}
+- Decomposition owner: {task/spec path or explicit ordinary-route owner}
 - Scope brief: NOT REQUIRED — no separate roadmap artifact
 - Scenarios: {path or conditional embedded scenario evidence}
 - Product decisions: CONFIRMED | OPEN — {decision IDs}
@@ -300,7 +300,7 @@ For a framework/library change, use this branch:
 ## Handoff rules
 
 - Feature Spec frontmatter carries roadmap path/milestone only for the explicit roadmap branch; embedded specs carry the decomposition block and stable slice IDs, while framework specs carry the technical branch.
-- PBI/story artifacts carry the same decomposition block and slice IDs when `isLargeIdea=true`; they do not create a roadmap path or milestone. Explicit-roadmap artifacts may carry the selected milestone; EXEMPT artifacts carry the explicit exemption reason/owner instead.
+- Task/story artifacts carry the same decomposition block and slice IDs when `isLargeIdea=true`; they do not create a roadmap path or milestone. Explicit-roadmap artifacts may carry the selected milestone; EXEMPT artifacts carry the explicit exemption reason/owner instead.
 - Plans cite the applicable scope/scenario evidence; embedded plans cite owning artifacts and gap checks, while framework plans cite technical scope, failure/recovery scenarios, and generated-carrier evidence.
 - Review and validation skills FAIL or BLOCK on a missing applicable branch, unresolved material decisions, or missing owner approval. They do not turn a large idea into a default roadmap writer.
 

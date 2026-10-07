@@ -2,17 +2,29 @@
 
 const crypto = require('node:crypto');
 const { projectPathConcerns } = require('../../../hooks/lib/task-tracking-concerns.cjs');
+const { vocabularyBlock } = require('../../../hooks/lib/task-tracking-vocabulary.cjs');
 
+// The tracker owns the words. This is the block every read carries: kinds, states and link relations, with the name
+// shown for each. The report keeps no list of the words. What stays here is what a view decides: the order it reads
+// them in, and which kinds its remaining-work filter lists (the work kinds, written out in `filter` in the page script;
+// initiatives and groups are left out).
+const VOCABULARY = vocabularyBlock();
+const STATE_NAMES = Object.freeze(VOCABULARY.labels.states);
+const KIND_NAMES = Object.freeze(VOCABULARY.labels.kinds);
+const KIND_WORDS = Object.freeze(Object.fromEntries(VOCABULARY.kinds.map(kind => [kind, [KIND_NAMES[kind].toLowerCase(), VOCABULARY.labels.kindsPlural[kind].toLowerCase()]])));
+const LINK_NAMES = Object.freeze(VOCABULARY.labels.linkRoles);
+const DELIVERY_KIND = VOCABULARY.deliveryKind;
+const GROUP_KINDS = Object.freeze(VOCABULARY.groupKinds);
 // The lifecycle line. Blocked work waits beside In progress; canceled work is off the line.
-const STATIONS = Object.freeze(['draft', 'backlog', 'ready', 'in_progress', 'verifying', 'done']);
-const STATE_NAMES = Object.freeze({ draft: 'Draft', backlog: 'Backlog', ready: 'Ready', in_progress: 'In progress',
-    blocked: 'Blocked', verifying: 'Verifying', done: 'Done', canceled: 'Canceled' });
+const STATIONS = Object.freeze(['draft', 'planned', 'ready', 'in_progress', 'verifying', 'done']);
 // A person's blocks read from what needs them next to what is finished.
-const PEOPLE_ORDER = Object.freeze(['verifying', 'in_progress', 'blocked', 'ready', 'backlog', 'draft', 'done']);
-const KIND_NAMES = Object.freeze({ idea: 'Idea', pbi: 'PBI', story: 'Story', task: 'Task', epic: 'Epic', vision: 'Vision' });
-const KIND_WORDS = Object.freeze({ idea: ['idea', 'ideas'], pbi: ['PBI', 'PBIs'], story: ['story', 'stories'], task: ['task', 'tasks'], epic: ['epic', 'epics'], vision: ['vision', 'visions'] });
+const PEOPLE_ORDER = Object.freeze(['verifying', 'in_progress', 'blocked', 'ready', 'planned', 'draft', 'done']);
 const PROOF_NAMES = Object.freeze({ current: 'Proved', stale: 'Proof stale', missing: 'No proof', unknown: 'Proof unknown' });
-const LINK_NAMES = Object.freeze({ parent: 'Parent', dependency: 'Depends on', source: 'Source' });
+const MIGRATE = 'migrate --root <checkout>';
+// What the snapshot says about the vocabulary its source stores. Two vocabularies at once, or a migration that stopped
+// part-way, means nothing was read as work.
+function storedVocabulary(snapshot) { return snapshot.vocabulary?.project || null; }
+function unreadableSource(snapshot) { const stored = storedVocabulary(snapshot); return !!stored?.code && stored.storedVersion === null; }
 const UNASSIGNED = '__unassigned__';
 const PIP_LIMIT = 8;
 const BLOCK_LIMIT = 120;
@@ -107,8 +119,8 @@ ${list('Direct members', choose(item.memberItemIds))}
 <details><summary>Other direct affiliations (${array(group?.parentGroupIds).length})</summary><ul class="reasons">${array(group?.parentGroupIds).map(other => `<li><a href="#${escapeHtml(groupAnchor(id, other))}" data-inspect-group="${escapeHtml(id)}" data-from-group="${escapeHtml(other)}" data-alternate-affiliation="true">Enter through ${escapeHtml(other)}</a></li>`).join('')}</ul></details>
 <p><a href="#${escapeHtml(parent ? groupAnchor(parent) : 'work')}" class="control" data-inspection-back>Back to previous context</a> ${linkedRecord(id, byId)}</p></section>`;
     }).join('');
-    const related = scope.kind === 'group' ? `${list('Excluded PBIs', choose(scope.excludedPbiIds))}${list('Supporting work', choose(scope.memberIds).filter(item => !['pbi', 'epic', 'vision'].includes(item.kind)))}${list('Outside delivery scope', array(snapshot.items).filter(item => item.id !== scope.itemId && !array(scope.memberIds).includes(item.id)))}`
-        : list('Ungrouped PBIs', choose(snapshot.hierarchy?.ungroupedPbiIds));
+    const related = scope.kind === 'group' ? `${list('Excluded tasks', choose(scope.excludedTaskIds))}${list('Supporting work', choose(scope.memberIds).filter(item => item.kind !== DELIVERY_KIND && !GROUP_KINDS.includes(item.kind)))}${list('Outside delivery scope', array(snapshot.items).filter(item => item.id !== scope.itemId && !array(scope.memberIds).includes(item.id)))}`
+        : list('Ungrouped tasks', choose(snapshot.hierarchy?.ungroupedTaskIds));
     const rootLinks = groups.map(group => `<li><a href="#${escapeHtml(groupAnchor(group.id))}" data-inspect-group="${escapeHtml(group.id)}">${escapeHtml(groupName(group.id, snapshot))}</a></li>`).join('');
     return `<div class="disclosures">${related}<details><summary>Inspect groups (${groups.length})</summary><ul class="reasons">${rootLinks}</ul></details></div><p id="inspected-group-path" class="note" role="status">Inspected group/path: ${escapeHtml(scope.kind === 'group' ? groupName(scope.itemId, snapshot) : 'Direct project entry')}</p><div aria-label="Group inspection">${inspections}</div>`;
 }
@@ -131,7 +143,7 @@ function jsonDetails(label, values) {
 function icon(name) { return `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="${ICONS[name]}"/></svg>`; }
 function dot(name, small) { return `<span class="dot is-${name}${small ? ' dot--s' : ''}" aria-hidden="true"></span>`; }
 function kindMark(item) {
-    return `<span class="kind${item.kind === 'pbi' && item.state !== 'canceled' ? ' kind--pbi' : ''}">${escapeHtml(KIND_NAMES[item.kind] || item.kind)}</span>`;
+    return `<span class="kind${item.kind === DELIVERY_KIND && item.state !== 'canceled' ? ' kind--delivery' : ''}">${escapeHtml(KIND_NAMES[item.kind] || item.kind)}</span>`;
 }
 function stateMark(item) { return `<span class="mark state is-${stateClass(item.state)}">${dot(stateClass(item.state), true)}<span>${escapeHtml(stateName(item.state))}</span></span>`; }
 function proofMark(item) {
@@ -276,13 +288,13 @@ h1{font:900 var(--masthead)/1.02 var(--font-display);letter-spacing:-.035em;-web
 .siding{margin-top:10px;display:flex;align-items:center;gap:6px}
 .siding-hook{width:12px;height:14px;margin-top:-10px;border-left:3px solid var(--blocked);border-bottom:3px solid var(--blocked);border-bottom-left-radius:8px}
 .siding-tag{padding:2px 10px;border-radius:999px;background:var(--blocked-wash);color:var(--blocked);font-size:var(--small);font-weight:700}
-.is-draft,.is-backlog,.is-canceled,.is-other{--state:var(--record-faint)}
+.is-draft,.is-planned,.is-canceled,.is-other{--state:var(--record-faint)}
 .is-ready,.is-in_progress{--state:var(--ownership-action)}
 .is-blocked{--state:var(--blocked)}
 .is-verifying{--state:var(--verifying)}
 .is-done{--state:var(--proof-current)}
 .dot{flex-shrink:0;width:24px;height:24px;border:5px solid var(--state);border-radius:50%;background:var(--record-sheet)}
-.dot.is-backlog,.dot.is-in_progress,.dot.is-verifying,.dot.is-done,.dot.is-blocked{background:var(--state)}
+.dot.is-planned,.dot.is-in_progress,.dot.is-verifying,.dot.is-done,.dot.is-blocked{background:var(--state)}
 .dot.is-blocked{border-radius:5px}
 .dot.is-canceled,.dot.is-other{border-width:2px;border-style:dashed}
 .dot--s{width:14px;height:14px;border-width:3px}
@@ -330,10 +342,10 @@ h1{font:900 var(--masthead)/1.02 var(--font-display);letter-spacing:-.035em;-web
 .work-row--off .work-title{color:var(--record-faint);text-decoration:line-through}
 .cell--owner{font-weight:500}
 .kind{flex-shrink:0;padding:2px 6px;border:1px solid var(--line-strong);border-radius:4px;color:var(--record-note);font:600 .65625rem/1.4 var(--font-mono);letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
-.kind--pbi{border-color:var(--record-ink);background:var(--record-ink);color:var(--record-sheet)}
+.kind--delivery{border-color:var(--record-ink);background:var(--record-ink);color:var(--record-sheet)}
 .mark{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
 .state{font-weight:600}
-.state.is-draft,.state.is-backlog{color:var(--record-note)}
+.state.is-draft,.state.is-planned{color:var(--record-note)}
 .state.is-blocked{color:var(--blocked)}
 .state.is-canceled,.state.is-other{color:var(--record-faint)}
 .pips{display:inline-flex;align-items:center;gap:3px}
@@ -586,7 +598,7 @@ function enhanceReport() {
             row.hidden = (term && !row.dataset.search.toLocaleLowerCase().includes(term))
                 || (owner.value && row.dataset.owner !== owner.value)
                 || (state.value && row.dataset.state !== state.value)
-                || (remaining.checked && !['pbi', 'story', 'task'].includes(row.dataset.kind))
+                || (remaining.checked && !['task', 'story', 'subtask'].includes(row.dataset.kind))
                 || (remaining.checked && (row.dataset.accepted === 'true' || row.dataset.retired === 'true' || row.dataset.state === 'canceled'));
             if (!row.hidden) visible++;
         });
@@ -729,7 +741,7 @@ function renderFacts(item, members, byId, snapshot) {
         factRow('Proof', escapeHtml(verificationLabel(item)), [item.verification?.reason, latest ? `Latest proof: ${words(latest.kind)}, ${words(latest.result)}, ${instant(latest.observedAt)}` : null].filter(Boolean).map(escapeHtml).join('. ')),
         factRow('Acceptance', escapeHtml(acceptanceLabel(item)), [item.acceptance?.reason, decision?.acceptedAt ? `${decision.actor ? memberLabel(decision.actor, members) : 'An unrecorded actor'}, ${instant(decision.acceptedAt)}` : null].filter(Boolean).map(escapeHtml).join('. ')),
         ...[...relations].map(([name, targets]) => factRow(name, targets.join('<br>'))),
-        ['epic', 'vision'].includes(item.kind) ? factRow('Group purpose', escapeHtml(`${groupLabel(item, snapshot)}${item.groupRole ? ` (${item.groupRole})` : ''}`)) : '',
+        GROUP_KINDS.includes(item.kind) ? factRow('Group purpose', escapeHtml(`${groupLabel(item, snapshot)}${item.groupRole ? ` (${item.groupRole})` : ''}`)) : '',
         array(item.memberItemIds).length ? factRow('Group members', item.memberItemIds.map(id => linkedRecord(id, byId)).join('<br>')) : '',
         factRow('Owning file', `<span class="mono">${escapeHtml(item.ownerPath || 'Unknown')}</span>`),
         factRow('Revision', `<span class="mono">${escapeHtml(item.revision ?? 'Unknown')}</span>`),
@@ -762,7 +774,7 @@ ${renderFacts(item, members, byId, snapshot)}</div>
 <p class="detail-foot"><a class="control return-link" href="#work">Back to Work</a></p></article>`;
 }
 
-// One block per eligible PBI. The counted sentence stays authoritative: nothing is drawn unless the blocks agree with it.
+// One block per eligible task. The counted sentence stays authoritative: nothing is drawn unless the blocks agree with it.
 function deliveryBlocks(snapshot, metrics) {
     if (!metrics.total || metrics.total > BLOCK_LIMIT) return '';
     const byId = new Map();
@@ -780,7 +792,7 @@ function deliveryBlocks(snapshot, metrics) {
     const present = Object.keys(names).filter(name => groups[name].length);
     const labelled = metrics.total <= LABELLED_BLOCKS;
     const density = metrics.total > DENSE_BLOCKS ? ' blocks--dense' : metrics.total <= FEW_BLOCKS ? ' blocks--few' : '';
-    return `<div class="blocks${density}" role="img" aria-label="${escapeHtml(`${metrics.total} PBIs, one block each: ${present.map(name => `${groups[name].length} ${names[name]}`).join('; ')}`)}">${present.map(name => groups[name].map(item => `<span class="block-cell" title="${escapeHtml(`${item.id}: ${item.title}`)}"><span class="block block--${name}">${marks[name] ? icon(marks[name]) : ''}</span>${labelled ? `<span class="block-id">${escapeHtml(idTail(item.id))}</span>` : ''}</span>`).join('')).join('')}</div><ul class="legend">${present.map(name => `<li><span class="block block--${name}" aria-hidden="true"></span><span><strong>${groups[name].length}</strong> ${names[name]}</span></li>`).join('')}</ul>`;
+    return `<div class="blocks${density}" role="img" aria-label="${escapeHtml(`${metrics.total} tasks, one block each: ${present.map(name => `${groups[name].length} ${names[name]}`).join('; ')}`)}">${present.map(name => groups[name].map(item => `<span class="block-cell" title="${escapeHtml(`${item.id}: ${item.title}`)}"><span class="block block--${name}">${marks[name] ? icon(marks[name]) : ''}</span>${labelled ? `<span class="block-id">${escapeHtml(idTail(item.id))}</span>` : ''}</span>`).join('')).join('')}</div><ul class="legend">${present.map(name => `<li><span class="block block--${name}" aria-hidden="true"></span><span><strong>${groups[name].length}</strong> ${names[name]}</span></li>`).join('')}</ul>`;
 }
 
 function renderSummary(snapshot) {
@@ -792,17 +804,17 @@ function renderSummary(snapshot) {
     const heading = `<div class="eyebrow-line"><h2 id="progress-heading" class="eyebrow">Delivery scope</h2><span class="scope-id">${escapeHtml(scopeName(snapshot) || 'Whole project')}</span></div>`;
     if (!metrics || !valid) return `<section class="summary card" aria-labelledby="progress-heading"><div class="hero-lead">${heading}<p class="hero-title">Progress unavailable</p></div><p class="hero-copy">No trustworthy delivery denominator is available. Read the inspection limits below; this does not mean the project has no work.</p></section>`;
     const percentage = complete && total > 0 && typeof metrics.percentage === 'number' && Number.isFinite(metrics.percentage) && Math.abs(metrics.percentage - accepted / total * 100) < 0.000001;
-    const ledger = `<p class="ledger">${accepted} of ${plural(total, 'eligible PBI', 'eligible PBIs')} accepted, ${verified} with current proof; ${remaining} not accepted.</p>`;
+    const ledger = `<p class="ledger">${accepted} of ${plural(total, 'eligible task', 'eligible tasks')} accepted, ${verified} with current proof; ${remaining} not accepted.</p>`;
     let body;
     if (percentage) {
         const blocks = deliveryBlocks(snapshot, metrics);
-        body = `<div class="hero"><div class="hero-lead">${heading}<p class="hero-count"><span class="hero-figure">${accepted}</span> <span class="hero-unit">of ${plural(total, 'PBI', 'PBIs')} accepted</span></p></div><p class="hero-rate"><strong>${metrics.percentage.toFixed(1)}%</strong> <span>accepted in this exact scope</span></p></div>${blocks || ledger}`;
+        body = `<div class="hero"><div class="hero-lead">${heading}<p class="hero-count"><span class="hero-figure">${accepted}</span> <span class="hero-unit">of ${plural(total, 'task', 'tasks')} accepted</span></p></div><p class="hero-rate"><strong>${metrics.percentage.toFixed(1)}%</strong> <span>accepted in this exact scope</span></p></div>${blocks || ledger}`;
     } else if (total === 0 && complete) {
-        body = `<div class="hero-lead">${heading}<p class="hero-title">No delivery scope yet</p></div><p class="hero-copy">Delivery counts PBIs, one block each. No eligible PBIs in this delivery scope; no percentage applies. That is not the same as zero percent.</p><div class="blocks blocks--ghost" aria-hidden="true">${'<span class="block block--ghost"></span>'.repeat(GHOST_BLOCKS)}</div>`;
+        body = `<div class="hero-lead">${heading}<p class="hero-title">No delivery scope yet</p></div><p class="hero-copy">Delivery counts tasks, one block each. No eligible tasks in this delivery scope; no percentage applies. That is not the same as zero percent.</p><div class="blocks blocks--ghost" aria-hidden="true">${'<span class="block block--ghost"></span>'.repeat(GHOST_BLOCKS)}</div>`;
     } else {
         body = `<div class="hero-lead">${heading}<p class="hero-title">Delivery unknown</p></div><p class="hero-copy">No delivery blocks are drawn. Percentage withheld because scope or coverage is incomplete. The counts cover inspected work only.</p>${ledger}`;
     }
-    const caption = `Each PBI counts once. Excluded: ${count(metrics.canceled) ?? 'unknown'} canceled, ${count(metrics.retired) ?? 'unknown'} retired. Ideas, stories and tasks sit outside this count. An acceptance made in the past does not show that proof still applies today.`;
+    const caption = `Each task counts once. Excluded: ${count(metrics.canceled) ?? 'unknown'} canceled, ${count(metrics.retired) ?? 'unknown'} retired. Initiatives, stories and subtasks sit outside this count. An acceptance made in the past does not show that proof still applies today.`;
     return `<section class="summary card" aria-labelledby="progress-heading">${body}<div class="card-foot"><p class="caption">${caption}</p><div class="actions enhancement-only"${array(snapshot.items).length ? '' : ' hidden'}><button type="button" id="inspect-remaining" class="primary">Inspect remaining work</button></div></div></section>`;
 }
 
@@ -870,11 +882,17 @@ function renderSource(snapshot, items, unavailable) {
     const complete = snapshot.coverage === 'complete';
     const tone = unavailable ? 'stop' : { complete: 'good', partial: 'warn' }[snapshot.coverage] || 'stop';
     const inspected = `${plural(items.length, 'record', 'records')} inspected`;
+    const stored = storedVocabulary(snapshot);
+    // The report is read-only either way; a checkout that stores the earlier words is told how to move on. A pinned ref is not.
+    const migration = stored?.code === 'MIGRATION_REQUIRED' && snapshot.source?.kind !== 'shared'
+        ? `<p class="notice">${icon('lock')}<span><strong>Migration required: this project is read-only.</strong> It stores the earlier vocabulary. Work is shown in the current words and every count is unchanged. Preview the migration with the task tool: <span class="mono">${escapeHtml(`${MIGRATE} --dry-run`)}</span>. Then run it without <span class="mono">--dry-run</span>.</span></p>` : '';
     const coverage = unavailable ? 'Unavailable; no trustworthy work count' : `${capital(words(snapshot.coverage))}, ${inspected}${complete ? '' : '; project total unknown'}`;
     const source = snapshot.source || {};
-    return `<section class="source source-strip" aria-labelledby="source-heading"><h2 id="source-heading" class="sr-only">Snapshot source</h2><dl class="source-facts"><div><dt>As of</dt><dd><span class="mono">${escapeHtml(instant(snapshot.asOf))}</span></dd></div><div><dt>Source</dt><dd>${escapeHtml(source.label || 'Source unavailable')}${source.ref ? `<span class="fact-sub">${escapeHtml(source.ref)}${source.oid ? ` at ${escapeHtml(String(source.oid).slice(0, 12))}` : ''}</span>` : ''}</dd></div><div><dt>Coverage</dt><dd class="fact-line fact--${tone}">${icon(tone === 'good' ? 'check' : 'alert')}<span>${escapeHtml(coverage)}</span></dd></div><div><dt>Shared freshness</dt><dd>${escapeHtml(capital(words(source.remoteFreshness)))}. Regenerate to see later edits</dd></div></dl>${unavailable
-        ? `<p class="notice notice--stop">${icon('alert')}<span><strong>Inspection unavailable.</strong> Native sources are not converted into portable records. No trustworthy work count can be supplied for this profile.</span></p>`
-        : complete ? '' : `<p class="notice">${icon('alert')}<span><strong>Inspection is incomplete.</strong> Read the limits below before treating this list as the whole project.</span></p>`}</section>`;
+    return `<section class="source source-strip" aria-labelledby="source-heading"><h2 id="source-heading" class="sr-only">Snapshot source</h2><dl class="source-facts"><div><dt>As of</dt><dd><span class="mono">${escapeHtml(instant(snapshot.asOf))}</span></dd></div><div><dt>Source</dt><dd>${escapeHtml(source.label || 'Source unavailable')}${source.ref ? `<span class="fact-sub">${escapeHtml(source.ref)}${source.oid ? ` at ${escapeHtml(String(source.oid).slice(0, 12))}` : ''}</span>` : ''}</dd></div><div><dt>Coverage</dt><dd class="fact-line fact--${tone}">${icon(tone === 'good' ? 'check' : 'alert')}<span>${escapeHtml(coverage)}</span></dd></div><div><dt>Shared freshness</dt><dd>${escapeHtml(capital(words(source.remoteFreshness)))}. Regenerate to see later edits</dd></div></dl>${unreadableSource(snapshot)
+        ? `<p class="notice notice--stop">${icon('alert')}<span><strong>No work can be read from this project.</strong> ${escapeHtml(stored.reason)}. No work is counted or listed.</span></p>`
+        : unavailable
+            ? `<p class="notice notice--stop">${icon('alert')}<span><strong>Inspection unavailable.</strong> Native sources are not converted into portable records. No trustworthy work count can be supplied for this profile.</span></p>`
+            : complete ? '' : `<p class="notice">${icon('alert')}<span><strong>Inspection is incomplete.</strong> Read the limits below before treating this list as the whole project.</span></p>`}${migration}</section>`;
 }
 
 function renderLimits(snapshot, unavailable) {
@@ -882,7 +900,7 @@ function renderLimits(snapshot, unavailable) {
     const profile = `${snapshot.profile?.identity || snapshot.profile?.kind || 'Unknown'}${snapshot.profile?.version === undefined ? '' : ` v${snapshot.profile.version}`}${unavailable ? ' / Unsupported inspection capability' : ''}`;
     const fact = (label, value) => `<div><dt>${label}</dt><dd>${escapeHtml(value)}</dd></div>`;
     return `<section class="limits" aria-labelledby="limits-heading"><h2 id="limits-heading">Inspection limits and snapshot identity</h2>${diagnostics.length
-        ? `<ul class="reasons">${diagnostics.map(diagnostic => `<li>${escapeHtml(diagnostic.itemId || '')}${diagnostic.itemId ? ': ' : ''}${escapeHtml(diagnostic.code || 'Unknown')}: ${escapeHtml(diagnostic.reason || 'No explanation supplied')}</li>`).join('')}</ul>`
+        ? `<ul class="reasons">${diagnostics.map(diagnostic => `<li>${escapeHtml(diagnostic.itemId || '')}${diagnostic.itemId ? ': ' : ''}${diagnostic.path ? `<span class="mono">${escapeHtml(diagnostic.path)}</span>: ` : ''}${escapeHtml(diagnostic.code || 'Unknown')}: ${escapeHtml(diagnostic.reason || 'No explanation supplied')}</li>`).join('')}</ul>`
         : `<p>No inspection diagnostics were recorded for this snapshot${snapshot.coverage === 'complete' ? ', so the counts above cover the whole selected scope' : ''}.</p>`}<dl class="source identity">${fact('Fingerprint', snapshot.fingerprint || 'Unknown')}${fact('Profile', profile)}${fact('Checkout', snapshot.project?.root || 'Unknown')}${fact('Scope revision', snapshot.metrics?.scopeRevision || 'Unknown')}${fact('Proved ready to start', ready.join(', ') || 'None in this snapshot')}</dl>${excluded.length
         ? `<details><summary>Why other records are not ready to start (${excluded.length})</summary><ul class="reasons">${excluded.map(entry => `<li><span class="mono">${escapeHtml(entry?.itemId || 'Unknown')}</span>: ${escapeHtml(array(entry?.reasons).join('; ') || 'No reason supplied')}</li>`).join('')}</ul></details>`
         : '<p class="note">No selection exclusions recorded.</p>'}</section>`;
@@ -893,7 +911,7 @@ function renderReport(snapshot, manifest) {
     const items = array(snapshot.items), members = array(snapshot.members);
     const name = snapshot.project?.name || 'Selected project';
     const isGroup = snapshot.scope?.kind === 'group';
-    const deliveryIds = new Set(array(snapshot.scope?.eligiblePbiIds));
+    const deliveryIds = new Set(array(snapshot.scope?.eligibleTaskIds));
     const byId = new Map();
     for (const item of items) byId.set(item.id, byId.has(item.id) ? null : item);
     const deliveryItems = isGroup ? items.filter(item => deliveryIds.has(item.id) && byId.get(item.id) === item) : items;
@@ -905,11 +923,13 @@ function renderReport(snapshot, manifest) {
         ...unknownOwners.sort().map(id => ({ id, label: `Unknown member (${id})`, unknown: true })), { id: UNASSIGNED, label: 'Unassigned' }];
     const unavailable = snapshot.coverage === 'unavailable' || snapshot.profile?.available === false;
     const limited = unavailable || snapshot.coverage !== 'complete';
+    const unreadable = unreadableSource(snapshot);
     const group = scopeName(snapshot);
-    const standfirst = unavailable ? 'Inspection unavailable. No work could be read for this profile.'
+    const standfirst = unreadable ? 'This project cannot be read. No work is counted or listed.'
+        : unavailable ? 'Inspection unavailable. No work could be read for this profile.'
         : limited ? 'Partly inspected. Only the records that could be read are shown.'
             // A group snapshot counts delivery for that group only, while the lists below still hold every inspected record.
-            : group ? `Delivery counted for ${group}. The primary list contains exactly its eligible PBIs; other records remain available through inspection links.`
+            : group ? `Delivery counted for ${group}. The primary list contains exactly its eligible tasks; other records remain available through inspection links.`
                 : 'Whole project. What was accepted, what is proved, and what waits on a person.';
     const policy = `default-src 'none'; script-src ${REPORT_INLINE_SOURCES.script}; style-src ${REPORT_INLINE_SOURCES.style}; base-uri 'none'; form-action 'none'; object-src 'none'; connect-src 'none'`;
     return `<!doctype html>
@@ -919,16 +939,16 @@ function renderReport(snapshot, manifest) {
 ${renderSource(snapshot, items, unavailable)}</header>
 <div class="split">${renderSummary(snapshot)}${renderHealth(snapshot.health, group)}</div>
 ${deliveryItems.length ? renderStanding(deliveryItems) : ''}${renderWaiting(isGroup ? { ...snapshot, items: deliveryItems } : snapshot, members)}
-<section id="work" class="work-region section" aria-labelledby="work-heading"><div class="section-head"><h2 id="work-heading" tabindex="-1">Work</h2><div class="aside"><p id="work-count" role="status" aria-live="polite" data-coverage="${escapeHtml(snapshot.coverage || 'unknown')}">${deliveryItems.length} ${isGroup ? 'eligible delivery PBIs' : 'inspected records'}${limited ? '; project total unknown' : ''}</p>${items.length ? '<p class="enhancement-only">Filters never change the delivery count above</p>' : ''}</div></div>
+<section id="work" class="work-region section" aria-labelledby="work-heading"><div class="section-head"><h2 id="work-heading" tabindex="-1">Work</h2><div class="aside"><p id="work-count" role="status" aria-live="polite" data-coverage="${escapeHtml(snapshot.coverage || 'unknown')}">${deliveryItems.length} ${isGroup ? 'eligible delivery tasks' : 'inspected records'}${limited ? '; project total unknown' : ''}</p>${items.length ? '<p class="enhancement-only">Filters never change the delivery count above</p>' : ''}</div></div>
 <div class="filters enhancement-only"${items.length ? '' : ' hidden'}><label class="field field--search">Search work<input id="work-search" type="search" maxlength="2000" autocomplete="off" placeholder="Title, identity or outcome"></label><label class="field">Responsible person<select id="work-owner"><option value="">All people</option>${owners.map(member => `<option value="${escapeHtml(member.id)}">${escapeHtml(member.displayName)}${member.active === false ? ' (inactive)' : ''}</option>`).join('')}</select></label><label class="field">Recorded state<select id="work-state"><option value="">All states</option>${states.map(state => `<option value="${escapeHtml(state)}">${escapeHtml(capital(stateName(state)))}</option>`).join('')}</select></label><label class="check"><input id="work-remaining" type="checkbox"><span>Remaining work</span></label><button type="button" id="clear-filters">Clear filters</button></div>
 <p id="interaction-error" class="hint" hidden>Filtering could not start. All inspected records remain available below. Reopen this report to retry.</p>
-${deliveryItems.length ? `<div class="table"><div class="table-head" aria-hidden="true"><span>Work</span><span>State</span><span>Responsible</span><span>Proof</span><span>Acceptance</span></div><ul class="work-list" aria-label="${isGroup ? 'Eligible delivery PBIs' : 'Work list'}">${deliveryItems.map(item => renderRow(item, members)).join('')}</ul></div>`
-        : `<div class="empty"><p class="empty-heading">${limited ? 'Work inspection is limited' : isGroup ? 'No eligible delivery PBIs' : 'No tracked work yet'}</p><p>${limited ? 'Work could not be fully inspected. Check the limits below and regenerate; zero inspected records is not proof of an empty project.' : isGroup ? 'This fixed group scope has no eligible delivery PBIs. Inspect excluded, supporting or outside records separately; no percentage applies.' : 'No work records were found in the selected snapshot. Capture an idea or item through the project tool or assistant, then regenerate this report.'}</p></div>`}<p id="filter-empty" class="hint" hidden>No records match these filters. Clear filters to inspect all records in this snapshot.</p>
+${deliveryItems.length ? `<div class="table"><div class="table-head" aria-hidden="true"><span>Work</span><span>State</span><span>Responsible</span><span>Proof</span><span>Acceptance</span></div><ul class="work-list" aria-label="${isGroup ? 'Eligible delivery tasks' : 'Work list'}">${deliveryItems.map(item => renderRow(item, members)).join('')}</ul></div>`
+        : `<div class="empty"><p class="empty-heading">${limited ? 'Work inspection is limited' : isGroup ? 'No eligible delivery tasks' : 'No tracked work yet'}</p><p>${limited ? 'Work could not be fully inspected. Check the limits below and regenerate; zero inspected records is not proof of an empty project.' : isGroup ? 'This fixed group scope has no eligible delivery tasks. Inspect excluded, supporting or outside records separately; no percentage applies.' : 'No work records were found in the selected snapshot. Capture an initiative or task through the project tool or assistant, then regenerate this report.'}</p></div>`}<p id="filter-empty" class="hint" hidden>No records match these filters. Clear filters to inspect all records in this snapshot.</p>
 <div class="record-details" aria-label="Inspected records, separate from fixed delivery scope"${items.length ? '' : ' hidden'}><p id="detail-empty" class="note enhancement-only">Select a row to open its outcome, criteria and proof.</p><p id="selected-outside" class="hint" hidden>Selected item is outside the current filters. Clear filters to see its work row.</p>${items.map(item => renderDetail(item, members, byId, snapshot)).join('')}</div>
 ${renderHierarchy(snapshot, byId)}${renderPathConcerns(snapshot, byId)}
-${items.length ? `<p class="note"><span class="enhancement-only">${isGroup ? 'Remaining work in this primary list means unaccepted eligible PBIs. ' : 'Remaining work means unaccepted PBIs, stories and tasks. '}</span>This snapshot cannot save changes; use the project tool or the managed workspace.</p>` : ''}</section>
+${items.length ? `<p class="note"><span class="enhancement-only">${isGroup ? 'Remaining work in this primary list means unaccepted eligible tasks. ' : 'Remaining work means unaccepted tasks, stories and subtasks. '}</span>This snapshot cannot save changes; use the project tool or the managed workspace.</p>` : ''}</section>
 ${renderPeople(items, directory)}
-${renderLimits(snapshot, unavailable)}
+${renderLimits(snapshot, unavailable && !unreadable)}
 <noscript><p class="hint">Scripts are disabled. Every inspected record and its detail is listed above; filtering and person selection require scripts. Use the browser Find command and native record links to inspect work.</p></noscript><footer class="footer"><p>Changes are made in each member's own checkout and shared through the team's Git process. This report neither writes records nor shares local proposals. It is one self-contained file: it loads nothing from the network and stays readable with scripts turned off.</p></footer></main>
 <script id="task-track-manifest" type="application/json">${inlineJson(manifest)}</script>
 <script id="task-track-data" type="application/json">${inlineJson(snapshot)}</script>

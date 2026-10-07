@@ -67,7 +67,7 @@ test('TC-CONVLOOP-042: all real review-family skills pass both rules', () => {
     assert.deepEqual(failures, [], `real review-family skills must have zero gaps:\n${failures.join('\n')}`);
 });
 
-// TC-CONVLOOP-043 — the allow-list is the finding-producing review skills plus the integration-test, domain-analysis, architecture, ui-design and pbi review mode
+// TC-CONVLOOP-043 — the allow-list is the finding-producing review skills plus the integration-test, domain-analysis, architecture, ui-design and work-item review mode
 // references (and the architecture scalability grader mode); no non-review skill leaks in (so a skill merely using the word "finding"/"Severity" is never
 // scanned = no false positive).
 test('TC-CONVLOOP-043: allow-list includes the review-family skills plus the review-mode references, no non-review skill included', () => {
@@ -78,7 +78,7 @@ test('TC-CONVLOOP-043: allow-list includes the review-family skills plus the rev
         'architecture/references/mode-review.md',
         'architecture/references/mode-full.md',
         'ui-design/references/mode-review.md',
-        'pbi/references/mode-review.md'
+        'work-item/references/mode-review.md'
     ]);
     assert.deepEqual(GRADER_MODE_REFERENCES, ['architecture/references/mode-scalability.md']);
     for (const nonReview of ['plan', 'investigate', 'fix', 'why-review']) {
@@ -153,7 +153,7 @@ const ROUTE_MENTIONERS_NOT_SCANNED = new Set([
     'why-review',              // the terminal validator that DEFINES the route
     'sync-codex',              // documents the route inside the verify-coverage sensor description
     'workflow-review-changes', // orchestrator: wires review skills, references the route in prose
-    'workflow-idea-to-pbi',    // workflow orchestrator: references the route in a gate step
+    'workflow-initiative-to-task', // workflow orchestrator: references the route in a gate step
     'fix'                      // its --target=review branch CONSUMES findings already validated by the route; it fixes, it does not grade
 ]);
 

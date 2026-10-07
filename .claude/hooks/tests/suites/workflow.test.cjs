@@ -169,7 +169,9 @@ const deadModuleVerificationTests = [
 // Framework Rename Regression Guards
 //   cook → feature-implement, code → plan --mode=execute,
 //   workflow-build-specs → workflow-code-to-spec,
-//   workflow-product-discovery → workflow-idea-to-spec
+//   workflow-product-discovery → workflow-idea-to-spec → workflow-initiative-to-spec,
+//   workflow-idea-to-pbi → workflow-initiative-to-task,
+//   workflow-spec-to-pbi → workflow-spec-to-task, idea → initiative, pbi → work-item
 //
 // Ports Guard A from the deleted orphan .claude/tests/workflow-routing-test.cjs:
 //   - Guard A (orphan Section 3): every workflow sequence step resolves to a
@@ -192,14 +194,14 @@ const EXPECTED_WORKFLOW_IDS = [
     'workflow-feature-spec',
     'workflow-implement-spec',
     'workflow-greenfield-init',
-    'workflow-idea-to-pbi',
-    'workflow-idea-to-spec',
+    'workflow-initiative-to-task',
+    'workflow-initiative-to-spec',
     'workflow-refactor',
     'workflow-research',
     'workflow-review-changes',
     'workflow-architecture-audit',
     'workflow-code-to-spec',
-    'workflow-spec-to-pbi',
+    'workflow-spec-to-task',
     'workflow-spec-to-mockup',
     'workflow-spec-sync',
     'workflow-seed-test-data',
@@ -207,11 +209,11 @@ const EXPECTED_WORKFLOW_IDS = [
 ];
 
 // Ids removed by the rename — must never reappear as workflow keys.
-const REMOVED_WORKFLOW_IDS = ['workflow-build-specs', 'workflow-product-discovery'];
+const REMOVED_WORKFLOW_IDS = ['workflow-build-specs', 'workflow-product-discovery', 'workflow-idea-to-pbi', 'workflow-idea-to-spec', 'workflow-spec-to-pbi'];
 // Step/skill ids renamed away — must never reappear as a sequence step.
 // Checked by EXACT array-element match (NOT substring) so legitimate compound
 // ids (code-quality-review, code-simplifier, code-to-spec) are never false-flagged.
-const REMOVED_STEP_IDS = ['cook', 'code'];
+const REMOVED_STEP_IDS = ['cook', 'code', 'idea', 'pbi'];
 
 function loadWorkflowConfig() {
     return JSON.parse(fs.readFileSync(WORKFLOW_CONFIG_PATH, 'utf8'));
@@ -252,7 +254,9 @@ const renameFixGuardTests = [
             }
             // Renamed-IN ids present (proves the rename actually landed).
             assertTrue(ids.includes('workflow-code-to-spec'), 'Renamed-in "workflow-code-to-spec" must be present');
-            assertTrue(ids.includes('workflow-idea-to-spec'), 'Renamed-in "workflow-idea-to-spec" must be present');
+            for (const renamedIn of ['workflow-initiative-to-spec', 'workflow-initiative-to-task', 'workflow-spec-to-task']) {
+                assertTrue(ids.includes(renamedIn), `Renamed-in "${renamedIn}" must be present`);
+            }
 
             // Removed ids absent everywhere (config keys + sequences).
             const hits = findRemovedIds(config);
@@ -951,12 +955,12 @@ const annotatedRegistryTests = [
             assertTrue(declaredStepLists(config).some(([label]) => label.includes('/')), 'variant sequences must be checked too');
             // And a missing watzup (variant) or a watzup moved ahead of workflow-end (flat) is detected
             const mutated = cloneConfig(config);
-            const course = mutated.workflows['workflow-research'].variants.course.sequence;
-            course.splice(course.findIndex(step => step.skill === 'watzup'), 1);
+            const synthesis = mutated.workflows['workflow-research'].variants.synthesis.sequence;
+            synthesis.splice(synthesis.findIndex(step => step.skill === 'watzup'), 1);
             const flat = mutated.workflows['workflow-spec-sync'].sequence;
             const [watzup] = flat.splice(flat.indexOf('watzup'), 1);
             flat.splice(flat.length - 1, 0, watzup);
-            assertDeepEqual(findMissingCloseTail(mutated), ['workflow-research/course', 'workflow-spec-sync']);
+            assertDeepEqual(findMissingCloseTail(mutated), ['workflow-research/synthesis', 'workflow-spec-sync']);
         }
     }
 ];

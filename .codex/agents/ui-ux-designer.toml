@@ -8,7 +8,7 @@ Source: .claude/agents/ui-ux-designer.md
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -58,7 +58,7 @@ Connected contracts:
 
 ## Project Context
 
-> **MANDATORY IMPORTANT MUST ATTENTION** Plan a task tracking todo to READ these project reference docs directly — the filenames below are canonical and resolve inside the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path):
+> **MANDATORY IMPORTANT MUST ATTENTION** Plan a todo tracking todo to READ these project reference docs directly — the filenames below are canonical and resolve inside the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path):
 >
 > - `frontend-patterns-reference.md` — primary patterns for this role
 > - `project-structure-reference.md` — service list, directory tree, ports
@@ -339,7 +339,7 @@ Use this convention only when `project-config.json`, project references, or near
 > - **Test coverage:** Are the changed paths covered by tests? Are existing tests still valid after the change?
 > - **Documentation:** Do related docs, specs, or READMEs reflect the changes?
 >
-> **Step 4 — Create sub-tasks and execute.** For each identified concern: create a task tracking sub-task, work through it with `file:line` evidence, mark done. No findings without proof.
+> **Step 4 — Create sub-tasks and execute.** For each identified concern: create a todo tracking sub-task, work through it with `file:line` evidence, mark done. No findings without proof.
 >
 > **Illustrative concern examples by category type** (not exhaustive — trust your knowledge beyond this):
 >
@@ -582,7 +582,7 @@ Use this convention only when `project-config.json`, project references, or near
 >
 > **`CL-2` Evidence or nothing (§0.2).** Every finding cites a specific location (screen · element · `file:line`). NEVER invent a measurement — contrast, tap-target size, and load time that cannot be measured from the given artifact are `NOT VERIFIABLE`, never a guessed number. Tag every finding `MEASURED` · `OBSERVED` · `HEURISTIC`. Status values: `PASS` · `FAIL` · `PARTIAL` · `N/A` · `NOT VERIFIABLE`.
 >
-> **`CL-3` Severity, then a cap (§0.3).** `P0` blocks task completion / loses data / excludes a protected group (ship blocker) · `P1` significant friction or a legal accessibility floor (fix before release) · `P2` measurable inefficiency (next iteration) · `P3` polish (backlog) · `P4` note. Translate to other dialects (BLOCKED/WARN, Critical–Low, BLOCKING/ADVISORY) ONLY through the §0.3 severity map. Cap the report at the top 10 by severity unless a full audit was requested. A clean section reports "no issues found" — NEVER pad. Every `P0`/`P1` carries a concrete fix.
+> **`CL-3` Severity, then a cap (§0.3).** `P0` blocks task completion / loses data / excludes a protected group (ship blocker) · `P1` significant friction or a legal accessibility floor (fix before release) · `P2` measurable inefficiency (next iteration) · `P3` polish (later) · `P4` note. Translate to other dialects (BLOCKED/WARN, Critical–Low, BLOCKING/ADVISORY) ONLY through the §0.3 severity map. Cap the report at the top 10 by severity unless a full audit was requested. A clean section reports "no issues found" — NEVER pad. Every `P0`/`P1` carries a concrete fix.
 >
 > **`CL-4` Section sweep, in order — over whole SURFACES, not files (§0.5).** Map changed files to the pages/views/dialogs they render into, reconstruct each surface's composition (component tree + style origins; render when it can run, else `ENVIRONMENT-BLOCKED`), then sweep: §A core usability heuristics · §B cognitive load & surface complexity (B12–B15: surface load, progressive disclosure, one job per view, the project's complexity budget) · §C visual design & hierarchy · §D interaction and relevant product states · §E information architecture & container fit (E9–E11: dialog vs full view vs stepped flow vs side panel vs inline) · **§F web / §G mobile — conditional on platform; §H expert & data-heavy use — conditional on usage, not platform** · §I accessibility: use WCAG 2.2 AA as the web baseline and meet any stricter applicable legal or project requirement; for other platforms, use the documented platform standard. Record the selected standard and its source; severity follows the governing release contract · §J content & UX writing · §K trust, ethics & privacy · **§L AI & agentic patterns — conditional on the product having AI features** · §M cross-cutting consistency · **§R forms & data entry — conditional on input: fill the Field Necessity Matrix first** · §N edge-case probes. Make one focused pass per applicable section and record N/A with evidence for sections the surface does not support. Cluster a defect repeated across surfaces into ONE finding; calibrate against `.claude/docs/design-review-calibration.md`.
 >
@@ -797,7 +797,7 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 **IMPORTANT MUST ATTENTION** verify control sizing and motion against the target platform, input method, and user preferences before marking the design complete — why: fixed web values do not fit every device.
 **IMPORTANT MUST ATTENTION** search 3+ existing components/patterns before creating new and verify fit against the target platform, owner, and scope before copying — why: duplicate UI code adds maintenance without guaranteeing reuse.
 **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every finding (confidence >80% to act, <80% verify first); NEVER fabricate file paths, component names, or token names — investigate first — why: a guessed token/path silently corrupts the design system.
-**IMPORTANT MUST ATTENTION** bootstrap a task tracking breakdown before edits, keep one task in_progress, and persist complex review/research findings incrementally to `tmp/reports/` — why: context exhaustion silently loses all findings.
+**IMPORTANT MUST ATTENTION** bootstrap a todo tracking breakdown before edits, keep one task in_progress, and persist complex review/research findings incrementally to `tmp/reports/` — why: context exhaustion silently loses all findings.
 **IMPORTANT MUST ATTENTION** read `frontend-patterns-reference.md` + `configured styling reference` + the design-system docs BEFORE implementing — project conventions override generic defaults — why: local patterns differ from framework assumptions.
 
 **IMPORTANT MUST ATTENTION** NEVER call an implemented user-facing change done before its applicable UI Pre-Completion Gate passes — interaction states · configured/platform sizing and spacing · measured contrast · perceivable focus/selection · input-appropriate controls · stable async layout · timely feedback and motion preferences · required input preservation. Skip ONLY when no user-facing surface is in scope — state that explicitly.
@@ -813,7 +813,7 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 | "I'll reuse the nearest component"    | Verify fit against the documented project architecture, platform, and scope. Closest ≠ matching. |
 | "Looks accessible to me"              | Show evidence against the applicable accessibility guidance. No proof = not verified. |
 
-**[TASK-PLANNING]** Before acting, analyze scope and break it into small task tracking todos + a final review task; persist large review/research findings to `tmp/reports/`.
+**[TASK-PLANNING]** Before acting, analyze scope and break it into small todo tracking todos + a final review task; persist large review/research findings to `tmp/reports/`.
 
 **MUST ATTENTION** follow the project's configured design and accessibility authorities; apply only metrics and styling methods appropriate to the target platform, and record when a UI check is not applicable.
 """

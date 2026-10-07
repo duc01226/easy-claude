@@ -8,7 +8,7 @@ description: '[Implementation] Use when implementing a feature step by step.'
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -19,7 +19,7 @@ description: '[Implementation] Use when implementing a feature step by step.'
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
 > **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, merge steps without explicit user approval.
-> **[BLOCKING]** Before each step or sub-skill call, update task tracking: `in_progress` on start, `completed` on end.
+> **[BLOCKING]** Before each step or sub-skill call, update todo tracking: `in_progress` on start, `completed` on end.
 > **[BLOCKING]** Every completed/skipped step MUST include evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools unavailable, maintain equivalent step-by-step plan tracker with same status transitions.
 
@@ -54,7 +54,7 @@ description: '[Implementation] Use when implementing a feature step by step.'
 
 > **MANDATORY — standalone `$feature-implement` only.** When invoked OUTSIDE a workflow, wrap the core spine in this quality loop. Detect nesting via the current task list FIRST: if THIS run is a step of a `[Workflow]` row (its own phase tasks are linked to that parent row, `nested=true` — a `[Workflow]` row that merely exists in the current task list, such as an abandoned one, does not count), SKIP this section — the surrounding workflow already sequences plan/review/why-review around this skill (e.g. `workflow-feature` wraps feature-implement with exactly these steps).
 >
-> Create these as task tracking tasks up front, in order, then execute them:
+> Create these as todo tracking tasks up front, in order, then execute them:
 >
 > 1. **`$spec` — spec-driven, BEFORE any plan or code.** Create or update the tech-free 8-section Feature Spec under the business spec root (default `docs/specs/`; `specRoots.business.path` in `docs/project-config.json` overrides) so the plan and implementation satisfy an agreed contract, not chat memory. Decide the case from evidence: net-new capability with no code yet → `$spec [mode=draft]` (provisional, `Evidence: TBD`); enhancement to an already-documented feature → `$spec [mode=update]`; behavior/contract change to existing spec → `$spec [mode=amend]`; buggy/undocumented area that now warrants a spec → `$spec [mode=init]`. If a governing spec already exists and fully covers this change, record `Spec verified current — no change` with `file:line` evidence and proceed. **Skip ONLY in fast mode** (ALL Default Mode Policy trivial-task conditions met — no behavior/contract change); record the skip reason. Decide the case explicitly — skip only the authoring, never the decision.
 > 2. **`$plan`** — author the implementation plan from the spec. feature-implement's Comprehensive Planning phase (Step 2) satisfies this; emit a reviewable plan artifact under the plans root (default `plans/`; `docsRoots.plans.path` in `docs/project-config.json` overrides). Map each plan phase's `## Test Specifications` to the spec's §8 `TC-{FEATURE}-{NNN}` IDs.
@@ -245,7 +245,7 @@ mistakes compound through later tasks.
 
 > If THIS run is a step of a `[Workflow]` row (`nested=true`: its own phase tasks are linked to that parent row; a `[Workflow]` row that merely exists in the current task list, such as an abandoned one, does not count), skip — workflow handles sequencing.
 
-> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. Prevents context loss from long files. For simple tasks, MUST ATTENTION ask user whether to skip.
+> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. Prevents context loss from long files. For simple tasks, MUST ATTENTION ask user whether to skip.
 
 - `domain-entities-reference.md` under the reference-docs root (default `docs/project-reference`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides) — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models)
 - The business spec root (default `docs/specs/`; `specRoots.business.path` in `docs/project-config.json` overrides) — Test specifications by module (read existing TCs; generate/update via `$spec [mode=tests]` after implementation)
@@ -374,14 +374,14 @@ mistakes compound through later tasks.
 - **Plan Quality:** Add `## Test Specifications` with TC IDs to every plan phase.
 
 - **MANDATORY IMPORTANT MUST ATTENTION** default mode HARD — opt out to fast mode ONLY when ALL trivial-task conditions met
-- **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks via task tracking BEFORE starting
+- **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks via todo tracking BEFORE starting
 - **MANDATORY IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code
 - **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
 - **MANDATORY IMPORTANT MUST ATTENTION** add final review todo task to verify work quality
 - **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via `ask user question tool` — never auto-decide
 - **MANDATORY IMPORTANT MUST ATTENTION** NEVER skip `code-reviewer` review or test execution on non-trivial change
 
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break into small todo tasks and sub-tasks via task tracking.
+**[TASK-PLANNING]** Before acting, analyze task scope and systematically break into small todo tasks and sub-tasks via todo tracking.
 
 <!-- SYNC:core-engineering-principles:reminder -->
 

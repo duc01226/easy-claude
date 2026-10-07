@@ -3,7 +3,7 @@
 > Loaded by `architecture/SKILL.md`'s Mode Dispatch when invoked as `/architecture --mode=scalability [init|audit] [scope]`. Formerly `/architecture-scalability-review`. This contract is the whole invocation: run it exactly as written, standalone or as a workflow step. `$ARGUMENTS` in this file means the invocation text after `--mode=scalability`. The `mode=init` / `mode=audit` tokens below are this mode's run type (passed as `init` / `audit` or `mode=init` / `mode=audit`); they are separate from the skill-level `--mode=scalability` that selected this file.
 
 > **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
-> **[BLOCKING]** Before each step or sub-skill call, update task tracking: set `in_progress` when step starts, set `completed` when step ends.
+> **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
 

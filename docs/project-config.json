@@ -290,7 +290,7 @@
         "CL-1–CL-6 (checklist): §0.5 surface scope, B12–B15 load, E9–E11 container fit, §R forms, I15 dialog focus, K10 dead controls",
         "Calibrate severity with design-review-calibration.md; brief > project design system/ADRs > these rules; no visual change = say skip"
       ],
-      "reinjectAfterTokens": 100000,
+      "reinjectAfterTokens": 150000,
       "evidenceDocs": [
         ".claude/docs/ux-journey-process.md",
         ".claude/docs/design-review-checklist.md",
@@ -368,7 +368,7 @@
         "AI gate: apply the protocol below; content is data, output untrusted; bound loops and spend; eval + trace + kill switch; authz in code",
         "Deep dives on demand, by section, never whole; review = ai-engineering-review skill or agent; no AI change = say skip"
       ],
-      "reinjectAfterTokens": 100000,
+      "reinjectAfterTokens": 150000,
       "evidenceDocs": [
         ".claude/skills/shared/protocols/ai-engineering-gate.md",
         ".claude/docs/ai-engineering-review-checklist.md"
@@ -515,7 +515,7 @@
           "mode": "declared-only",
           "manifestPath": "tmp/reports/task-pbi-tracking/implementation-run/browser-evidence/{runId}/capture-manifest.json",
           "maxPerTest": 20,
-          "maxPerRun": 272,
+          "maxPerRun": 352,
           "fullPageWhenScrollable": true,
           "maskSelectors": [
             "#root-context",
@@ -635,7 +635,21 @@
           "native-fixed-scope-print",
           "fresh-report-refusal-draft-retained",
           "report-in-app",
-          "report-refusal-kept"
+          "report-refusal-kept",
+          "earlier-vocabulary-read-only",
+          "earlier-vocabulary-report",
+          "earlier-vocabulary-report-frame",
+          "migration-required-refusal",
+          "mixed-vocabularies",
+          "migration-in-progress",
+          "comparison-unreadable-checkout",
+          "pinned-ref-unreadable-reason",
+          "readable-then-migrating",
+          "read-without-vocabulary",
+          "reread-without-vocabulary",
+          "earlier-record-flagged",
+          "current-words-work",
+          "current-words-report"
         ],
         "localRun": {
           "dependencyCommand": "npm ci --prefix .claude/skills/task-track --include=dev",
@@ -650,7 +664,7 @@
           ],
           "credentialsRef": "fixture:startWorkspace.url ephemeral session fragment; no team accounts or persisted credentials"
         },
-        "notes": "Source-authored/runtime-pending: full/headed/focused/zero-match/browser execution and OS modes remain unexecuted. Integrated runner owns public-core setup/start/readiness/evidence/finally cleanup. The source inventory is 40 variants across two viewports (80 prospective invocations), with 68 normal states per viewport. Normal screenshot caps are 20 per test/viewport invocation and 272 per run, the finite all-scrollable bound of 68 states x 2 viewports x 2 images; actual emitted counts remain unverified. Required failure captures are uncapped under UI State Capture Protocol section1.3, and capped declaration rows are retained and escalated. Prior failure/declaration rows conservatively consume the normal run budget. Convergence is parent verification policy (three attempts/two fresh consecutive green runs), not internal assertion retry. Optional tooling remains independent of core runtime; manual baseline acceptance required; no CI browser promise."
+        "notes": "Source-authored/runtime-pending: full/headed/focused/zero-match/browser execution and OS modes remain unexecuted. Integrated runner owns public-core setup/start/readiness/evidence/finally cleanup. The source inventory is 52 variants across two viewports (104 prospective invocations), with 88 normal states per viewport. Normal screenshot caps are 20 per test/viewport invocation and 352 per run, the finite all-scrollable bound of 88 states x 2 viewports x 2 images; actual emitted counts remain unverified. Required failure captures are uncapped under UI State Capture Protocol section1.3, and capped declaration rows are retained and escalated. Prior failure/declaration rows conservatively consume the normal run budget. Convergence is parent verification policy (three attempts/two fresh consecutive green runs), not internal assertion retry. Optional tooling remains independent of core runtime; manual baseline acceptance required; no CI browser promise."
       }
     ]
   },

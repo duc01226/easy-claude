@@ -257,6 +257,11 @@ function pathRulesDelivery(config, projectDir) {
     if (undeliverable.length) {
         return inline(`rule-bearing group(s) ${undeliverable.map(label).join(', ')} cannot be delivered by the hook (nameless or duplicate name)`);
     }
+    // The complete CLI is the mandatory pre-action carrier, not the bounded PostToolUse digest.
+    // Older standalone library copies lack this capability and retain the conservative inline guard.
+    if (config.conventionInjection?.completeLookup === true && conventions.COMPLETE_LOOKUP_VERSION === 1 && typeof conventions.lookupComplete === 'function') {
+        return { requested, compact: true, reason: null, conventions, entries, completeLookup: true };
+    }
     const readOnly = entries.filter(entry => entry.on === (conventions.TRIGGER_READ || 'read'));
     if (readOnly.length) {
         return inline(`rule-bearing group(s) ${readOnly.map(entry => literal(entry.name)).join(', ')} are read-only (on: read); the lookup prints only what a change delivers`);
@@ -308,6 +313,13 @@ function buildGoldenRules(config, projectDir) {
     const delivery = pathRulesDelivery(config, projectDir);
     if (delivery.compact) {
         const names = delivery.entries.map(entry => literal(entry.name)).join(', ');
+        if (delivery.completeLookup) return [
+            `**Path-scoped project rules** — loaded before action. Groups with rules: ${names}.`,
+            '',
+            `- BEFORE the first read, grep, edit or test of a target, run \`${delivery.conventions.LOOKUP_COMMAND} <path> --complete\`. Read ALL returned pages and required references. This applies to shell access and file tools.`,
+            '- The lookup includes every matching rule and document; follow its --page continuation until complete. Repeat for each target path when planning a change.',
+            '- Automatic PostToolUse reminders are bounded accelerators, never proof of complete pre-read coverage. Apply rules only to their matching paths.'
+        ].join('\n');
         return [
             `**Path-scoped project rules** — delivered just in time, not inlined here. Groups with rules: ${names}.`,
             '',
@@ -642,6 +654,9 @@ const SKILL_ACTIVATION_INTRO = 'When editing files matching these path patterns,
 function buildSkillActivation(config, projectDir) {
     const groups = config.contextGroups || [];
     if (groups.length === 0) return null;
+    if (pathRulesDelivery(config, projectDir).completeLookup) {
+        return 'Path rules and pre-read documents use the complete lookup above; the Doc Lookup below routes task-level references. No duplicate path table is loaded.';
+    }
     const header = '| Path Pattern | Skill / Auto-Context | Pre-Read Files |\n|---|---|---|';
     const conventions = loadFileConventions(process.env, process.cwd(), projectDir);
 

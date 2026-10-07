@@ -181,14 +181,14 @@ What the scaffold guarantees (each item is a marker the `review` profile checks,
                     <p class="deck__lede">{One sentence: the outcome this feature delivers, for whom}</p>
                     <dl class="deck__facts">
                         <dt>Scope</dt>
-                        <dd>{PBIs and specs in this review}</dd>
+                        <dd>{tasks and specs in this review}</dd>
                         <dt>Prepared</dt>
                         <dd>{YYYY-MM-DD}</dd>
                     </dl>
                     <template class="slide-notes">
                         <p><strong>Say:</strong> Introduce {Feature(s)}: the problem it solves for {primary user} and the scope under review today. Point at the scope line.</p>
                         <p><strong>Why:</strong> Reviewers need the outcome and the boundary before any screen, so they judge each demo against the right goal.</p>
-                        <p><strong>Evidence:</strong> {Idea, spec and PBI files this deck was built from}.</p>
+                        <p><strong>Evidence:</strong> {Initiative, spec and task files this deck was built from}.</p>
                         <p><strong>Transition:</strong> Before the demos, one slide on how to move through the deck.</p>
                         <p><strong>Timing:</strong> 00:45</p>
                         <p><strong>Question:</strong> Is anything reviewers expected left out of scope? Answer from the scope line and name where the deferred work is tracked.</p>
@@ -247,17 +247,17 @@ What the scaffold guarantees (each item is a marker the `review` profile checks,
                     </template>
                 </section>
 
-                <section class="slide deck__slide" data-slide-id="summary" data-purpose="State the decisions reviewers must make and the next backlog items" data-principle="A review ends in decisions and owners, not in a recap">
+                <section class="slide deck__slide" data-slide-id="summary" data-purpose="State the decisions reviewers must make and the next planned work items" data-principle="A review ends in decisions and owners, not in a recap">
                     <h2>Decisions and next steps</h2>
                     <ul class="deck__list">
                         <li>{Decision needed from reviewers, and who makes it}</li>
-                        <li>{Next backlog item, in ranked order, with its priority}</li>
+                        <li>{Next planned work item, in ranked order, with its priority}</li>
                         <li>{Open question, and who answers it by when}</li>
                     </ul>
                     <template class="slide-notes">
-                        <p><strong>Say:</strong> Read each decision aloud and ask for a yes, a no or an owner before closing; point at the ranked backlog items.</p>
-                        <p><strong>Why:</strong> Without a recorded decision the next sprint starts on assumptions the review was meant to settle.</p>
-                        <p><strong>Evidence:</strong> {Backlog or ranking file}; open questions from {spec or PBI section}.</p>
+                        <p><strong>Say:</strong> Read each decision aloud and ask for a yes, a no or an owner before closing; point at the ranked planned work items.</p>
+                        <p><strong>Why:</strong> Without a recorded decision the next delivery wave starts on assumptions the review was meant to settle.</p>
+                        <p><strong>Evidence:</strong> {Planned-work or ranking file}; open questions from {spec or task section}.</p>
                         <p><strong>Transition:</strong> Close the review, or open All slides to revisit a demo.</p>
                         <p><strong>Timing:</strong> 03:00</p>
                         <p><strong>Question:</strong> What is deliberately left out? Answer from the deferred list and who owns it.</p>
@@ -393,7 +393,7 @@ What the scaffold guarantees (each item is a marker the `review` profile checks,
                     } else if (restoreFocus) buttons.notes.focus();
                 }
 
-                /* OPTIONAL auto-play: pbi --mode=mockup's engine starts its walkthrough on 'play' (§3b). */
+                /* OPTIONAL auto-play: work-item --mode=mockup's engine starts its walkthrough on 'play' (§3b). */
                 function playDemo(slide) {
                     if (!slide.hasAttribute('data-journey') || reducedMotion.matches) return;
                     const frame = slide.querySelector('.deck__embed iframe');
@@ -570,12 +570,12 @@ The example above carries four slides; a real deck adds the taxonomy sections be
 
 - **Title / agenda** [`title`] — feature(s), run date, scope.
 - **How to use this deck** [`how-to`] — the scaffold's how-to slide: deck controls and keys (including that the scroll keys first scroll a slide that does not fit), All slides, Notes, Full screen and Dark theme, each demo's own ▶ Play / ⏮ ⏭ / ↺ Reset controls, how to leave a demo, the print notice, and the outside-asset notice when declared (see §3b).
-- **Business context** [`business-context`] — problem, value, idea→spec narrative, epics.
+- **Business context** [`business-context`] — problem, value, initiative→spec narrative, project groups.
 - **Decomposition & boundaries** [`decomposition`] — when any large-idea signal is true, render the owning `large_idea_decomposition` block: stable slice IDs/outcomes, dependency order, non-goals, risks/evidence owners, and deferred-work owners. When all signals are false, render `N/A — ordinary isolated scope`; never invent a roadmap or milestone.
-- **Scope & backlog** [`scope-backlog`] — PBI cards, user stories, acceptance criteria, priorities.
+- **Scope & planned work** [`scope-backlog`] — task cards, user stories, acceptance criteria, priorities.
 - **Behavior & rules** [`rules`] — Feature Spec §4 business rules / §5 invariants, §8 test cases.
 - **Demo flows / user journeys** [`demo-{journey-slug}`] — one slide per main user story: interactive mockup embed + narration beside it (see §3b); spec-only → one wireframe-demo slide per ASCII frame [`demo-{journey-slug}`, `demo-{journey-slug}-2`, …] (§3b "Spec-only wireframe demo").
-- **UI / mockups** [`ui-{feature-slug}`] — one of: `<iframe srcdoc>` embed (idea-to-pbi), design-spec ASCII wireframe in an escaped `<pre class="deck__wireframe" tabindex="0" role="region" aria-label="Wireframe: {screen}">` + Component Inventory / States / Design-Tokens tables (idea-to-spec), or the empty-state text "No prototype or design available for {feature}".
+- **UI / mockups** [`ui-{feature-slug}`] — one of: `<iframe srcdoc>` embed (initiative-to-task), design-spec ASCII wireframe in an escaped `<pre class="deck__wireframe" tabindex="0" role="region" aria-label="Wireframe: {screen}">` + Component Inventory / States / Design-Tokens tables (initiative-to-spec), or the empty-state text "No prototype or design available for {feature}".
 - **QC view** [`qc-view`] — test specifications, states matrix, edge cases.
 - **Summary / next steps** [`summary`].
 
@@ -600,7 +600,7 @@ The engine is the `<script>` at the end of the §1 scaffold — there is no seco
 
 ## 3. `<iframe srcdoc>` Mockup Embed — HTML-Escaping Spec (HIGHEST-RISK)
 
-Each existing `pbis/*-mockup.html` under the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in `docs/project-config.json` overrides) is a FULL HTML document containing `"`, `&`, `<`, `>`, and possibly inline `<script>`. It is embedded into the deck via:
+Each existing `tasks/*-mockup.html` under the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in `docs/project-config.json` overrides) is a FULL HTML document containing `"`, `&`, `<`, `>`, and possibly inline `<script>`. It is embedded into the deck via:
 
 ```html
 <div class="deck__embed">
@@ -670,7 +670,7 @@ The `</script>` becomes `&lt;/script&gt;` and the `<script>` becomes `&lt;script
 
 ## 3b. Demo-Flow Slide Pattern (interactive journey + narration)
 
-One demo slide per main user story (journey) — the `demo-{journey-slug}` slide in the §1 scaffold. It embeds the **interactive** `pbi --mode=mockup` HTML scoped to that flow via `<iframe srcdoc>` (the same escape-once rule as §3) and sets the **narration** beside it: the journey's steps in plain language, always visible, never hidden behind the notes. The journey is driven by the mock-up's own controls (▶ Play · ⏮ ⏭ · ↺) **inside** the iframe; the mock-up is self-driving (its engine lives in `pbi/references/mockup-interactive-demo.md` §2–§3) — the deck only navigates slides and adds narration; it does NOT re-implement (or duplicate) interactivity.
+One demo slide per main user story (journey) — the `demo-{journey-slug}` slide in the §1 scaffold. It embeds the **interactive** `work-item --mode=mockup` HTML scoped to that flow via `<iframe srcdoc>` (the same escape-once rule as §3) and sets the **narration** beside it: the journey's steps in plain language, always visible, never hidden behind the notes. The journey is driven by the mock-up's own controls (▶ Play · ⏮ ⏭ · ↺) **inside** the iframe; the mock-up is self-driving (its engine lives in `work-item/references/mockup-interactive-demo.md` §2–§3) — the deck only navigates slides and adds narration; it does NOT re-implement (or duplicate) interactivity.
 
 Demo slide markers:
 
@@ -689,11 +689,11 @@ No-visual demo notes (same six labels; the build fills the `{…}` placeholders)
     <p><strong>Evidence:</strong> No prototype or design exists yet for {feature}; the steps come from {story or spec file}. Acceptance criteria {AC IDs}.</p>
     <p><strong>Transition:</strong> Next for {next slide's topic}.</p>
     <p><strong>Timing:</strong> 01:30</p>
-    <p><strong>Question:</strong> When will a prototype exist? Answer with {the backlog item or owner that delivers it}, or record it as an open question.</p>
+    <p><strong>Question:</strong> When will a prototype exist? Answer with {the planned work item or owner that delivers it}, or record it as an open question.</p>
 </template>
 ```
 
-### Spec-only wireframe demo (`idea-to-spec`)
+### Spec-only wireframe demo (`initiative-to-spec`)
 
 A spec-only journey has no prototype: it steps through the design spec's ASCII wireframes, ONE SLIDE PER FRAME, so Next (or the Right arrow) advances the frames like any slide. Each frame slide replaces the scaffold demo's iframe AND its `.deck__empty` line with a wireframe figure — keeping the empty-state line would show "No prototype or design available" beside the design. Keep the narration and its "⚠ Simulated" note. The engine's empty-demo swap acts only on an embed that holds an iframe, so it leaves this slide alone.
 
@@ -750,13 +750,13 @@ The §2 engine is a single global slide router; per-journey interactivity lives 
 
 2. **OPTIONAL `postMessage('play')` to auto-start a journey when its slide opens** — the engine's `playDemo()` posts `'play'` to the slide's iframe each time a `data-journey` slide is shown, skipped when the viewer prefers reduced motion. It is a progressive enhancement that MUST degrade gracefully: a frame that has not finished loading misses it, and a mockup without the listener ignores it; the baseline is always the viewer clicking inside the frame.
 
-    Optional only — never a hard dependency. The receiver is the engine's OPTIONAL, inert-when-standalone `message` listener in `pbi/references/mockup-interactive-demo.md` §3 (it calls the walkthrough's `play()` when the parent posts `'play'`). When that listener is absent the post is simply ignored — so the handshake is symmetric (a real receiver exists), not sender-only, and the embedded mock-up stays self-driving with direct clicking as the baseline.
+    Optional only — never a hard dependency. The receiver is the engine's OPTIONAL, inert-when-standalone `message` listener in `work-item/references/mockup-interactive-demo.md` §3 (it calls the walkthrough's `play()` when the parent posts `'play'`). When that listener is absent the post is simply ignored — so the handshake is symmetric (a real receiver exists), not sender-only, and the embedded mock-up stays self-driving with direct clicking as the baseline.
 
 ---
 
 ## 4. [BLOCKING] Fidelity Gate
 
-> **[BLOCKING] After the deck is assembled (SKILL.md Step 6) and passes the `review` conformance check (Step 8), validate its visuals faithfully match the existing UI inventoried in Step 4 before handoff.** Do NOT report the deck as done until this validation records a result — a deck that does not match the current system is not done. (Mirrors the `pbi --mode=mockup` *Fidelity Validation* gate — Step 7 — at deck scope.)
+> **[BLOCKING] After the deck is assembled (SKILL.md Step 6) and passes the `review` conformance check (Step 8), validate its visuals faithfully match the existing UI inventoried in Step 4 before handoff.** Do NOT report the deck as done until this validation records a result — a deck that does not match the current system is not done. (Mirrors the `work-item --mode=mockup` *Fidelity Validation* gate — Step 7 — at deck scope.)
 
 Validate the produced deck against the inventoried existing UI and record an explicit pass/fail:
 

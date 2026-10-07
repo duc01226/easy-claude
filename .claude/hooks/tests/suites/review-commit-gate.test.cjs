@@ -130,25 +130,55 @@ const tests = [
                 `grep -rln "git-${C}-block" .claude/hooks/tests/`,
                 `grep -iE "git|${C}|authority" /dev/null`,
                 `cat > f.md <<'EOF'\n- \`git log -S\` on stampFooter\n- same ${C} bd4ee4b057\nEOF`,
-                `echo "see git-${C}-block.cjs for the ${C} policy"`
+                `cat > f.md <<'EOF'\nDocument git ${C} literally, including $(git ${C} -m data).\nEOF`,
+                `cat <<-"EOF"\n\tgit ${C}\n\tEOF`,
+                `cat <<\\EOF\r\ngit ${C}\r\nEOF\r\n`,
+                `echo "see git-${C}-block.cjs for the ${C} policy"`,
+                `git ${C}-tree abc123`,
+                `git ${C}-tree HEAD^{tree}`,
+                `git -C /repo ${C}-tree HEAD^{tree}`
             ]) {
                 const resolved = resolveCommitDescriptors(command, HERE);
                 assert.equal(resolved.known, true, `must not fail closed on a mere mention: ${command}`);
                 assert.deepEqual(resolved.descriptors, [], `must find no commit candidate in: ${command}`);
             }
 
-            // A real invocation must still be seen — either parsed into a candidate, or fail closed.
+            // Real invocations and unresolved executable forms must remain gated.
             for (const command of [
                 `git ${C} -m x`,
                 `sh -c "git ${C} -m x"`,
+                `sh <<'EOF'\ngit ${C} -m x\nEOF`,
+                `custom-runner <<'EOF'\ngit ${C} -m x\nEOF`,
+                `cat <<'EOF' | sh\ngit ${C} -m x\nEOF`,
+                `cat <<EOF\n$(git ${C} -m x)\nEOF`,
+                `cat <<'EOF'\ndata\nEOF\ngit ${C} -m x`,
+                `cat <<'EOF'\ngit ${C} -m x`,
+                `PATH=/other cat <<'EOF'\ngit ${C}\nEOF`,
+                `cat <<'EOF';\ngit ${C}\nEOF`,
+                `cat <<'EOF' > "$OUTPUT"\ngit ${C}\nEOF`,
+                `cat <<'EOF' <<OTHER\ndata\nEOF\n$(git ${C} -m x)\nOTHER`,
                 `git -c user.name=x ${C} -m y`,
                 `git -C /repo ${C} -m y`,
                 `git --no-pager ${C} -m y`,
-                `echo "$(git ${C} -m x)"`
+                `echo "$(git ${C} -m x)"`,
+                `git ${C}; git status`
             ]) {
                 const resolved = resolveCommitDescriptors(command, HERE);
                 const gated = resolved.known === false || (resolved.descriptors || []).length > 0;
                 assert.equal(gated, true, `a real commit invocation must stay gated: ${command}`);
+            }
+            // Empty dynamic suffixes can execute the literal commit operation on POSIX and Windows.
+            // Unknown shell syntax must retain the pre-existing fail-closed review boundary.
+            for (const command of [
+                'git ' + C + '${EMPTY} -m x',
+                'git ' + C + "$(printf '') -m x",
+                'git ' + C + "`printf ''` -m x",
+                'git ' + C + '%EMPTY% -m x',
+                'git ' + C + '$env:EMPTY -m x'
+            ]) {
+                assert.equal(resolveCommitDescriptors(command, HERE).known, false, command);
+                assert.equal(gate().evaluate({ tool_name: 'Bash', tool_input: { command }, cwd: HERE })?.code, 2,
+                    `a potentially real commit with unknown syntax must require review: ${command}`);
             }
         }
     },

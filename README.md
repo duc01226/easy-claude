@@ -4,7 +4,7 @@
 
 ## What is this?
 
-**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **<!-- COUNT:hooks -->32<!-- /COUNT --> top-level hook files**, **<!-- COUNT:skills -->102<!-- /COUNT --> skills**, **<!-- COUNT:workflows -->19<!-- /COUNT --> workflows**, and **<!-- COUNT:agents -->24<!-- /COUNT --> specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`.
+**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **<!-- COUNT:hooks -->32<!-- /COUNT --> top-level hook files**, **<!-- COUNT:skills -->102<!-- /COUNT --> skills**, **<!-- COUNT:workflows -->19<!-- /COUNT --> workflows**, and **<!-- COUNT:agents -->24<!-- /COUNT --> specialized agents**. It covers the entire software development lifecycle — from initiative capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`.
 
 **Core insight:** LLMs forget, hallucinate, and drift. Instead of hoping the AI "just gets it right," this framework uses **programmatic guardrails** (hooks) and **prompt-engineered protocols** (skills/workflows) to enforce correctness at every stage.
 
@@ -136,7 +136,7 @@ node .claude/skills/sync-codex/scripts/run-codex-sync.mjs   # standalone Codex s
 
 ## What's Inside
 
-### Hooks (<!-- COUNT:hooks -->32<!-- /COUNT --> top-level `.cjs` files, <!-- COUNT:lib-modules -->59<!-- /COUNT --> lib modules)
+### Hooks (<!-- COUNT:hooks -->32<!-- /COUNT --> top-level `.cjs` files, <!-- COUNT:lib-modules -->61<!-- /COUNT --> lib modules)
 
 Runtime Node.js scripts that fire on Claude Code lifecycle events.
 
@@ -147,7 +147,7 @@ Runtime Node.js scripts that fire on Claude Code lifecycle events.
 | **Session Management** | `verify-install`, `session-init`, `session-init-docs`, `session-end`, `graph-session-init`                                                                                         | Initialize state, load config, seed the graph                                                                                                                                                                                                                                                                            |
 | **Routing**            | `init-prompt-gate`, `workflow-route-inject`, `graph-prompt-sync`, `prompt-ledger`, `commit-skill-route`, `judgement-integrity-route`, `ai-feature-route`, `core-principles-inject`, `task-tracking-route` | Gate prompts until project config is ready, inject the route gate and live catalog, re-sync the graph when HEAD moved, keep the prompt ledger anchored, route commit requests to the `commit` skill, remind the judgement-integrity check on verdict requests, remind the AI-engineering gate on AI-feature requests, and offer optional task-tracking purpose/concern guidance |
 | **Post-processing**    | `post-edit-prettier`, `graph-auto-update`, `file-convention-inject`, `token-budget-checkpoint`                                                                                     | Format after edits, keep the code graph current, remind the opt-in per-file conventions after reads/edits, emit an advisory token checkpoint at task steps                                                                                                                                                               |
-| **Protocol delivery**  | `protocol-inject-review`, `-evidence-trace`, `-workflow-task`, `-spec-test`, `-design`, `-universal-<n>` (4 bins), `skill-overlay-remind`                                                                            | Deliver the full shared-protocol texts a skill declares, once per session, on a skill load, a typed `/command`, or a skill-preloading sub-agent start; the universal bundle goes to the first prompt, after about 100K tokens or a compaction, and to every sub-agent; the overlay reminder names a skill's project overlays                                                                                                                                                                    |
+| **Protocol delivery**  | `protocol-inject-review`, `-evidence-trace`, `-workflow-task`, `-spec-test`, `-design`, `-universal-<n>` (4 bins), `skill-overlay-remind`                                                                            | Deliver the full shared-protocol texts a skill declares, once per session, on a skill load, a typed `/command`, or a skill-preloading sub-agent start; the universal bundle goes to the first prompt, after about 150K tokens or a compaction, and to every sub-agent; the overlay reminder names a skill's project overlays                                                                                                                                                                    |
 
 > **De-hooked enforcement & context injection.** Earlier versions ran runtime
 > enforcement/lifecycle hooks — per-edit/per-prompt inject dispatchers plus task/skill/edit
@@ -160,7 +160,7 @@ Runtime Node.js scripts that fire on Claude Code lifecycle events.
 > universal hook delivers (a host that runs no hooks is unsupported).
 
 **Context re-anchoring:** The universal rules are delivered by the universal hook on the first prompt and
-again after 100K tokens of growth or a compaction, and to every sub-agent; the workflow route is delivered by
+again after 150K tokens of growth or a compaction, and to every sub-agent; the workflow route is delivered by
 `workflow-route-inject.cjs`. `CLAUDE.md` and `AGENTS.md` hold project information only. This design prevents
 context drift over long sessions.
 
@@ -176,14 +176,14 @@ Markdown-based prompts with YAML frontmatter that guide AI behavior.
 | **Review**         | `/code-quality-review`, `/changes-review`, `/security-audit`                                                             | Code quality, security audits                            |
 | **Documentation**  | `/docs-manager --mode=update`, `/spec`                                                                                   | Auto-generate and maintain docs                          |
 | **Research**       | `/web-research`, `/source-deep-dive`                                                                                     | Web research, library docs fetching                      |
-| **Design**         | `/ui-design`, `/design-spec`, `/pbi --mode=mockup`                                                                       | UI/UX design, specs, wireframes, PBI visuals             |
+| **Design**         | `/ui-design`, `/design-spec`, `/work-item --mode=mockup`                                                                       | UI/UX design, specs, wireframes, task visuals             |
 | **DevOps**         | `/fix --target=ci`, `/production-readiness-review`                                                                       | CI/CD fixes, release reliability                         |
 | **Scanning**       | `/scan-all`, `/scan --target=<key>`, `/scan-codebase-health`                                                             | Generate reference docs the project-reference gate reads |
 | **Documents**      | `/pdf-convert`, `/docx-convert`                                                                                          | Document format conversion (both directions via `--to`)  |
 
 ### Workflows (<!-- COUNT:workflows -->19<!-- /COUNT --> definitions)
 
-End-to-end process orchestration with step enforcement. The table below shows the most-used workflows — see `.claude/workflows.json` for all <!-- COUNT:workflows -->19<!-- /COUNT --> (including `workflow-architecture-audit`, `workflow-feature-spec`, `workflow-spec-to-pbi`, `workflow-spec-sync`, and `workflow-seed-test-data`).
+End-to-end process orchestration with step enforcement. The table below shows the most-used workflows — see `.claude/workflows.json` for all <!-- COUNT:workflows -->19<!-- /COUNT --> (including `workflow-architecture-audit`, `workflow-feature-spec`, `workflow-spec-to-task`, `workflow-spec-sync`, and `workflow-seed-test-data`).
 
 **Pick a workflow by use case:**
 
@@ -194,8 +194,8 @@ End-to-end process orchestration with step enforcement. The table below shows th
 | Build a large/ambiguous feature (needs R&D)                    | `workflow-big-feature`      |
 | Refactor without changing behavior                             | `workflow-refactor`         |
 | Start a brand-new project from scratch                         | `workflow-greenfield-init`  |
-| Turn a raw idea into a Feature Spec                            | `workflow-idea-to-spec`     |
-| Take one idea to a groomed PBI                                 | `workflow-idea-to-pbi`      |
+| Turn a raw idea into a Feature Spec                            | `workflow-initiative-to-spec`     |
+| Take one idea to a groomed task                                 | `workflow-initiative-to-task`      |
 | Turn a spec into a clickable mockup (1–3 designs)              | `workflow-spec-to-mockup`   |
 | Author/maintain Feature Specs from code                        | `workflow-code-to-spec`     |
 | Add or update integration tests, or drive a red suite to green | `workflow-integration-test` |
@@ -213,7 +213,7 @@ Reviews are first-class skills you can run standalone, and several are chained a
 | --------------------------------- | ------------------------------------------------------------------------ |
 | `/changes-review`                 | General correctness/quality on staged, unstaged, or branch-diff changes  |
 | `/code-quality-review`            | Targeted code-quality review and completion-claim verification           |
-| `/why-review`                     | Weak rationale / unjustified changes in plans, diffs, PBIs, specs        |
+| `/why-review`                     | Weak rationale / unjustified changes in plans, diffs, tasks, specs        |
 | `/architecture --mode=review`     | Layering, messaging, service-boundary, CQRS, repo violations             |
 | `/domain-analysis --mode=review`  | DDD design quality of entities and value objects                         |
 | `/performance-review`             | N+1 queries, indexing, API latency, memory, render bottlenecks           |
@@ -222,7 +222,7 @@ Reviews are first-class skills you can run standalone, and several are chained a
 | `/production-readiness-review`    | Production readiness of service-layer and API changes                    |
 | `/ui-design --mode=review`        | Overflow, responsive layout, z-index, SCSS/BEM quality                   |
 | `/plan --mode=review`             | One-pass, read-only plan validity and execution-risk review              |
-| `/pbi --mode=review`              | PBI / story / test-spec / design artifact quality before handoff         |
+| `/work-item --mode=review`              | Task / story / test-spec / design artifact quality before handoff         |
 
 ### Agents (<!-- COUNT:agents -->24<!-- /COUNT --> specialists)
 
@@ -333,7 +333,7 @@ Seven principles that make this framework work reliably across any project:
 
 | Principle                         | What it means                                                                                                                                                                          |
 | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Stateless-per-turn invariants** | Universal rules are re-delivered by hook on the first prompt, after about 100K tokens or a compaction, and at every sub-agent start — never trust context retention over long sessions |
+| **Stateless-per-turn invariants** | Universal rules are re-delivered by hook on the first prompt, after about 150K tokens or a compaction, and at every sub-agent start — never trust context retention over long sessions |
 | **Defense in depth**              | Quality gates exist across hooks (programmatic), skills (protocol), workflows (sequence), and agents (specialized review). Bypassing one is caught by another                          |
 | **Self-contained skill units**    | Each skill names every shared protocol it needs in a guide line; a hook delivers the full text, and the guide's file path is the fallback. Skills work standalone                      |
 | **Project-agnostic generality**   | One `project-config.json` drives all context injection. The same hooks, skills, and workflows adapt to any tech stack                                                                  |

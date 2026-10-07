@@ -7,7 +7,7 @@
  *           every check only the consumer owns (DoR GIVEN/WHEN/THEN + scenario minimums + auth,
  *           dependency Type/Status columns, the challenge vagueness-token check) is always evaluated;
  *           reuse needs a content hash (never size + mtime).
- *   idea    the Validation Summary step always ends in ONE confirming question about the revised
+ *   initiative  the Validation Summary step always ends in ONE confirming question about the revised
  *           problem statement / scope (derived summary, not a second interview).
  *   scan    scan-all / docs-manager --mode=init read each target's own file head for its applies-when / skip-when gate.
  *   chain   the research chain restates no search/fetch cap numbers (each skill owns its own).
@@ -63,17 +63,17 @@ function coverageMapPairs(text) {
 
 // The only criteria a report may satisfy: the identical M1-M7 gate, and the releasable-outcome / full-flow row.
 const EXPECTED_COVERAGE_PAIRS = [
-    '`pbi --mode=challenge` criterion it may satisfy | M1, M2, M3, M4, M5, M7 verdicts (shared criteria above) | the M1-M7 compliance gate',
-    '`pbi --mode=challenge` criterion it may satisfy | Row 1 — releasable outcome and full flow | Step 5 releasable outcome and UI full-flow surface checks',
-    '`pbi --mode=dor` criterion it may satisfy | M1, M2, M3, M4, M5, M7 verdicts (shared criteria above) | the M1-M7 compliance gate',
-    '`pbi --mode=dor` criterion it may satisfy | Row 1 — releasable outcome and full flow | Required row 3 (releasable outcome) and row 4 (full-flow surface)'
+    '`work-item --mode=challenge` criterion it may satisfy | M1, M2, M3, M4, M5, M7 verdicts (shared criteria above) | the M1-M7 compliance gate',
+    '`work-item --mode=challenge` criterion it may satisfy | Row 1 — releasable outcome and full flow | Step 5 releasable outcome and UI full-flow surface checks',
+    '`work-item --mode=dor` criterion it may satisfy | M1, M2, M3, M4, M5, M7 verdicts (shared criteria above) | the M1-M7 compliance gate',
+    '`work-item --mode=dor` criterion it may satisfy | Row 1 — releasable outcome and full flow | Required row 3 (releasable outcome) and row 4 (full-flow surface)'
 ].sort();
 
 const tests = [
     {
-        name: '[review-fix-product] TC-RFP-001 pbi --mode=dor reuses only the coverage-mapped criteria; DoR-owned checks are always evaluated',
+        name: '[review-fix-product] TC-RFP-001 work-item --mode=dor reuses only the coverage-mapped criteria; DoR-owned checks are always evaluated',
         ...guarded(() => {
-            const section = between(skillText('pbi', 'references', 'mode-dor.md'), '**Optional input — `--reuse=', '**Failure fixes');
+            const section = between(skillText('work-item', 'references', 'mode-dor.md'), '**Optional input — `--reuse=', '**Failure fixes');
             assert.ok(section, 'the dor mode keeps its --reuse section');
             const split = section.indexOf('ALWAYS evaluated in full');
             assert.ok(split > 0, 'the section names the always-evaluated DoR-owned checks');
@@ -98,13 +98,13 @@ const tests = [
             const text = skillText('shared', 'm1-m7-gates.md');
             const reuse = text.slice(text.indexOf('## Reusing an earlier verdict'));
             assert.ok(reuse.length > 0, 'the reuse section exists');
-            // Identity: algorithm named, mtime only ever forbidden, path + hash recorded, per-PBI and newest-report rules
+            // Identity: algorithm named, mtime only ever forbidden, path + hash recorded, per-task and newest-report rules
             assert.match(reuse, /SHA-256/, 'the hash algorithm is stated');
             const mtimeLines = reuse.split('\n').filter(line => /mtime/i.test(line));
             assert.ok(mtimeLines.length > 0, 'the section addresses mtime');
             for (const line of mtimeLines) assert.match(line, /NOT|never/, `mtime may only appear as forbidden: ${line.slice(0, 120)}`);
-            assert.match(reuse, /PBI path/, 'the header records the PBI path');
-            assert.match(reuse, /section\/path for this PBI/i, 'several PBIs: only this PBI\'s section/path counts');
+            assert.match(reuse, /task path/, 'the header records the task path');
+            assert.match(reuse, /section\/path for this task/i, 'several tasks: only this task\'s section/path counts');
             assert.match(reuse, /newest one for that path/, 'several matching reports: newest for the path');
             assert.match(reuse, /EVERY criterion and mandate/, 'any mismatch turns reuse off entirely');
             // Coverage map: exactly the identical criteria; nothing consumer-owned is a reusable row
@@ -118,9 +118,9 @@ const tests = [
         })
     },
     {
-        name: '[review-fix-product] TC-RFP-003 pbi --mode=challenge reuses only the coverage-mapped criteria and always runs its own vagueness/AC-coverage checks',
+        name: '[review-fix-product] TC-RFP-003 work-item --mode=challenge reuses only the coverage-mapped criteria and always runs its own vagueness/AC-coverage checks',
         ...guarded(() => {
-            const section = between(skillText('pbi', 'references', 'mode-challenge.md'), '### Optional input — `--reuse=', '\n## Output');
+            const section = between(skillText('work-item', 'references', 'mode-challenge.md'), '### Optional input — `--reuse=', '\n## Output');
             assert.ok(section, 'the challenge mode keeps its --reuse section');
             const split = section.indexOf('Never skipped');
             assert.ok(split > 0, 'the section names the never-skipped checks');
@@ -132,24 +132,24 @@ const tests = [
         })
     },
     {
-        name: '[review-fix-product] TC-RFP-004 every pbi --mode=review report header requires a content hash, never size + mtime',
+        name: '[review-fix-product] TC-RFP-004 every work-item --mode=review report header requires a content hash, never size + mtime',
         ...guarded(() => {
-            const files = [['references', 'mode-review.md'], ['references', 'review-type-pbi.md'], ['references', 'review-type-story.md'], ['references', 'review-type-design.md'], ['references', 'review-type-spec-tests.md']];
+            const files = [['references', 'mode-review.md'], ['references', 'review-type-task.md'], ['references', 'review-type-story.md'], ['references', 'review-type-design.md'], ['references', 'review-type-spec-tests.md']];
             for (const rel of files) {
-                const lines = skillText('pbi', ...rel).split('\n').filter(line => /Artifact identity/.test(line));
+                const lines = skillText('work-item', ...rel).split('\n').filter(line => /Artifact identity/.test(line));
                 assert.ok(lines.length > 0, `${rel.join('/')} records an identity line`);
                 for (const line of lines) {
                     assert.match(line, /sha256/i, `${rel.join('/')} requires a hash: ${line.slice(0, 120)}`);
                     assert.doesNotMatch(line.replace(/size \+ mtime is not an identity/, ''), /mtime/, `${rel.join('/')} must not accept mtime: ${line.slice(0, 120)}`);
                 }
             }
-            assert.match(skillText('pbi', 'references', 'review-type-pbi.md'), /Artifact identity:\*\* \{PBI path\}/, 'the pbi template records the PBI path beside the hash');
+            assert.match(skillText('work-item', 'references', 'review-type-task.md'), /Artifact identity:\*\* \{task path\}/, 'the task review template records the task path beside the hash');
         })
     },
     {
-        name: '[review-fix-product] TC-RFP-005 idea Step 7 always asks the one confirm question (no "only when materially changed" gate)',
+        name: '[review-fix-product] TC-RFP-005 initiative Step 7 always asks the one confirm question (no "only when materially changed" gate)',
         ...guarded(() => {
-            const text = skillText('idea', 'SKILL.md');
+            const text = skillText('initiative', 'SKILL.md');
             const step7 = between(text, '### Step 7:', '**Validation Output Format');
             assert.ok(step7, 'Step 7 exists');
             assert.match(step7, /ALWAYS ask ONE short `ask user question tool`/, 'Step 7 asks unconditionally');

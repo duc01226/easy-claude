@@ -8,7 +8,7 @@ description: '[Research] Use when a workflow step or the user asks for synthesis
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -33,7 +33,7 @@ description: '[Research] Use when a workflow step or the user asks for synthesis
 
 **Workflow:**
 
-1. **Bootstrap** — Create small task tracking tasks; keep one `in_progress`; add a final review task.
+1. **Bootstrap** — Create small todo tracking tasks; keep one `in_progress`; add a final review task.
 2. **Load evidence** — Read both evidence files; inventory total findings/confidence, discrepancies, and gaps.
 3. **Load template** — Read `.claude/templates/research-report-template.md`; retain every section.
 4. **Synthesize** — Write `docs/knowledge/research/{slug}.md`; map evidence into each section, cite `[N]`, declare confidence, and record patterns/contradictions in Analysis.
@@ -104,7 +104,7 @@ Retain this run's `tmp/research/_sources-{slug}.md` and `_evidence-{slug}.md` th
 
 **IMPORTANT MUST ATTENTION Goal:** Synthesize the existing evidence base into a fully cited, template-compliant research report with honest confidence and explicit gaps, trustworthy for decisions.
 
-**IMPORTANT MUST ATTENTION Main path:** (1) create small task tracking tasks; keep one `in_progress`; add a final review task; (2) load both evidence files and inventory findings/confidence/discrepancies/gaps; (3) load the enforced template and retain every section; (4) synthesize to `docs/knowledge/research/{slug}.md` with `[N]` citations, per-finding confidence, and Analysis patterns/contradictions; (5) audit claim citations, Sources-table coverage, and orphan citations; (6) average scores, weight by importance, flag `<60%`, run final review, then retain source/evidence inputs until accepted workflow closure or explicit standalone acceptance.
+**IMPORTANT MUST ATTENTION Main path:** (1) create small todo tracking tasks; keep one `in_progress`; add a final review task; (2) load both evidence files and inventory findings/confidence/discrepancies/gaps; (3) load the enforced template and retain every section; (4) synthesize to `docs/knowledge/research/{slug}.md` with `[N]` citations, per-finding confidence, and Analysis patterns/contradictions; (5) audit claim citations, Sources-table coverage, and orphan citations; (6) average scores, weight by importance, flag `<60%`, run final review, then retain source/evidence inputs until accepted workflow closure or explicit standalone acceptance.
 
 **IMPORTANT MUST ATTENTION Mode/boundary:** No alternate mode or flag; consume existing `source-deep-dive` evidence; NEVER gather sources, fabricate, or upgrade findings; retain `tmp/research/` source/evidence inputs through review and repair.
 
@@ -113,7 +113,7 @@ Retain this run's `tmp/research/_sources-{slug}.md` and `_evidence-{slug}.md` th
 **IMPORTANT MUST ATTENTION** synthesize FROM the evidence base only (`tmp/research/_evidence-{slug}.md` + `_sources-{slug}.md`) — NEVER fabricate, add, or upgrade findings beyond gathered evidence; this skill consolidates, it does not research — why: invented findings poison the report's trust
 **IMPORTANT MUST ATTENTION** respect source tiers — Tier 4 (unverified) NEVER cited as fact; every factual claim backed by 2+ independent sources — why: single-source or unverified claims read as confident but unproven
 **IMPORTANT MUST ATTENTION** close with an honest confidence rollup (importance-weighted average of finding scores) that prominently flags every <60% finding — why: an unflagged weak finding inflates apparent report confidence
-**IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting; mark one `in_progress` at a time and complete it on evidence
+**IMPORTANT MUST ATTENTION** break work into small todo tasks using todo tracking BEFORE starting; mark one `in_progress` at a time and complete it on evidence
 **IMPORTANT MUST ATTENTION** cite `file:line` evidence (or `[N]` source) for every claim — confidence >80% to act, <60% DO NOT assert; NEVER present a guess as fact
 **IMPORTANT MUST ATTENTION** grep/read 3+ similar existing reports under `docs/knowledge/research/` before writing — match the template's section shape, do NOT invent a new layout — why: divergent report structure breaks the knowledge-review gate
 **IMPORTANT MUST ATTENTION** output final report to `docs/knowledge/research/{slug}.md`, retain this run’s working evidence until acceptance authorizes cleanup — why: rejected artifacts need reproducible repair inputs

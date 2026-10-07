@@ -1,7 +1,7 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-10-06'
+  last_updated: '2026-10-07'
   total_skills: 102
   total_by_status:
     active: 102
@@ -167,8 +167,8 @@ skills:
     - name: demo-guide
       path: demo-guide/SKILL.md
       description: '[Documentation] Use when a workflow step or the user asks for
-        demo guides and sprint walkthroughs linking stories and canonical cases to
-        runnable flows and evidence.'
+        demo guides and delivery walkthroughs linking stories and canonical cases
+        to runnable flows and evidence.'
       category: other
       has_scripts: false
       has_references: true
@@ -260,8 +260,8 @@ skills:
     - name: feature-presentation
       path: feature-presentation/SKILL.md
       description: '[Documentation] Use when a workflow step or the user asks for
-        a standalone HTML stakeholder deck combining specs, PBIs, ideas and mockups
-        with journey demos.'
+        a standalone HTML stakeholder deck combining specs, tasks, initiatives and
+        mockups with journey demos.'
       category: other
       has_scripts: false
       has_references: true
@@ -306,8 +306,8 @@ skills:
       removal_after: null
     - name: git-developer-performance
       path: git-developer-performance/SKILL.md
-      description: '[Git] Use when generating developer KPI, contribution, story point,
-        man-day or code-quality reports from git history.'
+      description: '[Git] Use when generating developer KPI, contribution, effort
+        point, man-day or code-quality reports from git history.'
       category: other
       has_scripts: true
       has_references: true
@@ -350,10 +350,11 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-    - name: idea
-      path: idea/SKILL.md
+    - name: initiative
+      path: initiative/SKILL.md
       description: '[Project Management] Use when a workflow step or the user asks
-        for structured product ideas or feature requests ready for PBI refinement.'
+        for an initiative: a structured product idea or feature request ready for
+        task refinement.'
       category: other
       has_scripts: false
       has_references: false
@@ -452,18 +453,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-    - name: pbi
-      path: pbi/SKILL.md
-      description: '[Project Management] Use when a workflow step or the user asks
-        for PBI refinement, story slicing, HTML mockups, draft challenges, artifact
-        review or Definition of Ready checks via --mode={refine|story|mockup|challenge|review|dor}.'
-      category: other
-      has_scripts: false
-      has_references: true
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
     - name: pdf-convert
       path: pdf-convert/SKILL.md
       description: '[Document Processing] Use when converting between PDF and Markdown:
@@ -514,7 +503,7 @@ skills:
     - name: prioritize
       path: prioritize/SKILL.md
       description: '[Project Management] Use when a workflow step or the user asks
-        for backlog prioritization using RICE, MoSCoW or Value-Effort ranking.'
+        for planned-work prioritization using RICE, MoSCoW or Value-Effort ranking.'
       category: other
       has_scripts: false
       has_references: false
@@ -794,9 +783,10 @@ skills:
     - name: task-track
       path: task-track/SKILL.md
       description: '[Project Management] Use when maintaining team work, inspecting
-        linked spec/PBI/task concerns, verifying tracker evidence, recording explicit
-        acceptance, opening status or maintaining exact linked items at a saved-work
-        checkpoint. Manual modes and shell recipes use the shared tracker core.'
+        linked spec/task/subtask concerns, verifying tracker evidence, recording explicit
+        acceptance, opening status, migrating a project that stores the earlier vocabulary
+        or maintaining exact linked items at a saved-work checkpoint. Manual modes
+        and shell recipes use the shared tracker core.'
       category: other
       has_scripts: true
       has_references: true
@@ -867,6 +857,18 @@ skills:
       description: '[Code Quality] Use when a workflow step or the user asks for explicit
         rationale review: necessity, choices and trade-offs. --validate-findings checks
         review reports; --fix-loop fixes and re-reviews. Not generic reviews or how-it-works.'
+      category: other
+      has_scripts: false
+      has_references: true
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
+    - name: work-item
+      path: work-item/SKILL.md
+      description: '[Project Management] Use when a workflow step or the user asks
+        for task refinement, story slicing, HTML mockups, draft challenges, artifact
+        review or readiness checks via --mode={refine|story|mockup|challenge|review|dor}.'
       category: other
       has_scripts: false
       has_references: true
@@ -975,33 +977,33 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-    - name: workflow-idea-to-pbi
-      path: workflow-idea-to-pbi/SKILL.md
-      description: '[Workflow] Turn a product idea into a reviewed, prioritized, Definition-of-Ready
-        PBI and story backlog; stop before implementation.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: workflow-idea-to-spec
-      path: workflow-idea-to-spec/SKILL.md
-      description: '[Workflow] Turn a raw idea, vision or problem into reviewed provisional
-        canonical specs with planned test cases; stop before backlog or implementation.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
     - name: workflow-implement-spec
       path: workflow-implement-spec/SKILL.md
       description: '[Workflow] Implement behavior already captured in a canonical
         spec or test-case set, with scope held, reviewed changes and verified tests.
         Spec gaps use workflow-feature.'
+      category: other
+      has_scripts: false
+      has_references: false
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
+    - name: workflow-initiative-to-spec
+      path: workflow-initiative-to-spec/SKILL.md
+      description: '[Workflow] Turn a raw idea, vision or problem into reviewed provisional
+        canonical specs with planned test cases; stop before planned work or implementation.'
+      category: other
+      has_scripts: false
+      has_references: false
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
+    - name: workflow-initiative-to-task
+      path: workflow-initiative-to-task/SKILL.md
+      description: '[Workflow] Turn a product idea into reviewed, prioritized, readiness-checked
+        planned tasks and stories; stop before implementation.'
       category: other
       has_scripts: false
       has_references: false
@@ -1069,7 +1071,7 @@ skills:
     - name: workflow-spec-to-mockup
       path: workflow-spec-to-mockup/SKILL.md
       description: '[Workflow] Turn UI-bearing canonical specs into reviewed, interactive
-        multi-view HTML mockups; stop before backlog or production code.'
+        multi-view HTML mockups; stop before planned work or production code.'
       category: other
       has_scripts: false
       has_references: false
@@ -1077,10 +1079,10 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-    - name: workflow-spec-to-pbi
-      path: workflow-spec-to-pbi/SKILL.md
-      description: '[Workflow] Convert existing canonical specs into a complete, dependency-ordered,
-        prioritized, Definition-of-Ready PBI and story backlog.'
+    - name: workflow-spec-to-task
+      path: workflow-spec-to-task/SKILL.md
+      description: '[Workflow] Convert existing canonical specs into complete, dependency-ordered,
+        prioritized, readiness-checked planned tasks and stories.'
       category: other
       has_scripts: false
       has_references: false

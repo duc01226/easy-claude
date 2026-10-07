@@ -9,7 +9,7 @@ disable-model-invocation: false
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -22,17 +22,17 @@ disable-model-invocation: false
 
 Read [the registry](../../../.claude/workflows.json) → `workflows.workflow-feature` together with this skill. Call [`$start-workflow workflow-feature`](../start-workflow/SKILL.md) to resolve the selected mode, pre-actions and fingerprint.
 
-**Todo FIRST:** create ALL selected occurrence tasks before triage, analysis or step execution, including conditional/optional tasks; preserve occurrence IDs, roles and barrier groups. Use native task tools or an equivalent persistent ledger. Then mark the first task `in_progress`; attach evidence before `completed`.
+**Todo FIRST:** create one todo for EVERY selected occurrence before triage, analysis or step execution, including conditional/optional ones; preserve occurrence IDs, roles and barrier groups. Use native todo tools or an equivalent persistent ledger. Then mark the first todo `in_progress`; attach evidence before `completed`.
 Mode selection and registry loading prepare tracking; any 'first action' below means the first substantive action after this bootstrap.
 
 **Call each step skill:** read its linked SKILL.md and execute its protocol through the active host with the registry args. Reading or naming a skill alone is not execution. Required gates and core/optional flex follow the linked start-workflow Step Execution Protocol; keep this skill's quality gates, loops and evidence requirements.
 
-**Conditions:** load each occurrence's registry `applicability.when` and `skipReason` verbatim, and record its run/skip evidence through the linked start-workflow protocol. Do not silently omit a task or turn a conditional skill into an unconditional call. Declared parallel groups retain their all-return barrier.
+**Conditions:** load each occurrence's registry `applicability.when` and `skipReason` verbatim, and record its run/skip evidence through the linked start-workflow protocol. Do not silently omit a todo or turn a conditional skill into an unconditional call. Declared parallel groups retain their all-return barrier.
 
 Explicit step-skill calls by mode (registry order; roles and conditions remain owned by the registry):
 
-- Mode `default`: [`$investigate`](../investigate/SKILL.md) (core) → [`$spec [mode=discovery]`](../spec/SKILL.md) (optional; conditional) → [`$domain-analysis`](../domain-analysis/SKILL.md) (optional; conditional) → [`$why-review`](../why-review/SKILL.md) (optional; conditional) → [`$spec`](../spec/SKILL.md) (core) → [`$spec [mode=clarify]`](../spec/SKILL.md) (optional; conditional) → [`$scenario`](../scenario/SKILL.md) (optional; conditional) → [`$pbi --mode=mockup --explore`](../pbi/SKILL.md) (optional; conditional) → [`$spec [mode=tests]`](../spec/SKILL.md) (core) → [`$pbi --mode=review --type=spec-tests`](../pbi/SKILL.md) (core) → [`$plan`](../plan/SKILL.md) (core) → [`$plan --mode=validate`](../plan/SKILL.md) (optional; conditional) → [`$plan --mode=execute`](../plan/SKILL.md) (core) → [`$seed-test-data`](../seed-test-data/SKILL.md) (optional; conditional) → [`$integration-test`](../integration-test/SKILL.md) (core) → [`$spec [mode=sync]`](../spec/SKILL.md) (core) → [`$workflow-review-changes --tests=defer`](../workflow-review-changes/SKILL.md) (gate) → [`$integration-test --mode=verify`](../integration-test/SKILL.md) (core) → [`$workflow-e2e --source=context`](../workflow-e2e/SKILL.md) (optional; conditional) → [`$test`](../test/SKILL.md) (gate) → [`$demo-guide`](../demo-guide/SKILL.md) (optional; conditional) → [`$workflow-end`](../workflow-end/SKILL.md) (gate) → [`$watzup`](../watzup/SKILL.md) (core)
-<!-- workflow-mode:default fingerprint:2d5aa27293ed7c03054c3ebbc68d8e618c8dba7c9698257572dde242c941bb7d -->
+- Mode `default`: [`$investigate`](../investigate/SKILL.md) (core) → [`$spec [mode=discovery]`](../spec/SKILL.md) (optional; conditional) → [`$domain-analysis`](../domain-analysis/SKILL.md) (optional; conditional) → [`$why-review`](../why-review/SKILL.md) (optional; conditional) → [`$spec`](../spec/SKILL.md) (core) → [`$spec [mode=clarify]`](../spec/SKILL.md) (optional; conditional) → [`$scenario`](../scenario/SKILL.md) (optional; conditional) → [`$work-item --mode=mockup --explore`](../work-item/SKILL.md) (optional; conditional) → [`$spec [mode=tests]`](../spec/SKILL.md) (core) → [`$work-item --mode=review --type=spec-tests`](../work-item/SKILL.md) (core) → [`$plan`](../plan/SKILL.md) (core) → [`$plan --mode=validate`](../plan/SKILL.md) (optional; conditional) → [`$plan --mode=execute`](../plan/SKILL.md) (core) → [`$seed-test-data`](../seed-test-data/SKILL.md) (optional; conditional) → [`$integration-test`](../integration-test/SKILL.md) (core) → [`$spec [mode=sync]`](../spec/SKILL.md) (core) → [`$workflow-review-changes --tests=defer`](../workflow-review-changes/SKILL.md) (gate) → [`$integration-test --mode=verify`](../integration-test/SKILL.md) (core) → [`$workflow-e2e --source=context`](../workflow-e2e/SKILL.md) (optional; conditional) → [`$test`](../test/SKILL.md) (gate) → [`$demo-guide`](../demo-guide/SKILL.md) (optional; conditional) → [`$workflow-end`](../workflow-end/SKILL.md) (gate) → [`$watzup`](../watzup/SKILL.md) (core)
+<!-- workflow-mode:default fingerprint:ca5f27e066f04a68838f3d45c88de5c85901f2b254e02a7c64bbd121d57f3be8 -->
 
 Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs --write` after registry edits; [`$sync-codex`](../sync-codex/SKILL.md) refreshes it before mirroring.
 <!-- WORKFLOW-CALLS:END -->
@@ -62,7 +62,7 @@ Classify the target before choosing steps and record the result in the run repor
 - **Size (guidance, not a law):** **XS** 1–3 files / ≤100 changed lines · **S** ≤15 files · **M** ≤60 · **L** ≤300 · **XL** >300
 - **Kind (one or more):** docs-only · tooling/config · test-only · behavior change · public contract/API · data/schema/migration · security-sensitive (auth, secrets, money, PII) · UI surface · infra/CI · cross-module/cross-service
 - **Risk:** irreversible · data · security · cross-module
-- **Large idea:** `isLargeIdea = multipleIndependentOutcomes || ambiguousOrResearchHeavy || releaseScopeDecomposition || oversizedPbiThatMustSplit` (`shared/product-roadmap-contract.md`)
+- **Large idea:** `isLargeIdea = multipleIndependentOutcomes || ambiguousOrResearchHeavy || releaseScopeDecomposition || oversizedTaskThatMustSplit` (`shared/product-roadmap-contract.md`)
 
 Escalate depth on risk and ambiguity, not file count alone:
 
@@ -83,7 +83,7 @@ The run is not done until each applicable gate holds with its evidence:
 - **Spec-first, test-first** — the canonical Feature Spec was authored or updated before the first `$plan`; test specs were written and reviewed before `$plan --mode=execute`
 - **Goal Contract** — the active Goal Contract is resolved at start per `SYNC:goal-contract-satisfaction-loop` (active plan `goal.md` → `goals/{YYMMDD-HHmm}-{slug}/goal.md` under the plans root, default `plans/`, relocated by `docsRoots.plans.path` in `docs/project-config.json` → create from the request); the plan's success criteria map to it before `$plan --mode=execute`; every child step reads that same goal file; closure needs every criterion PASS, or BLOCKED with a user-facing escalation
 - **Plan Gate** — `$plan --mode=execute` never starts while the plan's `## Plan Gate` is `BLOCKED` or lacks human approval
-- **Large idea** (when `isLargeIdea` is true) — the complete five-field `large_idea_decomposition` block (`outcome_slices`, `dependencies_order`, `non_goals`, `risks_evidence`, `deferred_work_owner`) sits in the owning spec/PBI before the first mutating `$spec` and carries its slice IDs through downstream presentation/mock-up artifacts; all-false work omits it; a genuinely isolated brownfield change records `EXEMPT` with reason and accepting owner and keeps the spec, scenario, test, review and human-confirmation gates. This workflow never creates a roadmap artifact — an explicitly supplied roadmap is read-only context
+- **Large idea** (when `isLargeIdea` is true) — the complete five-field `large_idea_decomposition` block (`outcome_slices`, `dependencies_order`, `non_goals`, `risks_evidence`, `deferred_work_owner`) sits in the owning spec/task before the first mutating `$spec` and carries its slice IDs through downstream presentation/mock-up artifacts; all-false work omits it; a genuinely isolated brownfield change records `EXEMPT` with reason and accepting owner and keeps the spec, scenario, test, review and human-confirmation gates. This workflow never creates a roadmap artifact — an explicitly supplied roadmap is read-only context
 - **Existing behavior preserved** (when an existing final output, persisted state, API response, projection or user-visible flow changes) — before the build: an end-to-start trace of the existing path (final reader → storage/projection → writer → producer/origin), its feeder paths, the invariants to keep, and forward proof for the new behavior; the plan and review evidence state expected, unchanged and no-regression behavior
 - **Performance route** (when the feature is a performance enhancement) — `$performance-review` with SLA/benchmark evidence — target metric, baseline, measurement command, regression budget; `$plan --mode=execute` still runs; functional no-regression checks run whenever behavior can change; spec/docs updated for a changed SLA, performance constraint or behavior boundary
 - **UI intent** (when user-facing behavior changed) — alongside `$spec [mode=sync]`, the Feature Spec §6 interaction surface (View Inventory, Key UI States, per-story click-path) is refreshed per `SYNC:ui-intent-layer` and linked to the governing `$design-spec`; a backend-only change states its skip reason
@@ -101,9 +101,9 @@ The run is not done until each applicable gate holds with its evidence:
 | `$spec` | core | spec-first gate — Feature Spec §1-7 before planning |
 | `$spec [mode=clarify]` | optional | user-confirmed decisions |
 | `$scenario` | optional | plan risk coverage |
-| `$pbi --mode=mockup --explore` | optional | selected mockup before planning — see New-UI Explore Mockup below |
+| `$work-item --mode=mockup --explore` | optional | selected mockup before planning — see New-UI Explore Mockup below |
 | `$spec [mode=tests]` | core | test-first gate — every invariant mapped to TC IDs in §8 |
-| `$pbi --mode=review --type=spec-tests` | core | test-spec quality |
+| `$work-item --mode=review --type=spec-tests` | core | test-spec quality |
 | `$plan` | core | decisions, areas, discovery, gates — one lean plan over the reviewed intent and cases |
 | `$plan --mode=validate` | optional | human plan approval |
 | `$plan --mode=execute` | core | the change, the performance route included |
@@ -118,11 +118,11 @@ The run is not done until each applicable gate holds with its evidence:
 | `$workflow-end` | gate | run-closed |
 | `$watzup` | core | handoff summary |
 
-**New-UI Explore Mockup (conditional, BEFORE `$plan`).** When the requirement or spec adds completely new user-facing UI — a new page/view, component or dialog — run `$pbi --mode=mockup --explore`, passing the spec (or the investigation report when no spec covers the UI yet) as `--source`. `pbi --mode=mockup` Step 0 owns the scope gate (asked first, before any analysis or drafting) and the direction pick; both run in the main session only. Record the outcome (`Mockup: SKIPPED by user` or the `Selection:` line) in the plan or run report; the plan's UI Layout builds on the selected mockup. Changes inside existing views skip it with the registry `skipReason`.
+**New-UI Explore Mockup (conditional, BEFORE `$plan`).** When the requirement or spec adds completely new user-facing UI — a new page/view, component or dialog — run `$work-item --mode=mockup --explore`, passing the spec (or the investigation report when no spec covers the UI yet) as `--source`. `work-item --mode=mockup` Step 0 owns the scope gate (asked first, before any analysis or drafting) and the direction pick; both run in the main session only. Record the outcome (`Mockup: SKIPPED by user` or the `Selection:` line) in the plan or run report; the plan's UI Layout builds on the selected mockup. Changes inside existing views skip it with the registry `skipReason`.
 
 The registry's default order, parsed by the workflow verifier — keep it equal to `workflows.json`; the roles above decide what may flex:
 
-**IMPORTANT MANDATORY Steps:** $investigate -> $spec [mode=discovery] -> $domain-analysis -> $why-review -> $spec -> $spec [mode=clarify] -> $scenario -> $pbi --mode=mockup --explore -> $spec [mode=tests] -> $pbi --mode=review --type=spec-tests -> $plan -> $plan --mode=validate -> $plan --mode=execute -> $seed-test-data -> $integration-test -> $spec [mode=sync] -> $workflow-review-changes --tests=defer -> $integration-test --mode=verify -> $workflow-e2e --source=context -> $test -> $demo-guide -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $investigate -> $spec [mode=discovery] -> $domain-analysis -> $why-review -> $spec -> $spec [mode=clarify] -> $scenario -> $work-item --mode=mockup --explore -> $spec [mode=tests] -> $work-item --mode=review --type=spec-tests -> $plan -> $plan --mode=validate -> $plan --mode=execute -> $seed-test-data -> $integration-test -> $spec [mode=sync] -> $workflow-review-changes --tests=defer -> $integration-test --mode=verify -> $workflow-e2e --source=context -> $test -> $demo-guide -> $workflow-end -> $watzup
 
 **On-demand skills (not registry steps):**
 
@@ -134,7 +134,7 @@ The registry's default order, parsed by the workflow verifier — keep it equal 
 
 ## Orchestration Freedom
 
-You choose inline vs sub-agent, parallel waves vs sequential, batching and ordering — optimize wall-clock and token cost at equal quality. **Main session only:** the mockup scope gate and pick (`pbi --mode=mockup` Step 0) never run inside a delegated sub-agent. Only these data dependencies are fixed:
+You choose inline vs sub-agent, parallel waves vs sequential, batching and ordering — optimize wall-clock and token cost at equal quality. **Main session only:** the mockup scope gate and pick (`work-item --mode=mockup` Step 0) never run inside a delegated sub-agent. Only these data dependencies are fixed:
 
 - a change exists before it is reviewed or tested; tests run once, last, after the static review (`--tests=defer`); a fix made by the verify step re-runs `$workflow-review-changes --tests=defer`, and a fix made by that re-review re-runs the verify (`SYNC:verify-last-order`);
 - the Feature Spec precedes the first `$plan`, and test specs are reviewed before `$plan --mode=execute`;
@@ -157,7 +157,7 @@ Recommended: independent read-only work in one parallel wave (`$spec [mode=disco
 - Validate findings (evidence-backed, reproducible) before fixing; fix at the owning layer; re-run the reviewer or test that raised each finding, plus a holistic pass when the fixes were non-trivial.
 - A failing test gets a root-cause verdict before either the source or the test is edited; never weaken an assertion to force green.
 - Replanning is exceptional: only a material scope/contract decision invalidating the saved plan returns to `$plan`; ordinary implementation discovery stays with the executor.
-- Review loops (each `$pbi --mode=review` occurrence, the nested review): round 1 exits on zero open validated findings (LOW deferral); round 2 exits on zero CRITICAL/HIGH/MEDIUM with LOW-only findings deferred; cap 3 review rounds; failed checks block and at the three-round cap require explicit user-approved bounded extension; escalate with `ask user question tool` on no progress. Convergence lives inside each skill's own loop, so the sequence lists each review once.
+- Review loops (each `$work-item --mode=review` occurrence, the nested review): round 1 exits on zero open validated findings (LOW deferral); round 2 exits on zero CRITICAL/HIGH/MEDIUM with LOW-only findings deferred; cap 3 review rounds; failed checks block and at the three-round cap require explicit user-approved bounded extension; escalate with `ask user question tool` on no progress. Convergence lives inside each skill's own loop, so the sequence lists each review once.
 - Spec-loop discipline: §8 derives invariant/property TCs for every hard rule and invariant, not only example scenarios; every behavior-changing finding updates BOTH the spec and the tests, never code alone.
 
 <!-- PROTOCOL-GUIDES:START -->

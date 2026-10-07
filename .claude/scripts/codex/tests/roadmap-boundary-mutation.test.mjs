@@ -13,7 +13,7 @@ const signals = (overrides = {}) => ({
   multipleIndependentOutcomes: false,
   ambiguousOrResearchHeavy: false,
   releaseScopeDecomposition: false,
-  oversizedPbiThatMustSplit: false,
+  oversizedTaskThatMustSplit: false,
   ...overrides,
 });
 
@@ -22,12 +22,12 @@ const fullDecomposition = () => ({
     id: "SLICE-001",
     outcome: "Actor completes outcome",
     releasable_when: "Visible result",
-    owning_artifact: "PBI-001",
+    owning_artifact: "TASK-001",
   }],
   dependencies_order: [{ before: "SLICE-001", after: "N/A", reason: "No predecessor" }],
   non_goals: [{ statement: "Later work", owner: "PO" }],
   risks_evidence: [{ risk: "Uncertainty", evidence_needed: "Observed result", status: "open", owner: "PO" }],
-  deferred_work_owner: [{ item: "Later work", owner: "PO", follow_up_artifact: "PBI-002", target_slice: "N/A" }],
+  deferred_work_owner: [{ item: "Later work", owner: "PO", follow_up_artifact: "TASK-002", target_slice: "N/A" }],
 });
 
 const importMutant = async (source, mutantName) => {
@@ -58,8 +58,8 @@ test("roadmap boundary mutation harness kills all four named mutants", async () 
     {
       name: "MUT-ROADMAP-002-missing-or-operand",
       expectedCode: "ROADMAP-DECOMPOSITION-SCHEMA",
-      transform: (input) => input.replace('    "oversizedPbiThatMustSplit",\n', ""),
-      dirty: () => ({ signals: signals({ oversizedPbiThatMustSplit: true }) }),
+      transform: (input) => input.replace('    "oversizedTaskThatMustSplit",\n', ""),
+      dirty: () => ({ signals: signals({ oversizedTaskThatMustSplit: true }) }),
     },
     {
       name: "MUT-ROADMAP-003-missing-required-field",

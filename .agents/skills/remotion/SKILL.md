@@ -9,7 +9,7 @@ disable-model-invocation: true
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -17,7 +17,7 @@ disable-model-invocation: true
 > - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
 > - For workflow skills, steps follow the guided contract in `$start-workflow` (gate steps fixed; other steps may flex with a logged reason); report step-by-step evidence.
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
-> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting. For simple tasks, ask user whether to skip.
+> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting. For simple tasks, ask user whether to skip.
 > **MUST ATTENTION** wait for user approval of scene plan (Step 3.3) before writing any files — NEVER skip.
 > **MUST ATTENTION** read existing project files before modifying — NEVER overwrite scenes blindly.
 > **MUST ATTENTION** update `totalChapters` in ALL existing scene files when adding/removing scenes.
@@ -501,7 +501,7 @@ Keep animations frame-driven and use Remotion media components and `staticFile()
 - **MUST ATTENTION** use `npx create-video@latest --yes --blank --no-tailwind` for scaffold — NEVER `npm init` unless fallback needed
 - **MUST ATTENTION** use `staggeredEaseOut` for list/card reveals — NEVER all-at-once opacity
 - **MUST ATTENTION** verify `PROJECT_EXISTS` before Play mode — report missing project and exit
-- **MUST ATTENTION** use task tracking to plan ALL work before starting — mark each task done immediately
+- **MUST ATTENTION** use todo tracking to plan ALL work before starting — mark each task done immediately
 - **MUST ATTENTION** ALL animations driven by `useCurrentFrame()` — CSS transitions, CSS animations, Tailwind animate/transition classes FORBIDDEN
 - **MUST ATTENTION** use Remotion components `<Img>`, `<Video>`, `<Audio>` — NEVER native HTML elements
 - **MUST ATTENTION** use `staticFile()` for all public/ folder assets — NEVER raw relative paths

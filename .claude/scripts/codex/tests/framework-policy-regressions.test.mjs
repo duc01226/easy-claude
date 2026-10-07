@@ -46,22 +46,29 @@ test("retired dispatch protocol is absent from skill injection tiers", async () 
 });
 
 test("large ideas use embedded decomposition and ordinary workflows do not add a roadmap writer", async () => {
-  const [contract, ideaToPbi, ideaToSpec, specToPbi, presentation, mockup, roadmap] = await Promise.all([
+  const [contract, initiativeToTask, initiativeToSpec, specToTask, presentation, mockup, roadmap] = await Promise.all([
     read(".claude/skills/shared/product-roadmap-contract.md"),
-    read(".claude/skills/workflow-idea-to-pbi/SKILL.md"),
-    read(".claude/skills/workflow-idea-to-spec/SKILL.md"),
-    read(".claude/skills/workflow-spec-to-pbi/SKILL.md"),
+    read(".claude/skills/workflow-initiative-to-task/SKILL.md"),
+    read(".claude/skills/workflow-initiative-to-spec/SKILL.md"),
+    read(".claude/skills/workflow-spec-to-task/SKILL.md"),
     read(".claude/skills/feature-presentation/SKILL.md"),
-    read(".claude/skills/pbi/references/mode-mockup.md"),
+    read(".claude/skills/work-item/references/mode-mockup.md"),
     read(".claude/skills/product-roadmap/SKILL.md"),
   ]);
-  for (const content of [contract, ideaToPbi, ideaToSpec, specToPbi]) {
+  for (const content of [contract, initiativeToTask, initiativeToSpec, specToTask]) {
     assert.match(content, /isLargeIdea/);
     assert.match(content, /large_idea_decomposition/);
     assert.match(content, /outcome_slices/);
     assert.match(content, /deferred_work_owner/);
   }
-  assert.match(presentation, /all-PBI presentation/i);
+  // The verifier evaluates the signal names the shared contract declares; a name that exists on one
+  // side only would make the decomposition check silently inapplicable.
+  const { ROADMAP_BOUNDARY_POLICY } = await import("../verify-sdd-semantic-compliance.mjs");
+  assert.equal(ROADMAP_BOUNDARY_POLICY.largeIdeaSignals.length, 4);
+  for (const signal of ROADMAP_BOUNDARY_POLICY.largeIdeaSignals) {
+    assert.ok(contract.includes(signal), `shared roadmap contract declares the ${signal} signal the verifier evaluates`);
+  }
+  assert.match(presentation, /all-task presentation/i);
   assert.match(presentation, /Decomposition & boundaries/i);
   assert.match(mockup, /Decomposition boundary/);
   assert.match(roadmap, /explicitly requested/i);
@@ -252,7 +259,7 @@ test("review convergence uses one blocking predicate and byte-identical low-only
     ".claude/skills/code-quality-review/SKILL.md",
     ".claude/skills/domain-analysis/references/mode-review.md",
     ".claude/skills/knowledge-review/SKILL.md",
-    ".claude/skills/pbi/references/mode-review.md",
+    ".claude/skills/work-item/references/mode-review.md",
     ".claude/skills/performance-review/SKILL.md",
     ".claude/skills/production-readiness-review/SKILL.md",
     ".claude/skills/security-audit/SKILL.md",

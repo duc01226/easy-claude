@@ -9,9 +9,9 @@ const { startWorkspace } = require('../lib/workspace-server.cjs');
 const VIEWPORTS = Object.freeze({ desktop: { width: 1280, height: 800 }, mobile: { width: 390, height: 844 } });
 const SETTLE_MS = 20000;
 const MAX_CAPTURES_PER_TEST = 20;
-// Full declared matrix: 74 states x 2 viewports x at most 2 images (viewport and full-page).
+// Full declared matrix: 88 states x 2 viewports x at most 2 images (viewport and full-page).
 // Reconcile the bound when states/viewports change; failure captures remain exempt.
-const MAX_CAPTURES_PER_RUN = 296;
+const MAX_CAPTURES_PER_RUN = 352;
 const MAX_LOGS_PER_TEST = 1000;
 const MASK_SELECTORS = Object.freeze(['#root-context', '.source dt:has-text("Checkout") + dd']);
 
@@ -71,17 +71,22 @@ async function withWorkspace(test, viewportName, options, run) {
         };
         let consoleCursor = 0;
         let captures = 0;
-        const capture = async (state, expected, { failure = false } = {}) => {
+        // `frame` names a frame element to picture by itself, brought into view, as one image: the narrow full-page image
+        // of the workspace came out with an unpainted report frame, so it is no evidence of what the frame shows.
+        const capture = async (state, expected, { failure = false, frame } = {}) => {
             const variants = [false];
-            const scrollable = await page.evaluate(() => document.documentElement.scrollHeight > innerHeight || document.documentElement.scrollWidth > innerWidth);
+            const scrollable = !frame && await page.evaluate(() => document.documentElement.scrollHeight > innerHeight || document.documentElement.scrollWidth > innerWidth);
             if (scrollable) variants.push(true);
+            const target = frame ? 'status report frame' : 'visible workspace';
+            // A mask is placed where the selector is found: in the page and, for a frame, in the document it shows.
+            const masks = [...MASK_SELECTORS.map(selector => page.locator(selector)), ...(frame ? MASK_SELECTORS.map(selector => page.frameLocator(frame).locator(selector)) : [])];
             for (const fullPage of variants) {
                 if (!failure && (captures >= MAX_CAPTURES_PER_TEST || evidence.manifest.captures.length >= MAX_CAPTURES_PER_RUN)) {
                     evidence.manifest.captures.push({ seq: evidence.manifest.captures.length + 1,
                         owner_path: test.owner, case_id: test.caseId, variant: test.variant,
                         test: { path: path.relative(process.cwd(), path.join(__dirname, 'workspace-browser.test.cjs')).split(path.sep).join('/'), name: test.name },
                         case_step: state, source: 'matrix', phase: 'post', action_type: 'declared-state', action_label: state,
-                        target: 'visible workspace', route: '/', surface: 'task-track-workspace',
+                        target, route: '/', surface: 'task-track-workspace',
                         viewport: { name: viewportName, ...VIEWPORTS[viewportName], full_page: fullPage },
                         expected_delta: expected, capped: true, masked: [...MASK_SELECTORS], console_since_last: [], read: false });
                     evidence.persist();
@@ -89,17 +94,17 @@ async function withWorkspace(test, viewportName, options, run) {
                 }
                 captures++;
                 const filename = `${String(captures).padStart(3, '0')}-${state}${fullPage ? '-full' : ''}.png`;
-                const target = path.join(directory, filename);
-                await page.screenshot({ path: target, fullPage, animations: 'disabled', timeout: SETTLE_MS,
-                    mask: MASK_SELECTORS.map(selector => page.locator(selector)) });
+                const file = path.join(directory, filename);
+                if (frame) { await page.locator(frame).scrollIntoViewIfNeeded(); await page.locator(frame).screenshot({ path: file, animations: 'disabled', timeout: SETTLE_MS, mask: masks }); }
+                else await page.screenshot({ path: file, fullPage, animations: 'disabled', timeout: SETTLE_MS, mask: masks });
                 const consoleSinceLast = logs.slice(consoleCursor).filter(entry => ['console', 'pageerror'].includes(entry.kind));
                 evidence.manifest.captures.push({ seq: evidence.manifest.captures.length + 1,
                     owner_path: test.owner, case_id: test.caseId, variant: test.variant,
                     test: { path: path.relative(process.cwd(), path.join(__dirname, 'workspace-browser.test.cjs')).split(path.sep).join('/'), name: test.name }, case_step: state,
                     source: 'matrix', phase: failure ? 'failure' : 'post', action_type: 'declared-state', action_label: state,
-                    target: 'visible workspace', route: '/', surface: 'task-track-workspace',
+                    target, route: '/', surface: 'task-track-workspace',
                     viewport: { name: viewportName, ...VIEWPORTS[viewportName], full_page: fullPage },
-                    expected_delta: expected, path: path.relative(process.cwd(), target).split(path.sep).join('/'), masked: [...MASK_SELECTORS], console_since_last: consoleSinceLast, read: false });
+                    expected_delta: expected, path: path.relative(process.cwd(), file).split(path.sep).join('/'), masked: [...MASK_SELECTORS], console_since_last: consoleSinceLast, read: false });
                 consoleCursor = logs.length;
                 evidence.persist();
             }

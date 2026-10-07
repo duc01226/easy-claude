@@ -8,7 +8,7 @@ description: '[Code Quality] Use when evaluating received review feedback, revie
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -19,7 +19,7 @@ description: '[Code Quality] Use when evaluating received review feedback, revie
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
 > **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
-> **[BLOCKING]** Before each step or sub-skill call, update task tracking: set `in_progress` when step starts, set `completed` when step ends.
+> **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
 
@@ -443,7 +443,7 @@ Choose and report the best supported next step under `SYNC:review-decision-auton
 
 ---
 
-> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, choose the smallest gate-preserving task breakdown without a skip question.
+> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, choose the smallest gate-preserving task breakdown without a skip question.
 
 > **Critical Purpose:** Ensure quality — no flaws, bugs, missing updates, stale content. Verify code AND documentation.
 
@@ -670,8 +670,8 @@ Choose and report the best supported next step under `SYNC:review-decision-auton
 
 **MUST ATTENTION** apply the triggered protocols named by the guides above: systematic coverage, evidence and full-flow tracing; category/intention/test review; validation before repair at the contract owner; fresh full re-review under the current severity bar. Read the bodies when triggered; this digest grants no gate skip. Embed all 11 required review protocol bodies in emitted reviewer prompts.
 
-- **MANDATORY** Nested Task Expansion Contract — when invoked inside a workflow, STILL expand internal phases via task tracking with `[N.M] /skill-name — phase` prefix and `TaskUpdate(parentTaskId, addBlockedBy: [childIds])` linkage. Workflow row is container, not substitute.
-- **MANDATORY** break work into small todo tasks using task tracking BEFORE starting
+- **MANDATORY** Nested Task Expansion Contract — when invoked inside a workflow, STILL expand internal phases via todo tracking with `[N.M] /skill-name — phase` prefix and `TaskUpdate(parentTaskId, addBlockedBy: [childIds])` linkage. Workflow row is container, not substitute.
+- **MANDATORY** break work into small todo tasks using todo tracking BEFORE starting
 - **MANDATORY** choose evidence-supported review decisions under `SYNC:review-decision-autonomy`; preserve round-extension approval and action authority
 - **MANDATORY** add final review task to verify work quality
 - **MANDATORY MUST ATTENTION** search for project-specific reference docs BEFORE reviewing (coding standards, architecture, test conventions)
@@ -679,7 +679,7 @@ Choose and report the best supported next step under `SYNC:review-decision-auton
 - **MANDATORY MUST ATTENTION** run `$why-review` after completing this review to validate design rationale, alternatives considered, and risk assessment
 - **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
 
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
+**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using todo tracking.
 
 | Evasion | Rebuttal |
 | ------- | -------- |

@@ -8,7 +8,7 @@ description: '[Documentation] Use when a workflow step or the user asks for cano
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -19,7 +19,7 @@ description: '[Documentation] Use when a workflow step or the user asks for cano
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
 > **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
-> **[BLOCKING]** Before each step or sub-skill call, update task tracking: set `in_progress` when step starts, set `completed` when step ends.
+> **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
 
@@ -27,13 +27,13 @@ description: '[Documentation] Use when a workflow step or the user asks for cano
 
 > **[BLOCKING] Mode routing — detect FIRST.** Read the selected reference in full before acting (see [Modes](#modes-resolve-mode-first--blocking)). `discovery`, `clarify`, and `index` replace this file's authoring body: its Artifact Root and Profile Resolution, Applicability and Decomposition Gate, Strict Default rules and Next Steps do not apply to them; their references own those gates. The other seven modes run the body below. Every mode works directly without a workflow.
 
-> **Work tracking:** Read [the linked work integration guide](../task-track/references/integration-guide.md) at capture, start, saved-work, verification, handoff and close-out checkpoints. Inspect exact selected owners and incoming/outgoing declared spec/PBI/task concerns at governing-owner intake and after an actual artifact/case save; disclose partial/unavailable scope and current confidence separately from acceptance history. Audit stays read-only. Retain the actual inherited producer/context; only the primary saving owner records each checkpoint once. Continue untracked without companion tickets; preserve mode/profile gates and explicit acceptance.
+> **Work tracking:** Read [the linked work integration guide](../task-track/references/integration-guide.md) at capture, start, saved-work, verification, handoff and close-out checkpoints. Inspect exact selected owners and incoming/outgoing declared spec/task/subtask concerns at governing-owner intake and after an actual artifact/case save; disclose partial/unavailable scope and current confidence separately from acceptance history. Audit stays read-only. Retain the actual inherited producer/context; only the primary saving owner records each checkpoint once. Continue untracked without companion tickets; preserve mode/profile gates and explicit acceptance.
 
 ## Quick Summary
 
 > **Portability:** the Feature Spec root is CONFIGURED, not fixed — default `docs/specs/`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path (rationale: `docs/adr/0003-config-driven-doc-and-spec-roots.md`). The spec template defaults to `detailed-feature-spec-template.md` under the templates root (default `docs/templates/`; a `docsRoots.templates.path` entry in `docs/project-config.json` overrides the path) unless `workflowPatterns.featureDocTemplate` points to another template.
 
-**[IMPORTANT] task tracking** — Break ALL work into small tasks BEFORE starting. For simple tasks, ask user whether to skip.
+**[IMPORTANT] todo tracking** — Break ALL work into small tasks BEFORE starting. For simple tasks, ask user whether to skip.
 
 **Goal:** Author canonical feature intent and test scenarios, then reconcile them with tests and code using the project's declared artifact profile.
 
@@ -76,7 +76,7 @@ description: '[Documentation] Use when a workflow step or the user asks for cano
 
 Read `.claude/skills/shared/product-roadmap-contract.md` before creating, updating, or amending a Feature Spec. Apply the four-operand `isLargeIdea` rule to every idea-sourced request and preserve any existing branch metadata on audit/tests/sync.
 
-1. If any signal is true, require one complete `large_idea_decomposition` block in the owning Feature Spec: non-empty stable `outcome_slices`, ordered `dependencies_order`, explicit `non_goals`, `risks_evidence` with owners/statuses, and `deferred_work_owner`. The spec owns the business decomposition; stories, PBIs, scenarios, plans, mock-ups, and presentations consume it read-only.
+1. If any signal is true, require one complete `large_idea_decomposition` block in the owning Feature Spec: non-empty stable `outcome_slices`, ordered `dependencies_order`, explicit `non_goals`, `risks_evidence` with owners/statuses, and `deferred_work_owner`. The spec owns the business decomposition; stories, tasks, scenarios, plans, mock-ups, and presentations consume it read-only.
 2. If all signals are false, author the ordinary single-capability spec without a roadmap path, milestone ID, scope brief, or empty decomposition placeholder. Preserve one actor-facing outcome, in-scope behavior, non-goals, lifecycle terms, source-of-truth state, persistence expectations, and evidence directly in the spec.
 3. If the user explicitly requests a product roadmap or selects a milestone from an explicitly supplied roadmap, use the explicit roadmap branch. Resolve and verify the product roadmap (default `docs/product-roadmap.md`; a `docsRoots.productRoadmap.path` entry in `docs/project-config.json` overrides the path), the owner-approved milestone, and its scope brief; route missing approval to `$product-roadmap`. Reading a supplied roadmap never authorizes creating/updating one.
 4. For a framework/library change, use the `FRAMEWORK-LIBRARY` technical branch. For an isolated brownfield change, use `EXEMPT`. Neither branch requires a product roadmap or milestone.
@@ -172,7 +172,7 @@ This skill owns the canonical artifact and cases selected by the active profile.
 
 - **"$spec [mode=tests] (Recommended)"** — Generate/update the selected profile's canonical test scenarios (strict default: Section 8 TCs)
 - **"$spec [mode=sync]"** — Reconcile the selected profile's canonical cases with executing test code
-- **"$pbi --mode=review --type=spec-tests"** — Review scenario intent, assertion-backed coverage, and profile-specific completeness
+- **"$work-item --mode=review --type=spec-tests"** — Review scenario intent, assertion-backed coverage, and profile-specific completeness
 - **"Skip, continue manually"** — user decides
 
 ---
@@ -184,7 +184,7 @@ This skill owns the canonical artifact and cases selected by the active profile.
 | `$spec [mode=index]`                 | **Derived consumer** — assembles a regenerable navigation index/ERD FROM canonical specs (never a source of truth) | AFTER canonical specs exist — refresh the declared index/ERD over the owner artifacts |
 | `$spec [mode=discovery]`             | **Pre-spec landscape** — related/overlapping specs, invariants, NEW/EXTEND/SPLIT scope gate | BEFORE `draft`, when specs or related code already exist |
 | `$spec [mode=clarify]`               | **Decision gate** — completeness vs the discovered system + user-confirmed non-obvious decisions | AFTER the spec and its cases are authored and reviewed |
-| `$pbi --mode=review --type=spec-tests` | **Reviewer** — audits scenario intent and coverage under the selected profile                                         | After `spec [mode=tests]`, to validate completeness and assertion-backed mappings                      |
+| `$work-item --mode=review --type=spec-tests` | **Reviewer** — audits scenario intent and coverage under the selected profile                                         | After `spec [mode=tests]`, to validate completeness and assertion-backed mappings                      |
 | `$integration-test`                  | **End consumer** — generates or updates executable tests from the selected profile's canonical scenarios             | After `spec [mode=tests]`, when code generation is the configured next step                             |
 | `$docs-manager --mode=update`                       | **Orchestrator** — routes canonical feature intent to this skill                                                                         | Run `$docs-manager --mode=update` for full chain sync; it calls `$spec` internally                                    |
 | `$changes-review`                    | **Trigger** — detects feature doc staleness                                                                            | Calls `$docs-manager --mode=update` when a business doc is stale relative to code changes                             |
@@ -248,7 +248,7 @@ This skill owns the canonical artifact and cases selected by the active profile.
 | "Small spec, skip task tracking"                 | Skip depth, NEVER skip tracking — context loss wipes un-tracked progress.                    |
 | "Index looks stale, I'll just run `[mode=index]`" | Not an authoring mode's job — flag the refresh need; derived artifacts regenerate in their own invocation. |
 
-**[TASK-PLANNING]** MUST ATTENTION analyze task scope and break into small todo tasks/sub-tasks via task tracking before acting.
+**[TASK-PLANNING]** MUST ATTENTION analyze task scope and break into small todo tasks/sub-tasks via todo tracking before acting.
 
 **IMPORTANT MUST ATTENTION** Resolve the mode and profile before authoring · preserve one canonical owner with its configured identifiers/carriers · never report required coverage as PASS without an inspected assertion and observed result — the three rules this skill must never skip.
 

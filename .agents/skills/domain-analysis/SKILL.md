@@ -8,7 +8,7 @@ description: '[Architecture] Use when a workflow step or the user asks for DDD d
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -69,7 +69,7 @@ Find the active `*/plan.md` by modification time. Read its scope/goals/decisions
 
 ### Step 1: Load Business Context
 
-Read the active plan, business evaluation, refined PBI and discovery notes from the resolved roots. Extract nouns (candidate entities), verbs (events), roles (permissions/views) and processes (business workflows).
+Read the active plan, business evaluation, refined task and discovery notes from the resolved roots. Extract nouns (candidate entities), verbs (events), roles (permissions/views) and processes (business workflows).
 
 ### Step 2: Identify Bounded Contexts
 

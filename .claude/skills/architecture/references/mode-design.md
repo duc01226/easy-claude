@@ -3,7 +3,7 @@
 > Loaded by `architecture/SKILL.md`'s Mode Dispatch when invoked as `/architecture --mode=design [brief]`. Formerly `/architecture-design`. This contract is the whole invocation: run it exactly as written, standalone or as a workflow step. `$ARGUMENTS` in this file means the invocation text after `--mode=design`.
 
 > **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
-> **[BLOCKING]** Before each step or sub-skill call, update task tracking: set `in_progress` when step starts, set `completed` when step ends.
+> **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
 
@@ -25,7 +25,7 @@
 
 **Workflow (12 steps):**
 
-1. **Load Context** — Read domain model, tech stack, business evaluation, refined PBI
+1. **Load Context** — Read domain model, tech stack, business evaluation, refined task
 2. **Derive Architecture Requirements** — Profile workload + ordered scaling ladder, rank reversibility, pick ≤3 driving attributes, quantify 6-part scenarios, run 2-2 pre-decision interrogation on every one-way door
 3. **Backend Architecture** — 3A styles (selection procedure) · 3B design patterns · **3C data & consistency** · **3D integration & APIs**
 4. **Frontend Architecture** — Research top 3 frontend architecture styles + design patterns
@@ -82,7 +82,7 @@ Read prior-step artifacts (search the plans root, default `plans/`, and the team
 - Domain model / ERD (complexity, bounded contexts, aggregate count)
 - Tech stack decisions (confirmed languages, frameworks, databases)
 - Business evaluation (scale, constraints, compliance)
-- Refined PBI (scope, acceptance criteria)
+- Refined task (scope, acceptance criteria)
 - Discovery interview (team skills, experience level)
 
 Extract + summarize:
@@ -96,7 +96,7 @@ Extract + summarize:
 | Expected scale          | ...          | business eval    |
 | Team architecture exp.  | ...          | discovery        |
 | Compliance requirements | ...          | business eval    |
-| Real-time needs         | Yes/No       | refined PBI      |
+| Real-time needs         | Yes/No       | refined task      |
 | Integration complexity  | Low/Med/High | domain model     |
 | Deployment target       | ...          | business eval    |
 
@@ -741,7 +741,7 @@ For each significant, costly-to-reverse decision — **every one-way door from S
 
 **ADR minimum:** Context (forces, constraints, quantified attributes) · Decision · **Alternatives considered WITH rejection reasons** (prevents relitigation and explains constraints) · Consequences (what we now CANNOT do easily) · Status · **Revisit trigger** (measurement that reopens the decision).
 
-**MUST ATTENTION** an architectural rule NOT automatically verified is a SUGGESTION and will be violated within a quarter. Every machine-checkable ADR constraint MUST also land in the Step-9 Scaffold Handoff as an executable fitness rule (layer/dependency rules, no module cycles, domain purity, API/event compatibility, tenant-isolation test, outbound-call timeouts, bundle/latency budgets, cost-per-request regression). Pay existing debt with a **RATCHET** — block new violations in CI, then reduce the baseline — never a cleanup sprint promised later.
+**MUST ATTENTION** an architectural rule NOT automatically verified is a SUGGESTION and will be violated within a quarter. Every machine-checkable ADR constraint MUST also land in the Step-9 Scaffold Handoff as an executable fitness rule (layer/dependency rules, no module cycles, domain purity, API/event compatibility, tenant-isolation test, outbound-call timeouts, bundle/latency budgets, cost-per-request regression). Pay existing debt with a **RATCHET** — block new violations in CI, then reduce the baseline — never a cleanup cycle promised later.
 
 ### Architecture Diagram Template
 
@@ -881,7 +881,7 @@ docs/adr/{NNNN}-{slug}.md                       # One ADR per hard-to-reverse de
 **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after this skill, use `ask user question tool` to present these options. NEVER skip because the task seems "simple" or "obvious"; the user decides:
 
 - **"/plan (Recommended)"** — Create implementation plan from architecture design
-- **"/pbi --mode=refine"** — If need to create PBIs first
+- **"/work-item --mode=refine"** — If need to create tasks first
 - **"Skip, continue manually"** — user decides
 
 ### Council escalation (always-offer, second prompt)

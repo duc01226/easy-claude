@@ -3,6 +3,10 @@
   "version": 1,
   "binChars": 9500,
   "deliveryTriggers": {
+    "review-dispatch": {
+      "pattern": "\\b(?:spawn(?:ing)?|delegat(?:e|ed|ing|ion)|fresh reviewer|sub[- ]?agents?|parallel reviewers?)\\b",
+      "skills": ["workflow-review-changes", "changes-review"]
+    },
     "capacity": {
       "pattern": "\\b(?:performance|latency|throughput|bottlenecks?|capacity|scal(?:e|ing|ability)|cach(?:e|es|ing)|load[- ]test(?:s|ing)?|stress[- ]test(?:s|ing)?|rps|qps|concurrent users?|headroom)\\b",
       "skills": [
@@ -76,7 +80,8 @@
         },
         "review-protocol-injection": {
           "summary": "Verbatim template and protocol blocks for every fresh sub-agent review prompt",
-          "when": "spawning a fresh sub-agent to review"
+          "when": "spawning a fresh sub-agent to review",
+          "trigger": "review-dispatch"
         },
         "severity-rubric": {
           "summary": "One consequence-based Critical, High, Medium, Low scale for every finding and gate",
@@ -177,7 +182,7 @@
           "when": "writing or enhancing prompts, skills or agents"
         },
         "estimation-framework": {
-          "summary": "Bottom-up estimation with derived story points and a min-max range",
+          "summary": "Bottom-up estimation with derived effort points and a min-max range",
           "when": "estimating effort"
         },
         "goal-contract-satisfaction-loop": {
@@ -271,15 +276,15 @@
         },
         "module-detection": {
           "summary": "Detect the target module from keywords against the business spec root",
-          "when": "refining a PBI or an idea"
+          "when": "refining a task or an initiative"
         },
         "real-world-fidelity-testing": {
           "summary": "Integration, E2E and system tests exercise real boundaries",
           "when": "authoring, reviewing or repairing integration, E2E or system tests"
         },
         "refinement-dor-checklist": {
-          "summary": "Eight Definition of Ready criteria before grooming",
-          "when": "challenging or grooming a PBI"
+          "summary": "Eight readiness-check criteria before planning",
+          "when": "challenging or refining a task"
         },
         "repeatable-test-principle": {
           "summary": "Same contract result across fresh runs and supported concurrency",
@@ -457,7 +462,7 @@
       }
     },
     "universal": {
-      "description": "The universal bundle: the framework rules every task follows. No skill, agent, root instruction file or mirror carries it; the universal hook delivers it on the first prompt of a session, again after about 100K tokens of growth or a compaction, and at every sub-agent start. bins is the authored delivery layout: one entry per hook process, each the ordered tags of one message; the build fails when a bin overflows binChars, a tag is missing or a tag is listed twice.",
+      "description": "The universal bundle: the framework rules every task follows. No skill, agent, root instruction file or mirror carries it; the universal hook delivers it on the first prompt of a session, again after about 150K tokens of growth or a compaction, and at every sub-agent start. bins is the authored delivery layout: one entry per hook process, each the ordered tags of one message; the build fails when a bin overflows binChars, a tag is missing or a tag is listed twice.",
       "bins": [
         [
           "critical-thinking-mindset",

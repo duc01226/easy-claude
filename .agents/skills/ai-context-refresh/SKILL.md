@@ -8,7 +8,7 @@ description: '[Documentation] Use when generating, smart-merging or refactoring 
 > - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
 > - Use ask user question tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
@@ -61,7 +61,7 @@ Run `$ai-context-refresh` (or the generator directly) to produce `CLAUDE.md` fro
 tl;dr line, Doc Lookup, path-scoped rules, development commands and the skill-activation table. It
 carries none of the framework's universal rules (workflow step advancement, task planning, evidence,
 git discipline, code hierarchy, lesson extraction, closing reminders) and no workflow-route pointer:
-the universal hook delivers those protocols on the first prompt of a session and again after 100K
+the universal hook delivers those protocols on the first prompt of a session and again after 150K
 tokens of growth or a compaction. A host that runs no hook is unsupported.
 
 **Workflow routing is delivered only by the `workflow-route-inject` hook** (Claude, the mirrored Codex hook, the OpenCode bridge),
@@ -101,6 +101,12 @@ matching file is touched, and its `--lookup` CLI — the non-automatic carrier f
 conventions lib (`.claude/hooks/lib/file-conventions.cjs`), with every rule-bearing group deliverable (named,
 unique) and ranked within the per-path class cap (`conventionInjection.maxClassesPerEdit`), and a worst-case digest (longest accepted path, the largest rule sets the cap admits) within `conventionInjection.maxChars`; otherwise the rules stay inline and the generator prints `[WARN] INLINE_PATH_RULES` naming the missing
 precondition. Never hand-compact that section instead — `--mode update` regenerates it.
+
+With `conventionInjection.completeLookup: true`, a library advertising complete lookup support can
+replace the legacy rank/size proof. The mandatory pre-action CLI returns every matching read/edit class
+in pages (including overflow); read all pages with `--page N` before file or shell access. Named/unique
+groups and enabled delivery remain required; older libraries retain inline fallback. Automatic hook
+digests stay bounded. This mode also replaces the generated path pre-read table with the lookup pointer.
 
 ## Coordination with sync-codex
 
@@ -184,6 +190,7 @@ After the script generates the mechanical parts, AI reviews and fills:
 
 ## Phase 4: Verify
 
+- [ ] Apply the **Instruction-file audit** in `.claude/skills/shared/protocols/context-engineering-principles.md` before the final root edit is accepted and mirrors are synced; fix generated-section findings at their source.
 - [ ] CLAUDE.md is valid markdown
 - [ ] All section markers are properly paired (open + close)
 - [ ] No template placeholder text remains (e.g., `{project-name}`, `TODO`)
@@ -203,7 +210,7 @@ init/update/refactor and verification complete.** When CLAUDE.md content changed
 standalone runner directly:
 
 ```text
-Task tracking: "Sync Codex mirrors from updated CLAUDE.md → invoke $sync-codex"
+Todo tracking: "Sync Codex mirrors from updated CLAUDE.md → invoke $sync-codex"
 node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --skip=claude-md
 ```
 
@@ -271,13 +278,14 @@ node .claude/hooks/tests/run-all-tests.cjs --filter=agent-files
 
 ---
 
-> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
+> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
 
 <!-- PROTOCOL-GUIDES:START -->
 
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
 - `output-quality-principles` — Useful, readable guidance without lost conditions; writing generated docs or reports → .claude/skills/shared/protocols/output-quality-principles.md
+- `context-engineering-principles` — Prompt clarity and semantic retention principles; writing or enhancing prompts, skills or agents → .claude/skills/shared/protocols/context-engineering-principles.md
 
 <!-- PROTOCOL-GUIDES:END -->
 
@@ -296,7 +304,7 @@ node .claude/hooks/tests/run-all-tests.cjs --filter=agent-files
 
 - **Output Quality:** token-efficient — no inventories/trees/TOCs; tables over prose.
 
-**IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting
+**IMPORTANT MUST ATTENTION** break work into small todo tasks using todo tracking BEFORE starting
 **IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code
 **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
 **IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
@@ -307,4 +315,4 @@ node .claude/hooks/tests/run-all-tests.cjs --filter=agent-files
 | "The mirrors are already current" | Run the sync and divergence gates; stale derived output is not completion. |
 | "Hand-fix the Codex copy" | Edit `.claude/**` sources, then regenerate `.agents/`, `.codex/`, and `AGENTS.md`. |
 
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
+**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using todo tracking.

@@ -32,10 +32,10 @@ module.exports = { name: 'Task tracking specification and recovery boundaries', 
         // Given an accepted delivery owner governed by a separately authored specification.
         const spec = 'docs/contracts/083-export.md'; const controlSpec = 'docs/contracts/083-unrelated.md';
         f.write(spec, 'People export the selected rows.\n'); f.write(controlSpec, 'Unrelated governing intent stays owned here.\n');
-        await f.create('PBI-083-spec');
-        await f.saved('link', 'PBI-083-spec', { links: [{ relation: 'spec', path: spec }] });
-        await f.accepted('PBI-083-spec'); await f.create('PBI-083-spec-control');
-        const before = f.record('PBI-083-spec'); const ids = f.records().map(record => record.id).sort();
+        await f.create('TASK-083-spec');
+        await f.saved('link', 'TASK-083-spec', { links: [{ relation: 'spec', path: spec }] });
+        await f.accepted('TASK-083-spec'); await f.create('TASK-083-spec-control');
+        const before = f.record('TASK-083-spec'); const ids = f.records().map(record => record.id).sort();
         const initial = preserve(f, [controlSpec]);
         const config = fs.readFileSync(path.join(f.root, 'docs/project-config.json'));
         const localConfig = fs.readFileSync(path.join(f.root, '.claude/.ck.local.json'));
@@ -49,14 +49,14 @@ module.exports = { name: 'Task tracking specification and recovery boundaries', 
         // Then the actual saved specification is retained, without an automatically created or amended delivery owner.
         assert.equal(unlinked.primary, primary); assert.equal(unlinked.secondary[0].status, 'untracked');
         assert.equal(fs.readFileSync(path.join(f.root, spec), 'utf8'), requested); initial();
-        assert.equal(f.view('PBI-083-spec').state, 'done'); assert.equal(f.view('PBI-083-spec').verification.status, 'stale');
-        assert.deepEqual(f.view('PBI-083-spec').acceptanceHistory, before.tracking.acceptanceHistory);
+        assert.equal(f.view('TASK-083-spec').state, 'done'); assert.equal(f.view('TASK-083-spec').verification.status, 'stale');
+        assert.deepEqual(f.view('TASK-083-spec').acceptanceHistory, before.tracking.acceptanceHistory);
         assert.equal(f.progress().metrics.accepted, 1); assert.equal(f.progress().metrics.currentlyVerified, 0);
         // An explicit exact link permits activity for that already selected owner, never a delivery decision.
-        await upkeep.linkSession({ root: f.root, sessionId: 'session-083-spec-linked', actor: 'owner', producer: 'spec', itemIds: ['PBI-083-spec'] });
-        const control = f.bytes('PBI-083-spec-control');
+        await upkeep.linkSession({ root: f.root, sessionId: 'session-083-spec-linked', actor: 'owner', producer: 'spec', itemIds: ['TASK-083-spec'] });
+        const control = f.bytes('TASK-083-spec-control');
         const linked = { root: f.root, sessionId: 'session-083-spec-linked', actor: 'owner', producer: 'spec', checkpointId: 'linked-specification-083', primary, observation };
-        const saved = await upkeep.checkpoint(linked); const after = f.record('PBI-083-spec');
+        const saved = await upkeep.checkpoint(linked); const after = f.record('TASK-083-spec');
         assert.equal(saved.primary, primary); assert.equal(saved.secondary[0].status, 'saved');
         assert.deepEqual(after.tracking.activity, [...(before.tracking.activity || []), observation]);
         assert.equal(after.revision, before.revision + 1); assert.equal(after.data.status, before.data.status);
@@ -69,7 +69,7 @@ module.exports = { name: 'Task tracking specification and recovery boundaries', 
         assert.deepEqual(after.tracking.history.slice(0, -1), before.tracking.history);
         assert.equal(after.tracking.history.at(-1).operation, 'activity'); assert.equal(after.tracking.history.at(-1).actor, 'owner');
         assert.equal(after.tracking.history.at(-1).beforeState, 'done'); assert.equal(after.tracking.history.at(-1).afterState, 'done');
-        assert.deepEqual(f.records().map(record => record.id).sort(), ids); assert.deepEqual(f.bytes('PBI-083-spec-control'), control);
+        assert.deepEqual(f.records().map(record => record.id).sort(), ids); assert.deepEqual(f.bytes('TASK-083-spec-control'), control);
         assert.equal(fs.readFileSync(path.join(f.root, spec), 'utf8'), requested);
         assert.equal(fs.readFileSync(path.join(f.root, controlSpec), 'utf8'), 'Unrelated governing intent stays owned here.\n');
         const conserved = preserve(f, [spec, controlSpec]);
@@ -83,8 +83,8 @@ module.exports = { name: 'Task tracking specification and recovery boundaries', 
     test('TC-TPT-087', 'an initialized optional refresh failure preserves its successful core save and public retry refreshes only derived metadata', async f => {
         assert.ok(Number(process.versions.node.split('.')[0]) >= 20, 'The optional public workspace boundary requires Node 20+');
         f.config.taskTracking.report.autoRefresh = true; f.saveConfig();
-        await f.create('PBI-087-report'); await f.create('PBI-087-report-control');
-        const before = f.record('PBI-087-report'); const control = f.bytes('PBI-087-report-control');
+        await f.create('TASK-087-report'); await f.create('TASK-087-report-control');
+        const before = f.record('TASK-087-report'); const control = f.bytes('TASK-087-report-control');
         const config = fs.readFileSync(path.join(f.root, 'docs/project-config.json'));
         const workspace = await startWorkspace({ root: f.root });
         try {
@@ -93,7 +93,7 @@ module.exports = { name: 'Task tracking specification and recovery boundaries', 
             assert.equal(initialized.status, 200); assert.equal(initialized.body.status, 'generated');
             assert.equal(initialized.body.coverage, 'complete'); assert.equal(initialized.body.fingerprint, f.progress().fingerprint);
             const output = path.join(f.root, initialized.body.path); const backup = `${output}.recovery-backup`;
-            const request = f.request('update', 'PBI-087-report', { title: 'The requested primary title is durably saved' });
+            const request = f.request('update', 'TASK-087-report', { title: 'The requested primary title is durably saved' });
             const draft = JSON.stringify(request);
             // Reachable filesystem fault: an external cache operation replaces an output with a directory.
             // Move the opaque generated file aside; never inspect or alter generated markup. The shared writer-lock parent stays usable.
@@ -103,12 +103,12 @@ module.exports = { name: 'Task tracking specification and recovery boundaries', 
                 fs.mkdirSync(output); blocked = true;
                 // When the actual primary core save succeeds but its real initialized refresh cannot read a regular output.
                 const saved = await f.core.executeOperation(request, f.authority());
-                assert.equal(saved.primary.status, 'saved'); assert.equal(saved.primary.itemId, 'PBI-087-report');
+                assert.equal(saved.primary.status, 'saved'); assert.equal(saved.primary.itemId, 'TASK-087-report');
                 assert.equal(saved.current.title, 'The requested primary title is durably saved');
                 const refresh = saved.secondary.filter(row => row.kind === 'report');
                 assert.equal(refresh.length, 1); assert.equal(refresh[0].status, 'pending'); assert.equal(refresh[0].code, 'UNSAFE_PATH');
                 // Then the final business outcome is the exact saved title, independent of optional cache recovery.
-                const after = f.record('PBI-087-report');
+                const after = f.record('TASK-087-report');
                 assert.equal(after.data.title, request.patch.title); assert.equal(after.revision, before.revision + 1);
                 assert.equal(after.data.intent, before.data.intent); assert.equal(after.data.status, before.data.status);
                 for (const field of ['assigneeId', 'links', 'criteria', 'readiness', 'proofs', 'acceptanceHistory']) assert.deepEqual(after.tracking[field], before.tracking[field], field);
@@ -116,20 +116,20 @@ module.exports = { name: 'Task tracking specification and recovery boundaries', 
                 assert.equal(after.tracking.history.at(-1).operationId, request.operationId); assert.equal(after.tracking.history.at(-1).actor, 'owner');
                 assert.deepEqual(after.tracking.receipts.slice(0, -1), before.tracking.receipts);
                 assert.equal(after.tracking.receipts.at(-1).operationId, request.operationId);
-                assert.equal(f.view('PBI-087-report').acceptance.accepted, false); assert.equal(f.progress().metrics.accepted, 0);
-                assert.deepEqual(f.bytes('PBI-087-report-control'), control); assert.equal(JSON.stringify(request), draft);
+                assert.equal(f.view('TASK-087-report').acceptance.accepted, false); assert.equal(f.progress().metrics.accepted, 0);
+                assert.deepEqual(f.bytes('TASK-087-report-control'), control); assert.equal(JSON.stringify(request), draft);
                 assert.deepEqual(fs.readFileSync(path.join(f.root, 'docs/project-config.json')), config);
             } finally {
                 if (blocked) fs.rmdirSync(output);
                 fs.renameSync(backup, output);
             }
             // After actual storage repair, only the unresolved derived view is retried through the public API.
-            const conserved = preserve(f); const savedView = f.view('PBI-087-report'); const metrics = f.progress().metrics;
+            const conserved = preserve(f); const savedView = f.view('TASK-087-report'); const metrics = f.progress().metrics;
             const recovered = await api(workspace, '/api/report', {});
             assert.equal(recovered.status, 200); assert.equal(recovered.body.status, 'generated');
             assert.equal(recovered.body.path, initialized.body.path); assert.equal(recovered.body.coverage, 'complete');
             assert.equal(recovered.body.fingerprint, f.progress().fingerprint); assert.notEqual(recovered.body.fingerprint, initialized.body.fingerprint);
-            conserved(); assert.deepEqual(f.view('PBI-087-report'), savedView); assert.deepEqual(f.progress().metrics, metrics);
+            conserved(); assert.deepEqual(f.view('TASK-087-report'), savedView); assert.deepEqual(f.progress().metrics, metrics);
             const repeated = await api(workspace, '/api/report', {});
             assert.equal(repeated.status, 200); assert.equal(repeated.body.status, 'current');
             assert.equal(repeated.body.fingerprint, recovered.body.fingerprint); assert.equal(repeated.body.path, recovered.body.path);
@@ -139,16 +139,16 @@ module.exports = { name: 'Task tracking specification and recovery boundaries', 
     test('TC-TPT-121', 'a retired workspace session cannot disclose or re-export work through a replacement session, whose live reads disclose unavailable evidence', async f => {
         assert.ok(Number(process.versions.node.split('.')[0]) >= 20, 'The optional public workspace boundary requires Node 20+');
         const source = 'src/121-export.cjs'; const sourceText = 'The permitted current export implementation.\n';
-        f.write(source, sourceText); await f.create('PBI-121-session', 'pbi', { title: 'Selected work visible only through its current permitted session' });
-        await f.saved('link', 'PBI-121-session', { links: [{ relation: 'source', path: source }] });
-        await f.accepted('PBI-121-session'); await f.create('PBI-121-session-control');
-        const conserved = preserve(f); const original = f.view('PBI-121-session');
+        f.write(source, sourceText); await f.create('TASK-121-session', 'task', { title: 'Selected work visible only through its current permitted session' });
+        await f.saved('link', 'TASK-121-session', { links: [{ relation: 'source', path: source }] });
+        await f.accepted('TASK-121-session'); await f.create('TASK-121-session-control');
+        const conserved = preserve(f); const original = f.view('TASK-121-session');
         let workspace = await startWorkspace({ root: f.root });
         try {
             // Given a real permitted read and previously generated view in the original session.
             const permitted = await api(workspace, '/api/session');
             assert.equal(permitted.status, 200); assert.equal(permitted.body.snapshot.coverage, 'complete');
-            assert.deepEqual(permitted.body.snapshot.items.find(item => item.id === 'PBI-121-session'), original);
+            assert.deepEqual(permitted.body.snapshot.items.find(item => item.id === 'TASK-121-session'), original);
             const previousReport = await api(workspace, '/api/report', {});
             assert.equal(previousReport.status, 200); assert.equal(previousReport.body.status, 'generated');
             assert.equal(previousReport.body.fingerprint, permitted.body.snapshot.fingerprint); conserved();
@@ -171,7 +171,7 @@ module.exports = { name: 'Task tracking specification and recovery boundaries', 
             await deniedReads();
             const authorized = await api(workspace, '/api/inspect', {});
             assert.equal(authorized.status, 200); assert.equal(authorized.body.coverage, 'complete');
-            assert.deepEqual(authorized.body.items.find(item => item.id === 'PBI-121-session'), original);
+            assert.deepEqual(authorized.body.items.find(item => item.id === 'TASK-121-session'), original);
             // Meaningful current-source partitions supplement session denial: a teammate removes or replaces live evidence.
             // No chmod, privileged-account assumption, symlink privilege, fake reader or authorization mock is used.
             for (const partition of ['missing', 'nonregular']) {
@@ -181,7 +181,7 @@ module.exports = { name: 'Task tracking specification and recovery boundaries', 
                     if (partition === 'nonregular') { fs.mkdirSync(target); directory = true; }
                     const live = await api(workspace, '/api/inspect', {});
                     assert.equal(live.status, 200); assert.equal(live.body.coverage, 'partial', partition);
-                    const item = live.body.items.find(row => row.id === 'PBI-121-session');
+                    const item = live.body.items.find(row => row.id === 'TASK-121-session');
                     assert.equal(item.verification.status, 'unknown'); assert.equal(item.verification.code, partition === 'missing' ? 'ENOENT' : 'UNSAFE_PATH');
                     assert.equal(item.acceptance.accepted, true); assert.deepEqual(item.acceptanceHistory, original.acceptanceHistory);
                     assert.equal(live.body.metrics.accepted, 1); assert.equal(live.body.metrics.currentlyVerified, 0); assert.equal(live.body.metrics.percentage, null);
@@ -199,7 +199,7 @@ module.exports = { name: 'Task tracking specification and recovery boundaries', 
             // A restored permitted source recovers current confidence; it never revives the old session's authority.
             const restored = await api(workspace, '/api/inspect', {});
             assert.equal(restored.status, 200); assert.equal(restored.body.coverage, 'complete');
-            assert.deepEqual(restored.body.items.find(item => item.id === 'PBI-121-session'), original);
+            assert.deepEqual(restored.body.items.find(item => item.id === 'TASK-121-session'), original);
             assert.equal(restored.body.fingerprint, previousReport.body.fingerprint);
             assert.equal(restored.body.metrics.currentlyVerified, 1); await deniedReads(); conserved();
             assert.equal(fs.readFileSync(path.join(f.root, source), 'utf8'), sourceText);
