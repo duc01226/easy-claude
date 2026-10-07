@@ -4,6 +4,8 @@ version: 1.0.0
 description: '[Skill Management] Use when starting a detected workflow, initializing workflow state, or activating a workflow sequence.'
 ---
 
+> **Work tracking:** Read [the linked work integration guide](../task-track/references/integration-guide.md) at capture, start, saved-work, verification, handoff and close-out checkpoints. Use the actual linked producer and exact items; retain the primary outcome and record optional upkeep once through the common owner. Continue untracked when no link exists; acceptance remains explicit.
+
 ## Quick Summary
 
 **Goal:** Activate a selected workflow or custom pipeline from its canonical contract with a complete TaskCreate plan.

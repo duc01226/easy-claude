@@ -2,9 +2,9 @@
 
 > **Purpose:** the one-page map of the portable `.claude/` framework — what it does, how the parts fit, how to use it day to day, and where each topic's detailed owner doc lives. Read it first when you adopt the framework, change it, or need to explain a hook block, a routing decision or a workflow step.
 >
-> **Framework inventory:** <!-- COUNT:hooks -->30<!-- /COUNT --> top-level hook files · <!-- COUNT:lib-modules -->45<!-- /COUNT --> hook-library modules · <!-- COUNT:skills -->101<!-- /COUNT --> skills · <!-- COUNT:workflows -->19<!-- /COUNT --> workflows · <!-- COUNT:agents -->24<!-- /COUNT --> agents · <!-- COUNT:shared -->15<!-- /COUNT --> shared reference/protocol entries.
+> **Framework inventory:** <!-- COUNT:hooks -->32<!-- /COUNT --> top-level hook files · <!-- COUNT:lib-modules -->59<!-- /COUNT --> hook-library modules · <!-- COUNT:skills -->102<!-- /COUNT --> skills · <!-- COUNT:workflows -->19<!-- /COUNT --> workflows · <!-- COUNT:agents -->24<!-- /COUNT --> agents · <!-- COUNT:shared -->15<!-- /COUNT --> shared reference/protocol entries.
 >
-> **Visual version:** `.claude/docs/claude-ai-agent-framework-guide.html` (same content, one standalone page).
+> **Visual overview:** `.claude/docs/claude-ai-agent-framework-guide.html`. Use this Markdown guide for current inventories and source-owner pointers.
 
 **Critical rules (read before anything else)**
 
@@ -17,7 +17,7 @@
 
 ## 1. What the framework is
 
-A generic LLM is capable but forgetful, confident without evidence, and unaware of your project. This framework wraps Claude Code in **30 top-level hook files**, **101 skills**, **19 registered workflows**, and **24 specialized agents** that make it project-aware, evidence-driven and gated at every quality step — from idea and spec through implementation, testing, review, commit and pull request.
+A generic LLM is capable but forgetful, confident without evidence, and unaware of your project. This framework wraps Claude Code in **32 top-level hook files**, **102 skills**, **19 registered workflows**, and **24 specialized agents** that make it project-aware, evidence-driven and gated at every quality step — from idea and spec through implementation, testing, review, commit and pull request.
 
 | Failure mode of a plain agent        | What counters it                                            | Where it lives                                     |
 | ------------------------------------ | ----------------------------------------------------------- | -------------------------------------------------- |
@@ -268,7 +268,7 @@ Why hybrid: a rule already in context beats a rule the model must go read, but r
 3. **Fix** — `fix --target=review` fixes validated findings at the owning layer and records FIXED / REJECTED / DEFERRED with reasons; an unexplained defect is traced with `investigate --mode=debug` first.
 4. **Receipt** — a converged `--fix-loop` mints a review receipt bound to the exact changeset; any later edit invalidates it.
 5. **Commit** — `/commit` stages, runs the test-verify and review gates, and writes a Conventional Commit. `review-commit-gate` blocks any agent `git commit` without a receipt or a user-approved skip.
-6. **Pull request** — `/pull-request` puts the work on a branch at the latest target (new branch if the old one was merged, rebase if it is unpushed and behind), asks for tests and whole-branch review with explicit Skip options, runs the selected gates, commits, pushes, opens a ready PR and fixes CI until green. It never merges or force-pushes. Target: `pullRequest.targetBranch` (default `main`).
+6. **Pull request** — `/pull-request` puts the work on a branch at the latest target (new branch if the old one was merged, rebase if it is unpushed and behind), asks initially or on material risk/scope escalation for tests and whole-branch review with explicit Skip options, reuses safe recorded preferences, runs fresh gates, commits, pushes, opens a ready PR and automatically checks routine CI repairs until green. It never merges or force-pushes. Target: `pullRequest.targetBranch` (default `main`).
 7. **Doc sync** — reviewers flag spec/doc gaps read-only; `docs-manager --mode=update` applies them. `doc-sync-gate` warns when enforced areas change without their spec.
 
 **Git discipline** (model-behavioral on every host): never commit, push or stage without an explicit request; branch before committing on the default branch; never run a command that destroys uncommitted work without asking; treat `gh`/GitHub-MCP writes like a push. Only the literal `permissions.ask` patterns in `.claude/settings.json` still prompt; the commit review gate is the one mechanical rule.
@@ -361,11 +361,11 @@ Codex transforms `/skill` into `$skill`, `Agent` into `spawn_agent` and strips C
 | Runner                                  | Tests  | Covers                                                                 |
 | --------------------------------------- | ------ | ---------------------------------------------------------------------- |
 | `test-all-hooks.cjs` (primary gate)  | **133** | Hook behaviors, bridged suites and the count guard                     |
-| `run-all-tests.cjs` (full aggregate) | **1403** | Primary plus every `tests/suites/*.test.cjs` suite                     |
+| `run-all-tests.cjs` (full aggregate) | **1764** | 115 discovered `tests/suites/*.test.cjs` files; primary gate runs separately |
 | `node --test .claude/scripts/codex/tests` | —      | Mirror generators and verifiers                                        |
 | `run-codex-sync.mjs --verify-only`      | —      | Every read-only gate before a commit                                   |
 
-> Live-verified: `test-all-hooks.cjs` = 133; `run-all-tests.cjs` = 1403 discovered. Both runners fail when these numbers drift from the docs.
+> Source inventory: `test-all-hooks.cjs` = 133; `run-all-tests.cjs` = 1764 declared across 115 suites. Both runners fail when these numbers drift from the docs. Counts do not establish runtime results; read the actual runner output for outcomes.
 
 **Portable test contract** — shipped tests must pass in any project layout on Windows, macOS and Linux: build a temp fixture project instead of reading this repository's config or git state; blank inherited feature switches and provider keys; point `HOME`, `USERPROFILE`, `TMPDIR`, `TEMP` and `TMP` at the temp dir; name OS differences explicitly (paths, symlinks, `py -3` vs `python3`); run the full suite twice to prove repeatability.
 

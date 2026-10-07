@@ -50,6 +50,7 @@ coverage/
 # Package Manager Lock Files
 # -----------------------------------------------------------------------------
 package-lock.json
+!skills/task-track/package-lock.json
 yarn.lock
 pnpm-lock.yaml
 

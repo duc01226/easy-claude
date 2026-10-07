@@ -40,7 +40,8 @@ const tests = [
             assert.match(text, /Reviewing an existing PR \(no local edits\) uses the same scope from the PR's base/);
             assert.match(text, /Record the scope proof in the report: base ref, merge-base SHA/);
             // And a CI fix is re-reviewed over the whole branch diff, not the fix alone
-            assert.match(text, /Re-run Step 4 over the WHOLE branch diff again[^\n]*never the fix alone/);
+            const ci = text.slice(text.indexOf('### Step 8'), text.indexOf('### Step 9'));
+            assert.match(ci, /select\/run Step 4 over the WHOLE branch \(`<base-ref>\.\.\.HEAD ∪ uncommitted`\)/);
             assert.doesNotMatch(text, /scope = current uncommitted changes; the branch is already reviewed/);
             assert.doesNotMatch(text, /CI-fix rounds narrow to the new diff/);
             assert.match(text, /CI-fix rounds re-review the whole branch too/);

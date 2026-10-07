@@ -4,7 +4,7 @@
 
 ## What is this?
 
-**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **<!-- COUNT:hooks -->30<!-- /COUNT --> top-level hook files**, **<!-- COUNT:skills -->101<!-- /COUNT --> skills**, **<!-- COUNT:workflows -->19<!-- /COUNT --> workflows**, and **<!-- COUNT:agents -->24<!-- /COUNT --> specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`.
+**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **<!-- COUNT:hooks -->32<!-- /COUNT --> top-level hook files**, **<!-- COUNT:skills -->102<!-- /COUNT --> skills**, **<!-- COUNT:workflows -->19<!-- /COUNT --> workflows**, and **<!-- COUNT:agents -->24<!-- /COUNT --> specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`.
 
 **Core insight:** LLMs forget, hallucinate, and drift. Instead of hoping the AI "just gets it right," this framework uses **programmatic guardrails** (hooks) and **prompt-engineered protocols** (skills/workflows) to enforce correctness at every stage.
 
@@ -136,7 +136,7 @@ node .claude/skills/sync-codex/scripts/run-codex-sync.mjs   # standalone Codex s
 
 ## What's Inside
 
-### Hooks (<!-- COUNT:hooks -->30<!-- /COUNT --> top-level `.cjs` files, <!-- COUNT:lib-modules -->45<!-- /COUNT --> lib modules)
+### Hooks (<!-- COUNT:hooks -->32<!-- /COUNT --> top-level `.cjs` files, <!-- COUNT:lib-modules -->59<!-- /COUNT --> lib modules)
 
 Runtime Node.js scripts that fire on Claude Code lifecycle events.
 
@@ -145,7 +145,7 @@ Runtime Node.js scripts that fire on Claude Code lifecycle events.
 | **Safety**             | `review-commit-gate`                                                                                                                                                               | Block an agent `git commit` with no review fix-loop receipt or user-approved skip; other git and GitHub writes are model-behavioral                                                                                                                                                                                      |
 | **Quality**            | `doc-sync-gate`                                                                                                                                                                    | Warn on doc⇄code drift                                                                                                                                                                                                                                                                                                   |
 | **Session Management** | `verify-install`, `session-init`, `session-init-docs`, `session-end`, `graph-session-init`                                                                                         | Initialize state, load config, seed the graph                                                                                                                                                                                                                                                                            |
-| **Routing**            | `init-prompt-gate`, `workflow-route-inject`, `graph-prompt-sync`, `prompt-ledger`, `commit-skill-route`, `judgement-integrity-route`, `ai-feature-route`, `core-principles-inject` | Gate prompts until project config is ready, inject the route gate and live catalog, re-sync the graph when HEAD moved, keep the prompt ledger anchored, route commit requests to the `commit` skill, remind the judgement-integrity check on verdict requests, and remind the AI-engineering gate on AI-feature requests |
+| **Routing**            | `init-prompt-gate`, `workflow-route-inject`, `graph-prompt-sync`, `prompt-ledger`, `commit-skill-route`, `judgement-integrity-route`, `ai-feature-route`, `core-principles-inject`, `task-tracking-route` | Gate prompts until project config is ready, inject the route gate and live catalog, re-sync the graph when HEAD moved, keep the prompt ledger anchored, route commit requests to the `commit` skill, remind the judgement-integrity check on verdict requests, remind the AI-engineering gate on AI-feature requests, and offer optional task-tracking purpose/concern guidance |
 | **Post-processing**    | `post-edit-prettier`, `graph-auto-update`, `file-convention-inject`, `token-budget-checkpoint`                                                                                     | Format after edits, keep the code graph current, remind the opt-in per-file conventions after reads/edits, emit an advisory token checkpoint at task steps                                                                                                                                                               |
 | **Protocol delivery**  | `protocol-inject-review`, `-evidence-trace`, `-workflow-task`, `-spec-test`, `-design`, `-universal-<n>` (4 bins), `skill-overlay-remind`                                                                            | Deliver the full shared-protocol texts a skill declares, once per session, on a skill load, a typed `/command`, or a skill-preloading sub-agent start; the universal bundle goes to the first prompt, after about 100K tokens or a compaction, and to every sub-agent; the overlay reminder names a skill's project overlays                                                                                                                                                                    |
 
@@ -164,7 +164,7 @@ again after 100K tokens of growth or a compaction, and to every sub-agent; the w
 `workflow-route-inject.cjs`. `CLAUDE.md` and `AGENTS.md` hold project information only. This design prevents
 context drift over long sessions.
 
-### Skills (101 definitions)
+### Skills (<!-- COUNT:skills -->102<!-- /COUNT --> definitions)
 
 Markdown-based prompts with YAML frontmatter that guide AI behavior.
 
@@ -248,11 +248,11 @@ easy-claude/
 ├── .codex/                   # Codex agents, hooks, and context parity files
 ├── .claude/                  # <-- The framework template (copy this to your project)
 │   ├── agents/               # 24 specialized agent definitions
-│   ├── hooks/                # 30 top-level hook files + lib/ utilities
+│   ├── hooks/                # 32 top-level hook files + lib/ utilities
 │   │   ├── lib/              # Shared hook libraries
 │   │   ├── notifications/    # Multi-channel notification system
 │   │   └── tests/            # Hook test suites
-│   ├── skills/               # 101 skill definitions
+│   ├── skills/               # 102 skill definitions
 │   │   ├── <skill>/          # Each skill directory contains:
 │   │   │   ├── SKILL.md      # Entry point (prompt + frontmatter)
 │   │   │   ├── scripts/      # Optional automation scripts
@@ -283,7 +283,7 @@ The entire framework is **project-agnostic**. All project-specific knowledge liv
 ```
 ┌─────────────────────────────────────┐
 │     Generic Framework (reusable)    │
-│ 30 Hook Files + 101 Skills + 19 Flows │
+│ 32 Hook Files + 102 Skills + 19 Flows │
 └──────────────┬──────────────────────┘
                │
         ┌──────┴──────┐
@@ -352,6 +352,21 @@ Seven principles that make this framework work reliably across any project:
 | `CLAUDE.md`                | **No**    | Generated/merged per project via `/project-init` (`/ai-context-refresh`) |
 | `docs/project-config.json` | **No**    | Generated per project via `/project-init` (`/project-config`)            |
 | `docs/project-reference/`  | **No**    | Generated per project via `/project-init` (`/scan-all`)                  |
+
+## Optional team work tracking
+
+Use `/task-track` (Codex: `$task-track`) to inspect, assign and maintain exact team work, or open the optional local app. Each member shares proposals through the team's Git process. Acceptance and current verification remain distinct; ordinary work needs no ticket.
+
+Read [manual operations](.claude/skills/task-track/references/manual-operations.md) for semantic skill modes, direct-shell `help`/`catalogue`/`concerns`, exact authority and recovery. Inspection is the default; neither a catalogue nor an advisory prompt notice grants write, proof or acceptance authority. [Linked concerns and publication](.claude/skills/task-track/references/integration-guide.md#exact-linked-concerns) retain the original relationship declarer and require a current pre-publication self-check.
+
+See [configuration and setup](.claude/docs/configuration/README.md#team-work-tracking) for the mergeable example and stable member identities. Core commands require Node18+; the app requires Node20+. Every command except `help` and `identity` installs the pinned runtime package itself on first use (`CK_AUTO_INSTALL_DEPENDENCIES=0` turns that off). Inspect one checkout, then launch the app:
+
+```text
+node .claude/skills/task-track/scripts/task-track.cjs inspect --root .
+node .claude/skills/task-track/scripts/task-track.cjs serve --root . --write --open --terminal
+```
+
+A writable launch uses the checkout's current Git identity with no shared setup; add `--actor <id>` only for a configured custom member, and omit `--write` for a read-only launch. The app runs in a terminal window of its own: close that window or press Ctrl+C there to stop it. Keep the session URL private; drafts are memory-only. `report --root .` generates offline status; `report --root . --ref <local-ref>` pins a local shared commit without fetching. [Linked integration](.claude/skills/task-track/references/integration-guide.md) covers exact upkeep. Unsupported native capability preserves original sources and refuses mutation/rendering.
 
 ## Optional Dependencies
 

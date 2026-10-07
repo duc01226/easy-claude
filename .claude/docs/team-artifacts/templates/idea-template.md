@@ -1,13 +1,16 @@
 ---
+# Work-record fields (id, title, intent, status) follow .claude/skills/task-track/references/integration-guide.md, section "Records another skill authors".
 id: IDEA-{YYMMDD}-{NNN}
 title: '{Brief title}'
+intent: '{One sentence: the outcome this idea is for}'
+status: draft
 submitted_by: '{Name}'
 role: '{PO|BA|Dev|QA|Designer|PM|Stakeholder}'
 date: { YYYY-MM-DD }
-status: draft | under_review | approved | rejected | implemented
-priority: P1 | P2 | P3 | unset
+review_outcome: unset | under_review | approved | rejected
+priority_label: P1 | P2 | P3 | unset
 tags: []
-template_version: '2.0'
+template_version: '2.1'
 
 # Domain Context (optional, for domain features — populate from project-config.json modules)
 module: '' # Module name from project-config.json backendServices.serviceMap
@@ -88,6 +91,7 @@ pbi_references: [] # Links to generated PBIs
 
 ### Frontmatter Fields
 
+- **id / title / intent / status**: the work-record fields. A new idea is `status: draft`; a later state is recorded through `/task-track`, and the idea review decision goes in `review_outcome`.
 - **module**: Auto-detected by `/idea` for project domain features. Leave blank for infrastructure/cross-cutting.
 - **related_features**: Auto-populated from module README. Can be manually edited.
 - **entities**: Domain entities involved, helps with codebase navigation.

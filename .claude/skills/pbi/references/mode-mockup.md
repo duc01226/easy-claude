@@ -137,7 +137,7 @@ Generate visual HTML mockup reports from PBI and user story artifacts.
 ### Step 1: Locate Source Artifact
 
 1. If `--source=<path>` (or a bare path argument) is provided, use it as the source path and classify it: **PBI**, **story** (resolve its parent PBI via the story's PBI link or slug, then continue as a PBI source), or **feature spec** (a file under the business spec root — default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path — or a file whose frontmatter/headings declare a feature spec), or **requirement report** (a workflow run's investigation, requirement or plan report — e.g. from `workflow-feature` or `workflow-bugfix` when the work adds new UI and no PBI or spec covers it yet)
-2. Otherwise, auto-detect the most recent PBI: glob `pbis/*-pbi-*.md` under the team-artifacts root (default `team-artifacts`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path), sorted by modification time
+2. Otherwise, auto-detect the most recent PBI: glob `pbis/*.md` (the folder's own files, not `pbis/stories/`) under the team-artifacts root, which finds a PBI saved as `{YYMMDD}-pbi-{slug}.md` by refinement and one saved as `{id}.md` by the tracker alike, (default `team-artifacts`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path), sorted by modification time
 3. Read the source artifact fully
 4. **PBI source:** check for associated stories: glob `pbis/stories/*-us-{pbi-slug}*.md` under the team-artifacts root (default `team-artifacts`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path); read all story artifacts if found
 5. **Spec source:** read the spec's UI intent layer (`SYNC:ui-intent-layer` — view inventory with information priority and container role, navigation map, key observable states, per-story action flows), its user stories and acceptance criteria, and its business rules; read `feature-spec-reference.md` and `spec-system-reference.md` from the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path) for the section layout when they exist. When a `/design-spec` output exists for the same feature (`design-specs/` under the team-artifacts root), read it too. A spec with no UI intent layer and no UI stories is treated as backend-only (Step 2). Reuse the spec's view and flow vocabulary verbatim — never rename a view the spec names
@@ -155,7 +155,7 @@ From the PBI and story artifacts (or, for a spec source, the matching spec secti
 | `### Interaction Flow`             | User actions and system responses     |
 | `## Acceptance Criteria`           | GIVEN/WHEN/THEN scenarios for context |
 | `## Description`                   | User role, capability, business value |
-| frontmatter `priority` / `rank`    | PBI priority label + numeric rank — render in the header (Step 4). MANDATORY when present; the mockup MUST carry the same priority info as the backlog. |
+| frontmatter `priority_label` / `priority`    | PBI priority label (`priority_label`) + numeric rank (integer `priority`, lower first); a PBI holding a label in `priority` and a number in `rank` reads the same way — render in the header (Step 4). MANDATORY when present; the mockup MUST carry the same priority info as the backlog. |
 | `large_idea_decomposition` / slice ID | Slice outcome, dependency boundary, non-goals, risk/evidence owner, and deferred-work ownership — preserve read-only when present |
 
 **Requirement-report or spec source:** judge UI scope by the requirement's user-facing intent — the new or reshaped pages, views, components or dialogs it names — never by the presence of PBI `## UI Layout` sections, which such a source does not have. Skip only when that intent names no user-facing surface.
@@ -345,7 +345,7 @@ The 40 UI/UX Design Principles (`UI-1.1`–`UI-9.4`, the `SYNC:ui-ux-design-prin
 1. **Header Section:**
     - PBI ID and title
     - Module badge
-    - **Priority badge** — the PBI's priority label + numeric rank from frontmatter (e.g. "Priority: Must Have · Rank #2"). MANDATORY when the PBI carries `priority`/`rank`; the mockup MUST surface the same priority info as the backlog so stakeholders see it on the prototype itself. Omit only when the PBI genuinely has no priority assigned yet.
+    - **Priority badge** — the PBI's priority label + numeric rank from frontmatter (e.g. "Priority: Must Have · Rank #2"). MANDATORY when the PBI carries `priority_label`/`priority`; the mockup MUST surface the same priority info as the backlog so stakeholders see it on the prototype itself. Omit only when the PBI genuinely has no priority assigned yet.
     - Story count summary
     - Generation date
 

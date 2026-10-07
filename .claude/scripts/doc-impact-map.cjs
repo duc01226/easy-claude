@@ -1096,11 +1096,12 @@ function main(argv) {
 
 if (require.main === module) {
     try {
-        process.exit(main(process.argv));
+        // Set the exit code and let the process end by itself: process.exit() drops piped output past the pipe buffer.
+        process.exitCode = main(process.argv);
     } catch (err) {
         // Fail-open: a mapper crash must never block the docs-manager --mode=update run.
         process.stdout.write(JSON.stringify({ mode: 'error', error: err.message, warnings }, null, 2) + '\n');
-        process.exit(0);
+        process.exitCode = 0;
     }
 }
 

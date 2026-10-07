@@ -422,20 +422,23 @@ Record the gate in the PBI inputs before generation:
 
 > **Artifact Path (canonical convention)** — Command `/pbi --mode=refine` → base path `pbis/` under the team-artifacts root (default `team-artifacts/`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path), role token `ba`, type `pbi`. General filename pattern: `{YYMMDD}-{role}-{type}-{slug}.md` → e.g. `260119-ba-pbi-invoice-approval.md`. Slug = lowercased basename, non-alphanumeric → `-`, trimmed, max 50 chars.
 
+> **Work record (owner: `/task-track`)** — The PBI file is a work record. Read [Records another skill authors](../../task-track/references/integration-guide.md#records-another-skill-authors) before writing it; that section owns `id`, `title`, `intent`, `status`, `priority`, `assigned_to` and the `tracking` block. Choose an `id` no other record uses, write `status: draft` and no assignee, and keep the MoSCoW label in `priority_label`. On a PBI that already has a `tracking` block, leave those fields as they are and change them only through `/task-track`. After the save, follow that section's hand-off: offer tracking once, then acceptance criteria go in under their `AC-NN` IDs and the source idea as an `idea` link. Refinement, review and the readiness check never mark the PBI ready or assign it.
+
 ### PBI Template
 
 ```markdown
 ---
 id: PBI-{YYMMDD}-{NNN}
 title: '{Brief descriptive title}'
+intent: '{One sentence: the releasable outcome}'
+status: draft
+priority: { integer 1-999, lower comes first — written by /prioritize during cross-PBI ranking; leave the key out until ranked }
+priority_label: Must Have | Should Have | Could Have | Won't Have
 module: '{ModuleName — detect from project-config.json modules[]}'
-priority: Must Have | Should Have | Could Have | Won't Have
-rank: { numeric 1-999, ascending — populated/updated by /prioritize during cross-PBI ranking; omit until prioritized }
 story_points: 1 | 2 | 3 | 5 | 8 | 13 | 21
 complexity: Low | Medium | High | Very High
 man_days_traditional: '{ Xd (Yd code + Zd test) — from SP table }'
 man_days_ai: '{ Xd (Yd code + Zd test) — from SP table with AI }'
-status: draft | refined | ready | in_progress | done
 rice_score: { calculated }
 created: '{YYYY-MM-DD}'
 source_idea: '{idea artifact path or ID}'
@@ -676,7 +679,7 @@ Then error "{message}"
 - **No vague dependency descriptions** — Each dependency must specify concrete PBI, service, or feature and WHY relationship exists.
 - **Every generated PBI MUST ATTENTION be a releasable actor-facing outcome** with a complete entry-to-result journey and evidence. Technical-only, foundation-only, migration-only, and setup-only work is enabling work under a releasable PBI, never a standalone PBI.
 - **UI PBIs MUST ATTENTION include the full-flow surface** — all required pages/views, navigation, common/domain/page components, applicable states, and the demo journey. One screen or a disconnected screen set is not enough.
-- **Read and apply** `.claude/skills/shared/releasable-pbi-contract.md`; if its gate is `BLOCKED`, do not write a ready/refined PBI.
+- **Read and apply** `.claude/skills/shared/releasable-pbi-contract.md`; if its gate is `BLOCKED`, do not write the PBI.
 
 ## BA Team Refinement Context (canonical)
 
@@ -1009,6 +1012,7 @@ For domain PBIs: detect module from the directory names under the business spec 
 - **MANDATORY IMPORTANT MUST ATTENTION** apply the shared four-signal `isLargeIdea` rule before PBI elicitation; when true, require and propagate the complete five-field `large_idea_decomposition` block and stable slice IDs, then run conditional scenario analysis where needed. Only an explicit roadmap request uses the product-roadmap artifact (default `docs/product-roadmap.md`; path from `docsRoots.productRoadmap.path` in `docs/project-config.json`); ordinary ideas must not create it, and ambiguous product intent is BLOCKED rather than inferred.
 - **IMPORTANT MUST ATTENTION** acceptance criteria are BDD GIVEN/WHEN/THEN (min 3: happy/edge/error) and MUST satisfy the Phase 5.1 AI-SDD M1-M5 and M7 gate — tech-agnostic Business Intent, logical `FR-`/`BR-` IDs first, observable single-interpretation ACs, rebuild-from-scratch validity, every AC demoable as a business outcome — why: a reader who must guess a rule/limit/role re-implements the wrong behavior
 - **IMPORTANT MUST ATTENTION** apply the M7 demo test to every AC's BODY — _"what would a stakeholder SEE change?"_; no answer → TECHNICAL-ONLY, drop it. FAIL a `WHEN` that is an invocation (handler runs, consumer receives, job fires, data syncs) or a `THEN` asserting schema/type/nullability/call-count; NEVER derive the AC count from an architecture inventory — why: M1 governs vocabulary, M7 governs subject matter — a technical AC in tech-free prose passes M1 and still rots the PBI
+- **IMPORTANT MUST ATTENTION** the PBI file is a work record owned by `/task-track`: unused `id`, `status: draft`, no assignee, integer `priority` only after ranking, label in `priority_label`; on a tracked PBI change `title`/`intent`/`status`/`priority` only through `/task-track` — why: a second status or priority vocabulary makes the tracker refuse the record
 - **IMPORTANT MUST ATTENTION** every PBI MUST include `story_points`, `complexity`, `man_days_traditional`, `man_days_ai` frontmatter AND a complete Dependencies table with Dependency, Type (`must-before`/`can-parallel`/`blocked-by`/`independent`) and Status columns — fill even when `independent`
 - **IMPORTANT MUST ATTENTION** keep PBI Business Intent prose tech-agnostic — NO framework/product/language/design-pattern names; implementation hints go ONLY in `## Implementation Notes`, source refs ONLY in `[Source: namespace/service/id]` evidence carriers — why: a tech-leaked spec is not rebuildable on another stack (M1/M2)
 - **IMPORTANT MUST ATTENTION** greenfield mode: NEVER ask about tech stack during refinement — capture team skills/scale as signals only; tech decided after business analysis

@@ -22,7 +22,7 @@ description: '[Project Management] Use when a workflow step or the user asks for
 - **1. Track + detect/collect** — track each declared step (`in_progress` → `completed` + evidence); identify file/inline input and require ≥3 items; fewer → direct discussion, NEVER force a framework.
 - **2. Select + score** — honor a specified framework; otherwise RICE for quantitative data, MoSCoW for stakeholder alignment, Value-Effort 2x2 for a quick call; default RICE when unsure; apply exact criteria, formula, and scales.
 - **3. Rank + report** — rank by framework; emit a prioritized table with scores, tech-agnostic value/effort/risk/business-impact rationale, and Do-first/Plan-next/Defer recommendations.
-- **4. Propagate + tie gate** — when PBI files exist, write `rank` (1–999) + `priority` to EACH PBI frontmatter; near-tie/disagreement → `ask user question tool` for `/llm-council` vs accept, otherwise end without prompting.
+- **4. Propagate + tie gate** — when PBI files exist, record the integer `priority` (1–999, lower first) + `priority_label` on EACH PBI, through `/task-track` when the PBI is tracked; near-tie/disagreement → `ask user question tool` for `/llm-council` vs accept, otherwise end without prompting.
 
 **Workflow:**
 
@@ -30,7 +30,7 @@ description: '[Project Management] Use when a workflow step or the user asks for
 2. **Select Framework** — use RICE for quantitative data, MoSCoW for stakeholder alignment, or Value-Effort for a quick decision
 3. **Score Each Item** — apply exact framework criteria and calculate scores
 4. **Rank & Report** — emit prioritized table, rationale, and recommendations
-5. **Propagate Priority** — if PBI files exist, MANDATORY write `rank` + `priority` to EACH PBI frontmatter
+5. **Propagate Priority** — if PBI files exist, MANDATORY record integer `priority` + `priority_label` on EACH PBI (tracked PBI: `priority` through `/task-track`)
 6. **Tie Gate** — near-tie → `ask user question tool` (`/llm-council` vs accept); otherwise end without prompting
 
 **Key Rules:**
@@ -42,7 +42,8 @@ description: '[Project Management] Use when a workflow step or the user asks for
 > MUST ATTENTION READ `.claude/skills/shared/sdd-artifact-contract.md` for full mandate and carrier rules.
 
 - **Tech-agnostic rationale (M1):** justify every ranking by value, effort, risk, and business impact — NOT implementation technology. Rationale prose stays tech-agnostic per `spec-principles.md` §3 in the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path): no framework/product/language/design-pattern names; effort may cite story points and relative complexity, never a named stack.
-- **PBI propagation:** when PBI files exist, write numeric `rank` (1–999, ascending) and `priority` label to EACH PBI frontmatter; this is mandatory, not optional.
+- **PBI propagation:** when PBI files exist, record the rank as integer `priority` (1–999, lower comes first) and the label as `priority_label` on EACH PBI; this is mandatory, not optional.
+- **Work record owner:** `priority` is a tracker-owned field ([Records another skill authors](../task-track/references/integration-guide.md#records-another-skill-authors)). On a PBI with a `tracking` block, set it through `/task-track --mode=maintain` (`update` with `priority`) and edit only `priority_label` in the file; on an untracked PBI, write both keys directly. Ranking never changes `status`, readiness or assignee.
 
 Apply critical/sequential thinking; every claim needs traced proof and confidence >80% to act.
 
@@ -121,7 +122,7 @@ Use a data-driven framework → ranked list with scores + rationale.
 
 5. **Output** prioritized list with scores and rationale
 
-6. **IF PBI files exist** -> **MANDATORY priority propagation**: write the resulting priority back into EACH PBI's frontmatter — both the numeric `rank` (1-999, ascending) and the `priority` label (e.g. Must Have / Should Have / Could Have / Won't Have, or the framework's category). Never leave this optional when PBI files exist: a PBI without its priority is incomplete, and downstream consumers (`pbi --mode=mockup` header badge, `feature-presentation` Scope & backlog slide) read priority FROM the PBI frontmatter. Update every ranked PBI, not just the standalone backlog file.
+6. **IF PBI files exist** -> **MANDATORY priority propagation**: record the resulting priority on EACH PBI — the rank as integer `priority` (1-999, lower comes first) and the label as `priority_label` (e.g. Must Have / Should Have / Could Have / Won't Have, or the framework's category). An untracked PBI takes both keys directly in its frontmatter; a PBI with a `tracking` block takes `priority` through `/task-track --mode=maintain` and only `priority_label` by file edit. When an existing PBI holds a label in `priority` and a number in `rank`, move the label to `priority_label` and the number to `priority`, and remove `rank`. Never leave this optional when PBI files exist: a PBI without its priority is incomplete, and downstream consumers (`pbi --mode=mockup` header badge, `feature-presentation` Scope & backlog slide) read priority FROM the PBI frontmatter. Update every ranked PBI, not just the standalone backlog file.
 
 ## Output Format
 
@@ -227,7 +228,7 @@ If gate does NOT fire, the prioritization decision stands; do NOT prompt.
 - **IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting; mark one `in_progress`, `completed` immediately after evidence
 - **IMPORTANT MUST ATTENTION** search codebase/artifacts for 3+ similar patterns before creating new structure; evaluate pattern FIT (same constraints/scope) before copying a nearby example — why: closest example ≠ matching preconditions
 - **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act, <60% DO NOT recommend); NEVER present a guess as fact
-- **IMPORTANT MUST ATTENTION** when PBI files exist, propagating the ranking into EACH PBI's frontmatter (numeric `rank` 1-999 + `priority` label) is MANDATORY, not optional — do it after ranking; grep downstream consumers before changing any priority field — why: downstream consumers (`pbi --mode=mockup` header, `feature-presentation` Scope & backlog slide) read priority from PBI frontmatter, and stale/absent priority refs cascade silently
+- **IMPORTANT MUST ATTENTION** when PBI files exist, propagating the ranking onto EACH PBI (integer `priority` 1-999 + `priority_label`; on a tracked PBI `priority` goes through `/task-track`) is MANDATORY, not optional — do it after ranking; grep downstream consumers before changing any priority field — why: downstream consumers (`pbi --mode=mockup` header, `feature-presentation` Scope & backlog slide) read priority from PBI frontmatter, and stale/absent priority refs cascade silently
 - **IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
 
 **Anti-Rationalization:**

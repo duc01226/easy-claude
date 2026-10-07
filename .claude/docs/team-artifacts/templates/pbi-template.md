@@ -1,15 +1,17 @@
 ---
+# Work-record fields (id, title, intent, status, priority) follow .claude/skills/task-track/references/integration-guide.md, section "Records another skill authors".
 id: PBI-{YYMMDD}-{NNN}
 title: '{Brief title}'
+intent: '{One sentence: the releasable outcome}'
+status: draft
+priority: 1-999 # integer, lower comes first; leave the key out until the PBI is ranked
+priority_label: Must Have | Should Have | Could Have | Won't Have
 source_idea: '{IDEA-XXXXXX-NNN or N/A}'
-priority: 1-999
 effort: XS | S | M | L | XL
-status: backlog | ready | in_progress | done | blocked
 sprint: '{Sprint name or N/A}'
-assigned_to: '{Name or Unassigned}'
 created: { YYYY-MM-DD }
 updated: { YYYY-MM-DD }
-template_version: '2.1'
+template_version: '2.2'
 
 # Domain Context (for domain features — populate from project-config.json modules)
 module: '' # Module name from project-config.json backendServices.serviceMap
@@ -259,6 +261,7 @@ See Section 8 (Test Specifications) in primary feature doc for patterns:
 
 ### Frontmatter Fields
 
+- **id / title / intent / status / priority**: the work-record fields. A new PBI is `status: draft` with no assignee; readiness, assignment and later states are recorded through `/task-track`, never by generating or reviewing the PBI.
 - **module**: Auto-populated from idea or detected by `/pbi --mode=refine`. Critical for domain PBIs.
 - **related_features**: Helps navigate feature documentation during implementation.
 - **primary_feature_doc**: Primary reference for business rules and test patterns.

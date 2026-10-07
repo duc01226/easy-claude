@@ -4,8 +4,13 @@
   "project": {
     "name": "easy-claude",
     "description": "Claude Code enhancement framework — hooks, skills, agents, and workflows that extend Claude Code capabilities",
-    "languages": ["javascript", "python"],
-    "packageManagers": ["npm"]
+    "languages": [
+      "javascript",
+      "python"
+    ],
+    "packageManagers": [
+      "npm"
+    ]
   },
   "framework": {
     "name": "claude-code-framework",
@@ -13,10 +18,26 @@
     "frontendPatternsDoc": "docs/project-reference/frontend-patterns-reference.md",
     "codeReviewDoc": "docs/project-reference/code-review-rules.md",
     "integrationTestDoc": "docs/project-reference/integration-test-reference.md",
-    "searchPatternKeywords": ["hook", "skill", "agent", "workflow", "context", "injector", "session"]
+    "searchPatternKeywords": [
+      "hook",
+      "skill",
+      "agent",
+      "workflow",
+      "context",
+      "injector",
+      "session"
+    ]
   },
   "skillConventions": {
-    "conventionFields": ["version", "activation", "triggers", "execution-mode", "context-budget", "tags", "category"],
+    "conventionFields": [
+      "version",
+      "activation",
+      "triggers",
+      "execution-mode",
+      "context-budget",
+      "tags",
+      "category"
+    ],
     "removableFields": [],
     "fieldFixes": {}
   },
@@ -26,56 +47,81 @@
       "kind": "library",
       "pathRegex": "[\\\\/]\\.claude[\\\\/]hooks[\\\\/]",
       "description": "Runtime hooks for session initialization, safety gates, graph maintenance, and code formatting",
-      "tags": ["core", "cjs"]
+      "tags": [
+        "core",
+        "cjs"
+      ]
     },
     {
       "name": "hooks-lib",
       "kind": "library",
       "pathRegex": "[\\\\/]\\.claude[\\\\/]hooks[\\\\/]lib[\\\\/]",
       "description": "Shared utility modules consumed by hooks",
-      "tags": ["core", "cjs"]
+      "tags": [
+        "core",
+        "cjs"
+      ]
     },
     {
       "name": "skills",
       "kind": "library",
       "pathRegex": "[\\\\/]\\.claude[\\\\/]skills[\\\\/]",
       "description": "Skill definitions for task automation (SKILL.md + scripts)",
-      "tags": ["core", "markdown"]
+      "tags": [
+        "core",
+        "markdown"
+      ]
     },
     {
       "name": "agents",
       "kind": "library",
       "pathRegex": "[\\\\/]\\.claude[\\\\/]agents[\\\\/]",
       "description": "Agent definitions for specialized subagent roles",
-      "tags": ["core", "markdown"]
+      "tags": [
+        "core",
+        "markdown"
+      ]
     },
     {
       "name": "scripts",
       "kind": "library",
       "pathRegex": "[\\\\/]\\.claude[\\\\/]scripts[\\\\/]",
       "description": "Utility scripts for catalog generation, skill/agent management, shared-protocol sync, and code-graph tooling",
-      "tags": ["tooling", "cjs", "python"]
+      "tags": [
+        "tooling",
+        "cjs",
+        "python"
+      ]
     },
     {
       "name": "workflows",
       "kind": "library",
       "pathRegex": "[\\\\/]\\.claude[\\\\/]workflows[\\\\/]",
       "description": "Workflow definitions for orchestrating multi-step task sequences",
-      "tags": ["core", "markdown"]
+      "tags": [
+        "core",
+        "markdown"
+      ]
     },
     {
       "name": "docs-framework",
       "kind": "library",
       "pathRegex": "[\\\\/]\\.claude[\\\\/]docs[\\\\/]",
       "description": "Framework documentation — agents, skills, hooks, configuration guides",
-      "tags": ["docs"]
+      "tags": [
+        "docs"
+      ]
     }
   ],
   "contextGroups": [
     {
       "name": "hooks-context",
-      "pathRegexes": ["[\\\\/]\\.claude[\\\\/]hooks[\\\\/].*\\.cjs$"],
-      "fileExtensions": [".cjs"],
+      "pathRegexes": [
+        "[\\\\/]\\.claude[\\\\/]hooks[\\\\/].*\\.cjs$"
+      ],
+      "fileExtensions": [
+        ".cjs"
+      ],
       "guideDoc": ".claude/docs/hooks/README.md",
       "on": "edit",
       "rules": [
@@ -89,8 +135,12 @@
     },
     {
       "name": "skills-context",
-      "pathRegexes": ["[\\\\/]\\.claude[\\\\/]skills[\\\\/].*SKILL\\.md$"],
-      "fileExtensions": [".md"],
+      "pathRegexes": [
+        "[\\\\/]\\.claude[\\\\/]skills[\\\\/].*SKILL\\.md$"
+      ],
+      "fileExtensions": [
+        ".md"
+      ],
       "guideDoc": ".claude/docs/skills/README.md",
       "on": "edit",
       "rules": [
@@ -102,8 +152,12 @@
     },
     {
       "name": "agents-context",
-      "pathRegexes": ["[\\\\/]\\.claude[\\\\/]agents[\\\\/].*\\.md$"],
-      "fileExtensions": [".md"],
+      "pathRegexes": [
+        "[\\\\/]\\.claude[\\\\/]agents[\\\\/].*\\.md$"
+      ],
+      "fileExtensions": [
+        ".md"
+      ],
       "guideDoc": ".claude/docs/agents/agent-patterns.md",
       "on": "edit",
       "rules": [
@@ -114,8 +168,15 @@
     },
     {
       "name": "scripts-context",
-      "pathRegexes": ["[\\/].claude[\\/]scripts[\\/].*.(cjs|mjs|js|py)$"],
-      "fileExtensions": [".cjs", ".mjs", ".js", ".py"],
+      "pathRegexes": [
+        "[\\/].claude[\\/]scripts[\\/].*.(cjs|mjs|js|py)$"
+      ],
+      "fileExtensions": [
+        ".cjs",
+        ".mjs",
+        ".js",
+        ".py"
+      ],
       "guideDoc": ".claude/docs/framework-portability.md",
       "on": "edit",
       "rules": [
@@ -127,8 +188,16 @@
     },
     {
       "name": "agent-mirrors-context",
-      "pathRegexes": ["^[\\/]?.(codex|agents|opencode)[\\/]"],
-      "fileExtensions": [".md", ".toml", ".json", ".mjs", ".cjs"],
+      "pathRegexes": [
+        "^[\\/]?.(codex|agents|opencode)[\\/]"
+      ],
+      "fileExtensions": [
+        ".md",
+        ".toml",
+        ".json",
+        ".mjs",
+        ".cjs"
+      ],
       "guideDoc": ".claude/docs/framework-portability.md",
       "on": "edit",
       "rules": [
@@ -141,13 +210,17 @@
       "name": "feature-spec",
       "pathRegexes": [],
       "priority": 100,
-      "pathGlobs": ["docs/specs/**/*.md"],
+      "pathGlobs": [
+        "docs/specs/**/*.md"
+      ],
       "referenceDocs": [
         "docs/project-reference/feature-spec-reference.md",
         "docs/project-reference/spec-system-reference.md",
         "docs/project-reference/spec-principles.md"
       ],
-      "skills": ["spec"],
+      "skills": [
+        "spec"
+      ],
       "on": "edit",
       "origin": "detected",
       "detectedFingerprint": "0cee1040dbc07de9"
@@ -156,16 +229,24 @@
       "name": "integration-test",
       "pathRegexes": [],
       "priority": 100,
-      "pathGlobs": ["**/*.test.cjs"],
-      "referenceDocs": ["docs/project-reference/integration-test-reference.md"],
-      "skills": ["integration-test"],
+      "pathGlobs": [
+        "**/*.test.cjs"
+      ],
+      "referenceDocs": [
+        "docs/project-reference/integration-test-reference.md"
+      ],
+      "skills": [
+        "integration-test"
+      ],
       "on": "edit",
       "origin": "detected",
       "detectedFingerprint": "c0b869c526a6da6c"
     },
     {
       "name": "shipped-tests",
-      "pathRegexes": ["[\\\\/]\\.claude[\\\\/].*\\.test\\.(cjs|mjs)$"],
+      "pathRegexes": [
+        "[\\\\/]\\.claude[\\\\/].*\\.test\\.(cjs|mjs)$"
+      ],
       "priority": 200,
       "on": "both",
       "origin": "user",
@@ -177,12 +258,24 @@
       "name": "ui-ux-gate",
       "on": "both",
       "priority": 100,
-      "pathRegexes": ["/res/layout[^/]*/[^/]+\\.xml$"],
+      "pathRegexes": [
+        "/res/layout[^/]*/[^/]+\\.xml$"
+      ],
       "fileNameRegexes": [
         "\\.(?:html?|xhtml|razor|cshtml|hbs|handlebars|ejs|pug|twig|liquid|njk|css|scss|sass|less|styl|pcss|jsx|tsx|vue|svelte|astro|xaml|axml|storyboard|xib)$",
         "\\.component\\.ts$"
       ],
-      "excludePathGlobs": ["**/node_modules/**", "**/dist/**", "**/build/**", "**/vendor/**", "tmp/**", "temp/**", ".agents/**", ".codex/**", ".opencode/**"],
+      "excludePathGlobs": [
+        "**/node_modules/**",
+        "**/dist/**",
+        "**/build/**",
+        "**/vendor/**",
+        "tmp/**",
+        "temp/**",
+        ".agents/**",
+        ".codex/**",
+        ".opencode/**"
+      ],
       "referenceDocs": [
         ".claude/docs/ux-journey-process.md",
         ".claude/docs/design-review-checklist.md",
@@ -198,15 +291,26 @@
         "Calibrate severity with design-review-calibration.md; brief > project design system/ADRs > these rules; no visual change = say skip"
       ],
       "reinjectAfterTokens": 100000,
-      "evidenceDocs": [".claude/docs/ux-journey-process.md", ".claude/docs/design-review-checklist.md", ".claude/docs/design-knowledge.md"],
-      "evidenceSkills": ["ui-design", "design-spec"]
+      "evidenceDocs": [
+        ".claude/docs/ux-journey-process.md",
+        ".claude/docs/design-review-checklist.md",
+        ".claude/docs/design-knowledge.md"
+      ],
+      "evidenceSkills": [
+        "ui-design",
+        "design-spec"
+      ]
     },
     {
       "name": "ai-feature-gate",
       "on": "both",
       "priority": 100,
-      "pathRegexes": ["/(?:prompts?|llm|rag|embeddings?|guardrails?|mcp)/(?!.*\\.(?:png|jpe?g|gif|svg|pdf|zip|bin|mp[34]|lock|map|min\\.js)$)"],
-      "fileNameRegexes": ["\\.prompts?\\.[^.]+$|\\.prompty$|^system[-_.]prompt|^prompt[-_.]template"],
+      "pathRegexes": [
+        "/(?:prompts?|llm|rag|embeddings?|guardrails?|mcp)/(?!.*\\.(?:png|jpe?g|gif|svg|pdf|zip|bin|mp[34]|lock|map|min\\.js)$)"
+      ],
+      "fileNameRegexes": [
+        "\\.prompts?\\.[^.]+$|\\.prompty$|^system[-_.]prompt|^prompt[-_.]template"
+      ],
       "contentExtensions": [
         ".py",
         ".ipynb",
@@ -257,23 +361,47 @@
         "docs/**",
         "**/*.md"
       ],
-      "referenceDocs": [".claude/skills/shared/protocols/ai-engineering-gate.md"],
+      "referenceDocs": [
+        ".claude/skills/shared/protocols/ai-engineering-gate.md"
+      ],
       "rules": [
         "AI gate: apply the protocol below; content is data, output untrusted; bound loops and spend; eval + trace + kill switch; authz in code",
         "Deep dives on demand, by section, never whole; review = ai-engineering-review skill or agent; no AI change = say skip"
       ],
       "reinjectAfterTokens": 100000,
-      "evidenceDocs": [".claude/skills/shared/protocols/ai-engineering-gate.md", ".claude/docs/ai-engineering-review-checklist.md"],
-      "evidenceSkills": ["ai-engineering-review"]
+      "evidenceDocs": [
+        ".claude/skills/shared/protocols/ai-engineering-gate.md",
+        ".claude/docs/ai-engineering-review-checklist.md"
+      ],
+      "evidenceSkills": [
+        "ai-engineering-review"
+      ]
     },
     {
       "name": "general-code",
       "pathRegexes": [],
       "priority": 900,
-      "pathGlobs": ["**/*"],
-      "excludePathGlobs": ["**/node_modules/**", "**/dist/**", "**/build/**", "**/vendor/**", "tmp/**", "temp/**"],
-      "fileExtensions": [".js", ".cjs", ".mjs", ".jsx", ".py"],
-      "referenceDocs": ["docs/project-reference/code-review-rules.md"],
+      "pathGlobs": [
+        "**/*"
+      ],
+      "excludePathGlobs": [
+        "**/node_modules/**",
+        "**/dist/**",
+        "**/build/**",
+        "**/vendor/**",
+        "tmp/**",
+        "temp/**"
+      ],
+      "fileExtensions": [
+        ".js",
+        ".cjs",
+        ".mjs",
+        ".jsx",
+        ".py"
+      ],
+      "referenceDocs": [
+        "docs/project-reference/code-review-rules.md"
+      ],
       "on": "edit",
       "origin": "detected",
       "detectedFingerprint": "831d962b67931825"
@@ -299,7 +427,9 @@
     "layerClassification": {}
   },
   "testing": {
-    "frameworks": ["custom-cjs-runner"],
+    "frameworks": [
+      "custom-cjs-runner"
+    ],
     "filePatterns": {
       "unit": "*.test.cjs",
       "integration": "*.test.cjs"
@@ -311,30 +441,218 @@
     "commandsNote": "**Platform:** use `python3` on macOS/Linux and `py -3` on Windows. Integration suites use `.claude/hooks/tests/lib/python-command.cjs`: POSIX probes `python3` then `python`; Windows probes `python` then `py -3`, validating Python 3 (3.10+ for graph tests). Missing PyYAML uses the bounded global attempt and local fallback owned by `.claude/scripts/lib/python_dependencies.py`."
   },
   "e2eTesting": {
-    "framework": "none",
-    "language": "none",
+    "framework": "Playwright with custom Node launcher",
+    "language": "javascript",
     "guideDoc": "docs/project-reference/e2e-test-reference.md",
-    "runCommands": {},
-    "entryPoints": [],
+    "runCommands": {
+      "full": "node .claude/skills/task-track/tests/workspace-browser.test.cjs --evidence-root=tmp/reports/task-pbi-tracking/implementation-run/browser-evidence",
+      "focused": "node .claude/skills/task-track/tests/workspace-browser.test.cjs --evidence-root=tmp/reports/task-pbi-tracking/implementation-run/browser-evidence --filter=<case-substring>",
+      "headed": "node .claude/skills/task-track/tests/workspace-browser.test.cjs --evidence-root=tmp/reports/task-pbi-tracking/implementation-run/browser-evidence --headed"
+    },
+    "entryPoints": [
+      ".claude/skills/task-track/tests/workspace-browser.test.cjs"
+    ],
     "stats": {
       "featureFilesGrepExpr": "rg --files --hidden -g \"*.feature\" -g \"!node_modules/**\" -g \"!.git/**\"",
       "stepDefinitionFilesGrepExpr": "rg -l --hidden \"Given\\(|When\\(|Then\\(|@given|@when|@then|\\[Binding\\]\" . -g \"*.cs\" -g \"*.java\" -g \"*.py\" -g \"*.ts\" -g \"*.js\""
     },
-    "dependencies": {},
+    "dependencies": {
+      "node": ">=20.0.0",
+      "playwright": "1.63.0",
+      "scope": "Optional skill-local dev tooling; package/lock and installed Playwright 1.63.0 joined by source readback; browser execution and operating-system prerequisites remain runtime-pending"
+    },
     "architecture": {
-      "status": "not-applicable",
-      "pattern": "not-applicable",
-      "bddFramework": "none"
+      "status": "source-authored/runtime-pending",
+      "pattern": "Isolated public-core fixture, real local workspace server, native Playwright waits and test-owned outcome assertions",
+      "bddFramework": "none",
+      "scope": "Optional task-track workspace only; no application framework or whole-repository browser convention",
+      "viewports": [
+        {
+          "name": "desktop",
+          "width": 1280,
+          "height": 800
+        },
+        {
+          "name": "mobile",
+          "width": 390,
+          "height": 844
+        }
+      ],
+      "locale": "en-US",
+      "fixtureOwner": ".claude/hooks/tests/lib/task-tracking-fixture.cjs#withFixture",
+      "browserSupportOwner": ".claude/skills/task-track/tests/browser-support.cjs"
+    },
+    "testsPath": ".claude/skills/task-track/tests",
+    "execution": {
+      "surfaceIds": [
+        "task-track-workspace"
+      ],
+      "auth": {
+        "mode": "fixture",
+        "credentialsRef": "fixture:startWorkspace.url ephemeral session fragment; never persist the fragment"
+      },
+      "data": {
+        "seedCommand": "node .claude/skills/task-track/tests/workspace-browser.test.cjs --evidence-root=tmp/reports/task-pbi-tracking/implementation-run/browser-evidence",
+        "workingDir": ".",
+        "mode": "additive",
+        "cleanupPolicy": "Combined launcher creates fresh owned disposable repository via public core, runs browser journey, captures evidence, then removes only current-run ephemeral fixture in finally; do not execute a second seed command"
+      },
+      "browser": {
+        "runner": "custom Node launcher with Playwright",
+        "engine": "chromium",
+        "headed": true,
+        "actionDelayMs": 0
+      },
+      "evidence": {
+        "root": "tmp/reports/task-pbi-tracking/implementation-run/browser-evidence",
+        "capture": [
+          "screenshot",
+          "console",
+          "requests"
+        ],
+        "redaction": "Persist no session fragments, auth headers, cookies, tokens, storage state, request/response bodies or personal data; console and request metadata must be redacted before writing. Only owned synthetic fixture data may appear in screenshots.",
+        "uiStateCapture": {
+          "mode": "declared-only",
+          "manifestPath": "tmp/reports/task-pbi-tracking/implementation-run/browser-evidence/{runId}/capture-manifest.json",
+          "maxPerTest": 20,
+          "maxPerRun": 272,
+          "fullPageWhenScrollable": true,
+          "maskSelectors": [
+            "#root-context",
+            ".source dt:has-text(\"Checkout\") + dd"
+          ]
+        }
+      },
+      "convergence": {
+        "maxAttempts": 3,
+        "consecutiveGreen": 2,
+        "settleTimeoutSeconds": 20
+      }
     }
   },
   "experienceVerification": {
-    "enabled": false,
-    "evidenceRoot": "tmp/experience",
+    "enabled": true,
+    "evidenceRoot": "tmp/reports/task-pbi-tracking/implementation-run/browser-evidence",
     "baselineRoot": "tests/experience-baselines",
     "acceptancePolicy": "manual-acceptance-required",
-    "reviewOn": ["new-surface", "changed-surface", "bugfix", "baseline-mismatch"],
-    "surfaces": [],
-    "notApplicableReason": "easy-claude is a framework repository with no user-facing application surface; adopters configure their own observable surfaces."
+    "reviewOn": [
+      "new-surface",
+      "changed-surface",
+      "bugfix",
+      "baseline-mismatch"
+    ],
+    "surfaces": [
+      {
+        "id": "task-track-workspace",
+        "kind": "web",
+        "runner": "custom Node launcher with Playwright",
+        "entryPoints": [
+          ".claude/skills/task-track/assets/index.html",
+          ".claude/skills/task-track/assets/app.js",
+          ".claude/skills/task-track/lib/workspace-server.cjs"
+        ],
+        "changeTriggers": [
+          ".claude/skills/task-track/assets/**",
+          ".claude/skills/task-track/lib/**",
+          ".claude/skills/task-track/tests/**",
+          ".claude/hooks/lib/task-tracking-*.cjs"
+        ],
+        "fullCommand": "node .claude/skills/task-track/tests/workspace-browser.test.cjs --evidence-root=tmp/reports/task-pbi-tracking/implementation-run/browser-evidence --headed",
+        "focusedCommand": "node .claude/skills/task-track/tests/workspace-browser.test.cjs --evidence-root=tmp/reports/task-pbi-tracking/implementation-run/browser-evidence --headed --filter=<case-substring>",
+        "evidenceRoot": "tmp/reports/task-pbi-tracking/implementation-run/browser-evidence",
+        "baselineRoot": "tests/experience-baselines",
+        "states": [
+          "loading",
+          "empty",
+          "invalid-input",
+          "native-unavailable",
+          "partial",
+          "overview",
+          "linked-record",
+          "missing-link",
+          "created-draft",
+          "refined-draft",
+          "people",
+          "started",
+          "reopened",
+          "exact-item-links",
+          "explicit-path-switch",
+          "draft-checkpoint",
+          "conflict",
+          "conflict-recovered",
+          "saving",
+          "unknown-save",
+          "receipt-replayed",
+          "honest-progress",
+          "filter-empty",
+          "print-progress",
+          "board-grouped",
+          "board-record",
+          "reloaded-attached",
+          "session-required",
+          "reopen-requested",
+          "reattached",
+          "offline-detail",
+          "offline-filter-empty",
+          "offline-print",
+          "offline-empty",
+          "offline-limited",
+          "offline-people",
+          "delete-preview",
+          "draft-deleted",
+          "delete-entirely-preview",
+          "ended-work-deleted",
+          "state-corrected",
+          "referenced-ended-work-refused",
+          "session-unavailable",
+          "session-unsupported",
+          "session-recovered",
+          "readonly-inspection",
+          "duplicate-id-link",
+          "duplicate-owner-link",
+          "duplicate-owner-inspection",
+          "duplicate-overview-recovery",
+          "shared-baseline",
+          "shared-owner-difference",
+          "shared-stale-proof",
+          "shared-unavailable",
+          "shared-current-recovery",
+          "offline-no-script",
+          "scoped-filter-draft-retained",
+          "actual-save-pending",
+          "actual-saved-context",
+          "generic-and-feature-coexist",
+          "purpose-conflict-retains-draft",
+          "inert-vocabulary-draft-retained",
+          "exact-scope-intent-proof",
+          "shared-path-safe-recovery",
+          "generic-ungrouped-filter-scope",
+          "attached-draft-reload",
+          "exact-concerns-outside-draft",
+          "pinned-forged-path-recovery",
+          "keyboard-fixed-scope-live-draft",
+          "enhanced-fixed-scope-print-return",
+          "native-fixed-scope-print",
+          "fresh-report-refusal-draft-retained",
+          "report-in-app",
+          "report-refusal-kept"
+        ],
+        "localRun": {
+          "dependencyCommand": "npm ci --prefix .claude/skills/task-track --include=dev",
+          "startCommand": "node .claude/skills/task-track/tests/workspace-browser.test.cjs --evidence-root=tmp/reports/task-pbi-tracking/implementation-run/browser-evidence --headed",
+          "workingDir": ".",
+          "readyCheck": "Integrated runner awaits startWorkspace listener, page.goto and main[aria-busy=\"false\"], then native expected visible-state waits before dependent actions",
+          "readyTimeoutSeconds": 20,
+          "teardownCommand": "Combined launcher finally: close owned browser/workspace and remove only its ephemeral repository after evidence capture",
+          "logSources": [
+            "tmp/reports/task-pbi-tracking/implementation-run/browser-evidence/{runId}/capture-manifest.json",
+            "tmp/reports/task-pbi-tracking/implementation-run/browser-evidence/{runId}/{caseId}-{variant}-{viewport}/runtime.json"
+          ],
+          "credentialsRef": "fixture:startWorkspace.url ephemeral session fragment; no team accounts or persisted credentials"
+        },
+        "notes": "Source-authored/runtime-pending: full/headed/focused/zero-match/browser execution and OS modes remain unexecuted. Integrated runner owns public-core setup/start/readiness/evidence/finally cleanup. The source inventory is 40 variants across two viewports (80 prospective invocations), with 68 normal states per viewport. Normal screenshot caps are 20 per test/viewport invocation and 272 per run, the finite all-scrollable bound of 68 states x 2 viewports x 2 images; actual emitted counts remain unverified. Required failure captures are uncapped under UI State Capture Protocol section1.3, and capped declaration rows are retained and escalated. Prior failure/declaration rows conservatively consume the normal run budget. Convergence is parent verification policy (three attempts/two fresh consecutive green runs), not internal assertion retry. Optional tooling remains independent of core runtime; manual baseline acceptance required; no CI browser promise."
+      }
+    ]
   },
   "databases": {},
   "messaging": {},
@@ -357,12 +675,21 @@
     {
       "filename": "project-structure-reference.md",
       "purpose": "Project directory structure and module overview",
-      "sections": ["directory-tree", "module-descriptions"]
+      "sections": [
+        "directory-tree",
+        "module-descriptions"
+      ]
     },
     {
       "filename": "backend-patterns-reference.md",
       "purpose": "Backend coding patterns (N/A for framework project)",
-      "sections": ["Repository Pattern", "CQRS Patterns", "Validation Patterns", "Entity Patterns", "Message Bus"]
+      "sections": [
+        "Repository Pattern",
+        "CQRS Patterns",
+        "Validation Patterns",
+        "Entity Patterns",
+        "Message Bus"
+      ]
     },
     {
       "filename": "seed-test-data-reference.md",
@@ -373,41 +700,74 @@
     {
       "filename": "frontend-patterns-reference.md",
       "purpose": "Frontend coding patterns (N/A for framework project)",
-      "sections": ["Status: Not Applicable"]
+      "sections": [
+        "Status: Not Applicable"
+      ]
     },
     {
       "filename": "integration-test-reference.md",
       "purpose": "Integration test patterns and conventions",
-      "sections": ["Test Architecture", "Test Base Classes", "Test Helpers", "Service-Specific Setup"]
+      "sections": [
+        "Test Architecture",
+        "Test Base Classes",
+        "Test Helpers",
+        "Service-Specific Setup"
+      ]
     },
     {
       "filename": "feature-spec-reference.md",
       "purpose": "Feature Spec structure, authoring rules, and test case format",
-      "sections": ["Directory Convention", "8-Section Structure", "Test Case ID Format", "Evidence Rule"],
+      "sections": [
+        "Directory Convention",
+        "8-Section Structure",
+        "Test Case ID Format",
+        "Evidence Rule"
+      ],
       "templatePath": ".claude/templates/reference-docs/feature-spec-reference.md"
     },
     {
       "filename": "spec-system-reference.md",
       "purpose": "Project-specific extension for local spec routing, canonical artifact ownership, and generated-artifact rules",
-      "sections": ["Configured Spec Roots", "Canonical Artifact", "Test Case Registry", "Derived Artifacts"],
+      "sections": [
+        "Configured Spec Roots",
+        "Canonical Artifact",
+        "Test Case Registry",
+        "Derived Artifacts"
+      ],
       "templatePath": ".claude/templates/reference-docs/spec-system-reference.md"
     },
     {
       "filename": "spec-principles.md",
       "purpose": "Project-specific extension for local spec, test, and documentation rules",
-      "sections": ["Local Authority", "Local Source Routing", "Local Prose Rules", "Verification Commands"],
+      "sections": [
+        "Local Authority",
+        "Local Source Routing",
+        "Local Prose Rules",
+        "Verification Commands"
+      ],
       "templatePath": ".claude/templates/reference-docs/spec-principles.md"
     },
     {
       "filename": "workflow-spec-test-code-cycle-reference.md",
       "purpose": "Project-specific workflow sequence for keeping specs, tests, code, docs, and generated mirrors aligned",
-      "sections": ["Local Workflow Sequence", "Local Artifact Owners", "Local Closure Gates"],
+      "sections": [
+        "Local Workflow Sequence",
+        "Local Artifact Owners",
+        "Local Closure Gates"
+      ],
       "templatePath": ".claude/templates/reference-docs/workflow-spec-test-code-cycle-reference.md"
     },
     {
       "filename": "code-review-rules.md",
       "purpose": "Code review checklist and rules",
-      "sections": ["Critical Rules", "Backend Rules", "Frontend Rules", "Architecture Rules", "Anti-Patterns", "Checklists"]
+      "sections": [
+        "Critical Rules",
+        "Backend Rules",
+        "Frontend Rules",
+        "Architecture Rules",
+        "Anti-Patterns",
+        "Checklists"
+      ]
     },
     {
       "filename": "lessons.md",
@@ -417,7 +777,11 @@
     {
       "filename": "custom-prompts-reference.md",
       "purpose": "Index of project-specific custom prompts (name, description, triggers) — managed by the /custom-prompt skill; prompt bodies live in docs/project-prompts/.",
-      "sections": ["Usage", "Registry", "Conventions"]
+      "sections": [
+        "Usage",
+        "Registry",
+        "Conventions"
+      ]
     },
     {
       "filename": "skill-protocols-reference.md",
@@ -428,16 +792,27 @@
     {
       "filename": "scss-styling-guide.md",
       "purpose": "SCSS styling patterns (N/A for framework project)",
-      "sections": ["BEM Methodology", "SCSS Architecture", "Mixins & Variables", "Theming", "Responsive Patterns"]
+      "sections": [
+        "BEM Methodology",
+        "SCSS Architecture",
+        "Mixins & Variables",
+        "Theming",
+        "Responsive Patterns"
+      ]
     },
     {
       "filename": "design-system/README.md",
       "purpose": "Design system index: app-to-doc mapping, design tokens overview, component inventory.",
-      "sections": ["Design System Overview", "App Documentation Map", "Design Tokens", "Component Inventory"]
+      "sections": [
+        "Design System Overview",
+        "App Documentation Map",
+        "Design Tokens",
+        "Component Inventory"
+      ]
     },
     {
       "filename": "e2e-test-reference.md",
-      "purpose": "E2E test patterns (N/A for framework project)",
+      "purpose": "Optional task-track workspace browser tests: isolated public-core fixtures, native waits, portable runner modes and redacted journey evidence",
       "sections": [
         "Architecture Overview",
         "Base Classes",
@@ -451,14 +826,39 @@
     {
       "filename": "domain-entities-reference.md",
       "purpose": "Framework conceptual domain — Hook, Skill, Agent, Workflow, Context Group, Module",
-      "sections": ["hook", "skill", "agent", "workflow", "context-group", "module", "entity-relationships"]
+      "sections": [
+        "hook",
+        "skill",
+        "agent",
+        "workflow",
+        "context-group",
+        "module",
+        "entity-relationships"
+      ]
     },
     {
       "filename": "docs-index-reference.md",
       "purpose": "Documentation tree, file counts by category, doc relationships, and keyword-to-doc lookup table.",
-      "sections": ["Documentation System", "Documentation Graph", "Key Doc Relationships", "Doc Lookup Guide"]
+      "sections": [
+        "Documentation System",
+        "Documentation Graph",
+        "Key Doc Relationships",
+        "Doc Lookup Guide"
+      ]
     }
   ],
+  "taskTracking": {
+    "schemaVersion": 1,
+    "mode": "linked",
+    "profile": {
+      "kind": "portable-markdown",
+      "version": 1
+    },
+    "report": {
+      "enabled": true,
+      "autoRefresh": true
+    }
+  },
   "portability": {
     "toolingPackageName": "easy-claude-tooling",
     "inlinePathRules": false

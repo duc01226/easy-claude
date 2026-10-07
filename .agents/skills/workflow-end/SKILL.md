@@ -25,6 +25,8 @@ description: '[Process] Close the active workflow after checking outcome evidenc
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:END -->
 
+> **Work tracking:** Read [the linked work integration guide](../task-track/references/integration-guide.md) at capture, start, saved-work, verification, handoff and close-out checkpoints. Use the actual linked producer and exact items; retain the primary outcome and record optional upkeep once through the common owner. Continue untracked when no link exists; acceptance remains explicit.
+
 ## Quick Summary
 
 **Goal:** Close the active workflow with evidence-backed coverage, spec-sync, graph, and baseline checks (reusing the run's own coverage and spec-sync evidence when it exists); deliver a diff-gated one-way comprehension recap unless `$watzup` follows and owns it, then retain per-session recovery state until explicit `/clear` (which alone deletes it).

@@ -5,7 +5,7 @@ feature_code: SAP
 entities: [SkillActivationPolicy, AuthorizationScope]
 status: implemented
 owner: Framework maintainers
-last_updated: '2026-10-02'
+last_updated: '2026-10-06'
 scope_mode: FRAMEWORK-LIBRARY
 ---
 
@@ -49,14 +49,16 @@ procedures, so their cost is incurred only when requested or required.
 
 ### US-SAP-02: Keep commit quality gates operational
 
-As a developer, I want a commit to retain its review-choice question and the selected review's required
-reviewers, so restricting automatic work does not bypass quality checks.
+As a developer, I want commits to retain proportionate quality checks while avoiding repeated questions
+for safe continuous repairs, so restricting automatic work does not bypass checks or create interruptions.
 
 - **AC-SAP-04:** Named requests and required calls remain eligible without changing procedure access
   or asking an additional procedure-choice question. A confirmed candidate and its scoped required
   dependencies become eligible without requiring the user to repeat its name.
-- **AC-SAP-05:** A commit still asks the human to select a review or explicitly approve a skip where required;
-  the selected review can invoke its required reviewers and validation. The policy itself approves neither choice.
+- **AC-SAP-05:** First publication and material risk or scope escalation retain human test/review choices
+  with explicit skip options. Small continuous follow-ups reuse recorded preferences; routine active
+  pull-request repairs select and run fresh checks automatically. The selected review's required chain
+  remains eligible. Selection preferences never substitute for current evidence or approve a skip.
 - **AC-SAP-06:** Optional unrelated procedures and attempts to obtain authorization by self-starting an agent
   remain outside the authorized scope. A skipped procedure is not replaced by another unrequested one;
   direct execution retains required quality and safety checks. The same task does not prompt again
@@ -86,8 +88,14 @@ As a developer, I want a personal preference without rewriting shared files, so 
   and selected applicable steps within an authorized workflow’s declared scope, including planned steps
   executed later or after recovery. Ordinary task wording, generic discovery guidance,
   optional suggestions and merely reading a procedure do not create authorization.
-- **BR-SAP-03 [HARD]:** Human review-choice and skip-approval gates remain intact. A selected commit review
-  authorizes its required review chain; it does not authorize unrelated work or additional Git operations.
+- **BR-SAP-03 [HARD]:** Commit and pull-request procedures own the risk-based test/review decision.
+  First candidates, material cumulative change, lost continuity and new high risk require human choices;
+  small same-task/branch continuations reuse recorded preferences and routine active pull-request repairs
+  automatically run fresh tests and whole-branch review. Preserve explicit human constraints and pending
+  questions. Keep the last actual human-answer baseline across automatic commits and assess accumulated
+  authored changes, including committed repairs. Changed content invalidates evidence and candidate-bound
+  skips, never grants an automatic skip. A selected review authorizes only its required chain, not unrelated
+  work or additional publication authority. Procedure-selection preferences never waive these rules.
 - **BR-SAP-04:** Later valid preferences win in this order: framework default, team, personal user,
   personal checkout, environment. Missing, unreadable, malformed and invalid layers express no preference.
 - **BR-SAP-05:** Restricted guidance refreshes for each ordinary prompt, delegated start and recovery.
@@ -114,7 +122,8 @@ As a developer, I want a personal preference without rewriting shared files, so 
    authorization to that procedure; Skip preserves direct execution and required checks. Preserve the
    answer and scope for follow-ups, delegation and recovery without asking again for the same task.
 4. On a named request or required call, execute the real procedure and preserve its human-choice gates.
-5. A selected commit review runs its required review chain under the same scope.
+5. A commit review selected by the human or its risk-based decision runs its required chain under the
+   same scope. Safe repairs refresh evidence without a repeated preference question; escalation asks again.
 6. Refresh guidance on subsequent prompts, delegated starts and recovery; replace an earlier restriction
    when automatic selection is restored.
 
@@ -213,7 +222,7 @@ and same-task preservation boundaries; exempt entry triggers remain.
 
 ### TC-SAP-004: Commit review selection and its required chain remain eligible [P0]
 
-**Objective:** Keep commit quality gates reachable while preserving human review choice.
+**Objective:** Keep commit quality gates reachable with risk-based human choices and automatic safe repairs.
 **Business Intent / Invariant Guarded:** BR-SAP-02, BR-SAP-03 / AC-SAP-04, AC-SAP-05.
 **Preconditions:** Restricted mode and a human commit request.
 
@@ -221,12 +230,13 @@ and same-task preservation boundaries; exempt entry triggers remain.
 Given automatic selection is restricted
 When the human requests a commit
 Then the real commit route still instructs use of the commit procedure
-And the policy preserves the required human review-choice question
+And the policy preserves human questions for initial publication or material risk escalation
 And the selected review and its required nested reviewers remain authorized
-And the policy approves neither a review choice nor a skip
+And safe continuous repairs may select fresh checks without another question
+And procedure selection grants neither skip approval nor publication authority
 ```
 
-**Expected Result:** Commit review choice is preserved and the selected required chain remains eligible.
+**Expected Result:** Risk-based choices and fresh-evidence requirements are preserved; the required chain remains eligible.
 **Acceptance Criteria:** AC-SAP-04, AC-SAP-05.
 **Test Data:** Isolated project, personal preference layers and the requests shown above.
 **Related Behaviors:** Named operation authorization and preference resolution.
@@ -376,3 +386,31 @@ Then the lower preference layers decide again
 **Edge Cases:** Prose and persistence commands do not silently become session directives; missing identity refuses a session write.
 **Evidence:** [Source: event/SkillActivationPolicy/UnifiedWorkflowMode]
 > **CoveredBy:** `.claude/hooks/tests/suites/skill-activation-policy.test.cjs::TC-SAP-010` · **Status:** Tested
+
+### TC-SAP-011: Safe publication continuity survives repeated requests and recovery [P0]
+
+**Objective:** Avoid repeated questions for safe repairs while retaining escalation and fresh evidence.
+**Business Intent / Invariant Guarded:** BR-SAP-03, BR-SAP-05 / AC-SAP-05, AC-SAP-08, AC-SAP-09.
+**Preconditions:** Restricted selection and an active requested commit or pull-request operation.
+**Real-World Reachability:** A developer fixes a failed build, then continues after conversation recovery.
+
+```gherkin
+Given an active publication task with recorded human choices
+When repeated commit or pull-request requests, recovery or delegated starts receive guidance
+Then small same-task and same-branch repairs reuse recorded preferences
+And routine pull-request repairs select fresh checks and whole-branch review automatically
+And the last human-answer baseline stays fixed for cumulative risk assessment
+And initial or materially escalated scope still asks with explicit skip options
+And pending questions and explicit human constraints remain binding
+And changed content requires current evidence rather than a transferred skip
+```
+
+**Expected Result:** Every supported delivery path preserves the risk-based decision guidance without
+restoring mandatory questions on every repair or granting automatic skips.
+**Acceptance Criteria:** AC-SAP-05, AC-SAP-08, AC-SAP-09.
+**Test Data:** Isolated restricted project; repeated publication requests, recovery and delegated starts.
+**Related Behaviors:** Commit review selection, operation authority and scoped evidence freshness.
+**Edge Cases:** A tiny high-risk repair or cumulative material change still requires human choices;
+delivery tests verify the instructions, not a model's classification or live publication behavior.
+**Evidence:** [Source: event/SkillActivationPolicy/CommitDependency]
+> **CoveredBy:** `.claude/hooks/tests/suites/skill-activation-policy.test.cjs::TC-SAP-011` · **Status:** Tested

@@ -13,7 +13,7 @@
  *   The OS default handler runs scripts and launchers (`.cmd`, `.bat`, `.exe`, `.js`, `.lnk`,
  *   `.command`, `.desktop`, …), so any other type is refused, never handed to it.
  * - Launches with a literal argv vector, never a shell string:
- *   win32 `cmd /c start "" <path>` · darwin `open <path>` · linux `xdg-open <path>`.
+ *   win32 `<SystemRoot>\System32\cmd.exe /c start "" <path>` · darwin `open <path>` · linux `xdg-open <path>`.
  * - Opens nothing when `CI` is set, when `CK_NO_AUTO_OPEN=1`, or on Linux when neither `DISPLAY`
  *   nor `WAYLAND_DISPLAY` is set. The path is printed in every case so the user can open it.
  * - Never throws and always exits 0: a failed open is reported, never fatal.
@@ -44,10 +44,16 @@ function skipReason(platform, env) {
     return null;
 }
 
+/** The Windows command interpreter by absolute path: a bare `cmd` is looked up in the working directory before PATH. */
+function windowsCommandInterpreter(env) {
+    const key = Object.keys(env).find(name => name.toLowerCase() === 'systemroot');
+    return path.win32.join((key && env[key]) || 'C:\\Windows', 'System32', 'cmd.exe');
+}
+
 /** The argv vector that opens `file` on `platform`, or null when the platform has no known opener. */
-function openCommand(platform, file) {
+function openCommand(platform, file, env = process.env) {
     // An empty argument is quoted as "" on the Windows command line: the window title `start` expects.
-    if (platform === 'win32') return { command: 'cmd', args: ['/c', 'start', '', file] };
+    if (platform === 'win32') return { command: windowsCommandInterpreter(env), args: ['/c', 'start', '', file] };
     if (platform === 'darwin') return { command: 'open', args: [file] };
     if (platform === 'linux') return { command: 'xdg-open', args: [file] };
     return null;
@@ -109,7 +115,7 @@ function openReport(target, {
             return { opened: false, reason: invalid };
         }
         const skip = skipReason(platform, env);
-        const cmd = openCommand(platform, file);
+        const cmd = openCommand(platform, file, env);
         const reason = skip
             || (!cmd && `no opener for platform ${platform}`)
             || (platform === 'win32' && CMD_UNSAFE.test(file) && 'path has characters cmd cannot pass safely')

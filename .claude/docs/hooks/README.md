@@ -1,6 +1,6 @@
 # Hooks Reference
 
-> <!-- COUNT:hooks -->30<!-- /COUNT --> top-level `.cjs` hooks and <!-- COUNT:lib-modules -->45<!-- /COUNT --> lib modules for context-aware AI behavior (some hooks register on multiple events; the unified notification router lives under `.claude/hooks/notifications/notify.cjs`)
+> <!-- COUNT:hooks -->32<!-- /COUNT --> top-level `.cjs` hooks and <!-- COUNT:lib-modules -->59<!-- /COUNT --> lib modules for context-aware AI behavior (some hooks register on multiple events; the unified notification router lives under `.claude/hooks/notifications/notify.cjs`)
 
 ## Overview
 
@@ -34,9 +34,9 @@ two events is counted once per event).
 | ------------------ | ---------------------------- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `SessionStart`     | Session begins/resumes       | 11    | Integrity preflight + guarded startup-install request validation, init state, load docs, init graph, record condensation, re-anchor the prompt ledger, and re-deliver the universal bundle after a compaction (four bins, matcher `compact|clear`) |
 | `SessionEnd`       | Session ends                 | 2     | Main-session desktop alert and cleanup temp/swap files                                                                                                    |
-| `UserPromptSubmit` | Before processing user input | 13    | Deliver the universal protocol bundle (four bins), check project readiness and graph state, optionally inject workflow routing, route commit, verdict and AI-feature prompts, re-deliver the core principles, and record prompts in the ledger |
+| `UserPromptSubmit` | Before processing user input | 14    | Deliver the universal protocol bundle (four bins), check project readiness and graph state, optionally inject workflow routing, route commit, verdict and AI-feature prompts, re-deliver the core principles, record prompts in the ledger, and offer eligible task-tracking guidance |
 | `PreToolUse`       | Before tool execution        | 4     | Direct Claude AskUserQuestion notification, commit-operation gates, and document-sync warnings                                                            |
-| `PostToolUse`      | After tool completes         | 18    | Format code, update graph, per-file convention reminder, re-deliver the prompt ledger and an advisory token checkpoint at task steps, deliver skill protocols and the skill-overlay reminder on a `Skill` load or a `SKILL.md` read |
+| `PostToolUse`      | After tool completes         | 19    | Format code, update graph, per-file convention reminder, re-deliver the prompt ledger and an advisory token checkpoint at task steps, deliver skill protocols and the skill-overlay reminder on a `Skill` load or a `SKILL.md` read |
 | `SubagentStart`    | Sub-agent starts             | 10    | Deliver the protocols of the agent's preloaded skills, minus bodies the agent file already carries, and the universal bundle (four bins) to every agent type (see [Protocol Delivery](#protocol-delivery)) |
 | `UserPromptExpansion` | Typed `/command` expands  | 6     | Deliver the protocols of the skill a typed command loads and remind the agent to read the skill's project overlay files (see [Protocol Delivery](#protocol-delivery))                                                   |
 | `Notification`     | Idle/waiting events          | 1     | System notification (`.claude/hooks/notifications/notify.cjs`)                                                                                            |
@@ -169,6 +169,7 @@ Prompt hooks may warn, synchronize state, record the prompt ledger, or emit opti
 | `judgement-integrity-route.cjs` | UserPromptSubmit | `*`     | Advisory: when a prompt asks for a verdict (theory check, evaluation, gap/issue hunt), inject the `SYNC:judgement-integrity` answer why-review naming the lean the prompt carries, so the answer neither echoes the premise nor invents findings |
 | `core-principles-inject.cjs`    | UserPromptSubmit | `*`     | Advisory: re-deliver the `SYNC:core-engineering-principles` gate (Easy to change · Easy to scale · Easy to maintain), deduplicated per session scope to about once per 100k tokens; also fires on task/plan step boundaries (PostToolUse) |
 | `ai-feature-route.cjs`          | UserPromptSubmit | `*`     | Advisory: when a prompt asks to build, plan, change or review an AI feature (an AI technique AND an action on it) and is not about the framework's own machinery, inject ONE short directive (one read pointer to the protocol file, the review route) once per session window; silent otherwise |
+| `task-tracking-route.cjs` | UserPromptSubmit | `*` | Eligible task-tracking purpose and concern notice; preserves actual selection, pending/Skip controls and permissions; no procedure, save, proof or acceptance |
 
 ### Gates (PreToolUse)
 
@@ -197,10 +198,11 @@ Lessons are managed via the `/learn` skill. See `.claude/skills/learn/SKILL.md`.
 | `init-prompt-gate.cjs`          | UserPromptSubmit       | Warn/route until project context, root instructions and docs are current; optional note when the code graph is switched on but not built                                                                               |
 | `workflow-route-inject.cjs`     | UserPromptSubmit       | Inject the gate (filtered to the route mode) and the compact workflow/skill catalog when the effective `portability.workflowRouteMode` is `ask` or `auto`, otherwise (`off`) a short routing-OFF notice; advisory and fail-open |
 | `commit-skill-route.cjs`        | UserPromptSubmit       | Per-prompt commit-intent reminder to run the `commit` skill; advisory and fail-open                                                                            |
-| `skill-activation-inject.cjs`   | UserPromptSubmit, SubagentStart, SessionStart:`startup\|resume\|compact\|clear` | Runtime `portability.skillAutoTrigger` policy (default true): false asks once to run a suitable matched framework skill or skip and execute directly (no match proceeds directly), except commit/pull-request/framework-config keep normal triggers; named requests, operation-specific required calls and authorized dependencies remain eligible; commit and pull-request must ask test/review questions with explicit Skip options. Refreshed on every applicable event; restoring auto replaces prior restriction. Advisory model guidance, no permission mutation. OpenCode additionally refreshes at system-context transformation, including delegated sessions. |
+| `skill-activation-inject.cjs`   | UserPromptSubmit, SubagentStart, SessionStart:`startup\|resume\|compact\|clear` | Runtime `portability.skillAutoTrigger` policy (default true): false asks once to run a suitable matched framework skill or skip and execute directly (no match proceeds directly), except commit/pull-request/framework-config keep normal triggers; named requests, operation-specific required calls and authorized dependencies remain eligible; commit and pull-request use the commit skill's risk-based test/review decision policy: ask initially/on escalation with Skip options, reuse safe same-branch preferences and auto-run fresh checks for routine PR CI repairs; never transfer old Skip or Git authority. Refreshed on every applicable event; restoring auto replaces prior restriction. Advisory model guidance, no permission mutation. OpenCode additionally refreshes at system-context transformation, including delegated sessions. |
 | `judgement-integrity-route.cjs` | UserPromptSubmit       | Per-prompt anti-confirmation-bias answer why-review on verdict prompts; advisory and fail-open                                                                 |
 | `core-principles-inject.cjs`    | UserPromptSubmit, PostToolUse:`TodoWrite\|TaskCreate\|TaskUpdate\|update_plan` | Core engineering principles reminder (change · scale · maintain); ledger-deduplicated, re-armed by ~100k tokens of growth or compaction; advisory and fail-open |
 | `ai-feature-route.cjs`          | UserPromptSubmit       | Once-per-window AI-engineering gate directive and review routing on prompts that ask to act on an AI feature; silent on bare questions and framework-meta prompts; advisory and fail-open |
+| `task-tracking-route.cjs` | UserPromptSubmit | Eligible task-tracking purpose and concern notice, deduplicated per actual session/agent context; silent when off, unavailable, quoted or unrelated; advisory and fail-open |
 | `session-init-docs.cjs`         | SessionStart:`startup` | Config skeleton + reference doc placeholder creation                                                                                                           |
 
 > Plan/skill/todo enforcement and cross-compaction todo persistence are **model-driven
@@ -224,6 +226,7 @@ Lessons are managed via the `/learn` skill. See `.claude/skills/learn/SKILL.md`.
 | `commit-skill-route.cjs`        | UserPromptSubmit                                                                                                      | Commit-request router: when the prompt asks to commit (not negated, not a hash reference, not already `/commit`/`$commit`), inject a directive to run the `commit` skill. No dedup ledger, always fails open                                                                                                                                                                                                                                                                                                                                                                             |
 | `judgement-integrity-route.cjs` | UserPromptSubmit                                                                                                      | Judgement-integrity router: when the prompt asks for a verdict (theory confirmation, evaluation/judgement, root cause, gap/issue hunt; not an explicit `/why-review` call, not code), inject the canonical `SYNC:judgement-integrity:reminder` plus lean-specific guidance (problem-presumed / confirmation-sought / evaluation). Accelerator for the static `critical-thinking-mindset:full` rule; no dedup ledger, always fails open                                                                                                                                                   |
 | `ai-feature-route.cjs`          | UserPromptSubmit                                                                                                      | AI-feature router: fires only when the prompt names an AI technique AND asks to act on it (build, plan, integrate, review, audit, fix…) and is not about this framework's own machinery. Concrete product techniques (RAG, embeddings, vector store, prompt injection, OpenAI/GPT, a provider name beside API/SDK — the Claude API/SDK/Agent SDK included, "Claude Code" excluded — function calling, fine-tuning a model, semantic search, model routing) survive one framework cue; generic vocabulary (LLM, AI feature/chatbot, agentic app, system prompt, guardrails, hallucination, tool calling, MCP server, prompt engineering, an eval harness for a model) needs none; two distinct framework cues (`.claude`/CLAUDE.md, skill, sub-agent, hook, workflow, gate/protocol/framework, mirror, waste) silence it outright. A prompt with no AI vocabulary loads no heavy module. Emits ONE directive of at most 700 characters by construction (at most three named signals, dropped from the end until the text fits) — the gate in a sentence, five terse rules, one read pointer (`ai-engineering-gate.md`, or `ai-feature-framing-gate.md` when planning) and the review route (`ai-engineering-review` skill / `ai-engineering-reviewer` sub-agent) — and never sends the reader to the knowledge or checklist docs. De-duplicated by `deliverOnce` of the convention ledger (`lib/convention-ledger.cjs`, group `ai-feature-route`, byte window of about 100K tokens, no age re-arm): a compaction or clear (host-reported, or a Claude or Codex compaction mark in the transcript) re-arms it, transcript growth of the window re-arms it, and a prompt without a session id is never delivered. Detection favours precision over recall: generic AI vocabulary beside framework words may stay silent, and a few look-alike prompts may draw one short directive — the file class, the scan and the review skill are the nets. Not on an explicit `/ai-engineering-review` call or in code spans / host envelopes; `.ck.json` `aiFeatureRoute.enabled: false` / `CK_AI_FEATURE_ROUTE=0` disables it; always fails open |
+| `task-tracking-route.cjs` | UserPromptSubmit | Eligible task-tracking purpose and concern notice, deduplicated per actual session/agent context; silent when off, unavailable, quoted or unrelated; advisory and fail-open |
 | `prompt-ledger.cjs`             | UserPromptSubmit; SessionStart:`compact\|resume\|clear`; PostToolUse:`TodoWrite\|TaskCreate\|TaskUpdate\|update_plan` | Session prompt ledger (accelerator, never a gate): records every user prompt under `tmp/prompt-ledger/<session>/` with secrets redacted, pins the first prompt as the original goal, and re-delivers a short digest only when that reminder is no longer present (condensation, long growth, checkpoint). On by default; `promptLedger.enabled: false` / `CK_PROMPT_LEDGER=0` disables; always exit 0, silent on any failure. See [Session Prompt Ledger](#session-prompt-ledger)                                                                                                        |
 | `token-budget-checkpoint.cjs`   | PostToolUse:`TodoWrite\|TaskCreate\|TaskUpdate\|update_plan`                                                          | Advisory token checkpoint (never blocks): each time the session's non-cached tokens (input + cache writes + output, main + sub-agents; cache reads never count) cross the next multiple of `hooks.tokenBudget.checkpointTokens` (docs/project-config.json; default on, 500,000), adds one note with the total, the threshold and the completed-step count, suggesting a progress report. Main conversation only; marker `tmp/token-budget/<session>/usage-state.json`; silent on a host whose transcript it cannot read; always exit 0 |
 | `core-principles-inject.cjs`    | UserPromptSubmit; PostToolUse:`TodoWrite\|TaskCreate\|TaskUpdate\|update_plan` | Core engineering principles reminder: re-delivers the canonical `SYNC:core-engineering-principles` body (Easy to change · Easy to scale · Easy to maintain) on prompts and task/plan step boundaries. Convention-ledger dedup per session scope (main or one sub-agent); re-armed by content change, compaction, or `corePrinciplesInject.reinjectAfterTokens` (default 100000) × `BYTES_PER_TOKEN` of transcript growth. Reinforces the `**Core engineering principles:**` line of the universal `critical-thinking-mindset` protocol; advisory, always fails open |
@@ -295,6 +298,12 @@ The universal rules, the workflow route and the skill-overlay reminder reach a s
 
 ---
 
+## Team work observer
+
+`task-tracking-observer.cjs` registers on PostToolUse `Edit|Write|MultiEdit|NotebookEdit|apply_patch` with a three-second bounded owner. It emits deduplicated reminders for actual successful public edit targets, including delete/move hints; generated/private/temp/dependency paths are excluded. Hints never grant readiness, proof, acceptance or a canonical saved checkpoint. Optional project mode defaults to `off`. Shell scripts and external editors are not assumed instrumented; explicit check/report/checkpoint provides recovery. See [linked integration](../../skills/task-track/references/integration-guide.md).
+
+`task-tracking-route.cjs` registers on UserPromptSubmit with a three-second limit. A fresh eligible, unquoted work/publication prompt receives one concise purpose and concern notice when tracking and its instructions are available. Repeated context, off/unavailable tracking, quoted examples and unrelated prompts are silent. The notice preserves the actual skill-selection choice, pending answer, same-task Skip and permissions; it starts no procedure and supplies no save, proof or acceptance. `lib/task-tracking-advisory.cjs` owns bounded eligibility and receipts, without scanning the backlog or persisting raw prompt/item content. Read [manual operations](../../skills/task-track/references/manual-operations.md) for actual maintenance authority and [linked integration](../../skills/task-track/references/integration-guide.md#exact-linked-concerns) for exact concerns.
+
 ## Lessons System
 
 The lessons system is a simple manual learning mechanism. Paths in the diagram show the DEFAULT project-reference docs root; a `docsRoots.projectReference.path` entry in `docs/project-config.json` relocates it.
@@ -360,7 +369,7 @@ SESSION START (10 hooks)                        DURING SESSION
 
 ## Lib Modules
 
-44 direct `.cjs` modules under `.claude/hooks/lib/`.
+<!-- COUNT:lib-modules -->59<!-- /COUNT --> direct `.cjs` modules under `.claude/hooks/lib/`.
 
 ### State Management
 
@@ -436,6 +445,27 @@ SESSION START (10 hooks)                        DURING SESSION
 | `startup-install.cjs`      | Owns startup dependency installation end to end: validates the request against project and manager preconditions, then runs the selected manager under the project lock. `runStartupInstall` is the boundary the hook calls; `buildInstallRequest` is the decision half, useful on its own in tests. |
 | `startup-install-lock.cjs` | The private per-project lock the runner holds while a manager runs — owner liveness, post-acquire recheck, and proof the whole process tree stopped before the lock is reclaimed.                                                                                                                    |
 | `windows-git.cjs`          | Probes native Git/Git Bash, validates trusted WinGet, starts the bounded `Git.Git` repair worker, and publishes child-local `PATH`/`CK_GIT_*` capability values.                                                                                                                                     |
+
+### Team Work Tracking
+
+| Module | Purpose |
+| --- | --- |
+| `task-artifact-store.cjs` | Portable record inspection and byte-preserving owned-field patches |
+| `task-progress-reader.cjs` | Consistent scoped work views, verification and unique-PBI metrics |
+| `task-tracking.cjs` | Common versioned operation owner and read-only operation catalogue for CLI, app and upkeep |
+| `task-tracking-advisory.cjs` | Bounded optional prompt guidance and deduplicated session/agent delivery receipts; no canonical work writer |
+| `task-tracking-concerns.cjs` | Bounded read-only exact ID/path concerns, declared relationship direction/owner/rationale, current verification and partial/unavailable diagnostics |
+| `task-tracking-config.cjs` | Optional policy, members, profiles and protective limits |
+| `task-tracking-deletion.cjs` | Previewed exact draft deletion and local recovery |
+| `task-tracking-files.cjs` | Project-contained byte IO and atomic publication |
+| `task-tracking-identity.cjs` | Read-only selected-checkout Git/custom actor resolution and stale-selection revalidation |
+| `task-tracking-lock.cjs` | Bounded cooperating-writer locks |
+| `task-tracking-policy.cjs` | Shared lifecycle, authority, criteria/proof, graph and health rules |
+| `task-tracking-profile.cjs` | Capability diagnostics; native capabilities unavailable without owner proof |
+| `task-tracking-report.cjs` | Owned offline reports, refresh and viewer requests |
+| `task-tracking-upkeep.cjs` | Exact session links, saved checkpoints and observer hints |
+
+See [setup](../configuration/README.md#team-work-tracking) and [linked integration](../../skills/task-track/references/integration-guide.md). CLI/app policy has one common owner.
 
 ### General Utilities
 
@@ -687,12 +717,12 @@ Doc paths in this file are defaults resolved against the project-reference docs 
 
 ## Testing
 
-The primary runner passes with 133 tests. The full aggregate runner `run-all-tests.cjs` discovers 1403 tests across 100 suites, including the process-boundary Bash contract and code-graph storage portability suites; the total changes when suites or tests are added or removed.
+A successful full primary run passes with 133 tests. The full aggregate runner `run-all-tests.cjs` discovers 1764 tests across 115 suites by current source inventory. These are declared/discovered counts, not a recorded execution result; outcomes require actual runner output. The aggregate includes fourteen task-tracking suites with 318 declared executors.
 
 | Test Surface          | Count | File/Location                                                     |
 | --------------------- | ----- | ----------------------------------------------------------------- |
 | Primary hook runner   | 133   | `.claude/hooks/tests/test-all-hooks.cjs`                          |
-| Aggregate runner      | 1403  | `.claude/hooks/tests/run-all-tests.cjs` (all suites, discovered)  |
+| Aggregate runner      | 1764  | `.claude/hooks/tests/run-all-tests.cjs` (all suites, discovered)  |
 | Standalone test files | TODO  | `tests/test-*.cjs/.js` excluding runner (re-verify before citing) |
 | Lib unit tests        | TODO  | `lib/__tests__/*.test.cjs` (re-verify before citing)              |
 

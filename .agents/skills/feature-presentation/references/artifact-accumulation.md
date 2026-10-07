@@ -37,6 +37,7 @@ Three modes, in priority order:
     - `{artifacts-root}/ideas/{YYMMDD}-*`
     - `{artifacts-root}/pbis/{YYMMDD}-pbi-*.md`
     - `{artifacts-root}/pbis/stories/{YYMMDD}-us-*.md`
+    - A record in `ideas/`, `pbis/` or `pbis/stories/` whose file name carries no date, such as a PBI created in the tracker and saved as `{id}.md`: include it when its frontmatter `created` or `updated` date falls in the range. Never skip a record only because its file name lacks the date prefix.
     - `{artifacts-root}/pbis/*-mockup.html` (date-prefixed via their PBI)
     - `{artifacts-root}/design-specs/{YYMMDD}-designspec-*.md`
     - `{artifacts-root}/backlog/*-backlog.md` (the ranked-priority source for the Scope & backlog slide)
@@ -61,9 +62,9 @@ Each in-scope artifact feeds one or more stakeholder slide sections:
 | ------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------- |
 | Idea          | `{artifacts-root}/ideas/{YYMMDD}-*`                 | Business context (problem, value, idea→spec narrative)                                 |
 | Feature Spec  | `{spec-root}/{Bucket}/README.{Feature}.md`          | Business context (§1-3); Behavior & rules (§4 rules / §5 invariants); QC view (§8 TCs) |
-| PBI           | `{artifacts-root}/pbis/{YYMMDD}-pbi-*.md`           | Scope & backlog (PBI cards in ranked order, each showing its `priority` label + numeric `rank` from frontmatter, plus acceptance criteria) |
+| PBI           | `{artifacts-root}/pbis/{YYMMDD}-pbi-*.md`           | Scope & backlog (PBI cards in ranked order, each showing its `priority_label` + integer `priority` rank from frontmatter, plus acceptance criteria) |
 | Decomposition | Owning idea/spec/PBI `large_idea_decomposition` block | Decomposition & boundaries (slice IDs/outcomes, dependency order, non-goals, risks/evidence owners, deferred-work owners); required when any shared large-idea signal is true |
-| Backlog       | `{artifacts-root}/backlog/*-backlog.md`             | Scope & backlog (the ranked order + priority source when PBI frontmatter is thin — reconcile against per-PBI `priority`/`rank`) |
+| Backlog       | `{artifacts-root}/backlog/*-backlog.md`             | Scope & backlog (the ranked order + priority source when PBI frontmatter is thin — reconcile against per-PBI `priority_label`/`priority`) |
 | User story    | `{artifacts-root}/pbis/stories/{YYMMDD}-us-*.md`   | Scope & backlog (As-a/I-want/So-that, acceptance criteria)                             |
 | Design-spec   | `{artifacts-root}/design-specs/{YYMMDD}-designspec-*.md` | UI / mockups (ASCII wireframe + Component Inventory / States / Design-Tokens tables) |
 | Mockup        | `{artifacts-root}/pbis/*-mockup.html`               | UI / mockups (embedded via `<iframe srcdoc>` — see `deck-template.md` §3)             |
@@ -120,7 +121,7 @@ The accumulation step produces an ordered, stakeholder-sectioned content model:
 1. **Title / agenda** — feature(s), run date, resolved scope.
 2. **Business context** — from ideas + Feature Spec §1-3.
 3. **Decomposition & boundaries** — when any shared large-idea signal is true, from the complete owning block; show stable slice IDs, ordered dependencies, non-goals, risk/evidence ownership, and deferred-work ownership. When all signals are false, show `N/A — ordinary isolated scope` and do not invent roadmap content.
-4. **Scope & backlog** — from PBIs + stories, presented in ranked order with each PBI's `priority` label + numeric `rank` (read from PBI frontmatter, reconciled against the ranked `{artifacts-root}/backlog/*-backlog.md` when present). Priority display is MANDATORY when the PBIs are prioritized; if they are not yet prioritized, say so explicitly rather than omitting the field.
+4. **Scope & backlog** — from PBIs + stories, presented in ranked order with each PBI's `priority_label` + integer `priority` rank (read from PBI frontmatter, reconciled against the ranked `{artifacts-root}/backlog/*-backlog.md` when present). Priority display is MANDATORY when the PBIs are prioritized; if they are not yet prioritized, say so explicitly rather than omitting the field.
 5. **Behavior & rules** — from Feature Spec §4 rules / §5 invariants + §8 test cases.
 6. **Journeys / demo flows** — ordered main-story journeys (§6 extraction map); each handed to the render side as an interactive demo-flow slide (or narrated ASCII frames in spec-only context).
 7. **UI / mockups** — per the spec-only vs mockup-bearing branch (or empty-state).

@@ -27,6 +27,8 @@ description: '[Documentation] Use when a workflow step or the user asks for cano
 
 > **[BLOCKING] Mode routing — detect FIRST.** Read the selected reference in full before acting (see [Modes](#modes-resolve-mode-first--blocking)). `discovery`, `clarify`, and `index` replace this file's authoring body: its Artifact Root and Profile Resolution, Applicability and Decomposition Gate, Strict Default rules and Next Steps do not apply to them; their references own those gates. The other seven modes run the body below. Every mode works directly without a workflow.
 
+> **Work tracking:** Read [the linked work integration guide](../task-track/references/integration-guide.md) at capture, start, saved-work, verification, handoff and close-out checkpoints. Inspect exact selected owners and incoming/outgoing declared spec/PBI/task concerns at governing-owner intake and after an actual artifact/case save; disclose partial/unavailable scope and current confidence separately from acceptance history. Audit stays read-only. Retain the actual inherited producer/context; only the primary saving owner records each checkpoint once. Continue untracked without companion tickets; preserve mode/profile gates and explicit acceptance.
+
 ## Quick Summary
 
 > **Portability:** the Feature Spec root is CONFIGURED, not fixed — default `docs/specs/`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path (rationale: `docs/adr/0003-config-driven-doc-and-spec-roots.md`). The spec template defaults to `detailed-feature-spec-template.md` under the templates root (default `docs/templates/`; a `docsRoots.templates.path` entry in `docs/project-config.json` overrides the path) unless `workflowPatterns.featureDocTemplate` points to another template.

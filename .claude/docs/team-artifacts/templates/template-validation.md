@@ -1,16 +1,17 @@
 # Template Validation Checklist
 
-Use this checklist to validate idea and PBI templates before committing.
+Use this checklist to validate idea and PBI templates before committing. The work-record fields (`id`, `title`, `intent`, `status`, `priority`, `assigned_to`, `tracking`) follow `.claude/skills/task-track/references/integration-guide.md`, section "Records another skill authors"; read it when a check below and the tracker disagree.
 
 ## Idea Template Validation
 
 ### Frontmatter
 
-- [ ] `id` follows IDEA-YYMMDD-NNN format
-- [ ] `status` is valid (draft | under_review | approved | rejected | implemented)
-- [ ] `priority` is valid (P1 | P2 | P3 | unset)
+- [ ] `id` follows IDEA-YYMMDD-NNN format and is unused in every record folder
+- [ ] `intent` states the outcome in one sentence
+- [ ] `status` is a tracker state (`draft` for a new idea); the review decision sits in `review_outcome` (unset | under_review | approved | rejected)
+- [ ] `priority_label` is valid (P1 | P2 | P3 | unset)
 - [ ] `tags` are lowercase and hyphenated
-- [ ] `template_version` is "2.0"
+- [ ] `template_version` is "2.1"
 
 ### Project Domain (if applicable)
 
@@ -30,12 +31,14 @@ Use this checklist to validate idea and PBI templates before committing.
 
 ### Frontmatter
 
-- [ ] `id` follows PBI-YYMMDD-NNN format
+- [ ] `id` follows PBI-YYMMDD-NNN format and is unused in every record folder
 - [ ] `title` is clear and concise
-- [ ] `status` is valid (backlog | ready | in_progress | done | blocked)
+- [ ] `intent` states the releasable outcome in one sentence
+- [ ] `status` is a tracker state (`draft` for a new PBI); no `assigned_to` written by hand
+- [ ] `priority` is an integer 1-999 or absent; the label sits in `priority_label`
 - [ ] `effort` uses valid values (XS | S | M | L | XL)
 - [ ] `idea_reference` links to valid idea (if from refinement)
-- [ ] `template_version` is "2.0"
+- [ ] `template_version` is "2.2"
 
 ### Project Domain (if applicable)
 

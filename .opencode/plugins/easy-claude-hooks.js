@@ -152,6 +152,15 @@ const HOOKS = {
         }
       ],
       "matcher": "Read"
+    },
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": ".claude/hooks/task-tracking-observer.cjs"
+        }
+      ],
+      "matcher": "Edit|Write|MultiEdit|NotebookEdit|apply_patch"
     }
   ],
   "PreToolUse": [
@@ -376,6 +385,14 @@ const HOOKS = {
         {
           "type": "command",
           "command": ".claude/hooks/ai-feature-route.cjs"
+        }
+      ]
+    },
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": ".claude/hooks/task-tracking-route.cjs"
         }
       ]
     },

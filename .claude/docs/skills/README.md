@@ -2,7 +2,7 @@
 
 Read this guide when discovering, executing or authoring framework skills. **MUST** execute through the active host; **MUST** keep canonical source ownership separate from runtime paths; **MUST** preserve required gates and report an actual missing capability with evidence.
 
-> <!-- COUNT:skills -->101<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->15<!-- /COUNT --> shared reference/protocol entries for context-aware AI assistance (`_templates/template-skill` is a source template, not a runnable skill)
+> <!-- COUNT:skills -->102<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->15<!-- /COUNT --> shared reference/protocol entries for context-aware AI assistance (`_templates/template-skill` is a source template, not a runnable skill)
 
 ## Quick Summary
 
@@ -38,7 +38,7 @@ Read `.claude/scripts/lib/workflow-skill-contract.cjs` when changing workflow re
 
 ## Skill Domains
 
-> Curated highlights — the full catalog has <!-- COUNT:skills -->101<!-- /COUNT --> runnable skills; the tables below list selected skills per domain, not the complete set.
+> Curated highlights — the full catalog has <!-- COUNT:skills -->102<!-- /COUNT --> runnable skills; the tables below list selected skills per domain, not the complete set.
 
 | Domain                                            | Skills | Description                                    |
 | ------------------------------------------------- | ------ | ---------------------------------------------- |
@@ -116,8 +116,8 @@ See `frontend-patterns-reference.md` in the project-reference docs root for proj
 
 | Skill                         | Triggers                                                | Description                                          |
 | ----------------------------- | ------------------------------------------------------- | ---------------------------------------------------- |
-| `commit`                      | commit, stage, save changes                             | Git commits; adds a `Fix-Origin:` trailer only when `commit.fixOriginTrailer` is `true` in `docs/project-config.json` (new commits only) |
-| `pull-request`                | create PR, open PR, finish PR, ready to merge, mark ready | Take the branch to a ready-to-merge PR: branch at the latest `pullRequest.targetBranch` (default `main`) — new branch when already merged, rebase when unpushed and behind, ask for local tests and whole-branch review (including explicit Skip), run the selected gates, commit, push, create or ready the PR, loop CI to green — in the main session |
+| `commit`                      | commit, stage, save changes                             | Git commits with recorded test/review preferences for small same-branch follow-ups and fresh questions on material risk escalation; adds a `Fix-Origin:` trailer only when `commit.fixOriginTrailer` is `true` in `docs/project-config.json` (new commits only) |
+| `pull-request`                | create PR, open PR, finish PR, ready to merge, mark ready | Take the branch to a ready-to-merge PR: branch at the latest `pullRequest.targetBranch` (default `main`) — new branch when already merged, rebase when unpushed and behind, ask once whether to update or create tracked work for this PR through `/task-track` when work tracking is on (a reminder, never a gate; Skip always offered), resolve risk-based local test and whole-branch review decisions (including explicit user Skip), run the gates, commit, push, create or ready the PR, automatically check routine CI repairs until green — in the main session; [exact linked work and final candidate self-check](../../skills/pull-request/SKILL.md#linked-work-and-final-candidate) |
 | `code-quality-review`                 | review, feedback, PR review                             | Code review                                          |
 | `why-review`                  | why, design rationale, plan validation, alternatives    | Validate design rationale in plan files              |
 | `production-readiness-review` | sre, production, observability, reliability, ops review | Production readiness scoring for service/API changes |
@@ -162,6 +162,7 @@ See `frontend-patterns-reference.md` in the project-reference docs root for proj
 | `design-spec`       | UI specification, component spec, layout spec, wireframe, mockup, user flow, accessibility audit | Design specification documents, UX design |
 | `idea`              | capture idea, new idea, add to backlog                                                           | Idea capture and structuring              |
 | `pbi`               | refine idea, convert to PBI, acceptance criteria, user story, vertical slice, split story, interactive mockup, PBI challenge, artifact review, Definition of Ready | PBI lifecycle by `--mode`: refine, story, mockup, challenge, review, dor |
+| `task-track` | team work, exact assignment, maintenance, lifecycle, verification, acceptance, status, local app, saved checkpoint | Default inspect; `--mode=inspect\|maintain\|link\|lifecycle\|verify\|accept\|report\|serve` routes to real commands and catalogue operations; unknown modes refuse. [Manual recipes](../../skills/task-track/references/manual-operations.md), [setup](../configuration/README.md#team-work-tracking), [exact concerns and integration](../../skills/task-track/references/integration-guide.md) |
 | `prioritize`        | RICE score, MoSCoW, value-effort matrix                                                          | Backlog prioritization frameworks         |
 
 ---
@@ -212,6 +213,7 @@ Each skill is located at `.claude/skills/{skill-name}/`:
 +-- references/        # Supporting documentation (progressive disclosure)
     |-- topic-1.md
     +-- topic-2.md
+```
 
 ### SKILL.md Structure
 
@@ -297,7 +299,7 @@ Use `/skill-creator` to create a new skill:
 
 ---
 
-_Source: `.claude/skills/` | <!-- COUNT:skills -->101<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->15<!-- /COUNT --> shared reference/protocol entries (the `_templates/template-skill` source is excluded from runtime discovery)_
+_Source: `.claude/skills/` | <!-- COUNT:skills -->102<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->15<!-- /COUNT --> shared reference/protocol entries (the `_templates/template-skill` source is excluded from runtime discovery)_
 
 ## Closing Reminders
 

@@ -200,7 +200,8 @@ function listProjectReferenceDocs() {
 }
 
 function assertMatches(file, text, pattern, description) {
-    if (!pattern.test(text)) {
+    const renderedText = text.replace(/<!--\s*(?:COUNT:[a-z0-9-]+|\/COUNT)\s*-->/g, '');
+    if (!pattern.test(renderedText)) {
         throw new Error(`${file} is missing current ${description} count matching ${pattern}`);
     }
 }

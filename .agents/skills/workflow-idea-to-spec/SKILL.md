@@ -108,6 +108,7 @@ Choose inline/delegated work, waves, batching and order through the Step Executi
 
 - Track each selected step per capability. Write the `tmp/reports/` report FIRST; append per step and re-read it with the task list after compaction.
 - Write artifacts immediately to their configured roots (plans, team artifacts, business specs); never batch.
+- The idea file is a work record owned by `$task-track`: `$idea` writes it in the shape of [Records another skill authors](../task-track/references/integration-guide.md#records-another-skill-authors), and this workflow never changes its state, assignee or readiness.
 - Validate findings with evidence, fix in the owning spec role, then re-run the raising review. Round 1 exits on zero open findings (LOW deferral); round 2 on zero CRITICAL/HIGH/MEDIUM with LOWs deferred. Cap 3 review rounds; escalate via `ask user question tool` on no progress.
 - **Provisional output:** use the profile's planned-evidence convention before code exists. The first `workflow-code-to-spec` / `spec [mode=update]` against real code reconciles planned cases with executable proof; clear provisional markers only when the profile's acceptance rule passes.
 - **Handoff at close:** canonical spec paths, case/evidence coverage, open questions below 80% confidence, the presentation path when produced, and the next route — `workflow-spec-to-pbi` for a backlog or `workflow-implement-spec` to build.

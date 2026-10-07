@@ -1,153 +1,102 @@
 # E2E Test Reference
 
-<!-- Last scanned: 2026-09-10 -->
-<!-- This file is referenced by Claude skills and agents for project-specific context. -->
+<!-- Source joined: 2026-10-06; runtime evidence remains pending. -->
 
 ## Quick Summary
 
-**Goal:** Record the verified absence of a project E2E stack without turning skill-local browser tooling into application test conventions.
+This guide applies only to the optional task-track local workspace. It introduces no application framework, hosted account system, database or whole-repository browser standard. `docs/project-config.json` selects the surface `task-track-workspace`, a custom Node launcher using skill-local Playwright 1.63.0 and Chromium, and an isolated public-core fixture.
 
-**Summary:**
+**Source is authored; runtime evidence is pending.** The launcher, shared support, portable fixture and pinned package/lock are inspected against this profile. Source readback confirms declared commands and ownership; parent all-return review and actual execution remain required. Schema validity does not prove commands run, actor journeys work, screenshots were inspected, or any operating system/CI/browser mode passed. Resolve the current setup report at `tmp/reports/task-pbi-tracking/implementation-run/browser-config-source-join.md` and the launcher's actual source before verification.
 
-- Confirm `e2eTesting` is **none / N/A**; BDD, Page Objects, browser configuration, credentials, and project E2E commands remain N/A.
-- Keep skill-local browser tooling separate; when an adopter profile exists, read its linked surface and execution ownership before choosing a runner.
-- Search verified project evidence in order, record `file:line` proof, classify missing prerequisites as `ENVIRONMENT-BLOCKED`, and rerun the E2E scan before documenting future conventions.
-
-## Portable adopter execution contract
-
-Adopter projects may opt into an `e2eTesting.execution` profile in
-`docs/project-config.json`. This repository does not enable that profile; the
-fields below describe the portable handoff and are not facts about this
-framework's own runtime:
-
-| Profile area  | Contract                                                                                                                                                                                                                                                                         |
-| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `surfaceIds`  | Links E2E execution to `experienceVerification.surfaces[]`; that surface's `localRun` owns dependencies, startup, readiness, teardown, runtime logs, and reference-only `credentialsRef`.                                                                                        |
-| `auth`        | Declares `fixture`, `storage-state`, `registration`, `manual`, or `none` plus non-secret references. Never copy credentials, cookies, tokens, headers, or storage contents into a prompt, command, test, or report.                                                              |
-| `data`        | Declares the verified seed command/working directory, `reference-only`/`idempotent`/`additive` mode, and cleanup policy. Use the project recipe; do not mutate a datastore as a UI shortcut.                                                                                     |
-| `browser`     | Selects the project-configured runner/engine and supported interaction mode. Use its native readiness/outcome waits or a documented helper with bounded timeouts and useful diagnostics. Action pacing is optional and applies only when configured; no fixed delay is required. |
-| `evidence`    | Declares the project-relative evidence root, capture kinds, and a non-empty redaction policy whenever sensitive captures are enabled. Attach console/page errors/failed requests before interaction when applicable; read screenshots/traces/video before judging them.          |
-| `convergence` | Bounds attempts, consecutive green runs, and settle timeout. Keep the same scope; classify failures before edits, fix at the owning layer, review each fix, and rerun fresh.                                                                                                     |
-
-Candidate E2E evidence and repeatable run output belong under the project-root
-`tmp/` or `temp/` directory (prefer `tmp/e2e`), which the root `.gitignore`
-ignores by default. Accepted baselines are the explicit versioned exception;
-they remain at the project-declared baseline path and are never overwritten by a
-passing run.
-
-When the profile is partial or absent, discover only from verified project
-evidence in this order: linked surface `localRun`, E2E reference/runner
-configuration, package/task/compose/CI/fixture/auth documentation, then a
-bounded repository scan. Record the source file/line for each fact. Record
-`N/A` only when no applicable E2E surface exists; an applicable but unrunnable
-or uninspectable prerequisite is `ENVIRONMENT-BLOCKED`.
-
-The canonical execution surface is `.claude/skills/workflow-e2e/`, which routes authoring and verification according to the selected project runner and profile. `.claude/skills/playwright-cli/` applies only when the project selects Playwright; other runners use their configured commands and reference docs. Use `/experience-review` only when requested or required for the applicable surface. It reports observable findings and never silently accepts baselines or replaces the configured test runner.
-
-## Workflow
-
-1. Read `docs/project-config.json` and confirm the `e2eTesting` status.
-2. If an adopter profile exists, read `e2eTesting.execution` and its linked `experienceVerification.surfaces[]` before choosing a runner or lifecycle command.
-3. Search the repository root for framework configs, feature files, browser test patterns, auth/fixture evidence, and runnable commands when the profile is partial or absent.
-4. Re-run `/scan --target=e2e-tests` before documenting any future E2E convention.
-
-## Key Rules
-
-- **NEVER** infer a project E2E framework from examples or rendering utilities inside a skill.
-- **NEVER** add BDD, account, or environment-variant sections without matching executable source.
-- **MUST** keep file statistics as grep expressions, not hardcoded counts.
+Adopter projects keep their own configuration and selected runner; this repository profile does not supply adopter accounts, data or native capability proof.
 
 ## Architecture Overview
 
-easy-claude is a JavaScript/Python Claude Code framework whose configured modules are hooks, libraries, skills, agents, scripts, workflows, and documentation (`docs/project-config.json:4-16`, `docs/project-config.json:23-73`). It has no application UI mapping, browser test project, or configured external infrastructure (`docs/project-config.json:106-119`, `docs/project-config.json:132-161`).
+The actual actor-facing surface is `.claude/skills/task-track/assets/{index.html,app.js,style.css}` plus its generated offline report through the common report owner. `.claude/skills/task-track/lib/workspace-server.cjs:53–62` requires Node 20, resolves the project context and creates ephemeral session authority; `:141–162` listens on `127.0.0.1` port 0 and returns a session URL plus owned `close()`. The app uses the same public operation and progress owners as CLI/agents, so browser assertions must prove resulting canonical records and receipts where required, alongside the visible state.
 
-The project-owned test layer is the custom CJS hook harness (`docs/project-config.json:120-130`, `package.json:43-46`). Skill-local Playwright utilities are support assets for target projects and do not create an E2E dependency edge for this repository (`.claude/skills/playwright-cli/references/playwright-tests.md`).
+The declared launcher is `.claude/skills/task-track/tests/workspace-browser.test.cjs`. Root owns its test cases and `.claude/skills/task-track/tests/browser-support.cjs` shared browser support; `.claude/hooks/tests/lib/task-tracking-fixture.cjs#withFixture` owns portable temporary repository/home/environment isolation. The integrated launcher creates valid work through the public core, starts the real workspace, exercises the browser and owned generated offline report, captures evidence, then closes/removes only current-run ephemeral resources in `finally`. Browser routing allows only the selected workspace origin and actual file URLs lexically beneath the owned fixture; other requests are denied. File/report execution remains unverified until browser runs. The profile's `seedCommand` and `localRun.startCommand` describe this one lifecycle; do not seed and launch twice or treat it as a permanent service.
+
+Core runtime dependencies remain separate from optional browser dev tooling. Node 20+ is required for the workspace/test surface; the optional Playwright pin is 1.63.0. Backend/frontend framework references stay N/A. No BDD, page-object hierarchy, root Playwright configuration, application database, team accounts or CI browser job is declared.
 
 ## Base Classes
 
-**N/A.** No E2E test base, browser fixture, driver lifecycle, or page-object base exists in the configured project modules. The explicit negative capability is recorded in `docs/project-config.json` under `e2eTesting`; root dependencies contain tooling only (`package.json:3-18`).
+No base class is required. Reuse the existing `withFixture` lifetime and the parent-owned shared browser lifecycle/evidence support at its actual browser-support.cjs owner. Browser startup must capture the explicit installed Chromium executable before fixture environment scrubbing so personal HOME or browser-cache settings cannot change fixture selection. Keep all environment mutations/restoration at the evidenced portable fixture owner.
 
 ## Page Object Pattern
 
-**N/A.** No project page-object hierarchy, reusable UI wrapper, selector strategy, navigation abstraction, or authentication state exists. Generic selectors and `page.goto` in the skill-local Playwright examples (`.claude/skills/playwright-cli/references/running-code.md`) demonstrate a reusable skill asset, not a project convention.
+No page-object hierarchy is selected. Use source-backed accessible locators and existing shared browser support, with one owner for reused selection/action/readiness/capture behavior. Final actor outcomes belong to test cases; helper execution alone is not proof. Do not create a POM, wrapper or selector registry solely to satisfy generic methodology.
 
 ## Wait & Assertion Patterns
 
-**N/A.** No project browser wait/retry or E2E assertion helper exists. Skill-local browser utilities are not evidence of an application testing standard.
+Use Playwright native actionability and observable postcondition waits. Loading/Saving tests hold an actual fetched response behind an acknowledged barrier and release it in finally; they do not fabricate a server result or use a blind sleep. Readiness requires the real server listener plus loaded session/snapshot and the expected visible fixture state. Before a dependent action, observe the preceding saved/refused/conflict/replayed outcome and assert the business result this case owns. Session requests, snapshot changes, revisions and canonical receipts are suitable actual signals; fixed sleeps or action delays cannot prove settling. Configured actionDelayMs is 0 and settle budget 20s; failure is diagnostic evidence, not permission to widen retries, weaken expected values or skip cases.
 
-Portable adopter guidance: prefer the selected runner's native wait APIs. Compose a shared bounded helper only when project references or demonstrated reuse justify it. Wait for observable readiness before acting and for the expected result afterward; keep final assertions in the test and use the project's timeout and diagnostic conventions. A fixed sleep does not establish readiness or a postcondition. Action pacing is optional and applies only when the project configures it.
-
-### Visual review and evidence
-
-This repository sets `experienceVerification.enabled` to `false` because it has no user-facing application surface. There is no framework-wide screenshot-review default. Apply visual review only when the task requests it or the project's contract requires it for an applicable surface. Resolve capture mode, evidence paths, and redaction from project config/reference docs; if required evidence cannot be captured or inspected, report the gap instead of treating it as a pass.
-
-### UI state transition capture (project-configured)
-
-Full contract: `.claude/skills/shared/ui-state-capture-protocol.md`. The framework default is `uiStateCapture.mode: declared-only`; transition capture is opt-in. Add automatic transition capture only when the project selects `every-action` and has an evidenced, reusable action/capture boundary. Follow the project's existing runner and helper style; do not create a base class, page-object hierarchy, or shared abstraction solely to host capture.
-
-When enabled, capture after the runner observes the action's configured postcondition. Follow the project's manifest, masking, cap, and failure-capture rules. `declared-only` keeps only the declared capture matrix; `off` disables transition capture and does not waive any separate visual gate required by the project.
-
-Configure it under `e2eTesting.execution.evidence.uiStateCapture` when the profile supports it:
-
-```jsonc
-"uiStateCapture": {
-  "mode": "declared-only",       // every-action | declared-only | off
-  "helper": "<path/symbol, required only for every-action>",
-  "manifestPath": "tmp/e2e-evidence/ui-captures/{runId}/capture-manifest.json",
-  "maxPerTest": 60,
-  "maxPerRun": 400,
-  "fullPageWhenScrollable": true,
-  "maskSelectors": ["<volatile region selectors>"]
-}
-```
-
-### Case-by-case review and synthesis
-
-When visual review is requested or required, reconcile the declared capture inventory with the evidence actually reviewed. Inspect one capture at a time, record expected and observed state plus runtime evidence, and identify gaps explicitly. Assign findings to the component or contract owner evidenced by the project; do not invent a shared component taxonomy. Fix blocking findings at the owning boundary and rerun the same required scope. Advisory findings are recorded without creating an unbounded loop.
-
-### Visual design protocol handoff
-
-Before judging applicable visual evidence, read `docs/project-config.json` and resolve the design-system references that actually exist (`designSystem.canonicalDoc`, `tokenFiles`, and `appMappings[]`). Use project design decisions and accepted direction first, then the relevant shared UI guidance. If the project has no design-system artifact, rely on verified existing conventions and state that limitation; never invent tokens, breakpoints, typography, CSS methodology, or component boundaries.
-
-Record component ownership using the project's declared taxonomy or observed code boundaries. Apply BEM, SCSS, Page Objects, or any other methodology only when project config, references, or code show that the project uses it. Route running-surface observations to `/experience-review` and source-only implementation findings to `/ui-design --mode=review`. Never promote a baseline without the project's explicit acceptance record.
+Strict default `TC-TPT-NNN` applies because `specArtifacts` is absent; read complete case bodies under `WorkTracking/README.TaskTracking*.md` in the business spec root (default `docs/specs`; `specRoots.business.path` in `docs/project-config.json` overrides it). Each join must name its actual case, executor, observable assertion and run result. Names alone, aggregate success or screenshot existence cannot prove a case. Technical harness contracts may use a descriptive technical name instead of inventing a business case ID.
 
 ## Configuration
 
-`docs/project-config.json` declares `framework: none`, `language: none`, no run commands or entry points, no dependencies, and a not-applicable architecture. Its `featureFilesGrepExpr` and `stepDefinitionFilesGrepExpr` fields preserve executable negative checks without stale totals.
+`e2eTesting.execution.surfaceIds` links to `experienceVerification.surfaces[].id=task-track-workspace`. Its localRun describes the combined fixture runner, not a second local service. `auth.mode=fixture` references only the in-memory `startWorkspace.url` session fragment. Never persist session fragments, headers, cookies, tokens or storage state. There are no shared credentials/accounts.
 
-No Playwright/Cypress/WebdriverIO root config or browser package is present. No BDD framework, credential system, or multi-environment E2E configuration was verified; conditional sections therefore remain absent. The optional adopter profile must not be inferred from skill-local Playwright files.
+`data.mode=additive` means each invocation creates fresh owned disposable work through public operations in its isolated repository. Cleanup follows evidence capture and removes only that run's fixture; never delete/reset adopter/user/shared data. Reference-only auth metadata, public-core seeding and explicit stable fixture actor must match actual runner source before a run is applicable.
+
+| Required test lane | Owner / runner | Data and boundary | Commands / empty selection | Execution reach |
+|---|---|---|---|---|
+| Tracker core/integration | Existing custom CJS harness under `.claude/hooks/tests` | Isolated portable fixtures; public core/CLI/HTTP contracts | Existing configured all-suite command; unchanged here | Existing project contract; no browser claim |
+| Optional workspace browser E2E | task-track launcher, Node 20+/Playwright 1.63.0/Chromium | Public-core fresh fixture; actual local server; browser outcomes plus canonical conservation | Full/focused/headed commands below; zero-match must exit 1 before launch | macOS/Linux/Windows argv-compatible source design; actual hosts/headed/headless results pending |
+| Visual journey evidence | Same launcher and experience review owner | Desktop 1280×800 and mobile 390×844, locale en-US; declared state inventory | Full headed command; capture manifest reconciliation | Visible QC required; screenshots must be individually read |
+| CI browser job | N/A — no verified job | No invented container/service/CI target | None | No CI promise |
+
+### Evidence and visible review
+
+The portable launcher defaults to disposable `tmp/task-track-browser`; this repository selects its run-specific evidence root through `--evidence-root`, preserving portable payload independence. Evidence lives under `tmp/reports/task-pbi-tracking/implementation-run/browser-evidence/{runId}/`. The `capture-manifest.json` owns the ordered case/state/viewport/artifact inventory. Source-selected required states, including any failure captures, are declared by the launcher and reconciled against its manifest; the config's state description is not an invented exhaustive state list.
+
+Capture mode is `declared-only`. Normal emitted screenshots are bounded at 20 captures per test/viewport invocation and 296/run. The full source matrix has 74 normal states per viewport: 148 viewport images across desktop/mobile, at most 296 when every state needs a full-page companion. The largest invocation has five states, at most ten images, so the per-test cap remains 20. These are finite source bounds, not observed image counts or measured runtime capacity; reconcile the bounds when the declared states or viewports change. UI State Capture Protocol §1.3 requires unconditional failure captures exempt from these caps; capped-out declarations remain manifest rows and throw rather than producing a clean run. The implementation conservatively counts all prior manifest rows toward the normal run budget, so failures/declarations may reduce later normal capture capacity. Capped-out rows carry their actual owner/test/state/viewport/sequence and expected-state metadata for reconciliation, with no screenshot path claimed when no image was taken. Manifest row count is not an emitted-normal-image count. Use full-page capture when scrollable. Desktop/mobile screenshots, redacted console/page errors, and redacted request metadata must be attached before interaction. Persist no request/response bodies, session URLs/fragments, auth headers, cookies, tokens or personal data. Synthetic owned fixture content may be visible. Do not enable trace/video or automatic every-action capture unless the profile and supported owner explicitly change. Mask `#root-context` and `.source dt:has-text("Checkout") + dd` in every screenshot, including full-page and failure captures, to hide the host account/temp prefix. Retain exact checkout assertions against the actual DOM before capture; masking does not replace scope verification. The profile and capture manifest record both selectors.
+
+Read `.claude/skills/shared/ui-state-capture-protocol.md` before evidence handling. Inspect exactly one visual artifact, persist its observations/gaps, then move to the next; reconcile ordered inventory/totals before concluding. An unread capture is unverified. Accepted baselines remain at the preserved `tests/experience-baselines` declaration with manual acceptance required; no baseline directory/assets or acceptance is created by this setup. Passing runs never automatically promote screenshots.
+
+### Source-authored journey matrix
+
+The launcher contains forty-three explicit partial-case/technical variants, each selected for desktop and mobile; this is source inventory, not eighty-six executed results. Captures cover real pending Loading, complete Empty, Invalid input, unavailable native capability, Partial imported coverage, opening/deep links, unavailable/unsupported initial-session recovery, complete read-only inspection, duplicate-ID and owner-qualified link refusal with explicit owner inspection/Overview recovery, capture/refinement, People/assignment/Start, accepted-work reopen, exact link owners, draft/conflict recovery, actual held save response and lost-save receipt replay, progress/filter/print conservation, read-only board grouping by recorded state, generated offline report detail/return/filter/print, complete-empty versus limited inspection, long People labels and native checkbox reflow, shared/current owner and proof comparisons with explicit missing-ref recovery, scripts-disabled native report content, safe draft deletion, canceled work returned to draft by an explicit state change, and the status report read inside the workspace for the selected scope with a refused refresh keeping the last report. The seventy-four declared normal state labels are mirrored into the linked surface's states array; actual emitted viewport/full-page/failure captures are reconciled through the run manifest. Technical link-owner uses its actual source contract identity; business variants retain TC-TPT owner joins without claiming every step of the full canonical case.
+
+The sixteen appended variants preserve the original twenty-four and add selected-scope filter/draft recovery, actual pending-save and saved-receipt context, generic/Feature coexistence, purpose set/change/clear with omitted-fact conservation and stale-preview refusal, invalid purpose/configuration and inert labels, exact eligible/excluded/supporting scope and intent/proof owners, chosen shared paths and removed-edge recovery, generic/ungrouped choices, attached-page draft loss on reload, exact concerns with an outside draft retained, and pinned-source/forged-path recovery. Four independently isolated TC-TPT-241 variants cover workspace keyboard return and retained draft, enhanced fixed-scope report keyboard/print, scripts-disabled native direct-edge/print, and actual report-generation refusal followed by explicit refresh. Each added variant declares one normal capture state. The `TC-TPT-007` variant `live-report-in-app` declares two: the report shown in the workspace, and a refused refresh with the last report kept. The complete source has 72 capture call sites; two of them sit in fixed two-iteration loops, so 74 normal states are executed per viewport when the journeys succeed. Intermediate actions still appear as uncaptured transitions when `uiStateCapture.mode` is `declared-only`; one final capture does not prove every intervening UI state.
+
+`TC-TPT-092` variants `readonly-session` and `duplicate-identity` protect the opening subset of the Part2 canonical case. The first launches the real server with `writable:false` against a complete accepted fixture: actor/scope remain read-only, capture is disabled, selected mutation controls are absent, and inspection/navigation/reread retain exact canonical bytes including history and receipts. The second arranges a valid copied record as a legacy-import/teammate-merge duplicate: ID-only and owner-qualified deep links select nothing, explicit owner-labelled rows remain inspectable without mutation controls, and Overview recovery reports partial coverage while conserving both owner files. This also protects main-owner `INV-TPT-01`; neither variant certifies the case's pending-close/retry contract. Both remain runtime-unverified until the final parent gate.
+
+`TC-TPT-092` variant `session-reattach` protects the reattachment subset of the same case. A reload of the attached page stays attached and leaves no credential in the address. The address opened where no session is kept shows no work, checkout or actor, and offers only to have this workspace opened again; that request reaches the launch-side hook with a single-use link, returns only the launch outcome and leaves the asking page unattached. The link attaches one page once, and a second use is refused. Canonical bytes are unchanged throughout. The harness supplies the launch-side hook for a case that declares `reopenable` and records the links instead of starting a browser; it does not certify a real browser start.
+
+One further variant beyond those listed below, `TC-TPT-095` `ended-work-delete`, protects entire deletion of ended work and declares three capture states. Open work is not offered the action. A retired record's preview names it, states the history, proof and acceptance decisions that leave with it, and waits for an explicit confirmation before the record file is removed; the other records keep their exact bytes. A canceled record another record depends on is refused at preview with the referencing record named, and both stay unchanged. The draft-only variant `safe-draft-delete` keeps its own wording and guards.
+
+`TC-TPT-079` variant `board-grouping` protects the layout-switch subset of the Part2 canonical case: regrouping the same filtered records by recorded state, opening a record from a group and filtering all leave canonical bytes and the delivery denominator unchanged, with blocked work kept beside In progress and canceled work off the lifecycle. It does not certify the case's sort, reload or export inputs.
 
 ## Running Tests
 
-There is no project E2E command, filtered browser command, headed mode, or CI browser job. Do not relabel `npm test` as E2E: it runs the custom hook/suite harness (`package.json:43-46`).
+Run from the project root, on macOS, Linux or Windows, using Node 20+. The source-selected optional dev setup is:
 
-Use the configured expressions to recheck the negative state:
-
-```powershell
-# Feature files
-rg --files --hidden -g "*.feature" -g "!node_modules/**" -g "!.git/**"
-
-# Step-binding markers
-rg -l --hidden "Given\(|When\(|Then\(|@given|@when|@then|\[Binding\]" . -g "*.cs" -g "*.java" -g "*.py" -g "*.ts" -g "*.js"
+```text
+npm ci --prefix .claude/skills/task-track --include=dev
 ```
+
+Package/lock and installed Playwright 1.63.0 are source-joined; installed Chromium availability must be verified before running. `browserRuntime()` resolves the local pinned package and checks its explicit Chromium executable before fixture isolation. Installation/cache remedy belongs to local dev setup; missing prerequisites are `ENVIRONMENT-BLOCKED`, not reasons to change actor assertions. The runner's explicit executable resolution must be read before assuming a browser cache path. Do not fetch packages through an unpinned transient launcher.
+
+```text
+node .claude/skills/task-track/tests/workspace-browser.test.cjs --evidence-root=tmp/reports/task-pbi-tracking/implementation-run/browser-evidence
+node .claude/skills/task-track/tests/workspace-browser.test.cjs --evidence-root=tmp/reports/task-pbi-tracking/implementation-run/browser-evidence --filter=<case-substring>
+node .claude/skills/task-track/tests/workspace-browser.test.cjs --evidence-root=tmp/reports/task-pbi-tracking/implementation-run/browser-evidence --headed
+node .claude/skills/task-track/tests/workspace-browser.test.cjs --evidence-root=tmp/reports/task-pbi-tracking/implementation-run/browser-evidence --headed --filter=<case-substring>
+```
+
+Replace the filter placeholder with an actual source-selected case substring. Full mode selects the complete declared journey scope; filter mode is diagnostic unless that specific scope was requested. Invalid/zero-match selections must exit nonzero (zero-match exit 1) with counts and must not manufacture coverage. Headed mode supplies visible QC; headless is the ordinary launcher mode. The experience surface's full/focused commands explicitly add `--headed`.
+
+Runtime is deferred until parent17 whole-change static review is complete and parent18 invokes final verification. Parent verification convergence allows at most 3 attempts with 2 consecutive fresh green runs; the launcher executes one fresh run and does not internally retry assertions; classify failures and fix the owning source/test/environment rather than retry-until-green. Record exact command, exit/counts, run identity, selected cases, real artifact observations, canonical outcome and cleanup. Supported-source portability is not executed OS proof; unrun platforms/modes and native adapters remain explicit gaps.
 
 ## Best Practices
 
-- Keep `e2eTesting.framework` set to `none` until a runnable project suite exists.
-- Add BDD, account, environment, or surface sections only after their framework and source artifacts are verified.
-- When E2E is introduced, record verified config paths, linked surfaces/lifecycle ownership, dependency versions, commands, selector strategy, waits, evidence/redaction, and non-secret credential references with `file:line` evidence.
-- Use the project's native test format. State the protected intent and observable expected outcome; use Given/When/Then when selected by the project or when it fits the local style.
-- Choose test organization from project config and examples. Page Objects, Screenplay, fixtures, helper modules, and test-local composition are options, not universal requirements.
-- Give each shared selector/action/wait one owner when reuse exists. Prefer runner-native readiness/outcome waits; do not use fixed sleeps as readiness evidence. Add pacing only when configured.
-- Capture transition evidence only when the project opts into a supported mode. Review required evidence against the project's design authority and report missing coverage explicitly.
-- Treat hardcoded real E2E credentials as a **CRITICAL** security finding; none was verified in the current project surface.
+- Read the actual runner/profile and complete canonical owner cases before authoring or invoking tests. Keep source-authored and runtime-unverified states distinct until evidence lands.
+- Exercise the real browser/server/core path with valid isolated owned data and native waits. Preserve raw canonical content, history, revisions, acceptance/current-confidence distinctions and retry identity where the case requires them.
+- Use shared portable fixture/lifecycle/evidence owners; retain intent assertions in each case. Do not fabricate internal callbacks or unreachable actor pacing.
+- Keep browser tooling optional and pinned locally; no root application/install/database or unrelated scan is implied.
+- Record missing browser/source/host/CI/evidence capabilities at their actual owners. Schema validity and an ID match never replace runnable source, observable outcomes or reviewed captures.
+- Resolve design authority from actual project config and accepted task-track design. Never invent a component taxonomy, tokens, breakpoints or baselines to fill a guide.
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Record the verified absence of this repository's E2E stack without turning skill-local browser tooling into application test conventions.
-
-**IMPORTANT MUST ATTENTION** Read the project config/profile, search verified project evidence, record `file:line` proof, distinguish `N/A` from `ENVIRONMENT-BLOCKED`, and rerun the E2E scan before documenting new local conventions.
-
-- **MUST** distinguish project-owned tests from skill-local browser utilities.
-- **MUST** follow the selected runner and project references when an applicable E2E surface exists.
-- **NEVER** replace this repository's verified **N/A** state with boilerplate for any browser runner or test format.
+The scope is one optional local task-track surface. Source setup, browser execution, visual inspection, operating-system reach and semantic correctness are separate evidence states. Preserve unrelated reference/config policy and explicit user approval boundaries; no Git operation, hosted service or native write capability is granted by this profile.

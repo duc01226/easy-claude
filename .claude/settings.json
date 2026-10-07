@@ -158,6 +158,16 @@
           }
         ],
         "matcher": "Read"
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit|apply_patch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/task-tracking-observer.cjs",
+            "timeout": 3
+          }
+        ]
       }
     ],
     "PreToolUse": [
@@ -462,6 +472,15 @@
         "hooks": [
           {
             "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/ai-feature-route.cjs",
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/task-tracking-route.cjs",
+            "timeout": 3,
             "type": "command"
           }
         ]

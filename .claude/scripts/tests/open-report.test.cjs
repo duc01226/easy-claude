@@ -54,11 +54,13 @@ function harness(root, { platform = 'darwin', env = {}, spawnImpl } = {}) {
     };
 }
 
-test('TC-OR-001 per-platform argv: cmd /c start "" on win32, open on darwin, xdg-open on linux', t => {
+test('TC-OR-001 per-platform argv: the system cmd.exe /c start "" on win32, open on darwin, xdg-open on linux', t => {
     // Given a report inside the project's tmp/ directory
     const p = makeProject(t);
     const cases = [
-        ['win32', {}, 'cmd', ['/c', 'start', '', p.report]],
+        // The interpreter is named by absolute path: a bare `cmd` would be found in the working directory first.
+        ['win32', {}, 'C:\\Windows\\System32\\cmd.exe', ['/c', 'start', '', p.report]],
+        ['win32', { systemroot: 'D:\\WinNT' }, 'D:\\WinNT\\System32\\cmd.exe', ['/c', 'start', '', p.report]],
         ['darwin', {}, 'open', [p.report]],
         ['linux', { DISPLAY: ':0' }, 'xdg-open', [p.report]],
         ['linux', { WAYLAND_DISPLAY: 'wayland-0' }, 'xdg-open', [p.report]]

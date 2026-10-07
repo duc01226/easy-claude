@@ -308,6 +308,8 @@ const EXPECTED_RENDERED_GROUPS = [
     // so the Read group's entries render here, in that group's place, on `Bash`; their
     // in-process early exit ends every command that does not name SKILL.md.
     ['PostToolUse', 'Bash', 6],
+    // Advisory tracking observer preserves the source edit-tool matcher and Codex alias.
+    ['PostToolUse', 'Edit|Write|MultiEdit|NotebookEdit|apply_patch', 1],
     ['PreToolUse', 'AskUserQuestion', 1],
     // The Bash PreToolUse chain, in settings.json order: doc-sync-gate,
     // review-commit-gate (2026-09-19, the review-before-commit receipt gate).
@@ -359,6 +361,9 @@ const EXPECTED_RENDERED_GROUPS = [
     ['UserPromptSubmit', null, 1],
     // ai-feature-route (2026-09-30): AI-engineering gate reminder and review routing on prompts about AI features.
     ['UserPromptSubmit', null, 1],
+    // task-tracking-route (2026-10-06): advisory work-tracking purpose and concern notice on eligible work prompts;
+    // silent when tracking is off, unavailable, quoted or unrelated.
+    ['UserPromptSubmit', null, 1],
     // core-principles-inject (2026-09-29): the same gate on prompts, sharing the step group's ledger record.
     ['UserPromptSubmit', null, 1],
     // prompt-ledger (2026-09-16): records every prompt and re-anchors the original goal.
@@ -397,6 +402,15 @@ test('TC-HOOKMIRROR-003: a fresh render produces exactly the expected hook surfa
         // matcher — every tool present, in order, same `|` separator. A dropped,
         // reordered, renamed, or re-separated tool fails this; a widening does not.
         const settings = JSON.parse(await fs.readFile(claudeSettingsPath, 'utf8'));
+        const observerSource = (settings.hooks.PostToolUse || [])
+            .flatMap(group => group.hooks || [])
+            .find(hook => hook.command?.includes('/task-tracking-observer.cjs'));
+        const observerMirror = (rendered.hooks.PostToolUse || [])
+            .flatMap(group => group.hooks || [])
+            .find(hook => hook.command?.includes('/task-tracking-observer.cjs'));
+        assert.ok(observerSource && observerMirror, 'Both hosts retain the advisory task-tracking observer');
+        assert.equal(observerSource.timeout, 3, 'The advisory observer retains its three-second source budget');
+        assert.equal(observerMirror.timeout, observerSource.timeout, 'Codex preserves the advisory observer budget');
         const renderedMatchers = actual.map(([, matcher]) => matcher).filter(Boolean);
         for (const group of settings.hooks.PreToolUse || []) {
             if (!group.matcher || group.matcher === '*') continue;

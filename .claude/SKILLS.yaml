@@ -1,10 +1,10 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-10-05'
-  total_skills: 101
+  last_updated: '2026-10-06'
+  total_skills: 102
   total_by_status:
-    active: 101
+    active: 102
     deprecated: 0
     experimental: 0
 categories:
@@ -608,8 +608,9 @@ skills:
     - name: pull-request
       path: pull-request/SKILL.md
       description: '[Git] Use when asked to create, open, finish, update or mark ready
-        a pull request. Runs in the main session with user test and review choices,
-        including explicit skip: branch, commit, open PR, CI to green.'
+        a pull request. Runs in the main session with risk-based test/review choices
+        and automatic checks for routine CI repairs: branch, commit, open PR, CI to
+        green.'
       category: other
       has_scripts: false
       has_references: false
@@ -786,6 +787,19 @@ skills:
       category: other
       has_scripts: false
       has_references: false
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
+    - name: task-track
+      path: task-track/SKILL.md
+      description: '[Project Management] Use when maintaining team work, inspecting
+        linked spec/PBI/task concerns, verifying tracker evidence, recording explicit
+        acceptance, opening status or maintaining exact linked items at a saved-work
+        checkpoint. Manual modes and shell recipes use the shared tracker core.'
+      category: other
+      has_scripts: true
+      has_references: true
       status: active
       deprecated_by: null
       deprecated_since: null

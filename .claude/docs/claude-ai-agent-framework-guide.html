@@ -197,11 +197,11 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
       <h1>Claude AI Agent Framework Guide</h1>
       <p class="lead">A portable <code>.claude/</code> framework that makes Claude Code project-aware, evidence-driven and gated at every quality step, from idea and spec to reviewed commit and pull request. This page is the map; each topic links to its owner doc.</p>
       <div class="stats" aria-label="Framework inventory">
-        <div class="stat"><b><!-- COUNT:skills -->101<!-- /COUNT --></b><span>skills</span></div>
+        <div class="stat"><b><!-- COUNT:skills -->102<!-- /COUNT --></b><span>skills</span></div>
         <div class="stat"><b><!-- COUNT:workflows -->19<!-- /COUNT --></b><span>workflows</span></div>
         <div class="stat"><b><!-- COUNT:agents -->24<!-- /COUNT --></b><span>agents</span></div>
-        <div class="stat"><b><!-- COUNT:hooks -->30<!-- /COUNT --></b><span>hook files</span></div>
-        <div class="stat"><b><!-- COUNT:lib-modules -->45<!-- /COUNT --></b><span>hook libraries</span></div>
+        <div class="stat"><b><!-- COUNT:hooks -->31<!-- /COUNT --></b><span>hook files</span></div>
+        <div class="stat"><b><!-- COUNT:lib-modules -->56<!-- /COUNT --></b><span>hook libraries</span></div>
       </div>
       <details class="toc-mobile"><summary>Contents</summary><ol id="toc-mobile-list"></ol></details>
     </header>
@@ -536,7 +536,7 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
         <thead><tr><th>Runner</th><th>Tests</th><th>Covers</th></tr></thead>
         <tbody>
           <tr><td><code>test-all-hooks.cjs</code> (primary gate)</td><td class="num"><b>133</b></td><td>Hook behaviors and the count guard</td></tr>
-          <tr><td><code>run-all-tests.cjs</code> (full aggregate)</td><td class="num"><b>1348</b></td><td>Primary plus every suite</td></tr>
+          <tr><td><code>run-all-tests.cjs</code> (full aggregate)</td><td class="num"><b>1571</b></td><td>107 discovered suite files; primary gate runs separately</td></tr>
           <tr><td><code>node --test .claude/scripts/codex/tests</code></td><td class="num">—</td><td>Mirror generators and verifiers</td></tr>
           <tr><td><code>run-codex-sync.mjs --verify-only</code></td><td class="num">—</td><td>All read-only gates before a commit</td></tr>
         </tbody>

@@ -30,6 +30,10 @@ description: '[Project Management] Use when a workflow step or the user asks for
 > **Project Protocol Overlay:** Resolve only the most-specific matching tier; derive body paths from overlay names, report malformed or missing bodies, and apply surviving rules additively without waiving framework or user-confirmation gates.
 > MUST ATTENTION READ `.claude/skills/project-skill-protocol/references/registry.md` for the full resolution contract.
 
+> **Work tracking:** Read [the linked work integration guide](../task-track/references/integration-guide.md) at capture, start, saved-work, verification, handoff and close-out checkpoints. Use the actual linked producer and exact items; retain the primary outcome and record optional upkeep once through the common owner. Continue untracked when no link exists; acceptance remains explicit.
+>
+> **Work record shape:** The idea file is a work record owned by `$task-track`. Read [Records another skill authors](../task-track/references/integration-guide.md#records-another-skill-authors) before writing or editing it: `status: draft` on capture, no assignee, the review decision in `review_outcome`, the label in `priority_label`, and tracker-owned fields of a tracked record change only through `$task-track`.
+
 ## Quick Summary
 
 **Goal:** Turn a vague product idea into a validated, tech-agnostic, module-anchored backlog artifact ready for `$pbi --mode=refine` to convert into a PBI — preserving problem intent without leaking solution or stack choices.
@@ -86,7 +90,7 @@ description: '[Project Management] Use when a workflow step or the user asks for
 
 ### Step 2: Generate Artifact
 
-- Template: `.claude/docs/team-artifacts/templates/idea-template.md` (framework-owned path — NOT the configurable team-artifacts root in `docs/project-config.json`); ID: `IDEA-{YYMMDD}-{NNN}` (sequential); status: `draft`.
+- Template: `.claude/docs/team-artifacts/templates/idea-template.md` (framework-owned path — NOT the configurable team-artifacts root in `docs/project-config.json`); ID: `IDEA-{YYMMDD}-{NNN}` (the next number no existing record uses); `intent`: one sentence stating the outcome; status: `draft`.
 
 ### Step 3: Capture Details
 
@@ -121,6 +125,8 @@ description: '[Project Management] Use when a workflow step or the user asks for
 - Path: `ideas/{YYMMDD}-{role}-idea-{slug}.md` under the team-artifacts root (default `team-artifacts`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path); infer role from context or ask; include detected domain context.
 
 > **Artifact Path (canonical convention)** — Command `$idea` → base path `ideas/` inside the team-artifacts root (default `team-artifacts`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path), role token `po`, type `idea`. Filename pattern: `{YYMMDD}-{role}-{type}-{slug}.md` → e.g. `260119-po-idea-dark-mode-toggle.md`. Slug = lowercased basename, non-alphanumeric → `-`, trimmed, max 50 chars.
+
+- **Work record hand-off:** the saved file follows [Records another skill authors](../task-track/references/integration-guide.md#records-another-skill-authors). When `taskTracking.mode` is `observe` or `linked`, or the user asks for tracking, offer once to track it through `$task-track --mode=maintain`; otherwise continue untracked. On an idea that already has a `tracking` block, edit only the body and this skill's own keys.
 
 ### Step 6.5: Discovery Interview (MANDATORY — the ONE interview)
 
@@ -295,6 +301,7 @@ $idea "Add goal progress tracking notification"
 **IMPORTANT MUST ATTENTION** assign NO logical IDs (M3) — an idea is tech-agnostic business intent only; the downstream PBI owns `FR-`/`BR-` assignment and `[Source: namespace/service/id]` anchors — why: keep the problem/value narrative free of source identifiers so the PBI inherits it cleanly
 **IMPORTANT MUST ATTENTION** include `t_shirt_size` (XS/S/M/L/XL) in the artifact and keep the feature-context load within the 8-12K token budget — why: early sizing feeds prioritization; over-budget reads dilute attention
 **IMPORTANT MUST ATTENTION** persist to `ideas/{YYMMDD}-{role}-idea-{slug}.md` under the team-artifacts root (default `team-artifacts`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path), then hand off to `$pbi --mode=refine` for PBI conversion — why: canonical path keeps downstream tooling aligned
+**IMPORTANT MUST ATTENTION** the idea file is a work record owned by `$task-track`: unused `id`, `status: draft`, no assignee, review decision in `review_outcome`; on a tracked idea change `title`/`intent`/`status`/`priority` only through `$task-track` — why: a second status vocabulary makes the tracker refuse the record
 **IMPORTANT MUST ATTENTION** search existing component libraries before proposing any new UI component (≥80% match = reuse); classify each into exactly ONE tier — why: duplicate UI code = wrong tier
 **IMPORTANT MUST ATTENTION** cite `file:line` proof or traced evidence for every claim/recommendation, confidence >80% to act, <80% verify first — why: certainty without evidence is the root of hallucination
 **IMPORTANT MUST ATTENTION** add a final review task to verify work quality

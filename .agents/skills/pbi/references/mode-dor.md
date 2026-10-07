@@ -112,6 +112,7 @@ If ANY criterion fails → DoR result is FAIL; list each violated mandate ID wit
 - **No guessing** — Every check must reference specific content (line numbers) in the PBI artifact.
 - **Checklist is the source of truth** — the Required list above defines the criteria; `.claude/skills/shared/protocols/refinement-dor-checklist.md` is its shared projection.
 - **Story points >13** — Flag recommendation to split (not a FAIL, but a strong WARN).
+- **A verdict is evidence, not a state change** — this check never edits the PBI's `status`, assignee or `tracking` block. After `READY_FOR_GROOMING`, the person records readiness through `$task-track --mode=lifecycle` ([record shape](../../task-track/references/integration-guide.md#records-another-skill-authors)).
 
 ---
 

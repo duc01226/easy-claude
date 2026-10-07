@@ -216,6 +216,35 @@ function loadProjectConfig() {
     return getProjectConfigStatus().config;
 }
 
+/** Uncached, explicit-checkout reader for tools that can select several projects. */
+function readProjectConfigAt(rootDir) {
+    const root = fs.realpathSync(rootDir);
+    // loadConfig() replaces an unusable selection with the default path. An explicit-checkout reader must refuse
+    // that selection instead: the default file is not the config the checkout selected.
+    const requested = [GLOBAL_CONFIG_PATH, path.join(root, '.claude', '.ck.json'), path.join(root, '.claude', '.ck.local.json')]
+        .map(loadConfigFromPath).reduce((value, layer) => layer?.portability?.projectConfigPath ?? value, undefined);
+    if (requested !== undefined && !sanitizePath(requested, root)) {
+        return { state: 'invalid', config: {}, errors: ['Selected project config escapes the selected checkout'], warnings: [],
+            filePath: path.resolve(root, String(requested)) };
+    }
+    const ckConfig = loadConfig({ projectRoot: root, includeProject: false, includeAssertions: false, includeLocale: false });
+    const declared = ckConfig.portability?.projectConfigPath || DEFAULT_PORTABILITY.projectConfigPath;
+    const filePath = path.resolve(root, declared);
+    if (!isPathWithinRoot(filePath, root)) {
+        return { state: 'invalid', config: {}, errors: ['Selected project config escapes the selected checkout'], warnings: [], filePath };
+    }
+    try {
+        const { readBytes } = require('./task-tracking-files.cjs');
+        const relative = path.relative(root, filePath).replace(/\\/g, '/');
+        const config = JSON.parse(readBytes(root, relative).toString('utf8'));
+        const result = validateConfig(config);
+        return { state: result.valid ? 'valid' : 'invalid', config, ...result, filePath };
+    } catch (error) {
+        if (error.code === 'ENOENT') return { state: 'missing', config: {}, errors: [], warnings: [], filePath };
+        return { state: 'invalid', config: {}, errors: ['Selected project config is unreadable or malformed'], warnings: [], filePath };
+    }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Relocatable docs/spec roots — CONFIGURED, with the framework literal as fallback
 //
@@ -821,6 +850,7 @@ module.exports = {
     getConfiguredDocsIndexPath,
     getProjectConfigStatus,
     loadProjectConfig,
+    readProjectConfigAt,
     buildRegexMap,
     buildPatternList,
     getModules,

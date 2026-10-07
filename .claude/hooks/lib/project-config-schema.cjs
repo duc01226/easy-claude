@@ -16,6 +16,7 @@ const {
     normalizeProjectRelativePath,
     validateReferenceDocDefinition
 } = require('./project-reference-registry.cjs');
+const { TASK_TRACKING_SCHEMA, validateTaskTracking } = require('./task-tracking-config.cjs');
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SCHEMA DEFINITION
@@ -42,6 +43,7 @@ const SKILL_NAME_PATTERN = /^[a-z0-9][a-z0-9-]*$/;
  * 'arrayOf' = array of objects matching a sub-schema
  */
 const SCHEMA = {
+    taskTracking: TASK_TRACKING_SCHEMA,
     _description: { type: 'string', required: false },
     schemaVersion: { type: 'number', required: false },
     project: {
@@ -1950,6 +1952,7 @@ function validateConfig(config) {
     validateSpecRootsSemantics(config, errors);
     validatePortabilitySemantics(config, errors, warnings);
     validateSkillProfileSemantics(config, errors, warnings);
+    validateTaskTracking(config, errors);
 
     // Check for unknown top-level keys
     const knownKeys = new Set(Object.keys(SCHEMA));

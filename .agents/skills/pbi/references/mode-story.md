@@ -126,6 +126,7 @@ Follow the ordered first-screen workflow and detailed steps below; user validati
 
 - **Path:** `pbis/stories/{YYMMDD}-us-{pbi-slug}.md` under the team-artifacts root — default `team-artifacts/`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path
 - **Format:** Single file with all stories (use ## headers per story)
+- **Work record (owner: `$task-track`):** the story file is one work record, identified by its frontmatter `id`; the `## Story N` sections are parts of it, not separate records. Read [Records another skill authors](../../task-track/references/integration-guide.md#records-another-skill-authors) before writing it; that section owns `id`, `title`, `intent`, `status`, `priority`, `assigned_to` and the `tracking` block. Choose an `id` no other record uses, write `status: draft` and no assignee, and keep `P1`/`P2`/`P3` in `priority_label`. On a file that already has a `tracking` block, change those fields only through `$task-track`. After the save, follow that section's hand-off with the parent PBI as a `parent` link.
 
 > **Artifact Path (canonical convention)** — Command `$pbi --mode=story` → base path `pbis/stories/` under the team-artifacts root (default `team-artifacts/`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path), role token `ba`, type `story`. General filename pattern: `{YYMMDD}-{role}-{type}-{slug}.md` → e.g. `260119-ba-story-invoice-approval.md`. Slug = lowercased basename, non-alphanumeric → `-`, trimmed, max 50 chars.
 
@@ -282,16 +283,17 @@ Scenario: Unauthorized user cannot {perform action}
 ````markdown
 ---
 id: US-{YYMMDD}-{NNN}
-parent_pbi: '{PBI-ID}'
 title: '{Brief story title}'
+intent: '{One sentence: what the persona can do after these stories}'
+status: draft
+parent_pbi: '{PBI-ID}'
 persona: '{User persona}'
-priority: P1 | P2 | P3
+priority_label: P1 | P2 | P3
 story_points: 1 | 2 | 3 | 5 | 8 | 13
 complexity: Low | Medium | High | Very High
 man_days_traditional: '{ Xd (Yd code + Zd test) — from SP table }'
 man_days_ai: '{ Xd (Yd code + Zd test) — from SP table with AI }'
 sprint: 0 | 1 | 2 | ...
-status: draft | ready | in_progress | done
 module: '{ServiceA | ServiceB | ServiceC | ServiceD}'
 ---
 
@@ -807,6 +809,7 @@ Example for a "Create Invoice" story:
 **IMPORTANT MUST ATTENTION** apply `.claude/skills/shared/releasable-pbi-contract.md`; a story set that cannot demonstrate the parent outcome is BLOCKED for re-slicing.
 **IMPORTANT MUST ATTENTION** every story MUST satisfy AI-SDD mandates M1-M5 and M7 — tech-agnostic prose, `FR-`/`BR-` logical ID + `[Source: namespace/service/id]` abstract anchor (NEVER `file:line` in story prose), testable GWT criteria, rebuild-from-scratch, demoable business outcomes — reject and rework on any STOP condition — why: stories drive implementation on any stack, so a leaked framework/class name breaks portability.
 **IMPORTANT MUST ATTENTION** apply the M7 demo test to every criterion's BODY — _"what would a stakeholder SEE change?"_; no answer → TECHNICAL-ONLY, drop it. FAIL a `WHEN` that is an invocation (handler runs, consumer receives, job fires, data syncs) or a `THEN` asserting schema/type/nullability/call-count; NEVER derive the story/scenario count from an architecture inventory — why: M1 governs vocabulary, M7 governs subject matter — a technical story in tech-free prose passes M1 and still rots the business tree.
+**IMPORTANT MUST ATTENTION** the story file is one work record owned by `$task-track`: unused `id`, `status: draft`, no assignee, label in `priority_label`; on a tracked file change `title`/`intent`/`status`/`priority` only through `$task-track` — why: a second status or priority vocabulary makes the tracker refuse the record
 **IMPORTANT MUST ATTENTION** every story set includes a Story Dependencies table with no orphan stories; SP >8 MUST split, >5 SHOULD split via SPIDR — why: ordering feeds `$prioritize` and `$plan` and oversized stories miss the sprint.
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting; mark one `in_progress` and `completed` immediately — why: long story files exhaust context and lose findings without external tracking.
 **MANDATORY IMPORTANT MUST ATTENTION** estimation is bottom-up — phase hours drive `man_days_traditional` (`Σh/6 × productivity_factor`), SP DERIVED never the driver; run the Blast Radius pre-pass and compute `test_count` explicitly per driver — NEVER hand-wave "+tests" (the #1 failure) — why: SP-first estimates anchor to a guess, not the work.

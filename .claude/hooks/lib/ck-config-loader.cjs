@@ -245,12 +245,12 @@ function loadConfig(options = {}) {
     includeAssertions = true,
     includeLocale = true,
   } = options;
-  const projectRoot = PROJECT_ROOT;
+  const projectRoot = options.projectRoot ? fs.realpathSync(options.projectRoot) : PROJECT_ROOT;
 
   // Load configs from all locations
   const globalConfig = loadConfigFromPath(GLOBAL_CONFIG_PATH);
-  const localConfig = loadConfigFromPath(LOCAL_CONFIG_PATH);
-  const localOverrideConfig = loadConfigFromPath(LOCAL_OVERRIDE_PATH);
+  const localConfig = loadConfigFromPath(path.join(projectRoot, ".claude", ".ck.json"));
+  const localOverrideConfig = loadConfigFromPath(path.join(projectRoot, ".claude", ".ck.local.json"));
 
   // No config files found - use defaults
   if (!globalConfig && !localConfig && !localOverrideConfig) {

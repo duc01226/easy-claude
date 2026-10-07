@@ -40,12 +40,13 @@ Match the question or task to a row and read that doc before answering, planning
 | A saved project prompt, playbook, or runbook may apply (`$custom-prompt`). Holds: Index of project-specific custom prompts (name, description, triggers) — managed by the $custom-prompt skill | `docs/project-reference/custom-prompts-reference.md` |
 | Before running any skill — project overlays layered on it. Holds: Index of project protocol overlays layered onto framework skills (target, scope, description) — written and managed via the $project-skill-protocol skill | `docs/project-reference/skill-protocols-reference.md` |
 | UI design — tokens, components, app-to-doc map. Holds: Design system index: app-to-doc mapping, design tokens overview, component inventory | `docs/project-reference/design-system/README.md` |
+| Writing, running, or reviewing E2E / user-flow tests. Holds: Optional task-track workspace browser tests: isolated public-core fixtures, native waits, portable runner modes and redacted journey evidence | `docs/project-reference/e2e-test-reference.md` |
 | Domain concepts, entities, relationships, data ownership — before planning or design. Holds: Framework conceptual domain — Hook, Skill, Agent, Workflow, Context Group, Module | `docs/project-reference/domain-entities-reference.md` |
 | Why the architecture or a convention is the way it is — accepted decisions and trade-offs | `docs/adr/` |
 | How the AI framework works — hooks, skills, agents, workflows, config (or run `$project-help`) | `.claude/docs/README.md` |
 | Framework rules, or why a hook blocked or warned | `.claude/docs/development-rules.md` + `.claude/docs/troubleshooting.md` |
 
-Declared not applicable in `referenceDocs` (skip unless the project adds that stack): `backend-patterns-reference.md`, `frontend-patterns-reference.md`, `scss-styling-guide.md`, `e2e-test-reference.md`.
+Declared not applicable in `referenceDocs` (skip unless the project adds that stack): `backend-patterns-reference.md`, `frontend-patterns-reference.md`, `scss-styling-guide.md`.
 
 <!-- /SECTION:doc-lookup -->
 
@@ -117,7 +118,15 @@ node .claude/hooks/tests/run-all-tests.cjs    # all suites
 
 <!-- SECTION:e2e-testing -->
 
-No E2E guide applies: `e2e-test-reference.md` is declared not applicable in `referenceDocs` (skip unless the project adds that stack).
+Full guide: [e2e-test-reference.md](docs/project-reference/e2e-test-reference.md) for E2E test patterns, test organization, and execution configuration.
+
+E2E execution profile (read `docs/project-config.json → e2eTesting.execution` for exact project facts):
+- **E2E surfaces:** `task-track-workspace` (localRun configured); use each surface's configured localRun owner.
+- **E2E authentication:** `fixture`; use configured non-secret references/fixtures or the documented manual-login path, never raw credentials.
+- **E2E data:** `additive`; use the configured seed/cleanup policy and record data identity without exposing secrets.
+- **E2E browser:** runner `custom Node launcher with Playwright`; headed/visible. Use runner-native waits or an evidenced project helper for observable readiness and postconditions; waits must not weaken the final assertion. Apply the configured 0ms post-action delay only for the project-defined pacing need. A delay is never a readiness or settle signal.
+- **E2E evidence:** capture screenshot, console, requests; store under the configured evidence root, read the evidence, and apply the configured redaction policy.
+- **E2E convergence:** max 3 attempts; preserve scope, classify failures before edits, review fixes, and escalate when the contract cannot converge.
 
 <!-- /SECTION:e2e-testing -->
 

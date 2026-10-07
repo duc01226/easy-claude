@@ -109,6 +109,105 @@ The `codeReview` section records which project-specific review-rule doc the revi
 
 **To update code review rules:** Edit `code-review-rules.md` in the project-reference docs root directly. Review skills/agents read it on demand via the project-reference-docs gate.
 
+### Team work tracking
+
+Tracking works without a shared member registry when the selected checkout has usable Git author settings. The optional example below configures shared custom identities and policy; merge only needed fields into the project config selected by `portability.projectConfigPath` (default `docs/project-config.json`), retaining the other sections. `docsRoots.teamArtifacts.path` defaults to `team-artifacts` and can select the team's existing artifact folder.
+
+Resolve the selected checkout and config through the existing project-config loader. Copying the framework does not enroll a project: absent tracking settings use neutral defaults and automatic upkeep is `off`. An explicitly requested actor-dependent action can resolve the local author without writing a shared member or enabling upkeep. `help` needs no project config; supported inspection uses the selected roots without initializing or rewriting them.
+
+When already authorized work needs missing or invalid project context repaired, perform the narrow [project-config](../../skills/project-config/SKILL.md) setup; use [project-init](../../skills/project-init/SKILL.md) when broader required project context also needs setup. The minimum valid config is a non-empty `project.name` derived from that adopter's metadata or root directory, with no inferred stack or tracking capability. Do not create a second tracker initializer. Merge only the needed evidence-backed fields, validate the selected file, reread it, and make repeated setup a no-op when the requested state already exists. Needed safe setup follows the active task's authority; a configured disablement or unresolved member/profile decision is preserved rather than filled from the example.
+
+| Selected configuration | Required handling |
+| --- | --- |
+| No config, or valid minimal project identity with no tracking section | Retain neutral tracking defaults; create required project context only through the existing setup owner when the authorized task needs it |
+| Valid custom config path, artifact roots, members or profile | Resolve those actual values; preserve unrelated/custom content and unmanaged host settings, with no authoring-project paths copied into the adopter |
+| Explicit automatic tracking `off`, opted-out item, or restricted skill selection | Keep that choice; setup does not enable automatic upkeep, relink work or authorize a heavy skill |
+| Malformed declared config or tracking capability | Refuse affected operations with the original sources retained; route narrow repair to the project-config owner, then validate before retry |
+| Declared native profile without demonstrated owner capabilities | Report unavailable and retain its sources; registration does not authorize portable serialization or infer a native writer |
+
+```json
+{
+    "docsRoots": { "teamArtifacts": { "path": "team-artifacts" } },
+    "taskTracking": {
+        "schemaVersion": 1,
+        "mode": "linked",
+        "profile": { "kind": "portable-markdown", "version": 1 },
+        "members": [
+            { "id": "member-1", "displayName": "Example member", "active": true }
+        ],
+        "report": { "enabled": true, "autoRefresh": true }
+    }
+}
+```
+
+Replace the optional example member with actual custom identities, or omit `members` to use local Git identity. IDs survive display-name changes; aliases must resolve unambiguously. An absent section means mode `off` and an empty shared member registry; it does not prevent an explicitly permitted local-author action or change the existing explicit common-core capture route. A malformed declared section refuses affected operations. `off` disables automatic upkeep, `observe` gives reminders, and `linked` permits bounded activity at actual saved checkpoints for exact session-linked items. Off/observe optional checkpoints exit before author lookup. Explicit human actions remain separate. A ticket is optional.
+
+#### Optional group purpose and labels
+
+Existing vision/epic records may optionally declare `tracking.groupRole`. Omitted or null purpose stays generic; this introduces no record kind, required wrapper, fixed nesting depth, artifact folder or migration. Maintain purpose and/or membership through the existing `group` operation; omitted fields are preserved, and a purpose-only change cannot replace members. Read [the group recipe](../../skills/task-track/references/manual-operations.md#optional-group-purpose) for the actual retained request, preview, actor and conflict guards.
+
+| Role key | Default display label |
+| --- | --- |
+| `area` | Area |
+| `capability` | Feature |
+| `initiative` | Initiative |
+
+Optional `taskTracking.groupLabels` accepts only these three keys. Each declared value is nonblank text, at most 160 characters before trimming, with no control characters; display trims surrounding whitespace. Omitted keys use defaults, including when the object or tracking configuration is absent. Duplicate label text is legal. Labels supply no owner selection, membership, permission or executable instruction; commands select stable item IDs. Malformed declared labels refuse affected operations rather than silently defaulting. Pinned reads use labels and membership from the selected commit’s config, preserving local/shared source distinctions.
+
+Use `inspect --root CHECKOUT --group EXACT_GROUP_ID` or `check --root CHECKOUT --group EXACT_GROUP_ID` through `node .claude/skills/task-track/scripts/task-track.cjs`; omit `--group` for project scope. Delivery comes only from declared membership, counts each eligible PBI once, excludes canceled/retired PBIs and gives no credit to support or group records. Read exact `scope.eligiblePbiIds`, excluded/supporting identities and coverage before relying on counts. Partial, malformed or bounded scope retains reasons and withholds a complete percentage; an unavailable group has null metrics. Global work and exact linked concerns remain inspectable, with current proof, historical acceptance and owner health separate. Supported portable reads require no custom vocabulary or native adapter.
+
+The core package requires Node 18+ and pins `yaml` 2.9.1 in its manifest and lockfile. The optional app requires Node 20+. From the selected checkout, the same commands work on Windows, macOS or Linux:
+
+```text
+node --version
+node .claude/skills/task-track/scripts/task-track.cjs identity --root .
+node .claude/skills/task-track/scripts/task-track.cjs inspect --root .
+node .claude/skills/task-track/scripts/task-track.cjs report --root .
+node .claude/skills/task-track/scripts/task-track.cjs serve --root .
+```
+
+`help` and `identity` use Node built-ins. Every other command needs the pinned parser and installs it by itself when it is missing or at another version, so no setup step comes first. The install is one attempt of `npm ci --omit=dev --ignore-scripts --no-audit --no-fund` inside `.claude/skills/task-track`, with npm's own network wait held to 30 seconds and no retries: runtime packages only, the lockfile's exact version and integrity hash, package scripts off. It runs through the startup installer's launcher and lock rather than its own: an npm found on PATH outside the project, a fixed command template on Windows, one install per folder at a time, and an install still running after 120 seconds stopped as a whole process tree. A second command started meanwhile waits up to a minute and then uses the first one's install. No registry credentials or personal npm settings are passed unless `CK_STARTUP_INSTALL_TRUST=1` grants them; set it when the registry, proxy or certificates come from an npmrc file. A completed install prints `{"status":"setup","installed":[…]}` on stderr and the command then answers normally.
+
+When the install cannot complete, the command refuses with `PACKAGE_SETUP_FAILED`, the cause and what to do by hand; a package is never reported usable after a failed or stopped install. Causes are: no npm on PATH, or only one inside the project; npm ending with an error or being stopped at the limit; another setup of the folder still running; a lock the machine cannot prove private to one account; a missing lockfile or manifest; or `CK_AUTO_INSTALL_DEPENDENCIES=0`. Running the printed `npm ci` command inside the folder is the by-hand route, including where npm is a version-manager link that automatic setup cannot start. An automatic install omits the skill's own development packages; rerun `npm ci --include=dev` there before the workspace browser tests. Hooks never install; they stay advisory when the parser is missing. For implicit identity, Git must be available and the selected path must be its exact checkout root. The read-only `identity` command returns the selected actor/name/source without changing settings or work. It reads effective `user.email` and `user.name`, honoring ordinary local/global/includeIf/worktree configuration; injected Git author/context variables cannot substitute another root or person. No remote credentials, passwords or credential helpers are read. Git author metadata is attribution, not authentication or additional permission.
+
+Automatic identity uses the lower-case email as ID and the author name, or full lower-case email when name is missing. Addresses use printable ASCII U+0021–U+007E, exactly one `@` with nonempty portions, no spaces/control and at most 254 characters; no mailbox/network check occurs. Automatic/profile names allow 254 characters with no controls; configured display names retain 160. Custom slug IDs retain 80, configured email IDs and valid email aliases allow 254, and ordinary aliases retain 160. Unambiguous configured ID/email-alias matching keeps custom spelling/name; display-name similarity cannot choose an implicit actor. An explicit `--actor EXACT_CUSTOM_ID` always keeps that exact configured choice, without falling back to Git. An inactive custom actor retains its existing operation-specific eligibility, including permitted unassignment; inactive recipients cannot receive new assignment.
+
+`serve` binds one loopback checkout and defaults to read-only, without resolving an author. A writable local launch needs no shared enrollment, `--open` opens it in the machine's own browser, and `--terminal` runs it in a terminal window of its own:
+
+```text
+node .claude/skills/task-track/scripts/task-track.cjs serve --root . --write --open --terminal
+```
+
+With `--terminal` the command writes a launcher script under the project `tmp/task-tracking/launch/`, asks the machine to open it in a terminal window (macOS Terminal, a Windows console window, or the first available Linux terminal program) and returns; the workspace runs in that window and stops when the window is closed or Ctrl+C is pressed there. Without `--terminal` the workspace runs in the calling process. No window is opened when `CI` is set, `CK_NO_AUTO_OPEN=1`, a Linux session has no display, a path holds a character the launcher script cannot carry, or the launcher folder is a link or leaves the project; the command then reports `not-opened` with the reason.
+
+For an existing configured custom identity, preserve explicit selection:
+
+```text
+node .claude/skills/task-track/scripts/task-track.cjs serve --root . --write --open --actor member-1
+```
+
+`--open` asks for Google Chrome when it is installed and the default browser otherwise, with a literal launcher per platform and only this workspace's loopback address as its argument. It opens nothing when `CI` is set, with `CK_NO_AUTO_OPEN=1`, or on Linux without `DISPLAY` or `WAYLAND_DISPLAY`. The single output line carries `launch.status`: `requested` with the browser asked, or `not-opened` with the reason. The app keeps serving either way, and a request does not prove a page opened.
+
+The launcher is given a launch link, not the session address: it attaches one page, once, and expires after a minute. The link still reaches the launcher as a process argument. On Linux it can stay in the browser's command line when the browser was not already open, where other local accounts can read it; on macOS it is visible only for the moment the `open` command runs; on Windows other standard accounts cannot read it. Someone who read it would have to use it within that minute and before the real page does, and the real page would then report the link as already used. On a machine shared with other signed-in users, leave `--open` off and open the printed address yourself.
+
+An attached tab keeps its session for as long as the tab lives, so a reload stays attached. Opening the address without a session shows nothing of the work: the page says that one address serves one workspace and, for a launch that used `--open`, offers `Open this workspace`, which asks the running command to open a new attached tab on its own machine. That request needs no session, returns only the launch outcome, is limited to one every few seconds, and is refused for a launch without `--open`. A page cannot choose another folder; another project is served by launching it from its own checkout.
+
+The writable app and session `link` accept either an independently resolved current local author or an exact configured custom ID. `apply` can omit `--actor`, but its retained JSON `actor.memberId` remains mandatory and must match the independently resolved caller; never take identity from that body or rewrite it on retry. Keep the explicit custom-ID recipe for existing workflows. New assignment/start requires an eligible active configured member or currently validated local author. Only writable worktree data adds the current implicit actor as a self-assignment choice; historical/read-only/pinned snapshots grant no new eligibility.
+
+An unavailable Git checkout/process gives `IDENTITY_UNAVAILABLE`; a selected path that differs from the exact Git checkout root gives `WRONG_ROOT`; unusable email/name, invalid custom selection or ambiguity gives `INVALID_MEMBER`. These refuse the identity-dependent action without changing work, shared settings or members. Correct the normal author configuration or select a valid custom actor; tracker setup does not mutate Git settings. If an implicit email changes after launch/link, `STALE_ACTOR` preserves the pending request/draft and successful primary; explicitly relaunch/relink and reconsider the action without rebinding the old retry. A mismatched app request gives `WRONG_ACTOR`. Ordinary reading/reporting/advisory guidance stays useful without identity lookup.
+
+Keep the launch URL private: its fragment carries an ephemeral token. Drafts stay in memory and disappear when the page closes or reloads; stop the server with Ctrl+C. The generated `tmp/task-tracking/project-status.html` stays readable offline. Inspection has no limit on the total size of a project's records and the specs and sources they link to: a project is read whole, and only a single file larger than the per-file budget is reported as unavailable; coverage is then partial and that file is named. The report has no size limit: it holds every inspected record and grows with the project (tens of megabytes for a project of well over a thousand records), and it states when inspection itself was incomplete. `report --open` requests a viewer; the request alone does not prove it opened. The app's `Report` tab shows the same generated report in place for the scope selected there, brings it up to date when the tab is opened and on `Refresh report`, and works in a read-only session. The report is shown in a sandboxed frame with no access to the app page or its session, and the page's content policy admits the report's one script and one stylesheet by content hash only. Optional `healthOwnerId` selects an existing item; health requires a deliberate dated assessment and never follows delivery percentage.
+
+An authorized save by an unregistered Git contributor retains only bounded `id` and `displayName` in that record's `tracking.memberProfiles`, together with its ordinary history/receipt. Repeated saves preserve the first captured name and prior contributors; configured actors add no redundant profile. Configured names take display precedence. Saved historical profiles are inactive display attribution and cannot authorize acting, new assignment or health ownership. A separately permitted local-only dated attestation remains history, but an ordinary later read shows health Unknown without an eligible configured owner; eligible configured-owner attestations retain the existing policy.
+
+For a direct item entry, append `&item=<encoded stable ID>` and optionally `&owner=<encoded project-relative owner path>` to the private launch URL fragment. The app consumes these selectors once, removes the fragment, and selects only a unique owner in the inspected project. A missing or ambiguous target shows a reason and offers the current work list; it never switches projects.
+
+Stopping the server stops new admission and drains admitted actions and their responses. Shutdown has a 20-second deadline. If admitted work remains, the CLI reports an indeterminate outcome rather than claiming it was canceled or saved; inspect the record and retry the original operation identity. A forced transport close cannot cancel an already admitted filesystem operation.
+
+The CLI and app share `.claude/hooks/lib/task-tracking.cjs` policy. Proposals live in the selected checkout; `report --ref <local-ref>` reads one pinned local Git commit without fetch or worktree substitution, so remote freshness stays unknown. Current test proof and explicit human acceptance are separate. A saved primary remains saved when report or tracking upkeep is pending. Retain the original request/checkpoint and recover only pending work. Prefer cancellation/retirement; exact draft deletion requires a current preview and retains local recovery bytes. Ended work (canceled or retired) that nothing references can be deleted entirely with `--delete-item`, an explicit reason and a current preview; open, started or accepted work is canceled or retired first, and nothing cascades. A state outside the usual steps, such as canceled work back to draft, is set with the `transition` operation, `correction: true`, a reason and `--change-state`, never to `done`. Read `.claude/skills/task-track/references/manual-operations.md` when you need the recipe for either action. Clearing local recovery ends that replay horizon.
+
+Native registration grants no capability. Native mutation and rendering remain unavailable until the owner supplies footprint, retry and read proofs; requests refuse with original sources preserved and no portable serializer fallback. See [task-track](../../skills/task-track/SKILL.md) for purpose-mode routing, [manual operations](../../skills/task-track/references/manual-operations.md) for catalogue-derived recipes and refusals, and [linked integration](../../skills/task-track/references/integration-guide.md) for exact concerns, producer checkpoints and recovery. Standalone pull requests use the `pull-request` producer; nested procedures retain their linked saving producer and actual context. Publication success remains separate from filesystem observation, proof and acceptance.
+
 ### Per-file convention injection
 
 `docs/project-config.json` `contextGroups[]` entries double as convention classes; the optional top-level `conventionInjection` object switches the per-file reminder hook (`file-convention-inject.cjs`) on. Absent object or `enabled` not `true` ⇒ the hook is silent.
@@ -462,9 +561,9 @@ Restricted mode distinguishes **selection** from **execution**:
 - An operation-specific hook/protocol may require a named skill for an operation already active.
   Once an authorized skill/workflow starts, its required dependencies remain eligible. Optional
   suggestions, generic discovery guidance and self-starting a preloaded agent do not qualify.
-- Both `commit` and `pull-request` ask the user about tests and review, including explicit Skip options. A PR request, routing preference or general autonomy instruction never answers these questions. Reuse an actual same-candidate answer within the run rather than asking twice. After the user selects the review,
+- Both `commit` and `pull-request` use `commit` → **Test and review decision policy**: ask initially or on material risk/scope escalation with explicit Skip options, reuse recorded preferences for small same-task/branch follow-ups, and automatically run fresh checks/review for routine PR CI repairs. Keep the last actual human-answer baseline for cumulative risk; changed content needs fresh evidence, not an old Skip. After the user or decision policy selects the review,
   `workflow-review-changes` can run its required reviewers, findings validation and fix loop as written.
-  This policy neither answers the choice question nor approves a skip or Git operation.
+  The auto-trigger preference does not decide tests/review, approve Skip, or grant Git authority; the skill decision policy owns question frequency.
 - The competing automatic workflow catalog is suppressed. Existing workflow-route restrictions and
   native permissions/manual-only skills remain in force.
 
@@ -680,7 +779,8 @@ Set a personal switch as an `env` entry in the git-ignored `.claude/settings.loc
 | `CK_DEBUG`                              | `1` or `true`: framework hooks print diagnostics to stderr (`.claude/hooks/lib/debug-log.cjs`)                                       |
 | `CLAUDE_HOOK_DEBUG`                     | `1` or `true`: hooks append a lifecycle trace (no transcript text) to a log file, rotated at 1 MB, keeping one backup                                     |
 | `CLAUDE_HOOK_DEBUG_LOG`                 | Path of that trace file; default `<os temp>/ck/debug/bash-hooks.log`                                                                 |
-| `CK_NO_AUTO_OPEN`                       | `1`: HTML reports (`watzup`, `understand`) print their path instead of opening; nothing opens under `CI` or headless Linux either    |
+| `CK_NO_AUTO_OPEN`                       | `1`: HTML reports (`watzup`, `understand`) print their path instead of opening, and `task-track` `serve --open` starts no browser; nothing opens under `CI` or headless Linux either |
+| `CK_AUTO_INSTALL_DEPENDENCIES`          | `0`, `off` or `false`: no automatic dependency install (catalog tooling's PyYAML recovery, the `task-track` pinned package); the tool refuses with the by-hand command instead |
 | `CK_STARTUP_INSTALL_TRUST`              | `1`: host grant that lets `hooks.startupInstall.allowLifecycleScripts: true` take effect (see [Startup dependency installation](#startup-dependency-installation)) |
 | `CK_PROMPT_LEDGER`                      | `0` / `false` / `off` / `no`: turns the session prompt ledger off, like `promptLedger.enabled: false` in `.ck.json`                  |
 | `CK_PROMPT_LEDGER_DIR`                  | Directory for prompt-ledger records instead of `<project>/tmp/prompt-ledger`                                                         |

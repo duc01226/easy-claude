@@ -122,15 +122,15 @@ module.exports = {
                 }
             }
         }) },
-        { name: 'TC-SAP-004 commit route and required nested review chain remain authorized without skipping user choice', fn: () => withFixture(fx => {
+        { name: 'TC-SAP-004 commit route and risk-based review chain remain eligible without automatic Skip', fn: () => withFixture(fx => {
             fx.write('docs/project-config.json', settings(false));
             for (const host of ['claude', 'codex']) {
                 const context = JSON.parse(runProcess(fx, { ...prompt, prompt: 'commit this' }, host)).hookSpecificOutput.additionalContext;
                 assert.match(context, /required dependency\/step of a skill or workflow already authorized/);
-                assert.match(context, /Once the user selects the commit review, its workflow and required nested reviewers/);
-                assert.match(context, /authorization here does not approve the review choice or a skip/);
-                assert.match(context, /Commit and pull-request MUST ask the human about tests and review with explicit Skip options/);
-                assert.match(context, /Wait for an explicit answer/);
+                assert.match(context, /review selected by the user or the commit decision policy authorizes its workflow and required nested reviewers/);
+                assert.match(context, /Selection eligibility is not a skip approval or Git authority/);
+                assert.match(context, /ask initially and on material risk\/scope escalation with explicit Skip options/);
+                assert.match(context, /When a question is required, wait for an explicit answer/);
                 assert.match(context, /Selected test\/review skills and their required nested calls remain eligible/);
                 assert.match(context, /explicitly requested workflow authorizes its required skill steps/);
                 assert.match(context, /todo\/task plan and executed later or after resume/);
@@ -140,7 +140,7 @@ module.exports = {
             }
             assert.match(hook.buildPolicy({ enabled: false, source: 'test' }), /human explicitly asks.*by name or command/);
         }) },
-        { name: 'TC-SAP-011 repeated commit and PR prompts refresh user-choice instructions after resume and compaction', fn: () => withFixture(fx => {
+        { name: 'TC-SAP-011 repeated commit and PR prompts retain safe continuity and fresh-evidence rules on recovery', fn: () => withFixture(fx => {
             fx.write('docs/project-config.json', settings(false));
             for (const host of ['claude', 'codex']) {
                 const events = [
@@ -150,9 +150,16 @@ module.exports = {
                 ];
                 for (const event of events) {
                     const context = JSON.parse(runProcess(fx, event, host)).hookSpecificOutput.additionalContext;
-                    assert.match(context, /Commit and pull-request MUST ask the human about tests and review with explicit Skip options/);
-                    assert.match(context, /Wait for an explicit answer/);
+                    assert.match(context, /follow the Test and review decision policy in \.claude\/skills\/commit\/SKILL\.md/);
+                    assert.match(context, /reuse recorded preferences for small same-task\/branch follow-ups/);
+                    assert.match(context, /automatically run fresh checks and whole-branch review for routine PR CI repairs/);
+                    assert.match(context, /Keep the last human-answer baseline and assess cumulative changes/);
+                    assert.match(context, /ask initially and on material risk\/scope escalation with explicit Skip options/);
+                    assert.match(context, /When a question is required, wait for an explicit answer/);
                     assert.match(context, /Never choose Skip, infer consent from silence/);
+                    assert.match(context, /changed content needs current evidence\/receipts, not a transferred Skip/);
+                    assert.match(context, /Explicit user constraints, pending questions and existing host permissions still apply/);
+                    assert.doesNotMatch(context, /MUST ask the human about tests and review/);
                 }
             }
         }) },
