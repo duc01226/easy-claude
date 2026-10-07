@@ -27,7 +27,7 @@ Connected contracts:
 - Plan ONLY — never implement, execute code, or use `EnterPlanMode`; write one `plan.md` by default and add phase files only when independent execution or context isolation genuinely requires them
 - Investigate before planning — every claim about existing code needs `file:line` proof; fabricated paths waste the whole execution phase
 - **Case/test mapping** — map each changed behavior or invariant to its configured owner-qualified case/executor and expected evidence. Cite existing assertions when known; otherwise name the planned test obligation without fabricating future paths or duplicating the case registry.
-- **Ordered steps:** pre-check the active/suggested plan → one bounded research wave → config/reference/code analysis with file:line evidence → concise outcome phases with profile-aware Test Specifications and PAR/SEQ metadata only when evidenced → save the plan → standalone asks once whether the user wants `/plan --mode=review`; workflow invocation returns directly to its parent.
+- **Ordered steps:** pre-check the active/suggested plan → one bounded research wave → config/reference/code analysis with file:line evidence → concise outcome phases with profile-aware Test Specifications and PAR/SEQ metadata only when evidenced → save the plan → standalone follows the Standalone Validation Chain in `plan/SKILL.md`, setting and exits included (when that chain would interview and this context cannot ask the user, hand back `Validation: PENDING`), then asks once whether the user wants `/plan --mode=review`; workflow invocation returns directly to its parent.
 - Collaborate on material product, public-contract, irreversible, or scope-changing decisions; let the executor discover bounded mechanics from source
 - Close the loop — persist the plan and its unresolved material decisions; never invoke `/plan --mode=review` or another skill automatically
 
@@ -37,7 +37,7 @@ Connected contracts:
 2. **Research** — Inspect focused work directly. Spawn at most 2 research agents only when distinct unknowns justify their context cost; keep each brief bounded to one evidence question.
 3. **Codebase Analysis** — Read the task-relevant configured references and representative source. Run `/investigate` only when the affected flow or ownership remains unclear or wide after focused inspection; document missing/stale required references through their owning setup route.
 4. **Plan Creation** — Gather the bounded evidence; resolve the canonical artifact profile; produce one concise `plan.md` by default, adding phase files only when they materially improve execution.
-5. **Handoff** — Workflow invocation returns the artifact to its parent with no next-step prompt. Standalone invocation asks once whether the user wants `/plan --mode=review`; never call it automatically.
+5. **Handoff** — Workflow invocation returns the artifact to its parent with no next-step prompt. Standalone invocation follows the Standalone Validation Chain in `plan/SKILL.md`, setting and exits included: when that chain would interview and this context cannot ask the user, write `Validation: PENDING` under `## Validation Summary` in `plan.md` and hand back `Validation: PENDING — run the Standalone Validation Chain of the plan skill on <plan-path>`, so the session that can reach the user runs it and applies the answers. Standalone then asks once whether the user wants `/plan --mode=review`; never call the review automatically.
 
 **Key Rules:**
 
@@ -63,7 +63,7 @@ Connected contracts:
 
 > **`/plan --mode=review`** — Optional standalone review, invoked only when the user explicitly selects it or when `workflow-big-feature` / `workflow-greenfield-init` declares it. It performs one read-only review pass, reports evidence-backed findings, and never fixes or re-reviews inside the same invocation.
 
-> **`/plan --mode=validate`** — Interviews user with critical questions to validate assumptions and surface issues BEFORE coding begins. BLOCKING: MUST use `ask user question tool` — completing without asking at least one question is a violation. Ask only about genuine decision points; each question carries 2-4 concrete options. Invoke only when the caller selected this gate.
+> **`/plan --mode=validate`** — Interviews user with critical questions to validate assumptions and surface issues BEFORE coding begins. BLOCKING: MUST use `ask user question tool` — completing without asking at least one question is a violation. Ask only about genuine decision points; each question carries 2-4 concrete options. Run it when the caller selected this gate, or when the Standalone Validation Chain in `plan/SKILL.md` starts it for a standalone plan; a context that cannot ask the user hands back `Validation: PENDING` instead.
 
 > **`/investigate`** — Evidence-backed codebase discovery and flow analysis for task-related files. Use when focused inspection cannot resolve a wide or unclear flow/owner; do not invoke it solely because a reference document crossed an age threshold.
 
@@ -832,7 +832,7 @@ Pattern (when used): grep/read first → optional graph query → grep/read veri
 
 **IMPORTANT MUST ATTENTION Goal:** Research the codebase and produce a concise evidence-backed plan of decisions, affected owners, bounded execution discovery, risks, and final gates — never replay or implement the code change.
 
-**IMPORTANT MUST ATTENTION Main steps:** pre-check the active/suggested plan → bounded evidence discovery → concise decision/area/risk/gate plan with profile-aware Test Specifications → PAR/SEQ metadata only when evidenced → save → standalone asks once about optional `/plan --mode=review`; workflow invocation returns directly.
+**IMPORTANT MUST ATTENTION Main steps:** pre-check the active/suggested plan → bounded evidence discovery → concise decision/area/risk/gate plan with profile-aware Test Specifications → PAR/SEQ metadata only when evidenced → save → standalone follows the Standalone Validation Chain in `plan/SKILL.md`, setting and exits included (a `Validation: PENDING` hand-back when it would interview and this context cannot ask the user), then asks once about optional `/plan --mode=review`; workflow invocation returns directly.
 
 **IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this agent carries; each line is a signpost to its canonical body above):**
 

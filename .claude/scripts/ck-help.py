@@ -76,11 +76,11 @@ CATEGORY_GUIDES = {
     "plan": {
         "title": "Planning",
         "workflow": [
-            ("Plan", "`/plan` \"your task\""),
-            ("Validate", "`/plan --mode=validate` (interview to confirm decisions)"),
+            ("Plan", "`/plan` \"your task\" (after saving, interviews you to confirm decisions; `plan.validation.mode` sets auto, prompt or off)"),
+            ("Validate again", "`/plan --mode=validate` (only after a skipped interview or a changed plan)"),
             ("Execute plan", "`/plan --mode=execute` (runs the plan)"),
         ],
-        "tip": "Use /plan --mode=validate to confirm assumptions before coding",
+        "tip": "A standalone /plan validates its own plan; run /plan --mode=validate yourself only after a skipped interview or a changed plan",
     },
     "feature-implement": {
         "title": "Implementation",
@@ -562,9 +562,9 @@ def show_config_guide() -> None:
     print('      "branchPattern": "(?:feat|fix|...)/.+"  // Branch slug regex')
     print('    },')
     print('    "validation": {')
-    print('      "mode": "prompt",       // "auto" | "prompt" | "off"')
-    print('      "minQuestions": 3,      // Min questions to ask')
-    print('      "maxQuestions": 8,      // Max questions to ask')
+    print('      "mode": "auto",         // "auto" | "prompt" | "off"')
+    print('      "minQuestions": 3,      // Breadth floor: look wider below this')
+    print('      "maxQuestions": 8,      // Size of one question round, not a cap')
     print('      "focusAreas": ["assumptions", "risks", "tradeoffs", "architecture"]')
     print('    }')
     print('  }')
@@ -592,9 +592,10 @@ def show_config_guide() -> None:
     print("This improves precision (English) while maintaining natural output (your language).")
     print()
     print("**Plan Validation:**")
-    print("- `mode: \"prompt\"` - Ask user after plan creation (default)")
-    print("- `mode: \"auto\"` - Always run validation interview")
+    print("- `mode: \"auto\"` - Run the validation interview after a standalone `/plan` saves its plan (default)")
+    print("- `mode: \"prompt\"` - Ask first whether to run it")
     print("- `mode: \"off\"` - Skip; user runs `/plan --mode=validate` manually")
+    print("- `maxQuestions` sizes one question round; rounds continue until every material decision is asked")
     print()
     print("Validation interviews the user with critical questions to confirm")
     print("assumptions, risks, and architectural decisions before implementation.")

@@ -105,6 +105,26 @@ test("each authoritative large-idea signal requires all five decomposition field
   }
 });
 
+test("the optional not_yet_specified list is accepted beside the five required fields and never replaces one", () => {
+  const signals = roadmapSignals({ ambiguousOrResearchHeavy: true });
+  const withFog = {
+    ...completeRoadmapDecomposition(),
+    not_yet_specified: [{ area: "How archived outcomes are restored", waits_on: "SLICE-001", owner: "PO" }],
+  };
+  // A complete block that also lists not-yet-specified work passes
+  assert.deepEqual(evaluateRoadmapBoundary({ signals, decomposition: withFog }), []);
+
+  // The optional list cannot stand in for a required field
+  const missingRequired = { ...withFog };
+  delete missingRequired.non_goals;
+  assert.ok(
+    evaluateRoadmapBoundary({ signals, decomposition: missingRequired }).some(
+      (finding) => finding.code === "ROADMAP-DECOMPOSITION-SCHEMA"
+    ),
+    "not_yet_specified does not satisfy a missing required field"
+  );
+});
+
 test("ordinary all-false scope omits decomposition, including independentlySliceable counterexample", () => {
   assert.deepEqual(
     evaluateRoadmapBoundary({

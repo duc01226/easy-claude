@@ -203,7 +203,7 @@ const tests = [
             assert.match(dor, /## DoR Gate Result/);
             assert.match(dor, /\*\*\{READY_TO_PLAN \| FIX_REQUIRED\}\*\*/);
             assert.match(dor, /A DoR `PASS` over an M1-M5 or M7 violation is defective/);
-            assert.match(dor, /`>13` SP is a SHOULD-SPLIT `WARN`, not a `FAIL`/);
+            assert.match(dor, /`>13` EP is a SHOULD-SPLIT `WARN`, not a `FAIL`/);
             // every mode ends with Closing Reminders
             for (const mode of MODES) assert.match(ref(`mode-${mode}.md`), /\n## Closing Reminders\n/, `${mode} keeps Closing Reminders`);
         }

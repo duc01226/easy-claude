@@ -38,8 +38,9 @@ function between(text, start, end) {
     return text.slice(from, to === -1 ? undefined : to);
 }
 
-// Criteria only the consumer owns; none may appear in a "reusable" statement.
-const CONSUMER_OWNED_CRITERIA = /GIVEN\/WHEN\/THEN|scenario|auth|Type\b|Status\b|story template|story points|UI design ready|vagueness|dependenc/i;
+// Criteria only the consumer owns; none may appear in a "reusable" statement. The estimate is named by
+// its current label (effort points) and by the earlier one that authored records may still carry.
+const CONSUMER_OWNED_CRITERIA = /GIVEN\/WHEN\/THEN|scenario|auth|Type\b|Status\b|story template|(?:story|effort) points|UI design ready|vagueness|dependenc/i;
 
 const guarded = fn => ({ skip: IS_FRAMEWORK_REPO ? false : SKIP_REASON, fn });
 
@@ -86,7 +87,7 @@ const tests = [
             assert.match(reusable, /4/, 'full-flow surface is reusable');
             assert.doesNotMatch(reusable, CONSUMER_OWNED_CRITERIA, 'no DoR-owned check is listed as reusable');
             // And the owned list names each DoR-only check
-            for (const needle of [/user-story template/i, /GIVEN\/WHEN\/THEN/, /3 scenarios/, /auth scenario/, /Type and Status/, /UI design ready/i, /AI pre-review/i, /story points/i]) {
+            for (const needle of [/user-story template/i, /GIVEN\/WHEN\/THEN/, /3 scenarios/, /auth scenario/, /Type and Status/, /UI design ready/i, /AI pre-review/i, /effort points/i]) {
                 assert.match(owned, needle, `owned checks name ${needle}`);
             }
             assert.match(section, /SHA-256/, 'identity needs a content hash');

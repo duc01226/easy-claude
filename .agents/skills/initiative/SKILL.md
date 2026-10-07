@@ -132,7 +132,7 @@ description: '[Project Management] Use when a workflow step or the user asks for
 
 ### Step 6.5: Discovery Interview (MANDATORY — the ONE interview)
 
-Use `ask user question tool` for 4-6 structured questions, batched into as few calls as the tool allows; each question MUST ATTENTION have 2-4 options, one marked "(Recommended)". Every category is asked AT MOST ONCE across this skill — there is no second question round on the same category.
+Apply the Decision Interview protocol: brief the user first on the drafted problem, value, users and scope, then ask. Use `ask user question tool` for 4-6 structured questions, a hard cap for this interview, batched into as few calls as the tool allows; each question MUST ATTENTION be a decision card with 2-4 options, what each option gives and costs, and one marked "(Recommended)" with its reason. Every category is asked AT MOST ONCE across this skill — there is no second question round on the same category. Ask a question only after the answers it depends on: a category that depends on an earlier answer goes in a later call.
 
 | Category        | Purpose                           | Example                                   |
 | --------------- | --------------------------------- | ----------------------------------------- |
@@ -149,7 +149,7 @@ Use `ask user question tool` for 4-6 structured questions, batched into as few c
 
 **Testability Question (ALWAYS include):** "How would you verify this feature works correctly?" — Options: manual test steps, automated test criteria, metric thresholds.
 
-Document all answers under `## Discovery Interview` (`$work-item --mode=refine` reads this section and asks only the categories it leaves unanswered).
+Document all answers under `## Discovery Interview`, and list each category the cap left unasked as `Not asked` (`$work-item --mode=refine` reads this section and asks only the categories it leaves unanswered).
 
 ### Step 7: Validation Summary (MANDATORY — derived summary + ONE confirm question, not a second interview)
 
@@ -258,10 +258,17 @@ $initiative "Add goal progress tracking notification"
 
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
+- `decision-interview` — Brief the user, then ask every material decision as a decision card in dependency-ordered rounds; asking the user to confirm, choose or validate decisions → .claude/skills/shared/protocols/decision-interview.md
 - `sequential-thinking-protocol` — Structured multi-step reasoning with revision, branch and hypothesis markers; planning, debugging or reviewing complex or ambiguous work → .claude/skills/shared/protocols/sequential-thinking-protocol.md
 - `ui-wireframe` — Wireframe from the design inputs using the project's component owners; sketching a user interface → .claude/skills/shared/protocols/ui-wireframe.md
 
 <!-- PROTOCOL-GUIDES:END -->
+
+<!-- SYNC:decision-interview:reminder -->
+
+**MUST ATTENTION** interview: look up facts yourself · brief before the first question · ask every material decision the hosting skill's budget allows, in dependency order, as a decision card (options with gains and costs, a reasoned recommendation) · never pad or self-answer · play answers back and record unasked decisions as unconfirmed.
+
+<!-- /SYNC:decision-interview:reminder -->
 
 <!-- SYNC:sequential-thinking-protocol:reminder -->
 

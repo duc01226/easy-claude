@@ -7,7 +7,7 @@
 | Goal                           | Document                                                                                                                           |
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
 | **New to Claude Code?**        | [quick-start.md](./quick-start.md) - 5-minute onboarding                                                                           |
-| **Need a skill?**              | [skills/README.md](./skills/README.md) - <!-- COUNT:skills -->102<!-- /COUNT --> skills catalog                                                                        |
+| **Need a skill?**              | [skills/README.md](./skills/README.md) - <!-- COUNT:skills -->104<!-- /COUNT --> skills catalog                                                                        |
 | **Building a feature?**        | [skills/README.md](./skills/README.md) + project-reference root patterns                                                           |
 | **Verifying user experience?** | [configuration/experience-verification.md](./configuration/experience-verification.md) - portable evidence and acceptance contract |
 | **Understanding hooks?**       | [hooks/README.md](./hooks/README.md) - <!-- COUNT:hooks -->32<!-- /COUNT --> top-level hook files deep-dive                                                           |
@@ -29,7 +29,7 @@ Project-owned branches below sit at their DEFAULT roots; `docs/project-config.js
 |-- README.md                 <- You are here (Navigation hub)
 |-- quick-start.md            5-minute onboarding guide
 |
-|-- skills/                   102 skills across 15+ domains
+|-- skills/                   104 skills across 15+ domains
 |   |-- README.md             Skills overview + full catalog
 |   +-- (patterns)           → docs/project-reference/
 |
@@ -161,14 +161,14 @@ Unprefixed filenames resolve inside the project-reference docs root — default 
 
 | Category               | Count |
 | ---------------------- | ----- |
-| Skills                 | <!-- COUNT:skills -->102<!-- /COUNT --> |
+| Skills                 | <!-- COUNT:skills -->104<!-- /COUNT --> |
 | Hook files (top-level) | <!-- COUNT:hooks -->32<!-- /COUNT --> |
 | Lib Modules            | <!-- COUNT:lib-modules -->61<!-- /COUNT --> |
 | Hook Events            | 9     |
 | Agents                 | <!-- COUNT:agents -->24<!-- /COUNT --> |
 | Workflows              | <!-- COUNT:workflows -->19<!-- /COUNT --> |
 | Hook Tests             | 133   |
-| Hook Test Files        | 118 suites + 9 top-level test files |
+| Hook Test Files        | 119 suites + 9 top-level test files |
 | Framework Markdown Files | 41 (`.claude/docs/**/*.md`) |
 
 ---

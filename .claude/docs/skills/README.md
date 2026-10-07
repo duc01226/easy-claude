@@ -2,7 +2,7 @@
 
 Read this guide when discovering, executing or authoring framework skills. **MUST** execute through the active host; **MUST** keep canonical source ownership separate from runtime paths; **MUST** preserve required gates and report an actual missing capability with evidence.
 
-> <!-- COUNT:skills -->102<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->15<!-- /COUNT --> shared reference/protocol entries for context-aware AI assistance (`_templates/template-skill` is a source template, not a runnable skill)
+> <!-- COUNT:skills -->104<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->15<!-- /COUNT --> shared reference/protocol entries for context-aware AI assistance (`_templates/template-skill` is a source template, not a runnable skill)
 
 ## Quick Summary
 
@@ -38,7 +38,7 @@ Read `.claude/scripts/lib/workflow-skill-contract.cjs` when changing workflow re
 
 ## Skill Domains
 
-> Curated highlights — the full catalog has <!-- COUNT:skills -->102<!-- /COUNT --> runnable skills; the tables below list selected skills per domain, not the complete set.
+> Curated highlights — the full catalog has <!-- COUNT:skills -->104<!-- /COUNT --> runnable skills; the tables below list selected skills per domain, not the complete set.
 
 | Domain                                            | Skills | Description                                    |
 | ------------------------------------------------- | ------ | ---------------------------------------------- |
@@ -138,7 +138,9 @@ See `frontend-patterns-reference.md` in the project-reference docs root for proj
 
 | Skill         | Triggers                           | Description                                                           |
 | ------------- | ---------------------------------- | --------------------------------------------------------------------- |
-| `plan`        | plan, strategy, approach, research, review plan, analyze plan, validate plan, execute plan | Concise implementation planning with a task-derived Quality Gates & Concerns Checklist; `--mode=review` reviews intent, necessity, trade-offs and proof, with optional --fix-loop; `--mode=validate` critical-questions validation; `--mode=execute` code and test an existing plan |
+| `plan`        | plan, strategy, approach, research, review plan, analyze plan, validate plan, execute plan | Concise implementation planning with a task-derived Quality Gates & Concerns Checklist; `--mode=review` reviews intent, necessity, trade-offs and proof, with optional --fix-loop; `--mode=validate` briefs the user on the plan, then asks every material decision as a decision card in rounds (a standalone plan runs it automatically after saving); `--mode=execute` code and test an existing plan |
+| `grill`       | grill me, stress-test, challenge my plan, interview me | Interview the user about a plan, design, decision or idea until no material decision is silently assumed; writes a Decision Record and hands off |
+| `wayfinder`   | `/wayfinder` (user-invoked only)   | Plan work too big for one session: chart a map of decision tickets under the plans root, resolve one ticket per session, hand off to the spec workflows |
 | `feature`     | implement, add, create, build      | Feature development                                                   |
 | `investigate` | how does, explain, trace           | Code exploration                                                      |
 
@@ -248,7 +250,7 @@ Set `disable-model-invocation: true` on a skill the model must never start on it
 
 - **Command-only utilities** — `custom-agent`, `custom-prompt`, `docx-convert`, `git-developer-performance`, `pdf-convert`, `playwright-cli`, `presentation-builder`, `project-help`, `release-doc`, `remotion`, `scan-codebase-health`, `skill-creator`, `sync-skills-shared-protocols`. No workflow step, agent `skills:` preload, `Skill(` call or hook starts any of them; the user runs `/name` (Claude) or `$name` (Codex). A file read by path (for example a workflow's `preActions.readFiles`) still works.
 - **Mirror syncs** — `sync-opencode` rewrites a generated folder, so only the user starts it. `sync-codex` is model-callable: run it once, after the `.claude/**` source is final, to regenerate `.agents/`, `.codex/` and `AGENTS.md`.
-- **Other** — `product-roadmap`. (No workflow wrapper ships manual-only: every framework workflow can be selected by the AI.)
+- **Other** — `product-roadmap`, `wayfinder`. (No workflow wrapper ships manual-only: every framework workflow can be selected by the AI.)
 
 `commit` and `learn` stay model-callable by decision. `content-presence.test.cjs` (TC-ADS-008) fails when a command-only utility loses the flag or `commit`/`learn` gains it, and `migrate-claude-to-codex.test.mjs` (TC-ADS-009) checks the Codex policy file for each utility.
 
@@ -299,7 +301,7 @@ Use `/skill-creator` to create a new skill:
 
 ---
 
-_Source: `.claude/skills/` | <!-- COUNT:skills -->102<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->15<!-- /COUNT --> shared reference/protocol entries (the `_templates/template-skill` source is excluded from runtime discovery)_
+_Source: `.claude/skills/` | <!-- COUNT:skills -->104<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->15<!-- /COUNT --> shared reference/protocol entries (the `_templates/template-skill` source is excluded from runtime discovery)_
 
 ## Closing Reminders
 

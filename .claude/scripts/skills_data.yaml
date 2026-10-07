@@ -320,6 +320,18 @@
   path: graph-code/SKILL.md
   removal_after: null
   status: active
+- category: utilities
+  deprecated_by: null
+  deprecated_since: null
+  description: '[Decision Support] Use when the user wants a plan, design, decision
+    or idea stress-tested by interview before anything is written or built, or says
+    "grill me".'
+  has_references: false
+  has_scripts: false
+  name: grill
+  path: grill/SKILL.md
+  removal_after: null
+  status: active
 - category: other
   deprecated_by: null
   deprecated_since: null
@@ -893,6 +905,18 @@
   has_scripts: false
   name: watzup
   path: watzup/SKILL.md
+  removal_after: null
+  status: active
+- category: other
+  deprecated_by: null
+  deprecated_since: null
+  description: '[Planning] Use when the user asks to plan work too big for one session
+    whose route is unclear: chart a map of decision tickets, then resolve one ticket
+    per session until the way is clear.'
+  has_references: false
+  has_scripts: false
+  name: wayfinder
+  path: wayfinder/SKILL.md
   removal_after: null
   status: active
 - category: frontend

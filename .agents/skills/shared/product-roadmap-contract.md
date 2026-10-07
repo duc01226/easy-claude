@@ -132,6 +132,10 @@ large_idea_decomposition:
       owner: {named follow-up owner}
       follow_up_artifact: {task/spec/decision artifact or N/A}
       target_slice: SLICE-{FEATURE}-{NNN} | N/A
+  not_yet_specified: # optional, outside the five required fields; omit when nothing is foggy
+    - area: {decision or investigation that is coming but cannot yet be stated as a precise question}
+      waits_on: {slice, risk or open decision that must settle first}
+      owner: {person, role, slice, or artifact that will sharpen it}
 ```
 
 Requiredness rules:
@@ -141,6 +145,7 @@ Requiredness rules:
 - `non_goals` names what is deferred and who owns the boundary. Use `[]` only with an explicit `none_identified` statement.
 - `risks_evidence` names the evidence owner and status for each material risk. Use `[]` only with an explicit `none_identified` statement.
 - `deferred_work_owner` names every deferred item and its next owner. Use `[]` only when the artifact explicitly records that no work is deferred.
+- `not_yet_specified` is optional and never replaces a required field. It lists a decision or investigation you can tell is coming but cannot yet state as a precise question, with what it waits on and who will sharpen it. The test is whether the question can be stated precisely now, not whether it can be answered now: once it can, move it to the field that owns it (a slice, `risks_evidence` or `deferred_work_owner`) and delete the entry. Work ruled out of the idea belongs in `non_goals`: scope puts an item there, sharpness never does.
 - Downstream stories, scenarios, tasks, mock-ups, presentations, plans, and reviews consume the block read-only. They may flag a missing, conflicting, or stale field; they must not reinterpret it or create a separate roadmap artifact.
 - For an ordinary all-false idea, omit the entire block and do not add roadmap, milestone, or scope-brief fields merely as placeholders.
 

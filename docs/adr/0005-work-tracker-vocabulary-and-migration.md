@@ -10,7 +10,7 @@
 
 ### Why the words change
 
-The work tracker and the skills around it use Scrum words: PBI, epic, backlog, idea. The owner wants plain words instead: task, project, planned, initiative. The change covers stored records, record locations, command output, the local workspace, the status report, templates, skills, workflows, docs and the spec. Story, vision, the sprint field and story-points wording stay as they are.
+The work tracker and the skills around it use Scrum words: PBI, epic, backlog, idea. The owner wants plain words instead: task, project, planned, initiative. The change covers stored records, record locations, command output, the local workspace, the status report, templates, skills, workflows, docs and the spec. Story and vision stay as they are. The estimate unit and the sprint field changed with the skills and templates; see [Amendments](#amendments).
 
 | Concept                                          | Old word                                               | New word                                                             |
 | ------------------------------------------------ | ------------------------------------------------------ | -------------------------------------------------------------------- |
@@ -172,3 +172,15 @@ The stamp check and case TC-TPT-252 stay. Removal needs its own decision: a proj
 - `docs/specs/WorkTracking/README.TaskTracking.md`: BR-TPT-02 (no automatic migration), BR-TPT-27 (group purpose), BR-TPT-30 (vocabulary and migration).
 - `docs/specs/WorkTracking/README.TaskTracking-Part7.md`: TC-TPT-242…252.
 - `.claude/config/README.md` → "Renamed skills — migrating an adopting project".
+
+## Amendments
+
+### 2026-10-07 — estimate unit renamed to effort points; sprint field dropped from new records
+
+The Context first said the sprint field and story-points wording stay as they are. The same change set retired both from the skills and templates, for the reason this ADR opens with: the owner wants plain words instead of Scrum words. The Context sentence is corrected and this entry records the decision. (Owner decision; reason confirmed 2026-10-07.)
+
+- **Estimate unit.** Skills, agents and the commit estimate line say effort points (EP), and the task and story templates the skills ship write `effort_points`. The estimation protocol `SYNC:estimation-framework` (`.claude/skills/shared/sync-inline-versions.md`) owns the rule; the readiness checklist `SYNC:refinement-dor-checklist` names the same unit.
+- **Existing estimates.** An artifact or commit that already carries `story_points` is not rewritten. A reader takes `effort_points` first and falls back to an authored `story_points` value.
+- **Sprint field.** The task template and the story template no longer carry a `sprint` field.
+- **Guard.** A shipped work-record template that carries `story_points` or `sprint` fails TC-ARS-001 (`.claude/hooks/tests/suites/task-tracking-authored-records.test.cjs`).
+- **Tracker unaffected.** The tracker owns neither field. Reading and migration (Decision 5) leave an estimate or sprint value a record already carries as written; BR-TPT-30 states this.

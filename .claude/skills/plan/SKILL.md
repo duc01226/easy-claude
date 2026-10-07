@@ -15,15 +15,15 @@ disable-model-invocation: false
 
 **Goal:** Produce a concise, evidence-backed implementation plan that fixes direction and proof while leaving code-level discovery and mechanics to the executing agent.
 
-**Summary:** Select the mode first: create a plan, review once, interview for validation, execute, or add CI/CRO intake. For creation: resolve evidence → settle decisions → derive gates → write → self-check → hand back.
+**Summary:** Select the mode first: create a plan, review once, interview for validation, execute, or add CI/CRO intake. For creation: resolve evidence → settle decisions → derive gates → write → self-check → standalone only: validate with the user → hand back.
 
 - **Creation is planning only:** decide direction, ownership, dependencies, risks, bounded discovery and proof; leave code and edit mechanics to execution.
 - Derive the task-specific `## Quality Gates & Concerns Checklist` before phases: verification, evidence, owner and how open concerns will be settled.
 - Keep one `plan.md`; separate phase files only for independent execution, context isolation or disjoint ownership.
-- Plan creation never runs `--mode=review` or another review skill. After saving, standalone asks once about `/plan --mode=review`; a workflow returns to its parent without next-step prompts.
+- Plan creation never runs `--mode=review` or another review skill. After saving, standalone runs the validation interview ([Standalone Validation Chain](#standalone-validation-chain); automatic unless the `plan.validation.mode` setting says `prompt` or `off`), then asks once about `/plan --mode=review`; a workflow returns to its parent without the interview or next-step prompts.
 - Write tests with implementation; schedule suites after all implementation and static review, never per phase.
 
-**Workflow:** Resolve context → inspect governing evidence and representative patterns → settle material decisions → derive the quality-gates checklist → write the lean plan → self-check scope, discovery, checklist, and verify-last order → hand back.
+**Workflow:** Resolve context → inspect governing evidence and representative patterns → settle material decisions → derive the quality-gates checklist → write the lean plan → self-check scope, discovery, checklist, and verify-last order → standalone only: run the validation interview and apply its answers → hand back.
 
 **Key Rules:**
 
@@ -36,12 +36,12 @@ disable-model-invocation: false
 
 Determine once before writing:
 
-- **Workflow invocation:** THIS run is a step of a `[Workflow]` row (`nested=true`: its own phase tasks are linked to that parent row) or the caller identifies this as a workflow step; a `[Workflow]` row that merely exists in `TaskList`, such as an abandoned one, does not count. Finish by returning the plan path and concise summary. Do not ask about review, execution, or other next steps.
-- **Standalone invocation:** no parent workflow owns progression. Finish by asking exactly one optional question: `Run /plan --mode=review on this plan?` Do not call it automatically, and do not bundle other next-step choices into that question.
+- **Workflow invocation:** THIS run is a step of a `[Workflow]` row (`nested=true`: its own phase tasks are linked to that parent row) or the caller identifies this as a workflow step; a `[Workflow]` row that merely exists in `TaskList`, such as an abandoned one, does not count. Finish by returning the plan path and concise summary. Do not ask about review, execution, or other next steps, and do not run the validation interview: the parent workflow owns its own validation step.
+- **Standalone invocation:** no parent workflow owns progression. After saving the plan, run the [Standalone Validation Chain](#standalone-validation-chain) as the `plan.validation.mode` setting directs (default `auto`: no question first; the chain's own exits cover a plan that another skill creates as one of its steps), then finish by asking exactly one optional question: `Run /plan --mode=review on this plan?` Do not call the review automatically, and do not bundle other next-step choices into that question.
 
 ## Mode Dispatch
 
-Detect the mode from the invocation arguments before any other work; do not load a mode file the invocation did not select.
+Detect the mode from the invocation arguments before any other work; do not load a mode file the invocation did not select. One exception: a standalone plan creation loads `references/mode-validate.md` after the plan is saved, for the [Standalone Validation Chain](#standalone-validation-chain).
 
 | Mode | Purpose | Read in full FIRST |
 | --- | --- | --- |
@@ -56,7 +56,7 @@ Detect the mode from the invocation arguments before any other work; do not load
 - **[BLOCKING]** When `--mode=validate`, read `references/mode-validate.md` in full FIRST; it replaces plan creation for the invocation (interview via `ask user question tool`, annotate `plan.md` only). Workflow invocation and standalone both run the interview.
 - **[BLOCKING]** When `--mode=execute`, read `references/mode-execute.md` in full FIRST; it replaces plan creation for the invocation and owns the `--approval`, `--tests` and `--parallel` flags (no flag is set by default: no flags = the full spine, run sequentially). Workflow invocation runs Steps 0–2, the Checklist Walk (parent-owned rows carried as `PENDING-PARENT`) and Step 6 only; standalone runs the full spine.
 - **[BLOCKING]** When `--mode=ci`, read `references/mode-ci.md` in full FIRST; when `--mode=cro`, read `references/mode-cro.md` in full FIRST. Both add domain intake only; they do not add review or change the plan-creation contract.
-- `--mode=review`, `--mode=validate` and `--mode=execute` are separate invocations over an existing plan; plan creation never chains into them.
+- `--mode=review` and `--mode=execute` are separate invocations over an existing plan; plan creation never chains into them. `--mode=validate` is the one mode a standalone plan creation chains into after saving; a workflow invocation reaches it only as its own workflow step.
 
 ## Evidence and Discovery
 
@@ -86,7 +86,8 @@ Before the technical sections, write exactly one `## Plan Gate` using the select
 ### 1. Outcome and boundaries
 
 - Desired observable outcome and governing intent/spec.
-- In scope, non-goals, assumptions, and compatibility/rollback boundary.
+- In scope, non-goals, assumptions, and compatibility/rollback boundary. A non-goal is out of scope by decision: give the reason, and never list it as not yet specified.
+- **Not yet specified:** each decision or investigation you can tell is coming but cannot yet state as a precise question, with the area, what it waits on and who settles it. The test is whether the question can be stated precisely now, not whether it can be answered now: when it can, it becomes a decision (section 2), a bounded discovery in its phase or an open question for the user, and leaves this list. A phase that depends on an item names it as a blocking open question; a phase that does not may execute. Never file here a decision that changes product intent, a public contract or anything irreversible: that one blocks and goes to the user. Write `None — the whole route is visible` when nothing is foggy.
 
 ### 2. Important technical decisions
 
@@ -147,14 +148,31 @@ List phase waves only when `PAR` phases have proven disjoint write sets. Otherwi
 
 - **Producer handoff:** exactly one branch-correct `## Plan Gate`, real required scope/scenario paths, commands/evidence and honest approval state, as required by the shared owner and validation Phase 0.5.
 - **Plan, not implementation:** could an executor choose local mechanics without contradicting the plan?
-- **Decision completeness:** are product/public-contract/irreversible choices settled or explicitly blocked?
-- **Discovery completeness:** does every unknown have a bounded source, owner, and stop condition?
+- **Decision completeness:** are product/public-contract/irreversible choices settled or explicitly blocked? Is every not-yet-specified item named with what it waits on, and kept apart from the non-goals?
+- **Discovery completeness:** does every unknown have a bounded source, owner, and stop condition? A not-yet-specified item is the one exception: it names what it waits on and who settles it instead.
 - **Checklist:** does `## Quality Gates & Concerns Checklist` exist, derived from this task (not generic), with every applicable row carrying a verification method, expected evidence and owner phase, every NO row carrying a reason, and every phase citing its gates?
 - **Area coverage:** are code, tests, spec/docs, data/contracts, consumers, and mirrors included when applicable?
 - **Verify-last:** are tests run only after all implementation and static review?
 - **Efficiency:** remove repeated rationale, exhaustive inventories, generic advice, and any phase that proves no distinct fact.
 
-Persist the plan path and a short summary. Standalone asks once about optional `/plan --mode=review`; workflow invocation returns immediately to its parent.
+Persist the plan path and a short summary. Workflow invocation returns immediately to its parent; standalone continues with the Standalone Validation Chain.
+
+## Standalone Validation Chain
+
+A standalone plan creation, the `--mode=ci` and `--mode=cro` intakes included, validates the saved plan with the user in the same run, as the effective `plan.validation.mode` setting directs. From the project root, read the effective value, which merges the user, project and checkout settings files (the later one wins), with `node -e "console.log(require('./.claude/hooks/lib/ck-config-loader.cjs').loadConfig().plan.validation.mode)"`; the default is `auto`. `auto` runs the interview without asking, `prompt` first asks one question, `Validate this plan with an interview now?`, and `off` skips the interview. Creation asked only what blocked writing the plan; the interview confirms every material decision it took.
+
+Check these exits first, in this order. Do not start the chain when:
+
+- **A workflow owns this run** — its own validation step decides.
+- **Another skill runs plan creation as one of its own steps** — that skill owns what follows the plan; hand the plan back to it.
+- **The setting is `off`, or the request explicitly declines validation** (an answer of no to the `prompt` question counts) — write `Validation: SKIPPED — {setting off | declined by the user}` under `## Validation Summary` in `plan.md`.
+- **This context cannot reach the user** (a sub-agent or a headless run) — write `Validation: PENDING` under `## Validation Summary` in `plan.md` and return `Validation: PENDING — run the Standalone Validation Chain of the plan skill on <plan-path>` in the hand-back; never self-answer it. A session that receives that hand-back and can reach the user runs this chain from its first paragraph for that plan, so the setting and these exits apply.
+
+When no exit applies:
+
+1. **[BLOCKING]** Read `references/mode-validate.md` in full and run its interview on the plan just saved, passing that plan path; skip its closing next-step prompt.
+2. **Apply the answers.** The interview only annotates; plan creation authored the plan, so it edits `plan.md` and any phase file for each action item the answers created, ticks that item in the `## Validation Summary`, lists every edit under `### Applied Changes` there (section → what changed) and shows that list in the conversation. When an applied answer creates a new material decision, ask it as a further round through the same reference before closing, and repeat until applying answers creates no new one; never settle it yourself. Then re-check the Self-Check Before Handoff bullets once; do not start this chain again. An answer that leaves product intent open, a preservation invariant unsure or the Plan Gate unapproved keeps the plan `BLOCKED`: report it, never settle it by assumption.
+3. **Close** with the one optional review question from [Invocation Context](#invocation-context).
 
 <!-- PROTOCOL-GUIDES:START -->
 
@@ -193,13 +211,14 @@ Persist the plan path and a short summary. Standalone asks once about optional `
 
 **IMPORTANT MUST ATTENTION Goal:** Produce a concise, evidence-backed implementation plan that fixes direction and proof while leaving code-level discovery and mechanics to the executing agent.
 
-**MUST ATTENTION Main steps:** select mode → read its reference when selected; creation resolves evidence → settles decisions → derives gates → writes → self-checks → hands back. Review follows the selected review-only/fix-loop mode; validation interviews; execution follows its flags; CI/CRO add intake.
+**MUST ATTENTION Main steps:** select mode → read its reference when selected; creation resolves evidence → settles decisions → derives gates → writes → self-checks → standalone only: validates with the user → hands back. Review follows the selected review-only/fix-loop mode; validation interviews; execution follows its flags; CI/CRO add intake.
 
 - **MUST ATTENTION** record outcome/non-goals, important decisions, affected owners/areas, bounded discovery, risks, and final quality gates.
 - **MUST ATTENTION** write a task-specific `## Quality Gates & Concerns Checklist` before the phases (per `references/plan-quality-checklist.md`): every applicable gate with how it is verified, the evidence expected and the owner phase; NO rows with reasons; open concerns with a way to settle each.
 - **MUST ATTENTION** resolve the active Goal Contract and map the plan to its saved required criteria.
 - **MUST ATTENTION** plan creation never runs `--mode=review`; standalone asks once whether the user wants it, workflow invocation returns without next-step prompts.
-- **MUST ATTENTION** `--mode=review`, `--mode=validate` and `--mode=execute` read their `references/mode-<x>.md` in full FIRST and follow it alone; default plan creation loads none of them.
+- **MUST ATTENTION** a standalone plan creation runs the validation interview after saving (`plan.validation.mode`: `auto` runs it, `prompt` asks first, `off` skips it) and applies the answers before it closes; a workflow invocation or a calling skill never starts it, and a context that cannot reach the user hands back `Validation: PENDING` instead of self-answering.
+- **MUST ATTENTION** `--mode=review`, `--mode=validate` and `--mode=execute` read their `references/mode-<x>.md` in full FIRST and follow it alone; default plan creation loads none of them, except `mode-validate.md` for the standalone validation chain.
 - **MUST ATTENTION** write tests with implementation and run test suites only after all implementation and static review; never plan per-phase test/review cycles.
 - **MUST ATTENTION** one `plan.md` by default; add phases/files only for real dependency, verification, context, or ownership boundaries.
 - **MUST ATTENTION** cite known facts and never fabricate future symbols, paths, assertions, or `file:line` evidence.

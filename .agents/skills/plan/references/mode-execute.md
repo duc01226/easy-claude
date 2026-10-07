@@ -132,7 +132,7 @@ Implement only phases with named files, concrete actions, and resolved decisions
 
 ## Step 1: Analysis & Task Extraction
 
-Read plan file completely. Map dependencies. List ambiguities. Identify required skills and activate from catalog. If the plan references analysis files in `tmp/analysis/`, re-read them before implementation.
+Read plan file completely. Map dependencies. List ambiguities. Read the plan's `Not yet specified` list: a phase that depends on an item still on it does not start — return that item to the user as an open question; phases that do not depend on it proceed. Identify required skills and activate from catalog. If the plan references analysis files in `tmp/analysis/`, re-read them before implementation.
 
 **Goal Contract read (BEFORE any code change):** resolve the active Goal Contract per `SYNC:goal-contract-satisfaction-loop` — active plan `goal.md` → `<plans root>/goals/{YYMMDD-HHmm}-{slug}/goal.md` (plans root default `plans`; a `docsRoots.plans.path` entry in `docs/project-config.json` wins, else `.ck.json` `paths.plans`) → create from the current request via `.claude/templates/goal-contract-template.md` — and read its saved success criteria. After implementation/verification (Step 3+), append an Iteration Log entry with evidence and remaining gaps.
 

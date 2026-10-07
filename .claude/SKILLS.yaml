@@ -2,9 +2,9 @@ metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
   last_updated: '2026-10-07'
-  total_skills: 102
+  total_skills: 104
   total_by_status:
-    active: 102
+    active: 104
     deprecated: 0
     experimental: 0
 categories:
@@ -852,6 +852,18 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
+    - name: wayfinder
+      path: wayfinder/SKILL.md
+      description: '[Planning] Use when the user asks to plan work too big for one
+        session whose route is unclear: chart a map of decision tickets, then resolve
+        one ticket per session until the way is clear.'
+      category: other
+      has_scripts: false
+      has_references: false
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
     - name: why-review
       path: why-review/SKILL.md
       description: '[Code Quality] Use when a workflow step or the user asks for explicit
@@ -1099,6 +1111,18 @@ skills:
       category: utilities
       has_scripts: false
       has_references: true
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
+    - name: grill
+      path: grill/SKILL.md
+      description: '[Decision Support] Use when the user wants a plan, design, decision
+        or idea stress-tested by interview before anything is written or built, or
+        says "grill me".'
+      category: utilities
+      has_scripts: false
+      has_references: false
       status: active
       deprecated_by: null
       deprecated_since: null

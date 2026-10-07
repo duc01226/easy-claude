@@ -35,7 +35,7 @@
       "focusAreas": ["assumptions", "risks", "tradeoffs", "architecture"],
       "maxQuestions": 8,
       "minQuestions": 3,
-      "mode": "prompt"
+      "mode": "auto"
     }
   },
   "project": {

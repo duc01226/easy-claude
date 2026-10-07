@@ -35,7 +35,7 @@ const DEFAULT_CONFIG = {
       branchPattern: "(?:feat|fix|chore|refactor|docs)/(?:[^/]+/)?(.+)",
     },
     validation: {
-      mode: "prompt", // 'auto' | 'prompt' | 'off'
+      mode: "auto", // 'auto' | 'prompt' | 'off': whether a standalone plan creation starts the validation interview
       minQuestions: 3,
       maxQuestions: 8,
       focusAreas: ["assumptions", "risks", "tradeoffs", "architecture"],

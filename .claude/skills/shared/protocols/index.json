@@ -319,6 +319,20 @@
       ]
     },
     {
+      "tag": "decision-interview",
+      "group": "workflow-task",
+      "summary": "Brief the user, then ask every material decision as a decision card in dependency-ordered rounds",
+      "when": "asking the user to confirm, choose or validate decisions",
+      "chars": 2845,
+      "file": ".claude/skills/shared/protocols/decision-interview.md",
+      "parts": [
+        {
+          "file": ".claude/skills/shared/protocols/decision-interview.md",
+          "chars": 2845
+        }
+      ]
+    },
+    {
       "tag": "design-distinctiveness-gate",
       "group": "design",
       "summary": "Design identity gate DD-1 to DD-8: subject, design plan, generic test, restraint",

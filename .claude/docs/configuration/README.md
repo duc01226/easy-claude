@@ -67,7 +67,7 @@ CLAUDE.md                # Project instructions at repo root (read by Claude)
         "namingFormat": "{date}-{issue}-{slug}",
         "dateFormat": "YYMMDD-HHmm",
         "validation": {
-            "mode": "prompt",
+            "mode": "auto",
             "minQuestions": 3,
             "maxQuestions": 8
         }
@@ -79,7 +79,7 @@ CLAUDE.md                # Project instructions at repo root (read by Claude)
 | Field               | Type     | Description                                                                                                                                                                    |
 | ------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `plan.namingFormat` | string   | Plan directory naming pattern                                                                                                                                                  |
-| `plan.validation`   | object   | Plan validation settings                                                                                                                                                       |
+| `plan.validation`   | object   | Plan validation interview. `mode`: `auto` (default) runs the interview after a standalone `/plan` saves its plan, `prompt` asks first, `off` skips it; a direct `/plan --mode=validate` and a workflow step always run. `minQuestions` is the breadth floor and `maxQuestions` the size of one question round, never a cap on the interview |
 | `assertions`        | string[] | Legacy compatibility field. The standard SessionStart path does not add it to prompt context; active project rules belong in `docs/project-config.json` and its reference docs |
 | `locale`            | object   | Language settings for thinking/responses                                                                                                                                       |
 | `trust`             | object   | Trust passphrase configuration                                                                                                                                                 |

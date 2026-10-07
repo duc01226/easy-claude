@@ -181,6 +181,10 @@
           "summary": "Prompt clarity and semantic retention principles",
           "when": "writing or enhancing prompts, skills or agents"
         },
+        "decision-interview": {
+          "summary": "Brief the user, then ask every material decision as a decision card in dependency-ordered rounds",
+          "when": "asking the user to confirm, choose or validate decisions"
+        },
         "estimation-framework": {
           "summary": "Bottom-up estimation with derived effort points and a min-max range",
           "when": "estimating effort"

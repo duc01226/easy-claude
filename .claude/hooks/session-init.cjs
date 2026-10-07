@@ -448,7 +448,7 @@ async function main() {
 
       // Plan validation config (for /plan, /plan --mode=validate)
       const validation = config.plan?.validation || {};
-      writeEnv(envFile, "CK_VALIDATION_MODE", validation.mode || "prompt");
+      writeEnv(envFile, "CK_VALIDATION_MODE", validation.mode || "auto");
       writeEnv(
         envFile,
         "CK_VALIDATION_MIN_QUESTIONS",

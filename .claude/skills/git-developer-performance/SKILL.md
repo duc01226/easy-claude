@@ -7,7 +7,7 @@ disable-model-invocation: true
 
 ## Quick Summary
 
-**Goal:** Plan and generate a developer KPI-style quality-work report from local git history ONLY, so every story-point, man-day, and value claim in it rests on inspected diffs rather than commit counts.
+**Goal:** Plan and generate a developer KPI-style quality-work report from local git history ONLY, so every effort-point, man-day, and value claim in it rests on inspected diffs rather than commit counts.
 
 **Summary:** (read-this-if-nothing-else digest — purpose + ALL main steps)
 
@@ -46,7 +46,7 @@ disable-model-invocation: true
 
 # Git Developer Performance
 
-Use when the user asks for developer KPI/performance, productivity, contribution value, story-point estimates, man-day estimates, quality impact, or quality-work reporting from git commits.
+Use when the user asks for developer KPI/performance, productivity, contribution value, effort-point estimates, man-day estimates, quality impact, or quality-work reporting from git commits.
 
 ## Required AI Workflow
 
@@ -117,7 +117,7 @@ Before delivering a generated report:
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Plan and generate a developer KPI-style quality-work report from local git history ONLY, so every story-point, man-day, and value claim in it rests on inspected diffs rather than commit counts.
+**IMPORTANT MUST ATTENTION Goal:** Plan and generate a developer KPI-style quality-work report from local git history ONLY, so every effort-point, man-day, and value claim in it rests on inspected diffs rather than commit counts.
 
 **IMPORTANT MUST ATTENTION main steps — execute in order, the skill AI keeps forgetting:** (1) SET GOAL + trigger `/plan` + one todo task per contributor — NEVER analyze before planning; (2) COLLECT PACKETS via the script over the FULL merged history; (3) ANALYZE each contributor's direct authored patches + merge/admin commits, crediting shared branches to the direct author; (4) ESTIMATE every cluster via the carried `SYNC:estimation-framework` — bottom-up hours → `likely_days` → EP DERIVED — discounting generated/docs/lockfile churn first, and the carried block OUTRANKS the script's legacy size rubric; (5) SANITY-CHECK velocity, separate product / infra / docs / merge-admin signal, SYNTHESIZE `quality-work-summary.md` + `evidence-proof.md` outside `.claude`; (6) VERIFY — run tests, re-run the command, confirm the output path. — why: steps buried in the middle get skipped, and a report that skips step 3 or 4 reports churn as effort.
 

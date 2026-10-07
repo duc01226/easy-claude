@@ -23,13 +23,14 @@
 4. Classify each surfaced item **OBVIOUS / NON-OBVIOUS / CONFLICTS** (per `mode-clarify.md` Step 2). OBVIOUS items are
    documented-and-proceeded; **NON-OBVIOUS + CONFLICTS + high-impact** items become gate questions.
 5. Take gate questions to the user via `ask user question tool`: **ask ≥MIN when ≥MIN real decisions exist**, never
-   exceed MAX, ≤4 options per call, recommended option first, issue multiple calls when there are >4 decisions.
+   exceed MAX in one pass (a further pass needs the user's go-ahead, per `mode-clarify.md` Step 4), ≤4 options per call, recommended option first, issue multiple calls when there are >4 decisions.
    When fewer than MIN genuine decisions exist, ask only the genuine ones and record "below-MIN: only N real
-   decisions surfaced" — NEVER invent filler questions to hit MIN.
+   decisions surfaced" — NEVER invent filler questions to hit MIN. Brief the user before the first question and give
+   each question as a decision card, per the Decision Interview protocol in `mode-clarify.md`.
 
 > **Coverage, not volume.** The goal is to *probe every applicable category* (breadth) and surface every decision
 > that would change the spec — bounded by the budget so the user is never fatigued by low-value or invented
-> questions. Breadth of probing is mandatory; question count is capped.
+> questions. Breadth of probing is mandatory; question count is capped per pass.
 
 ## Budget defaults (when `Spec Validation: questions=MIN-MAX` is absent)
 

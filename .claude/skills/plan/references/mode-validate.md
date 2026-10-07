@@ -1,6 +1,6 @@
 # `/plan --mode=validate` — critical-questions plan validation reference
 
-> Loaded by `plan/SKILL.md`'s Mode Dispatch when invoked as `/plan --mode=validate [plan-path]`. This contract REPLACES default plan creation for the invocation: interview the user about a finished plan, record the answers on `plan.md`, stop. It never rewrites the plan or its phase files.
+> Loaded by `plan/SKILL.md`'s Mode Dispatch when invoked as `/plan --mode=validate [plan-path]`, or by its Standalone Validation Chain right after a standalone plan is saved. Invoked directly, this contract REPLACES default plan creation for the invocation: interview the user about a finished plan, record the answers on `plan.md`, stop. Chained, it runs the same interview on the plan just saved and returns to the chain. Either way it never rewrites the plan or its phase files.
 
 > **[BLOCKING]** Run declared steps in order. NEVER skip, reorder, or merge without explicit user approval.
 > **[BLOCKING]** Before each step/sub-skill, update todo tracking: `in_progress` at start, `completed` at end.
@@ -14,10 +14,10 @@
 **Summary:**
 
 - **Purpose:** validate a finished plan via a critical-questions interview so every assumption-laden decision and every preservation-critical behavior is user-confirmed BEFORE implementation — no unstated assumption silently reaches code.
-- **Main steps (run in order):** Phase 0 Detect Plan Type → resolve plan path (`$ARGUMENTS` / `## Plan Context` / ask) → load `mode` + `questions` range as hard constraints → Phase 0.5 resolve Applicability / Plan Gate → Step 1 Read `plan.md` + all `phase-*.md`, flag decisions/assumptions/risks/tradeoffs → Step 2 Extract topics across 9 categories (Applicability, Architecture, Assumptions, Tradeoffs, Risks, Scope, New Tech/Lib, Test Specs, Preservation) → Step 3 Generate questions (2-4 concrete options each, surface implicit decisions, plus probes of the plan's Quality Gates & Concerns Checklist) → Step 4 Interview via `ask user question tool` (≤4 per call) → Step 5 Document answers → offer implement/refine/skip.
+- **Main steps (run in order):** Phase 0 Detect Plan Type → resolve plan path (`$ARGUMENTS` / `## Plan Context` / ask) → load `mode` + `questions` range (a round size, never an interview cap) → Phase 0.5 resolve Applicability / Plan Gate → Step 1 Read `plan.md` + all `phase-*.md`, flag decisions/assumptions/risks/tradeoffs → Step 2 Extract topics across 9 categories (Applicability, Architecture, Assumptions, Tradeoffs, Risks, Scope, New Tech/Lib, Test Specs, Preservation) → Step 3 Generate decision cards (2-4 concrete options each with what it gives and costs, a reasoned recommendation, surface implicit decisions, plus probes of the plan's Quality Gates & Concerns Checklist) → Step 3.5 Brief the user on what the plan will do → Step 4 Interview via `ask user question tool` (≤4 per call) in dependency-ordered rounds until every material decision is asked → Step 5 Play back and document answers → offer implement/refine/skip (direct invocation only; a chained run returns to the plan skill).
 - **Phase 0 weights everything:** plan type (bugfix/feature/migration/refactor/other) decides which question categories fire; any fix/bug/regression/broken/defect keyword makes the Preservation question BLOCKING — never skip it.
-- **The output is a REAL interview, not a self-answer:** honor the `questions` MIN-MAX range from `## Plan Context`, give 2-4 concrete options per question, treat the Preservation "Unsure" answer as BLOCKED → route to `/plan`; if the plan adds new tech/packages, probe whether alternatives were evaluated before accepting the choice.
-- **Persist results narrowly:** add ONLY a `## Validation Summary` (confirmed decisions + action items) to `plan.md` — NEVER edit phase files; close by offering implement/refine/skip via `ask user question tool`.
+- **The output is a REAL interview, not a self-answer:** brief the user on the plan before the first question, ask EVERY material decision as a self-contained decision card (2-4 concrete options, what each gives and costs, a reasoned recommendation), use the `questions` MIN-MAX range as a round size and never as a cap, treat the Preservation "Unsure" answer as BLOCKED → route to `/plan`; if the plan adds new tech/packages, probe whether alternatives were evaluated before accepting the choice.
+- **Persist results narrowly:** add ONLY a `## Validation Summary` (confirmed decisions + action items) to `plan.md` — NEVER edit phase files; a direct invocation closes by offering implement/refine/skip via `ask user question tool`, a chained run returns to the plan skill without that prompt.
 - **Applicability is mandatory for every plan:** read `.claude/skills/shared/product-roadmap-contract.md`, verify the plan's branch-specific `## Plan Gate`, and ask the owner to confirm the embedded slice/decomposition, explicit roadmap outcome, framework technical outcome, or EXEMPT boundary plus non-goals, scenario proof, commands, evidence, and approval. `BLOCKED`, `OPEN`, `MISSING`, or `REQUIRED` cannot be silently upgraded.
 
 **Workflow:**
@@ -25,14 +25,17 @@
 1. **Detect Plan Type** — Classify plan (bugfix/feature/migration/refactor) to weight question categories
 2. **Read Plan** — Parse plan.md + phase files for decisions, assumptions, risks
 3. **Extract Topics** — Scan architecture, assumptions, tradeoffs, risks, scope keywords
-4. **Generate Questions** — Formulate concrete questions with 2-4 options each
-5. **Interview User** — Present questions using configured count range
-6. **Document Answers** — Add Validation Summary section to plan.md
+4. **Generate Questions** — Write each decision as a card: what is decided, why it matters, 2-4 options with pros and cons, a reasoned recommendation
+5. **Brief User** — Show what the plan will do and the context the answers need, before the first question
+6. **Interview User** — Ask in dependency-ordered rounds until every material decision is asked
+7. **Document Answers** — Play the answers back, then add Validation Summary section to plan.md
 
 **Key Rules:**
 
 - MUST ATTENTION use `ask user question tool` — NEVER auto-decide on behalf of user — why: the user owns every assumption-laden choice, not the agent
 - Ask ONLY about genuine choices affecting implementation — NEVER about non-decision points — why: noise questions burn the interview budget and erode trust
+- Brief the user BEFORE the first question and make every question a self-contained decision card — why: a user who must open the plan to answer will guess or rubber-stamp
+- Ask EVERY material decision; the `questions` range sizes a round, never the interview — why: a decision dropped to fit a number reaches code unconfirmed
 - Bugfix plans ALWAYS trigger the Preservation question (keywords: fix, bug, regression, broken, defect) — why: an unverified preserved-correctness invariant is a silent regression
 - Persist via a `## Validation Summary` on `plan.md` — NEVER modify phase files — why: phase files are the plan's source of truth; validation is a read-then-annotate pass
 - For embedded, explicit-roadmap, framework/library, or EXEMPT plans, include the final applicability status and exact owning paths in that same summary; use each branch only when the plan records its required evidence and owner.
@@ -59,9 +62,10 @@ Classify plan type BEFORE generating questions; it drives category weighting:
 
 ## Plan Resolution
 
-1. `$ARGUMENTS` provided (the path after the mode flag) → use that path
-2. Else use the active path from `## Plan Context`
-3. No plan → ask user for a path or run `/plan` first
+1. Chained from a standalone plan creation → use the plan path that creation just saved
+2. `$ARGUMENTS` provided (the path after the mode flag) → use that path
+3. Else use the active path from `## Plan Context`
+4. No plan → ask user for a path or run `/plan` first
 
 ## Phase 0.5: Applicability / Plan Gate
 
@@ -76,12 +80,12 @@ Before extracting technical questions, classify the plan's branch.
 
 ## Configuration (from injected context)
 
-Check `## Plan Context` section:
+Check `## Plan Context` section; when it is absent, read the effective `plan.validation` settings, which merge the user, project and checkout settings files (the later one wins), with `node -e "console.log(JSON.stringify(require('./.claude/hooks/lib/ck-config-loader.cjs').loadConfig().plan.validation))"`; the default range is `3-8`:
 
-- `mode` — auto/prompt/off
+- `mode` — `auto` | `prompt` | `off`: decides only whether a standalone plan creation starts this interview (`plan/SKILL.md` → Standalone Validation Chain: `auto` runs it, `prompt` asks first, `off` skips it). A direct `--mode=validate` invocation and a workflow step always run it.
 - `questions` — MIN-MAX range (e.g. `3-8`)
 
-Treat both as hard constraints.
+MAX is the most questions in one round, and rounds continue until every material decision is asked. MIN asks you to look wider: with fewer than MIN genuine decisions, ask those and record `below-MIN: only N real decisions surfaced` — never invent a filler question.
 
 ## Workflow
 
@@ -109,14 +113,16 @@ Read plan directory:
 
 ### Step 3: Generate Questions
 
-**Quality-gates probes (BLOCKING — read `references/plan-quality-checklist.md` in full first; its Validate duty owns them).** When the plan has a `## Quality Gates & Concerns Checklist`, ask about it as genuine decisions, each with 2-4 concrete options: which gate is most likely to fail and what would prevent it; what evidence would change a verdict (a PASS expectation or a NO row); which NO row was marked too quickly and what would make it YES; which open concern has no settling step. A plan with no checklist gets one blocking question: add a task-derived checklist now or accept the exemption. Validate never edits the plan beyond `## Validation Summary`: record the answer there — "add now" becomes an action item routed to `/plan` (which authors the section), "accept the exemption" is recorded as the owner's accepted exemption. Count these inside the `questions` range; never add a question that only restates the plan.
+**Quality-gates probes (BLOCKING — read `references/plan-quality-checklist.md` in full first; its Validate duty owns them).** When the plan has a `## Quality Gates & Concerns Checklist`, ask about it as genuine decisions, each with 2-4 concrete options: which gate is most likely to fail and what would prevent it; what evidence would change a verdict (a PASS expectation or a NO row); which NO row was marked too quickly and what would make it YES; which open concern has no settling step. A plan with no checklist gets one blocking question: add a task-derived checklist now or accept the exemption. Validate never edits the plan beyond `## Validation Summary`: record the answer there — "add now" becomes an action item routed to `/plan` (which authors the section), "accept the exemption" is recorded as the owner's accepted exemption. Count these inside the `questions` range of the round that asks them; never add a question that only restates the plan.
 
-**Format rules:**
+**Format rules — every question is a decision card the user can answer without opening the plan** (card fields: Decision Interview protocol rule 4, inline below):
 
-- 2-4 concrete options per question
-- Mark recommended with "(Recommended)" suffix
+- Name the plan section the decision comes from; cite evidence for what the plan assumes now (plan section, `file:line`, spec section)
+- 2-4 concrete options per question; for each option state what it gives, what it costs and what or who it affects
+- Mark recommended with "(Recommended)" suffix, put it first, and give the reason plus what would change the recommendation
 - "Other" option automatic — do NOT add
 - Surface implicit decisions
+- A decision with a single reading any competent reader shares, proved by cited evidence, is not asked: record it under `### Assumptions Not Asked` with that evidence
 
 For a roadmap-applicable plan, ask a Product Readiness question before lower-level choices:
 
@@ -128,20 +134,26 @@ Offer concrete choices such as: **Yes, approve the Plan Gate (Recommended)**; **
 
 ```
 Category: Architecture
-Question: "How should validation results be persisted?"
+Deciding: where validation results are stored (plan.md, "Important technical decisions")
+Why it matters: the executor reads confirmed decisions there; a second file can drift from the plan
+Plan assumes now: results go into plan.md; no alternative recorded
 Options:
-1. Save to plan.md frontmatter (Recommended) — updates existing plan
-2. Create validation-answers.md — separate answers file
-3. Don't persist — ephemeral validation only
+1. In plan.md (Recommended) — gives: one file the executor already reads · costs: a longer plan.md · why: nothing to keep in sync; change if several plans share one answer set
+2. Separate validation-answers.md — gives: a short plan.md · costs: two files that can disagree
+3. Not stored — gives: nothing to maintain · costs: answers lost after this session
+Reversible: yes, a text move
 ```
 
 ```
 Category: Assumptions
-Question: "Plan assumes API rate limiting not needed. Correct?"
+Deciding: whether the first release rate-limits the API (plan.md, "Outcome and boundaries")
+Why it matters: one client can exhaust the service; adding a limit later changes a public contract
+Plan assumes now: no rate limiting; no evidence given
 Options:
-1. Yes, not needed for MVP
-2. No, add basic rate limiting now (Recommended)
-3. Defer to Phase 2
+1. Add basic rate limiting now (Recommended) — gives: protection from day one · costs: one more phase · why: the endpoint is public; change this if only internal callers exist
+2. Not in the first release — gives: a smaller release · costs: outage risk, and a contract change later
+3. Defer to a named later phase — gives: the smaller release with a dated follow-up · costs: the same risk until then
+Reversible: adding a limit later breaks callers that assumed none
 ```
 
 ```
@@ -160,26 +172,45 @@ Options (multi-select):
 - Option 4 selected → return BLOCKED status, recommend `/plan` before proceeding
 - Option 3 selected → `ask user question tool` follow-up: "Confirm: current code has NO preserved invariant? [Yes, every input broken / No, missed some — re-investigate]"
 
+### Step 3.5: Brief the User (BLOCKING — before the first question)
+
+Before the first `ask user question tool` call, show this briefing in the conversation, in plain language, built from the plan and nothing invented:
+
+- **Goal** — the outcome and for whom, with the plan path
+- **What will be done** — the phases in order, one line each: what it produces, the areas it touches
+- **Scope** — in, non-goals, deferred work with its owner, what is not yet specified
+- **Decisions already taken** — choice, why, the alternative given up and its cost
+- **Assumptions** — what the plan takes for granted that the user has not confirmed
+- **Risks** — main risks, what would force a re-plan, anything hard to undo
+- **Proof** — the tests, gates and evidence that prove completion
+- **State** — Plan Gate branch and approval; anything `BLOCKED`, `OPEN`, `MISSING` or `REQUIRED`
+- **This interview** — how many decisions, in how many rounds, on which topics
+
+Short enough to read in a couple of minutes, complete enough that the user never opens the plan to answer; add a small table or diagram when a flow, data shape or option comparison is clearer that way. Never ask a question whose context the briefing or its own card does not supply.
+
 ### Step 4: Interview User
 
 Use `ask user question tool` — NEVER skip or auto-answer.
 
 **Rules:**
 
-- Use question count from `## Plan Context` → `Validation: mode=X, questions=MIN-MAX`
-- Group related questions (max 4 per tool call)
+- Run Step 3.5 first, then ask in rounds (protocol rule 3); the `questions` range from Configuration sizes one round, never the interview
+- Group related questions (max 4 per tool call); a round larger than one call continues in the next call
+- Show a card's context in the conversation just before the call when it does not fit the question text
+- Tell the user how many decisions remain, then ask the next round until none remains
+- The user may stop at any round: record every unasked card as an unconfirmed assumption in the Validation Summary, never as confirmed
 - Focus: assumptions, risks, tradeoffs, architecture
 - MANDATORY IMPORTANT MUST ATTENTION: if plan introduces new tech/packages, ask: "Plan uses {lib}. Were alternatives evaluated? Confirm choice or research more?"
 
 ### Step 5: Document Answers
 
-Add `## Validation Summary` to `plan.md`:
+First play the answers back in one list — decision → chosen option → what changes in the plan — so the user can catch a misread answer. Then add `## Validation Summary` to `plan.md`:
 
 ```markdown
 ## Validation Summary
 
 **Validated:** {date}
-**Questions asked:** {count}
+**Questions asked:** {count} in {rounds} round(s) {add `below-MIN: only N real decisions surfaced` when that applies}
 
 ### Applicability
 
@@ -194,6 +225,10 @@ Add `## Validation Summary` to `plan.md`:
 
 - {decision 1}: {user choice}
 - {decision 2}: {user choice}
+
+### Assumptions Not Asked
+
+- {decision left unasked}: {assumed value} — {why: obvious from {evidence} | the user stopped the interview}
 
 ### Action Items
 
@@ -213,7 +248,9 @@ After validation:
 
 ## Next Steps
 
-**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing, use `ask user question tool` to present:
+**Chained from a standalone plan creation:** present none of the options below. Return the `## Validation Summary` to the Standalone Validation Chain in `plan/SKILL.md`, which applies the action items and asks its own single closing question.
+
+**MANDATORY IMPORTANT MUST ATTENTION** after completing a direct `--mode=validate` invocation, use `ask user question tool` to present:
 
 - **"/feature-implement (Recommended)"** — Begin implementation with validated plan
 - **"/work-item --mode=refine"** — If plan needs task refinement first
@@ -233,6 +270,22 @@ After validation:
 
 The protocols below apply to this mode only; their full text is inline so this reference is self-contained. The `plan` skill already carries `core-engineering-principles`, `cross-service-check` and `plan-quality`.
 
+
+<!-- SYNC:decision-interview -->
+
+> **Decision Interview** — Put decisions to the user so they can judge well; applies whenever a skill asks the user to confirm, choose or validate. The hosting skill keeps its categories, budget, gates, verdicts and record format.
+>
+> 1. **Facts yours, decisions theirs.** Look up every fact the repository, docs, configuration or a tool can supply. Never ask for a fact you can find; never answer a decision for the user.
+> 2. **Brief first.** Before the first question show, in plain language: the goal and what will be done, scope in and out, decisions already taken and why, what is touched, main risks and anything hard to undo, how success is proved, anything blocked; cite the artifact path. Keep it readable in a couple of minutes. The user must never need to open the artifact to answer.
+> 3. **Rounds by dependency.** List every material decision, silent default, assumption and conflict; material = a different answer changes scope, behavior, a contract, data, cost, risk or the order of work. A round is every decision whose prerequisites are settled; a decision that depends on an open one waits for a later round. Recompute after each round: an answer can settle, open or remove decisions.
+> 4. **One decision card per question.** What is decided, in one plain sentence · why it matters · what is assumed now, with evidence · 2-4 concrete options, each with what it gives, what it costs and who or what it affects · recommended option first, marked, with the reason and what would change it · whether the choice is easy to reverse. When the user needs more information, look it up, show it and ask again.
+> 5. **Every material decision, none invented.** Coverage is the goal, not a count. The hosting skill owns the budget: with a round size or none, run rounds until no material decision is open and tell the user how many remain; with a hard cap, ask the highest-impact decisions first, in dependency order, and record each one left unasked as unconfirmed. A minimum asks you to look wider, never to pad: with fewer genuine decisions, ask those and say so. Never re-ask a settled decision, restate the artifact as a question, or bundle several decisions into one "proceed?".
+> 6. **Close the loop.** Play answers back as decision → chosen option → what changes, and record them where the hosting skill says. The user may stop at any round: record every unasked decision as an unconfirmed assumption with its reason, never as confirmed. Do not act on the outcome until the user has seen the playback.
+> 7. **No user channel.** A sub-agent or headless run returns the briefing and the open decision cards to the caller as pending. Never self-answer.
+>
+> **BLOCKED until:** briefed before the first question · every question a decision card · every material decision asked or recorded unconfirmed · answers played back and recorded.
+
+<!-- /SYNC:decision-interview -->
 
 <!-- SYNC:sequential-thinking-protocol -->
 
@@ -286,6 +339,12 @@ The protocols below apply to this mode only; their full text is inline so this r
 
 <!-- /SYNC:understand-code-first -->
 
+<!-- SYNC:decision-interview:reminder -->
+
+**MUST ATTENTION** interview: look up facts yourself · brief before the first question · ask every material decision the hosting skill's budget allows, in dependency order, as a decision card (options with gains and costs, a reasoned recommendation) · never pad or self-answer · play answers back and record unasked decisions as unconfirmed.
+
+<!-- /SYNC:decision-interview:reminder -->
+
 <!-- SYNC:understand-code-first:reminder -->
 
 **IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code/conventions BEFORE any modification or explanation. The code graph is optional advice for high-risk blast radius (a hint that may be stale), never a requirement.
@@ -335,7 +394,7 @@ The protocols below apply to this mode only; their full text is inline so this r
 
 **IMPORTANT MUST ATTENTION Goal:** Force every assumption-laden plan decision and every preservation-critical behavior through explicit user confirmation BEFORE implementation — by interviewing the user with critical questions that validate assumptions and surface issues — so no unstated assumption silently reaches code.
 
-**IMPORTANT MUST ATTENTION Main steps:** detect plan type → resolve the plan and applicability gate → read plan/phase files → extract decision topics → ask bounded user questions → document confirmed answers → offer implement/refine/skip.
+**IMPORTANT MUST ATTENTION Main steps:** detect plan type → resolve the plan and applicability gate → read plan/phase files → extract decision topics → brief the user → ask every material decision in rounds → play back and document confirmed answers → offer implement/refine/skip (direct invocation only; a chained run returns to the plan skill).
 
 **IMPORTANT MUST ATTENTION Applicability:** validate the embedded decomposition/slice evidence, explicit roadmap milestone chain, framework technical evidence, or EXEMPT reason/owner plus non-goals, definitions, scenario proof where applicable, skeleton/commands, redacted evidence, and human approval before offering implementation; unresolved intent or evidence is BLOCKED.
 
@@ -348,14 +407,14 @@ The protocols below apply to this mode only; their full text is inline so this r
 - **Plan Quality:** include `## Test Specifications` with TC-{FEATURE}-{NNN} IDs per phase.
 - **Cross-Service Check:** scan producers, consumers, sagas, contracts; flag breaking-change risk.
 
-**IMPORTANT MUST ATTENTION** run the main steps IN ORDER — Phase 0 Detect Plan Type → resolve plan path → load `mode` + `questions` range → Phase 0.5 Product Readiness / Plan Gate → Step 1 Read `plan.md` + all `phase-*.md` (flag decisions/assumptions/risks/tradeoffs) → Step 2 Extract topics (9 categories) → Step 3 Generate questions (2-4 options each) → Step 4 Interview via `ask user question tool` (≤4 per call) → Step 5 Document answers → offer implement/refine/skip — why: the pipeline IS the work; never collapse or skip a step from memory
+**IMPORTANT MUST ATTENTION** run the main steps IN ORDER — Phase 0 Detect Plan Type → resolve plan path → load `mode` + `questions` range → Phase 0.5 Product Readiness / Plan Gate → Step 1 Read `plan.md` + all `phase-*.md` (flag decisions/assumptions/risks/tradeoffs) → Step 2 Extract topics (9 categories) → Step 3 Generate decision cards (2-4 options each, pros and cons, a reasoned recommendation) → Step 3.5 Brief the user on the plan → Step 4 Interview via `ask user question tool` (≤4 per call) in rounds until every material decision is asked → Step 5 Play back and document answers → offer implement/refine/skip (direct invocation only) — why: the pipeline IS the work; never collapse or skip a step from memory
 
 **IMPORTANT MUST ATTENTION** validate decisions with the user via `ask user question tool` — NEVER auto-decide or self-answer; completing without ≥1 question is a protocol violation — why: the user owns every assumption-laden choice, not the agent
 **IMPORTANT MUST ATTENTION** detect plan type FIRST (Phase 0) BEFORE generating questions — bugfix keywords (fix, bug, regression, broken, defect) make the Preservation question BLOCKING, never skipped — why: detection drives which categories fire and the Preservation gate
 **IMPORTANT MUST ATTENTION** NEVER modify phase files — persist results by adding ONLY a `## Validation Summary` (confirmed decisions + action items) to `plan.md` — why: phase files are the plan's source of truth and validation is a read-then-annotate pass
 
 - **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting (including a task per file read); call `TaskList` first on context loss, never duplicate — why: resume existing tasks rather than re-plan after compaction
-- **MANDATORY IMPORTANT MUST ATTENTION** honor the `questions` MIN-MAX range and `mode` from `## Plan Context` as hard constraints; give 2-4 concrete options per question, never go below min — why: the interview budget is configured, not improvised
+- **MANDATORY IMPORTANT MUST ATTENTION** brief the user on the plan before the first question, then ask EVERY material decision as a decision card (2-4 concrete options, what each gives and costs, a reasoned recommendation); the `questions` MIN-MAX range sizes a round, never the interview; never invent a filler question — why: a user who lacks context rubber-stamps, and a decision dropped to fit a number reaches code unconfirmed
 - **MANDATORY IMPORTANT MUST ATTENTION** treat the Preservation "Unsure" answer as BLOCKED → return BLOCKED status and route to `/plan` preservation analysis before any implementation — why: an unverified preserved-correctness invariant is a silent regression risk
 - **MANDATORY IMPORTANT MUST ATTENTION** if the plan introduces new tech/packages, probe whether alternatives were evaluated before accepting the choice — why: unevaluated dependency choices raise future change cost
 - **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` proof or traced evidence with confidence % for every claim (>80% act, <80% verify first); admit uncertainty rather than present a guess as fact — why: speculation drives wrong validation questions
@@ -371,7 +430,9 @@ The protocols below apply to this mode only; their full text is inline so this r
 | "Already know the answers"         | Show user responses as proof. No responses = no validation.         |
 | "Preservation doesn't apply here"  | If title has fix/bug/regression/broken/defect → ALWAYS applies.     |
 | "Phase 0 not needed"               | Detection drives the Preservation gate. NEVER skip.                 |
-| "Only ask a few questions"         | Use the `questions` range from Plan Context. Never go below min.    |
+| "Only ask a few questions"         | Ask every material decision. The range sizes a round, not the interview. |
+| "The user can read the plan"       | Brief first. A user who must open the plan to answer will guess.    |
+| "The options speak for themselves" | State what each gives and costs, the recommendation and why.        |
 | "I'll just answer for the user"    | `ask user question tool` is mandatory. Self-answer = no validation.        |
 | "New library is obviously fine"    | Probe whether alternatives were evaluated before accepting it.      |
 | "I'll edit the phase files inline" | NEVER. Add only a `## Validation Summary` to `plan.md`.             |

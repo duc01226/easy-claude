@@ -90,7 +90,7 @@ And no stored record or project setting has changed
 - Empty earlier-vocabulary project → shown as no tracked work, read-only, with no percentage.
 - A shared baseline selected from before the migration → read in current words with that baseline's own numbers.
 - Custom display label for the earlier initiative purpose → the same text is shown for the program purpose.
-- Story and vision records, the sprint field and story-point wording → shown exactly as before.
+- Story and vision records → shown exactly as before; an estimate or sprint value a record already carries → kept as written.
 
 **Transition Invariants:** N/A — reading performs no lifecycle transition. The Planned label names the same state the earlier vocabulary called Backlog; allowed transitions are unchanged.
 
@@ -872,7 +872,7 @@ And in the migrated project P1 and P2 keep their existing identities and record 
 **Edge Cases:**
 
 - A custom display label for the program purpose → shown in place of Program, as inert text.
-- Story, vision, the sprint field and story-point wording → shown as before.
+- Story and vision wording → shown as before; an estimate or sprint value a migrated record already carries → kept as written.
 - Reading without enhanced interactions or in print → the same words.
 - An initiative link added from the task to its initiative → shown as an initiative link in both directions.
 

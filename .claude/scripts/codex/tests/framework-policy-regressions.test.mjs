@@ -350,6 +350,30 @@ test("plan creation never runs --mode=review and only offers it after a standalo
   assert.doesNotMatch(plan, /run `--mode=review` automatically|then run `\/plan --mode=review`/i);
 });
 
+test("not-yet-specified work stays apart from non-goals in the plan and the large-idea decomposition", async () => {
+  const [plan, contract, execute, review] = await Promise.all([
+    read(".claude/skills/plan/SKILL.md"), read(".claude/skills/shared/product-roadmap-contract.md"),
+    read(".claude/skills/plan/references/mode-execute.md"), read(".claude/skills/plan/references/mode-review.md"),
+  ]);
+  // The plan lists what cannot yet be asked precisely, by one test, and never files it under non-goals
+  assert.match(plan, /\*\*Not yet specified:\*\*[^\n]*cannot yet state as a precise question[^\n]*what it waits on and who settles it/);
+  assert.match(plan, /whether the question can be stated precisely now, not whether it can be answered now/);
+  assert.match(plan, /A non-goal is out of scope by decision: give the reason, and never list it as not yet specified/);
+  assert.match(plan, /Is every not-yet-specified item named with what it waits on, and kept apart from the non-goals\?/);
+  // The list has a meaning for execution, and a blocking decision can never be parked on it
+  assert.match(plan, /A phase that depends on an item names it as a blocking open question; a phase that does not may execute/);
+  assert.match(plan, /Never file here a decision that changes product intent, a public contract or anything irreversible: that one blocks and goes to the user/);
+  assert.match(plan, /A not-yet-specified item is the one exception: it names what it waits on and who settles it instead/);
+  assert.match(execute, /a phase that depends on an item still on it does not start — return that item to the user as an open question; phases that do not depend on it proceed/);
+  assert.match(review, /no product-intent, public-contract or irreversible decision parked there/);
+  assert.doesNotMatch(plan, /Not yet specified[^\n]*(may|can) (hold|carry|include)[^\n]*(product intent|irreversible)/i);
+  // The decomposition offers the same list as an optional key that never replaces one of the five required fields
+  assert.match(contract, /not_yet_specified: # optional, outside the five required fields/);
+  assert.match(contract, /`not_yet_specified` is optional and never replaces a required field/);
+  assert.match(contract, /Work ruled out of the idea belongs in `non_goals`: scope puts an item there, sharpness never does/);
+  assert.match(contract, /once it can, move it to the field that owns it \(a slice, `risks_evidence` or `deferred_work_owner`\) and delete the entry/);
+});
+
 test("plan review reports once by default and fixes only under the shared opt-in loop", async () => {
   const [review, planSkill, planner] = await Promise.all([
     read(".claude/skills/plan/references/mode-review.md"), read(".claude/skills/plan/SKILL.md"), read(".claude/agents/planner.md"),

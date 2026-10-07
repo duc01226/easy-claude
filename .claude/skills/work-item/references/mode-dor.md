@@ -26,7 +26,7 @@
 - **Purpose:** Automated quality gate, not collaborative review (`/work-item --mode=challenge` handles collaboration). Run 8 required DoR criteria plus M1-M7; any failure returns `FAIL`.
 - **Execution:** Before step 1, use `TaskCreate` for every step plus a final review; keep one `in_progress` and record evidence/skips. Then run: (1) locate task → (2) apply self-contained DoR checklist → (3) evaluate all 8 criteria (story template; GIVEN/WHEN/THEN ×3 + auth; full-flow surface; UI design; AI review; estimate; dependencies; releasable outcome) → (4) run M1-M7 → (5) verify estimation → (6) classify → (7) emit result template → (8) route via `ask user question tool` (`/prioritize`, `/work-item --mode=refine`, `/work-item --mode=challenge`, or skip).
 - **Evidence/gates:** the Checklist below is self-contained; cite concrete task section + line/AC for every verdict; any M1-M5 or M7 violation forces `FAIL`; M1/M2 carriers are exempt.
-- **Contract/estimate:** Apply the shared releasable-task contract; technical-only/foundation/setup tasks fail, UI tasks need a connected multi-view flow, and story-point frontmatter needs Fibonacci 1-21, complexity, man-day, risk, and blast-radius evidence. `>13` EP = SHOULD-SPLIT `WARN`, not `FAIL`.
+- **Contract/estimate:** Apply the shared releasable-task contract; technical-only/foundation/setup tasks fail, UI tasks need a connected multi-view flow, and effort-point frontmatter needs Fibonacci 1-21, complexity, man-day, risk, and blast-radius evidence. `>13` EP = SHOULD-SPLIT `WARN`, not `FAIL`.
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 

@@ -37,7 +37,7 @@ If a supplied spec baseline exists, review against that baseline and separate pr
 
 Challenge the reasoning, not section length or presentation:
 
-1. **Purpose:** What outcome does this serve? Does every phase advance it without expanding scope? Is the outcome governed by a clear owner/spec, with non-goals and no silent expansion?
+1. **Purpose:** What outcome does this serve? Does every phase advance it without expanding scope? Is the outcome governed by a clear owner/spec, with non-goals and no silent expansion? Does the `Not yet specified` list hold only items that cannot yet be stated as a precise question, and no product-intent, public-contract or irreversible decision parked there?
 2. **Necessity:** Why is each important change needed? Could reuse, a smaller change, or doing nothing satisfy the same intent?
 3. **Choice and cost:** Steel-man the strongest alternative. What does the chosen approach sacrifice, who pays, and is the gain worth it? Hand unresolved material trade-offs to the caller/user before PASS.
 4. **Assumptions:** Stress-test the top 2–3 assumptions and one plausible failure. Does the plan bound discovery and name how uncertainty is settled?

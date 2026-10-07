@@ -4,7 +4,7 @@
 
 ## What is this?
 
-**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **<!-- COUNT:hooks -->32<!-- /COUNT --> top-level hook files**, **<!-- COUNT:skills -->102<!-- /COUNT --> skills**, **<!-- COUNT:workflows -->19<!-- /COUNT --> workflows**, and **<!-- COUNT:agents -->24<!-- /COUNT --> specialized agents**. It covers the entire software development lifecycle — from initiative capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`.
+**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **<!-- COUNT:hooks -->32<!-- /COUNT --> top-level hook files**, **<!-- COUNT:skills -->104<!-- /COUNT --> skills**, **<!-- COUNT:workflows -->19<!-- /COUNT --> workflows**, and **<!-- COUNT:agents -->24<!-- /COUNT --> specialized agents**. It covers the entire software development lifecycle — from initiative capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`.
 
 **Core insight:** LLMs forget, hallucinate, and drift. Instead of hoping the AI "just gets it right," this framework uses **programmatic guardrails** (hooks) and **prompt-engineered protocols** (skills/workflows) to enforce correctness at every stage.
 
@@ -164,7 +164,7 @@ again after 150K tokens of growth or a compaction, and to every sub-agent; the w
 `workflow-route-inject.cjs`. `CLAUDE.md` and `AGENTS.md` hold project information only. This design prevents
 context drift over long sessions.
 
-### Skills (<!-- COUNT:skills -->102<!-- /COUNT --> definitions)
+### Skills (<!-- COUNT:skills -->104<!-- /COUNT --> definitions)
 
 Markdown-based prompts with YAML frontmatter that guide AI behavior.
 
@@ -252,7 +252,7 @@ easy-claude/
 │   │   ├── lib/              # Shared hook libraries
 │   │   ├── notifications/    # Multi-channel notification system
 │   │   └── tests/            # Hook test suites
-│   ├── skills/               # 102 skill definitions
+│   ├── skills/               # 104 skill definitions
 │   │   ├── <skill>/          # Each skill directory contains:
 │   │   │   ├── SKILL.md      # Entry point (prompt + frontmatter)
 │   │   │   ├── scripts/      # Optional automation scripts
@@ -283,7 +283,7 @@ The entire framework is **project-agnostic**. All project-specific knowledge liv
 ```
 ┌─────────────────────────────────────┐
 │     Generic Framework (reusable)    │
-│ 32 Hook Files + 102 Skills + 19 Flows │
+│ 32 Hook Files + 104 Skills + 19 Flows │
 └──────────────┬──────────────────────┘
                │
         ┌──────┴──────┐

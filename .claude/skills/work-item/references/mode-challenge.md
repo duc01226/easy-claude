@@ -85,11 +85,11 @@ For frontend/UI changes, read — every filename below resolves inside the refer
      - Performance considerations for list/grid/export features?
      - **Releasable outcome and full flow present?** Name the actor-facing result, entry → action → result → exit journey, visible/persisted truth, applicable access/recovery behavior, and no standalone technical/foundation/setup scope.
      - **UI Layout/full-flow surface present?** UI tasks need `## UI Layout` per UI wireframe protocol with required pages/views, navigation map, common/domain/page components, states, and connected mock-app journey. Backend-only needs explicit "N/A" plus observable no-UI reason. Flag isolated screens or missing UI visualization.
-6. **Generate Challenge Prompts** — Output specific, actionable questions with suggested answers. Never write only "needs work" or "improve AC"; e.g., "AC #2 says 'user can filter results' — which filters? Suggest: status, date range, priority."
+6. **Generate Challenge Prompts** — Output specific, actionable questions with suggested answers. Use the Decision Interview protocol's card fields that fit a prompt for a drafter: what is being decided, why it matters, and the options with what each gives and costs. Keep every suggested answer framed as a "consider whether X" option with its reason, never as a correction or a marked recommendation. These prompts go into the report for the BA drafters; they are not questions put to the user in this session. Never write only "needs work" or "improve AC"; e.g., "AC #2 says 'user can filter results' — which filters? Suggest: status, date range, priority."
 7. **Present Challenge Prompts first, then AI Verdict** — Show prompts BEFORE the verdict so the Dev BA PIC forms an independent view, then show `APPROVE` / `REQUEST_REVISION` / `ESCALATE_TO_LEAD`.
      - **Technical decisions** (feasibility, dependencies, cross-service impact, security): Dev BA PIC has unilateral veto power; no 2/3 vote.
      - **Non-technical decisions** (UI/UX, visual design, business value): require 2/3 majority (Dev BA PIC + UX BA + Designer BA per `ba-team-decision-model`).
-8. **ask user question tool** — Dev BA PIC records the FINAL decision (`APPROVE` / `REQUEST_REVISION` / `ESCALATE_TO_LEAD`) in the Decision Record. This is human decision, not Next Steps routing.
+8. **ask user question tool** — Brief the Dev BA PIC first, per the Decision Interview protocol: the task's outcome, the findings by severity, and what each verdict causes next. This mode asks the user at two points only, the module confirmation in Step 2 and this decision; the protocol's rounds do not add others. Then the Dev BA PIC records the FINAL decision (`APPROVE` / `REQUEST_REVISION` / `ESCALATE_TO_LEAD`) in the Decision Record. This is human decision, not Next Steps routing.
 
 ## M1-M7 Compliance Gate (BLOCKING — drives the AI Verdict)
 
@@ -201,6 +201,22 @@ Follow "Reusing an earlier verdict" in `.claude/skills/shared/m1-m7-gates.md`. W
 > **Escalation:** Tech uncertainty → Engineering Manager. Business value → PO. Design feasibility → UX BA + Designer BA consensus.
 
 <!-- /SYNC:ba-team-decision-model -->
+
+<!-- SYNC:decision-interview -->
+
+> **Decision Interview** — Put decisions to the user so they can judge well; applies whenever a skill asks the user to confirm, choose or validate. The hosting skill keeps its categories, budget, gates, verdicts and record format.
+>
+> 1. **Facts yours, decisions theirs.** Look up every fact the repository, docs, configuration or a tool can supply. Never ask for a fact you can find; never answer a decision for the user.
+> 2. **Brief first.** Before the first question show, in plain language: the goal and what will be done, scope in and out, decisions already taken and why, what is touched, main risks and anything hard to undo, how success is proved, anything blocked; cite the artifact path. Keep it readable in a couple of minutes. The user must never need to open the artifact to answer.
+> 3. **Rounds by dependency.** List every material decision, silent default, assumption and conflict; material = a different answer changes scope, behavior, a contract, data, cost, risk or the order of work. A round is every decision whose prerequisites are settled; a decision that depends on an open one waits for a later round. Recompute after each round: an answer can settle, open or remove decisions.
+> 4. **One decision card per question.** What is decided, in one plain sentence · why it matters · what is assumed now, with evidence · 2-4 concrete options, each with what it gives, what it costs and who or what it affects · recommended option first, marked, with the reason and what would change it · whether the choice is easy to reverse. When the user needs more information, look it up, show it and ask again.
+> 5. **Every material decision, none invented.** Coverage is the goal, not a count. The hosting skill owns the budget: with a round size or none, run rounds until no material decision is open and tell the user how many remain; with a hard cap, ask the highest-impact decisions first, in dependency order, and record each one left unasked as unconfirmed. A minimum asks you to look wider, never to pad: with fewer genuine decisions, ask those and say so. Never re-ask a settled decision, restate the artifact as a question, or bundle several decisions into one "proceed?".
+> 6. **Close the loop.** Play answers back as decision → chosen option → what changes, and record them where the hosting skill says. The user may stop at any round: record every unasked decision as an unconfirmed assumption with its reason, never as confirmed. Do not act on the outcome until the user has seen the playback.
+> 7. **No user channel.** A sub-agent or headless run returns the briefing and the open decision cards to the caller as pending. Never self-answer.
+>
+> **BLOCKED until:** briefed before the first question · every question a decision card · every material decision asked or recorded unconfirmed · answers played back and recorded.
+
+<!-- /SYNC:decision-interview -->
 
 <!-- SYNC:estimation-framework -->
 
@@ -419,6 +435,12 @@ Follow "Reusing an earlier verdict" in `.claude/skills/shared/m1-m7-gates.md`. W
 > Config customization: `contextGroups[].rules`, `workflowPatterns`, `styling`, `componentSystem`, and configured reference docs.
 
 <!-- /SYNC:ui-system-context -->
+
+<!-- SYNC:decision-interview:reminder -->
+
+**MUST ATTENTION** interview: look up facts yourself · brief before the first question · ask every material decision the hosting skill's budget allows, in dependency order, as a decision card (options with gains and costs, a reasoned recommendation) · never pad or self-answer · play answers back and record unasked decisions as unconfirmed.
+
+<!-- /SYNC:decision-interview:reminder -->
 
 <!-- SYNC:ui-system-context:reminder -->
 
