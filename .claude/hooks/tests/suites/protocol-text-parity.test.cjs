@@ -2,7 +2,7 @@
 // Protocol Text Parity (source-freshness gate).
 //
 // The single canonical source of the universal protocol text (critical thinking, AI mistake prevention,
-// reference-doc loading, task planning, git discipline, …) is `.claude/skills/shared/sync-inline-versions.md`.
+// reference-doc loading, task planning, …) is `.claude/skills/shared/sync-inline-versions.md`.
 // The universal hook delivers that text from the generated projection (`shared/protocols/<tag>.md`)
 // in the bins of `protocol-groups.json`; no root file, skill or agent carries any of it. This suite is
 // the regression net that fails the moment a projection drifts from canonical, a bin stops carrying a
@@ -196,7 +196,7 @@ module.exports = {
                     const r = sweepSkillEmbeds(tag, norm(extractSyncBody(canonical, tag)));
                     assertEqual(r.embedCount + r.guideCount, 0, `${tag} is hook-delivered, yet skill(s) still embed or guide it: ${[...r.matched, ...r.drifted, ...r.guided].join(', ')}`);
                 }
-                // And the sync-codex skill never instructs the model to put a universal rule (Git discipline) or the full CLAUDE.md into the
+                // And the sync-codex skill never instructs the model to put a universal rule or the full CLAUDE.md into the
                 // generated AGENTS.md projection: that file is project information only and hooks deliver the universal rules.
                 const syncCodex = fs.readFileSync(path.join(SKILLS_DIR, 'sync-codex', 'SKILL.md'), 'utf8');
                 assertTrue(!/Git discipline project first|Doc Lookup and Git discipline|mirror full `CLAUDE\.md`|generated hook\/context blocks/.test(syncCodex), 'sync-codex SKILL.md still instructs a universal-rule or full-CLAUDE.md projection into AGENTS.md');

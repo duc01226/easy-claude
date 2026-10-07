@@ -177,7 +177,12 @@ function fixtureSettings() {
             SessionStart: [{ hooks: bins, matcher: 'compact|clear' }],
             SubagentStart: [{ hooks: [...ENTRY_GROUPS.map(group => ({ command: entryCommand(group), type: 'command' })), ...bins] }],
             UserPromptExpansion: [{ hooks: protocol() }],
-            UserPromptSubmit: [{ hooks: bins }, { hooks: [{ command: cmd('workflow-route-inject.cjs'), type: 'command' }] }]
+            // The workflow route is two prompt hooks, one registration group each (the gate, then the catalog).
+            UserPromptSubmit: [
+                { hooks: bins },
+                { hooks: [{ command: cmd('workflow-route-inject.cjs'), type: 'command' }] },
+                { hooks: [{ command: cmd('workflow-catalog-inject.cjs'), type: 'command' }] }
+            ]
         }
     };
 }

@@ -27,21 +27,23 @@ async function fixture(files, fn) {
 }
 
 // ── Routing payload cap (TC-WFR-*) ────────────────────────────────────────────────────────────
-// The runtime payload must fit the host's hook-output cap (10,000 chars) with margin, so the model
-// reads it whole instead of a truncated preview. Pinned at 9,500 by TC-WFR-001.
+// The route is TWO hook outputs: the route output (state line, gate, project protocol) from
+// `hook.buildInjection`, and the catalog output from `hook.buildCatalogInjection`. A host cuts any one
+// output above its cap (10,000 chars) to a preview, so the catalog output alone is measured against
+// 9,500 (pinned by TC-WFR-001) and alone falls back to a smaller form; the gate and a project protocol
+// are delivered whole and never cost the catalog its form (TC-WFR-024).
 const PAYLOAD_CAP = 9500;
 // Semantic anchor the wf-cycle W5 runtime check requires (verify-workflow-cycle-compliance.mjs).
 const ADVANCEMENT_CLAUSE = /advance only after (?:all|every)(?: members?)? return/i;
 const BARRIER_TOKEN = /\[[^\]]*∥[^\]]*\]/g;
 const FIXTURE_GATE_BODY = 'FIXTURE-GATE-BODY: route before acting.';
 const FIXTURE_GATE = `<!-- fixture gate -->\n\n${hook.GATE_MARKER}\n\n${FIXTURE_GATE_BODY}\n\n<!-- /CK:WORKFLOW-GATE -->\n`;
-// A gate body as long as the shipped one (~3,900 chars), for cases where the root lacks the gate.
-const FULL_SIZE_GATE = FIXTURE_GATE.replace(
-    FIXTURE_GATE_BODY,
-    `${FIXTURE_GATE_BODY}\n${'> Assess scope, risk and ambiguity, then declare the route.\n'.repeat(66)}`
-);
+// A gate body several thousand chars longer than FIXTURE_GATE (~3,900 chars, about the shipped gate's size).
+const FULL_SIZE_GATE_BODY = `${FIXTURE_GATE_BODY}\n${'> Assess scope, risk and ambiguity, then declare the route.\n'.repeat(66)}`;
+const FULL_SIZE_GATE = FIXTURE_GATE.replace(FIXTURE_GATE_BODY, FULL_SIZE_GATE_BODY);
 const INDEX_POINTER = /Read `\.claude\/workflows\.json`[^\n]*`start-workflow <id>`/;
 const COMPACT_HEADER = '| Workflow | Activation | When to use | Parallel phases |';
+const CATALOG_HEADING = '## Workflow & Skills Catalog';
 const GATE_FILE = '.claude/skills/shared/workflow-first-gate.md';
 // A root file from a previous generation, still holding the retired route pointer block. The payload ignores root files.
 const ROOT_WITH_POINTER = '# Project\n\n<!-- CK:WORKFLOW-ROUTE-POINTER -->\n\n> pointer\n\n<!-- /CK:WORKFLOW-ROUTE-POINTER -->\n';
@@ -113,6 +115,31 @@ function wideGroupRegistry(count) {
     return { version: '1.0.0', workflows };
 }
 
+// A one-word hint renders whole up to 130 characters; each padded workflow starts at 3.
+const PAD_PER_HINT = 127;
+
+/**
+ * A registry whose compact catalog can be sized to the character: `count` three-step workflows whose
+ * one-word hints hold 3 characters plus their share of `pad`, so the catalog grows one character per
+ * padding character.
+ */
+function paddedRegistry(count, pad = 0) {
+    const workflows = {};
+    let remaining = pad;
+    for (let index = 1; index <= count; index += 1) {
+        const share = Math.min(remaining, PAD_PER_HINT);
+        remaining -= share;
+        workflows[`workflow-padded-${String(index).padStart(3, '0')}`] = {
+            name: `Padded ${index}`,
+            whenToUse: 'p'.repeat(3 + share),
+            preActions: { injectContext: 'Use the selected workflow context.' },
+            sequence: ['investigate', 'padded-step', 'finish']
+        };
+    }
+    if (remaining > 0) throw new Error(`paddedRegistry: ${count} workflows cannot hold ${pad} characters of padding`);
+    return { version: '1.0.0', workflows };
+}
+
 /** Given/When helper: build the payload inside a clean fixture whose HOME and temp dirs point at it. */
 async function isolatedFixture(files, fn) {
     return fixture(files, async dir => {
@@ -135,6 +162,26 @@ function workflowRow(payload, id) {
     return payload.split(/\r?\n/).find(line => line.startsWith(`| \`${id}\` |`));
 }
 
+/** True when `payload` holds any catalog table row (a line opening with a back-ticked id cell). */
+function hasWorkflowRows(payload) {
+    return payload.split(/\r?\n/).some(line => line.startsWith('| `'));
+}
+
+/** The catalog output is wrapped in its own markers and nothing else. */
+function assertCatalogBlock(catalog, label) {
+    assertTrue(catalog.startsWith(`${hook.CATALOG_START}\n`) && catalog.endsWith(`\n${hook.CATALOG_END}`),
+        `${label}: the catalog output must be wrapped in its own markers`);
+    assertNotContains(catalog, hook.ROUTE_START, `${label}: the catalog output carries no route block`);
+    assertNotContains(catalog, hook.GATE_MARKER, `${label}: the catalog output carries no gate`);
+}
+
+/** The route output carries the gate and no part of the catalog. */
+function assertNoCatalog(route, label) {
+    assertNotContains(route, hook.CATALOG_START, `${label}: the route output carries no catalog block`);
+    assertNotContains(route, CATALOG_HEADING, `${label}: the route output carries no catalog`);
+    assertTrue(!hasWorkflowRows(route), `${label}: the route output carries no workflow rows`);
+}
+
 // Self-checks of THIS repository's registry are gated on the shared synchronous framework-repo
 // guard, so an adopter's own registry never fails them; the synthetic fixtures carry the portable
 // size contract. The guard's parity with framework-repo.helper.mjs is the content-presence tripwire.
@@ -152,8 +199,9 @@ const stubMode = (mode, source = 'default') => ({ resolveWorkflowRouteMode: () =
 // The resolver reads the developer's own environment and home by default; fixtures pass neither.
 const hermetic = dir => ({ rootDir: dir, env: {}, homeDir: dir });
 
-async function enabledRun({ root, store, session = 's1', transcript, now = 1000, content = 'route-v1', outputs = [] }) {
+async function enabledRun({ root, store, session = 's1', transcript, now = 1000, content = 'route-v1', outputs = [], part }) {
     return hook.run(input(session, transcript), {
+        part,
         projectDir: root,
         storeRoot: store,
         now,
@@ -408,9 +456,13 @@ module.exports = {
                     assertNotContains(text, '[MANDATORY FIRST ACTION]', `${relative} must not mandate route selection`);
                 }
                 assertTrue(!fs.existsSync(path.join(PROJECT_DIR, '.codex', 'CODEX_CONTEXT.md')), 'the retired Codex context file is gone');
+                // The runtime payload is two outputs: the route output holds the gate, the catalog output the catalog
                 const payload = hook.buildInjection(PROJECT_DIR);
                 assertContains(payload, '<!-- CK:WORKFLOW-GATE -->');
-                assertContains(payload, '## Workflow & Skills Catalog');
+                assertNoCatalog(payload, 'route output');
+                const catalog = hook.buildCatalogInjection(PROJECT_DIR);
+                assertContains(catalog, CATALOG_HEADING);
+                assertCatalogBlock(catalog, 'catalog output');
                 // A root from a previous generation loses its pointer and gate blocks on regeneration, whatever the team mode
                 for (const root of [ROOT_WITH_POINTER, ROOT_WITH_LEGACY_GATE]) {
                     const cleaned = generator.cleanLegacyManagedBlocks(root);
@@ -424,30 +476,35 @@ module.exports = {
         {
             // Intent (BR-WFR-06): the runtime payload a hook-running host adds before each prompt tells the
             // model to ask the one workflow question before starting a self-matched workflow of ANY tier
-            // (the `auto` row included), and that an explicit request needs no question. With no root file
-            // the full shipped gate carries it; with a root file the gate collapses to a pointer and the
-            // catalog's tier legend still carries it, so no payload form lets a tier start on its own.
+            // (the `auto` row included), and that an explicit request needs no question. The gate (route
+            // output) and the catalog's tier legend (catalog output) both carry it, whatever the root files
+            // hold, so neither output lets a tier start on its own.
             name: '[workflow-routing-switch] TC-WRS-026 TC-WFR-012 runtime payload asks the workflow question before any tier starts',
             fn: () => {
                 const shippedGate = fs.readFileSync(path.join(PROJECT_DIR, GATE_FILE), 'utf8');
                 const STALE_SELF_START = /route gate may select and start it|never self-start a `manual`|ask once before self-starting/;
                 return isolatedFixture({ '.claude/workflows.json': GROUPED_REGISTRY, [GATE_FILE]: shippedGate }, async noRoot => {
                     // Given an `auto` and a `confirm` workflow and no root instruction file
-                    // When the runtime payload is built in the default `ask` mode
+                    // When the two runtime outputs are built in the default `ask` mode
                     const full = hook.buildInjection(noRoot);
+                    const catalog = hook.buildCatalogInjection(noRoot);
                     // Then the full gate asks the three-option question for every tier and exempts explicit requests
                     assertContains(full, '**Workflow question** (every tier)');
                     assertContains(full, '(a) the full workflow `<id>`');
                     assertContains(full, '(b) a slimmer custom route listing its steps, keeping every required gate');
                     assertContains(full, '(c) execute directly, no workflow or skill');
                     assertContains(full, 'runs any tier with no question');
-                    assertContains(full, 'before you start a catalog workflow, in every tier; a direct, single-skill or custom-simple route asks nothing');
                     assertContains(full, 'ask the workflow question (below) only when YOUR route is to start a catalog workflow');
                     assertContains(full, 'a direct, single-skill or custom-simple route (a Catalog-fit downgrade included) proceeds without asking');
                     assertNotContains(full, 'a route that matches a catalog workflow', 'a matched-but-downgraded route must not be told to ask');
-                    assertTrue(Boolean(workflowRow(full, 'workflow-plain')), 'the auto-tier row must be listed');
-                    assertTrue(!STALE_SELF_START.test(full), 'the payload must not let a tier start on its own');
-                    // And root files that carry only the pointer never shrink it: the gate is always in the payload
+                    // And the catalog's tier legend says the same next to the rows, the `auto` row included
+                    assertContains(catalog, 'before you start a catalog workflow, in every tier; a direct, single-skill or custom-simple route asks nothing');
+                    assertContains(catalog, 'An explicit request runs every tier with no question');
+                    assertTrue(Boolean(workflowRow(catalog, 'workflow-plain')), 'the auto-tier row must be listed');
+                    for (const [label, output] of [['route output', full], ['catalog output', catalog]]) {
+                        assertTrue(!STALE_SELF_START.test(output), `the ${label} must not let a tier start on its own`);
+                    }
+                    // And root files that carry only the pointer never shrink either output: the gate is always delivered
                     await isolatedFixture({
                         '.claude/workflows.json': GROUPED_REGISTRY,
                         [GATE_FILE]: shippedGate,
@@ -455,20 +512,23 @@ module.exports = {
                         'AGENTS.md': ROOT_WITH_POINTER
                     }, withRoot => {
                         const withPointer = hook.buildInjection(withRoot);
+                        assertTrue(withPointer === full, 'root files never change the route output');
                         assertContains(withPointer, '**Workflow question** (every tier)');
-                        assertContains(withPointer, 'An explicit request runs every tier with no question');
+                        assertTrue(hook.buildCatalogInjection(withRoot) === catalog, 'root files never change the catalog output');
                         assertTrue(!STALE_SELF_START.test(withPointer), 'the payload must not let a tier start on its own');
                     });
-                    // And in `auto` mode the question is gone: a matched workflow starts by its tier
+                    // And in `auto` mode the question is gone from both outputs: a matched workflow starts by its tier
                     const auto = hook.buildInjection(noRoot, '', 'auto');
+                    const autoCatalog = hook.buildCatalogInjection(noRoot, 'auto');
                     assertNotContains(auto, '**Workflow question**', 'mode auto must not ask the workflow question');
-                    assertNotContains(auto, 'before you start a catalog workflow, in every tier', 'the tier legend must not say every tier asks');
                     assertNotContains(auto, 'NEVER starts before the answer', 'mode auto must not forbid a matched workflow from starting');
                     assertContains(auto, '**Workflow start** (mode auto)');
-                    assertContains(auto, '`manual` never starts on your own');
                     assertContains(auto, '`manual` never starts on your own: name it in your route declaration and take (b) or (c)');
                     assertContains(auto, 'Mid-session: never auto-activate a workflow.');
                     assertContains(auto, 'An explicit request (as above; `$workflow-*` on Codex) runs any tier with no question');
+                    assertNotContains(autoCatalog, 'before you start a catalog workflow, in every tier', 'the tier legend must not say every tier asks');
+                    assertContains(autoCatalog, '**Activation (mode auto):**');
+                    assertContains(autoCatalog, '`manual` never starts on your own: name it in your route declaration; it runs on explicit request only');
                 });
             }
         },
@@ -613,56 +673,64 @@ module.exports = {
             }
         },
         {
-            // Intent: a payload over the host cap is cut to a preview, so the model routes on a fragment.
+            // Intent: an output over the host cap is cut to a preview, so the model routes on a fragment.
             name: '[workflow-routing-switch] [cap] TC-WFR-001 payload size guard: a 30-workflow registry fits under 9,500 chars',
             fn: () => isolatedFixture({
                 '.claude/workflows.json': JSON.stringify(syntheticRegistry(30)),
                 [GATE_FILE]: FIXTURE_GATE,
                 'CLAUDE.md': ROOT_WITH_POINTER
             }, dir => {
-                // Given a registry larger than the framework's own, in a project whose root carries the gate
+                // Given a registry larger than the framework's own
                 const registry = syntheticRegistry(30);
-                // When the runtime payload is built
-                const payload = hook.buildInjection(dir);
+                // When the catalog output is built
+                const catalog = hook.buildCatalogInjection(dir);
                 // Then it fits the cap in the compact form and still names every workflow with its activation tier
-                assertTrue(payload.length <= PAYLOAD_CAP, `payload is ${payload.length} chars, cap ${PAYLOAD_CAP}`);
-                assertContains(payload, COMPACT_HEADER, 'a payload that fits must keep the compact catalog, not the index fallback');
-                assertTrue(!INDEX_POINTER.test(payload), 'the pointer-only index is a fallback, never the default');
+                assertTrue(catalog.length <= PAYLOAD_CAP, `catalog output is ${catalog.length} chars, cap ${PAYLOAD_CAP}`);
+                assertContains(catalog, COMPACT_HEADER, 'a catalog that fits must keep the compact form, not the index fallback');
+                assertTrue(!INDEX_POINTER.test(catalog), 'the pointer-only index is a fallback, never the default');
                 for (const [id, workflow] of Object.entries(registry.workflows)) {
-                    const row = workflowRow(payload, id);
+                    const row = workflowRow(catalog, id);
                     assertTrue(Boolean(row), `missing row for ${id}`);
                     assertContains(row, `| ${workflow.activation} · 18 steps |`, `${id} must show its tier and step count`);
                 }
+                // And it is an output of its own: the route output carries the gate and none of the catalog
+                assertCatalogBlock(catalog, '30 workflows');
+                assertNoCatalog(hook.buildInjection(dir), '30 workflows');
             })
         },
         {
-            // Intent: when the root lacks the gate, the gate body plus the compact catalog overflow the cap;
-            // the payload must shrink to an index rather than be cut to a preview by the host.
-            name: '[workflow-routing-switch] [cap] TC-WFR-001 index-with-marks fallback: 30 workflows without a root gate fit under 9,500 chars',
+            // Intent: a registry too large for the compact rows must shrink to an index rather than be cut to
+            // a preview by the host. Only the registry decides that: the gate is delivered in its own output.
+            name: '[workflow-routing-switch] [cap] TC-WFR-001 index-with-marks fallback: 60 workflows too large for the compact rows fit under 9,500 chars',
             fn: () => isolatedFixture({
-                '.claude/workflows.json': JSON.stringify(syntheticRegistry(30)),
+                '.claude/workflows.json': JSON.stringify(syntheticRegistry(60)),
                 [GATE_FILE]: FULL_SIZE_GATE
             }, dir => {
-                // Given a 30-workflow registry, a full-size gate and no root instruction file
-                const registry = syntheticRegistry(30);
-                // When the runtime payload is built
-                const payload = hook.buildInjection(dir);
+                // Given a 60-workflow registry whose compact rows alone overflow the cap (measured with the real builder)
+                const registry = syntheticRegistry(60);
+                const compactRows = catalogLib.buildWorkflowSkillsCatalog({ rootDir: dir, sections: ['workflows'], compact: true });
+                assertTrue(compactRows.length > PAYLOAD_CAP, `precondition: the compact rows must overflow (${compactRows.length} chars)`);
+                // When the catalog output is built
+                const catalog = hook.buildCatalogInjection(dir);
                 // Then it fits the cap as the index with parallel-phase marks
-                assertTrue(payload.length <= PAYLOAD_CAP, `payload is ${payload.length} chars, cap ${PAYLOAD_CAP}`);
-                assertNotContains(payload, COMPACT_HEADER, 'the compact catalog overflows here, so the index replaces it');
-                // And it keeps the gate body, the advancement clause and the pointer to the registry
-                assertContains(payload, hook.GATE_MARKER);
-                assertContains(payload, FIXTURE_GATE_BODY, 'the gate body must stay when the root lacks it');
-                assertTrue(ADVANCEMENT_CLAUSE.test(payload), 'the advancement clause must stay');
-                assertTrue(INDEX_POINTER.test(payload), 'the index must point at .claude/workflows.json and start-workflow <id>');
+                assertTrue(catalog.length <= PAYLOAD_CAP, `catalog output is ${catalog.length} chars, cap ${PAYLOAD_CAP}`);
+                assertNotContains(catalog, COMPACT_HEADER, 'the compact catalog overflows here, so the index replaces it');
+                // And it keeps the advancement clause and the pointer to the registry
+                assertTrue(ADVANCEMENT_CLAUSE.test(catalog), 'the advancement clause must stay');
+                assertTrue(INDEX_POINTER.test(catalog), 'the index must point at .claude/workflows.json and start-workflow <id>');
                 // And every workflow keeps its id and tier, with its barrier token when it declares one
                 for (const [id, workflow] of Object.entries(registry.workflows)) {
-                    const row = workflowRow(payload, id);
+                    const row = workflowRow(catalog, id);
                     assertTrue(Boolean(row), `missing index row for ${id}`);
                     assertContains(row, `| ${workflow.activation} |`, `${id} must show its tier`);
                     const expected = (workflow.parallelGroups || []).length;
                     assertTrue((row.match(BARRIER_TOKEN) || []).length === expected, `${id}: expected ${expected} barrier token(s): ${row}`);
                 }
+                // And the gate is untouched by the fallback: its marker and whole body arrive in the route output
+                const route = hook.buildInjection(dir);
+                assertContains(route, hook.GATE_MARKER);
+                assertContains(route, FULL_SIZE_GATE_BODY, 'the gate body must be delivered whole');
+                assertNoCatalog(route, '60 workflows');
             })
         },
         {
@@ -671,15 +739,20 @@ module.exports = {
                 '.claude/workflows.json': JSON.stringify(syntheticRegistry(250, 3)),
                 [GATE_FILE]: FULL_SIZE_GATE
             }, dir => {
-                // Given 250 workflows, a full-size gate and no root instruction file
-                // When the runtime payload is built
-                const payload = hook.buildInjection(dir);
+                // Given 250 workflows: even the tiers-only index overflows the cap (measured with the real builder)
+                const tiersIndex = catalogLib.buildWorkflowPointerCatalog({ rootDir: dir, rows: 'tiers' });
+                assertTrue(tiersIndex.length > PAYLOAD_CAP, `precondition: the tiers-only index must overflow (${tiersIndex.length} chars)`);
+                // When the catalog output is built
+                const catalog = hook.buildCatalogInjection(dir);
                 // Then only the mandatory parts remain, under the cap
-                assertTrue(payload.length <= PAYLOAD_CAP, `payload is ${payload.length} chars, cap ${PAYLOAD_CAP}`);
-                assertContains(payload, FIXTURE_GATE_BODY, 'the gate body must stay when the root lacks it');
-                assertTrue(ADVANCEMENT_CLAUSE.test(payload), 'the advancement clause must stay');
-                assertTrue(INDEX_POINTER.test(payload), 'the pointer to the registry must stay');
-                assertTrue(!workflowRow(payload, 'workflow-synthetic-01-route'), 'workflow rows are dropped at this size');
+                assertTrue(catalog.length <= PAYLOAD_CAP, `catalog output is ${catalog.length} chars, cap ${PAYLOAD_CAP}`);
+                assertTrue(ADVANCEMENT_CLAUSE.test(catalog), 'the advancement clause must stay');
+                assertTrue(INDEX_POINTER.test(catalog), 'the pointer to the registry must stay');
+                assertTrue(!workflowRow(catalog, 'workflow-synthetic-01-route'), 'workflow rows are dropped at this size');
+                assertTrue(!hasWorkflowRows(catalog), 'no workflow row of any id remains');
+                assertCatalogBlock(catalog, '250 workflows');
+                // And the gate body is still delivered whole, in the route output
+                assertContains(hook.buildInjection(dir), FULL_SIZE_GATE_BODY, 'the gate body must be delivered whole');
             })
         },
         {
@@ -687,46 +760,47 @@ module.exports = {
             // over the cap, rows with tier only must be tried before every row is dropped.
             name: '[workflow-routing-switch] [cap] TC-WFR-001 tiers-only index fallback: rows keep id and tier when the marked index overflows',
             fn: () => isolatedFixture({ [GATE_FILE]: FULL_SIZE_GATE }, dir => {
-                // Given a full-size gate, no root instruction file, and a registry grown (measured with
-                // the real builders, not a hard-coded count) until the marked index no longer fits
+                // Given a registry grown (measured with the real builders, not a hard-coded count) until
+                // the marked index no longer fits the catalog output
                 const registryFile = path.join(dir, '.claude', 'workflows.json');
                 let registry = null;
-                let payload = '';
+                let catalog = '';
                 let tiersBody = '';
                 // Grow by ~25% per step: the tiers-only window spans many sizes, and each build costs time.
-                for (let count = 1; count <= 400 && !payload; count += Math.max(1, Math.floor(count / 4))) {
+                for (let count = 1; count <= 400 && !catalog; count += Math.max(1, Math.floor(count / 4))) {
                     registry = wideGroupRegistry(count);
                     fs.writeFileSync(registryFile, JSON.stringify(registry), 'utf8');
                     tiersBody = catalogLib.buildWorkflowPointerCatalog({ rootDir: dir, rows: 'tiers' });
-                    const built = hook.buildInjection(dir);
-                    if (built.includes(tiersBody)) payload = built;
+                    const built = hook.buildCatalogInjection(dir);
+                    if (built.includes(tiersBody)) catalog = built;
                 }
-                assertTrue(Boolean(payload), 'precondition: some registry size lands on the tiers-only index');
-                const overhead = payload.length - tiersBody.length;
+                assertTrue(Boolean(catalog), 'precondition: some registry size lands on the tiers-only index');
+                const overhead = catalog.length - tiersBody.length;
                 const groupsBody = catalogLib.buildWorkflowPointerCatalog({ rootDir: dir, rows: 'groups' });
                 assertTrue(overhead + groupsBody.length > PAYLOAD_CAP,
                     `precondition: the marked index must overflow (${overhead + groupsBody.length} chars)`);
-                // When the runtime payload is built (above)
+                // When the catalog output is built (above)
                 // Then it fits the cap as the tiers-only index
-                assertTrue(payload.length <= PAYLOAD_CAP, `payload is ${payload.length} chars, cap ${PAYLOAD_CAP}`);
-                assertNotContains(payload, COMPACT_HEADER, 'the compact catalog overflows here');
+                assertTrue(catalog.length <= PAYLOAD_CAP, `catalog output is ${catalog.length} chars, cap ${PAYLOAD_CAP}`);
+                assertNotContains(catalog, COMPACT_HEADER, 'the compact catalog overflows here');
                 // And every workflow keeps a two-column `| id | tier |` row with no barrier mark
                 for (const [id, workflow] of Object.entries(registry.workflows)) {
-                    assertTrue(workflowRow(payload, id) === `| \`${id}\` | ${workflow.activation} |`,
-                        `${id}: expected a two-column tier row, got ${workflowRow(payload, id)}`);
+                    assertTrue(workflowRow(catalog, id) === `| \`${id}\` | ${workflow.activation} |`,
+                        `${id}: expected a two-column tier row, got ${workflowRow(catalog, id)}`);
                 }
-                const markedRows = payload.split(/\r?\n/).filter(line => line.startsWith('| `') && line.includes('∥'));
+                const markedRows = catalog.split(/\r?\n/).filter(line => line.startsWith('| `') && line.includes('∥'));
                 assertTrue(markedRows.length === 0, `tiers-only rows carry no barrier mark: ${markedRows[0]}`);
-                // And the gate body, the advancement clause and the pointer to the registry stay
-                assertContains(payload, FIXTURE_GATE_BODY, 'the gate body must stay when the root lacks it');
-                assertTrue(ADVANCEMENT_CLAUSE.test(payload), 'the advancement clause must stay');
-                assertTrue(INDEX_POINTER.test(payload), 'the index must point at .claude/workflows.json and start-workflow <id>');
+                // And the advancement clause and the pointer to the registry stay
+                assertTrue(ADVANCEMENT_CLAUSE.test(catalog), 'the advancement clause must stay');
+                assertTrue(INDEX_POINTER.test(catalog), 'the index must point at .claude/workflows.json and start-workflow <id>');
+                // And the gate body is still delivered whole, in the route output
+                assertContains(hook.buildInjection(dir), FULL_SIZE_GATE_BODY, 'the gate body must be delivered whole');
             })
         },
         {
-            // Intent: BR-WFR-01 never drops a configured protocol to fit the cap; when the protocol alone
-            // keeps the payload over it, the pointer-only form is still delivered with the protocol whole.
-            name: '[workflow-routing-switch] [cap] TC-WFR-001 a protocol larger than the cap is delivered whole with the pointer-only form',
+            // Intent: BR-WFR-01 never drops or cuts a configured protocol: it is delivered whole in the route
+            // output even when that keeps the output over the cap, and it never costs the catalog its form.
+            name: '[workflow-routing-switch] [cap] TC-WFR-001 a protocol larger than the cap is delivered whole in the route output and the catalog stays compact',
             fn: () => isolatedFixture({
                 '.claude/workflows.json': GROUPED_REGISTRY,
                 [GATE_FILE]: FIXTURE_GATE,
@@ -735,65 +809,163 @@ module.exports = {
                 // Given a small registry and a project protocol longer than the cap on its own
                 const protocol = Array.from({ length: 400 }, (_, line) => `Project route rule ${line}: prefer the lean route.`).join('\n');
                 assertTrue(protocol.length > PAYLOAD_CAP, `precondition: protocol is ${protocol.length} chars`);
-                // When the runtime payload is built
-                const payload = hook.buildInjection(dir, protocol);
-                // Then the last form (no workflow rows) is returned, over the cap, with the protocol whole
-                assertTrue(payload.length > PAYLOAD_CAP, `payload is ${payload.length} chars`);
-                assertContains(payload, `${hook.PROTOCOL_START}\n${protocol}\n${hook.PROTOCOL_END}`, 'the protocol must be delivered whole');
-                assertTrue(!workflowRow(payload, 'workflow-grouped') && !workflowRow(payload, 'workflow-plain'), 'no workflow rows');
-                assertNotContains(payload, COMPACT_HEADER);
-                // And the marker, the advancement clause and the pointer to the registry stay
-                assertContains(payload, hook.GATE_MARKER);
-                assertTrue(ADVANCEMENT_CLAUSE.test(payload), 'the advancement clause must stay');
-                assertTrue(INDEX_POINTER.test(payload), 'the pointer to the registry must stay');
+                // When the two outputs are built
+                const route = hook.buildInjection(dir, protocol);
+                const catalog = hook.buildCatalogInjection(dir);
+                // Then the route output is returned whole, over the cap: the gate and the protocol uncut
+                assertTrue(route.length > PAYLOAD_CAP, `route output is ${route.length} chars`);
+                assertContains(route, `${hook.PROTOCOL_START}\n${protocol}\n${hook.PROTOCOL_END}`, 'the protocol must be delivered whole');
+                assertContains(route, hook.GATE_MARKER);
+                assertContains(route, FIXTURE_GATE_BODY, 'the gate body must be delivered with the protocol');
+                assertTrue(route.startsWith(`${hook.ROUTE_START}\n`) && route.endsWith(`\n${hook.ROUTE_END}`), 'the route block is closed, not cut');
+                assertNoCatalog(route, 'oversized protocol');
+                // And the catalog output is unaffected: compact, every row, the advancement clause, under the cap
+                assertTrue(catalog.length <= PAYLOAD_CAP, `catalog output is ${catalog.length} chars, cap ${PAYLOAD_CAP}`);
+                assertContains(catalog, COMPACT_HEADER, 'a large protocol must not cost the catalog its compact form');
+                assertTrue(Boolean(workflowRow(catalog, 'workflow-grouped')) && Boolean(workflowRow(catalog, 'workflow-plain')), 'every row stays');
+                assertTrue(ADVANCEMENT_CLAUSE.test(catalog), 'the advancement clause must stay');
+                assertNotContains(catalog, hook.PROTOCOL_START, 'the protocol belongs to the route output only');
+                assertTrue(catalog === hook.buildCatalogInjection(dir, 'ask'), 'the catalog output does not depend on the protocol');
             })
         },
         {
-            // Intent: BR-WFR-01 says "at most 9,500": a payload of exactly the cap is kept, one more
+            // Intent: BR-WFR-01 says "at most 9,500": a catalog output of exactly the cap is kept, one more
             // character falls to the next form.
             name: '[workflow-routing-switch] [cap] TC-WFR-001 a compact payload of exactly 9,500 chars is kept; 9,501 falls back, first without the step-skill names, then to the index',
-            fn: () => isolatedFixture({
-                '.claude/workflows.json': GROUPED_REGISTRY,
-                [GATE_FILE]: FIXTURE_GATE,
-                'CLAUDE.md': ROOT_WITH_POINTER
-            }, dir => {
-                // Given a protocol whose length is measured so the compact payload lands exactly on the cap
-                // (the payload grows one character per protocol character)
-                const base = hook.buildInjection(dir, 'x').length;
-                assertTrue(base < PAYLOAD_CAP, `precondition: compact payload with a 1-char protocol is ${base} chars`);
-                const exact = 'x'.repeat(1 + PAYLOAD_CAP - base);
-                // When the payload is built at the cap and one character over it
-                const atCap = hook.buildInjection(dir, exact);
-                const overCap = hook.buildInjection(dir, `${exact}x`);
+            fn: () => isolatedFixture({ [GATE_FILE]: FIXTURE_GATE }, dir => {
+                const count = 60;
+                const ids = Object.keys(paddedRegistry(count).workflows);
+                const registryFile = path.join(dir, '.claude', 'workflows.json');
+                const build = pad => {
+                    fs.writeFileSync(registryFile, JSON.stringify(paddedRegistry(count, pad)), 'utf8');
+                    return hook.buildCatalogInjection(dir);
+                };
+                // Given a registry whose hints are sized (measured with the real builder) so the compact
+                // catalog lands exactly on the cap: the output grows one character per hint character
+                const base = build(0);
+                assertContains(base, 'Step skills:', 'precondition: the unpadded registry keeps the full compact catalog');
+                const pad = PAYLOAD_CAP - base.length;
+                assertTrue(pad > 0 && pad < count * PAD_PER_HINT, `precondition: an unpadded catalog of ${base.length} chars leaves room to pad to the cap`);
+                // When the catalog output is built at the cap and one character over it
+                const atCap = build(pad);
+                const overCap = build(pad + 1);
                 // Then exactly 9,500 keeps the compact catalog with its step-skill names
-                assertTrue(atCap.length === PAYLOAD_CAP, `payload is ${atCap.length} chars`);
-                assertContains(atCap, COMPACT_HEADER, 'a payload at the cap must keep the compact catalog');
-                assertContains(atCap, 'Step skills:', 'a payload at the cap keeps the step-skill names');
+                assertTrue(atCap.length === PAYLOAD_CAP, `catalog output is ${atCap.length} chars`);
+                assertContains(atCap, COMPACT_HEADER, 'a catalog at the cap must keep the compact form');
+                assertContains(atCap, 'Step skills:', 'a catalog at the cap keeps the step-skill names');
                 // And 9,501 drops only the step-skill names: every workflow row stays, under the cap
                 assertContains(overCap, COMPACT_HEADER, 'one over the cap keeps the compact rows');
                 assertNotContains(overCap, 'Step skills:', 'one over the cap drops the step-skill names first');
-                assertTrue(Boolean(workflowRow(overCap, 'workflow-grouped')) && Boolean(workflowRow(overCap, 'workflow-plain')), 'every row stays');
-                assertTrue(overCap.length <= PAYLOAD_CAP, `fallback payload is ${overCap.length} chars`);
-                // And a protocol too large even for the compact rows falls to the index, still under the cap
-                const far = hook.buildInjection(dir, 'x'.repeat(PAYLOAD_CAP - base + 700));
-                assertNotContains(far, COMPACT_HEADER, 'a payload far over the cap must fall back to the index');
+                assertTrue(ids.every(id => Boolean(workflowRow(overCap, id))), 'every row stays');
+                assertTrue(overCap.length <= PAYLOAD_CAP, `fallback catalog output is ${overCap.length} chars`);
+                // And a registry too large even for the compact rows falls to the index, still under the cap
+                const far = build(count * PAD_PER_HINT);
+                assertNotContains(far, COMPACT_HEADER, 'a catalog far over the cap must fall back to the index');
                 assertTrue(INDEX_POINTER.test(far), 'the fallback is the index');
+                assertTrue(ids.every(id => Boolean(workflowRow(far, id))), 'the index keeps a row per workflow');
+                assertTrue(far.length <= PAYLOAD_CAP, `index catalog output is ${far.length} chars`);
             })
         },
         {
             name: '[workflow-routing-switch] [cap] TC-WFR-001 payload size guard: this framework registry fits under 9,500 chars',
             skip: FRAMEWORK_REPO_SKIP,
             fn: () => {
-                // Given this repository's own registry and root instruction files
+                // Given this repository's own registry
                 const registry = JSON.parse(fs.readFileSync(path.join(PROJECT_DIR, '.claude', 'workflows.json'), 'utf8'));
-                // When the runtime payload is built
-                const payload = hook.buildInjection(PROJECT_DIR);
+                // When the catalog output is built
+                const catalog = hook.buildCatalogInjection(PROJECT_DIR);
                 // Then it fits the cap and every workflow row is model-visible
-                assertTrue(payload.length <= PAYLOAD_CAP, `payload is ${payload.length} chars, cap ${PAYLOAD_CAP}`);
+                assertTrue(catalog.length <= PAYLOAD_CAP, `catalog output is ${catalog.length} chars, cap ${PAYLOAD_CAP}`);
                 for (const id of Object.keys(registry.workflows)) {
-                    assertTrue(Boolean(workflowRow(payload, id)), `missing row for ${id}`);
+                    assertTrue(Boolean(workflowRow(catalog, id)), `missing row for ${id}`);
                 }
             }
+        },
+        {
+            // Intent (BR-WFR-01, review finding F1): a gate edit must never cost this framework's own
+            // catalog its compact form again. The catalog is an output of its own, measured alone, so the
+            // shipped registry keeps the compact catalog in both modes while the gate arrives in full.
+            name: '[workflow-routing-switch] [cap] TC-WFR-024 the catalog is its own output: this framework registry keeps the compact catalog',
+            skip: FRAMEWORK_REPO_SKIP,
+            fn: () => {
+                // Given this repository's own registry and shipped gate file
+                const registry = JSON.parse(fs.readFileSync(path.join(PROJECT_DIR, '.claude', 'workflows.json'), 'utf8'));
+                const gateFile = fs.readFileSync(path.join(PROJECT_DIR, GATE_FILE), 'utf8');
+                for (const mode of ['ask', 'auto']) {
+                    // When the two outputs are built for the mode
+                    const catalog = hook.buildCatalogInjection(PROJECT_DIR, mode);
+                    const route = hook.buildInjection(PROJECT_DIR, '', mode);
+                    // Then the catalog output fits the cap in the compact form, with a row per workflow
+                    assertTrue(catalog.length <= PAYLOAD_CAP, `${mode}: catalog output is ${catalog.length} chars, cap ${PAYLOAD_CAP}`);
+                    assertContains(catalog, COMPACT_HEADER, `${mode}: the framework registry must keep the compact catalog`);
+                    assertContains(catalog, 'Step skills:', `${mode}: the compact catalog keeps its line of step-skill names`);
+                    assertTrue(!INDEX_POINTER.test(catalog), `${mode}: the index is a fallback this registry must not need`);
+                    for (const id of Object.keys(registry.workflows)) {
+                        assertTrue(Boolean(workflowRow(catalog, id)), `${mode}: missing row for ${id}`);
+                    }
+                    assertCatalogBlock(catalog, mode);
+                    // And the route output is the full gate for that mode, with no catalog
+                    assertContains(route, hook.renderGateForMode(gateFile, mode), `${mode}: the route output must carry the full gate`);
+                    assertContains(route, mode === 'ask' ? '**Workflow question** (every tier)' : '**Workflow start** (mode auto)');
+                    assertNotContains(route, COMPACT_HEADER, `${mode}: the route output carries no catalog header`);
+                    assertNoCatalog(route, mode);
+                    // And without a project protocol it fits one hook output, so no host cuts the gate to a preview
+                    assertTrue(route.length <= PAYLOAD_CAP, `${mode}: route output is ${route.length} chars, cap ${PAYLOAD_CAP}`);
+                }
+            }
+        },
+        {
+            // Intent (BR-WFR-01): the catalog's form depends on the registry alone. A longer gate or a project
+            // protocol of any size is delivered in the route output and never pushes the catalog to a smaller form.
+            name: '[workflow-routing-switch] [cap] TC-WFR-024 a gate or project protocol of any size never changes the catalog form',
+            fn: () => isolatedFixture({
+                '.claude/workflows.json': JSON.stringify(syntheticRegistry(30)),
+                [GATE_FILE]: FIXTURE_GATE
+            }, async dir => {
+                const registry = syntheticRegistry(30);
+                const gatePath = path.join(dir, ...GATE_FILE.split('/'));
+                const protocol = Array.from({ length: 400 }, (_, line) => `Project route rule ${line}: prefer the lean route.`).join('\n');
+                assertTrue(protocol.length > PAYLOAD_CAP, `precondition: protocol is ${protocol.length} chars`);
+                // Both outputs come from the hook itself, resolving the mode and the protocol from the fixture project
+                let session = 0;
+                const deliver = async part => {
+                    const outputs = [];
+                    session += 1;
+                    await hook.run(input(`form-${session}`), {
+                        part, projectDir: dir, storeRoot: path.join(dir, 'state'), env: {}, homeDir: dir, now: 1000, write: writer(outputs)
+                    });
+                    return outputs.join('');
+                };
+                // Given (a) a short gate
+                const shortRoute = await deliver('route');
+                const shortCatalog = await deliver('catalog');
+                // And (b) the same registry with a gate several thousand characters longer
+                fs.writeFileSync(gatePath, FULL_SIZE_GATE, 'utf8');
+                const longRoute = await deliver('route');
+                const longCatalog = await deliver('catalog');
+                assertTrue(longRoute.length - shortRoute.length > 3000, `precondition: the gate grew by ${longRoute.length - shortRoute.length} chars`);
+                // And (c) a project protocol larger than the cap on top of it
+                fs.mkdirSync(path.join(dir, 'docs'), { recursive: true });
+                fs.writeFileSync(path.join(dir, 'docs', 'project-config.json'), JSON.stringify({ portability: { workflowRouteProtocol: protocol } }), 'utf8');
+                const protocolRoute = await deliver('route');
+                const protocolCatalog = await deliver('catalog');
+                assertContains(protocolRoute, `${hook.PROTOCOL_START}\n${protocol}\n${hook.PROTOCOL_END}`, 'precondition: the protocol is configured and delivered whole');
+                assertTrue(protocolRoute.length > PAYLOAD_CAP, `precondition: the route output is ${protocolRoute.length} chars`);
+                // Then the catalog output is byte-identical across the three
+                assertTrue(longCatalog === shortCatalog, 'a longer gate must not change the catalog output');
+                assertTrue(protocolCatalog === shortCatalog, 'a project protocol must not change the catalog output');
+                assertTrue(shortCatalog === `${hook.buildCatalogInjection(dir)}\n`, 'the hook delivers the built catalog output and nothing else');
+                // And it is the compact catalog with its step-skill names and a row per workflow, under the cap
+                assertTrue(shortCatalog.length <= PAYLOAD_CAP, `catalog output is ${shortCatalog.length} chars, cap ${PAYLOAD_CAP}`);
+                assertContains(shortCatalog, COMPACT_HEADER, 'the catalog keeps the compact form');
+                assertContains(shortCatalog, 'Step skills:', 'the catalog keeps its step-skill names');
+                assertTrue(!INDEX_POINTER.test(shortCatalog), 'no index fallback');
+                for (const id of Object.keys(registry.workflows)) {
+                    assertTrue(Boolean(workflowRow(shortCatalog, id)), `missing row for ${id}`);
+                }
+                assertNotContains(shortCatalog, hook.PROTOCOL_START, 'the protocol belongs to the route output only');
+                assertNotContains(shortCatalog, FIXTURE_GATE_BODY, 'the gate belongs to the route output only');
+            })
         },
         {
             // Intent (BR-WFR-03): the gate is delivered in full with the guidance, whatever the root files hold,
@@ -814,15 +986,20 @@ module.exports = {
                 for (const { label, files } of layouts) {
                     await isolatedFixture({ '.claude/workflows.json': GROUPED_REGISTRY, [GATE_FILE]: FIXTURE_GATE, ...files }, dir => {
                         // Given a project whose root instruction files are: <label>
-                        // When the runtime payload is built
-                        const payload = hook.buildInjection(dir);
+                        // When the two runtime outputs are built
+                        const route = hook.buildInjection(dir);
+                        const catalog = hook.buildCatalogInjection(dir);
                         // Then the gate body and its marker are always delivered, never a pointer to a root file
-                        assertContains(payload, hook.GATE_MARKER, `${label}: the gate marker must be delivered`);
-                        assertContains(payload, FIXTURE_GATE_BODY, `${label}: the gate body must be delivered`);
-                        assertNotContains(payload, 'The routing gate is in the root instruction file', `${label}: no pointer to a root-file gate`);
-                        // And the barrier contract stays
-                        assertContains(payload, '[review-a ∥ review-b ∥ review-c*]', `${label}: the parallel-phase marks stay`);
-                        assertTrue(ADVANCEMENT_CLAUSE.test(payload), `${label}: the advancement clause must stay`);
+                        assertContains(route, hook.GATE_MARKER, `${label}: the gate marker must be delivered`);
+                        assertContains(route, FIXTURE_GATE_BODY, `${label}: the gate body must be delivered`);
+                        assertContains(route, hook.GATE_END_MARKER, `${label}: the gate must be delivered to its end`);
+                        assertNoCatalog(route, label);
+                        for (const output of [route, catalog]) {
+                            assertNotContains(output, 'The routing gate is in the root instruction file', `${label}: no pointer to a root-file gate`);
+                        }
+                        // And the barrier contract stays, in the catalog output
+                        assertContains(catalog, '[review-a ∥ review-b ∥ review-c*]', `${label}: the parallel-phase marks stay`);
+                        assertTrue(ADVANCEMENT_CLAUSE.test(catalog), `${label}: the advancement clause must stay`);
                     });
                 }
             }
@@ -860,10 +1037,12 @@ module.exports = {
                 'CLAUDE.md': ROOT_WITH_POINTER
             }, dir => {
                 // Given one workflow with one all-return barrier and one without
-                // When the compact payload is built
-                const payload = hook.buildInjection(dir);
+                // When the compact catalog output is built
+                const payload = hook.buildCatalogInjection(dir);
+                assertContains(payload, COMPACT_HEADER, 'precondition: this registry renders the compact catalog');
                 // Then the grouped row carries its barrier token, the plain row none, and the clause is present
                 const grouped = workflowRow(payload, 'workflow-grouped');
+                assertTrue(Boolean(grouped), 'the grouped workflow must have a row');
                 assertTrue((grouped.match(BARRIER_TOKEN) || []).length === 1, `expected one barrier token: ${grouped}`);
                 assertContains(grouped, '[review-a ∥ review-b ∥ review-c*]');
                 assertNotContains(grouped, 'investigate', 'compact rows must not carry the full step list');
@@ -878,8 +1057,8 @@ module.exports = {
                 const { resolveAllWorkflowManifests } = require(path.join(PROJECT_DIR, '.claude', 'scripts', 'lib', 'workflow-manifest.cjs'));
                 // Given this repository's registry, including groups declared inside variants
                 const registry = JSON.parse(fs.readFileSync(path.join(PROJECT_DIR, '.claude', 'workflows.json'), 'utf8'));
-                // When the runtime payload is built
-                const payload = hook.buildInjection(PROJECT_DIR);
+                // When the catalog output is built
+                const payload = hook.buildCatalogInjection(PROJECT_DIR);
                 // Then each grouped row has at least one token per group, and the advancement clause is present
                 let grouped = 0;
                 for (const id of Object.keys(registry.workflows)) {
@@ -929,6 +1108,46 @@ module.exports = {
                 assertTrue(await claudePrompt(2000) === '', 'no Claude compaction since delivery → no repeat');
                 fs.appendFileSync(transcript, `${JSON.stringify({ type: 'system', subtype: 'compact_boundary', timestamp: new Date(2500).toISOString() })}\n`, 'utf8');
                 assertContains(await claudePrompt(3000), 'route-v1', 'a Claude compact_boundary must re-arm the reminder');
+            })
+        },
+        {
+            // Intent: BR-WFR-09 / AC-WFR-24. The catalog is an output of its own, so it needs its own way back
+            // into the context: a compaction (either host's record), growth of the conversation record by the
+            // re-arm distance or a shrunk record must deliver it again, whatever the route output does.
+            name: '[workflow-routing-switch] TC-WFR-025 the catalog output is delivered again after a compaction, record growth or a shrunk record',
+            fn: () => isolatedFixture({}, async dir => {
+                const store = path.join(dir, 'state');
+                const catalog = (session, transcript, now) => enabledRun({ root: dir, store, session, transcript, now, content: 'catalog-v1', part: 'catalog' });
+                // Given a Codex rollout whose catalog was delivered on the first prompt
+                const rollout = path.join(dir, 'rollout.jsonl');
+                const record = (type, payload, at) => `${JSON.stringify({ timestamp: new Date(at).toISOString(), type, payload })}\n`;
+                fs.writeFileSync(rollout, record('session_meta', { id: 'codex-catalog' }, 500), 'utf8');
+                assertContains(await catalog('codex-catalog', rollout, 1000), 'catalog-v1', 'the first prompt receives the catalog');
+                assertTrue(await catalog('codex-catalog', rollout, 2000) === '', 'no compaction since delivery → no repeat');
+                // When the rollout records a compaction as its own top-level record
+                fs.appendFileSync(rollout, record('compacted', { message: '', replacement_history: [] }, 2500), 'utf8');
+                // Then the next prompt receives the catalog again, once
+                assertContains(await catalog('codex-catalog', rollout, 3000), 'catalog-v1', 'a Codex compaction must bring the catalog back');
+                assertTrue(await catalog('codex-catalog', rollout, 4000) === '', 'one compaction → one re-delivery');
+                // And on Claude, a `compact_boundary` record brings it back the same way
+                const transcript = path.join(dir, 'claude.jsonl');
+                fs.writeFileSync(transcript, `${JSON.stringify({ type: 'user', message: { role: 'user', content: 'hi' } })}\n`, 'utf8');
+                assertContains(await catalog('claude-catalog', transcript, 1000), 'catalog-v1');
+                assertTrue(await catalog('claude-catalog', transcript, 2000) === '', 'no Claude compaction since delivery → no repeat');
+                fs.appendFileSync(transcript, `${JSON.stringify({ type: 'system', subtype: 'compact_boundary', timestamp: new Date(2500).toISOString() })}\n`, 'utf8');
+                assertContains(await catalog('claude-catalog', transcript, 3000), 'catalog-v1', 'a Claude compact_boundary must bring the catalog back');
+                // When the conversation record grows by the re-arm distance
+                const grown = path.join(dir, 'grown.jsonl');
+                fs.writeFileSync(grown, '', 'utf8');
+                assertContains(await catalog('grown', grown, 1000), 'catalog-v1');
+                fs.truncateSync(grown, hook.SETTINGS.reinjectAfterBytes);
+                assertContains(await catalog('grown', grown, 2000), 'catalog-v1', 'growth by the re-arm distance must bring the catalog back');
+                // When the conversation record shrinks because its context was replaced
+                const shrunk = path.join(dir, 'shrunk.jsonl');
+                fs.writeFileSync(shrunk, '1234567890', 'utf8');
+                assertContains(await catalog('shrunk', shrunk, 1000), 'catalog-v1');
+                fs.truncateSync(shrunk, 2);
+                assertContains(await catalog('shrunk', shrunk, 2000), 'catalog-v1', 'a shrunk record must bring the catalog back');
             })
         }
     ]

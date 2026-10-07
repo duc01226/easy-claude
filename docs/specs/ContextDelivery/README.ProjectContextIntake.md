@@ -5,7 +5,7 @@ feature_code: 'PCI'
 entities: ['ProjectSettings', 'NoticeRecord']
 status: draft
 owner: 'Framework maintainers'
-last_updated: '2026-10-03'
+last_updated: '2026-10-08'
 scope_mode: FRAMEWORK-LIBRARY
 ---
 
@@ -89,7 +89,7 @@ The optional invitation names the configured settings location, explains reposit
 
 ### BR-PCI-04: Refresh guidance uses available actions [SOFT]
 
-When old project references are reported before ordinary project work, offer both the available all-reference refresh action and the available single-reference refresh action with an explicit target. Preserve specific target suggestions supplied by the freshness assessment. Do not suggest unavailable legacy actions. Guidance remains advisory and existing dismissal rules remain in effect. SOFT because this invitation guides context refresh without changing data or access rights.
+When old project references are reported before ordinary project work, offer both the available all-reference refresh action and the available single-reference refresh action with an explicit target. Preserve specific target suggestions supplied by the freshness assessment. Do not suggest unavailable legacy actions. A reference the project author declares not applicable is not assessed for freshness and is never reported as old. Guidance remains advisory and existing dismissal rules remain in effect. SOFT because this invitation guides context refresh without changing data or access rights.
 
 [Source: rule/framework.contextdelivery/StaleReferenceGuidance]
 
@@ -138,7 +138,7 @@ No graphical view or navigation surface is owned here; outcomes appear in the as
 
 ## 8. Test Specifications
 
-Test summary: 9 cases — 1 core preservation, 1 repair-access preservation, 3 validation/notice, 1 refresh workflow, 1 rejection boundary, 2 properties. Property domains cover state-transition eligibility; arithmetic, conservation, inverse and commutativity classes are inapplicable to this read-only intake choice.
+Test summary: 10 cases — 1 core preservation, 1 repair-access preservation, 3 validation/notice, 2 refresh workflow, 1 rejection boundary, 2 properties. Property domains cover state-transition eligibility; arithmetic, conservation, inverse and commutativity classes are inapplicable to this read-only intake choice.
 
 ### Core preservation
 
@@ -293,6 +293,31 @@ And the request remains allowed
 **Evidence:** `[Source: rule/framework.contextdelivery/StaleReferenceGuidance]`
 **Related Behaviors:** `operation/framework.contextdelivery/ProjectContextIntake`, `test/framework.contextdelivery/StaleReferenceGuidance`
 **CoveredBy:** `.claude/hooks/tests/suites/init-prompt-gate.test.cjs::[init-prompt-gate] TC-PCI-031 stale references name the supported single-document scan`
+**Status:** Tested
+
+#### TC-PCI-032: References declared not applicable are never reported as old [P2]
+
+**Objective:** Protect BR-PCI-04 so refresh guidance never names a reference the project author told the assistant to skip.
+**Business Intent / Invariant Guarded:** A reference declared not applicable is outside the freshness assessment.
+**Preconditions:** Accepted settings that select old references, some of them declared not applicable.
+**Real-World Reachability:** A project keeps a reference for a stack it does not use and declares it not applicable. Its recorded date ages like any other reference, and the next freshness assessment runs when a session starts.
+**Demo Flow:** Declare one old reference not applicable, start a session, and inspect which references the assessment reports.
+
+```gherkin
+Given accepted project settings that select old references
+And some are declared not applicable, by an explicit declaration or by a purpose that opens with or parenthesizes that statement
+When freshness is assessed
+Then only the references that apply are reported as old
+And a purpose that only mentions the phrase in passing is still assessed
+```
+
+**Expected Result:** The assessment lists the applicable old references only, so no refresh guidance follows for a declared reference. No graphical navigation is owned here.
+**Acceptance Criteria:** A declared reference is absent from the report in every supported declaration form; the root-context summary and the assessment agree on which references are declared.
+**Test Data:** Five old references: three declared not applicable (parenthesized purpose, explicit declaration, purpose opening with the statement), one whose purpose mentions the phrase in passing, one ordinary.
+**Edge Cases:** An explicit declaration on a built-in reference survives the merge with that reference's built-in defaults.
+**Evidence:** `[Source: rule/framework.contextdelivery/StaleReferenceGuidance]`
+**Related Behaviors:** `operation/framework.contextdelivery/ProjectContextIntake`, `test/framework.contextdelivery/StaleReferenceGuidance`
+**CoveredBy:** `.claude/hooks/tests/suites/init-reference-docs.test.cjs::[init-reference-docs] TC-PCI-032 freshness never reports a reference the project declares not applicable`
 **Status:** Tested
 
 ### Rejection boundaries

@@ -60,12 +60,12 @@ Run `$ai-context-refresh` (or the generator directly) to produce `CLAUDE.md` fro
 `docs/project-config.json` + template. The generated file holds **project information only**: the
 tl;dr line, Doc Lookup, path-scoped rules, development commands and the skill-activation table. It
 carries none of the framework's universal rules (workflow step advancement, task planning, evidence,
-git discipline, code hierarchy, lesson extraction, closing reminders) and no workflow-route pointer:
+code hierarchy, lesson extraction, closing reminders) and no workflow-route pointer:
 the universal hook delivers those protocols on the first prompt of a session and again after 150K
 tokens of growth or a compaction. A host that runs no hook is unsupported.
 
-**Workflow routing is delivered only by the `workflow-route-inject` hook** (Claude, the mirrored Codex hook, the OpenCode bridge),
-never written into tracked files. The hook injects the route for each person's mode —
+**Workflow routing is delivered only by hooks** — `workflow-route-inject` for the gate and `workflow-catalog-inject` for the catalog (Claude, the mirrored Codex hooks, the OpenCode bridge) —
+never written into tracked files. The hooks inject the route for each person's mode —
 `ask` (default: the workflow question is asked only when the route is to start a catalog workflow; direct and custom-simple routes ask nothing), `auto` (a matched workflow starts without asking, by its tier)
 or `off` (only a short state notice; nothing starts without an explicit request). A team sets the default in tracked `docs/project-config.json`:
 

@@ -234,8 +234,8 @@ implicit invocation with `manual`), without forking `.claude/workflows.json`. Ti
 
 **⛔ SCOPE — tracked defaults and runtime overrides.** `CLAUDE.md` and `AGENTS.md` carry no route text. `workflow-route-inject.cjs`
 resolves the effective default + team + personal cascade at `UserPromptSubmit` and delivers the route
-for the resolved mode (gate + catalog + optional `workflowRouteProtocol` in `ask`/`auto`; a short
-routing-OFF notice in `off`).
+for the resolved mode (gate + optional `workflowRouteProtocol` in `ask`/`auto`, with the catalog as a
+second output from `workflow-catalog-inject.cjs`; a short routing-OFF notice and no catalog in `off`).
 
 **Do NOT tell the user to run `/ai-context-refresh` or `/sync-codex` to apply an override.** The
 next prompt resolves it at runtime. There is no option that bakes local routing or the custom

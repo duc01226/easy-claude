@@ -200,7 +200,7 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
         <div class="stat"><b><!-- COUNT:skills -->104<!-- /COUNT --></b><span>skills</span></div>
         <div class="stat"><b><!-- COUNT:workflows -->19<!-- /COUNT --></b><span>workflows</span></div>
         <div class="stat"><b><!-- COUNT:agents -->24<!-- /COUNT --></b><span>agents</span></div>
-        <div class="stat"><b><!-- COUNT:hooks -->32<!-- /COUNT --></b><span>hook files</span></div>
+        <div class="stat"><b><!-- COUNT:hooks -->33<!-- /COUNT --></b><span>hook files</span></div>
         <div class="stat"><b><!-- COUNT:lib-modules -->61<!-- /COUNT --></b><span>hook libraries</span></div>
       </div>
       <details class="toc-mobile"><summary>Contents</summary><ol id="toc-mobile-list"></ol></details>
@@ -222,7 +222,7 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
       <div class="scroll"><table>
         <thead><tr><th>Failure mode</th><th>What counters it</th><th>Where</th></tr></thead>
         <tbody>
-          <tr><td>Picks the wrong process</td><td>Routing gate + workflow catalog injected at prompt time</td><td><code>workflow-route-inject</code></td></tr>
+          <tr><td>Picks the wrong process</td><td>Routing gate + workflow catalog injected at prompt time</td><td><code>workflow-route-inject</code>, <code>workflow-catalog-inject</code></td></tr>
           <tr><td>Skips steps or stops early</td><td>Gate steps, outcome gates, evidence-gated close</td><td><code>workflows.json</code>, <code>workflow-end</code></td></tr>
           <tr><td>Guesses APIs and facts</td><td>Evidence protocols, project config, reference docs, code graph</td><td>shared protocols, project config</td></tr>
           <tr><td>Forgets rules in long sessions</td><td>Rules delivered once, re-armed after compaction</td><td>protocol-inject hooks, prompt ledger</td></tr>
@@ -291,7 +291,7 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
 
     <section id="routing" aria-labelledby="routing-h">
       <h2 id="routing-h">Routing — how a request becomes a route</h2>
-      <p class="lead">The workflow route is delivered only by a hook at prompt time (the gate and the workflow catalog, in each person's mode: ask, auto or off); no tracked file carries it.</p>
+      <p class="lead">The workflow route is delivered only by hooks at prompt time (the gate and the workflow catalog as two hook outputs, in each person's mode: ask, auto or off); no tracked file carries it.</p>
       <ol class="steps">
         <li><div><b>Honor explicit requests</b><span>A <code>/skill</code>, <code>/workflow-*</code> or "use a workflow" always runs.</span></div></li>
         <li><div><b>Assess</b><span>Scope, change type, risk, ambiguity and needed artifacts. Escalate on risk and ambiguity, not file count.</span></div></li>
@@ -413,14 +413,14 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
       <div class="callout warn"><b>Only two hooks can stop you</b><span><code>review-commit-gate</code> blocks an agent <code>git commit</code> without a review receipt or approved skip. <code>init-prompt-gate</code> blocks prompts only when the project config exists but is invalid; a missing config just gets a daily notice. Everything else is advisory or silent.</span></div>
       <div class="life">
         <div class="ev"><h4>SessionStart</h4><ul><li>verify-install</li><li>session-init</li><li>session-init-docs</li><li>graph-session-init</li><li>re-arm conventions + prompt ledger</li></ul></div>
-        <div class="ev"><h4>UserPromptSubmit</h4><ul><li>init-prompt-gate</li><li>workflow-route-inject</li><li>commit / judgement routers</li><li>prompt-ledger</li><li>graph-prompt-sync</li></ul></div>
+        <div class="ev"><h4>UserPromptSubmit</h4><ul><li>init-prompt-gate</li><li>workflow-route-inject</li><li>workflow-catalog-inject</li><li>commit / judgement routers</li><li>prompt-ledger</li><li>graph-prompt-sync</li></ul></div>
         <div class="ev"><h4>Skill loads · SubagentStart</h4><ul><li>six protocol-inject hooks: review, evidence-trace, workflow-task, spec-test, design, universal</li></ul></div>
         <div class="ev"><h4>PreToolUse</h4><ul><li>doc-sync-gate (warning)</li><li>review-commit-gate</li></ul></div>
         <div class="ev"><h4>PostToolUse</h4><ul><li>post-edit formatter</li><li>graph-auto-update</li><li>file-convention-inject</li><li>token checkpoint</li></ul></div>
         <div class="ev"><h4>Stop · SessionEnd</h4><ul><li>turn-complete and question alerts</li><li>session-end cleanup</li></ul></div>
       </div>
       <div class="grid">
-        <div class="card"><h4>Routing injection</h4><p>Gate plus workflow catalog, once per session; re-armed on change, compaction or long growth.</p></div>
+        <div class="card"><h4>Routing injection</h4><p>Gate and workflow catalog as two hook outputs, each once per session; re-armed on change, compaction or long growth.</p></div>
         <div class="card"><h4>Protocol delivery</h4><p>A loading skill's protocols arrive in full, once per session, grouped and size-capped.</p></div>
         <div class="card"><h4>File conventions</h4><p>Touching a file injects its path rules (opt-in). Shell read: <code>file-conventions.cjs --lookup &lt;path&gt;</code>.</p></div>
         <div class="card"><h4>Prompt ledger</h4><p>Pins the session goal and every prompt in <code>tmp/prompt-ledger/</code>; re-delivered after compaction.</p></div>

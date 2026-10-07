@@ -140,9 +140,11 @@ See `frontend-patterns-reference.md` in the project-reference docs root for proj
 | ------------- | ---------------------------------- | --------------------------------------------------------------------- |
 | `plan`        | plan, strategy, approach, research, review plan, analyze plan, validate plan, execute plan | Concise implementation planning with a task-derived Quality Gates & Concerns Checklist; `--mode=review` reviews intent, necessity, trade-offs and proof, with optional --fix-loop; `--mode=validate` briefs the user on the plan, then asks every material decision as a decision card in rounds (a standalone plan runs it automatically after saving); `--mode=execute` code and test an existing plan |
 | `grill`       | grill me, stress-test, challenge my plan, interview me | Interview the user about a plan, design, decision or idea until no material decision is silently assumed; writes a Decision Record and hands off |
-| `wayfinder`   | `/wayfinder` (user-invoked only)   | Plan work too big for one session: chart a map of decision tickets under the plans root, resolve one ticket per session, hand off to the spec workflows |
+| `wayfinder`   | dependent unresolved decisions spanning sessions, unclear route   | Chart a map of decision tickets under the plans root, resolve one ticket per session, hand off to the spec workflows; eligible for conditional automatic selection |
 | `feature`     | implement, add, create, build      | Feature development                                                   |
 | `investigate` | how does, explain, trace           | Code exploration                                                      |
+
+Read `.claude/skills/shared/workflow-first-gate.md` when selecting discovery depth: unresolved choices fitting one conversation route to `grill`; dependent choices spanning sessions route to `wayfinder`. Saved plans and specs retain their validators, and an existing workflow interview does not gain another interview. Confirmed linked decisions may be reused while scope and premises still hold; required gates and discovery stop boundaries remain binding.
 
 ---
 
@@ -250,7 +252,7 @@ Set `disable-model-invocation: true` on a skill the model must never start on it
 
 - **Command-only utilities** — `custom-agent`, `custom-prompt`, `docx-convert`, `git-developer-performance`, `pdf-convert`, `playwright-cli`, `presentation-builder`, `project-help`, `release-doc`, `remotion`, `scan-codebase-health`, `skill-creator`, `sync-skills-shared-protocols`. No workflow step, agent `skills:` preload, `Skill(` call or hook starts any of them; the user runs `/name` (Claude) or `$name` (Codex). A file read by path (for example a workflow's `preActions.readFiles`) still works.
 - **Mirror syncs** — `sync-opencode` rewrites a generated folder, so only the user starts it. `sync-codex` is model-callable: run it once, after the `.claude/**` source is final, to regenerate `.agents/`, `.codex/` and `AGENTS.md`.
-- **Other** — `product-roadmap`, `wayfinder`. (No workflow wrapper ships manual-only: every framework workflow can be selected by the AI.)
+- **Other** — `product-roadmap`. (No workflow wrapper ships manual-only: every framework workflow can be selected by the AI.)
 
 `commit` and `learn` stay model-callable by decision. `content-presence.test.cjs` (TC-ADS-008) fails when a command-only utility loses the flag or `commit`/`learn` gains it, and `migrate-claude-to-codex.test.mjs` (TC-ADS-009) checks the Codex policy file for each utility.
 

@@ -80,8 +80,8 @@ node .claude/skills/sync-opencode/scripts/run-opencode-sync.mjs
 This skill is the route the agent-files bootstrap gate offers for a missing root `AGENTS.md`, the
 generated Codex projection of `CLAUDE.md`. The projection holds project information only (Doc Lookup,
 project rules, naming, development commands, skill activation); the framework rules every agent follows
-are delivered by the universal hook, and the workflow route only by the `workflow-route-inject` hook (in
-each person's route mode). Stage 4 writes the projection; no protocol text and no route pointer is stamped.
+are delivered by the universal hook, and the workflow route only by the `workflow-route-inject` and
+`workflow-catalog-inject` hooks (in each person's route mode). Stage 4 writes the projection; no protocol text and no route pointer is stamped.
 
 Detection is existence-only and shared with the CLAUDE.md route via `.claude/hooks/lib/agent-files-state.cjs`;
 `skip init` dismisses both hooks for 24h. The stage-1 preflight generates or updates `CLAUDE.md` before

@@ -81,7 +81,7 @@ Optional scans (run if applicable):
 - Documentation index and lookup guide
 - The skill-activation table (path-scoped conventions)
 
-The universal framework rules (search-first, task planning, evidence-based reasoning, git discipline, etc.) are not written into `CLAUDE.md`: the universal hook delivers them to every session and sub-agent.
+The universal framework rules (search-first, task planning, evidence-based reasoning, etc.) are not written into `CLAUDE.md`: the universal hook delivers them to every session and sub-agent.
 
 **Modes:** `init` (first-time), `update` (sync marked sections), `refactor` (optimize token efficiency).
 

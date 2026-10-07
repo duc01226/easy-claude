@@ -905,5 +905,6 @@ module.exports = {
     buildSkillActivation,
     activationPattern,
     buildDocIndex,
-    buildDocLookup
+    buildDocLookup,
+    declaresNotApplicable
 };

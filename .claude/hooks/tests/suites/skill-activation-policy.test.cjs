@@ -279,6 +279,11 @@ module.exports = {
             assert.match(context, /follow the single skill-choice question in the skill activation policy/);
             assert.match(context, /user confirmation authorizes that candidate/);
             assert.doesNotMatch(output, /Workflow Catalog|full workflow.*custom route/);
+            // The catalog is the route's second output: in restricted mode its hook writes nothing at all.
+            let catalogOutput = '';
+            const catalog = await routeHook.run(prompt, { part: 'catalog', projectDir: fx.root, env: {}, homeDir: fx.temp, write: (text, done) => { catalogOutput += text; done(true); } });
+            assert.equal(catalog, '');
+            assert.equal(catalogOutput, '', 'restricted skill mode must suppress the workflow catalog output');
         }) },
         { name: 'TC-SAP-002 project and personal schemas reject string booleans', fn: () => {
             for (const value of [false, true]) {

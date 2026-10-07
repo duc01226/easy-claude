@@ -205,7 +205,7 @@ retitled as a stale test.
 
 ## Pre-commit/Push Rules
 
-**Consent and safety apply to Claude, Codex and OpenCode.** Read `.claude/skills/shared/protocols/git-discipline.md` when performing Git operations.
+**Consent and safety apply to Claude, Codex and OpenCode.**
 
 - Stage, commit and push only on explicit user request; implementation approval grants none of them. A plain commit request creates a new commit.
 - Amend only when explicitly requested, and only an unpushed commit created by this task. This includes `reset --soft HEAD~1` followed by commit. The review gate requires a receipt against HEAD's parent with `"amend":true`; merge-commit amendments fail closed.

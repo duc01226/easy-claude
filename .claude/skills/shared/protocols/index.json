@@ -85,12 +85,12 @@
       "group": "universal",
       "summary": "Failure modes to avoid on every task",
       "when": "delivered by the universal hook",
-      "chars": 8977,
+      "chars": 5450,
       "file": ".claude/skills/shared/protocols/ai-mistake-prevention.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/ai-mistake-prevention.md",
-          "chars": 8977
+          "chars": 5450
         }
       ]
     },
@@ -127,12 +127,12 @@
       "group": "universal",
       "summary": "Disposable generated output goes under the workspace tmp directory",
       "when": "delivered by the universal hook",
-      "chars": 1017,
+      "chars": 966,
       "file": ".claude/skills/shared/protocols/artifact-storage.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/artifact-storage.md",
-          "chars": 1017
+          "chars": 966
         }
       ]
     },
@@ -211,12 +211,12 @@
       "group": "universal",
       "summary": "Place logic with the owner the project architecture selects",
       "when": "delivered by the universal hook",
-      "chars": 615,
+      "chars": 482,
       "file": ".claude/skills/shared/protocols/code-responsibility-hierarchy.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/code-responsibility-hierarchy.md",
-          "chars": 615
+          "chars": 482
         }
       ]
     },
@@ -323,12 +323,12 @@
       "group": "workflow-task",
       "summary": "Brief the user, then ask every material decision as a decision card in dependency-ordered rounds",
       "when": "asking the user to confirm, choose or validate decisions",
-      "chars": 2845,
+      "chars": 3170,
       "file": ".claude/skills/shared/protocols/decision-interview.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/decision-interview.md",
-          "chars": 2845
+          "chars": 3170
         }
       ]
     },
@@ -393,12 +393,12 @@
       "group": "universal",
       "summary": "Discovery order, search-first rule and first principles",
       "when": "delivered by the universal hook",
-      "chars": 1953,
+      "chars": 1403,
       "file": ".claude/skills/shared/protocols/discovery-and-first-principles.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/discovery-and-first-principles.md",
-          "chars": 1953
+          "chars": 1403
         }
       ]
     },
@@ -505,12 +505,12 @@
       "group": "universal",
       "summary": "Evidence, confidence and investigation rules for every claim",
       "when": "delivered by the universal hook",
-      "chars": 662,
+      "chars": 401,
       "file": ".claude/skills/shared/protocols/evidence-investigation.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/evidence-investigation.md",
-          "chars": 662
+          "chars": 401
         }
       ]
     },
@@ -553,20 +553,6 @@
         {
           "file": ".claude/skills/shared/protocols/fix-layer-accountability.md",
           "chars": 1707
-        }
-      ]
-    },
-    {
-      "tag": "git-discipline",
-      "group": "universal",
-      "summary": "Commit, amend, branch and publication authority rules",
-      "when": "delivered by the universal hook",
-      "chars": 1791,
-      "file": ".claude/skills/shared/protocols/git-discipline.md",
-      "parts": [
-        {
-          "file": ".claude/skills/shared/protocols/git-discipline.md",
-          "chars": 1791
         }
       ]
     },
@@ -855,12 +841,12 @@
       "group": "universal",
       "summary": "Read the project config and the right reference docs just in time",
       "when": "delivered by the universal hook",
-      "chars": 4762,
+      "chars": 4778,
       "file": ".claude/skills/shared/protocols/project-reference-docs-guide.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/project-reference-docs-guide.md",
-          "chars": 4762
+          "chars": 4778
         }
       ]
     },
@@ -1251,12 +1237,12 @@
       "group": "universal",
       "summary": "Task breakdown, task-graph analysis and the session goal ledger",
       "when": "delivered by the universal hook",
-      "chars": 1259,
+      "chars": 1225,
       "file": ".claude/skills/shared/protocols/task-planning-rules.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/task-planning-rules.md",
-          "chars": 1259
+          "chars": 1225
         }
       ]
     },
@@ -1559,12 +1545,12 @@
       "group": "universal",
       "summary": "Model-driven step advancement and the parallel-phase barrier",
       "when": "delivered by the universal hook",
-      "chars": 2561,
+      "chars": 2559,
       "file": ".claude/skills/shared/protocols/workflow-step-advancement.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/workflow-step-advancement.md",
-          "chars": 2561
+          "chars": 2559
         }
       ]
     }

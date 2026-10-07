@@ -108,7 +108,6 @@ const UNIVERSAL_TEXT_SIGNATURES = [
     '[CRITICAL-THINKING-MINDSET]',
     '## Common AI Mistake Prevention (System Lessons)',
     'Create a small task per change before edits',
-    'Never commit, push, or stage (`git add`) unless the user explicitly asks',
     'Add `Analyze AI mistakes & lessons learned` to non-trivial tasks'
 ];
 

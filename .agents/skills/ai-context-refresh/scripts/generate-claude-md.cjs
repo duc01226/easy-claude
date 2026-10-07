@@ -146,7 +146,8 @@ function migrateLegacyRouting(content) {
     return content;
 }
 
-// Sections and callouts older roots carried and the universal hook delivers now. The strip
+// Sections and callouts older roots carried and a generated root no longer holds: the universal hook
+// delivers their rules now, except the Git section, whose rules live in the development rules doc. The strip
 // removes an H2 section with its body (an H2 section runs to the next H2 heading or the end of the
 // file); generated SECTION regions inside one and the kept H3 subsections survive, and so does
 // every other line. It runs only on request (`--strip-legacy-universal`) because the prose is
@@ -586,12 +587,12 @@ function buildUpdateOutput(existing, sections, { report = true, stripLegacy = fa
         const stripped = stripLegacyUniversalContent(output);
         output = stripped.text;
         if (report && stripped.removed.length) {
-            console.log(`[OK] Removed ${stripped.removed.length} legacy universal section(s) the universal hook now delivers: ${stripped.removed.join(' | ')}`);
+            console.log(`[OK] Removed ${stripped.removed.length} legacy universal section(s) a generated root no longer carries: ${stripped.removed.join(' | ')}`);
         }
     } else if (report) {
         const legacy = findLegacyUniversalContent(output);
         if (legacy.length) {
-            console.warn(`[WARN] LEGACY_UNIVERSAL_CONTENT: ${legacy.length} section(s) the universal hook now delivers are still in this root: ${legacy.join(' | ')}. Run --mode update --strip-legacy-universal to remove them (a backup is written first).`);
+            console.warn(`[WARN] LEGACY_UNIVERSAL_CONTENT: ${legacy.length} section(s) a generated root no longer carries are still in this root: ${legacy.join(' | ')}. Run --mode update --strip-legacy-universal to remove them (a backup is written first).`);
         }
     }
 

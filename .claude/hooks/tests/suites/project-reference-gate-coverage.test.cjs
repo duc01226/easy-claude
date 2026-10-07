@@ -129,11 +129,11 @@ module.exports = {
                 assertTrue(/Dedup within ~200K tokens/.test(top), 'gate must state the ~200K-token dedup window');
                 assertTrue(/hook reminder, a summary/.test(top), 'dedup must refuse hook reminders and summaries as proof of loading');
                 assertTrue(/before the first read or edit of an unfamiliar path class/.test(top), 'shell convention lookup must precede source reads as well as edits');
+                assertTrue(top.includes('project-config-loader.cjs'), 'gate must resolve configured owners through the loader when the helper is absent');
 
                 // Given the discovery instruction delivered before the gate, Then it must agree
                 // with the optional-config and configured-owner contract rather than require defaults.
                 const discovery = canonicalWrapped('SYNC:discovery-and-first-principles');
-                assertTrue(discovery.includes('project-config-loader.cjs'), 'discovery must resolve configured owners through the loader');
                 assertTrue(discovery.includes('absent config is supported'), 'missing optional config must not stop discovery');
                 assertTrue(discovery.includes('Never require default paths when owners are relocated'), 'relocated owners must take precedence');
                 assertTrue(!discovery.includes('Read `docs/project-config.json` first'), 'discovery must not instruct reading the default before resolving its owner');

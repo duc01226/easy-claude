@@ -33,8 +33,7 @@
       "sync-skills-shared-protocols": "deny",
       "workflow-big-feature": "ask",
       "workflow-greenfield-init": "ask",
-      "release-doc": "deny",
-      "wayfinder": "deny"
+      "release-doc": "deny"
     }
   }
 }

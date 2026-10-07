@@ -3,7 +3,7 @@ name: wayfinder
 version: 1.0.0
 description: '[Planning] Use when the user asks to plan work too big for one session whose route is unclear: chart a map of decision tickets, then resolve one ticket per session until the way is clear.'
 argument-hint: '[loose idea to chart | map path [ticket id]]'
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
@@ -155,7 +155,7 @@ The user invokes with a loose idea.
 1. **Name the destination.** Run `/grill`, as a step of this skill, with the subject limited to the destination: what the end of this map looks like and what lies beyond it. How to get there is not asked here; those decisions become tickets.
 2. **Bound it.** One destination, one defined outcome. "Build version one" is too wide: propose a narrower one. A first chart of more than about a dozen tickets is the same signal.
 3. **Map the frontier.** Fan out breadth-first across the whole space to name the open decisions and what can be taken now. Name them; do not settle them: each becomes a ticket or a line in Not yet specified. Brief the user and confirm the list once. When this finds nothing foggy, stop: the effort fits one session.
-4. **Write the map**: Destination and Notes filled, Decisions so far empty, the dim view in Not yet specified, `status: open`.
+4. **Write the map**: Destination and Notes filled, Decisions so far empty, the dim view in Not yet specified, `status: open`. Link the destination's Decision Record under Notes so later sessions can reuse confirmed choices while their scope and premises still hold.
 5. **Write the tickets you can state now**, then wire `blocked_by` in a second pass, once every ticket has its id.
 6. **Start the research tickets.** For each, start a sub-agent in parallel and claim the ticket for it. When it returns, write the ticket's `## Resolution` from its report, link the report under Assets, set `status: resolved` and add the line to Decisions so far. One still running at session end leaves its ticket claimed: say so in the output.
 7. **Stop.** Charting resolves no other ticket.
@@ -167,7 +167,7 @@ The user invokes with a map path; without a ticket id, you choose.
 1. **Load the map**, not every ticket: Destination and Notes first.
 2. **Choose the ticket**: the one named, otherwise the first frontier ticket in id order. Re-read it and **claim it** before any work.
 3. **Resolve it as its `type` says.** Open another ticket only when this one needs its detail. Use the skills the Notes name; when in doubt, `/grill`.
-4. **Record the resolution**: write `## Resolution`, set `status: resolved`, add one line to Decisions so far.
+4. **Record the resolution**: write `## Resolution`, set `status: resolved`, add one line to Decisions so far. For a grilling ticket, link its Decision Record under Assets; retain the user's confirmed choices and their premises as the evidence for later decisions.
 5. **Update the map**: add and wire new tickets; move what the answer made sharp out of Not yet specified into tickets; rule out of scope whatever now sits beyond the destination; rewrite or remove tickets the answer made pointless.
 6. **Check for the end.** When every ticket is `resolved`, `out-of-scope` or `superseded`, none is `open` or `claimed`, and Not yet specified is empty, set the map `status: cleared` and name the hand-off.
 7. **Stop.** Do not take a second ticket.

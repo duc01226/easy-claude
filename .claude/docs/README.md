@@ -10,7 +10,7 @@
 | **Need a skill?**              | [skills/README.md](./skills/README.md) - <!-- COUNT:skills -->104<!-- /COUNT --> skills catalog                                                                        |
 | **Building a feature?**        | [skills/README.md](./skills/README.md) + project-reference root patterns                                                           |
 | **Verifying user experience?** | [configuration/experience-verification.md](./configuration/experience-verification.md) - portable evidence and acceptance contract |
-| **Understanding hooks?**       | [hooks/README.md](./hooks/README.md) - <!-- COUNT:hooks -->32<!-- /COUNT --> top-level hook files deep-dive                                                           |
+| **Understanding hooks?**       | [hooks/README.md](./hooks/README.md) - <!-- COUNT:hooks -->33<!-- /COUNT --> top-level hook files deep-dive                                                           |
 | **Understanding workflows?**   | `.claude/workflows.json` canonical catalog plus opt-in prompt injection - <!-- COUNT:workflows -->19<!-- /COUNT --> workflows                                             |
 | **Configuring Claude?**        | [configuration/README.md](./configuration/README.md)                                                                               |
 | **Tracking team work?** | [configuration/README.md#team-work-tracking](./configuration/README.md#team-work-tracking) - optional shared tracker and local app |
@@ -33,7 +33,7 @@ Project-owned branches below sit at their DEFAULT roots; `docs/project-config.js
 |   |-- README.md             Skills overview + full catalog
 |   +-- (patterns)           → docs/project-reference/
 |
-|-- hooks/                    32 top-level hook files, 61 lib modules
+|-- hooks/                    33 top-level hook files, 61 lib modules
 |   |-- README.md             Hooks overview, lessons system, session lifecycle
 |   +-- extending-hooks.md    How to create custom hooks
 |
@@ -95,7 +95,7 @@ Project-owned branches below sit at their DEFAULT roots; `docs/project-config.js
 | How hooks intercept events                  | [hooks/README.md](./hooks/README.md) — hook catalog + lifecycle                                                 |
 | Hook execution order by event               | [hooks/README.md](./hooks/README.md) — hook catalog + execution order                                           |
 | Session lifecycle (init → compact → resume) | [hooks/README.md#session-lifecycle](./hooks/README.md#session-lifecycle)                                        |
-| Workflow detection and routing              | Default-on `workflow-route-inject.cjs`, the only carrier of the route; per-person mode `ask` / `auto` / `off` (project default, `~/.claude/.ck.json`, `.claude/.ck.local.json`, env `CK_WORKFLOW_ROUTE_MODE`); definitions in `.claude/workflows.json` |
+| Workflow detection and routing              | Default-on `workflow-route-inject.cjs` (gate) and `workflow-catalog-inject.cjs` (catalog), the only carriers of the route; per-person mode `ask` / `auto` / `off` (project default, `~/.claude/.ck.json`, `.claude/.ck.local.json`, env `CK_WORKFLOW_ROUTE_MODE`); definitions in `.claude/workflows.json` |
 | How to create custom hooks                  | [hooks/extending-hooks.md](./hooks/extending-hooks.md)                                                          |
 | How to configure output                     | [configuration/output-styles.md](./configuration/output-styles.md)                                              |
 | Manual tracker maintenance and shell discovery | [manual-operations.md](../skills/task-track/references/manual-operations.md) — exact requests, catalogue, authority and recovery |
@@ -162,7 +162,7 @@ Unprefixed filenames resolve inside the project-reference docs root — default 
 | Category               | Count |
 | ---------------------- | ----- |
 | Skills                 | <!-- COUNT:skills -->104<!-- /COUNT --> |
-| Hook files (top-level) | <!-- COUNT:hooks -->32<!-- /COUNT --> |
+| Hook files (top-level) | <!-- COUNT:hooks -->33<!-- /COUNT --> |
 | Lib Modules            | <!-- COUNT:lib-modules -->61<!-- /COUNT --> |
 | Hook Events            | 9     |
 | Agents                 | <!-- COUNT:agents -->24<!-- /COUNT --> |

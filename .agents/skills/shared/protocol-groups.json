@@ -482,7 +482,6 @@
           "artifact-storage",
           "workflow-step-advancement",
           "evidence-investigation",
-          "git-discipline",
           "canonical-ownership"
         ],
         [
@@ -526,10 +525,6 @@
         },
         "evidence-investigation": {
           "summary": "Evidence, confidence and investigation rules for every claim",
-          "when": "delivered by the universal hook"
-        },
-        "git-discipline": {
-          "summary": "Commit, amend, branch and publication authority rules",
           "when": "delivered by the universal hook"
         },
         "canonical-ownership": {

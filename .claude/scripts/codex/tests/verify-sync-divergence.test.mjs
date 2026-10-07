@@ -355,6 +355,8 @@ const EXPECTED_RENDERED_GROUPS = [
     ['UserPromptSubmit', null, 1],
     // workflow-route-inject: default-on, configurable runtime workflow router.
     ['UserPromptSubmit', null, 1],
+    // workflow-catalog-inject (2026-10-08): the route's second output, so the catalog keeps its form whatever the gate's length.
+    ['UserPromptSubmit', null, 1],
     // commit-skill-route (2026-09-24): routes a commit request to the `commit` skill ($commit on Codex).
     ['UserPromptSubmit', null, 1],
     // judgement-integrity-route (2026-09-24): anti-confirmation-bias answer why-review on verdict prompts.

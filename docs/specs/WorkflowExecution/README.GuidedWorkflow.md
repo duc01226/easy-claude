@@ -2269,7 +2269,7 @@ And the plan names it as governing intent
 
 #### TC-GWF-021: The routing guidance still fits with the lean route row [P2]
 
-**Objective:** Prove that adding the lean route keeps the per-prompt routing guidance within 9,500 characters.
+**Objective:** Prove that adding the lean route keeps the per-prompt workflow catalog message within 9,500 characters.
 
 **Business Intent / Invariant Guarded:** A new route never pushes the routing guidance past what the host shows (BR-GWF-09; sibling WFR size rule).
 
@@ -2285,7 +2285,7 @@ And the plan names it as governing intent
 
 ```gherkin
 Given the registry with the lean route
-When the routing guidance is built
+When the workflow catalog message is built
 Then it is at most 9,500 characters and lists the lean route
 ```
 
@@ -2313,7 +2313,7 @@ Then it is at most 9,500 characters and lists the lean route
 
 **Edge Cases:**
 
-- At the cap → the next shorter guidance form
+- At the cap → the next shorter catalog form
 
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 

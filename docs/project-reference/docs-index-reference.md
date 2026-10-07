@@ -15,7 +15,7 @@ Read this index when locating the authoritative document for a project question 
 - Resolve configured roots; regenerate category globs into a normalized unique-path union.
 - Compare broad `docs/**/*.md` results with the category union and expose every remainder.
 - Verify relationships and lookup paths; keep every path real, unique, and traceable to the current tree.
-- Index 501 unique authored Markdown files across 12 categories; `docs/` contains 51 files with 0 uncategorized. Design System is a one-file Project Reference subset counted once.
+- Index 500 unique authored Markdown files across 12 categories; `docs/` contains 51 files with 0 uncategorized. Design System is a one-file Project Reference subset counted once.
 
 ## Workflow
 
@@ -31,7 +31,7 @@ Read this index when locating the authoritative document for a project question 
 
 ## Documentation System
 
-501 unique authored markdown files across 12 indexed categories. Last scanned: 2026-10-07.
+500 unique authored markdown files across 12 indexed categories. Last scanned: 2026-10-07.
 
 **Relocatable roots.** Resolve these configurable roots before running their category globs:
 
@@ -55,7 +55,7 @@ The **Reproducible scope** column states each glob relative to its category's ro
 | Release Notes          |              3 | `docs/release/**/*.md` + `docs/release-notes/**/*.md`                                 |
 | Knowledge Reports      |              1 | `docs/knowledge/**/*.md`                                                             |
 | Framework Docs         |             41 | `.claude/docs/**/*.md`                                                                |
-| Skill Markdown         |            406 | `rg --files .claude/skills -g '*.md'`                                                 |
+| Skill Markdown         |            405 | `rg --files .claude/skills -g '*.md'`                                                 |
 
 The unique total is the normalized union returned by `rg --files` for Root-Level Docs, all `docs/**/*.md`, Framework Docs, and Skill Markdown. Design System is nested inside Project Reference, so its count is informative rather than additive. For this inventory, the authored/tracked scope includes generated protocol projections deliberately published as reader-facing documentation; Codex/OpenCode mirrors are excluded. Ignored dependency artifacts such as skill-local `.venv/` files are excluded.
 
@@ -136,7 +136,7 @@ easy-claude/
 │   ├── hooks/                                     # 3
 │   ├── skills/                                    # 2
 │   └── team-artifacts/templates/                  # 6
-└── .claude/skills/                                # 406 authored/tracked markdown assets
+└── .claude/skills/                                # 405 authored/tracked markdown assets
 ```
 
 Absent whitelist branches: Operations only.

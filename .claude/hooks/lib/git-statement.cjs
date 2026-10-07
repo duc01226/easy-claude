@@ -251,7 +251,7 @@ const AMEND_ABBREVIATIONS = new Set(['--am', '--ame', '--amen', '--amend']);
 // EVERYTHING ELSE IS ALLOWED — `add`, `commit`, `push`, `pull`, `fetch`, `merge`, `rebase`,
 // `cherry-pick`, `revert`, `checkout <branch>`, `switch <branch>`, `stash push`, `tag`, `config`.
 // Each is either purely additive or undoable from data git still holds. Whether those SHOULD run
-// unprompted is a BEHAVIOURAL rule (CLAUDE.md "Git & Version-Control Discipline"), and a behavioural
+// unprompted is a BEHAVIOURAL rule (`.claude/docs/development-rules.md`, "Pre-commit/Push Rules"), and a behavioural
 // rule is not this hook's job: gating recoverable operations bought no safety and made the correct
 // workflow — branch, commit, push — harder to reach than the destructive one.
 //

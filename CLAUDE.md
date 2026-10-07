@@ -163,7 +163,7 @@ When editing files matching these path patterns, pre-read the listed context fir
 | Kind        | Count                                       |
 | ----------- | ------------------------------------------- |
 | Skills      | <!-- COUNT:skills -->104<!-- /COUNT -->     |
-| Hooks       | <!-- COUNT:hooks -->32<!-- /COUNT -->       |
+| Hooks       | <!-- COUNT:hooks -->33<!-- /COUNT -->       |
 | Agents      | <!-- COUNT:agents -->24<!-- /COUNT -->      |
 | Workflows   | <!-- COUNT:workflows -->19<!-- /COUNT -->   |
 | Shared      | <!-- COUNT:shared -->15<!-- /COUNT -->      |

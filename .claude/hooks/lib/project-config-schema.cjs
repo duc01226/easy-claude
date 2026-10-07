@@ -639,7 +639,7 @@ const SCHEMA = {
             sections: { type: 'array', required: false },
             templatePath: { type: 'string', required: false },
             scanTarget: { type: 'string', required: false, describe: 'Optional custom-doc owner: generic for an evidence-based scan, manual for curated project ownership. Built-in docs keep their framework-owned target.' },
-            notApplicable: { type: 'boolean', required: false, describe: 'True when this stack/doc does not apply to the project; generated root context names it once as N/A and never routes agents to it. A purpose that starts with, or parenthesizes, "N/A" / "Not applicable" is read the same way.' }
+            notApplicable: { type: 'boolean', required: false, describe: 'True when this stack/doc does not apply to the project; generated root context names it once as N/A and never routes agents to it, and the freshness check never reports it as stale. A purpose that starts with, or parenthesizes, "N/A" / "Not applicable" is read the same way.' }
         }
     },
     graphConnectors: {

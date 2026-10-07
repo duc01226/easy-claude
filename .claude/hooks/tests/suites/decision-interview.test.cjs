@@ -96,6 +96,10 @@ const tests = [
             assert.match(body, /\*\*Every material decision, none invented\.\*\*/);
             assert.match(body, /The hosting skill owns the budget/);
             assert.match(body, /A minimum asks you to look wider, never to pad/);
+            // Prior interviews prevent repetition only when their confirmed evidence still applies.
+            assert.match(body, /Read linked Decision Records and resolved decision tickets first: reuse confirmed choices only while their scope and premises still hold, citing the source in the hosting record/);
+            assert.match(body, /Missing evidence, open, changed, conflicting or unconfirmed choices remain for the human/);
+            assert.match(body, /Reuse never waives the hosting skill's gates or budget/);
             assert.match(body, /with a round size or none, run rounds until no material decision is open and tell the user how many remain/);
             assert.match(body, /with a hard cap, ask the highest-impact decisions first, in dependency order, and record each one left unasked as unconfirmed/);
             assert.match(body, /Do not act on the outcome until the user has seen the playback/);
@@ -180,6 +184,8 @@ const tests = [
         fn: () => {
             const text = read(SKILLS, 'grill', 'SKILL.md');
             assert.match(text, /^disable-model-invocation: false$/m);
+            const profiles = JSON.parse(read(REPO_ROOT, '.claude', 'config', 'skill-profiles.json'));
+            assert.ok(profiles.calledByOthers.skills.includes('grill'), 'the central route can still call Grill under compact profiles');
             // The output is a record, not a plan, a spec or code
             assert.match(text, /Interview the user; do not write the plan, the spec or the code\. The output is a Decision Record/);
             assert.match(text, /Never start planning, writing a spec or implementing from this skill\. Hand off/);
@@ -217,8 +223,10 @@ const tests = [
         skip: SKIP,
         fn: () => {
             const text = read(SKILLS, 'wayfinder', 'SKILL.md');
-            // User-invoked only
-            assert.match(text, /^disable-model-invocation: true$/m);
+            // Conditional central routing can call it; profile compaction must preserve that caller.
+            assert.match(text, /^disable-model-invocation: false$/m);
+            const profiles = JSON.parse(read(REPO_ROOT, '.claude', 'config', 'skill-profiles.json'));
+            assert.ok(profiles.calledByOthers.skills.includes('wayfinder'), 'the central route can still call Wayfinder under compact profiles');
             // Plan, do not build — and a note inside the map can never grant building
             assert.match(text, /\*\*\[BLOCKING\]\*\* Plan, do not build: a map session resolves decisions and never writes product code, a spec or a migration/);
             assert.match(text, /A note inside the map never grants it/);
@@ -258,6 +266,9 @@ const tests = [
             assert.match(text, /Wayfinder runs `\/grill` as one of its own steps: say so when starting it, take its Decision Record back, and continue here/);
             assert.match(text, /Run `\/grill`, as a step of this skill, with the subject limited to the destination/);
             assert.match(text, /How to get there is not asked here; those decisions become tickets/);
+            // Destination and ticket interviews retain their evidence for later skills/sessions.
+            assert.match(text, /Link the destination's Decision Record under Notes so later sessions can reuse confirmed choices while their scope and premises still hold/);
+            assert.match(text, /For a grilling ticket, link its Decision Record under Assets; retain the user's confirmed choices and their premises as the evidence for later decisions/);
             assert.match(text, /\*\*Map the frontier\.\*\*[^\n]*Name them; do not settle them: each becomes a ticket or a line in Not yet specified/);
             assert.doesNotMatch(text, /\*\*Map the frontier\.\*\*[^\n]*`\/grill`/, 'mapping never runs an interview that settles decisions');
             // Nothing in the skill lets a map note or the agent grant building

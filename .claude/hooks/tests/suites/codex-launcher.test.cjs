@@ -14,6 +14,8 @@
  * - Each hook migrated to the shared check (review-commit-gate, doc-sync-gate, init-prompt-gate,
  *   session-init-docs, file-convention-inject, prompt-ledger, workflow-route-inject, core-principles-inject) produces ITS OWN
  *   observable outcome when Codex launches it. Reverting any of them to `require.main === module` fails its test.
+ * - workflow-catalog-inject requires workflow-route-inject and asks it for the catalog output: launched by
+ *   Codex it writes the catalog alone, because the route module is then a required module, never the entry.
  *
  * Fixture projects hold a COPY of the hook tree (the launcher runs the tree under the nearest `.claude`
  * ancestor of its cwd), so fixture config never touches the repository.
@@ -404,9 +406,69 @@ const launcherTests = [
                 assertContains(result.stdout, '<!-- CK:RUNTIME-WORKFLOW-ROUTE -->');
                 assertContains(result.stdout, 'FIXTURE-WORKFLOW-GATE: route before acting.');
                 assertContains(result.stdout, '<!-- /CK:RUNTIME-WORKFLOW-ROUTE -->');
+                // And only that block: the catalog is the catalog hook's output, one process writes one output
+                assertTrue(!result.stdout.includes('<!-- CK:RUNTIME-WORKFLOW-CATALOG -->'), 'the route hook must not also write the catalog output');
+                assertTrue(!result.stdout.includes('## Workflow & Skills Catalog'), 'the route output carries no catalog');
                 // And records the delivery in the fixture project's route ledger
                 const record = conventionLedger.readRecord(path.join(root, 'tmp', 'workflow-routing'), sessionId, 'main', 'workflow-route');
                 assertTrue(Boolean(record && record.hash), 'delivery must be recorded under <fixture>/tmp/workflow-routing');
+                assertTrue(!conventionLedger.readRecord(path.join(root, 'tmp', 'workflow-routing'), sessionId, 'main', 'workflow-catalog'),
+                    'the route hook must not record a catalog delivery');
+            } finally {
+                removeTemp(root);
+            }
+        }
+    },
+    {
+        // Intent: the workflow catalog is the second output of the route. On Codex it must arrive too, and as
+        // the catalog ALONE: its entry file requires the route module, which would write a second route
+        // block (or nothing at all) if either file mistook which one the launcher started.
+        name: '[codex-launcher] TC-CXL-010 workflow-catalog-inject under the Codex launcher emits the project\'s workflow catalog alone and records its own delivery',
+        fn: () => {
+            // Given a fixture project carrying its own workflow registry and a gate file (the fixture tree holds the script libraries)
+            const root = makeHookProject('catalog');
+            const sessionId = 'codex-launcher-catalog';
+            try {
+                writeFile(root, '.claude/workflows.json', {
+                    version: '1.0.0',
+                    workflows: {
+                        'workflow-fixture-launcher': {
+                            name: 'Fixture launcher', activation: 'confirm', whenToUse: 'run the fixture launcher route',
+                            preActions: { injectContext: 'Use the selected workflow context.' },
+                            sequence: ['investigate', 'review-a', 'review-b', 'finish'],
+                            parallelGroups: [{ id: 'reviews', members: ['review-a', 'review-b'], barrier: true }]
+                        }
+                    }
+                });
+                writeFile(root, '.claude/skills/shared/workflow-first-gate.md', 'FIXTURE-WORKFLOW-GATE: route before acting.\n');
+                // A clean machine: every inherited CK_* switch (a personal route mode or a disabled skill
+                // auto-trigger included) is removed and home and temp point into the fixture. This is the RAW
+                // override map: the launcher helper resolves the child environment itself.
+                const env = { ...HOOK_ENV_RESET, HOME: root, USERPROFILE: root, TMPDIR: root, TEMP: root, TMP: root };
+                for (const key of Object.keys(process.env)) {
+                    if (/^CK_/i.test(key)) env[key] = undefined;
+                }
+                // When Codex launches the catalog hook on a prompt
+                const result = runCodexLauncher('workflow-catalog-inject.cjs',
+                    JSON.stringify({ hook_event_name: 'UserPromptSubmit', session_id: sessionId, cwd: root, prompt: 'add a retry to the fetcher' }),
+                    { cwd: root, env });
+                // Then it emits its own catalog block built from the FIXTURE project's registry, in the default mode
+                assertEqual(result.code, 0, `stderr: ${result.stderr}`);
+                assertTrue(result.stdout.startsWith('<!-- CK:RUNTIME-WORKFLOW-CATALOG -->\n'), `the launched hook must emit its catalog block (empty = silent no-op), got: ${result.stdout.slice(0, 120)}`);
+                assertTrue(result.stdout.endsWith('\n<!-- /CK:RUNTIME-WORKFLOW-CATALOG -->\n'), 'the catalog block must be closed');
+                assertContains(result.stdout, '## Workflow & Skills Catalog');
+                assertContains(result.stdout, '| `workflow-fixture-launcher` | confirm · 4 steps |');
+                assertContains(result.stdout, '[review-a ∥ review-b]');
+                assertContains(result.stdout, 'before you start a catalog workflow, in every tier');
+                // And the catalog alone: no route block, no state line, no gate text
+                assertTrue(!result.stdout.includes('<!-- CK:RUNTIME-WORKFLOW-ROUTE -->'), 'the catalog hook must not also write the route output');
+                assertTrue(!result.stdout.includes('Route mode:'), 'the state line belongs to the route output');
+                assertTrue(!result.stdout.includes('FIXTURE-WORKFLOW-GATE'), 'the gate belongs to the route output');
+                // And records the delivery on its own record in the fixture project's route ledger
+                const store = path.join(root, 'tmp', 'workflow-routing');
+                const record = conventionLedger.readRecord(store, sessionId, 'main', 'workflow-catalog');
+                assertTrue(Boolean(record && record.hash), 'delivery must be recorded under <fixture>/tmp/workflow-routing as workflow-catalog');
+                assertTrue(!conventionLedger.readRecord(store, sessionId, 'main', 'workflow-route'), 'the catalog hook must not record a route delivery');
             } finally {
                 removeTemp(root);
             }

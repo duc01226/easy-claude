@@ -231,9 +231,8 @@ test('TC-CTXP-035f: no mirror carries universal protocol text; every signature i
     const dupe = checkNoUniversalProtocolText(joinLines(BOTH_BODIES, BOTH_BODIES), 'AGENTS.md');
     assert.match(dupe[0], /found 2×/);
 
-    // The task-planning and git-discipline leads are signatures too.
+    // The task-planning lead is a signature too.
     assert.equal(checkNoUniversalProtocolText('Create a small task per change before edits', 'x').length, 1);
-    assert.equal(checkNoUniversalProtocolText('Never commit, push, or stage (`git add`) unless the user explicitly asks', 'x').length, 1);
 });
 
 test('TC-CTXP-035g: loosening the universal-text absence check is killed by its own contract', async () => {

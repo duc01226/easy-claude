@@ -23,6 +23,9 @@
 >
 > | Signals | Route |
 > | --- | --- |
+> | Loose idea, plan or design with unresolved material choices that fit one conversation, no owning artifact | `grill`: interview, save the Decision Record, then stop |
+> | Loose idea or existing decision map with an unclear route and dependent unresolved decisions spanning sessions | `wayfinder`: chart or resume a decision map, then stop; size alone is insufficient |
+> | Saved implementation plan or authored spec/test cases needing decisions validated | existing owner: `plan --mode=validate` or `spec [mode=clarify]` |
 > | Question, lookup, or trivial low-risk edit; one skill covers it | direct: plain answer or that one skill |
 > | Focused change (one module/policy, clear intent, no public-contract change) | custom-simple: only the canonical steps it needs, in dependency order |
 > | Non-trivial bug/regression/stale output, cause unknown or wide reach | `workflow-bugfix` |
@@ -31,6 +34,8 @@
 > | Explicit roadmap/update/milestone-selection request | `product-roadmap`; the only writer of the product-roadmap artifact (default `docs/product-roadmap.md`; `docsRoots.productRoadmap.path` in `docs/project-config.json` overrides) |
 > | Milestone/large-idea scope needing adversarial failure/replay/state/ownership/recovery/evidence analysis | conditional `scenario` before planning; no roadmap artifact |
 > | Other matching skill/workflow Use clause | that skill/workflow, verified from its canonical definition |
+>
+> **Decision discovery:** select by unresolved decisions, not size. Clear work keeps its ordinary route. When a selected workflow already owns an interview, use that step instead of adding `grill`. Honor explicit requests and configured automatic-selection restrictions. Carry linked Decision Records and resolved tickets forward: reuse confirmed choices only while scope and premises still hold; cite them, and put open, changed, conflicting or unconfirmed choices to the human. All hosting gates remain binding. Discovery stops at its handoff and grants no build authority.
 >
 > **Catalog fit:** the table route is the default. Keep a catalog workflow when >80% of its unconditional steps would do real work; otherwise downgrade to custom-simple, trimming only steps that would do no real work. A behavior change keeps its test and review steps; a downgraded route also keeps root-cause investigation for bugs and spec/doc sync when behavior or a public contract changes. Re-declare if evidence changes the complexity.
 >

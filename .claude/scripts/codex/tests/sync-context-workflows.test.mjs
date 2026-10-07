@@ -50,7 +50,6 @@ const UNIVERSAL_SIGNATURES = [
   "[CRITICAL-THINKING-MINDSET]",
   "## Common AI Mistake Prevention (System Lessons)",
   "Create a small task per change before edits",
-  "Never commit, push, or stage (`git add`) unless the user explicitly asks",
 ];
 const RETIRED_MARKERS = [
   "CODEX-CONTEXT-MIRROR",

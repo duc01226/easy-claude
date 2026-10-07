@@ -15,23 +15,28 @@
  * transcript grows by about 4.5 MB (the framework's ~200k-token proxy).
  *
  * An optional project-supplied protocol (`portability.workflowRouteProtocol`, team or local,
- * local wins) is appended in its own marker block. It is part of the delivery content, so a
- * protocol edit re-arms delivery; when nothing is configured the payload is byte-identical.
+ * local wins) is appended to the route output in its own marker block. It is part of the delivery
+ * content, so a protocol edit re-arms delivery; when nothing is configured the payload is byte-identical.
  *
- * The payload stays under the host's hook-output cap. The gate body (from
- * .claude/skills/shared/workflow-first-gate.md, filtered to the mode) is always delivered; the catalog
- * is the compact form (tier, step count, hint and barrier groups per workflow; step-skill names only
- * while they fit). A registry too large even for that falls back to the compact rows without the
- * step-skill names, then to an index (rows with barrier groups, then rows with tier only), then to a
- * pointer-only form with no workflow rows. The gate and the barrier legend's advancement clause are
- * always kept. The `[a ∥ b]` group tokens are kept in the compact catalog and in the index with
- * parallel-phase marks; the tiers-only index and the pointer-only form omit them
- * (`start-workflow <id>` loads a workflow's phases), so the wf-cycle W5 runtime-payload check
- * applies barrier-mark parity only to the two marked forms.
+ * The route is TWO hook outputs, one per hook file, because a host cuts any single output above its
+ * cap to a short preview:
+ *   - route output (this file): the state line, the gate body (from
+ *     .claude/skills/shared/workflow-first-gate.md, filtered to the mode) and the project protocol.
+ *     The gate is always delivered in full; its length never costs the catalog its form.
+ *   - catalog output (workflow-catalog-inject.cjs, which calls `runHook('catalog')` here): the compact
+ *     catalog (tier, step count, hint and barrier groups per workflow; step-skill names only while
+ *     they fit). A registry too large for one output falls back to the compact rows without the
+ *     step-skill names, then to an index (rows with barrier groups, then rows with tier only), then to
+ *     a pointer-only form with no workflow rows. Every form keeps the barrier legend's advancement
+ *     clause. The `[a ∥ b]` group tokens are kept in the compact catalog and in the index with
+ *     parallel-phase marks; the tiers-only index and the pointer-only form omit them
+ *     (`start-workflow <id>` loads a workflow's phases), so the wf-cycle W5 runtime-payload check
+ *     applies barrier-mark parity only to the two marked forms.
+ * Each output keeps its own session record, so either is delivered again without the other.
  *
- * A source file that cannot be read (a corrupt or missing workflows.json, an unreadable gate file) never
- * silences the route: the gate is still delivered with one line naming the unavailable catalog, and an
- * unreadable gate file is reported in one line naming it (`buildUnavailableInjection`).
+ * A source file that cannot be read never silences the route: a corrupt or missing workflows.json is
+ * reported in one line of the catalog output while the gate is still delivered, and an unreadable gate
+ * file is reported in one line naming it (`buildUnavailableInjection`).
  *
  * Hosts without hook delivery are not supported: a host that runs no hooks, or one whose hooks are
  * disabled or untrusted, receives no route block.
@@ -43,6 +48,14 @@ const path = require('path');
 
 const HOOK_NAME = 'workflow-route-inject';
 const RECORD_GROUP = 'workflow-route';
+const CATALOG_HOOK_NAME = 'workflow-catalog-inject';
+const CATALOG_RECORD_GROUP = 'workflow-catalog';
+const PART_ROUTE = 'route';
+const PART_CATALOG = 'catalog';
+const ROUTE_START = '<!-- CK:RUNTIME-WORKFLOW-ROUTE -->';
+const ROUTE_END = '<!-- /CK:RUNTIME-WORKFLOW-ROUTE -->';
+const CATALOG_START = '<!-- CK:RUNTIME-WORKFLOW-CATALOG -->';
+const CATALOG_END = '<!-- /CK:RUNTIME-WORKFLOW-CATALOG -->';
 const PROTOCOL_START = '<!-- CK:WORKFLOW-ROUTE-PROTOCOL -->';
 const PROTOCOL_END = '<!-- /CK:WORKFLOW-ROUTE-PROTOCOL -->';
 const OFF_START = '<!-- CK:RUNTIME-WORKFLOW-ROUTE-OFF -->';
@@ -135,26 +148,34 @@ function buildStateLine(mode, source) {
 }
 
 /**
- * Build the runtime payload: the state line, the mode's gate and the compact catalog when it fits
- * PAYLOAD_CAP, otherwise the first smaller form that fits (compact rows without the step-skill names →
- * index rows with barrier groups → rows with tier only → no rows). The gate and any configured protocol
- * are never dropped, so the last form is returned even when a large protocol keeps it over the cap.
+ * Build the route output: the state line, the mode's gate and any configured protocol. The gate and
+ * the protocol are never dropped or cut, so the output is returned whole even when a large protocol
+ * keeps it over PAYLOAD_CAP. It carries no catalog (see buildCatalogInjection).
  * `mode` is `ask` (default) or `auto`; `off` has no payload (see buildOffNotice). `source` names the
  * layer that decided the mode (workflow-routing-config `SOURCE_*`).
  */
 function buildInjection(projectDir, protocolText, mode = DEFAULT_MODE, source = 'default') {
-    const catalogLib = require('../scripts/lib/workflow-skills-catalog.cjs');
     const effectiveMode = mode === 'auto' ? 'auto' : DEFAULT_MODE;
     const gate = renderGateForMode(fs.readFileSync(path.join(projectDir, ...GATE_FILE_SEGMENTS), 'utf8'), effectiveMode);
     if (!gate) throw new Error('empty gate');
     const protocol = buildProtocolSection(protocolText);
-    const state = buildStateLine(effectiveMode, source);
-    const assemble = catalog => {
-        const parts = ['<!-- CK:RUNTIME-WORKFLOW-ROUTE -->', state, gate, '', catalog];
-        if (protocol) parts.push('', protocol);
-        parts.push('<!-- /CK:RUNTIME-WORKFLOW-ROUTE -->');
-        return parts.join('\n');
-    };
+    const parts = [ROUTE_START, buildStateLine(effectiveMode, source), gate];
+    if (protocol) parts.push('', protocol);
+    parts.push(ROUTE_END);
+    return parts.join('\n');
+}
+
+/**
+ * Build the catalog output: the compact catalog when it fits PAYLOAD_CAP, otherwise the first smaller
+ * form that fits (compact rows without the step-skill names → index rows with barrier groups → rows
+ * with tier only → no rows). The output holds nothing else, so the form depends on the registry alone,
+ * never on the gate or a project protocol. The last form is returned even when it stays over the cap.
+ * `mode` is `ask` (default) or `auto`: it selects the tier legend the catalog prints.
+ */
+function buildCatalogInjection(projectDir, mode = DEFAULT_MODE) {
+    const catalogLib = require('../scripts/lib/workflow-skills-catalog.cjs');
+    const effectiveMode = mode === 'auto' ? 'auto' : DEFAULT_MODE;
+    const assemble = catalog => [CATALOG_START, catalog, CATALOG_END].join('\n');
     const compact = sections => () => catalogLib.buildWorkflowSkillsCatalog({ rootDir: projectDir, sections, compact: true, mode: effectiveMode });
     const forms = [
         compact(['workflows', 'skills']),
@@ -179,32 +200,18 @@ function describeSourceFailure(error, projectDir) {
 }
 
 /**
- * The block delivered when the catalog (or any other part of buildInjection) cannot be built: the hook is
- * the only carrier of the route, so a corrupt or missing source file must not silence it. With the gate
- * file readable the block is the state line, the mode's gate and one line naming the missing catalog;
- * with the gate unreadable too it is the state line and one line naming the gate file. Never throws.
+ * The route output delivered when the gate file cannot be read or holds no gate: the hook is the only
+ * carrier of the route, so a missing source file must not silence it. The block is the state line and
+ * one line naming the gate file. Never throws.
  */
-function buildUnavailableInjection(projectDir, protocolText, mode, source, error) {
+function buildUnavailableInjection(projectDir, mode, source, error) {
     const effectiveMode = mode === 'auto' ? 'auto' : DEFAULT_MODE;
-    const state = buildStateLine(effectiveMode, source);
-    const reason = describeSourceFailure(error, projectDir);
-    let gate = '';
-    let gateError = null;
-    try {
-        gate = renderGateForMode(fs.readFileSync(path.join(projectDir, ...GATE_FILE_SEGMENTS), 'utf8'), effectiveMode);
-    } catch (readError) {
-        gateError = readError;
-    }
-    const parts = ['<!-- CK:RUNTIME-WORKFLOW-ROUTE -->', state];
-    if (gate && !gateError) {
-        parts.push(gate, '', `workflow catalog unavailable: ${reason}; read .claude/workflows.json`);
-        const protocol = buildProtocolSection(protocolText);
-        if (protocol) parts.push('', protocol);
-    } else {
-        parts.push(`workflow route unavailable: ${GATE_FILE_SEGMENTS.join('/')} could not be read (${describeSourceFailure(gateError || 'empty gate', projectDir)}); read it and .claude/workflows.json`);
-    }
-    parts.push('<!-- /CK:RUNTIME-WORKFLOW-ROUTE -->');
-    return parts.join('\n');
+    return [
+        ROUTE_START,
+        buildStateLine(effectiveMode, source),
+        `workflow route unavailable: ${GATE_FILE_SEGMENTS.join('/')} could not be read (${describeSourceFailure(error || 'empty gate', projectDir)}); read it and .claude/workflows.json`,
+        ROUTE_END
+    ].join('\n');
 }
 
 /** `buildInjection`, or the unavailable-source block when it throws. */
@@ -212,7 +219,24 @@ function buildInjectionOrNotice(projectDir, protocolText, mode, source) {
     try {
         return buildInjection(projectDir, protocolText, mode, source);
     } catch (error) {
-        return buildUnavailableInjection(projectDir, protocolText, mode, source, error);
+        return buildUnavailableInjection(projectDir, mode, source, error);
+    }
+}
+
+/**
+ * The catalog output delivered when the catalog cannot be built (a corrupt or missing workflows.json):
+ * one line naming the reason and the file to read instead. Never throws.
+ */
+function buildCatalogUnavailable(projectDir, error) {
+    return [CATALOG_START, `workflow catalog unavailable: ${describeSourceFailure(error, projectDir)}; read .claude/workflows.json`, CATALOG_END].join('\n');
+}
+
+/** `buildCatalogInjection`, or the unavailable-catalog block when it throws. */
+function buildCatalogInjectionOrNotice(projectDir, mode) {
+    try {
+        return buildCatalogInjection(projectDir, mode);
+    } catch (error) {
+        return buildCatalogUnavailable(projectDir, error);
     }
 }
 
@@ -284,7 +308,12 @@ function applyDirective(routing, directive, context) {
     return `Route mode directive applied: ${directive.mode} ${scope}${saved}. The prompt's first line is that directive, not a task; if nothing else follows it, reply with one line confirming the mode.`;
 }
 
-/** Resolve to the text written, or an empty string when the hook stays silent. */
+/**
+ * Resolve to the text written, or an empty string when the hook stays silent. `deps.part` selects the
+ * output: `route` (default) or `catalog`. Both resolve the mode the same way, but only the route output
+ * records and acknowledges a prompt directive: the hooks of one event run in parallel, so the catalog
+ * output reads the directive from the prompt instead of waiting for that record.
+ */
 function run(input, deps = {}) {
     return new Promise(resolve => {
         const finish = value => resolve(value);
@@ -293,6 +322,7 @@ function run(input, deps = {}) {
             if (input.hook_event_name && input.hook_event_name !== 'UserPromptSubmit') return finish('');
             if (!nonBlank(input.session_id)) return finish('');
 
+            const part = deps.part === PART_CATALOG ? PART_CATALOG : PART_ROUTE;
             const env = deps.env || process.env;
             const now = typeof deps.now === 'number' ? deps.now : Date.now();
             const projectDir = deps.projectDir || defaultProjectDir(input, env);
@@ -306,11 +336,33 @@ function run(input, deps = {}) {
             } catch {
                 directive = null;
             }
-            const ack = applyDirective(routing, directive, { ledger, storeRoot, sessionId: input.session_id, homeDir: deps.homeDir });
+            const ack = part === PART_ROUTE
+                ? applyDirective(routing, directive, { ledger, storeRoot, sessionId: input.session_id, homeDir: deps.homeDir })
+                : '';
             const sessionMode = directive ? directive.mode : readSessionMode(ledger, storeRoot, input.session_id);
             const routeOptions = { rootDir: projectDir, env, homeDir: deps.homeDir, sessionMode };
             const { mode, source } = resolveMode(routing, routeOptions);
             const skillPolicy = typeof routing.resolveSkillAutoTrigger === 'function' ? routing.resolveSkillAutoTrigger(routeOptions) : null;
+            const write = deps.write || defaultWrite;
+
+            if (part === PART_CATALOG) {
+                // The catalog serves the gate: the states that deliver no gate by design (`off`, skill auto-trigger
+                // disabled) deliver no catalog. An unreadable gate is a fault, not such a state: the catalog still arrives.
+                if (skillPolicy?.enabled === false || mode === 'off') return finish('');
+                const catalog = deps.content || buildCatalogInjectionOrNotice(projectDir, mode);
+                ledger.deliverOnce({
+                    root: storeRoot,
+                    input,
+                    group: CATALOG_RECORD_GROUP,
+                    hash: crypto.createHash('sha256').update(catalog, 'utf8').digest('hex'),
+                    payload: `${catalog}\n`,
+                    settings: SETTINGS,
+                    now,
+                    write,
+                    failOpen: true
+                }).then(finish, () => finish(''));
+                return;
+            }
 
             let content;
             if (skillPolicy?.enabled === false) {
@@ -323,7 +375,6 @@ function run(input, deps = {}) {
                 if (!content) return finish('');
             }
             const hash = crypto.createHash('sha256').update(content, 'utf8').digest('hex');
-            const write = deps.write || defaultWrite;
             // This hook is the only carrier of the route and of the off notice, so an unusable record store
             // must not silence it: failOpen delivers without a record (a duplicate is accepted over silence).
             ledger.deliverOnce({
@@ -347,10 +398,29 @@ function run(input, deps = {}) {
     });
 }
 
+/** Hook entry for one output (`route` or `catalog`): read the event from stdin, run, always exit 0. */
+function runHook(part) {
+    process.exitCode = 0;
+    let input = null;
+    try {
+        const { parseStdinSync } = require('./lib/stdin-parser.cjs');
+        input = parseStdinSync({ defaultValue: null, throwOnError: true, context: part === PART_CATALOG ? CATALOG_HOOK_NAME : HOOK_NAME });
+    } catch {
+        input = null;
+    }
+    if (input) run(input, { part }).then(() => { process.exitCode = 0; }, () => { process.exitCode = 0; });
+}
+
 module.exports = {
     HOOK_NAME,
     RECORD_GROUP,
+    CATALOG_HOOK_NAME,
+    CATALOG_RECORD_GROUP,
     SETTINGS,
+    ROUTE_START,
+    ROUTE_END,
+    CATALOG_START,
+    CATALOG_END,
     PROTOCOL_START,
     PROTOCOL_END,
     OFF_START,
@@ -359,22 +429,16 @@ module.exports = {
     GATE_END_MARKER,
     PAYLOAD_CAP,
     buildInjection,
+    buildCatalogInjection,
     buildUnavailableInjection,
+    buildCatalogUnavailable,
     renderGateForMode,
     buildOffNotice,
     buildProtocolSection,
-    run
+    run,
+    runHook
 };
 
 // Entry-point check covers the Codex `node -e … require(hook)` launcher too (require.main is undefined there).
-if (require('./lib/hook-runner.cjs').isHookEntryPoint(module)) {
-    process.exitCode = 0;
-    let input = null;
-    try {
-        const { parseStdinSync } = require('./lib/stdin-parser.cjs');
-        input = parseStdinSync({ defaultValue: null, throwOnError: true, context: HOOK_NAME });
-    } catch {
-        input = null;
-    }
-    if (input) run(input).then(() => { process.exitCode = 0; }, () => { process.exitCode = 0; });
-}
+// It stays false when workflow-catalog-inject.cjs requires this module, so one process writes one output.
+if (require('./lib/hook-runner.cjs').isHookEntryPoint(module)) runHook(PART_ROUTE);

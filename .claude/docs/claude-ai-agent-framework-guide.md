@@ -2,7 +2,7 @@
 
 > **Purpose:** the one-page map of the portable `.claude/` framework — what it does, how the parts fit, how to use it day to day, and where each topic's detailed owner doc lives. Read it first when you adopt the framework, change it, or need to explain a hook block, a routing decision or a workflow step.
 >
-> **Framework inventory:** <!-- COUNT:hooks -->32<!-- /COUNT --> top-level hook files · <!-- COUNT:lib-modules -->61<!-- /COUNT --> hook-library modules · <!-- COUNT:skills -->104<!-- /COUNT --> skills · <!-- COUNT:workflows -->19<!-- /COUNT --> workflows · <!-- COUNT:agents -->24<!-- /COUNT --> agents · <!-- COUNT:shared -->15<!-- /COUNT --> shared reference/protocol entries.
+> **Framework inventory:** <!-- COUNT:hooks -->33<!-- /COUNT --> top-level hook files · <!-- COUNT:lib-modules -->61<!-- /COUNT --> hook-library modules · <!-- COUNT:skills -->104<!-- /COUNT --> skills · <!-- COUNT:workflows -->19<!-- /COUNT --> workflows · <!-- COUNT:agents -->24<!-- /COUNT --> agents · <!-- COUNT:shared -->15<!-- /COUNT --> shared reference/protocol entries.
 >
 > **Visual overview:** `.claude/docs/claude-ai-agent-framework-guide.html`. Use this Markdown guide for current inventories and source-owner pointers.
 
@@ -17,11 +17,11 @@
 
 ## 1. What the framework is
 
-A generic LLM is capable but forgetful, confident without evidence, and unaware of your project. This framework wraps Claude Code in **32 top-level hook files**, **104 skills**, **19 registered workflows**, and **24 specialized agents** that make it project-aware, evidence-driven and gated at every quality step — from idea and spec through implementation, testing, review, commit and pull request.
+A generic LLM is capable but forgetful, confident without evidence, and unaware of your project. This framework wraps Claude Code in **33 top-level hook files**, **104 skills**, **19 registered workflows**, and **24 specialized agents** that make it project-aware, evidence-driven and gated at every quality step — from idea and spec through implementation, testing, review, commit and pull request.
 
 | Failure mode of a plain agent        | What counters it                                            | Where it lives                                     |
 | ------------------------------------ | ----------------------------------------------------------- | -------------------------------------------------- |
-| Picks the wrong process for the task | Routing gate + workflow catalog injected at prompt time     | `workflow-route-inject.cjs` |
+| Picks the wrong process for the task | Routing gate + workflow catalog injected at prompt time     | `workflow-route-inject.cjs`, `workflow-catalog-inject.cjs` |
 | Skips steps or stops early           | Guided workflows: gate steps, outcome gates, evidence-gated close | `.claude/workflows.json`, `start-workflow`, `workflow-end` |
 | Guesses APIs and project facts       | Evidence protocols, project config, reference docs, code graph | shared protocols, `docs/project-config.json`     |
 | Forgets rules in long sessions       | Rules delivered once per session and re-armed after compaction | protocol-inject hooks, prompt ledger             |
@@ -95,7 +95,7 @@ flowchart TB
 
 ## 4. Routing — how a request becomes a route
 
-The workflow route (source: `.claude/skills/shared/workflow-first-gate.md`) is delivered only by `workflow-route-inject.cjs` at prompt time: the gate plus a compact workflow catalog (tier, step count, when to use, parallel groups), in the route mode each person chose — `ask` (default), `auto` or `off`. No tracked file carries it.
+The workflow route (source: `.claude/skills/shared/workflow-first-gate.md`) is delivered only by hooks at prompt time, as two outputs: `workflow-route-inject.cjs` writes the gate and `workflow-catalog-inject.cjs` a compact workflow catalog (tier, step count, when to use, parallel groups), in the route mode each person chose — `ask` (default), `auto` or `off`. No tracked file carries it.
 
 1. **Honor explicit requests** — a `/skill`, `/workflow-*` or "use a workflow" always runs.
 2. **Assess** scope · change type · risk · ambiguity · needed artifacts. Escalate on risk and ambiguity, not file count.
@@ -185,7 +185,7 @@ A skill is a directory with `SKILL.md` (frontmatter `name`, `description` = `[Ca
 | Project setup, context & help    | 9     | `project-init`, `ai-context-refresh`, `project-skill-protocol`, `learn` |
 | Framework maintenance            | 6     | `sync-codex`, `sync-opencode`, `skill-creator`, `prompt-enhance`     |
 
-**Who can start a skill.** Most skills are model-invocable. 16 are command-only (`disable-model-invocation: true`, e.g. `sync-opencode`, `release-doc`, `product-roadmap`) — only the user starts them with `/name`. A team can hide more with a **skill profile** (`skillProfile` in `docs/project-config.json`): preset `full` · `standard` · `minimal`, plus `nameOnly`, `commandOnly` and `off` lists; `node .claude/scripts/sync-skill-profile.cjs` writes the result into `.claude/settings.json` `skillOverrides`. Hiding a skill that a workflow, agent or hook calls is refused unless `allowHidingCalledSkills: true`.
+**Who can start a skill.** Most skills are model-invocable. 15 are command-only (`disable-model-invocation: true`, e.g. `sync-opencode`, `release-doc`, `product-roadmap`) — only the user starts them with `/name`. A team can hide more with a **skill profile** (`skillProfile` in `docs/project-config.json`): preset `full` · `standard` · `minimal`, plus `nameOnly`, `commandOnly` and `off` lists; `node .claude/scripts/sync-skill-profile.cjs` writes the result into `.claude/settings.json` `skillOverrides`. Hiding a skill that a workflow, agent or hook calls is refused unless `allowHidingCalledSkills: true`.
 
 **Review-family modes.** `--fix-loop` (review → validate → fix → fresh re-review until converged; mints a review receipt) and `--report-only` (a leaf reviewer that only reports — no fixes, no questions, no nested fan-out — used when a caller owns the fixes).
 
@@ -223,7 +223,7 @@ Everything else is advisory or silent.
 | Event                           | Hooks (purpose)                                                                                          |
 | ------------------------------- | -------------------------------------------------------------------------------------------------------- |
 | SessionStart                    | `verify-install` (partial-install check, safe dependency install), `session-init` (session/plan state), `session-init-docs` (reference-doc status), `graph-session-init`, `file-convention-inject` and `prompt-ledger` (re-arm after compaction) |
-| UserPromptSubmit                | `init-prompt-gate`, `graph-prompt-sync`, `workflow-route-inject` (routing catalog), `commit-skill-route`, `judgement-integrity-route`, `ai-feature-route`, `prompt-ledger` |
+| UserPromptSubmit                | `init-prompt-gate`, `graph-prompt-sync`, `workflow-route-inject` (routing gate), `workflow-catalog-inject` (routing catalog), `commit-skill-route`, `judgement-integrity-route`, `ai-feature-route`, `prompt-ledger` |
 | UserPromptExpansion · PostToolUse `Skill`/`Read(SKILL.md)` · SubagentStart | six `protocol-inject-<group>` hooks (review, evidence-trace, workflow-task, spec-test, design, universal) |
 | PreToolUse                      | `doc-sync-gate` (spec-drift warning), `review-commit-gate`, notifications on `AskUserQuestion`           |
 | PostToolUse                     | `post-edit-prettier` (formatter), `graph-auto-update`, `file-convention-inject`, `prompt-ledger`, `token-budget-checkpoint` |
@@ -232,7 +232,7 @@ Everything else is advisory or silent.
 **Key mechanisms**
 
 - **Universal bundle** — the framework rules every task follows, in four messages, once per session, again after ~150K tokens of growth or a compaction, and once per spawned sub-agent.
-- **Routing injection** — the gate plus the workflow catalog, once per session, re-armed on change, compaction or ~200K tokens of growth.
+- **Routing injection** — the gate and the workflow catalog as two hook outputs, each once per session, re-armed on change, compaction or ~200K tokens of growth.
 - **Protocol delivery** — when a skill loads, its group hook sends the full text of the protocols its guide lines name, once per session, capped per message.
 - **Skill overlay reminder** — when a skill starts, a three-line reminder names the project overlay files that apply to it (repeats after ~150K tokens).
 - **File conventions** — touching a file injects the matching `contextGroups[]` rules not already in context (opt-in `conventionInjection.enabled`; shell read: `node .claude/hooks/lib/file-conventions.cjs --lookup <path>`).
@@ -361,11 +361,11 @@ Codex transforms `/skill` into `$skill`, `Agent` into `spawn_agent` and strips C
 | Runner                                  | Tests  | Covers                                                                 |
 | --------------------------------------- | ------ | ---------------------------------------------------------------------- |
 | `test-all-hooks.cjs` (primary gate)  | **133** | Hook behaviors, bridged suites and the count guard                     |
-| `run-all-tests.cjs` (full aggregate) | **1845** | 119 discovered `tests/suites/*.test.cjs` files; primary gate runs separately |
+| `run-all-tests.cjs` (full aggregate) | **1854** | 119 discovered `tests/suites/*.test.cjs` files; primary gate runs separately |
 | `node --test .claude/scripts/codex/tests` | —      | Mirror generators and verifiers                                        |
 | `run-codex-sync.mjs --verify-only`      | —      | Every read-only gate before a commit                                   |
 
-> Source inventory: `test-all-hooks.cjs` = 133; `run-all-tests.cjs` = 1845 declared across 119 suites. Both runners fail when these numbers drift from the docs. Counts do not establish runtime results; read the actual runner output for outcomes.
+> Source inventory: `test-all-hooks.cjs` = 133; `run-all-tests.cjs` = 1854 declared across 119 suites. Both runners fail when these numbers drift from the docs. Counts do not establish runtime results; read the actual runner output for outcomes.
 
 **Portable test contract** — shipped tests must pass in any project layout on Windows, macOS and Linux: build a temp fixture project instead of reading this repository's config or git state; blank inherited feature switches and provider keys; point `HOME`, `USERPROFILE`, `TMPDIR`, `TEMP` and `TMP` at the temp dir; name OS differences explicitly (paths, symlinks, `py -3` vs `python3`); run the full suite twice to prove repeatability.
 

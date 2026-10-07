@@ -1058,7 +1058,8 @@ export function checkResolvedParallelGroupsStructure(workflowId, manifest, failu
   return failures;
 }
 
-// Catalog forms the runtime route hook can emit (workflow-route-inject.cjs buildInjection). The
+// Catalog forms the runtime catalog output can take (workflow-route-inject.cjs buildCatalogInjection,
+// delivered by workflow-catalog-inject.cjs). The
 // compact catalog and the index with parallel-phase marks carry every barrier token per workflow
 // row; the tiers-only index and the pointer-only form omit them by design (`start-workflow <id>`
 // loads a workflow's phases).
@@ -1088,8 +1089,8 @@ export function runtimeCatalogForm(runtimeText, rootDir) {
   return RUNTIME_CATALOG_FORMS.CATALOG;
 }
 
-// W5(b)+(c) — runtime-payload proof. (b) every expected barrier token is present in the text the
-// runtime prompt hook emits, when that text is a marked form; (c) the advancement clause reached
+// W5(b)+(c) — runtime-payload proof. (b) every expected barrier token is present in the catalog
+// output the runtime prompt hooks emit, when that text is a marked form; (c) the advancement clause reached
 // that payload, in every form. Static root/mirror files carry the route gate without the live catalog.
 async function checkParallelGroupsMirrorParity(workflows, rootDir, failures, resolvedByWorkflow = []) {
   const grouped = Object.entries(workflows).filter(
@@ -1109,8 +1110,9 @@ async function checkParallelGroupsMirrorParity(workflows, rootDir, failures, res
   }
   let runtimeText;
   try {
-    const { buildInjection } = require(hookPath);
-    runtimeText = buildInjection(rootDir);
+    // The catalog rides its own hook output; the route output (gate + protocol) carries no rows.
+    const { buildCatalogInjection } = require(hookPath);
+    runtimeText = buildCatalogInjection(rootDir);
   } catch (error) {
     failures.push(`parallelGroups runtime check: could not build ${RUNTIME_ROUTE_HOOK} payload (${error?.message || error})`);
     return;

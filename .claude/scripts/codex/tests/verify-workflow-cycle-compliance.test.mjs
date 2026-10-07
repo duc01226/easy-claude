@@ -1369,20 +1369,13 @@ const W5_STUB_HOOK = [
   "'use strict';",
   "const fs = require('fs');",
   "const path = require('path');",
-  "module.exports = { buildInjection: () => fs.readFileSync(path.join(__dirname, 'payload.txt'), 'utf8') };",
+  "module.exports = { buildCatalogInjection: () => fs.readFileSync(path.join(__dirname, 'payload.txt'), 'utf8') };",
   "",
 ].join("\n");
 
-/** Wrap a catalog body the way the route hook assembles its payload (gate marker + a gate line). */
+/** Wrap a catalog body the way the route hook assembles its catalog output (the catalog markers, no gate). */
 function w5Payload(catalog) {
-  return [
-    "<!-- CK:RUNTIME-WORKFLOW-ROUTE -->",
-    "<!-- CK:WORKFLOW-GATE -->",
-    "Gate text stands here.",
-    "",
-    catalog,
-    "<!-- /CK:RUNTIME-WORKFLOW-ROUTE -->",
-  ].join("\n");
+  return ["<!-- CK:RUNTIME-WORKFLOW-CATALOG -->", catalog, "<!-- /CK:RUNTIME-WORKFLOW-CATALOG -->"].join("\n");
 }
 
 /**

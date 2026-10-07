@@ -3,12 +3,16 @@
 /**
  * Workflow route modes (ask | auto | off) — end to end.
  *
- * The route hook is the ONLY carrier of the workflow route, in the mode each person chose. These tests
- * run the REAL hook as a child process (and the real Codex launcher command) inside a temp fixture project
- * with its own HOME, so a mode switch that stops working fails here — a check of the source text alone
- * would keep passing. Intents protected:
+ * The route hooks are the ONLY carrier of the workflow route, in the mode each person chose. The route is
+ * two hook outputs: `workflow-route-inject.cjs` writes the state line, the gate and the project protocol;
+ * `workflow-catalog-inject.cjs` writes the workflow catalog. These tests run the REAL hooks as child
+ * processes (and the real Codex launcher command) inside a temp fixture project with its own HOME, so a
+ * mode switch that stops working fails here — a check of the source text alone would keep passing.
+ * Intents protected:
  * - Each mode delivers its own text: `ask` asks the workflow question, `auto` starts without asking,
  *   `off` delivers a one-line state with no gate and no catalog (BR-WFR-06, BR-WFR-08).
+ * - The catalog is an output of its own: silent wherever no gate is delivered, recorded and re-delivered
+ *   independently of the route output, and never a second writer of a prompt directive (TC-WFR-025).
  * - Precedence, later wins: default `ask` < project config < ~/.claude/.ck.json < .claude/.ck.local.json
  *   < env CK_WORKFLOW_ROUTE_MODE < this session's prompt directive (BR-WFR-10).
  * - No project config, a config without the key, and an invalid or corrupt value in ANY source all end at
@@ -31,6 +35,7 @@ const { childEnv, makeHookTreeProject, removeTempDir, runCodexLauncher } = requi
 const PROJECT_DIR = process.env.CLAUDE_PROJECT_DIR;
 const CLAUDE_DIR = path.join(PROJECT_DIR, '.claude');
 const routing = require(path.join(CLAUDE_DIR, 'scripts', 'lib', 'workflow-routing-config.cjs'));
+const conventionLedger = require(path.join(CLAUDE_DIR, 'hooks', 'lib', 'convention-ledger.cjs'));
 const frameworkRepoGuard = require('../lib/framework-repo-guard.cjs');
 const FRAMEWORK_REPO_SKIP = frameworkRepoGuard.isFrameworkRepo(PROJECT_DIR) ? false : 'asserts the framework repo files only';
 const CODEX_HOOKS_SKIP = fs.existsSync(path.join(PROJECT_DIR, '.codex', 'hooks.json')) ? false : 'no .codex/hooks.json in this project';
@@ -43,14 +48,25 @@ const GIT_AVAILABLE = (() => {
 })();
 
 const PAYLOAD_CAP = 9500;
+const ROUTE_HOOK = 'workflow-route-inject.cjs';
+const CATALOG_HOOK = 'workflow-catalog-inject.cjs';
+const ROUTE_START = '<!-- CK:RUNTIME-WORKFLOW-ROUTE -->';
+const CATALOG_START = '<!-- CK:RUNTIME-WORKFLOW-CATALOG -->';
+const CATALOG_END = '<!-- /CK:RUNTIME-WORKFLOW-CATALOG -->';
 const CATALOG_HEADING = '## Workflow & Skills Catalog';
 const ASK_QUESTION = '**Workflow question** (every tier)';
 const AUTO_START = '**Workflow start** (mode auto)';
+// The catalog's tier legend, in each mode's own words.
+const ASK_LEGEND = 'before you start a catalog workflow, in every tier';
+const AUTO_LEGEND = '**Activation (mode auto):**';
 const SWITCHES = { CK_SKILL_AUTO_TRIGGER: undefined, CK_WORKFLOW_ROUTE_MODE: undefined, CK_SESSION_ID: undefined, CK_DEBUG: undefined, CLAUDE_HOOK_DEBUG: undefined, NODE_OPTIONS: undefined };
 
 /**
  * A fixture project holding the real hook tree, the routing libraries, the workflow registry, the gate
- * file and the mode CLI, plus a separate HOME and temp dir. `run` spawns the real hook; `cli` spawns the CLI.
+ * file and the mode CLI, plus a separate HOME and temp dir. `run` spawns the real route hook, `runCatalog`
+ * the real catalog hook (the two outputs of one prompt); `cli` spawns the CLI.
+ * `overrides` is the RAW override map (an `undefined` value deletes the key) for helpers that resolve the
+ * child environment themselves, such as `runCodexLauncher`; `env` is that map already resolved, for `spawnSync`.
  */
 function makeProject() {
     const root = makeHookTreeProject('route-modes');
@@ -67,27 +83,37 @@ function makeProject() {
         path.join(CLAUDE_DIR, 'skills', 'shared', 'workflow-first-gate.md'),
         path.join(root, '.claude', 'skills', 'shared', 'workflow-first-gate.md')
     );
-    const env = extra => childEnv({
+    const overrides = extra => ({
         ...SWITCHES, CLAUDE_PROJECT_DIR: root, HOME: home, USERPROFILE: home, TMPDIR: tmp, TEMP: tmp, TMP: tmp, ...extra
     });
+    const env = extra => childEnv(overrides(extra));
+    const spawnHook = (hookFile, session, prompt, extraEnv) => {
+        const result = spawnSync(process.execPath, [path.join(root, '.claude', 'hooks', hookFile)], {
+            cwd: root,
+            input: JSON.stringify({ hook_event_name: 'UserPromptSubmit', session_id: session, cwd: root, prompt }),
+            env: env(extraEnv), encoding: 'utf8', windowsHide: true, timeout: 30000
+        });
+        return { code: result.status, out: result.stdout || '', err: result.stderr || '' };
+    };
     const project = {
         root,
         home,
         userFile: path.join(home, '.claude', '.ck.json'),
         localFile: path.join(root, '.claude', '.ck.local.json'),
         teamFile: path.join(root, 'docs', 'project-config.json'),
+        registryFile: path.join(root, '.claude', 'workflows.json'),
+        gateFile: path.join(root, '.claude', 'skills', 'shared', 'workflow-first-gate.md'),
+        overrides,
         env,
         write(file, value) {
             fs.mkdirSync(path.dirname(file), { recursive: true });
             fs.writeFileSync(file, typeof value === 'string' || Buffer.isBuffer(value) ? value : JSON.stringify(value));
         },
         run(session, prompt, extraEnv = {}) {
-            const result = spawnSync(process.execPath, [path.join(root, '.claude', 'hooks', 'workflow-route-inject.cjs')], {
-                cwd: root,
-                input: JSON.stringify({ hook_event_name: 'UserPromptSubmit', session_id: session, cwd: root, prompt }),
-                env: env(extraEnv), encoding: 'utf8', windowsHide: true, timeout: 30000
-            });
-            return { code: result.status, out: result.stdout || '', err: result.stderr || '' };
+            return spawnHook(ROUTE_HOOK, session, prompt, extraEnv);
+        },
+        runCatalog(session, prompt, extraEnv = {}) {
+            return spawnHook(CATALOG_HOOK, session, prompt, extraEnv);
         },
         cli(args, extraEnv = {}) {
             const result = spawnSync(process.execPath, [path.join(root, '.claude', 'scripts', 'workflow-mode.cjs'), ...args], {
@@ -126,21 +152,31 @@ module.exports = {
             fn: () => withProject(p => {
                 // Given a project with no configuration at all
                 const session = newSession();
-                // When the first prompt arrives
+                // When the first prompt arrives and both route hooks run
                 const first = p.run(session, 'fix the flaky login test');
-                // Then the hook exits cleanly with the ask-mode route
+                const catalog = p.runCatalog(session, 'fix the flaky login test');
+                // Then the route hook exits cleanly with the ask-mode route
                 assertEqual(first.code, 0, first.err);
                 assertEqual(modeOf(first.out).join('|'), 'ask|default');
-                assertContains(first.out, '<!-- CK:RUNTIME-WORKFLOW-ROUTE -->');
+                assertContains(first.out, ROUTE_START);
                 assertContains(first.out, ASK_QUESTION);
                 assertContains(first.out, '(c) execute directly, no workflow or skill');
-                assertContains(first.out, CATALOG_HEADING);
                 assertNotContains(first.out, AUTO_START, 'mode ask must not carry the auto-start text');
                 assertNotContains(first.out, 'CK:GATE-MODE', 'no fence line may reach the model');
-                // And the second prompt of the session stays silent
+                // And the catalog arrives as an output of its own, from the catalog hook
+                assertEqual(catalog.code, 0, catalog.err);
+                assertContains(catalog.out, CATALOG_START);
+                assertContains(catalog.out, CATALOG_HEADING);
+                assertContains(catalog.out, ASK_LEGEND);
+                assertNotContains(first.out, CATALOG_HEADING, 'the route output carries no catalog');
+                assertNotContains(catalog.out, ROUTE_START, 'the catalog output carries no route block');
+                // And the second prompt of the session stays silent on both
                 assertEqual(p.run(session, 'and one more thing').out, '', 'delivered once per session');
-                // And a new session receives it again
-                assertContains(p.run(newSession(), 'hello').out, ASK_QUESTION);
+                assertEqual(p.runCatalog(session, 'and one more thing').out, '', 'the catalog is delivered once per session');
+                // And a new session receives both again
+                const next = newSession();
+                assertContains(p.run(next, 'hello').out, ASK_QUESTION);
+                assertContains(p.runCatalog(next, 'hello').out, CATALOG_HEADING);
             })
         },
         {
@@ -148,8 +184,11 @@ module.exports = {
             name: '[workflow-route-modes] TC-WFR-014 mode auto delivers the auto-start gate and never the workflow question',
             fn: () => withProject(p => {
                 // Given the person sets auto in the environment
-                // When the first prompt arrives
-                const first = p.run(newSession(), 'add a retry to the fetcher', { CK_WORKFLOW_ROUTE_MODE: 'auto' });
+                const session = newSession();
+                const env = { CK_WORKFLOW_ROUTE_MODE: 'auto' };
+                // When the first prompt arrives and both route hooks run
+                const first = p.run(session, 'add a retry to the fetcher', env);
+                const catalog = p.runCatalog(session, 'add a retry to the fetcher', env);
                 // Then the route says start without asking, by tier, and keeps the mid-session and explicit-request rules
                 assertEqual(first.code, 0, first.err);
                 assertEqual(modeOf(first.out).join('|'), 'auto|env CK_WORKFLOW_ROUTE_MODE');
@@ -157,14 +196,18 @@ module.exports = {
                 assertContains(first.out, '`manual` never starts on your own');
                 assertContains(first.out, 'Mid-session: never auto-activate a workflow.');
                 assertContains(first.out, 'An explicit request (as above; `$workflow-*` on Codex) runs any tier with no question');
-                assertContains(first.out, CATALOG_HEADING);
                 assertNotContains(first.out, '**Workflow question**', 'mode auto must not ask the workflow question');
-                assertNotContains(first.out, 'before you start a catalog workflow, in every tier', 'the tier legend must not say every tier asks');
                 assertNotContains(first.out, 'NEVER starts before the answer', 'mode auto must not forbid a matched workflow from starting');
-                assertContains(first.out, '**Activation (mode auto):**');
+                // And the catalog output carries the auto tier legend, never the ask one
+                assertEqual(catalog.code, 0, catalog.err);
+                assertContains(catalog.out, CATALOG_HEADING);
+                assertContains(catalog.out, AUTO_LEGEND);
+                assertNotContains(catalog.out, ASK_LEGEND, 'the tier legend must not say every tier asks');
+                assertNotContains(catalog.out, '**Workflow question**', 'mode auto must not ask the workflow question');
+                assertNotContains(first.out, CATALOG_HEADING, 'the route output carries no catalog');
                 // And a manual workflow is still named in the route declaration, in both the gate and the tier legend
                 assertContains(first.out, '`manual` never starts on your own: name it in your route declaration and take (b) or (c)');
-                assertContains(first.out, '`manual` never starts on your own: name it in your route declaration; it runs on explicit request only');
+                assertContains(catalog.out, '`manual` never starts on your own: name it in your route declaration; it runs on explicit request only');
             })
         },
         {
@@ -192,17 +235,25 @@ module.exports = {
                 assertContains(first.out, 'A step that only offers a workflow to the user as an option stays as written');
                 assertContains(first.out, 'or the one skill the user names');
                 assertNotContains(first.out, 'no skill you chose for routing');
+                // And the catalog hook adds nothing to it
+                const catalog = p.runCatalog(session, '/workflow-bugfix fix the login crash', { CK_WORKFLOW_ROUTE_MODE: 'off' });
+                assertEqual(catalog.code, 0, catalog.err);
+                assertEqual(catalog.out, '', 'off must not deliver the catalog output');
                 // And it is delivered once per session
                 assertEqual(p.run(session, 'next', { CK_WORKFLOW_ROUTE_MODE: 'off' }).out, '', 'off state delivered once per session');
             })
         },
         {
-            // Intent: every payload fits the host's 10,000-character hook-output cap with margin.
+            // Intent: every hook output fits the host's 10,000-character hook-output cap with margin.
             name: '[workflow-route-modes] TC-WFR-014 every mode stays under the host output cap',
             fn: () => withProject(p => {
                 for (const mode of ['ask', 'auto', 'off']) {
-                    const out = p.run(newSession(), 'hello', { CK_WORKFLOW_ROUTE_MODE: mode }).out;
-                    assertTrue(out.length > 0 && out.length <= PAYLOAD_CAP, `mode ${mode}: ${out.length} chars, cap ${PAYLOAD_CAP}`);
+                    const session = newSession();
+                    const out = p.run(session, 'hello', { CK_WORKFLOW_ROUTE_MODE: mode }).out;
+                    assertTrue(out.length > 0 && out.length <= PAYLOAD_CAP, `mode ${mode}: route output is ${out.length} chars, cap ${PAYLOAD_CAP}`);
+                    const catalog = p.runCatalog(session, 'hello', { CK_WORKFLOW_ROUTE_MODE: mode }).out;
+                    if (mode === 'off') assertEqual(catalog, '', 'mode off: no catalog output');
+                    else assertTrue(catalog.length > 0 && catalog.length <= PAYLOAD_CAP, `mode ${mode}: catalog output is ${catalog.length} chars, cap ${PAYLOAD_CAP}`);
                 }
             })
         },
@@ -223,27 +274,37 @@ module.exports = {
                     JSON.stringify({ hook_event_name: 'UserPromptSubmit', session_id: newSession(), cwd: p.root, prompt: 'hello' }),
                     { cwd: p.root, env: { ...SWITCHES, CLAUDE_PROJECT_DIR: p.root, HOME: p.home, USERPROFILE: p.home, CK_WORKFLOW_ROUTE_MODE: 'off' } });
                 assertContains(off.stdout, '<!-- CK:RUNTIME-WORKFLOW-ROUTE-OFF -->');
-                assertNotContains(off.stdout, CATALOG_HEADING);
+                // And the catalog hook, through the same launcher, writes nothing while routing is off
+                const offCatalog = runCodexLauncher('workflow-catalog-inject.cjs',
+                    JSON.stringify({ hook_event_name: 'UserPromptSubmit', session_id: newSession(), cwd: p.root, prompt: 'hello' }),
+                    { cwd: p.root, env: { ...SWITCHES, CLAUDE_PROJECT_DIR: p.root, HOME: p.home, USERPROFILE: p.home, CK_WORKFLOW_ROUTE_MODE: 'off' } });
+                assertEqual(offCatalog.code, 0, offCatalog.stderr);
+                assertEqual(offCatalog.stdout, '', 'off writes no catalog through the launcher either');
             })
         },
         {
-            // Intent: Claude, Codex and the OpenCode bridge each run this one hook; losing a registration silently
-            // drops the route (and every personal mode) on that host.
+            // Intent: Claude, Codex and the OpenCode bridge each run the route's two hooks (the gate and the
+            // catalog); losing a registration silently drops that output (and every personal mode) on that host.
             name: '[workflow-route-modes] TC-WFR-018 the route hook is registered for UserPromptSubmit on Claude, Codex and OpenCode',
             skip: FRAMEWORK_REPO_SKIP,
             fn: () => {
                 const settings = JSON.parse(fs.readFileSync(path.join(CLAUDE_DIR, 'settings.json'), 'utf8'));
                 const commands = (settings.hooks.UserPromptSubmit || []).flatMap(group => (group.hooks || []).map(h => h.command || ''));
-                assertTrue(commands.some(c => c.includes('.claude/hooks/workflow-route-inject.cjs')), 'settings.json must register the hook for UserPromptSubmit');
                 const codexFile = path.join(PROJECT_DIR, '.codex', 'hooks.json');
-                if (fs.existsSync(codexFile)) {
-                    const codex = JSON.parse(fs.readFileSync(codexFile, 'utf8'));
-                    const codexCommands = (codex.hooks.UserPromptSubmit || []).flatMap(group => (group.hooks || []).map(h => h.command || ''));
-                    assertTrue(codexCommands.some(c => c.includes('.claude/hooks/workflow-route-inject.cjs')), '.codex/hooks.json must register the hook');
-                }
+                const codexCommands = fs.existsSync(codexFile)
+                    ? (JSON.parse(fs.readFileSync(codexFile, 'utf8')).hooks.UserPromptSubmit || []).flatMap(group => (group.hooks || []).map(h => h.command || ''))
+                    : null;
                 const bridge = path.join(PROJECT_DIR, '.opencode', 'plugins', 'easy-claude-hooks.js');
-                if (fs.existsSync(bridge)) {
-                    assertContains(fs.readFileSync(bridge, 'utf8'), 'workflow-route-inject.cjs', 'the OpenCode bridge must carry the hook');
+                const bridgeText = fs.existsSync(bridge) ? fs.readFileSync(bridge, 'utf8') : null;
+                for (const hookFile of [ROUTE_HOOK, CATALOG_HOOK]) {
+                    assertTrue(fs.existsSync(path.join(CLAUDE_DIR, 'hooks', hookFile)), `${hookFile} must exist`);
+                    assertTrue(commands.some(c => c.includes(`.claude/hooks/${hookFile}`)), `settings.json must register ${hookFile} for UserPromptSubmit`);
+                    if (codexCommands) {
+                        assertTrue(codexCommands.some(c => c.includes(`.claude/hooks/${hookFile}`)), `.codex/hooks.json must register ${hookFile}`);
+                    }
+                    if (bridgeText !== null) {
+                        assertContains(bridgeText, hookFile, `the OpenCode bridge must carry ${hookFile}`);
+                    }
                 }
             }
         },
@@ -625,6 +686,75 @@ module.exports = {
             })
         },
         {
+            // TC-WFR-023 / BR-WFR-15: deliver the right discovery depth without redundant interviews
+            // or build authority. This checks the hook's owned guidance, not a model's route selection.
+            name: '[workflow-route-modes] TC-WFR-023 decision discovery routes by uncertainty and preserves artifact owners and authority',
+            fn: () => withProject(p => {
+                const assertDiscovery = (out, where) => {
+                    assertContains(out, '| Loose idea, plan or design with unresolved material choices that fit one conversation, no owning artifact | `grill`: interview, save the Decision Record, then stop |', where);
+                    assertContains(out, '| Loose idea or existing decision map with an unclear route and dependent unresolved decisions spanning sessions | `wayfinder`: chart or resume a decision map, then stop; size alone is insufficient |', where);
+                    assertContains(out, '| Saved implementation plan or authored spec/test cases needing decisions validated | existing owner: `plan --mode=validate` or `spec [mode=clarify]` |', where);
+                    for (const rule of [
+                        'select by unresolved decisions, not size',
+                        'Clear work keeps its ordinary route',
+                        'When a selected workflow already owns an interview, use that step instead of adding `grill`',
+                        'Honor explicit requests and configured automatic-selection restrictions',
+                        'reuse confirmed choices only while scope and premises still hold; cite them',
+                        'put open, changed, conflicting or unconfirmed choices to the human',
+                        'All hosting gates remain binding',
+                        'Discovery stops at its handoff and grants no build authority',
+                        'Honor an explicit skill/workflow request first'
+                    ]) assertContains(out, rule, where);
+                    assertNotContains(out, 'CK:GATE-MODE', where);
+                    assertTrue(out.length <= PAYLOAD_CAP, `${where}: ${out.length} chars`);
+                };
+                // Given the shipped gate and fresh isolated sessions in each enabled mode
+                for (const mode of ['ask', 'auto']) {
+                    const env = { CK_WORKFLOW_ROUTE_MODE: mode };
+                    // When the real hook runs, the delivered table and exclusions must agree.
+                    const direct = p.run(newSession(), 'help resolve the open decisions', env);
+                    assertEqual(direct.code, 0, direct.err);
+                    assertDiscovery(direct.out, `native / ${mode}`);
+                    // A project with the Codex projection must receive the same guidance through its real launcher.
+                    // The launcher resolves the child environment itself, so it takes the RAW override map: a
+                    // resolved environment would let every switch the fixture deletes come back from this process.
+                    if (CODEX_HOOKS_SKIP === false) {
+                        const codex = runCodexLauncher(ROUTE_HOOK,
+                            JSON.stringify({ hook_event_name: 'UserPromptSubmit', session_id: newSession(), cwd: p.root, prompt: 'help resolve the open decisions' }),
+                            { cwd: p.root, env: p.overrides(env) });
+                        assertEqual(codex.code, 0, codex.stderr);
+                        assertDiscovery(codex.stdout, `Codex / ${mode}`);
+                    }
+                    // Disabling automatic skill selection retains its human-choice policy, never the discovery gate.
+                    const restricted = p.run(newSession(), 'help resolve the open decisions', { ...env, CK_SKILL_AUTO_TRIGGER: 'off' });
+                    assertEqual(restricted.code, 0, restricted.err);
+                    assertContains(restricted.out, 'Framework skill auto-trigger is disabled');
+                    assertContains(restricted.out, 'Named user requests and required hook/protocol calls remain eligible');
+                    assertNotContains(restricted.out, '**Decision discovery:**');
+                    assertNotContains(restricted.out, '<!-- CK:WORKFLOW-GATE -->');
+                }
+                // An unavailable catalog cannot drop the gate's decision rules: the catalog output reports it,
+                // and the route output still carries the full gate.
+                p.write(p.registryFile, '{ invalid json');
+                for (const mode of ['ask', 'auto']) {
+                    const session = newSession();
+                    const fallback = p.run(session, 'help resolve the open decisions', { CK_WORKFLOW_ROUTE_MODE: mode });
+                    assertEqual(fallback.code, 0, fallback.err);
+                    assertDiscovery(fallback.out, `catalog unavailable / ${mode}`);
+                    const catalog = p.runCatalog(session, 'help resolve the open decisions', { CK_WORKFLOW_ROUTE_MODE: mode });
+                    assertEqual(catalog.code, 0, catalog.err);
+                    assertContains(catalog.out, 'workflow catalog unavailable: ');
+                }
+                // Off still carries only its existing notice and explicit-request authority.
+                const off = p.run(newSession(), 'help resolve the open decisions', { CK_WORKFLOW_ROUTE_MODE: 'off' });
+                assertEqual(off.code, 0, off.err);
+                assertContains(off.out, '<!-- CK:RUNTIME-WORKFLOW-ROUTE-OFF -->');
+                assertContains(off.out, 'or the one skill the user names');
+                assertNotContains(off.out, '**Decision discovery:**');
+                assertNotContains(off.out, '<!-- CK:WORKFLOW-GATE -->');
+            })
+        },
+        {
             // Intent: the route hook keeps the gate text in ONE place: the gate file. A mode variant lost from it, or a
             // fence that leaks into the payload, changes what the assistant is told.
             name: '[workflow-route-modes] TC-WFR-014 the shipped gate renders a distinct, fence-free text for ask and for auto',
@@ -652,9 +782,9 @@ module.exports = {
             }
         },
         {
-            // Intent: the route hook is the only carrier of the route and of the off notice, so a project whose
+            // Intent: the route hooks are the only carrier of the route and of the off notice, so a project whose
             // record store cannot be created (a read-only checkout, a file where `tmp/` belongs) still receives the
-            // mode's text: a duplicate per prompt is accepted over a route the model never sees.
+            // mode's text and its catalog: a duplicate per prompt is accepted over a route the model never sees.
             name: '[workflow-route-modes] TC-WFR-014 an unusable record store still delivers the route and the off notice on every prompt',
             fn: () => withProject(p => {
                 // Given a regular file where the project's tmp folder should be (portable on every OS)
@@ -669,18 +799,25 @@ module.exports = {
                         assertEqual(result.code, 0, `${mode} ${label}: ${result.err}`);
                         assertContains(result.out, marker, `${mode} ${label} prompt must carry its route text`);
                     }
+                    // And the catalog output is delivered with it on each prompt (none in mode off)
+                    for (const label of ['first', 'second']) {
+                        const catalog = p.runCatalog(session, `${label} prompt`, { CK_WORKFLOW_ROUTE_MODE: mode });
+                        assertEqual(catalog.code, 0, `${mode} ${label} catalog: ${catalog.err}`);
+                        if (mode === 'off') assertEqual(catalog.out, '', `${mode} ${label}: no catalog output`);
+                        else assertContains(catalog.out, CATALOG_HEADING, `${mode} ${label} prompt must carry the catalog`);
+                    }
                 }
                 assertTrue(fs.statSync(path.join(p.root, 'tmp')).isFile(), 'the blocking file is untouched');
             })
         },
         {
-            // Intent: the route hook is the only carrier of the route, so a catalog the hook cannot build (a registry
+            // Intent: the route hooks are the only carrier of the route, so a catalog that cannot be built (a registry
             // with merge-conflict markers, a missing file, a workflow without its injectContext) must not silence it:
-            // the mode's gate still arrives together with one line saying the catalog is unavailable. `off` reads no
-            // file and is unchanged.
+            // the mode's gate still arrives in full in the route output, and the catalog output is one line saying
+            // the catalog is unavailable. `off` reads no file and is unchanged.
             name: '[workflow-route-modes] TC-WFR-020 an unreadable workflow registry still delivers the mode gate and one catalog-unavailable line',
             fn: () => withProject(p => {
-                const registry = path.join(p.root, '.claude', 'workflows.json');
+                const registry = p.registryFile;
                 const good = fs.readFileSync(registry, 'utf8');
                 const withoutInject = JSON.stringify((() => {
                     const doc = JSON.parse(good);
@@ -693,37 +830,59 @@ module.exports = {
                     ['a workflow without injectContext', () => p.write(registry, withoutInject)],
                     ['empty file', () => p.write(registry, '')]
                 ];
+                const modes = [['ask', ASK_QUESTION, AUTO_START], ['auto', AUTO_START, ASK_QUESTION]];
+                // The route output a healthy registry gives each mode: the full gate
+                const healthy = Object.fromEntries(modes.map(([mode]) => [mode, p.run(newSession(), 'fix the flaky login test', { CK_WORKFLOW_ROUTE_MODE: mode }).out]));
                 for (const [label, breakIt] of breakers) {
                     p.write(registry, good);
                     breakIt();
-                    for (const [mode, marker, absent] of [['ask', ASK_QUESTION, AUTO_START], ['auto', AUTO_START, ASK_QUESTION]]) {
+                    for (const [mode, marker, absent] of modes) {
                         // Given a registry the catalog cannot be built from, in mode ask or auto
-                        const out = p.run(newSession(), 'fix the flaky login test', { CK_WORKFLOW_ROUTE_MODE: mode });
+                        const session = newSession();
+                        const env = { CK_WORKFLOW_ROUTE_MODE: mode };
+                        const out = p.run(session, 'fix the flaky login test', env);
+                        const catalog = p.runCatalog(session, 'fix the flaky login test', env);
                         const where = `${label} / ${mode}`;
-                        // Then the hook exits cleanly and still delivers the state line, the mode's own gate text and the one notice line
+                        // Then the route hook exits cleanly and still delivers the state line and the mode's own gate text
                         assertEqual(out.code, 0, `${where}: ${out.err}`);
                         assertEqual(modeOf(out.out)[0], mode, `${where}: state line`);
-                        assertContains(out.out, '<!-- CK:RUNTIME-WORKFLOW-ROUTE -->', where);
+                        assertContains(out.out, ROUTE_START, where);
                         assertContains(out.out, marker, `${where}: the mode's gate text must arrive`);
                         assertNotContains(out.out, absent, `${where}: the other mode's text must not arrive`);
                         assertNotContains(out.out, 'CK:GATE-MODE', `${where}: no fence line may reach the model`);
-                        assertContains(out.out, 'workflow catalog unavailable: ', where);
-                        assertContains(out.out, '; read .claude/workflows.json', where);
-                        assertNotContains(out.out, CATALOG_HEADING, `${where}: no catalog`);
-                        assertEqual(out.out.split('\n').filter(line => line.startsWith('workflow catalog unavailable: ')).length, 1, `${where}: exactly one notice line`);
-                        assertTrue(out.out.length <= PAYLOAD_CAP, `${where}: ${out.out.length} chars`);
+                        // And it is the same full gate a healthy registry gives: the registry costs the route output nothing
+                        assertEqual(out.out, healthy[mode], `${where}: the route output must be the full gate, unchanged`);
+                        assertNotContains(out.out, 'workflow catalog unavailable', `${where}: the notice belongs to the catalog output`);
+                        assertTrue(out.out.length <= PAYLOAD_CAP, `${where}: route output is ${out.out.length} chars`);
+                        // And the catalog hook exits cleanly with its markers around exactly one notice line
+                        assertEqual(catalog.code, 0, `${where}: ${catalog.err}`);
+                        const lines = catalog.out.trimEnd().split('\n');
+                        assertEqual(lines.length, 3, `${where}: the catalog output is its two markers and one line, got ${JSON.stringify(catalog.out)}`);
+                        assertEqual(lines[0], CATALOG_START, where);
+                        assertEqual(lines[2], CATALOG_END, where);
+                        assertTrue(lines[1].startsWith('workflow catalog unavailable: '), `${where}: ${lines[1]}`);
+                        assertTrue(lines[1].endsWith('; read .claude/workflows.json'), `${where}: ${lines[1]}`);
+                        assertNotContains(catalog.out, CATALOG_HEADING, `${where}: no catalog`);
+                        assertEqual(`${out.out}${catalog.out}`.split('\n').filter(line => line.startsWith('workflow catalog unavailable: ')).length, 1, `${where}: exactly one notice line across both outputs`);
+                        assertTrue(catalog.out.length <= PAYLOAD_CAP, `${where}: catalog output is ${catalog.out.length} chars`);
                     }
-                    // And `off` is unchanged: its notice reads no file
-                    const off = p.run(newSession(), 'fix the flaky login test', { CK_WORKFLOW_ROUTE_MODE: 'off' });
+                    // And `off` is unchanged: its notice reads no file, and no catalog output is written
+                    const offSession = newSession();
+                    const off = p.run(offSession, 'fix the flaky login test', { CK_WORKFLOW_ROUTE_MODE: 'off' });
                     assertContains(off.out, '<!-- CK:RUNTIME-WORKFLOW-ROUTE-OFF -->', `${label} / off`);
                     assertNotContains(off.out, 'workflow catalog unavailable', `${label} / off`);
+                    assertEqual(p.runCatalog(offSession, 'fix the flaky login test', { CK_WORKFLOW_ROUTE_MODE: 'off' }).out, '', `${label} / off: no catalog output`);
                 }
                 // And once the registry is repaired, the same session receives the real catalog (the notice is content, so the change re-arms delivery)
                 const session = newSession();
+                const ask = { CK_WORKFLOW_ROUTE_MODE: 'ask' };
                 p.write(registry, '{ not json');
-                assertContains(p.run(session, 'first', { CK_WORKFLOW_ROUTE_MODE: 'ask' }).out, 'workflow catalog unavailable: ');
+                assertContains(p.run(session, 'first', ask).out, ASK_QUESTION);
+                assertContains(p.runCatalog(session, 'first', ask).out, 'workflow catalog unavailable: ');
                 p.write(registry, good);
-                assertContains(p.run(session, 'second', { CK_WORKFLOW_ROUTE_MODE: 'ask' }).out, CATALOG_HEADING);
+                assertContains(p.runCatalog(session, 'second', ask).out, CATALOG_HEADING);
+                // While the route output, which the registry never changed, is not delivered again
+                assertEqual(p.run(session, 'second', ask).out, '', 'the repaired registry re-arms the catalog output only');
             })
         },
         {
@@ -731,7 +890,7 @@ module.exports = {
             // nothing, so the model and the person see that the route is gone; `off` needs no file and is unchanged.
             name: '[workflow-route-modes] TC-WFR-021 an unreadable gate file is reported in one line naming it, and the off notice is unchanged',
             fn: () => withProject(p => {
-                const gate = path.join(p.root, '.claude', 'skills', 'shared', 'workflow-first-gate.md');
+                const gate = p.gateFile;
                 const good = fs.readFileSync(gate, 'utf8');
                 const breakers = [
                     ['missing gate file', () => fs.rmSync(gate)],
@@ -747,7 +906,8 @@ module.exports = {
                     breakIt();
                     for (const mode of ['ask', 'auto']) {
                         // Given a gate file the hook cannot read, in mode ask or auto (with a good registry)
-                        const out = p.run(newSession(), 'fix the flaky login test', { CK_WORKFLOW_ROUTE_MODE: mode });
+                        const session = newSession();
+                        const out = p.run(session, 'fix the flaky login test', { CK_WORKFLOW_ROUTE_MODE: mode });
                         const where = `${label} / ${mode}`;
                         // Then the hook exits cleanly and delivers the state line and one line naming the gate file
                         assertEqual(out.code, 0, `${where}: ${out.err}`);
@@ -755,7 +915,11 @@ module.exports = {
                         assertContains(out.out, 'workflow route unavailable: .claude/skills/shared/workflow-first-gate.md could not be read', where);
                         assertContains(out.out, 'read it and .claude/workflows.json', where);
                         assertNotContains(out.out, CATALOG_HEADING, `${where}: no catalog`);
-                        assertEqual(out.out.split('\n').filter(line => line.startsWith('workflow route unavailable: ')).length, 1, `${where}: exactly one notice line`);
+                        // And the catalog hook, which reads no gate, still delivers its catalog and never repeats the notice
+                        const catalog = p.runCatalog(session, 'fix the flaky login test', { CK_WORKFLOW_ROUTE_MODE: mode });
+                        assertEqual(catalog.code, 0, `${where}: ${catalog.err}`);
+                        assertContains(catalog.out, CATALOG_HEADING, `${where}: the catalog output does not depend on the gate file`);
+                        assertEqual(`${out.out}${catalog.out}`.split('\n').filter(line => line.startsWith('workflow route unavailable: ')).length, 1, `${where}: exactly one notice line`);
                     }
                     const off = p.run(newSession(), 'fix the flaky login test', { CK_WORKFLOW_ROUTE_MODE: 'off' });
                     assertContains(off.out, '<!-- CK:RUNTIME-WORKFLOW-ROUTE-OFF -->', `${label} / off`);
@@ -763,20 +927,185 @@ module.exports = {
                 }
                 // Adopters' nonempty unmarked gate text remains supported.
                 p.write(gate, 'SYNTHETIC_NONEMPTY_UNMARKED_GATE');
-                const unmarked = p.run(newSession(), 'fix the fixture');
+                const unmarkedSession = newSession();
+                const unmarked = p.run(unmarkedSession, 'fix the fixture');
                 assertContains(unmarked.out, 'SYNTHETIC_NONEMPTY_UNMARKED_GATE');
-                assertContains(unmarked.out, CATALOG_HEADING);
                 assertNotContains(unmarked.out, 'workflow route unavailable: ');
-                // Repair changes the delivered content, so this session receives the gate and catalog.
+                assertContains(p.runCatalog(unmarkedSession, 'fix the fixture').out, CATALOG_HEADING);
+                // Repair changes the route output's content, so this session receives the gate; the catalog
+                // output, already delivered and unchanged, is not repeated.
                 const session = newSession();
                 p.write(gate, '');
                 assertContains(p.run(session, 'first').out, 'workflow route unavailable: ');
+                assertContains(p.runCatalog(session, 'first').out, CATALOG_HEADING);
                 p.write(gate, good);
                 const repaired = p.run(session, 'second');
                 assertContains(repaired.out, ASK_QUESTION);
-                assertContains(repaired.out, CATALOG_HEADING);
                 assertNotContains(repaired.out, 'workflow route unavailable: ');
-                assertContains(p.run(session, 'third', { CK_WORKFLOW_ROUTE_MODE: 'auto' }).out, CATALOG_HEADING);
+                assertEqual(p.runCatalog(session, 'second').out, '', 'a repaired gate re-arms the route output only');
+                // And a mode change then re-delivers both outputs in the new mode
+                assertContains(p.run(session, 'third', { CK_WORKFLOW_ROUTE_MODE: 'auto' }).out, AUTO_START);
+                const autoCatalog = p.runCatalog(session, 'third', { CK_WORKFLOW_ROUTE_MODE: 'auto' });
+                assertContains(autoCatalog.out, CATALOG_HEADING);
+                assertContains(autoCatalog.out, AUTO_LEGEND);
+            })
+        },
+        {
+            // Intent (BR-WFR-08): the catalog serves the gate. Where no gate is delivered (route mode off, or
+            // framework skill auto-trigger disabled) a catalog would invite the routing the person switched
+            // off, so the catalog hook writes nothing; with routing on it writes the catalog block and only that.
+            name: '[workflow-route-modes] TC-WFR-025 the catalog output is silent when routing is off or framework skill auto-trigger is disabled',
+            fn: () => withProject(p => {
+                const prompt = 'add a retry to the fetcher';
+                const silent = (result, where) => {
+                    assertEqual(result.code, 0, `${where}: ${result.err}`);
+                    assertEqual(result.out, '', `${where}: the catalog hook must write nothing`);
+                };
+                // Given route mode off, from the environment and from the person's own file
+                // When the catalog hook runs / Then it writes nothing and exits cleanly
+                silent(p.runCatalog(newSession(), prompt, { CK_WORKFLOW_ROUTE_MODE: 'off' }), 'mode off (environment)');
+                p.write(p.userFile, cfg('off'));
+                silent(p.runCatalog(newSession(), prompt), 'mode off (user file)');
+                fs.rmSync(p.userFile);
+                // Given framework skill auto-trigger disabled, in each mode that would otherwise deliver the catalog
+                for (const mode of ['ask', 'auto']) {
+                    silent(p.runCatalog(newSession(), prompt, { CK_WORKFLOW_ROUTE_MODE: mode, CK_SKILL_AUTO_TRIGGER: 'off' }), `auto-trigger disabled (environment) / ${mode}`);
+                }
+                p.write(p.teamFile, { portability: { skillAutoTrigger: false } });
+                silent(p.runCatalog(newSession(), prompt), 'auto-trigger disabled (project config)');
+                fs.rmSync(p.teamFile);
+                // Given routing on, in mode ask and in mode auto
+                for (const [mode, legend, otherLegend] of [['ask', ASK_LEGEND, AUTO_LEGEND], ['auto', AUTO_LEGEND, ASK_LEGEND]]) {
+                    const session = newSession();
+                    // When the catalog hook runs
+                    const on = p.runCatalog(session, prompt, { CK_WORKFLOW_ROUTE_MODE: mode });
+                    // Then it writes the catalog block for that mode, and only that block
+                    assertEqual(on.code, 0, `${mode}: ${on.err}`);
+                    assertTrue(on.out.startsWith(`${CATALOG_START}\n`) && on.out.endsWith(`\n${CATALOG_END}\n`), `${mode}: the output must be the catalog block`);
+                    assertContains(on.out, CATALOG_HEADING, mode);
+                    assertContains(on.out, legend, `${mode}: its own tier legend`);
+                    assertNotContains(on.out, otherLegend, `${mode}: never the other mode's tier legend`);
+                    assertNotContains(on.out, ROUTE_START, `${mode}: one hook process writes one output`);
+                    assertNotContains(on.out, '<!-- CK:WORKFLOW-GATE -->', `${mode}: the gate belongs to the route output`);
+                    assertNotContains(on.out, 'Route mode:', `${mode}: the state line belongs to the route output`);
+                    assertTrue(on.out.length <= PAYLOAD_CAP, `${mode}: catalog output is ${on.out.length} chars`);
+                    // And the route hook, on the same prompt, writes the gate and none of the catalog
+                    const route = p.run(session, prompt, { CK_WORKFLOW_ROUTE_MODE: mode });
+                    assertContains(route.out, ROUTE_START, mode);
+                    assertNotContains(route.out, CATALOG_START, `${mode}: one hook process writes one output`);
+                    assertNotContains(route.out, CATALOG_HEADING, `${mode}: the route output carries no catalog`);
+                }
+                // And silence leaves no delivery record: switched back on in the same session, the catalog arrives
+                const session = newSession();
+                silent(p.runCatalog(session, prompt, { CK_WORKFLOW_ROUTE_MODE: 'off' }), 'mode off, then on');
+                assertContains(p.runCatalog(session, 'next', { CK_WORKFLOW_ROUTE_MODE: 'ask' }).out, CATALOG_HEADING);
+            })
+        },
+        {
+            // Intent (BR-WFR-09): each of the route's two outputs is delivered once per conversation and comes
+            // back only when ITS OWN content changes. One shared record would re-deliver an output on every
+            // prompt (each hook overwriting the other's hash); no record would repeat the catalog every prompt.
+            name: '[workflow-route-modes] TC-WFR-025 the catalog output is delivered once on its own record and again after its content changes',
+            fn: () => withProject(p => {
+                const session = newSession();
+                const store = routing.resolveSessionStoreRoot(p.root);
+                const record = group => conventionLedger.readRecord(store, session, 'main', group);
+                // Given the first prompt of a session
+                // When both hooks run
+                assertContains(p.run(session, 'fix the flaky login test').out, ASK_QUESTION);
+                const first = p.runCatalog(session, 'fix the flaky login test');
+                // Then the catalog is delivered, and each output is recorded on a record of its own
+                assertContains(first.out, CATALOG_HEADING);
+                assertContains(first.out, ASK_LEGEND);
+                const routeRecord = record('workflow-route');
+                const catalogRecord = record('workflow-catalog');
+                assertTrue(Boolean(routeRecord && routeRecord.hash), 'the route delivery must be recorded under workflow-route');
+                assertTrue(Boolean(catalogRecord && catalogRecord.hash), 'the catalog delivery must be recorded under workflow-catalog');
+                assertTrue(routeRecord.hash !== catalogRecord.hash, 'the two records hold different content');
+                // And the second prompt is silent on both
+                assertEqual(p.run(session, 'and one more thing').out, '', 'the route output is delivered once');
+                assertEqual(p.runCatalog(session, 'and one more thing').out, '', 'the catalog output is delivered once');
+                // When the registry gains a workflow (the catalog's content changes, the gate's does not)
+                const registry = JSON.parse(fs.readFileSync(p.registryFile, 'utf8'));
+                registry.workflows['workflow-fixture-added'] = {
+                    name: 'Fixture added', whenToUse: 'run the fixture route',
+                    preActions: { injectContext: 'Use the selected workflow context.' },
+                    sequence: ['investigate', 'finish']
+                };
+                p.write(p.registryFile, registry);
+                // Then the catalog is delivered again with the new row, and the route output is not
+                assertContains(p.runCatalog(session, 'third').out, '| `workflow-fixture-added` |');
+                assertEqual(p.run(session, 'third').out, '', 'a registry change re-arms the catalog output only');
+                assertEqual(record('workflow-route').hash, routeRecord.hash, 'a catalog delivery leaves the route record untouched');
+                assertTrue(record('workflow-catalog').hash !== catalogRecord.hash, 'the catalog record holds the new content');
+                // When the gate file gains a rule (the route output's content changes, the catalog's does not)
+                const gate = fs.readFileSync(p.gateFile, 'utf8');
+                assertContains(gate, '<!-- /CK:WORKFLOW-GATE -->', 'precondition: the shipped gate is a marked block');
+                p.write(p.gateFile, gate.replace('<!-- /CK:WORKFLOW-GATE -->', '> FIXTURE-ADDED-GATE-RULE\n\n<!-- /CK:WORKFLOW-GATE -->'));
+                // Then the route output is delivered again with the rule, and the catalog is not
+                assertContains(p.run(session, 'fourth').out, 'FIXTURE-ADDED-GATE-RULE');
+                assertEqual(p.runCatalog(session, 'fourth').out, '', 'a gate change re-arms the route output only');
+                // When the person switches the session to mode auto (the catalog's tier legend changes)
+                const autoCatalog = p.runCatalog(session, 'workflow-mode: auto');
+                const autoRoute = p.run(session, 'workflow-mode: auto');
+                // Then the catalog is delivered again with the auto legend, next to the auto gate
+                assertContains(autoCatalog.out, AUTO_LEGEND);
+                assertNotContains(autoCatalog.out, ASK_LEGEND);
+                assertContains(autoRoute.out, AUTO_START);
+                // And the session keeps auto: the next plain prompt repeats neither output
+                assertEqual(p.runCatalog(session, 'sixth').out, '', 'the catalog hook reads the session mode the route hook recorded');
+                assertEqual(p.run(session, 'sixth').out, '', 'the session keeps auto');
+                // When the person turns routing off and on again in the same conversation
+                assertEqual(p.runCatalog(session, 'workflow-mode: off').out, '', 'off delivers no catalog');
+                assertContains(p.run(session, 'workflow-mode: off').out, '<!-- CK:RUNTIME-WORKFLOW-ROUTE-OFF -->');
+                const backCatalog = p.runCatalog(session, 'workflow-mode: auto');
+                const backRoute = p.run(session, 'workflow-mode: auto');
+                // Then the gate returns, and the unchanged catalog, still in the conversation, is not repeated
+                assertContains(backRoute.out, AUTO_START);
+                assertEqual(backCatalog.out, '', 'an unchanged catalog already delivered in this conversation is not repeated');
+            })
+        },
+        {
+            // Intent (BR-WFR-11): the hooks of one prompt run in parallel, so the catalog hook reads a prompt
+            // directive itself to print the right mode's catalog, but only the route hook applies it: one
+            // session record, one reply line, one personal-file save. A second writer would acknowledge the
+            // directive twice or save a mode the person did not see confirmed.
+            name: '[workflow-route-modes] TC-WFR-025 a prompt directive sets the catalog\'s mode without a session write or a second acknowledgement',
+            fn: () => withProject(p => {
+                const sessionMode = session => routing.readSessionRouteMode({ rootDir: p.root, sessionId: session });
+                // Given a fresh session whose first prompt opens with the directive for mode off
+                const offSession = newSession();
+                // When the catalog hook runs
+                const off = p.runCatalog(offSession, 'workflow-mode: off\nfix the login bug');
+                // Then it writes nothing at all: no catalog, no off notice, no reply line
+                assertEqual(off.code, 0, off.err);
+                assertEqual(off.out, '', 'a directive for off silences the catalog hook');
+                // And it records no session mode: that write belongs to the route hook
+                assertEqual(sessionMode(offSession), undefined, 'the catalog hook must not write the session mode');
+                // Given a fresh session (configured mode: ask) whose first prompt opens with the directive for mode auto, with save
+                const autoSession = newSession();
+                const directive = 'workflow-mode: auto save\nadd a retry to the fetcher';
+                // When the catalog hook runs, before the route hook has recorded anything
+                const catalog = p.runCatalog(autoSession, directive);
+                // Then the catalog output carries the auto legend at once, with no reply line
+                assertEqual(catalog.code, 0, catalog.err);
+                assertContains(catalog.out, CATALOG_START);
+                assertContains(catalog.out, AUTO_LEGEND);
+                assertNotContains(catalog.out, ASK_LEGEND, 'the directive wins over the configured mode');
+                assertNotContains(catalog.out, 'Route mode directive applied', 'the catalog hook never acknowledges a directive');
+                // And it neither records the session mode nor saves the personal file
+                assertEqual(sessionMode(autoSession), undefined, 'the catalog hook must not write the session mode');
+                assertTrue(!fs.existsSync(p.userFile), 'the catalog hook must not save the mode to the user file');
+                // When the route hook handles the same prompt
+                const route = p.run(autoSession, directive);
+                // Then it alone applies the directive: the one reply line, the session record and the save
+                assertContains(route.out, 'Route mode directive applied: auto for this session');
+                assertEqual(`${route.out}${catalog.out}`.split('Route mode directive applied').length - 1, 1, 'exactly one acknowledgement across both outputs');
+                assertEqual(sessionMode(autoSession), 'auto');
+                assertEqual(JSON.parse(fs.readFileSync(p.userFile, 'utf8')).portability.workflowRouteMode, 'auto');
+                // And repeating the directive gets no output from the catalog hook: the reply line is the route hook's
+                const again = p.runCatalog(autoSession, 'workflow-mode: auto');
+                assertEqual(again.out, '', 'the catalog is already delivered in this mode');
             })
         },
         {

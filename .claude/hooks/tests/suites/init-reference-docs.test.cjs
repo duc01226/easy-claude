@@ -800,6 +800,84 @@ const unitTests = [
         }
     },
     {
+        // TestSpec: TC-PCI-032
+        name: '[init-reference-docs] TC-PCI-032 freshness never reports a reference the project declares not applicable',
+        fn: async () => {
+            const tmpDir = createTempProjectDir();
+            const docsDir = path.join(tmpDir, 'docs');
+            const referenceDir = path.join(docsDir, 'project-reference');
+            fs.mkdirSync(path.join(referenceDir, 'guides'), { recursive: true });
+            // Given five old references: three declared not applicable, one per supported form, and two that apply
+            const referenceDocs = [
+                { filename: 'backend-patterns-reference.md', purpose: 'Backend coding patterns (N/A for this project)' },
+                { filename: 'frontend-patterns-reference.md', purpose: 'Frontend coding patterns', notApplicable: true },
+                { filename: 'guides/retired.md', purpose: 'Not applicable: retired stack', scanTarget: 'generic' },
+                { filename: 'project-structure-reference.md', purpose: 'Structure; mocks are not applicable here' },
+                { filename: 'guides/architecture.md', purpose: 'Repository architecture', scanTarget: 'generic' }
+            ];
+            fs.writeFileSync(path.join(docsDir, 'project-config.json'), JSON.stringify({
+                project: { name: 'Applicability Fixture' },
+                referenceDocs
+            }));
+            for (const doc of referenceDocs) {
+                fs.writeFileSync(path.join(referenceDir, ...doc.filename.split('/')), '# Reference\n\n<!-- Last scanned: 2000-01-01 -->\n', 'utf8');
+            }
+
+            const helperPath = path.resolve(__dirname, '../../lib/session-init-helpers.cjs');
+            const loaderPath = path.resolve(__dirname, '../../lib/project-config-loader.cjs');
+            const configLoaderPath = path.resolve(__dirname, '../../lib/ck-config-loader.cjs');
+            const pathHelpersPath = path.resolve(__dirname, '../../lib/ck-paths.cjs');
+            const projectRootPath = path.resolve(__dirname, '../../lib/project-root.cjs');
+            const buildersPath = path.resolve(__dirname, '../../../skills/ai-context-refresh/scripts/section-builders.cjs');
+            const previousRoot = process.env.CLAUDE_PROJECT_DIR;
+            process.env.CLAUDE_PROJECT_DIR = tmpDir;
+            for (const modulePath of [helperPath, loaderPath, configLoaderPath, pathHelpersPath, projectRootPath]) {
+                delete require.cache[modulePath];
+            }
+            try {
+                const helpers = require(helperPath);
+                // When freshness is assessed
+                const stale = helpers.getStaleReferenceDocs(60).map(doc => doc.filename);
+                // Then only the references that apply are reported; a passing mention is not a declaration
+                assertEqual(
+                    stale.join(', '),
+                    'project-structure-reference.md, guides/architecture.md',
+                    'A declared not-applicable reference is never reported as old'
+                );
+                // And the root-context builder reads the declaration the same way: two readers, one rule
+                const { declaresNotApplicable } = require(buildersPath);
+                for (const doc of referenceDocs) {
+                    assertEqual(
+                        helpers.isReferenceDocNotApplicable(doc),
+                        declaresNotApplicable(doc),
+                        `${doc.filename}: the freshness check and the root-context builder agree`
+                    );
+                }
+                // And each supported way to write the declaration reads the same in both, with its boundaries:
+                // leading or inner spaces still declare, a longer word that merely starts the same does not
+                const forms = [
+                    ['N/A — stack not used', true],
+                    ['  N/A for this project', true],
+                    ['Patterns (not applicable to this project)', true],
+                    ['Patterns ( N/A here)', true],
+                    ['N/Along the way', false],
+                    ['Patterns (not applicableness)', false]
+                ];
+                for (const [purpose, expected] of forms) {
+                    assertEqual(helpers.isReferenceDocNotApplicable({ purpose }), expected, `freshness check reads "${purpose}"`);
+                    assertEqual(declaresNotApplicable({ purpose }), expected, `root-context builder reads "${purpose}"`);
+                }
+            } finally {
+                if (previousRoot === undefined) delete process.env.CLAUDE_PROJECT_DIR;
+                else process.env.CLAUDE_PROJECT_DIR = previousRoot;
+                for (const modulePath of [helperPath, loaderPath, configLoaderPath, pathHelpersPath, projectRootPath]) {
+                    delete require.cache[modulePath];
+                }
+                cleanupTempDir(tmpDir);
+            }
+        }
+    },
+    {
         name: '[init-reference-docs] reference paths reject traversal and symlink escapes',
         fn: async () => {
             const assert = require('node:assert/strict');

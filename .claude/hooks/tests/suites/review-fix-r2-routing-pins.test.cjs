@@ -7,7 +7,8 @@
  *              parent workflow requires is part of THAT run: it asks no workflow question (ask) and is not
  *              skipped (off). Modes ask and off govern only a workflow the assistant chooses to start, so a
  *              self-chosen catalog workflow still asks first (ask) and is still not started (off)
- *              (BR-WFR-13, TC-WFR-019). The REAL hook runs as a child process in a temp project.
+ *              (BR-WFR-13, TC-WFR-019). The REAL hooks run as child processes in a temp project: the route
+ *              hook writes the gate or the off notice, the catalog hook writes the workflow catalog.
  *   routes     no skill tells the assistant to auto-select a workflow; routing belongs to the route gate.
  *   nested     a Next-Steps hand-off prompt is skipped only when THIS run is a linked step of a parent
  *              workflow (nested=true), never because a `[Workflow]` row merely exists in the task list.
@@ -53,8 +54,8 @@ function withProject(fn) {
     fs.copyFileSync(path.join(claude, 'workflows.json'), path.join(root, '.claude', 'workflows.json'));
     fs.mkdirSync(path.join(root, '.claude', 'skills', 'shared'), { recursive: true });
     fs.copyFileSync(path.join(claude, 'skills', 'shared', 'workflow-first-gate.md'), path.join(root, '.claude', 'skills', 'shared', 'workflow-first-gate.md'));
-    const run = (mode, session) => {
-        const result = spawnSync(process.execPath, [path.join(root, '.claude', 'hooks', 'workflow-route-inject.cjs')], {
+    const run = (mode, session, hookFile = 'workflow-route-inject.cjs') => {
+        const result = spawnSync(process.execPath, [path.join(root, '.claude', 'hooks', hookFile)], {
             cwd: root,
             input: JSON.stringify({ hook_event_name: 'UserPromptSubmit', session_id: session, cwd: root, prompt: 'add a pagination option to the export command' }),
             env: childEnv({ ...SWITCHES, CK_WORKFLOW_ROUTE_MODE: mode, CLAUDE_PROJECT_DIR: root, HOME: home, USERPROFILE: home, TMPDIR: tmp, TEMP: tmp, TMP: tmp }),
@@ -116,9 +117,15 @@ const tests = [
             // And it still forbids choosing or starting a workflow by itself, and still skips the skill step that would
             assert.ok(off.out.includes('Do not choose or start a workflow yourself'), 'off notice keeps the self-chosen prohibition');
             assert.ok(off.out.includes('a skill step that would start a workflow (skip that step and continue the skill)'), 'off notice keeps the skip rule');
-            // And it still delivers no gate and no catalog
+            // And it still delivers no gate and no catalog: the route hook writes neither, and the catalog hook writes nothing
             assert.ok(!off.out.includes('CK:RUNTIME-WORKFLOW-ROUTE -->'), 'off must not deliver the ask/auto route');
             assert.ok(!off.out.includes('## Workflow & Skills Catalog'), 'off must not deliver the catalog');
+            const catalog = run('off', `r2-off-${process.pid}`, 'workflow-catalog-inject.cjs');
+            assert.equal(catalog.code, 0, catalog.err);
+            assert.equal(catalog.out, '', 'off must not deliver the catalog output');
+            // (Counter-case: with routing on, that same hook does deliver the catalog, so the silence above is the mode's doing.)
+            const asked = run('ask', `r2-off-counter-${process.pid}`, 'workflow-catalog-inject.cjs');
+            assert.ok(asked.out.includes('## Workflow & Skills Catalog'), 'the catalog hook delivers the catalog when routing is on');
         })
     },
     {

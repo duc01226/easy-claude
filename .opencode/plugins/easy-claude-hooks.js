@@ -367,6 +367,14 @@ const HOOKS = {
       "hooks": [
         {
           "type": "command",
+          "command": ".claude/hooks/workflow-catalog-inject.cjs"
+        }
+      ]
+    },
+    {
+      "hooks": [
+        {
+          "type": "command",
           "command": ".claude/hooks/commit-skill-route.cjs"
         }
       ]

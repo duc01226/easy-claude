@@ -554,6 +554,7 @@ function mergeReferenceDocs(configDocs) {
         const out = { ...canonical };
         const override = entry.doc;
         if (typeof override.purpose === 'string' && override.purpose.trim() !== '') out.purpose = override.purpose;
+        if (override.notApplicable === true) out.notApplicable = true;
         if (Array.isArray(override.sections) && override.sections.length > 0) out.sections = override.sections;
         // Canonical templatePath is authoritative; config may only fill a gap.
         if (!out.templatePath && typeof override.templatePath === 'string' && override.templatePath.trim() !== '') {
@@ -714,6 +715,22 @@ function normalizeReferenceDocs(configDocs, projectConfig) {
         beforeNames.some((n, i) => n !== afterNames[i]);
 
     return { normalized, renames, added, removedLegacy, changed };
+}
+
+// A purpose that OPENS with, or parenthesizes, an N/A marker ("N/A — …", "Backend patterns (N/A for …)").
+// Anchored so ordinary prose ("mocks are not applicable here") never hides a real doc. The root-context
+// builder reads the same declaration (`declaresNotApplicable` in the ai-context-refresh section builders,
+// which must run without this lib); TC-PCI-032 keeps the two readers equal.
+const NOT_APPLICABLE_PURPOSE = /^\s*(?:N\/A|not applicable)\b|\(\s*(?:N\/A|not applicable)\b/i;
+
+/**
+ * True when a `referenceDocs[]` entry declares its doc not applicable to the project:
+ * explicit `notApplicable: true`, or an N/A purpose marker.
+ * @param {{notApplicable?: boolean, purpose?: string}} doc
+ * @returns {boolean}
+ */
+function isReferenceDocNotApplicable(doc) {
+    return doc?.notApplicable === true || NOT_APPLICABLE_PURPOSE.test(String(doc?.purpose || ''));
 }
 
 /**
@@ -1086,7 +1103,8 @@ function recordDocVerified(filename, today = new Date().toISOString().slice(0, 1
 
 /**
  * Get reference docs that are older than staleDays.
- * Skips placeholders and docs without timestamps (graceful degradation).
+ * Skips placeholders and docs without timestamps (graceful degradation), and docs the
+ * project declares not applicable: agents are told to skip those, so their age is never reported.
  *
  * Freshness is the NEWER of the committed `Last scanned` stamp and a trusted
  * local ledger entry, so a scan that legitimately wrote nothing still counts as
@@ -1106,6 +1124,7 @@ function getStaleReferenceDocs(staleDays) {
     // or when an absent selection resolves to an evidenced capability.
     const trackedDocs = new Map();
     for (const doc of [...getAlwaysOnReferenceDocs(), ...getReferenceDocs()]) {
+        if (isReferenceDocNotApplicable(doc)) continue;
         const { kind, command } = getReferenceDocScanTarget(doc);
         if ((kind === 'built-in' || kind === 'generic') && command && !trackedDocs.has(doc.filename)) {
             trackedDocs.set(doc.filename, command);
@@ -1193,6 +1212,7 @@ module.exports = {
     isPlaceholderFile,
     checkProjectConfig,
     getReferenceDocs,
+    isReferenceDocNotApplicable,
     deriveProjectName,
     // Reference doc normalization (capability-aware selection + alias migration)
     REFERENCE_DOC_ALIASES,
