@@ -12,10 +12,11 @@
  * - isHookEntryPoint recognises the running hook on both launch shapes, through a symlink/junction
  *   install, and case-insensitively on Windows — and never mistakes a required module for the entry.
  * - Each hook migrated to the shared check (review-commit-gate, doc-sync-gate, init-prompt-gate,
- *   session-init-docs, file-convention-inject, prompt-ledger, workflow-route-inject, core-principles-inject) produces ITS OWN
+ *   session-init-docs, file-convention-inject, prompt-ledger, core-principles-inject) produces ITS OWN
  *   observable outcome when Codex launches it. Reverting any of them to `require.main === module` fails its test.
- * - workflow-catalog-inject requires workflow-route-inject and asks it for the catalog output: launched by
- *   Codex it writes the catalog alone, because the route module is then a required module, never the entry.
+ * - workflow-route-inject and workflow-catalog-inject are thin entries with no guard: each calls
+ *   `runHook(<part>)` of `lib/workflow-route-delivery.cjs`, which owns both outputs. Launched by Codex,
+ *   each writes its own output alone and records its own delivery.
  *
  * Fixture projects hold a COPY of the hook tree (the launcher runs the tree under the nearest `.claude`
  * ancestor of its cwd), so fixture config never touches the repository.
@@ -421,8 +422,8 @@ const launcherTests = [
     },
     {
         // Intent: the workflow catalog is the second output of the route. On Codex it must arrive too, and as
-        // the catalog ALONE: its entry file requires the route module, which would write a second route
-        // block (or nothing at all) if either file mistook which one the launcher started.
+        // the catalog ALONE: both entry files call one delivery module, which would write a second route
+        // block (or nothing at all) if the catalog entry named the wrong part.
         name: '[codex-launcher] TC-CXL-010 workflow-catalog-inject under the Codex launcher emits the project\'s workflow catalog alone and records its own delivery',
         fn: () => {
             // Given a fixture project carrying its own workflow registry and a gate file (the fixture tree holds the script libraries)

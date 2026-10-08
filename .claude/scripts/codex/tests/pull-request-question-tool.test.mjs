@@ -17,22 +17,29 @@ function section(text, heading, nextHeading) {
   return text.slice(start, end);
 }
 
-test('PR gates display selectable questions only when the risk decision requires human input', () => {
+test('PR test and review gates decide automatically and never display a test/review question', () => {
   for (const text of [source, codex]) {
-    for (const [heading, nextHeading, skip] of [
-      ['### Step 3.5', '### Step 4', 'Skip local tests'],
-      ['### Step 4', '### Step 5', 'Skip review'],
+    for (const [heading, nextHeading] of [
+      ['### Step 3.5', '### Step 4'],
+      ['### Step 4', '### Step 5'],
     ]) {
       const gate = section(text, heading, nextHeading);
-      assert.match(gate, /Call the ask-user question tool under the \[User Choice Contract\].*BEFORE pausing/);
-      assert.ok(gate.includes(skip), 'The user must retain an explicit Skip option');
+      assert.match(gate, /act without asking the user/);
+      assert.doesNotMatch(gate, /Call the ask-user question tool/, 'tests and review must not raise a question');
     }
+    const tests = section(text, '### Step 3.5', '### Step 4');
+    assert.match(tests, /fix-loop every failure through `commit` Step 3\.5 until all pass/);
+    assert.match(tests, /that is a \*\*Blocker\*\*, not a skip/);
+    const review = section(text, '### Step 4', '### Step 5');
+    assert.match(review, /\*\*Low\*\* → automatic skip; \*\*Medium\*\* → `[/$]why-review --fix-loop`; \*\*High\*\* → `[/$]changes-review --fix-loop`, each at most two review rounds over the whole scope/);
+    assert.match(review, /a skip is never minted for a Medium or High branch/);
+    assert.match(review, /A failed review is not a skip: never mint one to get past it/);
     const contract = section(text, '## User Choice Contract', '## Related');
-    assert.match(contract, /escalated refreshed candidates, failed-review skip decisions and resume with unsettled choices/);
+    assert.match(contract, /Test and review decisions are automatic under `commit` → \*\*Test and review decision policy\*\* and raise no question/);
     assert.match(contract, /invoke the available native ask-user question tool with the actual question and selectable options/);
     assert.match(contract, /do not merely name the tool in prose/);
     assert.match(contract, /split into sequential questions/);
-    assert.match(contract, /never drop Skip from a required question/);
+    assert.match(contract, /never drop Skip from a question that offers it/);
   }
 });
 
@@ -58,58 +65,57 @@ test('posting an asynchronous PR question never authorizes dependent work', () =
     assert.match(contract, /pause dependent steps, and wait for the human reply/);
     assert.match(contract, /Preselection, silence and elapsed time are not consent/);
     assert.match(contract, /retain a pending question across compaction\/resume without treating it as answered or posting duplicates/);
-    assert.match(contract, /A prior explicit answer for this exact candidate.*may be reused when calling `commit`/);
-    assert.match(contract, /Only the user can authorize minting a skip receipt/);
+    assert.match(contract, /Mint a skip receipt only for a Low-risk candidate or on the user's explicit request, never after a failed or non-converged review/);
+    assert.match(contract, /an explicit request to skip, run or choose a specific check overrides the automatic choice/);
   }
 });
 
 // These are shipped prompt-contract checks, not evidence of live model compliance.
-test('settled full-scope PR evidence does not trigger a duplicate review confirmation', () => {
+test('full-scope PR evidence is reused only for the exact candidate, and a skip never transfers', () => {
   for (const text of [source, codex]) {
     const review = section(text, '### Step 4', '### Step 5');
     assert.match(review, /Reuse an existing full review under the shared decision policy only when the evidence matches this exact candidate and whole-branch scope/);
-    assert.match(review, /a settled automatic\/reused lane needs no new confirmation/);
-    assert.match(review, /Reuse an explicit user Skip only for the unchanged candidate and scope it covers/);
-    assert.match(review, /changed content needs fresh review or a new explicit Skip/);
+    assert.match(review, /A skip covers only the unchanged candidate and scope it was recorded for/);
+    assert.match(review, /changed content is classified and gated again/);
     assert.doesNotMatch(review, /reused only after the user confirms it for this run and candidate/);
   }
 });
 
-test('routine CI repairs run fresh gates and pass the settled decision to nested commit', () => {
+test('CI repairs run fresh gates automatically and hand the recorded decision to nested commit', () => {
   for (const text of [source, codex]) {
     const ci = section(text, '### Step 8', '### Step 9');
-    assert.match(ci, /Routine bounded repair → automatically run affected local checks/);
+    assert.match(ci, /Gate the repair without a question[^\n]*Automatically run affected local checks/);
     assert.match(ci, /WHOLE branch/);
     assert.match(ci, /refresh the exact-candidate receipt/);
-    assert.match(ci, /Pass `automatic CI repair` as the action origin so nested `commit` does not ask again/);
-    assert.match(ci, /substantial accumulated changes or uncertain intent → ask/);
+    assert.match(ci, /raises the tier and its review, never a question/);
     assert.match(ci, /A previous Skip does not authorize skipping repair checks/);
     const handoff = section(text, '### Step 6', '### Step 7');
-    assert.match(handoff, /fixed human-answer baseline/);
-    assert.match(handoff, /settled automatic\/reused decision is not a missing user answer/);
-    assert.match(handoff, /Escalated or pending choices must be answered first/);
+    assert.match(handoff, /recorded risk tier, test decision and evidence, whole-branch review proof and matching exact-candidate receipt/);
+    assert.match(handoff, /Its gates reuse that current evidence instead of repeating the work, and ask nothing/);
   }
 });
 
-test('commit continuity cannot convert old consent or small diffs into stale evidence or blanket skips', () => {
+test('commit decides tests and review by risk without a question, stale evidence or a widened skip', () => {
   for (const text of [commit, rewriteClaudeToolTermsForCodex(commit)]) {
     const policy = section(text, '## Test and review decision policy', '## Workflow\n\n### Step 1');
-    assert.match(policy, /Last explicit test and review answers \*\*separately\*\*, with timestamp\/turn, source user message/);
-    assert.match(policy, /human-answer baseline fixed until the human answers that gate again; automatic commits never refresh it/);
-    assert.match(policy, /cumulative authored changes since the last human-answer baseline/);
-    assert.match(policy, /including already committed fixes/);
-    assert.match(policy, /Compare the current candidate tree to the tree covered by that gate's last answer, not just to its parent HEAD/);
-    assert.match(policy, /classify the repair\/cumulative delta for question frequency while still reviewing the whole branch/);
-    assert.match(policy, /Automatic CI classification never overrides material risk or lost continuity/);
-    assert.match(policy, /even a one-line diff/);
-    assert.match(policy, /Prior Already verified applies only to its verified scope: rerun affected checks for changed content/);
-    assert.match(policy, /Prior Skip is candidate-bound: never extend it or mint a new skip receipt automatically/);
-    assert.match(policy, /End continuity on a new task\/session, branch\/worktree\/PR\/base switch/);
-    assert.match(policy, /Same-session compaction\/resume preserves verified continuity/);
-    assert.match(policy, /Missing\/unverifiable state is not consent/);
-    assert.match(policy, /User explicitly requires a new question each time, restricts checks, or has a pending question/);
+    assert.match(policy, /never ask the user whether to run tests or a review — classify the candidate, decide, act and record the decision/);
+    assert.match(policy, /A series of tiny commits cannot reset risk or conceal a large change/);
+    assert.match(policy, /Any higher-tier signal outranks every lower one — even a one-line diff\. Tie or unclear → the higher tier/);
+    assert.match(policy, /The affected tests already ran and passed in this session, and nothing they cover changed since \| Skip/);
+    assert.match(policy, /The change is really small, or no executable behavior changed \| Skip/);
+    assert.match(policy, /Anything else \| Run the tests scoped to the change and fix-loop every failure until all pass/);
+    assert.match(policy, /Old evidence never covers new content/);
+    assert.match(policy, /\*\*Low\*\* → automatic skip with the recorded signal; \*\*Medium\*\* → `[/$]why-review --fix-loop`; \*\*High\*\* → `[/$]changes-review --fix-loop`\. Each fix-loop runs at most two review rounds/);
+    assert.match(policy, /An explicit user instruction wins/);
+    assert.match(policy, /Automatic skip covers only the Low tier and the two test-skip rows/);
+    assert.match(policy, /never skip after a failed check or a review that did not converge/);
+    assert.match(policy, /MEDIUM or higher findings still open at the two-round cap/);
+    assert.match(policy, /Leave the candidate staged and uncommitted, mint no receipt, and report/);
     assert.match(policy, /Automatic choices never expand commit\/push authority/);
+    assert.match(policy, /never as a fabricated user answer/);
     assert.doesNotMatch(text, /USER CHOICE — always|blocking user choice — always|Always ASK the user|On every commit invocation.*ask the user/);
+    assert.doesNotMatch(policy, /human-answer baseline|Ask once for the unsettled|reuse the testing\/review \*\*preference\*\*/i,
+      'the retired question-frequency policy must not return');
   }
 });
 

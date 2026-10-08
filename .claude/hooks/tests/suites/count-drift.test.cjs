@@ -172,6 +172,22 @@ const PROJECT_STRUCTURE_PATH = path.join(PROJECT_REFERENCE_DIR, 'project-structu
 const HAS_PROJECT_STRUCTURE = fs.existsSync(PROJECT_STRUCTURE_PATH);
 const IS_FRAMEWORK_REPO = isFrameworkRepo(REPO_ROOT);
 
+// The authored-Markdown inventory is git's own (tracked plus untracked-not-ignored), so its totals
+// self-check needs git to list this repository's files as well as the framework-repo identity: an
+// exported copy has no work tree, and a copy under another checkout's ignored directory lists nothing.
+const AUTHORED_TOTALS_SKIP = (() => {
+    if (!HAS_PROJECT_REFERENCE_INDEX || !IS_FRAMEWORK_REPO) return true;
+    let reason = 'git does not list the files of this project';
+    try {
+        const docsIndex = path.relative(REPO_ROOT, DOCS_INDEX_PATH).split(path.sep).join('/');
+        if (listAuthoredMarkdownPaths().includes(docsIndex)) return false;
+    } catch (error) {
+        reason = error.message;
+    }
+    console.log(`  [count-drift] skipping the authored Markdown totals check — ${reason}`);
+    return reason;
+})();
+
 function countWorkflows() {
     const workflowsFile = path.join(REPO_ROOT, '.claude', 'workflows.json');
     const parsed = JSON.parse(fs.readFileSync(workflowsFile, 'utf8'));
@@ -425,7 +441,7 @@ const tests = [
     },
     {
         name: '[count-drift] docs-index skill and unique authored Markdown totals match filesystem truth',
-        skip: !HAS_PROJECT_REFERENCE_INDEX || !IS_FRAMEWORK_REPO,
+        skip: AUTHORED_TOTALS_SKIP,
         fn: () => {
             // Given the framework repository's generated docs index and Git-authored file inventory.
             const docsIndex = fs.readFileSync(DOCS_INDEX_PATH, 'utf8');

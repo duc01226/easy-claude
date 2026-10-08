@@ -8,8 +8,8 @@
  * This is bookkeeping, NEVER proof of user consent, a native permission, or a
  * security boundary. The store is an ordinary directory any process with write
  * access can forge. It exists so `review-commit-gate.cjs` can stop the agent
- * from committing a changeset no review fix-loop ever saw, while leaving the
- * user an explicit, recorded way to skip.
+ * from committing a changeset no review fix-loop ever saw, while leaving an
+ * explicit, recorded way to skip.
  *
  * Schema 2 receipts bind exact repository storage + base tree + candidate tree.
  * A pre-review snapshot names its target (`worktree`, `staged`, or a supported
@@ -19,7 +19,8 @@
  * isolated under repository `tmp/`; candidate errors remain ERROR, never CLEAN.
  *
  * Kinds that satisfy the gate: `changes-review`, `why-review`,
- * `workflow-review-changes`. `skip` is the user-approved override.
+ * `workflow-review-changes`. `skip` is the recorded override: the `commit`
+ * skill's Low-risk decision or the user's explicit request, named in `reason`.
  *
  * CLI (args, real clock):
  *   node review-receipt.cjs snapshot [--target=worktree|staged|commit-descriptor]

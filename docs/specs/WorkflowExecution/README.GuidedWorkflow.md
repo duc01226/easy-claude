@@ -2319,7 +2319,7 @@ Then it is at most 9,500 characters and lists the lean route
 
 > **Evidence:** `[Source: operation/hooks/workflow-route-inject]`
 > **Related Behaviors:** `operation/hooks/workflow-route-inject`
-> **CoveredBy:** `.claude/hooks/tests/suites/workflow-routing-switch.test.cjs::[workflow-routing-switch] [cap] TC-WFR-001 payload size guard: this framework registry fits under 9,500 chars` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/workflow-routing-switch.test.cjs:533` (passed in P15; not re-run at the final gate)
+> **CoveredBy:** `.claude/hooks/tests/suites/workflow-routing-switch.test.cjs::[workflow-routing-switch] [cap] TC-WFR-001 payload size guard: this framework registry fits under 9,500 chars` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/workflow-routing-switch.test.cjs` (the test named in CoveredBy; passed in P15; not re-run at the final gate)
 
 ---
 

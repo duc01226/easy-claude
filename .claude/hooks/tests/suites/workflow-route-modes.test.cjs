@@ -115,6 +115,9 @@ function makeProject() {
         runCatalog(session, prompt, extraEnv = {}) {
             return spawnHook(CATALOG_HOOK, session, prompt, extraEnv);
         },
+        runEntry(hookFile, session, prompt, extraEnv = {}) {
+            return spawnHook(hookFile, session, prompt, extraEnv);
+        },
         cli(args, extraEnv = {}) {
             const result = spawnSync(process.execPath, [path.join(root, '.claude', 'scripts', 'workflow-mode.cjs'), ...args], {
                 cwd: root, env: env(extraEnv), encoding: 'utf8', windowsHide: true, timeout: 30000
@@ -759,7 +762,7 @@ module.exports = {
             // fence that leaks into the payload, changes what the assistant is told.
             name: '[workflow-route-modes] TC-WFR-014 the shipped gate renders a distinct, fence-free text for ask and for auto',
             fn: () => {
-                const hook = require(path.join(CLAUDE_DIR, 'hooks', 'workflow-route-inject.cjs'));
+                const hook = require(path.join(CLAUDE_DIR, 'hooks', 'lib', 'workflow-route-delivery.cjs'));
                 const gate = fs.readFileSync(path.join(CLAUDE_DIR, 'skills', 'shared', 'workflow-first-gate.md'), 'utf8');
                 const ask = hook.renderGateForMode(gate, 'ask');
                 const auto = hook.renderGateForMode(gate, 'auto');
@@ -1106,6 +1109,46 @@ module.exports = {
                 // And repeating the directive gets no output from the catalog hook: the reply line is the route hook's
                 const again = p.runCatalog(autoSession, 'workflow-mode: auto');
                 assertEqual(again.out, '', 'the catalog is already delivered in this mode');
+            })
+        },
+        {
+            // Intent: the route is exactly two outputs, each written by its own entry. An entry that names an
+            // output the delivery module does not have (a mistyped or half-added third output) must add nothing
+            // to the conversation: before this rule it fell back to the route output, so the gate arrived twice.
+            name: '[workflow-route-modes] TC-WFR-025 an entry naming an output the route does not have writes nothing, never a second route block',
+            fn: () => withProject(async p => {
+                const delivery = require(path.join(CLAUDE_DIR, 'hooks', 'lib', 'workflow-route-delivery.cjs'));
+                const prompt = 'fix the flaky login test';
+                const store = path.join(p.root, 'tmp', 'workflow-routing');
+                for (const part of ['protocol', 'Route', '', null, 1]) {
+                    // Given a hook entry in the project's hook tree that names an unknown output
+                    const entry = 'workflow-unknown-part-inject.cjs';
+                    p.write(path.join(p.root, '.claude', 'hooks', entry),
+                        `'use strict';\nrequire('./lib/workflow-route-delivery.cjs').runHook(${JSON.stringify(part)});\n`);
+                    const session = newSession();
+                    // When the host runs it on a prompt, in a mode that delivers the route
+                    const result = p.runEntry(entry, session, prompt, { CK_WORKFLOW_ROUTE_MODE: 'ask' });
+                    // Then it writes nothing, says why on stderr, exits cleanly and records no delivery
+                    assertEqual(result.code, 0, `${JSON.stringify(part)}: ${result.err}`);
+                    assertEqual(result.out, '', `${JSON.stringify(part)}: an unknown output must write nothing`);
+                    assertContains(result.err, 'unknown route part', `${JSON.stringify(part)}: the diagnostic names the cause`);
+                    for (const group of ['workflow-route', 'workflow-catalog']) {
+                        assertTrue(!conventionLedger.readRecord(store, session, 'main', group), `${JSON.stringify(part)}: no ${group} record`);
+                    }
+                    // And the in-process seam agrees: nothing is written for that output
+                    let written = '';
+                    const returned = await delivery.run(
+                        { hook_event_name: 'UserPromptSubmit', session_id: newSession(), cwd: p.root, prompt },
+                        { part, projectDir: p.root, env: {}, homeDir: p.home, write: (text, done) => { written += text; done(true); } }
+                    );
+                    assertEqual(returned, '', `${JSON.stringify(part)}: run() resolves to nothing`);
+                    assertEqual(written, '', `${JSON.stringify(part)}: run() writes nothing`);
+                }
+                // And the two real outputs are the whole set
+                assertEqual(JSON.stringify(delivery.PARTS), JSON.stringify(['route', 'catalog']));
+                const session = newSession();
+                assertContains(p.run(session, prompt, { CK_WORKFLOW_ROUTE_MODE: 'ask' }).out, ROUTE_START, 'the route entry still delivers');
+                assertContains(p.runCatalog(session, prompt, { CK_WORKFLOW_ROUTE_MODE: 'ask' }).out, CATALOG_START, 'the catalog entry still delivers');
             })
         },
         {

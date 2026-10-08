@@ -168,13 +168,15 @@ function ext(relPath) {
 
 // `git ls-files` on a large monorepo runs to megabytes, well past execFileSync's
 // 1MB default. Overflowing it throws ENOBUFS, which the fail-open catch below
-// turns into an empty file list — and an empty list makes every short-form
-// citation look DEAD rather than merely imprecise. So the buffer is sized for
-// the whole index, and a git failure warns instead of passing silently: a mapper
-// that reports live files as dead is worse than one that admits it could not look.
+// turns into "git could not answer" — and with no file list every short-form
+// citation would look DEAD rather than merely imprecise. So the buffer is sized for
+// the whole index, a git failure warns instead of passing silently, and the file
+// list then comes from the project tree (`projectTreeFiles`): a mapper that reports
+// live files as dead is worse than one that admits it could not look.
 const GIT_MAX_BUFFER = 64 * 1024 * 1024;
 
-function git(args) {
+/** git output, or `null` (with a warning) when git could not answer: no work tree, no git, overflow. */
+function tryGit(args) {
     try {
         return execFileSync('git', args, {
             cwd: PROJECT_DIR,
@@ -184,8 +186,12 @@ function git(args) {
         });
     } catch (err) {
         warnings.push(`git ${args.join(' ')} failed: ${err.code || err.message}`);
-        return '';
+        return null;
     }
+}
+
+function git(args) {
+    return tryGit(args) || '';
 }
 
 /** Parse `git diff --name-status` output into {status, file} records. */
@@ -709,16 +715,51 @@ const CLAIM_OPT_OUT = '<!-- dead-link-ok -->';
 /** Line-scoped roles for valid paths that are intentionally not repository source files. */
 const CLAIM_ROLE_OPT_OUT = /<!--\s*path-role:\s*(?:generated-output|proposed|user-local)\s*-->/i;
 
-let trackedFilesCache = null;
+// Without a git file list (a copy with no work tree, no git on the host, an overflowed buffer) the
+// project tree itself is the file list, so a live file is never called dead for want of git. The walk
+// is bounded, follows no links and skips git's own directory and installed dependencies.
+const TREE_WALK_SKIPPED_DIRS = new Set(['.git', 'node_modules']);
+const TREE_WALK_MAX_FILES = 200000;
+
+function projectTreeFiles() {
+    const files = [];
+    const pending = [''];
+    while (pending.length && files.length < TREE_WALK_MAX_FILES) {
+        const relDir = pending.pop();
+        let entries;
+        try {
+            entries = fs.readdirSync(path.join(PROJECT_DIR, relDir), { withFileTypes: true });
+        } catch {
+            continue;
+        }
+        for (const entry of entries) {
+            const rel = relDir ? `${relDir}/${entry.name}` : entry.name;
+            if (entry.isDirectory()) {
+                if (!TREE_WALK_SKIPPED_DIRS.has(entry.name)) pending.push(rel);
+            } else {
+                files.push(rel);
+            }
+        }
+    }
+    if (pending.length) {
+        warnings.push(`Project tree walk stopped at ${files.length} files; a short-form citation beyond it reads as dead.`);
+    }
+    return files;
+}
+
+let repoFilesCache = null;
 let workspacePackagesCache = null;
 /** Repo file list, used to resolve short-form citations before calling one dead. */
-function trackedFiles() {
-    if (trackedFilesCache) return trackedFilesCache;
-    trackedFilesCache = git(['ls-files'])
-        .split('\n')
-        .map(l => l.trim().replace(/\\/g, '/'))
-        .filter(Boolean);
-    return trackedFilesCache;
+function repoFiles() {
+    if (repoFilesCache) return repoFilesCache;
+    const listed = tryGit(['ls-files']);
+    repoFilesCache = listed === null
+        ? projectTreeFiles()
+        : listed
+            .split('\n')
+            .map(l => l.trim().replace(/\\/g, '/'))
+            .filter(Boolean);
+    return repoFilesCache;
 }
 
 /**
@@ -728,7 +769,7 @@ function trackedFiles() {
 function workspacePackages() {
     if (workspacePackagesCache) return workspacePackagesCache;
     workspacePackagesCache = new Map();
-    for (const relative of trackedFiles().filter(file => path.posix.basename(file) === 'package.json')) {
+    for (const relative of repoFiles().filter(file => path.posix.basename(file) === 'package.json')) {
         try {
             const manifestPath = path.join(PROJECT_DIR, relative);
             const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
@@ -959,7 +1000,7 @@ function checkClaims(relDocPath) {
             continue;
         }
         if (isWorkspacePackageReference(claim)) continue;
-        if (trackedFiles().some(f => f.toLowerCase().endsWith('/' + claim.toLowerCase()))) {
+        if (repoFiles().some(f => f.toLowerCase().endsWith('/' + claim.toLowerCase()))) {
             ambiguous.push(claim);
             continue;
         }

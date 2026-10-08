@@ -1344,7 +1344,7 @@ test("verify-workflow-cycle-compliance fails when a goal-contract mode reference
 // grouped workflow's `[a ∥ b]` token, so a dropped mark fails; the tiers-only index and the
 // pointer-only form omit marks by design (the hook falls back to them only to fit the output cap),
 // so they must not fail parity. The advancement clause is required in every form. The fixture root
-// carries a stub route hook whose payload each case writes, built with the real catalog builder.
+// carries a stub route delivery module whose payload each case writes, built with the real catalog builder.
 const catalogLib = createRequire(import.meta.url)(
   path.join(repoRoot, ".claude", "scripts", "lib", "workflow-skills-catalog.cjs")
 );
@@ -1365,7 +1365,7 @@ const W5_WORKFLOWS = {
     sequence: ["investigate", "finish"],
   },
 };
-const W5_STUB_HOOK = [
+const W5_STUB_DELIVERY = [
   "'use strict';",
   "const fs = require('fs');",
   "const path = require('path');",
@@ -1373,13 +1373,13 @@ const W5_STUB_HOOK = [
   "",
 ].join("\n");
 
-/** Wrap a catalog body the way the route hook assembles its catalog output (the catalog markers, no gate). */
+/** Wrap a catalog body the way the route delivery module assembles its catalog output (the catalog markers, no gate). */
 function w5Payload(catalog) {
   return ["<!-- CK:RUNTIME-WORKFLOW-CATALOG -->", catalog, "<!-- /CK:RUNTIME-WORKFLOW-CATALOG -->"].join("\n");
 }
 
 /**
- * Given a temp root with the fixture registry and a stub route hook, write the payload `build`
+ * Given a temp root with the fixture registry and a stub route delivery module, write the payload `build`
  * returns, then run the W5 runtime check against it. HOME and temp dirs point at the fixture.
  */
 async function runW5(build) {
@@ -1388,15 +1388,15 @@ async function runW5(build) {
   const saved = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
   try {
     for (const key of keys) process.env[key] = rootDir;
-    await fs.mkdir(path.join(rootDir, ".claude", "hooks"), { recursive: true });
+    await fs.mkdir(path.join(rootDir, ".claude", "hooks", "lib"), { recursive: true });
     await fs.writeFile(
       path.join(rootDir, ".claude", "workflows.json"),
       JSON.stringify({ version: "1.0.0", workflows: W5_WORKFLOWS }),
       "utf8"
     );
     const payload = build(rootDir);
-    await fs.writeFile(path.join(rootDir, ".claude", "hooks", "payload.txt"), payload, "utf8");
-    await fs.writeFile(path.join(rootDir, ".claude", "hooks", "workflow-route-inject.cjs"), W5_STUB_HOOK, "utf8");
+    await fs.writeFile(path.join(rootDir, ".claude", "hooks", "lib", "payload.txt"), payload, "utf8");
+    await fs.writeFile(path.join(rootDir, ".claude", "hooks", "lib", "workflow-route-delivery.cjs"), W5_STUB_DELIVERY, "utf8");
     const failures = [];
     await checkParallelGroupsMirrorParity(W5_WORKFLOWS, rootDir, failures);
     return { payload, failures, form: runtimeCatalogForm(payload, rootDir) };

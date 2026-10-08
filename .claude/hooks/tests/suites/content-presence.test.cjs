@@ -717,7 +717,7 @@ module.exports = {
                 ];
                 // The route hook is the only carrier of the gate: its ask payload must carry the same rule. The
                 // generated roots carry no route text (TC-CP-008).
-                const routeHook = require(path.resolve(PROJECT_DIR, '.claude', 'hooks', 'workflow-route-inject.cjs'));
+                const routeHook = require(path.resolve(PROJECT_DIR, '.claude', 'hooks', 'lib', 'workflow-route-delivery.cjs'));
                 const hookPayload = routeHook.buildInjection(PROJECT_DIR, '', 'ask');
                 const midSessionGaps = [['workflow-first-gate.md', gate], ['Routing Decision Guide', guide], ['start-workflow/SKILL.md', skill], ['route hook payload (ask)', hookPayload]]
                     .flatMap(([label, body]) => MID_SESSION.filter(p => !body.includes(p)).map(p => `${label} → "${p}"`));
@@ -785,7 +785,7 @@ module.exports = {
                 const readIfPresent = rel => [[rel, path.join(PROJECT_DIR, rel)]]
                     .filter(([, abs]) => fs.existsSync(abs)).map(([r, abs]) => [r, readFile(abs)]);
                 // The roots carry no route text (TC-CP-008); the route hook's ask payload carries the gate.
-                const routeHook = require(path.resolve(PROJECT_DIR, '.claude', 'hooks', 'workflow-route-inject.cjs'));
+                const routeHook = require(path.resolve(PROJECT_DIR, '.claude', 'hooks', 'lib', 'workflow-route-delivery.cjs'));
                 const hookPayload = routeHook.buildInjection(PROJECT_DIR, '', 'ask');
                 const generatedCopies = [['route hook payload (ask)', hookPayload]];
                 const mirrorPaths = [path.join('.agents', 'skills', 'start-workflow', 'SKILL.md')];

@@ -161,7 +161,7 @@ Wayfinder runs `$grill` as one of its own steps: say so when starting it, take i
 
 ## Chart the Map
 
-The user invokes with a loose idea.
+The argument is a loose idea.
 
 1. **Name the destination.** Run `$grill`, as a step of this skill, with the subject limited to the destination: what the end of this map looks like and what lies beyond it. How to get there is not asked here; those decisions become tickets.
 2. **Bound it.** One destination, one defined outcome. "Build version one" is too wide: propose a narrower one. A first chart of more than about a dozen tickets is the same signal.
@@ -173,7 +173,7 @@ The user invokes with a loose idea.
 
 ## Work Through the Map
 
-The user invokes with a map path; without a ticket id, you choose.
+The argument is a map path; without a ticket id, you choose.
 
 1. **Load the map**, not every ticket: Destination and Notes first.
 2. **Choose the ticket**: the one named, otherwise the first frontier ticket in id order. Re-read it and **claim it** before any work.

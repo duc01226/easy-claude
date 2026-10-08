@@ -138,9 +138,9 @@ const tests = [
             assert.match(start, /An explicit request, and a workflow that a skill step, the user's named skill or a running parent workflow requires, run in every mode\./);
             // And a hand-off the assistant chose still counts as its own selection
             assert.match(start, /hand-off after you chose to invoke that skill — is your own selection, never an explicit request/);
-            // And the route-mode guide carries the same sentence, with the pull-request example
+            // And the route-mode guide carries the same sentence, with the commit example: a failing test's fix workflow
             const guide = read('.claude', 'docs', 'configuration', 'README.md');
-            assert.match(guide, /So does a workflow that an explicit skill step, the skill you named or an already-running parent workflow requires[^\n]*`\/workflow-review-changes --fix-loop`\): it is part of that run, not a self-matched workflow — it asks no workflow question and `off` does not skip it; `ask` and `off` govern only a workflow the model chooses to start\./);
+            assert.match(guide, /So does a workflow that an explicit skill step, the skill you named or an already-running parent workflow requires[^\n]*`\/commit` running `\/workflow-integration-test --mode=green` to fix a failing test\): it is part of that run, not a self-matched workflow — it asks no workflow question and `off` does not skip it; `ask` and `off` govern only a workflow the model chooses to start\./);
             // And the gate file owns the clause once, next to the explicit-request rule
             const gate = read('.claude', 'skills', 'shared', 'workflow-first-gate.md');
             assert.equal(gate.split(GATE_CLAUSE).length - 1, 1, 'the gate file carries the clause exactly once');

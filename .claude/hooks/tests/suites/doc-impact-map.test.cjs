@@ -166,40 +166,20 @@ function checkFixtureClaims(dir, claims) {
     return checkClaimsIn(dir, 'claims.md');
 }
 
-function runMapper(dir, args) {
+function runMapper(dir, args, env = {}) {
     return spawnSync('node', [SCRIPT, ...args], {
         cwd: dir,
-        env: { ...process.env, CLAUDE_PROJECT_DIR: dir },
+        env: { ...process.env, CLAUDE_PROJECT_DIR: dir, ...env },
         encoding: 'utf8'
     });
 }
 
 /**
- * A real short-form citation, derived from the live file list rather than
- * hardcoded, so the test does not rot when that one file moves. Requirements:
- * nested (>=3 segments) so a 2-segment suffix exists, and that suffix must NOT
- * resolve from the repo root — otherwise checkClaims short-circuits on existsSync
- * and the ambiguous branch is never reached.
+ * Child environment for a fixture that must NOT be a git work tree: repository discovery stops below
+ * the fixture (a developer's temp path may sit inside a repository), and a git hook's GIT_DIR /
+ * GIT_WORK_TREE redirection is dropped (`undefined` deletes the key).
  */
-function deriveShortFormCitation() {
-    let tracked = [];
-    try {
-        tracked = execFileSync('git', ['ls-files', '*.md'], { cwd: REPO, encoding: 'utf8' })
-            .split('\n')
-            .map(l => l.trim().replace(/\\/g, '/'))
-            .filter(Boolean);
-    } catch {
-        return null;
-    }
-    for (const f of tracked) {
-        const segs = f.split('/');
-        if (segs.length < 3) continue;
-        const short = segs.slice(-2).join('/');
-        if (fs.existsSync(path.join(REPO, short))) continue;
-        return short;
-    }
-    return null;
-}
+const noWorkTreeEnv = dir => ({ GIT_CEILING_DIRECTORIES: path.dirname(dir), GIT_DIR: undefined, GIT_WORK_TREE: undefined });
 
 const tests = [
     {
@@ -547,45 +527,66 @@ const tests = [
     },
     {
         name: '[doc-impact-map] D11 short-form citations are ambiguous, not dead',
+        skip: GIT_SKIP,
         fn: () => {
-            // checkClaims resolves a short-form citation by suffix against `git ls-files`
+            // checkClaims resolves a short-form citation by suffix against the repo file list
             // and files it under `ambiguous` instead of `missing`. That split is what keeps
             // F1's dead list short enough that people still read it — if suffix resolution
             // regressed, every legitimate short-form citation would fail F1 at once and the
-            // gate would be switched off as noise.
-            const shortForm = deriveShortFormCitation();
-            assertTrue(!!shortForm, 'Repo must contain a nested tracked .md file to derive a short-form citation');
-
-            const fixture = path.join(REPO, '.claude', 'hooks', 'tests', 'fixtures', 'doc-impact-map-ambiguous.tmp.md');
-            const rel = '.claude/hooks/tests/fixtures/doc-impact-map-ambiguous.tmp.md';
-            fs.writeFileSync(
-                fixture,
-                [
-                    '# fixture',
-                    '',
-                    `Short form (resolvable by suffix): \`${shortForm}\`.`,
-                    'Genuinely dead: `docs/project-reference/no-such-doc-d11.md`.',
-                    ''
-                ].join('\n'),
-                'utf8'
-            );
-            try {
-                const result = mapper.checkClaims(rel);
+            // gate would be switched off as noise. The list is `git ls-files`; a project with
+            // no git work tree (an exported copy) lists its own tree instead and says so,
+            // because a live file must not read as dead there either.
+            // The short form must NOT resolve from the project root — otherwise checkClaims
+            // short-circuits on existsSync and the ambiguous branch is never reached.
+            const NESTED = 'packages/tooling/shared/contract.md';
+            const SHORT_FORM = 'shared/contract.md';
+            const DEAD = 'docs/project-reference/no-such-doc-d11.md';
+            const seed = dir => {
+                writeFixtureFile(dir, NESTED);
+                writeFixtureFile(dir, 'claims.md', `Short form: \`${SHORT_FORM}\`.\nGenuinely dead: \`${DEAD}\`.\n`);
+            };
+            const claims = (dir, env) => {
+                const out = runMapper(dir, ['claims', '--json', 'claims.md'], env);
+                const { results, warnings } = JSON.parse(out.stdout);
+                return { result: results[0], gitListingFailed: warnings.some(w => w.startsWith('git ls-files failed')) };
+            };
+            const assertSplit = ({ result }, where) => {
                 assertTrue(
-                    result.ambiguous.includes(shortForm),
-                    `Short form "${shortForm}" must be ambiguous. missing=${JSON.stringify(result.missing)} ` +
+                    result.ambiguous.includes(SHORT_FORM),
+                    `${where}: short form "${SHORT_FORM}" must be ambiguous. missing=${JSON.stringify(result.missing)} ` +
                         `ambiguous=${JSON.stringify(result.ambiguous)}`
                 );
                 assertTrue(
-                    !result.missing.includes(shortForm),
-                    `A resolvable short form must NEVER be reported dead — that is a false F1 failure.`
+                    !result.missing.includes(SHORT_FORM),
+                    `${where}: a resolvable short form must NEVER be reported dead — that is a false F1 failure.`
                 );
                 assertTrue(
-                    result.missing.includes('docs/project-reference/no-such-doc-d11.md'),
-                    `A genuinely dead path must still be reported. Got: ${JSON.stringify(result.missing)}`
+                    result.missing.includes(DEAD),
+                    `${where}: a genuinely dead path must still be reported. Got: ${JSON.stringify(result.missing)}`
                 );
+            };
+
+            const { dir, g } = makeRepo();
+            let plain;
+            try {
+                // Given a repository that tracks the nested file
+                seed(dir);
+                g(['add', '-A']);
+                // When its claims are checked, then git's own list resolves the short form
+                const tracked = claims(dir);
+                assertSplit(tracked, 'git file list');
+                assertTrue(!tracked.gitListingFailed, 'A git work tree must be listed by git, not by the tree walk');
+
+                // Given the same tree in a project that is not a git work tree
+                plain = fs.mkdtempSync(path.join(os.tmpdir(), `doc-impact-map-${process.pid}-plain-`));
+                seed(plain);
+                // When its claims are checked, then the project tree resolves the short form, with a warning
+                const walked = claims(plain, noWorkTreeEnv(plain));
+                assertSplit(walked, 'project tree');
+                assertTrue(walked.gitListingFailed, 'A failed git listing must warn instead of passing silently');
             } finally {
-                if (fs.existsSync(fixture)) fs.unlinkSync(fixture);
+                cleanupRepo(dir);
+                cleanupRepo(plain);
             }
         }
     },

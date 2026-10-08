@@ -227,6 +227,9 @@ these are UNKNOWN, not fresh), `fastExit`, and `warnings`.
 Per doc: `checked` (path claims found), `missing` (resolves nowhere — a dead citation, i.e. a stale doc),
 and `ambiguous` (short-form citations like `shared/contract.md` that resolve by suffix to a real file —
 imprecise rather than dead). Splitting the two keeps the dead list short enough that people still read it.
+The suffix lookup reads `git ls-files`; where git cannot list the project (no work tree, no git on the
+host) it walks the project tree instead and records the git failure in `warnings`, so a live file is
+not reported dead for want of git.
 
 The same check runs as a hard gate: the `reference-doc-freshness` suite fails the build when any
 reference doc cites a path that no longer exists.

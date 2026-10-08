@@ -98,7 +98,7 @@ Scheduler/recurring job framework: **N/A**. Hooks run only for registered lifecy
 
 ## Authorization
 
-No identity/role/policy layer. Operation authorization lives at static permissions and the `PreToolUse` Bash matcher, where `review-commit-gate` blocks an agent `git commit` whose changeset lacks a review or user-approved skip receipt and ignores every non-commit statement (`.claude/settings.json:84-96`, `.claude/settings.json:245-301`, `.claude/hooks/review-commit-gate.cjs:288-327`). Session Git leases (`.claude/hooks/lib/git-operation-lease.cjs`) are bounded bookkeeping rather than user consent or native host permission; no registered hook consumes them.
+No identity/role/policy layer. Operation authorization lives at static permissions and the `PreToolUse` Bash matcher, where `review-commit-gate` blocks an agent `git commit` whose changeset lacks a review or skip receipt and ignores every non-commit statement (`.claude/settings.json:84-96`, `.claude/settings.json:245-301`, `.claude/hooks/review-commit-gate.cjs:288-327`). Session Git leases (`.claude/hooks/lib/git-operation-lease.cjs`) are bounded bookkeeping rather than user consent or native host permission; no registered hook consumes them.
 
 ## Anti-Patterns
 

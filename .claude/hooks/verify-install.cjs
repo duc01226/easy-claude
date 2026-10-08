@@ -9,6 +9,9 @@
  *          files. Without this, the sibling hooks each throw a raw Node
  *          `Cannot find module` stack trace (node:internal/modules/cjs/loader),
  *          producing N confusing errors instead of one actionable message.
+ *          Also names a hook set that settings.json registers only in part — the
+ *          usual result of keeping a settings file across an upgrade that added a
+ *          hook — because the session then loses part of a feature with no error.
  *
  * Design constraints:
  *   - ZERO required local dependencies — shared root discovery is optional;
@@ -46,6 +49,16 @@ function bootstrapRoot() {
 const HOOK_REF = /\.claude[\\/]hooks[\\/]([\w.\-]+(?:[\\/][\w.\-]+)*\.(?:cjs|js))/g;
 const REL_REQUIRE = /require\(\s*['"](\.[^'"]+)['"]\s*\)/g;
 
+// Hook entries that deliver one feature between them, each registered on its own. Names only: this
+// file must not import the payload it checks. Registering none of a set is a choice the scan leaves
+// alone; registering part of one is the state it names.
+const HOOK_SETS = Object.freeze([
+  Object.freeze([
+    Object.freeze({ file: 'workflow-route-inject.cjs', carries: 'the workflow route gate' }),
+    Object.freeze({ file: 'workflow-catalog-inject.cjs', carries: 'the workflow catalog' })
+  ])
+]);
+
 function readSafe(file) {
   try {
     return fs.readFileSync(file, 'utf8');
@@ -62,6 +75,30 @@ function referencedHooks(settingsRaw) {
     refs.add(m[1].replace(/\\/g, '/'));
   }
   return [...refs];
+}
+
+/** One line per hook set that settings.json registers only in part. */
+function partialHookSets(referenced) {
+  const lines = [];
+  for (const set of HOOK_SETS) {
+    const present = set.filter((hook) => referenced.includes(hook.file));
+    const absent = set.filter((hook) => !referenced.includes(hook.file));
+    if (present.length === 0 || absent.length === 0) continue;
+    const names = (hooks) => hooks.map((hook) => hook.file).join(', ');
+    const carried = (hooks) => hooks.map((hook) => hook.carries).join(' and ');
+    lines.push(`${names(present)} is registered without ${names(absent)}: prompts get ${carried(present)} but not ${carried(absent)}.`);
+  }
+  return lines;
+}
+
+/** The indented lines that report partly registered hook sets; '' when there are none. */
+function registrationNote(partial) {
+  if (partial.length === 0) return '';
+  return (
+    partial.map((line) => `     - ${line}`).join('\n') +
+    `\n   This usually means .claude/settings.json was kept across a framework upgrade that added a hook.\n` +
+    `   Repair: add the missing hook entry from the framework's .claude/settings.json, under the same event.\n`
+  );
 }
 
 /** Direct relative require targets of a hook source (one level deep). */
@@ -205,8 +242,10 @@ async function main() {
   if (!settingsRaw) return; // Not an easy-claude project — nothing to verify.
 
   const missing = new Set();
+  const referenced = referencedHooks(settingsRaw);
+  const partial = partialHookSets(referenced);
 
-  for (const rel of referencedHooks(settingsRaw)) {
+  for (const rel of referenced) {
     const entry = path.join(hooksDir, rel);
     if (!fs.existsSync(entry)) {
       missing.add(rel);
@@ -217,6 +256,11 @@ async function main() {
   }
 
   if (missing.size === 0 && !bootstrapWarning) {
+    // Every registered file is present, so the bundle is usable: a partly registered hook set is
+    // reported and the startup work below still runs.
+    if (partial.length) {
+      process.stderr.write(`\n⚠ [easy-claude] Hook registration incomplete in .claude/settings.json.\n${registrationNote(partial)}\n`);
+    }
     const source = sessionSource();
     const configState = loadConfigStatus();
     const git = runWindowsGitCapability(source, configState);
@@ -237,7 +281,9 @@ async function main() {
       (extra > 0 ? `\n     ...and ${extra} more` : '') +
       `\n   Repair: from the consuming project root, re-export from the source repo with\n` +
       `     node .claude/scripts/export-claude.mjs "<project-root>" --force\n` +
-      `   (Other SessionStart hooks may still log raw module errors until repaired.)\n\n`
+      `   (Other SessionStart hooks may still log raw module errors until repaired.)\n` +
+      (partial.length ? `   Hook registration is also incomplete:\n${registrationNote(partial)}` : '') +
+      `\n`
   );
 }
 

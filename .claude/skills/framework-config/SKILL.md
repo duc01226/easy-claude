@@ -122,7 +122,7 @@ Work from the adopting project's root; use that project's copied framework, neve
 Skill-auto-trigger precedence: default → team → user → checkout → `CK_SKILL_AUTO_TRIGGER`.
 `commit`, `pull-request` and this configuration/help entry remain eligible under restricted selection.
 An explicitly requested workflow authorizes its scoped planned skill calls, including later/resumed steps
-and required nested calls. Commit and pull-request both ask for test/review choices with explicit Skip options; configuration never answers those questions or approves a skip. Required skills selected through those choices remain callable even when auto-trigger is disabled.
+and required nested calls. Commit and pull-request both decide tests and review themselves by risk, under the commit skill's decision policy, and ask no test/review question; configuration never changes those decisions or approves a skip. Required skills selected by that policy remain callable even when auto-trigger is disabled.
 For a suitable unrequested skill match, false asks once to run that skill or skip and execute directly,
 then waits for the answer. Confirmation authorizes its scoped dependencies; Skip keeps direct execution
 and required checks without re-asking for the same task. No match proceeds directly without a question.

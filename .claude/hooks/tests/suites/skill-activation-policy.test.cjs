@@ -11,7 +11,7 @@ const hook = require('../../skill-activation-inject.cjs');
 const routing = require('../../../scripts/lib/workflow-routing-config.cjs');
 const { validateConfig } = require('../../lib/project-config-schema.cjs');
 const { validateCkConfig } = require('../../lib/ck-config-schema.cjs');
-const routeHook = require('../../workflow-route-inject.cjs');
+const routeHook = require('../../lib/workflow-route-delivery.cjs');
 const HOOKS_DIR = path.resolve(__dirname, '..', '..');
 
 function withFixture(fn) {
@@ -122,15 +122,15 @@ module.exports = {
                 }
             }
         }) },
-        { name: 'TC-SAP-004 commit route and risk-based review chain remain eligible without automatic Skip', fn: () => withFixture(fx => {
+        { name: 'TC-SAP-004 commit route and automatic risk-tier review chain remain eligible without a test/review question', fn: () => withFixture(fx => {
             fx.write('docs/project-config.json', settings(false));
             for (const host of ['claude', 'codex']) {
                 const context = JSON.parse(runProcess(fx, { ...prompt, session_id: `${host}-commit`, prompt: 'commit this' }, host)).hookSpecificOutput.additionalContext;
                 assert.match(context, /required dependency\/step of a skill or workflow already authorized/);
                 assert.match(context, /review selected by the user or the commit decision policy authorizes its workflow and required nested reviewers/);
                 assert.match(context, /Selection eligibility is not a skip approval or Git authority/);
-                assert.match(context, /ask initially and on material risk\/scope escalation with explicit Skip options/);
-                assert.match(context, /When a question is required, wait for an explicit answer/);
+                assert.match(context, /never ask the human whether to run tests or review; classify the candidate, decide, act and record/);
+                assert.match(context, /skip only a low-risk candidate, run why-review for medium risk and changes-review for high risk, at most two review rounds each/);
                 assert.match(context, /Selected test\/review skills and their required nested calls remain eligible/);
                 assert.match(context, /explicitly requested workflow authorizes its required skill steps/);
                 assert.match(context, /todo\/task plan and executed later or after resume/);
@@ -140,7 +140,7 @@ module.exports = {
             }
             assert.match(hook.buildPolicy({ enabled: false, source: 'test' }), /human explicitly asks.*by name or command/);
         }) },
-        { name: 'TC-SAP-011 repeated commit and PR prompts retain safe continuity and fresh-evidence rules on recovery', fn: () => withFixture(fx => {
+        { name: 'TC-SAP-011 repeated commit and PR prompts retain the automatic decision and fresh-evidence rules on recovery', fn: () => withFixture(fx => {
             fx.write('docs/project-config.json', settings(false));
             for (const host of ['claude', 'codex']) {
                 const events = [
@@ -153,12 +153,14 @@ module.exports = {
                     assert.equal(context, hook.buildPolicy({ enabled: false, source: 'project-config' }),
                         'every ordinary and recovery event must carry the complete current policy');
                     assert.match(context, /follow the Test and review decision policy in \.claude\/skills\/commit\/SKILL\.md/);
-                    assert.match(context, /reuse recorded preferences for small same-task\/branch follow-ups/);
-                    assert.match(context, /automatically run fresh checks and whole-branch review for routine PR CI repairs/);
-                    assert.match(context, /Keep the last human-answer baseline and assess cumulative changes/);
-                    assert.match(context, /ask initially and on material risk\/scope escalation with explicit Skip options/);
-                    assert.match(context, /When a question is required, wait for an explicit answer/);
-                    assert.match(context, /Never choose Skip, infer consent from silence/);
+                    assert.match(context, /never ask the human whether to run tests or review/);
+                    assert.match(context, /skip only when the affected tests already passed this session for unchanged content or the change is really small/);
+                    assert.match(context, /otherwise run scoped tests and fix failures until all pass/);
+                    assert.match(context, /Findings still open at that cap, a check that cannot go green or ambiguous intent stop the operation before the commit with a report/);
+                    assert.match(context, /An explicit human instruction about tests or review overrides the automatic choice/);
+                    assert.match(context, /Never describe skipped work as passed/);
+                    assert.doesNotMatch(context, /ask initially|human-answer baseline|recorded preferences/,
+                        'the retired question-frequency policy must not return');
                     assert.match(context, /changed content needs current evidence\/receipts, not a transferred Skip/);
                     assert.match(context, /Explicit user constraints, pending questions and existing host permissions still apply/);
                     assert.doesNotMatch(context, /MUST ask the human about tests and review/);

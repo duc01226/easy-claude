@@ -7,9 +7,9 @@
  * Blocks an agent `git commit` when the CURRENT changeset has no review
  * fix-loop receipt. Satisfying receipts are minted by `changes-review
  * --fix-loop`, `why-review --fix-loop`, and `workflow-review-changes
- * --fix-loop` when they converge (see `lib/review-receipt.cjs`). The user can
- * always proceed by explicitly choosing to skip, which mints a `skip` receipt
- * after the agent asks. This is a bounded speedbump, not a security boundary:
+ * --fix-loop` when they converge (see `lib/review-receipt.cjs`). A `skip`
+ * receipt also clears it: the `commit` skill mints one for a Low-risk candidate
+ * or on the user's explicit request. This is a bounded speedbump, not a security boundary:
  * it exists so an unreviewed commit cannot happen by forgetfulness.
  *
  * Fail closed for commit statements whose target or candidate cannot be
@@ -261,15 +261,16 @@ function blockMessage(repository, snapshot, descriptor, reason) {
   const shellQuote = value => `'${String(value).replace(/'/g, "'\\''")}'`;
   const skipRecovery = descriptor
     ? [
-      '  4. Skip — only if the user explicitly decides to commit without review; ASK them first (the user alone decides), then mint a descriptor-bound skip:',
+      '  3. Skip — only for a Low-risk candidate (docs, comments, formatting, copy or a really small edit) or on the user\'s explicit request; mint a descriptor-bound skip that records the reason:',
       '',
       `  node .claude/hooks/lib/review-receipt.cjs snapshot --target=commit-descriptor --descriptor-json=${shellQuote(JSON.stringify(descriptor))}`,
-      '  node .claude/hooks/lib/review-receipt.cjs issue --kind=skip --scope=full-changeset --snapshot-json=\'<exact snapshot JSON returned above>\' --reason="user approved skip"',
+      '  node .claude/hooks/lib/review-receipt.cjs issue --kind=skip --scope=full-changeset --snapshot-json=\'<exact snapshot JSON returned above>\' --reason="auto: low risk — <signal>"',
       '',
+      'Use --reason="user approved skip" when the user asked for the skip. Never skip a Medium or High candidate, or a failed review.',
       'Use this exact descriptor for the snapshot and commit. The `skip` shorthand captures only the worktree and may not match this commit candidate.'
     ]
     : [
-      'Skip is unavailable because this Git context has no supported exact commit descriptor. Use the `commit` skill to prepare a supported candidate, then choose a review option or explicitly skip that exact candidate.'
+      'Skip is unavailable because this Git context has no supported exact commit descriptor. Use the `commit` skill to prepare a supported candidate, then gate that exact candidate by its risk tier.'
     ];
   return [
     '[BLOCKED] Commit refused — the exact commit candidate has no matching review fix-loop receipt.',
@@ -285,13 +286,15 @@ function blockMessage(repository, snapshot, descriptor, reason) {
     ...(snapshot?.errorCode ? [`Candidate status: ERROR (${snapshot.errorCode})`] : []),
     ...(reason ? [`Reason: ${reason}`] : []),
     '',
-    'A commit MUST be preceded by a review fix-loop over this exact full candidate.',
-    'Ask the user to choose a review option below; recommend ONE by the `commit` skill\'s Review selection rule',
-    '(size and risk; heavier on a tie). The chosen fix-loop issues the receipt; then retry the commit:',
+    'A commit MUST be preceded by the gate its risk tier selects over this exact full candidate.',
+    'Do not ask the user: classify the candidate by the `commit` skill\'s Review selection rule',
+    '(risk tier; higher on a tie) and act. A fix-loop issues the receipt; then retry the commit:',
     '',
-    '  1. /why-review --fix-loop               # use when: docs/config/comments, or a small module, no behaviour change',
-    '  2. /changes-review --fix-loop           # use when: a focused behaviour change in one module',
-    '  3. /workflow-review-changes --fix-loop  # use when: cross-module/contract, security, data, gates, deps, UI, large diff',
+    '  1. /why-review --fix-loop      # medium risk: a focused change in one module or area, narrow regression scope',
+    '  2. /changes-review --fix-loop  # high risk: cross-module/contract, security, data, gates, deps, UI, large diff',
+    '',
+    'Each fix-loop runs at most 2 review rounds. MEDIUM+ findings still open at the cap: stop and report, no commit, no skip.',
+    '/workflow-review-changes --fix-loop also issues a valid receipt when the user asks for the full workflow.',
     '',
     'Use the supported default staged, -a/--all, or exact literal -- <files> mode. Unsupported',
     'Git contexts and candidate errors fail closed. Restore the normal repository/default index,',

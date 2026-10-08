@@ -628,7 +628,104 @@ const RUNTIME_LOCKFILE_PROBES = Object.freeze({
     ]
 });
 
+// The two entry files of the workflow route, named by their owner so the verifier's own list cannot drift from it.
+const ROUTE_DELIVERY = require('../../lib/workflow-route-delivery.cjs');
+const ROUTE_ENTRY = `${ROUTE_DELIVERY.HOOK_NAME}.cjs`;
+const CATALOG_ENTRY = `${ROUTE_DELIVERY.CATALOG_HOOK_NAME}.cjs`;
+
+/** Register `entries` beside the verifier in the fixture's settings, each present on disk as a stub hook. */
+function registerPromptHooks(root, entries) {
+    const hooks = path.join(root, '.claude', 'hooks');
+    for (const entry of [ROUTE_ENTRY, CATALOG_ENTRY]) writeText(path.join(hooks, entry), "'use strict';\n");
+    const command = entry => `node "$CLAUDE_PROJECT_DIR"/.claude/hooks/${entry}`;
+    writeJson(path.join(root, '.claude', 'settings.json'), {
+        hooks: {
+            SessionStart: [{ matcher: 'startup|resume|clear|compact', hooks: [{ command: command('verify-install.cjs') }] }],
+            UserPromptSubmit: entries.map(entry => ({ hooks: [{ command: command(entry), type: 'command' }] }))
+        }
+    });
+}
+
 const tests = [
+    {
+        // Intent: the workflow route is two hook outputs, each registered on its own. A settings file kept
+        // across an upgrade can register one without the other, and the session then gets half the route
+        // with no error anywhere. The integrity scan names that state, in either direction, and still runs
+        // the startup work: every registered file is present, so the bundle itself is usable.
+        name: '[startup-integrity] a route registered without its catalog, or the reverse, is named once and startup still proceeds',
+        fn: () => withTempFixture(root => {
+            const cases = [
+                [[ROUTE_ENTRY], ROUTE_ENTRY, CATALOG_ENTRY, 'prompts get the workflow route gate but not the workflow catalog'],
+                [[CATALOG_ENTRY], CATALOG_ENTRY, ROUTE_ENTRY, 'prompts get the workflow catalog but not the workflow route gate']
+            ];
+            for (const [registered, present, absent, effect] of cases) {
+                // Given a complete bundle whose settings register one of the two route entries
+                const orderLog = path.join(root, `order-${present}.log`);
+                makeVerifierFixture(root, { complete: true, orderLog });
+                registerPromptHooks(root, registered);
+                // When a session starts
+                const result = invokeVerifier(root, 'startup', { CK_ORDER_LOG: orderLog });
+                // Then one block names the registered entry, the missing one, what the session loses and the repair
+                assert.equal(result.status, 0, result.stderr);
+                assert.equal(result.stdout, '');
+                assert.equal((result.stderr.match(/Hook registration incomplete/g) || []).length, 1, result.stderr);
+                assert.ok(result.stderr.includes(`${present} is registered without ${absent}: ${effect}.`), result.stderr);
+                assert.match(result.stderr, /settings\.json was kept across a framework upgrade/);
+                assert.match(result.stderr, /Repair: add the missing hook entry/);
+                // And it is not reported as a broken copy, and the startup owner still runs
+                assert.doesNotMatch(result.stderr, /Install incomplete|node:internal|Require stack|\n\s+at /);
+                assert.ok(fs.readFileSync(orderLog, 'utf8').split('\n').includes('startup-run'), 'the startup owner must still run');
+            }
+        })
+    },
+    {
+        // Intent: the scan names a half-registered route only. Registering both entries is the shipped
+        // state, and registering neither is a project's own choice: both stay silent.
+        name: '[startup-integrity] a route registered in full, or not at all, raises no registration warning',
+        fn: () => withTempFixture(root => {
+            for (const registered of [[ROUTE_ENTRY, CATALOG_ENTRY], []]) {
+                const orderLog = path.join(root, `order-${registered.length}.log`);
+                makeVerifierFixture(root, { complete: true, orderLog });
+                registerPromptHooks(root, registered);
+                const result = invokeVerifier(root, 'startup', { CK_ORDER_LOG: orderLog });
+                assert.equal(result.status, 0, result.stderr);
+                assert.equal(result.stdout, '');
+                assert.equal(result.stderr, '', `${registered.length} route entries registered`);
+            }
+        })
+    },
+    {
+        // Intent: a copy that is both missing files and half-registered still gets ONE warning block, with
+        // the missing files first (the session cannot run without them) and the registration lines after.
+        name: '[startup-integrity] a broken copy with a half-registered route reports both in one block',
+        fn: () => withTempFixture(root => {
+            const orderLog = path.join(root, 'order.log');
+            makeVerifierFixture(root, { complete: true, orderLog });
+            registerPromptHooks(root, [ROUTE_ENTRY]);
+            fs.rmSync(path.join(root, '.claude', 'hooks', ROUTE_ENTRY));
+            const result = invokeVerifier(root, 'startup', { CK_ORDER_LOG: orderLog });
+            assert.equal(result.status, 0, result.stderr);
+            assert.equal(result.stdout, '');
+            assert.equal((result.stderr.match(/⚠ \[easy-claude\]/g) || []).length, 1, result.stderr);
+            assert.match(result.stderr, /Install incomplete — 1 hook file\(s\) missing/);
+            assert.ok(result.stderr.includes(`- .claude/hooks/${ROUTE_ENTRY}`), result.stderr);
+            assert.ok(result.stderr.indexOf('Hook registration is also incomplete') > result.stderr.indexOf('Repair: from the consuming project root'), result.stderr);
+            assert.ok(result.stderr.includes(`${ROUTE_ENTRY} is registered without ${CATALOG_ENTRY}`), result.stderr);
+            assert.equal(fs.existsSync(orderLog), false, 'a broken copy must not run the startup work');
+        })
+    },
+    {
+        // Intent: the shipped settings register every entry of every hook set, so a fresh install never
+        // starts with the warning above. This reads the bundle's own settings file, which ships with it.
+        name: '[startup-integrity] the shipped settings register both route entries',
+        fn: () => {
+            const settings = fs.readFileSync(path.join(HOOKS_ROOT, '..', 'settings.json'), 'utf8');
+            for (const entry of [ROUTE_ENTRY, CATALOG_ENTRY]) {
+                assert.ok(settings.includes(`/.claude/hooks/${entry}`), `settings.json must register ${entry}`);
+                assert.ok(fs.existsSync(path.join(HOOKS_ROOT, entry)), `${entry} must ship with the bundle`);
+            }
+        }
+    },
     {
         name: '[startup-integrity] incomplete copied bundle warns once without importing dependent modules',
         fn: () => withTempFixture(root => {

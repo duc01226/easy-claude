@@ -399,7 +399,7 @@ const tests = [
         fn: () => {
             const commit = read(SKILLS, 'commit', 'SKILL.md');
             const gate = commit.split('### Step 3.5: Test-Verify Gate')[1].split('### Step 3.6:')[0];
-            assert.match(gate, /\*\*Verify now \(Recommended\)\*\* — `\/workflow-integration-test --mode=green` verifies, adjudicates, fixes, reviews and re-verifies the applicable suite/);
+            assert.match(gate, /\*\*Fix loop on any failure:\*\* `\/workflow-integration-test --mode=green` verifies, adjudicates, fixes, reviews and re-verifies the applicable suite/);
             assert.match(gate, /Continue only when green; escalation is a blocker/);
             const verify = read(SKILLS, 'integration-test', 'references', 'mode-verify.md');
             assert.match(verify, /RECOMMEND `\/workflow-integration-test --mode=green` whenever this run ends with ANY failure/);

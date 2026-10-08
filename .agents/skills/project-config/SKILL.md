@@ -213,6 +213,9 @@ protocol on top of the canonical route gate. The value is either:
 - The text is **additive** to the canonical gate and catalog, injected in its own marker block
   (`<!-- CK:WORKFLOW-ROUTE-PROTOCOL -->`) by `workflow-route-inject.cjs` at `UserPromptSubmit`. It is
   advisory context, never a blocking decision and never an authority escalation.
+- Keep it to about 3,300 characters or fewer. The framework never cuts it, but it shares one hook
+  output with the gate, and a host shows only a preview of an output past 10,000 characters, the gate
+  included; the route output then says so on its second line and names the size that fits.
 - Team and local layers do **not** concatenate: a valid local value **replaces** the team value, the
   same "later valid layer wins" rule the on/off switch uses. To extend the team protocol locally, copy
   its text into the local value (or point the local `path` at the shared file and add your lines).

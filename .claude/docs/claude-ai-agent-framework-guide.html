@@ -201,7 +201,7 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
         <div class="stat"><b><!-- COUNT:workflows -->19<!-- /COUNT --></b><span>workflows</span></div>
         <div class="stat"><b><!-- COUNT:agents -->24<!-- /COUNT --></b><span>agents</span></div>
         <div class="stat"><b><!-- COUNT:hooks -->33<!-- /COUNT --></b><span>hook files</span></div>
-        <div class="stat"><b><!-- COUNT:lib-modules -->61<!-- /COUNT --></b><span>hook libraries</span></div>
+        <div class="stat"><b><!-- COUNT:lib-modules -->62<!-- /COUNT --></b><span>hook libraries</span></div>
       </div>
       <details class="toc-mobile"><summary>Contents</summary><ol id="toc-mobile-list"></ol></details>
     </header>
@@ -410,7 +410,7 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
 
     <section id="hooks" aria-labelledby="hooks-h">
       <h2 id="hooks-h">Hooks and runtime</h2>
-      <div class="callout warn"><b>Only two hooks can stop you</b><span><code>review-commit-gate</code> blocks an agent <code>git commit</code> without a review receipt or approved skip. <code>init-prompt-gate</code> blocks prompts only when the project config exists but is invalid; a missing config just gets a daily notice. Everything else is advisory or silent.</span></div>
+      <div class="callout warn"><b>Only two hooks can stop you</b><span><code>review-commit-gate</code> blocks an agent <code>git commit</code> without a review receipt or skip receipt. <code>init-prompt-gate</code> blocks prompts only when the project config exists but is invalid; a missing config just gets a daily notice. Everything else is advisory or silent.</span></div>
       <div class="life">
         <div class="ev"><h4>SessionStart</h4><ul><li>verify-install</li><li>session-init</li><li>session-init-docs</li><li>graph-session-init</li><li>re-arm conventions + prompt ledger</li></ul></div>
         <div class="ev"><h4>UserPromptSubmit</h4><ul><li>init-prompt-gate</li><li>workflow-route-inject</li><li>workflow-catalog-inject</li><li>commit / judgement routers</li><li>prompt-ledger</li><li>graph-prompt-sync</li></ul></div>
@@ -452,8 +452,8 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
         <li><div><b>Validate findings</b><span><code>why-review --validate-findings</code> checks each finding against evidence before any fix, and never recurses.</span></div></li>
         <li><div><b>Fix at the owner</b><span><code>fix --target=review</code> records FIXED / REJECTED / DEFERRED; an unexplained defect is traced first.</span></div></li>
         <li><div><b>Receipt</b><span>A converged fix-loop mints a receipt for that exact changeset; any later edit invalidates it.</span></div></li>
-        <li><div><b>Commit</b><span><code>/commit</code> runs the test and review gates; the commit gate blocks any agent commit without a receipt.</span></div></li>
-        <li><div><b>Pull request</b><span><code>/pull-request</code> asks for tests and whole-branch review with explicit Skip options, runs the selected gates, commits, pushes, opens a ready PR and fixes CI until green. It never merges or force-pushes.</span></div></li>
+        <li><div><b>Commit</b><span><code>/commit</code> decides the test and review gates by risk without asking; the commit gate blocks any agent commit without a receipt.</span></div></li>
+        <li><div><b>Pull request</b><span><code>/pull-request</code> decides tests and the whole-branch review by risk without asking, runs the selected gates, commits, pushes, opens a ready PR and fixes CI until green. It never merges or force-pushes.</span></div></li>
       </ol>
       <div class="callout"><b>Git discipline</b><span>Never commit, push or stage without an explicit request; branch first on the default branch; never destroy uncommitted work without asking; treat <code>gh</code> writes like a push. Only the literal <code>permissions.ask</code> patterns still prompt; the commit review gate is the one mechanical rule.</span></div>
     </section>

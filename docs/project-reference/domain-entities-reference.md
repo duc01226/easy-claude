@@ -67,7 +67,7 @@ Code-graph SQLite stores source nodes, edges and metadata (`.claude/scripts/code
 
 Context-group `referenceDocs` paths are repository-relative; selected root `referenceDocs[].filename` resolves beneath the configured project-reference root. Matching requires the extension filter, a supported path/name or eligible bounded content include, and no exclusion. `on` controls reminder delivery, not whether required review rules apply. Read `.claude/hooks/lib/file-conventions.cjs` when evaluating matching/delivery. Keep the detected-origin/fingerprint maintainer boundary above.
 
-Runtime skill selection is advisory and preserves host permissions. Read `.claude/hooks/skill-activation-inject.cjs` and `.claude/hooks/workflow-route-inject.cjs` when tracing selection; SubagentStart delivers protocols and skill context, while UserPromptExpansion delivers selected skill/overlay guidance. Persisted workflow snapshots still do not advance model-executed gates.
+Runtime skill selection is advisory and preserves host permissions. Read `.claude/hooks/skill-activation-inject.cjs` and `.claude/hooks/lib/workflow-route-delivery.cjs` (the owner behind the `workflow-route-inject.cjs` and `workflow-catalog-inject.cjs` entries) when tracing selection; SubagentStart delivers protocols and skill context, while UserPromptExpansion delivers selected skill/overlay guidance. Persisted workflow snapshots still do not advance model-executed gates.
 
 ## Evidence Limits
 

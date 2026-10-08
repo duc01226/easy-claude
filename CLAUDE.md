@@ -167,7 +167,7 @@ When editing files matching these path patterns, pre-read the listed context fir
 | Agents      | <!-- COUNT:agents -->24<!-- /COUNT -->      |
 | Workflows   | <!-- COUNT:workflows -->19<!-- /COUNT -->   |
 | Shared      | <!-- COUNT:shared -->15<!-- /COUNT -->      |
-| Lib modules | <!-- COUNT:lib-modules -->61<!-- /COUNT --> |
+| Lib modules | <!-- COUNT:lib-modules -->62<!-- /COUNT --> |
 
 ---
 

@@ -20,7 +20,9 @@ const { checkWorkflowSkillContract } = require("../lib/workflow-skill-contract.c
 const ADVANCEMENT_CLAUSE_PATTERN = /advance only after (?:all|every)(?: members?)? return/i;
 const ADVANCEMENT_CLAUSE_LABEL = 'advance only after ALL/EVERY member(s) return';
 
-const RUNTIME_ROUTE_HOOK = path.join(".claude", "hooks", "workflow-route-inject.cjs");
+// Owner of both runtime route outputs; the hook entries `workflow-route-inject.cjs` and
+// `workflow-catalog-inject.cjs` only call its `runHook`.
+const RUNTIME_ROUTE_DELIVERY = path.join(".claude", "hooks", "lib", "workflow-route-delivery.cjs");
 
 const TARGET_WORKFLOW_IDS = [
   "workflow-big-feature",
@@ -1058,8 +1060,8 @@ export function checkResolvedParallelGroupsStructure(workflowId, manifest, failu
   return failures;
 }
 
-// Catalog forms the runtime catalog output can take (workflow-route-inject.cjs buildCatalogInjection,
-// delivered by workflow-catalog-inject.cjs). The
+// Catalog forms the runtime catalog output can take (lib/workflow-route-delivery.cjs
+// buildCatalogInjection, delivered by workflow-catalog-inject.cjs). The
 // compact catalog and the index with parallel-phase marks carry every barrier token per workflow
 // row; the tiers-only index and the pointer-only form omit them by design (`start-workflow <id>`
 // loads a workflow's phases).
@@ -1091,7 +1093,8 @@ export function runtimeCatalogForm(runtimeText, rootDir) {
 
 // W5(b)+(c) — runtime-payload proof. (b) every expected barrier token is present in the catalog
 // output the runtime prompt hooks emit, when that text is a marked form; (c) the advancement clause reached
-// that payload, in every form. Static root/mirror files carry the route gate without the live catalog.
+// that payload, in every form. Root and mirror files carry no route text, so the runtime output is the
+// only place either can be checked.
 async function checkParallelGroupsMirrorParity(workflows, rootDir, failures, resolvedByWorkflow = []) {
   const grouped = Object.entries(workflows).filter(
     ([, wf]) => Array.isArray(wf?.parallelGroups) && wf.parallelGroups.length > 0
@@ -1103,23 +1106,23 @@ async function checkParallelGroupsMirrorParity(workflows, rootDir, failures, res
   );
   if (grouped.length === 0 && resolvedGrouped.length === 0) return;
 
-  const hookPath = path.join(rootDir, RUNTIME_ROUTE_HOOK);
-  if (!(await exists(hookPath))) {
-    failures.push(`parallelGroups runtime check: missing route hook ${RUNTIME_ROUTE_HOOK}`);
+  const deliveryPath = path.join(rootDir, RUNTIME_ROUTE_DELIVERY);
+  if (!(await exists(deliveryPath))) {
+    failures.push(`parallelGroups runtime check: missing route delivery module ${RUNTIME_ROUTE_DELIVERY}`);
     return;
   }
   let runtimeText;
   try {
     // The catalog rides its own hook output; the route output (gate + protocol) carries no rows.
-    const { buildCatalogInjection } = require(hookPath);
+    const { buildCatalogInjection } = require(deliveryPath);
     runtimeText = buildCatalogInjection(rootDir);
   } catch (error) {
-    failures.push(`parallelGroups runtime check: could not build ${RUNTIME_ROUTE_HOOK} payload (${error?.message || error})`);
+    failures.push(`parallelGroups runtime check: could not build ${RUNTIME_ROUTE_DELIVERY} payload (${error?.message || error})`);
     return;
   }
 
   if (!ADVANCEMENT_CLAUSE_PATTERN.test(runtimeText)) {
-    failures.push(`parallelGroups runtime check: advancement clause "${ADVANCEMENT_CLAUSE_LABEL}" missing from ${RUNTIME_ROUTE_HOOK} payload`);
+    failures.push(`parallelGroups runtime check: advancement clause "${ADVANCEMENT_CLAUSE_LABEL}" missing from ${RUNTIME_ROUTE_DELIVERY} payload`);
   }
   // The runtime catalog intentionally shows human-readable route summaries rather than the
   // resolver's internal occurrence IDs. Structural checks above own exact membership and
@@ -1134,7 +1137,7 @@ async function checkParallelGroupsMirrorParity(workflows, rootDir, failures, res
     const expectedGroups = workflow.parallelGroups.length;
     if (renderedGroups < expectedGroups) {
       failures.push(
-        `parallelGroups runtime parity (${workflowId}): expected ${expectedGroups} parallel group(s), found ${renderedGroups} in ${RUNTIME_ROUTE_HOOK} payload`
+        `parallelGroups runtime parity (${workflowId}): expected ${expectedGroups} parallel group(s), found ${renderedGroups} in ${RUNTIME_ROUTE_DELIVERY} payload`
       );
     }
   }

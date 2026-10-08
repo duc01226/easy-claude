@@ -55,7 +55,7 @@ Before each prompt the assistant receives short routing guidance in two messages
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | Workflow              | A named sequence of steps the assistant can run for a kind of request                                                                                         | Defined by the framework or the project                                                                                                   |
 | Routing Guidance      | The text added before each prompt, in two messages: the route message and the catalog message (or the off notice alone)                                       | Rebuilt for each prompt; each message shown once per conversation until it may have faded                                                 |
-| Route Message         | The first guidance message: the mode line, the full routing gate for the mode and the project's own route protocol when one is configured                     | Always delivered whole; never shortened to make room for the catalog                                                                      |
+| Route Message         | The first guidance message: the mode line, the full routing gate for the mode and the project's own route protocol when one is configured                     | Always sent complete, never shortened to make room for the catalog; past 10,000 characters a host shows only a preview                    |
 | Catalog Message       | The second guidance message: the workflow catalog in the first catalog form that fits the size cap                                                            | At most 9,500 characters; not sent when routing is off or automatic skill selection is disabled                                           |
 | Routing Gate          | The rule block telling the assistant to choose its route before acting; one variant per mode                                                                  | Delivered only by the route message; no root file carries it                                                                              |
 | Root Instruction File | An always-loaded project instruction file an assistant host reads at session start                                                                            | One per host family; holds project information only, no route text                                                                         |
@@ -91,11 +91,12 @@ Before each prompt the assistant receives short routing guidance in two messages
 
 **Acceptance Criteria:**
 
-- **AC-WFR-01** — **Given** automatic routing is on **When** a prompt is received **Then** the guidance arrives as two messages, each within the host's limit for one added message: the route message with the mode line, the full routing gate for the mode and the project's route protocol when one is configured, and the catalog message of at most 9,500 characters, which uses the compact catalog naming every workflow with its effective tier whenever that fits and otherwise the first shorter catalog form that fits; a project route protocol is never dropped or cut, so the route message is delivered whole even when the protocol keeps it over 9,500 characters
+- **AC-WFR-01** — **Given** automatic routing is on **When** a prompt is received **Then** the guidance arrives as two messages: the route message with the mode line, the full routing gate for the mode and the project's route protocol when one is configured, and the catalog message of at most 9,500 characters, which uses the compact catalog naming every workflow with its effective tier whenever that fits and otherwise the first shorter catalog form that fits; without a project route protocol the route message also stays within 9,500 characters, so the host shows both messages in full; the framework never drops or cuts a project route protocol, so a long one makes the route message longer (AC-WFR-25)
 - **AC-WFR-02** — **Given** the compact catalog **When** it is rendered **Then** each row shows name, tier, step count and a hint of at most 140 characters, never the full step list, and the step skills appear as one line of names; a workflow with several modes shows its step count as a range and prefixes each mode's parallel-phase marks with the mode name
 - **AC-WFR-13** — **Given** the guidance was already delivered in this conversation **When** the next prompt is received **Then** it is not repeated, unless the conversation was compacted since the delivery — recorded by either host in its own form — in which case it is delivered again, once; the word "compacted" appearing only inside another record is not a compaction
 - **AC-WFR-23** — **Given** a routing gate of any length and any project route protocol **When** the catalog message is built **Then** its form depends only on the workflow set: a longer gate or a project route protocol of any size never changes it, and the framework's own workflow set keeps the compact catalog
 - **AC-WFR-24** — **Given** the state the route message reports **When** a prompt is received **Then** the catalog message follows it: none is sent when routing is off or automatic skill selection is disabled; otherwise it is delivered once and again only when it may have left the assistant's context — its own content changed, the conversation was compacted, or the conversation record grew by the re-arm distance or shrank (BR-WFR-09); a first-line mode directive is recorded and acknowledged once, by the route message, and the catalog message follows the directive's mode in that same prompt
+- **AC-WFR-25** — **Given** a project route protocol long enough to take the route message past the 10,000 characters a host shows in full **When** the route message is sent **Then** it still holds the complete gate and the complete protocol, and its second line states the message size, that the host may show only a preview, where to read the gate and the protocol in full, and the protocol size that brings the message back within 9,500 characters; a route message of 10,000 characters or fewer carries no such line
 
 ### US-WFR-02: The routing gate is carried once, by the guidance only
 
@@ -137,7 +138,7 @@ Before each prompt the assistant receives short routing guidance in two messages
 - **AC-WFR-15** — **Given** several sources name a mode **When** the mode is resolved **Then** the latest of these wins: built-in ask, the team project configuration, the person's every-project file, the person's checkout file, the environment variable, this session's prompt directive; with no project configuration, no setting anywhere, or an invalid or unreadable value in a source, that source expresses no opinion, the next source decides, the result ends at ask, and the prompt is never failed or blocked
 - **AC-WFR-16** — **Given** a prompt whose whole first line is a mode directive **When** it is received **Then** the mode applies to that prompt and, when the session preference can be remembered, the rest of the session; otherwise the reply reports that it could not be remembered and later prompts use the recorded or configured mode. The new route is delivered even though one was delivered earlier, and with "save" the person's every-project file is updated; prose that merely mentions the words is never a directive
 - **AC-WFR-17** — **Given** any personal source **When** tracked, team-shared output is generated **Then** it reads the built-in and team layers only, and no personal value is ever written to a tracked file
-- **AC-WFR-18** — **Given** a host that delivers no guidance **When** the assistant starts **Then** it receives no route: a host that runs no hook is unsupported, and the personal auto and off modes need a host that runs the hook
+- **AC-WFR-18** — **Given** a host that delivers no guidance **When** the assistant starts **Then** it receives no route: a host that runs no hook is unsupported, and the personal auto and off modes need a host that runs the hook; a project settings file that registers one of the two guidance deliveries without the other is named by the session-start install check
 - **AC-WFR-19** — **Given** a workflow that an explicit skill step, the user's named skill or an already-running parent workflow requires **When** it starts **Then** it is part of that run, not a workflow the assistant chose: in mode ask it asks no workflow question and in mode off it is not skipped; ask and off govern only a workflow the assistant chooses to start, and the gate and the off notice say so while still saying a self-chosen workflow asks (ask) or is not started (off)
 
 ---
@@ -191,7 +192,9 @@ Before each prompt the assistant receives short routing guidance in two messages
 
 **Statement:** The routing guidance added to a prompt reaches the assistant as two messages, so that neither the rule nor the catalog is cut to the host's preview of one long message: the route message — the mode line, the full routing gate for the resolved mode (BR-WFR-03) and the project's own route protocol when one is configured — and the catalog message — the workflow catalog. The catalog message is at most 9,500 characters, leaving margin under the host's 10,000-character cap, and uses the first of these catalog forms that fits: the compact catalog (BR-WFR-02); the same rows without the line of step-skill names; an index with each workflow's name, effective tier and parallel-phase marks; an index with each workflow's name and effective tier only; a pointer only, with no workflow rows. Every catalog form keeps the advancement rule and the workflow pointer. The size is measured on the catalog message alone, so the catalog form depends only on the workflow set: the length of the gate never changes it, and neither does a project route protocol. The framework's own workflow set keeps the compact catalog.
 
-The route message always carries the gate in full and is never shortened to make room for the catalog; without a project route protocol it stays within 9,500 characters. A project's own route protocol is never dropped or cut: it travels in the route message, which is delivered whole even when the protocol keeps it over 9,500 characters. This is the only case in which a guidance message exceeds 9,500 characters.
+The route message always carries the gate in full and is never shortened to make room for the catalog; without a project route protocol it stays within 9,500 characters. The framework never drops or cuts a project's own route protocol: it travels complete in the route message, so a long protocol makes that message longer. This is the only case in which a guidance message exceeds 9,500 characters.
+
+What the assistant sees of a long route message is the host's decision, not the framework's: a host shows one added message in full up to 10,000 characters and only a preview of a longer one, the gate included. With the framework's own gate, a project route protocol of about 3,300 characters or fewer keeps the route message within 9,500 characters, and one longer than about 3,850 characters takes it past 10,000. A route message longer than 10,000 characters says so on its second line, where a preview still shows it: the message size, that the host may show only a preview, where to read the gate and the protocol in full, and the protocol size that brings the message back within 9,500 characters. A message of 10,000 characters or fewer carries no such line, so the line is never what pushes a message past the limit.
 
 | Compact catalog fits | Compact rows fit | Index with phase marks fits | Index with tiers fits | Catalog form used                                  |
 | -------------------- | ---------------- | --------------------------- | --------------------- | -------------------------------------------------- |
@@ -203,9 +206,10 @@ The route message always carries the gate in full and is never shortened to make
 
 | Route message holds                                             | Route message                 | Catalog form                                |
 | --------------------------------------------------------------- | ----------------------------- | ------------------------------------------- |
-| The gate only                                                   | delivered whole, within 9,500 | unchanged: chosen from the workflow set     |
-| The gate and a project route protocol, together within 9,500    | delivered whole               | unchanged: chosen from the workflow set     |
-| The gate and a project route protocol that keep it over 9,500   | delivered whole, over 9,500   | unchanged: chosen from the workflow set     |
+| The gate only                                                   | sent complete, within 9,500   | unchanged: chosen from the workflow set     |
+| The gate and a project route protocol, together within 9,500    | sent complete                 | unchanged: chosen from the workflow set     |
+| The gate and a project route protocol that keep it over 9,500   | sent complete, over 9,500     | unchanged: chosen from the workflow set     |
+| The gate and a project route protocol that take it past 10,000  | sent complete, with size line | unchanged: chosen from the workflow set     |
 
 ### BR-WFR-02: Compact catalog content [HARD]
 
@@ -379,7 +383,7 @@ Session           0──1 SessionMode         (set by a prompt directive)
 | Mode line              | text             | Yes      | Opens the route message: "Route mode: <mode> (<source>)"                    | The state the assistant obeys        |
 | Gate variant           | enum RouteMode   | Yes      | In the route message, in full; ask or auto, per BR-WFR-03 and BR-WFR-06     | The routing rule for the mode        |
 | Project route protocol | text             | No       | In the route message; never dropped or cut (BR-WFR-01)                      | The project's own route additions    |
-| Route message length   | number           | Yes      | At most 9,500 characters unless a project route protocol makes it longer    | Delivered whole, never cut           |
+| Route message length   | number           | Yes      | At most 9,500 characters unless a project route protocol makes it longer    | Never cut by the framework           |
 | Catalog form           | enum CatalogForm | Yes      | In the catalog message; first that fits, per BR-WFR-01                      | How much of the catalog is carried   |
 | Catalog                | text             | Yes      | The catalog message: rows per BR-WFR-02, or index rows, or none             | What the assistant routes from       |
 | Catalog message length | number           | Yes      | At most 9,500 characters                                                    | Fits the host cap                    |
@@ -481,13 +485,13 @@ Session           0──1 SessionMode         (set by a prompt directive)
 | Priority  | Count  | Automated | Manual |
 | --------- | ------ | --------- | ------ |
 | P0        | 2      | 2         | 0      |
-| P1        | 22     | 22        | 0      |
+| P1        | 23     | 23        | 0      |
 | P2        | 1      | 1         | 0      |
-| **Total** | **25** | **25**    | **0**  |
+| **Total** | **26** | **26**    | **0**  |
 
 | Category                    | TCs                                                                    |
 | --------------------------- | ---------------------------------------------------------------------- |
-| Core Routing Guidance Tests | TC-WFR-001, TC-WFR-002, TC-WFR-003, TC-WFR-004, TC-WFR-005, TC-WFR-013, TC-WFR-024 |
+| Core Routing Guidance Tests | TC-WFR-001, TC-WFR-002, TC-WFR-003, TC-WFR-004, TC-WFR-005, TC-WFR-013, TC-WFR-024, TC-WFR-026 |
 | Activation Tier Tests       | TC-WFR-006, TC-WFR-007, TC-WFR-009, TC-WFR-011, TC-WFR-012             |
 | Validation Tests            | TC-WFR-008                                                             |
 | Invariant / Property Tests  | TC-WFR-010, TC-WFR-022                                                             |
@@ -545,7 +549,7 @@ And the route message carries the gate in full whatever form the catalog takes
 ```yaml
 inputDomain: 'any workflow set, from the framework set to hundreds of workflows, with a routing gate of any length and with no project route protocol or one of any size'
 invariant: 'for ALL such sets the catalog message is at most 9,500 characters, takes the first catalog form that fits, and keeps the advancement rule and the pointer'
-boundaryCounterCase: 'a project route protocol larger than the cap → the route message is delivered whole, over the cap, with the protocol uncut, and the catalog message keeps its form'
+boundaryCounterCase: 'a project route protocol larger than the cap → the route message is sent complete, over the cap, with the protocol uncut, and the catalog message keeps its form'
 ```
 
 ```json
@@ -567,13 +571,13 @@ boundaryCounterCase: 'a project route protocol larger than the cap → the route
 - A workflow set whose index with parallel-phase marks does not fit but whose index with tiers does → the index with tiers only
 - Two hundred fifty workflows → pointer only, no workflow rows
 - A catalog message of exactly 9,500 characters → accepted in that form; one character more → the next shorter form
-- A project route protocol larger than the cap → the route message is delivered whole and the catalog message keeps its form
+- A project route protocol larger than the cap → the route message is sent complete and the catalog message keeps its form (what a host shows of a message that long: TC-WFR-026)
 
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
 > **Evidence:** `[Source: operation/hooks/workflow-catalog-inject]` · `[Source: operation/hooks/workflow-route-inject]`
 > **Related Behaviors:** `operation/hooks/workflow-catalog-inject` · `operation/hooks/workflow-route-inject` · `test/hooks/workflow-routing-switch`
-> **CoveredBy:** `.claude/hooks/tests/suites/workflow-routing-switch.test.cjs::[workflow-routing-switch] [cap] TC-WFR-001 payload size guard: a 30-workflow registry fits under 9,500 chars`, `.claude/hooks/tests/suites/workflow-routing-switch.test.cjs::[workflow-routing-switch] [cap] TC-WFR-001 payload size guard: this framework registry fits under 9,500 chars`, `.claude/hooks/tests/suites/workflow-routing-switch.test.cjs::[workflow-routing-switch] [cap] TC-WFR-001 index-with-marks fallback: 60 workflows too large for the compact rows fit under 9,500 chars`, `.claude/hooks/tests/suites/workflow-routing-switch.test.cjs::[workflow-routing-switch] [cap] TC-WFR-001 tiers-only index fallback: rows keep id and tier when the marked index overflows`, `.claude/hooks/tests/suites/workflow-routing-switch.test.cjs::[workflow-routing-switch] [cap] TC-WFR-001 pointer-only fallback drops workflow rows when even the index overflows`, `.claude/hooks/tests/suites/workflow-routing-switch.test.cjs::[workflow-routing-switch] [cap] TC-WFR-001 a protocol larger than the cap is delivered whole in the route output and the catalog stays compact`, `.claude/hooks/tests/suites/workflow-routing-switch.test.cjs::[workflow-routing-switch] [cap] TC-WFR-001 a compact payload of exactly 9,500 chars is kept; 9,501 falls back, first without the step-skill names, then to the index` · **Status:** Tested
+> **CoveredBy:** `.claude/hooks/tests/suites/workflow-routing-switch.test.cjs::[workflow-routing-switch] [cap] TC-WFR-001 payload size guard: a 30-workflow registry fits under 9,500 chars`, `.claude/hooks/tests/suites/workflow-routing-switch.test.cjs::[workflow-routing-switch] [cap] TC-WFR-001 payload size guard: this framework registry fits under 9,500 chars`, `.claude/hooks/tests/suites/workflow-routing-switch.test.cjs::[workflow-routing-switch] [cap] TC-WFR-001 index-with-marks fallback: 60 workflows too large for the compact rows fit under 9,500 chars`, `.claude/hooks/tests/suites/workflow-routing-switch.test.cjs::[workflow-routing-switch] [cap] TC-WFR-001 tiers-only index fallback: rows keep id and tier when the marked index overflows`, `.claude/hooks/tests/suites/workflow-routing-switch.test.cjs::[workflow-routing-switch] [cap] TC-WFR-001 pointer-only fallback drops workflow rows when even the index overflows`, `.claude/hooks/tests/suites/workflow-routing-switch.test.cjs::[workflow-routing-switch] [cap] TC-WFR-001 a protocol larger than the cap is sent complete in the route output and the catalog stays compact`, `.claude/hooks/tests/suites/workflow-routing-switch.test.cjs::[workflow-routing-switch] [cap] TC-WFR-001 a compact payload of exactly 9,500 chars is kept; 9,501 falls back, first without the step-skill names, then to the index` · **Status:** Tested
 
 ---
 
@@ -900,7 +904,7 @@ boundaryCounterCase: '"compacted" nested in another record''s content or quoted 
 
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
-> **Evidence:** `[Source: operation/hooks/workflow-route-inject]` · `.claude/hooks/tests/suites/workflow-routing-switch.test.cjs:862`
+> **Evidence:** `[Source: operation/hooks/workflow-route-inject]`
 > **Related Behaviors:** `operation/hooks/workflow-route-inject` · `test/hooks/workflow-routing-switch`
 > **CoveredBy:** `.claude/hooks/tests/suites/workflow-routing-switch.test.cjs::[workflow-routing-switch] TC-WFR-013 a Codex top-level compacted record re-arms the reminder, a nested one does not, and a Claude compact_boundary does` · **Status:** Tested
 
@@ -932,7 +936,7 @@ And the routing gate arrives in full in the route message, not in the catalog me
 Given the same workflow set with a longer routing gate, or with a project route protocol of any size
 When the assistant receives a prompt
 Then the catalog message is the same, character for character
-And the route message carries the gate in full and the protocol whole, even when that keeps it over 9,500 characters
+And the route message carries the gate in full and the complete protocol, however long that makes it
 ```
 
 **Expected Result:**
@@ -949,15 +953,15 @@ And the route message carries the gate in full and the protocol whole, even when
 - ✅ The framework workflow set keeps the compact catalog, with every workflow named and the line of step-skill names
 - ✅ The catalog message is identical for an ordinary gate, a longer gate, and a project route protocol of any size
 - ✅ The catalog message holds no gate text and no project route protocol; the route message holds no workflow catalog
-- ✅ A project route protocol longer than the cap arrives whole in the route message
+- ✅ A project route protocol longer than the cap is sent complete in the route message (what a host shows of a message that long: TC-WFR-026)
 - ❌ A shorter catalog form chosen because the gate or the protocol grew
-- ❌ A gate or a protocol dropped or cut to keep the route message within the cap
+- ❌ A gate or a protocol dropped or cut by the framework to keep the route message within the cap
 
 **Test Data:**
 
 ```yaml
 inputDomain: 'any workflow set whose compact catalog fits, with a routing gate of any length and with no project route protocol or one of any size'
-invariant: 'for ALL such inputs the catalog message is the same compact catalog, and the route message carries the gate in full and the protocol whole'
+invariant: 'for ALL such inputs the catalog message is the same compact catalog, and the route message carries the gate in full and the complete protocol'
 boundaryCounterCase: 'a workflow set too large for the compact catalog → the catalog message takes the first shorter form that fits (TC-WFR-001), still whatever the gate and the protocol hold'
 ```
 
@@ -973,7 +977,7 @@ boundaryCounterCase: 'a workflow set too large for the compact catalog → the c
 **Edge Cases:**
 
 - Mode auto → the catalog message differs from mode ask only in its tier legend; its form is the same
-- A project route protocol longer than the cap → the route message exceeds 9,500 characters and is still delivered whole; the catalog message is unchanged
+- A project route protocol longer than the cap → the route message exceeds 9,500 characters and still holds the complete gate and protocol; the catalog message is unchanged; past 10,000 characters the host shows a preview only (TC-WFR-026)
 - A gate several times longer than the framework's own → the catalog message is unchanged
 
 <!-- machine-only carrier — ignore when reading as BA/QA -->
@@ -981,6 +985,88 @@ boundaryCounterCase: 'a workflow set too large for the compact catalog → the c
 > **Evidence:** `[Source: operation/hooks/workflow-catalog-inject]` · `[Source: operation/hooks/workflow-route-inject]`
 > **Related Behaviors:** `operation/hooks/workflow-catalog-inject` · `operation/hooks/workflow-route-inject` · `test/hooks/workflow-routing-switch`
 > **CoveredBy:** `.claude/hooks/tests/suites/workflow-routing-switch.test.cjs::[workflow-routing-switch] [cap] TC-WFR-024 the catalog is its own output: this framework registry keeps the compact catalog`, `.claude/hooks/tests/suites/workflow-routing-switch.test.cjs::[workflow-routing-switch] [cap] TC-WFR-024 a gate or project protocol of any size never changes the catalog form` · **Status:** Tested
+
+---
+
+#### TC-WFR-026: A route message past the host's limit says so and names the protocol size that fits [P1]
+
+**Objective:** Prove that a route message longer than the 10,000 characters a host shows in full still holds the complete gate and project route protocol, and says on its second line what happened and which protocol size fits.
+
+**Business Intent / Invariant Guarded:** The framework cuts nothing, so only the host decides what the assistant sees of a long route message; the assistant must learn that from the part a preview still shows, and the project maintainer must get a size to aim for (BR-WFR-01).
+
+**Traces:** AC-WFR-25 / BR-WFR-01
+
+**Preconditions:**
+
+- Automatic routing is on, in mode ask or auto
+- A routing gate that fits the size cap on its own
+- A project route protocol sized to make the route message exactly 10,000 characters, the same protocol one character longer, and one of the size the message names
+
+**Real-World Reachability:** A project maintainer points the route protocol setting at a long team document; the next prompt of every developer then carries a route message the host shows only in part.
+
+**Demo Flow:** Configure a project route protocol that makes the route message exactly 10,000 characters and submit the first prompt of a fresh conversation. Add one character and submit in a fresh conversation. Shorten the protocol to the size the second line names and submit once more.
+
+```gherkin
+Given automatic routing is on and a project route protocol that makes the route message exactly 10,000 characters
+When the assistant receives a prompt
+Then the route message is the mode line, the gate and the protocol, with no size line
+Given the same protocol one character longer
+When the assistant receives a prompt
+Then the second line of the route message states its size, the 10,000 characters a host shows in full, that the host may show only a preview, where to read the gate and the protocol in full, and the protocol size that fits
+And the complete gate and the complete protocol follow that line
+Given the protocol shortened to the size that line names
+When the assistant receives a prompt
+Then the route message is exactly 9,500 characters and carries no size line
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                               |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, command output and the generated settings files |
+| **System behavior**     | Sends the gate and the protocol complete at every size; adds one size line only past 10,000 characters                                                    |
+| **Business data state** | No change; guidance is rebuilt for each prompt                                                                                                            |
+| **Data shown on UI**    | The size line directly under the mode line, then the gate and the protocol                                                                                |
+
+**Acceptance Criteria:**
+
+- ✅ A route message of exactly 10,000 characters carries no size line
+- ✅ One character more adds exactly one size line, as the second line of the message
+- ✅ The line gives the message size, the protocol size and the protocol size that fits, and names the gate file and the protocol setting
+- ✅ A protocol of the named size makes the route message exactly 9,500 characters
+- ✅ The complete gate and the complete protocol follow the line
+- ❌ A size line on a message the host shows in full
+- ❌ A gate or a protocol shortened by the framework
+- ❌ A named size that does not fit
+
+**Test Data:**
+
+```yaml
+inputDomain: 'any routing gate that fits the cap on its own, with a project route protocol of any size'
+invariant: 'for ALL such inputs the route message holds the complete gate and protocol, and carries the size line exactly when it is longer than 10,000 characters'
+boundaryCounterCase: 'a route message of exactly 10,000 characters → no size line; 10,001 characters → one size line'
+```
+
+```json
+{
+    "hostShowsInFull": 10000,
+    "guardCharacters": 9500,
+    "routeMessageSizes": [9501, 10000, 10001],
+    "protocolSizesWithTheFrameworkGate": { "keepsTheMessageWithinTheCap": "about 3,300", "takesItPastTheHostLimit": "about 3,850" }
+}
+```
+
+**Edge Cases:**
+
+- A route message between 9,501 and 10,000 characters → no size line; the host still shows it in full
+- A gate that alone is longer than 10,000 characters → the size line names no protocol size and says no project route protocol fits
+- The framework's own gate with a project route protocol of 3,300 characters → the route message stays within 9,500 characters in mode ask and in mode auto
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: operation/hooks/workflow-route-inject]`
+> **Related Behaviors:** `operation/hooks/workflow-route-inject` · `test/hooks/workflow-routing-switch`
+> **CoveredBy:** `.claude/hooks/tests/suites/workflow-routing-switch.test.cjs::[workflow-routing-switch] [cap] TC-WFR-026 a route output past the host limit says so on its second line and names the protocol size that fits`, `.claude/hooks/tests/suites/workflow-routing-switch.test.cjs::[workflow-routing-switch] [cap] TC-WFR-026 the documented protocol size keeps this framework's route output within the cap` · **Status:** Tested
 
 ---
 
@@ -1644,12 +1730,13 @@ And with ask, the ask route arrives
 **Edge Cases:**
 
 - A Codex project not yet trusted, or hooks disabled → no guidance; the host is unsupported until the hooks are trusted (AC-WFR-18)
+- A project settings file that registers one of the two deliveries without the other, for example one kept across a framework upgrade that added a delivery → the session-start install check names the registered delivery, the missing one and what the prompts lose; the registered message still arrives (AC-WFR-18)
 
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
 > **Evidence:** `[Source: operation/hooks/workflow-route-inject]`
 > **Related Behaviors:** `operation/hooks/workflow-route-inject` · `test/hooks/workflow-route-modes`
-> **CoveredBy:** `.claude/hooks/tests/suites/workflow-route-modes.test.cjs::[workflow-route-modes] TC-WFR-018 the real Codex launcher command runs the same hook and honours the mode`, `.claude/hooks/tests/suites/workflow-route-modes.test.cjs::[workflow-route-modes] TC-WFR-018 the route hook is registered for UserPromptSubmit on Claude, Codex and OpenCode` · **Status:** Tested
+> **CoveredBy:** `.claude/hooks/tests/suites/workflow-route-modes.test.cjs::[workflow-route-modes] TC-WFR-018 the real Codex launcher command runs the same hook and honours the mode`, `.claude/hooks/tests/suites/workflow-route-modes.test.cjs::[workflow-route-modes] TC-WFR-018 the route hook is registered for UserPromptSubmit on Claude, Codex and OpenCode`, `.claude/hooks/tests/suites/startup-install.test.cjs::[startup-integrity] a route registered without its catalog, or the reverse, is named once and startup still proceeds` · **Status:** Tested
 
 ---
 
@@ -1826,7 +1913,7 @@ And mode off delivers its notice unchanged, with no catalog message
 
 > **Evidence:** `[Source: operation/hooks/workflow-catalog-inject]` · `[Source: operation/hooks/workflow-route-inject]`
 > **Related Behaviors:** `operation/hooks/workflow-catalog-inject` · `operation/hooks/workflow-route-inject`
-> **CoveredBy:** `.claude/hooks/tests/suites/workflow-route-modes.test.cjs::[workflow-route-modes] TC-WFR-020 an unreadable workflow registry still delivers the mode gate and one catalog-unavailable line` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/workflow-route-modes.test.cjs` "[workflow-route-modes] TC-WFR-020 an unreadable workflow registry still delivers the mode gate and one catalog-unavailable line"
+> **CoveredBy:** `.claude/hooks/tests/suites/workflow-route-modes.test.cjs::[workflow-route-modes] TC-WFR-020 an unreadable workflow registry still delivers the mode gate and one catalog-unavailable line` · **Status:** Tested
 
 ---
 
@@ -1891,7 +1978,7 @@ And after the gate is repaired, the next prompt in the same conversation deliver
 
 > **Evidence:** `[Source: operation/hooks/workflow-route-inject]`
 > **Related Behaviors:** `operation/hooks/workflow-route-inject`
-> **CoveredBy:** `.claude/hooks/tests/suites/workflow-route-modes.test.cjs::[workflow-route-modes] TC-WFR-021 an unreadable gate file is reported in one line naming it, and the off notice is unchanged` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/workflow-route-modes.test.cjs` "[workflow-route-modes] TC-WFR-021 an unreadable gate file is reported in one line naming it, and the off notice is unchanged"
+> **CoveredBy:** `.claude/hooks/tests/suites/workflow-route-modes.test.cjs::[workflow-route-modes] TC-WFR-021 an unreadable gate file is reported in one line naming it, and the off notice is unchanged` · **Status:** Tested
 
 ---
 
@@ -1966,12 +2053,13 @@ Then no catalog message is added, and the assistant receives only that state's o
 - A project route protocol added or edited mid-conversation → the route message is delivered again; the unchanged catalog message is not (BR-WFR-09)
 - A context compaction, or the conversation record growing by the re-arm distance or shrinking → both messages are delivered again on the next prompt (the route message in TC-WFR-013, the catalog message in this case)
 - The workflow list cannot be read → the catalog message is the one line saying so (TC-WFR-020), delivered once like any other catalog message
+- A delivery registered for a message the routing guidance does not have → it adds nothing to the conversation, never a second copy of the route message
 
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
 > **Evidence:** `[Source: operation/hooks/workflow-catalog-inject]` · `[Source: operation/hooks/workflow-route-inject]`
 > **Related Behaviors:** `operation/hooks/workflow-catalog-inject` · `operation/hooks/workflow-route-inject` · `test/hooks/workflow-route-modes`
-> **CoveredBy:** `.claude/hooks/tests/suites/workflow-route-modes.test.cjs::[workflow-route-modes] TC-WFR-025 the catalog output is silent when routing is off or framework skill auto-trigger is disabled`, `.claude/hooks/tests/suites/workflow-route-modes.test.cjs::[workflow-route-modes] TC-WFR-025 the catalog output is delivered once on its own record and again after its content changes`, `.claude/hooks/tests/suites/workflow-route-modes.test.cjs::[workflow-route-modes] TC-WFR-025 a prompt directive sets the catalog's mode without a session write or a second acknowledgement`, `.claude/hooks/tests/suites/workflow-routing-switch.test.cjs::[workflow-routing-switch] TC-WFR-025 the catalog output is delivered again after a compaction, record growth or a shrunk record` · **Status:** Tested
+> **CoveredBy:** `.claude/hooks/tests/suites/workflow-route-modes.test.cjs::[workflow-route-modes] TC-WFR-025 the catalog output is silent when routing is off or framework skill auto-trigger is disabled`, `.claude/hooks/tests/suites/workflow-route-modes.test.cjs::[workflow-route-modes] TC-WFR-025 the catalog output is delivered once on its own record and again after its content changes`, `.claude/hooks/tests/suites/workflow-route-modes.test.cjs::[workflow-route-modes] TC-WFR-025 a prompt directive sets the catalog's mode without a session write or a second acknowledgement`, `.claude/hooks/tests/suites/workflow-routing-switch.test.cjs::[workflow-routing-switch] TC-WFR-025 the catalog output is delivered again after a compaction, record growth or a shrunk record`, `.claude/hooks/tests/suites/workflow-route-modes.test.cjs::[workflow-route-modes] TC-WFR-025 an entry naming an output the route does not have writes nothing, never a second route block` · **Status:** Tested
 
 ---
 
@@ -2110,7 +2198,7 @@ boundaryCounterCase: "an alias to a public file or an allowed example file remai
 
 > **Evidence:** `[Source: rule/scripts/workflow-routing-config]`
 > **Related Behaviors:** `rule/scripts/workflow-routing-config` · `operation/hooks/workflow-route-inject`
-> **CoveredBy:** `.claude/hooks/tests/suites/workflow-route-modes.test.cjs::[workflow-route-modes] TC-WFR-022 private protocol aliases are refused while public aliases remain readable` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/workflow-route-modes.test.cjs` "[workflow-route-modes] TC-WFR-022 private protocol aliases are refused while public aliases remain readable"
+> **CoveredBy:** `.claude/hooks/tests/suites/workflow-route-modes.test.cjs::[workflow-route-modes] TC-WFR-022 private protocol aliases are refused while public aliases remain readable` · **Status:** Tested
 
 ---
 

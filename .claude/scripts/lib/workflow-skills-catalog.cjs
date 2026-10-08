@@ -10,7 +10,7 @@
  *     $-dialect rewrite itself).
  *   - Claude generator keeps the native `/` token style.
  *
- * Consumer: .claude/hooks/workflow-route-inject.cjs
+ * Consumer: .claude/hooks/lib/workflow-route-delivery.cjs
  */
 
 const fs = require("fs");

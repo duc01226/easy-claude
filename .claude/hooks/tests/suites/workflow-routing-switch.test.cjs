@@ -5,10 +5,11 @@ const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
 const { assertTrue, assertContains, assertNotContains } = require('../lib/assertions.cjs');
+const { childEnv } = require('../lib/hook-runner.cjs');
 
 const PROJECT_DIR = process.env.CLAUDE_PROJECT_DIR;
 const routing = require(path.join(PROJECT_DIR, '.claude', 'scripts', 'lib', 'workflow-routing-config.cjs'));
-const hook = require(path.join(PROJECT_DIR, '.claude', 'hooks', 'workflow-route-inject.cjs'));
+const hook = require(path.join(PROJECT_DIR, '.claude', 'hooks', 'lib', 'workflow-route-delivery.cjs'));
 const catalogLib = require(path.join(PROJECT_DIR, '.claude', 'scripts', 'lib', 'workflow-skills-catalog.cjs'));
 const generator = require(path.join(PROJECT_DIR, '.claude', 'skills', 'ai-context-refresh', 'scripts', 'generate-claude-md.cjs'));
 
@@ -31,7 +32,8 @@ async function fixture(files, fn) {
 // `hook.buildInjection`, and the catalog output from `hook.buildCatalogInjection`. A host cuts any one
 // output above its cap (10,000 chars) to a preview, so the catalog output alone is measured against
 // 9,500 (pinned by TC-WFR-001) and alone falls back to a smaller form; the gate and a project protocol
-// are delivered whole and never cost the catalog its form (TC-WFR-024).
+// are never dropped or cut by the framework and never cost the catalog its form (TC-WFR-024). Past the
+// host limit the route output says so on its second line (TC-WFR-026).
 const PAYLOAD_CAP = 9500;
 // Semantic anchor the wf-cycle W5 runtime check requires (verify-workflow-cycle-compliance.mjs).
 const ADVANCEMENT_CLAUSE = /advance only after (?:all|every)(?: members?)? return/i;
@@ -189,6 +191,35 @@ const FRAMEWORK_REPO_SKIP = require('../lib/framework-repo-guard.cjs').isFramewo
     ? false
     : 'asserts the framework repo workflow registry only';
 
+// A case that needs a throwaway git repository skips, with this reason, on a host without git.
+const GIT_SKIP = (() => {
+    try {
+        execFileSync('git', ['--version'], { stdio: 'ignore', windowsHide: true });
+        return false;
+    } catch {
+        const reason = 'git is not available on this host';
+        console.log(`  [workflow-routing-switch] skipping git cases — ${reason}`);
+        return reason;
+    }
+})();
+
+// git in a throwaway repository must not inherit the developer's git config, nor a git hook's GIT_DIR /
+// GIT_INDEX_FILE redirection, which would point `git init` at the host repository. Home and temp point at
+// the fixture (Portable Test Contract, "Clean machine").
+function fixtureGitEnv(dir) {
+    const overrides = {};
+    for (const key of Object.keys(process.env)) {
+        if (/^GIT_/i.test(key)) overrides[key] = undefined;
+    }
+    return childEnv({
+        ...overrides,
+        HOME: dir, USERPROFILE: dir, TMPDIR: dir, TEMP: dir, TMP: dir, XDG_CONFIG_HOME: undefined,
+        GIT_CONFIG_NOSYSTEM: '1',
+        // A file that does not exist reads as an empty config on every OS.
+        GIT_CONFIG_GLOBAL: path.join(dir, 'no-global-gitconfig')
+    });
+}
+
 const config = value => JSON.stringify({ portability: { workflowAutoDetect: value } });
 const input = (session, transcript) => ({
     hook_event_name: 'UserPromptSubmit', session_id: session, transcript_path: transcript, prompt: 'hello'
@@ -280,14 +311,25 @@ module.exports = {
             }
         },
         {
+            // Intent: the ignore rules shipped in `.claude/.gitignore` keep a developer's local override out of
+            // git in any adopter layout. Proven in a throwaway repository holding only that file, so the check
+            // never depends on the host project being a git work tree.
             name: '[workflow-routing-switch] TC-WRS-007 portable local file is git-ignored',
-            fn: () => {
-                const ignored = execFileSync('git', ['check-ignore', '-v', '.claude/.ck.local.json'], {
-                    cwd: PROJECT_DIR, encoding: 'utf8'
+            skip: GIT_SKIP,
+            fn: () => fixture({
+                '.claude/.gitignore': fs.readFileSync(path.join(PROJECT_DIR, '.claude', '.gitignore'), 'utf8')
+            }, dir => {
+                const git = args => execFileSync('git', args, {
+                    cwd: dir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true, env: fixtureGitEnv(dir)
                 });
+                git(['init', '-q']);
+                const ignored = git(['check-ignore', '-v', '--', '.claude/.ck.local.json']);
                 assertContains(ignored, '.claude/.gitignore');
                 assertContains(ignored, '/.ck.local.json');
-            }
+                // `-v` prints the winning rule as <source>:<line>:<pattern> and exits 0 for a negated one too.
+                const pattern = ignored.split('\t')[0].split(':').slice(2).join(':');
+                assertTrue(!pattern.startsWith('!'), `the winning rule must ignore the file, not re-include it: ${pattern}`);
+            })
         },
         {
             // Intent: an opt-out must reach the model even though the tracked gate, skill descriptions and
@@ -798,9 +840,9 @@ module.exports = {
             })
         },
         {
-            // Intent: BR-WFR-01 never drops or cuts a configured protocol: it is delivered whole in the route
-            // output even when that keeps the output over the cap, and it never costs the catalog its form.
-            name: '[workflow-routing-switch] [cap] TC-WFR-001 a protocol larger than the cap is delivered whole in the route output and the catalog stays compact',
+            // Intent: BR-WFR-01 never drops or cuts a configured protocol: the route output holds all of it
+            // even when that keeps the output over the cap, and it never costs the catalog its form.
+            name: '[workflow-routing-switch] [cap] TC-WFR-001 a protocol larger than the cap is sent complete in the route output and the catalog stays compact',
             fn: () => isolatedFixture({
                 '.claude/workflows.json': GROUPED_REGISTRY,
                 [GATE_FILE]: FIXTURE_GATE,
@@ -966,6 +1008,88 @@ module.exports = {
                 assertNotContains(shortCatalog, hook.PROTOCOL_START, 'the protocol belongs to the route output only');
                 assertNotContains(shortCatalog, FIXTURE_GATE_BODY, 'the gate belongs to the route output only');
             })
+        },
+        {
+            // Intent (BR-WFR-01, AC-WFR-25): the framework never drops or cuts the gate or a project protocol,
+            // so a long protocol takes the route output past what a host shows in full and the host then shows
+            // a preview only. The output must say so where a preview still shows it, and the protocol size it
+            // names must be the size that really fits. The line appears only past the host limit, so it can
+            // never be what pushes an output over that limit.
+            name: '[workflow-routing-switch] [cap] TC-WFR-026 a route output past the host limit says so on its second line and names the protocol size that fits',
+            fn: () => isolatedFixture({
+                '.claude/workflows.json': JSON.stringify(syntheticRegistry(3)),
+                [GATE_FILE]: FULL_SIZE_GATE
+            }, async dir => {
+                const SIZE_LINE = 'Route output size: ';
+                const HOST_LIMIT = 10000;
+                assertTrue(hook.HOST_OUTPUT_LIMIT === HOST_LIMIT && hook.PAYLOAD_CAP === PAYLOAD_CAP, 'the limit and the cap this case measures against');
+                const routeWith = length => hook.buildInjection(dir, 'p'.repeat(length), 'ask');
+                const gate = hook.renderGateForMode(FULL_SIZE_GATE, 'ask');
+                // Given the gate alone, and what a protocol block adds besides its own text
+                const bare = hook.buildInjection(dir, '', 'ask');
+                const wrapping = routeWith(1).length - bare.length - 1;
+                const atLimit = HOST_LIMIT - bare.length - wrapping;
+                assertTrue(bare.length < PAYLOAD_CAP && atLimit > 0, `precondition: the gate alone is ${bare.length} chars`);
+                // When the protocol lands the output exactly on the host limit
+                const whole = routeWith(atLimit);
+                // Then nothing is added: the output is the state line, the gate and the protocol
+                assertTrue(whole.length === HOST_LIMIT, `route output is ${whole.length} chars`);
+                assertNotContains(whole, SIZE_LINE, 'an output the host shows in full carries no size line');
+                assertNotContains(routeWith(PAYLOAD_CAP - bare.length - wrapping + 1), SIZE_LINE, 'between the cap and the host limit no line is added either');
+                // When the protocol is one character longer
+                const protocol = 'p'.repeat(atLimit + 1);
+                const over = hook.buildInjection(dir, protocol, 'ask');
+                const lines = over.split('\n');
+                // Then the second line, right after the state line, states the size and the host's limit
+                assertTrue(lines[0] === hook.ROUTE_START && lines[1].startsWith('Route mode: ask'), 'the block still opens with its marker and state line');
+                assertTrue(lines[2].startsWith(`${SIZE_LINE}${HOST_LIMIT + 1} characters, over the ${HOST_LIMIT} a host shows in full`), `size line: ${lines[2]}`);
+                assertContains(lines[2], 'only a preview', 'it says what the host does');
+                assertContains(lines[2], `\`${GATE_FILE}\``, 'it names the gate file to read in full');
+                assertContains(lines[2], '`portability.workflowRouteProtocol`', 'it names the protocol setting');
+                assertContains(lines[2], `that protocol is ${protocol.length} characters`, 'it gives the protocol size');
+                // And the gate and the protocol still follow it whole: the framework cut nothing
+                assertTrue(lines.filter(line => line.startsWith(SIZE_LINE)).length === 1, 'one size line');
+                assertContains(over, gate, 'the gate is still whole');
+                assertContains(over, `${hook.PROTOCOL_START}\n${protocol}\n${hook.PROTOCOL_END}`, 'the protocol is still whole');
+                assertTrue(over.replace(`${lines[2]}\n`, '').length === HOST_LIMIT + 1, 'only the size line was added');
+                // And the size it names is the size that fits: that protocol lands exactly on the cap, one more is over it
+                const fits = Number((lines[2].match(/keeps this block whole at (\d+) or fewer/) || [])[1]);
+                assertTrue(Number.isInteger(fits) && fits > 0 && fits < atLimit, `named size: ${fits}`);
+                assertTrue(routeWith(fits).length === PAYLOAD_CAP, `a protocol of the named size gives ${routeWith(fits).length} chars`);
+                assertTrue(routeWith(fits + 1).length === PAYLOAD_CAP + 1, 'one character more is over the cap');
+                // And the hook delivers that same text for a configured protocol
+                fs.mkdirSync(path.join(dir, 'docs'), { recursive: true });
+                fs.writeFileSync(path.join(dir, 'docs', 'project-config.json'), JSON.stringify({ portability: { workflowRouteProtocol: protocol } }), 'utf8');
+                const outputs = [];
+                await hook.run(input('size-line'), { projectDir: dir, storeRoot: path.join(dir, 'state'), env: {}, homeDir: dir, now: 1000, write: writer(outputs) });
+                assertTrue(outputs.join('') === `${over}\n`, 'the delivered route output is the built one, size line included');
+                // Given a gate that alone is past the host limit, with no protocol
+                fs.rmSync(path.join(dir, 'docs', 'project-config.json'));
+                const hugeGate = FIXTURE_GATE.replace(FIXTURE_GATE_BODY, `${FIXTURE_GATE_BODY}\n${'> Route before acting.\n'.repeat(500)}`);
+                fs.writeFileSync(path.join(dir, ...GATE_FILE.split('/')), hugeGate, 'utf8');
+                const gateOnly = hook.buildInjection(dir, '', 'ask').split('\n')[2];
+                // Then the line names no protocol size: no protocol would fit
+                assertTrue(gateOnly.startsWith(SIZE_LINE), `size line: ${gateOnly}`);
+                assertContains(gateOnly, 'the gate alone fills that size');
+                assertNotContains(gateOnly, 'that protocol is', 'no protocol size without a protocol that could fit');
+            })
+        },
+        {
+            // Intent (BR-WFR-01): the spec and the configuration guide tell a project that a route protocol
+            // of about 3,300 characters fits. That number follows the shipped gate's length, so a gate edit
+            // that makes it false must turn this case red, not leave the guidance wrong.
+            name: '[workflow-routing-switch] [cap] TC-WFR-026 the documented protocol size keeps this framework\'s route output within the cap',
+            skip: FRAMEWORK_REPO_SKIP,
+            fn: () => {
+                const DOCUMENTED_PROTOCOL_SIZE = 3300;
+                for (const mode of ['ask', 'auto']) {
+                    // Given this repository's shipped gate and a project protocol of the documented size
+                    const route = hook.buildInjection(PROJECT_DIR, 'p'.repeat(DOCUMENTED_PROTOCOL_SIZE), mode);
+                    // Then the route output fits the cap, so every host shows it in full and it carries no size line
+                    assertTrue(route.length <= PAYLOAD_CAP, `${mode}: a ${DOCUMENTED_PROTOCOL_SIZE}-char protocol gives a route output of ${route.length} chars, cap ${PAYLOAD_CAP}`);
+                    assertNotContains(route, 'Route output size: ', `${mode}: no size line within the cap`);
+                }
+            }
         },
         {
             // Intent (BR-WFR-03): the gate is delivered in full with the guidance, whatever the root files hold,

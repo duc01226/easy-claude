@@ -33,7 +33,7 @@ Project-owned branches below sit at their DEFAULT roots; `docs/project-config.js
 |   |-- README.md             Skills overview + full catalog
 |   +-- (patterns)           → docs/project-reference/
 |
-|-- hooks/                    33 top-level hook files, 61 lib modules
+|-- hooks/                    33 top-level hook files, 62 lib modules
 |   |-- README.md             Hooks overview, lessons system, session lifecycle
 |   +-- extending-hooks.md    How to create custom hooks
 |
@@ -163,7 +163,7 @@ Unprefixed filenames resolve inside the project-reference docs root — default 
 | ---------------------- | ----- |
 | Skills                 | <!-- COUNT:skills -->104<!-- /COUNT --> |
 | Hook files (top-level) | <!-- COUNT:hooks -->33<!-- /COUNT --> |
-| Lib Modules            | <!-- COUNT:lib-modules -->61<!-- /COUNT --> |
+| Lib Modules            | <!-- COUNT:lib-modules -->62<!-- /COUNT --> |
 | Hook Events            | 9     |
 | Agents                 | <!-- COUNT:agents -->24<!-- /COUNT --> |
 | Workflows              | <!-- COUNT:workflows -->19<!-- /COUNT --> |

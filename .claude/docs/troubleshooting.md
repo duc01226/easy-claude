@@ -92,6 +92,8 @@ node -e "JSON.parse(require('fs').readFileSync('.claude/workflows.json', 'utf8')
 
 If the workflow catalog or project instructions are stale, run `/project-init` and restart the session.
 
+If the route gate arrives as a short preview, the route output is past the 10,000 characters a host shows in full: its second line says so and names the size that fits. Shorten `portability.workflowRouteProtocol` to about 3,300 characters or fewer.
+
 ## Hooks Not Running
 
 Hook registrations live in `.claude/settings.json`, and registered commands resolve the project root through `CLAUDE_PROJECT_DIR`.
@@ -140,6 +142,8 @@ Confirm that:
 - The registration uses the correct Claude Code event and matcher.
 - The command points into the current project's `.claude/hooks/` directory.
 - The session was restarted after changing settings.
+
+A session-start warning `Hook registration incomplete in .claude/settings.json` means the settings register one entry of a hook set without the other: for the workflow route, `workflow-route-inject.cjs` (the gate) without `workflow-catalog-inject.cjs` (the catalog), or the reverse. This is the usual result of keeping a settings file across a framework upgrade that added an entry. Copy the missing entry from the framework's `.claude/settings.json` under the same event, run `/sync-codex`, and restart the session.
 
 ### Run the framework test suites
 

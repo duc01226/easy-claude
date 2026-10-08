@@ -18,7 +18,7 @@ description: '[Git] Use when asked to commit, stage and commit, or save changes.
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
 ## Quick Summary
 
-**Goal:** Stage authorized changes and create well-structured Conventional Commits with proportionate test/review gates, fewer questions for safe continuous fixes, and fresh human choices for substantial or high-risk changes. Every message body opens with the derived `Estimate:` line.
+**Goal:** Stage authorized changes and create well-structured Conventional Commits behind automatic, risk-proportionate test and review gates: decide, run and record them without asking the user. Every message body opens with the derived `Estimate:` line.
 
 **Summary:** (read-this-if-nothing-else digest — purpose + ALL main steps + gates)
 
@@ -30,8 +30,8 @@ description: '[Git] Use when asked to commit, stage and commit, or save changes.
 - **STEP 2.7 — IDENTIFY REVIEWERS** (pre-commit, read-only): last author per staged file vs `HEAD`, commit author EXCLUDED, grouped BY AREA with the focus each owns.
 - **STEP 2.9 — DERIVE THE ESTIMATE** via the carried `SYNC:estimation-framework` against the STAGED diff (or reuse the implemented plan/task/story frontmatter with `(source: <path>)`). EP is DERIVED from `likely_days`, never eyeballed; discount generated/lockfile/docs churn first.
 - **STEP 3 — GENERATE MESSAGE.** Subject `type(scope): description`; body OPENS with the Estimate line, then purpose/kind → what changed → how it works, then the Reviewers block.
-- **STEP 3.5 — TEST-VERIFY GATE.** Apply the [decision policy](#test-and-review-decision-policy): ask initially/on escalation, reuse small same-branch preferences, auto-run checks for routine PR CI repairs. Fresh evidence for changed content; Skip stays user-only. Restage and re-derive after fixes.
-- **STEP 3.6 — REVIEW GATE (BLOCKING).** Apply the same decision policy, select a qualifying fix-loop by size/risk and check the exact prepared commit descriptor. `ERROR` blocks; changed candidates need matching review or explicit candidate-bound user Skip receipts. Preferences can persist; stale receipts cannot.
+- **STEP 3.5 — TEST-VERIFY GATE (automatic).** Apply the [decision policy](#test-and-review-decision-policy) without asking: skip when the affected tests already passed this session for unchanged content or the change is really small; otherwise run tests scoped to the change and fix-loop failures until all pass. Restage and re-derive after fixes.
+- **STEP 3.6 — REVIEW GATE (BLOCKING, automatic).** Classify risk under the same policy without asking: Low → recorded skip receipt; Medium → `$why-review --fix-loop`; High → `$changes-review --fix-loop`, each at most two review rounds. Check the exact prepared commit descriptor: `ERROR` blocks; a changed candidate needs a matching review or skip receipt. MEDIUM+ still open at the cap → stop and report, no commit.
 - **STEP 4 — COMMIT** with the HEREDOC form (subject → blank → Estimate → body → Reviewers → footer).
 - **STEP 5 — VERIFY** via `git status` + `git log`; confirm the first body line IS the Estimate line, then re-present the reviewer assignment.
 - **STEP 6 — REFRESH THE CODE GRAPH (optional, post-commit, BACKGROUND, non-blocking).** Only when `.code-graph/` exists: fire `$graph-code --mode=build --scope=sync` in the background so the commit that just moved HEAD is re-parsed AND the graph's `last_synced_commit` advances with it. NEVER blocks or gates the commit; a failure is reported, never retried inline.
@@ -46,8 +46,8 @@ description: '[Git] Use when asked to commit, stage and commit, or save changes.
 4. **Identify Reviewers** — from git history, list relevant reviewers (last author per touched file vs `HEAD`, excluding the commit author) and the area each must focus on — computed BEFORE the commit so the block can be embedded in the message body
 5. **Derive Estimate** — Apply the carried `SYNC:estimation-framework` to the staged diff (or reuse the frontmatter of the plan/task/story this commit implements) to derive `effort_points` + `man_days_ai` — computed BEFORE the message so the numbers can head the body
 6. **Generate Message** — Detect type (feat/fix/refactor/etc.), extract scope from paths, write subject, open the body with the **Estimate** line from step 5, add a detailed body structured as **purpose/kind → what changed → how it works**, and append the **Reviewers** block from step 4
-7. **Test-Verify Gate** — Resolve the decision policy, run affected checks automatically on eligible follow-ups, or ask Run / Already verified / Skip. User-selected Verify drives `$workflow-integration-test --mode=green`; refresh evidence after edits.
-8. **Review Gate** — Select or ask under the decision policy; execute a qualifying fix-loop and check `--target=commit-descriptor` against the exact prepared invocation. `ERROR` blocks; changed content needs a matching full review or candidate-bound user Skip receipt. The hook checks the actual commit independently.
+7. **Test-Verify Gate** — Decide under the decision policy, never ask: reuse this session's passing run or skip a really small change; otherwise run scoped tests and fix-loop failures (`$workflow-integration-test --mode=green`) until all pass. Refresh evidence after edits.
+8. **Review Gate** — Classify Low/Medium/High and act, never ask: automatic skip receipt, `$why-review --fix-loop` or `$changes-review --fix-loop` (two review rounds at most), then check `--target=commit-descriptor` against the exact prepared invocation. `ERROR` blocks; MEDIUM+ still open at the cap stops the run. The hook checks the actual commit independently.
 9. **Commit** — Create commit with HEREDOC (title + Estimate line + detailed summary + Reviewers block + attribution footer)
 10. **Verify** — Confirm with git status and git log
 
@@ -56,8 +56,8 @@ description: '[Git] Use when asked to commit, stage and commit, or save changes.
 - **Stamp the estimate on the FIRST body line** — every commit message opens its body with `Estimate: <n> EP | man_days_ai: <x>d | man_days_traditional: <y>d`. Effort points and AI man-days are MANDATORY and DERIVED bottom-up per the carried `SYNC:estimation-framework` (or reused from the plan/task/story frontmatter this commit implements); the number describes THIS staged diff only
 - Write a detailed body — **purpose/kind → what changed → how it works** — so the next human reading `git log`/`git blame` understands the change without opening the diff. As detailed as the change needs (wrap ~72 chars); no title-only commits for non-trivial changes
 - Embed a **Reviewers** block in the commit message — the per-area reviewers (last author per touched file vs `HEAD`, commit author excluded) — computed BEFORE committing so it lives in the message body, not just as a side report
-- **Tests and review choices:** record the last actual user answers and their scope; ask for the initial candidate and material risk/scope escalation. Reuse preferences for small continuous fixes, automatically verify routine PR CI repairs, and keep Skip candidate-bound. Read [Test and review decision policy](#test-and-review-decision-policy) before both gates.
-- **Gate the exact candidate (Step 3.6):** `check --target=commit-descriptor --descriptor-json=...`; `ERROR` blocks, `CLEAN` needs no receipt, `CHANGED` requires a matching full-review or explicit user Skip receipt. Automatically select/run review only under the decision policy; never choose Skip. The hook independently checks the actual invocation.
+- **Tests and review are automatic:** never ask the user whether to run them. Classify the candidate, decide, act and record the decision; an explicit user instruction overrides the automatic choice. Read [Test and review decision policy](#test-and-review-decision-policy) before both gates.
+- **Gate the exact candidate (Step 3.6):** `check --target=commit-descriptor --descriptor-json=...`; `ERROR` blocks, `CLEAN` needs no receipt, `CHANGED` requires a matching full-review receipt or a skip receipt. Mint an automatic skip only for a Low-risk candidate; a failed or non-converged review is never a skip. The hook independently checks the actual invocation.
 - Stop after the commit; push only when the user explicitly requests it (or passes `--push` / says "commit and push" → stage + commit + push via `git-manager`)
 - Never commit secrets, credentials, or .env files
 - Never use `--amend` or `--no-verify` unless explicitly requested
@@ -104,44 +104,45 @@ checks.
 
 ## Test and review decision policy
 
-Read this section before either gate, on every follow-up commit and when `pull-request` returns from a CI repair. It owns question frequency for both skills: **ask for the first candidate and material risk/scope escalation; reuse choices for small continuous follow-ups; automatically run fresh checks for routine PR CI repairs.** This policy changes who selects checks, never Git authority or current-candidate evidence requirements.
+Read this section before either gate, on every commit, and whenever `pull-request` applies it to a whole branch or a CI repair. It owns the test and review decisions for both skills: **never ask the user whether to run tests or a review — classify the candidate, decide, act and record the decision.** This policy changes who selects the checks, never Git authority, the exact-candidate receipt, or the evidence a selected check must produce.
 
-### Record the last actual user answer
+### Classify the candidate
 
-Keep a compact decision record in the active task/PR report under `tmp/reports/`; reuse that report rather than inventing a global preference store. Record:
+Inspect the **actual candidate**: its file list, `--stat` and the diff itself — for an amend the whole amended commit, for a pull request the whole branch (`<base-ref>...HEAD` ∪ uncommitted). Judge purpose, behavior, affected areas, reversibility, coverage and downstream impact. File/line counts are supporting evidence, not a safety threshold; discount generated churn only after checking its source. A series of tiny commits cannot reset risk or conceal a large change: judge earlier commits of the same task that passed on a Low-tier skip together with this candidate.
 
-- Canonical repository/worktree, session/task, branch, PR/base when applicable, and operation authority.
-- Last explicit test and review answers **separately**, with timestamp/turn, source user message, any limits (once, this branch/task, always ask), and the scope each answer covers.
-- The HEAD and prepared candidate tree/descriptor at each answer, touched areas and risk assessment. Keep each human-answer baseline fixed until the human answers that gate again; automatic commits never refresh it.
-- Current selected actions and their origin (`user`, `reused preference`, `automatic CI repair`), test commands/results and covered scope, review report/receipt identity, and any pending question.
+| Risk | Signals |
+| --- | --- |
+| **Low** | Every changed line is documentation, a comment, formatting or copy; or the change is really small. |
+| **Medium** | A focused change in one module or area with a narrow regression scope: an ordinary fix or enhancement, a config value, test-only changes, skill or prompt wording. |
+| **High** | Any of: cross-module or public/API contract change; auth, security, permissions or secrets; data or schema change; hooks, gates or other framework enforcement; dependency or runtime upgrade; CI trust or deployment change; UI surface; a disabled or weakened check; an ambiguous conflict resolution; a large diff. |
 
-Recover actual answers from conversation evidence or the saved record after compaction; check repository, branch, base and cumulative diff again. A timestamp alone proves neither continuity nor coverage. Missing/unverifiable state is not consent. Preserve pending questions and wait for answers; silence, preselection and tool acknowledgement are never answers. A later explicit user instruction overrides an older preference. End continuity on a new task/session, branch/worktree/PR/base switch, history rewrite, completed/merged/closed PR, revocation, or unexplained external edits. Same-session compaction/resume preserves verified continuity.
+- Any higher-tier signal outranks every lower one — even a one-line diff. Tie or unclear → the higher tier.
+- **Really small** = a few lines in one or two files, fully understood, with no High signal: a typo, comment, log or message text, doc line, or a rename with no consumer impact. A change to branching logic, a contract or data handling is not really small, whatever its size.
 
-### Decide before asking
-
-Inspect the **actual candidate** and the **cumulative authored changes since the last human-answer baseline**, including already committed fixes. Compare the current candidate tree to the tree covered by that gate's last answer, not just to its parent HEAD; changes already covered by the answer do not become new escalation on every CI iteration. For PRs, classify the repair/cumulative delta for question frequency while still reviewing the whole branch. Judge purpose, behavior, affected areas, reversibility, coverage and downstream impact. File/line counts are supporting evidence, not a safety threshold; discount generated churn only after checking its source. A series of tiny commits cannot reset risk or conceal a large change.
-
-Apply explicit constraints and pending choices first; then reuse exact settled answers, assess escalation/continuity, and select a safe follow-up lane. Automatic CI classification never overrides material risk or lost continuity.
+### Decide tests (Step 3.5)
 
 | Situation | Action |
 | --- | --- |
-| Explicit answers already cover the unchanged candidate and required scope | Reuse them without a duplicate question; validate evidence/receipt identity. |
-| First candidate, lost continuity, unrelated work, substantial cumulative change, or uncertain/high risk | Ask once for the unsettled test/review decisions, with Run, applicable existing evidence and explicit Skip. State what changed and recommend the checks proportionate to risk. |
-| Small, low-risk continuation of the same task and branch with recorded answers | Reuse the testing/review **preference** and select proportionate checks yourself; explain briefly and proceed. Changed content needs fresh evidence. |
-| Routine CI/build repair in the active, user-requested PR loop | Automatically select and run affected local checks and a qualifying whole-branch fix-loop review; obtain a fresh exact-candidate receipt. Do not ask the test/review questions again, even if the previous candidate used Skip. |
-| User explicitly requires a new question each time, restricts checks, or has a pending question | Honor that constraint. Do not use the automatic lane to contradict it or bypass a pending choice. |
+| The affected tests already ran and passed in this session, and nothing they cover changed since | Skip. Reuse that evidence and name its command and result. |
+| The change is really small, or no executable behavior changed | Skip. Record `Tests: skipped — really small change` or `Tests: not applicable`, with the reason. |
+| Anything else | Run the tests scoped to the change and fix-loop every failure until all pass. |
 
-**Small and low risk** means a localized, understood repair preserving the agreed behavior, with a narrow regression scope and no unresolved findings. Examples: a compiler/lint correction, a stale test fixture repaired after adjudication, or a build-path correction that leaves checks and permissions intact. Reassess after every fix and merge. New features, broad refactors, public/API contracts, auth/security/permissions, secrets, data/schema changes, dependency/runtime upgrades, CI trust/deployment changes, framework enforcement, disabling checks, or ambiguous conflict resolutions require fresh human choices when newly introduced or materially expanded—even a one-line diff. A required full review alone does not imply escalation: an ordinary CI configuration repair can remain low risk while receiving the heavier review that its path requires.
+Old evidence never covers new content: a run from before the last edit to the covered code, old green CI and an assertion that tests passed are not current results. Markdown skills and CI/config changes may still own contract or build checks — look for a lane before recording not applicable.
 
-**Preference is not evidence or a Skip approval.** A prior Run choice lets you run fresh appropriate checks. Prior Already verified applies only to its verified scope: rerun affected checks for changed content. Prior Skip is candidate-bound: never extend it or mint a new skip receipt automatically. On a safe follow-up after Skip, run fresh checks/review automatically; if the user prohibited those checks, ask rather than contradict the restriction. An explicit “decide tests/review for small fixes on this branch” instruction permits this automatic selection, not blanket skips or additional Git operations. For substantial or high-risk new scope, explain the risk and ask again; broader autonomy wording never waives required human risk decisions.
+### Decide review (Step 3.6)
 
-### Complete the gates without another question
+A receipt for this exact candidate already satisfies the gate — from any qualifying fix-loop, including a `$workflow-review-changes --fix-loop` the user ran. Otherwise act on the tier through Step 3.6 [Review selection](#review-selection): **Low** → automatic skip with the recorded signal; **Medium** → `$why-review --fix-loop`; **High** → `$changes-review --fix-loop`. Each fix-loop runs at most two review rounds.
 
-On an automatic/reused lane, choose the configured affected test/build/lint commands; broaden when regression fan-out warrants it. No executable behavior changed → record `Tests: not applicable` with a scope reason; Markdown skills and CI/config changes may still need contract/build checks. Never label missing tools, failed runs, old green CI or user assertions as fresh passed tests. Investigate failures through the owning fix/test protocol and retain its limits; an unavailable required check needs an explicit current-scope Skip where permitted or a blocker.
+### Limits on automatic decisions
 
-Select review using Step 3.6 **Review selection** and execute its fix-loop; PR scope remains the whole branch. Reuse a receipt only when it matches the exact candidate and required review scope. Changed content invalidates evidence, not automatically the choice to **run** checks: refresh affected tests and review through their bounded loops without re-asking while scope stays safe. Restage authorized fixes, rerun docs/no-op triage as needed, and re-derive the estimate/message for the final candidate. Only a fresh explicit user Skip can mint a new skip receipt. Required CI, project gates, review round caps and native permissions remain in force.
+- **An explicit user instruction wins.** A current request to skip a gate, to run one, to use a specific review (the full `$workflow-review-changes` included) or to be asked each time overrides the automatic choice for the scope the user named. Record it as the user's decision, never as an automatic one.
+- **Automatic skip covers only the Low tier and the two test-skip rows.** Never lower a tier to avoid work, never skip after a failed check or a review that did not converge, and never describe a skipped gate as passed.
+- **Stop instead of asking a routine question.** A real blocker ends the run before the commit: a test that cannot go green without weakening it, an unavailable required check, MEDIUM or higher findings still open at the two-round cap, or ambiguous intent. Leave the candidate staged and uncommitted, mint no receipt, and report the evidence and the options.
+- Automatic choices never expand commit/push authority or authorize publishing unrelated work. Required CI, project gates and native permissions remain in force.
 
-Before proceeding, give one short decision line, for example: `Small same-branch build fix; reusing your earlier Run choices, rerunning build/tests and whole-branch review.` Record the evidence and decision in the report, not as a fabricated human answer. Automatic choices never expand commit/push authority or authorize publishing unrelated work.
+### Record the decision
+
+Before the gates give one short decision line, for example: `Risk: medium — behavior fix in one module. Tests: run scoped. Review: $why-review --fix-loop (two rounds at most).` Afterwards report each gate in the response — and, for a multi-commit task or a pull request, in its report under `tmp/reports/`: tier and signal, test commands and results or the skip reason, review kind, rounds, deferred LOW findings and receipt kind. Record them as automatic agent decisions, never as a fabricated user answer. A recorded decision covers only the candidate it was made for: after an edit, a merge or a compaction, re-check the candidate and refresh the affected evidence.
 
 ## Workflow
 
@@ -347,24 +348,22 @@ Three parts (omit one only when genuinely empty):
 
 ### Step 3.5: Test-Verify Gate
 
-Apply [Test and review decision policy](#test-and-review-decision-policy) first. Detect executable behavior and configured test/build/contract lanes from the actual staged diff and project references; documentation/config file extensions alone do not prove tests are unnecessary.
+Apply [Test and review decision policy](#test-and-review-decision-policy) → **Decide tests**, then act without asking the user. Detect executable behavior and the configured test/build/contract lanes from the actual staged diff and project references; documentation/config file extensions alone do not prove tests are unnecessary.
 
-- **Automatic/reused lane:** run the proportionate affected commands and record fresh results, or a justified not-applicable result. Do not stop to ask a question already settled by the policy. Failures use the owning diagnosis/fix protocol and its bounded convergence rules.
-- **Question required:** use the available native ask-user question tool, present the risk/scope reason, and wait for an actual answer. Offer:
-  1. **Verify now (Recommended)** — `$workflow-integration-test --mode=green` verifies, adjudicates, fixes, reviews and re-verifies the applicable suite. Continue only when green; escalation is a blocker.
-  2. **Yes — already verified** — record the user's assertion and its covered candidate/scope; do not label it an agent-run result.
-  3. **Skip — commit without verifying** — record `Test-Verify Gate: skipped by user` for this candidate, never in the message.
-  For a candidate with no applicable test lane, offer **Confirm no tests required** alongside Run and Skip. Never recommend Skip or treat a preselection as an answer.
+- **Skip — already verified this session:** the affected tests ran and passed in this session and nothing they cover changed since. Record the command and result being reused.
+- **Skip — really small or not applicable:** record `Tests: skipped — really small change` or `Tests: not applicable`, with the reason.
+- **Run scoped tests:** otherwise run the configured commands scoped to the change — the suites covering the touched files and their direct consumers — and broaden when regression fan-out warrants it. Record the commands and exact counts.
+- **Fix loop on any failure:** `$workflow-integration-test --mode=green` verifies, adjudicates, fixes, reviews and re-verifies the applicable suite; use `$fix --target=test` for a lane that workflow does not own (unit, build, lint, contract). Repeat until every scoped check passes. Continue only when green; escalation is a blocker.
 
-After test fixes, restage only authorized paths, rerun applicable docs/no-op triage and Step 2.9, update the message, then review the final candidate in Step 3.6. Review edits refresh affected tests; they do not require another preference question unless the decision policy detects escalation. The gate applies with or without `--push`.
+Never weaken an assertion, add a skip or relax a timeout to force green, and never label a missing tool, a failed run or old green CI as fresh passed tests. A check that cannot go green — environment-blocked, ambiguous intent, or the same failure surviving three fixes at different causes — is a blocker under the decision policy: stop before the commit and report.
+
+After test fixes, restage only authorized paths, rerun applicable docs/no-op triage and Step 2.9, update the message, then gate the final candidate in Step 3.6. Review edits refresh the affected tests under the same rules. The gate applies with or without `--push`.
 
 ### Step 3.6: Review Gate (blocking — always)
 
-No commit may reach Step 4 without a review fix-loop receipt over the **current changeset**. This runs after Step 3.5 so the review covers the FINAL code — never commit content no fix-loop saw.
+No commit may reach Step 4 without a receipt over the **current changeset**: a review fix-loop receipt, or a skip receipt for a Low-risk candidate. This runs after Step 3.5 so the gate covers the FINAL code — never commit content the gate did not see.
 
 Derive the descriptor from the exact prepared `git commit` invocation. With no `-a`/`--all` and no path arguments, use `{"mode":"staged","literalPaths":[]}`; `-a`/`--all` uses `{"mode":"all","literalPaths":[]}`; explicit paths after `--` use `{"mode":"literal-paths","literalPaths":["exact/path",...]}`. Include the effective `cwd` when the commit runs below the repository root. For `git commit --amend` add `"amend":true` (e.g. `{"mode":"staged","literalPaths":[],"amend":true}`): the candidate is then measured against HEAD's parent — the same candidate `git reset --soft HEAD~1 && git commit` would produce — so the review must cover the amended commit's changes plus what is staged. For an amend, Steps 2.7 (reviewers), 2.9 (Estimate) and 3.5 (test trigger) likewise read the whole amended commit — `git diff --cached HEAD~1` (and `--name-only` / `--stat`) instead of `git diff --cached` — because the message describes the commit that results, not only the new increment. Never approximate a literal-path descriptor.
-
-**Resolve review selection before execution:** apply the decision policy. On an automatic/reused lane, check current evidence and select/run the appropriate fix-loop without asking. On a question-required lane, offer the three reviews below and explicit Skip, plus **Use existing review** or **Confirm prior skip** only when its scope and candidate still match. Wait for the answer. A receipt is evidence, not a fabricated user choice.
 
 **Check the exact candidate:**
 
@@ -377,50 +376,50 @@ Use the descriptor matching the prepared invocation. Read the JSON:
 - `status` is `ERROR` → STOP; candidate computation failed and must never be treated as `CLEAN`.
 - `status` is `CLEAN` → the candidate contains no changes, so no receipt is needed; proceed to Step 4.
 - `status` is `CHANGED` and `review` is a kind (`changes-review` | `why-review` | `workflow-review-changes`) → a matching full fix-loop reviewed this exact commit candidate; proceed to Step 4.
-- `status` is `CHANGED`, `review` is `null`, and `skip` is `skip` → the user already approved skipping this exact candidate; proceed to Step 4.
-- `status` is `CHANGED` and both `review` and `skip` are `null` → do not commit. On an automatic/reused lane, execute the selected fix-loop below and recheck. On a question-required lane, ask with the native question tool:
+- `status` is `CHANGED`, `review` is `null`, and `skip` is `skip` → a skip receipt already covers this exact candidate; proceed to Step 4.
+- `status` is `CHANGED` and both `review` and `skip` are `null` → do not commit yet. Classify the candidate under the decision policy and act on its tier through [Review selection](#review-selection), without asking the user:
+  - **Low → automatic skip.** Mint a descriptor-bound skip receipt whose reason names the signal:
 
-  > Header: `Review gate`
-  > Question: `No review fix-loop has covered this exact changeset. Review before committing, or skip?`
-  > Options — the review chosen by [Review selection](#review-selection) first, labelled `(Recommended)`; then the other two reviews; Skip last:
-  > - `Run $workflow-review-changes --fix-loop` — do NOT commit yet; invoke the `workflow-review-changes` workflow with this exact descriptor JSON (including `"amend":true` for an amend) so its review steps measure the same candidate. It runs the required reviews, validates findings, fixes at the owning layer, and repeats the full review workflow until it converges, then mints the receipt. Return to this step when it converges (and re-derive if it changed files). Its receipt covers the final reviewed candidate; refresh affected test evidence under the decision policy.
-  > - `Run $changes-review --fix-loop` — do NOT commit yet; activate the `changes-review` skill in `--fix-loop` mode with the same exact descriptor JSON. It reviews, validates findings, fixes at the owning layer, and runs a fresh full re-review until it converges, then mints the receipt. Return to this step when it converges (and re-derive if it changed files). Its receipt covers the final reviewed candidate; refresh affected test evidence under the decision policy.
-  > - `Run $why-review --fix-loop` — same (pass the same exact descriptor JSON), using the rationale-review loop (`why-review` in `--fix-loop` mode); it mints the receipt on convergence.
-  > - `Skip — commit without review` — the user's explicit, recorded decision. Treat their explicit selection as confirmation for this candidate; mint the approved skip and proceed without a second confirmation:
+    ```bash
+    node .claude/hooks/lib/review-receipt.cjs snapshot --target=commit-descriptor --descriptor-json='{"mode":"staged","literalPaths":[]}'
+    node .claude/hooks/lib/review-receipt.cjs issue --kind=skip --scope=full-changeset --snapshot-json='<exact snapshot JSON returned above>' --reason="auto: low risk — <signal>"
+    ```
 
-     ```bash
-     node .claude/hooks/lib/review-receipt.cjs snapshot --target=commit-descriptor --descriptor-json='{"mode":"staged","literalPaths":[]}'
-     node .claude/hooks/lib/review-receipt.cjs issue --kind=skip --scope=full-changeset --snapshot-json='<exact snapshot JSON returned above>' --reason="user approved skip"
-     ```
+    Use the exact descriptor from the prepared commit, not this staged-mode example when the invocation differs. The snapshot must be `CHANGED`; a clean candidate needs no skip receipt. Re-run `check` with the same descriptor before proceeding. Record `Review gate: skipped — low risk (<signal>)` in the response (never in the commit message).
 
-     Use the exact descriptor from the prepared commit, not this staged-mode example when the invocation differs. The snapshot must be `CHANGED`; a clean candidate needs no skip receipt. Re-run `check` with the same descriptor before proceeding. Record `Review gate: skipped by user` in the response (never in the commit message).
+  - **Medium → `$why-review --fix-loop`.** Do NOT commit yet; activate the `why-review` skill in `--fix-loop` mode with this exact descriptor JSON (including `"amend":true` for an amend) and a two-round budget. It reviews, validates findings, fixes at the owning layer and runs a fresh full re-review, then mints the receipt on convergence.
+  - **High → `$changes-review --fix-loop`.** Do NOT commit yet; activate the `changes-review` skill in `--fix-loop` mode with the same exact descriptor JSON and a two-round budget. It reviews, validates findings, fixes at the owning layer and runs a fresh full re-review, then mints the receipt on convergence.
+
+  Return to this step when the loop converges: re-derive if it changed files, refresh the affected test evidence under the decision policy, and re-run `check`. Its receipt covers the final reviewed candidate.
+
+**Two review rounds, then stop.** Round 1 reviews and fixes; round 2 is the fresh re-review of the fixed candidate. The shared `review-policy` three-round maximum is a ceiling: this gate lowers it to two and never asks to extend it. No open findings, or only deferred LOW ones → the loop mints the receipt. MEDIUM or higher findings or a failed required check still open after round 2 → **Blocker**: do not commit, mint no skip, leave the candidate staged, and report the open findings, the fixes already made and the report path. A failed review is not a skip.
 
 Rules:
 
-- **Choose one review under the decision policy; if a question is required, recommend it and wait.** Neither silence nor a default selection is a human answer or Skip approval.
-- **Skip is the user's call alone.** Offer it, never recommend it, and NEVER select it yourself — an agent that can skip its own gate has no gate.
-- **The receipt is bound to candidate identity** — repository/storage, base tree, and candidate tree — and `check` must use the same commit descriptor the hook will evaluate. Staging identical reviewed content preserves the tree identity; staging different content, changing the base/candidate, or selecting different paths does not. After a fix-loop, any later content change requires a fresh full review of that candidate before commit.
-- **Minting is the fix-loop's job, not yours.** The three fix-loop skills mint the receipt at their terminal step; you only mint a `skip` receipt, and only after the user explicitly approves.
-- **Mechanical enforcement:** `review-commit-gate.cjs` (a `PreToolUse` hook on Bash) refuses an agent `git commit` whose changeset has neither a review receipt nor a skip receipt — so a forgotten review cannot slip through. The check above exists so the gate is handled deliberately instead of by a hook bounce.
+- **Decide, never ask.** The decision policy picks the skip or the review from the risk tier; state the tier and the signal that chose it. Only an explicit user instruction for this candidate overrides it.
+- **Automatic skip is Low-tier only.** Never mint a skip for a Medium or High candidate, after a failed check, or after a review that did not converge — an agent that can skip any gate has no gate. A skip the user explicitly asked for is minted the same way with `--reason="user approved skip"`.
+- **The receipt is bound to candidate identity** — repository/storage, base tree, and candidate tree — and `check` must use the same commit descriptor the hook will evaluate. Staging identical reviewed content preserves the tree identity; staging different content, changing the base/candidate, or selecting different paths does not. After a fix-loop, any later content change requires a fresh full review of that candidate at its tier before commit.
+- **Minting a review receipt is the fix-loop's job, not yours.** The fix-loop skills mint it at their terminal step; you only mint a `skip` receipt — for a Low-risk candidate, or on the user's explicit request.
+- **Mechanical enforcement:** `review-commit-gate.cjs` (a `PreToolUse` hook on Bash) refuses an agent `git commit` whose changeset has neither a review receipt nor a skip receipt — so a forgotten gate cannot slip through. The check above exists so the gate is handled deliberately instead of by a hook bounce.
 - **Receipt scope:** a review receipt establishes only that a qualifying full review covered the same candidate. It never waives the Test-Verify Gate, spec/test reconciliation, other required reviews, or `commit-local-ci-gate` overlay requirements.
-- Re-run this gate only once per commit; after a review-or-skip decision, proceed to Step 4 without re-asking.
+- Run this gate once per commit; after the review or skip decision, proceed to Step 4.
 - This gate is independent of `--push`: it runs before the commit in every mode.
 
 #### Review selection
 
-Recommend the review that fits the change's size and risk — why: a fixed heaviest-first default spends the full workflow on a typo fix and trains users to skip.
+The risk tier from the [decision policy](#test-and-review-decision-policy) selects the review — why: a fixed heaviest-first default spends a full review on a typo fix, and a question on every commit trains users to skip.
 
-| Review | What it does for the agent | Pick when |
+| Tier | Review | What it does for the agent |
 | --- | --- | --- |
-| `$why-review --fix-loop` | One adversarial pass over the rationale and correctness of a small, focused change, then a fresh full re-review. Cheapest. | Docs, config or comment-only changes; or one small module (roughly ≤3 files) with no behaviour or public-contract change. |
-| `$changes-review --fix-loop` | Multi-dimension diff review (correctness, tests, conventions, spec drift, integration), then validate, fix and re-review. Medium. | A focused behaviour change in one module, or a moderate diff with tests. |
-| `$workflow-review-changes --fix-loop` | The full review workflow: parallel architecture, security, performance, integration-test, production-readiness, domain and UI lenses plus why-review, re-run until it converges. Heaviest. | Any of: cross-module or public-contract change; security, auth, secrets or permissions; data or schema migration; hooks, gates or other framework enforcement; dependency upgrades; UI surfaces; a large diff. |
+| **Low** | Automatic skip | No review runs. A descriptor-bound skip receipt records the low-risk signal as its reason. |
+| **Medium** | `$why-review --fix-loop` | One adversarial pass over the rationale and correctness of a focused change, then a fresh full re-review. |
+| **High** | `$changes-review --fix-loop` | Multi-dimension diff review (correctness, tests, conventions, spec drift, integration), then validate, fix and re-review. |
 
-- Read the objective signals first: the candidate's file list, paths and `--stat` (for an amend, the whole amended commit). Any heavier signal outranks a lighter one.
-- Tie or unclear → recommend the heavier review.
-- Mark exactly ONE option `(Recommended)` and state the signal that chose it, e.g. `Recommended: $changes-review — behaviour change in one module, with tests`.
-- When asking, offer all three reviews with exactly one recommendation; on an automatic lane choose the proportionate qualifying review. Skip stays user-only and never recommended. Every review option is a fix-loop that mints a current-candidate receipt.
-- **Autonomous follow-ups:** use the decision policy, not a blanket bypass. Fresh checks/review are automatic for eligible repairs; substantial or high-risk new scope asks again. Skip remains explicit and candidate-bound.
+- Read the objective signals first: the candidate's file list, paths and `--stat` (for an amend, the whole amended commit). Any higher-tier signal outranks a lower one.
+- Tie or unclear → the higher tier.
+- State the selected review and the signal that chose it, e.g. `Review: $changes-review — hook enforcement changed`.
+- `$workflow-review-changes --fix-loop` — the full review workflow with parallel architecture, security, performance, integration-test, production-readiness, domain and UI lenses — runs only when the user asks for it. Its receipt satisfies this gate like the other two.
+- Every review is a fix-loop that mints a current-candidate receipt, capped at two review rounds here.
 
 ### Step 4: Commit
 
@@ -514,10 +513,10 @@ Generated by AI
 
 ## Critical Rules
 
-- **This skill is the ONLY supported commit path** — a raw ad-hoc `git commit` from the agent is refused by `review-commit-gate.cjs` unless a review fix-loop receipt (or a user-approved `skip` receipt) exists for the changeset. Always run the Review Gate (Step 3.6) before committing
+- **This skill is the ONLY supported commit path** — a raw ad-hoc `git commit` from the agent is refused by `review-commit-gate.cjs` unless a review fix-loop receipt (or a `skip` receipt) exists for the changeset. Always run the Review Gate (Step 3.6) before committing
 - **Stage only the user-authorized paths** before committing — never use a repository-wide `git add .` when unrelated work may be present; preserve other owners' index/worktree changes
-- **Test-Verify Gate (Step 3.5):** apply the decision policy, keep the last user answers separate from current evidence, and rerun affected checks for changed code. Ask initially or on escalation; automatically check safe continuous fixes. Never invent a Skip or passed result.
-- **Review Gate (Step 3.6, blocking):** check the exact prepared descriptor; `ERROR` blocks, `CLEAN` needs no receipt, `CHANGED` needs a matching review or explicit user Skip receipt. Apply the decision policy to select/run review or ask; candidate changes invalidate receipts. Never mint an automatic Skip.
+- **Test-Verify Gate (Step 3.5):** decide under the decision policy and never ask. Skip only when the affected tests already passed this session for unchanged content or the change is really small; otherwise run scoped tests and fix-loop failures until all pass. Never invent a passed result or force green.
+- **Review Gate (Step 3.6, blocking):** check the exact prepared descriptor; `ERROR` blocks, `CLEAN` needs no receipt, `CHANGED` needs a matching review or skip receipt. Classify the risk and act without asking: Low → automatic skip receipt, Medium → `$why-review --fix-loop`, High → `$changes-review --fix-loop`, two review rounds at most. Candidate changes invalidate receipts; MEDIUM+ still open at the cap stops the run uncommitted.
 - **Estimate line is MANDATORY and comes FIRST in the body** — `Estimate: <n> EP | man_days_ai: <x>d | man_days_traditional: <y>d`, derived bottom-up per the carried `SYNC:estimation-framework` against the STAGED diff (Step 2.9), or reused from the implemented plan/task/story frontmatter with `(source: <path>)`. Effort points and AI man-days are required; discount generated/lockfile/docs churn before estimating
 - **Stop after the commit; push** to remote only when the user explicitly requests it
 - **Refresh the code graph after committing (Step 6)** — when `.code-graph/` exists, fire `$graph-code --mode=build --scope=sync` in the BACKGROUND (`run_in_background: true`) so the commit that moved HEAD is re-parsed and `last_synced_commit` advances with it; skip silently when the dir is absent. Non-blocking by design: it NEVER gates, delays, or fails the commit
@@ -538,7 +537,7 @@ This skill handles **commit** by default. A plain push delegates to the `git-man
 
 ### Pull-request requests → the `pull-request` skill
 
-When the user asks for a pull request — create or open a PR, finish or update the current PR, make it ready to merge, or mark a draft ready — invoke the **`pull-request` skill** (`$pull-request`) instead of this skill or `git-manager`. Read `.claude/skills/pull-request/SKILL.md` when a request includes PR work; it owns branch/base reconciliation, risk-based test/review decisions, commit/push, and the CI loop. Run that protocol in the main session; preserve its explicit Skip choices.
+When the user asks for a pull request — create or open a PR, finish or update the current PR, make it ready to merge, or mark a draft ready — invoke the **`pull-request` skill** (`$pull-request`) instead of this skill or `git-manager`. Read `.claude/skills/pull-request/SKILL.md` when a request includes PR work; it owns branch/base reconciliation, the whole-branch application of this skill's decision policy, commit/push, and the CI loop. Run that protocol in the main session.
 
 A commit request that also mentions a PR routes to `pull-request`, which commits through this skill as one of its steps. — why: a PR opened straight after a commit skips the whole-branch review and the CI loop, so it is not ready to merge.
 
@@ -573,15 +572,15 @@ A commit request that also mentions a PR routes to `pull-request`, which commits
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Stage authorized changes and create well-structured Conventional Commits with proportionate test/review gates, fewer questions for safe continuous fixes, and fresh human choices for substantial or high-risk changes. Every message body opens with the derived `Estimate:` line.
+**IMPORTANT MUST ATTENTION Goal:** Stage authorized changes and create well-structured Conventional Commits behind automatic, risk-proportionate test and review gates: decide, run and record them without asking the user. Every message body opens with the derived `Estimate:` line.
 
-**IMPORTANT MUST ATTENTION main steps:** authority + lease → analyze/stage → docs triage + no-op guard → reviewers → staged estimate → message → test decision/evidence → review decision + exact receipt → commit → verify message/reviewers → authorized push if requested → optional background graph refresh → revoke leases. Apply the decision policy before both gates; restage and re-derive after fixes. Stop after commit without `--push`.
+**IMPORTANT MUST ATTENTION main steps:** authority + lease → analyze/stage → docs triage + no-op guard → reviewers → staged estimate → message → test decision/evidence → review decision + exact receipt → commit → verify message/reviewers → authorized push if requested → optional background graph refresh → revoke leases. Apply the decision policy before both gates and never ask about tests or review; restage and re-derive after fixes. Stop after commit without `--push`.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
 - **Sub-Agent Selection:** route specialized domains to the matching specialist; NEVER `code-reviewer`.
 
-- **MUST ATTENTION — QUESTION FREQUENCY:** initial candidate or material risk/scope escalation asks; small same-task/branch follow-ups reuse recorded preferences; routine PR CI repairs auto-run fresh tests and review. Keep the last human-answer baseline fixed across automatic commits; old verification and Skip never cover new content.
+- **MUST ATTENTION — DECIDE, NEVER ASK:** tests skip only when the affected tests already passed this session for unchanged content or the change is really small, otherwise run scoped tests and fix-loop to green; review is an automatic skip for Low risk, `$why-review --fix-loop` for Medium, `$changes-review --fix-loop` for High, two review rounds at most. MEDIUM+ still open at the cap or a check that cannot go green → stop uncommitted and report. Old evidence never covers new content.
 - **MANDATORY MUST ATTENTION — FIRST BODY LINE:** every commit message opens with `Estimate: <n> EP | man_days_ai: <x>d | man_days_traditional: <y>d`, derived bottom-up per `SYNC:estimation-framework` against the staged diff (Step 2.9) — EP is DERIVED never eyeballed, generated/lockfile/docs churn is discounted first, and the number covers THIS diff only — why: the estimate must travel with the commit, or velocity data has to be reconstructed from diffs after the fact
 - **OPTIONAL — AFTER THE COMMIT:** when `.code-graph/` exists, you may fire `$graph-code --mode=build --scope=sync` in the BACKGROUND (Step 6) so the commit that moved HEAD is re-parsed and `last_synced_commit` advances — why: the `graph-auto-update` hook only fires on `Edit|Write|MultiEdit` and never sees a commit; `sync` (not `update`) is the HEAD-movement verb, and it is an accelerator, so it NEVER blocks or fails the commit
 - **Estimation Framework:** bottom-up hours drive man-days; EP DERIVED from `likely_days`, never the driver.
@@ -595,10 +594,10 @@ A commit request that also mentions a PR routes to `pull-request`, which commits
 
 | Evasion | Rebuttal |
 | --- | --- |
-| "Tiny diff or old green means Skip" | Classify cumulative risk; auto-run fresh checks for safe follow-ups. Only the user chooses candidate-bound Skip. |
-| "Every CI repair needs the same questions again" | Reuse safe continuity and execute fresh checks/review; ask only on escalation or explicit constraints. |
-| "Automatic commits reset the approval baseline" | Keep the last actual human-answer baseline; assess the whole accumulated authored change. |
-| "Verify means report one test run" | The verify choice runs the declared converge-to-green workflow. |
+| "Tiny diff, so it is Low risk" | Size is not the tier: any High signal outranks it, even on one line. Skip tests only for a really small or already-verified change, and review only for Low risk. |
+| "Better ask the user which tests or review to run" | The decision policy decides. Ask nothing routine; stop and report only for a real blocker. |
+| "Round 2 still has MEDIUM findings, skip and commit" | A failed review is not a skip. Stop, leave the candidate staged and report the open findings. |
+| "One test failed, report it and commit" | A failure starts the fix loop; commit only when every scoped check is green. |
 | "Eyeball points or copy the full plan estimate" | Derive this staged scope; reuse only an exact artifact match and discount mechanical churn. |
 | "Tiny commit needs no estimate" | Every message retains its derived first-body Estimate line. |
 | "Graph failure invalidates the commit" | Graph refresh is non-blocking; report the error and stop its work. |
