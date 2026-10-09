@@ -7,7 +7,7 @@ const { trackingContext } = require('./task-tracking-config.cjs');
 const files = require('./task-tracking-files.cjs');
 const ledger = require('./convention-ledger.cjs');
 const routing = require('../../scripts/lib/workflow-routing-config.cjs');
-const { promptTerms } = require('./task-tracking-vocabulary.cjs');
+const { promptTerms, hierarchyTerms } = require('./task-tracking-vocabulary.cjs');
 
 // Protective budgets, not measured capacity; none depend on the work inventory.
 const MAX_PROMPT_CHARS = 32768;
@@ -20,6 +20,8 @@ const GROUP = 'task-tracking-advisory';
 
 // The work words of the current vocabulary, and the earlier ones a person may still type.
 const WORK = new RegExp(`\\b(work|${promptTerms().join('|')}|concerns?|tracking|publication|pull request)\\b`, 'i');
+// The words that place work: area levels, areas and initiatives, and the earlier group purposes a person may still type.
+const HIERARCHY = new RegExp(`\\b(?:${hierarchyTerms().join('|')})\\b`, 'i');
 
 /** Quoted examples are data. Unclosed quotations conservatively hide the remaining text. */
 function unquotedPrompt(prompt) {
@@ -51,7 +53,7 @@ function relevantPrompt(prompt) {
     if (text && action.test(text) && (work.test(text) || publication.test(text))) return text;
     // Read-oriented hierarchy guidance uses the same trusted prose and bounded input owner.
     const readAction = /\b(?:show|inspect|check|open|list|report)\b/i;
-    const hierarchy = /\b(?:modules?|areas?|capabilit(?:y|ies)|features?|initiatives?|programs?)\b/i;
+    const hierarchy = HIERARCHY;
     const intent = /\b(?:status|progress|report|delivery)\b/i;
     const negatedRead = /\b(?:do not|don't|never|avoid|skip)\s+(?:\w+\s+){0,2}(?:show|inspect|check|open|list|report)\b/i;
     return text && text.split(/[.!?;]/).some(clause => readAction.test(clause) && hierarchy.test(clause)

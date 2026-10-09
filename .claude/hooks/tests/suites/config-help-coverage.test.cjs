@@ -15,6 +15,9 @@
  *                 describe (no stale key, no second owner).
  *   CFGHELP-004 — `project-config-help.cjs --json` renders every walked field, each with its text.
  *   CFGHELP-005 — `ck-config-help.cjs --json` lists every `.ck.json` field and finds both doc tables.
+ *   TC-TPT-299  — the work tracker's label settings: help lists exactly the keys its validation accepts (the current
+ *                 kinds, the area levels, the initiative types; group labels for a declared earlier version only), and
+ *                 a declared label changes displayed text alone.
  *
  * Portability: the assertions read only framework-owned files that ship inside `.claude/` (the two
  * schemas, the describes file, the help scripts and their source docs). The spawned project-config
@@ -45,6 +48,9 @@ const {
     describeField
 } = require(path.join(CLAUDE_DIR, 'scripts', 'lib', 'config-option-describes.cjs'));
 
+const { validateTaskTracking } = require(path.join(CLAUDE_DIR, 'hooks', 'lib', 'task-tracking-config.cjs'));
+const { vocabularyBlock } = require(path.join(CLAUDE_DIR, 'hooks', 'lib', 'task-tracking-vocabulary.cjs'));
+
 const PROJECT_CONFIG_HELP = path.join(CLAUDE_DIR, 'skills', 'project-config', 'scripts', 'project-config-help.cjs');
 const CK_CONFIG_HELP = path.join(CLAUDE_DIR, 'scripts', 'ck-config-help.cjs');
 
@@ -74,6 +80,15 @@ function walkFields(root) {
     }
     return out.filter(field => !field.path.split(/[.[\]{}]+/).some(part => part.startsWith('_')));
 }
+
+// The work tracker's label settings and the words that key them, spelled out as test data: a list taken from the
+// vocabulary owner would still agree with it after that owner was broken.
+const TRACKER_LABELS = Object.freeze({
+    kindLabels: ['initiative', 'task', 'story', 'subtask', 'area'],
+    levelLabels: ['application', 'product', 'module', 'feature'],
+    typeLabels: ['feedback', 'idea', 'initiative']
+});
+const EARLIER_GROUP_PURPOSES = Object.freeze(['area', 'domain', 'capability', 'program']);
 
 const PROJECT_FIELDS = walkFields(SCHEMA);
 const CK_FIELDS = walkFields(CK_SCHEMA);
@@ -162,6 +177,54 @@ module.exports = {
                 for (const id of ['quickSettings', 'environment']) {
                     const body = payload.sections[id] && payload.sections[id].body;
                     assert.ok(body && body.includes('|'), `the ${id} table must be found in its source doc`);
+                }
+            }
+        },
+        {
+            name: "[config-help] TECH-tracker-label-help help lists exactly the tracker label settings that validation accepts: the five current kinds, the levels and the types, group labels for a declared earlier version only, and a label changes displayed text alone",
+            TechnicalSpec: 'work-tracking/config-label-help',
+            fn: () => {
+                const listed = prefix => PROJECT_FIELDS.filter(field => field.path.startsWith(prefix)).map(field => field.path.slice(prefix.length)).sort();
+                const helpText = fieldPath => { const field = PROJECT_FIELDS.find(entry => entry.path === fieldPath); return field && describeField(PROJECT_CONFIG_DESCRIBES, field.path, field.schema); };
+                const findings = tracking => validateTaskTracking({ taskTracking: tracking });
+                const shownAs = word => `Shown ${word}`;
+                for (const [setting, words] of Object.entries(TRACKER_LABELS)) {
+                    // Help lists one field per current word and no other.
+                    assert.deepEqual(listed(`taskTracking.${setting}.`), [...words].sort(), setting);
+                    for (const word of words) {
+                        assert.ok(helpText(`taskTracking.${setting}.${word}`), `taskTracking.${setting}.${word} has help text`);
+                        // What help lists, validation accepts.
+                        assert.deepEqual(findings({ schemaVersion: 3, [setting]: { [word]: shownAs(word) } }), [], `${setting}.${word}`);
+                    }
+                    // What help does not list, validation refuses by name.
+                    assert.deepEqual(findings({ schemaVersion: 3, [setting]: { unlisted: 'Shown' } }), [`taskTracking.${setting}.unlisted: unknown field`], setting);
+                }
+                // A kind of the earlier vocabulary is no label key of a current project.
+                for (const kind of ['project', 'vision']) {
+                    assert.deepEqual(findings({ schemaVersion: 3, kindLabels: { [kind]: 'Shown' } }), [`taskTracking.kindLabels.${kind}: unknown field`], kind);
+                }
+                // Group labels are listed with the earlier vocabulary's purposes, help says they belong to it, and only a
+                // project that declares that version may carry them.
+                assert.deepEqual(listed('taskTracking.groupLabels.'), [...EARLIER_GROUP_PURPOSES].sort());
+                assert.match(helpText('taskTracking.groupLabels'), /earlier/i, 'help must not present group labels as a current setting');
+                const groupLabels = Object.fromEntries(EARLIER_GROUP_PURPOSES.map(purpose => [purpose, shownAs(purpose)]));
+                assert.deepEqual(findings({ schemaVersion: 2, groupLabels }), []);
+                assert.deepEqual(findings({ schemaVersion: 3, groupLabels }), ['taskTracking.groupLabels: unknown field']);
+                // These four are every label map the tracker has.
+                assert.deepEqual(PROJECT_FIELDS.map(field => field.path).filter(fieldPath => /^taskTracking\.[A-Za-z]+Labels$/.test(fieldPath)).sort(),
+                    ['taskTracking.groupLabels', ...Object.keys(TRACKER_LABELS).map(setting => `taskTracking.${setting}`)].sort());
+                // A label is display text only: with every label declared, the stored words are what they were.
+                const declared = { schemaVersion: 3, ...Object.fromEntries(Object.entries(TRACKER_LABELS).map(([setting, words]) => [setting, Object.fromEntries(words.map(word => [word, shownAs(word)]))])) };
+                assert.deepEqual(findings(declared), []);
+                const { labels: shown, ...words } = vocabularyBlock({ taskTracking: declared });
+                const { labels: defaults, ...defaultWords } = vocabularyBlock({ taskTracking: { schemaVersion: 3 } });
+                assert.deepEqual(words, defaultWords);
+                assert.deepEqual([[...words.kinds].sort(), [...words.levels].sort(), [...words.initiativeTypes].sort()], Object.values(TRACKER_LABELS).map(list => [...list].sort()));
+                for (const [table, setting] of [['kinds', 'kindLabels'], ['levels', 'levelLabels'], ['initiativeTypes', 'typeLabels']]) {
+                    for (const word of TRACKER_LABELS[setting]) {
+                        assert.equal(shown[table][word], shownAs(word), `${table}.${word}`);
+                        assert.notEqual(defaults[table][word], shownAs(word), `${table}.${word}`);
+                    }
                 }
             }
         }

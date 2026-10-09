@@ -31,8 +31,6 @@ function validateConcernQuery(query) {
 
 function identity(item) { return { itemId: item.id, kind: item.kind, ownerPath: item.ownerPath }; }
 
-const RELATIONS = Object.freeze([...LINK_ROLES, 'membership']);
-
 /**
  * One walk over the snapshot serves every selection, and each selection is projected exactly as if it were the only one.
  * Findings that belong to a relationship rather than to a selection are recorded once and replayed in walk order.
@@ -46,7 +44,7 @@ function projectSelections(snapshot, selections, pathStatus) {
         byId.set(item.id, byId.has(item.id) ? null : item);
         byPath.set(item.ownerPath.replace(/\\/g, '/'), item);
     }
-    const totalRelationships = owners.reduce((sum, item) => sum + (item.links || []).length + (item.memberItemIds || []).length, 0);
+    const totalRelationships = owners.reduce((sum, item) => sum + (item.links || []).length, 0);
     const diagnose = (state, value) => {
         if (state.diagnostics.length < LIMITS.records) state.diagnostics.push(value);
         else state.omittedDiagnostics++;
@@ -100,11 +98,10 @@ function projectSelections(snapshot, selections, pathStatus) {
         visitedOwners++;
         const ownerPath = item.ownerPath.replace(/\\/g, '/');
         const selectingOwner = union(selectingId.get(item.id), selectingPath.get(ownerPath));
-        // Group membership remains labelled; it is not rewritten as a stored backlink.
-        const references = [...(item.links || []), ...(item.memberItemIds || []).map(itemId => ({ relation: 'membership', itemId }))];
-        for (const link of references) {
+        // Every relationship is a link its own record declares, a tag included; nothing is projected as a stored backlink.
+        for (const link of item.links || []) {
             visitedRelationships++;
-            if (!object(link) || !RELATIONS.includes(link.relation)) {
+            if (!object(link) || !LINK_ROLES.includes(link.relation)) {
                 shared.push({ code: 'UNSUPPORTED_RELATIONSHIP', itemId: item.id, reason: 'Relationship cannot be safely projected' }); continue;
             }
             if (link.path !== undefined && !publicTarget(link.path)) {

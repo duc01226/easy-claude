@@ -33,7 +33,7 @@ Project-owned branches below sit at their DEFAULT roots; `docs/project-config.js
 |   |-- README.md             Skills overview + full catalog
 |   +-- (patterns)           → docs/project-reference/
 |
-|-- hooks/                    33 top-level hook files, 62 lib modules
+|-- hooks/                    33 top-level hook files, 64 lib modules
 |   |-- README.md             Hooks overview, lessons system, session lifecycle
 |   +-- extending-hooks.md    How to create custom hooks
 |
@@ -98,7 +98,7 @@ Project-owned branches below sit at their DEFAULT roots; `docs/project-config.js
 | Workflow detection and routing              | Default-on `workflow-route-inject.cjs` (gate) and `workflow-catalog-inject.cjs` (catalog), the only carriers of the route; per-person mode `ask` / `auto` / `off` (project default, `~/.claude/.ck.json`, `.claude/.ck.local.json`, env `CK_WORKFLOW_ROUTE_MODE`); definitions in `.claude/workflows.json` |
 | How to create custom hooks                  | [hooks/extending-hooks.md](./hooks/extending-hooks.md)                                                          |
 | How to configure output                     | [configuration/output-styles.md](./configuration/output-styles.md)                                              |
-| Manual tracker maintenance and shell discovery | [manual-operations.md](../skills/task-track/references/manual-operations.md) — exact requests, catalogue, authority and recovery |
+| Manual tracker maintenance and shell discovery | [manual-operations.md](../skills/task-track/references/manual-operations.md) — exact requests, placing a record in context, catalogue, authority and recovery |
 | Exact concerns and saved producer checkpoints | [integration-guide.md](../skills/task-track/references/integration-guide.md) — original declarers, current verification and pre-publication self-check |
 | How team collaboration works                | [team-collaboration-guide.md](./team-collaboration-guide.md)                                                    |
 | How to update code review rules             | [hooks/README.md#code-review-rules](./hooks/README.md#code-review-rules)                                        |
@@ -163,12 +163,12 @@ Unprefixed filenames resolve inside the project-reference docs root — default 
 | ---------------------- | ----- |
 | Skills                 | <!-- COUNT:skills -->104<!-- /COUNT --> |
 | Hook files (top-level) | <!-- COUNT:hooks -->33<!-- /COUNT --> |
-| Lib Modules            | <!-- COUNT:lib-modules -->62<!-- /COUNT --> |
+| Lib Modules            | <!-- COUNT:lib-modules -->64<!-- /COUNT --> |
 | Hook Events            | 9     |
 | Agents                 | <!-- COUNT:agents -->24<!-- /COUNT --> |
 | Workflows              | <!-- COUNT:workflows -->19<!-- /COUNT --> |
 | Hook Tests             | 133   |
-| Hook Test Files        | 119 suites + 9 top-level test files |
+| Hook Test Files        | 120 suites + 9 top-level test files |
 | Framework Markdown Files | 41 (`.claude/docs/**/*.md`) |
 
 ---

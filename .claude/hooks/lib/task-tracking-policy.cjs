@@ -1,20 +1,38 @@
 'use strict';
 
-const { GROUP_ROLES, MEMBER_ID, isEmailId, relativePath, LIMITS } = require('./task-tracking-config.cjs');
-const { STATES, LINK_ROLES, GROUP_KINDS, PLANNED_STATE, ACYCLIC_LINK_ROLES } = require('./task-tracking-vocabulary.cjs');
+const { MEMBER_ID, isEmailId, relativePath, calendarDate, LIMITS } = require('./task-tracking-config.cjs');
+const { STATES, RECORDED_STATES, LINK_ROLES, TAG_ROLES, AREA_KIND, INITIATIVE_KIND, LEVELS, OWNED_VALUES, PLANNED_STATE, IMPLEMENTED_STATE, ACYCLIC_LINK_ROLES, EARLIER_MAPPING, lifecycleOf } = require('./task-tracking-vocabulary.cjs');
 const { fail, hash, readBytes } = require('./task-tracking-files.cjs');
 const { ITEM_ID, stableValue } = require('./task-artifact-store.cjs');
 const { isPrivacySensitive } = require('./sensitive-path-policy.cjs');
 
-const TRANSITIONS = Object.freeze({ draft: [PLANNED_STATE, 'canceled'], [PLANNED_STATE]: ['ready', 'canceled'], ready: ['in_progress', 'canceled'],
-    in_progress: ['blocked', 'verifying', 'canceled'], blocked: ['in_progress', 'verifying', 'canceled'], verifying: ['done', 'canceled'],
-    done: [PLANNED_STATE, 'ready', 'in_progress', 'canceled'], canceled: [] });
 const string = (value, maximum = 2000) => typeof value === 'string' && value.trim().length > 0 && value.length <= maximum;
 const list = (value, check, maximum = LIMITS.records) => Array.isArray(value) && value.length <= maximum && value.every(check);
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const HASH = /^[a-f0-9]{64}$/;
 const instant = value => typeof value === 'string' && /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/.test(value)
     && Number.isFinite(Date.parse(value)) && new Date(value).toISOString() === value;
+/** Readiness, proof and acceptance belong to the delivery lifecycle alone. */
+const inDelivery = record => lifecycleOf(record.kind)?.name === 'delivery';
+
+/** What is wrong with a tracker-owned value for a record of the given kind, or null. Capture, refinement and the stored-record check all ask here. */
+function ownedValueProblem(kind, field, value) {
+    const owned = OWNED_VALUES[field];
+    if (!owned.kinds.includes(kind)) return `${field} belongs to ${owned.kinds.join(', ')} only`;
+    if (value === null) return owned.optional ? null : `${field} cannot be unset`;
+    if (owned.values) return owned.values.includes(value) ? null : `${field} must be one of ${owned.values.join(', ')}`;
+    return calendarDate(value) ? null : `${field} must be a calendar date, YYYY-MM-DD`;
+}
+
+/**
+ * Past its due date while still open, as of the given UTC date. A record of any kind is open until it is done, canceled
+ * or retired. A due date changes nothing else: not eligibility, credit, readiness or acceptance.
+ */
+function overdue(record, today = new Date().toISOString().slice(0, 10)) {
+    const deadline = record.tracking?.deadline;
+    if (!deadline || ownedValueProblem(record.kind, 'deadline', deadline) || deadline >= today) return false;
+    return !['done', 'canceled'].includes(record.data.status) && !record.tracking.retired;
+}
 
 function validProof(proof) {
     return object(proof) && string(proof.id, 120) && ITEM_ID.test(proof.id)
@@ -72,7 +90,8 @@ function validMemberProfile(person) {
 function validateMetadata(record) {
     const t = record.tracking;
     if (!t) return;
-    if (!STATES.includes(record.data.status)) fail('UNSUPPORTED', 'Tracking lifecycle has an unsupported recorded state');
+    // A record's state belongs to the lifecycle of its own kind.
+    if (!lifecycleOf(record.kind)?.states.includes(record.data.status)) fail('UNSUPPORTED', 'Tracking lifecycle has an unsupported recorded state');
     if (t.memberProfiles !== undefined && (!list(t.memberProfiles, validMemberProfile)
         || new Set(t.memberProfiles.map(person => person.id)).size !== t.memberProfiles.length)) fail('INVALID_RECORD', 'Historical contributor attribution is malformed or duplicated');
     if (t.assigneeId !== undefined && t.assigneeId !== null && (typeof t.assigneeId !== 'string' || !MEMBER_ID.test(t.assigneeId))) fail('INVALID_RECORD', 'Assignment has no stable member identity');
@@ -82,10 +101,13 @@ function validateMetadata(record) {
     if (t.links !== undefined && !list(t.links, link => object(link) && LINK_ROLES.includes(link.relation)
         && ((typeof link.itemId === 'string' && ITEM_ID.test(link.itemId) && link.path === undefined)
             || (relativePath(link.path) && link.itemId === undefined && ['spec', 'plan', 'source'].includes(link.relation))))) fail('INVALID_RECORD', 'Links have an unsupported owner or identity');
-    if (t.memberItemIds !== undefined && (!GROUP_KINDS.includes(record.kind) || !list(t.memberItemIds, id => typeof id === 'string' && ITEM_ID.test(id))
-        || new Set(t.memberItemIds).size !== t.memberItemIds.length)) fail('INVALID_RECORD', 'Group membership is invalid');
-    if (t.groupRole !== undefined && (!GROUP_KINDS.includes(record.kind) || (t.groupRole !== null && !GROUP_ROLES.includes(t.groupRole))))
-        fail('INVALID_RECORD', 'Group purpose is invalid');
+    // Where work belongs is a tag on the work itself: no record lists its members or holds a group purpose.
+    if (t[EARLIER_MAPPING.memberField] !== undefined || t[EARLIER_MAPPING.purposeField] !== undefined) fail('INVALID_RECORD', 'A member list or a group purpose is not stored; a tag is a link on the tagged record');
+    for (const [field, owned] of Object.entries(OWNED_VALUES)) {
+        const problem = t[field] !== undefined ? ownedValueProblem(record.kind, field, t[field])
+            : owned.optional || !owned.kinds.includes(record.kind) ? null : `${field} is missing`;
+        if (problem) fail('INVALID_RECORD', problem);
+    }
     for (const key of ['receipts', 'proofs', 'acceptanceHistory', 'history']) if (t[key] !== undefined && !Array.isArray(t[key])) fail('INVALID_RECORD', `${key} must be a retained list`);
     if ((t.proofs || []).some(proof => !validProof(proof))
         || new Set((t.proofs || []).map(proof => proof.id)).size !== (t.proofs || []).length) fail('INVALID_RECORD', 'Proof observations are malformed or duplicated');
@@ -106,9 +128,10 @@ function validateMetadata(record) {
         || t.blocker.resumeState !== 'in_progress' || typeof t.blocker.actor !== 'string'
         || !MEMBER_ID.test(t.blocker.actor) || !instant(t.blocker.at))) fail('INVALID_RECORD', 'Blocker requires its actual reason and prior active state');
     if ((t.acceptanceHistory || []).some(acceptance => !validAcceptance(acceptance, record.id))) fail('INVALID_RECORD', 'Acceptance history is malformed');
+    // History keeps the state each entry was written with, so it may name a state of any lifecycle.
     if ((t.history || []).some(entry => !object(entry) || typeof entry.operationId !== 'string' || !ITEM_ID.test(entry.operationId)
         || !string(entry.operation, 80) || typeof entry.actor !== 'string' || !MEMBER_ID.test(entry.actor)
-        || !instant(entry.at) || !STATES.includes(entry.beforeState) || !STATES.includes(entry.afterState))) fail('INVALID_RECORD', 'Activity history is malformed');
+        || !instant(entry.at) || !RECORDED_STATES.includes(entry.beforeState) || !RECORDED_STATES.includes(entry.afterState))) fail('INVALID_RECORD', 'Activity history is malformed');
     if (t.retired !== undefined && t.retired !== null && (!object(t.retired) || !string(t.retired.reason)
         || (!string(t.retired.actor, 120) && !isEmailId(t.retired.actor)) || !instant(t.retired.at))) fail('INVALID_RECORD', 'Retirement history is malformed');
 }
@@ -117,6 +140,24 @@ function recordIndex(records) {
     const index = new Map();
     for (const record of records) index.set(record.id, index.has(record.id) ? null : record);
     return index;
+}
+
+const SELF_RELATIONSHIP = 'Self relationship is forbidden';
+
+/**
+ * What is wrong with a tag, or null: the one statement of what makes a tag valid. A tag names one existing record other
+ * than the record that carries it, of the kind its relation is for, and an area is placed under areas only. `owner` is
+ * the record that carries the tag and `target` the one unique owner of `id`, if there is one; each needs only its
+ * identity and kind, so a stored record and a read's view of it are judged alike. The relationship check reports the
+ * answer as a finding, and the scope projection leaves such a tag out of every scope.
+ */
+function tagProblem(owner, relation, id, target) {
+    const kind = TAG_ROLES[relation];
+    if (id === owner.id) return SELF_RELATIONSHIP;
+    if (!target) return `Tag target ${id} has no unique project owner`;
+    if (target.kind !== kind) return `Tag target ${id} is not of kind ${kind}`;
+    if (owner.kind === AREA_KIND && kind !== AREA_KIND) return `An area declares no ${relation} link: ${id}`;
+    return null;
 }
 
 /**
@@ -135,20 +176,32 @@ function graphFindings(records, index = recordIndex(records), visit) {
         }
     }
     const graphs = Object.fromEntries(ACYCLIC_LINK_ROLES.map(role => [role, new Map(records.map(r => [r.id, []]))]));
+    // An unset level, or one that is no level, constrains nothing.
+    const depth = record => LEVELS.indexOf(record.tracking?.level);
     for (const record of records) {
         if (visit) visit(record, !malformed.has(record.id));
         const links = Array.isArray(record.tracking?.links) ? record.tracking.links : [];
-        const members = Array.isArray(record.tracking?.memberItemIds) ? record.tracking.memberItemIds : [];
-        const related = [...links.filter(l => typeof l?.itemId === 'string'), ...members.map(itemId => ({ itemId, relation: 'parent', membership: true }))];
-        for (const link of related) {
+        const tags = new Set();
+        const finding = (code, reason) => findings.push({ itemId: record.id, code, reason });
+        for (const link of links.filter(l => typeof l?.itemId === 'string')) {
             const id = link.itemId;
-            if (!index.get(id) || id === record.id) findings.push({ itemId: record.id, code: 'UNRESOLVED_LINK', reason: id === record.id ? 'Self relationship is forbidden' : 'Relationship has no unique project owner' });
-            if (index.get(id) && id !== record.id && graphs[link.relation]) {
-                // A group's membership and a child's parent describe the same direction.
-                const from = link.membership ? id : record.id;
-                const to = link.membership ? record.id : id;
-                graphs[link.relation].get(from).push(to);
-            }
+            const target = index.get(id);
+            if (id === record.id) finding('UNRESOLVED_LINK', SELF_RELATIONSHIP);
+            else if (Object.hasOwn(TAG_ROLES, link.relation)) {
+                // A valid tag is named once.
+                const tag = `${link.relation}:${id}`;
+                const problem = tagProblem(record, link.relation, id, target);
+                if (problem) finding('INVALID_LINK_TARGET', problem);
+                else if (tags.has(tag)) finding('INVALID_LINK_TARGET', `Tag target ${id} is repeated`);
+                else if (record.kind === AREA_KIND) {
+                    // The shallowest level is the top of the hierarchy, and a parent is never deeper than its child.
+                    const own = depth(record);
+                    if (own === 0) finding('INVALID_AREA_LEVEL', `An ${LEVELS[0]}-level area has no parent: ${id}`);
+                    else if (own > 0 && depth(target) > own) finding('INVALID_AREA_LEVEL', `Area sits under a deeper-level area: ${id}`);
+                }
+                tags.add(tag);
+            } else if (!target) finding('UNRESOLVED_LINK', 'Relationship has no unique project owner');
+            if (target && id !== record.id && Object.hasOwn(graphs, link.relation)) graphs[link.relation].get(record.id).push(id);
         }
     }
     // Iterative traversal avoids stack growth with the size of an adopting project's planned work.
@@ -271,6 +324,29 @@ function acceptanceStatus(record) {
     return { accepted: record.data.status === 'done' && accepted.length > 0, historyCount: accepted.length };
 }
 
+/**
+ * Whether a prerequisite is met. Delivery work is met once it is accepted with proof that is still current, and an
+ * initiative once it is closed as done. An area is never met: it is a place for work, not something that finishes.
+ * Retired work meets nothing.
+ */
+function prerequisiteMet(dependency, context) {
+    if (!dependency || dependency.data.status !== 'done' || dependency.tracking?.retired) return false;
+    if (!inDelivery(dependency)) return lifecycleOf(dependency.kind)?.name === 'tracker';
+    return proofStatus(dependency, context).status === 'current' && acceptanceStatus(dependency).accepted;
+}
+
+/**
+ * Why an unmet prerequisite is unmet, in words that show the way on. An area never becomes met, so waiting for it helps
+ * nobody: the link is the thing to change. An open initiative becomes met by the decision that closes it. Everything
+ * else is unresolved or not currently verified. In every reason the identity is a word of its own, which is how a
+ * reader of the reasons finds the prerequisite it names.
+ */
+function unmetPrerequisite(id, dependency) {
+    if (dependency?.kind === AREA_KIND) return `Prerequisite ${id} is an area, and an area is never finished: depend on the work that is needed instead, or remove the link`;
+    if (dependency?.kind === INITIATIVE_KIND && dependency.data.status !== 'done') return `Prerequisite ${id} is an initiative that is not closed as done`;
+    return `Prerequisite ${id} is unresolved or not currently verified`;
+}
+
 function prerequisiteReasons(record, records, context, findings) {
     const analysis = analysisFor(records, context);
     if (analysis !== context.recordAnalysis) context = { ...context, recordAnalysis: analysis, proofCache: undefined };
@@ -280,8 +356,7 @@ function prerequisiteReasons(record, records, context, findings) {
     const index = analysis.index;
     for (const link of record.tracking?.links || []) if (link.relation === 'dependency') {
         const dependency = index.get(link.itemId);
-        if (!dependency || dependency.data.status !== 'done' || dependency.tracking?.retired || proofStatus(dependency, context).status !== 'current'
-            || !acceptanceStatus(dependency).accepted) reasons.push(`Prerequisite ${link.itemId} is unresolved or not currently verified`);
+        if (!prerequisiteMet(dependency, context)) reasons.push(unmetPrerequisite(link.itemId, dependency));
     }
     return reasons;
 }
@@ -296,28 +371,71 @@ function requireReady(record, records, context, authorization = false) {
     if (prerequisiteReasons(record, records, context).length) fail('NOT_READY', 'Current prerequisites are unresolved');
 }
 
-function transition(record, patch, records, context, authority, at) {
-    if (context.recordAnalysis?.records !== records) context = bindRecordContext(context, records);
-    const before = record.data.status;
+/**
+ * Whether a state change is a correction, after checking what either form needs. A usual step follows the table of the
+ * record's lifecycle. A correction is a person's explicit decision to place a record in another state of its own
+ * lifecycle, whatever state it is in: reopening canceled work, or undoing a step taken by mistake. It needs its own
+ * authority and a reason.
+ */
+function stateCorrection(lifecycle, before, patch, authority) {
     const after = patch.state;
-    // A correction is a person's explicit decision to place work in another recorded state, whatever state it is in:
-    // reopening canceled work, or undoing a step taken by mistake. It needs its own authority and a reason, and the
-    // state it lands in keeps every fact that state requires. Done is reached only through acceptance.
     const correction = patch.correction === true;
     if (patch.correction !== undefined && !correction) fail('INVALID_INPUT', 'A state correction is declared as true or left out');
     if (correction) {
         if (authority.automatic || authority.canCorrectState !== true) fail('NOT_PERMITTED', 'Changing state outside the usual steps needs an explicit action by a person');
-        if (!STATES.includes(before) || !STATES.includes(after) || after === before) fail('INVALID_TRANSITION', 'Choose a recorded state other than the current one');
+        if (!lifecycle.states.includes(before) || !lifecycle.states.includes(after) || after === before) fail('INVALID_TRANSITION', 'Choose a recorded state other than the current one');
         if (!string(patch.reason)) fail('INVALID_INPUT', 'Changing state outside the usual steps needs a reason');
-    } else if (!STATES.includes(before) || !TRANSITIONS[before].includes(after)) fail('INVALID_TRANSITION', 'Transition is unavailable in the current state');
+    } else if (!lifecycle.states.includes(before) || !lifecycle.transitions[before].includes(after)) fail('INVALID_TRANSITION', 'Transition is unavailable in the current state');
+    return correction;
+}
+
+/**
+ * A state change outside the delivery lifecycle. An initiative or an area moves by a person's recorded decision alone:
+ * no readiness, assignee, proof or acceptance applies, and automatic upkeep never moves either. An initiative may be
+ * closed while work linked to it is still open.
+ */
+function decidedTransition(record, patch, lifecycle, authority) {
+    if (authority.automatic) fail('NOT_PERMITTED', 'Automatic upkeep never changes the state of an initiative or an area');
+    for (const key of ['readiness', 'resolution']) if (patch[key] !== undefined) fail('INVALID_INPUT', `${key} applies to delivery work only`);
+    const before = record.data.status;
+    const after = patch.state;
+    const correction = stateCorrection(lifecycle, before, patch, authority);
+    // Every usual step of an initiative is a decision: approving, committing, closing, canceling and reopening. A
+    // correction is one already, under its own authority. An area is canceled with a reason alone.
+    if (lifecycle.name === 'tracker' && !correction && authority.canDecide !== true) fail('NOT_PERMITTED', 'Approving, committing, closing, canceling or reopening an initiative needs an explicit decision by a person');
+    if (after === 'canceled' && !string(patch.reason)) fail('INVALID_INPUT', 'Cancellation needs a reason');
+    if (lifecycle.name === 'tracker') {
+        // Approval is where an initiative's intent is settled. A correction skips the usual steps, never that fact: it
+        // places an initiative at approved or past it only with the intent approval requires.
+        if (!string(record.data.intent)) {
+            if (after === 'approved') fail('NOT_READY', 'Approval needs captured intent');
+            if (correction && ['committed', 'done'].includes(after)) fail('NOT_READY', 'A correction to committed or done needs the captured intent that approval requires');
+        }
+        if ((after === 'done' || before === 'done') && !string(patch.reason)) fail('INVALID_INPUT', 'Closing or reopening an initiative needs a reason');
+    }
+    return { fields: { status: after }, tracking: {} };
+}
+
+function transition(record, patch, records, context, authority, at) {
+    const lifecycle = lifecycleOf(record.kind);
+    if (!inDelivery(record)) return decidedTransition(record, patch, lifecycle, authority);
+    if (context.recordAnalysis?.records !== records) context = bindRecordContext(context, records);
+    const before = record.data.status;
+    const after = patch.state;
+    // The state a correction lands in keeps every fact that state requires. Done is reached only through acceptance.
+    const correction = stateCorrection(lifecycle, before, patch, authority);
     if (after === 'done') fail('MISSING_PROOF', 'Use an actual scoped acceptance action with current proof');
     if (after === PLANNED_STATE && !string(record.data.intent)) fail('NOT_READY', 'Planning needs captured intent');
+    // Implemented states only that the work is built and published for review, so it asks for nothing but the intent
+    // that says what was built. The facts verification needs are asked for on the step out of it.
+    if (after === IMPLEMENTED_STATE && !string(record.data.intent)) fail('NOT_READY', 'Implemented work needs captured intent');
+    const fromImplemented = before === IMPLEMENTED_STATE && !correction && ['in_progress', 'verifying'].includes(after);
     const changes = {};
     if (after === 'canceled') {
         if (!string(patch.reason)) fail('INVALID_INPUT', 'Cancellation needs a reason');
     }
     const active = ['in_progress', 'blocked', 'verifying'].includes(after);
-    if (after === 'ready' || ((before === 'done' || before === 'ready') && after === 'in_progress') || (correction && active)) {
+    if (after === 'ready' || ((before === 'done' || before === 'ready') && after === 'in_progress') || fromImplemented || (correction && active)) {
         if (patch.readiness) {
             if (!authority.canReview || patch.readiness.reviewed !== true || patch.readiness.decisionsResolved !== true) fail('NOT_PERMITTED', 'Actual reviewed readiness approval is required');
             changes.readiness = { reviewed: true, decisionsResolved: true, actor: authority.actor, at, criteriaIdentity: identities(record, context).criteriaIdentity };
@@ -325,7 +443,7 @@ function transition(record, patch, records, context, authority, at) {
         const ready = { ...record, tracking: { ...record.tracking, ...changes } };
         requireReady(ready, records, context, !!ready.tracking.readiness?.reviewed);
     }
-    if (after === 'in_progress' || (correction && active)) {
+    if (after === 'in_progress' || fromImplemented || (correction && active)) {
         if (!record.tracking?.assigneeId) fail('INVALID_MEMBER', 'Select a responsible member before starting');
         member(context, record.tracking.assigneeId);
         if (prerequisiteReasons(record, records, context).length) fail('NOT_READY', 'Current prerequisites are unresolved');
@@ -345,5 +463,5 @@ function transition(record, patch, records, context, authority, at) {
     return { fields: { status: after }, tracking: changes };
 }
 
-module.exports = { STATES, LINK_ROLES, string, list, object, HASH, instant, member, validateMetadata, graphFindings, bindRecordContext,
+module.exports = { STATES, LINK_ROLES, string, list, object, HASH, instant, inDelivery, ownedValueProblem, overdue, member, validateMetadata, tagProblem, graphFindings, bindRecordContext,
     validProof, validHealth, healthStatus, identities, proofStatus, acceptanceStatus, prerequisiteReasons, requireReady, transition };

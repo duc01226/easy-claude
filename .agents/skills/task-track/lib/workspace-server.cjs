@@ -26,6 +26,9 @@ const ASSETS = Object.freeze({ '/': ['index.html', 'text/html; charset=utf-8'],
 // named here by content hash. Nothing else inline may run or style, in the app or in the frame.
 const CSP = `default-src 'none'; script-src 'self' ${REPORT_INLINE_SOURCES.script}; style-src 'self' ${REPORT_INLINE_SOURCES.style}; font-src 'self'; connect-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`;
 // Both ensure the one generated report for a scope; the second also returns its text so the app can show it in place.
+// The app always reads the full version, whatever form the project's own report file takes: asked for by name, it is
+// written beside that file by the same writer.
+const WORKSPACE_REPORT = Object.freeze({ detail: 'full' });
 const REPORT_ROUTES = Object.freeze({ '/api/report': ensureReport, '/api/report-view': ensureReportDocument });
 // Request intake is 15 s; cooperating writer waits are bounded separately.
 const SHUTDOWN_TIMEOUT_MS = 20000;
@@ -83,7 +86,8 @@ async function startWorkspace({ root, actor, writable = false, reopen } = {}) {
         actor = selected.member.id;
     }
     const snapshotFor = (options = {}) => {
-        const snapshot = readProgress(context.root, options);
+        // The app shows every area's and every initiative's own figures, so each of its reads asks for them.
+        const snapshot = readProgress(context.root, { ...options, figures: true });
         if (!writable || options.ref !== undefined || selected.selection.source !== 'git') return snapshot;
         const current = revalidateActor(trackingContext(context.root), selected.selection);
         if (!current.unregistered || snapshot.coverage === 'unavailable') return snapshot;
@@ -171,7 +175,7 @@ async function startWorkspace({ root, actor, writable = false, reopen } = {}) {
                 const value = await body(req);
                 if (target.pathname === '/api/inspect') {
                     if (!value || typeof value !== 'object' || Array.isArray(value)
-                        || Object.keys(value).some(key => !['ref', 'groupId'].includes(key))) fail('INVALID_INPUT', 'Inspect accepts only a scope selector');
+                        || Object.keys(value).some(key => !['ref', 'scopeId'].includes(key))) fail('INVALID_INPUT', 'Inspect accepts only a scope selector');
                     return respond(res, 200, snapshotFor(value));
                 }
                 if (target.pathname === '/api/concerns') {
@@ -181,10 +185,10 @@ async function startWorkspace({ root, actor, writable = false, reopen } = {}) {
                 }
                 if (Object.hasOwn(REPORT_ROUTES, target.pathname)) {
                     if (!value || typeof value !== 'object' || Array.isArray(value)
-                        || Object.keys(value).some(key => !['ref', 'groupId'].includes(key))) fail('INVALID_INPUT', 'Report accepts only a scope selector');
+                        || Object.keys(value).some(key => !['ref', 'scopeId'].includes(key))) fail('INVALID_INPUT', 'Report accepts only a scope selector');
                     // The selector is valid from here on, so a refusal by the report owner is a refused action (422), as for a saved operation.
                     let report;
-                    try { report = await REPORT_ROUTES[target.pathname](context.root, value); }
+                    try { report = await REPORT_ROUTES[target.pathname](context.root, { ...value, ...WORKSPACE_REPORT }); }
                     catch (error) {
                         if (!error.code || systemFailure(error)) throw error;
                         return respond(res, 422, { status: 'refused', code: error.code, reason: error.message });
@@ -195,7 +199,7 @@ async function startWorkspace({ root, actor, writable = false, reopen } = {}) {
                     if (!writable) return respond(res, 403, { status: 'refused', code: 'READ_ONLY' });
                     if (value?.actor?.memberId !== actor) return respond(res, 403, { status: 'refused', code: 'WRONG_ACTOR' });
                     const result = await executeOperation(value, { root: context.root, actor, identity: selected.selection, canWrite: true,
-                        canReview: true, canRecordManual: true, canAccept: true, canAttest: true, canDelete: true, canDeleteEnded: true, canCorrectState: true });
+                        canReview: true, canRecordManual: true, canAccept: true, canAttest: true, canDelete: true, canDeleteEnded: true, canCorrectState: true, canDecide: true });
                     return respond(res, result.primary.status === 'refused' ? (result.primary.code === 'CONFLICT' ? 409 : 422) : 200, result);
                 }
                 return respond(res, 404, { status: 'refused', code: 'NOT_FOUND' });

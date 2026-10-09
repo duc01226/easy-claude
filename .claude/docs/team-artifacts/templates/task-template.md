@@ -11,7 +11,7 @@ effort: XS | S | M | L | XL
 delivery_wave: '{Optional implementation wave or N/A}'
 created: { YYYY-MM-DD }
 updated: { YYYY-MM-DD }
-template_version: '2.3'
+template_version: '2.4'
 
 # Domain Context (for domain features — populate from project-config.json modules)
 module: '' # Module name from project-config.json backendServices.serviceMap
@@ -20,7 +20,6 @@ primary_feature_doc: '' # Primary related feature documentation
 
 # Traceability
 initiative_reference: '' # Link to source initiative (INITIATIVE-YYYY-NNN)
-project_reference: '' # Link to parent project group (if applicable)
 dependencies: [] # Other tasks this depends on
 scope_mode: ORDINARY | DECOMPOSITION-EMBEDDED | EXPLICIT-ROADMAP | EXEMPT | FRAMEWORK-LIBRARY
 # Required only when any shared isLargeIdea signal is true; omit for ordinary all-false ideas.
@@ -261,7 +260,7 @@ See Section 8 (Test Specifications) in primary feature doc for patterns:
 
 ### Frontmatter Fields
 
-- **id / title / intent / status / priority**: the work-record fields. A new task is `status: draft` with no assignee; readiness, assignment and later states are recorded through `/task-track`, never by generating or reviewing the task.
+- **id / title / intent / status / priority**: the work-record fields. A new task is `status: draft` with no assignee; readiness, assignment and later states are recorded through `/task-track`, never by generating or reviewing the task. A due date, and the areas and initiatives the task belongs to, are recorded through `/task-track` as well, not as frontmatter keys.
 - **module**: Auto-populated from the initiative or detected by `/work-item --mode=refine`. Critical for domain tasks.
 - **related_features**: Helps navigate feature documentation during implementation.
 - **primary_feature_doc**: Primary reference for business rules and test patterns.

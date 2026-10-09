@@ -258,7 +258,7 @@ Every slide section must serve the four stakeholder audiences (PO/BA/Dev/QC):
 | ---------------------- | --------- | ---------------------------------------------------------------------------------------- |
 | **Title / agenda**     | all       | Feature(s) presented, run date, scope                                                    |
 | **How to use this deck** | all     | Early guide slide: navigation (Previous/Next, arrow/PageUp/PageDown/Space/`Home`/`End` keys), All slides (overview), Notes and Escape, Tab into the notes to scroll them (the scroll keys then move only the notes), each demo's hotspots and own ▶ Play / ⏮ ⏭ / ↺ Reset controls (inside the mock-up), leaving a demo (click outside it, or press Tab until you leave it), Full screen and Dark theme; the outside-asset viewer notice when declared (`references/deck-template.md` §3b) |
-| **Business context**   | PO/BA     | Problem, value, initiative→spec narrative, project groups/features                                       |
+| **Business context**   | PO/BA     | Problem, value, initiative→spec narrative, areas/features                                                |
 | **Scope & planned work**    | PO/BA/Dev | Tasks (in ranked order, each card showing its priority label + numeric rank from task frontmatter / planned work), user stories, acceptance criteria — priority is MANDATORY when tasks are prioritized |
 | **Behavior & rules**   | Dev/QC    | Feature Spec §4 business rules / §5 invariants, §8 test cases                             |
 | **Demo flows / user journeys** | all | One interactive MVP demo slide per main user story: embedded interactive mockup scoped to the flow + a narration strip explaining each step ("click X → see Y → move to Z"); spec-only → narrated ASCII frames (`references/deck-template.md` §3b) |
@@ -275,7 +275,7 @@ The deck is itself a UI artifact. ASCII of a slide frame:
 ```
 ┌────────────────────────────────────────────────┐
 │  ## Business Context                            │  ← slide title (h2); no top bar
-│  • Problem  • Value  • Project groups            │  ← slide body (design-system tokens)
+│  • Problem  • Value  • Areas                     │  ← slide body (design-system tokens)
 │  ┌──────────────────────────────────────────┐   │
 │  │  <iframe srcdoc> embedded mockup / wire   │   │  ← embedded visual (or empty-state)
 │  └──────────────────────────────────────────┘   │

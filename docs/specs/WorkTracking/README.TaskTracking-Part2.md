@@ -5,7 +5,7 @@ feature_code: TPT
 status: draft
 provisional: true
 owner: Framework maintainers
-last_updated: 2026-10-07
+last_updated: 2026-10-09
 source_of_truth: README.TaskTracking.md
 continuation: 2
 ---
@@ -302,7 +302,7 @@ And filters never alter global scope; unavailable input cannot become zero; open
 | Intended observable outcome | AC-TPT-07, AC-TPT-08, BR-TPT-09, BR-TPT-10 |
 | Executing implementation/assertion | [Source: test/work-tracking/TC-TPT-062]; authored callback/assertion guard, NOT RUN; complete implementation mapping remains TBD |
 
-**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-runtime-contract.test.cjs::TC-TPT-062: complete-empty report offers capture recovery while incomplete inspection never asserts no work`
+**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-runtime-contract.test.cjs::TC-TPT-062: complete-empty report offers capture recovery while incomplete inspection never asserts no work`, `.claude/skills/task-track/tests/workspace-browser.test.cjs::Offline empty scope offers capture recovery while partial and unavailable scopes retain truthful limits [variant: offline-empty-and-limited]`
 **Status:** Untested
 
 #### TC-TPT-063: J3 linked work checkpoint without automatic acceptance [P1]
@@ -372,7 +372,7 @@ And no all-linked fanout, mandatory ticket, unsolicited flow or invented missing
 | Intended observable outcome | AC-TPT-26, AC-TPT-27, BR-TPT-14, BR-TPT-16 |
 | Executing implementation/assertion | [Source: test/work-tracking/TC-TPT-063]; authored callback/assertion guard, NOT RUN; complete implementation mapping remains TBD |
 
-**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-upkeep.test.cjs::TC-TPT-063: exact linked checkpoint records activity only on the selected item and retains the primary outcome`, `.claude/hooks/tests/suites/task-tracking-upkeep.test.cjs::TC-TPT-063: untracked work continues without a mandatory ticket or invented state`, `.claude/hooks/tests/suites/task-tracking-upkeep.test.cjs::TC-TPT-063: failed or interrupted primary results never advance linked items`, `.claude/hooks/tests/suites/task-tracking-upkeep.test.cjs::TC-TPT-063: missing and sensitive observations leave primary results saved and optional work pending`, `.claude/hooks/tests/suites/task-tracking-upkeep.test.cjs::TC-TPT-063: unlinking is explicit and session context is not canonical progress`, `.claude/hooks/tests/suites/task-tracking-upkeep.test.cjs::TC-TPT-063: every declared producer uses exact observed activity rather than delivery approval`, `.claude/hooks/tests/suites/task-tracking-upkeep.test.cjs::TC-TPT-063: successful write observer emits a bounded reminder and never mutates work`, `.claude/hooks/tests/suites/task-tracking-upkeep.test.cjs::TC-TPT-063: patch delete and move targets form bounded hints without fictitious save evidence`, `.claude/hooks/tests/suites/task-tracking-upkeep.test.cjs::TC-TPT-063: successful checkpoint acknowledges its hint and a later same-file save prompts again`, `.claude/hooks/tests/suites/task-tracking-upkeep.test.cjs::TC-TPT-063: a later reminder remains pending while the prior checkpoint is still saving`, `.claude/hooks/tests/suites/task-tracking-runtime-contract.test.cjs::TC-TPT-063: CLI linkage and checkpoint preserve actual workflow context and primary result`
+**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-runtime-contract.test.cjs::TC-TPT-063: CLI linkage and checkpoint preserve actual workflow context and primary result`, `.claude/hooks/tests/suites/task-tracking-upkeep.test.cjs::TC-TPT-063: exact linked checkpoint records activity only on the selected item and retains the primary outcome`, `.claude/hooks/tests/suites/task-tracking-upkeep.test.cjs::TC-TPT-063: untracked work continues without a mandatory ticket or invented state`, `.claude/hooks/tests/suites/task-tracking-upkeep.test.cjs::TC-TPT-063: failed or interrupted primary results never advance linked items`, `.claude/hooks/tests/suites/task-tracking-upkeep.test.cjs::TC-TPT-063: missing and sensitive observations leave primary results saved and optional work pending`, `.claude/hooks/tests/suites/task-tracking-upkeep.test.cjs::TC-TPT-063: unlinking is explicit and session context is not canonical progress`, `.claude/hooks/tests/suites/task-tracking-upkeep.test.cjs::TC-TPT-063: every declared producer uses exact observed activity rather than delivery approval`, `.claude/hooks/tests/suites/task-tracking-upkeep.test.cjs::TC-TPT-063: successful write observer emits a bounded reminder and never mutates work`, `.claude/hooks/tests/suites/task-tracking-upkeep.test.cjs::TC-TPT-063: patch delete and move targets form bounded hints without fictitious save evidence`, `.claude/hooks/tests/suites/task-tracking-upkeep.test.cjs::TC-TPT-063: successful checkpoint acknowledges its hint and a later same-file save prompts again`, `.claude/hooks/tests/suites/task-tracking-upkeep.test.cjs::TC-TPT-063: a later reminder remains pending while the prior checkpoint is still saving`
 **Status:** Untested
 
 #### TC-TPT-064: J4 edit and retire while retaining history [P1]
@@ -647,7 +647,7 @@ boundaryCounterCase: "a conflicting identity/unsafe record or changed root \u219
 | Intended observable outcome | BR-TPT-02 |
 | Executing implementation/assertion | [Source: test/work-tracking/TC-TPT-072]; authored callback/assertion guard, NOT RUN; complete implementation mapping remains TBD |
 
-**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-store.test.cjs::TC-TPT-072: owned updates conserve custom fields, comments, body, BOM and untouched newlines`, `.claude/hooks/tests/suites/task-tracking-store.test.cjs::TC-TPT-072: custom tracking extensions and block or flow metadata survive owned edits`, `.claude/hooks/tests/suites/task-tracking-store.test.cjs::TC-TPT-072: publishing a requested edit preserves existing file permissions`, `.claude/hooks/tests/suites/task-tracking-boundaries.test.cjs::TC-TPT-072: all six item-link roles require one selected owner and refuse missing, self and ambiguous targets without edits`
+**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-boundaries.test.cjs::TC-TPT-072: all seven item-link roles require one selected owner and refuse missing, self and ambiguous targets without edits`, `.claude/hooks/tests/suites/task-tracking-store.test.cjs::TC-TPT-072: owned updates conserve custom fields, comments, body, BOM and untouched newlines`, `.claude/hooks/tests/suites/task-tracking-store.test.cjs::TC-TPT-072: custom tracking extensions and block or flow metadata survive owned edits`, `.claude/hooks/tests/suites/task-tracking-store.test.cjs::TC-TPT-072: publishing a requested edit preserves existing file permissions`
 **Status:** Untested
 
 #### TC-TPT-073: Property BR-TPT-03 state-transition [P1]
@@ -713,7 +713,7 @@ boundaryCounterCase: "one unresolved required decision \u2192 Not ready and prio
 | Intended observable outcome | BR-TPT-03 |
 | Executing implementation/assertion | [Source: test/work-tracking/TC-TPT-073]; authored callback/assertion guard, NOT RUN; complete implementation mapping remains TBD |
 
-**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-invariants.test.cjs::TC-TPT-073: assignment, planning, sources, proof and health remain separate from delivery acceptance`
+**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-073: a dependency on an initiative resolves when it is done, a dependency on an area never resolves, and each unmet prerequisite says why`, `.claude/hooks/tests/suites/task-tracking-invariants.test.cjs::TC-TPT-073: assignment, planning, sources, proof and health remain separate from delivery acceptance`
 **Status:** Untested
 
 #### TC-TPT-074: Property BR-TPT-04 conservation [P1]
@@ -779,7 +779,7 @@ boundaryCounterCase: "empty, all-canceled or partial vision \u2192 No delivery s
 | Intended observable outcome | BR-TPT-04 |
 | Executing implementation/assertion | [Source: test/work-tracking/TC-TPT-074]; authored callback/assertion guard, NOT RUN; complete implementation mapping remains TBD |
 
-**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-invariants.test.cjs::TC-TPT-074: six relationship permutations change only explicit membership and count the unique task union`
+**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-invariants.test.cjs::TC-TPT-074: six relationship permutations change only the record that declares them and count the unique task union`
 **Status:** Untested
 
 #### TC-TPT-075: Property BR-TPT-05 state-transition [P1]
@@ -859,9 +859,11 @@ boundaryCounterCase: "Witness selected priority Higher before Lower, exact ident
 
 **Proves:** BR-TPT-06.
 
+**Current contract clarification:** The state/action matrix is kind-specific: delivery nine states, initiative five, area two. Usual initiative decisions require decision authority; separate reasoned correction requires manual-record authority, kind-valid target and target prerequisites, never delivery Done. All undeclared pairs refuse.
+
 **Preconditions:**
 
-- All declared portable states crossed with requested plan, ready, start, block, resume, verify, accept, reopen and cancel actions; cancellation starts only from Draft, Planned, Ready, In progress, Blocked, Verifying or Done under current revision, actual owner authority, explicit decision and reason.
+- All declared portable states crossed with requested plan, ready, start, block, resume, verify, accept, reopen and cancel actions; cancellation starts only from Draft, Planned, Ready, In progress, Blocked, Implemented, Verifying or Done under current revision, actual owner authority, explicit decision and reason.
 - The actor selects the actual project/profile and permitted scope before acting; native actions require the native capability and proof gate.
 
 **Real-World Reachability:** The stated actor first creates or selects work through permitted actions and reviews its current result. A competing teammate save, policy change or actual work checkpoint occurs before the next action when stated; the gap is the real review/work interval, with no invented delay or back-to-back race requirement.
@@ -869,7 +871,7 @@ boundaryCounterCase: "Witness selected priority Higher before Lower, exact ident
 **Demo Flow:** Arrange the stated permitted work, perform the permitted actions and the stated boundary attempt for ALL inputs in this domain, then read back the affected item or scoped result. Repeat the stated failure/boundary with the invalid condition; inspect the preserved previous facts.
 
 ```gherkin
-Given all declared portable states crossed with requested plan, ready, start, block, resume, verify, accept, reopen and cancel actions; cancellation starts only from Draft, Planned, Ready, In progress, Blocked, Verifying or Done under current revision, actual owner authority, explicit decision and reason
+Given all declared portable states crossed with requested plan, ready, start, block, resume, verify, accept, reopen and cancel actions; cancellation starts only from Draft, Planned, Ready, In progress, Blocked, Implemented, Verifying or Done under current revision, actual owner authority, explicit decision and reason
 When perform the permitted actions and the stated boundary attempt for ALL inputs in this domain
 Then for ALL inputs: only declared transitions with current prerequisites change state; replay/no-op adds no credit; boundary outcome: any undeclared state/action pair, absent cancellation reason/authority or stale revision → refusal; exact pre-state/history retained; new Canceled cancellation is no-op/refusal without growth
 And the protected rule must not fail for any generated member of the declared domain
@@ -892,7 +894,7 @@ And the protected rule must not fail for any generated member of the declared do
 **Test Data:**
 
 ```yaml
-inputDomain: "all declared portable states crossed with requested plan, ready, start, block, resume, verify, accept, reopen and cancel actions; cancellation starts only from Draft, Planned, Ready, In progress, Blocked, Verifying or Done under current revision, actual owner authority, explicit decision and reason"
+inputDomain: "all declared portable states crossed with requested plan, ready, start, block, resume, verify, accept, reopen and cancel actions; cancellation starts only from Draft, Planned, Ready, In progress, Blocked, Implemented, Verifying or Done under current revision, actual owner authority, explicit decision and reason"
 invariant: "for ALL inputs: only declared transitions with current prerequisites change state; replay/no-op adds no credit"
 boundaryCounterCase: "any undeclared state/action pair, absent cancellation reason/authority or stale revision \u2192 refusal; exact pre-state/history retained; new Canceled cancellation is no-op/refusal without growth"
 ```
@@ -921,7 +923,7 @@ boundaryCounterCase: "any undeclared state/action pair, absent cancellation reas
 | Intended observable outcome | BR-TPT-06 |
 | Executing implementation/assertion | [Source: test/work-tracking/TC-TPT-076]; authored callback/assertion guard, NOT RUN; complete implementation mapping remains TBD |
 
-**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-invariants.test.cjs::TC-TPT-076: every undeclared pair in the finite eight-state matrix preserves exact history and bytes`, `.claude/hooks/tests/suites/task-tracking-invariants.test.cjs::TC-TPT-076: five malformed imported blocker records cannot authorize resume or overwrite history`
+**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-case-contracts.test.cjs::TC-TPT-076: canceling an area that holds tasks changes no figure and removes no tag, and an area never earns credit`, `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-076: a record moves only within the lifecycle of its own kind`, `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-076: an area is active until a person cancels it with a reason`, `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-076: a correction places an initiative at approved, committed or done only with the intent approval requires, and needs no decision authority beside its own`, `.claude/hooks/tests/suites/task-tracking-invariants.test.cjs::TC-TPT-076: every undeclared pair in the finite nine-state matrix preserves exact history and bytes`, `.claude/hooks/tests/suites/task-tracking-invariants.test.cjs::TC-TPT-076: five malformed imported blocker records cannot authorize resume or overwrite history`, `.claude/skills/task-track/tests/workspace-browser.test.cjs::The stops of a record's position line and the steps it is offered are the ones the read lists for its kind's lifecycle [variant: lifecycle-from-vocabulary]`
 **Status:** Untested
 
 #### TC-TPT-077: Property BR-TPT-07 state-transition [P0]
@@ -931,6 +933,8 @@ boundaryCounterCase: "any undeclared state/action pair, absent cancellation reas
 **Business Intent / Invariant Guarded:** Done certification requires all applicable current required proof and actual scoped acceptance.
 
 **Proves:** BR-TPT-07.
+
+**Current contract clarification:** Proof and acceptance apply only to delivery task/story/subtask, never initiative or area. Initiative closure is a person decision independent of task proof.
 
 **Preconditions:**
 
@@ -990,7 +994,7 @@ boundaryCounterCase: "one stale/skipped/foreign/failed/missing proof or no autho
 | Intended observable outcome | BR-TPT-07 |
 | Executing implementation/assertion | [Source: test/work-tracking/TC-TPT-077]; authored callback/assertion guard, NOT RUN; complete implementation mapping remains TBD |
 
-**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-invariants.test.cjs::TC-TPT-077: malformed acceptance observations cannot create a completion numerator`
+**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-077: proof and acceptance apply to delivery work only: both are refused on an initiative and on an area`, `.claude/hooks/tests/suites/task-tracking-invariants.test.cjs::TC-TPT-077: malformed acceptance observations cannot create a completion numerator`
 **Status:** Untested
 
 #### TC-TPT-078: Property BR-TPT-08 conservation [P1]
@@ -1133,6 +1137,8 @@ boundaryCounterCase: "persistent save/drag request in snapshot \u2192 snapshot b
 
 **Proves:** AC-TPT-10, BR-TPT-02, BR-TPT-11.
 
+**Current contract clarification:** Legacy absence of tracking metadata is not permission to reinterpret first-vocabulary1 evidence; current compatible adoption and first-version refusal are distinct.
+
 **Preconditions:**
 
 - Existing records.
@@ -1265,7 +1271,7 @@ And completed retries cannot double-apply
 | Intended observable outcome | AC-TPT-11, BR-TPT-02, BR-TPT-12 |
 | Executing implementation/assertion | [Source: test/work-tracking/TC-TPT-082]; authored callback/assertion guard, NOT RUN; complete implementation mapping remains TBD |
 
-**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-082: cooperating writers save one current revision and retain the losing draft`, `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-082: batch results remain per record and retry does not repeat successful siblings`, `.claude/hooks/tests/suites/task-tracking-store.test.cjs::TC-TPT-082: preview detects a teammate change in selected scope before adopting`, `.claude/hooks/tests/suites/task-tracking-store.test.cjs::TC-TPT-082: revision and byte identity both protect a saved actor draft`, `.claude/hooks/tests/suites/task-tracking-store.test.cjs::TC-TPT-082: publication refuses stale content and exclusive creation preserves originals`, `.claude/hooks/tests/suites/task-tracking-invariants.test.cjs::TC-TPT-082: creation preview across UTC midnight cannot save a different auto-allocated identity`, `.claude/hooks/tests/suites/task-tracking-invariants.test.cjs::TC-TPT-082: policy changes between preview and apply require fresh review without relocating the owner`
+**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-082: cooperating writers save one current revision and retain the losing draft`, `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-082: batch results remain per record and retry does not repeat successful siblings`, `.claude/hooks/tests/suites/task-tracking-invariants.test.cjs::TC-TPT-082: creation preview across UTC midnight cannot save a different auto-allocated identity`, `.claude/hooks/tests/suites/task-tracking-invariants.test.cjs::TC-TPT-082: policy changes between preview and apply require fresh review without relocating the owner`, `.claude/hooks/tests/suites/task-tracking-runtime-contract.test.cjs::TC-TPT-082: a writer refused by a lock that stays learns where the lock is, which process wrote it and what to do, and the lock is kept`, `.claude/hooks/tests/suites/task-tracking-store.test.cjs::TC-TPT-082: preview detects a teammate change in selected scope before adopting`, `.claude/hooks/tests/suites/task-tracking-store.test.cjs::TC-TPT-082: revision and byte identity both protect a saved actor draft`, `.claude/hooks/tests/suites/task-tracking-store.test.cjs::TC-TPT-082: publication refuses stale content and exclusive creation preserves originals`
 **Status:** Untested
 
 #### TC-TPT-083: Save specifications and delivery items directly [P1]
@@ -1486,6 +1492,8 @@ And unsolicited records/flows are not created
 
 **Proves:** AC-TPT-15, BR-TPT-10, BR-TPT-16.
 
+**Current contract clarification:** Malformed or foreign-kind fields, unsupported stamps and invalid kind states remain visible-invalid/unavailable and cannot gain current eligibility by guessed reinterpretation.
+
 **Preconditions:**
 
 - An external edit.
@@ -1545,7 +1553,7 @@ And no immediate observation or automatic semantic repair is claimed
 | Intended observable outcome | AC-TPT-15, BR-TPT-10, BR-TPT-16 |
 | Executing implementation/assertion | [Source: test/work-tracking/TC-TPT-086]; authored callback/assertion guard, NOT RUN; complete implementation mapping remains TBD |
 
-**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-086: partial or duplicate owners retain visible facts and suppress precise percentages and writes`, `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-086: status reads preserve canonical bytes and distinguish local freshness and unknown health`
+**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-086: partial or duplicate owners retain visible facts and suppress precise percentages and writes`, `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-086: status reads preserve canonical bytes and distinguish local freshness and unknown health`, `.claude/hooks/tests/suites/task-tracking-invariants.test.cjs::TC-TPT-086: history may hold a state of another lifecycle and stays valid, while a record's current status must belong to its own lifecycle`, `.claude/hooks/tests/suites/task-tracking-store.test.cjs::TC-TPT-086: a stored current-version record that carries a member list, a group purpose or a value its kind does not own is an invalid record: it is named with the cause, no percentage is stated and no save reaches it`
 **Status:** Untested
 
 #### TC-TPT-087: Retain successful saves [P1]
@@ -2052,7 +2060,7 @@ Then I see the actual work outcome without applying a completed change twice
 | Intended observable outcome | AC-TPT-21, BR-TPT-10, BR-TPT-12, BR-TPT-15, BR-TPT-18, BR-TPT-20 |
 | Executing implementation/assertion | [Source: test/work-tracking/TC-TPT-092]; authored callback/assertion guard, NOT RUN; complete implementation mapping remains TBD |
 
-**CoveredBy:** `.claude/skills/task-track/tests/workspace-browser.test.cjs::Unavailable and unsupported initial sessions retain a real recovery path without exposing incomplete identity [variant: initial-session-recovery]`, `.claude/skills/task-track/tests/workspace-browser.test.cjs::Opening and deep links keep the selected project and write nothing [variant: scope-and-links]`, `.claude/skills/task-track/tests/workspace-browser.test.cjs::A read-only launch permits inspection without granting canonical write authority [variant: readonly-session]`, `.claude/skills/task-track/tests/workspace-browser.test.cjs::Duplicate deep links refuse silent selection while exact owners remain safely inspectable [variant: duplicate-identity]`, `.claude/skills/task-track/tests/workspace-browser.test.cjs::A lost successful response retries its exact operation without duplicate revision or history [variant: lost-save-result]`, `.claude/hooks/tests/suites/task-tracking-runtime-contract.test.cjs::TC-TPT-092: loopback workspace binds one root and serves isolated session security headers`, `.claude/hooks/tests/suites/task-tracking-runtime-contract.test.cjs::TC-TPT-092: shutdown drains an admitted HTTP writer before settling and original retry commits only once`, `.claude/hooks/tests/suites/task-tracking-runtime-contract.test.cjs::TC-TPT-092: the real shutdown deadline reports indeterminate admitted work and original HTTP retry resolves one durable outcome`, `.claude/hooks/tests/suites/task-tracking-runtime-contract.test.cjs::TC-TPT-092: workspace shutdown closes its listener and writable launch requires a stable actor`, `.claude/hooks/tests/suites/task-tracking-runtime-contract.test.cjs::TC-TPT-092: opening asks for Google Chrome first on every platform and falls back to the default browser`, `.claude/hooks/tests/suites/task-tracking-runtime-contract.test.cjs::TC-TPT-092: a terminal launch runs the workspace in a window of its own on macOS, Windows and Linux, through a launcher script`, `.claude/hooks/tests/suites/task-tracking-runtime-contract.test.cjs::TC-TPT-092: serve --terminal reports a suppressed window as not opened, writes no launcher script, and refuses an unusable identity first`, `.claude/hooks/tests/suites/task-tracking-runtime-contract.test.cjs::TC-TPT-092: a suppressed, headless or failed browser start is reported as not opened and never as an observed open`, `.claude/skills/task-track/tests/workspace-browser.test.cjs::A reload stays attached, and a page without a session can only ask for the same selected workspace to be opened again [variant: session-reattach]`, `.claude/hooks/tests/suites/task-tracking-runtime-contract.test.cjs::TC-TPT-092: serve with an open request keeps one listening workspace, reports the launch separately and writes nothing`, `.claude/hooks/tests/suites/task-tracking-runtime-contract.test.cjs::TC-TPT-092: a launch link attaches one page once, for a minute, and nothing else returns the session`, `.claude/hooks/tests/suites/task-tracking-runtime-contract.test.cjs::TC-TPT-092: a page without a session can have its workspace opened again only when the launch asked for a browser, and is never given the session`, `.claude/hooks/tests/suites/task-tracking-runtime-contract.test.cjs::TC-TPT-092: serve with an open request hands the browser a launch link, at launch and on reopen, never its session address`, `.claude/skills/task-track/tests/workspace-browser.test.cjs::Reload retains the attached checkout and actor while discarding only the unsaved page draft [variant: attached-draft-reload]`
+**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-runtime-contract.test.cjs::TC-TPT-092: loopback workspace binds one root and serves isolated session security headers`, `.claude/hooks/tests/suites/task-tracking-runtime-contract.test.cjs::TC-TPT-092: shutdown drains an admitted HTTP writer before settling and original retry commits only once`, `.claude/hooks/tests/suites/task-tracking-runtime-contract.test.cjs::TC-TPT-092: the real shutdown deadline reports indeterminate admitted work and original HTTP retry resolves one durable outcome`, `.claude/hooks/tests/suites/task-tracking-runtime-contract.test.cjs::TC-TPT-092: workspace shutdown closes its listener and writable launch requires a stable actor`, `.claude/hooks/tests/suites/task-tracking-runtime-contract.test.cjs::TC-TPT-092: opening asks for Google Chrome first on every platform and falls back to the default browser`, `.claude/hooks/tests/suites/task-tracking-runtime-contract.test.cjs::TC-TPT-092: a suppressed, headless or failed browser start is reported as not opened and never as an observed open`, `.claude/hooks/tests/suites/task-tracking-runtime-contract.test.cjs::TC-TPT-092: a terminal launch runs the workspace in a window of its own on macOS, Windows and Linux, through a launcher script`, `.claude/hooks/tests/suites/task-tracking-runtime-contract.test.cjs::TC-TPT-092: a terminal launch replaces a link planted at its launcher script and leaves the file it points to untouched`, `.claude/hooks/tests/suites/task-tracking-runtime-contract.test.cjs::TC-TPT-092: a terminal launch refuses a launcher folder that is a link out of the project, writes nothing there and starts no window`, `.claude/hooks/tests/suites/task-tracking-runtime-contract.test.cjs::TC-TPT-092: the command a terminal window runs is serve with the same root, actor, write and open choices, and never asks for another window`, `.claude/hooks/tests/suites/task-tracking-runtime-contract.test.cjs::TC-TPT-092: closing the terminal window ends a serving workspace through its graceful shutdown and leaves no writer lock`, `.claude/hooks/tests/suites/task-tracking-runtime-contract.test.cjs::TC-TPT-092: serve --terminal reports a suppressed window as not opened, writes no launcher script, and refuses an unusable identity first`, `.claude/hooks/tests/suites/task-tracking-runtime-contract.test.cjs::TC-TPT-092: serve with an open request keeps one listening workspace, reports the launch separately and writes nothing`, `.claude/hooks/tests/suites/task-tracking-runtime-contract.test.cjs::TC-TPT-092: a launch link attaches one page once, for a minute, and nothing else returns the session`, `.claude/hooks/tests/suites/task-tracking-runtime-contract.test.cjs::TC-TPT-092: a page without a session can have its workspace opened again only when the launch asked for a browser, and is never given the session`, `.claude/hooks/tests/suites/task-tracking-runtime-contract.test.cjs::TC-TPT-092: serve with an open request hands the browser a launch link, at launch and on reopen, never its session address`, `.claude/skills/task-track/tests/workspace-browser.test.cjs::Unavailable and unsupported initial sessions retain a real recovery path without exposing incomplete identity [variant: initial-session-recovery]`, `.claude/skills/task-track/tests/workspace-browser.test.cjs::Opening and deep links keep the selected project and write nothing [variant: scope-and-links]`, `.claude/skills/task-track/tests/workspace-browser.test.cjs::A reload stays attached, and a page without a session can only ask for the same selected workspace to be opened again [variant: session-reattach]`, `.claude/skills/task-track/tests/workspace-browser.test.cjs::A read-only launch permits inspection without granting canonical write authority [variant: readonly-session]`, `.claude/skills/task-track/tests/workspace-browser.test.cjs::Duplicate deep links refuse silent selection while exact owners remain safely inspectable [variant: duplicate-identity]`, `.claude/skills/task-track/tests/workspace-browser.test.cjs::A lost successful response retries its exact operation without duplicate revision or history [variant: lost-save-result]`, `.claude/skills/task-track/tests/workspace-browser.test.cjs::Reload retains the attached checkout and actor while discarding only the unsaved page draft [variant: attached-draft-reload]`
 **Status:** Untested
 
 #### TC-TPT-093: Create/edit through ui or assistant [P1]
@@ -2122,7 +2130,7 @@ And stale revisions retain drafts
 | Intended observable outcome | AC-TPT-22, BR-TPT-02, BR-TPT-12, BR-TPT-15 |
 | Executing implementation/assertion | [Source: test/work-tracking/TC-TPT-093]; authored callback/assertion guard, NOT RUN; complete implementation mapping remains TBD |
 
-**CoveredBy:** `.claude/skills/task-track/tests/workspace-browser.test.cjs::UI capture and refinement save through the same canonical operations [variant: capture-edit]`, `.claude/hooks/tests/suites/task-tracking-runtime-contract.test.cjs::TC-TPT-093: writable workspace applies one actual actor request and reports stale conflicts`
+**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-runtime-contract.test.cjs::TC-TPT-093: writable workspace applies one actual actor request and reports stale conflicts`, `.claude/skills/task-track/tests/workspace-browser.test.cjs::UI capture and refinement save through the same canonical operations [variant: capture-edit]`
 **Status:** Untested
 
 #### TC-TPT-094: Assign self/others and inspect people [P1]
@@ -2197,7 +2205,7 @@ And unknown/inactive/ambiguous identity refuses change
 | Intended observable outcome | AC-TPT-23, BR-TPT-17 |
 | Executing implementation/assertion | [Source: test/work-tracking/TC-TPT-094]; authored callback/assertion guard, NOT RUN; complete implementation mapping remains TBD |
 
-**CoveredBy:** `.claude/skills/task-track/tests/workspace-browser.test.cjs::Assignment to others and self preserves state until explicit Start [variant: people-and-start]`, `.claude/hooks/tests/suites/task-tracking-runtime-contract.test.cjs::TC-TPT-094: people API returns stable assignments and rejects an inactive target without starting work`
+**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-runtime-contract.test.cjs::TC-TPT-094: people API returns stable assignments and rejects an inactive target without starting work`, `.claude/skills/task-track/tests/workspace-browser.test.cjs::Assignment to others and self preserves state until explicit Start [variant: people-and-start]`
 **Status:** Untested
 
 #### TC-TPT-095: Remove obsolete work [P1]
@@ -2844,7 +2852,7 @@ And no requested new state, delivery credit or fictitious receipt
 | Intended observable outcome | BR-TPT-06, BR-TPT-03 |
 | Executing implementation/assertion | [Source: test/work-tracking/TC-TPT-105]; authored callback/assertion guard, NOT RUN; complete implementation mapping remains TBD |
 
-**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-105: newer prerequisite failure withdraws start and resume eligibility while preserving accepted history`, `.claude/hooks/tests/suites/task-tracking-boundaries.test.cjs::TC-TPT-105: a changed prerequisite source refuses blocked resume and preserves historical delivery and observed blocker`
+**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-boundaries.test.cjs::TC-TPT-105: a changed prerequisite source refuses blocked resume and preserves historical delivery and observed blocker`, `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-105: newer prerequisite failure withdraws start and resume eligibility while preserving accepted history`
 **Status:** Untested
 
 #### TC-TPT-106: Refused In progress → Verifying [P1]

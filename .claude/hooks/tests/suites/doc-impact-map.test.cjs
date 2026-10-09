@@ -28,6 +28,8 @@
 //   D22 traversal, absolute, drive-relative, and UNC claims stay unresolved
 //   D23 symlink/junction targets outside the business root stay unresolved
 //   D24 leading-slash citations resolve repo-root-relative and are never suffix-matched
+//   D25 explicit configured-root indexes resolve without weakening bucket claims
+//   D26 configured-root index symlinks and traversal still fail closed
 //   F1  a specific configured rule still suppresses the conventions fallback
 //   F2  task-specific built-in outputs obey the EXACT selected set; always-on
 //       docs and direct context-group routes stay separate; an omitted
@@ -653,6 +655,52 @@ const tests = [
                 } finally {
                     cleanupRepo(dir);
                 }
+            }
+        }
+    },
+    {
+        name: '[doc-impact-map] D25 explicit configured-root indexes resolve, but missing indexes stay missing',
+        skip: GIT_SKIP,
+        fn: () => {
+            for (const root of ['specs', 'custom-specs', 'custom/specifications']) {
+                const { dir } = makeRepo();
+                const claim = `${root}/INDEX.md`;
+                try {
+                    writeFixtureFile(dir, 'docs/project-config.json', JSON.stringify(configuredBusinessSpecConfig(root)));
+                    writeFixtureFile(dir, claim);
+                    const present = checkFixtureClaims(dir, [claim]);
+                    assertEqual(present.checked, 1, 'The explicit root index must be checked.');
+                    assertEqual(present.missing.length, 0, `${claim} must resolve to its real configured root.`);
+                    assertEqual(present.ambiguous.length, 0, 'Root identity must be exact, not suffix-based.');
+                    fs.unlinkSync(path.join(dir, claim));
+                    writeFixtureFile(dir, `other/${claim}`);
+                    const missing = checkFixtureClaims(dir, [claim]);
+                    assertTrue(missing.missing.includes(claim), 'A same-named index elsewhere cannot replace the missing root index.');
+                } finally {
+                    cleanupRepo(dir);
+                }
+            }
+        }
+    },
+    {
+        name: '[doc-impact-map] D26 a root-index shortcut cannot admit traversal or an escaping root symlink',
+        skip: GIT_SKIP || DIRECTORY_LINK_SKIP,
+        fn: () => {
+            const { dir } = makeRepo();
+            const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-impact-index-outside-'));
+            try {
+                writeFixtureFile(dir, 'docs/project-config.json', JSON.stringify(configuredBusinessSpecConfig('specs')));
+                writeFixtureFile(dir, 'specs/INDEX.md');
+                const traversal = 'other/../specs/INDEX.md';
+                assertTrue(checkFixtureClaims(dir, [traversal]).missing.includes(traversal), 'Traversal cannot reach the root-index shortcut.');
+                writeFixtureFile(outside, 'INDEX.md');
+                fs.unlinkSync(path.join(dir, 'specs/INDEX.md'));
+                fs.rmdirSync(path.join(dir, 'specs'));
+                fs.symlinkSync(outside, path.join(dir, 'specs'), process.platform === 'win32' ? 'junction' : 'dir');
+                assertTrue(checkFixtureClaims(dir, ['specs/INDEX.md']).missing.includes('specs/INDEX.md'), 'The configured root and its index must remain physically inside the project.');
+            } finally {
+                cleanupRepo(dir);
+                cleanupRepo(outside);
             }
         }
     },

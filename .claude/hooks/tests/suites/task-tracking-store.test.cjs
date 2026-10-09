@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { trackingTest: test, refused } = require('../lib/task-tracking-fixture.cjs');
-const { parseRecord, patchRecord, stableValue, TRACKING_FIELDS } = require('../../lib/task-artifact-store.cjs');
+const { parseRecord, patchRecord, newRecord, inspectRecords, stableValue, TRACKING_FIELDS } = require('../../lib/task-artifact-store.cjs');
 const { readBytes, publishBytes, hash, scopedPath } = require('../../lib/task-tracking-files.cjs');
 const { LIMITS, relativePath } = require('../../lib/task-tracking-config.cjs');
 
@@ -13,6 +13,15 @@ function legacy(id, newline = '\n', bom = '', header = '') {
         + `intent: "Authored intent"${newline}status: draft${newline}`
         + `custom: { labels: ["one", "two"], owner_note: "keep" } # exact custom comment${newline}${header}`
         + `---${newline}# Authored body${newline}<script>inert()</script>${newline}Unrelated history stays here.${newline}`;
+}
+
+// A record written straight to its owner file, as a manual edit or a merge leaves it. `tracking` is stored exactly as given.
+function handWritten(f, folder, id, status, tracking) {
+    const head = { id, title: `Stored ${id}`, intent: 'Keep a defined outcome', status, tracking };
+    const ownerPath = `work/${folder}/${id}.md`;
+    const bytes = Buffer.from(`---\n${Object.entries(head).map(([key, value]) => `${key}: ${JSON.stringify(value)}`).join('\n')}\n---\n\nAuthored body\n`);
+    f.write(ownerPath, bytes);
+    return { ownerPath, bytes };
 }
 
 async function adopt(f, id) {
@@ -32,7 +41,7 @@ module.exports = { name: 'Task tracking store integration', tests: [
         refused(await f.perform('adopt', 'TASK-101', {}), 'PREVIEW_REQUIRED');
         refused(await f.perform('adopt', 'TASK-101', { custom_note: 'Unrequested extension' }), 'INVALID_INPUT');
         const legacyRecord = f.record('TASK-101');
-        assert.throws(() => patchRecord(legacyRecord, {}, { schemaVersion: 2, revision: 1, kind: 'task',
+        assert.throws(() => patchRecord(legacyRecord, {}, { schemaVersion: 3, revision: 1, kind: 'task',
             custom_note: 'Unrequested extension' }), error => error.code === 'INVALID_INPUT');
         assert.equal(f.bytes('TASK-101').toString(), original);
         await adopt(f, 'TASK-101');
@@ -67,8 +76,8 @@ module.exports = { name: 'Task tracking store integration', tests: [
             const shape = 'custom_shape: {alpha: [one, two], beta: null}';
             const comment = flow ? '# flow comment' : '# block comment';
             const tracking = (flow
-                ? `tracking: {schemaVersion: 2, revision: 1, kind: task, ${scalar}, ${shape}} ${comment}\n`
-                : `tracking:\n  schemaVersion: 2\n  revision: 1\n  kind: task\n  ${scalar} ${comment}\n  ${shape}\n`).replaceAll('\n', newline);
+                ? `tracking: {schemaVersion: 3, revision: 1, kind: task, ${scalar}, ${shape}} ${comment}\n`
+                : `tracking:\n  schemaVersion: 3\n  revision: 1\n  kind: task\n  ${scalar} ${comment}\n  ${shape}\n`).replaceAll('\n', newline);
             const id = `TASK-EXT-${++index}`; const original = Buffer.from(legacy(id, newline, bom, tracking));
             f.write(`work/tasks/${id}.md`, original); const record = f.record(id); const body = record.body;
             const preserved = candidate => {
@@ -205,5 +214,91 @@ module.exports = { name: 'Task tracking store integration', tests: [
         const before = fs.statSync(target).mode & 0o777;
         await f.saved('update', 'TASK-101', { title: 'Requested update' });
         assert.equal(fs.statSync(target).mode & 0o777, before);
+    }),
+    test('TC-TPT-086', 'a stored current-version record that carries a member list, a group purpose or a value its kind does not own is an invalid record: it is named with the cause, no percentage is stated and no save reaches it', async f => {
+        await f.create('TASK-CLEAN'); const clean = f.bytes('TASK-CLEAN');
+        assert.equal(f.progress().coverage, 'complete');
+        const current = kind => ({ schemaVersion: 3, revision: 1, kind });
+        // One cause per record, each on a kind that is otherwise valid, so only the named value can make the record invalid.
+        const invalid = [
+            ['areas', 'AREA-LISTING', 'active', { ...current('area'), memberItemIds: ['TASK-CLEAN'] }, /member list/],
+            ['areas', 'AREA-EMPTY-LISTING', 'active', { ...current('area'), memberItemIds: [] }, /member list/],
+            ['initiatives', 'INITIATIVE-PURPOSE', 'draft', { ...current('initiative'), type: 'initiative', groupRole: 'program' }, /group purpose/],
+            ['tasks', 'TASK-LEVEL', 'draft', { ...current('task'), level: 'feature' }, /^level belongs to area only$/],
+            ['tasks', 'TASK-TYPE', 'draft', { ...current('task'), type: 'idea' }, /^type belongs to initiative only$/],
+            ['subtasks', 'SUBTASK-PRIORITY', 'draft', { ...current('subtask'), priorityLevel: 'high' }, /^priorityLevel belongs to initiative only$/],
+            ['areas', 'AREA-DUE', 'active', { ...current('area'), deadline: '2026-01-01' }, /^deadline belongs to /]
+        ];
+        for (const [folder, id, status, tracking, cause] of invalid) {
+            const { ownerPath, bytes } = handWritten(f, folder, id, status, tracking);
+            const read = f.progress();
+            assert.equal(read.coverage, 'partial', id); assert.equal(read.metrics.percentage, null, id);
+            assert.deepEqual(read.diagnostics.map(finding => [finding.itemId, finding.code]), [[id, 'INVALID_RECORD']], id);
+            assert.match(read.diagnostics[0].reason, cause, id);
+            const invalidField = { 'TASK-LEVEL': 'level', 'TASK-TYPE': 'type', 'SUBTASK-PRIORITY': 'priorityLevel', 'AREA-DUE': 'deadline' }[id];
+            if (invalidField) {
+                const shown = read.items.find(item => item.id === id);
+                assert.ok(shown, `The invalid record ${id} stays identifiable for repair`);
+                assert.equal(shown[invalidField], null, `${id} must not display a value its kind does not own`);
+            }
+            const result = await f.perform('update', id, { title: 'A save must not repair it silently' });
+            refused(result, 'INVALID_RECORD'); assert.match(result.primary.reason, cause, id);
+            assert.deepEqual(fs.readFileSync(path.join(f.root, ownerPath)), bytes, id);
+            fs.unlinkSync(path.join(f.root, ownerPath));
+            assert.equal(f.progress().coverage, 'complete', id);
+        }
+        // The same values on the kinds that own them are ordinary stored records.
+        handWritten(f, 'areas', 'AREA-OWNED-VALUE', 'active', { ...current('area'), level: 'feature' });
+        handWritten(f, 'initiatives', 'INITIATIVE-OWNED-VALUES', 'draft', { ...current('initiative'), type: 'idea', priorityLevel: 'high', deadline: '2026-01-01' });
+        handWritten(f, 'tasks', 'TASK-OWNED-VALUE', 'draft', { ...current('task'), deadline: '2026-01-01' });
+        const valid = f.progress(); assert.equal(valid.coverage, 'complete', JSON.stringify(valid.diagnostics));
+        const view = id => valid.items.find(item => item.id === id);
+        assert.deepEqual([view('AREA-OWNED-VALUE').level, view('INITIATIVE-OWNED-VALUES').type, view('INITIATIVE-OWNED-VALUES').priorityLevel, view('TASK-OWNED-VALUE').deadline],
+            ['feature', 'idea', 'high', '2026-01-01']);
+        // The writer cannot produce such a record either: neither value is a field it owns.
+        const record = f.record('TASK-CLEAN');
+        for (const [field, value] of [['memberItemIds', ['TASK-CLEAN']], ['groupRole', 'area']]) {
+            assert.equal(TRACKING_FIELDS.includes(field), false, field);
+            assert.throws(() => patchRecord(record, {}, { ...record.tracking, [field]: value }), error => error.code === 'INVALID_INPUT', field);
+        }
+        assert.deepEqual(f.bytes('TASK-CLEAN'), clean);
+    }),
+    test('TC-TPT-252', "a new record's status is the first state of its own kind's lifecycle: delivery work and an initiative start as draft, an area starts as active", async f => {
+        // Spelled out as test data, independent of the vocabulary owner.
+        const first = { initiative: 'draft', task: 'draft', story: 'draft', subtask: 'draft', area: 'active' };
+        for (const [kind, status] of Object.entries(first)) {
+            const made = newRecord({ id: `MADE-${kind}`, kind, title: 'New work', intent: 'Capture one outcome', tracking: { schemaVersion: 3, revision: 1, kind } }, f.context());
+            assert.equal(made.data.status, status, kind);
+            // The public capture writes the same record: its file, its view and its first history entry all hold that state.
+            await f.create(`CAPTURED-${kind}`, kind); const record = f.record(`CAPTURED-${kind}`);
+            assert.equal(record.data.status, status, kind); assert.equal(f.view(record.id).state, status, kind);
+            assert.deepEqual([record.tracking.history[0].beforeState, record.tracking.history[0].afterState], [status, status], kind);
+        }
+        // Every kind a record can have is covered above.
+        assert.deepEqual([...f.progress().vocabulary.kinds].sort(), Object.keys(first).sort());
+    }),
+    test('TC-TPT-250', 'a record stamped with an earlier version inside a current location is named by its path and identity and is never read as current work', async f => {
+        await f.create('TASK-CURRENT'); const current = f.bytes('TASK-CURRENT');
+        for (const stamp of [2, 1]) {
+            const id = `TASK-STAMPED-${stamp}`;
+            // Identical to a valid current record except for its stamp, so the stamp alone decides.
+            const { ownerPath, bytes } = handWritten(f, 'tasks', id, 'draft', { schemaVersion: stamp, revision: 1, kind: 'task' });
+            assert.throws(() => parseRecord(bytes, ownerPath, 'task'), error => error.code === 'EARLIER_VOCABULARY_RECORD' && error.itemId === id);
+            const scan = inspectRecords(f.context());
+            assert.equal(scan.coverage, 'partial'); assert.deepEqual(scan.records.map(record => record.id), ['TASK-CURRENT']);
+            assert.deepEqual(scan.diagnostics.map(finding => [finding.path, finding.itemId, finding.code]), [[ownerPath, id, 'EARLIER_VOCABULARY_RECORD']]);
+            const read = f.progress();
+            assert.equal(read.coverage, 'partial'); assert.deepEqual(read.items.map(item => item.id), ['TASK-CURRENT']);
+            assert.equal(read.metrics.total, 1); assert.equal(read.metrics.percentage, null);
+            assert.ok(read.diagnostics.some(finding => finding.path === ownerPath && finding.itemId === id && finding.code === 'EARLIER_VOCABULARY_RECORD'), JSON.stringify(read.diagnostics));
+            // Naming it changes nothing: the file is left exactly as written.
+            assert.deepEqual(fs.readFileSync(path.join(f.root, ownerPath)), bytes);
+            fs.unlinkSync(path.join(f.root, ownerPath));
+        }
+        // The same record with the current stamp is read as work.
+        handWritten(f, 'tasks', 'TASK-STAMPED-3', 'draft', { schemaVersion: 3, revision: 1, kind: 'task' });
+        const read = f.progress(); assert.equal(read.coverage, 'complete', JSON.stringify(read.diagnostics));
+        assert.deepEqual(read.items.map(item => item.id).sort(), ['TASK-CURRENT', 'TASK-STAMPED-3']); assert.equal(read.metrics.total, 2);
+        assert.deepEqual(f.bytes('TASK-CURRENT'), current);
     })
 ] };

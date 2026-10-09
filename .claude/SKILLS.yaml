@@ -1,7 +1,7 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-10-07'
+  last_updated: '2026-10-09'
   total_skills: 104
   total_by_status:
     active: 104
@@ -782,7 +782,9 @@ skills:
       removal_after: null
     - name: task-track
       path: task-track/SKILL.md
-      description: '[Project Management] Use when maintaining team work, inspecting
+      description: '[Project Management] Use when recording or changing a work record
+        (a task, a bug, feedback, an idea, a story, a subtask, an area) and placing
+        it under the right area and initiative, maintaining team work, inspecting
         linked spec/task/subtask concerns, verifying tracker evidence, recording explicit
         acceptance, opening status, migrating a project that stores the earlier vocabulary
         or maintaining exact linked items at a saved-work checkpoint. Manual modes

@@ -9,9 +9,9 @@ const { startWorkspace } = require('../lib/workspace-server.cjs');
 const VIEWPORTS = Object.freeze({ desktop: { width: 1280, height: 800 }, mobile: { width: 390, height: 844 } });
 const SETTLE_MS = 20000;
 const MAX_CAPTURES_PER_TEST = 20;
-// Full declared matrix: 88 states x 2 viewports x at most 2 images (viewport and full-page).
+// Full declared matrix: 135 states x 2 viewports x at most 2 images (viewport and full-page).
 // Reconcile the bound when states/viewports change; failure captures remain exempt.
-const MAX_CAPTURES_PER_RUN = 352;
+const MAX_CAPTURES_PER_RUN = 540;
 const MAX_LOGS_PER_TEST = 1000;
 const MASK_SELECTORS = Object.freeze(['#root-context', '.source dt:has-text("Checkout") + dd']);
 
@@ -117,7 +117,8 @@ async function withWorkspace(test, viewportName, options, run) {
             // A case that declares `reopenable` gets the launch-side hook a real `--open` launch supplies; it records the
             // launch links the workspace would hand to a browser instead of starting one.
             const reopened = [];
-            workspace = await startWorkspace({ root: fixture.root, actor: 'owner', writable: test.writable !== false,
+            // A case may name the member the workspace is launched as; every other case is launched as the fixture's owner.
+            workspace = await startWorkspace({ root: fixture.root, actor: test.actor || 'owner', writable: test.writable !== false,
                 ...(test.reopenable ? { reopen: async link => { reopened.push(link); return { status: 'requested', browser: 'default', observedViewer: 'unverified' }; } } : {}) });
             cleanup.workspace = 'pending';
             token = new URLSearchParams(new URL(workspace.url).hash.slice(1)).get('session');

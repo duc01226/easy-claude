@@ -8,10 +8,10 @@ Use this checklist to validate initiative and task templates before committing. 
 
 - [ ] `id` follows INITIATIVE-YYMMDD-NNN format and is unused in every record folder
 - [ ] `intent` states the outcome in one sentence
-- [ ] `status` is a tracker state (`draft` for a new initiative); the review decision sits in `review_outcome` (unset | under_review | approved | rejected)
-- [ ] `priority_label` is valid (P1 | P2 | P3 | unset)
+- [ ] `status` is an initiative status (`draft` for a new initiative); approval and every later status are recorded through `/task-track`
+- [ ] no decision or priority key of the template's own: approval is the tracker `status` and priority is the tracker's priority level
 - [ ] `tags` are lowercase and hyphenated
-- [ ] `template_version` is "2.2"
+- [ ] `template_version` is "2.3"
 
 ### Project Domain (if applicable)
 
@@ -34,11 +34,11 @@ Use this checklist to validate initiative and task templates before committing. 
 - [ ] `id` follows TASK-YYMMDD-NNN format and is unused in every record folder
 - [ ] `title` is clear and concise
 - [ ] `intent` states the releasable outcome in one sentence
-- [ ] `status` is a tracker state (`draft` for a new task); no `assigned_to` written by hand
+- [ ] `status` is a task status (`draft` for a new task); no `assigned_to` written by hand
 - [ ] `priority` is an integer 1-999 or absent; the label sits in `priority_label`
 - [ ] `effort` uses valid values (XS | S | M | L | XL)
 - [ ] `initiative_reference` links to valid initiative (if from refinement). An existing task may carry the earlier key `idea_reference`; it is read as the same link, and migration does not rewrite authored keys.
-- [ ] `template_version` is "2.3"
+- [ ] `template_version` is "2.4"
 
 ### Project Domain (if applicable)
 

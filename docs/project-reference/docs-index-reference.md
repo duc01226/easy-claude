@@ -1,4 +1,4 @@
-<!-- Last scanned: 2026-10-07 -->
+<!-- Last scanned: 2026-10-09 -->
 
 # Documentation Index Reference
 
@@ -15,7 +15,7 @@ Read this index when locating the authoritative document for a project question 
 - Resolve configured roots; regenerate category globs into a normalized unique-path union.
 - Compare broad `docs/**/*.md` results with the category union and expose every remainder.
 - Verify relationships and lookup paths; keep every path real, unique, and traceable to the current tree.
-- Index 500 unique authored Markdown files across 12 categories; `docs/` contains 51 files with 0 uncategorized. Design System is a one-file Project Reference subset counted once.
+- Index 503 unique authored Markdown files across 12 categories; `docs/` contains 54 files with 0 uncategorized. Design System is a one-file Project Reference subset counted once.
 
 ## Workflow
 
@@ -31,7 +31,7 @@ Read this index when locating the authoritative document for a project question 
 
 ## Documentation System
 
-500 unique authored markdown files across 12 indexed categories. Last scanned: 2026-10-07.
+503 unique authored markdown files across 12 indexed categories. Last scanned: 2026-10-09.
 
 **Relocatable roots.** Resolve these configurable roots before running their category globs:
 
@@ -48,8 +48,8 @@ The **Reproducible scope** column states each glob relative to its category's ro
 | Project Reference      |             18 | `**/*.md` under the project-reference docs root                                       |
 | Operations             |              0 | direct getting-started/deployment/operations/runbook/setup/install/configuration docs |
 | Design System          |              1 | `design-system/**/*.md` under the project-reference docs root                         |
-| Feature Specs          |             18 | `*/README.*.md` under the business spec root                                          |
-| Spec Catalogs          |              5 | `*/INDEX.md` under the business spec root                                             |
+| Feature Specs          |             20 | `*/README.*.md` under the business spec root                                          |
+| Spec Catalogs          |              6 | `*/INDEX.md` under the business spec root                                             |
 | Architecture Decisions |              5 | `**/*.md` under the ADR root                                                          |
 | Templates              |              1 | `**/*.md` under the templates root                                                    |
 | Release Notes          |              3 | `docs/release/**/*.md` + `docs/release-notes/**/*.md`                                 |
@@ -68,7 +68,7 @@ easy-claude/
 ├── AGENTS.md                                      # Codex/agent instructions
 ├── CLAUDE.md                                      # Claude project instructions
 ├── README.md                                      # Project overview and adoption entry point
-├── docs/                                          # 51 markdown files
+├── docs/                                          # 54 markdown files
 │   ├── adr/                                       # 5 architecture decisions
 │   │   ├── 0001-skill-lifecycle.md
 │   │   ├── 0002-canonical-count-metrics.md
@@ -115,14 +115,17 @@ easy-claude/
 │   │   ├── Presentation/                          # 1 Feature Spec + 1 bucket catalog
 │   │   │   ├── INDEX.md
 │   │   │   └── README.PresentationDecks.md
-│   │   ├── WorkTracking/                           # 1 governing owner + 6 case continuations
+│   │   ├── WorkTracking/                           # 1 governing owner + 8 case continuations + 1 derived catalog
+│   │   │   ├── INDEX.md
 │   │   │   ├── README.TaskTracking.md
 │   │   │   ├── README.TaskTracking-Part2.md
 │   │   │   ├── README.TaskTracking-Part3.md
 │   │   │   ├── README.TaskTracking-Part4.md
 │   │   │   ├── README.TaskTracking-Part5.md
 │   │   │   ├── README.TaskTracking-Part6.md
-│   │   │   └── README.TaskTracking-Part7.md
+│   │   │   ├── README.TaskTracking-Part7.md
+│   │   │   ├── README.TaskTracking-Part8.md
+│   │   │   └── README.TaskTracking-Part9.md
 │   │   └── WorkflowExecution/                     # 1 Feature Spec + 1 bucket catalog
 │   │       ├── INDEX.md
 │   │       └── README.GuidedWorkflow.md
@@ -188,19 +191,22 @@ docs/specs/Notifications/INDEX.md
 docs/specs/Presentation/INDEX.md
 └── README.PresentationDecks.md
 
-docs/specs/WorkTracking/README.TaskTracking.md
-├── README.TaskTracking-Part2.md
+docs/specs/WorkTracking/INDEX.md
+└── README.TaskTracking.md
+    ├── README.TaskTracking-Part2.md
 ├── README.TaskTracking-Part3.md
 ├── README.TaskTracking-Part4.md
 ├── README.TaskTracking-Part5.md
 ├── README.TaskTracking-Part6.md
-└── README.TaskTracking-Part7.md
+├── README.TaskTracking-Part7.md
+├── README.TaskTracking-Part8.md
+└── README.TaskTracking-Part9.md
 
 docs/specs/WorkflowExecution/INDEX.md
 └── README.GuidedWorkflow.md
 ```
 
-Read `.claude/skills/task-track/references/manual-operations.md` when maintaining exact selected work through supported requests or shell operations. The WorkTracking continuations declare the governing main specification as their source and parent; Part5 covers local identity and attribution, Part6 covers optional group purpose and scoped delivery, and Part7 covers the vocabulary and its explicit migration.
+Read `.claude/skills/task-track/references/manual-operations.md` when maintaining exact selected work through supported requests or shell operations. The WorkTracking continuations declare the governing main specification as their source and parent; Part5 covers local identity and attribution, Part6 covers scoped delivery and navigation, Part7 covers supported earlier-vocabulary compatibility and explicit migration outcomes, Part8 covers report forms, and Part9 covers current area placement, record-owned affiliations, kind-owned values, initiative decisions, due facts and unsupported first-vocabulary refusal. The WorkTracking catalog is derived navigation over those canonical owners.
 
 `README.md`, `CLAUDE.md` and `AGENTS.md` are entry points. The framework map and skill directories provide navigation to their owned guides and contracts. Root instructions, hook guidance, shared contracts and design catalogs have multiple incoming references; an individually unlinked asset remains discoverable through its indexed directory, without that directory establishing its topic authority. Selected project-reference guides are routed individually below.
 
@@ -274,9 +280,13 @@ Read `docs/project-config.json` first for any project question or task — paths
 | Skill Markdown | preparing exact manual tracker requests or recovering refusals through supported shell operations | `.claude/skills/task-track/references/manual-operations.md` |
 | Feature Specs | continuing operation-purpose, exact concern, advisory choice and publication reconciliation cases (TPT) | `WorkTracking/README.TaskTracking-Part4.md` |
 | Feature Specs | continuing local Git/custom identity and retained attribution cases (TPT) | `WorkTracking/README.TaskTracking-Part5.md` |
-| Feature Specs | continuing optional group purpose, configured labels and unique-task scoped navigation cases (TPT) | `WorkTracking/README.TaskTracking-Part6.md` |
+| Feature Specs | continuing configured labels, exact task scopes and area/initiative navigation cases (TPT) | `WorkTracking/README.TaskTracking-Part6.md` |
 
-| Feature Specs | changing initiative/task terminology or explicit legacy work-record migration (TPT) | `WorkTracking/README.TaskTracking-Part7.md` |
+| Feature Specs | changing supported earlier-vocabulary compatibility or explicit migration outcomes (TPT) | `WorkTracking/README.TaskTracking-Part7.md` |
+| Feature Specs | changing status-report detail forms or size budget, scoped figures, the single-record read or kind display labels (TPT) | `WorkTracking/README.TaskTracking-Part8.md` |
+
+| Feature Specs | changing area placement, record-owned affiliations, kind-owned values, initiative decisions, due facts or unsupported first-vocabulary refusal (TPT) | `WorkTracking/README.TaskTracking-Part9.md` |
+| Spec Catalogs | browsing the WorkTracking canonical owner and its case continuations | `WorkTracking/INDEX.md` |
 
 **Not applicable — skip, never route:** `backend-patterns-reference.md`, `frontend-patterns-reference.md`, `scss-styling-guide.md` exist on disk but are declared N/A in the `referenceDocs` purposes of `docs/project-config.json`.
 
@@ -286,7 +296,7 @@ With no `docsRoots.projectReference.path` entry in `docs/project-config.json`, t
 
 ## Uncategorized Files
 
-None. A fresh broad `docs/**/*.md` scan returned 51 paths; the normalized union of Project Reference, Operations, Design System, Feature Specs, Spec Catalogs, Architecture Decisions, Templates, Release Notes, and Knowledge Reports covered all 51.
+None. A fresh broad `docs/**/*.md` scan returned 54 paths; the normalized union of Project Reference, Operations, Design System, Feature Specs, Spec Catalogs, Architecture Decisions, Templates, Release Notes, and Knowledge Reports covered all 54.
 
 ### Source-adjacent guides outside the published total
 

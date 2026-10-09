@@ -6,7 +6,7 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const vm = require('node:vm');
 const { createRequire } = require('node:module');
-const { trackingTest: test, OBSERVED_AT } = require('../lib/task-tracking-fixture.cjs');
+const { trackingTest: test, refused, OBSERVED_AT } = require('../lib/task-tracking-fixture.cjs');
 const upkeep = require('../../lib/task-tracking-upkeep.cjs');
 const { hash } = require('../../lib/task-tracking-files.cjs');
 
@@ -537,5 +537,46 @@ module.exports = { name: 'Task tracking upkeep integration', tests: [
         const saved = await saving; assert.equal(saved.secondary[0].status, 'saved');
         assert.deepEqual(fs.readFileSync(hintPath), latest); assert.equal(JSON.parse(latest).pending, true);
         assert.deepEqual(JSON.parse(latest).paths, ['src/next.js']); assert.equal(f.record('TASK-101').tracking.activity.length, 1);
+    }),
+    test('TC-TPT-127', 'automatic upkeep never tags work and never changes the state of an initiative or an area; activity and the three observed delivery steps are all it saves', async f => {
+        f.write('src/export.js', 'actual saved source');
+        await f.create('AREA-1', 'area'); await f.create('INITIATIVE-1', 'initiative'); await f.create(); await f.active();
+        const automatic = (id, observed = {}) => ({ automatic: true, linkedItemIds: [id], ...observed });
+        const stored = () => new Map(f.records().map(record => [record.id, f.bytes(record.id)]));
+        const unchanged = before => { const after = stored(); assert.deepEqual([...after.keys()], [...before.keys()]); for (const [id, bytes] of after) assert.deepEqual(bytes, before.get(id), id); };
+        let before = stored();
+        // A tag is a person's act in every form a request can ask for one: the tag operation, a capture with tags, and a
+        // link list that names a tag relation, which is no way to tag for anyone and is still answered as upkeep's own limit.
+        for (const [operation, id, patch] of [['tag', 'TASK-101', { areaIds: ['AREA-1'] }], ['tag', 'TASK-101', { initiativeIds: ['INITIATIVE-1'] }], ['tag', 'TASK-101', { areaIds: [], initiativeIds: [] }],
+            ['tag', 'INITIATIVE-1', { areaIds: ['AREA-1'] }], ['link', 'TASK-101', { links: [{ relation: 'area', itemId: 'AREA-1' }] }],
+            ['create', 'TASK-NEW', { title: 'Captured at a checkpoint', intent: 'Never captured automatically', areaIds: ['AREA-1'] }]]) {
+            refused(await f.perform(operation, id, patch, {}, automatic(id)), 'NOT_PERMITTED'); unchanged(before);
+        }
+        // No step of an initiative or an area is taken: neither its own next step nor a state word the delivery allow-list holds.
+        for (const [id, patch] of [['INITIATIVE-1', { state: 'approved' }], ['INITIATIVE-1', { state: 'canceled', reason: 'Observed' }], ['INITIATIVE-1', { state: 'in_progress' }],
+            ['INITIATIVE-1', { state: 'verifying' }], ['AREA-1', { state: 'canceled', reason: 'Observed' }], ['AREA-1', { state: 'blocked', reason: 'Observed' }]]) {
+            refused(await f.perform('transition', id, patch, {}, automatic(id, { observedTransition: patch })), 'NOT_PERMITTED'); unchanged(before);
+        }
+        // The same requests from a person are saved, so the refusals above are about automation and not about the requests.
+        await f.tag('TASK-101', { areaIds: ['AREA-1'], initiativeIds: ['INITIATIVE-1'] }); await f.saved('transition', 'INITIATIVE-1', { state: 'approved' });
+        // What automatic upkeep saved before, it still saves: the three observed delivery steps, and no other step.
+        for (const patch of [{ state: 'blocked', reason: 'Observed dependency wait' }, { state: 'in_progress', resolution: 'Observed dependency restored' }, { state: 'verifying' }])
+            await f.saved('transition', 'TASK-101', patch, {}, automatic('TASK-101', { observedTransition: patch }));
+        for (const state of ['planned', 'ready', 'done', 'canceled']) {
+            const patch = { state, reason: 'Observed' };
+            refused(await f.perform('transition', 'TASK-101', patch, {}, automatic('TASK-101', { observedTransition: patch })), 'NOT_PERMITTED');
+        }
+        assert.equal(f.record('TASK-101').data.status, 'verifying');
+        // A linked checkpoint over all three kinds records activity on each and nothing else.
+        const tags = f.record('TASK-101').tracking.links;
+        await linked(f, { itemIds: ['TASK-101', 'INITIATIVE-1', 'AREA-1'] });
+        const result = await checkpoint(f); assert.equal(result.primary, PRIMARY);
+        assert.deepEqual(result.secondary.map(item => [item.itemId, item.status]).sort(), [['AREA-1', 'saved'], ['INITIATIVE-1', 'saved'], ['TASK-101', 'saved']]);
+        for (const [id, state] of [['TASK-101', 'verifying'], ['INITIATIVE-1', 'approved'], ['AREA-1', 'active']]) {
+            const record = f.record(id); const last = record.tracking.history.at(-1);
+            assert.equal(record.data.status, state, id); assert.deepEqual(record.tracking.activity, [observation()], id);
+            assert.deepEqual([last.operation, last.beforeState, last.afterState], ['activity', state, state], id);
+            assert.deepEqual(record.tracking.links, id === 'TASK-101' ? tags : [], id);
+        }
     })
 ] };

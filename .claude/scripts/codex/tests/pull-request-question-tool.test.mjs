@@ -145,8 +145,11 @@ test('the work-tracking reminder routes writes to task-track and offers only rea
     assert.match(reminder, /concerns --root CHECKOUT/);
     assert.match(reminder, /NEVER match by title resemblance or search the planned work/);
     assert.match(reminder, /a path match never selects every returned item/);
-    assert.match(reminder, /"Implemented" is not a tracker state/);
-    assert.match(reminder, /closest to "implemented and in a pull request" is `verifying`/);
+    // A pull request is built work, and the tracker's own state for that is the default the reminder offers.
+    assert.match(reminder, /the tracker has a state for exactly that: `implemented`/);
+    assert.match(reminder, /`implemented` \(the default for work this pull request delivers; proof and acceptance are still open\)/);
+    assert.match(reminder, /`implemented` is one step from `draft`, `planned`, `ready` or `in_progress` and needs only the item's captured intent/);
+    assert.match(reminder, /When `catalogue` lists no `implemented` state \(an earlier framework copy\), offer `verifying` in its place/);
     assert.match(reminder, /NEVER offer `done`/);
     assert.match(reminder, /Never infer assignment, readiness, proof or acceptance from the diff, commits, test results, CI or PR state/);
     assert.match(reminder, /A refused transition or a fact the user does not supply leaves the item at its last saved state/);
@@ -161,7 +164,7 @@ test('every state the work-tracking reminder names exists in the tracker lifecyc
   const states = (policy.default ?? policy).STATES;
   assert.ok(Array.isArray(states) && states.length > 0, 'The tracker policy must export its lifecycle states');
   const step = section(source, '4. **Offer a real recorded state.**', '5. **Route the answer');
-  const listed = step.slice(step.indexOf('Read `states`'), step.indexOf('The closest')).match(/`([a-z_]+)`/g).map(s => s.slice(1, -1)).filter(s => s !== 'states');
+  const listed = step.slice(step.indexOf('Read `states`'), step.indexOf('Let the user pick')).match(/`([a-z_]+)`/g).map(s => s.slice(1, -1)).filter(s => s !== 'states');
   assert.deepEqual(listed, [...states]);
-  assert.ok(!states.includes('implemented'));
+  assert.ok(states.includes('implemented'), 'the state a pull request records must be a real lifecycle state');
 });

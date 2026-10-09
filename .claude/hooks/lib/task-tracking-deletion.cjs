@@ -6,6 +6,7 @@ const { LIMITS } = require('./task-tracking-config.cjs');
 const { fail, hash, scopedPath, readBytes, publishBytes, removeBytes } = require('./task-tracking-files.cjs');
 const { inspectRecords, stableValue, parseRecord } = require('./task-artifact-store.cjs');
 const { bindRecordContext, string } = require('./task-tracking-policy.cjs');
+const { lifecycleOf } = require('./task-tracking-vocabulary.cjs');
 
 const RECOVERY_DIRECTORY = 'tmp/task-tracking/deletions';
 const recoveryPath = operationId => `${RECOVERY_DIRECTORY}/${hash(operationId)}.json`;
@@ -53,7 +54,8 @@ function finish(context, request, retained, replayed, durability) {
 const REFERENCE_NAMES = 5;
 
 /**
- * Two explicit actions reach this owner. `canDelete` removes only an untouched draft. `canDeleteEnded` also removes
+ * Two explicit actions reach this owner. `canDelete` removes only an untouched record: one still in the first state of
+ * its kind's lifecycle, with no assignment, links, proof, acceptance or other history. `canDeleteEnded` also removes
  * work that has already ended: canceled or retired, whatever its history. Ended work is outside every active scope,
  * so removing it changes no delivery count; open, started or accepted work must be canceled or retired first.
  * Neither action cascades: work another record still points to is refused until those links are removed.
@@ -75,24 +77,25 @@ function deleteDraft(context, request, digest, authority, recordView) {
     if (record.revision !== request.expected.revision || record.contentHash !== request.expected.contentHash) fail('CONFLICT', 'Draft changed; preserve it and review current facts');
     const t = record.tracking;
     const ownerPath = slashed(record.ownerPath);
-    const referencing = scan.records.filter(other => other.id !== record.id && ((other.tracking?.links || []).some(link => link.itemId === record.id || (typeof link.path === 'string' && slashed(link.path) === ownerPath))
-        || (other.tracking?.memberItemIds || []).includes(record.id))).map(other => other.id);
+    // Referenced means that a link of any relation, a tag included, names this record by identity or by path.
+    const referencing = scan.records.filter(other => other.id !== record.id && (other.tracking?.links || []).some(link => link.itemId === record.id
+        || (typeof link.path === 'string' && slashed(link.path) === ownerPath))).map(other => other.id);
     const incoming = referencing.length > 0;
-    const untouchedDraft = !(record.data.status !== 'draft' || !t || t.assigneeId || record.data.assigned_to || t.collaboratorIds?.length || t.retired || t.health || t.blocker
-        || t.acceptanceHistory?.length || t.proofs?.length || t.activity?.length || t.links?.length || t.memberItemIds?.length
+    const untouched = !(record.data.status !== lifecycleOf(record.kind).initial || !t || t.assigneeId || record.data.assigned_to || t.collaboratorIds?.length || t.retired || t.health || t.blocker
+        || t.acceptanceHistory?.length || t.proofs?.length || t.activity?.length || t.links?.length
         || (t.history || []).some(entry => !['create', 'adopt', 'update'].includes(entry.operation)) || incoming);
-    if (!untouchedDraft) {
+    if (!untouched) {
         const ended = !!t && (record.data.status === 'canceled' || !!t.retired);
         if (authority.canDeleteEnded !== true || !ended) fail('USE_RETIREMENT', 'Referenced, assigned, started or historical work must be canceled or retired; no cascade');
-        if (incoming) fail('REFERENCED_WORK', `Remove the links or memberships that still point to this work first; no cascade. Referenced by ${referencing.slice(0, REFERENCE_NAMES).join(', ')}${referencing.length > REFERENCE_NAMES ? ` and ${referencing.length - REFERENCE_NAMES} more` : ''}`);
+        if (incoming) fail('REFERENCED_WORK', `Remove the links that still point to this work first; no cascade. Referenced by ${referencing.slice(0, REFERENCE_NAMES).join(', ')}${referencing.length > REFERENCE_NAMES ? ` and ${referencing.length - REFERENCE_NAMES} more` : ''}`);
     }
     // The project health owner is named by configuration, not by a record, so no record scan can see that reference.
     // It protects an untouched draft as much as ended work.
     if (context.config?.taskTracking?.healthOwnerId === record.id) fail('REFERENCED_WORK', 'This work is the configured project health owner; choose another owner first');
     const previewToken = hash(stableValue({ digest, config: context.config, owners: scan.records.map(r => [r.ownerPath, r.contentHash]).sort() }));
-    // A preview of ended work states what leaves the checkout with it. An untouched draft has none of these.
-    const removes = untouchedDraft ? null : { state: record.data.status, retired: !!t.retired, historyEntries: (t.history || []).length, proofs: (t.proofs || []).length,
-        acceptanceDecisions: (t.acceptanceHistory || []).length, links: (t.links || []).length, members: (t.memberItemIds || []).length };
+    // A preview of ended work states what leaves the checkout with it. An untouched record has none of these.
+    const removes = untouched ? null : { state: record.data.status, retired: !!t.retired, historyEntries: (t.history || []).length, proofs: (t.proofs || []).length,
+        acceptanceDecisions: (t.acceptanceHistory || []).length, links: (t.links || []).length };
     if (request.preview) return { schemaVersion: 1, primary: { status: 'preview', itemId: record.id, kind: record.kind, ...(removes ? { removes } : {}) },
         current: recordView(record, context), proposed: { ...recordView(record, context), deleted: true }, previewToken, secondary: [] };
     if (request.previewToken !== previewToken) fail('PREVIEW_REQUIRED', 'Draft deletion needs a current explicit preview');

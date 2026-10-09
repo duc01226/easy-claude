@@ -34,7 +34,7 @@ function cleanEnv(root, extra = {}) {
 async function fixture(callback) {
     const root = makeHookTreeProject('task-tracking-advisory');
     const config = { project: { name: 'Guidance fixture' }, docsRoots: { teamArtifacts: { path: 'work' } },
-        taskTracking: { schemaVersion: 2, mode: 'observe' } };
+        taskTracking: { schemaVersion: 3, mode: 'observe' } };
     const skill = fs.readFileSync(path.join(FRAMEWORK_DIR, 'skills/task-track/SKILL.md'));
     write(root, '.claude/skills/task-track/SKILL.md', skill);
     write(root, '.claude/.ck.local.json', JSON.stringify({ portability: { projectConfigPath: 'docs/project-config.json' } }));
@@ -81,7 +81,7 @@ module.exports = {
         business('TC-TPT-221', 'trusted hierarchy read verbs and delivery intents receive non-authorizing guidance', f => {
             const before = fs.readFileSync(f.configPath);
             const verbs = ['show', 'inspect', 'check', 'open', 'list', 'report'];
-            const kinds = ['module', 'area', 'capability', 'feature', 'initiative'];
+            const kinds = ['module', 'area', 'domain', 'capability', 'feature', 'initiative'];
             const intents = ['status', 'progress', 'report', 'delivery'];
             for (const [v, verb] of verbs.entries()) {
                 for (const [k, kind] of kinds.entries()) {
@@ -90,7 +90,7 @@ module.exports = {
                         { requireLauncher: v % 2 === 1 }).stdout);
                 }
             }
-            for (const [index, kind] of ['modules', 'areas', 'capabilities', 'features', 'initiatives'].entries()) {
+            for (const [index, kind] of ['modules', 'areas', 'domains', 'capabilities', 'features', 'initiatives'].entries()) {
                 oneNotice(launch(f.root, event(f.root, `Could you show ${kind} progress?`,
                     { session_id: `hierarchy-plural-${index}` })).stdout);
             }
@@ -100,7 +100,7 @@ module.exports = {
         }),
         business('TC-TPT-233', 'quoted host and nonread hierarchy data stay silent with a trusted read positive control', f => {
             const prompts = ['implement a feature', 'fix a feature', 'refine a feature', 'feature status', 'show feature',
-                'list modules', 'show release status', '"show module status"', "'show feature progress'",
+                'list modules', 'list domains', 'show release status', '"show module status"', "'show feature progress'",
                 'The document says “report initiative status”', '> show area status', '`inspect capability report`',
                 '```text\ncheck module delivery\n```', '~~~text\nopen feature progress\n~~~',
                 '<system-reminder>show module status</system-reminder>',
@@ -116,9 +116,9 @@ module.exports = {
         }),
         business('TC-TPT-221', 'hierarchy read guidance retains off invalid unavailable and native silence controls', f => {
             const prompt = 'show feature progress';
-            const declarations = [undefined, { schemaVersion: 2, mode: 'off' }, { schemaVersion: 3, mode: 'observe' },
-                { schemaVersion: 2, mode: 'observe', grant: true },
-                { schemaVersion: 2, mode: 'observe', profile: { kind: 'native', version: 1,
+            const declarations = [undefined, { schemaVersion: 3, mode: 'off' }, { schemaVersion: 4, mode: 'observe' },
+                { schemaVersion: 3, mode: 'observe', grant: true },
+                { schemaVersion: 3, mode: 'observe', profile: { kind: 'native', version: 1,
                     registration: 'fixture-native', sources: ['work/native.json'] } }];
             for (const [index, declaration] of declarations.entries()) {
                 if (declaration === undefined) delete f.config.taskTracking;
@@ -128,7 +128,7 @@ module.exports = {
                 assert.equal(launch(f.root, event(f.root, prompt, { session_id: `hierarchy-control-${index}` })).stdout, '');
                 assert.deepEqual(fs.readFileSync(f.configPath), before);
             }
-            f.config.taskTracking = { schemaVersion: 2, mode: 'observe' }; f.saveConfig();
+            f.config.taskTracking = { schemaVersion: 3, mode: 'observe' }; f.saveConfig();
             const asset = path.join(f.root, '.claude/skills/task-track/SKILL.md');
             const instruction = fs.readFileSync(asset);
             fs.unlinkSync(asset);
@@ -180,6 +180,26 @@ module.exports = {
             assert.equal(fs.existsSync(path.join(f.root, 'tmp/task-tracking')), false);
         }),
         // P13-HIERARCHY-ROUTE:END
+        business('TC-TPT-149', 'guidance follows the current words: the area levels place work, a first-vocabulary word no longer names work, and an area by itself is a place and not work', f => {
+            const notified = [
+                // The level words the hierarchy gained, one and many, each with a read verb and a delivery intent.
+                'show application status', 'report product progress', 'list applications delivery', 'check products report',
+                // An area is still found as a place whose progress is read, and the current kinds are still work words.
+                'inspect area progress', 'create a task', 'update the initiative', 'list subtasks'];
+            const silent = [
+                // A first-vocabulary word names nothing this tracker reads.
+                'review the backlog', 'show idea status', 'update the pbi', 'create an epic', 'list pbis', 'check the epics', 'report epic progress', 'inspect idea delivery',
+                // An area is a place for work: beside an action alone the word asks nothing of the tracker, and neither does a level word.
+                'fix the header area', 'update the content area', 'review the staging area', 'fix the product page', 'update the application'];
+            for (const [index, prompt] of notified.entries()) {
+                const output = launch(f.root, event(f.root, prompt, { session_id: `current-words-in-${index}` })).stdout;
+                assert.notEqual(output, '', prompt); oneNotice(output);
+            }
+            for (const [index, prompt] of silent.entries()) {
+                assert.equal(launch(f.root, event(f.root, prompt, { session_id: `current-words-out-${index}` })).stdout, '', prompt);
+            }
+            assert.equal(fs.existsSync(path.join(f.root, 'tmp/task-tracking')), false, 'Guidance is not a tracking operation');
+        }),
         business('TC-TPT-149', 'fresh AVAILABLE observe request receives one useful non-authorizing notice', f => {
             const configBefore = fs.readFileSync(f.configPath);
             oneNotice(launch(f.root, event(f.root)).stdout);
@@ -221,7 +241,7 @@ module.exports = {
             await fixture(other => oneNotice(launch(other.root, event(other.root)).stdout));
         }),
         business('TC-TPT-163', 'absent config, absent enrollment and off preserve portable defaults', f => {
-            for (const config of [{}, { taskTracking: { schemaVersion: 2 } }, { taskTracking: { schemaVersion: 2, mode: 'off' } }]) {
+            for (const config of [{}, { taskTracking: { schemaVersion: 3 } }, { taskTracking: { schemaVersion: 3, mode: 'off' } }]) {
                 fs.writeFileSync(f.configPath, JSON.stringify(config));
                 assert.equal(launch(f.root, event(f.root)).stdout, '');
             }
@@ -233,9 +253,9 @@ module.exports = {
             assert.equal(fs.existsSync(path.join(f.root, '.gitignore')), false);
         }),
         business('TC-TPT-163', 'malformed declarations fail closed without rewriting selected config', f => {
-            for (const text of ['{', JSON.stringify({ taskTracking: { schemaVersion: 3, mode: 'observe' } }),
-                JSON.stringify({ taskTracking: { schemaVersion: 2, mode: 'unknown' } }),
-                JSON.stringify({ taskTracking: { schemaVersion: 2, mode: 'observe', grant: true } })]) {
+            for (const text of ['{', JSON.stringify({ taskTracking: { schemaVersion: 4, mode: 'observe' } }),
+                JSON.stringify({ taskTracking: { schemaVersion: 3, mode: 'unknown' } }),
+                JSON.stringify({ taskTracking: { schemaVersion: 3, mode: 'observe', grant: true } })]) {
                 fs.writeFileSync(f.configPath, text);
                 assert.equal(launch(f.root, event(f.root)).stdout, '');
                 assert.equal(fs.readFileSync(f.configPath, 'utf8'), text);

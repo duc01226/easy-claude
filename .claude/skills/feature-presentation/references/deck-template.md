@@ -570,7 +570,7 @@ The example above carries four slides; a real deck adds the taxonomy sections be
 
 - **Title / agenda** [`title`] — feature(s), run date, scope.
 - **How to use this deck** [`how-to`] — the scaffold's how-to slide: deck controls and keys (including that the scroll keys first scroll a slide that does not fit), All slides, Notes, Full screen and Dark theme, each demo's own ▶ Play / ⏮ ⏭ / ↺ Reset controls, how to leave a demo, the print notice, and the outside-asset notice when declared (see §3b).
-- **Business context** [`business-context`] — problem, value, initiative→spec narrative, project groups.
+- **Business context** [`business-context`] — problem, value, initiative→spec narrative, areas.
 - **Decomposition & boundaries** [`decomposition`] — when any large-idea signal is true, render the owning `large_idea_decomposition` block: stable slice IDs/outcomes, dependency order, non-goals, risks/evidence owners, and deferred-work owners. When all signals are false, render `N/A — ordinary isolated scope`; never invent a roadmap or milestone.
 - **Scope & planned work** [`scope-backlog`] — task cards, user stories, acceptance criteria, priorities.
 - **Behavior & rules** [`rules`] — Feature Spec §4 business rules / §5 invariants, §8 test cases.

@@ -1,6 +1,6 @@
 'use strict';
 
-const { trackingContext, KINDS, GROUP_ROLES, LIMITS, MEMBER_ID, relativePath } = require('./task-tracking-config.cjs');
+const { trackingContext, KINDS, LIMITS, MEMBER_ID, relativePath } = require('./task-tracking-config.cjs');
 const { fail, hash, readBytes } = require('./task-tracking-files.cjs');
 const { withTrackingLock } = require('./task-tracking-lock.cjs');
 const { resolveTrackingProfile } = require('./task-tracking-profile.cjs');
@@ -14,17 +14,24 @@ const vocabulary = require('./task-tracking-vocabulary.cjs');
 // A save request is written in one vocabulary, named by its version. A request for another version is refused whole.
 const REQUEST_VERSION = vocabulary.CURRENT_VERSION;
 
+// A tag relation's targets travel under the relation's own word: areaIds, initiativeIds.
+const TAG_KEYS = Object.freeze(Object.fromEntries(Object.keys(vocabulary.TAG_ROLES).map(relation => [`${relation}Ids`, relation])));
+// Tags have one writer, the tag operation. A list of links never carries one, so no list can drop a record's tags by leaving them out.
+const isTag = link => Object.hasOwn(vocabulary.TAG_ROLES, link?.relation);
+const TAG_IN_LINK_LIST = `A link list names no tag: ${Object.keys(vocabulary.TAG_ROLES).join(' and ')} links stay as stored and are changed only by the tag operation (${Object.keys(TAG_KEYS).join(', ')})`;
+const OWNED_KEYS = Object.freeze(Object.keys(vocabulary.OWNED_VALUES));
+
 const operation = (patchKeys, purpose, authority = 'Explicit write action') => Object.freeze({ patchKeys: Object.freeze(patchKeys), purpose, authority });
 const OPERATIONS = Object.freeze({
-    create: operation(['title', 'intent', 'criteria'], 'Capture one item with its own intent'),
-    update: operation(['title', 'intent', 'priority', 'criteria', 'optOut'], 'Refine requested supported fields'),
+    create: operation(['title', 'intent', 'criteria', 'type', 'level', 'deadline', 'priorityLevel', ...Object.keys(TAG_KEYS)], 'Capture one item with its own intent, the values its kind owns and its first tags'),
+    update: operation(['title', 'intent', 'priority', 'criteria', 'optOut', 'type', 'level', 'deadline', 'priorityLevel'], 'Refine requested supported fields'),
     adopt: operation([], 'Preview and adopt preserved legacy content'),
     assign: operation(['assigneeId', 'collaboratorIds'], 'Assign stable responsible members'),
-    link: operation(['links'], 'Save canonical relationships; separate from session linkage'),
-    group: operation(['memberItemIds', 'groupRole'], 'Maintain exact project or vision members and optional purpose'),
-    transition: operation(['state', 'reason', 'resolution', 'readiness', 'correction'], 'Apply a permitted lifecycle transition, or with correction place work in any other recorded state', 'Readiness needs actual review; raw Done is refused; a correction needs its own explicit action and a reason'),
-    proof: operation(['proof'], 'Record an actual scoped observation', 'Manual needs explicit manual-proof action; test/review needs trusted observedProof'),
-    accept: operation(['reason'], 'Accept current complete proof on verifying work', 'Separate actual human accepting decision'),
+    link: operation(['links'], 'Save every canonical relationship that is not a tag, as one whole list; area and initiative links stay as stored and a list that names one is refused; separate from session linkage'),
+    tag: operation(Object.keys(TAG_KEYS), 'Tag one item to exact areas and initiatives; each list replaces only the links of its own relation, an empty list clears them and an omitted one is unchanged'),
+    transition: operation(['state', 'reason', 'resolution', 'readiness', 'correction'], 'Apply a permitted step of the item\'s own lifecycle, or with correction place it in any other state of that lifecycle', 'Readiness needs actual review; raw Done is refused for delivery work; approving, committing, closing, canceling or reopening an initiative needs its own explicit decision; a correction needs its own explicit action and a reason'),
+    proof: operation(['proof'], 'Record an actual scoped observation on delivery work', 'Manual needs explicit manual-proof action; test/review needs trusted observedProof'),
+    accept: operation(['reason'], 'Accept current complete proof on verifying delivery work', 'Separate actual human accepting decision'),
     retire: operation(['reason'], 'Retain history outside active scope'),
     restore: operation(['reason'], 'Restore an explicitly retired item'),
     activity: operation(['observation'], 'Record actual caller activity', 'Trusted matching observation; ordinary CLI cannot supply it'),
@@ -46,11 +53,13 @@ const CLI_ACTION_FLAGS = Object.freeze({ accept: '--accept', attest: '--attest-h
 const CLI_ENDED_DELETE_FLAG = '--delete-item';
 // Placing work in a state outside the usual steps is a person's own decision, so it has its own flag as well.
 const CLI_STATE_CORRECTION_FLAG = '--change-state';
+// So is approving, committing, closing, canceling or reopening an initiative.
+const CLI_DECISION_FLAG = '--decide';
 
-function operationCatalogue() {
+function operationCatalogue(config) {
     // Discovery describes the actual validator/authority boundary; it never grants permission.
     return { schemaVersion: 1, defaultPurpose: 'inspect', kinds: [...KINDS], states: [...policy.STATES], linkRoles: [...policy.LINK_ROLES],
-        vocabulary: vocabulary.vocabularyBlock(),
+        vocabulary: vocabulary.vocabularyBlock(config),
         request: { schemaVersion: REQUEST_VERSION, fields: [...REQUEST_FIELDS], required: ['schemaVersion', 'operation', 'operationId', 'target', 'actor', 'patch'],
             shapes: Object.fromEntries(Object.entries(SHAPE_KEYS).map(([name, keys]) => [name, [...keys]])),
             existingItem: 'Exact itemId and expected revision/contentHash; creation forbids expected',
@@ -59,7 +68,7 @@ function operationCatalogue() {
         operations: Object.entries(OPERATIONS).map(([name, value]) => ({ name, purpose: value.purpose, patchKeys: [...value.patchKeys],
             authority: value.authority, cli: name === 'activity' ? { available: false, reason: 'No trusted observation path in ordinary apply CLI' }
                 : name === 'proof' ? { available: true, kinds: ['manual'], flag: '--manual-proof', unavailableKinds: ['test', 'review'] }
-                    : { available: true, ...(CLI_ACTION_FLAGS[name] ? { flag: CLI_ACTION_FLAGS[name] } : {}), ...(name === 'delete' ? { endedWorkFlag: CLI_ENDED_DELETE_FLAG } : {}), ...(name === 'transition' ? { correctionFlag: CLI_STATE_CORRECTION_FLAG } : {}) } })),
+                    : { available: true, ...(CLI_ACTION_FLAGS[name] ? { flag: CLI_ACTION_FLAGS[name] } : {}), ...(name === 'delete' ? { endedWorkFlag: CLI_ENDED_DELETE_FLAG } : {}), ...(name === 'transition' ? { correctionFlag: CLI_STATE_CORRECTION_FLAG, decisionFlag: CLI_DECISION_FLAG } : {}) } })),
         limits: { requestBytes: LIMITS.recordBytes, batchOperations: 64 },
         preservation: 'Discovery and verification do not save, transition or accept work; request identity is retained on retry' };
 }
@@ -72,7 +81,7 @@ function validateRequest(request) {
     exact(request, REQUEST_FIELDS, 'Request');
     // Omitting the version or the operation is malformed input; naming one this tool does not have is unsupported.
     if (request.schemaVersion === undefined || request.operation === undefined) fail('INVALID_INPUT', 'A request states its schema version and operation');
-    // The same word names different kinds in the two vocabularies, so an earlier request is never carried out as a current one.
+    // An earlier request may name a kind, an operation or a field the current vocabulary does not have, so it is never carried out as a current one.
     if (request.schemaVersion === vocabulary.EARLIER_VERSION) fail('UNSUPPORTED', vocabulary.REFUSALS.EARLIER_VOCABULARY_REQUEST);
     if (request.schemaVersion !== REQUEST_VERSION || !Object.hasOwn(OPERATION_KEYS, request.operation)) fail('UNSUPPORTED', 'Unsupported tracking operation/version');
     if (!policy.string(request.operationId, 120) || !ITEM_ID.test(request.operationId)) fail('INVALID_INPUT', 'An exact stable operation identity is required');
@@ -114,7 +123,32 @@ function authorize(request, authority, context) {
 
 function metadata(kind) {
     return { schemaVersion: vocabulary.CURRENT_VERSION, revision: 1, kind, assigneeId: null, collaboratorIds: [], criteria: [], links: [], proofs: [],
-        acceptanceHistory: [], history: [], receipts: [], optOut: false, retired: null };
+        acceptanceHistory: [], history: [], receipts: [], optOut: false, retired: null, ...vocabulary.ownedDefaults(kind) };
+}
+
+/** The tracker-owned values a request sets, checked for the record's kind. Capture and refinement both come through here. */
+function ownedValues(kind, patch) {
+    const tracking = {};
+    for (const field of OWNED_KEYS) if (patch[field] !== undefined) {
+        const problem = policy.ownedValueProblem(kind, field, patch[field]);
+        if (problem) fail('INVALID_INPUT', problem);
+        tracking[field] = patch[field];
+    }
+    return tracking;
+}
+
+/**
+ * A record's links with the tag relations a request names replaced. Every other link is kept as stored: an omitted
+ * relation is unchanged and an empty list clears it. Whether each target exists, is of the right kind and is named once
+ * is judged with the whole project, when the candidate is checked.
+ */
+function taggedLinks(links, patch) {
+    let next = links;
+    for (const [key, relation] of Object.entries(TAG_KEYS)) if (Object.hasOwn(patch, key)) {
+        if (!policy.list(patch[key], id => typeof id === 'string' && ITEM_ID.test(id))) fail('INVALID_INPUT', `${key} needs exact item identities`);
+        next = [...next.filter(link => link?.relation !== relation), ...patch[key].map(itemId => ({ relation, itemId }))];
+    }
+    return next;
 }
 
 function criteria(value) {
@@ -137,7 +171,10 @@ function update({ request, record }) {
     }
     if (p.criteria !== undefined) tracking.criteria = criteria(p.criteria);
     if (p.optOut !== undefined) { if (typeof p.optOut !== 'boolean') fail('INVALID_INPUT', 'Opt-out must be boolean'); tracking.optOut = p.optOut; }
-    if (record.data.status === 'done' && (p.intent !== undefined || p.criteria !== undefined)) fail('REOPEN_REQUIRED', 'Reopen accepted work before changing its delivered scope');
+    Object.assign(tracking, ownedValues(record.kind, p));
+    // Delivery work is done by acceptance of a delivered scope; an initiative is closed by a person's decision.
+    if (record.data.status === 'done' && (p.intent !== undefined || p.criteria !== undefined)) fail('REOPEN_REQUIRED', policy.inDelivery(record)
+        ? 'Reopen accepted work before changing its delivered scope' : 'Reopen the closed initiative before changing its intent or criteria');
     return { fields, tracking };
 }
 
@@ -160,31 +197,23 @@ const handlers = {
         }
         return { fields: { assigned_to: assigneeId }, tracking };
     },
-    link({ request }) {
+    link({ request, record }) {
         if (!Array.isArray(request.patch.links)) fail('INVALID_INPUT', 'Select explicit relationships');
         for (const link of request.patch.links) {
             exact(link, SHAPE_KEYS.relationship, 'Relationship');
+            if (isTag(link)) fail('INVALID_INPUT', TAG_IN_LINK_LIST);
             if (link.path && (!relativePath(link.path) || isPrivacySensitive(link.path))) fail('UNSAFE_PATH', 'Relationship needs a permitted public project path');
         }
-        return { fields: {}, tracking: { links: request.patch.links } };
+        // The list replaces every link that is not a tag. The record's tags stay exactly as they are stored.
+        return { fields: {}, tracking: { links: [...(record.tracking.links || []).filter(isTag), ...request.patch.links] } };
     },
-    group({ request, record }) {
-        const patch = request.patch;
-        if (!vocabulary.GROUP_KINDS.includes(record.kind)) fail('INVALID_INPUT', 'Group purpose and membership require a project or vision');
-        if (!Object.keys(patch).length) fail('INVALID_INPUT', 'No group change requested');
-        const tracking = {};
-        if (Object.hasOwn(patch, 'memberItemIds')) {
-            if (!policy.list(patch.memberItemIds, id => typeof id === 'string' && ITEM_ID.test(id))) fail('INVALID_INPUT', 'Select exact work-group members');
-            tracking.memberItemIds = patch.memberItemIds;
-        }
-        if (Object.hasOwn(patch, 'groupRole')) {
-            if (patch.groupRole !== null && !GROUP_ROLES.includes(patch.groupRole)) fail('INVALID_INPUT', 'Group purpose is invalid');
-            tracking.groupRole = patch.groupRole;
-        }
-        return { fields: {}, tracking };
+    tag({ request, record }) {
+        if (!Object.keys(request.patch).length) fail('INVALID_INPUT', 'No tag change requested');
+        return { fields: {}, tracking: { links: taggedLinks(record.tracking.links || [], request.patch) } };
     },
     transition({ request, record, records, context, authority, at }) { return policy.transition(record, request.patch, records, context, authority, at); },
     proof({ request, record, context, authority, at }) {
+        if (!policy.inDelivery(record)) fail('NOT_APPLICABLE', 'Proof applies to delivery work only');
         const proof = request.patch.proof;
         exact(proof, SHAPE_KEYS.proof, 'Proof');
         if (!policy.validProof(proof) || proof.observedAt > at) fail('INVALID_INPUT', 'Proof needs actual scoped observations and identities');
@@ -198,6 +227,7 @@ const handlers = {
         return { fields: {}, tracking: { proofs: [...(record.tracking.proofs || []), proof] } };
     },
     accept({ request, record, context, authority, at }) {
+        if (!policy.inDelivery(record)) fail('NOT_APPLICABLE', 'Acceptance applies to delivery work only');
         if (authority.automatic || !authority.canAccept || record.data.status !== 'verifying' || !policy.string(request.patch.reason)) fail('NOT_PERMITTED', 'Acceptance needs an actual scoped decision on verifying work');
         const proof = policy.proofStatus(record, context);
         if (proof.status !== 'current') fail('MISSING_PROOF', proof.reason);
@@ -236,11 +266,15 @@ function sanitized(value) {
 function recordView(record, context) {
     const proof = policy.proofStatus(record, context);
     const acceptance = acceptanceStatus(record);
-    return { id: record.id, kind: record.kind, ownerPath: record.ownerPath, title: record.data.title, intent: record.data.intent || '',
+    // A stored value that the record's kind does not own, or one outside its list, is shown as none; the record check names it.
+    const owned = field => (record.tracking?.[field] !== undefined && !policy.ownedValueProblem(record.kind, field, record.tracking[field]) ? record.tracking[field] : null);
+    return { id: record.id, kind: record.kind, lifecycle: vocabulary.lifecycleOf(record.kind)?.name ?? null, ownerPath: record.ownerPath, title: record.data.title, intent: record.data.intent || '',
         state: record.data.status, priority: orderingPriority(record.data.priority), revision: record.revision, contentHash: record.contentHash,
         assigneeId: record.tracking?.assigneeId || record.data.assigned_to || null, collaboratorIds: record.tracking?.collaboratorIds || [],
-        criteria: record.tracking?.criteria || [], links: record.tracking?.links || [], memberItemIds: record.tracking?.memberItemIds || [],
-        groupRole: GROUP_ROLES.includes(record.tracking?.groupRole) ? record.tracking.groupRole : null,
+        criteria: record.tracking?.criteria || [], links: record.tracking?.links || [],
+        level: owned('level'), type: owned('type'), priorityLevel: owned('priorityLevel'), deadline: owned('deadline'),
+        // Judged against the UTC date of the read this view belongs to, so one read marks every record by one date.
+        overdue: policy.overdue(record, context.readDate),
         blocker: record.tracking?.blocker || null, retired: record.tracking?.retired || null, optOut: record.tracking?.optOut || false,
         legacy: !record.tracking, acceptance, verification: proof, health: policy.healthStatus(record, context), activity: record.tracking?.activity || [],
         history: record.tracking?.history || [], proofs: record.tracking?.proofs || [], acceptanceHistory: record.tracking?.acceptanceHistory || [] };
@@ -288,7 +322,7 @@ async function apply(request, authority, digest) {
         if (scan.records.length >= LIMITS.records) fail('LIMIT_EXCEEDED', 'Record count reaches the selected budget');
         if (!policy.string(request.patch.title, 500) || !policy.string(request.patch.intent, 8000)) fail('INVALID_INPUT', 'Capture needs a title and intent');
         const id = request.target.itemId || allocateId(scan.records, request.target.kind, at);
-        const tracking = metadata(request.target.kind);
+        const tracking = { ...metadata(request.target.kind), ...ownedValues(request.target.kind, request.patch), links: taggedLinks([], request.patch) };
         tracking.criteria = request.patch.criteria === undefined ? [] : criteria(request.patch.criteria);
         record = { ...newRecord({ id, kind: request.target.kind, title: request.patch.title, intent: request.patch.intent, tracking }, context), revision: 0 };
     } else {

@@ -982,6 +982,20 @@ function checkClaims(relDocPath) {
             continue;
         }
 
+        // An explicit configured-root index is already repo-relative. Treating
+        // specs/INDEX.md as a bucket claim would look for specs/specs/INDEX.md.
+        // Keep this exact: unrelated bucket collisions and unsafe claims still
+        // follow the canonical resolver and its containment checks below.
+        if (base === 'INDEX.md') {
+            const root = getBusinessSpecRoot();
+            const rootClaim = root && `${path.relative(PROJECT_DIR, root).split(path.sep).join('/')}/INDEX.md`;
+            if (claim === rootClaim) {
+                if (existingPathWithin(root, 'INDEX.md')) continue;
+                missing.push(claim);
+                continue;
+            }
+        }
+
         // Feature Specs and bucket catalogs are authored relative to the configured
         // business-spec root. Resolve only their canonical one-bucket forms here; a
         // generic search across configured roots could bless a same-named file from

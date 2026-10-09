@@ -231,6 +231,12 @@ The suffix lookup reads `git ls-files`; where git cannot list the project (no wo
 host) it walks the project tree instead and records the git failure in `warnings`, so a live file is
 not reported dead for want of git.
 
+The configured business-spec root's explicit `INDEX.md` citation resolves at
+that root, including a nested configured root. It is not interpreted as a
+module index underneath the root a second time. Missing files, traversal and
+symlinks escaping the configured root still fail; an unrelated index with the
+same basename cannot satisfy the citation.
+
 The same check runs as a hard gate: the `reference-doc-freshness` suite fails the build when any
 reference doc cites a path that no longer exists.
 

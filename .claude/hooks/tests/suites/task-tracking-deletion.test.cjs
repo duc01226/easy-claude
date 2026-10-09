@@ -161,31 +161,91 @@ module.exports = { name: 'Task tracking deletion integration', tests: [
     test('TC-TPT-130', 'ended work that another record still points to is refused without cascading and is deletable once that link is removed', async f => {
         await f.create('TASK-REF'); await f.create('TASK-OWNER'); await f.saved('link', 'TASK-OWNER', { links: [{ relation: 'dependency', itemId: 'TASK-REF' }] });
         await f.saved('retire', 'TASK-REF', { reason: 'Superseded' });
-        await f.create('TASK-MEMBER'); await f.create('PROJECT-1', 'project'); await f.saved('group', 'PROJECT-1', { memberItemIds: ['TASK-MEMBER'] });
-        await f.saved('retire', 'TASK-MEMBER', { reason: 'Out of scope' });
-        for (const [id, referrer] of [['TASK-REF', 'TASK-OWNER'], ['TASK-MEMBER', 'PROJECT-1']]) {
-            const before = f.bytes(id); const referrerBefore = f.bytes(referrer);
-            const result = await f.perform('delete', id, { reason: 'Requested removal' }, { preview: true }, { canDeleteEnded: true });
-            refused(result, 'REFERENCED_WORK'); assert.ok(result.primary.reason.includes(referrer), result.primary.reason);
-            assert.deepEqual(f.bytes(id), before); assert.deepEqual(f.bytes(referrer), referrerBefore);
-        }
+        const before = f.bytes('TASK-REF'); const referrerBefore = f.bytes('TASK-OWNER');
+        const result = await f.perform('delete', 'TASK-REF', { reason: 'Requested removal' }, { preview: true }, { canDeleteEnded: true });
+        refused(result, 'REFERENCED_WORK'); assert.ok(result.primary.reason.includes('TASK-OWNER'), result.primary.reason);
+        assert.deepEqual(f.bytes('TASK-REF'), before); assert.deepEqual(f.bytes('TASK-OWNER'), referrerBefore);
         // The person removes the link at its owner; the deletion itself never edits another record.
         await f.saved('link', 'TASK-OWNER', { links: [] }); const owner = f.bytes('TASK-OWNER');
         const request = f.request('delete', 'TASK-REF', { reason: 'Requested removal' });
         const preview = await f.core.executeOperation({ ...request, preview: true }, f.authority({ canDeleteEnded: true }));
         assert.equal((await f.core.executeOperation({ ...request, previewToken: preview.previewToken }, f.authority({ canDeleteEnded: true }))).primary.deleted, true);
         assert.deepEqual(f.bytes('TASK-OWNER'), owner);
-        // A retired group that lists members is deleted without touching them; the configured project health owner is not.
-        await f.saved('retire', 'PROJECT-1', { reason: 'Grouping no longer used' }); const member = f.bytes('TASK-MEMBER');
-        const group = f.request('delete', 'PROJECT-1', { reason: 'Requested removal' });
-        const groupPreview = await f.core.executeOperation({ ...group, preview: true }, f.authority({ canDeleteEnded: true }));
-        assert.equal(groupPreview.primary.removes.members, 1);
-        assert.equal((await f.core.executeOperation({ ...group, previewToken: groupPreview.previewToken }, f.authority({ canDeleteEnded: true }))).primary.deleted, true);
-        assert.deepEqual(f.bytes('TASK-MEMBER'), member);
-        await f.create('PROJECT-HEALTH', 'project'); await f.saved('retire', 'PROJECT-HEALTH', { reason: 'Replaced' });
-        f.config.taskTracking.healthOwnerId = 'PROJECT-HEALTH'; f.saveConfig();
-        const health = await f.perform('delete', 'PROJECT-HEALTH', { reason: 'Requested removal' }, { preview: true }, { canDeleteEnded: true });
+        // Ended work that is itself tagged is not pointed to by its area: it leaves with its own tag and the area is untouched.
+        await f.create('AREA-1', 'area'); await f.create('TASK-TAGGED', 'task', { areaIds: ['AREA-1'] });
+        await f.saved('retire', 'TASK-TAGGED', { reason: 'Out of scope' }); const area = f.bytes('AREA-1');
+        const tagged = f.request('delete', 'TASK-TAGGED', { reason: 'Requested removal' });
+        const taggedPreview = await f.core.executeOperation({ ...tagged, preview: true }, f.authority({ canDeleteEnded: true }));
+        assert.equal(taggedPreview.primary.status, 'preview', JSON.stringify(taggedPreview.primary)); assert.equal(taggedPreview.primary.removes.links, 1);
+        assert.equal((await f.core.executeOperation({ ...tagged, previewToken: taggedPreview.previewToken }, f.authority({ canDeleteEnded: true }))).primary.deleted, true);
+        assert.deepEqual(f.bytes('AREA-1'), area);
+        // The configured project health owner is named by configuration, so ending it does not make it deletable.
+        await f.saved('retire', 'AREA-1', { reason: 'Replaced' });
+        f.config.taskTracking.healthOwnerId = 'AREA-1'; f.saveConfig();
+        const health = await f.perform('delete', 'AREA-1', { reason: 'Requested removal' }, { preview: true }, { canDeleteEnded: true });
         refused(health, 'REFERENCED_WORK'); assert.match(health.primary.reason, /project health owner/);
+    }),
+    test('TC-TPT-130', 'an area or an initiative that any record is tagged to is never deleted: the refusal names the tagged records, no record changes, and removing the tags is what makes it deletable', async f => {
+        await f.create('AREA-PLACE', 'area'); await f.create('INITIATIVE-WHY', 'initiative'); await f.create('TASK-UNRELATED');
+        await f.create('TASK-TAGGED', 'task', { areaIds: ['AREA-PLACE'], initiativeIds: ['INITIATIVE-WHY'] });
+        await f.create('SUPPORT-TAGGED', 'subtask', { areaIds: ['AREA-PLACE'] });
+        // An area placed under another one names its parent the same way, so it keeps the parent from being deleted too.
+        await f.create('PLACED-BENEATH', 'area', { areaIds: ['AREA-PLACE'] });
+        const referrers = { 'AREA-PLACE': ['TASK-TAGGED', 'SUPPORT-TAGGED', 'PLACED-BENEATH'], 'INITIATIVE-WHY': ['TASK-TAGGED'] };
+        const stored = () => new Map(f.records().map(record => [record.ownerPath, record.bytes]));
+        const unchanged = owners => { assert.deepEqual([...stored().keys()], [...owners.keys()]); for (const [owner, bytes] of stored()) assert.deepEqual(bytes, owners.get(owner), owner); };
+        // While it is still open, neither deletion action reaches it.
+        let owners = stored();
+        for (const id of Object.keys(referrers)) for (const action of [{ canDelete: true }, { canDeleteEnded: true }]) for (const preview of [true, false]) {
+            refused(await f.perform('delete', id, { reason: 'Requested removal' }, preview ? { preview: true } : {}, action), 'USE_RETIREMENT'); unchanged(owners);
+        }
+        // Ending it does not release it either: every record tagged to it is named, and none of them is edited or removed.
+        await f.saved('transition', 'AREA-PLACE', { state: 'canceled', reason: 'No longer used' });
+        await f.saved('transition', 'INITIATIVE-WHY', { state: 'canceled', reason: 'Dropped' });
+        owners = stored();
+        for (const [id, names] of Object.entries(referrers)) for (const preview of [true, false]) {
+            const result = await f.perform('delete', id, { reason: 'Requested removal' }, preview ? { preview: true } : {}, { canDeleteEnded: true });
+            refused(result, 'REFERENCED_WORK');
+            for (const name of names) assert.ok(result.primary.reason.includes(name), `${id}: ${result.primary.reason}`);
+            for (const other of ['TASK-UNRELATED', ...Object.values(referrers).flat().filter(name => !names.includes(name))]) assert.equal(result.primary.reason.includes(other), false, `${id}: ${result.primary.reason}`);
+            unchanged(owners);
+        }
+        // The person removes each tag on the record that declares it; the deletion itself never edits another record.
+        await f.tag('TASK-TAGGED', { areaIds: [], initiativeIds: [] }); await f.tag('SUPPORT-TAGGED', { areaIds: [] }); await f.tag('PLACED-BENEATH', { areaIds: [] });
+        const kept = new Map(['TASK-TAGGED', 'SUPPORT-TAGGED', 'PLACED-BENEATH', 'TASK-UNRELATED'].map(id => [id, f.bytes(id)]));
+        for (const id of Object.keys(referrers)) {
+            const request = f.request('delete', id, { reason: 'Requested removal' });
+            const preview = await f.core.executeOperation({ ...request, preview: true }, f.authority({ canDeleteEnded: true }));
+            assert.equal(preview.primary.status, 'preview', JSON.stringify(preview.primary));
+            assert.equal((await f.core.executeOperation({ ...request, previewToken: preview.previewToken }, f.authority({ canDeleteEnded: true }))).primary.deleted, true);
+        }
+        assert.deepEqual(f.records().map(record => record.id).sort(), [...kept.keys()].sort());
+        for (const [id, bytes] of kept) assert.deepEqual(f.bytes(id), bytes, id);
+    }),
+    test('TC-TPT-130', 'an untouched area, still active with nothing recorded since its capture, is deleted by the narrow action, and an area that was placed, assigned or canceled no longer is', async f => {
+        // Refining what was captured adds no history that keeps a record: the area is still in the first state of its own lifecycle.
+        await f.create('AREA-MISTAKE', 'area'); await f.saved('update', 'AREA-MISTAKE', { level: 'module' });
+        const record = f.record('AREA-MISTAKE'); const original = f.bytes('AREA-MISTAKE'); assert.equal(record.data.status, 'active');
+        const request = f.request('delete', 'AREA-MISTAKE', { reason: 'Captured by mistake' });
+        refused(await f.core.executeOperation(request, f.authority()), 'NOT_PERMITTED');
+        refused(await f.core.executeOperation(request, f.authority({ canDelete: true })), 'PREVIEW_REQUIRED'); assert.deepEqual(f.bytes('AREA-MISTAKE'), original);
+        const preview = await f.core.executeOperation({ ...request, preview: true }, f.authority({ canDelete: true }));
+        // An untouched record holds nothing a preview would have to state.
+        assert.equal(preview.primary.status, 'preview', JSON.stringify(preview.primary)); assert.equal(preview.primary.removes, undefined);
+        const saved = await f.core.executeOperation({ ...request, previewToken: preview.previewToken }, f.authority({ canDelete: true }));
+        assert.equal(saved.primary.status, 'saved'); assert.equal(saved.primary.deleted, true); assert.equal(saved.primary.ended, undefined);
+        assert.equal(fs.existsSync(path.join(f.root, record.ownerPath)), false);
+        assert.equal(JSON.parse(fs.readFileSync(path.join(f.root, recoveryPath(request.operationId)), 'utf8')).original, original.toString('utf8'));
+        // Anything recorded on an area since its capture ends that, and the narrow action refuses it.
+        await f.create('AREA-PARENT', 'area'); await f.create('AREA-PLACED', 'area', { areaIds: ['AREA-PARENT'] });
+        await f.create('AREA-OWNED', 'area'); await f.saved('assign', 'AREA-OWNED', { assigneeId: 'owner' });
+        await f.create('AREA-CANCELED', 'area'); await f.saved('transition', 'AREA-CANCELED', { state: 'canceled', reason: 'No longer used' });
+        for (const id of ['AREA-PLACED', 'AREA-OWNED', 'AREA-CANCELED']) {
+            const before = f.bytes(id);
+            for (const asPreview of [true, false]) refused(await f.perform('delete', id, { reason: 'Requested removal' }, asPreview ? { preview: true } : {}, { canDelete: true }), 'USE_RETIREMENT');
+            assert.deepEqual(f.bytes(id), before);
+        }
+        assert.deepEqual(f.records().map(item => item.id).sort(), ['AREA-CANCELED', 'AREA-OWNED', 'AREA-PARENT', 'AREA-PLACED']);
     }),
     test('TC-TPT-130', 'an untouched draft named as the configured project health owner is refused by both deletion actions until another owner is chosen', async f => {
         await f.create(); const original = f.bytes('TASK-101');

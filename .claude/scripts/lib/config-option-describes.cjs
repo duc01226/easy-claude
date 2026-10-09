@@ -256,7 +256,19 @@ const PROJECT_CONFIG_DESCRIBES = {
     "skillConventions": "Optional frontmatter rules for the skill validator (validate-skills.cjs, Scan & Fix). Omitted = only the official skill schema plus built-in fixes (remove infer, rename tools to allowed-tools).",
     "skillConventions.conventionFields": "Extra frontmatter field names this project uses on purpose (e.g. version, triggers). Reported as INFO instead of an unknown-field ERROR. Added to the built-in lifecycle fields.",
     "skillConventions.removableFields": "Frontmatter field names to flag as WARN and delete under --fix. Added to the built-in list (infer).",
-    "skillConventions.fieldFixes": "Map of wrong field name to correct name, e.g. { \"tools\": \"allowed-tools\" }. Flagged as WARN and renamed under --fix. Merged over the built-in fixes."
+    "skillConventions.fieldFixes": "Map of wrong field name to correct name, e.g. { \"tools\": \"allowed-tools\" }. Flagged as WARN and renamed under --fix. Merged over the built-in fixes.",
+    "taskTracking.kindLabels.initiative": "Optional display word for the initiative kind: nonblank text of at most 160 characters without control characters, never another vocabulary word or label. Changes displayed text only.",
+    "taskTracking.kindLabels.task": "Optional display word for the task kind: nonblank text of at most 160 characters without control characters, never another vocabulary word or label. Changes displayed text only.",
+    "taskTracking.kindLabels.story": "Optional display word for the story kind: nonblank text of at most 160 characters without control characters, never another vocabulary word or label. Changes displayed text only.",
+    "taskTracking.kindLabels.subtask": "Optional display word for the subtask kind: nonblank text of at most 160 characters without control characters, never another vocabulary word or label. Changes displayed text only.",
+    "taskTracking.kindLabels.area": "Optional display word for the area kind: nonblank text of at most 160 characters without control characters, never another vocabulary word or label. Changes displayed text only.",
+    "taskTracking.levelLabels.application": "Optional display name for the application level of an area: nonblank text of at most 160 characters without control characters. Changes displayed text only.",
+    "taskTracking.levelLabels.product": "Optional display name for the product level of an area: nonblank text of at most 160 characters without control characters. Changes displayed text only.",
+    "taskTracking.levelLabels.module": "Optional display name for the module level of an area: nonblank text of at most 160 characters without control characters. Changes displayed text only.",
+    "taskTracking.levelLabels.feature": "Optional display name for the feature level of an area: nonblank text of at most 160 characters without control characters. Changes displayed text only.",
+    "taskTracking.typeLabels.feedback": "Optional display name for the feedback type of an initiative: nonblank text of at most 160 characters without control characters. Changes displayed text only.",
+    "taskTracking.typeLabels.idea": "Optional display name for the idea type of an initiative: nonblank text of at most 160 characters without control characters. Changes displayed text only.",
+    "taskTracking.typeLabels.initiative": "Optional display name for the initiative type of an initiative: nonblank text of at most 160 characters without control characters. Changes displayed text only."
 };
 
 const CK_CONFIG_DESCRIBES = {

@@ -661,10 +661,11 @@ logSection('describeSchema');
     // (`contextGroups[].on`, `portability.workflowActivation`, `hooks.codeGraph.enabled`,
     // `hooks.tokenBudget`, `commit.fixOriginTrailer`, measured 552 -> 575), then to 620
     // for the optional `pullRequest.targetBranch` section (section + field, each with its
-    // one-line note, measured 589 -> 593). This remains a runaway-bloat guard, not a
-    // suppression of schema output.
+    // one-line note, measured 589 -> 593), then to 650 for the tracker's level and type
+    // label keys (eight keys replace two, measured 616 -> 622). This remains a
+    // runaway-bloat guard, not a suppression of schema output.
     const lineCount = output.split('\n').length;
-    logResult('output under 620 lines', lineCount < 620, `${lineCount} lines`);
+    logResult('output under 650 lines', lineCount < 650, `${lineCount} lines`);
 }
 
 // ════════════════════════════════════════════════════════════════════════════

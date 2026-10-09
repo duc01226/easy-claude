@@ -27,7 +27,7 @@ function privateContentAbsent(value, markers) {
 }
 // A tracked record written straight to its owner file: a board of several hundred owners without several hundred saves.
 function authored(f, id, links = [], bodyBytes = 0) {
-    const tracking = { schemaVersion: 2, revision: 1, kind: 'task', criteria: [{ id: 'selected-rows', text: 'Export contains exactly the selected rows' }], links };
+    const tracking = { schemaVersion: 3, revision: 1, kind: 'task', criteria: [{ id: 'selected-rows', text: 'Export contains exactly the selected rows' }], links };
     const head = { id, title: `Planned work ${id}`, intent: 'Preserve a defined outcome', status: 'draft', tracking };
     const bytes = Buffer.from(`---\n${Object.entries(head).map(([key, value]) => `${key}: ${JSON.stringify(value)}`).join('\n')}\n---\n\n${'x'.repeat(bodyBytes)}\n`);
     f.write(`work/tasks/${id}.md`, bytes);
@@ -87,24 +87,29 @@ module.exports = { name: 'Task tracking selected-owner and resource boundaries',
         for (const item of work.items) for (const field of ['title', 'intent', 'criteria', 'history', 'receipts', 'proofs']) assert.equal(Object.hasOwn(item, field), false);
         conserved(f, owners); assert.deepEqual(f.progress().metrics, metrics); assert.equal(metrics.total, 3);
     }),
-    test('TC-TPT-162', 'incoming and outgoing views keep original declaring ownership and label group membership separately', async f => {
+    test('TC-TPT-162', 'incoming and outgoing views keep original declaring ownership and show a tag as the link its tagged record declares', async f => {
         for (const id of ['TASK-104', 'TASK-105']) await f.create(id);
         await f.saved('link', 'TASK-105', { links: [{ relation: 'dependency', itemId: 'TASK-104' }] });
-        await f.create('PROJECT-104', 'project'); await f.saved('group', 'PROJECT-104', { memberItemIds: ['TASK-104', 'TASK-105'] });
+        await f.create('AREA-104', 'area'); for (const id of ['TASK-104', 'TASK-105']) await f.tag(id, { areaIds: ['AREA-104'] });
         const owners = exactOwners(f);
-        for (const itemIds of [['TASK-104'], ['TASK-105'], ['TASK-104', 'TASK-105'], ['PROJECT-104']]) {
+        for (const itemIds of [['TASK-104'], ['TASK-105'], ['TASK-104', 'TASK-105'], ['AREA-104']]) {
             const result = readConcerns(f.root, { schemaVersion: 1, itemIds });
             for (const link of result.relationships) {
                 assert.equal(link.resolution, 'resolved'); assert.equal(link.owner.ownerPath, f.record(link.owner.itemId).ownerPath);
                 assert.ok(['incoming', 'outgoing'].includes(link.direction));
                 if (link.relation === 'dependency') { assert.equal(link.owner.itemId, 'TASK-105'); assert.equal(link.target.itemId, 'TASK-104'); }
-                else { assert.equal(link.relation, 'membership'); assert.equal(link.owner.itemId, 'PROJECT-104'); }
+                // The tagged record owns its tag: the area is only ever the target, never a declarer of members.
+                else { assert.equal(link.relation, 'area'); assert.ok(['TASK-104', 'TASK-105'].includes(link.owner.itemId)); assert.equal(link.target.itemId, 'AREA-104'); }
             }
             assert.equal(result.items.length, new Set(result.items.map(item => item.ownerPath)).size);
             conserved(f, owners); assert.equal(f.progress().metrics.total, 2);
         }
         const both = readConcerns(f.root, { schemaVersion: 1, itemIds: ['TASK-104', 'TASK-105'] });
         assert.deepEqual(both.relationships.filter(link => link.relation === 'dependency').map(link => link.direction), ['outgoing', 'incoming']);
+        // Seen from the area, both tags arrive; seen from a tagged record, its one tag leaves.
+        const tags = itemIds => readConcerns(f.root, { schemaVersion: 1, itemIds }).relationships.filter(link => link.relation === 'area').map(link => [link.owner.itemId, link.direction]);
+        assert.deepEqual(tags(['AREA-104']), [['TASK-104', 'incoming'], ['TASK-105', 'incoming']]);
+        assert.deepEqual(tags(['TASK-104']), [['TASK-104', 'outgoing']]);
     }),
     test('TC-TPT-155', 'teammate deletion and duplicate imports remain unresolved without selecting a guessed owner or rewriting incoming history', async f => {
         await f.create('TASK-target'); await f.create('SUBTASK-owner', 'subtask');
@@ -175,9 +180,9 @@ module.exports = { name: 'Task tracking selected-owner and resource boundaries',
     test('TC-TPT-155', 'projection counts boundary and tenfold relationships and retains reader source-change findings alongside omitted scope', async f => {
         // Pure projection models a valid reader result: <=2000 owners and <=2000
         // links per owner. No fabricated persisted records or source bypass.
-        const target = { id: 'TASK-target', kind: 'task', ownerPath: 'work/tasks/target.md', state: 'draft', links: [], memberItemIds: [],
+        const target = { id: 'TASK-target', kind: 'task', ownerPath: 'work/tasks/target.md', state: 'draft', links: [],
             verification: { status: 'missing' }, acceptance: { accepted: false }, prerequisiteReasons: [] };
-        const snapshot = total => ({ schemaVersion: 2, coverage: 'complete', fingerprint: 'f'.repeat(64),
+        const snapshot = total => ({ schemaVersion: 3, coverage: 'complete', fingerprint: 'f'.repeat(64),
             profile: { available: true }, items: [target, ...Array.from({ length: Math.ceil(total / 1000) }, (_, n) => ({ ...target,
                 id: `TASK-owner-${n}`, ownerPath: `work/tasks/owner-${n}.md`, links: Array.from({ length: Math.min(1000, total - n * 1000) }, () => ({ relation: 'parent', itemId: target.id })) }))], diagnostics: [] });
         for (const total of [0, LIMITS.records, LIMITS.records + 1, LIMITS.records * 10]) {
@@ -274,25 +279,29 @@ module.exports = { name: 'Task tracking selected-owner and resource boundaries',
         assert.deepEqual(fs.readFileSync(path.join(f.root, foreign.ownerPath)), foreignBytes);
         assert.deepEqual(f.progress().ready, snapshot.ready); conserved(f, originals);
     }),
-    test('TC-TPT-072', 'all six item-link roles require one selected owner and refuse missing, self and ambiguous targets without edits', async f => {
-        await f.create('TASK-owner'); await f.create('INITIATIVE-owner', 'initiative');
+    test('TC-TPT-072', 'all seven item-link roles require one selected owner and refuse missing, self and ambiguous targets without edits', async f => {
+        await f.create('TASK-owner'); await f.create('INITIATIVE-owner', 'initiative'); await f.create('AREA-owner', 'area');
         // This real record belongs to a different configured artifact scope.
         f.config.docsRoots.teamArtifacts.path = 'outside-work'; f.saveConfig(); await f.create('TASK-outside');
         const outsidePath = f.record('TASK-outside').ownerPath; const outside = f.bytes('TASK-outside');
         f.config.docsRoots.teamArtifacts.path = 'work'; f.saveConfig();
-        for (const relation of ['dependency', 'parent', 'initiative', 'spec', 'source', 'plan']) {
-            const id = `TASK-link-${relation}`; const ownerId = relation === 'initiative' ? 'INITIATIVE-owner' : 'TASK-owner';
-            await f.create(id); await f.saved('link', id, { links: [{ relation, itemId: ownerId }] });
+        // A tag relation names a record of its own kind and is written by the tag operation; every other relation names
+        // the task and is written by the link operation.
+        const owned = { initiative: 'INITIATIVE-owner', area: 'AREA-owner' };
+        const relate = (id, relation, itemId) => owned[relation] ? f.perform('tag', id, { [`${relation}Ids`]: [itemId] }) : f.perform('link', id, { links: [{ relation, itemId }] });
+        for (const relation of ['dependency', 'parent', 'area', 'initiative', 'spec', 'source', 'plan']) {
+            const id = `TASK-link-${relation}`; const ownerId = owned[relation] || 'TASK-owner';
+            await f.create(id); assert.equal((await relate(id, relation, ownerId)).primary.status, 'saved', relation);
             const owners = exactOwners(f);
             for (const target of ['TASK-missing', 'TASK-outside', id]) {
-                refused(await f.perform('link', id, { links: [{ relation, itemId: target }] }), 'INVALID_RELATIONSHIP');
+                refused(await relate(id, relation, target), 'INVALID_RELATIONSHIP');
                 conserved(f, owners); assert.deepEqual(fs.readFileSync(path.join(f.root, outsidePath)), outside);
                 assert.deepEqual(f.record(id).tracking.links, [{ relation, itemId: ownerId }]);
             }
             const owner = f.record(ownerId); const duplicate = `${path.posix.dirname(owner.ownerPath)}/duplicate-${relation}.md`;
             f.write(duplicate, owner.bytes);
             try {
-                refused(await f.perform('link', id, { links: [{ relation, itemId: ownerId }] }), 'INCOMPLETE_SCOPE');
+                refused(await relate(id, relation, ownerId), 'INCOMPLETE_SCOPE');
                 const snapshot = f.progress(); assert.equal(snapshot.coverage, 'partial');
                 assert.ok(snapshot.diagnostics.some(diagnostic => diagnostic.code === 'DUPLICATE_ID' && diagnostic.itemId === ownerId));
                 assert.ok(snapshot.items.find(item => item.id === id).prerequisiteReasons.some(reason => /unique project owner/.test(reason)));
@@ -429,7 +438,9 @@ module.exports = { name: 'Task tracking selected-owner and resource boundaries',
         const original = exactOwners(f);
         for (let inspection = 1; inspection <= 2; inspection++) {
             const before = traversals; const snapshot = inspectSnapshot(f.root, pinned); assert.equal(snapshot.coverage, 'complete');
-            assert.ok(traversals - before > 0 && traversals - before <= 7, `Full selected-array traversals: ${traversals - before}`);
+            // One pass each to index, validate, walk links and project the records, and one cycle walk for each of the four
+            // relations that must stay acyclic (dependency, parent, area, initiative). The count never grows with the board.
+            assert.ok(traversals - before > 0 && traversals - before <= 8, `Full selected-array traversals: ${traversals - before}`);
             assert.equal(snapshot.context.recordAnalysis.index.size, 25); assert.equal(snapshot.context.proofCache.size, 25);
             for (const record of pinned.scan.records) assert.equal(proofVisits.get(record.id), inspection, record.id);
             assert.equal(snapshot.items.find(item => item.id === 'TASK-prerequisite').verification.status, 'current');
@@ -546,7 +557,7 @@ module.exports = { name: 'Task tracking selected-owner and resource boundaries',
                 ...Array.from({ length: 8 }, (_, other) => ({ relation: other % 2 ? 'source' : 'spec', path: `docs/contracts/other-${other}.md` }))]);
         }
         const owners = exactOwners(f); const snapshot = f.progress(); assert.equal(snapshot.coverage, 'complete');
-        const total = snapshot.items.reduce((sum, item) => sum + item.links.length + item.memberItemIds.length, 0);
+        const total = snapshot.items.reduce((sum, item) => sum + item.links.length, 0);
         assert.ok(total > LIMITS.records, `Relationships in the project: ${total}`); assert.equal(declarers.at(-1), 'TASK-wide-259');
         const result = readConcerns(f.root, { schemaVersion: 1, paths: [selected] });
         assert.equal(result.coverage, 'complete'); assert.deepEqual(result.diagnostics, []);
@@ -681,19 +692,18 @@ module.exports = { name: 'Task tracking selected-owner and resource boundaries',
     test('TC-TPT-049', 'four of ten accepted outcomes retain six remaining while one stale proof and support/canceled/retired groups stay distinct', async f => {
         const ids = Array.from({ length: 10 }, (_, n) => `TASK-outcome-${n + 1}`);
         f.write('src/accepted.js', 'exports.version = 1;');
+        // One area holds every record, a second holds the ten outcomes again, and both sit under a third that the first outcome is also tagged to directly.
+        await f.create('AREA-top', 'area'); await f.create('AREA-scope', 'area', { areaIds: ['AREA-top'] }); await f.create('AREA-overlap', 'area', { areaIds: ['AREA-top'] });
         for (const id of ids) await f.create(id);
         await f.saved('link', ids[0], { links: [{ relation: 'source', path: 'src/accepted.js' }] });
+        for (const id of ids) await f.tag(id, { areaIds: id === ids[0] ? ['AREA-scope', 'AREA-overlap', 'AREA-top'] : ['AREA-scope', 'AREA-overlap'] });
         for (const id of ids.slice(0, 4)) await f.accepted(id);
-        for (const [id, kind] of [['INITIATIVE-support', 'initiative'], ['STORY-support', 'story'], ['SUBTASK-support', 'subtask']]) await f.create(id, kind);
+        for (const [id, kind] of [['INITIATIVE-support', 'initiative'], ['STORY-support', 'story'], ['SUBTASK-support', 'subtask']]) await f.create(id, kind, { areaIds: ['AREA-scope'] });
         await f.accepted('STORY-support'); await f.accepted('SUBTASK-support');
-        await f.create('TASK-canceled'); await f.saved('transition', 'TASK-canceled', { state: 'canceled', reason: 'Scope deliberately removed' });
-        await f.create('TASK-retired'); await f.saved('retire', 'TASK-retired', { reason: 'Historical work excluded' });
-        await f.create('PROJECT-scope', 'project'); await f.create('PROJECT-overlap', 'project'); await f.create('VISION-scope', 'vision');
-        await f.saved('group', 'PROJECT-scope', { memberItemIds: [...ids, 'TASK-canceled', 'TASK-retired', 'INITIATIVE-support', 'STORY-support', 'SUBTASK-support'] });
-        await f.saved('group', 'PROJECT-overlap', { memberItemIds: ids });
-        await f.saved('group', 'VISION-scope', { memberItemIds: ['PROJECT-scope', 'PROJECT-overlap', ids[0]] });
+        await f.create('TASK-canceled', 'task', { areaIds: ['AREA-scope'] }); await f.saved('transition', 'TASK-canceled', { state: 'canceled', reason: 'Scope deliberately removed' });
+        await f.create('TASK-retired', 'task', { areaIds: ['AREA-scope'] }); await f.saved('retire', 'TASK-retired', { reason: 'Historical work excluded' });
         f.write('src/accepted.js', 'exports.version = 2;'); const original = exactOwners(f);
-        for (const options of [undefined, { groupId: 'VISION-scope' }]) {
+        for (const options of [undefined, { scopeId: 'AREA-top' }]) {
             const metrics = f.progress(options).metrics; assert.equal(metrics.unit, 'unique-task'); assert.deepEqual(metrics.eligibleIds, ids.slice().sort());
             assert.equal(metrics.total, 10); assert.equal(metrics.accepted, 4); assert.equal(metrics.remaining, 6);
             assert.equal(metrics.currentlyVerified, 3); assert.equal(metrics.percentage, 40); assert.equal(metrics.canceled, 1); assert.equal(metrics.retired, 1);
@@ -715,5 +725,43 @@ module.exports = { name: 'Task tracking selected-owner and resource boundaries',
         assert.equal(recovery.phase, 'complete'); assert.equal(recovery.digest, f.core.validateRequest(apply));
         const replay = await f.core.executeOperation(apply, authority); assert.equal(replay.primary.replayed, true); privateContentAbsent(replay, [marker]);
         assert.deepEqual(fs.readFileSync(retainedPath), retained); assert.equal(fs.existsSync(path.join(f.root, owner.ownerPath)), false);
+    }),
+    test('TC-TPT-250', 'a current project owns five record locations, the area location included, and a file lying in an earlier or first-vocabulary location is named by its path and never read as work', async f => {
+        // Spelled out as test data, independent of the vocabulary owner.
+        const owned = { initiative: 'work/initiatives', task: 'work/tasks', story: 'work/tasks/stories', subtask: 'work/subtasks', area: 'work/areas' };
+        for (const [kind, location] of Object.entries(owned)) { await f.create(`OWNED-${kind}`, kind); assert.equal(f.record(`OWNED-${kind}`).ownerPath, `${location}/OWNED-${kind}.md`); }
+        const clean = f.progress(); assert.equal(clean.coverage, 'complete');
+        assert.deepEqual(clean.items.map(item => [item.id, item.kind]).sort(), Object.keys(owned).map(kind => [`OWNED-${kind}`, kind]).sort());
+        assert.deepEqual(clean.hierarchy.areas.map(area => area.id), ['OWNED-area']);
+        const owners = exactOwners(f);
+        // Files as an older branch or copy leaves them: two written in the earlier vocabulary, two in the first one, and a note that is no record.
+        const left = (id, status, tracking) => Buffer.from(`---\n${Object.entries({ id, title: `Left behind ${id}`, intent: 'Preserve a defined outcome', status, tracking })
+            .map(([key, value]) => `${key}: ${JSON.stringify(value)}`).join('\n')}\n---\n\nAuthored body\n`);
+        const strays = new Map([
+            ['work/projects/GROUP-OLD.md', left('GROUP-OLD', 'draft', { schemaVersion: 2, revision: 1, kind: 'project', memberItemIds: ['OWNED-task'], groupRole: 'area' })],
+            ['work/visions/VISION-OLD.md', left('VISION-OLD', 'draft', { schemaVersion: 2, revision: 1, kind: 'vision' })],
+            ['work/pbis/PBI-OLD.md', left('PBI-OLD', 'backlog', { schemaVersion: 1, revision: 1, kind: 'pbi' })],
+            ['work/ideas/IDEA-OLD.md', left('IDEA-OLD', 'draft', { schemaVersion: 1, revision: 1, kind: 'idea' })],
+            ['work/epics/EPIC-OLD.md', Buffer.from('A note with no record header.\n')]]);
+        for (const [relative, bytes] of strays) f.write(relative, bytes);
+        const read = f.progress();
+        // Each stray file is named once by its path; one that is readable in the earlier vocabulary is named by its identity as well.
+        assert.equal(read.coverage, 'partial');
+        assert.deepEqual(read.diagnostics.map(finding => [finding.path, finding.code]).sort(), [...strays.keys()].map(relative => [relative, 'EARLIER_VOCABULARY_RECORD']).sort());
+        assert.deepEqual(read.diagnostics.filter(finding => finding.itemId).map(finding => finding.itemId).sort(), ['GROUP-OLD', 'VISION-OLD']);
+        // Nothing in them is work: no item, no area, no placement of the task a stray group lists, and no certified figure.
+        assert.deepEqual(read.items.map(item => item.id).sort(), clean.items.map(item => item.id).sort());
+        assert.deepEqual(read.hierarchy.areas.map(area => area.id), ['OWNED-area']); assert.deepEqual(read.hierarchy.untaggedTaskIds, ['OWNED-task']);
+        assert.equal(read.metrics.total, clean.metrics.total); assert.equal(read.metrics.percentage, null);
+        // The project is still current, and the read states which stray locations it found, by the vocabulary they belong to.
+        const project = read.vocabulary.project;
+        assert.deepEqual([project.state, project.storedVersion, project.code], ['current', 3, null]);
+        assert.deepEqual(project.currentLocations, ['areas']); assert.deepEqual(project.earlierLocations, ['projects', 'visions']);
+        assert.deepEqual(project.retiredLocations, ['pbis', 'ideas', 'epics']);
+        conserved(f, owners); for (const [relative, bytes] of strays) assert.deepEqual(fs.readFileSync(path.join(f.root, relative)), bytes, relative);
+        // Once the stray files are gone the same project reads whole again.
+        for (const relative of strays.keys()) fs.rmSync(path.join(f.root, path.dirname(relative)), { recursive: true });
+        const restored = f.progress(); assert.equal(restored.coverage, 'complete'); assert.deepEqual(restored.diagnostics, []);
+        assert.deepEqual(restored.vocabulary.project.earlierLocations, []); assert.deepEqual(restored.vocabulary.project.retiredLocations, []);
     })
 ] };

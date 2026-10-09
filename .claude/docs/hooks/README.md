@@ -1,6 +1,6 @@
 # Hooks Reference
 
-> <!-- COUNT:hooks -->33<!-- /COUNT --> top-level `.cjs` hooks and <!-- COUNT:lib-modules -->62<!-- /COUNT --> lib modules for context-aware AI behavior (some hooks register on multiple events; the unified notification router lives under `.claude/hooks/notifications/notify.cjs`)
+> <!-- COUNT:hooks -->33<!-- /COUNT --> top-level `.cjs` hooks and <!-- COUNT:lib-modules -->64<!-- /COUNT --> lib modules for context-aware AI behavior (some hooks register on multiple events; the unified notification router lives under `.claude/hooks/notifications/notify.cjs`)
 
 ## Overview
 
@@ -397,7 +397,7 @@ SESSION START (11 hooks)                        DURING SESSION
 
 ## Lib Modules
 
-<!-- COUNT:lib-modules -->62<!-- /COUNT --> direct `.cjs` modules under `.claude/hooks/lib/`.
+<!-- COUNT:lib-modules -->64<!-- /COUNT --> direct `.cjs` modules under `.claude/hooks/lib/`.
 
 ### State Management
 
@@ -480,19 +480,23 @@ SESSION START (11 hooks)                        DURING SESSION
 | Module | Purpose |
 | --- | --- |
 | `task-artifact-store.cjs` | Portable record inspection and byte-preserving owned-field patches |
-| `task-progress-reader.cjs` | Consistent scoped work views, verification and unique-task metrics |
+| `task-progress-reader.cjs` | Consistent scoped work views, verification and unique-task metrics; on request, the delivery figures of every area and every initiative and the read of one exact record |
 | `task-tracking.cjs` | Common versioned operation owner and read-only operation catalogue for CLI, app and upkeep |
 | `task-tracking-advisory.cjs` | Bounded optional prompt guidance and deduplicated session/agent delivery receipts; no canonical work writer |
 | `task-tracking-concerns.cjs` | Bounded read-only exact ID/path concerns, declared relationship direction/owner/rationale, current verification and partial/unavailable diagnostics |
 | `task-tracking-config.cjs` | Optional policy, members, profiles and protective limits |
 | `task-tracking-deletion.cjs` | Previewed exact draft deletion and local recovery |
+| `task-tracking-earlier-project.cjs` | Pure whole-project mapping of records stored in the earlier vocabulary to current terms; the one result both earlier-project readers show and the migration writes |
 | `task-tracking-files.cjs` | Project-contained byte IO and atomic publication |
 | `task-tracking-identity.cjs` | Read-only selected-checkout Git/custom actor resolution and stale-selection revalidation |
 | `task-tracking-lock.cjs` | Bounded cooperating-writer locks |
+| `task-tracking-migration.cjs` | Explicit resumable move of a project from the earlier vocabulary to the current one, with a progress record, refused reads and saves while it is open, and an independent recount |
+| `task-tracking-placement.cjs` | Bounded read-only placement candidates from current areas, initiatives, similar records and governing specs; selects and writes nothing |
 | `task-tracking-policy.cjs` | Shared lifecycle, authority, criteria/proof, graph and health rules |
 | `task-tracking-profile.cjs` | Capability diagnostics; native capabilities unavailable without owner proof |
-| `task-tracking-report.cjs` | Owned offline reports, refresh and viewer requests |
+| `task-tracking-report.cjs` | Owned offline reports in the full, packed or detail-free form, optional size budget, refresh and viewer requests |
 | `task-tracking-upkeep.cjs` | Exact session links, saved checkpoints and observer hints |
+| `task-tracking-vocabulary.cjs` | Single owner of tracker words: kinds, record locations, lifecycles and permitted steps, levels, types, priorities and link relations, current and earlier, with the earlier-to-current mapping |
 
 See [setup](../configuration/README.md#team-work-tracking) and [linked integration](../../skills/task-track/references/integration-guide.md). CLI/app policy has one common owner.
 
@@ -756,12 +760,12 @@ Doc paths in this file are defaults resolved against the project-reference docs 
 
 ## Testing
 
-A successful full primary run passes with 133 tests. The full aggregate runner `run-all-tests.cjs` discovers 1861 tests across 119 suites by current source inventory. These are declared/discovered counts, not a recorded execution result; outcomes require actual runner output. The aggregate includes seventeen task-tracking suites with 423 declared executors.
+A successful full primary run passes with 133 tests. The full aggregate runner `run-all-tests.cjs` discovers 2029 tests across 120 suites by current source inventory. Actual final-run discovery and outcomes remain pending; these declarations are not an execution result. The aggregate includes eighteen task-tracking suites with 588 declared executors.
 
 | Test Surface          | Count | File/Location                                                     |
 | --------------------- | ----- | ----------------------------------------------------------------- |
 | Primary hook runner   | 133   | `.claude/hooks/tests/test-all-hooks.cjs`                          |
-| Aggregate runner      | 1861  | `.claude/hooks/tests/run-all-tests.cjs` (all suites, discovered)  |
+| Aggregate runner      | 2029  | `.claude/hooks/tests/run-all-tests.cjs` (all suites, discovered)  |
 | Standalone test files | TODO  | `tests/test-*.cjs/.js` excluding runner (re-verify before citing) |
 | Lib unit tests        | TODO  | `lib/__tests__/*.test.cjs` (re-verify before citing)              |
 

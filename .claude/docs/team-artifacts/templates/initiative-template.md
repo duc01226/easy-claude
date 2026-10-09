@@ -7,10 +7,8 @@ status: draft
 submitted_by: '{Name}'
 role: '{PO|BA|Dev|QA|Designer|PM|Stakeholder}'
 date: { YYYY-MM-DD }
-review_outcome: unset | under_review | approved | rejected
-priority_label: P1 | P2 | P3 | unset
-tags: []
-template_version: '2.2'
+tags: [] # free-text keywords; the areas an initiative belongs to are recorded through /task-track
+template_version: '2.3'
 
 # Domain Context (optional, for domain features — populate from project-config.json modules)
 module: '' # Module name from project-config.json backendServices.serviceMap
@@ -91,7 +89,7 @@ task_references: [] # Links to generated tasks
 
 ### Frontmatter Fields
 
-- **id / title / intent / status**: the work-record fields. A new initiative is `status: draft`; a later state is recorded through `/task-track`, and the initiative review decision goes in `review_outcome`.
+- **id / title / intent / status**: the work-record fields. A new initiative is `status: draft`. Approving, committing, closing, canceling and reopening it are a person's decisions recorded through `/task-track --mode=lifecycle`; its type, priority level, due date and areas are recorded through `/task-track --mode=maintain`. The section named at the top of this file owns those lists, so this template states none of them and carries no decision or priority key of its own.
 - **module**: Auto-detected by `/initiative` for project domain features. Leave blank for infrastructure/cross-cutting.
 - **related_features**: Auto-populated from module README. Can be manually edited.
 - **entities**: Domain entities involved, helps with codebase navigation.

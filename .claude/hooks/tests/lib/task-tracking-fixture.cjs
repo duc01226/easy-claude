@@ -33,11 +33,13 @@ async function withFixture(callback) {
     const fixture = {
         root, core,
         config: { project: { name: 'Fixture workspace' }, docsRoots: { teamArtifacts: { path: 'work' } },
-            taskTracking: { schemaVersion: 2, mode: 'linked', members: [
+            taskTracking: { schemaVersion: 3, mode: 'linked', members: [
                 { id: 'owner', displayName: 'Owner', active: true, aliases: ['Previous owner'] },
                 { id: 'peer', displayName: 'Peer', active: true },
                 { id: 'inactive', displayName: 'Inactive', active: false }
-            ], report: { enabled: true, autoRefresh: false } } },
+            // The fixture project asks for the full version by name, so that cases about record detail read it as page
+            // content. Cases about the default remove this key.
+            ], report: { enabled: true, autoRefresh: false, detail: 'full' } } },
         write(relative, value) {
             const target = path.join(root, relative);
             fs.mkdirSync(path.dirname(target), { recursive: true });
@@ -68,10 +70,10 @@ async function withFixture(callback) {
             return found;
         },
         view(id) { return this.progress().items.find(item => item.id === id); },
-        authority(overrides = {}) { return { root, actor: 'owner', canWrite: true, canReview: true, canAccept: true, canRecordManual: true, ...overrides }; },
+        authority(overrides = {}) { return { root, actor: 'owner', canWrite: true, canReview: true, canAccept: true, canRecordManual: true, canDecide: true, ...overrides }; },
         request(operation, id, patch, overrides = {}) {
             const record = operation === 'create' ? null : this.record(id);
-            return { schemaVersion: 2, operation, operationId: `operation-${++counter}`,
+            return { schemaVersion: 3, operation, operationId: `operation-${++counter}`,
                 target: { kind: record?.kind || 'task', ...(id ? { itemId: id } : {}) }, actor: { memberId: 'owner' }, patch,
                 ...(record ? { expected: { revision: record.revision, contentHash: record.contentHash } } : {}), ...overrides };
         },
@@ -109,6 +111,17 @@ async function withFixture(callback) {
             const proof = this.proof(id);
             await this.saved('proof', id, { proof });
             await this.saved('accept', id, { reason: 'Observed criteria are accepted' });
+        },
+        // Runs the vocabulary migration on this project as a person who has a backup would: a fixture project sits outside
+        // version control unless a case commits it, and there a run starts only on that confirmation. A case about the
+        // confirmation itself passes `backupConfirmed: false`. Options are the migration's own: dryRun, abandon, checkpoint.
+        async migrate(options = {}) { return require('../../lib/task-tracking-migration.cjs').migrate(root, { backupConfirmed: true, ...options }); },
+        // Replaces only the area or initiative links the patch names: { areaIds, initiativeIds }.
+        async tag(id, patch) { return this.saved('tag', id, patch); },
+        // An initiative taken through its two decisions: approved, then committed.
+        async committed(id) {
+            await this.saved('transition', id, { state: 'approved' });
+            await this.saved('transition', id, { state: 'committed' });
         }
     };
     try {
@@ -144,77 +157,92 @@ function git(fixture, args) {
     return result.stdout.trim();
 }
 
-// The earlier vocabulary, spelled out as test data. It is deliberately independent of the vocabulary owner: a project
-// built from the owner's own map would still read correctly after that map was broken.
+// The earlier vocabulary, spelled out as test data. It is deliberately independent of the vocabulary owner and of the
+// mapping to the current terms: a project built from the owner's own words would still read correctly after they broke.
 const EARLIER_WORDS = Object.freeze({
-    kinds: { task: 'pbi', subtask: 'task', initiative: 'idea', project: 'epic', story: 'story', vision: 'vision' },
-    folders: { task: 'pbis', subtask: 'tasks', initiative: 'ideas', project: 'epics', story: 'pbis/stories', vision: 'visions' },
-    currentFolders: { task: 'tasks', subtask: 'subtasks', initiative: 'initiatives', project: 'projects', story: 'tasks/stories', vision: 'visions' },
-    states: { planned: 'backlog' }, groupRoles: { program: 'initiative' }, linkRoles: { initiative: 'idea' }
+    version: 2,
+    // Where each kind was kept. Groups had their own two locations; every other kind is kept where it still is.
+    folders: { task: 'tasks', subtask: 'subtasks', initiative: 'initiatives', story: 'tasks/stories', project: 'projects', vision: 'visions' },
+    groupKinds: ['project', 'vision'],
+    groupRoles: ['area', 'domain', 'capability', 'program'],
+    // The two tracking values a group held, and the values a record of the earlier vocabulary never held.
+    memberField: 'memberItemIds', purposeField: 'groupRole',
+    absent: ['level', 'type', 'priorityLevel', 'deadline']
 });
 const EARLIER_IDS = Object.freeze({ accepted: 'PBI-1', remaining: 'PBI-2', supporting: 'TASK-K', intent: 'IDEA-D', story: 'STORY-S', group: 'EPIC-E' });
 
+const earlierHeader = (header, body) => `---\n${Object.entries(header).map(([key, value]) => `${key}: ${JSON.stringify(value)}`).join('\n')}\n---\n${body}`;
+/**
+ * A group record as an earlier release saved it: captured, then given its members and purpose, then taken to its state
+ * when that is not draft, with one history entry and one receipt per save.
+ */
+function earlierGroup({ id, kind = 'project', purpose = null, members = [], status = 'draft' }) {
+    const ownerPath = `work/${EARLIER_WORDS.folders[kind]}/${id}.md`;
+    const saves = [['create', 'draft', 'draft'], ['group', 'draft', 'draft'], ...(status === 'draft' ? [] : [['transition', 'draft', status]])];
+    const operationId = operation => `earlier-${operation}-${id}`;
+    const tracking = { schemaVersion: EARLIER_WORDS.version, revision: saves.length, kind, assigneeId: null, collaboratorIds: [], criteria: CRITERIA, links: [], proofs: [], acceptanceHistory: [],
+        history: saves.map(([operation, beforeState, afterState]) => ({ operationId: operationId(operation), operation, actor: 'owner', at: OBSERVED_AT, beforeState, afterState,
+            beforeAssigneeId: null, afterAssigneeId: null, reason: null, context: { operationId: operationId(operation), kind: 'direct' } })),
+        receipts: saves.map(([operation], index) => ({ operationId: operationId(operation), digest: crypto.createHash('sha256').update(operationId(operation)).digest('hex'), afterRevision: index + 1,
+            result: { status: 'saved', operationId: operationId(operation), itemId: id, kind, ownerPath, revision: index + 1 } })),
+        optOut: false, retired: null, context: { operationId: operationId(saves.at(-1)[0]), kind: 'direct' },
+        [EARLIER_WORDS.memberField]: members, ...(purpose === null ? {} : { [EARLIER_WORDS.purposeField]: purpose }) };
+    return [ownerPath, earlierHeader({ id, title: 'Export selected rows', intent: 'Let an operator export a selected subset', status, tracking }, '\n')];
+}
+
 /**
  * Turns the fixture into a project that stores the earlier vocabulary, as a release before the vocabulary change wrote
- * it. Saves are refused in such a project, so the same work is first saved in the current words, its progress is
- * captured, and every record file is then rewritten directly: earlier locations, earlier kind, state, history states,
- * group purpose, link relation, receipt kind and paths, and record stamp 1. Authored bodies and identities are kept.
+ * it. This tracker neither saves into such a project nor writes its records, so every record file is written here
+ * directly. Work of the kinds both vocabularies have is first saved in the current words, its progress is captured, and
+ * each of those files is then rewritten as the earlier vocabulary stored it: record stamp 2 and none of the values only
+ * the current vocabulary holds. Group records, which only the earlier vocabulary has, are written whole: their kind,
+ * their location, the members each lists and its purpose. Authored bodies and identities are kept.
  *
- * Work written (identities in `ids`): an accepted delivery item whose history passed through the earlier planned state
- * and which holds receipts and a link to the captured intent; a remaining delivery item in the earlier planned state;
- * supporting work under it, holding one link path into each earlier location; a captured intent; a story under the
- * accepted item; and a group with the earlier finite-scope purpose whose members are both delivery items.
+ * Work written (identities in `ids`): an accepted task whose history passed through the planned state and which holds
+ * receipts and a link to the proposal; a remaining task in the planned state; a subtask under it, holding one link path
+ * into each location; a proposal; a story under the accepted task; and a group with the finite-outcome purpose that
+ * lists both tasks. Work saved through the fixture before this call is rewritten with it and becomes part of the project.
  *
- * Options: `declared` (default true) keeps the tracker block with marker 1 and a custom label under the earlier purpose
- * key; false removes the tracker block, leaving an unconfigured project recognised by its locations. `commit` (default
- * false) initialises a Git repository and commits the result, for pinned reads.
+ * Options: `declared` (default true) keeps the tracker block with marker 2 and a custom label under a group purpose;
+ * false removes the tracker block, leaving an unconfigured project recognised by its locations. `commit` (default
+ * false) initialises a Git repository and commits the result, for pinned reads. `groups` adds group records, each
+ * `{ id, kind = 'project', purpose = null, members = [], status = 'draft' }`, written and committed with the rest.
  * Returns { ids, expected: { total, accepted, remaining, eligibleIds, states, kinds }, folders, oid }, where `expected`
- * is what the same data reported while stored in the current words under the same configuration.
+ * is what the project reads in the current terms: the delivery numbers are those the same tasks reported while stored
+ * in the current words under the same configuration, and the group named in `ids` is stated here as test data. Groups
+ * added through `groups` are left to the case that adds them.
  */
-async function earlierProject(fixture, { declared = true, commit = false } = {}) {
+async function earlierProject(fixture, { declared = true, commit = false, groups = [] } = {}) {
     const ids = EARLIER_IDS;
-    fixture.config.taskTracking.groupLabels = { program: 'Bet' };
-    fixture.saveConfig();
     await fixture.create(ids.intent, 'initiative');
     await fixture.create(ids.accepted);
-    await fixture.saved('link', ids.accepted, { links: [{ relation: 'initiative', itemId: ids.intent }] });
+    await fixture.tag(ids.accepted, { initiativeIds: [ids.intent] });
     await fixture.accepted(ids.accepted);
     await fixture.create(ids.remaining);
     await fixture.saved('transition', ids.remaining, { state: 'planned' });
     await fixture.create(ids.story, 'story');
     await fixture.saved('link', ids.story, { links: [{ relation: 'parent', itemId: ids.accepted }] });
-    await fixture.create(ids.group, 'project');
-    await fixture.saved('group', ids.group, { memberItemIds: [ids.accepted, ids.remaining], groupRole: 'program' });
     await fixture.create(ids.supporting, 'subtask');
     const current = id => fixture.record(id).ownerPath;
+    const [groupPath, groupText] = earlierGroup({ id: ids.group, purpose: 'program', members: [ids.accepted, ids.remaining] });
     await fixture.saved('link', ids.supporting, { links: [{ relation: 'parent', itemId: ids.remaining },
-        ...[ids.accepted, ids.supporting, ids.intent, ids.group, ids.story].map(id => ({ relation: 'plan', path: current(id) }))] });
+        ...[ids.accepted, ids.supporting, ids.intent, ids.story].map(id => ({ relation: 'plan', path: current(id) }))] });
     if (!declared) { delete fixture.config.taskTracking; fixture.saveConfig(); }
     const before = fixture.progress();
+    // The finite-outcome group is the one record whose kind and state differ between the vocabularies: it reads as a draft initiative.
     const expected = { total: before.metrics.total, accepted: before.metrics.accepted, remaining: before.metrics.remaining,
-        eligibleIds: [...before.metrics.eligibleIds], states: Object.fromEntries(before.items.map(item => [item.id, item.state])),
-        kinds: Object.fromEntries(before.items.map(item => [item.id, item.kind])) };
-    // Longest location first, so a story is moved as a story and never as part of its parent location.
-    const moved = Object.entries(EARLIER_WORDS.currentFolders).sort((a, b) => b[1].length - a[1].length)
-        .map(([kind, folder]) => [`work/${folder}/`, `work/${EARLIER_WORDS.folders[kind]}/`]);
-    // Each path is mapped once from its original value; the two families share a location name, so mapping is never chained.
-    const earlierPath = value => { const pair = moved.find(([from]) => value.startsWith(from)); return pair ? pair[1] + value.slice(pair[0].length) : value; };
-    const word = (table, value) => (Object.hasOwn(table, value) ? table[value] : value);
+        eligibleIds: [...before.metrics.eligibleIds], states: { ...Object.fromEntries(before.items.map(item => [item.id, item.state])), [ids.group]: 'draft' },
+        kinds: { ...Object.fromEntries(before.items.map(item => [item.id, item.kind])), [ids.group]: 'initiative' } };
     const files = fixture.records().map(record => {
         const stored = parseRecord(fs.readFileSync(path.join(fixture.root, record.ownerPath)), record.ownerPath, record.kind);
-        const t = stored.tracking;
-        const tracking = { ...t, schemaVersion: 1, kind: EARLIER_WORDS.kinds[t.kind],
-            history: t.history.map(entry => ({ ...entry, beforeState: word(EARLIER_WORDS.states, entry.beforeState), afterState: word(EARLIER_WORDS.states, entry.afterState) })),
-            links: t.links.map(link => ({ ...link, relation: word(EARLIER_WORDS.linkRoles, link.relation), ...(link.path ? { path: earlierPath(link.path) } : {}) })),
-            receipts: t.receipts.map(receipt => ({ ...receipt, result: { ...receipt.result, kind: EARLIER_WORDS.kinds[receipt.result.kind], ownerPath: earlierPath(receipt.result.ownerPath) } })),
-            ...(typeof t.groupRole === 'string' ? { groupRole: word(EARLIER_WORDS.groupRoles, t.groupRole) } : {}) };
-        const header = { ...stored.data, status: word(EARLIER_WORDS.states, stored.data.status), tracking };
-        return [earlierPath(record.ownerPath), `---\n${Object.entries(header).map(([key, value]) => `${key}: ${JSON.stringify(value)}`).join('\n')}\n---\n${stored.body}`];
+        const tracking = { ...Object.fromEntries(Object.entries(stored.tracking).filter(([key]) => !EARLIER_WORDS.absent.includes(key))), schemaVersion: EARLIER_WORDS.version };
+        // The subtask's link into the group location is written here: no save could inspect a group record.
+        if (record.id === ids.supporting) tracking.links = [...tracking.links.slice(0, -1), { relation: 'plan', path: groupPath }, ...tracking.links.slice(-1)];
+        return [record.ownerPath, earlierHeader({ ...stored.data, tracking }, stored.body)];
     });
-    for (const folder of new Set(Object.values(EARLIER_WORDS.currentFolders).map(value => value.split('/')[0]))) fs.rmSync(path.join(fixture.root, 'work', folder), { recursive: true, force: true });
-    for (const [relative, text] of files) fixture.write(relative, text);
+    for (const [relative, text] of [...files, [groupPath, groupText], ...groups.map(earlierGroup)]) fixture.write(relative, text);
     if (declared) {
-        fixture.config.taskTracking = { ...fixture.config.taskTracking, schemaVersion: 1, groupLabels: { initiative: 'Bet' } };
+        fixture.config.taskTracking = { ...fixture.config.taskTracking, schemaVersion: EARLIER_WORDS.version, groupLabels: { program: 'Bet' } };
         fixture.saveConfig();
     }
     let oid;

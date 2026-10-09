@@ -5,13 +5,13 @@ feature_code: TPT
 status: draft
 provisional: true
 owner: Framework maintainers
-last_updated: 2026-10-07
+last_updated: 2026-10-09
 source_of_truth: README.TaskTracking.md
 parent_spec: README.TaskTracking.md
 continuation: 6
 ---
 
-> **DRAFT — inherits the governing spec's provisional contract evidence. Case guards are mapped to authored tests; all cases remain Untested.**
+> **DRAFT — inherits the governing spec's provisional contract evidence. Current case guards are mapped to authored tests and remain Untested; two retired cases are Deprecated.**
 
 # Work tracking case continuation 6
 
@@ -20,88 +20,84 @@ continuation: 6
 - Read `README.TaskTracking.md` §§1–7 for governing purpose, vocabulary, exact membership, scope navigation and permissions.
 - This continues the same canonical registry and owns fourteen new stable case bodies. Earlier case bodies and their evidence/dispositions remain conserved in the main owner and Parts2–5.
 - Existing lifecycle, acceptance/current-proof/health, cancellation/retirement, identity, native refusal and retry cases remain governing; the bounded semantic reuse map is recorded in the authoring report. One business case may require multiple executing tests.
-- Group purpose is descriptive metadata, not a new lifecycle. This framework-library amendment requires no adopter roadmap, forced organizational taxonomy, native adapter or migration.
+- Earlier group-purpose semantics retained below are historical compatibility inputs; the current area and initiative contracts are governed by the main owner. This framework-library amendment requires no adopter roadmap, forced organizational taxonomy, native adapter or migration.
+
+> Current applicability: vocabulary 3 and the main owner’s kind lifecycles/record-owned tags govern these conserved intents. Historical earlier-vocabulary examples are amended below; no new executor or migration-mechanism obligation is introduced.
 
 ## 8. Test Specifications
 
 ### Test summary
 
-| Priority | Untested | Executed |
-|---|---:|---:|
-| P0 | 5 | 0 |
-| P1 | 6 | 0 |
-| P2 | 3 | 0 |
-| Total | 14 | 0 |
+| Priority | Untested | Deprecated | Executed |
+|---|---:|---:|---:|
+| P0 | 4 | 1 | 0 |
+| P1 | 5 | 1 | 0 |
+| P2 | 3 | 0 | 0 |
+| Total | 12 | 2 | 0 |
 
 ### Preservation Tests
 
-#### TC-TPT-201: Keep existing generic work usable beside optional purposes [P1]
+#### TC-TPT-201: Keep optional organization and existing untagged work usable [P1]
 
-**Objective:** Keep existing generic work usable beside optional purposes.
+**Objective:** Keep work useful without compulsory levels, tags or new wrappers.
 
-**Business Intent / Invariant Guarded:** Optional vocabulary must not force an existing project into an organizational taxonomy.
+**Business Intent / Invariant Guarded:** For ALL supported current projects, absent optional organization preserves useful reading and reachable work without adding authority or credit.
 
-**Proves:** FR-TPT-053, AC-TPT-34, BR-TPT-02, BR-TPT-27.
+**Proves:** FR-TPT-053, FR-TPT-055, AC-TPT-34, AC-TPT-36, BR-TPT-27, BR-TPT-28.
 
 **Preconditions:**
 
-- A contributor has an existing generic vision G containing a project group F and a delivery outcome P; F has a subtask and a separate delivery outcome Q. Existing intent, accepted history and current-proof gaps are recorded.
-- The selected permitted project has no declared purpose labels. Its existing configuration and work are recorded before inspection.
+- areas G/F have unset levels, two tasks retain their intent/history and other work has no area tags
+- The selected source, current records and expected scope are recorded before the action; permitted actor and independent controls are explicit.
 
-**Real-World Reachability:** The contributor opens the existing project, reads G and F, then chooses a purpose for F after reading its current revision and members. No conversion, setup interview or migration step occurs.
+**Real-World Reachability:** A contributor or stakeholder performs this action while maintaining or inspecting the selected working copy; a shared/pinned source uses that source’s own access and records.
 
-**Demo Flow:** Observe the stated source/location and permitted preconditions; perform the actor actions below, and observe each specified positive or refused postcondition before a dependent action. Actor review supplies normal pacing; no fixed delay establishes readiness.
+**Demo Flow:**
+
+1. Open the stated source and record its identity, current facts and permitted actor before acting.
+2. inspect project, G/F and untagged tasks without configuring labels; optionally set an applicable area level and reread.
+3. Observe the actual saved/refused outcome and reread the owned record and relevant scope before the next dependent action; compare with the recorded facts.
+4. Return to the selected scope with source/context retained. Repeat invalid variants from their exact recorded pre-state. Actor review provides normal pacing; no fixed delay establishes readiness.
 
 ```gherkin
-Given G and F are existing generic groups in a permitted project
-When the contributor inspects them and explicitly saves F as a capability through group maintenance
-Then G remains generic and both delivery outcomes remain reachable with their original identities
-And subtasks, history, configuration and the existing nesting remain unchanged
+Given areas G/F have unset levels, two tasks retain their intent/history and other work has no area tags
+When inspect project, G/F and untagged tasks without configuring labels; optionally set an applicable area level and reread
+Then unset-level areas and untagged tasks stay reachable with exact identities and conserved task credit
+And no setup, wrapper, invented taxonomy or target rewrite is required; an invalid optional edit refuses unchanged
 ```
 
 **Expected Result:**
 
 | Dimension | Expectation |
 |---|---|
-| UI | Generic and labelled groups coexist; the normal read and group-maintenance paths remain usable. |
-| System behavior | Absent purpose and absent label configuration preserve supported legacy reading; no wrapper or fixed depth is required. |
-| Business data state | Only the authorized purpose edit is saved; child records and configuration remain byte-conserved. |
-| Data shown on UI | The capability displays Feature by default; generic G retains its identity and its actual two-outcome scope. |
+| UI | unset-level areas and untagged tasks stay reachable with exact identities and conserved task credit |
+| System behavior | no setup, wrapper, invented taxonomy or target rewrite is required; an invalid optional edit refuses unchanged |
+| Business data state | Prior authored content, identity, unrelated records, proof and history remain unchanged except the exact permitted owned outcome. |
+| Data shown on UI | Exact selected identity/source/scope, current kind/state and named outcome; no unsupported count, authority or saved claim. |
 
 **Acceptance Criteria:**
 
-- ✅ Existing generic work remains inspectable before and after one optional purpose edit.
-- ❌ Requiring an area wrapper, converting kinds or rewriting children fails this case.
+- ✅ unset-level areas and untagged tasks stay reachable with exact identities and conserved task credit
+- ✅ no setup, wrapper, invented taxonomy or target rewrite is required; an invalid optional edit refuses unchanged
+- ❌ Any unrequested change, invented credit, hidden refusal or claimed success without the specified observed outcome fails the case.
 
 **Test Data:**
 
 ```json
 {
-  "groups": [
-    "G",
-    "F"
-  ],
-  "members": {
-    "G": [
-      "F",
-      "P"
-    ],
-    "F": [
-      "Q",
-      "subtask"
-    ]
-  },
-  "configuredLabels": "absent",
-  "eligibleOutcomes": [
-    "P",
-    "Q"
-  ]
+  "inputDomain": "current projects with absent/present optional levels, labels and tags",
+  "invariant": "For ALL supported current projects, absent optional organization preserves useful reading and reachable work without adding authority or credit.",
+  "boundaryCounterCase": "no setup, wrapper, invented taxonomy or target rewrite is required; an invalid optional edit refuses unchanged"
 }
 ```
 
-**Edge Cases:** Repeat with minimal valid setup and custom declared roots; a malformed declared profile keeps its existing refusal rather than silently using a default. A capability under a capability and an area under a generic group remain legal when membership is valid.
+**Edge Cases:**
 
-**Transition Invariants:** N/A — purpose, viewing and navigation do not introduce lifecycle transitions or acceptance.
+- Supported earlier groups map read-only under TC-TPT-242; no current group-purpose operation remains.
+- Adding descriptive level affects only its owner and still enforces TC-TPT-263 placement.
+- Default labels are display-only.
+
+**Transition Invariants:** N/A — no lifecycle transition is requested.
 
 **Evidence:** [Source: test/work-tracking/TC-TPT-201]
 
@@ -109,15 +105,17 @@ And subtasks, history, configuration and the existing nesting remain unchanged
 
 | Capability | Anchor |
 |---|---|
-| Governing observable intent | FR-TPT-053, AC-TPT-34, BR-TPT-02, BR-TPT-27 |
-| Executing implementation/assertion | [Source: test/work-tracking/TC-TPT-201]; authored callback/assertion guard, NOT RUN; complete implementation mapping remains TBD |
+| Governing observable intent | FR-TPT-053, FR-TPT-055, AC-TPT-34, AC-TPT-36, BR-TPT-27, BR-TPT-28 |
+| Executing primary guard | [Source: test/work-tracking/TC-TPT-201]; assertion-inspected source mapping, NOT RUN; universal implementation evidence remains TBD |
 
-**CoveredBy:** `.claude/skills/task-track/tests/workspace-browser.test.cjs::An optional capability purpose uses Feature by default without converting generic nesting or children [variant: generic-purpose-coexistence]`, `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-201: absent minimal and relocated configuration need no member enrollment or hierarchy rewrite`, `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-201: optional purpose retains generic nesting and all child owners without setup or conversion`
+**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-201: absent minimal and relocated configuration need no member enrollment or hierarchy rewrite`, `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-201: optional level retains generic nesting and all child owners without setup or conversion`
 **Status:** Untested
 
 ### Positive scope and group outcomes
 
-#### TC-TPT-202: Set change and clear purpose without replacing omitted members [P1]
+#### TC-TPT-202: Set change and clear purpose without replacing omitted members [P1] [DEPRECATED: 2026-10-09 — purpose-only operation retired by the current vocabulary]
+
+**Applicability:** Deprecated — historical vocabulary-2 purpose/member-list operation, retired by the 2026-10-09 current-contract supersession in ADR-0005. Retained for history; not a current schema3 behavior or case to repurpose. The following objective and scenario are historical.
 
 **Objective:** Set change and clear purpose without replacing omitted members.
 
@@ -177,87 +175,79 @@ And F still contains P and subtask and A still contains F
 
 **Transition Invariants:** N/A — purpose, viewing and navigation do not introduce lifecycle transitions or acceptance.
 
-**Evidence:** [Source: test/work-tracking/TC-TPT-202]
+**Evidence:** Historical [Source: test/work-tracking/TC-TPT-202]; retained audit anchor, with no current primary executor.
 
 **Related Behaviors:**
 
 | Capability | Anchor |
 |---|---|
 | Governing observable intent | FR-TPT-053, AC-TPT-34, BR-TPT-02, BR-TPT-12, BR-TPT-27 |
-| Executing implementation/assertion | [Source: test/work-tracking/TC-TPT-202]; authored callback/assertion guard, NOT RUN; complete implementation mapping remains TBD |
+| Executing implementation/assertion | Historical only; the retired operation has no current executor or runtime claim. |
 
-**CoveredBy:** `.claude/skills/task-track/tests/workspace-browser.test.cjs::Purpose set change clear and membership-only edits preserve omitted facts and a refused stale draft [variant: purpose-exact-omission-and-conflict]`, `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-202: purpose preview set change and clear conserve omitted members and external affiliation`
-**Status:** Untested
+**CoveredBy:** Untested — no current primary executor; historical purpose-only operation is retired.
+**Status:** Deprecated
 
-#### TC-TPT-203: Follow a stakeholder scope to an outcome and its governing proof [P1]
+#### TC-TPT-203: Follow selected work to governing intent and proof [P1]
 
-**Objective:** Follow a stakeholder scope to an outcome and its governing proof.
+**Objective:** Keep exact governing evidence reachable from stakeholder scope.
 
-**Business Intent / Invariant Guarded:** A decision maker can explain delivery progress using the exact independently useful outcomes behind it.
+**Business Intent / Invariant Guarded:** For ALL readable scoped work, links expose the actual governing owner and applicable proof without copied authority or invented acceptance.
 
-**Proves:** FR-TPT-054, FR-TPT-055, AC-TPT-35, AC-TPT-36, BR-TPT-04, BR-TPT-28, BR-TPT-29.
+**Proves:** FR-TPT-048, FR-TPT-054, AC-TPT-29, AC-TPT-35, BR-TPT-05, BR-TPT-22, BR-TPT-29.
 
 **Preconditions:**
 
-- Area A directly contains capability F. F declares delivery outcomes P and Q, canceled R, retired S, a story and a subtask; P provides a useful integration outcome to a consuming system.
-- Q retains accepted history but has a relevant current-proof gap. Exact governing-intent and proof owners are readable; health is not attested.
+- a permitted area and initiative point through record-owned tags to task P with governing intent and retained proof
+- The selected source, current records and expected scope are recorded before the action; permitted actor and independent controls are explicit.
 
-**Real-World Reachability:** A stakeholder opens the current project, selects A then F, reads the loaded selected scope, opens P and its governing intent, and returns after observing each new location.
+**Real-World Reachability:** A contributor or stakeholder performs this action while maintaining or inspecting the selected working copy; a shared/pinned source uses that source’s own access and records.
 
-**Demo Flow:** Observe the stated source/location and permitted preconditions; perform the actor actions below, and observe each specified positive or refused postcondition before a dependent action. Actor review supplies normal pacing; no fixed delay establishes readiness.
+**Demo Flow:**
+
+1. Open the stated source and record its identity, current facts and permitted actor before acting.
+2. enter the area or initiative scope, inspect P, open its exact intent/proof owner and return.
+3. Observe the actual saved/refused outcome and reread the owned record and relevant scope before the next dependent action; compare with the recorded facts.
+4. Return to the selected scope with source/context retained. Repeat invalid variants from their exact recorded pre-state. Actor review provides normal pacing; no fixed delay establishes readiness.
 
 ```gherkin
-Given F contains P, Q, R, S, story and subtask
-When the stakeholder follows project to A to F to P and its exact governing intent and returns
-Then the primary delivery list is exactly P and Q and the denominator is two
-And R and S are separately inspectable as excluded and story and subtask are inspectable as supporting work
+Given a permitted area and initiative point through record-owned tags to task P with governing intent and retained proof
+When enter the area or initiative scope, inspect P, open its exact intent/proof owner and return
+Then the same task identity, applicable proof/history, kind/state and selected source/context remain visible
+And missing/denied/ambiguous owners show a named gap and safe return instead of substitute criteria or expanded authority
 ```
 
 **Expected Result:**
 
 | Dimension | Expectation |
 |---|---|
-| UI | Scope, source, coverage and one primary next action precede details; Back returns to F under A. |
-| System behavior | Count independently useful delivery items once; an integration outcome qualifies without a visual widget. Direct child groups and supporting members remain separate. |
-| Business data state | Reading, following intent and returning change no responsibility, lifecycle, acceptance or proof. |
-| Data shown on UI | Q is accepted historically with re-verification needed; health stays Unknown. P is the same canonical outcome at every location. |
+| UI | the same task identity, applicable proof/history, kind/state and selected source/context remain visible |
+| System behavior | missing/denied/ambiguous owners show a named gap and safe return instead of substitute criteria or expanded authority |
+| Business data state | Prior authored content, identity, unrelated records, proof and history remain unchanged except the exact permitted owned outcome. |
+| Data shown on UI | Exact selected identity/source/scope, current kind/state and named outcome; no unsupported count, authority or saved claim. |
 
 **Acceptance Criteria:**
 
-- ✅ The selected eligible identities explain the denominator and exact intent/proof links remain actionable.
-- ❌ Counting a subtask/widget, concealing exclusions or promoting Q to current proof fails this case.
+- ✅ the same task identity, applicable proof/history, kind/state and selected source/context remain visible
+- ✅ missing/denied/ambiguous owners show a named gap and safe return instead of substitute criteria or expanded authority
+- ❌ Any unrequested change, invented credit, hidden refusal or claimed success without the specified observed outcome fails the case.
 
 **Test Data:**
 
 ```json
 {
-  "members": [
-    "P",
-    "Q",
-    "R",
-    "S",
-    "story",
-    "subtask"
-  ],
-  "eligible": [
-    "P",
-    "Q"
-  ],
-  "excluded": [
-    "R",
-    "S"
-  ],
-  "accepted": [
-    "Q"
-  ],
-  "currentlyVerified": [],
-  "health": "Unknown"
+  "inputDomain": "readable/unresolved/denied governing links from project/area/initiative journeys",
+  "invariant": "For ALL readable scoped work, links expose the actual governing owner and applicable proof without copied authority or invented acceptance.",
+  "boundaryCounterCase": "missing/denied/ambiguous owners show a named gap and safe return instead of substitute criteria or expanded authority"
 }
 ```
 
-**Edge Cases:** An empty capability stays visible with No delivery scope; missing or denied governing intent shows its reason and safe return. Native unsupported proof remains unavailable, without copied replacement criteria.
+**Edge Cases:**
 
-**Transition Invariants:** N/A — purpose, viewing and navigation do not introduce lifecycle transitions or acceptance.
+- Linked initiative context remains reachable without changing delivery scope.
+- Recorded Done and current verified acceptance remain separately labelled.
+- Outside governing owner stays its own authority.
+
+**Transition Invariants:** N/A — no lifecycle transition is requested.
 
 **Evidence:** [Source: test/work-tracking/TC-TPT-203]
 
@@ -265,78 +255,73 @@ And R and S are separately inspectable as excluded and story and subtask are ins
 
 | Capability | Anchor |
 |---|---|
-| Governing observable intent | FR-TPT-054, FR-TPT-055, AC-TPT-35, AC-TPT-36, BR-TPT-04, BR-TPT-28, BR-TPT-29 |
-| Executing implementation/assertion | [Source: test/work-tracking/TC-TPT-203]; authored callback/assertion guard, NOT RUN; complete implementation mapping remains TBD |
+| Governing observable intent | FR-TPT-048, FR-TPT-054, AC-TPT-29, AC-TPT-35, BR-TPT-05, BR-TPT-22, BR-TPT-29 |
+| Executing primary guard | [Source: test/work-tracking/TC-TPT-203]; assertion-inspected source mapping, NOT RUN; universal implementation evidence remains TBD |
 
-**CoveredBy:** `.claude/skills/task-track/tests/workspace-browser.test.cjs::A through F explains exactly two outcomes and their actual intent proof exclusions and support [variant: scope-outcome-intent-proof]`, `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-203: selected delivery identities separate exclusions and support while proof and health keep their meanings`
+**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-203: selected delivery identities separate exclusions and support while proof and health keep their meanings`, `.claude/skills/task-track/tests/workspace-browser.test.cjs::A through F explains exactly two outcomes and their actual intent proof exclusions and support [variant: scope-outcome-intent-proof]`, `.claude/skills/task-track/tests/workspace-browser.test.cjs::An initiative's record lists its linked work with the kind and state of each record, the number of tasks that count is the read's own figure, said beside the list and left unsaid when figures are withheld, and showing the rest of the list puts the reader on the first record added [variant: linked-work-and-counted-tasks]`
 **Status:** Untested
 
-#### TC-TPT-204: Enter one shared capability through either area [P1]
+#### TC-TPT-204: Enter shared work through either valid area path [P1]
 
-**Objective:** Enter one shared capability through either area.
+**Objective:** Preserve identity and context when organizational affiliations overlap.
 
-**Business Intent / Invariant Guarded:** Shared work remains one outcome set while the reader retains the context actually chosen.
+**Business Intent / Invariant Guarded:** For ALL valid shared affiliations, different entry paths preserve the same work identity, proof and delivery credit while retaining the chosen path.
 
-**Proves:** FR-TPT-055, AC-TPT-36, BR-TPT-28, BR-TPT-29, INV-TPT-07.
+**Proves:** FR-TPT-054, FR-TPT-055, AC-TPT-35, AC-TPT-36, BR-TPT-28, BR-TPT-29, INV-TPT-07.
 
 **Preconditions:**
 
-- Areas A and B each directly declare capability F; F contains P and Q. A also reaches Q through generic G.
-- The reader has permission to read both areas and starts with a recorded search filter in A.
+- task P tags two valid areas A/B and its accepted/current-proof facts are recorded
+- The selected source, current records and expected scope are recorded before the action; permitted actor and independent controls are explicit.
 
-**Real-World Reachability:** The stakeholder enters F from A, opens an outcome and returns, then deliberately chooses B from F’s other affiliations and enters F there. Each location is read before the next dependent action.
+**Real-World Reachability:** A contributor or stakeholder performs this action while maintaining or inspecting the selected working copy; a shared/pinned source uses that source’s own access and records.
 
-**Demo Flow:** Observe the stated source/location and permitted preconditions; perform the actor actions below, and observe each specified positive or refused postcondition before a dependent action. Actor review supplies normal pacing; no fixed delay establishes readiness.
+**Demo Flow:**
+
+1. Open the stated source and record its identity, current facts and permitted actor before acting.
+2. enter P through A, return, then enter through B and inspect other direct affiliations.
+3. Observe the actual saved/refused outcome and reread the owned record and relevant scope before the next dependent action; compare with the recorded facts.
+4. Return to the selected scope with source/context retained. Repeat invalid variants from their exact recorded pre-state. Actor review provides normal pacing; no fixed delay establishes readiness.
 
 ```gherkin
-Given A and B both directly contain F and F contains P and Q
-When the reader enters F through A then separately through B
-Then F keeps one identity and the same two-outcome denominator
-And each return trail names the chosen area and the other direct affiliation is available on demand
+Given task P tags two valid areas A/B and its accepted/current-proof facts are recorded
+When enter P through A, return, then enter through B and inspect other direct affiliations
+Then P is the same record and each selected area counts it once; Back follows the chosen path
+And no duplicate identity, exclusive-parent claim or extra delivery credit is introduced
 ```
 
 **Expected Result:**
 
 | Dimension | Expectation |
 |---|---|
-| UI | The chosen breadcrumb and Back remain clear; other affiliations are a separate explicit choice. |
-| System behavior | Validate a chosen path against direct membership; legitimate diamond reuse is not a cycle. Do not expand every possible ancestry path. |
-| Business data state | Navigation and filters save no reciprocal membership, copied item or history. |
-| Data shown on UI | P and Q appear once in each selected scope; A’s second route to Q adds no credit. |
+| UI | P is the same record and each selected area counts it once; Back follows the chosen path |
+| System behavior | no duplicate identity, exclusive-parent claim or extra delivery credit is introduced |
+| Business data state | Prior authored content, identity, unrelated records, proof and history remain unchanged except the exact permitted owned outcome. |
+| Data shown on UI | Exact selected identity/source/scope, current kind/state and named outcome; no unsupported count, authority or saved claim. |
 
 **Acceptance Criteria:**
 
-- ✅ Returning preserves the chosen area and filter while alternative entry preserves canonical identity.
-- ❌ Inventing a single permanent parent, multiplying identities by paths or accepting a nonmembership breadcrumb fails.
+- ✅ P is the same record and each selected area counts it once; Back follows the chosen path
+- ✅ no duplicate identity, exclusive-parent claim or extra delivery credit is introduced
+- ❌ Any unrequested change, invented credit, hidden refusal or claimed success without the specified observed outcome fails the case.
 
 **Test Data:**
 
 ```json
 {
-  "directMembers": {
-    "A": [
-      "F",
-      "G"
-    ],
-    "B": [
-      "F"
-    ],
-    "F": [
-      "P",
-      "Q"
-    ],
-    "G": [
-      "Q"
-    ]
-  },
-  "featureDenominator": 2,
-  "areaADenominator": 2
+  "inputDomain": "multiple valid area paths, shared tasks and independently selected scopes",
+  "invariant": "For ALL valid shared affiliations, different entry paths preserve the same work identity, proof and delivery credit while retaining the chosen path.",
+  "boundaryCounterCase": "no duplicate identity, exclusive-parent claim or extra delivery credit is introduced"
 }
 ```
 
-**Edge Cases:** Direct entry to F claims no selected parent. If the saved path’s edge was removed by a real later group edit, show Path unavailable and a safe current scope rather than reattaching it.
+**Edge Cases:**
 
-**Transition Invariants:** N/A — purpose, viewing and navigation do not introduce lifecycle transitions or acceptance.
+- Selecting an initiative still includes direct tags only.
+- A direct link without a chosen parent invents no ancestry.
+- Display labels and filters preserve identity.
+
+**Transition Invariants:** N/A — no lifecycle transition is requested.
 
 **Evidence:** [Source: test/work-tracking/TC-TPT-204]
 
@@ -344,73 +329,73 @@ And each return trail names the chosen area and the other direct affiliation is 
 
 | Capability | Anchor |
 |---|---|
-| Governing observable intent | FR-TPT-055, AC-TPT-36, BR-TPT-28, BR-TPT-29, INV-TPT-07 |
-| Executing implementation/assertion | [Source: test/work-tracking/TC-TPT-204]; authored callback/assertion guard, NOT RUN; complete implementation mapping remains TBD |
+| Governing observable intent | FR-TPT-054, FR-TPT-055, AC-TPT-35, AC-TPT-36, BR-TPT-28, BR-TPT-29, INV-TPT-07 |
+| Executing primary guard | [Source: test/work-tracking/TC-TPT-204]; assertion-inspected source mapping, NOT RUN; universal implementation evidence remains TBD |
 
-**CoveredBy:** `.claude/skills/task-track/tests/workspace-browser.test.cjs::Shared F retains the deliberately chosen A or B path and safely rejects a later removed membership edge [variant: chosen-shared-path-and-removed-edge]`, `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-204: shared diamonds expose direct affiliations and exact unique scopes without a permanent parent`
+**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-204: shared diamonds expose direct affiliations and exact unique scopes without a permanent parent`, `.claude/skills/task-track/tests/workspace-browser.test.cjs::Shared F retains the deliberately chosen A or B path and safely rejects a later removed tag to the area above [variant: chosen-shared-path-and-removed-edge]`
 **Status:** Untested
 
-#### TC-TPT-205: Keep generic and ungrouped outcomes visible while filters stay cosmetic [P1]
+#### TC-TPT-205: Keep untagged and unset-level work visible while filters stay cosmetic [P1]
 
-**Objective:** Keep generic and ungrouped outcomes visible while filters stay cosmetic.
+**Objective:** Let teams inspect useful work before or outside organization.
 
-**Business Intent / Invariant Guarded:** A project can inspect useful work without complete taxonomy and without a search changing progress.
+**Business Intent / Invariant Guarded:** For ALL display filters and optional organization, project inventory preserves every admitted record and filtering never changes delivery membership or eligibility.
 
-**Proves:** FR-TPT-054, FR-TPT-055, AC-TPT-35, AC-TPT-36, BR-TPT-04, BR-TPT-09, BR-TPT-28, BR-TPT-29.
+**Proves:** FR-TPT-054, FR-TPT-055, AC-TPT-36, BR-TPT-09, BR-TPT-28.
 
 **Preconditions:**
 
-- The project contains labelled A and F, reachable generic G, ungrouped outcome U, and supporting subtask T. A has eligible P and Q.
-- P has no acceptance and Q has historical acceptance with a current-proof gap.
+- an unset-level area and untagged eligible task coexist with organized work
+- The selected source, current records and expected scope are recorded before the action; permitted actor and independent controls are explicit.
 
-**Real-World Reachability:** The stakeholder opens project choices, visits G and U, returns to A, applies a search with no matches, then clears it after the filter-empty result is visible.
+**Real-World Reachability:** A contributor or stakeholder performs this action while maintaining or inspecting the selected working copy; a shared/pinned source uses that source’s own access and records.
 
-**Demo Flow:** Observe the stated source/location and permitted preconditions; perform the actor actions below, and observe each specified positive or refused postcondition before a dependent action. Actor review supplies normal pacing; no fixed delay establishes readiness.
+**Demo Flow:**
+
+1. Open the stated source and record its identity, current facts and permitted actor before acting.
+2. inspect project entries, apply and clear person/state/search filters, then inspect the same task scope.
+3. Observe the actual saved/refused outcome and reread the owned record and relevant scope before the next dependent action; compare with the recorded facts.
+4. Return to the selected scope with source/context retained. Repeat invalid variants from their exact recorded pre-state. Actor review provides normal pacing; no fixed delay establishes readiness.
 
 ```gherkin
-Given generic G and ungrouped U coexist with A and F
-When the stakeholder inspects those choices and applies a zero-match filter in A
-Then U remains a delivery outcome without an invented group and G remains reachable
-And A still has the denominator P and Q with No work matches this view
+Given an unset-level area and untagged eligible task coexist with organized work
+When inspect project entries, apply and clear person/state/search filters, then inspect the same task scope
+Then untagged work and unset-level areas remain reachable with unchanged exact task denominator
+And filter-empty is distinguished from empty project and cannot erase records or create completion
 ```
 
 **Expected Result:**
 
 | Dimension | Expectation |
 |---|---|
-| UI | Project choices expose generic and ungrouped work beside optional labelled scopes; Clear filters is a usable exit. |
-| System behavior | An explicit scope selection changes scope; filtering affects only visible matching rows and never admitted membership or metrics. |
-| Business data state | No wrapper, classification, acceptance or membership is saved by viewing. |
-| Data shown on UI | A’s accepted history remains one of two and its current-proof gap remains; ungrouped U adds only its single project identity. |
+| UI | untagged work and unset-level areas remain reachable with unchanged exact task denominator |
+| System behavior | filter-empty is distinguished from empty project and cannot erase records or create completion |
+| Business data state | Prior authored content, identity, unrelated records, proof and history remain unchanged except the exact permitted owned outcome. |
+| Data shown on UI | Exact selected identity/source/scope, current kind/state and named outcome; no unsupported count, authority or saved claim. |
 
 **Acceptance Criteria:**
 
-- ✅ Zero search matches retain the selected denominator; generic and ungrouped outcomes have usable direct detail paths.
-- ❌ Treating zero matches as no work or 100% complete, hiding U, or counting T fails.
+- ✅ untagged work and unset-level areas remain reachable with unchanged exact task denominator
+- ✅ filter-empty is distinguished from empty project and cannot erase records or create completion
+- ❌ Any unrequested change, invented credit, hidden refusal or claimed success without the specified observed outcome fails the case.
 
 **Test Data:**
 
 ```json
 {
-  "projectEligible": [
-    "P",
-    "Q",
-    "U"
-  ],
-  "areaEligible": [
-    "P",
-    "Q"
-  ],
-  "zeroMatchFilter": "does-not-match",
-  "support": [
-    "T"
-  ]
+  "inputDomain": "project/area/initiative views and all admitted cosmetic filters",
+  "invariant": "For ALL display filters and optional organization, project inventory preserves every admitted record and filtering never changes delivery membership or eligibility.",
+  "boundaryCounterCase": "filter-empty is distinguished from empty project and cannot erase records or create completion"
 }
 ```
 
-**Edge Cases:** An entirely complete empty project differs from a nonempty project with no eligible tasks. A retired ungrouped outcome remains separately inspectable as excluded, with no eligible credit.
+**Edge Cases:**
 
-**Transition Invariants:** N/A — purpose, viewing and navigation do not introduce lifecycle transitions or acceptance.
+- A complete project with no organization has useful empty area/initiative notices and reachable work.
+- Canceled/retired work stays separately visible without active credit.
+- No fabricated area is created for untagged work.
+
+**Transition Invariants:** N/A — no lifecycle transition is requested.
 
 **Evidence:** [Source: test/work-tracking/TC-TPT-205]
 
@@ -418,76 +403,75 @@ And A still has the denominator P and Q with No work matches this view
 
 | Capability | Anchor |
 |---|---|
-| Governing observable intent | FR-TPT-054, FR-TPT-055, AC-TPT-35, AC-TPT-36, BR-TPT-04, BR-TPT-09, BR-TPT-28, BR-TPT-29 |
-| Executing implementation/assertion | [Source: test/work-tracking/TC-TPT-205]; authored callback/assertion guard, NOT RUN; complete implementation mapping remains TBD |
+| Governing observable intent | FR-TPT-054, FR-TPT-055, AC-TPT-36, BR-TPT-09, BR-TPT-28 |
+| Executing primary guard | [Source: test/work-tracking/TC-TPT-205]; assertion-inspected source mapping, NOT RUN; universal implementation evidence remains TBD |
 
-**CoveredBy:** `.claude/skills/task-track/tests/workspace-browser.test.cjs::Generic and ungrouped choices remain reachable while zero search results cannot redefine area progress [variant: generic-ungrouped-filter-choices]`, `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-205: project retains generic and ungrouped work while selected delivery remains independent of outside records`
+**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-205: project retains unlevelled and untagged work while selected delivery remains independent of outside records`, `.claude/hooks/tests/suites/task-tracking-invariants.test.cjs::TC-TPT-205: work with no area belongs to the project and is named as untagged, and no application record is needed or created`, `.claude/skills/task-track/tests/workspace-browser.test.cjs::An area without a level and work in no area remain reachable while zero search results cannot redefine area progress [variant: generic-ungrouped-filter-choices]`
 **Status:** Untested
 
 ### Validation and boundary outcomes
 
-#### TC-TPT-211: Refuse invalid purpose and unsafe vocabulary without losing the draft [P1]
+#### TC-TPT-211: Refuse invalid owned values and unsafe labels without losing the draft [P1]
 
-**Objective:** Refuse invalid purpose and unsafe vocabulary without losing the draft.
+**Objective:** Fail closed for malformed optional vocabulary and preserve pending work.
 
-**Business Intent / Invariant Guarded:** Optional descriptive vocabulary has a finite safe meaning and cannot silently damage or execute work.
+**Business Intent / Invariant Guarded:** For ALL current owned-value and label declarations, only applicable allowed values and bounded inert label text are admitted; malformed declarations never silently default.
 
-**Proves:** FR-TPT-053, AC-TPT-34, BR-TPT-02, BR-TPT-27.
+**Proves:** FR-TPT-061, FR-TPT-063, AC-TPT-42, AC-TPT-44, BR-TPT-27, BR-TPT-33.
 
 **Preconditions:**
 
-- A maintainer can edit group F and has an entered pending draft; a permitted delivery outcome P is also present.
-- Valid labels and the original work are recorded before the invalid requests.
+- current record F has a retained draft and a project config can be varied in isolated copies
+- The selected source, current records and expected scope are recorded before the action; permitted actor and independent controls are explicit.
 
-**Real-World Reachability:** After reading the current group, the maintainer previews an unsupported purpose, attempts purpose on P and an empty group request. In separate isolated configuration variants the reader supplies invalid label declarations then repeats with valid boundary labels.
+**Real-World Reachability:** A contributor or stakeholder performs this action while maintaining or inspecting the selected working copy; a shared/pinned source uses that source’s own access and records.
 
-**Demo Flow:** Observe the stated source/location and permitted preconditions; perform the actor actions below, and observe each specified positive or refused postcondition before a dependent action. Actor review supplies normal pacing; no fixed delay establishes readiness.
+**Demo Flow:**
+
+1. Open the stated source and record its identity, current facts and permitted actor before acting.
+2. attempt an unknown/foreign-kind value and invalid kind/level/type label shapes, then inspect valid boundary text.
+3. Observe the actual saved/refused outcome and reread the owned record and relevant scope before the next dependent action; compare with the recorded facts.
+4. Return to the selected scope with source/context retained. Repeat invalid variants from their exact recorded pre-state. Actor review provides normal pacing; no fixed delay establishes readiness.
 
 ```gherkin
-Given F has a retained draft and P is a delivery outcome
-When the maintainer requests an unknown purpose, purpose on P, or neither purpose nor members
-Then each request is refused with its business reason and current records and draft preserved
-When a label is blank, contains a control character, exceeds the limit or declares an unsupported label key
-Then the affected declaration is invalid instead of silently defaulted
+Given current record F has a retained draft and a project config can be varied in isolated copies
+When attempt an unknown/foreign-kind value and invalid kind/level/type label shapes, then inspect valid boundary text
+Then each invalid field has a named refusal with saved records and pending draft preserved; valid inert boundary text displays only
+And blank/control/oversized/malformed/unknown-key labels and declared-vocabulary kind collisions do not become work or executable instructions
 ```
 
 **Expected Result:**
 
 | Dimension | Expectation |
 |---|---|
-| UI | Explain the invalid fact beside the editor or scope capability and retain a useful exit. |
-| System behavior | Only three named purposes on vision/project groups and their three inert labels are admitted; declared malformed configuration fails closed. |
-| Business data state | No requested invalid fact, inferred membership or unintended configuration repair is saved. |
-| Data shown on UI | A 160-character nonblank label is readable; a 161-character label is invalid; executable-looking text within the valid text domain displays as text. |
+| UI | each invalid field has a named refusal with saved records and pending draft preserved; valid inert boundary text displays only |
+| System behavior | blank/control/oversized/malformed/unknown-key labels and declared-vocabulary kind collisions do not become work or executable instructions |
+| Business data state | Prior authored content, identity, unrelated records, proof and history remain unchanged except the exact permitted owned outcome. |
+| Data shown on UI | Exact selected identity/source/scope, current kind/state and named outcome; no unsupported count, authority or saved claim. |
 
 **Acceptance Criteria:**
 
-- ✅ Invalid purpose, nongroup purpose, empty patch and invalid label shapes have distinct refused outcomes.
-- ❌ Running a label, silently falling back for malformed declared data or erasing the draft fails.
+- ✅ each invalid field has a named refusal with saved records and pending draft preserved; valid inert boundary text displays only
+- ✅ blank/control/oversized/malformed/unknown-key labels and declared-vocabulary kind collisions do not become work or executable instructions
+- ❌ Any unrequested change, invented credit, hidden refusal or claimed success without the specified observed outcome fails the case.
 
 **Test Data:**
 
 ```json
 {
-  "invalidPurposes": [
-    "module",
-    "unknown",
-    7
-  ],
-  "invalidLabels": [
-    "",
-    "   ",
-    "line\nfeed",
-    "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-  ],
-  "validBoundary": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-  "unsupportedLabel": "other"
+  "inputDomain": "all valid current kind/level/type label keys, raw text lengths160/161, control/blank/shape/collision and owned-value applicability",
+  "invariant": "For ALL current owned-value and label declarations, only applicable allowed values and bounded inert label text are admitted; malformed declarations never silently default.",
+  "boundaryCounterCase": "blank/control/oversized/malformed/unknown-key labels and declared-vocabulary kind collisions do not become work or executable instructions"
 }
 ```
 
-**Edge Cases:** Trim surrounding ordinary whitespace for valid display. Duplicate label text may identify different purposes by stable role/identity and must not merge groups. Missing declarations use defaults without creating shared configuration.
+**Edge Cases:**
 
-**Transition Invariants:** N/A — purpose, viewing and navigation do not introduce lifecycle transitions or acceptance.
+- A160-character nonblank label is admitted;161 raw characters refuses even if trimming would shorten it.
+- Declared earlier2 group labels use earlier compatibility only and cannot become a current groupLabels configuration.
+- Kind-owned null/omission applicability is fully owned by TC-TPT-272.
+
+**Transition Invariants:** N/A — no lifecycle transition is requested.
 
 **Evidence:** [Source: test/work-tracking/TC-TPT-211]
 
@@ -495,74 +479,75 @@ Then the affected declaration is invalid instead of silently defaulted
 
 | Capability | Anchor |
 |---|---|
-| Governing observable intent | FR-TPT-053, AC-TPT-34, BR-TPT-02, BR-TPT-27 |
-| Executing implementation/assertion | [Source: test/work-tracking/TC-TPT-211]; authored callback/assertion guard, NOT RUN; complete implementation mapping remains TBD |
+| Governing observable intent | FR-TPT-061, FR-TPT-063, AC-TPT-42, AC-TPT-44, BR-TPT-27, BR-TPT-33 |
+| Executing primary guard | [Source: test/work-tracking/TC-TPT-211]; assertion-inspected source mapping, NOT RUN; universal implementation evidence remains TBD |
 
-**CoveredBy:** `.claude/skills/task-track/tests/workspace-browser.test.cjs::Invalid purpose and declared vocabulary refuse through actual boundaries while a useful group draft survives [variant: purpose-and-vocabulary-refusal]`, `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-211: invalid purposes empty patches and nongroup changes refuse with canonical bytes preserved`, `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-211: declared labels share project validation and fail closed at raw length control and shape boundaries`
+**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-211: declared labels share project validation and fail closed at raw length control and shape boundaries`
 **Status:** Untested
 
 ### Edge and concern outcomes
 
-#### TC-TPT-212: Expose corrupt or bounded membership as incomplete scope [P2]
+#### TC-TPT-212: Expose corrupt or bounded affiliation as incomplete scope [P2]
 
-**Objective:** Expose corrupt or bounded membership as incomplete scope.
+**Objective:** Avoid complete progress claims from incomplete organization.
 
-**Business Intent / Invariant Guarded:** An uncertain graph must not produce a complete-looking delivery percentage or choose an arbitrary owner.
+**Business Intent / Invariant Guarded:** For ALL missing/ambiguous/cyclic/cut tagged scope, expose exact causes and inspected work without a complete percentage or arbitrary owner.
 
-**Proves:** FR-TPT-054, AC-TPT-35, BR-TPT-05, BR-TPT-10, BR-TPT-20, BR-TPT-28.
+**Proves:** FR-TPT-013, FR-TPT-021, AC-TPT-35, BR-TPT-10, BR-TPT-28, BR-TPT-32.
 
 **Preconditions:**
 
-- Separate deliberate corrupt-import variants contain self-membership, a two-group cycle, a missing reference or two owners claiming the same identity. A healthy diamond variant is retained for comparison.
-- These invalid states model a manual/outside-host edit or upstream partial save; permitted ordinary group editing must refuse creating them.
+- a selected source contains unresolved area/initiative tags or a bounded incomplete read
+- The selected source, current records and expected scope are recorded before the action; permitted actor and independent controls are explicit.
 
-**Real-World Reachability:** After a teammate finishes the outside-host save, the stakeholder performs the next allowed scoped inspection. In a separately declared oversized fixture the reader reaches the supported inspection bound; no blind wait or unbounded retry substitutes for a result.
+**Real-World Reachability:** A contributor or stakeholder performs this action while maintaining or inspecting the selected working copy; a shared/pinned source uses that source’s own access and records.
 
-**Demo Flow:** Observe the stated source/location and permitted preconditions; perform the actor actions below, and observe each specified positive or refused postcondition before a dependent action. Actor review supplies normal pacing; no fixed delay establishes readiness.
+**Demo Flow:**
+
+1. Open the stated source and record its identity, current facts and permitted actor before acting.
+2. inspect project and selected area/initiative figures, then follow available safe details.
+3. Observe the actual saved/refused outcome and reread the owned record and relevant scope before the next dependent action; compare with the recorded facts.
+4. Return to the selected scope with source/context retained. Repeat invalid variants from their exact recorded pre-state. Actor review provides normal pacing; no fixed delay establishes readiness.
 
 ```gherkin
-Given an outside-host import left a cycle, missing member or duplicate owner
-When the stakeholder inspects the exact group
-Then the read terminates with named incomplete or unavailable coverage and inspected identities
-And it withholds a complete percentage and chooses no duplicate-owner winner
-When the same reader inspects a valid shared diamond
-Then sharing remains valid and each outcome appears once
+Given a selected source contains unresolved area/initiative tags or a bounded incomplete read
+When inspect project and selected area/initiative figures, then follow available safe details
+Then Partial/Unavailable and the causal identity/tag or limit are explicit; known work remains inspectable
+And no automatic repair, guessed owner, zero-as-complete result or complete organizational figures is produced
 ```
 
 **Expected Result:**
 
 | Dimension | Expectation |
 |---|---|
-| UI | Partial or unavailable scope names affected identities and offers a permitted reread or safe return. |
-| System behavior | Bound graph and output inspection; an omitted member or affiliation is disclosed rather than returned as complete empty data. |
-| Business data state | Inspection preserves all imported records and makes no repair or new authority claim. |
-| Data shown on UI | Complete empty, known zero, partial and unavailable remain distinct; wrong-kind or missing selected group is unavailable. |
+| UI | Partial/Unavailable and the causal identity/tag or limit are explicit; known work remains inspectable |
+| System behavior | no automatic repair, guessed owner, zero-as-complete result or complete organizational figures is produced |
+| Business data state | Prior authored content, identity, unrelated records, proof and history remain unchanged except the exact permitted owned outcome. |
+| Data shown on UI | Exact selected identity/source/scope, current kind/state and named outcome; no unsupported count, authority or saved claim. |
 
 **Acceptance Criteria:**
 
-- ✅ Every invalid/bounded variant is honest and bounded, while the healthy diamond remains complete.
-- ❌ Pruning a cycle silently, selecting a duplicate owner, using a parent/dependency edge as membership or showing 100% after truncation fails.
+- ✅ Partial/Unavailable and the causal identity/tag or limit are explicit; known work remains inspectable
+- ✅ no automatic repair, guessed owner, zero-as-complete result or complete organizational figures is produced
+- ❌ Any unrequested change, invented credit, hidden refusal or claimed success without the specified observed outcome fails the case.
 
 **Test Data:**
 
 ```json
 {
-  "invalidVariants": [
-    "self",
-    "cycle",
-    "missing",
-    "duplicate-owner",
-    "wrong-kind-selection",
-    "bound-exhausted"
-  ],
-  "healthyVariant": "shared diamond",
-  "expectedInvalidCoverage": "partial or unavailable"
+  "inputDomain": "unresolved/duplicate/cyclic target graphs and read bounds",
+  "invariant": "For ALL missing/ambiguous/cyclic/cut tagged scope, expose exact causes and inspected work without a complete percentage or arbitrary owner.",
+  "boundaryCounterCase": "no automatic repair, guessed owner, zero-as-complete result or complete organizational figures is produced"
 }
 ```
 
-**Edge Cases:** Repeated member references to one valid owner deduplicate; they differ from duplicate canonical owners. A typed dependency back-link alone is not containment. No outside project is consulted to fill a missing identity.
+**Edge Cases:**
 
-**Transition Invariants:** N/A — purpose, viewing and navigation do not introduce lifecycle transitions or acceptance.
+- UNRESOLVED_TAG identifies missing affiliation; no relink is guessed.
+- All area/initiative figures withhold together when organizational coverage is incomplete.
+- Complete empty scope is a separate outcome.
+
+**Transition Invariants:** N/A — no lifecycle transition is requested.
 
 **Evidence:** [Source: test/work-tracking/TC-TPT-212]
 
@@ -570,95 +555,73 @@ Then sharing remains valid and each outcome appears once
 
 | Capability | Anchor |
 |---|---|
-| Governing observable intent | FR-TPT-054, AC-TPT-35, BR-TPT-05, BR-TPT-10, BR-TPT-20, BR-TPT-28 |
-| Executing implementation/assertion | [Source: test/work-tracking/TC-TPT-212]; authored callback/assertion guard, NOT RUN; complete implementation mapping remains TBD |
+| Governing observable intent | FR-TPT-013, FR-TPT-021, AC-TPT-35, BR-TPT-10, BR-TPT-28, BR-TPT-32 |
+| Executing primary guard | [Source: test/work-tracking/TC-TPT-212]; assertion-inspected source mapping, NOT RUN; universal implementation evidence remains TBD |
 
-**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-212: manual corrupt membership reads terminate honestly without selecting duplicated owners or repairing bytes`, `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-212: edge and navigation byte bounds disclose omissions without complete percentages or invented ungrouped claims`
+**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-212: manual corrupt tag reads terminate honestly without selecting duplicated owners or repairing bytes`, `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-212: edge and navigation byte bounds disclose omissions without complete percentages or invented untagged claims`, `.claude/hooks/tests/suites/task-tracking-invariants.test.cjs::TC-TPT-212: a tag whose target record was removed by hand leaves the read partial, names the unresolved tag and certifies no figure`
 **Status:** Untested
 
-#### TC-TPT-213: Inspect narrow delivery scope without hiding wider linked concerns [P2]
+#### TC-TPT-213: Inspect narrow scope without hiding wider linked concerns [P2]
 
-**Objective:** Inspect narrow delivery scope without hiding wider linked concerns.
+**Objective:** Keep scope arithmetic separate from permitted exact management context.
 
-**Business Intent / Invariant Guarded:** A stakeholder’s delivery scope and a maintainer’s exact linked concerns remain distinct usable views.
+**Business Intent / Invariant Guarded:** For ALL narrow delivery scopes, counts use only selected tasks while permitted incoming/outgoing concerns retain their actual owners and coverage.
 
-**Proves:** FR-TPT-048, FR-TPT-054, AC-TPT-29, AC-TPT-35, BR-TPT-22, BR-TPT-28.
+**Proves:** FR-TPT-048, FR-TPT-054, AC-TPT-29, AC-TPT-35, BR-TPT-22, BR-TPT-28, BR-TPT-29.
 
 **Preconditions:**
 
-- F declares only eligible outcome P and a supporting subtask. Outside F, outcome Q and P each declare a link to the same exact governing specification owner at its permitted location; neither declares a direct link to the other. Subtask Z has a parent link to P but is not declared as F’s member.
-- The shared governing specification is uniquely identified as SPEC-SHARED in the fixture. The contributor may inspect all four records and select that exact specification owner at the location declared by P and Q; a pending permitted edit of Q exists.
+- selected area or initiative has task P linked to permitted governing/other work outside its delivery scope
+- The selected source, current records and expected scope are recorded before the action; permitted actor and independent controls are explicit.
 
-**Real-World Reachability:** The contributor selects F and reads its delivery scope, opens P’s exact linked concerns and reads the declared specification link, then selects that exact shared governing specification owner at its declared location. After reviewing its incoming Q relationship, the contributor deliberately opens Q in management. Each subsequent selection follows review of the preceding visible result.
+**Real-World Reachability:** A contributor or stakeholder performs this action while maintaining or inspecting the selected working copy; a shared/pinned source uses that source’s own access and records.
 
-**Demo Flow:** Observe the stated source/location and permitted preconditions; perform the actor actions below, and observe each specified positive or refused postcondition before a dependent action. Actor review supplies normal pacing; no fixed delay establishes readiness.
+**Demo Flow:**
+
+1. Open the stated source and record its identity, current facts and permitted actor before acting.
+2. inspect selected task figures, open exact linked concerns and return.
+3. Observe the actual saved/refused outcome and reread the owned record and relevant scope before the next dependent action; compare with the recorded facts.
+4. Return to the selected scope with source/context retained. Repeat invalid variants from their exact recorded pre-state. Actor review provides normal pacing; no fixed delay establishes readiness.
 
 ```gherkin
-Given F declares P and subtask while P and Q each link only to the same exact governing specification and Z has a parent link to P
-When the contributor inspects F and then P’s exact linked concerns
-Then F’s eligible delivery list is only P and its supporting list includes subtask
-And P’s concern result exposes its declared specification link but excludes Q
-When the contributor selects the exact shared governing specification owner at the location declared by P
-Then its incoming concerns expose Q with its original declaring owner and specification relationship
-When the contributor opens Q in management and returns to F
-Then Q’s pending draft is retained while neither Q nor Z becomes F membership
+Given selected area or initiative has task P linked to permitted governing/other work outside its delivery scope
+When inspect selected task figures, open exact linked concerns and return
+Then scope denominator stays exact and separately labelled outside relationships remain reachable under actual access
+And outside records never enter delivery count or scoped snapshot detail merely because they are linked
 ```
 
 **Expected Result:**
 
 | Dimension | Expectation |
 |---|---|
-| UI | Scope delivery, supporting work and concerns have clear distinct locations and safe returns; selecting the exact shared specification reveals Q, and Q’s draft is retained. |
-| System behavior | Retain global permitted inventory for concern and management uses; P-only concern inspection excludes Q, while explicit shared-specification selection reveals its incoming Q relationship; derive scoped delivery only from declared membership. |
-| Business data state | No reciprocal copies, inferred memberships, repaired links or draft discard occur. |
-| Data shown on UI | F’s denominator is one; Q’s exact owner and relation are readable with their current coverage limits. |
+| UI | scope denominator stays exact and separately labelled outside relationships remain reachable under actual access |
+| System behavior | outside records never enter delivery count or scoped snapshot detail merely because they are linked |
+| Business data state | Prior authored content, identity, unrelated records, proof and history remain unchanged except the exact permitted owned outcome. |
+| Data shown on UI | Exact selected identity/source/scope, current kind/state and named outcome; no unsupported count, authority or saved claim. |
 
 **Acceptance Criteria:**
 
-- ✅ Narrow scope excludes unrelated delivery rows; P-only concerns exclude Q and explicit shared-specification selection exposes incoming Q without making outside permitted work inaccessible.
-- ❌ Removing Q from global management, counting shared specifications as membership or silently discarding Q’s draft fails.
+- ✅ scope denominator stays exact and separately labelled outside relationships remain reachable under actual access
+- ✅ outside records never enter delivery count or scoped snapshot detail merely because they are linked
+- ❌ Any unrequested change, invented credit, hidden refusal or claimed success without the specified observed outcome fails the case.
 
 **Test Data:**
 
 ```json
 {
-  "members": {
-    "F": [
-      "P",
-      "subtask"
-    ]
-  },
-  "outsideLinked": [
-    "Q",
-    "Z"
-  ],
-  "expectedScopedEligible": [
-    "P"
-  ],
-  "governingSpecification": "SPEC-SHARED",
-  "declaredSpecificationLinks": {
-    "P": "SPEC-SHARED",
-    "Q": "SPEC-SHARED"
-  },
-  "concernSelections": [
-    {
-      "selectedItem": "P",
-      "expectedAbsentConcern": "Q"
-    },
-    {
-      "selectedSpecificationOwner": "SPEC-SHARED",
-      "selectionLocation": "exact permitted location declared by P and Q",
-      "expectedIncomingConcern": "Q"
-    }
-  ],
-  "expectedScopedDenominator": 1,
-  "expectedRetainedDraft": "Q"
+  "inputDomain": "selected project/area/initiative scopes and permitted/denied exact outside links",
+  "invariant": "For ALL narrow delivery scopes, counts use only selected tasks while permitted incoming/outgoing concerns retain their actual owners and coverage.",
+  "boundaryCounterCase": "outside records never enter delivery count or scoped snapshot detail merely because they are linked"
 }
 ```
 
-**Edge Cases:** Ambiguous or denied concern owners stay unresolved and do not leak records. Text similarity alone remains a concern signal, never exact membership or a selected mutation target.
+**Edge Cases:**
 
-**Transition Invariants:** N/A — purpose, viewing and navigation do not introduce lifecycle transitions or acceptance.
+- Scoped snapshot names outside affiliations without carrying outside record detail.
+- Global permitted management remains available separately.
+- Denied relationships give reasons without broader cached disclosure.
+
+**Transition Invariants:** N/A — no lifecycle transition is requested.
 
 **Evidence:** [Source: test/work-tracking/TC-TPT-213]
 
@@ -666,80 +629,75 @@ Then Q’s pending draft is retained while neither Q nor Z becomes F membership
 
 | Capability | Anchor |
 |---|---|
-| Governing observable intent | FR-TPT-048, FR-TPT-054, AC-TPT-29, AC-TPT-35, BR-TPT-22, BR-TPT-28 |
-| Executing implementation/assertion | [Source: test/work-tracking/TC-TPT-213]; authored callback/assertion guard, NOT RUN; complete implementation mapping remains TBD |
+| Governing observable intent | FR-TPT-048, FR-TPT-054, AC-TPT-29, AC-TPT-35, BR-TPT-22, BR-TPT-28, BR-TPT-29 |
+| Executing primary guard | [Source: test/work-tracking/TC-TPT-213]; assertion-inspected source mapping, NOT RUN; universal implementation evidence remains TBD |
 
-**CoveredBy:** `.claude/skills/task-track/tests/workspace-browser.test.cjs::P-only concerns exclude Q until the exact shared specification is selected, without changing F membership [variant: exact-concern-owner-and-retained-outside-draft]`, `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-213: narrow scope preserves global management and exact shared-spec concern selection without inferred members`
+**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-213: narrow scope preserves global management and exact shared-spec concern selection without inferred members`, `.claude/skills/task-track/tests/workspace-browser.test.cjs::P-only concerns exclude Q until the exact shared specification is selected, without changing what is tagged to F [variant: exact-concern-owner-and-retained-outside-draft]`
 **Status:** Untested
 
 ### Authorization outcomes
 
-#### TC-TPT-221: Keep stakeholder guidance and reading separate from write authority [P0]
+#### TC-TPT-221: Keep stakeholder reading and guidance separate from write authority [P0]
 
-**Objective:** Keep stakeholder guidance and reading separate from write authority.
+**Objective:** Make viewing organization useful without granting mutation.
 
-**Business Intent / Invariant Guarded:** Read-oriented hierarchy guidance helps the requested work while permissions and independent controls still govern every action.
+**Business Intent / Invariant Guarded:** For ALL stakeholder/guidance reads, title, labels, area level, initiative type and navigation grant no tag, lifecycle, proof or acceptance authority.
 
-**Proves:** FR-TPT-049, FR-TPT-053, AC-TPT-30, AC-TPT-34, BR-TPT-14, BR-TPT-15, BR-TPT-23, BR-TPT-25, BR-TPT-27.
+**Proves:** FR-TPT-025, AC-TPT-30, AC-TPT-34, AC-TPT-45, BR-TPT-14, BR-TPT-15, BR-TPT-27, BR-TPT-29.
 
 **Preconditions:**
 
-- A stakeholder has permitted read access to A and F but no group-write or acceptance authority. A separate maintainer has group-write access; local author discovery is unavailable for the reader.
-- Tracking observe, off, opted-out and unavailable variants are independently arranged under the established controls. A pinned shared baseline has different labels from the personal worktree.
+- a stakeholder can read selected source but has no separately established write or initiative-decision authority
+- The selected source, current records and expected scope are recorded before the action; permitted actor and independent controls are explicit.
 
-**Real-World Reachability:** The reader asks an ordinary status question and reads the advisory/result before opening F. The reader then attempts a group edit. A separately permitted maintainer previews and saves the same edit under current actor/profile; changed authority before save is rechecked.
+**Real-World Reachability:** A contributor or stakeholder performs this action while maintaining or inspecting the selected working copy; a shared/pinned source uses that source’s own access and records.
 
-**Demo Flow:** Observe the stated source/location and permitted preconditions; perform the actor actions below, and observe each specified positive or refused postcondition before a dependent action. Actor review supplies normal pacing; no fixed delay establishes readiness.
+**Demo Flow:**
+
+1. Open the stated source and record its identity, current facts and permitted actor before acting.
+2. inspect area/initiative details and advisory guidance, then attempt a tag or initiative decision.
+3. Observe the actual saved/refused outcome and reread the owned record and relevant scope before the next dependent action; compare with the recorded facts.
+4. Return to the selected scope with source/context retained. Repeat invalid variants from their exact recorded pre-state. Actor review provides normal pacing; no fixed delay establishes readiness.
 
 ```gherkin
-Given the reader may inspect but not change F and tracking permits advisory guidance
-When the reader asks show module status or show feature progress
-Then concise read-oriented work guidance is eligible without local author lookup or an executed-procedure claim
-When the reader attempts purpose maintenance
-Then it is refused without changes
-And the separately authorized maintainer can save the current previewed group edit
+Given a stakeholder can read selected source but has no separately established write or initiative-decision authority
+When inspect area/initiative details and advisory guidance, then attempt a tag or initiative decision
+Then reading works within permitted scope and each unauthorized action is refused with draft/source preserved
+And pinned/read-only views, hints, labels and actor titles never widen access or claim a saved decision
 ```
 
 **Expected Result:**
 
 | Dimension | Expectation |
 |---|---|
-| UI | Only supported read choices are offered to the stakeholder; refused edits retain input and actual reasons. |
-| System behavior | Guidance grants no authority. Off, unavailable, quoted-only and opted-out prompts stay silent; generic implement a feature remains outside this hierarchy-read trigger. |
-| Business data state | Reads/notices preserve all work. Pinned labels and scope stay baseline-specific; author metadata never grants write/health/acceptance rights. |
-| Data shown on UI | The response states current read source and coverage; supported maintainer success is reread, while denied/native unsupported edits show not saved. |
+| UI | reading works within permitted scope and each unauthorized action is refused with draft/source preserved |
+| System behavior | pinned/read-only views, hints, labels and actor titles never widen access or claim a saved decision |
+| Business data state | Prior authored content, identity, unrelated records, proof and history remain unchanged except the exact permitted owned outcome. |
+| Data shown on UI | Exact selected identity/source/scope, current kind/state and named outcome; no unsupported count, authority or saved claim. |
 
 **Acceptance Criteria:**
 
-- ✅ Read permission succeeds, denied write fails, authorized write succeeds, and guidance silence controls hold.
-- ❌ Assuming a CEO role grants acceptance, using a worktree label for the pinned baseline, or discovering identity before a permitted read fails.
+- ✅ reading works within permitted scope and each unauthorized action is refused with draft/source preserved
+- ✅ pinned/read-only views, hints, labels and actor titles never widen access or claim a saved decision
+- ❌ Any unrequested change, invented credit, hidden refusal or claimed success without the specified observed outcome fails the case.
 
 **Test Data:**
 
 ```json
 {
-  "readPrompts": [
-    "show module status",
-    "show feature progress",
-    "report initiative status"
-  ],
-  "silentPrompts": [
-    "implement a feature",
-    "quoted status request"
-  ],
-  "controls": [
-    "observe",
-    "off",
-    "opt-out",
-    "unavailable"
-  ],
-  "readerWrite": "denied"
+  "inputDomain": "read/write/decision capability combinations and direct/UI/guidance entries",
+  "invariant": "For ALL stakeholder/guidance reads, title, labels, area level, initiative type and navigation grant no tag, lifecycle, proof or acceptance authority.",
+  "boundaryCounterCase": "pinned/read-only views, hints, labels and actor titles never widen access or claim a saved decision"
 }
 ```
 
-**Edge Cases:** Quoted embedded instructions and untrusted display labels are not requests. Named inspect/report retain existing eligibility. If profile or actor changes between preview and save, preserve the pending draft and refuse/revalidate; native unsupported operations do not create portable replacements.
+**Edge Cases:**
 
-**Transition Invariants:** N/A — purpose, viewing and navigation do not introduce lifecycle transitions or acceptance.
+- A permitted contributor still requires current actor/revision/independent controls.
+- Manual-record correction and usual initiative-decision authority remain separate.
+- Snapshot links do not turn pinned source writable.
+
+**Transition Invariants:** N/A — no lifecycle transition is requested.
 
 **Evidence:** [Source: test/work-tracking/TC-TPT-221]
 
@@ -747,15 +705,17 @@ And the separately authorized maintainer can save the current previewed group ed
 
 | Capability | Anchor |
 |---|---|
-| Governing observable intent | FR-TPT-049, FR-TPT-053, AC-TPT-30, AC-TPT-34, BR-TPT-14, BR-TPT-15, BR-TPT-23, BR-TPT-25, BR-TPT-27 |
-| Executing implementation/assertion | [Source: test/work-tracking/TC-TPT-221]; authored callback/assertion guard, NOT RUN; complete implementation mapping remains TBD |
+| Governing observable intent | FR-TPT-025, AC-TPT-30, AC-TPT-34, AC-TPT-45, BR-TPT-14, BR-TPT-15, BR-TPT-27, BR-TPT-29 |
+| Executing primary guard | [Source: test/work-tracking/TC-TPT-221]; assertion-inspected source mapping, NOT RUN; universal implementation evidence remains TBD |
 
-**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-221: descriptive roles preserve independent read write automatic and profile controls`, `.claude/hooks/tests/suites/task-tracking-route.test.cjs::TC-TPT-221: trusted hierarchy read verbs and delivery intents receive non-authorizing guidance`, `.claude/hooks/tests/suites/task-tracking-route.test.cjs::TC-TPT-221: hierarchy read guidance retains off invalid unavailable and native silence controls`, `.claude/hooks/tests/suites/task-tracking-route.test.cjs::TC-TPT-221: hierarchy notices preserve restricted pending Skip permissions and linked opt-out authority`
+**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-route.test.cjs::TC-TPT-221: trusted hierarchy read verbs and delivery intents receive non-authorizing guidance`, `.claude/hooks/tests/suites/task-tracking-route.test.cjs::TC-TPT-221: hierarchy read guidance retains off invalid unavailable and native silence controls`, `.claude/hooks/tests/suites/task-tracking-route.test.cjs::TC-TPT-221: hierarchy notices preserve restricted pending Skip permissions and linked opt-out authority`, `.claude/skills/task-track/tests/workspace-browser.test.cjs::A session that may not save shows a record's areas and initiatives, says why they cannot be changed, and offers no tag, decision or capture [variant: read-only-offers-no-change]`
 **Status:** Untested
 
 ### Invariant / Property Tests
 
-#### TC-TPT-231: For every valid purpose and label preserve descriptive-only semantics [P0]
+#### TC-TPT-231: For every valid purpose and label preserve descriptive-only semantics [P0] [DEPRECATED: 2026-10-09 — purpose-only operation retired by the current vocabulary]
+
+**Applicability:** Deprecated — historical vocabulary-2 purpose/member-list operation, retired by the 2026-10-09 current-contract supersession in ADR-0005. Retained for history; not a current schema3 behavior or case to repurpose. The following objective and scenario are historical.
 
 **Objective:** For every valid purpose and label preserve descriptive-only semantics.
 
@@ -787,7 +747,7 @@ But a nongroup, unknown purpose, invalid label or empty request is refused witho
 | UI | Valid vocabulary displays as inert text and each edit has its actual saved/refused outcome. |
 | System behavior | Exercise set/change/clear, round-trip back to generic and independent label changes; duplicate label text cannot merge roles or identities. |
 | Business data state | Only requested group facts change; no label creates history, membership, permission or execution. |
-| Data shown on UI | Configured text or default Area/Feature/Program appears with stable group identity. |
+| Data shown on UI | Configured text or default Area/Domain/Feature/Program appears with stable group identity. |
 
 **Acceptance Criteria:**
 
@@ -798,7 +758,7 @@ But a nongroup, unknown purpose, invalid label or empty request is refused witho
 
 ```json
 {
-  "inputDomain": "all vision/project groups; absent/clear/area/capability/program purpose; nonblank trimmed control-free labels of 1..160 characters including markup-looking and duplicate text; omitted labels",
+  "inputDomain": "all vision/project groups; absent/clear/area/domain/capability/program purpose; nonblank trimmed control-free labels of 1..160 characters including markup-looking and duplicate text; omitted labels",
   "invariant": "purpose/label description preserves identity, membership, authority, child bytes, lifecycle, acceptance and proof; omitted facts preserve",
   "boundaryCounterCase": [
     "purpose on delivery item",
@@ -816,76 +776,79 @@ But a nongroup, unknown purpose, invalid label or empty request is refused witho
 
 **Transition Invariants:** N/A — purpose, viewing and navigation do not introduce lifecycle transitions or acceptance.
 
-**Evidence:** [Source: test/work-tracking/TC-TPT-231]
+**Evidence:** Historical [Source: test/work-tracking/TC-TPT-231]; retained audit anchor, with no current primary executor.
 
 **Related Behaviors:**
 
 | Capability | Anchor |
 |---|---|
 | Governing observable intent | BR-TPT-27, FR-TPT-053, AC-TPT-34 |
-| Executing implementation/assertion | [Source: test/work-tracking/TC-TPT-231]; authored callback/assertion guard, NOT RUN; complete implementation mapping remains TBD |
+| Executing implementation/assertion | Historical only; the retired operation has no current executor or runtime claim. |
 
-**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-231: all purpose kinds and independent inert labels conserve lifecycle proof custom content and membership`
-**Status:** Untested
+**CoveredBy:** Untested — no current primary executor; historical purpose-only operation is retired.
+**Status:** Deprecated
 
 #### TC-TPT-232: For every admitted graph conserve exact unique delivery scope [P0]
 
-**Objective:** For every admitted graph conserve exact unique delivery scope.
+**Objective:** Make selected task arithmetic independent of overlap and entry path.
 
-**Business Intent / Invariant Guarded:** BR-TPT-28: for ALL admitted project/group graphs, the displayed eligible identities equal the unique selected delivery denominator.
+**Business Intent / Invariant Guarded:** For ALL admitted tag graphs, area scope is descendant-area union and initiative scope is direct tags only; unique eligible/accepted/remaining task sets equal independently enumerated scope.
 
-**Proves:** BR-TPT-28, FR-TPT-054, AC-TPT-35, INV-TPT-04.
+**Proves:** FR-TPT-054, FR-TPT-059, AC-TPT-35, AC-TPT-36, AC-TPT-40, BR-TPT-04, BR-TPT-28, INV-TPT-04, INV-TPT-07.
 
 **Preconditions:**
 
-- Fixtures contain admitted unique owners, deep generic/labelled groups, repeated references, shared diamonds, all portable delivery states, supporting members and nonmembership links.
-- Separate corrupt-import and bounded variants are explicitly labelled as deliberate fail-safe cases reachable by outside-host editing.
+- multiple areas and initiatives share tagged tasks alongside stories/subtasks and canceled/retired tasks
+- The selected source, current records and expected scope are recorded before the action; permitted actor and independent controls are explicit.
 
-**Real-World Reachability:** The reader chooses each project/group after its source save completes, compares declared reachable identities with the selected lists, then changes only member order or display filters and rereads. Invalid variants are inspected separately with named diagnostics.
+**Real-World Reachability:** A contributor or stakeholder performs this action while maintaining or inspecting the selected working copy; a shared/pinned source uses that source’s own access and records.
 
-**Demo Flow:** Observe the stated source/location and permitted preconditions; perform the actor actions below, and observe each specified positive or refused postcondition before a dependent action. Actor review supplies normal pacing; no fixed delay establishes readiness.
+**Demo Flow:**
+
+1. Open the stated source and record its identity, current facts and permitted actor before acting.
+2. independently list each selected scope’s task identities, inspect figures and reorder/overlap tags without changing sets.
+3. Observe the actual saved/refused outcome and reread the owned record and relevant scope before the next dependent action; compare with the recorded facts.
+4. Return to the selected scope with source/context retained. Repeat invalid variants from their exact recorded pre-state. Actor review provides normal pacing; no fixed delay establishes readiness.
 
 ```gherkin
-Given any admitted finite membership graph with one authoritative owner per identity
-When the reader selects any project or group and then reorders references or filters its presentation
-Then selected eligible delivery identities equal the unique denominator and support adds no credit
-And canceled or retired outcomes remain excluded but inspectable
-But ambiguous, missing, cyclic or bounded scope cannot claim complete coverage or a complete percentage
+Given multiple areas and initiatives share tagged tasks alongside stories/subtasks and canceled/retired tasks
+When independently list each selected scope’s task identities, inspect figures and reorder/overlap tags without changing sets
+Then each eligible task counts once, excluded work is named and every scope equals its independent exact set
+And area membership, nested initiative affiliation, parent/source/dependency links or supporting records never inflate direct initiative scope or task credit
 ```
 
 **Expected Result:**
 
 | Dimension | Expectation |
 |---|---|
-| UI | Direct groups, eligible delivery, excluded outcomes and supporting work are distinct readable sets. |
-| System behavior | Probe deduplication, permutation commutativity and overlap conservation; only declared member edges enlarge group scope, while project admits all its work. |
-| Business data state | No read/filter/reorder experiment writes duplicate owners, inferred memberships or lifecycle changes. |
-| Data shown on UI | The exact unique list is the arithmetic oracle; empty differs from known zero and unavailable. |
+| UI | each eligible task counts once, excluded work is named and every scope equals its independent exact set |
+| System behavior | area membership, nested initiative affiliation, parent/source/dependency links or supporting records never inflate direct initiative scope or task credit |
+| Business data state | Prior authored content, identity, unrelated records, proof and history remain unchanged except the exact permitted owned outcome. |
+| Data shown on UI | Exact selected identity/source/scope, current kind/state and named outcome; no unsupported count, authority or saved claim. |
 
 **Acceptance Criteria:**
 
-- ✅ All healthy graphs conserve identity sets, and each just-outside-domain graph stays explicitly incomplete/unavailable.
-- ❌ Counting paths, support, parent/spec/source links or a silently truncated known subset as complete fails.
+- ✅ each eligible task counts once, excluded work is named and every scope equals its independent exact set
+- ✅ area membership, nested initiative affiliation, parent/source/dependency links or supporting records never inflate direct initiative scope or task credit
+- ❌ Any unrequested change, invented credit, hidden refusal or claimed success without the specified observed outcome fails the case.
 
 **Test Data:**
 
 ```json
 {
-  "inputDomain": "all admitted bounded acyclic project/group membership graphs with unique owners, any purpose nesting, repeated refs, shared fan-in, all portable lifecycle states and display filters",
-  "invariant": "eligible delivery identities = unique admitted reachable delivery identities minus canceled/retired; direct group navigation and all supporting/excluded members remain inspectable without extra credit",
-  "boundaryCounterCase": [
-    "self/cyclic member graph",
-    "missing owner",
-    "duplicate canonical owners",
-    "wrong-kind selector",
-    "inspection/output bound exhaustion"
-  ]
+  "inputDomain": "all admitted multiple-parent area graphs, direct initiative sets, tag orders and eligibility states",
+  "invariant": "For ALL admitted tag graphs, area scope is descendant-area union and initiative scope is direct tags only; unique eligible/accepted/remaining task sets equal independently enumerated scope.",
+  "boundaryCounterCase": "area membership, nested initiative affiliation, parent/source/dependency links or supporting records never inflate direct initiative scope or task credit"
 }
 ```
 
-**Edge Cases:** A typed dependency back-link remains separate from containment. Growing from an empty graph to one nonaccepted eligible outcome yields known zero, not 100%; adding an unrelated outside item cannot alter a group denominator.
+**Edge Cases:**
 
-**Transition Invariants:** N/A — purpose, viewing and navigation do not introduce lifecycle transitions or acceptance.
+- Empty/partial/unavailable scope never claims complete delivery percentage.
+- Canceling an area preserves tags and member records; remaining eligible tasks follow exact declared scope.
+- Initiative/area prerequisite meanings belong to readiness cases, not membership expansion.
+
+**Transition Invariants:** N/A — no lifecycle transition is requested.
 
 **Evidence:** [Source: test/work-tracking/TC-TPT-232]
 
@@ -893,71 +856,73 @@ But ambiguous, missing, cyclic or bounded scope cannot claim complete coverage o
 
 | Capability | Anchor |
 |---|---|
-| Governing observable intent | BR-TPT-28, FR-TPT-054, AC-TPT-35, INV-TPT-04 |
-| Executing implementation/assertion | [Source: test/work-tracking/TC-TPT-232]; authored callback/assertion guard, NOT RUN; complete implementation mapping remains TBD |
+| Governing observable intent | FR-TPT-054, FR-TPT-059, AC-TPT-35, AC-TPT-36, AC-TPT-40, BR-TPT-04, BR-TPT-28, INV-TPT-04, INV-TPT-07 |
+| Executing primary guard | [Source: test/work-tracking/TC-TPT-232]; assertion-inspected source mapping, NOT RUN; universal implementation evidence remains TBD |
 
-**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-232: finite graph permutations and portable states conserve unique identities and exclude every nonmembership edge`
+**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-232: finite graph permutations and portable states conserve unique identities and exclude every link that is not a tag`, `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-232: one selector names an exact area or initiative and the read states that scope alone`, `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-232: an unknown or wrong-kind selector gives an unavailable scope and no figure`, `.claude/hooks/tests/suites/task-tracking-invariants.test.cjs::TC-TPT-232: an area counts the tasks tagged to it or to any area beneath it once each, so a parent is not the sum of its children`, `.claude/hooks/tests/suites/task-tracking-invariants.test.cjs::TC-TPT-232: an initiative counts only the tasks linked directly to it: work in an area the initiative sits in, or linked to an initiative placed under it, does not join`
 **Status:** Untested
 
-#### TC-TPT-233: For every readable entry path preserve identity source and advisory boundaries [P0]
+#### TC-TPT-233: For every readable entry preserve identity source and return context [P0]
 
-**Objective:** For every readable entry path preserve identity source and advisory boundaries.
+**Objective:** Keep navigation honest across workspace and read-only snapshots.
 
-**Business Intent / Invariant Guarded:** BR-TPT-29: for ALL readable direct or valid chosen entries, navigation and vocabulary preserve exact identity and authority.
+**Business Intent / Invariant Guarded:** For ALL readable entry paths, selected source, identity, delivery scope and coverage are preserved; contextual return follows the chosen path without inventing authority or ancestry.
 
-**Proves:** BR-TPT-29, FR-TPT-055, AC-TPT-36, BR-TPT-23.
+**Proves:** FR-TPT-055, AC-TPT-35, AC-TPT-36, BR-TPT-09, BR-TPT-18, BR-TPT-29, INV-TPT-06, INV-TPT-07.
 
 **Preconditions:**
 
-- Admitted groups include shared affiliations and generic/ungrouped project choices; readable local, pinned and generated snapshots have declared coverage.
-- A complete original set of work/source/control facts is recorded before navigation, vocabulary changes and guidance requests.
+- a permitted source includes shared work and direct links, and a snapshot has one fixed Delivery scope
+- The selected source, current records and expected scope are recorded before the action; permitted actor and independent controls are explicit.
 
-**Real-World Reachability:** The reader chooses each valid direct edge in one finite path, opens an outcome and returns after location is visible. A teammate may remove an edge before the next inspection. Separate guidance-control variants use actual trusted read requests and quoted/nonread counterexamples.
+**Real-World Reachability:** A contributor or stakeholder performs this action while maintaining or inspecting the selected working copy; a shared/pinned source uses that source’s own access and records.
 
-**Demo Flow:** Observe the stated source/location and permitted preconditions; perform the actor actions below, and observe each specified positive or refused postcondition before a dependent action. Actor review supplies normal pacing; no fixed delay establishes readiness.
+**Demo Flow:**
+
+1. Open the stated source and record its identity, current facts and permitted actor before acting.
+2. enter through project/area/initiative or direct record link, inspect details/other affiliations, page and return.
+3. Observe the actual saved/refused outcome and reread the owned record and relevant scope before the next dependent action; compare with the recorded facts.
+4. Return to the selected scope with source/context retained. Repeat invalid variants from their exact recorded pre-state. Actor review provides normal pacing; no fixed delay establishes readiness.
 
 ```gherkin
-Given any readable direct entry or finite chosen valid membership path
-When the reader navigates and returns through workspace, snapshot or unenhanced reading
-Then identity, source, selected scope, acceptance and current-proof meanings remain equivalent
-And only that chosen path and other direct affiliations are disclosed
-But a removed or forged edge, denied link, or unavailable source gives a reason and safe return without guessed ancestry
+Given a permitted source includes shared work and direct links, and a snapshot has one fixed Delivery scope
+When enter through project/area/initiative or direct record link, inspect details/other affiliations, page and return
+Then the chosen scope/context and exact identity remain readable across enhanced/plain/print forms
+And inspection links never switch fixed snapshot Delivery scope; missing/denied paths show reason and safe return without substitution
 ```
 
 **Expected Result:**
 
 | Dimension | Expectation |
 |---|---|
-| UI | All supported modes expose meaningful selected location and safe return without relying on every ancestry path. A generated snapshot labels its fixed Delivery scope separately from the Inspected group/path; following inspection anchors does not change its eligible list or counts. |
-| System behavior | Labels are display-only; direct entry has no invented parent. Advisory hierarchy-read eligibility cannot turn quoted/unrelated/off/opted-out requests into notices or writes. |
-| Business data state | Navigation, guidance, print and label display save no canonical work, acceptance, identity or authority changes. |
-| Data shown on UI | Each mode names its actual admitted source and exact Delivery scope identities; linked intent/proof resolves only its declared owner. A snapshot may inspect another group without presenting its fixed exported totals as that group’s percentage. |
+| UI | the chosen scope/context and exact identity remain readable across enhanced/plain/print forms |
+| System behavior | inspection links never switch fixed snapshot Delivery scope; missing/denied paths show reason and safe return without substitution |
+| Business data state | Prior authored content, identity, unrelated records, proof and history remain unchanged except the exact permitted owned outcome. |
+| Data shown on UI | Exact selected identity/source/scope, current kind/state and named outcome; no unsupported count, authority or saved claim. |
 
 **Acceptance Criteria:**
 
-- ✅ Every admitted path conserves protected facts; invalid paths and ineligible guidance refuse or stay silent as appropriate.
-- ❌ Worktree scope leaking into pinned reading, forged breadcrumbs, executable labels or guidance for generic feature implementation fail.
+- ✅ the chosen scope/context and exact identity remain readable across enhanced/plain/print forms
+- ✅ inspection links never switch fixed snapshot Delivery scope; missing/denied paths show reason and safe return without substitution
+- ❌ Any unrequested change, invented credit, hidden refusal or claimed success without the specified observed outcome fails the case.
 
 **Test Data:**
 
 ```json
 {
-  "inputDomain": "all readable direct entries or valid finite direct-membership paths; shared/generic/ungrouped choices; allowed read modes; valid labels; trusted hierarchy status/progress/report requests under eligible controls",
-  "invariant": "one canonical identity and chosen source/scope survive navigation; no invented ancestry or authority; advisory notices preserve independent controls and never certify execution",
-  "boundaryCounterCase": [
-    "removed/forged edge",
-    "denied link",
-    "unavailable source",
-    "quoted-only request",
-    "off/opt-out",
-    "generic implement a feature request"
-  ]
+  "inputDomain": "workspace/report/plain/print/direct/shared-source entry paths",
+  "invariant": "For ALL readable entry paths, selected source, identity, delivery scope and coverage are preserved; contextual return follows the chosen path without inventing authority or ancestry.",
+  "boundaryCounterCase": "inspection links never switch fixed snapshot Delivery scope; missing/denied paths show reason and safe return without substitution"
 }
 ```
 
-**Edge Cases:** A zero-result search keeps scope and source; Back restores prior context. Other affiliation selection deliberately changes entry context without changing the feature’s identity or metrics.
+**Edge Cases:**
 
-**Transition Invariants:** N/A — purpose, viewing and navigation do not introduce lifecycle transitions or acceptance.
+- A direct record entry does not invent a parent.
+- Independent page controls retain selected scope and detail.
+- A shared baseline keeps its own pinned source; no silent current-copy fallback.
+
+**Transition Invariants:** N/A — no lifecycle transition is requested.
 
 **Evidence:** [Source: test/work-tracking/TC-TPT-233]
 
@@ -965,162 +930,149 @@ But a removed or forged edge, denied link, or unavailable source gives a reason 
 
 | Capability | Anchor |
 |---|---|
-| Governing observable intent | BR-TPT-29, FR-TPT-055, AC-TPT-36, BR-TPT-23 |
-| Executing implementation/assertion | [Source: test/work-tracking/TC-TPT-233]; authored callback/assertion guard, NOT RUN; complete implementation mapping remains TBD |
+| Governing observable intent | FR-TPT-055, AC-TPT-35, AC-TPT-36, BR-TPT-09, BR-TPT-18, BR-TPT-29, INV-TPT-06, INV-TPT-07 |
+| Executing primary guard | [Source: test/work-tracking/TC-TPT-233]; assertion-inspected source mapping, NOT RUN; universal implementation evidence remains TBD |
 
-**CoveredBy:** `.claude/skills/task-track/tests/workspace-browser.test.cjs::Pinned group reading and finite snapshot paths preserve their admitted source and refuse forged ancestry [variant: pinned-path-and-forged-snapshot-entry]`, `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-233: pinned labels roles and membership remain baseline-specific after local vocabulary and scope changes`, `.claude/hooks/tests/suites/task-tracking-route.test.cjs::TC-TPT-233: quoted host and nonread hierarchy data stay silent with a trusted read positive control`, `.claude/hooks/tests/suites/task-tracking-route.test.cjs::TC-TPT-233: hierarchy normalized contexts retain delivery credit and bounded hash-only receipts`
+**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-233: pinned labels levels and tags remain baseline-specific after local label and scope changes`, `.claude/hooks/tests/suites/task-tracking-route.test.cjs::TC-TPT-233: quoted host and nonread hierarchy data stay silent with a trusted read positive control`, `.claude/hooks/tests/suites/task-tracking-route.test.cjs::TC-TPT-233: hierarchy normalized contexts retain delivery credit and bounded hash-only receipts`, `.claude/skills/task-track/tests/workspace-browser.test.cjs::Pinned scoped reading and finite snapshot entries preserve their admitted source and refuse a forged entry [variant: pinned-path-and-forged-snapshot-entry]`, `.claude/skills/task-track/tests/workspace-browser.test.cjs::Scoping into an area or an initiative restates the Overview for that scope under a path of the way in, and each step of the path widens the scope again [variant: scope-in-and-back-out]`
 **Status:** Untested
 
-#### TC-TPT-234: For every permitted group retry conserve scope facts and newer edits [P0]
+#### TC-TPT-234: For every permitted affiliation retry conserve owner facts and newer edits [P0]
 
-**Objective:** For every permitted group retry conserve scope facts and newer edits.
+**Objective:** Preserve stable organizational facts under retry and conflict.
 
-**Business Intent / Invariant Guarded:** INV-TPT-07: for ALL current permitted group changes and exact retries, source-consistent eligible lists explain counts without lost or duplicated work.
+**Business Intent / Invariant Guarded:** For ALL permitted affiliation requests, one completed identity applies once; omitted tags and unrelated facts remain, targets do not change, and stale or changed-reused requests preserve newer saved work.
 
-**Proves:** INV-TPT-07, BR-TPT-12, BR-TPT-27, BR-TPT-28, BR-TPT-29.
+**Proves:** FR-TPT-007, FR-TPT-053, AC-TPT-11, AC-TPT-34, BR-TPT-02, BR-TPT-12, BR-TPT-27, INV-TPT-05.
 
 **Preconditions:**
 
-- A permitted group has unique members and a current revision; a second authorized actor can make an independent later member edit.
-- The original request identity, actor, source and exact payload are retained for an uncertain-response retry. Accepted/proof/history facts are recorded.
+- task T has current revision, independent area/initiative tags and a recorded operation identity
+- The selected source, current records and expected scope are recorded before the action; permitted actor and independent controls are explicit.
 
-**Real-World Reachability:** The maintainer previews and saves a current edit, then retries its exact request after the saved receipt is observable. For the conflict variant, a teammate saves a newer change after the first preview and before the stale save; the stale draft is retained for comparison.
+**Real-World Reachability:** A contributor or stakeholder performs this action while maintaining or inspecting the selected working copy; a shared/pinned source uses that source’s own access and records.
 
-**Demo Flow:** Observe the stated source/location and permitted preconditions; perform the actor actions below, and observe each specified positive or refused postcondition before a dependent action. Actor review supplies normal pacing; no fixed delay establishes readiness.
+**Demo Flow:**
+
+1. Open the stated source and record its identity, current facts and permitted actor before acting.
+2. save a narrow tag update, retry exactly, then attempt a stale or changed-reused request after a newer edit.
+3. Observe the actual saved/refused outcome and reread the owned record and relevant scope before the next dependent action; compare with the recorded facts.
+4. Return to the selected scope with source/context retained. Repeat invalid variants from their exact recorded pre-state. Actor review provides normal pacing; no fixed delay establishes readiness.
 
 ```gherkin
-Given any current permitted group request with retained request identity and actor
-When the request saves and is replayed exactly
-Then one saved business change and receipt remain and reread eligible identities explain the denominator
-When a stale preview saves after a teammate’s newer edit or a reused request changes payload or actor
-Then the request is refused and the newer members and pending draft are preserved
+Given task T has current revision, independent area/initiative tags and a recorded operation identity
+When save a narrow tag update, retry exactly, then attempt a stale or changed-reused request after a newer edit
+Then exact replay returns the original outcome without revision/history growth and target records remain exact
+And stale or changed-reused requests refuse without overwriting the newer owner or omitted relation
 ```
 
 **Expected Result:**
 
 | Dimension | Expectation |
 |---|---|
-| UI | Actual saved/replayed/conflict results are distinct; conflicts offer reread and comparison rather than silently merged success. |
-| System behavior | Purpose-only changes conserve member sets; actual member changes disclose scope movement without calling it delivery improvement. Source/profile/actor revalidation retains established authority. |
-| Business data state | Exact replay adds no revision/history growth; stale/changed replay preserves newer edits and accepted/proof history. |
-| Data shown on UI | Both selected views agree with the actual saved scope; an older pinned baseline keeps its own prior scope and labels. |
+| UI | exact replay returns the original outcome without revision/history growth and target records remain exact |
+| System behavior | stale or changed-reused requests refuse without overwriting the newer owner or omitted relation |
+| Business data state | Prior authored content, identity, unrelated records, proof and history remain unchanged except the exact permitted owned outcome. |
+| Data shown on UI | Exact selected identity/source/scope, current kind/state and named outcome; no unsupported count, authority or saved claim. |
 
 **Acceptance Criteria:**
 
-- ✅ All valid edits/replays conserve one relationship authority; invalid stale/changed replays preserve current work and intent.
-- ❌ Duplicated membership/history, silently switched actor, stale overwrite or denominator change under a purpose-only edit fails.
+- ✅ exact replay returns the original outcome without revision/history growth and target records remain exact
+- ✅ stale or changed-reused requests refuse without overwriting the newer owner or omitted relation
+- ❌ Any unrequested change, invented credit, hidden refusal or claimed success without the specified observed outcome fails the case.
 
 **Test Data:**
 
 ```json
 {
-  "inputDomain": "all permitted current group purpose/member patches with retained operation identity, actor and source; exact replay; shared/generic/labelled membership arrangements",
-  "invariant": "eligible displayed identities equal saved source-consistent scope denominator; omitted facts and exact retries conserve membership, identity, acceptance, proof and one receipt",
-  "boundaryCounterCase": [
-    "stale revision after teammate save",
-    "changed payload under reused request",
-    "changed actor/profile before save",
-    "denied current authority"
-  ]
+  "inputDomain": "permitted tag sets, omitted/provided/clear relations and exact/stale/changed operation identities",
+  "invariant": "For ALL permitted affiliation requests, one completed identity applies once; omitted tags and unrelated facts remain, targets do not change, and stale or changed-reused requests preserve newer saved work.",
+  "boundaryCounterCase": "stale or changed-reused requests refuse without overwriting the newer owner or omitted relation"
 }
 ```
 
-**Edge Cases:** A lost response is uncertain until reread or exact retry; it does not establish cancellation. Lifecycle acceptance and retirement/cancellation history remain under reused cases, not purpose changes.
+**Edge Cases:**
 
-**Transition Invariants:** Purpose/member edits grant no lifecycle or acceptance transition. Compare recorded lifecycle, acceptance/proof and health before and after; explicit later cancellation/retirement retains its own existing authority and exclusion rules.
+- This stable intent is retained; no current primary registration is claimed until parent validates an exact guard/remap.
+- Order-equivalent sets are a no-change request, not a new membership authority.
+- Denied or changed actor/access/current controls cannot borrow an old preview.
 
-**Evidence:** [Source: test/work-tracking/TC-TPT-234]
+**Transition Invariants:** N/A — no lifecycle transition is requested.
+
+**Evidence:** TBD — no matching current primary guard has been verified.
 
 **Related Behaviors:**
 
 | Capability | Anchor |
 |---|---|
-| Governing observable intent | INV-TPT-07, BR-TPT-12, BR-TPT-27, BR-TPT-28, BR-TPT-29 |
-| Executing implementation/assertion | [Source: test/work-tracking/TC-TPT-234]; authored callback/assertion guard, NOT RUN; complete implementation mapping remains TBD |
+| Governing observable intent | FR-TPT-007, FR-TPT-053, AC-TPT-11, AC-TPT-34, BR-TPT-02, BR-TPT-12, BR-TPT-27, INV-TPT-05 |
+| Executing primary guard | Untested — no matching current primary registration has been verified; no executable evidence is claimed. |
 
-**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-234: group exact retries preserve newer members and changed reused payload or stale preview refuses`, `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-234: changed actor authority or unsupported profile after preview preserves the group and original draft`
+**CoveredBy:** Untested — no current primary registration has been verified; resolve this guard gap before claiming executable coverage.
 **Status:** Untested
 
 ### UI / User journey flows
 
 #### TC-TPT-241: Read the exact selected journey across enhanced print and narrow views [P2]
 
-**Objective:** Read the exact selected journey across enhanced print and narrow views.
+**Objective:** Keep selected organizational progress usable in every supported reading form.
 
-**Business Intent / Invariant Guarded:** The stakeholder can explain and revisit the selected delivery scope even when enhanced interactions or output generation are unavailable.
+**Business Intent / Invariant Guarded:** For ALL supported reading surfaces and widths, source, exact selected scope, identity, counts and useful navigation remain readable without authorizing writes.
 
-**Proves:** FR-TPT-054, FR-TPT-055, AC-TPT-35, AC-TPT-36, BR-TPT-09, BR-TPT-10, BR-TPT-20, BR-TPT-29.
+**Proves:** FR-TPT-015, FR-TPT-017, FR-TPT-055, AC-TPT-35, AC-TPT-36, BR-TPT-09, BR-TPT-29, BR-TPT-31.
 
 **Preconditions:**
 
-- The admitted source has A to shared F to P/Q with separate exclusions/support, exact intent/proof links and an unrelated outside outcome U. The snapshot is explicitly generated for Delivery scope F; A and its other group are available through separately labelled inspection anchors.
-- The workspace, generated snapshot and pinned baseline name their actual source/coverage. An unsaved permitted group draft remains open; one separately isolated generation attempt will be denied.
+- a complete selected scope includes areas/initiatives, shared tasks and long identity/text content
+- The selected source, current records and expected scope are recorded before the action; permitted actor and independent controls are explicit.
 
-**Real-World Reachability:** The stakeholder uses keyboard navigation after each target is visibly ready, reads F and its outcome detail, returns and prints F. Repeat with enhanced interactions disabled and at a narrow viewport. A teammate then saves a relevant source change before a permitted reopen; generation failure is injected only in the isolated fail-safe variant.
+**Real-World Reachability:** A contributor or stakeholder performs this action while maintaining or inspecting the selected working copy; a shared/pinned source uses that source’s own access and records.
 
-**Demo Flow:** Observe the stated source/location and permitted preconditions; perform the actor actions below, and observe each specified positive or refused postcondition before a dependent action. Actor review supplies normal pacing; no fixed delay establishes readiness.
+**Demo Flow:**
+
+1. Open the stated source and record its identity, current facts and permitted actor before acting.
+2. read area tree and initiative list, inspect delivery/intent/proof, use keyboard/return, and read narrow/plain/print forms.
+3. Observe the actual saved/refused outcome and reread the owned record and relevant scope before the next dependent action; compare with the recorded facts.
+4. Return to the selected scope with source/context retained. Repeat invalid variants from their exact recorded pre-state. Actor review provides normal pacing; no fixed delay establishes readiness.
 
 ```gherkin
-Given the stakeholder selected F through A with exact eligible P and Q
-When the stakeholder reads details and returns, prints, and repeats without enhanced interactions at a narrow width
-Then source, Delivery scope F, eligible identities, excluded/support distinctions and return choices remain understandable
-And native inspection of another group changes only Inspected group/path, without changing F’s metrics or claiming that inspected group’s percentage
-And F’s printed delivery list excludes unrelated U
-When relevant source changes before reopen or generation is denied
-Then the actual fresh result or dated stale/unavailable limitation is visible without a saved-work or accepted-delivery claim
+Given a complete selected scope includes areas/initiatives, shared tasks and long identity/text content
+When read area tree and initiative list, inspect delivery/intent/proof, use keyboard/return, and read narrow/plain/print forms
+Then text, controls, small meter parts, focus targets and selected context remain perceivable/reachable; plain/print carries all applicable rows
+And no clipped unreachable required action, hidden record, script-only essential reading or altered task denominator is admitted
 ```
 
 **Expected Result:**
 
 | Dimension | Expectation |
 |---|---|
-| UI | Labels and text status remain readable, focus is usable, long names reflow, and the chosen return retains scope/filter. No color-only proof is accepted. |
-| System behavior | All surfaces consume the same admitted delivery-scope semantics. Workspace may deliberately choose another Delivery scope through its supported selection; the generated snapshot retains its fixed exported Delivery scope F while native anchors change only inspected records. Print/no-enhancement preserve these distinct labels and exact eligible rows. Existing freshness and bounded recovery remain authoritative. |
-| Business data state | Views and failed generation leave records/configuration unchanged; navigation or refresh preserves the unsaved draft. |
-| Data shown on UI | Exact P/Q denominator, acceptance history, current-proof gaps, source/coverage and missing-link reasons remain visible in each mode. |
+| UI | text, controls, small meter parts, focus targets and selected context remain perceivable/reachable; plain/print carries all applicable rows |
+| System behavior | no clipped unreachable required action, hidden record, script-only essential reading or altered task denominator is admitted |
+| Business data state | Prior authored content, identity, unrelated records, proof and history remain unchanged except the exact permitted owned outcome. |
+| Data shown on UI | Exact selected identity/source/scope, current kind/state and named outcome; no unsupported count, authority or saved claim. |
 
 **Acceptance Criteria:**
 
-- ✅ Actual stakeholder journey is operable by keyboard and narrow reading; a report generated for F preserves F’s exact delivery rows, counts and provenance in print/no-enhancement while separately labelled inspection links remain usable.
-- ❌ A decorative clickable card reaching the wrong owner, a false per-group percentage after following an inspection anchor, hidden scope leakage in print, stale output marked current or draft loss fails.
+- ✅ text, controls, small meter parts, focus targets and selected context remain perceivable/reachable; plain/print carries all applicable rows
+- ✅ no clipped unreachable required action, hidden record, script-only essential reading or altered task denominator is admitted
+- ❌ Any unrequested change, invented credit, hidden refusal or claimed success without the specified observed outcome fails the case.
 
 **Test Data:**
 
 ```json
 {
-  "selectedPath": [
-    "A",
-    "F"
-  ],
-  "eligible": [
-    "P",
-    "Q"
-  ],
-  "excluded": [
-    "R",
-    "S"
-  ],
-  "support": [
-    "story",
-    "subtask"
-  ],
-  "outside": [
-    "U"
-  ],
-  "modes": [
-    "workspace",
-    "snapshot",
-    "unenhanced",
-    "print",
-    "narrow-keyboard"
-  ],
-  "failureVariant": "generation denied"
+  "inputDomain": "enhanced/plain/print/narrow/volume views, keyboard/focus and long content",
+  "invariant": "For ALL supported reading surfaces and widths, source, exact selected scope, identity, counts and useful navigation remain readable without authorizing writes.",
+  "boundaryCounterCase": "no clipped unreachable required action, hidden record, script-only essential reading or altered task denominator is admitted"
 }
 ```
 
-**Edge Cases:** A missing/denied source or selected link gives a reason and safe return. An empty scope is No delivery scope; a filter-empty scope keeps its denominator. Native unavailable and pinned read-only controls preserve their exact limits; no watcher/cache/new mandatory adapter is implied.
+**Edge Cases:**
 
-**Transition Invariants:** N/A — purpose, viewing and navigation do not introduce lifecycle transitions or acceptance.
+- Count wording remains truthful/readable for one and many; it adds no case per phrase.
+- Page controls and area open/close preserve scope/context.
+- Unsupported detail forms show a nearby reason and full-read route rather than disappearing work.
+
+**Transition Invariants:** N/A — no lifecycle transition is requested.
 
 **Evidence:** [Source: test/work-tracking/TC-TPT-241]
 
@@ -1128,8 +1080,8 @@ Then the actual fresh result or dated stale/unavailable limitation is visible wi
 
 | Capability | Anchor |
 |---|---|
-| Governing observable intent | FR-TPT-054, FR-TPT-055, AC-TPT-35, AC-TPT-36, BR-TPT-09, BR-TPT-10, BR-TPT-20, BR-TPT-29 |
-| Executing implementation/assertion | [Source: test/work-tracking/TC-TPT-241]; authored callback/assertion guard, NOT RUN; complete implementation mapping remains TBD |
+| Governing observable intent | FR-TPT-015, FR-TPT-017, FR-TPT-055, AC-TPT-35, AC-TPT-36, BR-TPT-09, BR-TPT-29, BR-TPT-31 |
+| Executing primary guard | [Source: test/work-tracking/TC-TPT-241]; assertion-inspected source mapping, NOT RUN; universal implementation evidence remains TBD |
 
-**CoveredBy:** `.claude/skills/task-track/tests/workspace-browser.test.cjs::Keyboard and narrow workspace reading preserve A/F return filters and the open group draft through report refresh [variant: workspace-keyboard-return-and-live-draft]`, `.claude/skills/task-track/tests/workspace-browser.test.cjs::Enhanced fixed-F report keyboard inspection and print retain P/Q while the inspected A/F path and filters return safely [variant: enhanced-fixed-report-keyboard-and-print]`, `.claude/skills/task-track/tests/workspace-browser.test.cjs::Without scripts native direct-edge and intent/proof anchors keep the exported F list exact in print [variant: native-fixed-scope-print-and-direct-edge]`, `.claude/skills/task-track/tests/workspace-browser.test.cjs::A real owned output obstruction preserves prior report and draft, then explicit refresh publishes the actual changed-source result [variant: fresh-source-and-generation-refusal]`
+**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-runtime-contract.test.cjs::TC-TPT-241: the full report holds every area as plain content with its level, its own figures and the areas inside it, opening level by level without scripts`, `.claude/hooks/tests/suites/task-tracking-runtime-contract.test.cjs::TC-TPT-241: the full report holds every initiative as plain content with type, status, priority level, due date and an overdue marker, the overdue first and the closed last`, `.claude/skills/task-track/tests/workspace-browser.test.cjs::Keyboard and narrow workspace reading preserve A/F return filters and the open area draft through report refresh [variant: workspace-keyboard-return-and-live-draft]`, `.claude/skills/task-track/tests/workspace-browser.test.cjs::Enhanced fixed-F report keyboard inspection and print retain P/Q while the opened area line and filters return safely [variant: enhanced-fixed-report-keyboard-and-print]`, `.claude/skills/task-track/tests/workspace-browser.test.cjs::Without scripts native area, record and intent/proof anchors keep the exported F list exact in print [variant: native-fixed-scope-print-and-direct-edge]`, `.claude/skills/task-track/tests/workspace-browser.test.cjs::A real owned output obstruction preserves prior report and draft, then explicit refresh publishes the actual changed-source result [variant: fresh-source-and-generation-refusal]`, `.claude/skills/task-track/tests/workspace-browser.test.cjs::Overview states every area in a tree whose levels all start closed and open one by one, and every initiative against its due date, each with the figure the read supplies [variant: overview-areas-and-initiatives]`, `.claude/skills/task-track/tests/workspace-browser.test.cjs::Without scripts the full report, written with every level of its area tree closed, opens the tree level by level, states every initiative in a table, and walks from a record to its areas and initiatives by native links [variant: areas-and-initiatives-without-scripts]`, `.claude/skills/task-track/tests/workspace-browser.test.cjs::At 320 pixels wide neither view scrolls the page sideways: a list wider than the page scrolls inside its own named box, which a keyboard can reach and where its last column can still be reached [variant: narrow-reflow-both-views]`, `.claude/skills/task-track/tests/workspace-browser.test.cjs::Every control the workspace adds for areas, initiatives, scope and tags is at least 44 pixels wide and high, however short the name it carries [variant: new-controls-meet-target-size]`, `.claude/skills/task-track/tests/workspace-browser.test.cjs::A delivery meter tells its three parts apart by shape and by name, and an overdue date says so in words beside a mark, in both views [variant: meaning-not-by-colour-alone]`, `.claude/skills/task-track/tests/workspace-browser.test.cjs::Every part a delivery meter draws keeps a least width, so one task among several hundred can be seen beside the rest [variant: meter-part-least-width]`, `.claude/skills/task-track/tests/workspace-browser.test.cjs::On paper an area line with areas inside it and one without start at the same place, as they do on screen [variant: area-lines-align-on-paper]`, `.claude/skills/task-track/tests/workspace-browser.test.cjs::In the report an area or initiative name that leads to its record is a target at least 44 pixels wide and high, however short the name, with no style attribute anywhere on the page [variant: report-names-meet-target-size]`, `.claude/skills/task-track/tests/workspace-browser.test.cjs::The line for the tasks in no area agrees in number with its count in both views: several tasks count, one task counts [variant: no-area-line-agrees-in-number]`, `.claude/skills/task-track/tests/workspace-browser.test.cjs::A project with no areas says that its one task counts, or that all of its tasks count, for the whole project [variant: no-areas-sentence-agrees-in-number]`, `.claude/skills/task-track/tests/workspace-browser.test.cjs::Every level of the area list is closed when the workspace opens; Open all and Close all act on every level in place, the one that would change nothing is unavailable, and a line's own toggle keeps working after each [variant: area-levels-open-and-close-all]`, `.claude/skills/task-track/tests/workspace-browser.test.cjs::An area list in which no area holds another has no level to open, and offers neither Open all nor Close all [variant: no-level-links-without-levels]`, `.claude/skills/task-track/tests/workspace-browser.test.cjs::At 320, 768, 1000, 1280 and 1440 pixels, with hundreds of records, long titles and identities that cannot break, no view scrolls the page sideways, nothing is painted outside the card that holds it, a pager keeps to two lines and every small control keeps a full-size target [variant: nothing-leaves-its-card-at-any-width]`
 **Status:** Untested

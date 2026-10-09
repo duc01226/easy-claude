@@ -136,7 +136,7 @@ node .claude/skills/sync-codex/scripts/run-codex-sync.mjs   # standalone Codex s
 
 ## What's Inside
 
-### Hooks (<!-- COUNT:hooks -->33<!-- /COUNT --> top-level `.cjs` files, <!-- COUNT:lib-modules -->62<!-- /COUNT --> lib modules)
+### Hooks (<!-- COUNT:hooks -->33<!-- /COUNT --> top-level `.cjs` files, <!-- COUNT:lib-modules -->64<!-- /COUNT --> lib modules)
 
 Runtime Node.js scripts that fire on Claude Code lifecycle events.
 

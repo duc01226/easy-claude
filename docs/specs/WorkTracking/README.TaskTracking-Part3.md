@@ -5,7 +5,7 @@ feature_code: TPT
 status: draft
 provisional: true
 owner: Framework maintainers
-last_updated: 2026-10-07
+last_updated: 2026-10-09
 source_of_truth: README.TaskTracking.md
 continuation: 3
 ---
@@ -542,6 +542,8 @@ boundaryCounterCase: "unsupported/unproved broader create/update/refresh \u2192 
 
 **Proves:** BR-TPT-12.
 
+**Current contract clarification:** Exact retries apply equally to tag and kind-owned-value operations; order-equivalent tag sets do not rewrite targets or grow history.
+
 **Preconditions:**
 
 - Any permitted save, cooperating competing edit, interrupted retry or primary/secondary batch outcome within the stated retry horizon.
@@ -597,7 +599,7 @@ boundaryCounterCase: "changed request under reused identity or stale save \u2192
 | Intended observable outcome | BR-TPT-12 |
 | Executing implementation/assertion | [Source: test/work-tracking/TC-TPT-123]; authored callback/assertion guard, NOT RUN; complete implementation mapping remains TBD |
 
-**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-123: identical completed requests replay once across intervening edits`, `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-123: allocated creation identity is retained by retries and collision never overwrites`, `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-123: receipt horizon requires fresh preview and retains bounded retry history`, `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-123: expired allocated creation cannot create duplicate work or authorize altered retries`, `.claude/hooks/tests/suites/task-tracking-upkeep.test.cjs::TC-TPT-123: checkpoint retry retains the original request after a later item revision`, `.claude/hooks/tests/suites/task-tracking-upkeep.test.cjs::TC-TPT-123: changed observations under a reused checkpoint identity refuse optional saves`
+**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-123: identical completed requests replay once across intervening edits`, `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-123: allocated creation identity is retained by retries and collision never overwrites`, `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-123: receipt horizon requires fresh preview and retains bounded retry history`, `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-123: expired allocated creation cannot create duplicate work or authorize altered retries`, `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-123: an exact tag retry replays its receipt and a tag that lost a race conflicts with its draft kept`, `.claude/hooks/tests/suites/task-tracking-maintenance-contracts.test.cjs::TC-TPT-123: repeating the same tag request replays its receipt and leaves the links unchanged`, `.claude/hooks/tests/suites/task-tracking-upkeep.test.cjs::TC-TPT-123: checkpoint retry retains the original request after a later item revision`, `.claude/hooks/tests/suites/task-tracking-upkeep.test.cjs::TC-TPT-123: changed observations under a reused checkpoint identity refuse optional saves`
 **Status:** Untested
 
 #### TC-TPT-124: Property BR-TPT-13 conservation [P1]
@@ -663,7 +665,7 @@ boundaryCounterCase: "competing intent or required behavior undecided \u2192 own
 | Intended observable outcome | BR-TPT-13 |
 | Executing implementation/assertion | [Source: test/work-tracking/TC-TPT-124]; authored callback/assertion guard, NOT RUN; complete implementation mapping remains TBD |
 
-**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-upkeep.test.cjs::TC-TPT-124: a real governing spec save through the public linked workflow checkpoint preserves owners and provisional decisions without invented proof`, `.claude/hooks/tests/suites/task-tracking-invariants.test.cjs::TC-TPT-124: every supported governing artifact save conserves its owner and provisional work never borrows delivery authority`, `.claude/hooks/tests/suites/task-tracking-producer-consumers.test.cjs::TC-TPT-124: public specification refinement and plan saving checkpoints preserve original declared concerns and historical acceptance`
+**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-invariants.test.cjs::TC-TPT-124: every supported governing artifact save conserves its owner and provisional work never borrows delivery authority`, `.claude/hooks/tests/suites/task-tracking-producer-consumers.test.cjs::TC-TPT-124: public specification refinement and plan saving checkpoints preserve original declared concerns and historical acceptance`, `.claude/hooks/tests/suites/task-tracking-upkeep.test.cjs::TC-TPT-124: a real governing spec save through the public linked workflow checkpoint preserves owners and provisional decisions without invented proof`
 **Status:** Untested
 
 #### TC-TPT-125: Property BR-TPT-14 state-transition [P1]
@@ -806,6 +808,8 @@ boundaryCounterCase: "foreign context, unsafe scope or oversized request \u2192 
 
 **Proves:** BR-TPT-16.
 
+**Current contract clarification:** Automatic upkeep may record observed activity and allowed delivery start/block/handoff only; tags and initiative/area states remain unchanged.
+
 **Preconditions:**
 
 - Any exact linked observed outcome or manual/outside-host edit before next allowed inspection.
@@ -861,7 +865,7 @@ boundaryCounterCase: "missing reminder or unmapped changed work \u2192 explicit 
 | Intended observable outcome | BR-TPT-16 |
 | Executing implementation/assertion | [Source: test/work-tracking/TC-TPT-127]; authored callback/assertion guard, NOT RUN; complete implementation mapping remains TBD |
 
-**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-upkeep.test.cjs::TC-TPT-127: real linked producer facts add only activity and outside-host edits stale proof without guessed repair or acceptance`
+**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-127: automatic upkeep never tags work and never changes the state of an initiative or an area`, `.claude/hooks/tests/suites/task-tracking-upkeep.test.cjs::TC-TPT-127: real linked producer facts add only activity and outside-host edits stale proof without guessed repair or acceptance`, `.claude/hooks/tests/suites/task-tracking-upkeep.test.cjs::TC-TPT-127: automatic upkeep never tags work and never changes the state of an initiative or an area; activity and the three observed delivery steps are all it saves`
 **Status:** Untested
 
 #### TC-TPT-128: Property BR-TPT-17 conservation [P1]
@@ -998,7 +1002,7 @@ boundaryCounterCase: "missing baseline or conflicting duplicate/owner/proof \u21
 | Intended observable outcome | BR-TPT-18 |
 | Executing implementation/assertion | [Source: test/work-tracking/TC-TPT-129]; authored callback/assertion guard, NOT RUN; complete implementation mapping remains TBD |
 
-**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-invariants.test.cjs::TC-TPT-129: pinned shared record limit remains partial and never falls back to a smaller worktree`, `.claude/hooks/tests/suites/task-tracking-invariants.test.cjs::TC-TPT-129: expired pinned Git deadline refuses before another command and never substitutes local work`
+**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-boundaries.test.cjs::TC-TPT-129: an exhausted pinned time budget is reported once under its own code and no further Git process is started`, `.claude/hooks/tests/suites/task-tracking-invariants.test.cjs::TC-TPT-129: pinned shared record limit remains partial and never falls back to a smaller worktree`, `.claude/hooks/tests/suites/task-tracking-invariants.test.cjs::TC-TPT-129: expired pinned Git deadline refuses before another command and never substitutes local work`
 **Status:** Untested
 
 #### TC-TPT-130: Property BR-TPT-19 conservation [P0]
@@ -1009,9 +1013,11 @@ boundaryCounterCase: "missing baseline or conflicting duplicate/owner/proof \u21
 
 **Proves:** BR-TPT-19.
 
+**Current contract clarification:** Incoming area/initiative tags block deletion. Narrow deletion also admits an untouched unassigned unplaced Active area; cancellation does not qualify for that narrow action.
+
 **Preconditions:**
 
-- Any work in Draft, Planned, Ready, In progress, Blocked, Verifying, Done or Canceled, including referenced/accepted/historical work and newer edits during undo.
+- Any work in Draft, Planned, Ready, In progress, Blocked, Implemented, Verifying, Done or Canceled, including referenced/accepted/historical work and newer edits during undo.
 - The actor selects the actual project/profile and permitted scope before acting; native actions require the native capability and proof gate.
 
 **Real-World Reachability:** The stated actor first creates or selects work through permitted actions and reviews its current result. A competing teammate save, policy change or actual work checkpoint occurs before the next action when stated; the gap is the real review/work interval, with no invented delay or back-to-back race requirement.
@@ -1019,7 +1025,7 @@ boundaryCounterCase: "missing baseline or conflicting duplicate/owner/proof \u21
 **Demo Flow:** Arrange the stated permitted work, perform the permitted actions and the stated boundary attempt for ALL inputs in this domain, then read back the affected item or scoped result. Repeat the stated failure/boundary with the invalid condition; inspect the preserved previous facts.
 
 ```gherkin
-Given any work in Draft, Planned, Ready, In progress, Blocked, Verifying, Done or Canceled, including referenced/accepted/historical work and newer edits during undo
+Given any work in Draft, Planned, Ready, In progress, Blocked, Implemented, Verifying, Done or Canceled, including referenced/accepted/historical work and newer edits during undo
 When perform the permitted actions and the stated boundary attempt for ALL inputs in this domain
 Then for ALL inputs: supported retirement preserves identity/history/incoming links and children; deletion only exact authorized unreferenced draft or, by its own explicit action, unreferenced ended work; boundary outcome: hard-delete referenced work or undo against newer edit → refusal; affected records retained
 And the protected rule must not fail for any generated member of the declared domain
@@ -1042,14 +1048,14 @@ And the protected rule must not fail for any generated member of the declared do
 **Test Data:**
 
 ```yaml
-inputDomain: "any work in Draft, Planned, Ready, In progress, Blocked, Verifying, Done or Canceled, including referenced/accepted/historical work and newer edits during undo"
+inputDomain: "any work in Draft, Planned, Ready, In progress, Blocked, Implemented, Verifying, Done or Canceled, including referenced/accepted/historical work and newer edits during undo"
 invariant: "for ALL inputs: supported retirement preserves identity/history/incoming links and children; deletion only exact authorized unreferenced draft or, by its own explicit action, unreferenced ended work"
 boundaryCounterCase: "hard-delete referenced work or undo against newer edit \u2192 refusal; affected records retained"
 ```
 
 **Edge Cases:**
 
-- Cancellation is available from exactly Draft, Planned, Ready, In progress, Blocked, Verifying and Done under current revision, actual owner authority, explicit cancellation decision and a nonempty reason.
+- Cancellation is available from exactly Draft, Planned, Ready, In progress, Blocked, Implemented, Verifying and Done under current revision, actual owner authority, explicit cancellation decision and a nonempty reason.
 - Canceling Done retains attributable acceptance/proof and incoming identity/history, removes active accepted credit, and never changes child work.
 - An identical completed operation identity/payload returns its original receipt within the retained retry horizon without revision/history growth. A new redundant cancellation of Canceled work is a no-op or refusal with no revision/history growth. A changed request under a reused operation identity is refused.
 
@@ -1073,7 +1079,7 @@ boundaryCounterCase: "hard-delete referenced work or undo against newer edit \u2
 | Intended observable outcome | BR-TPT-19 |
 | Executing implementation/assertion | [Source: test/work-tracking/TC-TPT-130]; authored callback/assertion guard, NOT RUN; complete implementation mapping remains TBD |
 
-**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-deletion.test.cjs::TC-TPT-130: exact unreferenced draft deletion needs preview and preserves recoverable bytes and retry identity`, `.claude/hooks/tests/suites/task-tracking-deletion.test.cjs::TC-TPT-130: referenced assigned and non-draft work refuses hard deletion without cascading`, `.claude/hooks/tests/suites/task-tracking-deletion.test.cjs::TC-TPT-130: deletion preview conflicts with a later draft edit and prepared recovery survives interrupted completion`, `.claude/hooks/tests/suites/task-tracking-deletion.test.cjs::TC-TPT-130: failure before prepared recovery publication preserves the exact original draft`, `.claude/hooks/tests/suites/task-tracking-deletion.test.cjs::TC-TPT-130: interrupted physical unlink retains prepared bytes and resumes the exact original request`, `.claude/hooks/tests/suites/task-tracking-deletion.test.cjs::TC-TPT-130: prepared recovery refuses changed replacements and completed replay never removes a new replacement`, `.claude/hooks/tests/suites/task-tracking-deletion.test.cjs::TC-TPT-130: expired deletion recovery discloses unknown replay rather than inventing completion`, `.claude/hooks/tests/suites/task-tracking-runtime-contract.test.cjs::TC-TPT-130: CLI draft deletion requires its explicit flag and exact reviewed preview`, `.claude/hooks/tests/suites/task-tracking-deletion.test.cjs::TC-TPT-130: canceled or retired work is deleted entirely by its own explicit action with reason and preview, and stays recoverable`, `.claude/hooks/tests/suites/task-tracking-deletion.test.cjs::TC-TPT-130: open, started and accepted work is refused for entire deletion until it is canceled or retired`, `.claude/hooks/tests/suites/task-tracking-deletion.test.cjs::TC-TPT-130: ended work that another record still points to is refused without cascading and is deletable once that link is removed`, `.claude/hooks/tests/suites/task-tracking-runtime-contract.test.cjs::TC-TPT-130: the command deletes canceled or retired work entirely only under its own flag and names that flag in discovery`
+**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-deletion.test.cjs::TC-TPT-130: exact unreferenced draft deletion needs preview and preserves recoverable bytes and retry identity`, `.claude/hooks/tests/suites/task-tracking-deletion.test.cjs::TC-TPT-130: referenced assigned and non-draft work refuses hard deletion without cascading`, `.claude/hooks/tests/suites/task-tracking-deletion.test.cjs::TC-TPT-130: deletion preview conflicts with a later draft edit and prepared recovery survives interrupted completion`, `.claude/hooks/tests/suites/task-tracking-deletion.test.cjs::TC-TPT-130: failure before prepared recovery publication preserves the exact original draft`, `.claude/hooks/tests/suites/task-tracking-deletion.test.cjs::TC-TPT-130: interrupted physical unlink retains prepared bytes and resumes the exact original request`, `.claude/hooks/tests/suites/task-tracking-deletion.test.cjs::TC-TPT-130: prepared recovery refuses changed replacements and completed replay never removes a new replacement`, `.claude/hooks/tests/suites/task-tracking-deletion.test.cjs::TC-TPT-130: expired deletion recovery discloses unknown replay rather than inventing completion`, `.claude/hooks/tests/suites/task-tracking-deletion.test.cjs::TC-TPT-130: canceled or retired work is deleted entirely by its own explicit action with reason and preview, and stays recoverable`, `.claude/hooks/tests/suites/task-tracking-deletion.test.cjs::TC-TPT-130: open, started and accepted work is refused for entire deletion until it is canceled or retired`, `.claude/hooks/tests/suites/task-tracking-deletion.test.cjs::TC-TPT-130: ended work that another record still points to is refused without cascading and is deletable once that link is removed`, `.claude/hooks/tests/suites/task-tracking-deletion.test.cjs::TC-TPT-130: an area or an initiative that any record is tagged to is never deleted: the refusal names the tagged records, no record changes, and removing the tags is what makes it deletable`, `.claude/hooks/tests/suites/task-tracking-deletion.test.cjs::TC-TPT-130: an untouched area, still active with nothing recorded since its capture, is deleted by the narrow action, and an area that was placed, assigned or canceled no longer is`, `.claude/hooks/tests/suites/task-tracking-deletion.test.cjs::TC-TPT-130: an untouched draft named as the configured project health owner is refused by both deletion actions until another owner is chosen`, `.claude/hooks/tests/suites/task-tracking-deletion.test.cjs::TC-TPT-130: a path link written with the other separator still counts as a reference to the work it names`, `.claude/hooks/tests/suites/task-tracking-deletion.test.cjs::TC-TPT-130: ended work as large as the per-record budget allows is deleted and its recovery journal keeps the exact original`, `.claude/hooks/tests/suites/task-tracking-deletion.test.cjs::TC-TPT-130: a preview of ended work conflicts with a later saved change to that work and leaves it in place`, `.claude/hooks/tests/suites/task-tracking-runtime-contract.test.cjs::TC-TPT-130: CLI draft deletion requires its explicit flag and exact reviewed preview`, `.claude/hooks/tests/suites/task-tracking-runtime-contract.test.cjs::TC-TPT-130: the command deletes canceled or retired work entirely only under its own flag and names that flag in discovery`
 **Status:** Untested
 
 #### TC-TPT-131: Property BR-TPT-20 idempotency [P1]
@@ -1139,7 +1145,7 @@ boundaryCounterCase: "limit+1 or missing host \u2192 bounded limit/unavailable/n
 | Intended observable outcome | BR-TPT-20 |
 | Executing implementation/assertion | [Source: test/work-tracking/TC-TPT-131]; authored callback/assertion guard, NOT RUN; complete implementation mapping remains TBD |
 
-**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-invariants.test.cjs::TC-TPT-131: record budget at 2000 allows an honest read and limit plus one suppresses complete claims`, `.claude/hooks/tests/suites/task-tracking-invariants.test.cjs::TC-TPT-131: a project whose records add up to more than any single-file budget is read whole, with no total-size refusal`, `.claude/hooks/tests/suites/task-tracking-invariants.test.cjs::TC-TPT-131: the 64-entry cooperating queue rejects its next request and releases every owned lock`, `.claude/hooks/tests/suites/task-tracking-invariants.test.cjs::TC-TPT-131: a pinned shared board whose records add up to more than any single-file budget is read whole`, `.claude/hooks/tests/suites/task-tracking-runtime-contract.test.cjs::TC-TPT-131: a report of any size shows only what the bounded inspection read and says the rest was left out, and the record byte budget stays for everything else`
+**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-boundaries.test.cjs::TC-TPT-131: one pinned record or evidence file above the per-file budget is named while every other pinned file is still read`, `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-131: one native source larger than the per-file budget is named while the sources after it are still inventoried`, `.claude/hooks/tests/suites/task-tracking-invariants.test.cjs::TC-TPT-131: record budget at 2000 allows an honest read and limit plus one suppresses complete claims`, `.claude/hooks/tests/suites/task-tracking-invariants.test.cjs::TC-TPT-131: a project whose records add up to more than any single-file budget is read whole, with no total-size refusal`, `.claude/hooks/tests/suites/task-tracking-invariants.test.cjs::TC-TPT-131: one record file larger than the per-file budget is reported by its path while every other record is still read`, `.claude/hooks/tests/suites/task-tracking-invariants.test.cjs::TC-TPT-131: the 64-entry cooperating queue rejects its next request and releases every owned lock`, `.claude/hooks/tests/suites/task-tracking-invariants.test.cjs::TC-TPT-131: a pinned shared board whose records add up to more than any single-file budget is read whole`, `.claude/hooks/tests/suites/task-tracking-runtime-contract.test.cjs::TC-TPT-131: a report of any size shows only what the bounded inspection read and says the rest was left out, and the record byte budget stays for everything else`
 **Status:** Untested
 
 #### TC-TPT-132: Property INV-TPT-01 conservation [P1]
@@ -1348,6 +1354,8 @@ boundaryCounterCase: "materially new/split/cloned outcome copying acceptance \u2
 
 **Proves:** INV-TPT-04.
 
+**Current contract clarification:** Only eligible task identities earn delivery credit; area/initiative/tag overlap, stories and subtasks do not add credit, and canceled/retired tasks are excluded once.
+
 **Preconditions:**
 
 - Any nested overlapping delivery memberships and execution/group records.
@@ -1403,7 +1411,7 @@ boundaryCounterCase: "adding duplicate membership or completed subtask \u2192 no
 | Intended observable outcome | INV-TPT-04 |
 | Executing implementation/assertion | [Source: test/work-tracking/TC-TPT-135]; authored callback/assertion guard, NOT RUN; complete implementation mapping remains TBD |
 
-**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-case-contracts.test.cjs::TC-TPT-135: overlap and membership permutations conserve unique delivery while completed enabling work adds no credit`, `.claude/hooks/tests/suites/task-tracking-maintenance-contracts.test.cjs::TC-TPT-135: completed stories and groups add no task credit and retirement changes an overlapping unique union exactly once`
+**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-case-contracts.test.cjs::TC-TPT-135: overlap and tag-order permutations conserve unique delivery while completed enabling work adds no credit`, `.claude/hooks/tests/suites/task-tracking-invariants.test.cjs::TC-TPT-135: one counting rule serves the project, every area and every initiative: a task is eligible unless canceled or retired, only an accepted task earns credit, and a task counts once in a scope`, `.claude/hooks/tests/suites/task-tracking-invariants.test.cjs::TC-TPT-135: stories and subtasks may be tagged to areas and initiatives and are never counted`, `.claude/hooks/tests/suites/task-tracking-maintenance-contracts.test.cjs::TC-TPT-135: completed stories add no task credit and retirement changes an overlapping unique union exactly once`
 **Status:** Untested
 
 #### TC-TPT-136: Property INV-TPT-05 idempotency [P0]
@@ -1535,5 +1543,5 @@ boundaryCounterCase: "unavailable baseline/input/proof \u2192 explicit unavailab
 | Intended observable outcome | INV-TPT-06 |
 | Executing implementation/assertion | [Source: test/work-tracking/TC-TPT-137]; authored callback/assertion guard, NOT RUN; complete implementation mapping remains TBD |
 
-**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-case-contracts.test.cjs::TC-TPT-137: portable current, historical shared and native views retain selected authority without substituting missing confidence`, `.claude/hooks/tests/suites/task-tracking-maintenance-contracts.test.cjs::TC-TPT-137: selected group confidence partitions retain accepted history without borrowing passing proof or delivery from outside scope`, `.claude/hooks/tests/suites/task-tracking-maintenance-contracts.test.cjs::TC-TPT-137: known empty, absent selected and partially inspectable scopes disclose distinct coverage without optimistic precision or source repair`
+**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-case-contracts.test.cjs::TC-TPT-137: portable current, historical shared and native views retain selected authority without substituting missing confidence`, `.claude/hooks/tests/suites/task-tracking-maintenance-contracts.test.cjs::TC-TPT-137: selected area confidence partitions retain accepted history without borrowing passing proof or delivery from outside scope`, `.claude/hooks/tests/suites/task-tracking-maintenance-contracts.test.cjs::TC-TPT-137: known empty, absent selected and partially inspectable scopes disclose distinct coverage without optimistic precision or source repair`
 **Status:** Untested

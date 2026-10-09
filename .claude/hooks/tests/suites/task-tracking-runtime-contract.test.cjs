@@ -6,6 +6,7 @@ const os = require('node:os');
 const path = require('node:path');
 const http = require('node:http');
 const crypto = require('node:crypto');
+const zlib = require('node:zlib');
 const { spawn, spawnSync } = require('node:child_process');
 const { EventEmitter } = require('node:events');
 const { Readable } = require('node:stream');
@@ -198,10 +199,79 @@ const occurrences = (text, part) => text.split(part).length - 1;
 const shownReport = html => html.replace(/<script[\s\S]*?<\/script>/g, '').replace(/<style>[\s\S]*?<\/style>/, '');
 const reportRows = (html, listName) => [...(new RegExp(`<ul class="work-list" aria-label="${listName}">([\\s\\S]*?)</ul>`).exec(html)?.[1] || '')
     .matchAll(/<li class="work-row[^"]*" data-item-id="([^"]*)"/g)].map(match => match[1]).sort();
-const kindsShown = html => [...new Set([...html.matchAll(/<span class="kind[^"]*">([^<]*)<\/span>/g)].map(match => match[1]))].sort();
+// Kind chips only: a level or type label beside a name in a list is a label, not a kind.
+const kindsShown = html => [...new Set([...html.matchAll(/<span class="kind(?: kind--delivery)?">([^<]*)<\/span>/g)].map(match => match[1]))].sort();
 const statesShown = html => [...new Set([...html.matchAll(/<span class="mark state is-[a-z_]+">.*?<span>([^<]*)<\/span><\/span>/g)].map(match => match[1]))].sort();
 // A percentage has one place in a report; record anchors are percent-encoded and are not one.
 const percentageShown = html => shownReport(html).includes('class="hero-rate"');
+const readReport = (f, result) => fs.readFileSync(path.join(f.root, result.path), 'utf8');
+// What the top of a report states about itself: date, source, coverage and shared freshness, in that order.
+const sourceFacts = html => [...(/<dl class="source-facts">([\s\S]*?)<\/dl>/.exec(html)?.[1] || '').matchAll(/<div>([\s\S]*?)<\/div>/g)].map(match => match[1].replace(/<svg[\s\S]*?<\/svg>/g, '').replace(/<[^>]+>/g, '').trim());
+// The record detail a packed report holds: the markup the full form writes as page content.
+const unpacked = html => JSON.parse(zlib.gunzipSync(Buffer.from(JSON.parse(/<script id="task-track-data" type="application\/json">([^<]*)<\/script>/.exec(html)[1]).packed, 'base64')).toString('utf8'));
+const recordCards = markup => [...markup.matchAll(/<article class="record-detail" id="[^"]*" data-item-id="([^"]*)"[\s\S]*?<\/article>/g)].map(match => [match[1], match[0]]);
+// The part of a report under one heading, and what a piece of its markup says once its marks are named and its tags dropped.
+const section = (page, heading) => new RegExp(`<section[^>]*aria-labelledby="${heading}"[\\s\\S]*?</section>`).exec(page)?.[0] || '';
+const said = markup => markup.replace(/<svg class="icon"[\s\S]*?<\/svg>/g, '').replace(/<svg class="meter"[^>]*aria-label="([^"]*)"[\s\S]*?<\/svg>/g, '[$1] ').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+// The facts one record's detail states in a full report, by the name of each fact.
+const recordFacts = (html, id) => Object.fromEntries([...recordCards(html).find(([found]) => found === id)[1].matchAll(/<dt>([^<]*)<\/dt><dd>([\s\S]*?)<\/dd>/g)].map(match => [match[1], said(match[2])]));
+// A calendar date as a report words it, with the month names spelled out here.
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const longDay = date => `${Number(date.slice(8, 10))} ${MONTH_NAMES[Number(date.slice(5, 7)) - 1]} ${date.slice(0, 4)}`;
+/**
+ * Runs `run` with the clock `days` later and puts the real clock back whatever happens. The tracker takes the day of a
+ * read from the clock, so a case about a date passing moves the clock and leaves every record, the configuration and the
+ * evidence exactly as they are. Nothing in the tracker is told the date.
+ */
+async function daysLater(days, run) {
+    const Actual = Date; const shift = days * 86400000;
+    globalThis.Date = class extends Actual {
+        constructor(...values) { if (values.length) super(...values); else super(Actual.now() + shift); }
+        static now() { return Actual.now() + shift; }
+    };
+    try { return await run(); }
+    finally { globalThis.Date = Actual; }
+}
+// One line of the area list: the words it states after the name, and the name of its meter.
+function figureLine(markup, id) {
+    // The identity is printed beside an area at the top of the list and kept as hidden text on the lines inside it.
+    const row = markup.split('<div class="fig-row">').slice(1).map(part => part.slice(0, part.indexOf('</div>'))).find(part => new RegExp(`<span class="id(?: sr-only)?">${id}</span></span>`).test(part));
+    if (!row) return undefined;
+    const name = new RegExp(`<span class="id(?: sr-only)?">${id}</span></span>`).exec(row)[0];
+    const cells = row.slice(row.indexOf(name) + name.length);
+    return { name: row.slice(0, row.indexOf(name)), meter: /aria-label="([^"]*)"/.exec(cells)?.[1], text: cells.replace(/<svg[\s\S]*?<\/svg>/g, '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() };
+}
+// A small project with every kind: a product holding two features, an initiative that shares their tasks, and a task in no area.
+async function mixedWork(f) {
+    const outcome = n => `Let an operator export exactly the selected rows of batch ${n} and see which rows were left out. `.repeat(6).trim();
+    await f.create('INITIATIVE-1', 'initiative', { intent: outcome(1) });
+    await f.create('AREA-A', 'area', { level: 'product' }); await f.create('FEATURE-F', 'area', { level: 'feature', areaIds: ['AREA-A'] }); await f.create('FEATURE-G', 'area', { level: 'feature', areaIds: ['AREA-A'] });
+    await f.create('PROGRAM-R', 'initiative', { type: 'feedback' });
+    await f.create('TASK-1', 'task', { intent: outcome(2), areaIds: ['FEATURE-F'] }); await f.accepted('TASK-1');
+    await f.create('TASK-2', 'task', { intent: outcome(3), areaIds: ['FEATURE-F'], initiativeIds: ['PROGRAM-R'] }); await f.saved('transition', 'TASK-2', { state: 'planned' });
+    await f.create('TASK-3', 'task', { intent: outcome(4), areaIds: ['FEATURE-G'], initiativeIds: ['PROGRAM-R'] }); await f.accepted('TASK-3');
+    await f.create('TASK-4', 'task', { intent: outcome(5) });
+    await f.create('SUBTASK-1', 'subtask', { intent: outcome(6), areaIds: ['FEATURE-F'] }); await f.create('STORY-1', 'story', { intent: outcome(7), areaIds: ['FEATURE-F'] });
+}
+// Areas at three levels, one of them inside two products; initiatives that are overdue, due far ahead, undated with no task,
+// and closed; tasks tagged across them, one in no area. Every date is far from the day of any run.
+async function treeWork(f) {
+    await f.create('APP', 'area', { title: 'Back office', level: 'application' });
+    await f.create('PRODUCT-B', 'area', { title: 'Billing', level: 'product', areaIds: ['APP'] });
+    await f.create('PRODUCT-A', 'area', { title: 'Accounts', level: 'product', areaIds: ['APP'] });
+    await f.create('FEATURE-X', 'area', { title: 'Exports', level: 'feature', areaIds: ['PRODUCT-A', 'PRODUCT-B'] });
+    await f.create('LOOSE', 'area', { title: 'Unsorted' });
+    await f.create('INIT-LATE', 'initiative', { title: 'Late review', type: 'feedback', priorityLevel: 'high', deadline: '2026-01-15' });
+    await f.create('INIT-SOON', 'initiative', { title: 'Next release', type: 'initiative', priorityLevel: 'low', deadline: '2999-01-01' });
+    await f.create('INIT-OPEN', 'initiative', { title: 'An idea to weigh' });
+    await f.create('INIT-DONE', 'initiative', { title: 'Finished outcome', type: 'initiative', deadline: '2026-01-10' });
+    await f.create('TASK-1', 'task', { areaIds: ['FEATURE-X'], initiativeIds: ['INIT-LATE', 'INIT-DONE'], deadline: '2026-01-20' }); await f.accepted('TASK-1');
+    await f.create('TASK-2', 'task', { areaIds: ['FEATURE-X', 'LOOSE'], initiativeIds: ['INIT-LATE'], deadline: '2026-01-20' });
+    await f.create('TASK-3', 'task', { areaIds: ['PRODUCT-B'], initiativeIds: ['INIT-SOON'] });
+    await f.create('TASK-4', 'task', {});
+    await f.create('STORY-1', 'story', { areaIds: ['FEATURE-X'] });
+    await f.committed('INIT-LATE'); await f.committed('INIT-DONE'); await f.saved('transition', 'INIT-DONE', { state: 'done', reason: 'The outcome was reached' });
+}
 // The renderer handed a project that cannot be read: the named reason, and no work, delivery count or percentage.
 function unreadableReport(f, reason) {
     const snapshot = f.progress();
@@ -259,7 +329,7 @@ module.exports = { name: 'Task tracking runtime contract integration', tests: [
         f.write('docs/project-config.json', '{invalid');
         const helpResult = child(f, ['help']); assert.equal(helpResult.result.status, 0);
         assert.equal(helpResult.value.defaultPurpose, 'inspect');
-        assert.deepEqual(helpResult.value.commands, ['help', 'identity', 'catalogue', 'concerns', 'inspect', 'check', 'ready', 'apply', 'report', 'serve', 'link', 'unlink', 'checkpoint', 'migrate']);
+        assert.deepEqual(helpResult.value.commands, ['help', 'identity', 'catalogue', 'concerns', 'placement', 'inspect', 'check', 'ready', 'apply', 'report', 'serve', 'link', 'unlink', 'checkpoint', 'migrate']);
         assert.equal(JSON.stringify(helpResult.value).includes(f.root), false);
         f.saveConfig();
         const catalogue = child(f, ['catalogue', '--root', f.root]); assert.equal(catalogue.result.status, 0);
@@ -277,7 +347,7 @@ module.exports = { name: 'Task tracking runtime contract integration', tests: [
     test('TC-TPT-147', 'actual new read commands refuse irrelevant permissions, unknown modes and malformed scope without mutation', async f => {
         await f.create(); const original = f.bytes('TASK-101');
         for (const argv of [['help', '--root', f.root], ['catalogue', '--root', f.root, '--accept'],
-            ['concerns', '--root', f.root, '--actor', 'owner'], ['concerns', '--root', f.root, '--group', 'TASK-101'],
+            ['concerns', '--root', f.root, '--actor', 'owner'], ['concerns', '--root', f.root, '--scope', 'TASK-101'],
             ['concerns', '--root', f.root, '--root', f.root], ['inspect', '--root', f.root, '--mode', 'finish-everything'],
             ['finish-everything', '--root', f.root], ['catalogue']]) {
             const result = child(f, argv, { schemaVersion: 1, itemIds: ['TASK-101'] });
@@ -445,6 +515,30 @@ module.exports = { name: 'Task tracking runtime contract integration', tests: [
         assert.notEqual(refreshed.fingerprint, generated.fingerprint); assert.equal(reports.inspectReport(f.root).manifest.fingerprint, f.progress().fingerprint);
         assert.ok(fs.readFileSync(path.join(f.root, refreshed.path), 'utf8').includes('New source title'));
     }),
+    test('TC-TPT-260', 'a report written before a due date passed is written again once the date has passed, and is kept while no overdue mark moves', async f => {
+        // Due in two days: not overdue when the report is first written, nor if this run crosses a midnight.
+        const deadline = new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10);
+        await f.create('TASK-101', 'task', { deadline });
+        const stored = f.storedState();
+        const report = () => cli.run(['report', '--root', f.root]);
+        const dueDate = result => recordFacts(readReport(f, result), 'TASK-101')['Due date'];
+        const first = await report();
+        assert.equal(first.status, 'generated'); assert.equal(dueDate(first), `Due ${longDay(deadline)}`); assert.equal(f.view('TASK-101').overdue, false);
+        // Nothing a read states has moved: the report is kept.
+        const kept = await report(); assert.equal(kept.status, 'current'); assert.equal(kept.fingerprint, first.fingerprint);
+        // The date passes the due date. No record, configuration or evidence changes; only the day of the read does.
+        await daysLater(4, async () => {
+            assert.equal(f.view('TASK-101').overdue, true);
+            const later = await report();
+            assert.equal(later.status, 'generated', 'a report that predates an overdue mark is not current');
+            assert.notEqual(later.fingerprint, first.fingerprint); assert.equal(later.path, first.path);
+            assert.equal(dueDate(later), `Overdue: was due ${longDay(deadline)}`);
+            // On that later day nothing moves again, so the next request keeps what was just written.
+            const again = await report(); assert.equal(again.status, 'current'); assert.equal(again.fingerprint, later.fingerprint);
+            assert.equal(dueDate(again), `Overdue: was due ${longDay(deadline)}`);
+        });
+        assert.deepEqual(f.storedState(), stored);
+    }),
     test('TC-TPT-007', 'an integrity-valid previous renderer refreshes unchanged sources then preserves current bytes', async f => {
         await f.create();
         const canonical = f.bytes('TASK-101');
@@ -494,29 +588,35 @@ module.exports = { name: 'Task tracking runtime contract integration', tests: [
         assert.ok(incomplete.includes('Inspection is incomplete'));
         assert.equal(fs.readFileSync(path.join(f.root, 'work/tasks/broken.md'), 'utf8'), 'external malformed record');
     }),
-    test('TC-TPT-252', 'a status report lists exactly the eligible tasks of its scope and names every kind, state and purpose in the current words', async f => {
-        await f.create('INITIATIVE-1', 'initiative'); await f.create('TASK-1'); await f.accepted('TASK-1');
-        await f.create('TASK-2'); await f.saved('transition', 'TASK-2', { state: 'planned' }); await f.create('TASK-3');
-        await f.create('SUBTASK-1', 'subtask'); await f.create('STORY-1', 'story'); await f.create('PROJECT-1', 'project');
-        await f.saved('group', 'PROJECT-1', { memberItemIds: ['TASK-1', 'TASK-2', 'SUBTASK-1', 'STORY-1'], groupRole: 'program' });
-        const scope = f.progress({ groupId: 'PROJECT-1' }).scope;
+    test('TC-TPT-252', 'a status report lists exactly the eligible tasks of its scope and names every kind, state, level and type in the current words', async f => {
+        await f.create('INITIATIVE-1', 'initiative', { type: 'initiative' }); await f.create('AREA-1', 'area', { level: 'module' });
+        await f.create('TASK-1', 'task', { initiativeIds: ['INITIATIVE-1'], areaIds: ['AREA-1'] }); await f.accepted('TASK-1');
+        await f.create('TASK-2', 'task', { initiativeIds: ['INITIATIVE-1'] }); await f.saved('transition', 'TASK-2', { state: 'planned' }); await f.create('TASK-3');
+        await f.create('SUBTASK-1', 'subtask', { initiativeIds: ['INITIATIVE-1'] }); await f.create('STORY-1', 'story', { initiativeIds: ['INITIATIVE-1'] });
+        const scope = f.progress({ scopeId: 'INITIATIVE-1' }).scope;
         assert.deepEqual(scope.eligibleTaskIds, ['TASK-1', 'TASK-2']);
-        // A report for a group: its primary list is the group's delivery work and nothing else.
-        const grouped = await reports.ensureReport(f.root, { groupId: 'PROJECT-1' });
-        const group = fs.readFileSync(path.join(f.root, grouped.path), 'utf8');
-        assert.deepEqual(reportRows(group, 'Eligible delivery tasks'), scope.eligibleTaskIds);
-        assert.ok(shownReport(group).includes('2 eligible delivery tasks')); assert.ok(shownReport(group).includes('of 2 tasks accepted'));
-        assert.match(shownReport(group), /Supporting work \(2\)/);
+        // A report for one initiative: its primary list is that initiative's delivery work and nothing else.
+        const scoped = readReport(f, await reports.ensureReport(f.root, { scopeId: 'INITIATIVE-1' }));
+        assert.deepEqual(reportRows(scoped, 'Eligible delivery tasks'), scope.eligibleTaskIds);
+        assert.ok(shownReport(scoped).includes('2 eligible delivery tasks')); assert.ok(shownReport(scoped).includes('of 2 tasks accepted'));
+        assert.match(shownReport(scoped), /Supporting work \(2\)/);
         // A report for the whole project: every record is listed, and only tasks are counted as delivery.
-        const whole = fs.readFileSync(path.join(f.root, (await reports.ensureReport(f.root)).path), 'utf8');
+        const whole = readReport(f, await reports.ensureReport(f.root));
         assert.deepEqual(reportRows(whole, 'Work list'), f.progress().items.map(item => item.id).sort());
-        assert.ok(shownReport(whole).includes('of 3 tasks accepted')); assert.ok(shownReport(whole).includes('Initiatives, stories and subtasks sit outside this count.'));
-        assert.match(shownReport(whole), /Ungrouped tasks \(1\)/);
-        for (const html of [group, whole]) {
-            assert.deepEqual(kindsShown(html), ['Initiative', 'Project group', 'Story', 'Subtask', 'Task']);
+        assert.ok(shownReport(whole).includes('of 3 tasks accepted')); assert.ok(shownReport(whole).includes('Initiatives, stories, subtasks and areas sit outside this count.'));
+        assert.ok(shownReport(whole).includes('<strong>Not in any area: 2 tasks.</strong> They count for the whole project only.'));
+        // The rows a reader may narrow to as remaining work are marked from the read's own list of eligible tasks.
+        assert.deepEqual([...whole.matchAll(/<li class="work-row[^"]*" data-item-id="([^"]*)"[^>]* data-eligible="true"/g)].map(match => match[1]).sort(), f.progress().metrics.eligibleIds);
+        assert.deepEqual(kindsShown(whole), ['Area', 'Initiative', 'Story', 'Subtask', 'Task']);
+        // A scope's own snapshot names the kinds of its own records; the area and the untagged task belong elsewhere and are not in it.
+        assert.deepEqual(kindsShown(scoped), ['Initiative', 'Story', 'Subtask', 'Task']);
+        for (const outside of ['AREA-1', 'TASK-3']) assert.equal(shownReport(scoped).includes(`data-item-id="${outside}"`), false, outside);
+        // The level of an area and the type of an initiative are named beside them, in the tracker's words.
+        assert.ok(section(shownReport(whole), 'areas-heading').includes('<span class="kind kind--label">Module</span>'));
+        assert.ok(section(shownReport(whole), 'initiatives-heading').includes('<span class="kind kind--label">Initiative</span>'));
+        for (const html of [scoped, whole]) {
             assert.ok(statesShown(html).includes('Planned'));
-            assert.ok(shownReport(html).includes('Program (program)'));
-            assert.equal(/\b(?:PBIs?|Backlog|Epics?|Ideas?)\b/.test(shownReport(html)), false, 'no earlier word is shown');
+            assert.equal(/\b(?:PBIs?|Backlog|Epics?|Project groups?|Visions?|Programs?|Generic group|Ungrouped)\b/.test(shownReport(html)), false, 'no earlier word is shown');
         }
     }),
     test('TC-TPT-242', 'the status report of an earlier-vocabulary project shows current words and the recorded numbers under a read-only notice, and changes no record', async f => {
@@ -526,34 +626,34 @@ module.exports = { name: 'Task tracking runtime contract integration', tests: [
         const shown = shownReport(html);
         assert.ok(shown.includes('Migration required: this project is read-only.'));
         assert.ok(shown.includes('migrate --root &lt;checkout&gt; --dry-run'));
-        assert.deepEqual(kindsShown(html), ['Initiative', 'Project group', 'Story', 'Subtask', 'Task']);
+        assert.deepEqual(kindsShown(html), ['Initiative', 'Story', 'Subtask', 'Task']);
         assert.ok(statesShown(html).includes('Planned')); assert.equal(statesShown(html).some(name => !Object.values(vocabulary.LABELS.states).includes(name)), false);
-        // The purpose keeps the name this project gave it, under the current purpose word.
-        assert.ok(shown.includes('Bet (program)')); assert.ok(shown.includes('<dt>Initiative</dt>'));
+        // The former finite-scope group reads as an initiative, under the name this project gave that purpose.
+        assert.ok(section(shown, 'initiatives-heading').includes('<span class="kind kind--label">Bet</span>')); assert.ok(shown.includes('<dt>Initiatives</dt>'));
         assert.ok(shown.includes(`of ${project.expected.total} tasks accepted`)); assert.ok(shown.includes(`<span class="hero-figure">${project.expected.accepted}</span>`));
         assert.ok(shown.includes('<strong>50.0%</strong>')); assert.equal(percentageShown(html), true);
-        const group = fs.readFileSync(path.join(f.root, (await reports.ensureReport(f.root, { groupId: project.ids.group })).path), 'utf8');
+        const group = fs.readFileSync(path.join(f.root, (await reports.ensureReport(f.root, { scopeId: project.ids.group })).path), 'utf8');
         assert.deepEqual(reportRows(group, 'Eligible delivery tasks'), [...project.expected.eligibleIds].sort());
         assert.deepEqual(f.storedState(), stored);
     }),
     test('TC-TPT-244', 'a status report requested for a project holding both vocabularies is refused with that reason, shows no work, and the report made before is kept', async f => {
         await earlierProject(f);
         const made = await reports.ensureReport(f.root); const kept = fs.readFileSync(path.join(f.root, made.path));
-        fs.mkdirSync(path.join(f.root, 'work/projects'));
+        fs.mkdirSync(path.join(f.root, 'work/areas'));
         const stored = f.storedState();
         // What a person gets from every shipped path: the cause they can act on, never a missing report capability.
         const mixed = error => error.code === 'MIXED_VOCABULARY'
-            && /^Mixed vocabularies: record locations from both vocabularies are present; nothing is counted or saved until one vocabulary remains \(earlier: [a-z, ]+; current: projects\); prior output preserved$/.test(error.message);
+            && /^Mixed vocabularies: record locations from both vocabularies are present; nothing is counted or saved until one vocabulary remains \(earlier: [a-z, ]+; current: areas\); prior output preserved$/.test(error.message);
         await assert.rejects(reports.ensureReport(f.root), mixed);
         await assert.rejects(reports.ensureReportDocument(f.root), mixed);
         await assert.rejects(reports.ensureReport(f.root, { initializedOnly: true }), mixed);
         assert.deepEqual(fs.readFileSync(path.join(f.root, made.path)), kept, 'No report of the unreadable project replaces the one made before');
         // The renderer handed such a project directly still shows the reason and no work; no shipped path hands it one.
         const html = unreadableReport(f, 'Mixed vocabularies: ');
-        assert.ok(shownReport(html).includes('(earlier: ')); assert.ok(shownReport(html).includes('current: projects)'));
+        assert.ok(shownReport(html).includes('(earlier: ')); assert.ok(shownReport(html).includes('current: areas)'));
         assert.deepEqual(f.storedState(), stored);
         // Boundary: a record profile with no proved report capability is still refused as exactly that.
-        fs.rmdirSync(path.join(f.root, 'work/projects'));
+        fs.rmdirSync(path.join(f.root, 'work/areas'));
         f.config.taskTracking.profile = { kind: 'native', version: 1, registration: 'fixture-native' }; f.saveConfig();
         await assert.rejects(reports.ensureReport(f.root), error => error.code === 'UNAVAILABLE_REPORT' && /no proved read-only report capability; prior output preserved$/.test(error.message));
         assert.deepEqual(fs.readFileSync(path.join(f.root, made.path)), kept);
@@ -576,14 +676,14 @@ module.exports = { name: 'Task tracking runtime contract integration', tests: [
     test('TC-TPT-250', 'a status report names each earlier-vocabulary record with where it was found and withholds the percentage', async f => {
         await f.create('TASK-1'); await f.accepted('TASK-1'); await f.create('TASK-2');
         // An older branch brings a record still written in the earlier words into a location only that vocabulary used.
-        const stray = '---\nid: P3\ntitle: Work written before the vocabulary change\nintent: Keep an earlier outcome readable\nstatus: draft\ntracking: {schemaVersion: 1, revision: 1, kind: pbi}\n---\nAuthored body stays as written.\n';
-        f.write('work/pbis/P3.md', stray);
+        const stray = '---\nid: P3\ntitle: Work written before the vocabulary change\nintent: Keep an earlier outcome readable\nstatus: draft\ntracking: {schemaVersion: 2, revision: 1, kind: project}\n---\nAuthored body stays as written.\n';
+        f.write('work/projects/P3.md', stray);
         const generated = await reports.ensureReport(f.root); assert.equal(generated.coverage, 'partial');
         const html = fs.readFileSync(path.join(f.root, generated.path), 'utf8'); const shown = shownReport(html);
-        assert.ok(shown.includes('P3: <span class="mono">work/pbis/P3.md</span>: EARLIER_VOCABULARY_RECORD: Earlier-vocabulary record: not counted'));
+        assert.ok(shown.includes('P3: <span class="mono">work/projects/P3.md</span>: EARLIER_VOCABULARY_RECORD: Earlier-vocabulary record: not counted'));
         assert.ok(shown.includes('Inspection is incomplete')); assert.ok(shown.includes('Percentage withheld')); assert.equal(percentageShown(html), false);
         assert.deepEqual(reportRows(html, 'Work list'), ['TASK-1', 'TASK-2']);
-        assert.equal(fs.readFileSync(path.join(f.root, 'work/pbis/P3.md'), 'utf8'), stray);
+        assert.equal(fs.readFileSync(path.join(f.root, 'work/projects/P3.md'), 'utf8'), stray);
     }),
     test('TC-TPT-007', 'disabled generation preserves a previous report and opens no viewer', async f => {
         await f.create(); const generated = await reports.ensureReport(f.root); const before = fs.readFileSync(path.join(f.root, generated.path));
@@ -633,10 +733,10 @@ module.exports = { name: 'Task tracking runtime contract integration', tests: [
             const changed = await view({}); assert.equal(changed.value.report.status, 'generated');
             assert.notEqual(changed.value.report.fingerprint, first.value.report.fingerprint); assert.ok(changed.value.html.includes('Title changed after the report was read'));
             // A scope has its own report; it never replaces the project one.
-            await f.create('PROJECT-1', 'project'); await f.saved('group', 'PROJECT-1', { memberItemIds: ['TASK-101'] });
-            const scoped = await view({ groupId: 'PROJECT-1' }); assert.equal(scoped.status, 200);
-            assert.equal(scoped.value.report.path, reports.reportPath({ groupId: 'PROJECT-1' })); assert.notEqual(scoped.value.report.path, reports.REPORT_PATH);
-            assert.equal(reports.inspectReport(f.root, scoped.value.report.path).manifest.groupId, 'PROJECT-1');
+            await f.create('INITIATIVE-1', 'initiative'); await f.tag('TASK-101', { initiativeIds: ['INITIATIVE-1'] });
+            const scoped = await view({ scopeId: 'INITIATIVE-1' }); assert.equal(scoped.status, 200);
+            assert.equal(scoped.value.report.path, reports.reportPath({ scopeId: 'INITIATIVE-1' })); assert.notEqual(scoped.value.report.path, reports.REPORT_PATH);
+            assert.equal(reports.inspectReport(f.root, scoped.value.report.path).manifest.scopeId, 'INITIATIVE-1');
             const foreign = await view({ root: path.join(f.root, 'foreign') }); assert.equal(foreign.status, 400); assert.equal(foreign.value.code, 'INVALID_INPUT');
             f.config.taskTracking.report.enabled = false; f.saveConfig();
             const disabled = await view({}); assert.equal(disabled.status, 200); assert.equal(disabled.value.report.status, 'skipped'); assert.equal(disabled.value.html, undefined);
@@ -682,7 +782,7 @@ module.exports = { name: 'Task tracking runtime contract integration', tests: [
         assert.ok(html.includes('&lt;/script&gt;&lt;img')); assert.equal(html.includes('<img src="https://invalid.example/"'), false);
         const scripts = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)]; assert.equal(scripts.length, 3);
         const data = JSON.parse(/<script id="task-track-data" type="application\/json">([^<]*)<\/script>/.exec(html)[1]);
-        assert.equal(data.items[0].title, hostile);
+        assert.deepEqual(data, { detail: 'full' }, 'the data block of a full report carries its form and no record content');
         const executable = scripts[2][1]; const style = /<style>([\s\S]*?)<\/style>/.exec(html)[1];
         for (const source of [executable, style]) assert.ok(html.includes(crypto.createHash('sha256').update(source).digest('base64')));
         assert.ok(html.includes('default-src &#39;none&#39;')); assert.ok(html.includes('connect-src &#39;none&#39;'));
@@ -737,6 +837,553 @@ module.exports = { name: 'Task tracking runtime contract integration', tests: [
         assert.equal(fs.existsSync(path.join(f.root, 'work/tasks/too-large.md')), false);
         assert.throws(() => readBytes(f.root, generated.path), error => error.code === 'LIMIT_EXCEEDED');
         refused(await f.perform('create', 'TASK-oversized', { title: 'Oversized outcome', intent: 'x'.repeat(LIMITS.recordBytes) }), 'LIMIT_EXCEEDED');
+    }),
+    test('TC-TPT-253', 'every inspected record keeps its row in every detail form, with the same counts', async f => {
+        await mixedWork(f); const ids = f.progress().items.map(item => item.id).sort();
+        const full = await reports.ensureReport(f.root); const packed = await reports.ensureReport(f.root, { detail: 'packed' }); const none = await reports.ensureReport(f.root, { detail: 'none' });
+        assert.deepEqual([full.detail, packed.detail, none.detail], ['full', 'packed', 'none']);
+        const figure = html => /<span class="hero-figure">(\d+)<\/span> <span class="hero-unit">([^<]*)<\/span>/.exec(html).slice(1).join(' ');
+        for (const result of [full, packed, none]) {
+            const html = readReport(f, result);
+            assert.deepEqual(reportRows(html, 'Work list'), ids, `${result.detail}: every record is listed`);
+            assert.equal(figure(html), '2 of 4 tasks accepted'); assert.equal(result.bytes, Buffer.byteLength(html));
+            // One manifest, one data block and one script in every form, and nothing fetched from anywhere.
+            assert.equal(occurrences(html, '<script'), 3); assert.equal(/<(?:script|link)[^>]+(?:src|href)=/i.test(html), false);
+            // Every form states the same source and coverage, and its own date.
+            assert.deepEqual(sourceFacts(html).slice(1), sourceFacts(readReport(f, full)).slice(1), result.detail); assert.match(sourceFacts(html)[0], /^As of\d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC$/);
+        }
+        assert.ok(packed.bytes < full.bytes && none.bytes < packed.bytes, `${full.bytes} > ${packed.bytes} > ${none.bytes}`);
+        // The full form writes a record's outcome once as page content, not once per place that could show it.
+        assert.equal(occurrences(shownReport(readReport(f, full)), 'selected rows of batch 2 and'), 6);
+    }),
+    test('TC-TPT-253', 'a scoped snapshot names every record of its own scope once in every detail form', async f => {
+        await mixedWork(f); await f.create('TASK-5', 'task', { areaIds: ['FEATURE-F'] }); await f.saved('transition', 'TASK-5', { state: 'canceled', reason: 'The outcome is no longer needed' });
+        const own = ['FEATURE-F', 'STORY-1', 'SUBTASK-1', 'TASK-1', 'TASK-2', 'TASK-5'];
+        // The delivery list holds the eligible tasks; the canceled task and the supporting work are named beside it, and the area in the area list.
+        const named = shown => { const lists = shown.slice(shown.indexOf('<div class="disclosures"><details><summary>Excluded tasks ('), shown.indexOf('id="inspected-context"')) + section(shown, 'areas-heading'); return own.filter(id => lists.includes(`<span class="id">${id}</span>`)); };
+        for (const detail of ['full', 'packed', 'none']) {
+            const result = await reports.ensureReport(f.root, { scopeId: 'FEATURE-F', detail }); const html = readReport(f, result); const shown = shownReport(html);
+            assert.equal(result.detail, detail); assert.deepEqual(reportRows(html, 'Eligible delivery tasks'), ['TASK-1', 'TASK-2'], detail);
+            assert.deepEqual(named(shown), ['FEATURE-F', 'STORY-1', 'SUBTASK-1', 'TASK-5'], `${detail}: what the delivery list leaves out is still named`);
+            assert.match(shown, /\d+ other records are outside this snapshot\./, detail);
+            // Other work is neither listed nor detailed; the area above and a linked initiative are named only as outside.
+            for (const outside of ['TASK-3', 'TASK-4', 'INITIATIVE-1', 'FEATURE-G']) assert.equal(shown.includes(outside), false, `${detail}: ${outside}`);
+            assert.equal(shown.replace(/(?:AREA-A|PROGRAM-R)<\/span><span class="fact-sub">Outside this snapshot<\/span>/g, '').match(/AREA-A|PROGRAM-R/), null, `${detail}: a record outside the scope is named only as outside`);
+            assert.ok(shown.includes('of 2 tasks accepted'), detail);
+        }
+        // The detail-free form names them as plain entries: there is nothing in this copy to open.
+        const plain = shownReport(readReport(f, await reports.ensureReport(f.root, { scopeId: 'FEATURE-F', detail: 'none' })));
+        assert.equal(plain.includes('href="#record-'), plain.includes('class="row-line" href="#record-')); assert.equal(occurrences(plain, 'href="#record-'), 2);
+        assert.equal(plain.includes('Outside this snapshot'), false);
+    }),
+    test('TC-TPT-253', 'a report that leaves detail out names what it left out, on the page and in the result', async f => {
+        await mixedWork(f);
+        const none = await reports.ensureReport(f.root, { detail: 'none' }); const page = shownReport(readReport(f, none));
+        assert.equal(none.detail, 'none'); assert.ok(page.includes('Detail not in this copy.')); assert.ok(page.includes('inspect --root &lt;checkout&gt; --item &lt;id&gt;'));
+        // It says which detail is left out and names each way to read it: the full form, the report of its area or initiative, the workspace, one record.
+        assert.ok(page.includes('<strong>Compact version without record detail.</strong>')); assert.ok(page.includes('<strong>Compact version of this list.</strong> Record detail is not in this copy'));
+        assert.ok(page.includes('without its outcome, criteria, links, proof and history')); assert.ok(page.includes('report --root &lt;checkout&gt; --detail full'));
+        assert.ok(page.includes('in the report of its area or initiative, in the workspace, or with the task tool'));
+        assert.equal(page.includes('<article class="record-detail"'), false); assert.ok(page.includes('Record detail is not in this copy.'));
+        const packed = await reports.ensureReport(f.root, { detail: 'packed' }); const packedPage = shownReport(readReport(f, packed));
+        assert.equal(packed.detail, 'packed'); assert.ok(packedPage.includes('<strong>Compact version.</strong>')); assert.ok(packedPage.includes('is packed and needs scripts'));
+        assert.equal(packedPage.includes('<article class="record-detail"'), false, 'packed detail is not page content until the page opens it');
+        // The full form leaves nothing out and says nothing of the kind.
+        const fullPage = shownReport(readReport(f, await reports.ensureReport(f.root)));
+        assert.equal(fullPage.includes('Detail not in this copy.'), false); assert.ok(fullPage.includes('Every inspected record and its detail is listed above'));
+        // An unknown form is refused, and the report made before stays as it was.
+        const before = fs.readFileSync(path.join(f.root, reports.REPORT_PATH));
+        await assert.rejects(reports.ensureReport(f.root, { detail: 'tiny' }), error => error.code === 'INVALID_INPUT');
+        assert.deepEqual(fs.readFileSync(path.join(f.root, reports.REPORT_PATH)), before);
+    }),
+    test('TC-TPT-253', 'report bytes per record stay within each detail form\'s ceiling', async f => {
+        // Measured on this fixture: about 3,640, 1,400 and 1,240 bytes a record. A record written twice breaks the ceiling.
+        const total = 300; importedWork(f, total);
+        for (const [detail, ceiling] of [['full', 4500], ['packed', 1750], ['none', 1550]]) {
+            const result = await reports.ensureReport(f.root, { detail });
+            assert.ok(result.bytes / total <= ceiling, `${detail}: ${Math.round(result.bytes / total)} bytes a record exceeds ${ceiling}`);
+            assert.equal(occurrences(readReport(f, result), '<li class="work-row'), total);
+        }
+    }),
+    test('TC-TPT-254', 'a packed card restores exactly the card a full report shows, and hostile content stays text', async f => {
+        await mixedWork(f); const hostile = '</script><img src="https://invalid.example/" onerror="evil()"> & \'quoted\'';
+        await f.create('TASK-hostile', 'task', { title: hostile, intent: hostile });
+        const full = readReport(f, await reports.ensureReport(f.root)); const packed = readReport(f, await reports.ensureReport(f.root, { detail: 'packed' }));
+        const parts = unpacked(packed);
+        // Card for card, the packed form holds what the full form shows: nothing shortened, reordered or left out.
+        assert.deepEqual(recordCards(parts.cards), recordCards(full)); assert.equal(recordCards(parts.cards).length, f.progress().items.length);
+        // The packed form holds record cards and linked-path panels, and nothing else.
+        assert.deepEqual(Object.keys(parts).sort(), ['cards', 'paths']);
+        // Record content is inert in the packed detail too.
+        assert.ok(parts.cards.includes('&lt;/script&gt;&lt;img')); assert.equal(parts.cards.includes('<img'), false); assert.equal(packed.includes('<img src="https://invalid.example/"'), false);
+        // A display label is data as well: in every form it reaches the page as text, wherever the kind is named.
+        f.config.taskTracking.kindLabels = { task: '<i data-x=1>work & "item"</i>', initiative: '</script><script id="task-track-manifest" type="application/json">{}</script>' }; f.saveConfig();
+        for (const options of [{}, { detail: 'packed' }, { detail: 'none' }, { scopeId: 'FEATURE-F' }]) {
+            const written = await reports.ensureReport(f.root, options); const labelled = readReport(f, written);
+            assert.equal(labelled.includes('<i data-x=1>'), false, JSON.stringify(options)); assert.ok(labelled.includes('&lt;i data-x=1&gt;work &amp; &quot;item&quot;&lt;/i&gt;'), JSON.stringify(options));
+            assert.equal(occurrences(labelled, '<script'), 3, JSON.stringify(options)); assert.ok(reports.inspectReport(f.root, written.path), 'the report stays a verifiable generated artifact');
+        }
+        delete f.config.taskTracking.kindLabels; f.saveConfig();
+        // A record without an outcome says so beside its card's content, never as an outcome that a search could match.
+        f.write('work/tasks/TASK-quiet.md', '---\nid: TASK-quiet\ntitle: Hand-written without an outcome\nstatus: draft\n---\n');
+        const quiet = recordCards(readReport(f, await reports.ensureReport(f.root))).find(([id]) => id === 'TASK-quiet')[1];
+        assert.ok(quiet.includes('<p class="note">No outcome recorded. Inspect the owning artifact before starting work.</p>')); assert.equal(quiet.includes('class="intent"'), false);
+        // One page script and one stylesheet serve both forms, so one pair of hashes admits either.
+        const executable = html => [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)][2][1];
+        assert.equal(executable(packed), executable(full)); assert.equal(/<style>([\s\S]*?)<\/style>/.exec(packed)[1], /<style>([\s\S]*?)<\/style>/.exec(full)[1]);
+    }),
+    test('TC-TPT-255', 'a byte budget writes the richest form that fits and still writes when nothing fits', async f => {
+        await mixedWork(f); const ids = f.progress().items.map(item => item.id).sort();
+        const size = async detail => (await reports.ensureReport(f.root, { detail })).bytes;
+        const full = await size('full'), packed = await size('packed'), none = await size('none');
+        assert.ok(none < packed && packed < full, `${full} > ${packed} > ${none}`);
+        const budgeted = async maxBytes => { const result = await reports.ensureReport(f.root, { detail: 'full', maxBytes }); return { result, html: readReport(f, result) }; };
+        const roomy = await budgeted(full + 2000); assert.equal(roomy.result.detail, 'full'); assert.equal(roomy.result.budgetMet, true); assert.equal(roomy.result.requestedDetail, undefined);
+        // A budget exactly equal to the complete artifact fits. The independent byte oracle renders
+        // a full artifact with that stated budget; its decimal width settles without calling the fit predicate.
+        const snapshot = f.progress({ figures: true });
+        const manifest = reports.inspectReport(f.root, roomy.result.path).manifest;
+        let exactBytes = roomy.result.bytes;
+        for (let attempt = 0; attempt < 4; attempt++) {
+            const expected = renderReport(snapshot, { ...manifest, maxBytes: exactBytes, generatedAt: snapshot.asOf, outputHash: '0'.repeat(64) },
+                { detail: 'full', budget: { maxBytes: exactBytes, requested: 'full', met: true } });
+            const measured = Buffer.byteLength(expected);
+            if (measured === exactBytes) break;
+            exactBytes = measured;
+        }
+        const boundary = await budgeted(exactBytes);
+        assert.deepEqual([boundary.result.detail, boundary.result.budgetMet, boundary.result.bytes], ['full', true, exactBytes]);
+        const middle = await budgeted(Math.floor((packed + full) / 2));
+        assert.equal(middle.result.detail, 'packed'); assert.equal(middle.result.requestedDetail, 'full'); assert.equal(middle.result.budgetMet, true);
+        assert.ok(middle.result.bytes <= middle.result.maxBytes); assert.ok(shownReport(middle.html).includes('to fit the size budget of'));
+        const tight = await budgeted(Math.floor((none + packed) / 2)); assert.equal(tight.result.detail, 'none'); assert.equal(tight.result.budgetMet, true);
+        // Nothing fits: the smallest form is still written, and the result and the page both say the budget was not met.
+        const impossible = await budgeted(1000);
+        assert.equal(impossible.result.status, 'generated'); assert.equal(impossible.result.detail, 'none'); assert.equal(impossible.result.budgetMet, false);
+        assert.ok(shownReport(impossible.html).includes('was not met'));
+        for (const { html } of [roomy, middle, tight, impossible]) assert.deepEqual(reportRows(html, 'Work list'), ids);
+        for (const maxBytes of [0, -5, 1.5]) await assert.rejects(reports.ensureReport(f.root, { maxBytes }), error => error.code === 'INVALID_INPUT');
+        // A project can configure the budget: its default snapshot steps down to fit, and a save refreshes it under the same budget.
+        f.config.taskTracking.report = { enabled: true, autoRefresh: true, detail: 'full', maxBytes: Math.floor((packed + full) / 2) }; f.saveConfig();
+        const configured = await reports.ensureReport(f.root);
+        assert.deepEqual([configured.path, configured.detail, configured.requestedDetail, configured.budgetMet], [reports.REPORT_PATH, 'packed', 'full', true]);
+        await f.saved('update', 'TASK-4', { title: 'Renamed under a budget' });
+        const refreshed = reports.inspectReport(f.root);
+        assert.deepEqual([refreshed.manifest.form, refreshed.manifest.maxBytes, refreshed.manifest.fingerprint], ['packed', f.config.taskTracking.report.maxBytes, f.progress().fingerprint]);
+        // The complete form that a smaller copy points to can still be asked for by name: the project's budget governs the
+        // snapshots the project configures, and a form asked for by name is held only to a budget asked for with it.
+        const whole = await reports.ensureReport(f.root, { detail: 'full' });
+        assert.deepEqual([whole.detail, whole.requestedDetail, whole.maxBytes, whole.budgetMet], ['full', undefined, undefined, undefined]); assert.notEqual(whole.path, reports.REPORT_PATH);
+        // A configured form or budget outside the rule is refused before anything is read as work.
+        for (const report of [{ maxBytes: 0 }, { maxBytes: 1.5 }, { maxBytes: '4096' }, { detail: 'tiny' }, { detail: 'FULL' }]) {
+            f.config.taskTracking.report = { enabled: true, autoRefresh: true, ...report }; f.saveConfig();
+            assert.equal(f.progress().coverage, 'unavailable', JSON.stringify(report)); assert.equal(f.progress().diagnostics[0].code, 'INVALID_CONFIG');
+        }
+    }),
+    test('TC-TPT-256', 'a scoped report carries detail for its own scope only, and names what lies outside it without detailing it', async f => {
+        await mixedWork(f);
+        const html = readReport(f, await reports.ensureReport(f.root, { scopeId: 'FEATURE-F' })); const shown = shownReport(html);
+        assert.deepEqual(reportRows(html, 'Eligible delivery tasks'), ['TASK-1', 'TASK-2']); assert.ok(shown.includes('of 2 tasks accepted'));
+        // Its own records are detailed. Work that belongs elsewhere, the area above included, is neither listed nor detailed.
+        assert.deepEqual(recordCards(html).map(([id]) => id).sort(), ['FEATURE-F', 'STORY-1', 'SUBTASK-1', 'TASK-1', 'TASK-2']);
+        for (const outside of ['TASK-3', 'TASK-4', 'FEATURE-G', 'INITIATIVE-1', 'PROGRAM-R', 'AREA-A']) assert.equal(shown.includes(`data-item-id="${outside}"`), false, outside);
+        assert.match(shown, /6 other records are outside this snapshot\./);
+        const card = id => recordCards(html).find(([found]) => found === id)[1];
+        // The area above is named on this area's own card as where it sits, marked as outside.
+        assert.match(card('FEATURE-F'), /<dt>Sits inside<\/dt><dd>[^<]*<span class="id">AREA-A<\/span><span class="fact-sub">Outside this snapshot<\/span>/);
+        // A task linked to an initiative outside this snapshot names it on its own card, marked as outside; no other card does.
+        assert.match(card('TASK-2'), /<dt>Initiatives<\/dt><dd>[^<]*<span class="id">PROGRAM-R<\/span><span class="fact-sub">Outside this snapshot<\/span>/);
+        assert.match(card('TASK-1'), /<dt>Initiatives<\/dt><dd><span class="is-none">Not linked to an initiative<\/span><\/dd>/);
+        // What the snapshot counts as its own is the area and what it holds.
+        const totals = name => new RegExp(`<dt>${name} <span class="id">(\\d+)</span></dt><dd>([^<]*)</dd>`).exec(shown)?.slice(1);
+        assert.deepEqual([totals('Areas'), totals('Tasks'), totals('Initiatives')], [['1', '1 active'], ['2', '1 planned, 1 done'], ['0', 'None']]);
+        // The whole-project report still details every record.
+        assert.equal(recordCards(readReport(f, await reports.ensureReport(f.root))).length, f.progress().items.length);
+    }),
+    test('TC-TPT-257', 'the report states each area\'s own figures beside it and never a total of them', async f => {
+        await mixedWork(f);
+        // An area two levels down, so that the list has a first level and a deeper one.
+        await f.create('SLICE-S', 'area', { areaIds: ['FEATURE-G'] });
+        const html = readReport(f, await reports.ensureReport(f.root)); const shown = shownReport(html);
+        const stated = (page, id) => figureLine(section(page, 'areas-heading'), id)?.text;
+        let added = 0;
+        for (const id of ['AREA-A', 'FEATURE-F', 'FEATURE-G']) {
+            // Each line is what that area's own snapshot counts for itself.
+            const own = f.progress({ scopeId: id }).metrics; added += own.total;
+            assert.equal(stated(shown, id), `${own.accepted} of ${own.total} ${own.total === 1 ? 'task' : 'tasks'} accepted ${own.percentage.toFixed(1)}% ${own.remaining} remaining, ${own.currentlyVerified} with current proof`, id);
+        }
+        assert.equal(stated(shown, 'FEATURE-F'), '1 of 2 tasks accepted 50.0% 1 remaining, 1 with current proof');
+        // A task in an area counts in every area above it too, so the lines add up to more than the project holds; the project's own count stands.
+        assert.ok(added > f.progress().metrics.total); assert.ok(shown.includes('<span class="hero-figure">2</span> <span class="hero-unit">of 4 tasks accepted</span>'));
+        assert.ok(shown.includes('lines are never added together'));
+        // Every level is written closed: the areas inside an area open on request, at whatever depth.
+        const figures = section(shown, 'areas-heading');
+        assert.equal(occurrences(figures, '<details class="fig-more"><summary>2 areas inside'), 1); assert.equal(occurrences(figures, '<details class="fig-more"><summary>1 area inside'), 1);
+        assert.equal(/<details[^>]*\sopen/.test(figures), false, 'no level of the tree is written open');
+        assert.equal(stated(shown, 'SLICE-S'), 'No eligible tasks, so no percentage applies');
+        // An area's own snapshot shows that area and what it holds, never the areas above it or beside it.
+        const feature = shownReport(readReport(f, await reports.ensureReport(f.root, { scopeId: 'FEATURE-F' })));
+        assert.equal(stated(feature, 'FEATURE-F'), '1 of 2 tasks accepted 50.0% 1 remaining, 1 with current proof');
+        assert.equal(stated(feature, 'AREA-A'), undefined); assert.equal(stated(feature, 'FEATURE-G'), undefined);
+    }),
+    test('TC-TPT-258', 'status totals by kind count every inspected record once and leave the delivery figures alone', async f => {
+        await mixedWork(f);
+        // A record edited by hand outside the tracker can carry a state the tracker does not know.
+        f.write('work/tasks/TASK-odd.md', '---\nid: TASK-odd\ntitle: Hand-edited outcome\nintent: Keep an outcome that was edited by hand\nstatus: refined\n---\n');
+        await f.create('TASK-5', 'task'); await f.saved('transition', 'TASK-5', { state: 'canceled', reason: 'The outcome is no longer needed' });
+        await f.create('SUBTASK-2', 'subtask'); await f.saved('retire', 'SUBTASK-2', { reason: 'Kept as history only' });
+        // An initiative and an area each move along their own lifecycle, and are counted in its states.
+        await f.committed('PROGRAM-R'); await f.saved('transition', 'FEATURE-G', { state: 'canceled', reason: 'Folded into another feature' });
+        const snapshot = f.progress(); const shown = shownReport(readReport(f, await reports.ensureReport(f.root)));
+        const read = page => name => new RegExp(`<dt>${name} <span class="id">(\\d+)</span></dt><dd>([^<]*)</dd>`).exec(page)?.slice(1);
+        const totals = read(shown);
+        // Canceled, retired and unrecognised records are counted apart from the lifecycle states.
+        assert.deepEqual(totals('Tasks'), ['6', '1 draft, 1 planned, 2 done. Off the line: 1 canceled, 1 in another recorded state']);
+        assert.deepEqual(totals('Subtasks'), ['2', '1 draft. Off the line: 1 retired']);
+        assert.deepEqual(totals('Initiatives'), ['2', '1 draft, 1 committed']); assert.deepEqual(totals('Areas'), ['3', '2 active. Off the line: 1 canceled']);
+        // A kind with no records is shown as none; an incomplete inspection is said beside the totals.
+        const fewer = shownReport(renderReport({ ...snapshot, items: snapshot.items.filter(item => item.kind !== 'story'), coverage: 'partial' }, { schemaVersion: 1 }));
+        assert.deepEqual(read(fewer)('Stories'), ['0', 'None']); assert.ok(fewer.includes('Every inspected record, counted once; project total unknown.'));
+        assert.ok(shown.includes('Every inspected record, counted once. Only tasks earn delivery credit'));
+        const counted = ['Initiatives', 'Tasks', 'Stories', 'Subtasks', 'Areas'].reduce((sum, name) => sum + Number(totals(name)[0]), 0);
+        assert.equal(counted, snapshot.items.length, 'every inspected record is counted exactly once');
+        // Kind totals describe where work stands; only eligible tasks reach the delivery figures.
+        assert.ok(shown.includes(`<span class="hero-figure">${snapshot.metrics.accepted}</span> <span class="hero-unit">of ${snapshot.metrics.total} tasks accepted</span>`));
+        assert.ok(shown.includes('Only tasks earn delivery credit'));
+    }),
+    test('TC-TPT-241', 'the full report holds every area as plain content with its level, its own figures and the areas inside it, opening level by level without scripts', async f => {
+        await treeWork(f);
+        const read = f.progress({ figures: true }); assert.equal(read.figures.status, 'complete');
+        const html = readReport(f, await reports.ensureReport(f.root)); const areas = section(shownReport(html), 'areas-heading');
+        // Every area of the read has one line that states exactly the figures the read supplies for it: the page computes none.
+        const levels = read.vocabulary.labels.levels; const byId = new Map(read.items.map(item => [item.id, item]));
+        for (const entry of read.figures.areas) {
+            const line = figureLine(areas, entry.id); const item = byId.get(entry.id);
+            assert.equal(line.name, `<span class="fig-name"${['APP', 'LOOSE'].includes(entry.id) ? '' : ` title="${entry.id}"`}>${item.level ? `<span class="kind kind--label">${levels[item.level]}</span>` : ''}<a href="#record-${entry.id}">${item.title}</a>`, entry.id);
+            assert.equal(line.text, `${entry.accepted} of ${entry.total} ${entry.total === 1 ? 'task' : 'tasks'} accepted ${entry.percentage.toFixed(1)}% ${entry.remaining} remaining, ${entry.currentlyVerified} with current proof`, entry.id);
+            // The meter is named by the same counts, so nothing it shows depends on seeing it.
+            assert.equal(line.meter, [[entry.currentlyVerified, 'with current proof'], [entry.accepted - entry.currentlyVerified, 'with proof not current'], [entry.remaining, 'not accepted yet']]
+                .filter(([total]) => total).map(([total, words]) => `${total} ${words}`).join(', '), entry.id);
+        }
+        // Each area is listed once, the one inside two products included, in level then title order with the area without a level last.
+        assert.deepEqual([...areas.matchAll(/<span class="id(?: sr-only)?">([A-Z-]+)<\/span><\/span>/g)].map(match => match[1]), ['APP', 'PRODUCT-A', 'FEATURE-X', 'PRODUCT-B', 'LOOSE']);
+        // The identity is printed on the lines at the top only; a line inside keeps it as its title and as hidden text.
+        assert.deepEqual([...areas.matchAll(/<span class="id">([A-Z-]+)<\/span><\/span>/g)].map(match => match[1]), ['APP', 'LOOSE']);
+        assert.ok(areas.includes('<span class="fig-name" title="FEATURE-X">') && !areas.includes('title="APP"'));
+        // A parent's line is its own count, never the sum of the lines inside it, and the page says so.
+        assert.equal(figureLine(areas, 'APP').text.startsWith('1 of 3 tasks accepted'), true);
+        assert.ok(figureLine(areas, 'PRODUCT-A').text.startsWith('1 of 2 ') && figureLine(areas, 'PRODUCT-B').text.startsWith('1 of 3 '));
+        assert.ok(areas.includes('A task in several areas counts in each of them, so lines are never added together.'));
+        // The tree is native disclosure, written with every level closed: a level opens on request, and no line of it waits for a script.
+        assert.equal(occurrences(areas, '<details class="fig-more"><summary>2 areas inside Back office</summary>'), 1);
+        assert.equal(occurrences(areas, '<details class="fig-more"><summary>1 area inside Accounts</summary>'), 1);
+        assert.equal(/<details[^>]*\sopen/.test(areas), false, 'no level of the tree is written open');
+        const tree = areas.slice(areas.indexOf('<ul class="fig-list">'), areas.indexOf('<nav class="pager enhancement-only" data-pager="bottom"'));
+        assert.equal(tree.includes('enhancement-only'), false); assert.equal(/\shidden[\s>=]/.test(tree), false);
+        // The parts that wait for a script are the pair of links that open or close every level at once, named for what
+        // they act on, and the two pagers of the list, hidden until scripts run: every area at the top is in the file.
+        assert.equal(occurrences(areas, 'enhancement-only'), 3);
+        assert.deepEqual([...areas.matchAll(/<nav class="pager enhancement-only" data-pager="(top|bottom)" aria-label="([^"]*)" hidden>/g)].map(match => [match[1], match[2]]), [['top', 'Area list pages'], ['bottom', 'Area list pages, below the list']]);
+        assert.ok(areas.includes('<div class="level-links enhancement-only" role="group" aria-label="Area list levels"><button type="button" class="level-link" data-tree-open="true" aria-label="Open all areas">'));
+        assert.ok(areas.includes('<button type="button" class="level-link" data-tree-open="false" aria-label="Close all areas">'));
+        // Work in no area belongs to the whole project, and is listed so that it can be found. One task is said in the singular.
+        assert.ok(areas.includes('<strong>Not in any area: 1 task.</strong> It counts for the whole project only.'));
+        assert.match(areas, /<ul class="reasons" aria-label="Not in any area"><li><a href="#record-TASK-4">/);
+    }),
+    test('TC-TPT-241', 'the full report holds every initiative as plain content with type, status, priority level, due date and an overdue marker, the overdue first and the closed last', async f => {
+        await treeWork(f);
+        const read = f.progress({ figures: true }); const list = section(shownReport(readReport(f, await reports.ensureReport(f.root))), 'initiatives-heading');
+        assert.match(list, /<thead><tr><th scope="col">Initiative<\/th><th scope="col">Status<\/th><th scope="col">Priority level<\/th><th scope="col">Due date<\/th><th scope="col">Delivery<\/th><th scope="col" class="num">Rate<\/th><\/tr><\/thead>/);
+        const rows = [...list.matchAll(/<tr><th scope="row">[\s\S]*?<\/tr>/g)].map(match => [...match[0].matchAll(/<t[hd][^>]*>([\s\S]*?)<\/t[hd]>/g)].map(cell => said(cell[1])));
+        assert.deepEqual(rows, [
+            ['Feedback Late review INIT-LATE', 'Committed', 'High', 'Overdue: was due 15 Jan 2026', '[1 with current proof, 1 not accepted yet] 1 of 2 tasks accepted 1 remaining, 1 with current proof', '50.0%'],
+            ['Initiative Next release INIT-SOON', 'Draft', 'Low', 'Due 1 Jan 2999', '[1 not accepted yet] 0 of 1 task accepted 1 remaining, 0 with current proof', '0.0%'],
+            ['Idea An idea to weigh INIT-OPEN', 'Draft', 'Not set', 'No due date', 'No linked tasks yet, so no percentage applies. That is not the same as zero percent.'],
+            ['Initiative Finished outcome INIT-DONE', 'Done', 'Not set', 'Was due 10 Jan 2026', '[1 with current proof] 1 of 1 task accepted 0 remaining, 1 with current proof', '100.0%']]);
+        // Every count and rate is the one the read states for that initiative.
+        for (const entry of read.figures.initiatives.filter(value => value.total)) {
+            const row = rows.find(cells => cells[0].endsWith(` ${entry.id}`));
+            assert.ok(row[4].includes(`${entry.accepted} of ${entry.total} `), entry.id); assert.equal(row[5], `${entry.percentage.toFixed(1)}%`, entry.id);
+        }
+        // Overdue is said in words beside a mark, and only the open initiative whose date has passed carries it: the read decides which.
+        assert.deepEqual(read.items.filter(item => item.kind === 'initiative' && item.overdue).map(item => item.id), ['INIT-LATE']);
+        assert.equal(occurrences(list, '<span class="tag tag--blocked due">'), 1);
+        // Closed initiatives stand under their own sub-head, after every open one.
+        const closedAt = list.indexOf('<th colspan="6" scope="rowgroup" class="fig-sub">Closed</th>');
+        assert.ok(closedAt > list.indexOf('INIT-OPEN') && closedAt < list.indexOf('INIT-DONE'));
+        // Every row is page content and none is hidden. The parts that wait for a script are the two pagers of the table,
+        // hidden until scripts run: one above it with the count and the choice of rows, one under it.
+        const table = /<table class="fig-table">[\s\S]*?<\/table>/.exec(list)[0];
+        assert.equal(table.includes('enhancement-only'), false); assert.equal(/\shidden[\s>=]/.test(table), false);
+        assert.deepEqual([...list.matchAll(/<nav class="pager enhancement-only" data-pager="(top|bottom)" aria-label="([^"]*)" hidden>/g)].map(match => [match[1], match[2]]), [['top', 'Initiative list pages'], ['bottom', 'Initiative list pages, below the list']]);
+        assert.ok(list.indexOf('data-pager="top"') < list.indexOf('<table') && list.indexOf('</table>') < list.indexOf('data-pager="bottom"'));
+        assert.equal(occurrences(list, 'enhancement-only'), 2);
+        assert.deepEqual([...list.matchAll(/data-page-step="(-?1)" aria-label="([^"]*)"/g)].map(match => [match[1], match[2]]), [['-1', 'Previous page'], ['1', 'Next page'], ['-1', 'Previous page'], ['1', 'Next page']]);
+    }),
+    test('TC-TPT-268', 'a record\'s detail lists the areas it is tagged to and the initiatives it is linked to, beside its level, type, priority level and due date, and an untagged record says it has none', async f => {
+        await treeWork(f);
+        const html = readReport(f, await reports.ensureReport(f.root)); const card = id => recordCards(html).find(([found]) => found === id)[1];
+        const facts = id => Object.fromEntries([...card(id).matchAll(/<dt>([^<]*)<\/dt><dd>([\s\S]*?)<\/dd>/g)].map(match => [match[1], said(match[2])]));
+        // A task in two areas and one initiative names all three, each with what it is.
+        assert.equal(facts('TASK-2').Areas, 'Exports FEATURE-X Feature in Accounts, Billing Unsorted LOOSE Area');
+        assert.equal(facts('TASK-2').Initiatives, 'Late review INIT-LATE Feedback, committed');
+        assert.ok(card('TASK-2').includes('<a href="#record-FEATURE-X">Exports</a>')); assert.ok(card('TASK-2').includes('<a href="#record-INIT-LATE">Late review</a>'));
+        // The tags are read from the tagged record itself: the area and the initiative hold no list of what points at them.
+        assert.deepEqual(f.record('FEATURE-X').tracking.links.map(link => link.itemId), ['PRODUCT-A', 'PRODUCT-B']); assert.deepEqual(f.record('INIT-LATE').tracking.links, []);
+        assert.deepEqual([facts('TASK-4').Areas, facts('TASK-4').Initiatives, facts('TASK-4')['Due date']], ['Not in any area', 'Not linked to an initiative', 'No due date']);
+        // A due date is shown on the record; an open record past it is overdue, an accepted one only keeps the date.
+        assert.equal(facts('TASK-2')['Due date'], 'Overdue: was due 20 Jan 2026'); assert.equal(facts('TASK-1')['Due date'], 'Was due 20 Jan 2026');
+        const initiative = facts('INIT-LATE');
+        assert.deepEqual([initiative.Type, initiative['Priority level'], initiative['Due date'], initiative.Delivery], ['Feedback', 'High', 'Overdue: was due 15 Jan 2026', '1 of 2 tasks accepted, 50.0% 1 remaining, 1 with current proof']);
+        // An area states its level, the areas it sits inside and the areas inside it; it has no due date.
+        const feature = facts('FEATURE-X'); const application = facts('APP');
+        assert.deepEqual([feature.Level, feature['Sits inside'], 'Due date' in feature], ['Feature', 'Accounts PRODUCT-A Product in Back office Billing PRODUCT-B Product in Back office', false]);
+        assert.deepEqual([application['Sits inside'], application['Areas inside']], ['Top of the project', 'Accounts PRODUCT-A Billing PRODUCT-B']);
+        // Proof and acceptance are facts of delivery work: an initiative and an area state neither.
+        for (const id of ['INIT-LATE', 'APP']) assert.deepEqual(['Proof' in facts(id), 'Acceptance' in facts(id)], [false, false], id);
+        assert.deepEqual(['Proof' in facts('TASK-2'), 'Acceptance' in facts('TASK-2')], [true, true]);
+    }),
+    test('TC-TPT-278', 'the report words a due date against the day of its read: overdue once that day is past it, "Due today" on the day itself, and due while the day is ahead', async f => {
+        const { overdue } = require('../../lib/task-tracking-policy.cjs');
+        // Work due on three consecutive days, far from the day of any run, and an initiative due on the middle one.
+        const due = { 'TASK-first': '2031-03-09', 'TASK-second': '2031-03-10', 'TASK-third': '2031-03-11', 'INIT-second': '2031-03-10' };
+        for (const [id, deadline] of Object.entries(due)) await f.create(id, id.startsWith('INIT') ? 'initiative' : 'task', { deadline });
+        const read = f.progress({ figures: true });
+        // The page is handed a read taken on a stated day: its date, and what the read's own rule marks overdue on that date.
+        const page = day => renderReport({ ...read, asOf: `${day}T09:30:00.000Z`, items: read.items.map(item => ({ ...item, overdue: overdue(f.record(item.id), day) })) }, { schemaVersion: 1 });
+        const dueDates = html => Object.fromEntries(Object.keys(due).map(id => [id, recordFacts(html, id)['Due date']]));
+        const initiativeRow = html => [...section(shownReport(html), 'initiatives-heading').matchAll(/<tr><th scope="row">[\s\S]*?<\/tr>/g)]
+            .map(match => [...match[0].matchAll(/<t[hd][^>]*>([\s\S]*?)<\/t[hd]>/g)].map(cell => said(cell[1]))).find(cells => cells[0].endsWith(' INIT-second'));
+        const middle = page('2031-03-10');
+        assert.deepEqual(dueDates(middle), { 'TASK-first': 'Overdue: was due 9 Mar 2031', 'TASK-second': 'Due today, 10 Mar 2031', 'TASK-third': 'Due 11 Mar 2031', 'INIT-second': 'Due today, 10 Mar 2031' });
+        // The list of initiatives words the same day the same way.
+        assert.equal(initiativeRow(middle)[3], 'Due today, 10 Mar 2031');
+        // One day on, the day itself has moved with the read: yesterday's "today" is overdue and the next record is due today.
+        const next = page('2031-03-11');
+        assert.deepEqual(dueDates(next), { 'TASK-first': 'Overdue: was due 9 Mar 2031', 'TASK-second': 'Overdue: was due 10 Mar 2031', 'TASK-third': 'Due today, 11 Mar 2031', 'INIT-second': 'Overdue: was due 10 Mar 2031' });
+        assert.equal(initiativeRow(next)[3], 'Overdue: was due 10 Mar 2031');
+        // One day back, nothing is overdue and nothing is due today.
+        assert.deepEqual(dueDates(page('2031-03-08')), { 'TASK-first': 'Due 9 Mar 2031', 'TASK-second': 'Due 10 Mar 2031', 'TASK-third': 'Due 11 Mar 2031', 'INIT-second': 'Due 10 Mar 2031' });
+    }),
+    test('TC-TPT-257', 'withheld figures state their reason and draw no meter or number, while every area and initiative is still named', async f => {
+        await treeWork(f);
+        // A record that cannot be read leaves the inspection incomplete; the read then states no figure for any area or initiative.
+        f.write('work/tasks/broken.md', 'external malformed record');
+        const read = f.progress({ figures: true }); assert.equal(read.figures.status, 'withheld');
+        const html = readReport(f, await reports.ensureReport(f.root)); const shown = shownReport(html);
+        const reason = read.figures.reason.replace(/\.$/, '');
+        for (const [heading, name, ids] of [['areas-heading', 'Area', ['APP', 'PRODUCT-A', 'PRODUCT-B', 'FEATURE-X', 'LOOSE']], ['initiatives-heading', 'Initiative', ['INIT-LATE', 'INIT-SOON', 'INIT-OPEN', 'INIT-DONE']]]) {
+            const part = section(shown, heading);
+            assert.ok(part.includes(`<strong>${name} figures are withheld.</strong> ${reason}. Figures are stated for every area and initiative or for none.`), heading);
+            assert.equal(part.includes('class="meter"'), false, heading);
+            assert.equal(/\d+ of \d+|\d+\.\d%|\d+ remaining/.test(part), false, `${heading}: no count or rate is stated`);
+            for (const id of ids) assert.ok(new RegExp(`<span class="id(?: sr-only)?">${id}</span>`).test(part), `${heading}: ${id} is still named`);
+        }
+        // What is not a figure is still stated: status and due date.
+        assert.ok(section(shown, 'initiatives-heading').includes('Overdue: was due 15 Jan 2026'));
+        // A record's own delivery fact is withheld with the same reason.
+        assert.match(recordCards(html).find(([id]) => id === 'APP')[1], new RegExp(`<dt>Delivery</dt><dd><span class="is-none">Figures withheld</span><span class="fact-sub">${reason}</span></dd>`));
+    }),
+    test('TC-TPT-052', 'a project with no area and a project with no initiative each say so in a plain statement in place of the list', async f => {
+        await f.create('TASK-1');
+        const page = async () => shownReport(readReport(f, await reports.ensureReport(f.root)));
+        // The statement agrees in number with the tasks it speaks of: one task counts, several count.
+        let shown = await page();
+        assert.ok(section(shown, 'areas-heading').includes('<p class="empty"><strong>This project has no areas.</strong> The 1 task counts for the whole project.'));
+        await f.create('TASK-2');
+        shown = await page();
+        assert.ok(section(shown, 'areas-heading').includes('<p class="empty"><strong>This project has no areas.</strong> All 2 tasks count for the whole project.'));
+        assert.ok(section(shown, 'initiatives-heading').includes('<p class="empty"><strong>This project has no initiatives.</strong> Capture an initiative, then link the tasks that deliver it.</p>'));
+        for (const heading of ['areas-heading', 'initiatives-heading']) for (const part of ['class="fig-list"', '<table', 'class="meter"', 'class="legend"']) assert.equal(section(shown, heading).includes(part), false, `${heading}: ${part}`);
+        // Each statement stands for its own list only: with an initiative and still no area, the initiatives are listed and the areas are not.
+        await f.create('INITIATIVE-1', 'initiative');
+        shown = await page();
+        assert.ok(section(shown, 'areas-heading').includes('This project has no areas.')); assert.ok(section(shown, 'initiatives-heading').includes('<table class="fig-table">'));
+        assert.equal(section(shown, 'initiatives-heading').includes('has no initiatives'), false);
+        // Once an area exists the statement gives way to the list.
+        await f.create('AREA-1', 'area');
+        shown = await page();
+        assert.ok(section(shown, 'areas-heading').includes('class="fig-list"')); assert.equal(section(shown, 'areas-heading').includes('has no areas'), false);
+    }),
+    test('TC-TPT-256', 'a report scoped to one area or one initiative counts and lists that scope only, and names its health after the kind of record that owns it', async f => {
+        await treeWork(f);
+        const whole = await reports.ensureReport(f.root);
+        for (const [scopeId, kind, title, listedAreas, listedInitiatives] of [['PRODUCT-A', 'Area', 'Accounts', ['PRODUCT-A', 'FEATURE-X'], []], ['INIT-LATE', 'Initiative', 'Late review', [], ['INIT-LATE']]]) {
+            const read = f.progress({ scopeId }); const result = await reports.ensureReport(f.root, { scopeId }); const html = readReport(f, result); const shown = shownReport(html);
+            // Its own file, bound to that scope; the project's report stays where it is.
+            assert.notEqual(result.path, whole.path); assert.equal(reports.inspectReport(f.root, result.path).manifest.scopeId, scopeId);
+            assert.ok(shown.includes(`Delivery counted for ${kind} ${scopeId}: ${title}.`), scopeId);
+            // The count is that scope's own, and the list is exactly its eligible tasks.
+            assert.ok(shown.includes(`<span class="hero-figure">${read.metrics.accepted}</span> <span class="hero-unit">of ${read.metrics.total} tasks accepted</span>`), scopeId);
+            assert.deepEqual(reportRows(html, 'Eligible delivery tasks'), read.scope.eligibleTaskIds, scopeId);
+            // Health belongs to the record that owns the scope, and is named for it.
+            assert.ok(section(shown, 'health-heading').includes(`<h2 id="health-heading" class="eyebrow">${kind} health</h2>`), scopeId);
+            // The lists hold the scope's own areas and initiatives; a list with nothing of its own is left out, not stated as empty.
+            const ids = heading => [...section(shown, heading).matchAll(/<span class="id(?: sr-only)?">([A-Z-]+)<\/span>/g)].map(match => match[1]);
+            assert.deepEqual(ids('areas-heading'), listedAreas, scopeId); assert.deepEqual(ids('initiatives-heading'), listedInitiatives, scopeId);
+            assert.equal(shown.includes('This project has no'), false, scopeId);
+            for (const outside of ['TASK-3', 'TASK-4', 'PRODUCT-B', 'INIT-SOON']) assert.equal(shown.includes(`data-item-id="${outside}"`), false, `${scopeId}: ${outside}`);
+        }
+        // A record that is neither an area nor an initiative is no scope: no report is written for it.
+        await assert.rejects(reports.ensureReport(f.root, { scopeId: 'TASK-1' }), error => error.code === 'UNAVAILABLE_REPORT');
+        assert.equal(fs.existsSync(path.join(f.root, reports.reportPath({ scopeId: 'TASK-1' }))), false);
+    }),
+    test('TC-TPT-261', 'level and type labels from configuration reach the report as text, never as markup, in every detail form and in a scoped report', async f => {
+        await treeWork(f);
+        f.config.taskTracking.levelLabels = { feature: '<i data-x=1>deep & "low"</i>' };
+        f.config.taskTracking.typeLabels = { feedback: '</script><script id="task-track-manifest" type="application/json">{}</script>' }; f.saveConfig();
+        assert.equal(f.progress().coverage, 'complete', JSON.stringify(f.progress().diagnostics));
+        for (const options of [{}, { detail: 'packed' }, { detail: 'none' }, { scopeId: 'PRODUCT-A' }, { scopeId: 'INIT-LATE' }]) {
+            const written = await reports.ensureReport(f.root, options); const labelled = readReport(f, written); const name = JSON.stringify(options);
+            const all = written.detail === 'packed' ? `${labelled}${unpacked(labelled).cards}` : labelled;
+            assert.equal(all.includes('<i data-x=1>'), false, name); assert.ok(all.includes('&lt;i data-x=1&gt;deep &amp; &quot;low&quot;&lt;/i&gt;'), name);
+            assert.ok(all.includes('&lt;/script&gt;&lt;script id=&quot;task-track-manifest&quot;'), name);
+            // The page still carries exactly its own three script elements, and is still the artifact its manifest describes.
+            assert.equal(occurrences(labelled, '<script'), 3, name); assert.ok(reports.inspectReport(f.root, written.path), name);
+        }
+        // A label is display text only: what is stored and counted is unchanged.
+        assert.equal(f.view('FEATURE-X').level, 'feature'); assert.equal(f.view('INIT-LATE').type, 'feedback');
+    }),
+    test('TC-TPT-255', 'a report states its size in its result and, on the page, the size budget it was held to and whether it met it', async f => {
+        await treeWork(f); delete f.config.taskTracking.report.detail; f.saveConfig();
+        const budget = 15 * 1024 * 1024;
+        const byDefault = await reports.ensureReport(f.root); const html = readReport(f, byDefault); const shown = shownReport(html);
+        assert.deepEqual([byDefault.detail, byDefault.maxBytes, byDefault.budgetMet, byDefault.bytes], ['packed', budget, true, Buffer.byteLength(html)]);
+        const kept = await reports.ensureReport(f.root);
+        assert.equal(kept.status, 'current');
+        assert.equal(kept.bytes, fs.statSync(path.join(f.root, kept.path)).size, 'Cache-hit size is the actual retained artifact size');
+        assert.ok(shown.includes(`<dt>Size budget</dt><dd>${budget} bytes, met</dd>`));
+        // The area and initiative lists are page content in the compact version too, so they are inside the size that is stated.
+        assert.ok(section(shown, 'areas-heading').includes('class="fig-row"')); assert.ok(section(shown, 'initiatives-heading').includes('<table class="fig-table">'));
+        // A budget that nothing fits: the smallest form is still written, and the result and the page both say it was not met.
+        const tight = await reports.ensureReport(f.root, { maxBytes: 1000 }); const tightHtml = readReport(f, tight);
+        assert.deepEqual([tight.detail, tight.budgetMet, tight.bytes], ['none', false, Buffer.byteLength(tightHtml)]);
+        assert.ok(shownReport(tightHtml).includes('<dt>Size budget</dt><dd>1000 bytes, not met by this smallest form</dd>'));
+        // The full version asked for by name is held to no budget, and says that too.
+        const full = await reports.ensureReport(f.root, { detail: 'full' });
+        assert.equal(full.maxBytes, undefined); assert.equal(full.bytes, Buffer.byteLength(readReport(f, full)));
+        assert.ok(shownReport(readReport(f, full)).includes('<dt>Size budget</dt><dd>None stated for this copy</dd>'));
+    }),
+    test('TC-TPT-258', '"Where work stands" counts tasks, stories and subtasks only, and says that initiatives and areas are not counted there', async f => {
+        await treeWork(f);
+        const read = f.progress(); const shown = shownReport(readReport(f, await reports.ensureReport(f.root))); const standing = section(shown, 'standing-heading');
+        const delivery = read.items.filter(item => item.lifecycle === 'delivery');
+        assert.deepEqual([...new Set(delivery.map(item => item.kind))].sort(), ['story', 'task']); assert.ok(delivery.length < read.items.length);
+        // One stop per state of the delivery line, each holding the delivery records in that state and no other record.
+        const line = vocabulary.LIFECYCLES.delivery.states.filter(state => !['blocked', 'canceled'].includes(state));
+        assert.deepEqual([...standing.matchAll(/<span class="count">(\d+)<\/span>[\s\S]*?<span class="station-name">([^<]*)<\/span>/g)].map(match => [match[2], Number(match[1])]),
+            line.map(state => [vocabulary.LABELS.states[state], delivery.filter(item => item.state === state).length]));
+        assert.ok(standing.includes(`${delivery.length} open records by recorded state, counting tasks, stories and subtasks only. Initiatives and areas are not counted here.`));
+        // The states of an initiative and of an area are not stops on this line; they are counted under "Status by kind".
+        for (const name of ['Approved', 'Committed', 'Active']) assert.equal(standing.includes(name), false, name);
+        const totals = name => new RegExp(`<dt>${name} <span class="id">(\\d+)</span></dt><dd>([^<]*)</dd>`).exec(shown)?.slice(1);
+        assert.deepEqual([totals('Initiatives'), totals('Areas')], [['4', '2 draft, 1 committed, 1 done'], ['5', '5 active']]);
+        // A scoped report counts that scope's eligible tasks on the line.
+        const scoped = section(shownReport(readReport(f, await reports.ensureReport(f.root, { scopeId: 'PRODUCT-A' }))), 'standing-heading');
+        assert.ok(scoped.includes('2 open records by recorded state, counting tasks only.')); assert.equal(scoped.includes('are not counted here'), false);
+    }),
+    test('TC-TPT-260', 'another detail form is written apart from the default report, and a refresh keeps the form the project configures', async f => {
+        await f.create();
+        const main = await reports.ensureReport(f.root); const mainBytes = fs.readFileSync(path.join(f.root, main.path));
+        const packed = await reports.ensureReport(f.root, { detail: 'packed' });
+        assert.equal(main.path, reports.REPORT_PATH); assert.notEqual(packed.path, main.path); assert.equal(packed.status, 'generated');
+        assert.deepEqual(fs.readFileSync(path.join(f.root, main.path)), mainBytes, 'asking for another form leaves the default report alone');
+        // Asked again with nothing saved, the same form is current and is not rewritten; asked for in another form, it is written.
+        const packedBytes = fs.readFileSync(path.join(f.root, packed.path));
+        const again = await reports.ensureReport(f.root, { detail: 'packed' });
+        assert.equal(again.status, 'current'); assert.equal(again.detail, 'packed'); assert.equal(again.bytes, packed.bytes);
+        assert.deepEqual(fs.readFileSync(path.join(f.root, packed.path)), packedBytes); assert.equal((await reports.ensureReport(f.root)).status, 'current');
+        assert.equal((await reports.ensureReport(f.root, { detail: 'none' })).status, 'generated');
+        // The project configures packed and automatic refresh: a save refreshes the default report in that form only.
+        f.config.taskTracking.report = { enabled: true, autoRefresh: true, detail: 'packed' }; f.saveConfig();
+        await f.saved('update', 'TASK-101', { title: 'Renamed outcome' });
+        const refreshed = reports.inspectReport(f.root); const refreshedHtml = fs.readFileSync(path.join(f.root, reports.REPORT_PATH), 'utf8');
+        assert.equal(refreshed.manifest.form, 'packed'); assert.equal(refreshed.manifest.fingerprint, f.progress().fingerprint); assert.ok(refreshedHtml.includes('Renamed outcome'));
+        assert.equal(refreshedHtml.includes('<article class="record-detail"'), false);
+        assert.deepEqual(fs.readFileSync(path.join(f.root, packed.path)), packedBytes, 'a separately requested copy is refreshed only when it is asked for again');
+        assert.equal((await reports.ensureReport(f.root, { detail: 'none' })).status, 'generated');
+        // Asking by name for the form the project now configures is asking for the project's own report, which the refresh kept current.
+        const named = await reports.ensureReport(f.root, { detail: 'packed' }); assert.deepEqual([named.path, named.status], [reports.REPORT_PATH, 'current']);
+    }),
+    test('TC-TPT-260', 'with no form named the snapshot is the compact version within the default budget, and the full version is written when asked for by name', async f => {
+        await mixedWork(f); delete f.config.taskTracking.report.detail; f.saveConfig();
+        const budget = 15 * 1024 * 1024;
+        const byDefault = await reports.ensureReport(f.root); const html = readReport(f, byDefault); const shown = shownReport(html);
+        assert.deepEqual([byDefault.path, byDefault.detail, byDefault.requestedDetail, byDefault.maxBytes, byDefault.budgetMet], [reports.REPORT_PATH, 'packed', undefined, budget, true]);
+        assert.ok(byDefault.bytes <= budget); assert.deepEqual(reportRows(html, 'Work list'), f.progress().items.map(item => item.id).sort());
+        // The compact version says that it is one, at the top and beside the list of records, and how to get the full version.
+        assert.ok(shown.includes('<strong>Compact version.</strong>')); assert.ok(shown.includes('<strong>Compact version of this list.</strong> A row opens its record\'s detail when scripts are on'));
+        assert.ok(shown.includes('report --root &lt;checkout&gt; --detail full')); assert.ok(shown.includes('<dt>Detail form</dt><dd>Compact version: '));
+        assert.equal(shown.includes('<article class="record-detail"'), false); assert.equal(recordCards(unpacked(html).cards).length, f.progress().items.length);
+        // Asked for by name, the full version is written beside the default file, with no budget of its own, and carries no such warning.
+        const full = await reports.ensureReport(f.root, { detail: 'full' }); const fullShown = shownReport(readReport(f, full));
+        assert.deepEqual([full.detail, full.requestedDetail, full.maxBytes, full.budgetMet], ['full', undefined, undefined, undefined]); assert.notEqual(full.path, byDefault.path);
+        assert.equal(fullShown.includes('Compact version'), false); assert.ok(fullShown.includes('<dt>Detail form</dt><dd>Full version: '));
+        assert.equal(recordCards(readReport(f, full)).length, f.progress().items.length);
+        assert.equal(reports.inspectReport(f.root).manifest.form, 'packed', 'the default file stays the compact version');
+        // A scoped snapshot follows the same default, and so does the refresh after a save.
+        const group = await reports.ensureReport(f.root, { scopeId: 'FEATURE-F' }); assert.deepEqual([group.detail, group.maxBytes], ['packed', budget]);
+        f.config.taskTracking.report.autoRefresh = true; f.saveConfig(); await f.saved('update', 'TASK-4', { title: 'Renamed by default' });
+        const refreshed = reports.inspectReport(f.root).manifest; assert.deepEqual([refreshed.form, refreshed.detail, refreshed.maxBytes, refreshed.fingerprint], ['packed', 'packed', budget, f.progress().fingerprint]);
+        // A compact version asked for by name is held to the same default budget; a stated budget replaces it and can step it down.
+        assert.equal((await reports.ensureReport(f.root, { detail: 'none' })).maxBytes, budget);
+        const tight = await reports.ensureReport(f.root, { maxBytes: byDefault.bytes - 1 }); const tightShown = shownReport(readReport(f, tight));
+        assert.deepEqual([tight.detail, tight.requestedDetail, tight.budgetMet], ['none', 'packed', true]);
+        assert.ok(tightShown.includes('<strong>Compact version without record detail.</strong>')); assert.ok(tightShown.includes('to fit the size budget of'));
+        // A project that names the full version gets it as its default file, with no budget unless it states one.
+        f.config.taskTracking.report.detail = 'full'; f.saveConfig();
+        const configured = await reports.ensureReport(f.root); assert.deepEqual([configured.path, configured.detail, configured.maxBytes], [reports.REPORT_PATH, 'full', undefined]);
+    }),
+    test('TC-TPT-262', 'the page carries every record and its paging controls whatever page the list shows', async f => {
+        const total = 45; importedWork(f, total);
+        for (const options of [{ detail: 'full' }, { detail: 'packed' }, { detail: 'none' }]) {
+            const html = readReport(f, await reports.ensureReport(f.root, options)); const shown = shownReport(html);
+            // Paging hides rows once scripts are on. The file itself lists every record, none of them hidden, so reading
+            // without scripts and print show them all.
+            assert.equal(occurrences(shown, '<li class="work-row'), total, options.detail); assert.equal(/<li class="work-row[^>]*\shidden/.test(shown), false, options.detail);
+            assert.equal(reportRows(html, 'Work list').length, total, options.detail);
+            // The controls wait, hidden, above and below the list, and only scripts bring them out.
+            const pagers = [...shown.matchAll(/<nav class="pager enhancement-only" data-pager="(top|bottom)" aria-label="([^"]*)" hidden>/g)].map(match => [match[1], match[2]]);
+            assert.deepEqual(pagers, [['top', 'Work list pages'], ['bottom', 'Work list pages, below the list']], options.detail);
+            assert.ok(shown.indexOf('data-pager="top"') < shown.indexOf('<ul class="work-list"') && shown.indexOf('<ul class="work-list"') < shown.indexOf('data-pager="bottom"'));
+            // Twenty rows is the page a report opens with; longer pages and all rows are the reader's choice.
+            assert.deepEqual([.../<select data-page-length>(.*?)<\/select>/.exec(shown)[1].matchAll(/<option value="(\d+)">([^<]*)<\/option>/g)].map(match => [match[1], match[2]]), [['20', '20 per page'], ['50', '50 per page'], ['100', '100 per page'], ['0', 'All']]);
+            // The choice keeps its name for assistive technology, and each step is named, though both are now drawn without words.
+            assert.ok(shown.includes('<label class="pager-length"><span class="sr-only">Rows per page</span><select data-page-length>'));
+            assert.deepEqual([...shown.matchAll(/data-page-step="(-?1)" aria-label="([^"]*)"/g)].map(match => [match[1], match[2]]), [['-1', 'Previous'], ['1', 'Next'], ['-1', 'Previous'], ['1', 'Next']], options.detail);
+        }
+    }),
+    test('TC-TPT-261', 'a kind label changes the word the report shows and nothing it counts', async f => {
+        await mixedWork(f); const before = f.progress(); const stored = new Map(f.records().map(record => [record.ownerPath, record.bytes]));
+        f.config.taskTracking.kindLabels = { initiative: 'Proposal' }; f.saveConfig();
+        const html = readReport(f, await reports.ensureReport(f.root)); const shown = shownReport(html); const after = f.progress();
+        assert.deepEqual(kindsShown(html), ['Area', 'Proposal', 'Story', 'Subtask', 'Task']);
+        assert.ok(shown.includes('<dt>Proposal <span class="id">2</span></dt>')); assert.ok(shown.includes('Proposal, stories, subtasks and areas sit outside this count.'));
+        assert.ok(shown.includes('<h2 id="initiatives-heading">How each proposal stands</h2>'));
+        // A record captured under the label is requested, answered and stored under the tracker's own word, and a link that
+        // names the kind is shown under the label too.
+        await f.create('INITIATIVE-2', 'initiative'); await f.tag('TASK-4', { initiativeIds: ['INITIATIVE-2'] });
+        assert.equal(f.view('INITIATIVE-2').kind, 'initiative'); assert.ok(f.record('INITIATIVE-2').ownerPath.includes('/initiatives/'));
+        const linked = shownReport(readReport(f, await reports.ensureReport(f.root)));
+        assert.match(linked, /<dt>Proposal<\/dt><dd><a href="#record-INITIATIVE-2">/); assert.equal(/Initiatives?\b/.test(linked), false, 'no view text keeps the replaced word');
+        // Every fixed sentence that names the delivery kind follows a label for it, in a scoped snapshot as well.
+        f.config.taskTracking.kindLabels = { initiative: 'Proposal', task: 'Work item' }; f.saveConfig();
+        const group = shownReport(readReport(f, await reports.ensureReport(f.root, { scopeId: 'FEATURE-F' })));
+        for (const phrase of ['of 2 work item accepted', '2 eligible delivery work item', 'aria-label="Eligible delivery work item"', 'exactly its eligible work item', 'unaccepted eligible work item', 'Excluded work item (0)', 'Each work item counts once'])
+            assert.ok(group.includes(phrase), phrase);
+        // Identities, file locations and the name of the tool are not kind words; markup hooks are not view text.
+        const viewText = page => page.replace(/<!--[\s\S]*?-->/g, '').replace(/\s(?:data-[a-z-]+|class|href|id|for|aria-labelledby)="[^"]*"/g, '').replace(/task tool|TASK-\d|work\/tasks\/[^<]*/g, '');
+        assert.deepEqual([...viewText(group).matchAll(/.{0,40}\btasks?\b.{0,40}/gi)].map(match => match[0]), [], 'no view text keeps the replaced delivery word');
+        f.config.taskTracking.kindLabels = { initiative: 'Proposal' }; f.saveConfig();
+        assert.equal(after.vocabulary.labels.kinds.initiative, 'Proposal'); assert.deepEqual(after.vocabulary.kinds, before.vocabulary.kinds);
+        // Display only: the stored kind, the identities, the counts and every record's bytes are what they were.
+        assert.equal(f.view('INITIATIVE-1').kind, 'initiative'); assert.deepEqual(after.metrics, before.metrics);
+        assert.deepEqual(after.items.map(item => [item.id, item.kind, item.state]), before.items.map(item => [item.id, item.kind, item.state]));
+        for (const [relative, bytes] of stored) if (!/TASK-4\.md$/.test(relative)) assert.deepEqual(fs.readFileSync(path.join(f.root, relative)), bytes, relative);
+        // A label that names another kind is refused whole: nothing is read as work until the configuration is corrected.
+        f.config.taskTracking.kindLabels = { subtask: 'Task' }; f.saveConfig();
+        assert.equal(f.progress().coverage, 'unavailable'); assert.deepEqual(f.progress().items, []);
+        await assert.rejects(reports.ensureReport(f.root), error => error.code === 'INVALID_CONFIG');
     }),
     test('TC-TPT-043', 'pinned config, canonical records and applicable source are read from one exact OID', async f => {
         f.write('src/export.js', 'baseline version'); await f.create();
@@ -955,19 +1602,19 @@ module.exports = { name: 'Task tracking runtime contract integration', tests: [
         });
     }),
     test('TC-TPT-064', 'edit and retirement API keeps history and child work while changing explicit visibility only', async f => {
-        await f.create(); await f.create('PROJECT-parent', 'project'); await f.saved('group', 'PROJECT-parent', { memberItemIds: ['TASK-101'] });
+        await f.create(); await f.create('AREA-parent', 'area'); await f.tag('TASK-101', { areaIds: ['AREA-parent'] });
         const child = f.bytes('TASK-101');
         await withWorkspace(f, { actor: 'owner', writable: true }, async workspace => {
-            const edited = await request(workspace, '/api/operation', { method: 'POST', value: f.request('update', 'PROJECT-parent', { title: 'Revised grouping intent' }) });
+            const edited = await request(workspace, '/api/operation', { method: 'POST', value: f.request('update', 'AREA-parent', { title: 'Revised area intent' }) });
             assert.equal(edited.value.primary.status, 'saved');
-            const retired = await request(workspace, '/api/operation', { method: 'POST', value: f.request('retire', 'PROJECT-parent', { reason: 'Grouping is no longer current' }) });
+            const retired = await request(workspace, '/api/operation', { method: 'POST', value: f.request('retire', 'AREA-parent', { reason: 'Area is no longer current' }) });
             assert.equal(retired.value.primary.status, 'saved');
             const inspected = await request(workspace, '/api/inspect', { method: 'POST', value: {} });
-            const item = inspected.value.items.find(value => value.id === 'PROJECT-parent');
-            assert.equal(item.title, 'Revised grouping intent'); assert.equal(item.retired.reason, 'Grouping is no longer current');
+            const item = inspected.value.items.find(value => value.id === 'AREA-parent');
+            assert.equal(item.title, 'Revised area intent'); assert.equal(item.retired.reason, 'Area is no longer current');
             assert.equal(item.history.at(-1).operation, 'retire'); assert.equal(inspected.value.metrics.total, 1);
-            const restored = await request(workspace, '/api/operation', { method: 'POST', value: f.request('restore', 'PROJECT-parent', { reason: 'Grouping is current again' }) });
-            assert.equal(restored.value.primary.status, 'saved'); assert.equal(f.view('PROJECT-parent').retired, null);
+            const restored = await request(workspace, '/api/operation', { method: 'POST', value: f.request('restore', 'AREA-parent', { reason: 'Area is current again' }) });
+            assert.equal(restored.value.primary.status, 'saved'); assert.equal(f.view('AREA-parent').retired, null);
         }); assert.deepEqual(f.bytes('TASK-101'), child); assert.equal(f.progress().metrics.accepted, 0);
     }),
     test('TC-TPT-092', 'shutdown drains an admitted HTTP writer before settling and original retry commits only once', async f => {
@@ -1477,7 +2124,7 @@ module.exports = { name: 'Task tracking runtime contract integration', tests: [
         const request = f.request('transition', 'TASK-101', { state: 'draft', correction: true, reason: 'Canceled by mistake' });
         const apply = flags => child(f, ['apply', '--root', f.root, '--actor', 'owner', ...flags], request);
         // Neither a plain apply nor another permission's flag corrects a state.
-        for (const flags of [[], ['--delete-item'], ['--review', '--manual-proof', '--accept', '--attest-health', '--delete-draft', '--delete-item']]) {
+        for (const flags of [[], ['--delete-item'], ['--review', '--manual-proof', '--accept', '--attest-health', '--delete-draft', '--delete-item', '--decide']]) {
             const denied = apply(flags);
             refused(denied.value, 'NOT_PERMITTED'); assert.equal(denied.result.status, 1, flags.join(' ')); assert.deepEqual(f.bytes('TASK-101'), canceled, flags.join(' '));
         }
@@ -1487,6 +2134,41 @@ module.exports = { name: 'Task tracking runtime contract integration', tests: [
         assert.equal(restored.data.status, 'draft'); assert.deepEqual(restored.tracking.history.slice(0, -1), history);
         assert.equal(restored.tracking.history.at(-1).reason, 'Canceled by mistake');
         assert.ok((await cli.run(['help'])).boundaries.some(line => line.includes('--change-state')));
+    }),
+    test('TC-TPT-275', 'the command takes an initiative decision only under its own flag, which corrects no state, and names that flag in discovery', async f => {
+        // Every flag that grants another permission. None of them is a decision.
+        const others = ['--review', '--manual-proof', '--accept', '--attest-health', '--delete-draft', '--delete-item', '--change-state'];
+        const apply = (id, patch, flags) => child(f, ['apply', '--root', f.root, '--actor', 'owner', ...flags], f.request('transition', id, patch));
+        const denied = (id, patch, flags, code = 'NOT_PERMITTED') => {
+            const before = f.bytes(id); const answer = apply(id, patch, flags);
+            refused(answer.value, code); assert.equal(answer.result.status, 1, flags.join(' ')); assert.deepEqual(f.bytes(id), before, flags.join(' '));
+            return answer.value.primary.reason;
+        };
+        const saved = (id, patch, flags) => {
+            const answer = apply(id, patch, flags);
+            assert.equal(answer.result.status, 0, answer.result.stdout); assert.equal(answer.value.primary.status, 'saved'); assert.equal(f.record(id).data.status, patch.state);
+        };
+        const decision = /explicit decision by a person/;
+        await f.create('INITIATIVE-1', 'initiative'); await f.create('INITIATIVE-2', 'initiative');
+        // Approving a draft: a plain apply and every other permission together are refused, and the flag alone is enough.
+        for (const flags of [[], others]) assert.match(denied('INITIATIVE-1', { state: 'approved' }, flags), decision);
+        saved('INITIATIVE-1', { state: 'approved' }, ['--decide']);
+        // Reopening a closed initiative, done back to committed, is a decision as well.
+        await f.saved('transition', 'INITIATIVE-1', { state: 'committed' }); await f.saved('transition', 'INITIATIVE-1', { state: 'done', reason: 'Outcome reached' });
+        for (const flags of [[], others]) assert.match(denied('INITIATIVE-1', { state: 'committed', reason: 'More to do' }, flags), decision);
+        saved('INITIATIVE-1', { state: 'committed', reason: 'More to do' }, ['--decide']);
+        // Canceling: the authority is asked before the reason, so without the flag the answer is never the missing reason.
+        assert.match(denied('INITIATIVE-2', { state: 'canceled' }, []), decision);
+        assert.match(denied('INITIATIVE-2', { state: 'canceled', reason: 'Dropped' }, others), decision);
+        assert.match(denied('INITIATIVE-2', { state: 'canceled' }, ['--decide'], 'INVALID_INPUT'), /needs a reason/);
+        saved('INITIATIVE-2', { state: 'canceled', reason: 'Dropped' }, ['--decide']);
+        // The decision flag corrects no state: a correction has its own flag, and that flag needs no decision beside it.
+        const correction = { state: 'draft', correction: true, reason: 'Canceled by mistake' };
+        assert.match(denied('INITIATIVE-2', correction, ['--decide']), /explicit action by a person/);
+        saved('INITIATIVE-2', correction, ['--change-state']);
+        // Discovery names the flag where a caller looks for it.
+        assert.equal((await cli.run(['catalogue', '--root', f.root])).operations.find(operation => operation.name === 'transition').cli.decisionFlag, '--decide');
+        assert.ok((await cli.run(['help'])).boundaries.some(line => line.includes('--decide')));
     }),
     test('TC-TPT-047', 'a missing pinned package is installed once by the locked, script-free command and then reused', async f => {
         const folder = packageFolder(f);

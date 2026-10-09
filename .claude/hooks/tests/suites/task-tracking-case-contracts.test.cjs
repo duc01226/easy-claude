@@ -375,14 +375,14 @@ module.exports = { name: 'Task tracking native case contracts', tests: [
     test('TC-TPT-089', 'unproved whole native assignment refuses both exact leaves before any responsibility or secondary owner write', async f => {
         // Given exact selected native leaves, an active requested member, unselected work and a separate coordinator.
         f.config.taskTracking.members.push({ id: 'member-leo', displayName: 'Leo', active: true }); f.saveConfig();
-        for (const id of ['STORY-101', 'STORY-102', 'STORY-103']) await f.create(id, 'story'); await f.create('PROJECT-10', 'project');
+        for (const id of ['STORY-101', 'STORY-102', 'STORY-103']) await f.create(id, 'story'); await f.create('AREA-10', 'area');
         const requests = ['STORY-101', 'STORY-102'].map(id => f.request('assign', id, { assigneeId: 'member-leo' })); const portable = owners(f);
         const sources = nativeSources(f, {
             'native/delivery.json': JSON.stringify({ leaves: [
                 { id: 'STORY-101', owner: 'member-duc', state: 'Ready', proof: [], acceptance: null },
                 { id: 'STORY-102', owner: 'member-maya', state: 'In progress', proof: [], acceptance: null },
                 { id: 'STORY-103', owner: 'member-maya', state: 'Ready', proof: [], acceptance: null }], history: ['Original authored history'] }),
-            'native/group.json': JSON.stringify({ id: 'PROJECT-10', coordinator: 'member-sam', members: ['STORY-101', 'STORY-102', 'STORY-103'] }),
+            'native/group.json': JSON.stringify({ id: 'AREA-10', coordinator: 'member-sam', members: ['STORY-101', 'STORY-102', 'STORY-103'] }),
             'native/refresh.json': JSON.stringify({ authority: 'project-owned secondary owner', revisedAt: null })
         });
         const drafts = requests.map(request => JSON.stringify(request));
@@ -455,21 +455,21 @@ module.exports = { name: 'Task tracking native case contracts', tests: [
         const partial = f.progress(); assert.equal(partial.coverage, 'partial'); assert.equal(partial.metrics.percentage, null);
         assert.ok(partial.diagnostics.some(row => row.path === 'work/tasks/unknown-input.md')); unchanged(f, original);
         fs.unlinkSync(path.join(f.root, 'work/tasks/unknown-input.md'));
-        await f.create('PROJECT-121', 'project'); const group = f.record('PROJECT-121'); fs.unlinkSync(path.join(f.root, group.ownerPath));
-        const missingScope = f.progress({ groupId: 'PROJECT-121' });
+        await f.create('AREA-121', 'area'); const area = f.record('AREA-121'); fs.unlinkSync(path.join(f.root, area.ownerPath));
+        const missingScope = f.progress({ scopeId: 'AREA-121' });
         assert.equal(missingScope.coverage, 'unavailable'); assert.equal(missingScope.scope.coverage, 'unavailable'); assert.equal(missingScope.metrics, null);
         assert.ok(missingScope.diagnostics.some(row => row.code === 'UNAVAILABLE_SCOPE')); unchanged(f, original);
     }),
     test('TC-TPT-122', 'native operation partitions preserve every original owner before any create, update or secondary footprint can run', async f => {
         // Given trusted source bytes with native identity, history, unknown dates and metric units.
-        await f.create('TASK-122'); await f.create('PROJECT-122', 'project'); const portable = owners(f);
+        await f.create('TASK-122'); await f.create('AREA-122', 'area'); const portable = owners(f);
         const proof = f.proof('TASK-122');
         const requests = [
             f.request('create', 'TASK-122-extra', { title: 'Requested additional outcome', intent: 'Preserve native authority' }),
             f.request('update', 'TASK-122', { title: 'Requested native title' }),
             f.request('assign', 'TASK-122', { assigneeId: 'peer' }),
             f.request('link', 'TASK-122', { links: [] }),
-            f.request('group', 'PROJECT-122', { memberItemIds: ['TASK-122'] }),
+            f.request('tag', 'TASK-122', { areaIds: ['AREA-122'] }),
             f.request('transition', 'TASK-122', { state: 'planned' }),
             f.request('proof', 'TASK-122', { proof }), f.request('accept', 'TASK-122', { reason: 'Explicit scoped decision' }),
             f.request('retire', 'TASK-122', { reason: 'Explicit retirement request' }), f.request('restore', 'TASK-122', { reason: 'Explicit restore request' }),
@@ -529,36 +529,35 @@ module.exports = { name: 'Task tracking native case contracts', tests: [
         assert.deepEqual(f.bytes('TASK-125-primary'), saved); assert.equal(f.record('TASK-125-primary').data.intent, 'The earlier primary intent save must remain');
         assert.equal(f.view('TASK-125-primary').acceptance.accepted, false);
     }),
-    test('TC-TPT-135', 'overlap and membership permutations conserve unique delivery while completed enabling work adds no credit', async f => {
-        // Given accepted/unaccepted/canceled tasks and nested groups reached through public operations.
+    test('TC-TPT-135', 'overlap and tag-order permutations conserve unique delivery while completed enabling work adds no credit', async f => {
+        // Given accepted/unaccepted/canceled tasks tagged to two areas under one area, through public operations.
         for (const id of ['TASK-135-a', 'TASK-135-b', 'TASK-135-c']) await f.create(id);
         await f.accepted('TASK-135-a'); await f.saved('transition', 'TASK-135-c', { state: 'canceled', reason: 'The outcome was removed from active delivery' });
-        for (const [id, kind] of [['PROJECT-135-a', 'project'], ['PROJECT-135-b', 'project'], ['VISION-135', 'vision']]) await f.create(id, kind);
-        await f.saved('group', 'PROJECT-135-a', { memberItemIds: ['TASK-135-a', 'TASK-135-b'] });
-        await f.saved('group', 'PROJECT-135-b', { memberItemIds: ['TASK-135-a', 'TASK-135-c'] });
-        await f.saved('group', 'VISION-135', { memberItemIds: ['PROJECT-135-a', 'PROJECT-135-b'] });
-        const delivery = owners(f); const base = f.progress({ groupId: 'VISION-135' }).metrics;
+        await f.create('AREA-135', 'area'); for (const id of ['AREA-135-a', 'AREA-135-b']) await f.create(id, 'area', { areaIds: ['AREA-135'] });
+        await f.tag('TASK-135-a', { areaIds: ['AREA-135-a', 'AREA-135-b'] }); await f.tag('TASK-135-b', { areaIds: ['AREA-135-a'] }); await f.tag('TASK-135-c', { areaIds: ['AREA-135-b'] });
+        const delivery = owners(f); const base = f.progress({ scopeId: 'AREA-135' }).metrics;
         assert.deepEqual(base.eligibleIds, ['TASK-135-a', 'TASK-135-b']); assert.equal(base.total, 2); assert.equal(base.accepted, 1); assert.equal(base.canceled, 1); assert.equal(base.percentage, 50);
         // When enabling work itself completes, neither project nor selected delivery gets a task credit.
         const project = stableMetrics(f); await f.create('SUBTASK-135', 'subtask'); await f.accepted('SUBTASK-135');
         assert.equal(f.view('SUBTASK-135').acceptance.accepted, true); assert.deepEqual(stableMetrics(f), project); unchanged(f, delivery);
-        await f.saved('group', 'PROJECT-135-a', { memberItemIds: ['TASK-135-a', 'TASK-135-b', 'SUBTASK-135'] });
-        // Metamorphic property: overlapping direct/transitive membership and all three-element orders have the same union.
+        await f.tag('SUBTASK-135', { areaIds: ['AREA-135-a'] });
+        // Metamorphic property: the task is tagged to both areas and directly to the area above them, and every order of
+        // its three tags is the same overlapping direct/transitive union.
         const permutations = [
-            ['PROJECT-135-a', 'PROJECT-135-b', 'TASK-135-a'], ['PROJECT-135-a', 'TASK-135-a', 'PROJECT-135-b'],
-            ['PROJECT-135-b', 'PROJECT-135-a', 'TASK-135-a'], ['PROJECT-135-b', 'TASK-135-a', 'PROJECT-135-a'],
-            ['TASK-135-a', 'PROJECT-135-a', 'PROJECT-135-b'], ['TASK-135-a', 'PROJECT-135-b', 'PROJECT-135-a']
+            ['AREA-135-a', 'AREA-135-b', 'AREA-135'], ['AREA-135-a', 'AREA-135', 'AREA-135-b'],
+            ['AREA-135-b', 'AREA-135-a', 'AREA-135'], ['AREA-135-b', 'AREA-135', 'AREA-135-a'],
+            ['AREA-135', 'AREA-135-a', 'AREA-135-b'], ['AREA-135', 'AREA-135-b', 'AREA-135-a']
         ];
-        for (const memberItemIds of permutations) {
-            await f.saved('group', 'VISION-135', { memberItemIds }); const view = f.progress({ groupId: 'VISION-135' });
+        for (const areaIds of permutations) {
+            await f.tag('TASK-135-a', { areaIds }); const view = f.progress({ scopeId: 'AREA-135' });
             assert.equal(view.coverage, 'complete'); assert.deepEqual(view.scope.taskIds, ['TASK-135-a', 'TASK-135-b', 'TASK-135-c']);
             assert.deepEqual(view.scope.excludedTaskIds, ['TASK-135-c']); assert.deepEqual(view.metrics, base);
             assert.equal(view.scope.memberIds.filter(id => id === 'TASK-135-a').length, 1); assert.ok(view.scope.memberIds.includes('SUBTASK-135'));
         }
         // An invalid duplicate within one declared list is refused before owner/history/credit changes.
-        const before = retained(f, 'VISION-135'); const scoped = f.progress({ groupId: 'VISION-135' }).metrics;
-        refused(await f.perform('group', 'VISION-135', { memberItemIds: ['PROJECT-135-a', 'PROJECT-135-a'] }), 'INVALID_RECORD');
-        refusalConserved(f, 'VISION-135', before); assert.deepEqual(f.progress({ groupId: 'VISION-135' }).metrics, scoped);
+        const before = retained(f, 'TASK-135-a'); const scoped = f.progress({ scopeId: 'AREA-135' }).metrics;
+        refused(await f.perform('tag', 'TASK-135-a', { areaIds: ['AREA-135-a', 'AREA-135-a'] }), 'INVALID_RELATIONSHIP');
+        refusalConserved(f, 'TASK-135-a', before); assert.deepEqual(f.progress({ scopeId: 'AREA-135' }).metrics, scoped);
     }),
     test('TC-TPT-137', 'portable current, historical shared and native views retain selected authority without substituting missing confidence', async f => {
         // Given one accepted portable baseline with declared source, then later unverified personal scope.
@@ -612,5 +611,53 @@ module.exports = { name: 'Task tracking native case contracts', tests: [
         refused(await f.perform('assign', 'TASK-104', { assigneeId: 'Maya' }), 'INVALID_MEMBER'); refusalConserved(f, 'TASK-104', inactive);
         assert.equal(f.view('TASK-104').assigneeId, 'member-maya'); assert.equal(f.view('TASK-104').state, 'ready'); assert.equal(f.view('TASK-104').acceptance.accepted, false);
         assert.deepEqual(f.bytes('TASK-142-other'), control);
+    }),
+    test('TC-TPT-076', 'canceling an area that holds tasks changes no figure and removes no tag, and an area never earns credit', async f => {
+        // Given a feature area under a product area, holding one accepted task that is also linked to an initiative and one open task.
+        await f.create('AREA-287-parent', 'area', { level: 'product' }); await f.create('AREA-287', 'area', { level: 'feature', areaIds: ['AREA-287-parent'] });
+        await f.create('INIT-287', 'initiative');
+        await f.create('TASK-287-accepted', 'task', { areaIds: ['AREA-287'], initiativeIds: ['INIT-287'] }); await f.accepted('TASK-287-accepted');
+        await f.create('TASK-287-open', 'task', { areaIds: ['AREA-287'] });
+        const stated = () => { const read = f.progress({ figures: true }); return { coverage: read.coverage, metrics: read.metrics, figures: read.figures, hierarchy: read.hierarchy, scope: read.scope }; };
+        const scoped = () => Object.fromEntries(['AREA-287', 'AREA-287-parent', 'INIT-287'].map(scopeId => [scopeId, f.progress({ scopeId }).metrics]));
+        const before = stated(); const beforeScoped = scoped(); assert.equal(before.coverage, 'complete'); assert.equal(before.figures.status, 'complete');
+        assert.equal(beforeScoped['AREA-287'].total, 2); assert.equal(beforeScoped['AREA-287'].accepted, 1); assert.equal(beforeScoped['AREA-287-parent'].percentage, 50);
+        assert.equal(beforeScoped['INIT-287'].percentage, 100);
+        // The area is a place for work, not work: three records that are no task add nothing to the project's two.
+        assert.deepEqual(before.metrics.eligibleIds, ['TASK-287-accepted', 'TASK-287-open']); assert.equal(before.metrics.total, 2); assert.equal(f.view('AREA-287').acceptance.accepted, false);
+        const others = new Map(f.records().filter(record => record.id !== 'AREA-287').map(record => [record.ownerPath, record.bytes])); const active = f.record('AREA-287');
+        // When a person cancels the area, giving the reason.
+        const reason = 'The feature is no longer offered';
+        const result = await f.saved('transition', 'AREA-287', { state: 'canceled', reason }); const canceled = f.record('AREA-287');
+        assert.equal(result.current.state, 'canceled'); appendOnly(active, canceled, 'transition');
+        assert.equal(canceled.tracking.history.at(-1).beforeState, 'active'); assert.equal(canceled.tracking.history.at(-1).reason, reason);
+        // Then the project, the area itself, its parent and the linked initiative state exactly what they stated, row for row.
+        assert.deepEqual(stated(), before); assert.deepEqual(scoped(), beforeScoped);
+        // And the tasks keep their tags: only the area's own record was saved.
+        unchanged(f, others); assert.deepEqual(f.view('TASK-287-open').links, [{ relation: 'area', itemId: 'AREA-287' }]);
+        assert.deepEqual(f.view('TASK-287-accepted').links, [{ relation: 'area', itemId: 'AREA-287' }, { relation: 'initiative', itemId: 'INIT-287' }]);
+        assert.equal(f.view('AREA-287').acceptance.accepted, false);
+        // Retiring the canceled area keeps its history out of active view and still moves no figure.
+        await f.saved('retire', 'AREA-287', { reason: 'Kept as history only' });
+        assert.deepEqual(stated(), before); assert.deepEqual(scoped(), beforeScoped); unchanged(f, others);
+    }),
+    test('TC-TPT-275', 'an initiative whose linked tasks are all accepted stays committed at 100 percent', async f => {
+        // Given a committed initiative with two linked tasks, one already accepted.
+        await f.create('INIT-291', 'initiative'); await f.committed('INIT-291');
+        for (const id of ['TASK-291-a', 'TASK-291-b']) await f.create(id, 'task', { initiativeIds: ['INIT-291'] });
+        const committed = f.record('INIT-291'); assert.equal(committed.data.status, 'committed');
+        await f.accepted('TASK-291-a');
+        const half = f.progress({ scopeId: 'INIT-291' }); assert.equal(half.metrics.percentage, 50); assert.equal(f.view('INIT-291').state, 'committed');
+        // When the last linked task is accepted.
+        await f.accepted('TASK-291-b'); const read = f.progress({ scopeId: 'INIT-291', figures: true });
+        // Then every linked task is credited and the figure is complete.
+        assert.equal(read.coverage, 'complete'); assert.deepEqual(read.scope.eligibleTaskIds, ['TASK-291-a', 'TASK-291-b']);
+        assert.deepEqual(read.figures.initiatives, [{ id: 'INIT-291', total: 2, accepted: 2, remaining: 0, currentlyVerified: 2, canceled: 0, retired: 0, percentage: 100 }]);
+        assert.equal(read.metrics.total, 2); assert.equal(read.metrics.accepted, 2); assert.equal(read.metrics.remaining, 0); assert.equal(read.metrics.percentage, 100);
+        // And the initiative is exactly the record it was: it is read as committed, nothing closed it, and closing stays a person's decision.
+        const item = read.items.find(row => row.id === 'INIT-291');
+        assert.equal(item.state, 'committed'); assert.equal(item.lifecycle, 'tracker'); assert.equal(item.acceptance.accepted, false);
+        assert.deepEqual(f.bytes('INIT-291'), committed.bytes); assert.equal(f.record('INIT-291').data.status, 'committed');
+        assert.deepEqual(f.record('INIT-291').tracking.history.map(entry => entry.afterState), ['draft', 'approved', 'committed']);
     })
 ] };

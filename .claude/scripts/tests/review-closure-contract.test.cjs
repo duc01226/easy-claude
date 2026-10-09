@@ -41,13 +41,14 @@ function assertReportClosure(text) {
     assert.match(text, /validated findings/);
 }
 function assertDurableBudget(text) {
-    assert.match(text, /three.round/i);
+    assert.match(local(text), /Default maximum two rounds/i);
+    assert.match(local(text), /At two rounds,[\s\S]*?require the host question tool/);
     assert.match(text, /completed-round evidence/);
     assert.match(text, /remaining MEDIUM|Remaining MEDIUM/);
-    assert.match(text, /Wait for the answer/);
+    assert.match(local(text), /Wait for an explicit answer before further fixes or review rounds/);
     assert.doesNotMatch(text, /conversation context only|starts fresh at round 0/);
 }
-test('R2-14/15: report handoff and shared durable cap survive newline dialects', () => {
+test('R2-14/15: report handoff and workflow two-round cap survive newline dialects', () => {
     for (const text of [why, why.replace(/\r?\n/g, '\r\n')]) assertReportClosure(text);
     for (const text of [workflow, workflow.replace(/\r?\n/g, '\r\n')]) assertDurableBudget(text);
 });
@@ -59,7 +60,7 @@ test('R2-15: CLEAN report with a retained HIGH hands off without clearing the ou
         assert.equal(policy.evaluateRound({ round, findings }).canComplete, false);
         assert.equal(policy.blockingFindings(round, findings).length, 1);
     }
-    // A retained HIGH may use round 3; remaining blockers at that cap escalate.
+    // The generic policy allows round 3; the workflow's stricter cap requires user approval first.
     assert.equal(policy.evaluateRound({ round: 2, findings }).status, 'CONTINUE');
     assert.equal(policy.evaluateRound({ round: 3, findings }).status, 'ESCALATE');
     assert.equal(policy.evaluateRound({ round: 4, findings }).status, 'ESCALATE');
