@@ -4,7 +4,7 @@
 
 ## What is this?
 
-**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **<!-- COUNT:hooks -->33<!-- /COUNT --> top-level hook files**, **<!-- COUNT:skills -->104<!-- /COUNT --> skills**, **<!-- COUNT:workflows -->19<!-- /COUNT --> workflows**, and **<!-- COUNT:agents -->24<!-- /COUNT --> specialized agents**. It covers the entire software development lifecycle — from initiative capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`.
+**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **<!-- COUNT:hooks -->34<!-- /COUNT --> top-level hook files**, **<!-- COUNT:skills -->104<!-- /COUNT --> skills**, **<!-- COUNT:workflows -->19<!-- /COUNT --> workflows**, and **<!-- COUNT:agents -->24<!-- /COUNT --> specialized agents**. It covers the entire software development lifecycle — from initiative capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`.
 
 **Core insight:** LLMs forget, hallucinate, and drift. Instead of hoping the AI "just gets it right," this framework uses **programmatic guardrails** (hooks) and **prompt-engineered protocols** (skills/workflows) to enforce correctness at every stage.
 
@@ -136,7 +136,7 @@ node .claude/skills/sync-codex/scripts/run-codex-sync.mjs   # standalone Codex s
 
 ## What's Inside
 
-### Hooks (<!-- COUNT:hooks -->33<!-- /COUNT --> top-level `.cjs` files, <!-- COUNT:lib-modules -->64<!-- /COUNT --> lib modules)
+### Hooks (<!-- COUNT:hooks -->34<!-- /COUNT --> top-level `.cjs` files, <!-- COUNT:lib-modules -->64<!-- /COUNT --> lib modules)
 
 Runtime Node.js scripts that fire on Claude Code lifecycle events.
 
@@ -248,7 +248,7 @@ easy-claude/
 ├── .codex/                   # Codex agents, hooks, and context parity files
 ├── .claude/                  # <-- The framework template (copy this to your project)
 │   ├── agents/               # 24 specialized agent definitions
-│   ├── hooks/                # 33 top-level hook files + lib/ utilities
+│   ├── hooks/                # 34 top-level hook files + lib/ utilities
 │   │   ├── lib/              # Shared hook libraries
 │   │   ├── notifications/    # Multi-channel notification system
 │   │   └── tests/            # Hook test suites
@@ -283,7 +283,7 @@ The entire framework is **project-agnostic**. All project-specific knowledge liv
 ```
 ┌─────────────────────────────────────┐
 │     Generic Framework (reusable)    │
-│ 33 Hook Files + 104 Skills + 19 Flows │
+│ 34 Hook Files + 104 Skills + 19 Flows │
 └──────────────┬──────────────────────┘
                │
         ┌──────┴──────┐

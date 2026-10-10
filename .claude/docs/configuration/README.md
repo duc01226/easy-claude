@@ -981,3 +981,27 @@ _Source: `.claude/` configuration files_
 ## Closing reminders
 
 **MUST** keep project facts in the configured project-config file and machine permission in personal/ignored local policy. **MUST** validate declared settings and retain native host permissions. **MUST** resolve required review evidence and rule errors before acceptance.
+
+## Frontend reuse reminder
+
+Read this section when changing frontend reuse discovery reminders. The default-on `ui-reuse-remind.cjs` hook gives a concise reminder on user prompts and before frontend file operations or plan loads. Configure it in `docs/project-config.json`:
+
+```json
+{
+  "hooks": {
+    "uiReuseReminder": {
+      "enabled": true,
+      "reinjectAfterTokens": 100000,
+      "useDefaultMatchers": true,
+      "pathGlobs": ["custom-ui/**/*.view"],
+      "excludePathGlobs": ["custom-ui/generated/**"]
+    }
+  }
+}
+```
+
+All fields are optional; absent project config uses the defaults. The interval is an integer from 20,000 through 2,000,000 tokens. Malformed declared configuration leaves this advisory hook silent; repair it through project-config. `pathGlobs` adds project-specific paths; `useDefaultMatchers: false` replaces built-in includes with those globs. Exclusions always win; dependency/build output, disposable output and generated host mirrors are excluded. Plan activation remains a trigger independently of frontend matchers. `enabled: false` disables both prompt and pre-tool reminders.
+
+Built-in includes reuse the common UI/UX matcher: HTML/templates, CSS/style preprocessors, JSX/TSX, Vue, Svelte, Astro, Angular component files and native markup/layout files. Added defaults cover ERB/Haml/Slim, HEEx/LEEx/EEx, Blade, FXML/QML/Qt UI, UXML/USS and WXML/WXSS. Shared-language files (JS/TS, Dart, Swift, Kotlin, Java, C#, PHP, Ruby, Python) match only under component/page/view/screen/widget/layout/composable/frontend/client/web/UI directories. These paths are discovery hints; inspect actual ownership before applying UI rules. Unusual stacks use project globs. Either slash is accepted on Windows, macOS and Linux.
+
+The reminder directs discovery through the optional `designSystem`, `styling`, `componentSystem`, selected reference docs and actual component owners; it does not assume default docs exist or invent tokens or controls. The plan skill carries the full `ui-system-context` guide plus its short closing reminder. Hook delivery is advisory and never proves that the agent read these sources.

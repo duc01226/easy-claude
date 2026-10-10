@@ -301,7 +301,7 @@ mistakes compound through later tasks.
 
 <!-- SYNC:ui-system-context:reminder -->
 
-**IMPORTANT MUST ATTENTION** applicable UI surface: read selected UI/design/styling references; honor N/A, evidenced component/styling conventions, and fitting reuse.
+**IMPORTANT MUST ATTENTION** Before planning, implementing or changing frontend UI, find and read the current project's design system, tokens, shared components/UI controls and related usage examples; follow house conventions and reuse what fits. Start with project config and selected UI references, then inspect the actual component owners. Record searched paths and any gap before adding a control; honor explicit N/A. A reminder is not proof of discovery.
 
 <!-- /SYNC:ui-system-context:reminder -->
 

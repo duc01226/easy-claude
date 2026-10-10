@@ -1,6 +1,6 @@
 # Hooks Reference
 
-> <!-- COUNT:hooks -->33<!-- /COUNT --> top-level `.cjs` hooks and <!-- COUNT:lib-modules -->64<!-- /COUNT --> lib modules for context-aware AI behavior (some hooks register on multiple events; the unified notification router lives under `.claude/hooks/notifications/notify.cjs`)
+> <!-- COUNT:hooks -->34<!-- /COUNT --> top-level `.cjs` hooks and <!-- COUNT:lib-modules -->64<!-- /COUNT --> lib modules for context-aware AI behavior (some hooks register on multiple events; the unified notification router lives under `.claude/hooks/notifications/notify.cjs`)
 
 ## Overview
 
@@ -33,10 +33,10 @@ two events is counted once per event).
 
 | Event              | Trigger                      | Hooks | Use Cases                                                                                                                                                 |
 | ------------------ | ---------------------------- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `SessionStart`     | Session begins/resumes       | 11    | Integrity preflight + guarded startup-install request validation, init state, load docs, init graph, record condensation, re-anchor the prompt ledger, and re-deliver the universal bundle after a compaction (four bins, matcher `compact|clear`) |
+| `SessionStart`     | Session begins/resumes       | 12    | Integrity preflight + guarded startup-install request validation, init state, load docs, init graph, record condensation, re-anchor the prompt ledger, and re-deliver the universal bundle after a compaction (four bins, matcher `compact|clear`) |
 | `SessionEnd`       | Session ends                 | 2     | Main-session desktop alert and cleanup temp/swap files                                                                                                    |
-| `UserPromptSubmit` | Before processing user input | 15    | Deliver the universal protocol bundle (four bins), check project readiness and graph state, optionally inject the workflow route and its catalog (two outputs), route commit, verdict and AI-feature prompts, re-deliver the core principles, record prompts in the ledger, and offer eligible task-tracking guidance |
-| `PreToolUse`       | Before tool execution        | 4     | Direct Claude AskUserQuestion notification, commit-operation gates, and document-sync warnings                                                            |
+| `UserPromptSubmit` | Before processing user input | 16    | Deliver the universal protocol bundle (four bins), check project readiness and graph state, optionally inject the workflow route and its catalog (two outputs), route commit, verdict and AI-feature prompts, re-deliver the core principles, record prompts in the ledger, and offer eligible task-tracking guidance |
+| `PreToolUse`       | Before tool execution        | 5     | Direct Claude AskUserQuestion notification, commit-operation gates, and document-sync warnings                                                            |
 | `PostToolUse`      | After tool completes         | 19    | Format code, update graph, per-file convention reminder, re-deliver the prompt ledger and an advisory token checkpoint at task steps, deliver skill protocols and the skill-overlay reminder on a `Skill` load or a `SKILL.md` read |
 | `SubagentStart`    | Sub-agent starts             | 10    | Deliver the protocols of the agent's preloaded skills, minus bodies the agent file already carries, and the universal bundle (four bins) to every agent type (see [Protocol Delivery](#protocol-delivery)) |
 | `UserPromptExpansion` | Typed `/command` expands  | 6     | Deliver the protocols of the skill a typed command loads and remind the agent to read the skill's project overlay files (see [Protocol Delivery](#protocol-delivery))                                                   |
@@ -174,12 +174,19 @@ disables installation but leaves integrity verification active; an absent config
 uses portable defaults, an absent root `package.json` is a clean install no-op,
 and invalid config skips installation with one fixed diagnostic.
 
+### Frontend reuse reminder
+
+`ui-reuse-remind.cjs` delivers the canonical `ui-system-context:reminder` digest on every user prompt and before matching frontend reads/changes or plan loads. It asks the agent to find/read the project design system, tokens, shared UI controls and usage examples, follow house conventions and record reuse gaps. It does not preload target files or prove discovery.
+
+The default-on hook shares one reminder record across prompt and pre-tool events in each conversation scope; the default window is 100,000 tokens of transcript growth. Transcript compaction marks and a silent SessionStart `compact|clear` private-generation reset, changed reminder text or changed settings re-arm it. No transcript means one delivery until compaction/content change; wall-clock time alone does not re-arm. Failed output earns no credit; absent/blank session identity and missing-source notices emit without a record. Its private digest record and reset generation cannot suppress or invalidate full protocol or universal delivery. Shell paths are bounded literal hints with no expansion or execution. Read [../configuration/README.md](../configuration/README.md#frontend-reuse-reminder) when configuring the matchers or interval.
+
 ### Prompt Intake (UserPromptSubmit)
 
 Prompt hooks may warn, synchronize state, record the prompt ledger, or emit optional advisory context. Only explicit safety gates block.
 
 | Hook                            | Event            | Matcher | Purpose                                                                                                                                                                                                                                          |
 | ------------------------------- | ---------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ui-reuse-remind.cjs` | UserPromptSubmit, PreToolUse | `*` / frontend file operations and plan loads | Concise design-system/shared-control reuse reminder; default-on, project-configurable, deduplicated across triggers per scope for 100K tokens. |
 | `init-prompt-gate.cjs`          | UserPromptSubmit | `*`     | Warn/route until project context, root instructions and docs are current; optional note when the code graph is switched on but not built                                                                                                                                                                 |
 | `workflow-route-inject.cjs`     | UserPromptSubmit | `*`     | The only carrier of the workflow route: advisory state line + gate injection per route mode (`ask` default, `auto`; team default in project config, personal override in `~/.claude/.ck.json`, ignored `.claude/.ck.local.json` or env `CK_WORKFLOW_ROUTE_MODE`); mode `off` delivers a short routing-OFF notice instead. The catalog is the second output, `workflow-catalog-inject.cjs` |
 | `workflow-catalog-inject.cjs`   | UserPromptSubmit | `*`     | Second output of the workflow route: the workflow catalog, in the first form that fits the cap; silent when routing is off or skill auto-trigger is disabled                                                                                     |
@@ -193,6 +200,7 @@ Prompt hooks may warn, synchronize state, record the prompt ledger, or emit opti
 
 | Hook                     | Matcher                             | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | ------------------------ | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ui-reuse-remind.cjs` | `Read\|Edit\|Write\|MultiEdit\|NotebookEdit\|apply_patch\|Bash\|exec_command\|Skill` | Advisory before frontend operations/plan activation; current design system and shared controls first. |
 | `doc-sync-gate.cjs`      | `Bash` and `Write\|Edit\|MultiEdit` | Doc⇄Code sync gate — WARN-only (every path exits 0; warnings go to stderr): warns when a `git commit` stages behavioral code in an enforced area without touching its Feature Spec, and per-edit when enforced-area code drifts past `last_synced`                                                                                                                                                                                                                    |
 | `review-commit-gate.cjs` | `Bash`                              | Review-before-commit gate — require a matching full-changeset review or low-risk/user `skip` receipt for every supported commit statement, bound to the exact repository storage, base tree, and candidate tree. Supports default staged content, `-a`/`--all`, and explicit literal `-- <files>`; unsupported Git contexts or candidate-computation errors fail closed with recovery guidance. A worktree review survives staging only when those exact trees match. |
 
@@ -573,9 +581,9 @@ Keeps the right conventions in the model's attention at the moment it reads or c
 omitted under `static-startup-context-authoritative`, because their content is
 already carried by `AGENTS.md`. The runtime producer
 allowlist mirrors `session-init-docs.cjs`, `file-convention-inject.cjs`,
-`prompt-ledger.cjs`, `verify-install.cjs` and the four `protocol-inject-universal-<n>.cjs` bins: the first three publish state read
+`prompt-ledger.cjs`, `verify-install.cjs`, `skill-activation-inject.cjs`, `ui-reuse-remind.cjs` and the four `protocol-inject-universal-<n>.cjs` bins: the first three publish state read
 by mirrored consumers, `verify-install.cjs` probes/repairs native Git/Git
-Bash and publishes a machine capability that static context cannot represent, and the bins re-deliver the universal bundle after a compaction (matcher `compact|clear`; no static carrier holds the bundle).
+Bash and publishes a machine capability that static context cannot represent, the skill policy refreshes personal runtime selection, the UI reminder records compact/clear for blind contexts, and the bins re-deliver the universal bundle after a compaction (matcher `compact|clear`; no static carrier holds the bundle).
 Groups without an allowlisted producer are recorded as skipped; Codex's
 SessionStart matcher vocabulary otherwise matches `startup|resume|clear|compact`.
 The sync report and divergence oracle are the source of truth for this
@@ -760,12 +768,12 @@ Doc paths in this file are defaults resolved against the project-reference docs 
 
 ## Testing
 
-A successful full primary run passes with 133 tests. The full aggregate runner `run-all-tests.cjs` discovers 2029 tests across 120 suites by current source inventory. Actual final-run discovery and outcomes remain pending; these declarations are not an execution result. The aggregate includes eighteen task-tracking suites with 588 declared executors.
+A successful full primary run passes with 133 tests. The full aggregate runner `run-all-tests.cjs` discovers 2042 tests across 121 suites by current source inventory. Actual final-run discovery and outcomes remain pending; these declarations are not an execution result. The aggregate includes eighteen task-tracking suites with 588 declared executors.
 
 | Test Surface          | Count | File/Location                                                     |
 | --------------------- | ----- | ----------------------------------------------------------------- |
 | Primary hook runner   | 133   | `.claude/hooks/tests/test-all-hooks.cjs`                          |
-| Aggregate runner      | 2029  | `.claude/hooks/tests/run-all-tests.cjs` (all suites, discovered)  |
+| Aggregate runner      | 2042  | `.claude/hooks/tests/run-all-tests.cjs` (all suites, discovered)  |
 | Standalone test files | TODO  | `tests/test-*.cjs/.js` excluding runner (re-verify before citing) |
 | Lib unit tests        | TODO  | `lib/__tests__/*.test.cjs` (re-verify before citing)              |
 

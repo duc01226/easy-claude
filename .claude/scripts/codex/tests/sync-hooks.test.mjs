@@ -373,3 +373,30 @@ test("sync-hooks mirrors the Git capability producer while static-only SessionSt
     await fs.rm(tempRoot, { recursive: true, force: true });
   }
 });
+
+
+test("sync-hooks mirrors compact/clear UI reminder resets for contexts without transcripts", async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-sync-hooks-ui-reuse-"));
+  try {
+    await fs.mkdir(path.join(tempRoot, ".claude"), { recursive: true });
+    const settings = {
+      hooks: {
+        SessionStart: [{ matcher: "compact|clear", hooks: [{
+          type: "command", command: 'node "$CLAUDE_PROJECT_DIR"/.claude/hooks/ui-reuse-remind.cjs',
+        }] }],
+      },
+    };
+    await fs.writeFile(path.join(tempRoot, ".claude", "settings.json"), JSON.stringify(settings), "utf8");
+    await runSync(tempRoot);
+    const hooksConfig = JSON.parse(await fs.readFile(path.join(tempRoot, ".codex", "hooks.json"), "utf8"));
+    const groups = hooksConfig.hooks.SessionStart;
+    assert.equal(groups.length, 1);
+    assert.equal(groups[0].matcher, "compact|clear");
+    assert.match(groups[0].hooks[0].command, /ui-reuse-remind\.cjs/);
+    const report = JSON.parse(await fs.readFile(path.join(tempRoot, "tmp", "hooks.sync.report.json"), "utf8"));
+    assert.ok(report.session_start_mirrors.some(entry => entry.hook === ".claude/hooks/ui-reuse-remind.cjs"));
+    assert.equal(report.skipped_events.some(event => event.event === "SessionStart"), false);
+  } finally {
+    await fs.rm(tempRoot, { recursive: true, force: true });
+  }
+});

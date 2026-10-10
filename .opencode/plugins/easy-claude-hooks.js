@@ -194,6 +194,15 @@ const HOOKS = {
         }
       ],
       "matcher": "Write|Edit|MultiEdit"
+    },
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": ".claude/hooks/ui-reuse-remind.cjs"
+        }
+      ],
+      "matcher": "Read|Edit|Write|MultiEdit|NotebookEdit|apply_patch|Bash|exec_command|Skill"
     }
   ],
   "SessionEnd": [
@@ -298,6 +307,15 @@ const HOOKS = {
         }
       ],
       "matcher": "startup|resume|compact|clear"
+    },
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": ".claude/hooks/ui-reuse-remind.cjs"
+        }
+      ],
+      "matcher": "compact|clear"
     }
   ],
   "Stop": [
@@ -416,6 +434,14 @@ const HOOKS = {
         {
           "type": "command",
           "command": ".claude/hooks/prompt-ledger.cjs"
+        }
+      ]
+    },
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": ".claude/hooks/ui-reuse-remind.cjs"
         }
       ]
     }

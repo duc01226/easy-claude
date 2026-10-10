@@ -891,6 +891,17 @@ const SCHEMA = {
         required: false,
         describe: 'Optional hook behavior settings. Omitted properties keep the framework defaults.',
         properties: {
+            uiReuseReminder: {
+                type: 'object', required: false,
+                describe: 'Default-on concise frontend reuse reminder on prompts and before UI file operations/plan loads. Default interval 100000 tokens.',
+                properties: {
+                    enabled: { type: 'boolean', required: false, describe: 'Default true. false disables the UI reuse reminder on every event.' },
+                    reinjectAfterTokens: { type: 'number', required: false, describe: 'Default 100000. Integer from 20000 to 2000000; transcript-growth window shared by prompt and tool reminders.' },
+                    useDefaultMatchers: { type: 'boolean', required: false, describe: 'Default true. false replaces built-in frontend includes with pathGlobs; dependency, build and generated-mirror exclusions remain active.' },
+                    pathGlobs: { type: 'array', itemType: 'string', required: false, describe: 'Additional repository-relative frontend globs, or the only includes when useDefaultMatchers is false.' },
+                    excludePathGlobs: { type: 'array', itemType: 'string', required: false, describe: 'Additional repository-relative exclusions; built-in dependency, build and generated-mirror exclusions always apply.' }
+                }
+            },
             // Consumed by .claude/hooks/lib/startup-install.cjs through the single
             // registered SessionStart owner (.claude/hooks/verify-install.cjs).
             // The manager EXECUTABLE and its ARGUMENTS are deliberately not
@@ -1974,6 +1985,13 @@ function validateConfig(config) {
     validateFeatureDocTemplateSemantics(config, errors);
     validateConventionInjectionSemantics(config, errors);
     validateTokenBudgetSemantics(config, errors);
+    const uiTokens = config.hooks?.uiReuseReminder?.reinjectAfterTokens;
+    if (uiTokens !== undefined) {
+        const [min, max] = require('./file-conventions.cjs').CLASS_REINJECT_TOKENS_RANGE;
+        if (!Number.isInteger(uiTokens) || uiTokens < min || uiTokens > max) {
+            errors.push(`hooks.uiReuseReminder.reinjectAfterTokens: expected an integer from ${min} through ${max}`);
+        }
+    }
     validateSpecArtifactProfileSemantics(config, errors);
     validateDocsRootsSemantics(config, errors, warnings);
     validateSpecRootsSemantics(config, errors);

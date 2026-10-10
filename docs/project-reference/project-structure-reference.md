@@ -88,12 +88,12 @@ Read `docs/project-config.json` → `modules` when selecting a component; module
 
 | Component      | Count                                                                                         | Location                      | Format                                                                              |
 | -------------- | --------------------------------------------------------------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------- |
-| Hooks          | <!-- COUNT:hooks -->33<!-- /COUNT -->                                                         | `.claude/hooks/*.cjs`         | Top-level CommonJS Node.js hook scripts counted by ADR-0002                         |
+| Hooks          | <!-- COUNT:hooks -->34<!-- /COUNT -->                                                         | `.claude/hooks/*.cjs`         | Top-level CommonJS Node.js hook scripts counted by ADR-0002                         |
 | Hook Libraries | <!-- COUNT:lib-modules -->64<!-- /COUNT -->                                                   | `.claude/hooks/lib/*.cjs`     | CommonJS utility modules                                                            |
 | Skills         | <!-- COUNT:skills -->104<!-- /COUNT -->                                                       | `.claude/skills/*/SKILL.md`   | Markdown + YAML frontmatter                                                         |
 | Agents         | <!-- COUNT:agents -->24<!-- /COUNT -->                                                        | `.claude/agents/*.md`         | Markdown definitions                                                                |
 | Workflows      | <!-- COUNT:workflows -->19<!-- /COUNT -->                                                     | `.claude/workflows.json`      | JSON workflow definitions                                                           |
-| Hook Tests     | 120 suites + 9 `test-*` files                                                                  | `.claude/hooks/tests/`        | CJS/JS test files; top-level `test-*` files plus `run-all-tests.cjs` aggregate      |
+| Hook Tests     | 121 suites + 9 `test-*` files                                                                  | `.claude/hooks/tests/`        | CJS/JS test files; top-level `test-*` files plus `run-all-tests.cjs` aggregate      |
 | Codex Source Projection | <!-- COUNT:skills -->104<!-- /COUNT --> skills, <!-- COUNT:agents -->24<!-- /COUNT --> agents | `.agents/`, `.codex/`         | Source counts supplied to generated host projections; verify the projections through their owner                                                     |
 
 
@@ -101,7 +101,7 @@ Read `docs/project-config.json` → `modules` when selecting a component; module
 
 | Code | Module         | Location                       | Description                                                                                                               |
 | ---- | -------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| HK   | Hooks          | `.claude/hooks/`               | <!-- COUNT:hooks -->33<!-- /COUNT --> top-level `.cjs` runtime hook files (session init, safety gates, graph, formatting) |
+| HK   | Hooks          | `.claude/hooks/`               | <!-- COUNT:hooks -->34<!-- /COUNT --> top-level `.cjs` runtime hook files (session init, safety gates, graph, formatting) |
 | HL   | Hook Libraries | `.claude/hooks/lib/`           | <!-- COUNT:lib-modules -->64<!-- /COUNT --> shared utility modules for hooks                                              |
 | SK   | Skills         | `.claude/skills/`              | <!-- COUNT:skills -->104<!-- /COUNT --> task automation skill definitions                                                 |
 | AG   | Agents         | `.claude/agents/`              | <!-- COUNT:agents -->24<!-- /COUNT --> specialized subagent role definitions                                              |
@@ -110,7 +110,7 @@ Read `docs/project-config.json` → `modules` when selecting a component; module
 | CX   | Codex Tooling  | `.claude/scripts/codex/`       | ESM sync, migration, notification and verification tools                                                  |
 | CM   | Codex Source Projection | `.agents/`, `.codex/`          | Generated Codex-compatible skills, agents, hooks                                                                          |
 | NT   | Notifications  | `.claude/hooks/notifications/` | `notify.cjs` dispatcher + 4 channel providers in `providers/` (desktop, telegram, discord, slack)                         |
-| HT   | Hook Tests     | `.claude/hooks/tests/`         | 120 suite files + 9 top-level `test-*` files + `run-all-tests.cjs` aggregate                                               |
+| HT   | Hook Tests     | `.claude/hooks/tests/`         | 121 suite files + 9 top-level `test-*` files + `run-all-tests.cjs` aggregate                                               |
 
 
 ## Advisory Selection and Workflow Discovery

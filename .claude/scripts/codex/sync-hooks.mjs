@@ -44,6 +44,10 @@ const disabledCodexEvents = new Map([
 // static fallback.
 const codexSessionStartMirrors = new Map([
   [
+    ".claude/hooks/ui-reuse-remind.cjs",
+    "rotates the UI reminder's private reset generation on compact/clear; blind prompt/pre-tool consumers cannot infer context resets from static instructions",
+  ],
+  [
     ".claude/hooks/skill-activation-inject.cjs",
     "refreshes runtime personal skill-selection policy after compact/resume; static project context cannot hold a developer override or a session reset",
   ],

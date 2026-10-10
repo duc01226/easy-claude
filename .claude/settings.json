@@ -201,6 +201,16 @@
           }
         ],
         "matcher": "Write|Edit|MultiEdit"
+      },
+      {
+        "matcher": "Read|Edit|Write|MultiEdit|NotebookEdit|apply_patch|Bash|exec_command|Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/ui-reuse-remind.cjs",
+            "timeout": 3
+          }
+        ]
       }
     ],
     "SessionEnd": [
@@ -306,6 +316,16 @@
           }
         ],
         "matcher": "startup|resume|compact|clear"
+      },
+      {
+        "matcher": "compact|clear",
+        "hooks": [
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/ui-reuse-remind.cjs",
+            "timeout": 3,
+            "type": "command"
+          }
+        ]
       }
     ],
     "Stop": [
@@ -505,6 +525,15 @@
           {
             "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/prompt-ledger.cjs",
             "type": "command"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/ui-reuse-remind.cjs",
+            "timeout": 3
           }
         ]
       }

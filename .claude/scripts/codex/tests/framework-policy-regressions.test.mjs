@@ -583,7 +583,7 @@ test("protocol reminders retain applicability and do not introduce automatic arc
   const canonical = await read(".claude/skills/shared/sync-inline-versions.md");
   const { extractSyncBody } = require("../../lib/extract-sync-block.cjs");
   const reminder = tag => extractSyncBody(canonical, `${tag}:reminder`);
-  assert.match(reminder("ui-system-context"), /applicable UI surface.*honor N\/A/);
+  assert.match(reminder("ui-system-context"), /Before planning, implementing or changing frontend UI.*honor explicit N\/A/);
   assert.doesNotMatch(reminder("ui-system-context"), /before any UI change/);
   assert.doesNotMatch(reminder("design-patterns-quality"), /same-suffix|base class/);
   assert.match(reminder("complexity-prevention"), /project evidence.*real owner or consumer/);

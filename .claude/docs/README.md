@@ -10,7 +10,7 @@
 | **Need a skill?**              | [skills/README.md](./skills/README.md) - <!-- COUNT:skills -->104<!-- /COUNT --> skills catalog                                                                        |
 | **Building a feature?**        | [skills/README.md](./skills/README.md) + project-reference root patterns                                                           |
 | **Verifying user experience?** | [configuration/experience-verification.md](./configuration/experience-verification.md) - portable evidence and acceptance contract |
-| **Understanding hooks?**       | [hooks/README.md](./hooks/README.md) - <!-- COUNT:hooks -->33<!-- /COUNT --> top-level hook files deep-dive                                                           |
+| **Understanding hooks?**       | [hooks/README.md](./hooks/README.md) - <!-- COUNT:hooks -->34<!-- /COUNT --> top-level hook files deep-dive                                                           |
 | **Understanding workflows?**   | `.claude/workflows.json` canonical catalog plus opt-in prompt injection - <!-- COUNT:workflows -->19<!-- /COUNT --> workflows                                             |
 | **Configuring Claude?**        | [configuration/README.md](./configuration/README.md)                                                                               |
 | **Tracking team work?** | [configuration/README.md#team-work-tracking](./configuration/README.md#team-work-tracking) - optional shared tracker and local app |
@@ -33,7 +33,7 @@ Project-owned branches below sit at their DEFAULT roots; `docs/project-config.js
 |   |-- README.md             Skills overview + full catalog
 |   +-- (patterns)           → docs/project-reference/
 |
-|-- hooks/                    33 top-level hook files, 64 lib modules
+|-- hooks/                    34 top-level hook files, 64 lib modules
 |   |-- README.md             Hooks overview, lessons system, session lifecycle
 |   +-- extending-hooks.md    How to create custom hooks
 |
@@ -162,13 +162,13 @@ Unprefixed filenames resolve inside the project-reference docs root — default 
 | Category               | Count |
 | ---------------------- | ----- |
 | Skills                 | <!-- COUNT:skills -->104<!-- /COUNT --> |
-| Hook files (top-level) | <!-- COUNT:hooks -->33<!-- /COUNT --> |
+| Hook files (top-level) | <!-- COUNT:hooks -->34<!-- /COUNT --> |
 | Lib Modules            | <!-- COUNT:lib-modules -->64<!-- /COUNT --> |
 | Hook Events            | 9     |
 | Agents                 | <!-- COUNT:agents -->24<!-- /COUNT --> |
 | Workflows              | <!-- COUNT:workflows -->19<!-- /COUNT --> |
 | Hook Tests             | 133   |
-| Hook Test Files        | 120 suites + 9 top-level test files |
+| Hook Test Files        | 121 suites + 9 top-level test files |
 | Framework Markdown Files | 41 (`.claude/docs/**/*.md`) |
 
 ---

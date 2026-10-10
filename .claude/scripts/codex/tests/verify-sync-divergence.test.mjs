@@ -277,9 +277,10 @@ test('TC-HOOKMIRROR-002: hooks.json materializes deterministically; the report d
 // It makes the event REACH the hook. It does not make the hook handle it. A hook acts
 // only on tool names its own code parses, so a matcher can name `apply_patch` while
 // the hook behind it ignores every such event.
-//   * GAINED: `file-convention-inject` — the only registered hook that names
-//     `apply_patch` in its own trigger set (`file-convention-inject.cjs:25`). Its
+//   * GAINED: `file-convention-inject` — the original registered consumer that names
+//     `apply_patch` in its own trigger set when widening was added (`file-convention-inject.cjs:25`). Its
 //     per-file convention reminder now fires on Codex edits.
+//   * ui-reuse-remind also explicitly handles apply_patch targets before frontend changes.
 // A matcher in this mirror only routes events to hooks that must still learn the
 // tool to act on it, so do not read a widened matcher as new coverage.
 // Matchers with no Claude mutation tool (`Bash`, `TodoWrite|…|update_plan`, `mcp__*`)
@@ -315,6 +316,8 @@ const EXPECTED_RENDERED_GROUPS = [
     // review-commit-gate (2026-09-19, the review-before-commit receipt gate).
     ['PreToolUse', 'Bash', 2],
     ['PreToolUse', 'Write|Edit|MultiEdit|apply_patch', 1],
+    // UI reuse discovery reminder before matching file operations, shell hints and plan loads.
+    ['PreToolUse', 'Read|Edit|Write|MultiEdit|NotebookEdit|apply_patch|Bash|exec_command|Skill', 1],
     // SessionEnd (2026-09-17): Codex DOES support this event. Its matcher vocabulary is
     // only `other`, so the legacy clear|exit|compact cleanup hook mirrors UNSCOPED.
     ['SessionEnd', null, 1],
@@ -326,7 +329,7 @@ const EXPECTED_RENDERED_GROUPS = [
     // exactly the hooks whose output a MIRRORED non-SessionStart hook consumes, because
     // dropping a producer while keeping its consumer leaves the consumer registered and
     // permanently unreachable. Everything off that allowlist is still skipped under the
-    // original static-startup-context rationale. Five rows, in settings.json order:
+    // original static-startup-context rationale. Runtime producers, in settings.json order:
     //   verify-install         — startup dependency-integrity check (2026-09-22)
     //   session-init-docs      — sole writer of .scan-stale, read by init-prompt-gate
     //   file-convention-inject — compaction re-arm for per-file convention delivery
@@ -339,6 +342,8 @@ const EXPECTED_RENDERED_GROUPS = [
     ['SessionStart', 'compact|clear', 4],
     // Runtime skill selection policy survives recovery and observes personal preferences.
     ['SessionStart', 'startup|resume|compact|clear', 1],
+    // Private UI reminder generation reset preserves sibling universal/full-protocol records.
+    ['SessionStart', 'compact|clear', 1],
     ['Stop', null, 1],
     // SubagentStart: Codex supports it and it mirrors — the five group entries and the four universal
     // bins, registered without an agent-type matcher so every agent type (skill preloaders,
@@ -369,6 +374,8 @@ const EXPECTED_RENDERED_GROUPS = [
     // core-principles-inject (2026-09-29): the same gate on prompts, sharing the step group's ledger record.
     ['UserPromptSubmit', null, 1],
     // prompt-ledger (2026-09-16): records every prompt and re-anchors the original goal.
+    ['UserPromptSubmit', null, 1],
+    // Concise UI reuse reminder shares its100K window with the pre-tool trigger.
     ['UserPromptSubmit', null, 1],
     // Protocol delivery: the five group entries and skill-overlay-remind, which Claude registers on
     // UserPromptExpansion, which Codex lacks. An explicit `$skill` on UserPromptSubmit is the Codex load path, so

@@ -923,5 +923,11 @@
   "portability": {
     "toolingPackageName": "easy-claude-tooling",
     "inlinePathRules": false
+  },
+  "hooks": {
+    "uiReuseReminder": {
+      "enabled": true,
+      "reinjectAfterTokens": 100000
+    }
   }
 }
