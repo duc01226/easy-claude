@@ -116,7 +116,7 @@ module.exports = {
         }),
         business('TC-TPT-221', 'hierarchy read guidance retains off invalid unavailable and native silence controls', f => {
             const prompt = 'show feature progress';
-            const declarations = [undefined, { schemaVersion: 3, mode: 'off' }, { schemaVersion: 4, mode: 'observe' },
+            const declarations = [undefined, { schemaVersion: 3, mode: 'off' }, { schemaVersion: 0, mode: 'observe' },
                 { schemaVersion: 3, mode: 'observe', grant: true },
                 { schemaVersion: 3, mode: 'observe', profile: { kind: 'native', version: 1,
                     registration: 'fixture-native', sources: ['work/native.json'] } }];

@@ -45,6 +45,21 @@ description: '[Architecture] Use when a workflow step or the user asks for tech-
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Step 1: Load Business Context](#step-1-load-business-context)
+- [Step 2: Derive Technical Requirements](#step-2-derive-technical-requirements)
+- [Step 3: Research Per Stack Layer](#step-3-research-per-stack-layer)
+- [Step 4: Deep Comparison Matrix](#step-4-deep-comparison-matrix)
+- [Step 5: Weighted Score & Ranking](#step-5-weighted-score--ranking)
+- [Step 6: Generate Report](#step-6-generate-report)
+- [Step 7: User Validation Interview](#step-7-user-validation-interview)
+- [Output](#output)
+- [Next Steps](#next-steps)
+- [Prompt-Enhance Closing Anchors](#prompt-enhance-closing-anchors)
+- [Closing Reminders](#closing-reminders)
+
 ## Step 1: Load Business Context
 
 Read artifacts from prior workflow steps — search the plans and team-artifacts roots (defaults `plans/` and `team-artifacts/`; `docsRoots.plans.path` / `docsRoots.teamArtifacts.path` in `docs/project-config.json` override them):

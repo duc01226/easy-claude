@@ -4,18 +4,11 @@ description: '[Documentation] Use when generating, smart-merging or refactoring 
 ---
 
 > Codex compatibility note:
-> - Invoke repository skills with `$skill-name` in Codex; this mirrored copy rewrites legacy Claude `/skill-name` references.
-> - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
-> - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
-> - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
-> - Use ask user question tool to ask user.
-> - Ignore Claude-specific mode-switch instructions when they appear.
-> - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
+> - Invoke `$skill-name`: load the registered `.agents/skills/<name>/SKILL.md` and execute it with Codex tools; no separate `Skill` tool or Claude mode switch is needed. Author `.claude/**`; mirrors are generated.
+> - Track steps before execution and keep progress/evidence current. Explicit skill requests execute their protocol. Use the native question tool for required questions.
+> - Map foreign tool names to available host capabilities. A name mismatch needs no approval; an actually unavailable required capability stops with its step/evidence and a user question before adaptation.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
-> - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
-> - For workflow skills, steps follow the guided contract in `$start-workflow` (gate steps fixed; other steps may flex with a logged reason); report step-by-step evidence.
-> - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
+> - Preserve protocol order unless the user approves a deviation. Workflows use `$start-workflow`: gates stay fixed; other steps may flex with logged reasons and evidence.
 ## Quick Summary
 
 **Goal:** Refresh the portable project AI-context lifecycle — generate or update the Claude root context from project-config.json + template, preserve project instructions through smart merge/refactor, and refresh Codex projections.
@@ -41,6 +34,24 @@ description: '[Documentation] Use when generating, smart-merging or refactoring 
 - Conditional sections — generated ONLY when config has matching data; empty config = section omitted
 - The root holds project information only: the framework rules every agent follows reach the session through the universal hook, never through this file
 - `$sync-codex` owns Codex mirror generation; this skill owns the root AI-context lifecycle and calls the same runner only after its explicit init/update/refactor work is complete
+
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Bootstrap Gate (when CLAUDE.md is missing)](#bootstrap-gate-when-claudemd-is-missing)
+- [Coordination with sync-codex](#coordination-with-sync-codex)
+- [Modes](#modes)
+- [Prerequisites](#prerequisites)
+- [Phase 1: Detect Mode](#phase-1-detect-mode)
+- [Phase 2: Run Generator Script](#phase-2-run-generator-script)
+- [Phase 3: AI Fill (Post-Script)](#phase-3-ai-fill-post-script)
+- [Phase 4: Verify](#phase-4-verify)
+- [Phase 5: Sync Codex mirrors (after the final CLAUDE.md edit)](#phase-5-sync-codex-mirrors-after-the-final-claudemd-edit)
+- [Refactor Mode (AI-Only)](#refactor-mode-ai-only)
+- [Section Marker Protocol](#section-marker-protocol)
+- [Section Keys (Quick Reference)](#section-keys-quick-reference)
+- [Running Tests](#running-tests)
+- [Closing Reminders](#closing-reminders)
 
 ## Bootstrap Gate (when CLAUDE.md is missing)
 
@@ -257,7 +268,7 @@ See `references/section-registry.md` for full mapping. Summary:
 | Key                   | Source                                  | Conditional?              |
 | --------------------- | --------------------------------------- | ------------------------- |
 | `tldr`                | `project.*`, `modules[]`, `framework.*` | No — always generated     |
-| `golden-rules`        | `contextGroups[].rules`                 | Yes — skip if no rules    |
+| `golden-rules` | `contextGroups[]` project path/document map only | Yes — skip if no project docs |
 | `decision-quick-ref`  | `modules[]`, `framework.*`              | Yes — skip if no modules  |
 | `key-locations`       | `modules[].pathRegex`                   | Yes — skip if no modules  |
 | `dev-commands`        | `testing.commands`, `infrastructure.*`  | Yes — skip if no commands |
@@ -266,7 +277,7 @@ See `references/section-registry.md` for full mapping. Summary:
 | `integration-testing` | `framework.integrationTestDoc`          | Yes — skip if no doc; doc declared N/A in `referenceDocs` → one-line skip notice |
 | `e2e-testing`         | `framework.e2eTestDoc` / `e2eTesting.guideDoc`, `testing.frameworks[]`, `e2eTesting.framework`, or `e2eTesting.execution` | Yes — skip only when no guide doc AND no E2E evidence/profile; guide declared N/A with no evidence → one-line skip notice |
 | `doc-index`           | Scan `docs/` directory                  | Yes — skip if no docs/    |
-| `doc-lookup`          | `modules[]`, spec rows, `referenceDocs[]` (N/A via `notApplicable: true` or an N/A purpose → named once as a skip), docs index, `lessons.md`, ADRs, `.claude/docs` — only files that exist | No — always generated; heading `## Doc Lookup — What to Read When`, back-filled onto older roots on `--mode update`, projected first into `AGENTS.md` |
+| `doc-lookup`          | `modules[]`, spec rows, `referenceDocs[]` (N/A via `notApplicable: true` or an N/A purpose → named once as a skip), docs index, `lessons.md`, ADRs — project docs that exist; excludes framework navigation | No — always generated; heading `## Doc Lookup — What to Read When`, back-filled onto older roots on `--mode update`, projected first into `AGENTS.md` |
 
 ## Running Tests
 

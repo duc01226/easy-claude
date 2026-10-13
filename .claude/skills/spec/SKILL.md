@@ -16,7 +16,7 @@ triggers: 'feature spec, feature documentation, create feature doc, update featu
 
 > **[BLOCKING] Mode routing — detect FIRST.** Read the selected reference in full before acting (see [Modes](#modes-resolve-mode-first--blocking)). `discovery`, `clarify`, and `index` replace this file's authoring body: its Artifact Root and Profile Resolution, Applicability and Decomposition Gate, Strict Default rules and Next Steps do not apply to them; their references own those gates. The other seven modes run the body below. Every mode works directly without a workflow.
 
-> **Work tracking:** Read [the linked work integration guide](../task-track/references/integration-guide.md) at capture, start, saved-work, verification, handoff and close-out checkpoints. Inspect exact selected owners and incoming/outgoing declared spec/task/subtask concerns at governing-owner intake and after an actual artifact/case save; disclose partial/unavailable scope and current confidence separately from acceptance history. Audit stays read-only. Retain the actual inherited producer/context; only the primary saving owner records each checkpoint once. Continue untracked without companion tickets; preserve mode/profile gates and explicit acceptance.
+> **Work tracking:** Keep the project's tracked work current in the same change, as its root instructions (`CLAUDE.md` or `AGENTS.md`) say. When the project uses the portable tracker (`taskTracking.mode` is `observe` or `linked`), read [the linked work integration guide](../task-track/references/integration-guide.md) at capture, start, saved-work, verification, handoff and close-out checkpoints. Inspect exact selected owners and incoming/outgoing declared spec/task/subtask concerns at governing-owner intake and after an actual artifact/case save; disclose partial/unavailable scope and current confidence separately from acceptance history. Audit stays read-only. Retain the actual inherited producer/context; only the primary saving owner records each checkpoint once. Continue untracked without companion tickets; preserve mode/profile gates and explicit acceptance.
 
 ## Quick Summary
 
@@ -41,6 +41,16 @@ triggers: 'feature spec, feature documentation, create feature doc, update featu
 - Resolve the mode and artifact profile and read its matching reference body before any mutation; ambiguous mode → `ask user question tool`, invalid/conflicting profile → `UNKNOWN`/`BLOCKED`.
 - Keep the canonical owner and identifiers authoritative; never create duplicate case registries or overwrite existing owner content during `update`.
 - Apply the shared AI-SDD/large-idea gates, cross-service check, evidence rules, and review/sync boundaries before concluding.
+
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Artifact Root and Profile Resolution (before the mode body)](#artifact-root-and-profile-resolution-before-the-mode-body)
+- [Applicability and Decomposition Gate (before any authoring or mutation)](#applicability-and-decomposition-gate-before-any-authoring-or-mutation)
+- [Derived-Index Delegation](#derived-index-delegation)
+- [Next Steps](#next-steps)
+- [Related Skills](#related-skills)
+- [Closing Reminders](#closing-reminders)
 
 ## Artifact Root and Profile Resolution (before the mode body)
 

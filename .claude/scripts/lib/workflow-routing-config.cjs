@@ -645,6 +645,7 @@ function isWorkflowAutoDetectEnabled(source) {
 }
 
 module.exports = {
+    decodeConfigText,
     ACTIVATION_TIERS,
     DEFAULT_ACTIVATION_TIER,
     DEFAULT_PROJECT_CONFIG_PATH,

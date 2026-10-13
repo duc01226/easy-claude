@@ -130,7 +130,8 @@ export const MIRROR_PREFIXES = ['AGENTS.md', '.codex/', '.agents/', '.opencode/'
  * Test fixtures legitimately hardcode the DEFAULT paths to prove the default still works; banning
  * the literal there would force those tests to stop testing the default.
  */
-export const EXCLUDED_PREFIXES = ['.claude/hooks/tests/'];
+// Local repository checkouts belong to other work; their prose is outside this repository's scan contract.
+export const EXCLUDED_PREFIXES = ['.claude/hooks/tests/', '.claude/worktrees/'];
 
 /** `.claude/skills/<name>/tests/**` — same fixture rationale, expressed positionally. */
 const SKILL_TESTS_PATTERN = /^\.claude\/skills\/[^/]+\/tests\//;

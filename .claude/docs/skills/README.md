@@ -2,7 +2,7 @@
 
 Read this guide when discovering, executing or authoring framework skills. **MUST** execute through the active host; **MUST** keep canonical source ownership separate from runtime paths; **MUST** preserve required gates and report an actual missing capability with evidence.
 
-> <!-- COUNT:skills -->104<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->15<!-- /COUNT --> shared reference/protocol entries for context-aware AI assistance (`_templates/template-skill` is a source template, not a runnable skill)
+> <!-- COUNT:skills -->105<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->15<!-- /COUNT --> shared reference/protocol entries for context-aware AI assistance (`_templates/template-skill` is a source template, not a runnable skill)
 
 ## Quick Summary
 
@@ -38,7 +38,7 @@ Read `.claude/scripts/lib/workflow-skill-contract.cjs` when changing workflow re
 
 ## Skill Domains
 
-> Curated highlights — the full catalog has <!-- COUNT:skills -->104<!-- /COUNT --> runnable skills; the tables below list selected skills per domain, not the complete set.
+> Curated highlights — the full catalog has <!-- COUNT:skills -->105<!-- /COUNT --> runnable skills; the tables below list selected skills per domain, not the complete set.
 
 | Domain                                            | Skills | Description                                    |
 | ------------------------------------------------- | ------ | ---------------------------------------------- |
@@ -116,8 +116,9 @@ See `frontend-patterns-reference.md` in the project-reference docs root for proj
 
 | Skill                         | Triggers                                                | Description                                          |
 | ----------------------------- | ------------------------------------------------------- | ---------------------------------------------------- |
-| `commit`                      | commit, stage, save changes                             | Git commits with tests and review decided by risk and never asked (scoped tests unless already passed this session or the change is really small; skip review for low risk, `/why-review` for medium, `/changes-review` for high); adds a `Fix-Origin:` trailer only when `commit.fixOriginTrailer` is `true` in `docs/project-config.json` (new commits only) |
-| `pull-request`                | create PR, open PR, finish PR, ready to merge, mark ready | Take the branch to a ready-to-merge PR: branch at the latest `pullRequest.targetBranch` (default `main`) — new branch when already merged, rebase when unpushed and behind, ask once whether to update or create tracked work for this PR through `/task-track` when work tracking is on (a reminder, never a gate; Skip always offered), decide local tests and the whole-branch review by risk without asking (the `commit` skill's decision policy; an explicit user instruction overrides it), run the gates, commit, push, create or ready the PR, automatically check routine CI repairs until green — in the main session; [exact linked work and final candidate self-check](../../skills/pull-request/SKILL.md#linked-work-and-final-candidate) |
+| `commit` | commit, stage, save changes | Five-line coordinator: requested scope, applicable checks, configured review, exact-candidate receipt and commit; push only when requested. |
+| `commit-review` | lightweight review of an exact pending commit | Five-line review with inline finding validation; optional two-round fix loop and drift-safe receipt. `commit.reviewMode: lightweight` selects it; risk-based and PR reviews retain their existing choices. |
+| `pull-request`                | create PR, open PR, finish PR, ready to merge, mark ready | Take the branch to a ready-to-merge PR: branch at the latest `pullRequest.targetBranch` (default `main`) — new branch when already merged, rebase when unpushed and behind, keep the project's work tracking in step with the PR as its root instructions say (never a gate), decide local tests and the whole-branch review by risk without asking (the `commit` skill's decision policy; an explicit user instruction overrides it), run the gates, commit, push, create or ready the PR, automatically check routine CI repairs until green — in the main session; [work tracking step](../../skills/pull-request/SKILL.md#step-33--work-tracking) |
 | `code-quality-review`                 | review, feedback, PR review                             | Code review                                          |
 | `why-review`                  | why, design rationale, plan validation, alternatives    | Validate design rationale in plan files              |
 | `production-readiness-review` | sre, production, observability, reliability, ops review | Production readiness scoring for service/API changes |
@@ -154,7 +155,7 @@ Read `.claude/skills/shared/workflow-first-gate.md` when selecting discovery dep
 | ----------------- | ------------------------------------------------ | ---------------------------- |
 | `code-simplifier` | simplify, refine, clarity                        | Code cleanup                 |
 | `learn`           | remember this, always do, patterns, list learned, rule for a skill, when doing X always | Pattern learning and viewing; skill-specific rules route to `project-skill-protocol` overlays; broad short project rules route to the root `CLAUDE.md` project-rules section (then `sync-codex`) |
-| `framework-config` | framework questions, .claude/.codex skills configuration, hooks, workflow settings | Explain and show settings; merge and validate requested team/user/checkout changes; reset one preference |
+| `framework-config` | framework questions, runtime modes, scoped settings, commit reviews, skill visibility | Show/apply/reset runtime and review preferences; manage the team's explicit-only profile; validate requested scoped changes |
 
 ---
 
@@ -166,7 +167,7 @@ Read `.claude/skills/shared/workflow-first-gate.md` when selecting discovery dep
 | `design-spec`       | UI specification, component spec, layout spec, wireframe, mockup, user flow, accessibility audit | Design specification documents, UX design |
 | `initiative`              | capture idea, new idea, new initiative, add to planned work                                                       | Initiative capture and structuring              |
 | `work-item`               | refine initiative, convert to task, acceptance criteria, user story, vertical slice, split story, interactive mockup, task challenge, artifact review, readiness check | Task lifecycle by `--mode`: refine, story, mockup, challenge, review, dor |
-| `task-track` | team work, exact assignment, maintenance, lifecycle, verification, acceptance, status, local app, saved checkpoint | Default inspect; `--mode=inspect\|maintain\|link\|lifecycle\|verify\|accept\|report\|serve` routes to real commands and catalogue operations; unknown modes refuse. Capturing or changing a record also places it among the areas, initiatives and records it belongs with. [Manual recipes](../../skills/task-track/references/manual-operations.md), [setup](../configuration/README.md#team-work-tracking), [exact concerns and integration](../../skills/task-track/references/integration-guide.md) |
+| `task-track` | project-owned tracker guidance; portable-engine team work, placement, lifecycle, evidence, acceptance, status and saved checkpoints | Explicit `--mode=guide` follows the selected project's root-linked [tracker guide](../../skills/task-track/references/project-guide.md). Bare invocation remains engine inspect; `--mode=inspect\|maintain\|link\|lifecycle\|verify\|accept\|report\|serve` uses the preserved [engine protocol](../../skills/task-track/references/engine-protocol.md); unknown modes refuse. Manual-only; no route switching from configuration alone. [Engine recipes](../../skills/task-track/references/manual-operations.md), [setup](../configuration/README.md#team-work-tracking), [engine integration](../../skills/task-track/references/integration-guide.md) |
 | `prioritize`        | RICE score, MoSCoW, value-effort matrix                                                          | Planned-work prioritization frameworks         |
 
 ---
@@ -206,6 +207,10 @@ Shared protocols follow `SYNC:shared-protocol-duplication-policy`. Skill entrypo
 **To update a protocol:** Edit `sync-inline-versions.md` first, then run `/sync-skills-shared-protocols` (it propagates every body and rebuilds the projection with `node .claude/scripts/build-protocol-projection.cjs`); `grep SYNC:protocol-name` for copies outside the tool's scope.
 
 ---
+
+## Concise skill entrypoints
+
+A self-contained skill can use `metadata: {"instruction-profile":"concise"}` (or the equivalent YAML block). This suppresses the generated Codex compatibility preamble while preserving skill/tool translation and invocation policy; source and mirror profiles must match. It changes no review gate or permission. `commit` and `commit-review` each use five instructions; the latter loads only its short receipt reference in fix-loop mode. The existing configurable review selector chooses the review; estimates and reviewer assignment are no longer mandatory commit content. Read `.claude/docs/configuration/README.md` when changing `commit.reviewMode`.
 
 ## Skill File Structure
 
@@ -303,7 +308,7 @@ Use `/skill-creator` to create a new skill:
 
 ---
 
-_Source: `.claude/skills/` | <!-- COUNT:skills -->104<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->15<!-- /COUNT --> shared reference/protocol entries (the `_templates/template-skill` source is excluded from runtime discovery)_
+_Source: `.claude/skills/` | <!-- COUNT:skills -->105<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->15<!-- /COUNT --> shared reference/protocol entries (the `_templates/template-skill` source is excluded from runtime discovery)_
 
 ## Closing Reminders
 

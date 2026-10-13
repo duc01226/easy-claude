@@ -4,18 +4,11 @@ description: '[Code Quality] Use when a workflow step or the user asks for AI co
 ---
 
 > Codex compatibility note:
-> - Invoke repository skills with `$skill-name` in Codex; this mirrored copy rewrites legacy Claude `/skill-name` references.
-> - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
-> - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
-> - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
-> - Use ask user question tool to ask user.
-> - Ignore Claude-specific mode-switch instructions when they appear.
-> - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
+> - Invoke `$skill-name`: load the registered `.agents/skills/<name>/SKILL.md` and execute it with Codex tools; no separate `Skill` tool or Claude mode switch is needed. Author `.claude/**`; mirrors are generated.
+> - Track steps before execution and keep progress/evidence current. Explicit skill requests execute their protocol. Use the native question tool for required questions.
+> - Map foreign tool names to available host capabilities. A name mismatch needs no approval; an actually unavailable required capability stops with its step/evidence and a user question before adaptation.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
-> - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
-> - For workflow skills, steps follow the guided contract in `$start-workflow` (gate steps fixed; other steps may flex with a logged reason); report step-by-step evidence.
-> - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
+> - Preserve protocol order unless the user approves a deviation. Workflows use `$start-workflow`: gates stay fixed; other steps may flex with logged reasons and evidence.
 ## Quick Summary
 
 > **Review modes:** For review/audit work, standalone defaults to `--review-only` (`--report-only` alias); `--fix-loop` enables review → validate → authorized fix → fresh re-review, default cap 3. `--fix-loop --loop-owner=caller` returns a read-only pass to the caller that owns fixes/re-review. Create triage, review, validation and re-review todo tasks first; apply the carried `review-policy` contract for LOW deferral and user-approved bounded extensions. Non-review modes and terminal findings validation keep their own dispatch.
@@ -81,6 +74,30 @@ description: '[Code Quality] Use when a workflow step or the user asks for AI co
 - Project policy outranks these clauses: a documented decision is never a defect; a genuine conflict goes to the user with both sides.
 - Every finding names a clause (`AF-n` / `AE-x.y`), a checklist ID, `file:line` (or plan section), a P-level, a trigger path and a concrete fix at the owner of the violated contract. Never invent a cost, latency or accuracy number — unmeasurable is `NOT VERIFIABLE`.
 - Review is read-only until `$why-review --validate-findings` confirms findings; a fix that blocks the current round restarts a full review from Phase 0 with brand-new tasks.
+
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Your Mission](#your-mission)
+- [Report-Only Mode (`--report-only`)](#report-only-mode---report-only)
+- [Plan Mode (`--mode=plan`)](#plan-mode---modeplan)
+- [First Principle — Easy to Change · Easy to Scale · Easy to Maintain](#first-principle--easy-to-change--easy-to-scale--easy-to-maintain)
+- [Review Mindset (NON-NEGOTIABLE)](#review-mindset-non-negotiable)
+- [Phase 0: Load (MANDATORY FIRST) (MUST ATTENTION)](#phase-0-load-mandatory-first-must-attention)
+- [Phase 1: Determine Scope and Detect the AI Surface](#phase-1-determine-scope-and-detect-the-ai-surface)
+- [Phase 2: AI-Surface Map, Trust Boundaries, Autonomy (`AR-1`, `AR-5`)](#phase-2-ai-surface-map-trust-boundaries-autonomy-ar-1-ar-5)
+- [Phase 3: Framing Pass (`AF-1`–`AF-6`)](#phase-3-framing-pass-af-1af-6)
+- [Phase 4: Nine AE Dimension Passes](#phase-4-nine-ae-dimension-passes)
+- [Phase 5: Conditional Sweeps](#phase-5-conditional-sweeps)
+- [Phase 6: Provider-Fact Verification](#phase-6-provider-fact-verification)
+- [Phase 7: Finalize — AI Gate Report](#phase-7-finalize--ai-gate-report)
+- [Adaptive Review Planning](#adaptive-review-planning)
+- [Phase 8: Why-Review Findings Validation Gate (MANDATORY when findings exist)](#phase-8-why-review-findings-validation-gate-mandatory-when-findings-exist)
+- [Phase 9: Validated Fix + Full Re-Review Loop (standalone `--fix-loop` only, code or plan)](#phase-9-validated-fix--full-re-review-loop-standalone---fix-loop-only-code-or-plan)
+- [Next Steps](#next-steps)
+- [AI Agent Integrity Gate (NON-NEGOTIABLE)](#ai-agent-integrity-gate-non-negotiable)
+- [Prompt-Enhance Closing Anchors](#prompt-enhance-closing-anchors)
+- [Closing Reminders](#closing-reminders)
 
 ## Your Mission
 

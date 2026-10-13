@@ -41,6 +41,20 @@ description: '[Utilities] Use when a project adds, changes, lists or removes its
 
 ---
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Project Skill Protocol (project overlay registry)](#project-skill-protocol-project-overlay-registry)
+- [Storage Contract](#storage-contract)
+- [Phase 0: Resolve Mode (BLOCKING — before any file read)](#phase-0-resolve-mode-blocking--before-any-file-read)
+- [Phase 1: LIST](#phase-1-list)
+- [Phase 2: ADD](#phase-2-add)
+- [Phase 3: UPDATE](#phase-3-update)
+- [Phase 4: DELETE](#phase-4-delete)
+- [Two Writes, One Turn](#two-writes-one-turn)
+- [Anti-Rationalization](#anti-rationalization)
+- [Closing Reminders](#closing-reminders)
+
 # Project Skill Protocol (project overlay registry)
 
 ## Storage Contract

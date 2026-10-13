@@ -33,6 +33,20 @@ disable-model-invocation: false
 - The human side is the human's: never answer your own interview questions, never pick among prototype variants for the user.
 - Refer to a map or ticket by its title; id and path ride inside the title's link.
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Mission](#mission)
+- [When This Skill Fits](#when-this-skill-fits)
+- [Where the Map Lives](#where-the-map-lives)
+- [Ticket Types](#ticket-types)
+- [Not Yet Specified and Out of Scope](#not-yet-specified-and-out-of-scope)
+- [Chart the Map](#chart-the-map)
+- [Work Through the Map](#work-through-the-map)
+- [Hand-Off](#hand-off)
+- [Output](#output)
+- [Closing Reminders](#closing-reminders)
+
 ## Mission
 
 <request>$ARGUMENTS</request>

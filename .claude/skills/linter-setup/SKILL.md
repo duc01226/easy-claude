@@ -38,6 +38,19 @@ description: '[Quality] Use when a workflow step or the user asks for linters, f
 
 ---
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Stack Detection Protocol](#stack-detection-protocol)
+- [Tool Research Protocol](#tool-research-protocol)
+- [Installation & Configuration Protocol](#installation--configuration-protocol)
+- [Pre-Commit Hook Setup](#pre-commit-hook-setup)
+- [CI Quality Gate Configuration](#ci-quality-gate-configuration)
+- [Verification Checklist](#verification-checklist)
+- [Next Steps](#next-steps)
+- [Prompt-Enhance Closing Anchors](#prompt-enhance-closing-anchors)
+- [Closing Reminders](#closing-reminders)
+
 ## Stack Detection Protocol
 
 Read in priority order: (1) `plan.md` YAML frontmatter — `tech_stack`, `language`, `framework`; (2) `architecture --mode=design` report — tech stack comparison table; (3) tech-stack-comparison report — chosen stack.

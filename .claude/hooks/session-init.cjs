@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+if ((require.main === module || !require.main) && require('./lib/framework-runtime.cjs').skipHook(module)) return;
+
 /**
  * SessionStart Hook - Initializes session environment with project detection
  *

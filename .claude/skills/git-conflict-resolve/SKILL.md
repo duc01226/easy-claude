@@ -25,6 +25,16 @@ description: '[Git] Use when resolving git merge, cherry-pick, rebase or stash-a
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Purpose](#purpose)
+- [Variables](#variables)
+- [Workflow](#workflow)
+- [Resolution Decision Framework](#resolution-decision-framework)
+- [Notes](#notes)
+- [Closing Reminders](#closing-reminders)
+
 ## Purpose
 
 Systematically resolve git conflicts (merge, cherry-pick, rebase) with:

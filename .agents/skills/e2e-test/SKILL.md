@@ -4,18 +4,11 @@ description: '[Testing] Use when a workflow step or the user asks for E2E test s
 ---
 
 > Codex compatibility note:
-> - Invoke repository skills with `$skill-name` in Codex; this mirrored copy rewrites legacy Claude `/skill-name` references.
-> - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
-> - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
-> - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
-> - Use ask user question tool to ask user.
-> - Ignore Claude-specific mode-switch instructions when they appear.
-> - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
+> - Invoke `$skill-name`: load the registered `.agents/skills/<name>/SKILL.md` and execute it with Codex tools; no separate `Skill` tool or Claude mode switch is needed. Author `.claude/**`; mirrors are generated.
+> - Track steps before execution and keep progress/evidence current. Explicit skill requests execute their protocol. Use the native question tool for required questions.
+> - Map foreign tool names to available host capabilities. A name mismatch needs no approval; an actually unavailable required capability stops with its step/evidence and a user question before adaptation.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
-> - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
-> - For workflow skills, steps follow the guided contract in `$start-workflow` (gate steps fixed; other steps may flex with a logged reason); report step-by-step evidence.
-> - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
+> - Preserve protocol order unless the user approves a deviation. Workflows use `$start-workflow`: gates stay fixed; other steps may flex with logged reasons and evidence.
 > **[BLOCKING] Mode routing — detect FIRST.** Explicit `--mode=verify` selects verification; no mode is default E2E test authoring (everything below, unchanged). `$e2e-test --mode=verify` is the former `/e2e-test-verify`: that slash command no longer exists, and the mode works called directly with no workflow. Read the mode file in full before anything else (see [Mode Dispatch](#mode-dispatch)).
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
@@ -62,6 +55,27 @@ description: '[Testing] Use when a workflow step or the user asks for E2E test s
 - MUST ATTENTION keep task tracking updated as each step starts/completes.
 - MUST ATTENTION apply the shared E2E quality protocol before writing and carry every applicable gate verdict into the report.
 - NEVER skip mandatory workflow or skill gates.
+
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Mode Dispatch](#mode-dispatch)
+- [⚠️ MANDATORY: Read Project E2E Reference (FIRST)](#️-mandatory-read-project-e2e-reference-first)
+- [Framework Detection (SECOND STEP)](#framework-detection-second-step)
+- [E2E Applicability and Contract Preflight (before generation)](#e2e-applicability-and-contract-preflight-before-generation)
+- [E2E Execution Profile and Human-QC Preflight](#e2e-execution-profile-and-human-qc-preflight)
+- [Visual Screenshot Review (when requested or required)](#visual-screenshot-review-when-requested-or-required)
+- [UI State Capture](#ui-state-capture)
+- [Workflow Modes](#workflow-modes)
+- [Visual Expectation Transition Gate](#visual-expectation-transition-gate)
+- [First Principle — Easy to Change · Easy to Scale · Easy to Maintain](#first-principle--easy-to-change--easy-to-scale--easy-to-maintain)
+- [Core Principles](#core-principles)
+- [Steps](#steps)
+- [Output](#output)
+- [Sub-Agent Type Override](#sub-agent-type-override)
+- [Next Steps](#next-steps)
+- [Prompt-Enhance Closing Anchors](#prompt-enhance-closing-anchors)
+- [Closing Reminders](#closing-reminders)
 
 ## Mode Dispatch
 

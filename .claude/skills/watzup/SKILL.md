@@ -57,6 +57,18 @@ Analyze the overall impact and quality of the changes.
 
 ---
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Session Summary (ALWAYS runs)](#session-summary-always-runs)
+- [Doc Staleness Check (REQUIRED)](#doc-staleness-check-required)
+- [Spec-Driven Development Health Check (REQUIRED when business code changed)](#spec-driven-development-health-check-required-when-business-code-changed)
+- [AI Mistake & Lesson Learned Analysis (REQUIRED)](#ai-mistake--lesson-learned-analysis-required)
+- [Session Report (HTML)](#session-report-html)
+- [Next Steps](#next-steps)
+- [Prompt-Enhance Closing Anchors](#prompt-enhance-closing-anchors)
+- [Closing Reminders](#closing-reminders)
+
 ## Session Summary (ALWAYS runs)
 
 Runs on every invocation, code or no code. Output it before any gate, as four labelled parts in this order:

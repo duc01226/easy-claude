@@ -11,8 +11,10 @@ const { isPrivacySensitive } = require('./sensitive-path-policy.cjs');
 const { redactSecrets } = require('./prompt-ledger-store.cjs');
 const vocabulary = require('./task-tracking-vocabulary.cjs');
 
-// A save request is written in one vocabulary, named by its version. A request for another version is refused whole.
-const REQUEST_VERSION = vocabulary.CURRENT_VERSION;
+// A save request is written in the words of the current structure and names which version of it: the base version, which
+// automatic upkeep sends, or the current one, which added a state value and changed no request field. A request for
+// any other version is refused whole.
+const REQUEST_VERSION = vocabulary.BASE_VERSION;
 
 // A tag relation's targets travel under the relation's own word: areaIds, initiativeIds.
 const TAG_KEYS = Object.freeze(Object.fromEntries(Object.keys(vocabulary.TAG_ROLES).map(relation => [`${relation}Ids`, relation])));
@@ -58,9 +60,11 @@ const CLI_DECISION_FLAG = '--decide';
 
 function operationCatalogue(config) {
     // Discovery describes the actual validator/authority boundary; it never grants permission.
-    return { schemaVersion: 1, defaultPurpose: 'inspect', kinds: [...KINDS], states: [...policy.STATES], linkRoles: [...policy.LINK_ROLES],
-        vocabulary: vocabulary.vocabularyBlock(config),
-        request: { schemaVersion: REQUEST_VERSION, fields: [...REQUEST_FIELDS], required: ['schemaVersion', 'operation', 'operationId', 'target', 'actor', 'patch'],
+    // The states and the request version are those of the vocabulary the selected project stores.
+    const words = vocabulary.vocabularyBlock(config);
+    return { schemaVersion: 1, defaultPurpose: 'inspect', kinds: [...KINDS], states: [...words.states], linkRoles: [...policy.LINK_ROLES],
+        vocabulary: words,
+        request: { schemaVersion: words.version, fields: [...REQUEST_FIELDS], required: ['schemaVersion', 'operation', 'operationId', 'target', 'actor', 'patch'],
             shapes: Object.fromEntries(Object.entries(SHAPE_KEYS).map(([name, keys]) => [name, [...keys]])),
             existingItem: 'Exact itemId and expected revision/contentHash; creation forbids expected',
             context: 'Both actual runId and occurrenceId, matching caller authority',
@@ -83,7 +87,7 @@ function validateRequest(request) {
     if (request.schemaVersion === undefined || request.operation === undefined) fail('INVALID_INPUT', 'A request states its schema version and operation');
     // An earlier request may name a kind, an operation or a field the current vocabulary does not have, so it is never carried out as a current one.
     if (request.schemaVersion === vocabulary.EARLIER_VERSION) fail('UNSUPPORTED', vocabulary.REFUSALS.EARLIER_VOCABULARY_REQUEST);
-    if (request.schemaVersion !== REQUEST_VERSION || !Object.hasOwn(OPERATION_KEYS, request.operation)) fail('UNSUPPORTED', 'Unsupported tracking operation/version');
+    if (!vocabulary.inCurrentStructure(request.schemaVersion) || !Object.hasOwn(OPERATION_KEYS, request.operation)) fail('UNSUPPORTED', 'Unsupported tracking operation/version');
     if (!policy.string(request.operationId, 120) || !ITEM_ID.test(request.operationId)) fail('INVALID_INPUT', 'An exact stable operation identity is required');
     exact(request.target, SHAPE_KEYS.target, 'Target');
     if (!KINDS.includes(request.target.kind) || (request.target.itemId !== undefined && (typeof request.target.itemId !== 'string' || !ITEM_ID.test(request.target.itemId)))) fail('INVALID_INPUT', 'Target kind or identity is invalid');
@@ -121,8 +125,9 @@ function authorize(request, authority, context) {
     return null;
 }
 
-function metadata(kind) {
-    return { schemaVersion: vocabulary.CURRENT_VERSION, revision: 1, kind, assigneeId: null, collaboratorIds: [], criteria: [], links: [], proofs: [],
+/** The tracking metadata a record starts with, stamped with the vocabulary version its project stores. */
+function metadata(kind, version) {
+    return { schemaVersion: version, revision: 1, kind, assigneeId: null, collaboratorIds: [], criteria: [], links: [], proofs: [],
         acceptanceHistory: [], history: [], receipts: [], optOut: false, retired: null, ...vocabulary.ownedDefaults(kind) };
 }
 
@@ -295,6 +300,11 @@ async function apply(request, authority, digest) {
     if (!profile.available) fail(profile.code, profile.reason);
     // Checked again under the writer lock, before any record is read for writing or handed to deletion.
     vocabulary.requireCurrentVocabulary(context.vocabulary);
+    const storedVersion = context.vocabulary.storedVersion;
+    // A project is offered only the states of the version it stores. A state a later version added to the kind's own
+    // lifecycle is refused by name, before anything is read; any other state is left to the ordinary transition checks.
+    if (request.operation === 'transition' && vocabulary.lifecycleOf(request.target.kind)?.states.includes(request.patch.state)
+        && !vocabulary.lifecycleOf(request.target.kind, storedVersion).states.includes(request.patch.state)) fail('UNSUPPORTED', vocabulary.laterStateRefusal(request.patch.state, storedVersion));
     const deletion = require('./task-tracking-deletion.cjs');
     const deletedReceipt = deletion.completedRecovery(context, request, digest);
     if (deletedReceipt) return deletedReceipt;
@@ -322,7 +332,7 @@ async function apply(request, authority, digest) {
         if (scan.records.length >= LIMITS.records) fail('LIMIT_EXCEEDED', 'Record count reaches the selected budget');
         if (!policy.string(request.patch.title, 500) || !policy.string(request.patch.intent, 8000)) fail('INVALID_INPUT', 'Capture needs a title and intent');
         const id = request.target.itemId || allocateId(scan.records, request.target.kind, at);
-        const tracking = { ...metadata(request.target.kind), ...ownedValues(request.target.kind, request.patch), links: taggedLinks([], request.patch) };
+        const tracking = { ...metadata(request.target.kind, storedVersion), ...ownedValues(request.target.kind, request.patch), links: taggedLinks([], request.patch) };
         tracking.criteria = request.patch.criteria === undefined ? [] : criteria(request.patch.criteria);
         record = { ...newRecord({ id, kind: request.target.kind, title: request.patch.title, intent: request.patch.intent, tracking }, context), revision: 0 };
     } else {
@@ -334,10 +344,11 @@ async function apply(request, authority, digest) {
         if (record.tracking?.retired && !['restore', 'retire'].includes(request.operation)) fail('RETIRED', 'Restore retired work before changing it');
     }
     const previous = record;
-    if (!record.tracking) record = { ...record, tracking: metadata(record.kind) };
+    if (!record.tracking) record = { ...record, tracking: metadata(record.kind, storedVersion) };
     let change = request.operation === 'create' ? { fields: {}, tracking: {} }
         : handlers[request.operation]({ request, record, records: scan.records, context, authority, at });
-    const tracking = { ...record.tracking, ...change.tracking, revision: previous.revision + 1 };
+    // Every save stamps the record with the version the project stores, so a base record saved in a current project states the current version.
+    const tracking = { ...record.tracking, ...change.tracking, schemaVersion: storedVersion, revision: previous.revision + 1 };
     if (context.localActor && !(tracking.memberProfiles || []).some(person => person.id === context.localActor.id)) {
         if ((tracking.memberProfiles || []).length >= LIMITS.records) fail('LIMIT_EXCEEDED', 'Historical contributor attribution exceeds the record budget');
         tracking.memberProfiles = [...(tracking.memberProfiles || []), { id: context.localActor.id, displayName: context.localActor.displayName }];
@@ -354,6 +365,9 @@ async function apply(request, authority, digest) {
     tracking.receipts = [...(tracking.receipts || []), { operationId: request.operationId, digest, afterRevision: tracking.revision, result: primary }].slice(-LIMITS.receipts);
     const candidate = patchRecord(previous, change.fields, tracking);
     policy.validateMetadata(candidate);
+    // Whatever the operation, nothing is saved that holds a state the stored version does not have.
+    const [later] = vocabulary.laterStates(candidate, storedVersion);
+    if (later) fail('UNSUPPORTED', vocabulary.laterStateRefusal(later, storedVersion));
     const others = scan.records.filter(r => r.id !== candidate.id);
     const beforeFindings = context.recordAnalysis.findings;
     const candidateContext = policy.bindRecordContext(context, [...others, candidate]);

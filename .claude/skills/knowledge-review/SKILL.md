@@ -35,6 +35,17 @@ description: '[Research] Use when a workflow step or the user asks for knowledge
 
 **Apply skeptical, sequential thinking; trace every claim and state confidence (>80% to act).**
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [First Principle — Easy to Change · Easy to Scale · Easy to Maintain](#first-principle--easy-to-change--easy-to-scale--easy-to-maintain)
+- [Adversarial Review Mindset (NON-NEGOTIABLE)](#adversarial-review-mindset-non-negotiable)
+- [Knowledge Review](#knowledge-review)
+- [Review Checklist](#review-checklist)
+- [Output Format](#output-format)
+- [Round 2: Focused Re-Review (conditional — triggered by findings)](#round-2-focused-re-review-conditional--triggered-by-findings)
+- [Closing Reminders](#closing-reminders)
+
 ## First Principle — Easy to Change · Easy to Scale · Easy to Maintain
 
 > The full gate is `SYNC:core-engineering-principles` (protocol guide below; a hook delivers its text); its closing digest ends this file.

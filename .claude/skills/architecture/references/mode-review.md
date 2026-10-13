@@ -52,6 +52,8 @@
 
 ## Contents
 
+- [Quick Summary](#quick-summary)
+- [Your Mission](#your-mission)
 - [Report-Only Mode (`--report-only`)](#report-only-mode---report-only)
 - [First Principle — Easy to Change · Easy to Scale · Easy to Maintain](#first-principle--easy-to-change--easy-to-scale--easy-to-maintain)
 - [Quality Tooling Principle — Tech-Stack Adaptive](#quality-tooling-principle--tech-stack-adaptive)
@@ -69,6 +71,7 @@
 - [AI Agent Integrity Gate (NON-NEGOTIABLE)](#ai-agent-integrity-gate-non-negotiable)
 - [Sub-Agent Type Override](#sub-agent-type-override)
 - [Mode protocols](#mode-protocols)
+- [Prompt-Enhance Closing Anchors](#prompt-enhance-closing-anchors)
 - [Closing Reminders](#closing-reminders)
 
 ## Your Mission

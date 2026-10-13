@@ -1,7 +1,7 @@
 ---
 name: workflow-e2e
 version: 1.3.0
-description: "[Workflow] Write, update or fix E2E tests and verify them through the configured runner in a bounded fix/retest loop."
+description: "[Workflow] Use when E2E tests need to be written, updated or fixed: resolves the scope, authors tests only when needed, then verifies them through the configured runner in a bounded fix/retest loop."
 disable-model-invocation: false
 ---
 
@@ -43,6 +43,21 @@ Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs
 **IMPORTANT MANDATORY Steps:** /investigate -> /e2e-test -> /e2e-test --mode=verify --fix-loop -> /docs-manager --mode=update -> /workflow-end -> /watzup
 
 **Step contract:** steps follow `/start-workflow` → Step Execution Protocol — `gate` steps always run, a step that runs invokes its `Skill` tool, and every other deviation is logged. NEVER batch-complete validation gates.
+
+## Contents
+
+- [Workflow Calls and Todo Bootstrap](#workflow-calls-and-todo-bootstrap)
+- [Quick Summary](#quick-summary)
+- [Size & Kind Triage (FIRST action)](#size--kind-triage-first-action)
+- [Required Quality Gates (non-negotiable)](#required-quality-gates-non-negotiable)
+- [Recommended Skills](#recommended-skills)
+- [Source Dispatch (`--source`)](#source-dispatch---source)
+- [Visual Review (`--visual-review`)](#visual-review---visual-review)
+- [Test Architecture Contract Handoff](#test-architecture-contract-handoff)
+- [Orchestration Freedom](#orchestration-freedom)
+- [Memory & Reporting](#memory--reporting)
+- [Fix Path & Loop Bounds](#fix-path--loop-bounds)
+- [Closing Reminders](#closing-reminders)
 
 ## Size & Kind Triage (FIRST action)
 

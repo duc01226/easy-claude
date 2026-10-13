@@ -93,7 +93,7 @@ test('TC-HARNESS-004 secret-diagnostic mutants fail at every positive-output anc
 test('TC-HARNESS-004 commit skill gates amend on an explicit amend request, never a blanket ban', () => {
     // Failure signal: the commit skill reinstating the retired ban, or letting a plain commit request amend.
     assert.doesNotMatch(commitSkill, /amend[^\n.]{0,80}forbidden/i);
-    assert.match(commitSkill, /Amend only on an explicit amend request\*\* \(a plain commit request makes a new commit\)/);
+    assert.match(commitSkill, /amend only on an explicit amend request for this task's unpushed commit/);
     assert.match(commitSkill, /"amend":true/);
 });
 

@@ -14,14 +14,14 @@
 <!-- SKILL-NAV:START -->
 ## Contents
 
-- When to Use
-- Prerequisites
-- Workflow
-- Edge Types Traced
-- CLI Reference
-- Examples
-- Anti-Patterns
-- Related Modes
+- [When to Use](#when-to-use)
+- [Prerequisites](#prerequisites)
+- [Workflow](#workflow)
+- [Edge Types Traced](#edge-types-traced)
+- [CLI Reference](#cli-reference)
+- [Examples](#examples)
+- [Anti-Patterns](#anti-patterns)
+- [Related Modes](#related-modes)
 
 <!-- SKILL-NAV:END -->
 

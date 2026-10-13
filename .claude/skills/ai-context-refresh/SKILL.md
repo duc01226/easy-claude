@@ -30,6 +30,24 @@ description: '[Documentation] Use when generating, smart-merging or refactoring 
 - The root holds project information only: the framework rules every agent follows reach the session through the universal hook, never through this file
 - `/sync-codex` owns Codex mirror generation; this skill owns the root AI-context lifecycle and calls the same runner only after its explicit init/update/refactor work is complete
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Bootstrap Gate (when CLAUDE.md is missing)](#bootstrap-gate-when-claudemd-is-missing)
+- [Coordination with sync-codex](#coordination-with-sync-codex)
+- [Modes](#modes)
+- [Prerequisites](#prerequisites)
+- [Phase 1: Detect Mode](#phase-1-detect-mode)
+- [Phase 2: Run Generator Script](#phase-2-run-generator-script)
+- [Phase 3: AI Fill (Post-Script)](#phase-3-ai-fill-post-script)
+- [Phase 4: Verify](#phase-4-verify)
+- [Phase 5: Sync Codex mirrors (after the final CLAUDE.md edit)](#phase-5-sync-codex-mirrors-after-the-final-claudemd-edit)
+- [Refactor Mode (AI-Only)](#refactor-mode-ai-only)
+- [Section Marker Protocol](#section-marker-protocol)
+- [Section Keys (Quick Reference)](#section-keys-quick-reference)
+- [Running Tests](#running-tests)
+- [Closing Reminders](#closing-reminders)
+
 ## Bootstrap Gate (when CLAUDE.md is missing)
 
 This skill is the **AI-runnable** route the agent-files bootstrap gate offers when a portable
@@ -245,7 +263,7 @@ See `references/section-registry.md` for full mapping. Summary:
 | Key                   | Source                                  | Conditional?              |
 | --------------------- | --------------------------------------- | ------------------------- |
 | `tldr`                | `project.*`, `modules[]`, `framework.*` | No — always generated     |
-| `golden-rules`        | `contextGroups[].rules`                 | Yes — skip if no rules    |
+| `golden-rules` | `contextGroups[]` project path/document map only | Yes — skip if no project docs |
 | `decision-quick-ref`  | `modules[]`, `framework.*`              | Yes — skip if no modules  |
 | `key-locations`       | `modules[].pathRegex`                   | Yes — skip if no modules  |
 | `dev-commands`        | `testing.commands`, `infrastructure.*`  | Yes — skip if no commands |
@@ -254,7 +272,7 @@ See `references/section-registry.md` for full mapping. Summary:
 | `integration-testing` | `framework.integrationTestDoc`          | Yes — skip if no doc; doc declared N/A in `referenceDocs` → one-line skip notice |
 | `e2e-testing`         | `framework.e2eTestDoc` / `e2eTesting.guideDoc`, `testing.frameworks[]`, `e2eTesting.framework`, or `e2eTesting.execution` | Yes — skip only when no guide doc AND no E2E evidence/profile; guide declared N/A with no evidence → one-line skip notice |
 | `doc-index`           | Scan `docs/` directory                  | Yes — skip if no docs/    |
-| `doc-lookup`          | `modules[]`, spec rows, `referenceDocs[]` (N/A via `notApplicable: true` or an N/A purpose → named once as a skip), docs index, `lessons.md`, ADRs, `.claude/docs` — only files that exist | No — always generated; heading `## Doc Lookup — What to Read When`, back-filled onto older roots on `--mode update`, projected first into `AGENTS.md` |
+| `doc-lookup`          | `modules[]`, spec rows, `referenceDocs[]` (N/A via `notApplicable: true` or an N/A purpose → named once as a skip), docs index, `lessons.md`, ADRs — project docs that exist; excludes framework navigation | No — always generated; heading `## Doc Lookup — What to Read When`, back-filled onto older roots on `--mode update`, projected first into `AGENTS.md` |
 
 ## Running Tests
 

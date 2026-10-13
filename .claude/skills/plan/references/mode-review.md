@@ -13,6 +13,7 @@
 
 ## Contents
 
+- [Quick Summary](#quick-summary)
 - [Modes and Round Ownership](#modes-and-round-ownership)
 - [Scope and Evidence](#scope-and-evidence)
 - [Simplified Why-Review Pass](#simplified-why-review-pass)

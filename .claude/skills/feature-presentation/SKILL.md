@@ -51,6 +51,24 @@ description: '[Documentation] Use when a workflow step or the user asks for a st
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Feature Presentation — Stakeholder HTML Slide Deck](#feature-presentation--stakeholder-html-slide-deck)
+- [When to Use](#when-to-use)
+- [Quick Reference](#quick-reference)
+- [Detailed Workflow](#detailed-workflow)
+- [Slide Taxonomy (stakeholder-oriented)](#slide-taxonomy-stakeholder-oriented)
+- [UI Layout](#ui-layout)
+- [Edge Cases](#edge-cases)
+- [Anti-Patterns](#anti-patterns)
+- [Alternatives Considered](#alternatives-considered)
+- [Design Rationale](#design-rationale)
+- [Security Considerations](#security-considerations)
+- [Next Steps](#next-steps)
+- [Prompt-Enhance Closing Anchors](#prompt-enhance-closing-anchors)
+- [Closing Reminders](#closing-reminders)
+
 # Feature Presentation — Stakeholder HTML Slide Deck
 
 Synthesize session specs, tasks, initiatives, and mockups into one standalone HTML deck for PO/BA/Dev/QC.

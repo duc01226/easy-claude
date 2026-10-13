@@ -38,6 +38,8 @@
 
 ## Contents
 
+- [Quick Summary](#quick-summary)
+- [Your Mission](#your-mission)
 - [Review Mindset (NON-NEGOTIABLE)](#review-mindset-non-negotiable)
 - [Step 1: Resolve Scope](#step-1-resolve-scope)
 - [Step 2: Load Project Reference Docs Once](#step-2-load-project-reference-docs-once)
@@ -47,6 +49,7 @@
 - [Step 6: Finalize (status `FINISHED`)](#step-6-finalize-status-finished)
 - [Next Steps](#next-steps)
 - [Mode protocols](#mode-protocols)
+- [Prompt-Enhance Closing Anchors](#prompt-enhance-closing-anchors)
 - [Closing Reminders](#closing-reminders)
 
 ## Your Mission

@@ -161,7 +161,8 @@ module.exports = {
                         return null;
                     }
                 };
-                const bins = universalLib.loadBins(REPO, reader);
+                // The authored bins are the compatible bundle, whichever profile the developer selected.
+                const bins = universalLib.loadBins(REPO, reader, { config: { contextDelivery: { profile: 'compatible' } } });
                 assertEqual(bins.length, universal.bins.length, 'every authored bin is deliverable');
                 bins.forEach((bin, i) => {
                     const expected = universalLib.renderBin(i + 1, universal.bins.length, universal.bins[i].map((tag) => normTrim(extractSyncBody(canonical, tag))));

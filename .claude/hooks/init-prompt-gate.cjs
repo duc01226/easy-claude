@@ -9,10 +9,9 @@
  * is a supported, first-class state — the framework runs on the loader's neutral
  * defaults plus repository evidence, so an absent config emits a once-a-day
  * notice and the prompt proceeds. A config that EXISTS but does not validate is
- * a different thing: its author declared those sections authoritative, so
- * falling back silently would hand the model wrong project facts. That case,
- * and an indeterminate read, stay fail-closed with a narrow allowlist for the
- * explicit project-config repair commands.
+ * different thing: warn that those facts remain unverified, derive needed facts
+ * from independent repository evidence, and continue the request. Explicit
+ * project-config repair commands suppress the redundant warning.
  *
  * Optional setup gates may route to their setup skills or accept a dismissal.
  *
@@ -20,6 +19,8 @@
  *   0 - Prompt allowed, or blocked through the UserPromptSubmit JSON decision.
  */
 'use strict';
+
+if ((require.main === module || !require.main) && require('./lib/framework-runtime.cjs').skipHook(module)) return;
 
 const fs = require('fs');
 const path = require('path');
@@ -83,8 +84,8 @@ function emitPromptContext(message) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// OPTIONAL SETUP ALLOWLIST — applies only after the required project config
-// validates. Missing/invalid config uses CONFIG_REPAIR_PATTERNS below.
+// OPTIONAL SETUP ALLOWLIST — applies only after an existing project config
+// validates. Missing config is optional; invalid config warns unless explicit repair is requested.
 // ═══════════════════════════════════════════════════════════════════════════
 
 const ALLOWLIST_PATTERNS = [
@@ -101,10 +102,10 @@ const ALLOWLIST_PATTERNS = [
     /skip\s*graph/i // User wants to dismiss the graph gate
 ];
 
-// An invalid (present but non-validating) config may only be repaired through an
-// explicit top-level project-init/project-config skill invocation. Mentioning one
-// inside an unrelated prompt must not bypass that gate. Both Claude
-// slash commands and Codex skill invocations are accepted.
+// An explicit top-level project-init/project-config skill invocation skips the
+// invalid-config warning (it is the repair itself). Mentioning one inside an
+// unrelated prompt does not. Both Claude slash commands and Codex skill
+// invocations are accepted.
 const CONFIG_REPAIR_PATTERNS = [
     /^\s*(?:\/|\$)project-init(?=\s|$)/i,
     /^\s*(?:\/|\$)init-project(?=\s|$)/i,
@@ -116,7 +117,7 @@ const CONFIG_REPAIR_PATTERNS = [
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Check if the required project config exists and is schema-valid.
+ * Check if the optional project config exists and is schema-valid.
  * Delegates to the shared config validator from project-config-loader.cjs.
  * @returns {boolean}
  */
@@ -158,19 +159,18 @@ function noticeMissingConfig() {
 }
 
 /**
- * Emit a host-supported UserPromptSubmit block for a config that EXISTS but does
- * not validate, or whose state could not be determined. Both Claude Code and
- * Codex support this event's JSON `decision: block` output.
+ * Tell the model that a config that EXISTS does not validate, or that its state could not be determined, and let the
+ * prompt through. Blocking would also lock the user out of the session in the states where they need it most (a
+ * conflicted config in the middle of a rebase), so the model is told to treat the config's facts as unverified.
  * @param {{state: string, errors?: string[]}} status
  */
-function blockRequiredConfig(status) {
+function warnInvalidConfig(status) {
     const displayPath = configDisplayPath();
     // `missing` never reaches here: main() routes an absent config to noticeMissingConfig().
     const issue = status.state === 'unavailable'
         ? `Unable to verify the project config at \`${displayPath}\`: ${(status.errors || []).slice(0, 3).join('; ')}`
         : `Project config at \`${displayPath}\` is invalid: ${(status.errors || []).slice(0, 3).join('; ')}`;
-    const reason = `${issue} The config is optional \u2014 but this one EXISTS and its author declared those sections authoritative, so falling back to defaults would hand you wrong project facts. Run /project-init to repair it, /project-config to rewrite it, or delete it to run on portable defaults. The minimum is a non-empty project.name; capability sections may be omitted, but any declared section must satisfy its schema.`;
-    process.stdout.write(JSON.stringify({ decision: 'block', reason }));
+    emitPromptContext(`${issue} Do not rely on the sections of that config as project facts: derive them from repository evidence and say so when it matters. Work the user asked for proceeds. Offer /project-init to repair it or /project-config to rewrite it once, never as a precondition. The minimum valid config is a non-empty project.name; capability sections may be omitted, but any declared section must satisfy its schema.`);
 }
 
 /**
@@ -303,7 +303,7 @@ function checkScanStaleFlag() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Check staleness gate after the required config validates.
+ * Check staleness gate after an existing config validates.
  * @param {string} userPrompt - The user's prompt text
  * @returns {void} Emits guidance when stale docs exist; returns otherwise
  */
@@ -347,7 +347,7 @@ function handleStalenessGate(userPrompt) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Check the agent-files gate after the required config validates.
+ * Check the agent-files gate after an existing config validates.
  *
  * Runs only in the schema-valid-config branch by design: /ai-context-refresh reads
  * the project config to generate CLAUDE.md, so offering it before config
@@ -509,7 +509,7 @@ function markGraphNoteShown(sessionId) {
  * @returns {void} Emits guidance when the graph is on but missing; returns otherwise
  */
 function handleGraphGate(userPrompt, { config, sessionId } = {}) {
-    // Only guide graph setup after the required project config validates.
+    // Only guide graph setup after an existing project config validates.
     if (!isConfigPopulated()) return;
 
     let graphUtils;
@@ -609,20 +609,20 @@ function main() {
         if (!userPrompt.trim()) process.exit(0);
 
         // Project config is OPTIONAL. Absent → notice and continue on portable
-        // defaults. Present-but-invalid, or unreadable → fail closed, because the
-        // author declared those sections authoritative and a silent fallback would
-        // hand the model wrong project facts.
+        // defaults. Present-but-invalid, or unreadable → warn and continue: the
+        // model is told not to trust that config's facts, but the prompt is never
+        // blocked, so a conflicted config mid-rebase cannot lock the user out.
         let configStatus;
         try {
             configStatus = getProjectConfigStatus({ refresh: true });
         } catch (error) {
-            blockRequiredConfig({ state: 'unavailable', errors: [error.message] });
+            warnInvalidConfig({ state: 'unavailable', errors: [error.message] });
             process.exit(0);
         }
         if (!configStatus.valid) {
             if (isConfigRepairPrompt(userPrompt)) process.exit(0);
             if (configStatus.state !== 'missing') {
-                blockRequiredConfig(configStatus);
+                warnInvalidConfig(configStatus);
                 process.exit(0);
             }
             noticeMissingConfig();
@@ -653,7 +653,7 @@ module.exports = {
     emitPromptContext,
     isConfigPopulated,
     isConfigRepairPrompt,
-    blockRequiredConfig,
+    warnInvalidConfig,
     noticeMissingConfig,
     configDisplayPath,
     isDismissed,

@@ -49,6 +49,24 @@ context-budget: high
 
 <scope>$ARGUMENTS</scope>
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Report-Only Mode (`--report-only`)](#report-only-mode---report-only)
+- [Analysis Mindset (NON-NEGOTIABLE)](#analysis-mindset-non-negotiable)
+- [Scope Modes](#scope-modes)
+- [Security Domain Checklists](#security-domain-checklists)
+- [Severity & Reporting Model](#severity--reporting-model)
+- [Sub-Agent Type Override](#sub-agent-type-override)
+- [Recursive Quality Loop](#recursive-quality-loop)
+- [Graph Intelligence — Security-Specific Queries (optional advice)](#graph-intelligence--security-specific-queries-optional-advice)
+- [Phase 1: Why-Review Findings Validation Gate (MANDATORY when findings exist)](#phase-1-why-review-findings-validation-gate-mandatory-when-findings-exist)
+- [Phase 2: Validated Fix + Full Security Re-Review Loop (MANDATORY when validated findings remain)](#phase-2-validated-fix--full-security-re-review-loop-mandatory-when-validated-findings-remain)
+- [Anti-Patterns to AVOID (quick recall)](#anti-patterns-to-avoid-quick-recall)
+- [Next Steps](#next-steps)
+- [Prompt-Enhance Closing Anchors](#prompt-enhance-closing-anchors)
+- [Closing Reminders](#closing-reminders)
+
 ## Report-Only Mode (`--report-only`)
 
 > **Use when** a caller runs this skill as a read-only leaf — e.g. a workflow parallel review barrier over a plan or design, or a review batch — and another step owns every fix. `--report-only` in `$ARGUMENTS` is an execution flag, not a scope mode; review-only is the default; standalone `--fix-loop` alone runs repair/restart phases.

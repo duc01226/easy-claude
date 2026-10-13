@@ -2,6 +2,17 @@
 
 Complete workflow for generating design-aligned visual assets using `visual analysis tooling` skill.
 
+## Contents
+
+- [Generation Workflow](#generation-workflow)
+- [Design Pattern Examples](#design-pattern-examples)
+- [Prompt Engineering Best Practices](#prompt-engineering-best-practices)
+- [Common Pitfalls to Avoid](#common-pitfalls-to-avoid)
+- [Responsive Asset Strategy](#responsive-asset-strategy)
+- [Model Cost Optimization](#model-cost-optimization)
+- [Complete Example Workflow](#complete-example-workflow)
+- [Next Steps](#next-steps)
+
 ## Generation Workflow
 
 ### Step 1: Define Design Context

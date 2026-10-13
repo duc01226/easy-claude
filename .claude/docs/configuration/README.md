@@ -88,6 +88,57 @@ In this repository, the SessionStart hook loads `.ck.json` settings but does not
 
 **See:** [output-styles.md](./output-styles.md) for custom output styles.
 
+### Context delivery profile
+
+The optional, closed `.ck` section `{"contextDelivery":{"profile":"compatible"}}`
+selects framework instruction delivery. Values are `compatible` and `concise`.
+Precedence is default → personal `~/.claude/.ck.json` → tracked
+`.claude/.ck.json` → checkout `.claude/.ck.local.json`. An empty section inherits;
+a malformed effective declaration reports `CONTEXT_PROFILE_INVALID` without its
+value and falls back to compatible. A settings file that exists but holds no
+readable JSON object counts as an invalid declaration of its layer for this option
+only, and the message names the layer and its file. An explicit higher-precedence valid profile
+recovers. This setting does not change workflow routing, host permissions or
+project configuration validation.
+
+The shipping default is **compatible pending rollout evidence**. Its size is a
+known, measured limit, recorded in
+[the framework review guide](../framework-review-guide.md#known-limits); a review
+reports it only with a new measurement. Concise is a
+candidate for evaluation: one essential core replaces the four universal bins,
+principles share its successful-delivery record, and a compact route cue points
+to selection depth. Compact cues retain task-to-skill examples, custom-simple
+route declarations and registered skill discovery. Read-only audits can choose
+investigation → option comparison → rationale review → report, while retaining
+required gates. Read [hook delivery](../hooks/README.md#context-delivery-profiles)
+when checking lifecycle, missing-source recovery or host support. Before selecting
+a workflow, run `node .claude/scripts/workflow-catalog.cjs --mode=<mode>` with the mode the
+route cue states; the existing catalog
+renderer retains tiers and bounded fallback. Unknown/unreadable specialist
+triggers retain existing full delivery; required skills and safe additive overlays
+still load independently of workflows.
+
+To evaluate, set `contextDelivery.profile` to `concise` in the ignored checkout
+file, preserving its other preferences. To roll back, set it explicitly to
+`compatible` in that file. Removal restores lower-precedence settings. A content
+hash change re-arms delivery; compaction/clear and child scopes keep their existing
+rules. No automatic migration rewrites an adopter's settings.
+
+Run `node .claude/scripts/context-delivery-audit.cjs render` for both profiles
+through the same seven carriers. Token estimates use the optional
+`context-delivery-tokens.py` with `tiktoken` installed in an isolated Python
+environment: Windows `py -3`, macOS/Linux `python3`. Pipe the renderer JSON to that
+script; neither tool reads private host prompts. The default estimate counts
+emitted text, including its markers, with the JSON envelope excluded equally for
+both profiles. User prompts, project roots, tool
+schemas and later reads are outside that scoped budget; later catalog/diagnosis
+text is reported separately. Whole-session usage and latency need actual runtime
+evidence.
+
+Read [portable adoption](../framework-portability.md#concise-guidance-evidence)
+when preparing the frozen paired evaluation, native platform/host proof and
+promotion decision. Token savings alone never authorize default promotion.
+
 ### Experience verification
 
 Project-specific user/downstream experience review is configured in
@@ -111,6 +162,19 @@ The `codeReview` section records which project-specific review-rule doc the revi
 
 ### Team work tracking
 
+Choose the instruction route explicitly. `task-track --mode=guide` follows the selected
+checkout's root-linked work-tracking guide, using that project's storage, lifecycle, update
+mechanism and checks. Customize those in the project guide and point to it from `CLAUDE.md`
+or `AGENTS.md`; no `taskTracking` section or native writer registration is required. Read
+[project guidance](../../skills/task-track/references/project-guide.md) when using that mode.
+Missing or unresolved guidance makes no tracker write and never falls back to the engine.
+
+Bare `task-track` still means engine `inspect`; every existing explicit engine mode retains
+its behavior even when a project guide also exists. The skill remains manual-only. Read
+[the engine protocol](../../skills/task-track/references/engine-protocol.md) when using those
+modes. The configuration below applies to that engine. A project overlay may add a local
+step, but cannot replace route rules or bypass a writer refusal.
+
 Tracking works without a shared member registry when the selected checkout has usable Git author settings. The optional example below configures shared custom identities and policy; merge only needed fields into the project config selected by `portability.projectConfigPath` (default `docs/project-config.json`), retaining the other sections. `docsRoots.teamArtifacts.path` defaults to `team-artifacts` and can select the team's existing artifact folder.
 
 Resolve the selected checkout and config through the existing project-config loader. Copying the framework does not enroll a project: absent tracking settings use neutral defaults and automatic upkeep is `off`. An explicitly requested actor-dependent action can resolve the local author without writing a shared member or enabling upkeep. `help` needs no project config; supported inspection uses the selected roots without initializing or rewriting them.
@@ -129,7 +193,7 @@ When already authorized work needs missing or invalid project context repaired, 
 {
     "docsRoots": { "teamArtifacts": { "path": "team-artifacts" } },
     "taskTracking": {
-        "schemaVersion": 3,
+        "schemaVersion": 4,
         "mode": "linked",
         "profile": { "kind": "portable-markdown", "version": 1 },
         "members": [
@@ -142,7 +206,7 @@ When already authorized work needs missing or invalid project context repaired, 
 
 Replace the optional example member with actual custom identities, or omit `members` to use local Git identity. IDs survive display-name changes; aliases must resolve unambiguously. An absent section means mode `off` and an empty shared member registry; it does not prevent an explicitly permitted local-author action or change the existing explicit common-core capture route. A malformed declared section refuses affected operations. `off` disables automatic upkeep, `observe` gives reminders, and `linked` permits bounded activity at actual saved checkpoints for exact session-linked items. Off/observe optional checkpoints exit before author lookup. Explicit human actions remain separate. A ticket is optional.
 
-`taskTracking.schemaVersion` names the vocabulary the stored records use: `3` is the current vocabulary (initiative, task, story, subtask and area, each kind with its own statuses); `2` is the earlier one. A project at `2`, or an unconfigured project holding the earlier group folders (`projects/`, `visions/`), is read in the current words and is read-only: every save is refused with `MIGRATION_REQUIRED` and automatic upkeep is skipped until `migrate` has run. A project at `1`, the first vocabulary, or an unconfigured one holding `pbis/`, `ideas/` or `epics/`, is refused by name with `UNSUPPORTED_VOCABULARY`: this copy neither reads nor migrates it, so upgrade it with a framework copy that supports the first vocabulary, then migrate. Read [the migration procedure](../../skills/task-track/references/manual-operations.md) before running it, and [Work-tracker vocabulary](../../config/README.md#work-tracker-vocabulary--migrating-an-adopting-project) for the upgrade steps.
+`taskTracking.schemaVersion` names the vocabulary the stored records use: `4` is the current vocabulary (initiative, task, story, subtask and area, each kind with its own statuses); `3` is the same vocabulary without the `implemented` delivery state, and a project that declares it is never offered or given that state, so a framework copy that predates version 4 still reads it; `2` is the earlier one. A project at `2`, or an unconfigured project holding the earlier group folders (`projects/`, `visions/`), is read in the current words and is read-only: every save is refused with `MIGRATION_REQUIRED` and automatic upkeep is skipped until `migrate` has run. A project at `1`, the first vocabulary, or an unconfigured one holding `pbis/`, `ideas/` or `epics/`, is refused by name with `UNSUPPORTED_VOCABULARY`: this copy neither reads nor migrates it, so upgrade it with a framework copy that supports the first vocabulary, then migrate. Read [the migration procedure](../../skills/task-track/references/manual-operations.md) before running it, and [Work-tracker vocabulary](../../config/README.md#work-tracker-vocabulary--migrating-an-adopting-project) for the upgrade steps.
 
 #### Areas, initiatives and labels
 
@@ -165,7 +229,7 @@ Optional `taskTracking.levelLabels` accepts only the four level keys, and option
 
 Optional `taskTracking.kindLabels` sets a display word for a kind, keyed by the current kind words (`initiative`, `task`, `story`, `subtask`, `area`). It follows the same text rules as a level label and changes displayed text only: stored kinds, identities, folders, counts, requests and results keep the tracker's words. A label may not borrow text that already means something else, compared without regard to letter case or surrounding blanks, and may not repeat another kind's label; either is refused as invalid configuration (`INVALID_CONFIG`), and the refusal names the field and the label. Which text is taken depends on the vocabulary the project declares. At `schemaVersion: 3` it is every other word of either vocabulary (a kind, a status, a level, a type, a priority level, a group purpose or a link relation) and every other default label of the current one. At `schemaVersion: 2` the keys are the earlier kinds (so `area` is an unknown field there) and the taken text is the words and default labels of the earlier vocabulary alone, so a label that was valid when it was declared keeps the project readable; a label the current vocabulary uses for something else is not shown, and `migrate` names it before any change, with the rename as the next action. The link relation that carries a kind's word is shown under that kind's label as well.
 
-A framework copy older than the current vocabulary refuses a configuration that declares `schemaVersion: 3`, `levelLabels` or `typeLabels`, and a copy older than `kindLabels`, `report.detail` or `report.maxBytes` refuses a configuration that carries them. Update every copy of the framework before a project uses any of these.
+A framework copy older than a vocabulary version refuses a configuration that declares it: one that predates version 4 refuses `schemaVersion: 4` by name, and one older than the current structure refuses `schemaVersion: 3`, `levelLabels` or `typeLabels`, and a copy older than `kindLabels`, `report.detail` or `report.maxBytes` refuses a configuration that carries them. Update every copy of the framework before a project uses any of these.
 
 Use `inspect --root CHECKOUT --scope EXACT_ID` or `check --root CHECKOUT --scope EXACT_ID` through `node .claude/skills/task-track/scripts/task-track.cjs` to read one exact area or initiative; omit `--scope` for project scope, and add `--figures` to `inspect` for the delivery figures of every area and every initiative. Delivery is stated by one rule for the project, every area and every initiative: it comes only from tags, counts each eligible task once in a scope, excludes canceled/retired tasks and gives no credit to a story, a subtask, an initiative or an area. An area's scope is the tasks tagged to it or to any area beneath it, so a parent's figure is not the sum of its children; an initiative's scope is the tasks linked directly to it; a task with no area belongs to the project as a whole. An area's status changes no figure. Read exact `scope.eligibleTaskIds`, excluded/supporting identities and coverage before relying on counts. Partial, malformed or bounded scope retains reasons and withholds a complete percentage; an empty scope states none; an unavailable scope has null metrics. Global work and exact linked concerns remain inspectable, with current proof, historical acceptance and owner health separate. Supported portable reads require no custom vocabulary or native adapter.
 
@@ -298,20 +362,106 @@ Four UserPromptSubmit accelerators are ON by default and inject a short directiv
 | `core-principles-inject.cjs`    | first prompt or task step of a session scope, then again after ~`reinjectAfterTokens` (default 150000) of transcript growth or a compaction — the `SYNC:core-engineering-principles` gate | `{ "corePrinciplesInject": { "enabled": false } }`  | `CK_CORE_PRINCIPLES_INJECT=0`    |
 | `ai-feature-route.cjs`          | the prompt asks to build, plan, change or review an AI feature (an AI technique such as LLM calls, RAG, embeddings, tool/function calling or the Claude API/SDK — not "Claude Code" — AND an action on it) and is not about the framework's own machinery — one short directive (one protocol pointer, the `ai-engineering-review` skill / reviewer sub-agent route) once per session window; questions and framework-meta prompts stay silent | `{ "aiFeatureRoute": { "enabled": false } }`        | `CK_AI_FEATURE_ROUTE=0`          |
 
+In concise delivery, the principles hook checks the shared universal-core record
+and retries that core when needed. Its standalone reminder switch does not
+disable universal guidance.
+
+### Failure investigation reminder
+
+The default-on `failure-investigation-remind.cjs` is configured in the optional project config (`docs/project-config.json`, resolved by the project-config loader), not `.ck.json`:
+
+```json
+{ "hooks": { "failureInvestigationReminder": { "enabled": true, "reinjectAfterTokens": 150000 } } }
+```
+
+`enabled` is boolean. `reinjectAfterTokens` is an integer from 20000 through 2000000. Missing configuration uses the defaults; malformed declared configuration is rejected by the shared validator. Disable with `enabled: false`.
+
+Shell preflight emits a conditional root-cause hint without claiming a failure. Claude's native `PostToolUseFailure` shares its private dedup record; explicit interruptions stay silent. No command/output text is parsed. Delivery re-arms after configured transcript-byte-estimated growth, context loss or changed text/settings; wall-clock time does not count as tokens. A host without a transcript gets one hint per session/reset/content/configuration window. Missing session identity stays silent; output failure earns no credit. The hint neither starts a skill nor grants full-protocol credit or action authority. Read [../hooks/README.md](../hooks/README.md#failure-investigation-reminder) for host coverage. Codex/OpenCode report native failure events as unsupported and use pre-shell plus silent compact/clear resets; native host invocation still requires trusted/enabled handlers.
+
+OpenCode's legacy bridge appends pending pre-tool context once to the output of the next tool that completes in the session, and falls back to the next model system transform when no tool output can carry it, with session isolation and compact/delete cleanup. Its transport limits are 256 pending sessions, 32 unique contexts and 64 KiB per session; overflow warns without raw context. Pending in-memory text does not survive process restart, and stdout credit does not prove model consumption or adherence. These are transport limits, separate from the configurable reminder interval.
+
+### Framework runtime mode
+
+Read this section when switching framework machinery off, reducing injected context, or restoring normal operation. Every shipped hook checks the switch before context delivery or operational side effects. Protocol hooks first reject irrelevant events using only Node built-ins, then check the mode before reading or writing delivery ledgers.
+
+| Mode | Behavior |
+| --- | --- |
+| `on` | Normal hooks and their existing individual preferences. Default. |
+| `quiet` | No context injection, routing reminders, prompt ledgers or automatic context preparation. Commit review and doc checks, formatting and notifications remain. |
+| `off` | All shipped framework hooks stop. The CLI also disables framework skills in Claude and Codex native discovery until restored. |
+
+Use these platform-neutral commands from the project (Windows, macOS and Linux):
+
+```text
+node .claude/scripts/framework-mode.cjs show --json
+node .claude/scripts/framework-mode.cjs apply
+node .claude/scripts/framework-mode.cjs quiet --scope=checkout
+node .claude/scripts/framework-mode.cjs off --scope=user
+node .claude/scripts/framework-mode.cjs on --scope=user
+node .claude/scripts/framework-mode.cjs reset --scope=checkout
+```
+
+The exact setting is `frameworkRuntime.mode`. Precedence is default `on` → tracked project config → personal `~/.claude/.ck.json` → ignored `.claude/.ck.local.json` → `CK_FRAMEWORK_MODE`. User scope uses `%USERPROFILE%\.claude\.ck.json` on Windows and the home `.claude/.ck.json` on macOS/Linux. Team scope honors `portability.projectConfigPath`. Each valid higher layer wins; an invalid runtime value expresses no preference, and schema validation rejects invalid saves. The CLI preserves other settings and refuses to overwrite malformed existing files. Reset removes only the selected preference. `show --json` explains every layer and the winning source.
+
+Quiet also inherits native context and tool defaults: the bundle no longer sets Claude `skillListingBudgetFraction` or `CLAUDE_CODE_ENABLE_TODO_TOOLS`, and Codex sync no longer enlarges its project-instruction budget. These are host settings outside the hook switch; removing them prevents the framework from adding that overhead in quiet mode. User-supplied host overrides still apply. The native Claude `workflowKeywordTriggerEnabled: false` opt-out remains, so a keyword does not activate its Workflow tool.
+
+The next hook sees the change without regeneration. **Start fresh Claude/Codex sessions after a native skill change**; existing conversation instructions cannot be withdrawn. The CLI overlays Claude `.claude/settings.local.json` with `skillOverrides: off` and appends a checkout-specific `skills.config` block to the Codex user config (`CODEX_HOME/config.toml`, otherwise `~/.codex/config.toml`). Native `off` includes invocation by name; use this Node CLI to re-enable the framework. Restoring `on`, `quiet` or `reset` restores previous native overrides, leaving the team profile, tracked mirrors and unrelated skills/settings intact. No skills are uninstalled. Project instructions, host tool permissions, repository Git hooks and CI remain separate. OpenCode currently receives the hook switch only; its native skill visibility is not managed by this CLI.
+
+Every mutating CLI command registers its checkout in `~/.claude/framework-runtime-projects.json`. User-scope changes reconcile **registered existing checkouts**, honoring each checkout override. Run `apply` once in a new checkout after generating its mirrors; it registers and reconciles the effective preference without changing it. Direct JSON/environment edits change hooks immediately but need `apply` to reconcile native discovery. Re-run `apply` after adding skills or changing the native Codex home. Global settings cannot discover arbitrary repositories that have never registered. Older framework copies must be updated before they honor the new setting.
+
+The registry is a persistent recovery owner, not disposable output: it records original skill overrides and owned Codex blocks, never full copies of native settings. Do not delete it while a checkout is disabled. Writes are serialized; interrupted native writes can be completed by rerunning `apply`. A stale lock identifies the original process and must only be removed after that process has ended. Changed owned overrides, nonignored Claude local settings, missing mirrors, symlinks and pre-existing user/project Codex `skills.config` declarations are reported before mutation rather than overwritten. Reconcile the named conflict before retrying; `show --json` reports incomplete native state as `recoveryPending`. Managed or session-specific host overrides can still supersede file settings.
+
+Sync verification exercises hooks with a child-process-only `on` override; it does not change saved chat preferences or native visibility. Root `CLAUDE.md` and `AGENTS.md` contain project guidance, with no framework instructions, fallback or navigation. Read `.claude/docs/configuration/native-session-smoke.md` when verifying actual Claude/Codex discovery after changing these controls.
+
+An explicit commit/push request is the operation's authorization: run required checks and proceed without a second confirmation. Commit alone does not authorize push. Native host approval dialogs, when imposed by that host, are separate from framework prompts.
+
+### Commit review selection
+
+`commit.reviewMode` selects the review for requested commits. Default `lightweight` automatically runs
+`commit-review --fix-loop` at every risk tier, with at most two rounds. `risk-based` restores Low skip /
+Medium why-review / High changes-review. The lightweight skill reviews the exact commit in five instructions, validates findings inline and loads only its short receipt guide for fix-loop execution. It does not routinely load why-review, delegate reviewers or create a separate review workflow. Required project/specialist checks and exact-candidate receipts
+still apply. PR whole-branch reviews and CI repairs remain risk-based; a nested commit reuses matching
+PR evidence rather than running a second review.
+
+```json
+{ "commit": { "reviewMode": "lightweight" } }
+```
+
+Put this key in the team project config, `~/.claude/.ck.json` for every project, or the ignored
+`.claude/.ck.local.json` for this checkout. Later wins: default → team → user → checkout →
+`CK_COMMIT_REVIEW_MODE`. Remove the key to reset that layer. Do not replace unrelated settings.
+The environment accepts `lightweight` or `risk-based`; malformed declared settings fail closed.
+On Windows, macOS and Linux, inspect the effective setting and selected action from the checkout root:
+
+```text
+node .claude/scripts/lib/commit-review-policy.cjs
+node .claude/scripts/lib/commit-review-policy.cjs --risk=high --operation=commit
+node .claude/scripts/lib/commit-review-policy.cjs --risk=high --operation=pull-request
+```
+
+The helper only reports the selection; the skill executes it. It does not authorize Git operations,
+waive tests, mint receipts or change native permissions. Shipped permissions have no Git commit/push
+ask rules, including force-push patterns. An explicit operation request remains required; no follow-up
+confirmation or unsolicited offer to commit/push is part of the framework flow.
+
 ### Hook-only delivery: host requirements
 
 The universal rules (`protocol-inject-universal-<n>.cjs` bins), the workflow route (`workflow-route-inject.cjs` for the gate, `workflow-catalog-inject.cjs` for the catalog) and the skill-overlay reminder (`skill-overlay-remind.cjs`) are delivered only by hooks; `CLAUDE.md` and `AGENTS.md` hold project information only and no static fallback exists.
 
-- **Hookless hosts are unsupported:** a host that runs no hook gets no universal rules, no route and no overlay reminder.
+- **Intentional opt-out is supported:** `quiet` and `off` omit injected guidance. In `on`, a host that fails to run hooks cannot deliver the configured rules, route or overlay reminder.
 - **Settings kept across an upgrade:** a re-export replaces `.claude/settings.json`; a project that keeps its own file must copy new hook entries from the framework's settings, then run `/sync-codex`. At session start `verify-install.cjs` names a route entry registered without the other (gate without catalog, or the reverse).
 - **Codex:** the project must be trusted and each new or changed handler reviewed in `/hooks` before it runs. Until then Codex receives no universal rules and no route. Review the handlers after the first `/sync-codex` and after any handler change.
-- **OpenCode sub-agents:** OpenCode has no `SubagentStart`; a sub-agent receives the universal bundle only if its child session's first `chat.message` fires the bridge's `UserPromptSubmit`. That path is unverified (no test covers it); grep a sub-agent transcript for `CK:UNIVERSAL-PROTOCOLS 1/4` to check.
+- **OpenCode sub-agents:** OpenCode has no `SubagentStart`; a sub-agent receives the universal bundle only if its child session's first `chat.message` fires the bridge's `UserPromptSubmit`. That path is unverified (no test covers it); inspect a sub-agent transcript for `CK:UNIVERSAL-PROTOCOLS 1/4` in compatible delivery or `CK:UNIVERSAL-PROTOCOLS 1/1` in concise delivery to check.
 
 Per-handler detail: [../hooks/README.md § Hook-only delivery: host requirements](../hooks/README.md#hook-only-delivery-host-requirements).
 
 ### Workflow route mode (per person)
 
 The workflow route — how a prompt becomes a direct answer, a skill, a custom route or a workflow — is delivered **only by hooks**, in the mode each person chooses: `workflow-route-inject.cjs` writes the route output (the `Route mode:` state line and the gate) and `workflow-catalog-inject.cjs` writes the workflow catalog as a second output. The root files (`CLAUDE.md`, `AGENTS.md`) carry no route text and no pointer.
+
+The injection column below describes compatible delivery. Concise delivery keeps
+the same routing effects, with compact route cues and explicit catalog retrieval
+before selection; mode `off` still emits only its notice.
 
 | Mode | What the hooks inject | Effect |
 | --- | --- | --- |
@@ -543,6 +693,13 @@ Ask “How do these .claude skills work?”, “What can I configure in this .co
 from its description and handles framework help plus show/explain/set/reset. Explicit commands:
 `/framework-config` (Claude/OpenCode), `$framework-config` (Codex).
 
+The skill also handles runtime modes, commit review selection and the team's explicit-only skill list.
+For example, `/framework-config --mode=settings quiet --scope=user`,
+`/framework-config --mode=settings use lightweight commit reviews --scope=checkout`, or
+`/framework-config --mode=settings make <skill-name> explicit-only --scope=team`.
+Read `.claude/skills/framework-config/SKILL.md` when applying these requests, registering a new checkout
+with `apply`, or resetting one layer. Runtime `off` is separate from workflow routing `off`.
+
 Questions are read-only. Changes default to checkout scope; say “for every project” for your user
 preference or “for the team” for the project default. Existing JSON is merged and validated, and reset
 removes only the selected layer’s key. This helper remains eligible when heavy auto-trigger is off and
@@ -579,7 +736,7 @@ Restricted mode distinguishes **selection** from **execution**:
 - An operation-specific hook/protocol may require a named skill for an operation already active.
   Once an authorized skill/workflow starts, its required dependencies remain eligible. Optional
   suggestions, generic discovery guidance and self-starting a preloaded agent do not qualify.
-- Both `commit` and `pull-request` use `commit` → **Test and review decision policy**: they never ask whether to run tests or review. Tests are skipped only when the affected tests already passed in the session for unchanged content or the change is really small; otherwise scoped tests run and failures are fixed until all pass. Review is skipped only for a low-risk candidate; medium risk runs `why-review` and high risk runs `changes-review`, each as a fix loop of at most two review rounds. Findings still open at that cap stop the operation uncommitted with a report. Changed content needs fresh evidence, not an old Skip. An explicit instruction about tests or review overrides the automatic choice, and the selected review
+- `commit` is a five-line coordinator; `pull-request` owns [its whole-branch policy](../../skills/pull-request/references/check-policy.md): they never ask whether to run tests or review. Tests are skipped only when the affected tests already passed in the session for unchanged content or the change is really small; otherwise scoped tests run and failures are fixed until all pass. Commits default to lightweight `commit-review` at every risk tier through `commit.reviewMode`. In configured `risk-based` mode, and for PR whole-branch scope, low risk skips review, medium risk runs `why-review`, and high risk runs `changes-review`. Reviews are fix loops of at most two rounds. Findings still open at that cap stop the operation uncommitted with a report. Changed content needs fresh evidence, not an old Skip. An explicit instruction about tests or review overrides the automatic choice, and the selected review
   can run its required reviewers, findings validation and fix loop as written.
   The auto-trigger preference does not decide tests/review, approve Skip, or grant Git authority; the skill decision policy owns those decisions.
 - The competing automatic workflow catalog is suppressed. Existing workflow-route restrictions and
@@ -699,7 +856,7 @@ The portable bundle sets no auto-compaction budget on any host, so each host com
 
 **Retiring the old pin.** Earlier bundles pinned 500K on every host. `/sync-codex` removes a top-level `model_auto_compact_token_limit` from `.codex/config.toml` only when its value is exactly `500000`, along with the bundled comment block above it when that block is unchanged. `/sync-opencode` removes the pinned model's `limit` from the root `opencode.json` only when it is exactly `{ "context": 500000, "output": 384000 }`. Any other value belongs to the user: the sync keeps it and prints one `kept user-set …` line. A personal 500K budget should therefore live in user-level config (`~/.codex/config.toml`, the global opencode config), where no sync looks.
 
-**Codex `AGENTS.md` read budget:** the same upsert raises top-level `project_doc_max_bytes` to 98304 in `.codex/config.toml` (a larger project value is kept). Codex silently stops reading `AGENTS.md` at 32 KiB by default, and the generated root is larger; the projection orders Doc Lookup and the project rules first so they survive the default window if the host ignores the project key (set it in `~/.codex/config.toml` then). The budget is shared by every `AGENTS.md` Codex concatenates from the project root down to the working directory, so nested `AGENTS.md` files eat into the root's share.
+**Codex `AGENTS.md` read budget:** sync adds no `project_doc_max_bytes` override. It removes the exact former top-level `98304` value and preserves custom values, alternate spellings and nested settings. Retirement stops at the first table, multiline string or multiline collection, conservatively preserving complex user configuration. A deliberate personal `98304` value belongs in user config, which sync never edits for this migration. Project-only instructions should fit the native 32 KiB limit, including nested `AGENTS.md` files; reduce instruction volume rather than increasing a framework allowance. The projection reports overflow without truncating content.
 
 opencode has no absolute compaction threshold — it compacts relative to the model's declared window, so a `limit.context` you set is the knob (it compacts at `limit.context - min(limit.output, 32000)`). `compaction.reserved` is inert for this model: opencode reads it only for models that declare `limit.input`. Read the `sync-opencode` skill ("Compaction: host default") for the exact formula before setting your own `limit`.
 
@@ -771,7 +928,7 @@ Validate with `node .claude/hooks/lib/project-config-schema.cjs --validate docs/
     "permissions": {
         "allow": ["Bash(docker:*)"],
         "deny": ["Bash(rm -rf /*)"],
-        "ask": ["Bash(git push:*)"]
+        "ask": ["Bash(npm publish:*)"]
     }
 }
 ```
@@ -863,6 +1020,7 @@ Set a personal switch as an `env` entry in the git-ignored `.claude/settings.loc
 | `UserPromptSubmit` | User sends message        |
 | `PreToolUse`       | Before tool execution     |
 | `PostToolUse`      | After tool execution      |
+| `PostToolUseFailure` | Started tool fails (Claude native) |
 | `Stop`             | Response complete         |
 | `PreCompact`       | Before context compaction |
 | `SessionEnd`       | Session ends              |

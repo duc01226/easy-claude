@@ -5,18 +5,11 @@ disable-model-invocation: false
 ---
 
 > Codex compatibility note:
-> - Invoke repository skills with `$skill-name` in Codex; this mirrored copy rewrites legacy Claude `/skill-name` references.
-> - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
-> - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
-> - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
-> - Use ask user question tool to ask user.
-> - Ignore Claude-specific mode-switch instructions when they appear.
-> - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
+> - Invoke `$skill-name`: load the registered `.agents/skills/<name>/SKILL.md` and execute it with Codex tools; no separate `Skill` tool or Claude mode switch is needed. Author `.claude/**`; mirrors are generated.
+> - Track steps before execution and keep progress/evidence current. Explicit skill requests execute their protocol. Use the native question tool for required questions.
+> - Map foreign tool names to available host capabilities. A name mismatch needs no approval; an actually unavailable required capability stops with its step/evidence and a user question before adaptation.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
-> - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
-> - For workflow skills, steps follow the guided contract in `$start-workflow` (gate steps fixed; other steps may flex with a logged reason); report step-by-step evidence.
-> - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
+> - Preserve protocol order unless the user approves a deviation. Workflows use `$start-workflow`: gates stay fixed; other steps may flex with logged reasons and evidence.
 ## Quick Summary
 
 **Goal:** Keep the configured project-config file (default `docs/project-config.json`) valid and accurate while adding only optional project details supported by evidence.
@@ -24,7 +17,7 @@ disable-model-invocation: false
 **Summary:**
 
 - The config file is required; the minimum valid content is `{"project":{"name":"<derived name>"}}`.
-- Missing or invalid config blocks ordinary project-specific work until `$project-config` or `$project-init` repairs it.
+- A missing config gets a once-a-day notice and an invalid one adds a warning that its facts are unverified; neither blocks the prompt. Repair it with `$project-config` or `$project-init`.
 - Read the schema and required project references, then select only the capability areas supported by the task or repository evidence.
 - Omitted properties use documented defaults or evidence-backed skips. A declared but incomplete or unsupported section must be repaired or removed explicitly; never treat it as absent.
 - Merge and validate selected changes; report omitted capabilities and follow-up work without inventing architecture or test cases.
@@ -49,6 +42,26 @@ disable-model-invocation: false
 - MUST ATTENTION when the user asks for help, options, or "what can I configure", run **Help Mode** below and STOP — never start a scan
 
 ---
+
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Help Mode (`--help`)](#help-mode---help)
+- [⛔ Plan → Review → Execute Workflow](#-plan--review--execute-workflow)
+- [Intermediate Workspace](#intermediate-workspace)
+- [⛔ Local-Only Workflow Routing — `.claude/.ck.local.json`](#-local-only-workflow-routing--claudecklocaljson)
+- [⛔ Schema Protection Rules](#-schema-protection-rules)
+- [Deriving the Spec-System Config From Source (`specRoots` + `specArtifacts` + `docsRoots` + `techSpecScan`)](#deriving-the-spec-system-config-from-source-specroots--specartifacts--docsroots--techspecscan)
+- [Phase 0: Setup](#phase-0-setup)
+- [Phase 1: Read Current Config](#phase-1-read-current-config)
+- [Phase 2: Evidence-Selected Config Areas](#phase-2-evidence-selected-config-areas)
+- [Phase 3: Consolidate & Write](#phase-3-consolidate--write)
+- [Phase 4: Verify (MANDATORY)](#phase-4-verify-mandatory)
+- [Phase 5: Follow-Up Tasks](#phase-5-follow-up-tasks)
+- [Phase 6: Enhance Selected Guidance (CONDITIONAL)](#phase-6-enhance-selected-guidance-conditional)
+- [Phase 7: Self-Review Verification (MANDATORY)](#phase-7-self-review-verification-mandatory)
+- [Output](#output)
+- [Closing Reminders](#closing-reminders)
 
 ## Help Mode (`--help`)
 

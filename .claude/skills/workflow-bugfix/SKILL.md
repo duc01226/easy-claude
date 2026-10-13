@@ -25,7 +25,7 @@ Explicit step-skill calls by mode (registry order; roles and conditions remain o
 Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs --write` after registry edits; [`/sync-codex`](../sync-codex/SKILL.md) refreshes it before mirroring.
 <!-- WORKFLOW-CALLS:END -->
 
-> **Work tracking:** Read [the linked work integration guide](../task-track/references/integration-guide.md) at capture, start, saved-work, verification, handoff and close-out checkpoints. Use the actual linked producer and exact items; retain the primary outcome and record optional upkeep once through the common owner. Continue untracked when no link exists; acceptance remains explicit.
+> **Work tracking:** Keep the project's tracked work current in the same change, as its root instructions (`CLAUDE.md` or `AGENTS.md`) say. When the project uses the portable tracker (`taskTracking.mode` is `observe` or `linked`), read [the linked work integration guide](../task-track/references/integration-guide.md) at capture, start, saved-work, verification, handoff and close-out checkpoints. Use the actual linked producer and exact items; retain the primary outcome and record optional upkeep once through the common owner. Continue untracked when no link exists; acceptance remains explicit.
 
 ## Quick Summary
 
@@ -39,6 +39,18 @@ Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs
 - **MUST** trace the root cause end-to-start before any fix, classify Code Bug vs Spec Bug before any regression test, and prove the regression test catches the bug (RED with the fix reverted) and passes with it (GREEN) in the single verify.
 - **MUST** fix at the layer that owns the violated invariant; converge the change review; sync the spec when a canonical spec or specified behavior changed.
 - **NEVER** encode the buggy behavior into a spec or test, and NEVER weaken a test to turn it green.
+
+## Contents
+
+- [Workflow Calls and Todo Bootstrap](#workflow-calls-and-todo-bootstrap)
+- [Quick Summary](#quick-summary)
+- [Size & Kind Triage (first action)](#size--kind-triage-first-action)
+- [Required Quality Gates](#required-quality-gates)
+- [Gates and Optional Steps](#gates-and-optional-steps)
+- [Orchestration Freedom](#orchestration-freedom)
+- [Memory, Reporting and Fix Path](#memory-reporting-and-fix-path)
+- [Activation](#activation)
+- [Closing Reminders](#closing-reminders)
 
 ## Size & Kind Triage (first action)
 

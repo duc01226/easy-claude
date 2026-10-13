@@ -247,6 +247,47 @@ its own line only — never doc-wide — so later rot in the same file still fai
 Tests: `node .claude/hooks/tests/run-all-tests.cjs --filter=doc-impact-map`
 `node .claude/hooks/tests/run-all-tests.cjs --filter=reference-doc-freshness`
 
+## Context delivery tools
+
+Read this section when comparing compatible and candidate concise delivery or
+retrieving workflow selection depth. The shipping default stays compatible until
+all required behavioral, deterministic and native host/platform evidence passes.
+These tools never change that default or grant permissions. Read
+[the profile contract](../docs/configuration/README.md#context-delivery-profile)
+for precedence and checkout rollback, and
+[portable evidence](../docs/framework-portability.md#concise-guidance-evidence)
+for adapter prerequisites and assessment inputs.
+
+The Node commands use the same form on Windows, macOS and Linux, from the project
+root. Renderer output is public synthetic context, not private host instructions.
+
+| Tool | Command | Output / boundary |
+| --- | --- | --- |
+| Workflow catalog | `node .claude/scripts/workflow-catalog.cjs [--mode=ask\|auto\|off]` | Existing bounded catalog with activation tiers and registry discovery; read before selecting a workflow in concise delivery |
+| Both-profile renderer | `node .claude/scripts/context-delivery-audit.cjs render` | Seven first-prompt carriers at ask/default, no project route prose, plus separate later catalog/diagnosis text; JSON transport excluded equally |
+| Evaluation preparation | `node .claude/scripts/context-delivery-evaluate.cjs` | Writes the frozen job list under project `tmp/` and builds no world; preparation reports behavioral evidence NOT RUN. A run builds each world with its bounded public discovery bundle just before its job and removes it after grading unless `--keep-worlds` is given |
+| Authorized evaluation | `node .claude/scripts/context-delivery-evaluate.cjs --adapter <adapter.json>` | Isolated external host trials and graded receipts; requires an authorized adapter, actual usage/tool results and separately established isolation |
+| Evidence assessment | `node .claude/scripts/context-delivery-audit.cjs assess <evidence.json>` | Current source/policy/bundle-bound complete-pair/outcome/cost/native-proof assessment; exit 1 when adoption evidence is missing or fails |
+
+For optional token estimates, pipe renderer JSON to
+`context-delivery-tokens.py` after installing `tiktoken` in an isolated Python
+environment. Windows: `py -3 .claude/scripts/context-delivery-tokens.py`;
+macOS/Linux: `python3 .claude/scripts/context-delivery-tokens.py`. It records the
+installed tokenizer version and `o200k_base` estimate. The scoped target is at
+most 2,500 concise tokens and at least 60% below compatible; later reads and actual
+whole-session traffic remain separate. Token savings alone do not establish
+behavioral quality or authorize promotion.
+
+Frozen evaluation v4 allows observed evidence files under `tmp/reports/` and
+`tmp/analysis/` before task-input reads, while those reads must still precede
+task-state changes. Limits are 64 regular artifacts, 256 KiB per file and 2 MiB
+total; inventory is bounded to 10,000 entries and depth 32. Grading reads only
+contained regular task files up to 1 MiB through checked, closed descriptors.
+Exceeding artifact/inventory budgets makes observation incomplete. Required
+outlier diagnoses are trimmed nonblank strings of at most 4,096 characters.
+The custom-route case proves selection and actual definition loading, not
+completed audit quality. Every changed world invalidates older evidence. Complete skill reads may span successful pre-edit outputs. Trusted optional `readChunks` uses UTF-8 byte offsets for framed or out-of-order output; its exact content and complete coverage are checked. Output plus chunk text is bounded to 4 MiB and 4,096 relevant chunks per required file (4,096 chunks per event); malformed or over-budget evidence is incomplete.
+
 ## Protocol, profile and report tools
 
 Run every command from the project root; each works the same on Windows, macOS and Linux (`node <script>`; Python modules are imported, not run).

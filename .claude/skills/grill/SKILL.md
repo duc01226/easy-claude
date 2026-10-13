@@ -29,6 +29,22 @@ disable-model-invocation: false
 - Ask every material decision and never invent one.
 - Never start planning, writing a spec or implementing from this skill. Hand off.
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Mission](#mission)
+- [When This Skill Fits](#when-this-skill-fits)
+- [Phase 0: Frame the Subject and Gather Facts](#phase-0-frame-the-subject-and-gather-facts)
+- [Phase 1: Brief the User](#phase-1-brief-the-user)
+- [Phase 2: Build the Decision Tree](#phase-2-build-the-decision-tree)
+- [Phase 3: Interview in Rounds](#phase-3-interview-in-rounds)
+- [Phase 4: Play Back and Record](#phase-4-play-back-and-record)
+- [Phase 5: Confirm and Hand Off](#phase-5-confirm-and-hand-off)
+- [Called by Another Skill](#called-by-another-skill)
+- [No User Channel](#no-user-channel)
+- [Output](#output)
+- [Closing Reminders](#closing-reminders)
+
 ## Mission
 
 <request>$ARGUMENTS</request>

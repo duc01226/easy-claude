@@ -35,6 +35,14 @@ disable-model-invocation: false
 
 Database migration: $ARGUMENTS
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Instructions](#instructions)
+- [Sub-Agent Type Override](#sub-agent-type-override)
+- [Prompt-Enhance Closing Anchors](#prompt-enhance-closing-anchors)
+- [Closing Reminders](#closing-reminders)
+
 ## Instructions
 
 1. **Parse arguments**:

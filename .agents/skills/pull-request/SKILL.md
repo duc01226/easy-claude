@@ -4,28 +4,25 @@ description: '[Git] Use when asked to create, open, finish, update or mark ready
 ---
 
 > Codex compatibility note:
-> - Invoke repository skills with `$skill-name` in Codex; this mirrored copy rewrites legacy Claude `/skill-name` references.
-> - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
-> - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
-> - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
-> - Use ask user question tool to ask user.
-> - Ignore Claude-specific mode-switch instructions when they appear.
-> - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
+> - Invoke `$skill-name`: load the registered `.agents/skills/<name>/SKILL.md` and execute it with Codex tools; no separate `Skill` tool or Claude mode switch is needed. Author `.claude/**`; mirrors are generated.
+> - Track steps before execution and keep progress/evidence current. Explicit skill requests execute their protocol. Use the native question tool for required questions.
+> - Map foreign tool names to available host capabilities. A name mismatch needs no approval; an actually unavailable required capability stops with its step/evidence and a user question before adaptation.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
-> - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
-> - For workflow skills, steps follow the guided contract in `$start-workflow` (gate steps fixed; other steps may flex with a logged reason); report step-by-step evidence.
-> - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
+> - Preserve protocol order unless the user approves a deviation. Workflows use `$start-workflow`: gates stay fixed; other steps may flex with logged reasons and evidence.
+## Requested Git operations
+
+An explicit request to commit or push authorizes that operation once its required checks pass. Do not ask for a second commit/push confirmation, offer an unrequested commit/push, or end with an offer to perform the already requested operation. A commit request does not include push. Run required test and review decisions automatically; a failed gate reports the concrete blocker rather than asking to waive it. Scope ambiguities and destructive actions outside the request still need resolution. Native host permission prompts are separate from this skill.
+
 ## Quick Summary
 
 **Goal:** Drive authorized work to a ready-to-merge PR with a whole-branch review and current local test evidence, both chosen automatically by risk, and green CI; never ask the user whether to run tests or review, and stop with a report on a real blocker.
 
-Read [linked work integration](../task-track/references/integration-guide.md) at intake/start, actual saves, verification, handoff and close. Apply [linked work and final candidate](#linked-work-and-final-candidate) before publication and final readiness; tracker checks preserve the existing test/review choices and Git authority. With tracking on, [Step 3.3](#step-33--work-tracking-reminder) asks once whether to update or create tracked work for this PR; Skip is always offered and the reminder never blocks the PR.
+[Step 3.3](#step-33--work-tracking) keeps the project's tracked work current with the pull request, as the project's own work-tracking instruction says; it never gates the PR.
 
 **Summary:**
 
 - **Purpose:** one invocation creates a new PR, finishes the current PR, or flips a draft to ready. Invocation IS explicit authority for add/commit/push/PR operations on the selected branch — nothing more.
-- **Main session, automatic risk-based decisions:** read `commit` → [Test and review decision policy](../commit/SKILL.md#test-and-review-decision-policy) before both gates and apply it to the whole branch. Never ask about tests or review: classify, decide, act and record; refresh checks automatically after CI repairs.
+- **Main session, automatic risk-based decisions:** read [Test and review decision policy](references/check-policy.md) before both gates and apply it to the whole branch. Never ask about tests or review: classify, decide, act and record; refresh checks automatically after CI repairs.
 - **Review before commit:** the whole-branch review its risk tier selects plus an exact commit-candidate receipt; only a Low-risk branch takes the automatic skip. New content invalidates evidence and is gated again.
 - **Main steps:** (1) target → (2) fresh branch at the latest target → (3) stage + guard + test decision → (4) whole-branch review decision → (5) verify final evidence → (6) `commit` skill → (7) push + create/ready PR → (8) CI loop until green → (9) mergeable check + report.
 
@@ -33,7 +30,7 @@ Read [linked work integration](../task-track/references/integration-guide.md) at
 
 1. **Target** — base named in request → open PR's base → `pullRequest.targetBranch` (`docs/project-config.json`) → `main`.
 2. **Branch** — a PR branch starts at the latest target. Already merged into target → `git switch --no-track -c <type>/<slug> origin/<target>`, no rebase. Otherwise on target or detached HEAD → new branch from HEAD. Behind the latest target and not yet pushed → stash, `git rebase origin/<target>`, pop; conflicts → `$git-conflict-resolve`. Already pushed → never rebased.
-3. **Stage + guard** — `git add -A` minus secrets; `doc-stamp-guard.cjs --staged` unstages stamp-only churn. Tracking on → one work-tracking reminder (update / create / skip) before the test decision.
+3. **Stage + guard** — `git add -A` minus secrets; `doc-stamp-guard.cjs --staged` unstages stamp-only churn. Then update the project's tracked work in the PR (Step 3.3) before the test decision.
 4. **Review decision** — classify the whole branch and run the selected review under the shared decision policy, without asking; full branch scope and exact-candidate receipts remain mandatory.
 5. **Final evidence** — refresh affected checks/receipts after edits under the same policy; a blocker stops the run with a report.
 6. **Commit** — via `commit`, passing the recorded decisions, current evidence and receipt, so its gates reuse them instead of repeating the work.
@@ -48,38 +45,38 @@ Read [linked work integration](../task-track/references/integration-guide.md) at
 - MUST ATTENTION commit only a candidate covered by a review receipt or a skip receipt. Mint an automatic skip only for a Low-risk branch, never after a failed or non-converged review, and report skipped gates truthfully.
 - MUST ATTENTION review the WHOLE branch: scope is always `<base-ref>...HEAD` ∪ uncommitted (the total diff that will merge into the target), never the latest commit or the current changes alone — why: a defect introduced in an earlier commit of the branch ships in the PR exactly like one in the last commit.
 - NEVER merge the PR, enable auto-merge, push to the target branch, force-push, rebase/amend a pushed commit, or run a destructive git command — rebase only commits no remote ref contains (Step 2's never-pushed test); resolve drift on a pushed branch with `git merge --no-commit` + `$git-conflict-resolve`, then review and commit through the `commit` skill.
-- The work-tracking reminder (Step 3.3) is a choice, never a gate: ask once when tracking mode is `observe` or `linked`, always offer Skip, honour it without asking again, and route Update/Create to `$task-track`. NEVER write tracker records from this skill or infer assignment, readiness, proof or acceptance from the diff.
+- Work tracking (Step 3.3): keep the project's tracked work current in the PR, as the project's own instruction says. It is never a gate, and the instruction, not this skill, owns its rules.
 - A skip, automatic or user-requested, waives only that local test or review gate for the named candidate. NEVER weaken/delete tests or checks, bypass required CI, or describe skipped work as passed.
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
+
+## Contents
+
+- [Requested Git operations](#requested-git-operations)
+- [Quick Summary](#quick-summary)
+- [Pull Request Skill](#pull-request-skill)
+- [Authority](#authority)
+- [Execution — main session, risk-based test and review decisions](#execution--main-session-risk-based-test-and-review-decisions)
+- [Procedure](#procedure)
+- [User Choice Contract](#user-choice-contract)
+- [Related](#related)
+- [Closing Reminders](#closing-reminders)
 
 # Pull Request Skill
 
 ## Authority
 
-Invocation IS the user's explicit request for every Git/GitHub operation below, scoped to the current repository and the PR branch it selects or creates: `add`, `commit`, `push` of that branch, branch creation and `switch`, `stash push | pop`, `rebase` of that branch's own unpushed commits (Step 2), `gh pr create | edit | ready`. NEVER authorizes merging the PR, enabling auto-merge, pushing to the target branch, force-pushing, rewriting pushed history, or `reset --hard` / `clean -f` / `checkout -- <path>` / `restore <path>` / `stash drop`. Record a git-operation lease for `["add","commit","push"]` per `commit` skill Step 0; revoke it in a `finally` path.
+Invocation IS the user's explicit request for every Git/GitHub operation below, scoped to the current repository and the PR branch it selects or creates: `add`, `commit`, `push` of that branch, branch creation and `switch`, `stash push | pop`, `rebase` of that branch's own unpushed commits (Step 2), `gh pr create | edit | ready`. NEVER authorizes merging the PR, enabling auto-merge, pushing to the target branch, force-pushing, rewriting pushed history, or `reset --hard` / `clean -f` / `checkout -- <path>` / `restore <path>` / `stash drop`.
 
 ## Execution — main session, risk-based test and review decisions
 
 - Run every step in the main session. The selected review fix-loop, `commit` and `fix` run inline via the skill invocation; their own reviewer sub-agents still fan out per their skills. — why: a review fix-loop owns its convergence loop there, and `workflow-review-changes` MUST run inline in the main session, never as a sub-agent; this session owns the whole task end to end.
-- Read `.claude/skills/commit/SKILL.md` → **Test and review decision policy** before Steps 3.5/4 and each CI repair; it owns the risk tiers, the test and review decisions and their limits for both skills. Tests and review raise no user question; the [User Choice Contract](#user-choice-contract) serves the Step 3.3 reminder and other genuine choices. Pass the recorded decisions to `commit`.
+- Read `references/check-policy.md` before Steps 3.5/4 and each CI repair; it owns the PR risk tiers, test and review decisions and their limits. Tests and review raise no user question; the [User Choice Contract](#user-choice-contract) serves genuine choices that remain. Pass the recorded decisions to `commit`.
 - Finish with one report: PR URL, state, target + branch, review rounds, local test result, CI result, deferred/blocked items.
 
 ## Procedure
 
 Write `tmp/reports/pull-request-<date>-<branch>.md` from the first step; append after each step — why: a cut-off run still leaves evidence.
-
-## Linked work and final candidate
-
-Use producer `pull-request` for standalone PR work; an existing linked workflow retains its actual producer/session/actor/run/occurrence. Nested commit/fix/review calls inherit it. Only the primary saving owner records each actual filesystem save once through the common checkpoint owner. Continue untracked when no link exists; offer exact linking once at a useful checkpoint. A PR URL/API success is publication evidence, not a saved filesystem observation, trusted proof or accepting decision.
-
-1. **Collect the complete permitted candidate.** After resolving the actual base, use Step4's normal `<base-ref>...HEAD` plus pending authored work, including earlier branch commits, staged and unstaged work and publishable untracked paths. The actual read commands are `git diff --name-only --no-renames -z <base-ref>...HEAD`, `git diff --name-only --no-renames -z HEAD` and `git ls-files --others --exclude-standard -z`; parse NUL boundaries, normalize relative paths and retain deleted/renamed old and new paths. Limit pending paths to the authorized candidate and record excluded secrets/private/stamp-only or intentionally unpublished content with reasons. During an uncommitted integration merge, use Step4's net pending `git diff --name-only --no-renames -z <base-ref>` plus authorized untracked paths; incoming receiving-only changes are excluded by that baseline. A missing base, unsupported path or bounded/partial collection leaves scope incomplete; never replace it with the latest commit or an empty successful check.
-2. **Inspect exact concerns.** Pass actual public candidate paths plus already exact linked IDs to `concerns --root CHECKOUT` using the common JSON stdin contract. Record candidate base/OIDs, paths/exclusions and diagnostic coverage separately: the tracker fingerprint cannot prove candidate completeness. Read original incoming/outgoing owners, relationships, prerequisites, optOut/retirement and current verification versus historical acceptance. A path match never authorizes updating every returned item.
-3. **Perform warranted authorized maintenance.** Call the existing manual/core operations only for exact selected items and actual requested facts. Save source/artifact checkpoints through the primary saving owner once. Keep readiness, test/review proof and acceptance separate; ordinary CLI cannot forge trusted verifier observations. Reread exact owners after saved updates and inspect saved/skipped/pending/refused outcomes. Tracker changes are candidate changes and can invalidate review/test evidence, so return through Steps3.5–5 before committing them.
-4. **Recollect and recheck the fresh candidate.** Before Step7 publication and Step9's ready report, collect again and rerun concerns after any review fix, CI repair, merge, source/criteria or tracker update. If candidate identity/scope changed since checking, repeat the affected check; never reuse an earlier check for a later candidate. Preserve the recorded decisions, exact receipts, pending questions, caps and decision policy. Missing/partial/unavailable tracking is disclosed with reasons; it neither becomes passed proof nor hides a required project Ready blocker.
-5. **Agent self-check and report.** Answer: “Have exact linked trackers been checked against the final PR scope, and are needed updates saved or pending with reasons?” Record the latest candidate/coverage, exact-owner reread, each needed action/result and unresolved reason in the PR report. This is the agent's self-check, not a routine user-approval question. Test and review decisions follow the shared decision policy and raise no question. Keep a successful push/create/edit/ready outcome unchanged if optional tracking fails; retry only the retained secondary checkpoint/request, never repeat successful publication to repair tracking.
-
-The sequence is candidate → concerns → warranted authorized update → exact-owner reread → fresh candidate check → agent self-check. Follow it at Step3 intake, Step5 final evidence, each Step8 repair and Step9 handoff; ordinary Run/Skip and disabled tracking/selection remain independent. Missing links create no companion tickets — a new item comes only from the user's Create answer in [Step 3.3](#step-33--work-tracking-reminder); unsupported native capability preserves its sources and stays unavailable.
 
 ### Step 1 — Resolve target branch
 
@@ -125,33 +122,15 @@ A PR branch starts at the latest `<target>` (`R` from Step 1.4). Name for a new 
 2. `node .claude/hooks/lib/doc-stamp-guard.cjs --staged`. Exit `3` → `git restore --staged -- <paths>` for the stamp-only files; leave them in the working tree. NEVER revert the working tree.
 3. **Review candidate target.** Nothing left unstaged → review uses the default `worktree` target (working tree = index). Anything left unstaged → pass `--target=staged` to the fix-loop snapshot; each round `git add`s the paths it fixed before the next snapshot. — why: the receipt binds the exact candidate tree; reviewed content MUST equal committed content.
 
-### Step 3.3 — Work-tracking reminder
+### Step 3.3 — Work tracking
 
-One reminder per PR run that keeps tracked work in step with the pull request. It is a reminder with a choice, never a gate: Skip, a missing answer, missing tooling or a tracker refusal never stops or delays Steps 3.5–9.
+Keep the project's tracked work current with this pull request: it is how the team sees what is being done. When the project's root instructions (`CLAUDE.md` or `AGENTS.md`) point to a work-tracking instruction, add, update or close the work this PR does, in the PR itself, as that instruction says; the instruction, not this skill, owns the rules. Tracker edits are candidate changes and go through Steps 3.5–4 with the rest of the diff. No instruction → skip silently. It never gates or delays Steps 3.5–9.
 
-1. **Decide whether to ask.** Read `mode` from the read-only `node .claude/skills/task-track/scripts/task-track.cjs inspect --root CHECKOUT`; the selected checkout's `.claude/docs/configuration/README.md`, section **Team work tracking**, defines the modes.
-   - `off`, which includes a project with no `taskTracking` section → skip this step silently: no question, no report line.
-   - The read refuses (malformed declared settings, unavailable profile, package setup failure) → no question; record `Work tracking: unavailable — <reason>` in the PR report and continue.
-   - `observe` or `linked` → ask once, even when nothing matches; the question then offers only Create and Skip — why: with tracking on, work that no item records is what this reminder exists to surface.
-2. **Find what this PR concerns.** Reuse the candidate paths and `concerns --root CHECKOUT` read of the [linked sequence](#linked-work-and-final-candidate) (items 1–2). Exact item IDs to pass are the IDs already linked to this session plus any token in the branch name, the commit messages of `<base-ref>..HEAD` or the PR title that equals an existing item `id` from `inspect` character for character. NEVER match by title resemblance or search the planned work for look-alikes. For each returned item note id, kind, title, recorded state and why it surfaced (exact ID, path concern or declared relationship). List opted-out, retired and `canceled` items as excluded with that reason, not as update candidates.
-3. **Ask one question.** Call the ask-user question tool under the [User Choice Contract](#user-choice-contract): **Update work tracking for this pull request, create a new item, or skip?** Show what was found — each item's id, kind, state and reason — or `No tracked item matches this pull request's changes`. Offer:
-   1. **Update matching item(s)** — offered when at least one updatable item was found. The user picks which listed items; a path match never selects every returned item.
-   2. **Create a new item for this work** — capture this PR's work as a new tracked item.
-   3. **Skip work tracking** — always offered. Record `Work tracking: skipped by user` and continue.
-
-   Recommend one option from the evidence and say why: **Update** when an exact ID or session link matched; **Update**, naming the items for the user to confirm, when only path concerns matched; **Create** when nothing matched and the PR adds or changes behavior (a `feat`/`fix` branch, or changed source or test paths); **Skip** when nothing matched and the change is docs, config or chore only. A recommendation is advice: never answer for the user.
-4. **Offer a real recorded state.** A pull request means the work is built and published for review, and the tracker has a state for exactly that: `implemented`. Read `states` from `catalogue --root CHECKOUT`: `draft`, `planned`, `ready`, `in_progress`, `blocked`, `implemented`, `verifying`, `done`, `canceled`. Let the user pick: `implemented` (the default for work this pull request delivers; proof and acceptance are still open), `in_progress` (work continues after this PR), or leave the state unchanged. — why: an item left at `draft` or `planned` after its pull request reports built work as not started. When `catalogue` lists no `implemented` state (an earlier framework copy), offer `verifying` in its place and say what it needs. Ask it as a second question in the same tool call when the tool allows one, otherwise as one follow-up only after Update or Create. NEVER offer `done`: it is reached only through a human acceptance of current proof (`$task-track --mode=accept`), which a PR, green CI or a merge does not supply. These are the states of delivery work (a task, a story or a subtask). An initiative changes state only by a person's own decision and an area is only ever canceled, so offer no state for a matched initiative or area: show it as context and leave its state unchanged.
-5. **Route the answer to `$task-track`.** This skill adds no tracker writer. Update → `$task-track --mode=maintain` for the changes the user asked for and `$task-track --mode=lifecycle` for the chosen state, on each selected exact item. Create → `$task-track --mode=maintain` (operation `create`; a new item starts as `draft`), then `$task-track --mode=lifecycle` toward the chosen state. Hand over the selected exact IDs, the user's chosen state and the PR's purpose as proposed title/intent text for the user to confirm there.
-   - task-track's transition guard decides every move. `implemented` is one step from `draft`, `planned`, `ready` or `in_progress` and needs only the item's captured intent, so a newly created item, or a matched one that has not reached it yet, reaches it in this run without further questions; blocked work is resumed first. Leave a matched item that is already `implemented`, `verifying`, `done` or `canceled` in its state and say so: `implemented` is no step forward from any of them. `verifying` starts from `implemented` and needs acceptance criteria, an actual reviewed readiness decision and a responsible member: offer that step as a follow-up and let the user state those facts in `$task-track`. Never infer assignment, readiness, proof or acceptance from the diff, commits, test results, CI or PR state.
-   - A refused transition or a fact the user does not supply leaves the item at its last saved state: report the item, its state and the refusal, then continue the PR.
-   - Saved tracker records are candidate changes: stage them with Step 3's rules so Steps 3.5–4 cover them, and reread the exact owners (linked sequence item 3).
-6. **Honour the answer and keep going.** Skip is a complete answer: no second prompt, no persuasion, and no repeated reminder at Step 5, a Step 8 repair, Step 9 or resume in this run. Automatic upkeep for items already linked to the session keeps its own mode and optOut rules. When the question was posted asynchronously and no answer has arrived, or no question tool exists, continue the PR with no tracker change, record `Work tracking: question pending` with the question and its numbered choices in the PR report and the final message, and handle a later Update/Create answer as a follow-up candidate change through Steps 3.5–7 without repeating a successful publication.
-
-Report one line: `Work tracking:` updated `<ids>` → `<state>` · created `<id>` (`<state>`) · skipped by user · question pending · unavailable — `<reason>`.
+Report one line: `Work tracking:` updated `<ids>` · added `<id>` · no instruction.
 
 ### Step 3.5 — Resolve local test decision
 
-Apply the shared decision policy → **Decide tests** to the whole branch and act without asking the user. Skip when the affected tests already ran and passed in this session and nothing they cover changed since, or when the branch change is really small or has no applicable test lane; record the reused evidence or the skip reason (Markdown skills and config may still need checks). Otherwise run the configured delta-scoped test/build/lint/contract commands using the project phase rules and managed runners, and fix-loop every failure through `commit` Step 3.5 until all pass.
+Apply the shared decision policy → **Decide tests** to the whole branch and act without asking the user. Skip when the affected tests already ran and passed in this session and nothing they cover changed since, or when the branch change is really small or has no applicable test lane; record the reused evidence or the skip reason (Markdown skills and config may still need checks). Otherwise run the configured delta-scoped test/build/lint/contract commands using the project phase rules and managed runners, and resolve every failure at its owning layer until all pass.
 
 Missing commands or a blocked required lane are unavailable, never passed: that is a **Blocker**, not a skip. Failures require root-cause fixes and refreshed evidence. A local skip never disables CI or project Ready gates.
 
@@ -159,11 +138,11 @@ Missing commands or a blocked required lane are unavailable, never passed: that 
 
 **Review scope invariant.** A pull-request review covers the TOTAL net change of the branch against the target: `git diff <base-ref>...HEAD` (three-dot, from the merge-base, every branch commit) ∪ uncommitted changes. NEVER only the latest commit (`HEAD~1..HEAD`, `git show`), never only the current working-tree changes, and never just the fix made since the last round — a later CI fix or merge is reviewed as part of the whole branch diff. Reviewing an existing PR (no local edits) uses the same scope from the PR's base (`baseRefName`) after `git fetch origin`. Record the scope proof in the report: base ref, merge-base SHA, `git rev-list --count <base-ref>..HEAD` and the changed-file count of `git diff --stat <base-ref>...HEAD`.
 
-Apply the shared decision policy to the whole scope and act without asking the user. Reuse existing evidence only when both scope and candidate match. Otherwise classify the branch and follow `commit` Step 3.6 Review selection with whole-branch signals: **Low** → automatic skip; **Medium** → `$why-review --fix-loop`; **High** → `$changes-review --fix-loop`, each at most two review rounds over the whole scope. A PR request is not a review, and a commit-only receipt does not prove the whole branch was reviewed.
+Apply the shared decision policy to the whole scope and act without asking the user. Run `node .claude/scripts/lib/commit-review-policy.cjs --operation=pull-request --risk=<actual-tier>` from the requested checkout root; PR scope remains risk-based regardless of `commit.reviewMode`. Reuse existing evidence only when both scope and candidate match. Otherwise classify the branch and follow `references/check-policy.md` with whole-branch signals: **Low** → automatic skip; **Medium** → `$why-review --fix-loop`; **High** → `$changes-review --fix-loop`, each at most two review rounds over the whole scope. A PR request is not a review, and a commit-only receipt does not prove the whole branch was reviewed.
 
 Run the selected fix-loop inline via the skill invocation over `<base-ref>...HEAD ∪ current uncommitted changes` — the three-dot base is the fixed merge-base, so the review covers every branch commit + pending work, a Step 2 rebase included. When the user asks for the full workflow, run `$workflow-review-changes --fix-loop` inline the same way and follow that workflow's `references/fix-loop.md` as written: each round re-runs the whole default workflow over the recomputed scope (parallel reviewers, validated fixes at the owning layer, `$docs-manager --mode=update`); converges on a zero-fix round; keeps round cap + severity floor; mints the `workflow-review-changes` receipt.
 
-- **Low-risk branch, or the user asks to skip:** record the whole-branch scope proof and `Review: skipped — low risk (<signal>)` or `Review: skipped by user`; this is not a successful review. If a commit is needed, follow `commit` Step 3.6 `snapshot` + `issue --kind=skip` using the exact prepared commit descriptor. Never mint a review receipt for skipped work. With no pending commit, record the branch-scope skip in the PR report; no commit receipt is needed.
+- **Low-risk branch, or the user asks to skip:** record the whole-branch scope proof and `Review: skipped — low risk (<signal>)` or `Review: skipped by user`; this is not a successful review. If a commit is needed, follow `references/check-policy.md` → `snapshot` + `issue --kind=skip` using the exact prepared commit descriptor. Never mint a review receipt for skipped work. With no pending commit, record the branch-scope skip in the PR report; no commit receipt is needed.
 - A partial review NEVER satisfies this gate, and a skip is never minted for a Medium or High branch. Reuse an existing full review under the shared decision policy only when the evidence matches this exact candidate and whole-branch scope. A skip covers only the unchanged candidate and scope it was recorded for; changed content is classified and gated again.
 - **Integration-merge scope** (uncommitted merge from Step 7.1 or Step 9): review the PR's net change — `git diff <base-ref>` over the working tree, after `git fetch origin <target>` — with conflict-resolved hunks called out. Incoming target-branch commits are NOT review targets: they were reviewed on the target branch. The receipt still binds the whole merge candidate. — why: during an uncommitted merge `HEAD` is the pre-merge commit, so the default `...HEAD ∪ uncommitted` scope would pull every incoming target commit into the review.
 - Fix-loop escalates (two-round cap spent with MEDIUM+ open, blockers not shrinking, blockers increasing, ambiguous intent) → **Blocker**. No commit proceeds without a qualifying receipt. A failed review is not a skip: never mint one to get past it. Hand back per the Blocker rule in the [User Choice Contract](#user-choice-contract), listing the open findings.
@@ -172,18 +151,18 @@ Run the selected fix-loop inline via the skill invocation over `<base-ref>...HEA
 
 Check that test evidence/decision and whole-branch review evidence/decision cover the final scope and exact commit candidate. Edits, review fixes and merges invalidate affected evidence: classify again, then refresh checks and full-scope review automatically under the shared decision policy. A prior skip never transfers to changed content. Required loops keep their caps and blocker rules.
 
-Complete the [linked final-candidate sequence](#linked-work-and-final-candidate), including exact-owner reread after warranted updates and recollection before publication. An optional pending result retains the primary outcome and its reason; required project gates remain blockers.
+Confirm the [Step 3.3](#step-33--work-tracking) tracker edits are in the candidate being published. Required project gates remain blockers.
 
 ### Step 6 — Commit via `commit` skill
 
-Invoke `commit` over the staged candidate with the recorded risk tier, test decision and evidence, whole-branch review proof and matching exact-candidate receipt. Its gates reuse that current evidence instead of repeating the work, and ask nothing. Every message part applies: `Estimate:` first body line, purpose → what → how, Reviewers and attribution. Never use a raw `git commit` or `--no-verify`.
+Invoke `commit` over the staged candidate with the recorded risk tier, test decision and evidence, whole-branch review proof and matching exact-candidate receipt. Its gates reuse that current evidence instead of repeating the work, and ask nothing. Use the project’s commit-message conventions. Never use a raw `git commit` or `--no-verify`.
 
 ### Step 7 — Push and open PR
 
 1. `git push -u origin <branch>`. Rejected because the remote branch moved → `git pull --no-rebase --no-commit origin <branch>` so the merge result stays uncommitted, resolve conflicts via `$git-conflict-resolve`, review it (Step 4, integration-merge scope), commit via Step 6, push again. NEVER force-push — why: a merge commit created outside the `commit` skill skips the receipt-bound review.
 2. **No open PR** → `gh pr create --base <target> --head <branch> --title "<conventional title>" --body-file <file>`. No `--draft`.
 3. **Open PR** → `gh pr edit <n> --body-file <file>`; draft → `gh pr ready <n>`.
-4. **PR body** — what the branch does (purpose → what → how); review evidence (rounds, report path, deferred LOW findings) or the recorded review skip with its reason; local test evidence or the recorded test skip with its reason; per-area Reviewers block; `Fix-Origin:` field when `commit.fixOriginTrailer` is `true`; same attribution footer as the `commit` skill.
+4. **PR body** — what the branch does (purpose → what → how); review evidence (rounds, report path, deferred LOW findings) or the recorded review skip with its reason; local test evidence or the recorded test skip with its reason; reviewer/attribution fields required by the project; `Fix-Origin:` field when `commit.fixOriginTrailer` is `true`.
 
 ### Step 8 — CI loop: wait, fix, repeat until green
 
@@ -194,12 +173,12 @@ Invoke `commit` over the staged candidate with the recorded risk tier, test deci
    1. Read the evidence. GitHub Actions → `gh run view <run-id> --log-failed` (run id in the check `link`). Other providers → the check's link or description.
    2. Test the environment hypothesis before blaming code. Log names an infrastructure cause (runner lost, registry/network timeout, quota) → **one** rerun: `gh run rerun <run-id> --failed`. Second infrastructure failure → Blocker. NEVER rerun to fish for green.
    3. Otherwise `$fix --target=ci`: trace the root cause backward from the failing log, fix at the owning layer — a stale test included, only once adjudicated TEST-WRONG. NEVER skip, delete, or weaken a check or test to get green.
-   4. **Gate the repair without a question.** Apply `commit` → **Test and review decision policy** to the repair and the whole branch. Automatically run affected local checks (Step 3.5), select/run Step 4 over the WHOLE branch (`<base-ref>...HEAD ∪ uncommitted`), refresh the exact-candidate receipt, then Step 5 → `commit` (Step 6) → push. A repair that adds a High signal (security, data, contract or deployment risk) raises the tier and its review, never a question. A previous Skip does not authorize skipping repair checks.
+   4. **Gate the repair without a question.** Apply `references/check-policy.md` to the repair and the whole branch. Automatically run affected local checks (Step 3.5), select/run Step 4 over the WHOLE branch (`<base-ref>...HEAD ∪ uncommitted`), refresh the exact-candidate receipt, then Step 5 → `commit` (Step 6) → push. A repair that adds a High signal (security, data, contract or deployment risk) raises the tier and its review, never a question. A previous Skip does not authorize skipping repair checks.
 5. Loop to step 1. No attempt cap while each attempt removes a failure or changes its cause. **Blocker** when the same failure signature survives 3 attempts addressing different causes, or the fix needs something outside the repository (secret, permission, runner/service setup, product decision).
 
 ### Step 9 — Ready to merge
 
-Repeat the [fresh candidate check and agent self-check](#linked-work-and-final-candidate) after the last CI/merge repair, carrying exact secondary results and known gaps into the final report.
+After the last CI/merge repair, confirm the [Step 3.3](#step-33--work-tracking) tracker edits still match the final diff, and carry known gaps into the final report.
 
 Read `gh pr view <n> --json isDraft,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup`.
 
@@ -216,7 +195,7 @@ Read `gh pr view <n> --json isDraft,mergeable,mergeStateStatus,reviewDecision,st
 
 ## User Choice Contract
 
-Test and review decisions are automatic under `commit` → **Test and review decision policy** and raise no question. This contract governs the genuine user choices that remain: the [Step 3.3](#step-33--work-tracking-reminder) reminder and any question a called skill owns.
+Test and review decisions are automatic under `references/check-policy.md` and raise no question. This contract governs the genuine user choices that remain: any question a called skill owns.
 
 **Deliver the question before waiting.** For every such choice, invoke the available native ask-user question tool with the actual question and selectable options. A statement such as “waiting for your choice” or “STOP” does not display a question and cannot satisfy this step. Use the tool's exposed schema; do not merely name the tool in prose.
 
@@ -227,7 +206,7 @@ Test and review decisions are automatic under `commit` → **Test and review dec
 - **Asynchronous delivery:** a tool acknowledgement means the question was posted, not answered. Record the question, candidate/scope and status `pending` in the PR report, pause dependent steps, and wait for the human reply. Preselection, silence and elapsed time are not consent. Resume only the answered branch; retain a pending question across compaction/resume without treating it as answered or posting duplicates.
 - **Unavailable tool:** if no permitted question tool exists, visibly present the exact question and numbered choices in the response, explain the tool limitation, and wait for an explicit reply. Never end with only a status statement. This fallback applies only after checking the active host's capabilities; when a permitted tool is available, call it.
 
-Both skills use `commit` → **Test and review decision policy**, independently of `portability.skillAutoTrigger` and workflow routing mode. General autonomy does not authorize additional Git operations.
+This PR skill uses `references/check-policy.md`, independently of `portability.skillAutoTrigger` and workflow routing mode. General autonomy does not authorize additional Git operations.
 
 - **Tests:** skipped only when the affected tests already passed in this session for unchanged content, or the change is really small or has no applicable lane; otherwise scoped tests run and failures are fixed until all pass. Record the decision and its evidence truthfully.
 - **Review:** Low risk → automatic skip; Medium → `$why-review --fix-loop`; High → `$changes-review --fix-loop`; two review rounds at most, over the whole branch. `$workflow-review-changes --fix-loop` runs when the user asks for it.
@@ -241,11 +220,10 @@ A **Blocker** ends the run. Pending user choices pause only dependent steps. If 
 
 ## Related
 
-- `commit` — the only commit path; its Push & PR section routes pull-request requests here.
+- `commit` — the only commit path; it routes pull-request requests here.
 - `why-review` / `changes-review` — the `--fix-loop` review the risk tier selects, run over the whole branch; `workflow-review-changes` on the user's request.
 - `fix` — `--target=ci` diagnoses and fixes CI failures.
 - `git-conflict-resolve` — resolves merge conflicts with the target branch.
-- `task-track` — `--mode=maintain` and `--mode=lifecycle` save the update or new item chosen in the Step 3.3 reminder.
 
 ---
 
@@ -274,7 +252,7 @@ A **Blocker** ends the run. Pending user choices pause only dependent steps. If 
 - **MUST ATTENTION — DECIDE, NEVER ASK:** use `commit` decision policy over the whole branch. Tests: skip only when already passed this session or really small, otherwise run scoped and fix to green. Review: Low → automatic skip, Medium → `$why-review --fix-loop`, High → `$changes-review --fix-loop`, two review rounds at most. Honor explicit user instructions; stop and report on a blocker.
 - **MUST ATTENTION — REVIEW BEFORE COMMIT:** fresh evidence and exact-candidate receipts remain required after edits. Old verified evidence and an old skip cannot cover new content. Never skip a Medium or High branch, or a failed review.
 - **MUST ATTENTION — REVIEW THE TOTAL BRANCH DIFF:** every review round in a PR run covers `<base-ref>...HEAD ∪ uncommitted` (all branch commits against the merge-base), never only the latest commit or the working tree.
-- **MUST ATTENTION — WORK-TRACKING REMINDER (Step 3.3):** tracking `off` or not configured → silent skip. `observe`/`linked` → one question (update matching items / create a new item / skip), Skip always offered and never re-asked; route Update/Create to `$task-track`, offer the real state `implemented` for work this pull request delivers, never `done`, and never block the PR on it.
+- **MUST ATTENTION — WORK TRACKING (Step 3.3):** update the project's tracked work inside this PR, as its own instruction says; no instruction → silent skip; never block the PR on it.
 - **MUST ATTENTION — CI FIXES:** root cause first, environment hypothesis included; one rerun only for a named infrastructure cause. NEVER weaken, skip or delete a test or check.
 - **NEVER** merge, enable auto-merge, push to the target branch, force-push, rewrite pushed history, or run a destructive git command — stop at ready to merge.
 - **Blocker** = listed blockers + report (+ draft PR only when pushed commits and PR tooling exist). NEVER commit a candidate without a matching review receipt or a valid skip receipt.
@@ -290,6 +268,6 @@ A **Blocker** ends the run. Pending user choices pause only dependent steps. If 
 | "Only the new changes need review"                     | The first review covers `<target>...HEAD` ∪ uncommitted: the whole branch. CI-fix rounds re-review the whole branch too — the fix is part of it.       |
 | "CI is red because of a flaky test, rerun until green" | One rerun, and only for a named infrastructure cause. Anything else is investigated and fixed at its root.                        |
 | "Mark the failing test skipped so the PR goes green"   | That forces green. Adjudicate the test, then fix the source or the stale test.                                                    |
-| "The diff clearly finishes that item, mark it done"    | A diff proves no assignment, readiness, proof or acceptance. Ask the Step 3.3 question, route the answer to `$task-track`, and offer `implemented`; `done` needs a human acceptance. |
+| "The diff clearly finishes that item, mark it done"    | Mark it done only as the project's instruction says — in the PR that ships it, with that PR — never from a guess about which item the diff finishes. |
 | "Checks passed, merge it"                              | The target is ready to merge, not merged. Never merge.                                                                            |
 | "Commit first, review later"                           | The commit gate needs a review receipt or a valid skip receipt for the exact candidate. Resolve the decision policy and obtain current evidence; commit only that candidate. |

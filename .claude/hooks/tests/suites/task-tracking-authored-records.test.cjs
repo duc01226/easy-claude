@@ -845,7 +845,7 @@ module.exports = { name: 'Task tracking authored records integration', tests: [
         // A migrated project that reads whole and states a percentage.
         assert.deepEqual(whole(), ['complete', [], 1, 100]);
         // Two ways such a record arrives: a tracked record that still carries the earlier stamp, and a group in a location only the earlier vocabulary read.
-        const stamped = f.bytes('TASK-HERE').toString().replace('id: "TASK-HERE"', 'id: "TASK-BRANCH"').replace(`"schemaVersion":${CURRENT_VERSION}`, `"schemaVersion":${EARLIER_VERSION}`);
+        const stamped = f.bytes('TASK-HERE').toString().replace('id: "TASK-HERE"', 'id: "TASK-BRANCH"').replace(`"schemaVersion":${f.config.taskTracking.schemaVersion}`, `"schemaVersion":${EARLIER_VERSION}`);
         assert.ok(stamped.includes('id: "TASK-BRANCH"') && stamped.includes(`"schemaVersion":${EARLIER_VERSION}`));
         const arrivals = [['work/tasks/task-branch.md', stamped, 'TASK-BRANCH', 'task'],
             [`work/${EARLIER.folders.project}/group-branch.md`, `---\nid: GROUP-BRANCH\ntitle: A group from the branch\nintent: Where that work belonged\nstatus: draft\ntracking: {schemaVersion: ${EARLIER_VERSION}, revision: 1, kind: project, memberItemIds: [TASK-HERE]}\n---\n`, 'GROUP-BRANCH', 'area']];
@@ -868,7 +868,7 @@ module.exports = { name: 'Task tracking authored records integration', tests: [
             fs.rmSync(path.join(f.root, path.dirname(relative) === 'work/tasks' ? relative : path.dirname(relative)), { recursive: true });
             assert.deepEqual(whole(), before);
             await f.create(id, kind);
-            assert.deepEqual([f.record(id).tracking.schemaVersion, f.view(id).state], [CURRENT_VERSION, lifecycleOf(kind).initial]);
+            assert.deepEqual([f.record(id).tracking.schemaVersion, f.view(id).state], [f.config.taskTracking.schemaVersion, lifecycleOf(kind).initial]);
         }
         // A record with no tracking block carries no mark: it raises no finding, and cannot be adopted while it holds a status its kind no longer has.
         const untracked = state => `---\nid: INITIATIVE-BRANCH\ntitle: A proposal from the branch\nintent: Why that work was proposed\nstatus: ${state}\n---\nAuthored body.\n`;
@@ -897,7 +897,7 @@ module.exports = { name: 'Task tracking authored records integration', tests: [
         }
         assert.deepEqual(withoutInitiative, [exception]);
         // The other guides that say who may be tagged state the same exception.
-        for (const guide of ['skills/task-track/SKILL.md', CONFIGURATION_GUIDE]) assert.match(read(guide), new RegExp(`any record but an ${exception} to (?:any number of )?initiatives`), guide);
+        for (const guide of ['skills/task-track/references/engine-protocol.md', CONFIGURATION_GUIDE]) assert.match(read(guide), new RegExp(`any record but an ${exception} to (?:any number of )?initiatives`), guide);
     }),
     test('TC-ARS-033', 'the intent and the criteria of a record change in every status but the one the manual names, where the change is refused until the record is reopened', async f => {
         const [closed, code] = stated(manualSection(LIFECYCLE), /Changing the `intent` or the criteria of a record in `(\w+)` is refused with `([A-Z_]+)`/, 'when a change of intent or criteria is refused');

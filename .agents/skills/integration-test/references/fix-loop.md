@@ -2,6 +2,18 @@
 
 > Read by `$integration-test --mode=verify --fix-loop` FIRST, before Step 1 (the `references/mode-verify.md` → **Mode: `--fix-loop`** pointer). Steps 1–5, the On Test Failure Protocol, Next Steps and the `SYNC:*` protocol bodies this mode cites live in `references/mode-verify.md`. Shared loop skeleton (Round Integrity, convergence conditions, escalation, flake adjudication): `.claude/skills/shared/verify-convergence-loop.md` — read it before round 1.
 
+## Contents
+
+- [Mode: `--fix-loop` (OPTIONAL convergence loop — verify · adjudicate · fix · re-verify)](#mode---fix-loop-optional-convergence-loop--verify--adjudicate--fix--re-verify)
+- [Fix-Loop Quick Summary](#fix-loop-quick-summary)
+- [Fix-Loop First Principle — Convergence, Not Motion](#fix-loop-first-principle--convergence-not-motion)
+- [FL-0 — Resolve Verification Scope + Goal Contract (FIRST ACTION in `--fix-loop` mode)](#fl-0--resolve-verification-scope--goal-contract-first-action-in---fix-loop-mode)
+- [FL-0b — Bind the Convergence Loop (protocol-first; `/goal` is an optional accelerator)](#fl-0b--bind-the-convergence-loop-protocol-first-goal-is-an-optional-accelerator)
+- [FL-1 — Round Loop (verify → adjudicate → fix → review → integrity-check → log)](#fl-1--round-loop-verify--adjudicate--fix--review--integrity-check--log)
+- [FL-2 — Convergence & Escalation Gate](#fl-2--convergence--escalation-gate)
+- [FL-3 — Terminal Spec/Doc Sync + Recap](#fl-3--terminal-specdoc-sync--recap)
+- [Fix-Loop Convergence Detection — Why Five Conditions](#fix-loop-convergence-detection--why-five-conditions)
+
 <!-- FIX-LOOP-MODE:START -->
 
 ## Mode: `--fix-loop` (OPTIONAL convergence loop — verify · adjudicate · fix · re-verify)

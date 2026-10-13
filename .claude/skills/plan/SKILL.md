@@ -7,7 +7,7 @@ disable-model-invocation: false
 
 > **[BLOCKING] Mode routing — detect FIRST.** Select explicit `--mode=review|validate|execute|ci|cro`; otherwise create a plan. Read the selected reference in full before acting (see [Mode Dispatch](#mode-dispatch)). Every mode works directly without a workflow. `/plan-review`, `/plan-validate` and `/plan-execute` do not resolve.
 
-> **Work tracking:** Read [the linked work integration guide](../task-track/references/integration-guide.md) at capture, start, saved-work, verification, handoff and close-out checkpoints. Inspect exact selected owners and declared spec/task/subtask/plan concerns before planning, incorporate applicable unresolved concerns into task-derived quality gates, and reread after an actual artifact save. Execute mode retains actual linked producer/run/occurrence and the primary saving owner's one checkpoint. Continue untracked; report partial/unavailable scope and saved/pending secondary results. Plan prose and passing checks never authorize readiness, acceptance or publication.
+> **Work tracking:** Keep the project's tracked work current in the same change, as its root instructions (`CLAUDE.md` or `AGENTS.md`) say. When the project uses the portable tracker (`taskTracking.mode` is `observe` or `linked`), read [the linked work integration guide](../task-track/references/integration-guide.md) at capture, start, saved-work, verification, handoff and close-out checkpoints. Inspect exact selected owners and declared spec/task/subtask/plan concerns before planning, incorporate applicable unresolved concerns into task-derived quality gates, and reread after an actual artifact save. Execute mode retains actual linked producer/run/occurrence and the primary saving owner's one checkpoint. Continue untracked; report partial/unavailable scope and saved/pending secondary results. Plan prose and passing checks never authorize readiness, acceptance or publication.
 
 ## Quick Summary
 
@@ -31,6 +31,18 @@ disable-model-invocation: false
 - Cite evidence for known repository facts. Mark future implementation evidence as an obligation, never fabricate paths, symbols, or line numbers.
 - A plan without a task-specific checklist is incomplete: rows come from the task and repository evidence, non-applicable rows stay listed as `NO — <reason>`, every applicable row is checkable.
 - Open product intent or irreversible decisions block and go to the user; bounded source discovery belongs in the plan with an owner and stop condition.
+
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Invocation Context](#invocation-context)
+- [Mode Dispatch](#mode-dispatch)
+- [Evidence and Discovery](#evidence-and-discovery)
+- [Plan Artifact Contract](#plan-artifact-contract)
+- [Scope-Specific Gates](#scope-specific-gates)
+- [Self-Check Before Handoff](#self-check-before-handoff)
+- [Standalone Validation Chain](#standalone-validation-chain)
+- [Closing Reminders](#closing-reminders)
 
 ## Invocation Context
 

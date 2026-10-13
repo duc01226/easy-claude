@@ -663,6 +663,18 @@ const tests = [
         })
     },
     {
+        name: 'runtime modes suppress relevant skill delivery before ledger writes and reenable it',
+        fn: () => withFixture(async fx => {
+            for (const mode of ['off', 'quiet']) {
+                const result = await runEntry(fx, 'review', skillLoad(fx), { env: { CK_FRAMEWORK_MODE: mode } });
+                assertSilent(result, mode);
+                assert.equal(fs.existsSync(fx.store), false, `${mode}: no delivery ledger`);
+            }
+            assertDelivers(await runEntry(fx, 'review', skillLoad(fx), { env: { CK_FRAMEWORK_MODE: 'on' } }),
+                ['review-alpha', 'review-beta'], 'reenabled');
+        })
+    },
+    {
         name: '[entry] an unknown group is rejected after the early exit, never before it',
         fn: () => withFixture(async fx => {
             const probe = (group, input = skillLoad(fx)) => spawnSync(process.execPath, ['-e', `require(${JSON.stringify(LIB)}).runHook(${JSON.stringify(group)})`], {

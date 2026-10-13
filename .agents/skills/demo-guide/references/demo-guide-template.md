@@ -3,6 +3,17 @@
 The structure the `demo-guide` skill writes. Fill from real project evidence; keep prose tight. Every
 `{placeholder}` is derived, never guessed. Delete sections that genuinely don't apply (state why).
 
+## Contents
+
+- [Best-practice principles (apply while writing)](#best-practice-principles-apply-while-writing)
+- [The proof ladder (one rung per case — there is no fifth rung)](#the-proof-ladder-one-rung-per-case--there-is-no-fifth-rung)
+- [Document structure](#document-structure)
+- [Filling the task block (the copy-paste contract)](#filling-the-task-block-the-copy-paste-contract)
+- [Filling the "domain storage / solution" block (the distinctive value)](#filling-the-domain-storage--solution-block-the-distinctive-value)
+- [Scope-resolution candidates (Step 0.1 helper)](#scope-resolution-candidates-step-01-helper)
+- [Translation notes (`--lang`)](#translation-notes---lang)
+- [HTML runbook (`--html`)](#html-runbook---html)
+
 ## Best-practice principles (apply while writing)
 
 - **Understand before you script.** Nothing here is written until the skill's Step 1 comprehension bar is
@@ -62,7 +73,7 @@ a **stated blocker**, never a quiet promotion.
 
 ## Document structure
 
-```markdown
+````markdown
 # Demo Guide — {Feature name}
 
 <!-- task:START -->
@@ -245,7 +256,7 @@ demoted in order and prominence only. Omit the whole section when every case is 
 ---
 
 _Generated: {DATE} · Scope source: {source} · Evidence: {spec/test/migration paths}_
-```
+````
 
 ## Filling the task block (the copy-paste contract)
 

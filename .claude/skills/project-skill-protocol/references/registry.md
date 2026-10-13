@@ -9,12 +9,12 @@ Loaded by `SKILL.md` **before any write, and before any resolution**. Everything
 <!-- SKILL-NAV:START -->
 ## Contents
 
-- 1. Overlay body file
-- 2. Index row format
-- 3. Targeting & precedence
-- 4. Conflict & authority
-- 5. Token bound
-- 6. Promotion to a real skill
+- [1. Overlay body file](#1-overlay-body-file)
+- [2. Index row format](#2-index-row-format)
+- [3. Targeting & precedence](#3-targeting--precedence)
+- [4. Conflict & authority](#4-conflict--authority)
+- [5. Token bound](#5-token-bound)
+- [6. Promotion to a real skill](#6-promotion-to-a-real-skill)
 
 <!-- SKILL-NAV:END -->
 

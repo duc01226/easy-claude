@@ -22,7 +22,7 @@
  *   TC-WIT-007 — no live source names the removed workflow ids (allow-list: the "formerly" line).
  *   TC-WIT-008 — the variant references carry the old bodies' load-bearing rules and never a protocol guide
  *                line; the skill carries the union of both old protocol guide sets.
- *   TC-WIT-009 — consumers route to the merged workflow: commit gate, verify-mode recommendation, agent roster.
+ *   TC-WIT-009 — integration consumers route to the merged workflow: verify-mode recommendation and agent roster.
  *
  * Portability: TC-WIT-006 runs on in-memory fixture registries. Every other row asserts this framework
  * repository's own skills and registry and is skipped in any other project (framework-repo signal). Paths
@@ -394,13 +394,9 @@ const tests = [
         }
     },
     {
-        name: 'TC-WIT-009 consumers route to the merged workflow: commit gate, verify-mode recommendation, agent roster',
+        name: 'TC-WIT-009 integration consumers route to the merged workflow: verify-mode recommendation and agent roster',
         skip: SKIP,
         fn: () => {
-            const commit = read(SKILLS, 'commit', 'SKILL.md');
-            const gate = commit.split('### Step 3.5: Test-Verify Gate')[1].split('### Step 3.6:')[0];
-            assert.match(gate, /\*\*Fix loop on any failure:\*\* `\/workflow-integration-test --mode=green` verifies, adjudicates, fixes, reviews and re-verifies the applicable suite/);
-            assert.match(gate, /Continue only when green; escalation is a blocker/);
             const verify = read(SKILLS, 'integration-test', 'references', 'mode-verify.md');
             assert.match(verify, /RECOMMEND `\/workflow-integration-test --mode=green` whenever this run ends with ANY failure/);
             assert.match(verify, /verify step of `workflow-integration-test` \(both variants\)/);

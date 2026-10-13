@@ -7,6 +7,34 @@
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Frontend/UI Context (if applicable)](#frontendui-context-if-applicable)
+- [Greenfield Mode](#greenfield-mode)
+- [Phase 0: Locate Active Plan (if in workflow)](#phase-0-locate-active-plan-if-in-workflow)
+- [Phase 0.5: Applicability and Large-Idea Decomposition Gate](#phase-05-applicability-and-large-idea-decomposition-gate)
+- [Phase 1: Initiative Intake & Context Loading](#phase-1-initiative-intake--context-loading)
+- [Phase 2: Domain Research](#phase-2-domain-research)
+- [Phase 3: Problem Hypothesis Validation](#phase-3-problem-hypothesis-validation)
+- [Phase 4: Requirements Elicitation (BABOK Core 5)](#phase-4-requirements-elicitation-babok-core-5)
+- [Phase 5: Acceptance Criteria (BDD Format)](#phase-5-acceptance-criteria-bdd-format)
+- [Phase 6: Prioritization & Estimation](#phase-6-prioritization--estimation)
+- [Phase 7: Validation Interview (MANDATORY)](#phase-7-validation-interview-mandatory)
+- [Cross-Cutting & Production Readiness](#cross-cutting--production-readiness)
+- [Phase 7.5: Re-evaluate Estimation (MANDATORY — runs after Validation Interview)](#phase-75-re-evaluate-estimation-mandatory--runs-after-validation-interview)
+- [Phase 7.6: Releasable Outcome Gate (BLOCKING)](#phase-76-releasable-outcome-gate-blocking)
+- [Phase 8: Task Artifact Generation](#phase-8-task-artifact-generation)
+- [Anti-Patterns to Avoid](#anti-patterns-to-avoid)
+- [Key Rules](#key-rules)
+- [BA Team Refinement Context (canonical)](#ba-team-refinement-context-canonical)
+- [Readiness check (INVEST)](#readiness-check-invest)
+- [Project Integration](#project-integration)
+- [Related](#related)
+- [Next Steps](#next-steps)
+- [Prompt-Enhance Closing Anchors](#prompt-enhance-closing-anchors)
+- [Closing Reminders](#closing-reminders)
+
 ## Quick Summary
 
 **Goal:** Transform raw ideas into a task that passes the readiness check using BA best practices, hypothesis validation, and domain research — problem-validated, tech-agnostic, with testable acceptance criteria, estimates, and a Dependencies table — so a team can build it without re-asking what or why.

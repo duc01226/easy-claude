@@ -50,6 +50,18 @@ disable-model-invocation: true
 - The `skills` stage changes only `permission.skill` keys recorded in `.opencode/skill-permissions.generated.json`; a user-set key is never adopted, overwritten or loosened, and a called skill is never hidden; it rewrites or deletes only `.opencode/commands/*.md` files that carry its generated marker
 - Idempotent — re-running the sync produces byte-identical plugin, config, permission, and agent output
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Why a bridge plugin (not a config mirror)](#why-a-bridge-plugin-not-a-config-mirror)
+- [Recommended opencode config (source of truth)](#recommended-opencode-config-source-of-truth)
+- [Skill permissions](#skill-permissions)
+- [Hook mapping](#hook-mapping)
+- [Known limitations](#known-limitations)
+- [Usage](#usage)
+- [Stages](#stages)
+- [Closing Reminders](#closing-reminders)
+
 ## Why a bridge plugin (not a config mirror)
 
 > The `config` stage above reconciles framework-recommended opencode **defaults**; it is not a mirror of Claude settings. This section explains why the project's *hook* surface is generated as a plugin.

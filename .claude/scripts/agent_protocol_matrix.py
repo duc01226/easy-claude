@@ -539,7 +539,7 @@ AGENT_QUALITY_BLOCKS = {
     # Empty additive rows are valid when the twin skill has no role-specific
     # SYNC block; keeping the row makes the all-agent matrix complete and
     # prevents silent tier drift when a new block is introduced.
-    "git-manager": ["estimation-framework"],
+    "git-manager": [],
     "journal-writer": [],
 }
 

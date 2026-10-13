@@ -10,6 +10,19 @@
 
 Read this file at Step 3d, when `--explore` is set. It adapts the design skill's explore procedure — `.claude/skills/ui-design/references/explore/workflow.md` (steps cited below as `explore step N`) — to a mock app; that file stays the source for the shared mechanics, and the gate-file templates are in `.claude/skills/ui-design/references/explore/gate-files.md`. Create ONE task per step below. All run artifacts live under `tmp/design/<run>/`, where `<run>` is `YYMMDD-HHmm-<task-or-spec-slug>` — disposable run output, never project docs.
 
+## Contents
+
+- [Step 0 — Apply the scope decision from `references/mode-mockup.md` Step 0](#step-0--apply-the-scope-decision-from-referencesmode-mockupmd-step-0)
+- [Step 1 — Persist the shared inputs](#step-1--persist-the-shared-inputs)
+- [Step 2 — Resolve authority per axis](#step-2--resolve-authority-per-axis)
+- [Step 3 — Facts, references, brand, imagery, canvas](#step-3--facts-references-brand-imagery-canvas)
+- [Step 4 — Pick N divergence seeds](#step-4--pick-n-divergence-seeds)
+- [Step 5 — Fan out N drafts in ONE message](#step-5--fan-out-n-drafts-in-one-message)
+- [Step 6 — All-return barrier, then render](#step-6--all-return-barrier-then-render)
+- [Step 7 — Present side by side, open, recommend and ASK](#step-7--present-side-by-side-open-recommend-and-ask)
+- [Step 8 — Record the pick, then build the full mock app](#step-8--record-the-pick-then-build-the-full-mock-app)
+- [Closing Reminders](#closing-reminders)
+
 ## Step 0 — Apply the scope decision from `references/mode-mockup.md` Step 0
 
 The user was asked at `references/mode-mockup.md` Step 0, before any analysis, so that a skip saves the whole run. Here, only the answer is applied:

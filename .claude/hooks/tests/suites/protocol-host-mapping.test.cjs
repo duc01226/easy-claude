@@ -95,6 +95,8 @@ const todayRender = hookRel => `node -e "${TODAY_LAUNCHER}" -- ${JSON.stringify(
 const leanRender = hookRel => `node -e "${LEAN_LAUNCHER}" -- ${JSON.stringify(hookRel)}`;
 const quotePosix = value => `'${value.replaceAll("'", "'\\''")}'`;
 const nativeCommand = handler => process.platform === 'win32' ? handler.commandWindows : handler.command;
+// Existing steps that run no Git and start before every shell call, so they share the lean launcher.
+const LEAN_EXISTING_HOOKS = new Set(['.claude/hooks/failure-investigation-remind.cjs']);
 
 function assertLauncher(handler, hookRel, lean, label) {
     const javascript = lean ? LEAN_LAUNCHER : TODAY_LAUNCHER;
@@ -228,7 +230,7 @@ function assertExistingStepsUnchanged(settings, temp, label) {
                 assert.equal(typeof handler.commandWindows, 'string', `${label}: native Windows launcher missing`);
                 const hookRel = /-- "([^"\n]+)"$/.exec(handler.commandWindows)?.[1];
                 assert.ok(hookRel, `${label}: existing launcher has exactly one hook argument`);
-                assertLauncher(handler, hookRel, false, `${label}: ${hookRel}`);
+                assertLauncher(handler, hookRel, LEAN_EXISTING_HOOKS.has(hookRel), `${label}: ${hookRel}`);
                 assert.deepEqual(Object.keys(handler), ['type', 'command', 'commandWindows', ...(Object.hasOwn(handler, 'timeout') ? ['timeout'] : [])],
                     `${label}: existing handler fields changed`);
                 assert.equal(handler.type, 'command');

@@ -16,9 +16,9 @@ test('Codex skill loading activates instructions without a separate Skill tool',
   // Given a selected skill; when its Codex execution preamble is generated.
   const output = prependCodexCompatibilityNote('# Review\nKeep every required gate.\n');
   // Then loading and execution proceed without a foreign-host tool or extra approval.
-  assert.match(output, /loading its `SKILL\.md` instructions and executing the required steps with available tools/);
-  assert.match(output, /No separate `Skill` tool is required; a loaded skill is already activated/);
-  assert.match(output, /Host-native execution is not a protocol deviation and needs no extra approval/);
+  assert.match(output, /load the registered `\.agents\/skills\/<name>\/SKILL\.md` and execute it with Codex tools/);
+  assert.match(output, /no separate `Skill` tool or Claude mode switch is needed/);
+  assert.match(output, /A name mismatch needs no approval/);
   assert.ok(output.endsWith('# Review\nKeep every required gate.\n'));
 });
 
@@ -27,9 +27,9 @@ test('Codex execution paths remain distinct from canonical authoring paths', () 
   // Given a selected skill; when its execution paths are explained for Codex.
   const output = prependCodexCompatibilityNote('# Review\n');
   // Then authoring-source inspection cannot change the active host.
-  assert.match(output, /prefer the registered `\.agents\/skills\/<name>\/SKILL\.md` for Codex execution/);
-  assert.match(output, /`\.claude\/\*\*` remains the canonical authoring source/);
-  assert.match(output, /reading it for a registry or source inspection does not switch this session to Claude Code/);
+  assert.match(output, /load the registered `\.agents\/skills\/<name>\/SKILL\.md`/);
+  assert.match(output, /Author `\.claude\/\*\*`; mirrors are generated/);
+  assert.match(output, /no separate `Skill` tool or Claude mode switch is needed/);
 });
 
 // Intent: normal host adaptation cannot waive an actually missing capability or gate.
@@ -37,10 +37,10 @@ test('real missing capabilities still require an evidenced escalation', () => {
   // Given a required gate; when normal host adaptation is explained.
   const output = prependCodexCompatibilityNote('# Review\n');
   // Then a real capability failure still blocks and requires evidence.
-  assert.match(output, /Continue when Codex can perform the required operation/);
-  assert.match(output, /stop and ask only when the actual capability is unavailable, naming the step and evidence/);
-  assert.match(output, /If a required step\/tool cannot run in this environment, stop and ask the user before adapting/);
-  assert.match(output, /gate steps fixed/);
+  assert.match(output, /Map foreign tool names to available host capabilities/);
+  assert.match(output, /an actually unavailable required capability stops with its step\/evidence/);
+  assert.match(output, /a user question before adaptation/);
+  assert.match(output, /gates stay fixed/);
 });
 
 test('Claude tool translation preserves the required operation and gate constraints', () => {
@@ -75,7 +75,7 @@ test('universal workflow guidance supports every host while preserving authority
 // Intent: generic ask-user instructions retain explicit tool use in every mirror.
 test('user-question instructions use the ask user question tool', () => {
   const output = prependCodexCompatibilityNote('# Review\nAsk the user before proceeding.\n');
-  assert.match(output, /Use ask user question tool to ask user\./);
+  assert.match(output, /Use the native question tool for required questions\./);
   assert.ok(output.endsWith('Ask the user before proceeding.\n'));
   for (const input of ['via `AskUserQuestion`', 'via AskUserQuestion', '`AskUserQuestion` decision', 'Use `AskUserQuestion`', 'Use AskUserQuestion', 'Use ask user question tool']) {
     const rewritten = rewriteClaudeToolTermsForCodex(input);

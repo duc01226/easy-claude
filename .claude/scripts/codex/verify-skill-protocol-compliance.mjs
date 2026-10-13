@@ -92,12 +92,15 @@ const DEBUGGER_TRACE_REQUIRED_GENERATED_SKILLS = DEBUGGER_TRACE_REQUIRED_SOURCE_
     .map(relPath => relPath.replace('.claude/skills/', '.agents/skills/').replace(/\/skill\.md$/i, '/SKILL.md'));
 
 const REQUIRED_CONTRACT_SNIPPETS = [
-    'Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.',
-    'Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.',
+    'load the registered `.agents/skills/<name>/SKILL.md` and execute it with Codex tools',
+    'Author `.claude/**`; mirrors are generated.',
+    'Track steps before execution and keep progress/evidence current.',
+    'Explicit skill requests execute their protocol.',
+    'Use the native question tool for required questions.',
+    'an actually unavailable required capability stops with its step/evidence and a user question before adaptation.',
     'Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.',
-    'Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.',
-    'For workflow skills, steps follow the guided contract in `$start-workflow` (gate steps fixed; other steps may flex with a logged reason); report step-by-step evidence.',
-    'If a required step/tool cannot run in this environment, stop and ask the user before adapting.'
+    'Preserve protocol order unless the user approves a deviation.',
+    'Workflows use `$start-workflow`: gates stay fixed; other steps may flex with logged reasons and evidence.'
 ];
 
 // P6 — the universal protocol text is carried by no root file or mirror. The universal hook delivers it
@@ -175,7 +178,10 @@ function parseSkillFrontmatter(content) {
         const rawValue = valueMatch[1].trim();
         values[key] = rawValue.replace(/^['"]|['"]$/g, '').trim();
     }
-    return { keys, values };
+    // Optional parser stays lazy for the standalone verifier's minimal fixtures.
+    const concise = keys.includes('metadata')
+        && require('../lib/skill-instruction-profile.cjs').hasConciseInstructions(content);
+    return { keys, values, concise };
 }
 
 function parseBooleanFrontmatterValue(value) {
@@ -186,7 +192,7 @@ function parseBooleanFrontmatterValue(value) {
     return null;
 }
 
-function missingSnippets(content) {
+export function missingSnippets(content) {
     return REQUIRED_CONTRACT_SNIPPETS.filter(snippet => !content.includes(snippet));
 }
 
@@ -636,6 +642,9 @@ async function main() {
                 }
 
                 const sourceFrontmatter = sourceFrontmatterByRel.get(generatedRel);
+                if (Boolean(sourceFrontmatter?.concise) !== Boolean(frontmatter.concise)) {
+                    failures.push(`${relativePath} instruction-profile mismatch with source (.claude/skills/${generatedRel})`);
+                }
                 const sourceDisableModelInvocation = parseBooleanFrontmatterValue(sourceFrontmatter?.values?.['disable-model-invocation']);
                 const generatedDisableModelInvocation = parseBooleanFrontmatterValue(frontmatter.values?.['disable-model-invocation']);
                 if (sourceDisableModelInvocation !== generatedDisableModelInvocation) {
@@ -649,7 +658,7 @@ async function main() {
                 }
             }
 
-            const missing = missingSnippets(content);
+            const missing = frontmatter?.concise ? [] : missingSnippets(content);
             if (missing.length > 0) {
                 failures.push(`${relativePath} missing contract snippet(s): ${missing.join(' | ')}`);
             }

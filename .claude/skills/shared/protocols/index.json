@@ -235,6 +235,34 @@
       ]
     },
     {
+      "tag": "concise-agent-core",
+      "group": "design",
+      "summary": "Consolidated essential working and discovery contract",
+      "when": "concise universal delivery",
+      "chars": 8948,
+      "file": ".claude/skills/shared/protocols/concise-agent-core.md",
+      "parts": [
+        {
+          "file": ".claude/skills/shared/protocols/concise-agent-core.md",
+          "chars": 8948
+        }
+      ]
+    },
+    {
+      "tag": "concise-workflow-route",
+      "group": "design",
+      "summary": "Compact routing authority and catalog retrieval cues",
+      "when": "concise route delivery",
+      "chars": 2958,
+      "file": ".claude/skills/shared/protocols/concise-workflow-route.md",
+      "parts": [
+        {
+          "file": ".claude/skills/shared/protocols/concise-workflow-route.md",
+          "chars": 2958
+        }
+      ]
+    },
+    {
       "tag": "context-engineering-principles",
       "group": "workflow-task",
       "summary": "Prompt clarity and semantic retention principles",
@@ -1237,12 +1265,12 @@
       "group": "universal",
       "summary": "Task breakdown, task-graph analysis and the session goal ledger",
       "when": "delivered by the universal hook",
-      "chars": 1225,
+      "chars": 1350,
       "file": ".claude/skills/shared/protocols/task-planning-rules.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/task-planning-rules.md",
-          "chars": 1225
+          "chars": 1350
         }
       ]
     },

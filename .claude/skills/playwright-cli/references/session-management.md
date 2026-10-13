@@ -5,15 +5,15 @@ Run multiple isolated browser sessions concurrently with state persistence.
 <!-- SKILL-NAV:START -->
 ## Contents
 
-- Named Browser Sessions
-- Browser Session Isolation Properties
-- Browser Session Commands
-- Environment Variable
-- Common Patterns
-- Attaching to a Running Browser
-- Default Browser Session
-- Browser Session Configuration
-- Best Practices
+- [Named Browser Sessions](#named-browser-sessions)
+- [Browser Session Isolation Properties](#browser-session-isolation-properties)
+- [Browser Session Commands](#browser-session-commands)
+- [Environment Variable](#environment-variable)
+- [Common Patterns](#common-patterns)
+- [Attaching to a Running Browser](#attaching-to-a-running-browser)
+- [Default Browser Session](#default-browser-session)
+- [Browser Session Configuration](#browser-session-configuration)
+- [Best Practices](#best-practices)
 
 <!-- SKILL-NAV:END -->
 

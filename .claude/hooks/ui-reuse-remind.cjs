@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 'use strict';
 
+if ((require.main === module || !require.main) && require('./lib/framework-runtime.cjs').skipHook(module)) return;
+
 /**
  * Default-on concise UI reuse reminder: every prompt and before matching frontend reads/changes
  * or plan loads. SessionStart compact/clear silently re-arms blind contexts.

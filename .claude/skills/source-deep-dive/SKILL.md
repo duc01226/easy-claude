@@ -40,6 +40,20 @@ description: '[Research] Use when a workflow step or the user asks for deep anal
 
 **Critical thinking:** Be skeptical; apply critical/sequential thinking; trace every claim and state confidence (>80% to act).
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Deep Research](#deep-research)
+- [Knowledge Work Rules](#knowledge-work-rules)
+- [Step 1: Load Source Map](#step-1-load-source-map)
+- [Step 2: Fetch Top Sources](#step-2-fetch-top-sources)
+- [Step 3: Extract Findings](#step-3-extract-findings)
+- [Step 4: Cross-Validate](#step-4-cross-validate)
+- [Step 5: Build Evidence Base](#step-5-build-evidence-base)
+- [Next Steps](#next-steps)
+- [Prompt-Enhance Closing Anchors](#prompt-enhance-closing-anchors)
+- [Closing Reminders](#closing-reminders)
+
 # Deep Research
 
 ## Knowledge Work Rules

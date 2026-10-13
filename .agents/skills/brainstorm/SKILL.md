@@ -5,18 +5,11 @@ disable-model-invocation: false
 ---
 
 > Codex compatibility note:
-> - Invoke repository skills with `$skill-name` in Codex; this mirrored copy rewrites legacy Claude `/skill-name` references.
-> - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
-> - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
-> - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
-> - Use ask user question tool to ask user.
-> - Ignore Claude-specific mode-switch instructions when they appear.
-> - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
+> - Invoke `$skill-name`: load the registered `.agents/skills/<name>/SKILL.md` and execute it with Codex tools; no separate `Skill` tool or Claude mode switch is needed. Author `.claude/**`; mirrors are generated.
+> - Track steps before execution and keep progress/evidence current. Explicit skill requests execute their protocol. Use the native question tool for required questions.
+> - Map foreign tool names to available host capabilities. A name mismatch needs no approval; an actually unavailable required capability stops with its step/evidence and a user question before adaptation.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
-> - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
-> - For workflow skills, steps follow the guided contract in `$start-workflow` (gate steps fixed; other steps may flex with a logged reason); report step-by-step evidence.
-> - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
+> - Preserve protocol order unless the user approves a deviation. Workflows use `$start-workflow`: gates stay fixed; other steps may flex with logged reasons and evidence.
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
 > **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
@@ -79,6 +72,30 @@ Discover ──► Define               Develop ──► Deliver
 **Be skeptical. Apply critical thinking. Every idea needs a testable hypothesis. Confidence >80% required before recommending.**
 
 ---
+
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Roadmap and Scope Modes](#roadmap-and-scope-modes)
+- [Answer this question:](#answer-this-question)
+- [Phase 0: Session Setup (MANDATORY)](#phase-0-session-setup-mandatory)
+- [Phase 1: Problem Framing — Diamond 1 Diverge](#phase-1-problem-framing--diamond-1-diverge)
+- [Phase 2: Opportunity Framing — Diamond 1 Converge](#phase-2-opportunity-framing--diamond-1-converge)
+- [Phase 3: Ideation — Diamond 2 Diverge](#phase-3-ideation--diamond-2-diverge)
+- [Phase 4: Evaluation & Convergence — Diamond 2 Converge](#phase-4-evaluation--convergence--diamond-2-converge)
+- [Phase 5: Hypothesis Validation](#phase-5-hypothesis-validation)
+- [Phase 6: Decision & Recommendations](#phase-6-decision--recommendations)
+- [Multi-Opportunity Discovery Mode](#multi-opportunity-discovery-mode)
+- [Phase 7: Documentation & Handoff](#phase-7-documentation--handoff)
+- [Technique Quick Reference](#technique-quick-reference)
+- [Role-Specific Guidance](#role-specific-guidance)
+- [Collaboration Tools](#collaboration-tools)
+- [Scenario Cheat Sheets](#scenario-cheat-sheets)
+- [Anti-Patterns to Avoid](#anti-patterns-to-avoid)
+- [Critical Constraints](#critical-constraints)
+- [Workflow Integration](#workflow-integration)
+- [Prompt-Enhance Closing Anchors](#prompt-enhance-closing-anchors)
+- [Closing Reminders](#closing-reminders)
 
 ## Roadmap and Scope Modes
 

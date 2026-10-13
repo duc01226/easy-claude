@@ -3,36 +3,37 @@ Read the relevant sections when implementing beyond basic scene creation. Paths 
 <!-- SKILL-NAV:START -->
 ## Contents
 
-- Animations (Core Rules)
-- Timing — interpolate & Bézier Easing
-- Sequencing & Trimming
-- Compositions
-- Assets — staticFile() & public folder
-- Images
-- Videos
-- Audio
-- GIFs & Animated Images
-- Fonts
-- Transitions (Full API)
-- Light Leaks (Overlay Effect)
-- 3D with Three.js (React Three Fiber)
-- Text Animations
-- Text Measurement
-- DOM Node Measurement
-- Captions & Subtitles
-- Dynamic Compositions — calculateMetadata
-- Parameters — Zod Schema
-- Mediabunny — Video/Audio Metadata
-- FFmpeg in Remotion
-- Silence Detection
-- Audio Visualization
-- Lottie Animations
-- Charts & Data Visualization
-- Maps with Mapbox
-- Transparent Video Rendering
-- AI Voiceover (ElevenLabs TTS)
-- Sound Effects
-- TailwindCSS
+- [Remotion API Reference](#remotion-api-reference)
+- [Animations (Core Rules)](#animations-core-rules)
+- [Timing — interpolate & Bézier Easing](#timing--interpolate--bézier-easing)
+- [Sequencing & Trimming](#sequencing--trimming)
+- [Compositions](#compositions)
+- [Assets — staticFile() & public folder](#assets--staticfile--public-folder)
+- [Images](#images)
+- [Videos](#videos)
+- [Audio](#audio)
+- [GIFs & Animated Images](#gifs--animated-images)
+- [Fonts](#fonts)
+- [Transitions (Full API)](#transitions-full-api)
+- [Light Leaks (Overlay Effect)](#light-leaks-overlay-effect)
+- [3D with Three.js (React Three Fiber)](#3d-with-threejs-react-three-fiber)
+- [Text Animations](#text-animations)
+- [Text Measurement](#text-measurement)
+- [DOM Node Measurement](#dom-node-measurement)
+- [Captions & Subtitles](#captions--subtitles)
+- [Dynamic Compositions — calculateMetadata](#dynamic-compositions--calculatemetadata)
+- [Parameters — Zod Schema](#parameters--zod-schema)
+- [Mediabunny — Video/Audio Metadata](#mediabunny--videoaudio-metadata)
+- [FFmpeg in Remotion](#ffmpeg-in-remotion)
+- [Silence Detection](#silence-detection)
+- [Audio Visualization](#audio-visualization)
+- [Lottie Animations](#lottie-animations)
+- [Charts & Data Visualization](#charts--data-visualization)
+- [Maps with Mapbox](#maps-with-mapbox)
+- [Transparent Video Rendering](#transparent-video-rendering)
+- [AI Voiceover (ElevenLabs TTS)](#ai-voiceover-elevenlabs-tts)
+- [Sound Effects](#sound-effects)
+- [TailwindCSS](#tailwindcss)
 
 <!-- SKILL-NAV:END -->
 

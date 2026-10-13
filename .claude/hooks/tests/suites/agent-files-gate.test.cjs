@@ -529,9 +529,10 @@ const generatorTests = [
         fn: async () => {
             const tmpl = fs.readFileSync(TEMPLATE_PATH, 'utf-8');
             for (const marker of UNIVERSAL_MARKERS) assertTrue(!marker.test(tmpl), `template carries no ${marker}`);
-            for (const section of ['tldr', 'doc-lookup', 'golden-rules', 'dev-commands', 'skill-activation']) {
+            for (const section of ['tldr', 'doc-lookup', 'golden-rules', 'dev-commands']) {
                 assertContains(tmpl, `<!-- SECTION:${section} -->`, `template keeps the generated ${section} section`);
             }
+            assertTrue(!tmpl.includes('<!-- SECTION:skill-activation -->'), 'framework activation stays out of project roots');
         }
     }
 ];

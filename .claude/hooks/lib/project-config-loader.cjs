@@ -26,6 +26,7 @@ const {
 const { resolveProjectRoot } = require('./project-root.cjs');
 const { normalizeRootPath, escapesRepoRoot, isPathWithinRoot, joinRoot, sanitizePath } = require('./ck-path-utils.cjs');
 const { validateConfig } = require('./project-config-schema.cjs');
+const { deferNewerTracking } = require('./task-tracking-config.cjs');
 
 // Resolve from the nearest portable bundle, not the caller's current directory.
 // This keeps Claude hooks and Codex entrypoints equivalent when invoked from a
@@ -181,7 +182,7 @@ function getProjectConfigStatus({ refresh = false } = {}) {
     try {
         const parsed = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
         const candidate = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
-        const validation = validateConfig(parsed);
+        const validation = deferNewerTracking(parsed, validateConfig(parsed));
         _cache = candidate;
         _configStatus = {
             state: validation.valid ? 'valid' : 'invalid',
@@ -237,7 +238,7 @@ function readProjectConfigAt(rootDir) {
         const { readBytes } = require('./task-tracking-files.cjs');
         const relative = path.relative(root, filePath).replace(/\\/g, '/');
         const config = JSON.parse(readBytes(root, relative).toString('utf8'));
-        const result = validateConfig(config);
+        const result = deferNewerTracking(config, validateConfig(config));
         return { state: result.valid ? 'valid' : 'invalid', config, ...result, filePath };
     } catch (error) {
         if (error.code === 'ENOENT') return { state: 'missing', config: {}, errors: [], warnings: [], filePath };

@@ -4,18 +4,11 @@ description: '[Architecture] Use when a workflow step or the user asks for proje
 ---
 
 > Codex compatibility note:
-> - Invoke repository skills with `$skill-name` in Codex; this mirrored copy rewrites legacy Claude `/skill-name` references.
-> - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
-> - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
-> - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
-> - Use ask user question tool to ask user.
-> - Ignore Claude-specific mode-switch instructions when they appear.
-> - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
+> - Invoke `$skill-name`: load the registered `.agents/skills/<name>/SKILL.md` and execute it with Codex tools; no separate `Skill` tool or Claude mode switch is needed. Author `.claude/**`; mirrors are generated.
+> - Track steps before execution and keep progress/evidence current. Explicit skill requests execute their protocol. Use the native question tool for required questions.
+> - Map foreign tool names to available host capabilities. A name mismatch needs no approval; an actually unavailable required capability stops with its step/evidence and a user question before adaptation.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
-> - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
-> - For workflow skills, steps follow the guided contract in `$start-workflow` (gate steps fixed; other steps may flex with a logged reason); report step-by-step evidence.
-> - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
+> - Preserve protocol order unless the user approves a deviation. Workflows use `$start-workflow`: gates stay fixed; other steps may flex with logged reasons and evidence.
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
 > **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
@@ -42,6 +35,25 @@ description: '[Architecture] Use when a workflow step or the user asks for proje
 - **MUST ATTENTION** use evidence to resolve applicability, scope, and completion; **NEVER** guess missing runners, commands, or patterns.
 - **MUST ATTENTION** treat checklists as adaptable templates and confirm the final checklist before generating code.
 - **MUST ATTENTION** apply the project's selected architecture and applicable design principles, verify required foundations, and keep `$feature-implement` blocked until the Verification Gate passes.
+
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Activation Guards (MANDATORY — Check Before Executing)](#activation-guards-mandatory--check-before-executing)
+- [When to Use](#when-to-use)
+- [Workflow](#workflow)
+- [Backend Scaffolding Categories](#backend-scaffolding-categories)
+- [Frontend Scaffolding Categories](#frontend-scaffolding-categories)
+- [Example / Golden-Path Reference Scaffolding (when it improves adoption)](#example--golden-path-reference-scaffolding-when-it-improves-adoption)
+- [Code Quality Gate Selection (MANDATORY MUST ATTENTION — Before Feature Code)](#code-quality-gate-selection-mandatory-must-attention--before-feature-code)
+- [Project Foundation Selection (MANDATORY assessment; foundations are conditional)](#project-foundation-selection-mandatory-assessment-foundations-are-conditional)
+- [OOP/SOLID Compliance Rules (when selected by the project)](#oopsolid-compliance-rules-when-selected-by-the-project)
+- [Adaptation Protocol](#adaptation-protocol)
+- [Output](#output)
+- [Verification Gate (MANDATORY before proceeding to $feature-implement)](#verification-gate-mandatory-before-proceeding-to-feature-implement)
+- [Next Steps](#next-steps)
+- [Prompt-Enhance Closing Anchors](#prompt-enhance-closing-anchors)
+- [Closing Reminders](#closing-reminders)
 
 ## Activation Guards (MANDATORY — Check Before Executing)
 

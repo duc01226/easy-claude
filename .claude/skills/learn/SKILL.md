@@ -50,6 +50,19 @@ disable-model-invocation: false
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Usage](#usage)
+- [Reference Doc Catalog (READ before routing)](#reference-doc-catalog-read-before-routing)
+- [Smart File Routing (CRITICAL)](#smart-file-routing-critical)
+- [Budget Enforcement (MANDATORY for `lessons.md`)](#budget-enforcement-mandatory-for-lessonsmd)
+- [Behavior](#behavior)
+- [Auto-Inferred Activation](#auto-inferred-activation)
+- [How Lessons Reach the AI](#how-lessons-reach-the-ai)
+- [Prompt Enhancement (MANDATORY final step)](#prompt-enhancement-mandatory-final-step)
+- [Closing Reminders](#closing-reminders)
+
 ## Usage
 
 ### Add a lesson

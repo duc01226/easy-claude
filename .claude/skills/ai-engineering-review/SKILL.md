@@ -72,6 +72,30 @@ context-budget: high
 - Every finding names a clause (`AF-n` / `AE-x.y`), a checklist ID, `file:line` (or plan section), a P-level, a trigger path and a concrete fix at the owner of the violated contract. Never invent a cost, latency or accuracy number — unmeasurable is `NOT VERIFIABLE`.
 - Review is read-only until `/why-review --validate-findings` confirms findings; a fix that blocks the current round restarts a full review from Phase 0 with brand-new tasks.
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Your Mission](#your-mission)
+- [Report-Only Mode (`--report-only`)](#report-only-mode---report-only)
+- [Plan Mode (`--mode=plan`)](#plan-mode---modeplan)
+- [First Principle — Easy to Change · Easy to Scale · Easy to Maintain](#first-principle--easy-to-change--easy-to-scale--easy-to-maintain)
+- [Review Mindset (NON-NEGOTIABLE)](#review-mindset-non-negotiable)
+- [Phase 0: Load (MANDATORY FIRST) (MUST ATTENTION)](#phase-0-load-mandatory-first-must-attention)
+- [Phase 1: Determine Scope and Detect the AI Surface](#phase-1-determine-scope-and-detect-the-ai-surface)
+- [Phase 2: AI-Surface Map, Trust Boundaries, Autonomy (`AR-1`, `AR-5`)](#phase-2-ai-surface-map-trust-boundaries-autonomy-ar-1-ar-5)
+- [Phase 3: Framing Pass (`AF-1`–`AF-6`)](#phase-3-framing-pass-af-1af-6)
+- [Phase 4: Nine AE Dimension Passes](#phase-4-nine-ae-dimension-passes)
+- [Phase 5: Conditional Sweeps](#phase-5-conditional-sweeps)
+- [Phase 6: Provider-Fact Verification](#phase-6-provider-fact-verification)
+- [Phase 7: Finalize — AI Gate Report](#phase-7-finalize--ai-gate-report)
+- [Adaptive Review Planning](#adaptive-review-planning)
+- [Phase 8: Why-Review Findings Validation Gate (MANDATORY when findings exist)](#phase-8-why-review-findings-validation-gate-mandatory-when-findings-exist)
+- [Phase 9: Validated Fix + Full Re-Review Loop (standalone `--fix-loop` only, code or plan)](#phase-9-validated-fix--full-re-review-loop-standalone---fix-loop-only-code-or-plan)
+- [Next Steps](#next-steps)
+- [AI Agent Integrity Gate (NON-NEGOTIABLE)](#ai-agent-integrity-gate-non-negotiable)
+- [Prompt-Enhance Closing Anchors](#prompt-enhance-closing-anchors)
+- [Closing Reminders](#closing-reminders)
+
 ## Your Mission
 
 <task>

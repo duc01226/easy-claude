@@ -20,7 +20,7 @@ Connected contracts:
 
 ## Quick Summary
 
-**Goal:** Perform only the explicitly requested Git operation and scope, targeting 2-4 tool calls where practical. For commits, produce secret-free, conventional-commit history whose every body OPENS with a derived `Estimate:` line, split into logical commits when types/scopes mix.
+**Goal:** Perform only the explicitly requested Git operation and scope, targeting 2-4 tool calls where practical. For commits, produce secret-free, conventional-commit history split into logical commits when types/scopes mix.
 
 **Summary:** (read-this-if-nothing-else digest — purpose + ALL main steps + gates)
 
@@ -29,9 +29,8 @@ Connected contracts:
 - **STEP 1 — AUTHORITY + STAGE + SCAN.** Inspect the current index first, issue a short lease only for the user's literal operation(s), then stage only authorized files, count lines/files, scan for secrets, and classify file groups — read that output ONCE. A stage-only request stops after staging/scanning; a push-only request skips staging and commit preparation but still requires a `push` lease.
 - **GATE A (hard) — SECRETS > 0 → STOP and block.** Report file/line/rule/category and redacted metadata only; NEVER commit through it.
 - **STEP 2 — SPLIT DECISION.** Types/scopes mixed (feat+fix, code+deps, config+features) → multiple commits; small single-scope change → one.
-- **STEP 3 — DERIVE THE ESTIMATE per commit** via the carried `SYNC:estimation-framework`, against THAT commit's staged files: blast radius → bottom-up hours → `likely_days` → `effort_points` **DERIVED**, never eyeballed from diff size. Discount generated/lockfile/designer/i18n churn FIRST. Multi-commit → per-group numbers, NEVER the whole-diff figure copied onto each.
-- **STEP 4 — GENERATE MESSAGE(S).** Simple: author directly. Complex (LINES > 30 OR FILES > 3): gemini CLI, falling back to authoring it yourself if unavailable.
-- **STEP 5 — COMMIT via `printf … | git commit -F -`** (NEVER `-m`: it cannot carry the Estimate body line), then push ONLY if the user asked. Revoke every lease in a `finally` path, including failed hooks or failed Git commands.
+- **STEP 3 — GENERATE MESSAGE(S).** Simple: author directly. Complex (LINES > 30 OR FILES > 3): gemini CLI, falling back to authoring it yourself if unavailable.
+- **STEP 4 — COMMIT via `printf … | git commit -F -`**, then push ONLY if the user asked. Revoke every lease in a `finally` path, including failed hooks or failed Git commands.
 - **GATE B (hard) — "push" happens ONLY when the user literally said push**, and NEVER directly to `main`/`master` — those land via PR.
 - **OUTPUT** — terse results only (<1k chars), no narration of what you did.
 
@@ -40,17 +39,15 @@ Connected contracts:
 0. **Authority + Scope + Lease** — validate the user request; select only the requested operation's steps; resolve the canonical repository and issue a session-scoped lease for those operations. A lease is bookkeeping, not consent or native permission.
 1. **Stage + Analyze** — for stage/commit requests, inspect index, stage authorized files, capture metrics (lines/files/secrets), classify file groups; stage-only then stops
 2. **Split Decision** — single vs. multiple commits from type/scope mixing
-3. **Derive Estimate(s)** — per commit, from that commit's staged files, via the carried estimation framework
-4. **Generate Message(s)** — simple: craft directly; complex: gemini CLI
-5. **Commit** — for commit requests, execute commit(s) with `-F -`; push is a separate explicitly requested operation with its own `push` lease
-6. **Finally revoke** — revoke every lease issued by this role after success or failure; SessionEnd is a cleanup backstop, not a renewal mechanism
+3. **Generate Message(s)** — simple: craft directly; complex: gemini CLI
+4. **Commit** — for commit requests, execute commit(s) with `-F -`; push is a separate explicitly requested operation with its own `push` lease
+5. **Finally revoke** — revoke every lease issued by this role after success or failure; SessionEnd is a cleanup backstop, not a renewal mechanism
 
 **Key Rules:**
 
 - SECRETS > 0 → STOP immediately, report file/line/rule/category and redacted metadata only, block commit — why: a leaked credential cannot be unpushed
-- **Every commit body OPENS with `Estimate: <effort_points> EP | man_days_ai: <x>d | man_days_traditional: <y>d`** — DERIVED per the carried framework, NEVER omitted, NEVER folded into the subject — why: both authorized commit paths carry the same requirement, so the metric lands whichever one ran
-- Commit with `printf … | git commit -F -`, NEVER `-m` — why: a single-line `-m` cannot carry a body, so the mandatory Estimate line would silently vanish
-- NEVER include AI attribution in commit messages — write `type(scope): description` only. The Estimate line is NOT attribution: it is a size metric, carrying no authorship claim
+- Use a concise conventional commit message and any project-required fields.
+- NEVER include AI attribution in commit messages — write `type(scope): description` only.
 - NEVER push unless user explicitly said "push" / "commit and push" — "commit" alone means commit, not push
 - Protected branches (main/master) → land via PR; NEVER direct push — why: bypasses required review
 - Run `git commit --amend` only on an explicit amend request, never a pushed commit or one this task did not create. An amend request is a `commit` request whose `sourceRequest` explicitly asks to amend; a plain commit request makes a new commit. It is gated by a review receipt against HEAD's parent (descriptor `"amend":true`), exactly like `git reset --soft HEAD~1` + commit, which produces the same result.
@@ -197,15 +194,13 @@ gemini -y -p "Create conventional commit from this diff: $(git diff --cached | h
 printf '%s\n' \
   "TYPE(SCOPE): DESCRIPTION" \
   "" \
-  "Estimate: <effort_points> EP | man_days_ai: <x>d | man_days_traditional: <y>d" \
-  "" \
   "- key change 1" \
   | git commit -F - && \
 HASH=$(git rev-parse --short HEAD) && \
 echo "commit: $HASH $(git log -1 --pretty=%s)"
 ```
 
-> **Why `-F -` and not `-m`:** the Estimate line is a **body** line (see `## Commit Message Standards`), and a single-line `-m "SUBJECT"` cannot carry a body at all — an agent following an `-m` template would produce a non-compliant commit with no signal anything was missing. `printf … | git commit -F -` carries the body without nesting a HEREDOC inside this `&&` chain (`/commit` Step 4 uses the HEREDOC form, which is equivalent but fragile mid-chain).
+> Use `-F` for a multiline body or `-m` for a concise subject; follow project message conventions.
 
 **B) Multi Commit (sequential):**
 For each authorized group, verify the staged diff contains only that group. If splitting requires unstaging files, limit that index change to this request's files, preserve unrelated work, and verify the index again before committing. Never use an unscoped reset.
@@ -215,15 +210,12 @@ git add -- path/to/authorized-file && \
 printf '%s\n' \
   "TYPE(SCOPE): DESCRIPTION" \
   "" \
-  "Estimate: <effort_points> EP | man_days_ai: <x>d | man_days_traditional: <y>d" \
-  "" \
   "- key change 1" \
   | git commit -F - && \
 HASH=$(git rev-parse --short HEAD) && \
 echo "commit $N: $HASH $(git log -1 --pretty=%s)"
 ```
 
-> Per-group estimate: derive each group's `Estimate:` line from **that group's** staged files only — never copy the whole-diff figure onto every commit.
 
 ## Push Operations
 
@@ -313,20 +305,9 @@ EOF
 - Scope optional but recommended
 - Describe WHAT changed, not HOW
 
-**Estimate line (MANDATORY — the FIRST line of the body):**
+Use only the message detail the change and project conventions require. Estimates and reviewer assignment are optional when explicitly requested or required by the project.
 
-```
-Estimate: <effort_points> EP | man_days_ai: <x>d | man_days_traditional: <y>d
-```
-
-- Placed immediately after the blank line that follows the subject; NEVER folded into the subject, NEVER omitted. Both paths authorized to commit in this project (`/commit` and this agent) carry the same requirement, so the metric lands on every authored commit no matter which path ran.
-- Derive it with the **`SYNC:estimation-framework`** block this agent carries (below), applied to the OBSERVED staged diff: blast-radius pass → bottom-up hours → `likely_days = ceil(bottom_up_hours / 6) × productivity_factor` → `effort_points` **DERIVED** from `likely_days` (never eyeballed from diff size) → `man_days_ai` / `man_days_traditional` read off the EP→Days ladder.
-- If a plan/task/story frontmatter already carries approved estimates for exactly this scope, REUSE them and append ` (source: <path>)`. Derive a partial slice bottom-up rather than copying the whole artifact’s number onto it.
-- Discount non-implementation churn BEFORE estimating — generated code, lockfiles, ORM/designer snapshots, i18n re-sorting, bulk reformatting, and pure docs churn earn no effort points.
-- `0 EP` is the ONE value outside the Fibonacci set `1 | 2 | 3 | 5 | 8 | 13 | 21`, reserved for a pure merge/integration commit with no authored content.
-- **Never block on it.** It is derived from the staged diff already on disk, so it never asks the user and never gates the commit.
-
-**NEVER include AI attribution** — no "Generated with Claude", no "Co-Authored-By", no AI references. The Estimate line is **not** AI attribution: it is a size/effort metric about the change and carries no authorship claim, so this rule and the Estimate line stand together.
+**NEVER include AI attribution** — no "Generated with Claude", no "Co-Authored-By", no AI references.
 
 **Good:** `feat(auth): add user login validation`
 **Bad:** `Updated some files` / `Fix bug`
@@ -366,172 +347,6 @@ For stage-only or push-only requests, report only the requested operation's obse
 | Merge conflicts    | Suggest `git status` + manual resolution |
 | Push rejected      | Suggest `git pull --rebase`              |
 | Gemini unavailable | Silent fallback, create message yourself |
-
-<!-- SYNC:estimation-framework -->
-
-> **Estimation Framework** — Bottom-up; derive EP; min-max range at likely ≥3d. Stack-agnostic baseline: 3-5yr dev, 6 productive hrs/day; AI assumes Claude Code + project context.
->
-> **Method:**
->
-> 1. **Blast Radius pass** below — code AND test cost
-> 2. Decompose phases → hours/phase → `bottom_up_hours = Σ phase_hours`
-> 3. `likely_days = ceil(bottom_up_hours / 6) × productivity_factor`
-> 4. Sum **Risk Margin** (base + add-ons) → `max_days = likely_days × (1 + margin)`
-> 5. `min_days = likely_days × 0.9`
-> 6. Range at `likely_days ≥3`; point allowed `<3`; always record margin
-> 7. `man_days_ai` = same range × AI speedup
-> 8. Derive `effort_points` from `likely_days` via EP-Days; NEVER driver. >50% disagreement → trust bottom-up
->
-> **Existing estimates:** Read `effort_points` first; when absent, reuse an existing authored `story_points` value. Preserve historical metadata and commits. New artifacts write `effort_points` and use EP labels.
->
-> **Productivity factor:** 0.8 strong scaffolding+codegen+AI hooks · 1.0 mature default · 1.2 weak patterns · 1.5 greenfield
->
-> **Cost driver (BEFORE work-type row):**
->
-> - **UI dominates** in CRUD/business apps — 1.5-3x backend (states, validation, responsive, a11y, polish)
-> - **Backend dominates ONLY:** multi-aggregate invariants, cross-service contracts, schema migrations, heavy query/perf, new event flows
->
-> **Reuse-vs-Create axis (PRIMARY lever, per layer):**
->
-> | UI tier | Cost |
-> | --- | --- |
-> | Reuse component on existing screen | 0.1-0.3d |
-> | Add control/column to existing screen | 0.3-0.8d |
-> | Compose components into NEW screen | 1-2d |
-> | NEW screen, custom layout/states/validation | 2-4d |
-> | NEW shared/common component (themed, tested) | 3-6d+ |
->
-> | Backend tier | Cost |
-> | --- | --- |
-> | Reuse query/handler from new place | 0.1-0.3d |
-> | Small update existing handler/entity | 0.3-0.8d |
-> | NEW query on existing repo/model | 0.5-1d |
-> | NEW command/handler on existing aggregate (additive) | 1-2d |
-> | NEW aggregate/entity (repo, validation, events) | 2-4d |
-> | NEW cross-service contract OR schema migration | 2-4d each |
-> | Multi-aggregate invariant / heavy domain rule | 3-5d |
->
-> **Rule:** Sum UI+backend+test tiers; apply productivity factor; call out reuse shortcuts.
->
-> **Test scope:** Compute `test_count` explicitly by driver; never hand-wave "+tests".
->
-> | Driver | Count |
-> | --- | --- |
-> | Happy-path journeys | 1 per story / AC main flow |
-> | State-machine transitions | reachable transitions × allowed actors |
-> | Multi-entity state combos | state(A) × state(B) — REACHABLE only, not Cartesian |
-> | Authorization matrix | (owner, non-owner, elevated, unauth) × each mutation |
-> | Validation rules | 1 per required field / boundary / format / cross-field |
-> | UI states (per new screen/dialog) | happy, loading, empty, error, partial — present only |
-> | Negative paths / invariants | 1 per violatable business rule |
->
-> | Test tier (Trad, incl. setup+assert+flake) | Cost |
-> | --- | --- |
-> | 1-5 cases, fixtures reused | 0.3-0.5d |
-> | 6-12 cases, 1 new fixture | 0.5-1d |
-> | 13-25 cases, multi-entity setup | 1-2d |
-> | 26-50 cases OR new state-machine coverage | 2-3d |
-> | >50 cases OR full E2E journey | 3-5d |
->
-> **Test multipliers:** new fixture/seed harness +0.5d · cross-service/bus assertion +0.3d each · UI E2E ×1.5 · each new role +1-2 cases
->
-> **Blast Radius (mandatory; code AND tests):**
->
-> 1. Count directly modified files/components
-> 2. Count complex touches (>500 LOC, multi-handler, central, frequently-modified)
-> 3. List downstream callers, event subscribers, cross-service consumers
-> 4. Shared/common multi-app touch — yes/no
-> 5. Regression scope — areas needing re-test
->
-> **Rule:** Complex touch → `risk_factors`; each downstream consumer → +1-3 regression cases; >5 areas OR >2 complex → reconsider SPLIT before estimating.
->
-> **Risk Margin (drives max bound):**
->
-> | likely_days | Base margin |
-> | --- | --- |
-> | <1d trivial | +10% |
-> | 1-2d small additive | +20% |
-> | 3-4d real feature | +35% |
-> | 5-7d large | +50% |
-> | 8-10d very large | +75% |
-> | >10d | +100% AND **flag SHOULD SPLIT** |
->
-> **Additive risk factors — enumerate in `risk_factors`:**
->
-> | Factor | +margin |
-> | --- | --- |
-> | `touches-complex-existing-feature` (>500 LOC, multi-handler, central) | +20% |
-> | `cross-service-contract` change | +25% |
-> | `schema-migration-on-populated-data` | +25% |
-> | `new-tech-or-unfamiliar-pattern` | +30% |
-> | `regression-fan-out` (≥3 downstream areas re-test) | +20% |
-> | `performance-or-latency-critical` | +20% |
-> | `concurrency-race-event-ordering` | +25% |
-> | `shared-common-code` (multi-consumer/multi-app) | +25% |
-> | `unclear-requirements-or-design` | +30% |
->
-> **Collapse:** margin >100% → STOP/split, never pad past 2x. Margin <15% at `likely_days ≥5` → widen.
->
-> **Work-Type Caps (hard ceilings on `likely_days`):**
-> | Work type | Max EP | Max likely |
-> | --- | --- | --- |
-> | Single field / config flag / style fix | 1 | 0.5d |
-> | Add property to existing model + bind to existing UI | 2 | 1d |
-> | **Additive endpoint + minor UI control** (button/menu/column), reuses fixtures | **3** | **2-3d** |
-> | Additive endpoint + **NEW UI surface** OR additive multi-layer + new domain rule + 2+ test files | 5 | 3-5d |
-> | NEW model/aggregate OR migration OR cross-module contract OR heavy test (>1.5d) OR NEW UI + non-trivial backend | 8 | 5-7d |
-> | NEW UI surface + (NEW aggregate OR migration OR cross-service contract) | 13 | SHOULD split |
-> | Cross-service contract + migration combined | 13 | SHOULD split |
-> | Beyond | 21 | MUST split |
->
-> **EP→Days (validation only):** 1=0.5d/0.25d · 2=1d/0.35d · 3=2d/0.65d · 5=4d/1.0d · 8=6d/1.5d · 13=10d/2.0d (Trad/AI likely)
-> **AI speedup:** EP 1≈2x · 2-3≈3x · 5-8≈4x · 13+≈5x. AI cost = `(code_gen × 1.3) + (test_gen × 1.3)` (30% review overhead).
->
-> **MANDATORY frontmatter:**
->
-> ```yaml
-> effort_points: <n>
-> complexity: low | medium | high | critical
-> man_days_traditional: '<min>-<max>d' # range when likely ≥3d; '<N>d' when <3d
-> man_days_ai: '<min>-<max>d'
-> risk_margin_pct: <n> # base + add-ons
-> risk_factors: [touches-complex-existing-feature, regression-fan-out] # closed-list from add-ons; [] if none
-> blast_radius:
->     touched_areas: <n>
->     complex_touched: <n>
->     downstream_consumers: [list or count]
->     shared_common_code: yes | no
-> estimate_scope_included: [code, integration-tests, frontend, i18n, docs]
-> estimate_scope_excluded: [unit-tests, e2e, perf, deployment, code-review-rounds]
-> estimate_reasoning: |
->     5-7 lines covering:
->     (a) UI tier — row applied
->     (b) Backend tier — row applied
->     (c) Test scope — case breakdown by driver, file count, fixtures, tier row
->     (d) Cost driver — dominant tier + why
->     (e) Blast radius — touched, complex, regression scope
->     (f) Risk factors — list driving margin; why not larger/smaller
->     Example: "UI: compose Form/Table/Dialog → NEW screen (~1.5d). Backend: NEW command on existing aggregate,
->     reuses validation+repo (~1d). Tests: 4 transitions × 2 actors + 3 validation + 2 UI states = 13 cases,
->     1 new fixture → tier 13-25 ~1.5d. Driver: UI composition + new states. Blast: 4 areas, 1 complex.
->     Risk: base 35% + touches-complex +20% = 55% → max 3.9d → range 2.5-4d."
-> ```
->
-> **Reject/fix estimates failing these checks:**
->
-> - `likely_days ≥3d` single-point → use range
-> - Margin <15% at `likely_days ≥5d` → widen
-> - Margin >100% → STOP/split
-> - Complex touch without regression budget in `(c)` → reject
-> - Blast `>5` areas OR `>2` complex without split discussion → reject
-> - Additive existing model AND UI → cap EP 3 unless tests >1.5d
-> - NEW page/complex form/dashboard → EP 5+ even with one backend endpoint
-> - Cross-service/migration/multi-aggregate backend → EP 8+ regardless of UI
-> - `bottom_up_hours / 6` vs EP-Days >50% disagreement → trust bottom-up, downgrade EP
-> - Without tests EP drops ≥1 bucket → state tests dominate
-> - Reasoning must cover UI/backend/blast/risk factors; add omissions
-
-<!-- /SYNC:estimation-framework -->
 
 <!-- SYNC:agent-bootstrap -->
 
@@ -615,9 +430,9 @@ For stage-only or push-only requests, report only the requested operation's obse
 
 **[TASK-PLANNING]** Before multi-commit or PR work, analyze scope and break it into small TaskCreate todos with a final review task.
 
-**IMPORTANT MUST ATTENTION Goal:** Perform only explicitly requested operations within scope; every authorized commit body OPENS with a derived `Estimate:` line — split commits when types/scopes mix.
+**IMPORTANT MUST ATTENTION Goal:** Perform only explicitly requested operations within scope; use concise conventional messages and required project fields — split commits when types/scopes mix.
 
-**IMPORTANT MUST ATTENTION main steps — only after the Git Request Contract passes:** for a commit request, (1) STAGE authorized files + SCAN, read output once; (GATE A) SECRETS > 0 → STOP and block; (2) SPLIT DECISION; (3) DERIVE each commit's `Estimate:` via `SYNC:estimation-framework`, discount churn, derive EP from `likely_days`; (4) GENERATE message (gemini for complex, self-authored fallback); (5) COMMIT with `printf … | git commit -F -`. Stage-only stops after (1); push-only skips (1)–(5). Push needs explicit authority and never targets a protected branch. — why: operation authority must survive summary and closing anchors as well as the body.
+**IMPORTANT MUST ATTENTION main steps — only after the Git Request Contract passes:** for a commit request, (1) STAGE authorized files + SCAN, read output once; (GATE A) SECRETS > 0 → STOP and block; (2) SPLIT DECISION; (3) GENERATE message (gemini for complex, self-authored fallback); (4) COMMIT with `printf … | git commit -F -`. Stage-only stops after (1); push-only skips (1)–(4). Push needs explicit authority and never targets a protected branch. — why: operation authority must survive summary and closing anchors as well as the body.
 
 **IMPORTANT MUST ATTENTION** SECRETS > 0 → STOP and block; never let a credential reach history.
 **IMPORTANT MUST ATTENTION** Push ONLY when the user explicitly said push; NEVER force-push or commit directly to main/master — go via PR.

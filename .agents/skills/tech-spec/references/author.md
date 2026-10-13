@@ -5,6 +5,7 @@
 ## Contents
 
 - [Profile and generator applicability](#profile-and-generator-applicability)
+- [Mode: Generate the DERIVED Technical View](#mode-generate-the-derived-technical-view)
 - [The Determinism Contract — read before emitting anything](#the-determinism-contract--read-before-emitting-anything)
 - [Step G1 — Derive the Use Case Inventory](#step-g1--derive-the-use-case-inventory)
 - [Step G2 — Derive the TC ↔ Test Map](#step-g2--derive-the-tc--test-map)

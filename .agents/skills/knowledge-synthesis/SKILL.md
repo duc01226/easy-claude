@@ -4,18 +4,11 @@ description: '[Research] Use when a workflow step or the user asks for synthesis
 ---
 
 > Codex compatibility note:
-> - Invoke repository skills with `$skill-name` in Codex; this mirrored copy rewrites legacy Claude `/skill-name` references.
-> - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
-> - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
-> - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
-> - Use ask user question tool to ask user.
-> - Ignore Claude-specific mode-switch instructions when they appear.
-> - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
+> - Invoke `$skill-name`: load the registered `.agents/skills/<name>/SKILL.md` and execute it with Codex tools; no separate `Skill` tool or Claude mode switch is needed. Author `.claude/**`; mirrors are generated.
+> - Track steps before execution and keep progress/evidence current. Explicit skill requests execute their protocol. Use the native question tool for required questions.
+> - Map foreign tool names to available host capabilities. A name mismatch needs no approval; an actually unavailable required capability stops with its step/evidence and a user question before adaptation.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
-> - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
-> - For workflow skills, steps follow the guided contract in `$start-workflow` (gate steps fixed; other steps may flex with a logged reason); report step-by-step evidence.
-> - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
+> - Preserve protocol order unless the user approves a deviation. Workflows use `$start-workflow`: gates stay fixed; other steps may flex with logged reasons and evidence.
 > **Web Research Protocol** — Factual claims need 2+ independent sources; rank Tier 1 authoritative > Tier 2 industry reports > Tier 3 credible blogs; Tier 4 unverified, NEVER cite as fact; declare confidence (95/80/60/<60%). Working files → `tmp/research/`; final output → `docs/knowledge/`.
 >
 > **MUST ATTENTION READ** `.claude/skills/web-research/SKILL.md` for canonical research rules.
@@ -48,6 +41,19 @@ description: '[Research] Use when a workflow step or the user asks for synthesis
 - **MUST ATTENTION** declare confidence, preserve gaps/discrepancies, and flag every `<60%` finding.
 
 **Be skeptical; apply critical/sequential thinking; trace every claim; state confidence (>80% to act).**
+
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Knowledge Synthesis](#knowledge-synthesis)
+- [Knowledge Work Rules](#knowledge-work-rules)
+- [Step 1: Load Evidence](#step-1-load-evidence)
+- [Step 2: Load Template](#step-2-load-template)
+- [Step 3: Synthesize Report](#step-3-synthesize-report)
+- [Step 4: Citation Audit](#step-4-citation-audit)
+- [Step 5: Confidence Summary](#step-5-confidence-summary)
+- [Output](#output)
+- [Closing Reminders](#closing-reminders)
 
 # Knowledge Synthesis
 

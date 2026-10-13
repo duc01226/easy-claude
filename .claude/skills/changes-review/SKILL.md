@@ -16,6 +16,14 @@ description: '[Code Quality] Use when a workflow step or the user asks for stage
 
 > **Todo first:** create tasks for triage, review, validation, fixes, fresh re-review and final checks before execution; keep one task in progress and attach evidence when completed.
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Scope and plan](#scope-and-plan)
+- [Review concerns](#review-concerns)
+- [Validation, fixes and re-review](#validation-fixes-and-re-review)
+- [Closing Reminders](#closing-reminders)
+
 ## Scope and plan
 
 Default scope is current working changes: `git status`, `git diff`, `git diff --cached`, and relevant untracked files. Honor staged-only, unstaged-only and named-file requests exactly. Current branch/PR review includes `git diff <base>...HEAD` plus local changes; pin the merge-base before reviewing. Historical commits compare their first parent (empty tree for a root); explicit ranges compare the named endpoints. Do not infer historical PR membership from current branch membership; a merged or squashed PR needs an explicit commit or verified range. Historical assessment is review-only: fixing current files requires an agreed current target, and cannot make an immutable historical diff converge.

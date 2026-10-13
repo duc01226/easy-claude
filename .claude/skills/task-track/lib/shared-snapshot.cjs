@@ -5,7 +5,7 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const { trackingContext, LIMITS, relativePath, validateTaskTracking } = require('../../../hooks/lib/task-tracking-config.cjs');
 const vocabulary = require('../../../hooks/lib/task-tracking-vocabulary.cjs');
-const { parseRecord, earlierVocabularyRecord } = require('../../../hooks/lib/task-artifact-store.cjs');
+const { parseRecord, projectRecord, earlierVocabularyRecord } = require('../../../hooks/lib/task-artifact-store.cjs');
 const { currentProject } = require('../../../hooks/lib/task-tracking-earlier-project.cjs');
 const { fail } = require('../../../hooks/lib/task-tracking-files.cjs');
 const { isPrivacySensitive } = require('../../../hooks/lib/sensitive-path-policy.cjs');
@@ -179,6 +179,8 @@ function loadSharedSnapshot(root, ref) {
     // Mixed vocabularies or an unfinished migration: no record is read; the reader reports the named outcome.
     if (context.vocabulary.storedVersion === null) return { context, scan: { records: [], diagnostics: [{ code: context.vocabulary.code, reason: context.vocabulary.reason }], coverage: 'unavailable' } };
     const stored = vocabulary.wordsFor(context.vocabulary.storedVersion);
+    // A commit in the current structure is read as its working copy would be: a state its version does not have is refused.
+    const readRecord = vocabulary.inCurrentStructure(stored.version) ? projectRecord : parseRecord;
     // A commit may hold files written in a vocabulary it does not store; they are named and never counted.
     const strays = vocabulary.strayLocations(stored.version).map(name => [null, `${context.artifactsRoot}/${name}/`]);
     const folders = [...Object.entries(stored.folders).map(([kind, folder]) => [kind, `${context.artifactsRoot}/${folder}/`]), ...strays].sort((a, b) => b[1].length - a[1].length);
@@ -201,17 +203,17 @@ function loadSharedSnapshot(root, ref) {
         try {
             if (outcome.error) throw outcome.error;
             if (owner.kind === null) earlierVocabularyRecord(outcome.bytes, owner.path);
-            records.push(parseRecord(outcome.bytes, owner.path, owner.kind, stored.version));
+            records.push(readRecord(outcome.bytes, owner.path, owner.kind, stored.version));
         } catch (error) {
             // Each record is bounded on its own, so an oversize or unsafe one is named and the rest are still read.
             diagnostics.push({ path: owner.path, ...(error.itemId ? { itemId: error.itemId } : {}), code: error.code || 'UNSUPPORTED', reason: error.code === 'LIMIT_EXCEEDED' ? 'Pinned record exceeds the selected per-record budget'
-                : error.code === 'EARLIER_VOCABULARY_RECORD' ? error.message : 'Pinned record cannot be safely projected' });
+                : ['EARLIER_VOCABULARY_RECORD', 'LATER_VOCABULARY_RECORD'].includes(error.code) ? error.message : 'Pinned record cannot be safely projected' });
         }
     }
     if (overflow) diagnostics.push({ code: 'LIMIT_EXCEEDED', reason: 'Record count exceeds selected budget' });
     // A commit in the earlier vocabulary is shown in the current terms by the one whole-project mapping its migration
     // writes, applied to the commit's own records: the same mapping the working-copy reader applies.
-    const shown = stored.version === vocabulary.CURRENT_VERSION ? { records, diagnostics: [] } : currentProject(records, context.artifactsRoot);
+    const shown = vocabulary.inCurrentStructure(stored.version) ? { records, diagnostics: [] } : currentProject(records, context.artifactsRoot);
     diagnostics.push(...shown.diagnostics);
     const permitted = value => relativePath(value) && !isPrivacySensitive(value);
     declared.push(new Set(shown.records.flatMap(record => (Array.isArray(record.tracking?.links) ? record.tracking.links : [])

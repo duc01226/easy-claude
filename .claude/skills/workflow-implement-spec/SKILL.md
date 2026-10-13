@@ -25,7 +25,7 @@ Explicit step-skill calls by mode (registry order; roles and conditions remain o
 Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs --write` after registry edits; [`/sync-codex`](../sync-codex/SKILL.md) refreshes it before mirroring.
 <!-- WORKFLOW-CALLS:END -->
 
-> **Work tracking:** Read [the linked work integration guide](../task-track/references/integration-guide.md) at capture, start, saved-work, verification, handoff and close-out checkpoints. Use the actual linked producer and exact items; retain the primary outcome and record optional upkeep once through the common owner. Continue untracked when no link exists; acceptance remains explicit.
+> **Work tracking:** Keep the project's tracked work current in the same change, as its root instructions (`CLAUDE.md` or `AGENTS.md`) say. When the project uses the portable tracker (`taskTracking.mode` is `observe` or `linked`), read [the linked work integration guide](../task-track/references/integration-guide.md) at capture, start, saved-work, verification, handoff and close-out checkpoints. Use the actual linked producer and exact items; retain the primary outcome and record optional upkeep once through the common owner. Continue untracked when no link exists; acceptance remains explicit.
 
 ## Quick Summary
 
@@ -36,6 +36,18 @@ Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs
 **Workflow:** Activate `/start-workflow workflow-implement-spec` with the user's prompt; follow the registry and step contracts below.
 
 **Key Rules:** Implement the supplied spec without re-authoring it or growing scope. Missing behavior routes to `workflow-feature`, which updates the spec first; other gaps stop for clarification before planning. Keep every phase within `spec_baseline`; review runs inline and tests run last.
+
+## Contents
+
+- [Workflow Calls and Todo Bootstrap](#workflow-calls-and-todo-bootstrap)
+- [Quick Summary](#quick-summary)
+- [Size & Kind Triage (first action)](#size--kind-triage-first-action)
+- [Required Quality Gates](#required-quality-gates)
+- [Gates and Optional Steps](#gates-and-optional-steps)
+- [Orchestration Freedom](#orchestration-freedom)
+- [Memory & Reporting](#memory--reporting)
+- [Fix Path & Loop Bounds](#fix-path--loop-bounds)
+- [Closing Reminders](#closing-reminders)
 
 ## Size & Kind Triage (first action)
 

@@ -2,6 +2,13 @@
 
 Guidelines for capturing and analyzing design references effectively.
 
+## Contents
+
+- [Capture Quality Guidelines](#capture-quality-guidelines)
+- [Analysis Best Practices](#analysis-best-practices)
+- [Advanced Techniques](#advanced-techniques)
+- [Common Pitfalls](#common-pitfalls)
+
 ## Capture Quality Guidelines
 
 ### Screenshot Requirements

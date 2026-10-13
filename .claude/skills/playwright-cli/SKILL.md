@@ -13,6 +13,26 @@ Use for configured web E2E interaction, visible human-QC journeys, evidence
 capture, and Playwright test support. Read the project E2E config/reference
 first; never infer startup, auth, seed data, or secrets.
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Quick start](#quick-start)
+- [E2E human-QC contract](#e2e-human-qc-contract)
+- [Commands](#commands)
+- [Raw output](#raw-output)
+- [Open parameters](#open-parameters)
+- [URLs with `&` on Windows](#urls-with--on-windows)
+- [Snapshots](#snapshots)
+- [Targeting elements](#targeting-elements)
+- [Browser Sessions](#browser-sessions)
+- [Installation](#installation)
+- [Example: Form submission](#example-form-submission)
+- [Example: Multi-tab workflow](#example-multi-tab-workflow)
+- [Example: Debugging with DevTools](#example-debugging-with-devtools)
+- [Example: Interactive session](#example-interactive-session)
+- [Specific tasks](#specific-tasks)
+- [Closing Reminders](#closing-reminders)
+
 ## Quick start
 
 ```bash

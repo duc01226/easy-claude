@@ -17,6 +17,14 @@ disable-model-invocation: true
 
 **Workflow:** Choose Operation A or B → follow its canonical-source and target-inventory steps → verify before reporting.
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Workflow](#workflow)
+- [Usage Examples](#usage-examples)
+- [Rules](#rules)
+- [Closing Reminders](#closing-reminders)
+
 ## Workflow
 
 ### Operation A: Update Existing Block Content

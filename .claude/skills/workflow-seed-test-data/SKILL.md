@@ -37,6 +37,18 @@ Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs
 
 > **[CRITICAL] Read Project Config Gate:** before writing any seeder code, read the seeder context group in `docs/project-config.json` (for example `Data Seeders`) and `seed-test-data-reference.md` in the project-reference docs root (default `docs/project-reference/`; `docsRoots.projectReference.path` overrides). A seeder written without the project's base class, env-gate key, count key and DI scope pattern is wrong by construction.
 
+## Contents
+
+- [Workflow Calls and Todo Bootstrap](#workflow-calls-and-todo-bootstrap)
+- [Quick Summary](#quick-summary)
+- [Size & Kind Triage (FIRST action)](#size--kind-triage-first-action)
+- [Required Quality Gates (non-negotiable)](#required-quality-gates-non-negotiable)
+- [Recommended Skills](#recommended-skills)
+- [Orchestration Freedom](#orchestration-freedom)
+- [Memory & Reporting](#memory--reporting)
+- [Fix Path & Loop Bounds](#fix-path--loop-bounds)
+- [Closing Reminders](#closing-reminders)
+
 ## Size & Kind Triage (FIRST action)
 
 Classify before choosing steps and record the result in the run report:

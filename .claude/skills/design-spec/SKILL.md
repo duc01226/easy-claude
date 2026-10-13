@@ -47,6 +47,26 @@ description: '[Project Management] Use when a workflow step or the user asks for
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Design Specification](#design-specification)
+- [When to Use](#when-to-use)
+- [When NOT to Use](#when-not-to-use)
+- [Prerequisites](#prerequisites)
+- [Workflow](#workflow)
+- [Mode: wireframe (image → spec)](#mode-wireframe-image--spec)
+- [Output Format](#output-format)
+- [Design-Principles Obligations (per spec section)](#design-principles-obligations-per-spec-section)
+- [M1-M5/M7 Compliance for UI Specs](#m1-m5m7-compliance-for-ui-specs)
+- [Component States Checklist](#component-states-checklist)
+- [Accessibility Audit](#accessibility-audit)
+- [Examples](#examples)
+- [Related Skills](#related-skills)
+- [Next Steps](#next-steps)
+- [Prompt-Enhance Closing Anchors](#prompt-enhance-closing-anchors)
+- [Closing Reminders](#closing-reminders)
+
 # Design Specification
 
 Create structured UI/UX design specification documents from requirements or tasks for developer handoff.

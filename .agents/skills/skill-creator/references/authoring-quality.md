@@ -29,11 +29,11 @@ Read this reference when creating, extending, optimizing, repairing, or acceptin
 
 ## Reference discovery
 
-Keep the entrypoint focused on selection, essential constraints, and execution routing. As it grows, split conditional detail by domain or operation so a revenue task need not load marketing guidance. Size is a triage signal, not proof of quality; preserve required gates when splitting.
+Keep the entrypoint focused on selection, essential constraints, and execution routing. As it grows, split conditional detail by domain or operation so a revenue task need not load marketing guidance. Size is a triage signal, not proof of quality; preserve required gates when splitting. Entry files already above the recommended size are a known, recorded limit: read `.claude/docs/framework-review-guide.md` → Known limits before reporting or shrinking one.
 
 Link each task reference directly from SKILL.md with a read-when trigger. Cross-links may help navigation, but required instructions must not be reachable only through another reference. Keep one authoritative owner rather than copying its rules into each caller; preserve tool-generated shared-protocol guides.
 
-For reference files longer than 100 lines, place a heading-matched contents list near the top, inside the first 100 lines. Verify section anchors after editing. Put purpose and critical prerequisites before detailed examples. A preview is discovery, not evidence that required content was loaded: read the complete required file or required section before acting. Partial reads are possible; do not assume every host always truncates at line 100.
+For every skill file longer than 100 lines, `SKILL.md` or a file the skill bundles, keep a `## Contents` list inside the first 100 lines: directly after Quick Summary in `SKILL.md`, before the first section elsewhere. The start of a file is what a preview shows and what a host keeps after compaction, so the list tells the agent what else exists and what to re-read; a list that omits a section is read as complete, so it must be current. The skill validator owns the rule: one linked entry per section, flat, in document order. It reports a missing or stale list, and `node .claude/skills/skill-creator/scripts/validate-skills.cjs --fix-contents` writes it; run that after adding, renaming or removing a section. Put purpose and critical prerequisites before detailed examples. A preview is discovery, not evidence that required content was loaded: read the complete required file or required section before acting. Partial reads are possible; do not assume every host always truncates at line 100.
 
 ## Control by consequence
 
@@ -89,7 +89,7 @@ Executed helpers need not load their entire source into model context, but sourc
 
 ## Quality gate
 
-For each applicable dimension, record `PASS`, `FAIL`, or `N/A` with a reason and file/command/artifact evidence in the task report. A failed applicable check prevents a completion claim; an unrun behavioral check remains `NOT RUN`, never a pass. Fix only issues within the user's scope and preserve required workflow gates.
+Run this gate whenever a skill is created, updated or audited. Start with the mechanical check, `node .claude/skills/skill-creator/scripts/validate-skills.cjs`: fix what the change caused and report the rest, including `Unknown field` errors for convention fields the project has not declared. Then judge the dimensions. For each applicable dimension, record `PASS`, `FAIL`, or `N/A` with a reason and file/command/artifact evidence in the task report. A failed applicable check prevents a completion claim; an unrun behavioral check remains `NOT RUN`, never a pass. Fix only issues within the user's scope and preserve required workflow gates.
 
 | Dimension | Acceptance question |
 |---|---|
@@ -97,7 +97,7 @@ For each applicable dimension, record `PASS`, `FAIL`, or `N/A` with a reason and
 | Discovery | Do realistic requests select the skill, while adjacent requests avoid misrouting? Preserve invocation policy. |
 | Signal and retention | Does retained content change a useful decision? Are unique rules, exceptions, safety limits, and parser structures retained or dispositioned? |
 | Procedural fit | Does each step's freedom match consequence? Do checklists preserve dependencies without fixing harmless choices? |
-| Resources | Are task references directly routed, long references indexed, and anchors valid? Are helper dependencies/probes/setup explicit and executable changes verified on supported hosts? |
+| Resources | Are task references directly routed, does every file over 100 lines (`SKILL.md` or reference) list its contents, and are anchors valid? Are helper dependencies/probes/setup explicit and executable changes verified on supported hosts? |
 | Trust and recovery | Are external content and authority boundaries preserved? Do failed checks return to repair with explicit stopping conditions? |
 | Observable behavior | Do relevant normal, boundary, missing-input, and tool-failure cases satisfy the contract? |
 | Incremental value | Does comparison with a baseline justify added instructions, calls, latency, and tokens? |
@@ -113,4 +113,4 @@ Primary guidance informing these principles: [Anthropic skill authoring](https:/
 
 ## Closing reminders
 
-Preserve contract and authority; route required references directly and index long ones; match control to consequence. Verify outputs through bounded feedback, explicit dependencies and model-specific evidence. Keep limitations explicit and regenerate mirrors from their source.
+Preserve contract and authority; route required references directly and give every long skill file its contents list; match control to consequence. Verify outputs through bounded feedback, explicit dependencies and model-specific evidence. Keep limitations explicit and regenerate mirrors from their source.

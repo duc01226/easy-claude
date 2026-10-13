@@ -25,6 +25,20 @@ description: '[Decision Support] Use when pressure-testing an irreversible, high
 
 ---
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Phase 0: Council Gate](#phase-0-council-gate)
+- [Advisor Dimensions](#advisor-dimensions)
+- [Step 1: Frame Question](#step-1-frame-question)
+- [Step 2: Advisor Round](#step-2-advisor-round)
+- [Step 3: Peer Review Round](#step-3-peer-review-round)
+- [Step 4: Chairman Synthesis](#step-4-chairman-synthesis)
+- [Step 5: Report Artifacts](#step-5-report-artifacts)
+- [Output Format](#output-format)
+- [Workflow Integration](#workflow-integration)
+- [Closing Reminders](#closing-reminders)
+
 ## Phase 0: Council Gate
 
 Run before advisors.

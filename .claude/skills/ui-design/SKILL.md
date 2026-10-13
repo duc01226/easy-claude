@@ -67,6 +67,19 @@ disable-model-invocation: false
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Arguments & Mode Dispatch](#arguments--mode-dispatch)
+- [Required Skills (Priority Order)](#required-skills-priority-order)
+- [Shared First Step (ALL design modes)](#shared-first-step-all-design-modes)
+- [Design Intelligence Research Contract](#design-intelligence-research-contract)
+- [UX Journey Contract (all design modes)](#ux-journey-contract-all-design-modes)
+- [Design Principles Contract (all design modes)](#design-principles-contract-all-design-modes)
+- [Mode Branches](#mode-branches)
+- [Notes (all design modes)](#notes-all-design-modes)
+- [Closing Reminders](#closing-reminders)
+
 ## Arguments & Mode Dispatch
 
 `/ui-design --mode={fast|good|explore|describe|screenshot|video|review} --lane={product|marketing} <brief | screenshot | video | review scope>`

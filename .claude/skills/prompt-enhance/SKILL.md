@@ -41,6 +41,20 @@ description: '[Skill Management] Use when enhancing, compressing or expanding pr
 
 ---
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Target File](#target-file)
+- [Operation Mode (`--op=`)](#operation-mode---op)
+- [Agent-Guide Branch (before general transforms)](#agent-guide-branch-before-general-transforms)
+- [Phase 0: Detect Target Type](#phase-0-detect-target-type)
+- [When Target is a Skill File](#when-target-is-a-skill-file)
+- [When Target is a Sub-Agent File](#when-target-is-a-sub-agent-file)
+- [Phase 1: Caveman Compression](#phase-1-caveman-compression)
+- [Phase 2: Prompt Enhancement](#phase-2-prompt-enhancement)
+- [Process](#process)
+- [Closing Reminders](#closing-reminders)
+
 ## Target File
 
 Compress and enhance this file:

@@ -47,6 +47,21 @@ description: '[Project Management] Use when a workflow step or the user asks for
 
 Apply critical/sequential thinking; every claim needs traced proof and confidence >80% to act.
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Planned Work Prioritization](#planned-work-prioritization)
+- [When to Use](#when-to-use)
+- [When NOT to Use](#when-not-to-use)
+- [Phase 0: Detect & Prepare](#phase-0-detect--prepare)
+- [Workflow](#workflow)
+- [Output Format](#output-format)
+- [Examples](#examples)
+- [Optional Escalation: /llm-council on Ties](#optional-escalation-llm-council-on-ties)
+- [Related Skills](#related-skills)
+- [Prompt-Enhance Closing Anchors](#prompt-enhance-closing-anchors)
+- [Closing Reminders](#closing-reminders)
+
 # Planned Work Prioritization
 
 Use a data-driven framework → ranked list with scores + rationale.

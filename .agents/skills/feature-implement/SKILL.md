@@ -1,21 +1,14 @@
 ---
 name: feature-implement
-description: '[Implementation] Use when implementing a feature step by step.'
+description: '[Implementation] Use when the user asks to build a feature from an idea or description with no plan file yet: research and trace the code, create and get the plan approved, build each phase with its tests, review, verify once, sync specs and docs. Existing plan: plan --mode=execute.'
 ---
 
 > Codex compatibility note:
-> - Invoke repository skills with `$skill-name` in Codex; this mirrored copy rewrites legacy Claude `/skill-name` references.
-> - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
-> - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
-> - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
-> - Use ask user question tool to ask user.
-> - Ignore Claude-specific mode-switch instructions when they appear.
-> - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
+> - Invoke `$skill-name`: load the registered `.agents/skills/<name>/SKILL.md` and execute it with Codex tools; no separate `Skill` tool or Claude mode switch is needed. Author `.claude/**`; mirrors are generated.
+> - Track steps before execution and keep progress/evidence current. Explicit skill requests execute their protocol. Use the native question tool for required questions.
+> - Map foreign tool names to available host capabilities. A name mismatch needs no approval; an actually unavailable required capability stops with its step/evidence and a user question before adaptation.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
-> - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
-> - For workflow skills, steps follow the guided contract in `$start-workflow` (gate steps fixed; other steps may flex with a logged reason); report step-by-step evidence.
-> - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
+> - Preserve protocol order unless the user approves a deviation. Workflows use `$start-workflow`: gates stay fixed; other steps may flex with logged reasons and evidence.
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
 > **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, merge steps without explicit user approval.
@@ -25,7 +18,7 @@ description: '[Implementation] Use when implementing a feature step by step.'
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:END -->
 
-> **Work tracking:** Read [the linked work integration guide](../task-track/references/integration-guide.md) at capture, start, saved-work, verification, handoff and close-out checkpoints. Use the actual linked producer and exact items; retain the primary outcome and record optional upkeep once through the common owner. Continue untracked when no link exists; acceptance remains explicit.
+> **Work tracking:** Keep the project's tracked work current in the same change, as its root instructions (`CLAUDE.md` or `AGENTS.md`) say. When the project uses the portable tracker (`taskTracking.mode` is `observe` or `linked`), read [the linked work integration guide](../task-track/references/integration-guide.md) at capture, start, saved-work, verification, handoff and close-out checkpoints. Use the actual linked producer and exact items; retain the primary outcome and record optional upkeep once through the common owner. Continue untracked when no link exists; acceptance remains explicit.
 
 ## Quick Summary
 
@@ -49,6 +42,18 @@ description: '[Implementation] Use when implementing a feature step by step.'
 > **Renamed:** formerly `cook` — now `$feature-implement`. The old name no longer resolves as a slash command.
 
 > **feature-implement vs plan --mode=execute:** `feature-implement` takes an idea/feature description and goes idea → research → **plan (created here)** → shipped. Use `$plan --mode=execute` instead when a plan file already exists and you only need disciplined phase-by-phase execution + commit. feature-implement owns the front of the pipeline (research + planning); plan --mode=execute owns the back (phase gates + auto-commit + `--parallel`/`--approval`/`--tests` flags).
+
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Standalone Mode Pipeline (skip entirely only when `nested=true` — a `\[Workflow\]` row that merely exists in the current task list does not count)](#standalone-mode-pipeline-skip-entirely-only-when-nestedtrue--a-workflow-row-that-merely-exists-in-tasklist-does-not-count)
+- [First Principle — Easy to Change · Easy to Scale · Easy to Maintain](#first-principle--easy-to-change--easy-to-scale--easy-to-maintain)
+- [Default Mode Policy](#default-mode-policy)
+- [Workflow](#workflow)
+- [When to Use](#when-to-use)
+- [Quality Gates](#quality-gates)
+- [Next Steps (Standalone: MUST ATTENTION ask user via `ask user question tool`. Skip only when `nested=true` — a `\[Workflow\]` row that merely exists in the current task list does not count.)](#next-steps-standalone-must-attention-ask-user-via-ask-user-question-tool-skip-only-when-nestedtrue--a-workflow-row-that-merely-exists-in-tasklist-does-not-count)
+- [Closing Reminders](#closing-reminders)
 
 ## Standalone Mode Pipeline (skip entirely only when `nested=true` — a `[Workflow]` row that merely exists in the current task list does not count)
 

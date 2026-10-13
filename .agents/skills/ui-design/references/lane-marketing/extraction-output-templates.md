@@ -2,6 +2,12 @@
 
 Documentation format templates for extracted design guidelines.
 
+## Contents
+
+- [Template 1: Complete Design System](#template-1-complete-design-system)
+- [Template 2: Competitive Analysis](#template-2-competitive-analysis)
+- [Integration Workflow](#integration-workflow)
+
 ## Template 1: Complete Design System
 
 ```markdown

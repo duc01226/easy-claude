@@ -37,13 +37,14 @@
 - NEVER auto-pick NEW — step 5 is a BLOCKING user gate. OVERLAPS is exactly what the spec scan exists to catch; recommend, then let the user decide scope.
 - The graph is optional advice; grep + read always bridge code→spec via `[Source:]` anchors, and an absent or stale graph is never a finding.
 
-# Spec Discovery — Pre-Spec Landscape Investigation
+# Discovery — Pre-Spec Landscape Investigation
 
 ---
 
 ## Contents
 
 - [Quick Summary](#quick-summary)
+- [Discovery — Pre-Spec Landscape Investigation](#discovery--pre-spec-landscape-investigation)
 - [When to Use](#when-to-use)
 - [Phase 0: Classify Corpus & Short-Circuit](#phase-0-classify-corpus--short-circuit)
 - [Workflow](#workflow)

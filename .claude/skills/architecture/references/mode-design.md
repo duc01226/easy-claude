@@ -14,6 +14,34 @@
 > **Routing/sequential/overlay protocols:** route specialized work to its matching agent; independent tasks use one-message PAR waves with all-return barriers; complex reasoning uses structured revision/branch/hypothesis checks; overlays resolve exact > glob > all, derive safe bodies, apply additively, and escalate equal-tier conflicts.
 > **MUST ATTENTION READ** `.claude/skills/shared/sub-agent-selection-guide.md` and `.claude/skills/project-skill-protocol/references/registry.md` before using those protocols — why: these files own routing and overlay resolution.
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [First Principle — Easy to Change · Easy to Scale · Easy to Maintain](#first-principle--easy-to-change--easy-to-scale--easy-to-maintain)
+- [Inputs & Handoffs (consume vs produce)](#inputs--handoffs-consume-vs-produce)
+- [Step 1: Load Context](#step-1-load-context)
+- [Step 2: Derive Architecture Requirements](#step-2-derive-architecture-requirements)
+- [Step 3: Backend Architecture](#step-3-backend-architecture)
+- [Step 3C: Data & Consistency Architecture](#step-3c-data--consistency-architecture)
+- [Step 3D: Integration & API Architecture](#step-3d-integration--api-architecture)
+- [Step 4: Frontend Architecture](#step-4-frontend-architecture)
+- [Step 4B: UI System Architecture](#step-4b-ui-system-architecture)
+- [Step 5: Library Ecosystem Research](#step-5-library-ecosystem-research)
+- [Step 6: Testing Architecture](#step-6-testing-architecture)
+- [Step 7: CI/CD & Deployment](#step-7-cicd--deployment)
+- [Step 8: Observability & Monitoring](#step-8-observability--monitoring)
+- [Step 9: Code Quality & Clean Code Enforcement](#step-9-code-quality--clean-code-enforcement)
+- [Step 10: Dependency Risk Assessment](#step-10-dependency-risk-assessment)
+- [Step 11: Generate Report](#step-11-generate-report)
+- [Step 12: User Validation Interview](#step-12-user-validation-interview)
+- [Best Practices Audit (applied across all steps)](#best-practices-audit-applied-across-all-steps)
+- [Output](#output)
+- [Next Steps](#next-steps)
+- [Anti-Rationalization (reject these excuses)](#anti-rationalization-reject-these-excuses)
+- [Mode protocols](#mode-protocols)
+- [Prompt-Enhance Closing Anchors](#prompt-enhance-closing-anchors)
+- [Closing Reminders](#closing-reminders)
+
 ## Quick Summary
 
 **Goal:** Design and user-validate a complete, evidence-backed architecture decision package for all applicable backend/frontend, data, integration, deployment, observability, testing, quality, and dependency concerns—research ≥3 options, cite evidence + confidence for every recommendation, and emit ADR/Scaffold contracts—so implementation starts from sound, owned choices.

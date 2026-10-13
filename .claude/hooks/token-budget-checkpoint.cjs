@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 'use strict';
 
+if ((require.main === module || !require.main) && require('./lib/framework-runtime.cjs').skipHook(module)) return;
+
 /**
  * Token checkpoint — an advisory note at task/plan step boundaries each time the session's
  * non-cached tokens cross the next multiple of `hooks.tokenBudget.checkpointTokens`

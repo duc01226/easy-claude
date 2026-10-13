@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 'use strict';
+
+try { if ((require.main === module || !require.main) && require('./lib/framework-runtime.cjs').skipHook(module)) return; } catch { /* Bootstrap diagnoses missing payload below. */ }
+
 /**
  * SessionStart Hook — Install integrity preflight (runs FIRST).
  *

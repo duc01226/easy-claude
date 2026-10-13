@@ -47,6 +47,20 @@ description: '[Quality] Use when a workflow step or the user asks for an agent q
 
 ---
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Activation Guards](#activation-guards)
+- [Phase A — Stack Detection](#phase-a--stack-detection)
+- [Phase B — Feedforward Guide Setup (Inferential)](#phase-b--feedforward-guide-setup-inferential)
+- [Phase C — Computational Feedback Sensors](#phase-c--computational-feedback-sensors)
+- [Phase D — Inferential Feedback Sensors](#phase-d--inferential-feedback-sensors)
+- [Phase E — Behaviour Harness (Spec + Test Strategy)](#phase-e--behaviour-harness-spec--test-strategy)
+- [Phase F — Harness Inventory Report](#phase-f--harness-inventory-report)
+- [Next Steps](#next-steps)
+- [Prompt-Enhance Closing Anchors](#prompt-enhance-closing-anchors)
+- [Closing Reminders](#closing-reminders)
+
 ## Activation Guards
 
 **Check 1 — `/linter-setup` prerequisite (BLOCK if missing):** Before phases, verify it completed by checking for a root linter config (e.g., `.eslintrc`, `pyproject.toml`, `.editorconfig`), pre-commit hook config (e.g., `.husky/`, `.pre-commit-config.yaml`), and CI quality gate definition. If any is missing → `ask user question tool`: "/linter-setup appears incomplete. Computational feedback sensors must be in place before harness setup. Run /linter-setup first, then return here?" **BLOCK** Phases A–E until verification passes.

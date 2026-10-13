@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "corpusVersion": "1.0.0",
+  "corpusVersion": "1.1.0",
   "cases": [
     {
       "id": "activation-positive",
@@ -48,6 +48,206 @@
       "pressures": [
         "simplicity"
       ]
+    },
+    {
+      "id": "activation-architecture-review",
+      "kind": "activation",
+      "skills": [
+        "architecture",
+        "changes-review",
+        "why-review"
+      ],
+      "expectedActivation": "architecture",
+      "prompt": "Check whether the new notification service follows our layering rules, and grade how it copes with ten times the tenants.",
+      "fixture": "Synthetic service with a module map, documented layering rules and a tenant-growth profile; the working tree has no uncommitted changes.",
+      "assertions": [
+        "Select architecture for a compliance and scalability review of a design.",
+        "Do not select changes-review when there is no diff to review."
+      ],
+      "pressures": []
+    },
+    {
+      "id": "activation-feature-implement-idea",
+      "kind": "activation",
+      "skills": [
+        "feature-implement",
+        "plan",
+        "fix"
+      ],
+      "expectedActivation": "feature-implement",
+      "prompt": "Add CSV export to the orders list. There is no plan for it yet.",
+      "fixture": "Synthetic orders module with a list endpoint, its tests and no plan file for the export.",
+      "assertions": [
+        "Select feature-implement for a feature described as an idea with no plan file.",
+        "Get a plan approved before the first source edit."
+      ],
+      "pressures": []
+    },
+    {
+      "id": "activation-feature-implement-existing-plan",
+      "kind": "activation",
+      "skills": [
+        "feature-implement",
+        "plan"
+      ],
+      "expectedActivation": "plan",
+      "prompt": "Implement the approved plan saved in the plans folder for the orders export.",
+      "fixture": "Synthetic orders module plus an approved plan file with two phases and their tests named.",
+      "assertions": [
+        "Select plan in execute mode when an approved plan file already exists.",
+        "Do not plan the feature a second time through feature-implement."
+      ],
+      "pressures": []
+    },
+    {
+      "id": "activation-plan-request",
+      "kind": "activation",
+      "skills": [
+        "plan",
+        "feature-implement",
+        "architecture"
+      ],
+      "expectedActivation": "plan",
+      "prompt": "Write an implementation plan for moving session storage to the shared cache. Do not change any code yet.",
+      "fixture": "Synthetic session module with an in-memory store, a cache client and their tests.",
+      "assertions": [
+        "Select plan for an explicit planning request.",
+        "Make no source edits while planning."
+      ],
+      "pressures": []
+    },
+    {
+      "id": "activation-spec-author",
+      "kind": "activation",
+      "skills": [
+        "spec",
+        "plan",
+        "feature-implement"
+      ],
+      "expectedActivation": "spec",
+      "prompt": "Write the canonical feature spec and its test scenarios for password reset from these confirmed decisions.",
+      "fixture": "Synthetic decision list for password reset with five confirmed rules and no existing spec file.",
+      "assertions": [
+        "Select spec for authoring a canonical feature spec with test scenarios.",
+        "Do not produce an implementation plan in place of the spec."
+      ],
+      "pressures": []
+    },
+    {
+      "id": "activation-design-skills-trivial-edit",
+      "kind": "activation",
+      "skills": [
+        "architecture",
+        "feature-implement",
+        "plan",
+        "spec"
+      ],
+      "expectedActivation": null,
+      "prompt": "Rename the local variable tmp to total in this function.",
+      "fixture": "One ten-line function that uses a local variable named tmp; no behavior change is requested.",
+      "assertions": [
+        "Do not activate an architecture, planning, spec or feature skill for a one-line rename.",
+        "Make only the requested rename."
+      ],
+      "pressures": []
+    },
+    {
+      "id": "activation-workflow-e2e-update",
+      "kind": "activation",
+      "skills": [
+        "workflow-e2e",
+        "integration-test",
+        "fix"
+      ],
+      "expectedActivation": "workflow-e2e",
+      "prompt": "The checkout flow changed. Update its end-to-end tests and get them passing.",
+      "fixture": "Synthetic checkout pages, one outdated browser user-flow test and a configured end-to-end runner.",
+      "assertions": [
+        "Select workflow-e2e when end-to-end tests must be updated and verified.",
+        "Do not select integration-test for a browser user-flow test."
+      ],
+      "pressures": []
+    },
+    {
+      "id": "activation-integration-test-service-level",
+      "kind": "activation",
+      "skills": [
+        "workflow-e2e",
+        "integration-test"
+      ],
+      "expectedActivation": "integration-test",
+      "prompt": "Add an integration test for the order total calculation in the pricing service.",
+      "fixture": "Synthetic pricing service with a total-calculation function, its data access and an integration test folder; no browser flow is involved.",
+      "assertions": [
+        "Select integration-test for a service-level test with no browser flow.",
+        "Do not start the end-to-end workflow for a test below the user interface."
+      ],
+      "pressures": []
+    },
+    {
+      "id": "activation-workflow-end-finished",
+      "kind": "activation",
+      "skills": [
+        "workflow-end",
+        "commit",
+        "start-workflow"
+      ],
+      "expectedActivation": "workflow-end",
+      "prompt": "Every step of the feature workflow is done. Close it.",
+      "fixture": "Synthetic workflow state with all steps completed, recorded outcome evidence and committed changes.",
+      "assertions": [
+        "Select workflow-end to close a workflow whose steps are finished.",
+        "Check the recorded outcome evidence before closing."
+      ],
+      "pressures": []
+    },
+    {
+      "id": "activation-workflow-end-mid-run",
+      "kind": "activation",
+      "skills": [
+        "workflow-end",
+        "start-workflow"
+      ],
+      "expectedActivation": null,
+      "prompt": "Step three of five just finished. Carry on with the next step.",
+      "fixture": "Synthetic workflow state with three of five steps completed and the fourth step named.",
+      "assertions": [
+        "Do not close a workflow that still has steps to run.",
+        "Continue with the next declared step."
+      ],
+      "pressures": []
+    },
+    {
+      "id": "activation-workflow-review-changes-risky",
+      "kind": "activation",
+      "skills": [
+        "workflow-review-changes",
+        "changes-review"
+      ],
+      "expectedActivation": "workflow-review-changes",
+      "prompt": "Review my uncommitted changes. They touch the authorization middleware, the billing module and a shared contract type.",
+      "fixture": "Synthetic uncommitted diff across three modules, including an authorization check and a contract type two modules read.",
+      "assertions": [
+        "Select workflow-review-changes for a risky cross-module uncommitted change.",
+        "Do not settle for a single-pass changes-review."
+      ],
+      "pressures": []
+    },
+    {
+      "id": "activation-changes-review-small-diff",
+      "kind": "activation",
+      "skills": [
+        "workflow-review-changes",
+        "changes-review"
+      ],
+      "expectedActivation": "changes-review",
+      "prompt": "Review my staged change: one typo fix in a README.",
+      "fixture": "Synthetic staged diff with a single corrected word in one documentation file.",
+      "assertions": [
+        "Select changes-review for a small single-file diff.",
+        "Do not start the specialist review workflow for a low-risk change."
+      ],
+      "pressures": []
     },
     {
       "id": "repair-evidence-rejection",

@@ -43,6 +43,20 @@ Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs
 
 This skill is the canonical Research & Synthesis entry point. Invoke it with `--output=<mode>` (default `synthesis`); `/start-workflow workflow-research` resolves the same variants through `.claude/scripts/lib/workflow-manifest.cjs`. Each variant is a complete sequence, so execute the resolved manifest and never a hand-swapped list.
 
+## Contents
+
+- [Workflow Calls and Todo Bootstrap](#workflow-calls-and-todo-bootstrap)
+- [Quick Summary](#quick-summary)
+- [Output Modes (--output)](#output-modes---output)
+- [Question-Scope Triage (first action)](#question-scope-triage-first-action)
+- [Required Quality Gates](#required-quality-gates)
+- [Recommended Skills](#recommended-skills)
+- [Orchestration](#orchestration)
+- [Memory & Reporting](#memory--reporting)
+- [Evidence Retention](#evidence-retention)
+- [Findings & Fix Path](#findings--fix-path)
+- [Closing Reminders](#closing-reminders)
+
 ## Output Modes (--output)
 
 Pick the mode from the prompt BEFORE creating tasks. When the prompt is ambiguous, use `synthesis` and state the assumption. Every mode shares one research step, `/web-research --chain=deep-dive` (source map, then evidence base; the `/source-deep-dive` procedure runs inside it per `.claude/skills/web-research/references/research-chain.md`), and the `/knowledge-review → /workflow-end → /watzup` close; only the terminal synthesis skill(s) differ.

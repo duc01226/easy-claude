@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 'use strict';
 
+if ((require.main === module || !require.main) && require('./lib/framework-runtime.cjs').skipHook(module)) return;
+
 /**
  * Commit-request router for UserPromptSubmit.
  *
  * When the user's prompt asks for a commit, inject a directive that the request
  * MUST be carried out through the `commit` skill — never an ad-hoc `git commit`.
- * The skill owns staging, the Estimate line, the test-verify gate and the review
+ * The skill owns scoped staging, applicable project checks and the review
  * receipt; `review-commit-gate.cjs` independently blocks an unreviewed raw
  * commit, so this hook is the FRONT door and the gate is the back stop.
  *
@@ -97,7 +99,7 @@ function buildDirective() {
         '**[COMMIT-SKILL-ROUTE]** User asks to commit (commit, stage+commit, save changes, commit+push)? MUST run',
         '`commit` skill, follow its SKILL.md end to end: Claude Code → Skill tool `commit`; Codex → `$commit`',
         '(`.agents/skills/commit/SKILL.md`); OpenCode → `commit` skill (`.claude/skills/commit/SKILL.md`). Push also',
-        'asked → pass `--push`. NEVER run an ad-hoc `git commit` — skips Estimate line, test-verify + review gates;',
+        'asked → pass `--push`. NEVER run an ad-hoc `git commit` — skips project checks and review gates;',
         '`review-commit-gate` blocks unreviewed commit anyway. Only discussing/referencing commits, or forbidding one → ignore.',
         MARKER_END
     ].join('\n');

@@ -7,6 +7,20 @@
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Task HTML Mockup Generator](#task-html-mockup-generator)
+- [When to Use](#when-to-use)
+- [Quick Reference](#quick-reference)
+- [Detailed Workflow](#detailed-workflow)
+- [Mockup Quality Checklist](#mockup-quality-checklist)
+- [Edge Cases](#edge-cases)
+- [Anti-Patterns](#anti-patterns)
+- [Next Steps](#next-steps)
+- [Prompt-Enhance Closing Anchors](#prompt-enhance-closing-anchors)
+- [Closing Reminders](#closing-reminders)
+
 ## Quick Summary
 
 **Goal:** Give stakeholders a clickable, self-narrating mock app for the task's complete releasable outcome — every required page/view, navigation path, component, state, and story flow — as one self-contained interactive HTML prototype built from finalized task/story artifacts or a canonical feature spec before implementation begins.

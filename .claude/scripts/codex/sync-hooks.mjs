@@ -44,6 +44,10 @@ const disabledCodexEvents = new Map([
 // static fallback.
 const codexSessionStartMirrors = new Map([
   [
+    ".claude/hooks/failure-investigation-remind.cjs",
+    "rotates the failure reminder's private generation on compact/clear; transcriptless pre-shell consumers cannot infer resets from static instructions",
+  ],
+  [
     ".claude/hooks/ui-reuse-remind.cjs",
     "rotates the UI reminder's private reset generation on compact/clear; blind prompt/pre-tool consumers cannot infer context resets from static instructions",
   ],
@@ -253,6 +257,7 @@ const nodeHookLauncher = [...launcherRootSteps, ...launcherGitSteps, launcherRun
 // shell call, so they skip the Windows Git probe (about 430 ms on a loaded machine;
 // the lean launcher's shell-call p90 was 2.5x lower in the confirmation run).
 const leanHookLauncher = [...launcherRootSteps, launcherRunStep].join(" ");
+const FAILURE_REMINDER_HOOK_PATH = ".claude/hooks/failure-investigation-remind.cjs";
 
 // A desktop process need not inherit the terminal's Node/version-manager PATH.
 // Resolve before Node starts; keep stdin untouched and never source shell profiles.
@@ -317,7 +322,7 @@ export function normalizeCommand(command, { windows = false } = {}) {
   // subprocess on every hook invocation.
   const hookPath = projectHookPath(command);
   if (hookPath) {
-    const launcher = isProtocolHookPath(hookPath) ? leanHookLauncher : nodeHookLauncher;
+    const launcher = isProtocolHookPath(hookPath) || hookPath === FAILURE_REMINDER_HOOK_PATH ? leanHookLauncher : nodeHookLauncher;
     if (windows) return `node -e "${launcher}" -- ${JSON.stringify(hookPath)}`;
     return `/bin/sh -c ${quotePosix(posixNodeResolver)} ck-node -e ${quotePosix(launcher)} -- ${quotePosix(hookPath)}`;
   }
@@ -383,6 +388,7 @@ async function main(targetDir = codexDir) {
       "Hooks belong in .codex/hooks.json ONLY. Codex loads ALL matching hook sources (~/.codex and <repo>/.codex, hooks.json and config.toml) rather than letting a higher layer replace a lower one, so declaring the same hook in both .codex/config.toml and .codex/hooks.json runs it twice. Repo-level hooks load automatically but only when the project layer is trusted.",
       "SessionStart hooks are omitted from the generated Codex config by default so startup context is not duplicated; both hosts load the same static files, and an adopter may add a local startup hook as an optional accelerator.",
       "EXCEPTION: SessionStart hooks on the codexSessionStartMirrors allowlist ARE mirrored. They produce a runtime signal that a mirrored non-SessionStart hook consumes, so skipping them would leave the consumer registered and permanently unreachable rather than merely un-accelerated. The report's session_start_mirrors array names each one and the consumer that forces it.",
+      "The failure investigation reminder uses a conditional shell PreToolUse hint because local Codex PostToolUse responses do not promise exit status. It uses the no-Git launcher and a mirrored compact/clear reset. Claude's native PostToolUseFailure accelerator is unsupported and explicitly reported as skipped; no tool-output scanning is substituted.",
       "Protocol delivery entries (.claude/hooks/protocol-inject-<name>.cjs and .claude/hooks/skill-overlay-remind.cjs) map differently, and only they do: UserPromptExpansion groups join UserPromptSubmit (reported as remapped-to-user-prompt-submit); groups keyed only to Read or Skill, tools Codex never emits, are not mirrored (matcher-names-no-codex-tool); the Read group's entries render once more on the Codex shell tool, Bash (codex_only_groups); a SubagentStart agent-type list is anchored because Codex matchers are unanchored regexes; each entry carries additionalContextLimit 3000 and a launcher without the Git step. Project Node launch commands use the POSIX runtime bootstrap and original Windows override; changed definitions need review in Codex /hooks before they run.",
     ],
     session_start_mirrors: [...codexSessionStartMirrors].map(([hook, reason]) => ({

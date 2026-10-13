@@ -4,6 +4,20 @@
 >
 > A route is not a file list. The difference is the **exit criterion**.
 
+## Contents
+
+- [Layer taxonomy](#layer-taxonomy)
+- [Ordering algorithm](#ordering-algorithm)
+- [Context inclusion](#context-inclusion)
+- [Stage record contract](#stage-record-contract)
+- [Route flowchart (D5)](#route-flowchart-d5)
+- ["Start here" — mandatory one-liner](#start-here--mandatory-one-liner)
+- [Red-flag sourcing](#red-flag-sourcing)
+- [Graph-absent degradation](#graph-absent-degradation)
+- [Scale — the bound is PER GROUP, and a group route sits above it](#scale--the-bound-is-per-group-and-a-group-route-sits-above-it)
+- [Security](#security)
+- [Target-form variants](#target-form-variants)
+
 ## Layer taxonomy
 
 Eight stack-agnostic buckets. Discovery is by `docs/project-config.json` key first, path pattern second — **never a hardcoded framework path**, because this skill runs on repos it has never seen.

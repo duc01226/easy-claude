@@ -25,6 +25,8 @@ const GLOBAL_CONFIG_PATH = path.join(os.homedir(), ".claude", ".ck.json");
 const CONFIG_PATH = LOCAL_CONFIG_PATH;
 
 const DEFAULT_CONFIG = {
+  // Candidate concise delivery is implemented; promotion awaits the release evidence gate.
+  contextDelivery: { profile: "compatible" },
   plan: {
     namingFormat: "{date}-{issue}-{slug}",
     dateFormat: "YYMMDD-HHmm",
@@ -118,17 +120,70 @@ function deepMerge(target, source) {
 }
 
 /**
+ * Read one settings layer.
+ * @param {string} configPath - Path to config file
+ * @returns {{config: Object|null, unreadable: boolean}} `config` is the parsed file, or null when it
+ *   is absent or cannot be read as JSON. `unreadable` is true when the file exists yet does not hold a
+ *   JSON object (a byte-order mark, a comment, a trailing comma, another encoding, a non-object root).
+ */
+function readLayer(configPath) {
+  try {
+    if (!fs.existsSync(configPath)) return { config: null, unreadable: false };
+    const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+    const isObject = config !== null && typeof config === "object" && !Array.isArray(config);
+    return { config, unreadable: !isObject };
+  } catch (e) {
+    return { config: null, unreadable: true };
+  }
+}
+
+/**
  * Load config from a specific file path
  * @param {string} configPath - Path to config file
  * @returns {Object|null} Parsed config or null if not found/invalid
  */
 function loadConfigFromPath(configPath) {
-  try {
-    if (!fs.existsSync(configPath)) return null;
-    return JSON.parse(fs.readFileSync(configPath, "utf8"));
-  } catch (e) {
-    return null;
+  return readLayer(configPath).config;
+}
+
+// The file each settings layer is read from, as the diagnostic names it (never a full path).
+const LAYER_FILES = {
+  personal: "~/.claude/.ck.json",
+  project: ".claude/.ck.json",
+  checkout: ".claude/.ck.local.json",
+};
+
+/**
+ * The delivery profile from the settings layers, lowest precedence first.
+ *
+ * A malformed higher-precedence declaration must never opt into reduced guidance: a layer whose
+ * `contextDelivery` is invalid, or whose file exists but is unreadable (it may hold a rollback this
+ * loader cannot see), resolves `compatible` unless a later layer declares a valid profile. The
+ * diagnostic names the layer and its file, never their content. This decision alone treats an
+ * unreadable file as a declaration; every other setting keeps ignoring it.
+ *
+ * @param {Array<{source: string, config: Object|null, unreadable: boolean}>} layers
+ * @returns {{profile: string, source: string}}
+ */
+function resolveContextDelivery(layers) {
+  let resolved = { ...DEFAULT_CONFIG.contextDelivery, source: "default" };
+  let fault = null;
+  for (const { source, config, unreadable } of layers) {
+    const declares = !unreadable && config && Object.prototype.hasOwnProperty.call(config, "contextDelivery");
+    if (!unreadable && !declares) continue;
+    const declared = declares ? config.contextDelivery : null;
+    const valid = declares && declared && typeof declared === "object" && !Array.isArray(declared)
+      && Object.keys(declared).every(key => key === "profile")
+      && (declared.profile === undefined || ["compatible", "concise"].includes(declared.profile));
+    if (!valid) {
+      resolved = { profile: "compatible", source: "invalid" };
+      fault = `${source} layer (${LAYER_FILES[source]}) ${unreadable ? "holds no readable JSON object" : "declares an unsupported contextDelivery"}`;
+    } else if (declared.profile !== undefined) {
+      resolved = { profile: declared.profile, source };
+    }
   }
+  if (resolved.source === "invalid") console.error(`[ck-config] CONTEXT_PROFILE_INVALID: ${fault}; using compatible guidance`);
+  return resolved;
 }
 
 /**
@@ -212,6 +267,7 @@ function getDefaultConfig(
     workflow: { ...DEFAULT_CONFIG.workflow },
     referenceDocs: { ...DEFAULT_CONFIG.referenceDocs },
     portability: { ...DEFAULT_CONFIG.portability },
+    contextDelivery: { ...DEFAULT_CONFIG.contextDelivery, source: "default" },
   };
   if (includeLocale) {
     result.locale = { ...DEFAULT_CONFIG.locale };
@@ -248,13 +304,18 @@ function loadConfig(options = {}) {
   const projectRoot = options.projectRoot ? fs.realpathSync(options.projectRoot) : PROJECT_ROOT;
 
   // Load configs from all locations
-  const globalConfig = loadConfigFromPath(GLOBAL_CONFIG_PATH);
-  const localConfig = loadConfigFromPath(path.join(projectRoot, ".claude", ".ck.json"));
-  const localOverrideConfig = loadConfigFromPath(path.join(projectRoot, ".claude", ".ck.local.json"));
+  const layers = [
+    { source: "personal", ...readLayer(options.homeDir ? path.join(options.homeDir, ".claude", ".ck.json") : GLOBAL_CONFIG_PATH) },
+    { source: "project", ...readLayer(path.join(projectRoot, ".claude", ".ck.json")) },
+    { source: "checkout", ...readLayer(path.join(projectRoot, ".claude", ".ck.local.json")) },
+  ];
+  const [globalConfig, localConfig, localOverrideConfig] = layers.map(layer => layer.config);
 
-  // No config files found - use defaults
+  // No config files found - use defaults. An unreadable file still decides the delivery profile.
   if (!globalConfig && !localConfig && !localOverrideConfig) {
-    return getDefaultConfig(includeProject, includeAssertions, includeLocale);
+    const defaults = getDefaultConfig(includeProject, includeAssertions, includeLocale);
+    if (layers.some(layer => layer.unreadable)) defaults.contextDelivery = resolveContextDelivery(layers);
+    return defaults;
   }
 
   try {
@@ -289,6 +350,8 @@ function loadConfig(options = {}) {
 
     // Generic portability config (always included)
     result.portability = merged.portability || DEFAULT_CONFIG.portability;
+
+    result.contextDelivery = resolveContextDelivery(layers);
 
     // Validate merged config — emit warnings to stderr, never block
     const validation = validateCkConfig(merged);

@@ -74,6 +74,20 @@ Before an interactive generation, resolve the profile and require the supported 
 
 ---
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [The Generator Contract (NON-NEGOTIABLE)](#the-generator-contract-non-negotiable)
+- [Step 0 — Scope Gate (MANDATORY FIRST)](#step-0--scope-gate-mandatory-first)
+- [Step 1 — Derive the Facts (grep, never recall)](#step-1--derive-the-facts-grep-never-recall)
+- [Step 2 — Instantiate the Templates](#step-2--instantiate-the-templates)
+- [Step 3 — Stamp & Write](#step-3--stamp--write)
+- [Step 4 — Verify (self-check before completing)](#step-4--verify-self-check-before-completing)
+- [Hard Prohibitions (NON-NEGOTIABLE)](#hard-prohibitions-non-negotiable)
+- [Related Skills](#related-skills)
+- [Prompt-Enhance Closing Anchors](#prompt-enhance-closing-anchors)
+- [Closing Reminders](#closing-reminders)
+
 ## The Generator Contract (NON-NEGOTIABLE)
 
 This skill is a **generator**, not an author. Every clause below is structural — none is a preference a future maintainer may relax for convenience.

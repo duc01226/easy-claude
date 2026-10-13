@@ -5,18 +5,11 @@ disable-model-invocation: false
 ---
 
 > Codex compatibility note:
-> - Invoke repository skills with `$skill-name` in Codex; this mirrored copy rewrites legacy Claude `/skill-name` references.
-> - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
-> - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
-> - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
-> - Use ask user question tool to ask user.
-> - Ignore Claude-specific mode-switch instructions when they appear.
-> - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
+> - Invoke `$skill-name`: load the registered `.agents/skills/<name>/SKILL.md` and execute it with Codex tools; no separate `Skill` tool or Claude mode switch is needed. Author `.claude/**`; mirrors are generated.
+> - Track steps before execution and keep progress/evidence current. Explicit skill requests execute their protocol. Use the native question tool for required questions.
+> - Map foreign tool names to available host capabilities. A name mismatch needs no approval; an actually unavailable required capability stops with its step/evidence and a user question before adaptation.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
-> - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
-> - For workflow skills, steps follow the guided contract in `$start-workflow` (gate steps fixed; other steps may flex with a logged reason); report step-by-step evidence.
-> - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
+> - Preserve protocol order unless the user approves a deviation. Workflows use `$start-workflow`: gates stay fixed; other steps may flex with logged reasons and evidence.
 <!-- WORKFLOW-CALLS:START -->
 ## Workflow Calls and Todo Bootstrap
 
@@ -50,6 +43,19 @@ Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs
 **IMPORTANT MANDATORY Steps:** $design-spec -> $work-item --mode=review --type=design -> $work-item --mode=mockup --explore -> $html-export --to=png -> $ui-design --mode=review -> $docs-manager --mode=update -> $workflow-end -> $watzup
 
 **Step contract:** Follow `$start-workflow` → Step Execution Protocol. The registry owns recommended order, roles and applicability; invoke each selected skill through the active host and log deviations. Gates (`work-item --mode=review --type=design`, `ui-design --mode=review`, `workflow-end`) always run; the optional step runs only when `applicability.when` holds. On a skip, UI review records `N/A — no mockup to review`.
+
+## Contents
+
+- [Workflow Calls and Todo Bootstrap](#workflow-calls-and-todo-bootstrap)
+- [Quick Summary](#quick-summary)
+- [0. Mockup Scope Gate (FIRST action of the run)](#0-mockup-scope-gate-first-action-of-the-run)
+- [1. Triage (right after the §0 scope gate, before choosing steps)](#1-triage-right-after-the-0-scope-gate-before-choosing-steps)
+- [2. Journey-First Design Order (BLOCKING — every generation step)](#2-journey-first-design-order-blocking--every-generation-step)
+- [3. Required Quality Gates (non-negotiable)](#3-required-quality-gates-non-negotiable)
+- [4. Recommended Skills](#4-recommended-skills)
+- [5. Orchestration Freedom](#5-orchestration-freedom)
+- [6. Memory, Reporting and Fix Path](#6-memory-reporting-and-fix-path)
+- [Closing Reminders](#closing-reminders)
 
 ## 0. Mockup Scope Gate (FIRST action of the run)
 

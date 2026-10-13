@@ -7,6 +7,21 @@
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or an explicit skip reason.
 > **[BLOCKING]** If Task tools unavailable, maintain an equivalent step tracker with the same status transitions.
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [First Principle — Easy to Change · Easy to Scale · Easy to Maintain](#first-principle--easy-to-change--easy-to-scale--easy-to-maintain)
+- [Phase 0: Detect Plan Type](#phase-0-detect-plan-type)
+- [Plan Resolution](#plan-resolution)
+- [Phase 0.5: Applicability / Plan Gate](#phase-05-applicability--plan-gate)
+- [Configuration (from injected context)](#configuration-from-injected-context)
+- [Workflow](#workflow)
+- [Output](#output)
+- [Next Steps](#next-steps)
+- [Mode protocols](#mode-protocols)
+- [Prompt-Enhance Closing Anchors](#prompt-enhance-closing-anchors)
+- [Closing Reminders](#closing-reminders)
+
 ## Quick Summary
 
 **Goal:** Force every assumption-laden plan decision and every preservation-critical behavior through explicit user confirmation BEFORE implementation — by interviewing the user with critical questions that validate assumptions and surface issues — so no unstated assumption silently reaches code.

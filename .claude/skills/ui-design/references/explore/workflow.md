@@ -11,6 +11,21 @@
 
 Read this file when `--mode=explore` is selected. Create ONE task per step below.
 
+## Contents
+
+- [Step 0 — Draft count (before any analysis)](#step-0--draft-count-before-any-analysis)
+- [Step 1 — Resolve authority per axis](#step-1--resolve-authority-per-axis)
+- [Step 2 — Fact check](#step-2--fact-check)
+- [Step 3 — User references and brand assets](#step-3--user-references-and-brand-assets)
+- [Step 4 — Content imagery](#step-4--content-imagery)
+- [Step 5 — Form questions, canvas and Design Plan skeleton](#step-5--form-questions-canvas-and-design-plan-skeleton)
+- [Step 6 — Pick N divergence seeds (the first N of the table)](#step-6--pick-n-divergence-seeds-the-first-n-of-the-table)
+- [Step 7 — Fan out N drafts](#step-7--fan-out-n-drafts)
+- [Step 8 — All-return barrier, then render](#step-8--all-return-barrier-then-render)
+- [Step 9 — Present, open, recommend and ASK](#step-9--present-open-recommend-and-ask)
+- [Step 10 — Record the pick and continue](#step-10--record-the-pick-and-continue)
+- [Closing Reminders](#closing-reminders)
+
 ## Step 0 — Draft count (before any analysis)
 
 Called from `work-item --mode=mockup` → reuse its Step 0 answer; do not ask again. Otherwise, first action: **question tool available** → ask with `ask user question tool` "How many direction drafts for <surface>?" — `3 options` · `2 options` · `1 option` · `Skip explore`, one marked `(Recommended)` from the request text only (a new page or multi-view flow → 3; a single component or dialog → 1–2). `Skip explore` → the opt-out exemption in step 1, run `--mode=good`. **No question tool** → N = 1 in the recommended direction, auto-selected (`Selection: AUTO-SELECTED — no question tool (1 draft)`). With N = 1, steps 6–8 run with one seed and one draft, step 9 opens it without a question, and step 10 records the `Selection:` line (`USER — 1 option` or `AUTO-SELECTED`). A step-1 exemption (all axes pinned) supersedes the count. All run artifacts live under `tmp/design/<run>/`, where `<run>` is `YYMMDD-HHmm-<brief-slug>` — they are disposable run output, not project docs. Gate-file templates: `references/explore/gate-files.md`. Brand procedure: `references/explore/brand-asset-protocol.md`.

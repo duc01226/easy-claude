@@ -6,6 +6,15 @@ The deck is a **review deck**: it must pass `presentation-builder`'s validator u
 
 ---
 
+## Contents
+
+- [1. Standalone HTML Scaffold](#1-standalone-html-scaffold)
+- [2. Vanilla-JS Slide Engine (zero-dep)](#2-vanilla-js-slide-engine-zero-dep)
+- [3. `<iframe srcdoc>` Mockup Embed — HTML-Escaping Spec (HIGHEST-RISK)](#3-iframe-srcdoc-mockup-embed--html-escaping-spec-highest-risk)
+- [3b. Demo-Flow Slide Pattern (interactive journey + narration)](#3b-demo-flow-slide-pattern-interactive-journey--narration)
+- [4. \[BLOCKING\] Fidelity Gate](#4-blocking-fidelity-gate)
+- [5. Deck Quality Checklist](#5-deck-quality-checklist)
+
 ## 1. Standalone HTML Scaffold
 
 ONE self-contained file: inline `<style>` and `<script>`, no `<script src>`, no stylesheet or font link, no `url(…)` to a network address, no CDN reveal.js. Type comes from the project's design tokens (SKILL.md Step 3), else the system font stack below. A web font the picked design-explore draft loaded is kept only by packaging its font file inside the deck (an `@font-face` whose `src` is a `data:` URL); otherwise it is replaced by the project's type token, then the closest system stack, and the replacement is recorded as a departure (SKILL.md Step 9). The scaffold below is complete and runnable as-is — copy it, keep every marker, and replace the `{…}` placeholders and the placeholder token values.

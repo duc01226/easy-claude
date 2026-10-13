@@ -43,6 +43,20 @@ disable-model-invocation: true
 
 ---
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Custom Prompt (project prompt registry)](#custom-prompt-project-prompt-registry)
+- [Storage Contract](#storage-contract)
+- [Phase 0: Resolve Mode (BLOCKING — before any file read)](#phase-0-resolve-mode-blocking--before-any-file-read)
+- [Phase 1: LIST](#phase-1-list)
+- [Phase 2: MATCH (+ mandatory confirmation gate)](#phase-2-match--mandatory-confirmation-gate)
+- [Phase 3: RUN the confirmed prompt](#phase-3-run-the-confirmed-prompt)
+- [Phase 4: SAVE / UPDATE](#phase-4-save--update)
+- [Phase 5: DELETE](#phase-5-delete)
+- [Anti-Rationalization](#anti-rationalization)
+- [Closing Reminders](#closing-reminders)
+
 # Custom Prompt (project prompt registry)
 
 ## Storage Contract

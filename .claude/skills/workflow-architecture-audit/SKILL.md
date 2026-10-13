@@ -41,6 +41,18 @@ Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs
 
 Activate with `/start-workflow workflow-architecture-audit`, passing the user's prompt as context.
 
+## Contents
+
+- [Workflow Calls and Todo Bootstrap](#workflow-calls-and-todo-bootstrap)
+- [Quick Summary](#quick-summary)
+- [Scope & Size Triage (first action)](#scope--size-triage-first-action)
+- [Required Quality Gates](#required-quality-gates)
+- [Recommended Skills](#recommended-skills)
+- [Orchestration](#orchestration)
+- [Memory & Reporting](#memory--reporting)
+- [Findings & Fix Path](#findings--fix-path)
+- [Closing Reminders](#closing-reminders)
+
 ## Scope & Size Triage (first action)
 
 Record target scope, size and risk at the top of the workflow report before choosing depth. Escalate on risk and ambiguity; size bands guide depth.

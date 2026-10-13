@@ -197,11 +197,11 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
       <h1>Claude AI Agent Framework Guide</h1>
       <p class="lead">A portable <code>.claude/</code> framework that makes Claude Code project-aware, evidence-driven and gated at every quality step, from idea and spec to reviewed commit and pull request. This page is the map; each topic links to its owner doc.</p>
       <div class="stats" aria-label="Framework inventory">
-        <div class="stat"><b><!-- COUNT:skills -->104<!-- /COUNT --></b><span>skills</span></div>
+        <div class="stat"><b><!-- COUNT:skills -->105<!-- /COUNT --></b><span>skills</span></div>
         <div class="stat"><b><!-- COUNT:workflows -->19<!-- /COUNT --></b><span>workflows</span></div>
         <div class="stat"><b><!-- COUNT:agents -->24<!-- /COUNT --></b><span>agents</span></div>
-        <div class="stat"><b><!-- COUNT:hooks -->33<!-- /COUNT --></b><span>hook files</span></div>
-        <div class="stat"><b><!-- COUNT:lib-modules -->62<!-- /COUNT --></b><span>hook libraries</span></div>
+        <div class="stat"><b><!-- COUNT:hooks -->35<!-- /COUNT --></b><span>hook files</span></div>
+        <div class="stat"><b><!-- COUNT:lib-modules -->66<!-- /COUNT --></b><span>hook libraries</span></div>
       </div>
       <details class="toc-mobile"><summary>Contents</summary><ol id="toc-mobile-list"></ol></details>
     </header>
@@ -410,7 +410,7 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
 
     <section id="hooks" aria-labelledby="hooks-h">
       <h2 id="hooks-h">Hooks and runtime</h2>
-      <div class="callout warn"><b>Only two hooks can stop you</b><span><code>review-commit-gate</code> blocks an agent <code>git commit</code> without a review receipt or skip receipt. <code>init-prompt-gate</code> blocks prompts only when the project config exists but is invalid; a missing config just gets a daily notice. Everything else is advisory or silent.</span></div>
+      <div class="callout warn"><b>Only one hook can stop you</b><span><code>review-commit-gate</code> blocks an agent <code>git commit</code> without a review receipt or skip receipt. <code>init-prompt-gate</code> never blocks a prompt: a missing config gets a daily notice and an invalid or conflicted config adds a warning that its facts are unverified. Everything else is advisory or silent.</span></div>
       <div class="life">
         <div class="ev"><h4>SessionStart</h4><ul><li>verify-install</li><li>session-init</li><li>session-init-docs</li><li>graph-session-init</li><li>re-arm conventions + prompt ledger</li></ul></div>
         <div class="ev"><h4>UserPromptSubmit</h4><ul><li>init-prompt-gate</li><li>workflow-route-inject</li><li>workflow-catalog-inject</li><li>commit / judgement routers</li><li>prompt-ledger</li><li>graph-prompt-sync</li></ul></div>
@@ -438,7 +438,7 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
           <tr><td>Normal skills</td><td>One guide line per protocol: tag, summary, when, path</td></tr>
           <tr><td>Protocol-inject hooks</td><td>The full text, delivered when the skill loads</td></tr>
           <tr><td>Guide line path</td><td>The fallback when a protocol's text is not in context</td></tr>
-          <tr><td>Review-family skills and agents</td><td>Full inline bodies — a reviewer never depends on delivery</td></tr>
+          <tr><td>Agents and fresh reviewer prompts</td><td>Full role bodies and the complete reviewer template; review skills retain guide entrypoints</td></tr>
           <tr><td>Universal hook</td><td>The <code>universal</code> group in four messages (first prompt, every sub-agent)</td></tr>
         </tbody>
       </table></div>

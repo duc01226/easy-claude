@@ -11,6 +11,24 @@
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:END -->
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [First Principle — Easy to Change · Easy to Scale · Easy to Maintain](#first-principle--easy-to-change--easy-to-scale--easy-to-maintain)
+- [Step 1: Read Project Config + Reference Docs](#step-1-read-project-config--reference-docs)
+- [Step 2: System Check + Environment Precondition Gate](#step-2-system-check--environment-precondition-gate)
+- [Step 3: Determine Test Projects](#step-3-determine-test-projects)
+- [Step 4: Run Tests](#step-4-run-tests)
+- [Step 5: Report Results](#step-5-report-results)
+- [Fallback Mode (No Project Config)](#fallback-mode-no-project-config)
+- [CI-Style Full Run (Reference)](#ci-style-full-run-reference)
+- [On Test Failure Protocol](#on-test-failure-protocol)
+- [Mode: `--fix-loop` — Read `references/fix-loop.md` First (BLOCKING)](#mode---fix-loop--read-referencesfix-loopmd-first-blocking)
+- [Next Steps](#next-steps)
+- [Mode protocols](#mode-protocols)
+- [Prompt-Enhance Closing Anchors](#prompt-enhance-closing-anchors)
+- [Closing Reminders](#closing-reminders)
+
 ## Quick Summary
 
 **Goal:** Prove reviewed integration tests pass under the project's repeat/isolation policy using configured commands and verified preconditions, then report actual runner evidence or an invariant-owner failure verdict.

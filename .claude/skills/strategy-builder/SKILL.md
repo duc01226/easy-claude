@@ -31,6 +31,19 @@ description: '[Content] Use when a workflow step or the user asks for marketing 
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Strategy Builder](#strategy-builder)
+- [Step 1: Load Market Analysis](#step-1-load-market-analysis)
+- [Step 2: Positioning](#step-2-positioning)
+- [Step 3: Channel Strategy](#step-3-channel-strategy)
+- [Step 4: Messaging Framework](#step-4-messaging-framework)
+- [Step 5: Campaign Roadmap](#step-5-campaign-roadmap)
+- [Step 6: Risk Assessment](#step-6-risk-assessment)
+- [Output](#output)
+- [Closing Reminders](#closing-reminders)
+
 # Strategy Builder
 
 ## Step 1: Load Market Analysis

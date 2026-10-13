@@ -25,7 +25,7 @@ Explicit step-skill calls by mode (registry order; roles and conditions remain o
 Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs --write` after registry edits; [`/sync-codex`](../sync-codex/SKILL.md) refreshes it before mirroring.
 <!-- WORKFLOW-CALLS:END -->
 
-> **Work tracking:** Read [the linked work integration guide](../task-track/references/integration-guide.md) at capture, start, saved-work, verification, handoff and close-out checkpoints. Use the actual linked producer and exact items; retain the primary outcome and record optional upkeep once through the common owner. Continue untracked when no link exists; acceptance remains explicit.
+> **Work tracking:** Keep the project's tracked work current in the same change, as its root instructions (`CLAUDE.md` or `AGENTS.md`) say. When the project uses the portable tracker (`taskTracking.mode` is `observe` or `linked`), read [the linked work integration guide](../task-track/references/integration-guide.md) at capture, start, saved-work, verification, handoff and close-out checkpoints. Use the actual linked producer and exact items; retain the primary outcome and record optional upkeep once through the common owner. Continue untracked when no link exists; acceptance remains explicit.
 
 ## Quick Summary
 
@@ -36,6 +36,19 @@ Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs
 - Triage size, kind and risk; activate the workflow and resolve its registry, Goal Contract and artifact authority.
 - Main route: investigate → spec discovery → domain analysis → rationale review → spec authoring → clarification → scenarios → explore mockup → test specs → test-spec review → plan → plan validation → execute → QC seed data → integration tests → spec sync → static change review → integration verification → E2E → remaining tests → demo → close → handoff. Evaluate optional steps by the registry's conditions and record its skip reasons.
 - Preserve spec-first/test-first dependencies, human approval gates and verify-last ordering; close only with the required outcome evidence. Spec-complete work uses `workflow-implement-spec`; large ambiguous work uses `workflow-big-feature`.
+
+## Contents
+
+- [Workflow Calls and Todo Bootstrap](#workflow-calls-and-todo-bootstrap)
+- [Quick Summary](#quick-summary)
+- [Purpose](#purpose)
+- [Size & Kind Triage (first action)](#size--kind-triage-first-action)
+- [Required Quality Gates](#required-quality-gates)
+- [Gates and Optional Steps](#gates-and-optional-steps)
+- [Orchestration Freedom](#orchestration-freedom)
+- [Memory & Reporting](#memory--reporting)
+- [Fix Path & Loop Bounds](#fix-path--loop-bounds)
+- [Closing Reminders](#closing-reminders)
 
 ## Purpose
 

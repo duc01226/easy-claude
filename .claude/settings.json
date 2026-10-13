@@ -24,7 +24,6 @@
     "typescript-lsp@claude-plugins-official": false
   },
   "env": {
-    "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
     "MCP_TIMEOUT": "30000"
   },
   "hooks": {
@@ -170,7 +169,29 @@
         ]
       }
     ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/failure-investigation-remind.cjs",
+            "timeout": 3,
+            "type": "command"
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
+      {
+        "matcher": "Bash|exec_command",
+        "hooks": [
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/failure-investigation-remind.cjs",
+            "timeout": 3,
+            "type": "command"
+          }
+        ]
+      },
       {
         "hooks": [
           {
@@ -218,6 +239,7 @@
         "hooks": [
           {
             "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-end.cjs",
+            "timeout": 3,
             "type": "command"
           }
         ]
@@ -233,6 +255,16 @@
       }
     ],
     "SessionStart": [
+      {
+        "matcher": "compact|clear",
+        "hooks": [
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/failure-investigation-remind.cjs",
+            "timeout": 3,
+            "type": "command"
+          }
+        ]
+      },
       {
         "hooks": [
           {
@@ -546,6 +578,7 @@
       "Bash(tmp/**)",
       "Edit(tmp/**)",
       "Read(tmp/**)",
+      "Bash(git commit:*)",
       "Bash(git push:*)",
       "Bash(git reset:*)",
       "Bash(*git reset*)",
@@ -569,10 +602,6 @@
     "ask": [
       "Bash(npm publish:*)",
       "Bash(docker push:*)",
-      "Bash(git push --force:*)",
-      "Bash(*git push --force*)",
-      "Bash(git push -f:*)",
-      "Bash(*git push -f*)",
       "Edit(**/.git/**)",
       "Edit(.git/**)",
       "Edit(**/.env!(.example))",
@@ -597,7 +626,6 @@
     "defaultMode": "bypassPermissions",
     "deny": []
   },
-  "skillListingBudgetFraction": 0.05,
   "statusLine": {
     "command": "cd \"$CLAUDE_PROJECT_DIR\" && npx -y ccstatusline@2.2.30 --config .claude/ccstatusline.json",
     "padding": 0,

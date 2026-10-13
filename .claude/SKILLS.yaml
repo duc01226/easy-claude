@@ -1,10 +1,10 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-10-09'
-  total_skills: 104
+  last_updated: '2026-10-13'
+  total_skills: 105
   total_by_status:
-    active: 104
+    active: 105
     deprecated: 0
     experimental: 0
 categories:
@@ -116,6 +116,18 @@ skills:
       category: other
       has_scripts: false
       has_references: false
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
+    - name: commit-review
+      path: commit-review/SKILL.md
+      description: '[Code Quality] Review an exact pending commit when the commit
+        skill selects lightweight review or the user requests it. --fix-loop repairs
+        and re-reviews; no Git publication authority.'
+      category: other
+      has_scripts: false
+      has_references: true
       status: active
       deprecated_by: null
       deprecated_since: null
@@ -249,7 +261,10 @@ skills:
       removal_after: null
     - name: feature-implement
       path: feature-implement/SKILL.md
-      description: '[Implementation] Use when implementing a feature step by step.'
+      description: '[Implementation] Use when the user asks to build a feature from
+        an idea or description with no plan file yet: research and trace the code,
+        create and get the plan approved, build each phase with its tests, review,
+        verify once, sync specs and docs. Existing plan: plan --mode=execute.'
       category: other
       has_scripts: false
       has_references: false
@@ -284,8 +299,9 @@ skills:
     - name: framework-config
       path: framework-config/SKILL.md
       description: '[Utilities] Use when asking about or configuring the .claude/.codex/.agents/.opencode
-        skills framework: command discovery/help, settings, hooks, workflows, activation
-        or framework usage. Explains options; changes only requested settings.'
+        skills framework: command discovery/help, runtime modes, scoped settings,
+        commit reviews, hooks, workflows or skill visibility. Explains options; changes
+        only requested settings.'
       category: other
       has_scripts: false
       has_references: false
@@ -602,7 +618,7 @@ skills:
         green.'
       category: other
       has_scripts: false
-      has_references: false
+      has_references: true
       status: active
       deprecated_by: null
       deprecated_since: null
@@ -782,13 +798,10 @@ skills:
       removal_after: null
     - name: task-track
       path: task-track/SKILL.md
-      description: '[Project Management] Use when recording or changing a work record
-        (a task, a bug, feedback, an idea, a story, a subtask, an area) and placing
-        it under the right area and initiative, maintaining team work, inspecting
-        linked spec/task/subtask concerns, verifying tracker evidence, recording explicit
-        acceptance, opening status, migrating a project that stores the earlier vocabulary
-        or maintaining exact linked items at a saved-work checkpoint. Manual modes
-        and shell recipes use the shared tracker core.'
+      description: '[Project Management] Use for explicit project-owned tracker guidance
+        (--mode=guide), or portable-engine work records, placement, linked concerns,
+        lifecycle, evidence, acceptance and local status. Existing engine modes and
+        bare inspect remain supported.'
       category: other
       has_scripts: true
       has_references: true
@@ -937,7 +950,8 @@ skills:
       removal_after: null
     - name: workflow-e2e
       path: workflow-e2e/SKILL.md
-      description: '[Workflow] Write, update or fix E2E tests and verify them through
+      description: '[Workflow] Use when E2E tests need to be written, updated or fixed:
+        resolves the scope, authors tests only when needed, then verifies them through
         the configured runner in a bounded fix/retest loop.'
       category: other
       has_scripts: false
@@ -948,8 +962,9 @@ skills:
       removal_after: null
     - name: workflow-end
       path: workflow-end/SKILL.md
-      description: '[Process] Close the active workflow after checking outcome evidence
-        and owned changes; retain recovery state until explicit /clear.'
+      description: '[Process] Use when the active workflow has finished its steps
+        or the user asks to close it: checks outcome evidence and owned changes, then
+        closes the workflow; recovery state stays until an explicit /clear.'
       category: other
       has_scripts: false
       has_references: true
@@ -1049,9 +1064,9 @@ skills:
       removal_after: null
     - name: workflow-review-changes
       path: workflow-review-changes/SKILL.md
-      description: '[Workflow] Review risky or cross-module uncommitted changes with
-        specialists, validated fixes and re-review. Defaults to --fix-loop; --review-only
-        reports without edits.'
+      description: '[Workflow] Use when uncommitted changes are risky or cross-module
+        and need specialist review: reviews, applies validated fixes and re-reviews.
+        Defaults to --fix-loop; --review-only reports without edits.'
       category: other
       has_scripts: false
       has_references: true

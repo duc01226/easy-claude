@@ -28,6 +28,16 @@ description: '[Architecture] Use when a workflow step or the user asks for DDD d
 - Include a Mermaid ERD; keep cross-service links ID-only. Apply the DDD reference's classification, aggregate and event rules.
 - Persist intermediate findings in `tmp/reports/`; add a final quality-review task. Reference updates require approval.
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Mode Dispatch](#mode-dispatch)
+- [DDD Reference (on-demand)](#ddd-reference-on-demand)
+- [Skill Workflow](#skill-workflow)
+- [Output](#output)
+- [Next Steps](#next-steps)
+- [Closing Reminders](#closing-reminders)
+
 ## Mode Dispatch
 
 Detect the mode from the invocation arguments before any other work; do not load a mode file the invocation did not select.

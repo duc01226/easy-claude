@@ -47,6 +47,9 @@ async function withFixture(callback) {
             return target;
         },
         saveConfig() { this.write('docs/project-config.json', JSON.stringify(this.config)); },
+        // The fixture project stores the base version of the current structure, as every project written before the
+        // current version does. A case about what the current version added declares it first.
+        declareVersion(version) { this.config.taskTracking.schemaVersion = version; this.saveConfig(); },
         context() { return trackingContext(root); },
         records() { return inspectRecords(this.context()).records; },
         record(id) {

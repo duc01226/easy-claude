@@ -34,6 +34,21 @@ disable-model-invocation: false
 - High-impact scenarios without evidence or an owner decision block the plan.
 - Never put secrets, real payment data, tokens, or personal data in scenario/evidence artifacts.
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Mission](#mission)
+- [Required Context](#required-context)
+- [Phase 0: Resolve Inputs](#phase-0-resolve-inputs)
+- [Phase 1: Reconstruct the User Journey](#phase-1-reconstruct-the-user-journey)
+- [Phase 2: Generate Adversarial Scenarios](#phase-2-generate-adversarial-scenarios)
+- [Phase 3: Decision and Risk Gate](#phase-3-decision-and-risk-gate)
+- [Phase 4: Write the Scenario Artifact](#phase-4-write-the-scenario-artifact)
+- [Phase 5: Scenario Gate](#phase-5-scenario-gate)
+- [Phase 6: Handoff](#phase-6-handoff)
+- [Output](#output)
+- [Closing Reminders](#closing-reminders)
+
 ## Mission
 
 <request>$ARGUMENTS</request>

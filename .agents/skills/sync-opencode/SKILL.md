@@ -5,18 +5,11 @@ disable-model-invocation: true
 ---
 
 > Codex compatibility note:
-> - Invoke repository skills with `$skill-name` in Codex; this mirrored copy rewrites legacy Claude `/skill-name` references.
-> - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
-> - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
-> - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
-> - Use ask user question tool to ask user.
-> - Ignore Claude-specific mode-switch instructions when they appear.
-> - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
+> - Invoke `$skill-name`: load the registered `.agents/skills/<name>/SKILL.md` and execute it with Codex tools; no separate `Skill` tool or Claude mode switch is needed. Author `.claude/**`; mirrors are generated.
+> - Track steps before execution and keep progress/evidence current. Explicit skill requests execute their protocol. Use the native question tool for required questions.
+> - Map foreign tool names to available host capabilities. A name mismatch needs no approval; an actually unavailable required capability stops with its step/evidence and a user question before adaptation.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
-> - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
-> - For workflow skills, steps follow the guided contract in `$start-workflow` (gate steps fixed; other steps may flex with a logged reason); report step-by-step evidence.
-> - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
+> - Preserve protocol order unless the user approves a deviation. Workflows use `$start-workflow`: gates stay fixed; other steps may flex with logged reasons and evidence.
 ## Quick Summary
 
 **Goal:** Reconcile the project-root `opencode.json` with the framework's recommended opencode defaults, compile `.claude/settings.json` into a portable opencode plugin (`.opencode/plugins/easy-claude-hooks.js`), and verify both. This runner is the **single and only** entrypoint for the opencode surface pipeline.
@@ -61,6 +54,18 @@ disable-model-invocation: true
 - Claude events opencode cannot reproduce are reported as `skipped-events` in the sync report — never silently dropped
 - The `skills` stage changes only `permission.skill` keys recorded in `.opencode/skill-permissions.generated.json`; a user-set key is never adopted, overwritten or loosened, and a called skill is never hidden; it rewrites or deletes only `.opencode/commands/*.md` files that carry its generated marker
 - Idempotent — re-running the sync produces byte-identical plugin, config, permission, and agent output
+
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Why a bridge plugin (not a config mirror)](#why-a-bridge-plugin-not-a-config-mirror)
+- [Recommended opencode config (source of truth)](#recommended-opencode-config-source-of-truth)
+- [Skill permissions](#skill-permissions)
+- [Hook mapping](#hook-mapping)
+- [Known limitations](#known-limitations)
+- [Usage](#usage)
+- [Stages](#stages)
+- [Closing Reminders](#closing-reminders)
 
 ## Why a bridge plugin (not a config mirror)
 

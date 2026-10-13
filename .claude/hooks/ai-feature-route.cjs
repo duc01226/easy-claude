@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 'use strict';
 
+if ((require.main === module || !require.main) && require('./lib/framework-runtime.cjs').skipHook(module)) return;
+
 /**
  * AI-feature router for UserPromptSubmit — costs nothing unless the prompt is about AI-feature work.
  *

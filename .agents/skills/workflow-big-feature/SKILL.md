@@ -5,18 +5,11 @@ disable-model-invocation: false
 ---
 
 > Codex compatibility note:
-> - Invoke repository skills with `$skill-name` in Codex; this mirrored copy rewrites legacy Claude `/skill-name` references.
-> - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
-> - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
-> - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
-> - Use ask user question tool to ask user.
-> - Ignore Claude-specific mode-switch instructions when they appear.
-> - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
+> - Invoke `$skill-name`: load the registered `.agents/skills/<name>/SKILL.md` and execute it with Codex tools; no separate `Skill` tool or Claude mode switch is needed. Author `.claude/**`; mirrors are generated.
+> - Track steps before execution and keep progress/evidence current. Explicit skill requests execute their protocol. Use the native question tool for required questions.
+> - Map foreign tool names to available host capabilities. A name mismatch needs no approval; an actually unavailable required capability stops with its step/evidence and a user question before adaptation.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
-> - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
-> - For workflow skills, steps follow the guided contract in `$start-workflow` (gate steps fixed; other steps may flex with a logged reason); report step-by-step evidence.
-> - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
+> - Preserve protocol order unless the user approves a deviation. Workflows use `$start-workflow`: gates stay fixed; other steps may flex with logged reasons and evidence.
 <!-- WORKFLOW-CALLS:START -->
 ## Workflow Calls and Todo Bootstrap
 
@@ -59,6 +52,24 @@ Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs
 - MUST ATTENTION gate steps always run; `core`/`optional` steps follow the Step Execution Protocol and every deviation is logged with evidence.
 - MUST ATTENTION every research stage that runs is validated with the user before the next stage; every claim cites evidence, confidence >80% to act.
 - NEVER skip mandatory workflow or skill gates.
+
+## Contents
+
+- [Workflow Calls and Todo Bootstrap](#workflow-calls-and-todo-bootstrap)
+- [Quick Summary](#quick-summary)
+- [Size & Kind Triage (FIRST action)](#size--kind-triage-first-action)
+- [Required Quality Gates](#required-quality-gates)
+- [Gates and Optional Steps](#gates-and-optional-steps)
+- [Recommended Skills by Phase](#recommended-skills-by-phase)
+- [Market Analysis Applicability (conditional)](#market-analysis-applicability-conditional)
+- [New-UI Explore Mockup (before the implementation plan)](#new-ui-explore-mockup-before-the-implementation-plan)
+- [Architecture Gates Parallel Phase (`architecture --mode=scalability` + design-rationale `$why-review`)](#architecture-gates-parallel-phase-architecture---modescalability--design-rationale-why-review)
+- [Workflow-Specific Contracts](#workflow-specific-contracts)
+- [Orchestration Freedom](#orchestration-freedom)
+- [Memory & Reporting](#memory--reporting)
+- [Fix Path & Loop Bounds](#fix-path--loop-bounds)
+- [Step Chain](#step-chain)
+- [Closing Reminders](#closing-reminders)
 
 ## Size & Kind Triage (FIRST action)
 

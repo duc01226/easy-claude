@@ -15,16 +15,16 @@
 <!-- SKILL-NAV:START -->
 ## Contents
 
-- Prerequisites
-- Scope Mode (`--scope=`)
-- Steps
-- When to Use
-- Notes
-- Connectors (Auto-Run)
-- DB Performance Indexes
-- Auto-Connect After Build
-- Describe (AI-Friendly Command Reference)
-- Valid CLI Subcommands
+- [Prerequisites](#prerequisites)
+- [Scope Mode (`--scope=`)](#scope-mode---scope)
+- [Steps](#steps)
+- [When to Use](#when-to-use)
+- [Notes](#notes)
+- [Connectors (Auto-Run)](#connectors-auto-run)
+- [DB Performance Indexes](#db-performance-indexes)
+- [Auto-Connect After Build](#auto-connect-after-build)
+- [Describe (AI-Friendly Command Reference)](#describe-ai-friendly-command-reference)
+- [Valid CLI Subcommands](#valid-cli-subcommands)
 
 <!-- SKILL-NAV:END -->
 

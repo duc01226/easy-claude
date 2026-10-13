@@ -28,6 +28,11 @@ const HOOK_SCRIPTS = {
     "process.stdin.resume();",
     "process.stdin.on('end', () => { process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'PostToolUse', additionalContext: 'HELLO_CONTEXT' } })); });",
   ].join("\n"),
+  "pre-context.cjs": [
+    "let raw = '';",
+    "process.stdin.on('data', chunk => { raw += chunk; });",
+    "process.stdin.on('end', () => { process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'PreToolUse', additionalContext: JSON.parse(raw).tool_input.command } })); });",
+  ].join("\n"),
   "session.cjs": [
     "process.stdin.resume();",
     "process.stdin.on('end', () => { process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: 'SESSION_CTX' } })); });",
@@ -308,6 +313,154 @@ test("generated bridge appends PostToolUse additionalContext to tool output", as
     const output = { title: "edit", output: "done", metadata: {} };
     await hooks["tool.execute.after"]({ tool: "edit", sessionID: "s1", callID: "c1", args: {} }, output);
     assert.match(output.output, /done\n\nHELLO_CONTEXT/);
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
+test("generated bridge delivers pre-tool context once after a blocked tool without changing args", async () => {
+  const root = await createProject({ hooks: { PreToolUse: [{ matcher: "Bash", hooks: [
+    { type: "command", command: hookCommand("context.cjs") },
+    { type: "command", command: hookCommand("block.cjs") },
+  ] }] } });
+  try {
+    const { pluginPath } = await materializeOpencodeHooks({ rootDir: root });
+    const factory = await loadBridge(pluginPath);
+    const hooks = await factory({ directory: root });
+    const args = { command: "fixture-command" };
+    for (let index = 0; index < 2; index++) {
+      await assert.rejects(hooks["tool.execute.before"]({ tool: "bash", sessionID: "blocked" }, { args }), /forbidden/);
+    }
+    assert.deepEqual(args, { command: "fixture-command" });
+    const output = { system: [] };
+    await hooks["experimental.chat.system.transform"]({ sessionID: "blocked" }, output);
+    assert.deepEqual(output.system, ["HELLO_CONTEXT"], "duplicate contexts have one model-facing delivery even after a block");
+    const again = { system: [] };
+    await hooks["experimental.chat.system.transform"]({ sessionID: "blocked" }, again);
+    assert.deepEqual(again.system, []);
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
+test("generated bridge delivers pre-tool context with the completed tool's output and never again in the system prompt", async () => {
+  const root = await createProject({ hooks: {
+    PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: hookCommand("pre-context.cjs") }] }],
+    PostToolUse: [{ matcher: "Bash", hooks: [
+      { type: "command", command: hookCommand("record.cjs") },
+      { type: "command", command: hookCommand("context.cjs") },
+    ] }],
+  } });
+  try {
+    const { pluginPath } = await materializeOpencodeHooks({ rootDir: root });
+    const factory = await loadBridge(pluginPath);
+    const hooks = await factory({ directory: root });
+    const before = (sessionID, command) => hooks["tool.execute.before"]({ tool: "bash", sessionID, callID: "c1" }, { args: { command } });
+    const after = async (sessionID, text) => {
+      const output = { title: "bash", output: text, metadata: {} };
+      await hooks["tool.execute.after"]({ tool: "bash", sessionID, callID: "c1", args: {} }, output);
+      return output.output;
+    };
+    const model = async sessionID => {
+      const output = { system: [] };
+      await hooks["experimental.chat.system.transform"]({ sessionID }, output);
+      return output.system;
+    };
+    await before("completed", "PRE_CONTEXT");
+    await before("bystander", "OTHER_SESSION");
+    assert.equal(await after("completed", "done"), "done\n\nPRE_CONTEXT\n\nHELLO_CONTEXT", "tool output keeps pre-tool context in the conversation, ahead of post-tool context");
+    const recorded = JSON.parse(await fs.readFile(path.join(root, "tmp", "hook-payload.json"), "utf8"));
+    assert.equal(recorded.tool_response.output, "done", "PostToolUse hooks read the tool's own output, without bridge-added context");
+    assert.deepEqual(await model("completed"), [], "context delivered with the tool output is not repeated in the next system prompt");
+    assert.equal(await after("completed", "next"), "next\n\nHELLO_CONTEXT", "a later tool does not carry the context again");
+    assert.deepEqual(await model("bystander"), ["OTHER_SESSION"], "a completed tool takes only its own session's pending context");
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
+test("generated bridge keeps pre-tool context for the next system prompt when the tool result has no text output", async () => {
+  const root = await createProject({ hooks: { PreToolUse: [{ matcher: "Bash", hooks: [
+    { type: "command", command: hookCommand("pre-context.cjs") },
+  ] }] } });
+  try {
+    const { pluginPath } = await materializeOpencodeHooks({ rootDir: root });
+    const factory = await loadBridge(pluginPath);
+    const hooks = await factory({ directory: root });
+    const call = { tool: "bash", sessionID: "no-text", args: {} };
+    await hooks["tool.execute.before"](call, { args: { command: "PRE_CONTEXT" } });
+    const result = { content: [] };
+    await hooks["tool.execute.after"](call, result);
+    assert.deepEqual(result, { content: [] }, "a result without text output is left as the host returned it");
+    await hooks["tool.execute.after"](call, undefined);
+    const system = { system: [] };
+    await hooks["experimental.chat.system.transform"]({ sessionID: "no-text" }, system);
+    assert.deepEqual(system.system, ["PRE_CONTEXT"], "context no tool output carried still reaches the next model request");
+    const later = { output: "done" };
+    await hooks["tool.execute.after"](call, later);
+    assert.equal(later.output, "done", "context the system prompt delivered is not added to a later tool output");
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
+test("generated bridge bounds pending pre-tool text and sessions without mixing their context", async () => {
+  const root = await createProject({ hooks: { PreToolUse: [{ matcher: "Bash", hooks: [
+    { type: "command", command: hookCommand("pre-context.cjs") },
+  ] }] } });
+  try {
+    const { pluginPath } = await materializeOpencodeHooks({ rootDir: root });
+    const factory = await loadBridge(pluginPath);
+    const hooks = await factory({ directory: root });
+    const before = (sessionID, command) => hooks["tool.execute.before"]({ tool: "bash", sessionID }, { args: { command } });
+    const model = async sessionID => {
+      const output = { system: [] };
+      await hooks["experimental.chat.system.transform"]({ sessionID }, output);
+      return output.system;
+    };
+    await before("bytes", "x".repeat(65536));
+    await before("bytes", "over-limit");
+    assert.deepEqual(await model("bytes"), ["x".repeat(65536)], "64KiB aggregate cap preserves accepted context");
+    await before("oversize", "x".repeat(65537));
+    assert.deepEqual(await model("oversize"), [], "one oversized context cannot occupy the queue");
+    for (let index = 0; index < 33; index++) await before("count", `context-${index}`);
+    assert.deepEqual(await model("count"), Array.from({ length: 32 }, (_, index) => `context-${index}`));
+    for (let index = 0; index < 257; index++) await before(`session-${index}`, `context-${index}`);
+    assert.deepEqual(await model("session-256"), [], "bounded queue diagnoses overflow instead of retaining unlimited sessions");
+    assert.deepEqual(await model("session-0"), ["context-0"]);
+    await before("after-drain", "new-context");
+    assert.deepEqual(await model("after-drain"), ["new-context"], "consumption frees a session slot");
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
+test("generated bridge discards pre-tool context still pending when its session compacts", async () => {
+  const root = await createProject({ hooks: { PreToolUse: [{ matcher: "Bash", hooks: [
+    { type: "command", command: hookCommand("pre-context.cjs") },
+  ] }] } });
+  try {
+    const { pluginPath } = await materializeOpencodeHooks({ rootDir: root });
+    const factory = await loadBridge(pluginPath);
+    const hooks = await factory({ directory: root });
+    const before = (sessionID, command) => hooks["tool.execute.before"]({ tool: "bash", sessionID }, { args: { command } });
+    const model = async sessionID => {
+      const output = { system: [] };
+      await hooks["experimental.chat.system.transform"]({ sessionID }, output);
+      return output.system;
+    };
+    await before("compacting", "queued-before-compaction");
+    await before("bystander", "other-session-context");
+    await hooks.event({ event: { type: "session.compacted", properties: { sessionID: "compacting" } } });
+    assert.deepEqual(await model("compacting"), [], "context queued before a compaction belongs to the window that was discarded");
+    assert.deepEqual(await model("bystander"), ["other-session-context"], "another session's pending context survives that compaction");
+    await before("compacting", "queued-after-compaction");
+    assert.deepEqual(await model("compacting"), ["queued-after-compaction"], "the compacted session queues new context again");
+    await before("compacting", "queued-before-second-compaction");
+    await hooks.event({ event: { type: "session.compacted", properties: { sessionID: "compacting" } } });
+    const completed = { output: "done" };
+    await hooks["tool.execute.after"]({ tool: "bash", sessionID: "compacting", args: {} }, completed);
+    assert.equal(completed.output, "done", "a tool that completes after the compaction does not carry the discarded context");
   } finally {
     await fs.rm(root, { recursive: true, force: true });
   }

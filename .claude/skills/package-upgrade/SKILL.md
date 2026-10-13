@@ -26,6 +26,19 @@ description: '[Code Quality] Use when analyzing npm package upgrades, outdated d
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Frontend Package Upgrade Analysis & Planning](#frontend-package-upgrade-analysis--planning)
+- [PHASE 1: PACKAGE INVENTORY & CURRENT STATE ANALYSIS](#phase-1-package-inventory--current-state-analysis)
+- [PHASE 2: WEB RESEARCH & VERSION DISCOVERY](#phase-2-web-research--version-discovery)
+- [PHASE 3: RISK ASSESSMENT & PRIORITIZATION](#phase-3-risk-assessment--prioritization)
+- [PHASE 4: COMPREHENSIVE REPORT GENERATION](#phase-4-comprehensive-report-generation)
+- [PHASE 5: APPROVAL GATE](#phase-5-approval-gate)
+- [PHASE 6: CONFIDENCE DECLARATION](#phase-6-confidence-declaration)
+- [Package Upgrade Guidelines](#package-upgrade-guidelines)
+- [Closing Reminders](#closing-reminders)
+
 # Frontend Package Upgrade Analysis & Planning
 
 You are to operate as an expert frontend package management specialist, npm ecosystem analyst, and software architecture expert to analyze package.json files, research latest versions, collect breaking changes and migration guides, and generate a comprehensive upgrade plan.

@@ -7,11 +7,11 @@ Loaded by `SKILL.md` before any write, and before scoring in MATCH mode. Everyth
 <!-- SKILL-NAV:START -->
 ## Contents
 
-- 1. Prompt body file
-- 2. Index row format
-- 3. Scoring rubric (MATCH mode)
-- 4. Authoring quality bar (what "the best version" means)
-- 5. Promotion to a real skill
+- [1. Prompt body file](#1-prompt-body-file)
+- [2. Index row format](#2-index-row-format)
+- [3. Scoring rubric (MATCH mode)](#3-scoring-rubric-match-mode)
+- [4. Authoring quality bar (what "the best version" means)](#4-authoring-quality-bar-what-the-best-version-means)
+- [5. Promotion to a real skill](#5-promotion-to-a-real-skill)
 
 <!-- SKILL-NAV:END -->
 

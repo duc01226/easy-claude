@@ -5,14 +5,14 @@ Use this as the content and structure rubric for any subject. It is a decision a
 <!-- SKILL-NAV:START -->
 ## Contents
 
-- 1. Communication foundation
-- 2. Narrative architecture
-- 3. Narrative archetypes
-- 4. Slide map and slide-level contract
-- 5. Content and visual reasoning
-- 6. Delivery, notes, and pacing
-- 7. Final structure review
-- Research basis
+- [1. Communication foundation](#1-communication-foundation)
+- [2. Narrative architecture](#2-narrative-architecture)
+- [3. Narrative archetypes](#3-narrative-archetypes)
+- [4. Slide map and slide-level contract](#4-slide-map-and-slide-level-contract)
+- [5. Content and visual reasoning](#5-content-and-visual-reasoning)
+- [6. Delivery, notes, and pacing](#6-delivery-notes-and-pacing)
+- [7. Final structure review](#7-final-structure-review)
+- [Research basis](#research-basis)
 
 <!-- SKILL-NAV:END -->
 

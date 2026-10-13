@@ -34,6 +34,19 @@ const EARLIER_WORD = /\b(?:pbis?|epics?|backlog|visions?|memberItemIds|groupRole
 const numbers = snapshot => ({ total: snapshot.metrics.total, accepted: snapshot.metrics.accepted, remaining: snapshot.metrics.remaining, eligibleIds: snapshot.metrics.eligibleIds });
 const recorded = project => ({ total: project.expected.total, accepted: project.expected.accepted, remaining: project.expected.remaining, eligibleIds: project.expected.eligibleIds });
 const codes = snapshot => snapshot.diagnostics.map(finding => finding.code);
+// The delivery states of the two versions of the current structure, written out: version 4 added one state to version 3.
+const BASE_STATES = ['draft', 'planned', 'ready', 'in_progress', 'blocked', 'verifying', 'done', 'canceled'];
+const CURRENT_STATES = ['draft', 'planned', 'ready', 'in_progress', 'blocked', 'implemented', 'verifying', 'done', 'canceled'];
+const LATER_STATE = 'The implemented state belongs to vocabulary version 4 and this project stores version 3; declare taskTracking.schemaVersion 4 in the project configuration to record it';
+const LATER_STAMP = 'Record is stamped for vocabulary version 4 and this project stores version 3; declare taskTracking.schemaVersion 4 in the project configuration to read it';
+const recordBytes = snapshotState => snapshotState.filter(([name]) => name.startsWith('work/'));
+// The stops the status report draws for delivery work, in order: every delivery state but blocked and canceled.
+const reportStops = snapshot => {
+    const { renderReport } = require('../../../skills/task-track/lib/report-view.cjs');
+    const html = renderReport(snapshot, { schemaVersion: 1 });
+    const standing = html.slice(html.indexOf('id="standing-heading"'));
+    return [...standing.slice(0, standing.indexOf('</section>')).matchAll(/<span class="station-name">([^<]*)<\/span>/g)].map(match => match[1]);
+};
 // A record as an earlier release stored it, written by hand: the tracker never writes this stamp itself.
 const earlierRecord = (id, kind, extra = '') => `---\nid: ${id}\ntitle: Work written before the vocabulary change\nintent: Keep an earlier outcome readable\nstatus: draft\n`
     + `tracking: {schemaVersion: 2, revision: 1, kind: ${kind}${extra}}\n---\nAuthored body stays as written.\n`;
@@ -223,14 +236,47 @@ module.exports = { name: 'Task tracking vocabulary integration', tests: [
         assert.deepEqual([settle(3, ['pbis']), settle(2, ['pbis'])], ['current', 'earlier']);
         // Names are taken as given: a differently spelled name is a location only where the disk says so (asserted against the disk above).
         assert.equal(settle(undefined, ['Projects']), 'current');
+        // The current structure has two versions, and only a declaration makes a project store the current one.
+        const storedAs = (declaredVersion, folderNames = []) => vocabulary.resolveVocabulary({ declaredVersion, folderNames }).storedVersion;
+        assert.deepEqual([storedAs(4), storedAs(4, ['areas']), storedAs(3), storedAs(undefined), storedAs(undefined, ['areas', 'tasks']), storedAs(2)], [4, 4, 3, 3, 3, 2]);
+        assert.deepEqual([vocabulary.CURRENT_VERSION, vocabulary.BASE_VERSION, vocabulary.resolveVocabulary({ declaredVersion: 4 }).state, vocabulary.resolveVocabulary({ declaredVersion: 4 }).readOnly], [4, 3, 'current', false]);
+        assert.deepEqual([vocabulary.readableStamps(4), vocabulary.readableStamps(3), vocabulary.readableStamps(2)], [[3, 4], [3], [2]]);
         // The project marker accepts the two vocabularies that are read and the first, which is then refused by name; labels for
         // group purposes belong to the earlier one alone.
         assert.deepEqual(validateTaskTracking({ taskTracking: { schemaVersion: 2, groupLabels: { program: 'Bet', domain: 'Field' } } }), []);
         assert.deepEqual(validateTaskTracking({ taskTracking: { schemaVersion: 3, groupLabels: { program: 'Bet' } } }), ['taskTracking.groupLabels: unknown field']);
         assert.deepEqual(validateTaskTracking({ taskTracking: { schemaVersion: 2, groupLabels: { initiative: 'Bet' } } }), ['taskTracking.groupLabels.initiative: unknown field']);
-        for (const declared of [2, 3]) assert.deepEqual(validateTaskTracking({ taskTracking: { schemaVersion: declared, levelLabels: { product: 'Suite' }, typeLabels: { idea: 'Proposal' } } }), [], `marker ${declared}`);
+        for (const declared of [2, 3, 4]) assert.deepEqual(validateTaskTracking({ taskTracking: { schemaVersion: declared, levelLabels: { product: 'Suite' }, typeLabels: { idea: 'Proposal' } } }), [], `marker ${declared}`);
+        assert.deepEqual(validateTaskTracking({ taskTracking: { schemaVersion: 4, groupLabels: { program: 'Bet' } } }), ['taskTracking.groupLabels: unknown field']);
         assert.deepEqual(validateTaskTracking({ taskTracking: { schemaVersion: 1 } }), []);
-        for (const version of [0, 4, '3', null]) assert.equal(validateTaskTracking({ taskTracking: { schemaVersion: version } }).length, 1, `marker ${version}`);
+        for (const version of [0, 5, '3', '4', null]) assert.equal(validateTaskTracking({ taskTracking: { schemaVersion: version } }).length, 1, `marker ${version}`);
+        assert.deepEqual(validateTaskTracking({ taskTracking: { schemaVersion: 5 } }), ['taskTracking.schemaVersion: supported versions are 2 (earlier vocabulary, read-only until migrated), 3 and 4']);
+    }),
+    test('TC-PCI-073', 'a task-tracking vocabulary newer than the framework is deferred to warnings so the rest of the configuration still loads', async f => {
+        const { deferNewerTracking } = require('../../lib/task-tracking-config.cjs');
+        const newer = vocabulary.CURRENT_VERSION + 1;
+        const config = { taskTracking: { schemaVersion: newer, groupLabels: { x: 'y' } } };
+        const deferred = deferNewerTracking(config, { valid: false, errors: validateTaskTracking(config), warnings: [] });
+        assert.equal(deferred.valid, true);
+        assert.deepEqual(deferred.errors, []);
+        assert.ok(deferred.warnings.length > 0 && deferred.warnings.every(w => w.startsWith('taskTracking.')));
+        // Exercise the same file admission the public tracker consumes: unrelated facts load, while tracking refuses.
+        f.config.taskTracking.schemaVersion = newer; f.saveConfig();
+        const { readProjectConfigAt } = require('../../lib/project-config-loader.cjs');
+        const loaded = readProjectConfigAt(f.root);
+        assert.equal(loaded.state, 'valid');
+        assert.equal(loaded.config.project.name, f.config.project.name);
+        const { trackingContext } = require('../../lib/task-tracking-config.cjs');
+        assert.throws(() => trackingContext(f.root), error => error.code === 'INVALID_CONFIG');
+        f.config.project.name = ''; f.saveConfig();
+        assert.equal(readProjectConfigAt(f.root).state, 'invalid', 'unrelated invalid facts still reject the config');
+        // Findings outside the section, and findings of a version this framework can judge, are never deferred.
+        const mixed = deferNewerTracking(config, { valid: false, errors: ['project.name: required'], warnings: [] });
+        assert.equal(mixed.valid, false);
+        const known = { taskTracking: { schemaVersion: vocabulary.CURRENT_VERSION, bogus: 1 } };
+        assert.equal(deferNewerTracking(known, { valid: false, errors: validateTaskTracking(known), warnings: [] }).valid, false);
+        // Garbage markers are corruption, not a newer vocabulary.
+        for (const version of ['9', null, 1.5]) assert.equal(deferNewerTracking({ taskTracking: { schemaVersion: version } }, { valid: false, errors: ['taskTracking.schemaVersion: x'], warnings: [] }).valid, false);
     }),
     test('TC-TPT-249', 'while a migration progress record exists every read, save and preview answers migration in progress', async f => {
         const project = await earlierProject(f, { commit: true });
@@ -275,7 +321,7 @@ module.exports = { name: 'Task tracking vocabulary integration', tests: [
         // A current request naming an earlier word is refused by the ordinary checks, with the prior state unchanged.
         refused(await f.perform('create', 'P', { title: 'A group', intent: 'Hold work' }, { target: { kind: 'project', itemId: 'P' } }), 'INVALID_INPUT');
         refused(await f.core.executeOperation({ ...f.request('update', 'T', {}), operation: 'group', patch: { memberItemIds: ['T'] } }, f.authority()), 'UNSUPPORTED');
-        refused(await f.core.executeOperation({ ...f.request('update', 'T', { title: 'Later' }), schemaVersion: 4 }, f.authority()), 'UNSUPPORTED');
+        refused(await f.core.executeOperation({ ...f.request('update', 'T', { title: 'Later' }), schemaVersion: 5 }, f.authority()), 'UNSUPPORTED');
         assert.equal(f.view('T').title, 'Export selected rows');
     }),
     test('TC-TPT-245', 'a checkpoint request retained from before the vocabulary change is never replayed', async f => {
@@ -379,10 +425,10 @@ module.exports = { name: 'Task tracking vocabulary integration', tests: [
         assert.equal(snapshot.vocabulary.project.state, 'current'); assert.equal(snapshot.vocabulary.project.readOnly, false);
         assert.equal(EARLIER_WORD.test(JSON.stringify(snapshot)), false);
         // The words and labels every view uses come with the read and with discovery, and they agree.
-        const catalogue = operationCatalogue(); const { project, ...block } = snapshot.vocabulary;
+        const catalogue = operationCatalogue(f.config); const { project, ...block } = snapshot.vocabulary;
         assert.deepEqual(block, catalogue.vocabulary);
         assert.deepEqual([block.version, block.kinds, block.states, block.levels, block.initiativeTypes, block.linkRoles, block.tagRoles, block.deliveryKind, block.areaKind, block.initiativeKind], [3,
-            ['initiative', 'task', 'story', 'subtask', 'area'], ['draft', 'planned', 'ready', 'in_progress', 'blocked', 'implemented', 'verifying', 'done', 'canceled'], ['application', 'product', 'module', 'feature'],
+            ['initiative', 'task', 'story', 'subtask', 'area'], ['draft', 'planned', 'ready', 'in_progress', 'blocked', 'verifying', 'done', 'canceled'], ['application', 'product', 'module', 'feature'],
             ['feedback', 'idea', 'initiative'], ['dependency', 'parent', 'area', 'initiative', 'spec', 'plan', 'source'], { area: 'area', initiative: 'initiative' }, 'task', 'area', 'initiative']);
         assert.deepEqual([block.groupRoles, block.groupKinds, block.labels.groupRoles], [undefined, undefined, undefined]);
         for (const [words, labels] of [[block.kinds, block.labels.kinds], [block.kinds, block.labels.kindsPlural], [block.levels, block.labels.levels], [block.initiativeTypes, block.labels.initiativeTypes], [block.linkRoles, block.labels.linkRoles]]) {
@@ -390,6 +436,110 @@ module.exports = { name: 'Task tracking vocabulary integration', tests: [
         }
         assert.deepEqual([catalogue.kinds, catalogue.states, catalogue.linkRoles, catalogue.request.schemaVersion], [block.kinds, block.states, block.linkRoles, 3]);
         assert.equal(EARLIER_WORD.test(JSON.stringify(catalogue)), false);
+    }),
+    test('TC-TPT-338', 'a project that stores version 3 is never offered or given the state version 4 added, and each refusal names the declaration that allows it', async f => {
+        // Given the fixture project, which declares version 3 as every project written before version 4 does
+        await f.create('TASK-base');
+        const stored = f.storedState();
+        // Then discovery and every read name version 3 and list its eight delivery states, with no step into the added one
+        const catalogue = operationCatalogue(f.config);
+        for (const block of [catalogue.vocabulary, f.progress().vocabulary]) {
+            assert.deepEqual([block.version, block.states, block.lifecycles.delivery.states, Object.keys(block.transitions.delivery)], [3, BASE_STATES, BASE_STATES, BASE_STATES]);
+            assert.deepEqual(block.transitions.delivery, { draft: ['planned', 'canceled'], planned: ['ready', 'canceled'], ready: ['in_progress', 'canceled'],
+                in_progress: ['blocked', 'verifying', 'canceled'], blocked: ['in_progress', 'verifying', 'canceled'], verifying: ['done', 'canceled'],
+                done: ['planned', 'ready', 'in_progress', 'canceled'], canceled: [] });
+        }
+        assert.deepEqual([catalogue.states, catalogue.request.schemaVersion, f.progress().vocabulary.project.storedVersion], [BASE_STATES, 3, 3]);
+        // And the status report draws no stop for the added state
+        assert.deepEqual(reportStops(f.progress()), ['Draft', 'Planned', 'Ready', 'In progress', 'Verifying', 'Done']);
+        // When the state is asked for as a usual step, as a state correction and in a request written at version 4, saved or previewed
+        const asks = [[{ state: 'implemented' }, {}, {}], [{ state: 'implemented', correction: true, reason: 'Requested state correction' }, {}, { canCorrectState: true }],
+            [{ state: 'implemented' }, { schemaVersion: 4 }, {}]];
+        for (const [patch, request, authority] of asks) for (const preview of [false, true]) {
+            const result = await f.perform('transition', 'TASK-base', patch, { ...request, ...(preview ? { preview: true } : {}) }, authority);
+            // Then it is refused by name, with the declaration that allows it
+            refused(result, 'UNSUPPORTED'); assert.equal(result.primary.reason, LATER_STATE);
+        }
+        // And a state of another kind's lifecycle keeps its ordinary refusal
+        refused(await f.perform('transition', 'TASK-base', { state: 'approved' }), 'INVALID_TRANSITION');
+        // A file that states it without tracking metadata is authored content: it raises no finding, and adopting it is refused the same way
+        const authored = f.write('work/tasks/TASK-authored.md', '---\nid: TASK-authored\ntitle: Built elsewhere\nintent: Record what was built\nstatus: implemented\n---\nAuthored body retained.\n');
+        assert.deepEqual([f.progress().coverage, codes(f.progress())], ['complete', []]);
+        const adoption = await f.core.executeOperation({ ...f.request('adopt', 'TASK-authored', {}), preview: true }, f.authority());
+        refused(adoption, 'UNSUPPORTED'); assert.equal(adoption.primary.reason, LATER_STATE);
+        fs.rmSync(authored);
+        assert.deepEqual(f.storedState(), stored, 'no refusal wrote a byte');
+        // A version 4 request that names only version 3 words is carried out: the two versions share every request field
+        await f.saved('update', 'TASK-base', { title: 'Renamed in a version 4 request' }, { schemaVersion: 4 });
+        assert.deepEqual([f.view('TASK-base').title, f.record('TASK-base').tracking.schemaVersion], ['Renamed in a version 4 request', 3]);
+    }),
+    test('TC-TPT-339', 'declaring version 4 gives a project the added state without converting a record: version 3 records are read as stored and each is stamped 4 by its next save', async f => {
+        // Given two records a version 3 project saved
+        await f.create('TASK-kept'); await f.create('TASK-built', 'task', { criteria: [] });
+        const before = f.storedState();
+        assert.deepEqual([f.record('TASK-kept').tracking.schemaVersion, f.record('TASK-built').tracking.schemaVersion], [3, 3]);
+        // When the project declares version 4
+        f.declareVersion(4);
+        // Then no record changed, every record is read and counted, and the state is offered
+        assert.deepEqual(recordBytes(f.storedState()), recordBytes(before));
+        const snapshot = f.progress();
+        assert.deepEqual([snapshot.coverage, codes(snapshot), snapshot.metrics.total, snapshot.vocabulary.version, snapshot.vocabulary.project.state, snapshot.vocabulary.project.storedVersion],
+            ['complete', [], 2, 4, 'current', 4]);
+        const catalogue = operationCatalogue(f.config);
+        assert.deepEqual([catalogue.states, catalogue.vocabulary.states, catalogue.vocabulary.transitions.delivery.implemented, catalogue.request.schemaVersion],
+            [CURRENT_STATES, CURRENT_STATES, ['in_progress', 'verifying', 'canceled'], 4]);
+        assert.deepEqual(reportStops(snapshot), ['Draft', 'Planned', 'Ready', 'In progress', 'Implemented', 'Verifying', 'Done']);
+        // When one record takes the state, in a request written at version 3
+        await f.saved('transition', 'TASK-built', { state: 'implemented' });
+        // Then it holds the state and the version 4 stamp, and the untouched record keeps its stamp and its count
+        assert.deepEqual([f.record('TASK-built').data.status, f.record('TASK-built').tracking.schemaVersion, f.record('TASK-kept').tracking.schemaVersion], ['implemented', 4, 3]);
+        assert.deepEqual([f.progress().coverage, f.progress().metrics.total], ['complete', 2]);
+        // And any later save stamps a record, and a record captured now starts with the stamp
+        await f.saved('update', 'TASK-kept', { title: 'Renamed' }, { schemaVersion: 4 });
+        await f.create('TASK-new');
+        assert.deepEqual(['TASK-kept', 'TASK-new'].map(id => f.record(id).tracking.schemaVersion), [4, 4]);
+        // The conversion from the earlier vocabulary has nothing to do here, whatever stamps the records carry
+        assert.deepEqual([(await f.migrate({ dryRun: true })).code, f.storedState().length > 0], ['NOTHING_TO_MIGRATE', true]);
+        // The pinned read of a commit follows the commit's own declaration
+        git(f, ['init']); git(f, ['add', '--', 'docs', 'work']); git(f, ['commit', '-m', 'A version 4 project']);
+        const pinned = f.progress({ ref: 'HEAD' });
+        assert.deepEqual([pinned.coverage, pinned.metrics.total, pinned.vocabulary.project.storedVersion, pinned.items.find(item => item.id === 'TASK-built').state], ['complete', 3, 4, 'implemented']);
+    }),
+    test('TC-TPT-340', 'a version 3 project names every record it cannot hold, never counts it, and saves nothing until the project declares version 4 again', async f => {
+        // Given a version 3 record, and three records a version 4 project then wrote
+        await f.create('TASK-base');
+        f.declareVersion(4);
+        await f.create('TASK-stamped');
+        for (const id of ['TASK-held', 'TASK-passed']) { await f.create(id, 'task', { criteria: [] }); await f.saved('transition', id, { state: 'implemented' }); }
+        await f.saved('transition', 'TASK-passed', { state: 'canceled', reason: 'No longer needed' });
+        // Two of them carry the version 3 stamp, as a record does that another copy wrote or a hand edited
+        for (const id of ['TASK-held', 'TASK-passed']) {
+            const record = f.record(id);
+            f.write(record.ownerPath, patchRecord(record, {}, { ...record.tracking, schemaVersion: 3 }).bytes);
+        }
+        // Four records are read; the canceled one is not eligible work, so three are counted.
+        assert.deepEqual([f.progress().coverage, f.progress().items.length, f.progress().metrics.total], ['complete', 4, 3]);
+        // When the project declares version 3 again while they remain
+        f.declareVersion(3);
+        const stored = f.storedState();
+        git(f, ['init']); git(f, ['add', '--', 'docs', 'work']); git(f, ['commit', '-m', 'A version 3 project holding version 4 records']);
+        for (const snapshot of [f.progress(), f.progress({ ref: 'HEAD' })]) {
+            // Then each is named with what makes it readable: the state it holds or held, or its stamp
+            assert.equal(snapshot.coverage, 'partial');
+            assert.deepEqual(snapshot.diagnostics.map(finding => [finding.path, finding.code, finding.reason]).sort(), [
+                ['work/tasks/TASK-held.md', 'LATER_VOCABULARY_RECORD', LATER_STATE], ['work/tasks/TASK-passed.md', 'LATER_VOCABULARY_RECORD', LATER_STATE],
+                ['work/tasks/TASK-stamped.md', 'LATER_VOCABULARY_RECORD', LATER_STAMP]]);
+            assert.deepEqual(snapshot.diagnostics.map(finding => finding.itemId).sort(), ['TASK-held', 'TASK-passed', 'TASK-stamped']);
+            // And only the record the version holds is counted
+            assert.deepEqual([snapshot.items.map(item => item.id), snapshot.vocabulary.project.storedVersion, snapshot.vocabulary.states], [['TASK-base'], 3, BASE_STATES]);
+        }
+        // And nothing is saved while they remain
+        refused(await f.perform('update', 'TASK-base', { title: 'Renamed' }), 'INCOMPLETE_SCOPE');
+        refused(await f.perform('create', 'TASK-more', { title: 'More work', intent: 'Capture another outcome' }), 'INCOMPLETE_SCOPE');
+        assert.deepEqual(f.storedState(), stored);
+        // When the project declares version 4 again, Then every record is read and counted as it was
+        f.declareVersion(4);
+        assert.deepEqual([f.progress().coverage, codes(f.progress()), f.progress().items.length, f.progress().metrics.total], ['complete', [], 4, 3]);
     }),
     test('TC-TPT-248', 'the stored read hands migration every record in the words it stores, whatever state the project is in', async f => {
         const project = await earlierProject(f);

@@ -47,6 +47,23 @@ disable-model-invocation: false
 - MUST ATTENTION resolve Codex mirrors through the `/ai-context-refresh` completion handoff when Codex context is installed or selected; otherwise record the host-specific step as not applicable.
 - MUST ATTENTION when the user asks for help, options, or "what does init decide", run **Help Mode** below and STOP — never start Phase -1.
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Help Mode (`--help`)](#help-mode---help)
+- [Scope](#scope)
+- [Phase -1: Required Task Plan](#phase--1-required-task-plan)
+- [Phase 0: Assess State](#phase-0-assess-state)
+- [Phase 1: Decide Route](#phase-1-decide-route)
+- [Phase 2: Execute Order](#phase-2-execute-order)
+- [Phase 2.5: Conditional Spec Workflow](#phase-25-conditional-spec-workflow)
+- [Phase 2.6: Final Review Skills](#phase-26-final-review-skills)
+- [Phase 3: Agent Rule When The Init Gate Has Not Run](#phase-3-agent-rule-when-the-init-gate-has-not-run)
+- [Phase 4: Verification](#phase-4-verification)
+- [Phase 5: Conditional Graph Refresh](#phase-5-conditional-graph-refresh)
+- [Output](#output)
+- [Closing Reminders](#closing-reminders)
+
 ## Help Mode (`--help`)
 
 **Trigger:** `$ARGUMENTS` contains `--help`, `-h`, `help`, `options`, `what does this set up`, `what will it change`, or any other request to understand the setup surface rather than to run setup.

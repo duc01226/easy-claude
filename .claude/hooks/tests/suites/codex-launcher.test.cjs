@@ -239,7 +239,7 @@ const launcherTests = [
         }
     },
     {
-        name: '[codex-launcher] TC-CXL-003 init-prompt-gate under the Codex launcher blocks a prompt on a present-but-invalid project config',
+        name: '[codex-launcher] TC-CXL-003 init-prompt-gate under the Codex launcher warns without blocking on a present-but-invalid project config',
         fn: () => {
             // Given a fixture project whose project config exists but has no project.name
             const root = makeHookProject('initgate');
@@ -248,12 +248,11 @@ const launcherTests = [
                 // When Codex launches the gate on an ordinary prompt
                 const result = runCodexLauncher('init-prompt-gate.cjs',
                     JSON.stringify({ hook_event_name: 'UserPromptSubmit', session_id: 'codex-launcher-test', prompt: 'hello' }), { cwd: root });
-                // Then it emits its own fail-closed block decision
+                // Then it adds a warning for the model and lets the prompt through
                 assertEqual(result.code, 0, `stderr: ${result.stderr}`);
-                const decision = JSON.parse(result.stdout);
-                assertEqual(decision.decision, 'block', 'invalid declared config must block the prompt');
-                assertContains(decision.reason, 'is invalid');
-                assertContains(decision.reason, '/project-init');
+                assertTrue(!/"decision"\s*:\s*"block"/.test(result.stdout), 'invalid declared config must not block the prompt');
+                assertContains(result.stdout, 'is invalid');
+                assertContains(result.stdout, '/project-init');
             } finally {
                 removeTemp(root);
             }

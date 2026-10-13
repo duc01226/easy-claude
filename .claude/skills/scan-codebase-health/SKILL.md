@@ -30,6 +30,22 @@ disable-model-invocation: true
 
 ---
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Scan Codebase Health](#scan-codebase-health)
+- [Phase 0: Classify & Detect](#phase-0-classify--detect)
+- [Phase 1: Doc Count-Drift Detection (No Graph Required)](#phase-1-doc-count-drift-detection-no-graph-required)
+- [Phase 2: Stale Config Reference Detection (No Graph Required)](#phase-2-stale-config-reference-detection-no-graph-required)
+- [Phase 3: Unused Exports Detection (Graph Required)](#phase-3-unused-exports-detection-graph-required)
+- [Phase 4: Orphan File Detection (Graph Required)](#phase-4-orphan-file-detection-graph-required)
+- [Phase 5: Pattern Drift Detection (No Graph Required)](#phase-5-pattern-drift-detection-no-graph-required)
+- [Phase 6: Dead Feature Flag Detection (If Feature Flags Detected)](#phase-6-dead-feature-flag-detection-if-feature-flags-detected)
+- [Phase 7: Broken Cross-Reference Detection (No Graph Required)](#phase-7-broken-cross-reference-detection-no-graph-required)
+- [Phase 8: Fresh-Eyes Review](#phase-8-fresh-eyes-review)
+- [Phase 9: Generate Report](#phase-9-generate-report)
+- [Closing Reminders](#closing-reminders)
+
 # Scan Codebase Health
 
 ## Phase 0: Classify & Detect

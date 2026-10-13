@@ -1,6 +1,6 @@
 # Versioned skill behavior corpus
 
-`corpus.v1.json` contains positive, negative and ambiguous activation cases and pressure/repair cases. The corpus version changes whenever prompts, fixtures or rubrics change. These cases are scoped probes, not proof of all skill behavior or a substitute for runtime safety gates.
+`corpus.v1.json` contains positive, negative and ambiguous activation cases and pressure/repair cases. The corpus version changes whenever prompts, fixtures or rubrics change. These cases are scoped probes, not proof of all skill behavior or a substitute for runtime safety gates. Coverage of the whole catalog is a known, recorded limit (`.claude/docs/framework-review-guide.md` → Known limits). Add cases first for skills whose activation or behavior changed: a case states the intended boundary even before a runner executes it, so write it with the change and take each expectation from the explicit boundary the skill descriptions state. A changed skill without a case is a recorded gap, not a new finding.
 
 Validate its structure without network access or dependencies:
 
@@ -20,7 +20,7 @@ Result envelope:
 ```json
 {
   "schemaVersion": 1,
-  "corpusVersion": "1.0.0",
+  "corpusVersion": "1.1.0",
   "pairs": [{
     "caseId": "activation-positive",
     "reviewer": "reviewer identifier",

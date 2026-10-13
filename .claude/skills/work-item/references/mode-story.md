@@ -7,6 +7,31 @@
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Greenfield Mode](#greenfield-mode)
+- [User Story Creation](#user-story-creation)
+- [Step 0: Locate Active Plan (if in workflow)](#step-0-locate-active-plan-if-in-workflow)
+- [When to Use](#when-to-use)
+- [Quick Reference](#quick-reference)
+- [Project Domain Context Loading](#project-domain-context-loading)
+- [INVEST Criteria](#invest-criteria)
+- [SPIDR Splitting Checklist](#spidr-splitting-checklist)
+- [Scenario Templates](#scenario-templates)
+- [AI-SDD Mandate Gate (M1-M5 and M7) — BLOCKING](#ai-sdd-mandate-gate-m1-m5-and-m7--blocking)
+- [Story Artifact Template](#story-artifact-template)
+- [Foundation Stories (Production Readiness)](#foundation-stories-production-readiness)
+- [Anti-Patterns to Avoid](#anti-patterns-to-avoid)
+- [Key Rules](#key-rules)
+- [Quality Checklist](#quality-checklist)
+- [Validation Step (MANDATORY)](#validation-step-mandatory)
+- [Related](#related)
+- [MANDATORY: Systematic Task Breakdown for Stories](#mandatory-systematic-task-breakdown-for-stories)
+- [Next Steps](#next-steps)
+- [Prompt-Enhance Closing Anchors](#prompt-enhance-closing-anchors)
+- [Closing Reminders](#closing-reminders)
+
 ## Quick Summary
 
 **Goal:** Produce ready-to-start, INVEST-valid user stories — tech-agnostic, testable GWT criteria, evidence-cited estimates, dependency-mapped — by breaking tasks into implementable stories via vertical slicing and SPIDR splitting, so a team with zero codebase knowledge can implement on any stack.

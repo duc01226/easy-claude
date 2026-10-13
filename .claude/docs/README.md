@@ -7,11 +7,13 @@
 | Goal                           | Document                                                                                                                           |
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
 | **New to Claude Code?**        | [quick-start.md](./quick-start.md) - 5-minute onboarding                                                                           |
-| **Need a skill?**              | [skills/README.md](./skills/README.md) - <!-- COUNT:skills -->104<!-- /COUNT --> skills catalog                                                                        |
+| **Need a skill?**              | [skills/README.md](./skills/README.md) - <!-- COUNT:skills -->105<!-- /COUNT --> skills catalog                                                                        |
 | **Building a feature?**        | [skills/README.md](./skills/README.md) + project-reference root patterns                                                           |
 | **Verifying user experience?** | [configuration/experience-verification.md](./configuration/experience-verification.md) - portable evidence and acceptance contract |
-| **Understanding hooks?**       | [hooks/README.md](./hooks/README.md) - <!-- COUNT:hooks -->34<!-- /COUNT --> top-level hook files deep-dive                                                           |
+| **Reviewing the framework?**   | [framework-review-guide.md](./framework-review-guide.md) - how to measure, intended designs, known limits; read before any audit against vendor guidance |
+| **Understanding hooks?**       | [hooks/README.md](./hooks/README.md) - <!-- COUNT:hooks -->35<!-- /COUNT --> top-level hook files deep-dive                                                           |
 | **Understanding workflows?**   | `.claude/workflows.json` canonical catalog plus opt-in prompt injection - <!-- COUNT:workflows -->19<!-- /COUNT --> workflows                                             |
+| **Switch machinery off/on?** | [Runtime modes](./configuration/README.md#framework-runtime-mode) — global and checkout settings |
 | **Configuring Claude?**        | [configuration/README.md](./configuration/README.md)                                                                               |
 | **Tracking team work?** | [configuration/README.md#team-work-tracking](./configuration/README.md#team-work-tracking) - optional shared tracker and local app |
 | **Team collaboration?**        | [team-collaboration-guide.md](./team-collaboration-guide.md) - PO, BA, QA, QC, UX workflows                                        |
@@ -29,17 +31,18 @@ Project-owned branches below sit at their DEFAULT roots; `docs/project-config.js
 |-- README.md                 <- You are here (Navigation hub)
 |-- quick-start.md            5-minute onboarding guide
 |
-|-- skills/                   104 skills across 15+ domains
+|-- skills/                   105 skills across 15+ domains
 |   |-- README.md             Skills overview + full catalog
 |   +-- (patterns)           → docs/project-reference/
 |
-|-- hooks/                    34 top-level hook files, 64 lib modules
+|-- hooks/                    35 top-level hook files, 66 lib modules
 |   |-- README.md             Hooks overview, lessons system, session lifecycle
 |   +-- extending-hooks.md    How to create custom hooks
 |
 |-- code-graph-mechanism.md  How the structural knowledge graph works
 |-- code-graph-setup.md      Setup guide for Python + Tree-sitter
 |-- development-rules.md     Dev rules extracted from CLAUDE.md (static reference)
+|-- framework-review-guide.md  Read before auditing the framework against vendor guidance
 |-- anti-hallucination-patterns.md  AI failure mode catalog + remediation patterns
 |
 |-- agents/                   Subagent configurations
@@ -161,15 +164,15 @@ Unprefixed filenames resolve inside the project-reference docs root — default 
 
 | Category               | Count |
 | ---------------------- | ----- |
-| Skills                 | <!-- COUNT:skills -->104<!-- /COUNT --> |
-| Hook files (top-level) | <!-- COUNT:hooks -->34<!-- /COUNT --> |
-| Lib Modules            | <!-- COUNT:lib-modules -->64<!-- /COUNT --> |
-| Hook Events            | 9     |
+| Skills                 | <!-- COUNT:skills -->105<!-- /COUNT --> |
+| Hook files (top-level) | <!-- COUNT:hooks -->35<!-- /COUNT --> |
+| Lib Modules            | <!-- COUNT:lib-modules -->66<!-- /COUNT --> |
+| Hook Events            | 10     |
 | Agents                 | <!-- COUNT:agents -->24<!-- /COUNT --> |
 | Workflows              | <!-- COUNT:workflows -->19<!-- /COUNT --> |
 | Hook Tests             | 133   |
-| Hook Test Files        | 121 suites + 9 top-level test files |
-| Framework Markdown Files | 41 (`.claude/docs/**/*.md`) |
+| Hook Test Files        | 123 suites + 9 top-level test files |
+| Framework Markdown Files | 43 (`.claude/docs/**/*.md`) |
 
 ---
 

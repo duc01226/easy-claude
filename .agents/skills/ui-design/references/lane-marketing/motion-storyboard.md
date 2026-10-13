@@ -18,6 +18,17 @@
 
 ---
 
+## Contents
+
+- [1. Storyboard card — one per shot](#1-storyboard-card--one-per-shot)
+- [2. Poster-worthy frame rule](#2-poster-worthy-frame-rule)
+- [3. Energy arc — build → accelerate → peak → rest](#3-energy-arc--build--accelerate--peak--rest)
+- [4. Camera-move budget](#4-camera-move-budget)
+- [5. Transition grammar](#5-transition-grammar)
+- [6. HTML-animation pitfalls](#6-html-animation-pitfalls)
+- [7. Recording and export](#7-recording-and-export)
+- [Closing Reminders](#closing-reminders)
+
 ## 1. Storyboard card — one per shot
 
 A shot that cannot fill every field is not ready to build.

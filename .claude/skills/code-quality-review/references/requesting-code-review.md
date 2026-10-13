@@ -15,10 +15,6 @@ Read this reference for the matching practice routed from `SKILL.md`; read requi
 - [Integration with Workflows](#integration-with-workflows)
 - [Red Flags](#red-flags)
 
-Dispatch code-reviewer subagent to catch issues before they cascade.
-
-**Core principle:** Review early, review often.
-
 ## When to Request Review
 
 **Mandatory:**

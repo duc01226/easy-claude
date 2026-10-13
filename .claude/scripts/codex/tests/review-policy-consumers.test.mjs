@@ -438,6 +438,10 @@ test('R3-PROMPT-023: local clean-pass summaries cannot override an explicit mini
 
 const receiptIssuers = [
     {
+        kind: 'commit-review',
+        file: '.claude/skills/commit-review/SKILL.md'
+    },
+    {
         kind: 'changes-review',
         file: '.claude/skills/changes-review/SKILL.md',
         captureAnchor: 'Before reviewing, also capture the exact full candidate',
@@ -458,7 +462,8 @@ const receiptIssuers = [
 ];
 
 test('TC-FIT-012: every review receipt issuer binds the pre-review full candidate and excludes subsets', async () => {
-    assert.equal(receiptIssuers.length, 3, 'only the three declared full-review fix loops issue review receipts');
+    assert.deepEqual(receiptIssuers.map(issuer => issuer.kind).sort(), [...reviewReceipt.REVIEW_KINDS].sort(),
+        'every accepted receipt kind has a declared full-candidate review owner');
     const discoveredIssuers = new Set();
     for (const file of listSkillMarkdownFiles(path.join(root, '.claude', 'skills'))) {
         let contract;
@@ -468,7 +473,8 @@ test('TC-FIT-012: every review receipt issuer binds the pre-review full candidat
             throw error;
         }
         const source = stripSyncBlocks(contract);
-        for (const match of source.matchAll(/review-receipt\.cjs issue --kind=(changes-review|why-review|workflow-review-changes)\b/g)) {
+        for (const match of source.matchAll(/review-receipt\.cjs issue --kind=([a-z-]+)\b/g)) {
+            if (match[1] === 'skip') continue;
             discoveredIssuers.add(`${path.relative(root, file).split(path.sep).join('/')}#${match[1]}`);
         }
     }
@@ -509,14 +515,17 @@ test('TC-FIT-012: review and commit prompts preserve the configured semantic pro
     }
 
     const commit = stripSyncBlocks(await fs.readFile(path.join(root, '.claude/skills/commit/SKILL.md'), 'utf8'));
-    assert.match(commit, /check --target=commit-descriptor --descriptor-json=/);
-    assert.match(commit, /snapshot --target=commit-descriptor --descriptor-json=/);
-    assert.match(commit, /issue --kind=skip --scope=full-changeset --snapshot-json=/);
-    assert.match(commit, /status` is `ERROR`[\s\S]*status` is `CLEAN`/);
-    assert.match(commit, /The receipt is bound to candidate identity/);
-    assert.match(commit, /(?:never waives|does not waive) the Test-Verify Gate, spec\/test reconciliation/i);
-    assert.match(commit, /Test-Verify Gate \(Step 3\.5\)/);
-    assert.doesNotMatch(commit, /review-receipt\.cjs skip --reason=/, 'do not call the worktree-only skip wrapper');
+    assert.match(commit, /exact commit descriptor/);
+    assert.match(commit, /matching review receipt or policy-eligible skip/);
+    assert.match(commit, /refresh evidence after changes/);
+    const prPolicy = await fs.readFile(path.join(root, '.claude/skills/pull-request/references/check-policy.md'), 'utf8');
+    assert.match(prPolicy, /check --target=commit-descriptor --descriptor-json=/);
+    assert.match(prPolicy, /snapshot --target=commit-descriptor --descriptor-json=/);
+    assert.match(prPolicy, /issue --kind=skip --scope=full-changeset --snapshot-json=/);
+    assert.match(prPolicy, /`ERROR` is a blocker, never `CLEAN`/);
+    assert.match(prPolicy, /Neither review evidence nor a skip waives CI, spec\/test reconciliation/);
+    assert.doesNotMatch(commit + prPolicy, /review-receipt\.cjs skip --reason=/);
+
 });
 
 test('TC-FIT-012: receipt issuance rejects a changed candidate and identical staging preserves identity', { skip: !gitAvailable() }, () => {

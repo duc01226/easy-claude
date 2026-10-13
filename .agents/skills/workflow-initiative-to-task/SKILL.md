@@ -5,18 +5,11 @@ disable-model-invocation: false
 ---
 
 > Codex compatibility note:
-> - Invoke repository skills with `$skill-name` in Codex; this mirrored copy rewrites legacy Claude `/skill-name` references.
-> - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
-> - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
-> - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
-> - Use ask user question tool to ask user.
-> - Ignore Claude-specific mode-switch instructions when they appear.
-> - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
+> - Invoke `$skill-name`: load the registered `.agents/skills/<name>/SKILL.md` and execute it with Codex tools; no separate `Skill` tool or Claude mode switch is needed. Author `.claude/**`; mirrors are generated.
+> - Track steps before execution and keep progress/evidence current. Explicit skill requests execute their protocol. Use the native question tool for required questions.
+> - Map foreign tool names to available host capabilities. A name mismatch needs no approval; an actually unavailable required capability stops with its step/evidence and a user question before adaptation.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
-> - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
-> - For workflow skills, steps follow the guided contract in `$start-workflow` (gate steps fixed; other steps may flex with a logged reason); report step-by-step evidence.
-> - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
+> - Preserve protocol order unless the user approves a deviation. Workflows use `$start-workflow`: gates stay fixed; other steps may flex with logged reasons and evidence.
 <!-- WORKFLOW-CALLS:START -->
 ## Workflow Calls and Todo Bootstrap
 
@@ -51,6 +44,20 @@ Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs
 - **Work records:** initiative, task and story files are work records owned by `$task-track`. Child skills write them in the shape of [Records another skill authors](../task-track/references/integration-guide.md#records-another-skill-authors) (`status: draft`, no assignee, an `id` no other record uses) and offer tracking once after each save. Only record files live in `initiatives/`, `tasks/` and `tasks/stories/`; run reports, review and DoR results and planned-work rankings are saved outside them. A review, challenge or DoR PASS is evidence only: this workflow never sets a record ready, assigns it or accepts it; the person records that through `$task-track --mode=lifecycle`.
 - **[BLOCKING] Tech-agnostic output:** initiative / task / story prose follows `spec-principles.md` §3 in the project-reference docs root (default `docs/project-reference/`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides) — framework, product, language and pattern names appear only in evidence fields, frontmatter and Mermaid.
 - Apply the shared SDD Artifact Contract (`shared/sdd-artifact-contract.md` in the active skills root) and `.claude/skills/shared/releasable-task-contract.md`; local conventions come from `docs/project-config.json` and the docs index.
+
+## Contents
+
+- [Workflow Calls and Todo Bootstrap](#workflow-calls-and-todo-bootstrap)
+- [Quick Summary](#quick-summary)
+- [Triage — FIRST Action](#triage--first-action)
+- [Required Quality Gates (non-negotiable)](#required-quality-gates-non-negotiable)
+- [Recommended Skills](#recommended-skills)
+- [UI Mockup — Journey-First Explore (UI tasks)](#ui-mockup--journey-first-explore-ui-tasks)
+- [Reuse Handoffs (caller-passed; every skill still runs standalone with full checks)](#reuse-handoffs-caller-passed-every-skill-still-runs-standalone-with-full-checks)
+- [Multi-Opportunity Loop](#multi-opportunity-loop)
+- [Artifacts](#artifacts)
+- [Orchestration, Memory & Fix Path](#orchestration-memory--fix-path)
+- [Closing Reminders](#closing-reminders)
 
 ## Triage — FIRST Action
 

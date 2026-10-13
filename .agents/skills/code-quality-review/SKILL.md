@@ -4,18 +4,11 @@ description: '[Code Quality] Use when evaluating received review feedback, revie
 ---
 
 > Codex compatibility note:
-> - Invoke repository skills with `$skill-name` in Codex; this mirrored copy rewrites legacy Claude `/skill-name` references.
-> - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
-> - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
-> - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
-> - Use ask user question tool to ask user.
-> - Ignore Claude-specific mode-switch instructions when they appear.
-> - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
+> - Invoke `$skill-name`: load the registered `.agents/skills/<name>/SKILL.md` and execute it with Codex tools; no separate `Skill` tool or Claude mode switch is needed. Author `.claude/**`; mirrors are generated.
+> - Track steps before execution and keep progress/evidence current. Explicit skill requests execute their protocol. Use the native question tool for required questions.
+> - Map foreign tool names to available host capabilities. A name mismatch needs no approval; an actually unavailable required capability stops with its step/evidence and a user question before adaptation.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
-> - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
-> - For workflow skills, steps follow the guided contract in `$start-workflow` (gate steps fixed; other steps may flex with a logged reason); report step-by-step evidence.
-> - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
+> - Preserve protocol order unless the user approves a deviation. Workflows use `$start-workflow`: gates stay fixed; other steps may flex with logged reasons and evidence.
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
 > **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
@@ -76,6 +69,33 @@ description: '[Code Quality] Use when evaluating received review feedback, revie
 - **Verification Gates**: Evidence required before completion claims
 - **Review Current Diffs Elsewhere**: Current changes, staged/unstaged diffs, and branch diffs belong to `changes-review`
 - **A clean review pass ENDS the review once the persisted `minRounds` is met.** Do not spend a fresh-context pass re-reviewing known findings before validation/fix; re-review after fixes change the target or to satisfy an explicitly declared independent-pass minimum.
+
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Code Review](#code-review)
+- [Review Mindset (NON-NEGOTIABLE)](#review-mindset-non-negotiable)
+- [First Principle — Easy to Change · Easy to Scale · Easy to Maintain](#first-principle--easy-to-change--easy-to-scale--easy-to-maintain)
+- [Core Principles (ENFORCE ALL)](#core-principles-enforce-all)
+- [Graph-Enhanced Review (optional advice)](#graph-enhanced-review-optional-advice)
+- [Review Approach (Report-Driven Two-Phase — CRITICAL)](#review-approach-report-driven-two-phase--critical)
+- [Validated Fix + Full Re-Review (MANDATORY when findings are fixed)](#validated-fix--full-re-review-mandatory-when-findings-are-fixed)
+- [Clean Code Rules (MUST ATTENTION CHECK)](#clean-code-rules-must-attention-check)
+- [Data Lifecycle Rules (MUST ATTENTION CHECK)](#data-lifecycle-rules-must-attention-check)
+- [Legacy Pattern Compliance](#legacy-pattern-compliance)
+- [When to Use This Skill](#when-to-use-this-skill)
+- [Quick Decision Tree](#quick-decision-tree)
+- [Receiving Feedback Protocol](#receiving-feedback-protocol)
+- [Requesting Review Protocol](#requesting-review-protocol)
+- [Verification Gates Protocol](#verification-gates-protocol)
+- [Related](#related)
+- [Systematic Review Strategy](#systematic-review-strategy)
+- [Architecture Boundary Check](#architecture-boundary-check)
+- [Phase 4: Why-Review Self-Validation Gate (MANDATORY when findings exist)](#phase-4-why-review-self-validation-gate-mandatory-when-findings-exist)
+- [Next Steps](#next-steps)
+- [AI Agent Integrity Gate (NON-NEGOTIABLE)](#ai-agent-integrity-gate-non-negotiable)
+- [Prompt-Enhance Closing Anchors](#prompt-enhance-closing-anchors)
+- [Closing Reminders](#closing-reminders)
 
 # Code Review
 

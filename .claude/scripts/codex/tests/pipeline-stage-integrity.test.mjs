@@ -160,6 +160,36 @@ test('STAGE-002 parses the supported Windows and POSIX list bullets', () => {
     assert.deepEqual(listedSuiteNames(fixture), ['protocol-text-parity', 'sync-carrier-parity']);
 });
 
+test('disabled runtime preferences do not disable hook behavior inside verification stages', async () => {
+    const parent = path.join(repoRoot, 'tmp');
+    await fs.mkdir(parent, { recursive: true });
+    const tmp = await fs.mkdtemp(path.join(parent, 'runtime-verification-'));
+    createdDirs.push(tmp);
+    const runner = path.join(tmp, syncRunnerRel);
+    await fs.mkdir(path.dirname(runner), { recursive: true });
+    await fs.copyFile(path.join(repoRoot, syncRunnerRel), runner);
+    const hook = path.join(repoRoot, '.claude/hooks/commit-skill-route.cjs');
+    const assertion = `
+        const assert = require('node:assert/strict');
+        const result = require('node:child_process').spawnSync(process.execPath, [${JSON.stringify(hook)}], {
+            cwd: ${JSON.stringify(tmp)}, encoding: 'utf8',
+            env: { ...process.env, CLAUDE_PROJECT_DIR: ${JSON.stringify(tmp)} },
+            input: JSON.stringify({ hook_event_name: 'UserPromptSubmit', prompt: 'Please commit these changes' })
+        });
+        assert.equal(result.status, 0, result.stderr);
+        assert.match(result.stdout, /COMMIT-SKILL-ROUTE/);
+    `;
+    for (const file of ['.claude/scripts/codex/tests/probe.test.cjs', '.claude/scripts/tests/probe.test.cjs', '.claude/hooks/tests/run-all-tests.cjs']) {
+        const target = path.join(tmp, file);
+        await fs.mkdir(path.dirname(target), { recursive: true });
+        await fs.writeFile(target, assertion);
+    }
+    const result = await run(process.execPath, [runner, '--only=tests,scripts-tests,hooks-count-drift,hooks-parity,hooks-doc-sync', '--verbose'], {
+        cwd: tmp, env: { ...process.env, CK_FRAMEWORK_MODE: 'off' },
+    });
+    assert.equal(result.code, 0, `${result.stdout}\n${result.stderr}`);
+});
+
 // ── STAGE-005 — process-heavy scripts tests must not compete for child-process capacity ─────────
 test('STAGE-005 scripts-tests uses bounded concurrency at the runner and framework aliases', async () => {
     // Given: the standalone runner is portable, while package aliases are an authoring-repo surface.

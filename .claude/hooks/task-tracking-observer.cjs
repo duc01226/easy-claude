@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 'use strict';
 
+if ((require.main === module || !require.main) && require('./lib/framework-runtime.cjs').skipHook(module)) return;
+
 const { runHook, isHookEntryPoint } = require('./lib/hook-runner.cjs');
 const { resolveProjectRoot } = require('./lib/project-root.cjs');
 const { observerHint } = require('./lib/task-tracking-upkeep.cjs');

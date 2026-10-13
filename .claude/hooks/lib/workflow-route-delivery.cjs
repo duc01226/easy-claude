@@ -73,6 +73,9 @@ const GATE_BLOCK_RE = /<!-- CK:WORKFLOW-GATE -->[\s\S]*?<!-- \/CK:WORKFLOW-GATE 
 // Lines between `<!-- CK:GATE-MODE ask auto -->` and `<!-- /CK:GATE-MODE -->` belong to the listed modes only.
 const MODE_FENCE_RE = /^[ \t]*<!-- CK:GATE-MODE ([a-z ]+) -->\r?\n([\s\S]*?)^[ \t]*<!-- \/CK:GATE-MODE -->[ \t]*(?:\r?\n|$)/gm;
 const DEFAULT_MODE = 'ask';
+// The concise cue names the catalog command with this slot; the route output fills it with the mode its
+// state line reports (a session directive included), so the legend the command prints matches that line.
+const CATALOG_MODE_SLOT = 'workflow-catalog.cjs --mode=<mode>';
 // Hosts cut hook output above 10,000 characters to a short preview; stay under it with margin.
 const HOST_OUTPUT_LIMIT = 10000;
 const PAYLOAD_CAP = 9500;
@@ -187,11 +190,17 @@ function buildOversizeNotice(length, protocolLength) {
  * past HOST_OUTPUT_LIMIT the host shortens what the reader sees, and the output says so on its second
  * line (see buildOversizeNotice). It carries no catalog (see buildCatalogInjection).
  * `mode` is `ask` (default) or `auto`; `off` has no payload (see buildOffNotice). `source` names the
- * layer that decided the mode (workflow-routing-config `SOURCE_*`).
+ * layer that decided the mode (workflow-routing-config `SOURCE_*`). `options` are the delivery-profile
+ * inputs (`homeDir`, `config`; context-delivery `resolveProfile`): omitted, the person's own settings
+ * decide whether the gate or the concise cue is delivered.
  */
-function buildInjection(projectDir, protocolText, mode = DEFAULT_MODE, source = 'default') {
+function buildInjection(projectDir, protocolText, mode = DEFAULT_MODE, source = 'default', options = {}) {
     const effectiveMode = mode === 'auto' ? 'auto' : DEFAULT_MODE;
-    const gate = renderGateForMode(fs.readFileSync(path.join(projectDir, ...GATE_FILE_SEGMENTS), 'utf8'), effectiveMode);
+    const context = require('./context-delivery.cjs');
+    const cue = context.conciseCore(projectDir, options)
+        ? context.readConciseProtocol(projectDir, context.ROUTE_TAG) : null;
+    const concise = cue ? cue.split(CATALOG_MODE_SLOT).join(CATALOG_MODE_SLOT.replace('<mode>', effectiveMode)) : null;
+    const gate = concise || renderGateForMode(fs.readFileSync(path.join(projectDir, ...GATE_FILE_SEGMENTS), 'utf8'), effectiveMode);
     if (!gate) throw new Error('empty gate');
     const body = protocolBody(protocolText);
     const protocol = buildProtocolSection(body);
@@ -257,9 +266,9 @@ function buildUnavailableInjection(projectDir, mode, source, error) {
 }
 
 /** `buildInjection`, or the unavailable-source block when it throws. */
-function buildInjectionOrNotice(projectDir, protocolText, mode, source) {
+function buildInjectionOrNotice(projectDir, protocolText, mode, source, options) {
     try {
-        return buildInjection(projectDir, protocolText, mode, source);
+        return buildInjection(projectDir, protocolText, mode, source, options);
     } catch (error) {
         return buildUnavailableInjection(projectDir, mode, source, error);
     }
@@ -352,7 +361,9 @@ function applyDirective(routing, directive, context) {
 
 /**
  * Resolve to the text written, or an empty string when nothing is written. `deps.part` selects the
- * output: `route` (when omitted) or `catalog`; any other value writes nothing. Both resolve the mode the
+ * output: `route` (when omitted) or `catalog`; any other value writes nothing. `deps.homeDir` is the home
+ * of the personal settings layer and `deps.config` an already resolved `.ck` configuration (tests supply
+ * them so a run never reads the person's own settings). Both resolve the mode the
  * same way, but only the route output records and acknowledges a prompt directive: the hooks of one
  * event run in parallel, so the catalog output reads the directive from the prompt instead of waiting
  * for that record.
@@ -388,11 +399,18 @@ function run(input, deps = {}) {
             const { mode, source } = resolveMode(routing, routeOptions);
             const skillPolicy = typeof routing.resolveSkillAutoTrigger === 'function' ? routing.resolveSkillAutoTrigger(routeOptions) : null;
             const write = deps.write || defaultWrite;
+            const context = require('./context-delivery.cjs');
+            const profile = context.profileOptions(deps);
+            const concise = context.conciseCore(projectDir, profile)
+                && context.readConciseProtocol(projectDir, context.ROUTE_TAG);
 
             if (part === PART_CATALOG) {
                 // The catalog serves the gate: the states that deliver no gate by design (`off`, skill auto-trigger
                 // disabled) deliver no catalog. An unreadable gate is a fault, not such a state: the catalog still arrives.
                 if (skillPolicy?.enabled === false || mode === 'off') return finish('');
+                // Selection depth is retrieved explicitly through the route cue's catalog
+                // command. Missing concise sources retain full compatible catalog delivery.
+                if (concise) return finish('');
                 const catalog = deps.content || buildCatalogInjectionOrNotice(projectDir, mode);
                 ledger.deliverOnce({
                     root: storeRoot,
@@ -413,7 +431,7 @@ function run(input, deps = {}) {
                 content = 'Framework skill auto-trigger is disabled. Do not self-route into a catalog workflow or offer the workflow-selection question. For a suitable unrequested skill/workflow candidate, follow the single skill-choice question in the skill activation policy; user confirmation authorizes that candidate. Named user requests and required hook/protocol calls remain eligible under the skill activation policy; existing workflow route restrictions still apply.';
             } else if (mode !== 'off') {
                 const protocol = deps.protocol !== undefined ? deps.protocol : resolveProtocolText(routing, projectDir);
-                content = deps.content || buildInjectionOrNotice(projectDir, protocol, mode, source);
+                content = deps.content || buildInjectionOrNotice(projectDir, protocol, mode, source, profile);
             } else {
                 content = deps.offContent !== undefined ? deps.offContent : buildOffNotice(source);
                 if (!content) return finish('');

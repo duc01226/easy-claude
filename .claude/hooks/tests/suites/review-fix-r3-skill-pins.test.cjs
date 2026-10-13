@@ -90,9 +90,13 @@ const tests = [
             // And the previously stale carriers state the replacement rule or simply no longer carry the clause
             assert.match(skillText('investigate', 'references', 'mode-debug.md'), /Direct invocation asks no workflow question/);
             assert.match(skillText('production-readiness-review', 'SKILL.md'), /Ask the standalone Next Steps question; parent-invoked, sub-agent and `--report-only` runs return/);
-            for (const rel of [['test', 'SKILL.md'], ['security-audit', 'SKILL.md'], ['integration-test', 'SKILL.md'], ['code-simplifier', 'SKILL.md']]) {
+            for (const rel of [['security-audit', 'SKILL.md'], ['integration-test', 'SKILL.md'], ['code-simplifier', 'SKILL.md']]) {
                 assert.ok(skillText(...rel).includes('ask user question tool'), `${rel.join('/')} keeps its own Next Steps ask user question tool prompt`);
             }
+            // The test skill selects its follow-up from the results instead of offering a menu, and asks only for what it lacks.
+            const testNextSteps = skillText('test', 'SKILL.md');
+            assert.match(testNextSteps, /choose the appropriate follow-up from the results and the authorized task/);
+            assert.match(testNextSteps, /Ask only for indispensable missing information or action authority not already provided/);
         })
     },
     {

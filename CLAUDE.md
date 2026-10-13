@@ -14,12 +14,13 @@
 
 <!-- SECTION:golden-rules -->
 
-**Path-scoped project rules** — delivered just in time, not inlined here. Groups with rules: `ui-ux-gate`, `ai-feature-gate`, `shipped-tests`, `hooks-context`, `skills-context`, `agents-context`, `scripts-context`, `agent-mirrors-context`.
+Read the relevant project convention before changing these files.
 
-- The convention hook injects each matching group's full rule text and required docs when a matching file is read or edited, per the group's trigger, through the host's file tools.
-- A shell read or edit gets no digest: run `node .claude/hooks/lib/file-conventions.cjs --lookup <path>` before the first read, edit or test of that path.
-- Before planning a change, run the lookup for each target path; the Skill Activation table below indexes every group's matchers and pre-read docs.
-- Apply a group's rules only to files it matches; never promote a path-scoped rule to a global reminder.
+| Files | Project reference |
+|---|---|
+| docs/specs/**/*.md | `docs/project-reference/feature-spec-reference.md`, `docs/project-reference/spec-system-reference.md`, `docs/project-reference/spec-principles.md` |
+| **/*.test.cjs | `docs/project-reference/integration-test-reference.md` |
+| **/*; extensions: .js, .cjs, .mjs, .jsx, .py; exclude: **/node_modules/**, **/dist/**, **/build/**, **/vendor/**, tmp/**, temp/** | `docs/project-reference/code-review-rules.md` |
 
 <!-- /SECTION:golden-rules -->
 
@@ -27,7 +28,7 @@
 
 Unprefixed filenames resolve under the reference-docs root (default `docs/project-reference`; `docsRoots.projectReference.path` overrides); specs under the business spec root (default `docs/specs`; `specRoots.business.path` overrides), both in `docs/project-config.json`.
 
-Path classes (hooks, skills, agents, scripts, shipped tests, specs, UI, AI features, mirrors) route through the [Automatic Skill Activation](#automatic-skill-activation) table — one path → docs map. Two framework paths have no class there:
+The table above maps path classes to their project docs. Two framework paths have no class there:
 
 | Edited path                                                                     | Read first                                                                                                                                                                |
 | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -55,14 +56,10 @@ Match the question or task to a row and read that doc before answering, planning
 | Seeding or reviewing development/test data. Holds: Seed test data patterns: idempotent seeder architecture, DI scope safety, command dispatch, and config-driven counts | `docs/project-reference/seed-test-data-reference.md` |
 | Writing, fixing, or reviewing integration tests. Holds: Integration test patterns and conventions | `docs/project-reference/integration-test-reference.md` |
 | Before editing or reviewing code — rules, anti-patterns, checklists. Holds: Code review checklist and rules | `docs/project-reference/code-review-rules.md` |
-| A saved project prompt, playbook, or runbook may apply (`/custom-prompt`). Holds: Index of project-specific custom prompts (name, description, triggers) — managed by the /custom-prompt skill | `docs/project-reference/custom-prompts-reference.md` |
-| Before running any skill — project overlays layered on it. Holds: Index of project protocol overlays layered onto framework skills (target, scope, description) — written and managed via the /project-skill-protocol skill | `docs/project-reference/skill-protocols-reference.md` |
 | UI design — tokens, components, app-to-doc map. Holds: Design system index: app-to-doc mapping, design tokens overview, component inventory | `docs/project-reference/design-system/README.md` |
 | Writing, running, or reviewing E2E / user-flow tests. Holds: Optional task-track workspace browser tests: isolated public-core fixtures, native waits, portable runner modes and redacted journey evidence | `docs/project-reference/e2e-test-reference.md` |
 | Domain concepts, entities, relationships, data ownership — before planning or design. Holds: Framework conceptual domain — Hook, Skill, Agent, Workflow, Context Group, Module | `docs/project-reference/domain-entities-reference.md` |
 | Why the architecture or a convention is the way it is — accepted decisions and trade-offs | `docs/adr/` |
-| How the AI framework works — hooks, skills, agents, workflows, config (or run `/project-help`) | `.claude/docs/README.md` |
-| Framework rules, or why a hook blocked or warned | `.claude/docs/development-rules.md` + `.claude/docs/troubleshooting.md` |
 
 Declared not applicable in `referenceDocs` (skip unless the project adds that stack): `backend-patterns-reference.md`, `frontend-patterns-reference.md`, `scss-styling-guide.md`.
 
@@ -130,27 +127,6 @@ See [integration-test-reference.md](docs/project-reference/integration-test-refe
 
 ---
 
-## Automatic Skill Activation
-
-<!-- SECTION:skill-activation -->
-
-When editing files matching these path patterns, pre-read the listed context first: (a shell read or edit gets no digest: `node .claude/hooks/lib/file-conventions.cjs --lookup <path>`)
-
-| Path Pattern | Skill / Auto-Context | Pre-Read Files |
-|---|---|---|
-| `docs/specs/**/*.md` | `spec` | `docs/project-reference/feature-spec-reference.md`, `docs/project-reference/spec-system-reference.md`, `docs/project-reference/spec-principles.md`, `[[convention:feature-spec@6848b6f6]]` |
-| `**/*.test.cjs` | `integration-test` | `docs/project-reference/integration-test-reference.md`, `[[convention:integration-test@d2082cb6]]` |
-| `/res/layout[^/]*/[^/]+\.xml$**`, `name:\.(?:html?\|xhtml\|razor\|cshtml\|hbs\|handlebars\|ejs\|pug\|twig\|liquid\|njk\|css\|scss\|sass\|less\|styl\|pcss\|jsx\|tsx\|vue\|svelte\|astro\|xaml\|axml\|storyboard\|xib)$`, `name:\.component\.ts$` · not `**/node_modules/**`, `**/dist/**`, `**/build/**`, `**/vendor/**`, `tmp/**`, `temp/**`, `.agents/**`, `.codex/**`, `.opencode/**` | _(auto-context)_ | `.claude/docs/ux-journey-process.md`, `.claude/docs/design-review-checklist.md`, `.claude/docs/design-knowledge.md`, `.claude/docs/design-review-calibration.md`, `[[convention:ui-ux-gate@21c5f37a]]` |
-| `/(?:prompts?\|llm\|rag\|embeddings?\|guardrails?\|mcp)/(?!.*\.(?:png\|jpe?g\|gif\|svg\|pdf\|zip\|bin\|mp[34]\|lock\|map\|min\.js)$)**`, `name:\.prompts?\.[^.]+$\|\.prompty$\|^system[-_.]prompt\|^prompt[-_.]template` · content signals: AI SDK use in 21 code file types · not `**/node_modules/**`, `**/dist/**`, `**/build/**`, `**/vendor/**`, `tmp/**`, `temp/**`, `.claude/**`, `.agents/**`, `.codex/**`, `.opencode/**`, `docs/**`, `**/*.md` | _(auto-context)_ | `.claude/skills/shared/protocols/ai-engineering-gate.md`, `[[convention:ai-feature-gate@f5a18e38]]` |
-| `/\.claude/.*\.test\.(cjs\|mjs)$**` | _(auto-context)_ | `[[convention:shipped-tests@5530b47a]]` |
-| `/\.claude/hooks/.*\.cjs$**` ext `.cjs` | _(auto-context)_ | `.claude/docs/hooks/README.md`, `[[convention:hooks-context@b966fb4b]]` |
-| `/\.claude/skills/.*SKILL\.md$**` ext `.md` | _(auto-context)_ | `.claude/docs/skills/README.md`, `[[convention:skills-context@46e9d8d7]]` |
-| `/\.claude/agents/.*\.md$**` ext `.md` | _(auto-context)_ | `.claude/docs/agents/agent-patterns.md`, `[[convention:agents-context@35e24a32]]` |
-| `[\/].claude[\/]scripts[\/].*.(cjs\|mjs\|js\|py)$**` ext `.cjs`, `.mjs`, `.js`, `.py` | _(auto-context)_ | `.claude/docs/framework-portability.md`, `[[convention:scripts-context@d014d4e0]]` |
-| `^[\/]?.(codex\|agents\|opencode)[\/]**` ext `.md`, `.toml`, `.json`, `.mjs`, `.cjs` | _(auto-context)_ | `.claude/docs/framework-portability.md`, `[[convention:agent-mirrors-context@5e4517ef]]` |
-| `**/*` ext `.js`, `.cjs`, `.mjs`, `.jsx`, `.py` · not `**/node_modules/**`, `**/dist/**`, `**/build/**`, `**/vendor/**`, `tmp/**`, `temp/**` | _(auto-context)_ | `docs/project-reference/code-review-rules.md`, `[[convention:general-code@67abfeba]]` |
-
-<!-- /SECTION:skill-activation -->
 
 **Design routing:** SCSS / style files → ui-design skill (`--mode=review` to review them; BEM conventions live there). UI / HTML / CSS files → ui-design skill (canonical design-system doc: tokens, components, BEM).
 
@@ -162,12 +138,12 @@ When editing files matching these path patterns, pre-read the listed context fir
 
 | Kind        | Count                                       |
 | ----------- | ------------------------------------------- |
-| Skills      | <!-- COUNT:skills -->104<!-- /COUNT -->     |
-| Hooks       | <!-- COUNT:hooks -->34<!-- /COUNT -->       |
+| Skills      | <!-- COUNT:skills -->105<!-- /COUNT -->     |
+| Hooks       | <!-- COUNT:hooks -->35<!-- /COUNT -->       |
 | Agents      | <!-- COUNT:agents -->24<!-- /COUNT -->      |
 | Workflows   | <!-- COUNT:workflows -->19<!-- /COUNT -->   |
 | Shared      | <!-- COUNT:shared -->15<!-- /COUNT -->      |
-| Lib modules | <!-- COUNT:lib-modules -->64<!-- /COUNT --> |
+| Lib modules | <!-- COUNT:lib-modules -->66<!-- /COUNT --> |
 
 ---
 
@@ -186,3 +162,9 @@ docs/templates/  (1 files)
 <!-- /SECTION:doc-index -->
 
 ---
+
+## Project Rules & Context
+
+### Work Tracking
+
+Read `.claude/skills/task-track/references/integration-guide.md` when capturing work, starting implementation, saving code or specs, verifying, handing off or closing work. This project uses linked tracking: keep exact linked items current at actual saved-work checkpoints through the shared core, with one primary saving owner per checkpoint. When no exact item is linked, continue untracked without creating a companion ticket. A passing check or publication records evidence; acceptance still requires an explicit decision.

@@ -163,17 +163,19 @@ function isDeliverableEvent(input) {
  * @returns {{number: number, total: number, tags: string[], text: string}[]} in bin order; a bin
  *   whose protocols are unreadable carries its missing-file list; an unreadable layout yields []
  */
-function loadBins(root, read) {
-    return loadBundle(root, read).bins;
+function loadBins(root, read, options = {}) {
+    return loadBundle(root, read, options).bins;
 }
 
 /**
  * The bins of the bundle and, when the bundle cannot be rendered at all, the short reason.
+ * @param {{homeDir?: string, config?: object}} [options] delivery-profile inputs (context-delivery
+ *   `resolveProfile`): a caller that must not read the person's own settings supplies them
  * @returns {{bins: object[], problem: string|null}} `problem` is set when the layout or the published
  *   index is unreadable or malformed, or when no bin has a readable protocol. Partly readable
  *   bundles keep every bin, with `missing` naming protocols that could not be rendered.
  */
-function loadBundle(root, read) {
+function loadBundle(root, read, options = {}) {
     const delivery = require('./protocol-delivery.cjs');
     const groupsText = read(path.resolve(root, ...GROUPS_REL.split('/')));
     if (typeof groupsText !== 'string') return { bins: [], problem: 'protocol-groups.json is unreadable' };
@@ -190,6 +192,10 @@ function loadBundle(root, read) {
         return typeof text === 'string' ? text.replace(/\r\n/g, '\n') : null;
     } });
     if (!index) return { bins: [], problem: 'protocols/index.json is unreadable or malformed' };
+    const context = require('./context-delivery.cjs');
+    const concise = context.resolveProfile(root, options).profile === 'concise';
+    const core = concise ? context.readConciseProtocol(root, context.CORE_TAG, read) : null;
+    if (core) return { bins: [{ number: 1, total: 1, tags: [context.CORE_TAG], missing: [], text: renderBin(1, 1, [core]) }], problem: null };
     const bins = [];
     let readableCount = 0;
     layout.forEach((tags, i) => {
@@ -214,6 +220,8 @@ function loadBundle(root, read) {
         }
         bins.push({ number: i + 1, total: layout.length, tags: used, missing, text: renderBin(i + 1, layout.length, bodies) });
     });
+    // A damaged concise projection recovers full compatible rules and remains retryable.
+    if (concise && bins.length) bins[0].missing.push(context.CORE_TAG);
     return readableCount ? { bins, problem: null } : { bins: [], problem: 'no universal protocol file is readable' };
 }
 
@@ -271,6 +279,33 @@ function scopedInput(input) {
 }
 
 /**
+ * A successful, current delivery is the only reason another carrier may omit principles.
+ * `options` are the delivery-profile inputs `loadBundle` takes.
+ */
+function conciseCoreIsPresent(root, input, read = defaultRead, now = Date.now(), options = {}) {
+    try {
+        if (!nonBlank(input?.session_id) || (input.hook_event_name === 'SubagentStart' && !nonBlank(input.agent_id))) return false;
+        const bundle = loadBundle(root, read, options);
+        const bin = bundle.bins[0];
+        if (!bin || bin.tags[0] !== 'concise-agent-core' || bin.missing.length) return false;
+        const ledger = require('./convention-ledger.cjs');
+        const store = path.join(root, ...require('./protocol-delivery.cjs').STORE_SEGMENTS);
+        const scope = ledger.scopeFor(input);
+        const settings = getLedgerSettings();
+        const record = ledger.readRecord(store, input.session_id, scope, 'universal-bin-1');
+        const hash = require('node:crypto').createHash('sha256').update(bin.text, 'utf8').digest('hex');
+        return ledger.isPresent(record, hash, {
+            now, transcriptSize: ledger.transcriptSize(ledger.transcriptPathFor(input)),
+            lastCompactionAt: ledger.lastCompactionAt(store, input.session_id, scope, input, settings, now)
+        }, settings);
+    } catch { return false; }
+}
+
+// The independent principles hook can recover an unsuccessful universal delivery,
+// including a PostToolUse event, through the same successful-write ledger.
+function ensureConciseCore(input, deps = {}) { return deliverBin(1, input, deps); }
+
+/**
  * Remove the main conversation's delivery record of `group`. Never throws: an unusable store has no
  * record to remove, and delivery then runs fail-open without one.
  */
@@ -310,7 +345,8 @@ function defaultWrite(text, done) {
  * delivered.
  * @param {number} number 1-based bin number
  * @param {object} input hook stdin JSON (untrusted)
- * @param {object} deps test seams: projectRoot, readFile, now, write
+ * @param {object} deps test seams: projectRoot, readFile, now, write, and the delivery-profile inputs
+ *   homeDir and config (omitted, the person's own settings decide the profile)
  */
 function deliverBin(number, input, deps) {
     return new Promise(resolve => {
@@ -332,7 +368,7 @@ function deliverBin(number, input, deps) {
             const root = delivery.resolveRoot(input, deps);
             if (!root) return resolve('');
             const reader = typeof deps.readFile === 'function' ? deps.readFile : defaultRead;
-            const bundle = loadBundle(root, reader);
+            const bundle = loadBundle(root, reader, require('./context-delivery.cjs').profileOptions(deps));
             if (bundle.problem) return unavailable(bundle.problem);
             const bin = bundle.bins.find(candidate => candidate.number === number);
             if (!bin) return resolve('');
@@ -390,7 +426,8 @@ function deliverBin(number, input, deps) {
 /**
  * Hook entry for one bin. Always leaves exit code 0 (delivery never blocks).
  * @param {number} number 1-based bin number (a literal in each entry file, never an argument)
- * @param {object} [deps] test seams: `input` (skips stdin), `write(text, done)`, `now`, `projectRoot`, `readFile`
+ * @param {object} [deps] test seams: `input` (skips stdin), `write(text, done)`, `now`, `projectRoot`, `readFile`,
+ *   `homeDir` and `config` (the delivery-profile inputs)
  * @returns {Promise<string>} the payload written, or '' when nothing was delivered
  */
 function runHook(number, deps = {}) {
@@ -407,6 +444,8 @@ function runHook(number, deps = {}) {
         try {
             const input = options.input !== undefined ? options.input : readHookInput();
             if (!isDeliverableEvent(input)) return finish('');
+            const rootDir = require('./protocol-delivery.cjs').resolveRoot(input, options);
+            if (!rootDir || !require('./framework-runtime.cjs').isHookEnabled(`protocol-inject-universal-${number}.cjs`, { rootDir })) return finish('');
             deliverBin(number, input, options).then(finish, () => finish(''));
         } catch {
             finish('');
@@ -424,6 +463,8 @@ module.exports = {
     readHookInput,
     loadBins,
     loadBundle,
+    conciseCoreIsPresent,
+    ensureConciseCore,
     unavailableNotice,
     getLedgerSettings,
     runHook

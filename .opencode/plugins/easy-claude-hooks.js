@@ -168,6 +168,15 @@ const HOOKS = {
       "hooks": [
         {
           "type": "command",
+          "command": ".claude/hooks/failure-investigation-remind.cjs"
+        }
+      ],
+      "matcher": "Bash|exec_command"
+    },
+    {
+      "hooks": [
+        {
+          "type": "command",
           "command": ".claude/hooks/notifications/notify.cjs"
         }
       ],
@@ -224,6 +233,15 @@ const HOOKS = {
     }
   ],
   "SessionStart": [
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": ".claude/hooks/failure-investigation-remind.cjs"
+        }
+      ],
+      "matcher": "compact|clear"
+    },
     {
       "hooks": [
         {
@@ -776,6 +794,31 @@ export const EasyClaudeHooks = async (input) => {
   const root = findRoot(seed);
   const startedSessions = new Set();
   const sessionStartContext = new Map();
+  // Pre-tool callbacks can rewrite args, but have no model-context output. Hold
+  // trusted hook context for the tool's after-callback, or for the next model
+  // request when that callback cannot deliver it (a blocked or failed tool).
+  const pendingToolContext = new Map();
+  function queueToolContext(sessionID, contexts) {
+    if (typeof sessionID !== "string" || !sessionID.trim() || contexts.length === 0) return;
+    const key = sessionKey(sessionID);
+    if (!pendingToolContext.has(key) && pendingToolContext.size >= 256) {
+      process.stderr.write("[opencode-hooks] PreToolUse: pending context session limit reached\n");
+      return;
+    }
+    const pending = pendingToolContext.get(key) || new Set();
+    let bytes = [...pending].reduce((total, text) => total + Buffer.byteLength(text), 0);
+    for (const text of contexts) {
+      if (pending.has(text)) continue;
+      const size = Buffer.byteLength(text);
+      if (pending.size >= 32 || bytes + size > 65536) {
+        process.stderr.write("[opencode-hooks] PreToolUse: pending context payload limit reached\n");
+        continue;
+      }
+      pending.add(text);
+      bytes += size;
+    }
+    if (pending.size > 0) pendingToolContext.set(key, pending);
+  }
   // Child (delegated) sessions, learned from the SessionInfo on created/updated events. session.idle
   // carries only the session id, so this is how a child going idle is told apart from the main one.
   const delegatedSessions = new Set();
@@ -810,11 +853,13 @@ export const EasyClaudeHooks = async (input) => {
           break;
         case "session.compacted":
           recordProtocolCompaction(root, sessionID);
+          pendingToolContext.delete(sessionKey(sessionID));
           sessionStartContext.delete(sessionKey(sessionID));
           startedSessions.delete(sessionKey(sessionID));
           await ensureSessionStart(sessionID, "compact");
           break;
         case "session.deleted": {
+          pendingToolContext.delete(sessionKey(sessionID));
           startedSessions.delete(sessionKey(sessionID));
           sessionStartContext.delete(sessionKey(sessionID));
           delegatedSessions.delete(sessionKey(sessionID));
@@ -884,6 +929,7 @@ export const EasyClaudeHooks = async (input) => {
           cwd: seed,
         },
       });
+      queueToolContext(hookInput && hookInput.sessionID, result.contexts);
       if (result.updatedInput && output && output.args && typeof output.args === "object") {
         applyUpdatedInput(output.args, result.updatedInput);
       }
@@ -917,8 +963,14 @@ export const EasyClaudeHooks = async (input) => {
           cwd: seed,
         },
       });
-      if (output && result.contexts.length > 0 && typeof output.output === "string") {
-        output.output += `\n\n${result.contexts.join("\n\n")}`;
+      if (output && typeof output.output === "string") {
+        // Tool output stays in the conversation; a system-prompt push lasts one model request.
+        // So this callback is the primary sink for pending pre-tool context: take it here, in
+        // one step with its removal, and leave the system transform only what no tool carried.
+        const key = sessionKey(hookInput && hookInput.sessionID);
+        const contexts = [...(pendingToolContext.get(key) || []), ...result.contexts];
+        pendingToolContext.delete(key);
+        if (contexts.length > 0) output.output += `\n\n${contexts.join("\n\n")}`;
       }
       warn(`PostToolUse:${tool}`, result);
     },
@@ -967,6 +1019,13 @@ export const EasyClaudeHooks = async (input) => {
         });
         output.system.push(...livePolicy.contexts);
         warn("SkillActivationPolicy", livePolicy);
+        // Fallback sink: pre-tool context that no tool output carried.
+        const key = sessionKey(sessionID);
+        const pending = pendingToolContext.get(key);
+        if (pending) {
+          output.system.push(...pending);
+          pendingToolContext.delete(key);
+        }
       }
     },
 

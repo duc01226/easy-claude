@@ -1,7 +1,7 @@
 ---
 name: feature-implement
 version: 1.0.0
-description: '[Implementation] Use when implementing a feature step by step.'
+description: '[Implementation] Use when the user asks to build a feature from an idea or description with no plan file yet: research and trace the code, create and get the plan approved, build each phase with its tests, review, verify once, sync specs and docs. Existing plan: plan --mode=execute.'
 execution-mode: subagent
 context-budget: high
 ---
@@ -15,7 +15,7 @@ context-budget: high
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:END -->
 
-> **Work tracking:** Read [the linked work integration guide](../task-track/references/integration-guide.md) at capture, start, saved-work, verification, handoff and close-out checkpoints. Use the actual linked producer and exact items; retain the primary outcome and record optional upkeep once through the common owner. Continue untracked when no link exists; acceptance remains explicit.
+> **Work tracking:** Keep the project's tracked work current in the same change, as its root instructions (`CLAUDE.md` or `AGENTS.md`) say. When the project uses the portable tracker (`taskTracking.mode` is `observe` or `linked`), read [the linked work integration guide](../task-track/references/integration-guide.md) at capture, start, saved-work, verification, handoff and close-out checkpoints. Use the actual linked producer and exact items; retain the primary outcome and record optional upkeep once through the common owner. Continue untracked when no link exists; acceptance remains explicit.
 
 ## Quick Summary
 
@@ -39,6 +39,18 @@ context-budget: high
 > **Renamed:** formerly `cook` — now `/feature-implement`. The old name no longer resolves as a slash command.
 
 > **feature-implement vs plan --mode=execute:** `feature-implement` takes an idea/feature description and goes idea → research → **plan (created here)** → shipped. Use `/plan --mode=execute` instead when a plan file already exists and you only need disciplined phase-by-phase execution + commit. feature-implement owns the front of the pipeline (research + planning); plan --mode=execute owns the back (phase gates + auto-commit + `--parallel`/`--approval`/`--tests` flags).
+
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Standalone Mode Pipeline (skip entirely only when `nested=true` — a `\[Workflow\]` row that merely exists in `TaskList` does not count)](#standalone-mode-pipeline-skip-entirely-only-when-nestedtrue--a-workflow-row-that-merely-exists-in-tasklist-does-not-count)
+- [First Principle — Easy to Change · Easy to Scale · Easy to Maintain](#first-principle--easy-to-change--easy-to-scale--easy-to-maintain)
+- [Default Mode Policy](#default-mode-policy)
+- [Workflow](#workflow)
+- [When to Use](#when-to-use)
+- [Quality Gates](#quality-gates)
+- [Next Steps (Standalone: MUST ATTENTION ask user via `ask user question tool`. Skip only when `nested=true` — a `\[Workflow\]` row that merely exists in `TaskList` does not count.)](#next-steps-standalone-must-attention-ask-user-via-ask-user-question-tool-skip-only-when-nestedtrue--a-workflow-row-that-merely-exists-in-tasklist-does-not-count)
+- [Closing Reminders](#closing-reminders)
 
 ## Standalone Mode Pipeline (skip entirely only when `nested=true` — a `[Workflow]` row that merely exists in `TaskList` does not count)
 

@@ -28,6 +28,20 @@ argument-hint: <file-or-pattern>
 
 **Evidence:** Cite traced proof and confidence percentages for every claim; >80% confidence to act.
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Web Design Guidelines Review](#web-design-guidelines-review)
+- [When to Use](#when-to-use)
+- [When NOT to Use](#when-not-to-use)
+- [Prerequisites](#prerequisites)
+- [Workflow](#workflow)
+- [UI/UX Design Principles Pass (9 dimensions)](#uiux-design-principles-pass-9-dimensions)
+- [Output Format](#output-format)
+- [Examples](#examples)
+- [Related Skills](#related-skills)
+- [Closing Reminders](#closing-reminders)
+
 # Web Design Guidelines Review
 
 ## When to Use

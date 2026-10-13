@@ -52,6 +52,21 @@ Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs
 - MUST ATTENTION the foundation matrix, the AI-agent-access decision and the Test Architecture & Execution Contract block implementation until complete.
 - NEVER skip mandatory workflow or skill gates; cite evidence for every claim, confidence >80% to act.
 
+## Contents
+
+- [Workflow Calls and Todo Bootstrap](#workflow-calls-and-todo-bootstrap)
+- [Quick Summary](#quick-summary)
+- [Size & Kind Triage (FIRST action)](#size--kind-triage-first-action)
+- [Required Quality Gates](#required-quality-gates)
+- [Gates and Optional Steps](#gates-and-optional-steps)
+- [Recommended Skills by Phase](#recommended-skills-by-phase)
+- [Workflow-Specific Contracts](#workflow-specific-contracts)
+- [Orchestration Freedom](#orchestration-freedom)
+- [Memory & Reporting](#memory--reporting)
+- [Fix Path & Loop Bounds](#fix-path--loop-bounds)
+- [Step Chain](#step-chain)
+- [Closing Reminders](#closing-reminders)
+
 ## Size & Kind Triage (FIRST action)
 
 Classify before choosing steps and write the result to the run report; it answers every optional step's `when`.

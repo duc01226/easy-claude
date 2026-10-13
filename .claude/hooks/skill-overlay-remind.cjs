@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 'use strict';
 
+if ((require.main === module || !require.main) && require('./lib/framework-runtime.cjs').skipHook(module)) return;
+
 /**
  * Skill overlay reminder — when a skill activates, name the project overlay files that apply to it.
  *

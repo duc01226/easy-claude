@@ -41,6 +41,17 @@ Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs
 
 **Step contract:** Follow `/start-workflow` → Step Execution Protocol: gates always run; invoke every selected skill through the active host; log deviations. Triage selects recommendations and depth.
 
+## Contents
+
+- [Workflow Calls and Todo Bootstrap](#workflow-calls-and-todo-bootstrap)
+- [Quick Summary](#quick-summary)
+- [1. Triage (FIRST action, before choosing steps)](#1-triage-first-action-before-choosing-steps)
+- [2. Required Quality Gates (non-negotiable)](#2-required-quality-gates-non-negotiable)
+- [3. Recommended Skills](#3-recommended-skills)
+- [4. Orchestration Freedom](#4-orchestration-freedom)
+- [5. Memory, Reporting and Fix Path](#5-memory-reporting-and-fix-path)
+- [Closing Reminders](#closing-reminders)
+
 ## 1. Triage (FIRST action, before choosing steps)
 
 Record size, kinds and risk in the run report before selecting steps. Escalate depth on ambiguity and risk, not length.

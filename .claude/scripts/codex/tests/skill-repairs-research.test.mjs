@@ -119,6 +119,19 @@ test('evaluation corpus covers activation boundaries and each research repair', 
     assert.throws(() => validateCorpus(malformed), /unique/);
 });
 
+test('evaluation corpus names shipped skills and states an activation boundary for each changed skill', () => {
+    // Given the shipped corpus: a renamed or removed skill must not leave a case that can never run.
+    for (const item of corpus.cases) {
+        for (const skill of item.skills) assert.ok(fs.existsSync(path.join(claudeRoot, 'skills', skill, 'SKILL.md')), `${item.id}: ${skill}`);
+    }
+    // Then every skill whose activation changed has a case that expects it, and one where it is offered but not chosen.
+    const activation = corpus.cases.filter(item => item.kind === 'activation');
+    for (const skill of ['architecture', 'feature-implement', 'plan', 'spec', 'workflow-e2e', 'workflow-end', 'workflow-review-changes']) {
+        assert.ok(activation.some(item => item.expectedActivation === skill), `${skill}: a case expects it`);
+        assert.ok(activation.some(item => item.skills.includes(skill) && item.expectedActivation !== skill), `${skill}: a case offers it and expects another choice`);
+    }
+});
+
 test('evaluation schema preserves failures and rejects incomparable/leaked/incomplete arms', () => {
     // Given synthetic records; they are schema fixtures, never real model observations.
     const results = resultFor(corpus.cases[0]);

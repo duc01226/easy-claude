@@ -4,6 +4,16 @@
 >
 > Mermaid only — it renders inline in the report with no dependency and no build step.
 
+## Contents
+
+- [The diagram set](#the-diagram-set)
+- [Per-diagram specs](#per-diagram-specs)
+- [Derivation ladder](#derivation-ladder)
+- [Provenance marking](#provenance-marking)
+- [Size discipline](#size-discipline)
+- [Redaction](#redaction)
+- [Target forms](#target-forms)
+
 ## The diagram set
 
 **Mandatory** means *always attempted*, for every target. An underivable mandatory diagram degrades to a **stated blocker** (see the ladder below) — never to silence. The Status column answers **"is this diagram owed?"**, never "which section renders it" — D5 is owed on every report and renders in §4, not §2.

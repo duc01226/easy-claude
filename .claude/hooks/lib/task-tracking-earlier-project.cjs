@@ -13,7 +13,7 @@
  */
 
 const vocabulary = require('./task-tracking-vocabulary.cjs');
-const { CURRENT_VERSION, EARLIER_VERSION, EARLIER, EARLIER_MAPPING: MAPPING, FOLDERS, LEVELS, AREA_KIND, INITIATIVE_KIND, tagRole } = vocabulary;
+const { BASE_VERSION, EARLIER_VERSION, EARLIER, EARLIER_MAPPING: MAPPING, FOLDERS, LEVELS, AREA_KIND, INITIATIVE_KIND, tagRole } = vocabulary;
 
 const AREA_TAG = tagRole(AREA_KIND);
 const INITIATIVE_TAG = tagRole(INITIATIVE_KIND);
@@ -143,7 +143,7 @@ function mapEarlierProject({ records, artifactsRoot, index = memberIndex(records
     const conversions = new Map();
     for (const record of records) {
         // Already written in the current terms by the migration this mapping serves.
-        if (record.storedVersion === CURRENT_VERSION) continue;
+        if (record.storedVersion === BASE_VERSION) continue;
         const group = isGroupKind(record.kind) ? groups.get(record.id) : null;
         if (isGroupKind(record.kind) && !group) { problems.push({ code: 'UNINDEXED_GROUP', itemId: record.id, path: record.ownerPath }); continue; }
         if (group && group.purpose !== null && !EARLIER.groupRoles.includes(group.purpose)) problems.push({ code: 'INVALID_RECORD', itemId: record.id, reason: 'Group purpose is not one the earlier vocabulary has' });
@@ -169,7 +169,7 @@ function mapEarlierProject({ records, artifactsRoot, index = memberIndex(records
         const more = TAGS.flatMap(relation => added[relation].filter(id => !has(relation, id)).map(itemId => ({ relation, itemId })));
         if (more.length && t.links !== undefined && !Array.isArray(t.links)) problems.push({ code: 'INVALID_RECORD', itemId: record.id, reason: 'Links are malformed' });
         const { [MAPPING.memberField]: listed, [MAPPING.purposeField]: purpose, ...kept } = t;
-        const tracking = { ...kept, schemaVersion: CURRENT_VERSION, kind,
+        const tracking = { ...kept, schemaVersion: BASE_VERSION, kind,
             ...(more.length && (t.links === undefined || Array.isArray(t.links)) ? { links: [...links, ...more] } : {}),
             // A receipt names the kind its record had when it was saved; it follows the record's kind.
             ...(kind !== record.kind && Array.isArray(t.receipts) ? { receipts: t.receipts.map(receipt => (mapping(receipt) && mapping(receipt.result) && receipt.result.kind === record.kind

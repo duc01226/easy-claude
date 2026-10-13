@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 'use strict';
 
+if ((require.main === module || !require.main) && require('./lib/framework-runtime.cjs').skipHook(module)) return;
+
 /**
  * Review-before-commit PreToolUse gate.
  *
  * Blocks an agent `git commit` when the CURRENT changeset has no review
- * fix-loop receipt. Satisfying receipts are minted by `changes-review
+ * fix-loop receipt. Satisfying receipts are minted by `commit-review --fix-loop`, `changes-review
  * --fix-loop`, `why-review --fix-loop`, and `workflow-review-changes
  * --fix-loop` when they converge (see `lib/review-receipt.cjs`). A `skip`
  * receipt also clears it: the `commit` skill mints one for a Low-risk candidate
@@ -261,12 +263,12 @@ function blockMessage(repository, snapshot, descriptor, reason) {
   const shellQuote = value => `'${String(value).replace(/'/g, "'\\''")}'`;
   const skipRecovery = descriptor
     ? [
-      '  3. Skip — only for a Low-risk candidate (docs, comments, formatting, copy or a really small edit) or on the user\'s explicit request; mint a descriptor-bound skip that records the reason:',
+      '  4. Skip — only in risk-based mode for a Low-risk candidate (docs, comments, formatting, copy or a really small edit) or on the user\'s explicit request; mint a descriptor-bound skip that records the reason:',
       '',
       `  node .claude/hooks/lib/review-receipt.cjs snapshot --target=commit-descriptor --descriptor-json=${shellQuote(JSON.stringify(descriptor))}`,
       '  node .claude/hooks/lib/review-receipt.cjs issue --kind=skip --scope=full-changeset --snapshot-json=\'<exact snapshot JSON returned above>\' --reason="auto: low risk — <signal>"',
       '',
-      'Use --reason="user approved skip" when the user asked for the skip. Never skip a Medium or High candidate, or a failed review.',
+      'Use --reason="user approved skip" when the user asked for the skip. Never skip a Medium or High candidate, or a failed review. Lightweight mode never selects an automatic skip.',
       'Use this exact descriptor for the snapshot and commit. The `skip` shorthand captures only the worktree and may not match this commit candidate.'
     ]
     : [
@@ -286,12 +288,13 @@ function blockMessage(repository, snapshot, descriptor, reason) {
     ...(snapshot?.errorCode ? [`Candidate status: ERROR (${snapshot.errorCode})`] : []),
     ...(reason ? [`Reason: ${reason}`] : []),
     '',
-    'A commit MUST be preceded by the gate its risk tier selects over this exact full candidate.',
-    'Do not ask the user: classify the candidate by the `commit` skill\'s Review selection rule',
-    '(risk tier; higher on a tie) and act. A fix-loop issues the receipt; then retry the commit:',
+    'A commit MUST be preceded by the configured review over this exact full candidate. Default commit.reviewMode is lightweight.',
+    'Do not ask the user: classify the actual candidate risk',
+    '(risk tier; higher on a tie) and resolve commit.reviewMode with .claude/scripts/lib/commit-review-policy.cjs. A fix-loop issues the receipt; then retry the commit:',
     '',
-    '  1. /why-review --fix-loop      # medium risk: a focused change in one module or area, narrow regression scope',
-    '  2. /changes-review --fix-loop  # high risk: cross-module/contract, security, data, gates, deps, UI, large diff',
+    '  1. /commit-review --fix-loop   # default lightweight: every commit tier',
+    '  2. /why-review --fix-loop      # risk-based mode or PR scope: medium risk',
+    '  3. /changes-review --fix-loop  # risk-based mode or PR scope: high risk; explicit review requests also apply',
     '',
     'Each fix-loop runs at most 2 review rounds. MEDIUM+ findings still open at the cap: stop and report, no commit, no skip.',
     '/workflow-review-changes --fix-loop also issues a valid receipt when the user asks for the full workflow.',

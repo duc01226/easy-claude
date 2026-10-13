@@ -39,6 +39,8 @@
 
 'use strict';
 
+if ((require.main === module || !require.main) && require('./lib/framework-runtime.cjs').skipHook(module)) return;
+
 const fs = require('fs');
 const path = require('path');
 const { execFile, spawn } = require('child_process');

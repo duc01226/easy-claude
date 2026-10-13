@@ -8,6 +8,16 @@ Render-side reference for `work-item --mode=mockup`. Governs the **scripted clic
 
 ---
 
+## Contents
+
+- [§1. Flow-Spec Schema](#1-flow-spec-schema)
+- [§2. Prototype Engine (vanilla JS, zero-dep)](#2-prototype-engine-vanilla-js-zero-dep)
+- [§3. Guided Walkthrough / Coach-Marks](#3-guided-walkthrough--coach-marks)
+- [§4. Explanation Panel + "⚠ Simulated" Banner](#4-explanation-panel---simulated-banner)
+- [§5. Affordances + Accessibility](#5-affordances--accessibility)
+- [§6. Scope Guard + Anti-Patterns](#6-scope-guard--anti-patterns)
+- [§7. Demo-Quality Checklist](#7-demo-quality-checklist)
+
 ## §1. Flow-Spec Schema
 
 The planning step (`references/mode-mockup.md` Step 2c) fills ONE flow-spec per main journey of the Step 2a Journey Report (`UX-1`) — the MVP happy path of each main user story. The flow-spec is the single source the engine renders; regenerate the prototype from it whenever the task's design/flow changes (cheap to re-author, avoids drift).

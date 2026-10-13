@@ -171,6 +171,10 @@ function makeVerifierFixture(root, { complete, orderLog }) {
 
     const append = marker => `require('node:fs').appendFileSync(process.env.CK_ORDER_LOG, ${JSON.stringify(`${marker}\n`)});`;
     fs.mkdirSync(path.join(hooks, 'lib'), { recursive: true });
+    // Runtime mode is an optional read-only preflight before installation. This
+    // complete bundle fixture must ship that dependency too; its actual mode
+    // semantics are covered by framework-runtime.test.cjs.
+    writeText(path.join(hooks, 'lib', 'framework-runtime.cjs'), 'module.exports = { skipHook: () => false };\n');
     writeText(path.join(hooks, 'lib', 'project-config-loader.cjs'), `${append('config-loader')}
 module.exports = { getProjectConfigStatus: () => ({ state: 'missing', exists: false, valid: false, config: {}, errors: [], warnings: [] }) };
 `);

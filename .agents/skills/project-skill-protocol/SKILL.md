@@ -4,18 +4,11 @@ description: '[Utilities] Use when a project adds, changes, lists or removes its
 ---
 
 > Codex compatibility note:
-> - Invoke repository skills with `$skill-name` in Codex; this mirrored copy rewrites legacy Claude `/skill-name` references.
-> - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
-> - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
-> - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
-> - Use ask user question tool to ask user.
-> - Ignore Claude-specific mode-switch instructions when they appear.
-> - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
+> - Invoke `$skill-name`: load the registered `.agents/skills/<name>/SKILL.md` and execute it with Codex tools; no separate `Skill` tool or Claude mode switch is needed. Author `.claude/**`; mirrors are generated.
+> - Track steps before execution and keep progress/evidence current. Explicit skill requests execute their protocol. Use the native question tool for required questions.
+> - Map foreign tool names to available host capabilities. A name mismatch needs no approval; an actually unavailable required capability stops with its step/evidence and a user question before adaptation.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
-> - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
-> - For workflow skills, steps follow the guided contract in `$start-workflow` (gate steps fixed; other steps may flex with a logged reason); report step-by-step evidence.
-> - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
+> - Preserve protocol order unless the user approves a deviation. Workflows use `$start-workflow`: gates stay fixed; other steps may flex with logged reasons and evidence.
 ## Quick Summary
 
 **Goal:** Give a project a registry of named **protocol overlays** — extra project rules layered onto framework skills — with create / read / update / delete over that registry, so a skill picks up this project's conventions on every run **without the portable framework being edited**.
@@ -52,6 +45,20 @@ description: '[Utilities] Use when a project adds, changes, lists or removes its
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
 ---
+
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Project Skill Protocol (project overlay registry)](#project-skill-protocol-project-overlay-registry)
+- [Storage Contract](#storage-contract)
+- [Phase 0: Resolve Mode (BLOCKING — before any file read)](#phase-0-resolve-mode-blocking--before-any-file-read)
+- [Phase 1: LIST](#phase-1-list)
+- [Phase 2: ADD](#phase-2-add)
+- [Phase 3: UPDATE](#phase-3-update)
+- [Phase 4: DELETE](#phase-4-delete)
+- [Two Writes, One Turn](#two-writes-one-turn)
+- [Anti-Rationalization](#anti-rationalization)
+- [Closing Reminders](#closing-reminders)
 
 # Project Skill Protocol (project overlay registry)
 

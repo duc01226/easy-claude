@@ -2,6 +2,13 @@
 
 End-to-end pipeline examples for asset generation and analysis.
 
+## Contents
+
+- [Example 1: Hero Section (Complete Pipeline)](#example-1-hero-section-complete-pipeline)
+- [Example 2: Extract, Generate, Analyze Loop](#example-2-extract-generate-analyze-loop)
+- [Example 3: A/B Test Assets](#example-3-ab-test-assets)
+- [Batch Analysis for Rapid Iteration](#batch-analysis-for-rapid-iteration)
+
 ## Example 1: Hero Section (Complete Pipeline)
 
 ```bash

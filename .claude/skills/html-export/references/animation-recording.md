@@ -11,13 +11,13 @@ therefore gives the same frames on every run, on any machine.
 <!-- SKILL-NAV:START -->
 ## Contents
 
-- Run it
-- The time rule
-- Page hooks
-- Authoring rules for recordable pages
-- Output
-- Verifying a recording
-- Limits
+- [Run it](#run-it)
+- [The time rule](#the-time-rule)
+- [Page hooks](#page-hooks)
+- [Authoring rules for recordable pages](#authoring-rules-for-recordable-pages)
+- [Output](#output)
+- [Verifying a recording](#verifying-a-recording)
+- [Limits](#limits)
 
 <!-- SKILL-NAV:END -->
 

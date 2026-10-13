@@ -219,6 +219,7 @@ test('TC-DOCROOT-037: scan scope covers CLAUDE.md and project-reference, and exc
         // Fixture trees that legitimately hardcode the DEFAULT to prove the default still works.
         writeFixture(root, '.claude/hooks/tests/docs/project-config.json', bare);
         writeFixture(root, '.claude/skills/fixture/tests/case.md', bare);
+        writeFixture(root, '.claude/worktrees/local-checkout/.claude/skills/fixture/SKILL.md', bare);
         writeAllowlist(root, {});
 
         const clean = invoke(root);

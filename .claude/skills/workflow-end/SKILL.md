@@ -1,7 +1,7 @@
 ---
 name: workflow-end
 version: 1.0.0
-description: "[Process] Close the active workflow after checking outcome evidence and owned changes; retain recovery state until explicit /clear."
+description: "[Process] Use when the active workflow has finished its steps or the user asks to close it: checks outcome evidence and owned changes, then closes the workflow; recovery state stays until an explicit /clear."
 ---
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
@@ -13,7 +13,7 @@ description: "[Process] Close the active workflow after checking outcome evidenc
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:END -->
 
-> **Work tracking:** Read [the linked work integration guide](../task-track/references/integration-guide.md) at capture, start, saved-work, verification, handoff and close-out checkpoints. Use the actual linked producer and exact items; retain the primary outcome and record optional upkeep once through the common owner. Continue untracked when no link exists; acceptance remains explicit.
+> **Work tracking:** Keep the project's tracked work current in the same change, as its root instructions (`CLAUDE.md` or `AGENTS.md`) say. When the project uses the portable tracker (`taskTracking.mode` is `observe` or `linked`), read [the linked work integration guide](../task-track/references/integration-guide.md) at capture, start, saved-work, verification, handoff and close-out checkpoints. Use the actual linked producer and exact items; retain the primary outcome and record optional upkeep once through the common owner. Continue untracked when no link exists; acceptance remains explicit.
 
 ## Quick Summary
 
@@ -46,6 +46,16 @@ description: "[Process] Close the active workflow after checking outcome evidenc
 - MUST ATTENTION define success criteria before execution and loop until observable verification passes.
 - MUST ATTENTION when creating/reviewing specs or tests, name `Business Intent / Invariant Guarded` or the protected business intent/invariant and ensure the test would fail if that intent breaks.
 - NEVER skip mandatory workflow or skill gates.
+
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [When This Runs](#when-this-runs)
+- [What To Do](#what-to-do)
+- [See Also](#see-also)
+- [Workflow End](#workflow-end)
+- [Prompt-Enhance Closing Anchors](#prompt-enhance-closing-anchors)
+- [Closing Reminders](#closing-reminders)
 
 ## When This Runs
 

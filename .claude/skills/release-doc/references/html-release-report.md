@@ -17,18 +17,18 @@ The **single source of truth** for the rich, standalone HTML release presentatio
 <!-- SKILL-NAV:START -->
 ## Contents
 
-- R0. Preconditions
-- R1. Comprehend the WHOLE change set first (breadth before depth)
-- R2. Investigate each highlight END-TO-END (depth, one highlight at a time)
-- R3. Correlate SPEC changes (canonical behavior, not just code)
-- R4. Detect UI change + [BLOCKING] inventory the REAL existing UI
-- R5. [BLOCKING] Write the temp analysis report — BEFORE any HTML
-- R6. Assemble the standalone HTML release document
-- R7. Save
-- R8. [BLOCKING] Gates — run ALL FOUR before reporting done
-- R9. Auto-open the HTML
-- R10. Report to the user
-- Closing Reminders
+- [R0. Preconditions](#r0-preconditions)
+- [R1. Comprehend the WHOLE change set first (breadth before depth)](#r1-comprehend-the-whole-change-set-first-breadth-before-depth)
+- [R2. Investigate each highlight END-TO-END (depth, one highlight at a time)](#r2-investigate-each-highlight-end-to-end-depth-one-highlight-at-a-time)
+- [R3. Correlate SPEC changes (canonical behavior, not just code)](#r3-correlate-spec-changes-canonical-behavior-not-just-code)
+- [R4. Detect UI change + \[BLOCKING\] inventory the REAL existing UI](#r4-detect-ui-change--blocking-inventory-the-real-existing-ui)
+- [R5. \[BLOCKING\] Write the temp analysis report — BEFORE any HTML](#r5-blocking-write-the-temp-analysis-report--before-any-html)
+- [R6. Assemble the standalone HTML release document](#r6-assemble-the-standalone-html-release-document)
+- [R7. Save](#r7-save)
+- [R8. \[BLOCKING\] Gates — run ALL FOUR before reporting done](#r8-blocking-gates--run-all-four-before-reporting-done)
+- [R9. Auto-open the HTML](#r9-auto-open-the-html)
+- [R10. Report to the user](#r10-report-to-the-user)
+- [Closing Reminders](#closing-reminders)
 
 <!-- SKILL-NAV:END -->
 

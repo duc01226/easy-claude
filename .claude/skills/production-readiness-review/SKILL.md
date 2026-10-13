@@ -51,6 +51,26 @@ description: '[Code Quality] Use when a workflow step or the user asks for servi
 - `orchestration` → check K8s manifests, Helm charts
 - `cicd.tool` → check pipeline configs
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Your Mission](#your-mission)
+- [Report-Only Mode (`--report-only`)](#report-only-mode---report-only)
+- [Review Mindset (NON-NEGOTIABLE)](#review-mindset-non-negotiable)
+- [Scope Resolution](#scope-resolution)
+- [Production Readiness Scoring](#production-readiness-scoring)
+- [Extended SRE Readiness Gate (step-by-step, pass/fail — gating, NOT scored)](#extended-sre-readiness-gate-step-by-step-passfail--gating-not-scored)
+- [Technique Applicability (advisory — NON-SCORING, NON-GATING)](#technique-applicability-advisory--non-scoring-non-gating)
+- [Scoring](#scoring)
+- [Structural Impact Analysis (grep/read; optional graph hint)](#structural-impact-analysis-grepread-optional-graph-hint)
+- [Why-Review Findings Validation Gate (MANDATORY when findings exist)](#why-review-findings-validation-gate-mandatory-when-findings-exist)
+- [Validated Fix + Full Re-Review (MANDATORY when fixes are applied)](#validated-fix--full-re-review-mandatory-when-fixes-are-applied)
+- [Output Format](#output-format)
+- [Important Notes](#important-notes)
+- [Next Steps](#next-steps)
+- [Prompt-Enhance Closing Anchors](#prompt-enhance-closing-anchors)
+- [Closing Reminders](#closing-reminders)
+
 ## Your Mission
 
 <task>

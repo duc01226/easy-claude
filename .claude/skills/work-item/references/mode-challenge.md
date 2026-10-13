@@ -16,12 +16,14 @@
 ## Contents
 
 - [Quick Summary](#quick-summary)
+- [Why This Skill Exists](#why-this-skill-exists)
 - [Risk Assessment](#risk-assessment)
 - [Workflow](#workflow)
-- [M1-M7 Compliance Gate](#m1-m7-compliance-gate-blocking--drives-the-ai-verdict)
+- [M1-M7 Compliance Gate (BLOCKING — drives the AI Verdict)](#m1-m7-compliance-gate-blocking--drives-the-ai-verdict)
 - [Output](#output)
 - [Key Rules](#key-rules)
 - [Next Steps](#next-steps)
+- [Prompt-Enhance Closing Anchors](#prompt-enhance-closing-anchors)
 - [Closing Reminders](#closing-reminders)
 
 ## Quick Summary

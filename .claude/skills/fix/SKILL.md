@@ -14,7 +14,7 @@ disable-model-invocation: false
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:END -->
 
-> **Work tracking:** Read [the linked work integration guide](../task-track/references/integration-guide.md) at capture, start, saved-work, verification, handoff and close-out checkpoints. Use the actual linked producer and exact items; retain the primary outcome and record optional upkeep once through the common owner. Continue untracked when no link exists; acceptance remains explicit.
+> **Work tracking:** Keep the project's tracked work current in the same change, as its root instructions (`CLAUDE.md` or `AGENTS.md`) say. When the project uses the portable tracker (`taskTracking.mode` is `observe` or `linked`), read [the linked work integration guide](../task-track/references/integration-guide.md) at capture, start, saved-work, verification, handoff and close-out checkpoints. Use the actual linked producer and exact items; retain the primary outcome and record optional upkeep once through the common owner. Continue untracked when no link exists; acceptance remains explicit.
 
 ## Quick Summary
 
@@ -42,6 +42,20 @@ disable-model-invocation: false
 - Use subagents for parallel investigation of multiple hypotheses
 - Always create a plan before implementing complex fixes
 - **Target flag** (see [Target Routing](#target-routing---target)): `--target={ci|issue|logs|review|test|types|ui}` selects a self-contained branch that scopes the fix to that domain. No flag = full diagnose→fix spine below.
+
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [First Principle — Easy to Change · Easy to Scale · Easy to Maintain](#first-principle--easy-to-change--easy-to-scale--easy-to-maintain)
+- [Default Mode Policy](#default-mode-policy)
+- [🛑 Root-Cause Prerequisite Gate (Direct `/fix` Invocation) — BLOCKING](#-root-cause-prerequisite-gate-direct-fix-invocation--blocking)
+- [Standalone Mode Minimum Contract (Non-Workflow Only)](#standalone-mode-minimum-contract-non-workflow-only)
+- [Debug Mindset (NON-NEGOTIABLE)](#debug-mindset-non-negotiable)
+- [⚠️ MANDATORY: Confidence & Evidence Gate](#️-mandatory-confidence--evidence-gate)
+- [Target Routing (`--target=`)](#target-routing---target)
+- [Workflow:](#workflow)
+- [Next Steps (Standalone: after the Minimum Contract completes. Skip only when `nested=true` — a `\[Workflow\]` row that merely exists in `TaskList` does not count.)](#next-steps-standalone-after-the-minimum-contract-completes-skip-only-when-nestedtrue--a-workflow-row-that-merely-exists-in-tasklist-does-not-count)
+- [Closing Reminders](#closing-reminders)
 
 ## First Principle — Easy to Change · Easy to Scale · Easy to Maintain
 

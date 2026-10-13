@@ -34,6 +34,21 @@ disable-model-invocation: true
 - Never silently reinterpret `ready`, `published`, `delivered`, `paid`, `refunded`, or equivalent lifecycle terms.
 - A roadmap is canonical at one path — default `docs/product-roadmap.md`, overridden by a `docsRoots.productRoadmap.path` entry in `docs/project-config.json`; update that file rather than creating competing roadmap files.
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Mission](#mission)
+- [Required Context](#required-context)
+- [Phase 0: Explicit Invocation Gate and Applicability](#phase-0-explicit-invocation-gate-and-applicability)
+- [Phase 1: Frame the Product Outcome](#phase-1-frame-the-product-outcome)
+- [Phase 2: Design Outcome-Based Milestones](#phase-2-design-outcome-based-milestones)
+- [Phase 3: Decision Gate](#phase-3-decision-gate)
+- [Phase 4: Write the Canonical Roadmap](#phase-4-write-the-canonical-roadmap)
+- [Phase 5: Select One Milestone and Write Scope Brief](#phase-5-select-one-milestone-and-write-scope-brief)
+- [Phase 6: Handoff and Stop Conditions](#phase-6-handoff-and-stop-conditions)
+- [Output](#output)
+- [Closing Reminders](#closing-reminders)
+
 ## Mission
 
 <request>$ARGUMENTS</request>

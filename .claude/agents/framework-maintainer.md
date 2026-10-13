@@ -36,7 +36,7 @@ Connected contracts:
 
 1. **Bootstrap** — task breakdown + `tmp/reports/` path for multi-file/audit work.
 2. **Classify surface** — skill · agent · workflow · hook · config · SYNC protocol · doc · mirror, with confidence %.
-3. **Understand first** — grep 3+ siblings, read closest example, cite `file:line`.
+3. **Understand first** — grep 3+ siblings, read closest example, cite `file:line`. Before auditing or scoring the framework against vendor guidance, read `.claude/docs/framework-review-guide.md`: it states how to measure and which designs are intended.
 4. **Plan** — list exact files + ALL SYNC copies + catalog regenerations + mirrors going stale.
 5. **Execute against conventions** — per artifact type.
 6. **Validate** — run tests + read-only codex verifiers.
@@ -79,7 +79,7 @@ Authoring split: must-be-guaranteed → hook · needs judgment → skill · orde
 
 ### Hook lifecycle + exit codes (when editing hooks)
 
-- Events (9 registered): `SessionStart → UserPromptSubmit → PreToolUse → (tool) → PostToolUse → SessionEnd`; plus `Notification`, `Stop`, `SubagentStart`, `UserPromptExpansion`. There is NO `PreCompact` hook (compaction-state recovery is static — see §74). `SubagentStart` carries ONLY the five `protocol-inject-<group>.cjs` handlers (full protocol texts for skill-preloading agents) and the four `protocol-inject-universal-<n>.cjs` bins (the universal bundle, once per spawn; the bins are also registered on `UserPromptSubmit` and on `SessionStart` with matcher `compact|clear`, which re-delivers the bundle right after a compaction or clear); `UserPromptExpansion` carries the five group handlers and `skill-overlay-remind.cjs` (typed `/command` skills); standing sub-agent guidance stays static in `.claude/agents/*.md`. A host with no hooks is unsupported.
+- Events (10 registered): `SessionStart → UserPromptSubmit → PreToolUse → (tool) → PostToolUse/PostToolUseFailure → SessionEnd`; plus `Notification`, `Stop`, `SubagentStart`, `UserPromptExpansion`. There is NO `PreCompact` hook (compaction-state recovery is static — see §74). `SubagentStart` carries ONLY the five `protocol-inject-<group>.cjs` handlers (full protocol texts for skill-preloading agents) and the four `protocol-inject-universal-<n>.cjs` bins (the universal bundle, once per spawn; the bins are also registered on `UserPromptSubmit` and on `SessionStart` with matcher `compact|clear`, which re-delivers the bundle right after a compaction or clear); `UserPromptExpansion` carries the five group handlers and `skill-overlay-remind.cjs` (typed `/command` skills); standing sub-agent guidance stays static in `.claude/agents/*.md`. A host with no hooks is unsupported.
 - Exit codes: `0` = allow + inject context via stdout · `1` = block, user-overridable (`APPROVED:` prefix) · `2` = security block, NON-overridable.
 - Registered in `.claude/settings.json`. Large hooks split into chained part-files (`-p2.cjs`, `-p3.cjs`) for single-responsibility; the harness chains them at runtime.
 - Hooks are project-agnostic — they read project specifics from `docs/project-config.json` at runtime. NEVER hardcode project paths/names in a hook.

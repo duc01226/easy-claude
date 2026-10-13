@@ -31,6 +31,20 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob, TaskCreate, Agent
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:END -->
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Required Context](#required-context)
+- [Universal Seed Data Rules](#universal-seed-data-rules)
+- [Persistent Seed Run Contract](#persistent-seed-run-contract)
+- [Protocol (Generate mode)](#protocol-generate-mode)
+- [Sub-Agent Routing](#sub-agent-routing)
+- [Anti-Patterns](#anti-patterns)
+- [Review Loop](#review-loop)
+- [Mode: Review (seed-data convention audit)](#mode-review-seed-data-convention-audit)
+- [Next Steps](#next-steps)
+- [Closing Reminders](#closing-reminders)
+
 ## Required Context
 
 Before changes or an audit, read `seed-test-data-reference.md` under the resolved project-reference root (default `docs/project-reference`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it) and the loader-selected project config's `Data Seeders` group. Discover source roots, naming, commands, base/interface, registration, environment/count keys, marker and scope lifetime with `file:line` evidence. Match existing conventions; if none exists, propose the smallest suitable one.

@@ -1,5 +1,16 @@
 # Planning Engine — Research & Analysis
 
+## Contents
+
+- [1. Research & Analysis (**Skip if:** Provided with researcher reports)](#1-research--analysis-skip-if-provided-with-researcher-reports)
+- [Core Activities](#core-activities)
+- [Search Strategy](#search-strategy)
+- [Deep Content Analysis](#deep-content-analysis)
+- [Research Report Template](#research-report-template)
+- [Research Quality Standards](#research-quality-standards)
+- [Special Considerations](#special-considerations)
+- [Research Best Practices](#research-best-practices)
+
 ### 1. Research & Analysis (**Skip if:** Provided with researcher reports)
 
 

@@ -53,6 +53,26 @@ context-budget: critical
 - Tests pass after every change
 - Apply simplification only when certain it preserves behavior — NEVER apply when unsure
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Report-Only Mode (`--report-only`)](#report-only-mode---report-only)
+- [Phase 0: Artifact Detection](#phase-0-artifact-detection)
+- [First Principle — Easy to Change · Easy to Scale · Easy to Maintain](#first-principle--easy-to-change--easy-to-scale--easy-to-maintain)
+- [Simplification Mindset](#simplification-mindset)
+- [Simplification Dimensions](#simplification-dimensions)
+- [Project Patterns](#project-patterns)
+- [Graph Intelligence (optional advice)](#graph-intelligence-optional-advice)
+- [Execution](#execution)
+- [Constraints](#constraints)
+- [Self-Recursive Verification (MANDATORY after simplifications)](#self-recursive-verification-mandatory-after-simplifications)
+- [Self-Review Gate (MANDATORY when this skill changed code)](#self-review-gate-mandatory-when-this-skill-changed-code)
+- [Next Steps](#next-steps)
+- [AI Agent Integrity Gate (NON-NEGOTIABLE)](#ai-agent-integrity-gate-non-negotiable)
+- [Self-Recursive Simplification Loop](#self-recursive-simplification-loop)
+- [Prompt-Enhance Closing Anchors](#prompt-enhance-closing-anchors)
+- [Closing Reminders](#closing-reminders)
+
 ## Report-Only Mode (`--report-only`)
 
 > **Use when** a caller needs simplification opportunities as findings without edits — e.g. a review skill running its simplification dimension, a workflow parallel review barrier, or a review batch — and another step owns every fix. `--report-only` in `$ARGUMENTS` selects it; without the flag every step applies unchanged.

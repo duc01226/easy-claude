@@ -4,7 +4,7 @@ version: 1.0.0
 description: '[Skill Management] Use when starting a detected workflow, initializing workflow state, or activating a workflow sequence.'
 ---
 
-> **Work tracking:** Read [the linked work integration guide](../task-track/references/integration-guide.md) at capture, start, saved-work, verification, handoff and close-out checkpoints. Use the actual linked producer and exact items; retain the primary outcome and record optional upkeep once through the common owner. Continue untracked when no link exists; acceptance remains explicit.
+> **Work tracking:** Keep the project's tracked work current in the same change, as its root instructions (`CLAUDE.md` or `AGENTS.md`) say. When the project uses the portable tracker (`taskTracking.mode` is `observe` or `linked`), read [the linked work integration guide](../task-track/references/integration-guide.md) at capture, start, saved-work, verification, handoff and close-out checkpoints. Use the actual linked producer and exact items; retain the primary outcome and record optional upkeep once through the common owner. Continue untracked when no link exists; acceptance remains explicit.
 
 ## Quick Summary
 
@@ -45,6 +45,16 @@ description: '[Skill Management] Use when starting a detected workflow, initiali
 **Related:** `/start-workflow <workflowId>` | Catalog: opt-in runtime route payload derived from `.claude/workflows.json`
 
 ---
+
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Custom Pipeline Option](#custom-pipeline-option)
+- [Workflow Lookup — Tier 1 Selection, Tier 2 Execution](#workflow-lookup--tier-1-selection-tier-2-execution)
+- [After Activation — Task Creation Protocol (ZERO TOLERANCE)](#after-activation--task-creation-protocol-zero-tolerance)
+- [Step Execution Protocol](#step-execution-protocol)
+- [Workflow-in-Workflow Gate (HARD GATE)](#workflow-in-workflow-gate-hard-gate)
+- [Closing Reminders](#closing-reminders)
 
 ## Custom Pipeline Option
 

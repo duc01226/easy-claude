@@ -210,41 +210,33 @@ const tests = [
         }
     },
     {
-        // Invariant (P34): the commit gate selects a review by the change's risk tier, never a fixed
-        // heaviest-first default and never a question; the hook and skill carry the signals, the agent decides.
-        name: 'REQ-GUARD-03 review selection is risk-tiered and automatic: one line per tier, no question, no fixed (Recommended) option',
+        // The hook explains the configured default and risk-based alternative without a question;
+        // the selector owns the choice, while the hook still requires exact-candidate evidence.
+        name: 'REQ-GUARD-03 review selection explains lightweight default and risk-based opt-in without a question',
         fn: async () => {
             // Given: a blocked, unreviewed commit candidate
             const descriptor = { repository: 'C:\\fixture\\repo', cwd: 'C:\\fixture\\repo', mode: 'staged', literalPaths: [] };
             // When: the hook renders its block message
             const message = gate().blockMessage(descriptor.repository,
                 { status: 'CHANGED', fingerprint: 'a'.repeat(64) }, descriptor, 'no matching receipt');
-            // Then: no option carries a fixed recommendation, and each review states the risk tier it serves
+            // Then: no choice question; default and fallback remain explicit and configurable.
             assert.doesNotMatch(message, /\(Recommended\)/i, 'a fixed (Recommended) marker must not return to any hook option');
             assert.doesNotMatch(message, /option 1 is recommended|below in order/i, 'the hook must not rank the options');
             assert.doesNotMatch(message, /Ask the user to choose|ASK them first/i, 'the hook must not restore the test/review question');
-            for (const [review, tier] of [['why-review', 'medium'], ['changes-review', 'high']]) {
-                assert.match(message, new RegExp(`^\\s+\\d\\. /${review} --fix-loop\\s+# ${tier} risk: \\S`, 'm'),
-                    `hook must keep a one-line risk tier for /${review}`);
-            }
-            assert.match(message, /Do not ask the user: classify the candidate by the `commit` skill's Review selection rule[\s\S]{0,40}higher on a tie/,
+            assert.match(message, /\/commit-review --fix-loop\s+# default lightweight: every commit tier/);
+            assert.match(message, /\/why-review --fix-loop\s+# risk-based mode or PR scope: medium risk/);
+            assert.match(message, /\/changes-review --fix-loop\s+# risk-based mode or PR scope: high risk/);
+            assert.match(message, /resolve commit.reviewMode with .claude\/scripts\/lib\/commit-review-policy.cjs/);
+            assert.match(message, /Lightweight mode never selects an automatic skip/);
+            assert.match(message, /Do not ask the user: classify the actual candidate risk[\s\S]{0,40}higher on a tie/,
                 'hook must point to the skill rule and the tie-break');
             assert.match(message, /at most 2 review rounds\. MEDIUM\+ findings still open at the cap: stop and report, no commit, no skip/);
             assert.match(message, /\/workflow-review-changes --fix-loop also issues a valid receipt when the user asks for the full workflow/);
 
-            // Then: the commit skill owns ONE Review selection protocol with a row per risk tier
+            // The coordinator delegates selection; executable policy tests own tier behavior.
             const commitSkill = fs.readFileSync(path.resolve(__dirname, '../../../skills/commit/SKILL.md'), 'utf8');
-            const start = commitSkill.indexOf('#### Review selection');
-            assert.ok(start >= 0, 'commit skill must carry the Review selection protocol');
-            const section = commitSkill.slice(start, commitSkill.indexOf('\n### ', start));
-            for (const [tier, review] of [['Low', 'Automatic skip'], ['Medium', '`/why-review --fix-loop`'], ['High', '`/changes-review --fix-loop`']]) {
-                assert.ok(section.split('\n').some(line => line.startsWith(`| **${tier}** | ${review} | `) && /\S \|$/.test(line)),
-                    `Review selection must map the ${tier} tier to ${review} and say what it does`);
-            }
-            assert.match(section, /Tie or unclear → the higher tier/);
-            assert.match(section, /State the selected review and the signal that chose it/);
-            assert.match(section, /`\/workflow-review-changes --fix-loop`[^\n]*runs only when the user asks for it/);
-            assert.match(section, /capped at two review rounds/);
+            assert.match(commitSkill, /commit-review-policy\.cjs --operation=commit/);
+            assert.match(commitSkill, /at most two rounds/);
             // Then: the skill decides without a test/review question
             assert.doesNotMatch(commitSkill, /\(Recommended\)|Skip stays user-only|Ask initially/i,
                 'the commit skill must not restore the test/review question');
@@ -269,37 +261,51 @@ const tests = [
                 const blocked = gate().evaluate(input);
                 assert.equal(blocked.code, 2, 'no receipt and no skip must block');
                 assert.match(blocked.stderr, /review fix-loop/i);
-                assert.match(blocked.stderr, /Do not ask the user: classify the candidate by the `commit` skill's Review selection rule/i);
+                assert.match(blocked.stderr, /Do not ask the user: classify the actual candidate risk/i);
                 assert.match(blocked.stderr, /Never skip a Medium or High candidate, or a failed review/);
 
                 const hookOptions = [
-                    '1. /why-review --fix-loop',
-                    '2. /changes-review --fix-loop',
-                    '3. Skip — only for a Low-risk candidate'
+                    '1. /commit-review --fix-loop',
+                    '2. /why-review --fix-loop',
+                    '3. /changes-review --fix-loop',
+                    '4. Skip — only in risk-based mode for a Low-risk candidate'
                 ].map(option => blocked.stderr.indexOf(option));
                 assert.ok(hookOptions.every(index => index >= 0), 'hook must show both tier reviews and the Low-risk skip');
-                assert.ok(hookOptions[2] > Math.max(...hookOptions.slice(0, 2)), 'Skip must follow every review option');
-
-                const commitSkill = fs.readFileSync(path.resolve(__dirname, '../../../skills/commit/SKILL.md'), 'utf8');
-                const tiersStart = commitSkill.indexOf('act on its tier through [Review selection](#review-selection), without asking the user:');
-                assert.ok(tiersStart >= 0, 'commit skill must act on the risk tier without asking the user');
-                const tiersEnd = commitSkill.indexOf('Rules:', tiersStart);
-                const skillTiers = [
-                    '  - **Low → automatic skip.**',
-                    '  - **Medium → `/why-review --fix-loop`.**',
-                    '  - **High → `/changes-review --fix-loop`.**'
-                ].map(option => commitSkill.indexOf(option, tiersStart));
-                assert.ok(tiersEnd > tiersStart && skillTiers.every(index => index >= tiersStart && index < tiersEnd),
-                    'commit skill must give one action per risk tier');
-                const tiers = commitSkill.slice(tiersStart, tiersEnd);
-                assert.match(tiers, /--reason="auto: low risk — <signal>"/, 'an automatic skip records its low-risk signal');
-                assert.match(tiers, /MEDIUM or higher findings or a failed required check still open after round 2 → \*\*Blocker\*\*: do not commit, mint no skip/);
+                assert.ok(hookOptions[3] > Math.max(...hookOptions.slice(0, 3)), 'Skip must follow every review option');
 
                 issueCandidate(receipt(), fx.store, snapshot(receipt(), fx.repoA), 'skip', {
                     reason: 'auto: low risk — docs only'
                 });
                 assert.equal(gate().evaluate(input), undefined,
                     'the exact candidate is allowed after a descriptor-bound recorded skip');
+            });
+        })
+    },
+    {
+        name: 'lightweight commit review clears only the exact staged candidate and refuses stale issuance',
+        skip: !GIT,
+        fn: async () => fixture(fx => {
+            makeRepo(fx.repoA);
+            const file = path.join(fx.repoA, 'file.txt');
+            fs.writeFileSync(file, 'review candidate\n');
+            git(fx.repoA, ['add', 'file.txt']);
+            fs.writeFileSync(path.join(fx.repoA, 'unrelated.txt'), 'not in this commit\n');
+            const api = receipt();
+            const reviewed = snapshot(api, fx.repoA, 'staged');
+            const indexBefore = fs.readFileSync(path.join(fx.repoA, '.git', 'index'));
+            withStore(fx.store, () => {
+                const input = { tool_name: 'Bash', tool_input: { command: 'git commit -m "candidate"', cwd: fx.repoA } };
+                assert.equal(gate().evaluate(input).code, 2);
+                issueCandidate(api, fx.store, reviewed, 'commit-review');
+                assert.equal(api.matchReviewReceipt({ repository: fx.repoA, storeDir: fx.store, snapshot: reviewed }), 'commit-review');
+                assert.equal(gate().evaluate(input), undefined, 'fresh full-candidate review clears the gate');
+                assert.deepEqual(fs.readFileSync(path.join(fx.repoA, '.git', 'index')), indexBefore, 'review evidence never stages files');
+                fs.writeFileSync(file, 'later unstaged content\n');
+                assert.equal(gate().evaluate(input), undefined, 'unstaged edits do not change a staged commit');
+                git(fx.repoA, ['add', 'file.txt']);
+                assert.equal(gate().evaluate(input).code, 2, 'changed commit content needs a fresh review');
+                assert.throws(() => issueCandidate(api, fx.store, reviewed, 'commit-review'), /reviewed target changed/);
+                assert.throws(() => issueCandidate(api, fx.store, snapshot(api, fx.repoA, 'staged'), 'commit-review', { scope: 'subset' }), /full-changeset/);
             });
         })
     },

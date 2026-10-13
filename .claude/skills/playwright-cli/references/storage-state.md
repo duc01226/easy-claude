@@ -5,13 +5,13 @@ Manage cookies, localStorage, sessionStorage, and browser storage state.
 <!-- SKILL-NAV:START -->
 ## Contents
 
-- Storage State
-- Cookies
-- Local Storage
-- Session Storage
-- IndexedDB
-- Common Patterns
-- Security Notes
+- [Storage State](#storage-state)
+- [Cookies](#cookies)
+- [Local Storage](#local-storage)
+- [Session Storage](#session-storage)
+- [IndexedDB](#indexeddb)
+- [Common Patterns](#common-patterns)
+- [Security Notes](#security-notes)
 
 <!-- SKILL-NAV:END -->
 

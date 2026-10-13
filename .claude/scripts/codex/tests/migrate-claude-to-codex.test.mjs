@@ -224,8 +224,7 @@ test('migrate-claude-to-codex mirrors skills without injecting any protocol bloc
         assert.doesNotMatch(codexConfig, /Shared completion notifications/);
         // The bundle pins no compaction budget (BR-ADS-20), so the upsert never adds one
         assert.doesNotMatch(codexConfig, /model_auto_compact_token_limit/, 'the sync must not pin a compaction budget');
-        assert.match(codexConfig, /^project_doc_max_bytes = 98304$/m, 'AGENTS.md must load past the 32 KiB Codex default');
-        assert.ok(codexConfig.indexOf('project_doc_max_bytes = 98304') < codexConfig.indexOf('[[profiles]]'), 'top-level key, not inside a table');
+        assert.doesNotMatch(codexConfig, /^project_doc_max_bytes\s*=/m, 'sync must inherit the native instruction budget');
         assert.match(codexConfig, /\[tui\]/);
         assert.match(codexConfig, /notifications = true/);
         assert.match(codexConfig, /notification_condition = "always"/);
@@ -563,6 +562,45 @@ test('skill mirror excludes local package-manager lockfiles but keeps real skill
     assert.equal(isMirroredSkillSource(path.join('commit', 'SKILL.md')), true);
 });
 
+// Business intent: OS metadata a desktop file browser leaves in the source tree (macOS .DS_Store,
+// Windows Thumbs.db / desktop.ini) is not skill content. Copying it puts a machine-local file in the
+// generated mirror, and the divergence gate ignores such files, so nothing would ever report it.
+test('skill mirror leaves OS metadata files in the source tree behind but keeps real skill files', async () => {
+    const { isMirroredSkillSource } = await import(pathToFileURL(migrateScript).href);
+    for (const rel of ['.DS_Store', path.join('sample-skill', '.DS_Store'), path.join('sample-skill', 'references', 'Thumbs.db'), path.join('sample-skill', 'Desktop.ini')]) {
+        assert.equal(isMirroredSkillSource(rel), false, `${rel} must not be mirrored`);
+    }
+    assert.equal(isMirroredSkillSource(path.join('sample-skill', 'notes.DS_Store.md')), true, 'a name that merely contains a metadata name is real content');
+
+    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-sync-os-metadata-'));
+    const source = (...parts) => path.join(tempRoot, '.claude', 'skills', ...parts);
+    const mirror = (...parts) => path.join(tempRoot, '.agents', 'skills', ...parts);
+    try {
+        // Given a skill whose source folders a file browser has had open
+        await fs.mkdir(source('sample-skill', 'references'), { recursive: true });
+        await fs.writeFile(source('sample-skill', 'SKILL.md'), ['---', 'name: sample-skill', 'description: Sample skill', '---', '', '# Sample Skill', ''].join('\n'), 'utf8');
+        await fs.writeFile(source('sample-skill', 'references', 'guide.md'), 'guide\n', 'utf8');
+        await fs.writeFile(source('sample-skill', 'notes.DS_Store.md'), 'notes\n', 'utf8');
+        await fs.writeFile(source('.DS_Store'), Buffer.from([0, 0, 0, 1, 0x42, 0x75, 0x64, 0x31]));
+        await fs.writeFile(source('sample-skill', '.DS_Store'), Buffer.from([0, 0, 0, 1, 0x42, 0x75, 0x64, 0x31]));
+        await fs.writeFile(source('sample-skill', 'references', 'Thumbs.db'), Buffer.from([0xd0, 0xcf, 0x11, 0xe0]));
+        await fs.writeFile(source('sample-skill', 'desktop.ini'), '[.ShellClassInfo]\r\n', 'utf8');
+
+        // When the Codex mirror is generated
+        await execFileAsync(process.execPath, [migrateScript], { cwd: tempRoot, env: cleanMachineEnv(tempRoot) });
+
+        // Then the mirror holds the skill's real files and none of the metadata
+        for (const parts of [['.DS_Store'], ['sample-skill', '.DS_Store'], ['sample-skill', 'references', 'Thumbs.db'], ['sample-skill', 'desktop.ini']]) {
+            assert.equal(await pathExists(mirror(...parts)), false, `${parts.join('/')} must not reach the mirror`);
+        }
+        assert.equal(await pathExists(mirror('sample-skill', 'SKILL.md')), true, 'the skill manifest is still mirrored');
+        assert.equal(await fs.readFile(mirror('sample-skill', 'references', 'guide.md'), 'utf8'), 'guide\n');
+        assert.equal(await fs.readFile(mirror('sample-skill', 'notes.DS_Store.md'), 'utf8'), 'notes\n');
+    } finally {
+        await fs.rm(tempRoot, { recursive: true, force: true });
+    }
+});
+
 // Business intent: the divergence gate ignores exactly what a copied mirror's .gitignore ignores
 // (a local install), but still reports a stray runtime-only or hand-added file.
 test('local install artifacts are recognised at any depth with either separator; real files are not', async () => {
@@ -638,47 +676,62 @@ test('Codex config upsert removes only the retired framework notify command and 
     assert.equal(upsertCodexNotificationConfig(fresh), fresh);
 });
 
-test('Codex config upsert raises project_doc_max_bytes to the root budget but never lowers a larger value', async () => {
-    // Given the adopter config upsert and a reader for the resulting bare-key decimal limits.
+test('Codex config sync inherits native instruction limits and retires only the former bundled allowance', async () => {
     const { upsertCodexNotificationConfig } = await import(pathToFileURL(migrateScript).href);
-    const docLimits = text => [...text.matchAll(/^project_doc_max_bytes = (\d+)$/gm)].map(m => Number(m[1]));
     const keyLines = text => text.split('\n').filter(line => /project_doc_max_bytes/.test(line));
 
-    // When an absent, smaller, or larger decimal limit is upserted — and a rerun repeats the sync.
-    // Then an absent or smaller limit becomes the root budget, a larger one is kept, and reruns are stable.
-    assert.deepEqual(docLimits(upsertCodexNotificationConfig('')), [98304], 'absent key is added once');
-    assert.deepEqual(docLimits(upsertCodexNotificationConfig('project_doc_max_bytes = 32768\n')), [98304], 'a limit that would truncate the root is raised');
-    assert.deepEqual(docLimits(upsertCodexNotificationConfig('project_doc_max_bytes = 262144\n')), [262144], 'a larger project choice is kept');
-    assert.match(upsertCodexNotificationConfig('project_doc_max_bytes = 262_144\n'), /^project_doc_max_bytes = 262_144$/m,
-        'a larger value written with TOML digit separators is kept, never lowered');
-    const rerun = upsertCodexNotificationConfig(upsertCodexNotificationConfig(''));
-    assert.deepEqual(docLimits(rerun), [98304], 'idempotent across syncs');
-
-    // When the limit uses the other TOML integer forms (hex, octal, binary, separators, sign).
-    // Then a larger value is kept verbatim and a smaller one is raised, whatever its radix.
-    for (const larger of ['0x40000', '0x4_0000', '0o1000000', '0b1000000000000000000', '+262_144']) {
-        assert.deepEqual(keyLines(upsertCodexNotificationConfig(`project_doc_max_bytes = ${larger}\n`)), [`project_doc_max_bytes = ${larger}`],
-            `a larger TOML integer ${larger} is kept, never lowered`);
-    }
-    for (const smaller of ['0x8000', '0o100000', '0b1000000000000000', '32_768']) {
-        assert.deepEqual(docLimits(upsertCodexNotificationConfig(`project_doc_max_bytes = ${smaller}\n`)), [98304], `a smaller TOML integer ${smaller} is raised`);
+    assert.deepEqual(keyLines(upsertCodexNotificationConfig('')), [], 'fresh configs inherit the host default');
+    for (const former of ['project_doc_max_bytes = 98304', '  project_doc_max_bytes=98304 # former bundle']) {
+        const migrated = upsertCodexNotificationConfig(`# project comment\r\n${former}\r\nmodel = "mine"\r\n`);
+        assert.deepEqual(keyLines(migrated), [], 'the exact old bundled allowance is removed');
+        assert.match(migrated, /^# project comment$/m, 'project comments are preserved');
+        assert.match(migrated, /^model = "mine"$/m, 'unrelated settings are preserved');
+        assert.equal(upsertCodexNotificationConfig(migrated), migrated, 'a second sync is stable');
     }
 
-    // When the key's value or spelling is one the upsert cannot read.
-    // Then the line is left exactly as written — never overwritten and never duplicated.
-    for (const unreadable of ['project_doc_max_bytes = "262144"', 'project_doc_max_bytes = 0x_40000', '"project_doc_max_bytes" = 262144']) {
-        assert.deepEqual(keyLines(upsertCodexNotificationConfig(`${unreadable}\n`)), [unreadable], `unreadable limit is preserved: ${unreadable}`);
+    // A smaller custom allowance matters as much as a larger one. Alternate spellings of the
+    // former value were never written by this generator and therefore remain user-owned too.
+    for (const value of ['16384', '32768', '262144', '262_144', '0x40000', '0x4_0000', '0o1000000',
+        '0b1000000000000000000', '+262_144', '0x8000', '0o100000', '0b1000000000000000', '32_768',
+        '98_304', '0x18000', '"262144"', '0x_40000']) {
+        const own = `project_doc_max_bytes = ${value}`;
+        const notices = [];
+        const updated = upsertCodexNotificationConfig(`${own}\n`, { onNotice: text => notices.push(text) });
+        assert.deepEqual(keyLines(updated), [own], `custom allowance is preserved: ${value}`);
+        assert.deepEqual(notices, [`kept user-set project_doc_max_bytes=${value}`]);
+        assert.equal(upsertCodexNotificationConfig(updated), updated, 'custom choices survive repeated syncs');
     }
+
+    for (const own of ['"project_doc_max_bytes" = 98304', "'project_doc_max_bytes' = 32768"]) {
+        assert.deepEqual(keyLines(upsertCodexNotificationConfig(`${own}\n`)), [own], 'quoted user keys are preserved');
+    }
+    const nested = upsertCodexNotificationConfig('[profiles.custom]\nproject_doc_max_bytes = 98304\n');
+    assert.deepEqual(keyLines(nested), ['project_doc_max_bytes = 98304'], 'nested configuration is not a bundled top-level key');
 });
 
-test('the Codex read budget always covers the generated AGENTS.md root budget', async () => {
-    // Given the Codex read budget and the generated AGENTS.md root budget.
-    const { CODEX_PROJECT_DOC_MAX_BYTES } = await import(pathToFileURL(migrateScript).href);
+test('the generated instruction budget fits native Codex limits without a framework override', async () => {
     const { AGENTS_ROOT_LIMIT_BYTES } = await import(pathToFileURL(path.join(sourceScriptsDir, 'sync-context-workflows.mjs')).href);
-    // When they are compared. Then the root plus its 8 KiB pointer/gate headroom fits what Codex reads —
-    // a root allowed to grow past what Codex reads would be silently truncated again.
-    assert.ok(AGENTS_ROOT_LIMIT_BYTES + 8192 <= CODEX_PROJECT_DOC_MAX_BYTES,
-        `root budget ${AGENTS_ROOT_LIMIT_BYTES} + 8 KiB context pointer/gate headroom must fit the Codex read budget ${CODEX_PROJECT_DOC_MAX_BYTES}`);
+    assert.ok(AGENTS_ROOT_LIMIT_BYTES <= 32768,
+        `generated instructions must fit the native 32 KiB limit, not raise it: ${AGENTS_ROOT_LIMIT_BYTES}`);
+});
+
+test('instruction budget retirement preserves TOML strings and complex nested configuration', async () => {
+    const { upsertCodexNotificationConfig } = await import(pathToFileURL(migrateScript).href);
+    for (const own of [
+        'developer_instructions = """\nproject_doc_max_bytes = 98304\n"""\n',
+        "developer_instructions = '''\nproject_doc_max_bytes = 98304\n'''\n",
+        '[profiles."a]b"]\nproject_doc_max_bytes = 98304\n',
+        '[["a]b"]]\nproject_doc_max_bytes = 98304\n',
+        'developer_instructions = """custom\ninstructions"""\nproject_doc_max_bytes = 98304\n',
+        'custom = [\n  "item"\n]\nproject_doc_max_bytes = 98304\n',
+    ]) {
+        const updated = upsertCodexNotificationConfig(own);
+        assert.ok(updated.startsWith(own), 'complex user configuration is preserved conservatively');
+        assert.equal(upsertCodexNotificationConfig(updated), updated, 'preserved complex input remains stable');
+    }
+    const bundled = upsertCodexNotificationConfig('project_doc_fallback_filenames = ["CLAUDE.md"]\nproject_doc_max_bytes = 98304\n');
+    assert.doesNotMatch(bundled, /project_doc_max_bytes/, 'the shipped single-line fallback list permits retirement');
+    assert.match(bundled, /^project_doc_fallback_filenames = \["CLAUDE.md"\]$/m);
 });
 
 // Intent: a skill the Claude source marks manual-only (`disable-model-invocation: true`) must stay
@@ -864,7 +917,7 @@ test('TC-ADS-035 a fresh project gets no Codex compaction budget and no bundled 
         }
         assert.deepEqual(keptNotices(stdout), []);
         // And the rest of the managed config is still written (the sync did run)
-        assert.match(config, /^project_doc_max_bytes = 98304$/m);
+        assert.match(config, /^notifications = true$/m);
     });
 });
 

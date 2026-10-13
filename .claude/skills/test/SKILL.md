@@ -50,6 +50,16 @@ Use the `tester` subagent to run tests locally and analyze the summary report.
 
 **Goal Contract evidence (after test run):** Resolve the active Goal Contract per the goal-contract-satisfaction-loop protocol (active plan `goal.md` → `goals/{YYMMDD-HHmm}-{slug}/goal.md` under the plans root, default `plans/`, relocated by `docsRoots.plans.path` in `docs/project-config.json`). When one exists, append the verification evidence to the goal file's Iteration Log — test command, exact pass/fail counts, report path — mapped to the saved success criteria the run verifies, and update the Goal Satisfaction matrix rows for those criteria (PASS/FAIL/BLOCKED). Record `No active goal — evidence reported inline only.` when none exists. Never copy raw sensitive fixture data into the goal file.
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Proven-Tier Evidence (caller-passed)](#proven-tier-evidence-caller-passed)
+- [Exact-Result Reporting Contract (Read-Only)](#exact-result-reporting-contract-read-only)
+- [First Principle — Easy to Change · Easy to Scale · Easy to Maintain](#first-principle--easy-to-change--easy-to-scale--easy-to-maintain)
+- [Next Steps](#next-steps)
+- [Prompt-Enhance Closing Anchors](#prompt-enhance-closing-anchors)
+- [Closing Reminders](#closing-reminders)
+
 ## Proven-Tier Evidence (caller-passed)
 
 A workflow or caller that already holds a green run on the final tree passes it explicitly: `--proven=<report path>[,<report path>…]` (for example the `/integration-test --mode=verify` report). Only then:
@@ -78,12 +88,7 @@ The `tester` subagent receives the resolved contract matrix and executes only co
 
 ## Next Steps
 
-**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use `ask user question tool` to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
-
-- **"/docs-manager --mode=update (Recommended)"** — Update documentation after tests pass
-- **"/fix"** — If tests revealed failures that need fixing
-- **"/watzup"** — Wrap up session and review all changes
-- **"Skip, continue manually"** — user decides
+After reporting, choose the appropriate follow-up from the results and the authorized task: `/fix` for failures after root-cause investigation, `/docs-manager --mode=update` for affected documentation, or `/watzup` for a requested wrap-up. Continue an active workflow at its next required step. Keep this test invocation read-only; execute authorized follow-up work through its owning skill. Ask only for indispensable missing information or action authority not already provided.
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
 
@@ -172,7 +177,7 @@ The `tester` subagent receives the resolved contract matrix and executes only co
 **MANDATORY IMPORTANT MUST ATTENTION** an INTERMITTENT failure is UNADJUDICATED, not a product defect — classify it as (a) unrealistic scenario / compressed actor pacing, (b) harness topology amplification (shared infra, fan-out consumers, suite parallelism, cold start), or (c) a genuine product race, with evidence, before reporting it as a defect; report it as UNADJUDICATED when the evidence is not there — why: a test-fidelity defect reported as a product defect sends the team to fix code that was never wrong.
 **MANDATORY IMPORTANT MUST ATTENTION** before asserting a test/source relationship, grep 3+ similar tests and match the local pattern; apply the source/test drift check — decide from evidence whether a failing test guards intended behavior or the source is the bug — why: a mismatched assumption mislabels a real bug as a flaky test.
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting; mark one `in_progress`, complete immediately after evidence; add a final review todo to verify work quality.
-**MANDATORY IMPORTANT MUST ATTENTION** present the Next Steps via `ask user question tool` after the report — NEVER pick the follow-up skill (`/fix`, `/docs-manager`, `/watzup`) for the user — why: the user owns the hand-off, and this skill only reports.
+**IMPORTANT** Apply Next Steps after reporting: select the supported follow-up within existing authority, preserving this invocation's read-only boundary and required workflow gates.
 **IMPORTANT MUST ATTENTION** READ `CLAUDE.md` before starting.
 
 **Anti-Rationalization:**

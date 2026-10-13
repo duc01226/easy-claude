@@ -67,6 +67,33 @@ context-budget: critical
 - **Review Current Diffs Elsewhere**: Current changes, staged/unstaged diffs, and branch diffs belong to `changes-review`
 - **A clean review pass ENDS the review once the persisted `minRounds` is met.** Do not spend a fresh-context pass re-reviewing known findings before validation/fix; re-review after fixes change the target or to satisfy an explicitly declared independent-pass minimum.
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Code Review](#code-review)
+- [Review Mindset (NON-NEGOTIABLE)](#review-mindset-non-negotiable)
+- [First Principle — Easy to Change · Easy to Scale · Easy to Maintain](#first-principle--easy-to-change--easy-to-scale--easy-to-maintain)
+- [Core Principles (ENFORCE ALL)](#core-principles-enforce-all)
+- [Graph-Enhanced Review (optional advice)](#graph-enhanced-review-optional-advice)
+- [Review Approach (Report-Driven Two-Phase — CRITICAL)](#review-approach-report-driven-two-phase--critical)
+- [Validated Fix + Full Re-Review (MANDATORY when findings are fixed)](#validated-fix--full-re-review-mandatory-when-findings-are-fixed)
+- [Clean Code Rules (MUST ATTENTION CHECK)](#clean-code-rules-must-attention-check)
+- [Data Lifecycle Rules (MUST ATTENTION CHECK)](#data-lifecycle-rules-must-attention-check)
+- [Legacy Pattern Compliance](#legacy-pattern-compliance)
+- [When to Use This Skill](#when-to-use-this-skill)
+- [Quick Decision Tree](#quick-decision-tree)
+- [Receiving Feedback Protocol](#receiving-feedback-protocol)
+- [Requesting Review Protocol](#requesting-review-protocol)
+- [Verification Gates Protocol](#verification-gates-protocol)
+- [Related](#related)
+- [Systematic Review Strategy](#systematic-review-strategy)
+- [Architecture Boundary Check](#architecture-boundary-check)
+- [Phase 4: Why-Review Self-Validation Gate (MANDATORY when findings exist)](#phase-4-why-review-self-validation-gate-mandatory-when-findings-exist)
+- [Next Steps](#next-steps)
+- [AI Agent Integrity Gate (NON-NEGOTIABLE)](#ai-agent-integrity-gate-non-negotiable)
+- [Prompt-Enhance Closing Anchors](#prompt-enhance-closing-anchors)
+- [Closing Reminders](#closing-reminders)
+
 # Code Review
 
 Three practices: receiving feedback with technical rigor, requesting systematic reviews via code-reviewer subagent, enforcing verification gates before completion claims.

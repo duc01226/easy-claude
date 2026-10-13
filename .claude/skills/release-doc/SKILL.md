@@ -63,6 +63,23 @@ triggers:
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Release Notes & Release Document Skill](#release-notes--release-document-skill)
+- [Invocation](#invocation)
+- [Choosing a Scope (Step 0)](#choosing-a-scope-step-0)
+- [Step 0b: \[BLOCKING\] Dump Git Artifacts BEFORE Analyzing](#step-0b-blocking-dump-git-artifacts-before-analyzing)
+- [Workflow](#workflow)
+- [Complete Pipeline](#complete-pipeline)
+- [Advanced Features](#advanced-features)
+- [Configuration](#configuration)
+- [Output Structure](#output-structure)
+- [Human Review Gate](#human-review-gate)
+- [Integration with Other Skills](#integration-with-other-skills)
+- [Troubleshooting](#troubleshooting)
+- [Closing Reminders](#closing-reminders)
+
 # Release Notes & Release Document Skill
 
 Generate a professional release document from git history at any scope — tag-to-tag, branch-to-branch, or a time range — with automated categorization plus a rich standalone HTML presentation.

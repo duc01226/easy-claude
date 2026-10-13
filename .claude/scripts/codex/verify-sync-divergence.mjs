@@ -38,6 +38,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { buildSkillReferenceMap } from './compat-rewrite.mjs';
+import { isOsMetadataFileName } from '../lib/os-metadata-files.mjs';
 
 // The three sync modules below resolve the project root at MODULE SCOPE
 // (`migrate-claude-to-codex.mjs:12`, `sync-context-workflows.mjs`,
@@ -54,7 +55,8 @@ import { buildSkillReferenceMap } from './compat-rewrite.mjs';
 // instead would mean making their root resolution lazy and turning their path
 // exports into getters — a wider change to three mutation scripts to serve one
 // read-only consumer, when the consumer is the party making the fail-open
-// promise. `compat-rewrite.mjs` stays static: it resolves no root and cannot throw here.
+// promise. `compat-rewrite.mjs` and `../lib/os-metadata-files.mjs` stay static: they resolve no root
+// and cannot throw here.
 let sync = null;
 async function loadSyncModules() {
     if (sync) return sync;
@@ -107,6 +109,11 @@ async function pathExists(target) {
 // line-ending-only difference never registers as divergence (the real sync emits LF; we
 // compare on LF). Excluded basenames are skipped at any depth, and so is any relative path
 // `skip` accepts (used for local install artifacts the mirror's .gitignore already ignores).
+// OS metadata files (a file browser recreates them seconds after deletion, so counting them fails
+// the gate on a tree that is in sync) are dropped here, in the one walk every compared tree goes
+// through, rather than through `exclude`: fresh staging and committed mirror both ignore them and
+// no caller can switch the rule off. Files only — a directory by one of those names is still
+// walked, so it hides nothing.
 export async function readTreeFiles(dir, { exclude = EXCLUDED_BASENAMES, skip = () => false } = {}) {
     const files = new Map();
     async function walk(current) {
@@ -120,6 +127,7 @@ export async function readTreeFiles(dir, { exclude = EXCLUDED_BASENAMES, skip = 
                 continue;
             }
             if (!entry.isFile()) continue;
+            if (isOsMetadataFileName(entry.name)) continue;
             const rel = path.relative(dir, full).replaceAll('\\', '/');
             const raw = await fs.readFile(full, 'utf8');
             files.set(rel, raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n'));
@@ -379,7 +387,12 @@ const EXPECTED_SKIPPED_EVENTS = new Map([
     // the protocol entries registered on UserPromptExpansion render on UserPromptSubmit
     // instead. Not a drop: the reason records where they went. SubagentStart is NOT
     // here — Codex supports it and it mirrors (a skip of it is a real loss).
-    ['UserPromptExpansion', 'remapped-to-user-prompt-submit']
+    ['UserPromptExpansion', 'remapped-to-user-prompt-submit'],
+    // Claude's native failure event is absent from the Codex hook contract
+    // (https://learn.chatgpt.com/docs/hooks). The failure reminder keeps its
+    // conditional shell PreToolUse path and compact/clear reset on Codex;
+    // only the native accelerator is omitted, never a promised failure detector.
+    ['PostToolUseFailure', 'unsupported-by-codex']
 ]);
 
 // Group-level skips that ARE reviewed. Keyed by `${event}:${reason}` rather than

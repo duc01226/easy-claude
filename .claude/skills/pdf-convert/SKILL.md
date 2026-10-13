@@ -26,6 +26,23 @@ disable-model-invocation: true
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [pdf-convert](#pdf-convert)
+- [Directions](#directions)
+- [Installation Required](#installation-required)
+- [Quick Start](#quick-start)
+- [CLI Options](#cli-options)
+- [Features](#features)
+- [Conversion Modes (`--to markdown`)](#conversion-modes---to-markdown)
+- [Default Styling (`--to pdf`)](#default-styling---to-pdf)
+- [Output](#output)
+- [Limitations](#limitations)
+- [Troubleshooting](#troubleshooting)
+- [Tests](#tests)
+- [Closing Reminders](#closing-reminders)
+
 # pdf-convert
 
 Convert PDF files to Markdown (with automatic detection of native text vs scanned documents) and

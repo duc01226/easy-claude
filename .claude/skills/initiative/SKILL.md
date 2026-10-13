@@ -20,7 +20,7 @@ description: '[Project Management] Use when a workflow step or the user asks for
 > **Project Protocol Overlay:** Resolve only the most-specific matching tier; derive body paths from overlay names, report malformed or missing bodies, and apply surviving rules additively without waiving framework or user-confirmation gates.
 > MUST ATTENTION READ `.claude/skills/project-skill-protocol/references/registry.md` for the full resolution contract.
 
-> **Work tracking:** Read [the linked work integration guide](../task-track/references/integration-guide.md) at capture, start, saved-work, verification, handoff and close-out checkpoints. Use the actual linked producer and exact items; retain the primary outcome and record optional upkeep once through the common owner. Continue untracked when no link exists; acceptance remains explicit.
+> **Work tracking:** Keep the project's tracked work current in the same change, as its root instructions (`CLAUDE.md` or `AGENTS.md`) say. When the project uses the portable tracker (`taskTracking.mode` is `observe` or `linked`), read [the linked work integration guide](../task-track/references/integration-guide.md) at capture, start, saved-work, verification, handoff and close-out checkpoints. Use the actual linked producer and exact items; retain the primary outcome and record optional upkeep once through the common owner. Continue untracked when no link exists; acceptance remains explicit.
 >
 > **Work record shape:** The initiative file is a work record owned by `/task-track`. Read [Records another skill authors](../task-track/references/integration-guide.md#records-another-skill-authors) before writing or editing it: `status: draft` on capture, no assignee, and no decision or priority key of this skill's own. Approval and every later status, and the initiative's type, priority level, due date and areas, are tracker values recorded through `/task-track`; tracker-owned fields of a tracked record change only there.
 
@@ -57,6 +57,17 @@ description: '[Project Management] Use when a workflow step or the user asks for
 - MUST ATTENTION include `t_shirt_size` (XS/S/M/L/XL) in artifact for early sizing
 - **[BLOCKING] Tech-agnostic output (M1):** Keep the problem statement tech-agnostic in all modes per `spec-principles.md` §3 in the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path); name no framework/product/language/design-pattern; defer stack preference to tech research.
 - **M3 Logical-ID Assignment (forward to task):** Initiatives assign no logical IDs. When advanced via `/work-item --mode=refine`, the task assigns `FR-`/`BR-` IDs as the PRIMARY citation spine and carries `[Source: namespace/service/id]` abstract anchors separately from business-intent prose; never put physical code coordinates or repository-root paths in the initiative. Keep problem/value narrative free of source identifiers so the task inherits it cleanly.
+
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Greenfield Mode](#greenfield-mode)
+- [Detailed Workflow](#detailed-workflow)
+- [Output Formats](#output-formats)
+- [Examples](#examples)
+- [Next Steps](#next-steps)
+- [Prompt-Enhance Closing Anchors](#prompt-enhance-closing-anchors)
+- [Closing Reminders](#closing-reminders)
 
 ## Greenfield Mode
 

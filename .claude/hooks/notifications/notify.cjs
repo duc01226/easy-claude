@@ -324,6 +324,7 @@ function dispatchToProviders(input, env) {
  * Main notification router
  */
 async function main() {
+    if ((require.main === module || !require.main) && require('../lib/framework-runtime.cjs').skipHook(module)) return;
     try {
         // Read input from stdin, then normalize event identity for all providers
         const input = normalizeEvent(await readStdin());

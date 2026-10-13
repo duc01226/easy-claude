@@ -6,7 +6,7 @@ const { TextDecoder } = require('node:util');
 const { LIMITS, KINDS, FOLDERS, ITEM_ID, relativePath } = require('./task-tracking-config.cjs');
 const { fail, hash, scopedPath, readBytes, publishBytes } = require('./task-tracking-files.cjs');
 const vocabulary = require('./task-tracking-vocabulary.cjs');
-const { CURRENT_VERSION, EARLIER_VERSION, RETIRED_VERSION } = vocabulary;
+const { CURRENT_VERSION, BASE_VERSION, EARLIER_VERSION, RETIRED_VERSION } = vocabulary;
 
 const TRACKING_FIELDS = ['schemaVersion', 'revision', 'kind', 'assigneeId', 'collaboratorIds', 'criteria', 'readiness',
     'links', 'level', 'type', 'priorityLevel', 'deadline', 'blocker', 'proofs', 'acceptanceHistory', 'history', 'receipts', 'context', 'activity', 'optOut', 'retired', 'health', 'memberProfiles'];
@@ -26,8 +26,10 @@ function mappingField(map, name) {
 }
 
 /**
- * `version` names the vocabulary the record is expected to store; its stamp (`tracking.schemaVersion`) must agree.
- * A record stamped for an earlier vocabulary where the current one is expected is named as such, never reinterpreted.
+ * `version` names the vocabulary the record is expected to store; its stamp (`tracking.schemaVersion`) must be one
+ * that version reads: its own, or an earlier version of the same structure. A record stamped for an earlier vocabulary
+ * where the current structure is expected is named as such, never reinterpreted, and so is one stamped for a later
+ * version than the expected one.
  */
 function parseRecord(bytes, ownerPath, kind, version = CURRENT_VERSION) {
     if (!Buffer.isBuffer(bytes) || bytes.length > LIMITS.recordBytes) fail('LIMIT_EXCEEDED', 'Record exceeds the byte budget');
@@ -57,10 +59,13 @@ function parseRecord(bytes, ownerPath, kind, version = CURRENT_VERSION) {
         || typeof data.status !== 'string') fail('UNSUPPORTED', 'Record identity, title, or recorded status is missing');
     const tracking = data.tracking;
     const mapping = tracking !== null && typeof tracking === 'object' && !Array.isArray(tracking);
-    if (mapping && version === CURRENT_VERSION && [EARLIER_VERSION, RETIRED_VERSION].includes(tracking.schemaVersion))
+    if (mapping && vocabulary.inCurrentStructure(version) && [EARLIER_VERSION, RETIRED_VERSION].includes(tracking.schemaVersion))
         throw Object.assign(new Error(vocabulary.REFUSALS.EARLIER_VOCABULARY_RECORD), { code: 'EARLIER_VOCABULARY_RECORD', itemId: data.id, storedVersion: tracking.schemaVersion });
+    if (mapping && vocabulary.inCurrentStructure(version) && vocabulary.inCurrentStructure(tracking.schemaVersion) && tracking.schemaVersion > version)
+        throw Object.assign(new Error(`Record is stamped for vocabulary version ${tracking.schemaVersion} and this project stores version ${version}; declare taskTracking.schemaVersion ${tracking.schemaVersion} in the project configuration to read it`),
+            { code: 'LATER_VOCABULARY_RECORD', itemId: data.id, storedVersion: tracking.schemaVersion });
     if (tracking !== undefined && (!mapping
-        || tracking.schemaVersion !== version || !Number.isSafeInteger(tracking.revision) || tracking.revision < 1
+        || !vocabulary.readableStamps(version).includes(tracking.schemaVersion) || !Number.isSafeInteger(tracking.revision) || tracking.revision < 1
         || !vocabulary.wordsFor(version).kinds.includes(tracking.kind) || (kind && tracking.kind !== kind))) fail('UNSUPPORTED', 'Custom or unsupported tracking metadata is preserved without adoption');
     const newline = header.includes('\r\n') ? '\r\n' : '\n';
     return { id: data.id, kind: tracking?.kind || kind, ownerPath, data, tracking: tracking || null,
@@ -195,6 +200,18 @@ function earlierVocabularyRecord(bytes, ownerPath) {
     throw Object.assign(new Error(vocabulary.REFUSALS.EARLIER_VOCABULARY_RECORD), { code: 'EARLIER_VOCABULARY_RECORD', itemId });
 }
 
+/**
+ * A record of a project that stores `version`: one that version reads, holding no state a later version added. Such a
+ * record is named here, where every read of a project passes, so that no view counts a record another copy cannot read.
+ * Like a record of an earlier vocabulary it has its own outcome, whose reason says what makes the record readable.
+ */
+function projectRecord(bytes, ownerPath, kind, version) {
+    const record = parseRecord(bytes, ownerPath, kind, version);
+    const [later] = vocabulary.laterStates(record, version);
+    if (later) throw Object.assign(new Error(vocabulary.laterStateRefusal(later, version)), { code: 'LATER_VOCABULARY_RECORD', itemId: record.id });
+    return record;
+}
+
 const contextVocabulary = context => context.vocabulary
     || vocabulary.projectVocabulary(context.root, context.artifactsRoot, context.config?.taskTracking?.schemaVersion);
 
@@ -229,9 +246,9 @@ function earlierProjectRecords(context) {
 function inspectRecords(context) {
     const project = contextVocabulary(context);
     if (project.storedVersion === null) vocabulary.requireCurrentVocabulary(project);
-    if (project.storedVersion !== CURRENT_VERSION) return earlierProjectRecords(context);
+    if (!vocabulary.inCurrentStructure(project.storedVersion)) return earlierProjectRecords(context);
     const state = { records: [], diagnostics: [], entries: 0 };
-    let whole = walkRecords(context, FOLDERS, (bytes, ownerPath, kind) => parseRecord(bytes, ownerPath, kind), state);
+    let whole = walkRecords(context, FOLDERS, (bytes, ownerPath, kind) => projectRecord(bytes, ownerPath, kind, project.storedVersion), state);
     // A current project may have received files written in an earlier vocabulary, for example from an older branch.
     if (whole) whole = walkRecords(context, Object.fromEntries(vocabulary.STRAY_LOCATIONS.map(name => [name, name])), earlierVocabularyRecord, state);
     const { records, diagnostics } = state;
@@ -264,7 +281,8 @@ function firstVocabularyRecords(context) {
 function inspectStoredRecords(context, { version, folders } = {}) {
     const expected = vocabulary.wordsFor(version ?? contextVocabulary(context).storedVersion);
     if (!expected) fail('INVALID_INPUT', 'Select the vocabulary version the stored records are expected to use');
-    const other = expected.version === CURRENT_VERSION ? EARLIER_VERSION : CURRENT_VERSION;
+    // The migration moves records between the earlier vocabulary and the base version of the current structure.
+    const other = expected.version === EARLIER_VERSION ? BASE_VERSION : EARLIER_VERSION;
     const state = { records: [], diagnostics: [], entries: 0 };
     const whole = walkRecords(context, folders || expected.folders, (bytes, ownerPath, kind) => {
         let record;
@@ -335,4 +353,4 @@ function saveRecord(context, candidate, expectedHash) {
     return publishBytes(context.root, candidate.ownerPath, candidate.bytes, expectedHash);
 }
 
-module.exports = { ITEM_ID, TRACKING_FIELDS, parser, parseRecord, patchRecord, newRecord, earlierVocabularyRecord, inspectRecords, inspectStoredRecords, firstVocabularyRecords, withoutTrackingValues, saveRecord, stableValue };
+module.exports = { ITEM_ID, TRACKING_FIELDS, parser, parseRecord, projectRecord, patchRecord, newRecord, earlierVocabularyRecord, inspectRecords, inspectStoredRecords, firstVocabularyRecords, withoutTrackingValues, saveRecord, stableValue };

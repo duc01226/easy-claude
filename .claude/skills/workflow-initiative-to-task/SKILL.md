@@ -40,6 +40,20 @@ Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs
 - **[BLOCKING] Tech-agnostic output:** initiative / task / story prose follows `spec-principles.md` §3 in the project-reference docs root (default `docs/project-reference/`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides) — framework, product, language and pattern names appear only in evidence fields, frontmatter and Mermaid.
 - Apply the shared SDD Artifact Contract (`shared/sdd-artifact-contract.md` in the active skills root) and `.claude/skills/shared/releasable-task-contract.md`; local conventions come from `docs/project-config.json` and the docs index.
 
+## Contents
+
+- [Workflow Calls and Todo Bootstrap](#workflow-calls-and-todo-bootstrap)
+- [Quick Summary](#quick-summary)
+- [Triage — FIRST Action](#triage--first-action)
+- [Required Quality Gates (non-negotiable)](#required-quality-gates-non-negotiable)
+- [Recommended Skills](#recommended-skills)
+- [UI Mockup — Journey-First Explore (UI tasks)](#ui-mockup--journey-first-explore-ui-tasks)
+- [Reuse Handoffs (caller-passed; every skill still runs standalone with full checks)](#reuse-handoffs-caller-passed-every-skill-still-runs-standalone-with-full-checks)
+- [Multi-Opportunity Loop](#multi-opportunity-loop)
+- [Artifacts](#artifacts)
+- [Orchestration, Memory & Fix Path](#orchestration-memory--fix-path)
+- [Closing Reminders](#closing-reminders)
+
 ## Triage — FIRST Action
 
 Classify before choosing steps; write the result as the first section of the run report.

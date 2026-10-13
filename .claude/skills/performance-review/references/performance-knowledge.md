@@ -9,6 +9,20 @@
 
 ---
 
+## Contents
+
+- [1. Latency Ladder — the order-of-magnitude anchor](#1-latency-ladder--the-order-of-magnitude-anchor)
+- [2. Universal Laws — apply before blaming any single component](#2-universal-laws--apply-before-blaming-any-single-component)
+- [3. Symptom -> Usual Cause Triage Matrix (Phase 0 accelerator)](#3-symptom---usual-cause-triage-matrix-phase-0-accelerator)
+- [4. Network & Protocol](#4-network--protocol)
+- [5. Database](#5-database)
+- [6. Caching](#6-caching)
+- [7. Web / Frontend](#7-web--frontend)
+- [8. Runtime, Memory & GC](#8-runtime-memory--gc)
+- [9. Distributed Resilience & Load Management](#9-distributed-resilience--load-management)
+- [10. Measurement Rigor — how not to be fooled by your own numbers](#10-measurement-rigor--how-not-to-be-fooled-by-your-own-numbers)
+- [Closing Reminders](#closing-reminders)
+
 ## 1. Latency Ladder — the order-of-magnitude anchor
 
 | Operation | Time | Anchor ratio |

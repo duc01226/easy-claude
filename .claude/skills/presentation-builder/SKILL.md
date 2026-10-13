@@ -43,6 +43,15 @@ disable-model-invocation: true
 - **NEVER** invent subject claims, precision, sources, audience, or design rationale.
 - **NEVER** claim interactive, offline, fullscreen, persistence, or accessibility behavior from static markup alone.
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [When to Use](#when-to-use)
+- [Workflow](#workflow)
+- [Hard Quality Checklist](#hard-quality-checklist)
+- [Resources](#resources)
+- [Closing Reminders](#closing-reminders)
+
 ## When to Use
 
 Use for a decision deck, strategy, product story, teaching lesson, research readout, project update, technical explanation, sales narrative, demo, portfolio, or any other subject where an audience must understand, remember, decide, or act.

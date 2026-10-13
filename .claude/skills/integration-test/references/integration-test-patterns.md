@@ -2,6 +2,24 @@
 
 Canonical patterns for integration tests that exercise the real application wiring for the configured repository. The patterns are stack-agnostic; syntax, file layout, fixtures, commands, and annotations come from `docs/project-config.json`, `docs/project-reference/integration-test-reference.md`, and nearby existing tests.
 
+## Contents
+
+- [Project Pattern Discovery](#project-pattern-discovery)
+- [Required Contract](#required-contract)
+- [TC Annotation Pattern](#tc-annotation-pattern)
+- [Pattern 1: Write Command Or Mutation](#pattern-1-write-command-or-mutation)
+- [Pattern 2: Query Or Read Model](#pattern-2-query-or-read-model)
+- [Pattern 3: Update Or State Transition](#pattern-3-update-or-state-transition)
+- [Pattern 4: Validation Failure](#pattern-4-validation-failure)
+- [Pattern 5: Async Event Or Cross-Boundary Flow](#pattern-5-async-event-or-cross-boundary-flow)
+- [Pattern 6: Fixture Setup](#pattern-6-fixture-setup)
+- [Pattern 7: Test Data](#pattern-7-test-data)
+- [Pattern 8: Adding A New Test Suite](#pattern-8-adding-a-new-test-suite)
+- [Pattern 9: Property / Metamorphic Test](#pattern-9-property--metamorphic-test)
+- [Pattern 10: Settle Barrier Between Actor Steps](#pattern-10-settle-barrier-between-actor-steps)
+- [Anti-Patterns](#anti-patterns)
+- [Verification Checklist](#verification-checklist)
+
 ## Project Pattern Discovery
 
 Before implementation, search the codebase for project-specific patterns:

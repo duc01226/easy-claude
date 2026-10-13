@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 'use strict';
+
+if ((require.main === module || !require.main) && require('./lib/framework-runtime.cjs').skipHook(module)) return;
+
 /**
  * Prompt Ledger — session record of every user prompt + presence-gated goal re-anchoring
  * (accelerator, never a gate). Spec: docs/specs/ContextDelivery/README.SessionPromptLedger.md.

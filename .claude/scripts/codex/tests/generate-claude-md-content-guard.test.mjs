@@ -1027,7 +1027,7 @@ test("TC-DOCROOT-068 doc-lookup routes only existing docs, with start-here rows 
     "a built-in doc carries its trigger AND the project purpose");
   assert.match(out, /\| Operational runbook for releases \| `docs\/project-reference\/runbook-reference\.md` \|/, "a custom doc routes by its purpose");
   assert.match(out, /`docs\/adr\/`/, "an ADR root with decisions is routed");
-  assert.match(out, /`\.claude\/docs\/README\.md`/, "framework guide is routed when shipped");
+  assert.doesNotMatch(out, /`\.claude\/docs\/README\.md`/, "root navigation excludes framework guides even when shipped");
   assert.ok(!out.includes("e2e-test-reference.md"), "a selected doc missing on disk must not be routed");
   assert.ok(!out.includes("spec-system-reference.md") && !out.includes("docs/specs/"), "a fixed spec row whose docs are missing must not be routed");
   assert.ok(!out.includes(".claude/docs/development-rules.md"), "a framework doc missing on disk must not be routed");
@@ -1162,9 +1162,10 @@ test("TC-DOCROOT-075 a project with no docs gets an actionable line, never a hea
   const root = await docsFixture(t, { "README.md": "# empty project" });
   // When the doc-lookup table is built.
   const out = freshBuilders().buildDocLookup({}, root);
-  // Then it names the setup route instead of rendering an empty table.
+  // Then it explains missing project documentation without framework activation.
   assert.ok(!out.includes("| If user prompt mentions..."), `no empty table; got:\n${out}`);
-  assert.ok(out.includes("run `/project-init` or `/docs-manager --mode=init`"));
+  assert.match(out, /No project reference documents are configured or present/);
+  assert.doesNotMatch(out, /project-init|docs-manager/);
 });
 
 test("TC-DOCROOT-076 decision quick-ref left with only N/A docs returns a body, so update replaces stale rows", () => {
@@ -1200,4 +1201,32 @@ test("TC-DOCROOT-077 doc-lookup escapes every cell, so a pipe in a module topic 
     assert.equal(row, "| Invoices \\| refunds | `docs/specs/Billing/` |", `the topic cell must be escaped; got:\n${out}`);
     assert.equal(row.split(/(?<!\\)\|/).length, 4, "an escaped pipe adds no column");
   }
+});
+
+
+test("root initialization and update preserve project facts without framework machinery", async t => {
+  const f = await fixture(t, {
+    project: { name: "Project-only root", description: "Keep the project identity" },
+    contextGroups: [{ name: "source", pathRegexes: ["src/.*"], guideDoc: "docs/source.md", rules: ["Invoke /plan before editing"] }],
+    testing: { commands: { unit: "node --test" } },
+  });
+  await f.run(["--mode", "init"]);
+  let text = await f.read();
+  for (const fact of ["Project-only root", "Keep the project identity", "src/.*", "docs/source.md", "node --test"])
+    assert.ok(text.includes(fact), fact);
+  assert.doesNotMatch(text, /framework rules|\.claude|Auto.Context|Skill Activation|Invoke \/plan|convention hook/i);
+  await fs.appendFile(path.join(f.root, "CLAUDE.md"), "\n" + section("skill-activation", "Invoke /plan and load framework machinery"));
+  await f.run(["--mode", "update"]);
+  text = await f.read();
+  assert.doesNotMatch(text, /SECTION:skill-activation|Invoke \/plan|framework machinery/);
+  assert.match(text, /Keep the project identity/);
+});
+
+test("root update clears obsolete hook guidance when no project convention map exists", async t => {
+  const f = await fixture(t, { project: { name: "Project-only root" } });
+  await fs.writeFile(path.join(f.root, "CLAUDE.md"), section("golden-rules", "Run .claude/hooks/lib/file-conventions.cjs before editing") + "\nProject-owned prose stays.\n");
+  await f.run(["--mode", "update"]);
+  const text = await f.read();
+  assert.doesNotMatch(text, /\.claude\/hooks/);
+  assert.match(text, /Project-owned prose stays/);
 });

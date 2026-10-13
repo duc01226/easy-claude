@@ -122,7 +122,7 @@ module.exports = {
                 }
             }
         }) },
-        { name: 'TC-SAP-004 commit route and automatic risk-tier review chain remain eligible without a test/review question', fn: () => withFixture(fx => {
+        { name: 'TC-SAP-004 commit route and configured review chain remain eligible without a test/review question', fn: () => withFixture(fx => {
             fx.write('docs/project-config.json', settings(false));
             for (const host of ['claude', 'codex']) {
                 const context = JSON.parse(runProcess(fx, { ...prompt, session_id: `${host}-commit`, prompt: 'commit this' }, host)).hookSpecificOutput.additionalContext;
@@ -130,7 +130,10 @@ module.exports = {
                 assert.match(context, /review selected by the user or the commit decision policy authorizes its workflow and required nested reviewers/);
                 assert.match(context, /Selection eligibility is not a skip approval or Git authority/);
                 assert.match(context, /never ask the human whether to run tests or review; classify the candidate, decide, act and record/);
-                assert.match(context, /skip only a low-risk candidate, run why-review for medium risk and changes-review for high risk, at most two review rounds each/);
+                assert.match(context, /resolve commit.reviewMode through .claude\/scripts\/lib\/commit-review-policy.cjs/);
+                assert.match(context, /default lightweight selects commit-review at every commit risk tier/);
+                assert.match(context, /Configured risk-based mode and PR whole-branch scope use Low skip \/ Medium why-review \/ High changes-review/);
+                assert.match(context, /Each review has at most two rounds/);
                 assert.match(context, /Selected test\/review skills and their required nested calls remain eligible/);
                 assert.match(context, /explicitly requested workflow authorizes its required skill steps/);
                 assert.match(context, /todo\/task plan and executed later or after resume/);
@@ -152,7 +155,7 @@ module.exports = {
                     const context = JSON.parse(runProcess(fx, { ...event, session_id: `${host}-continuity` }, host)).hookSpecificOutput.additionalContext;
                     assert.equal(context, hook.buildPolicy({ enabled: false, source: 'project-config' }),
                         'every ordinary and recovery event must carry the complete current policy');
-                    assert.match(context, /follow the Test and review decision policy in \.claude\/skills\/commit\/SKILL\.md/);
+                    assert.match(context, /Commit follows its concise skill; pull-request follows \.claude\/skills\/pull-request\/references\/check-policy\.md/);
                     assert.match(context, /never ask the human whether to run tests or review/);
                     assert.match(context, /skip only when the affected tests already passed this session for unchanged content or the change is really small/);
                     assert.match(context, /otherwise run scoped tests and fix failures until all pass/);

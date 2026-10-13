@@ -5,15 +5,15 @@ Read this before you use a `--to=png` run as evidence that a page renders. To an
 <!-- SKILL-NAV:START -->
 ## Contents
 
-- Rule 0
-- Exit codes
-- What exit 0 proves, and what it does not
-- report.json
-- Failure signatures
-- Default viewports
-- Slides and screens by producer
-- Self-check
-- Known limits of the evidence
+- [Rule 0](#rule-0)
+- [Exit codes](#exit-codes)
+- [What exit 0 proves, and what it does not](#what-exit-0-proves-and-what-it-does-not)
+- [report.json](#reportjson)
+- [Failure signatures](#failure-signatures)
+- [Default viewports](#default-viewports)
+- [Slides and screens by producer](#slides-and-screens-by-producer)
+- [Self-check](#self-check)
+- [Known limits of the evidence](#known-limits-of-the-evidence)
 
 <!-- SKILL-NAV:END -->
 

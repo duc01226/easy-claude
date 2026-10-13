@@ -1,7 +1,7 @@
 ---
 name: workflow-review-changes
 version: 5.0.0
-description: '[Workflow] Review risky or cross-module uncommitted changes with specialists, validated fixes and re-review. Defaults to --fix-loop; --review-only reports without edits.'
+description: '[Workflow] Use when uncommitted changes are risky or cross-module and need specialist review: reviews, applies validated fixes and re-reviews. Defaults to --fix-loop; --review-only reports without edits.'
 ---
 
 <!-- WORKFLOW-CALLS:START -->
@@ -28,7 +28,7 @@ Explicit step-skill calls by mode (registry order; roles and conditions remain o
 Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs --write` after registry edits; [`/sync-codex`](../sync-codex/SKILL.md) refreshes it before mirroring.
 <!-- WORKFLOW-CALLS:END -->
 
-> **Work tracking:** Read [the linked work integration guide](../task-track/references/integration-guide.md) at capture, start, saved-work, verification, handoff and close-out checkpoints. Use the actual linked producer and exact items; retain the primary outcome and record optional upkeep once through the common owner. Continue untracked when no link exists; acceptance remains explicit.
+> **Work tracking:** Keep the project's tracked work current in the same change, as its root instructions (`CLAUDE.md` or `AGENTS.md`) say. When the project uses the portable tracker (`taskTracking.mode` is `observe` or `linked`), read [the linked work integration guide](../task-track/references/integration-guide.md) at capture, start, saved-work, verification, handoff and close-out checkpoints. Use the actual linked producer and exact items; retain the primary outcome and record optional upkeep once through the common owner. Continue untracked when no link exists; acceptance remains explicit.
 
 ## Quick Summary
 
@@ -41,6 +41,16 @@ Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs
 **Key Rules:** Default maximum two rounds; stop earlier when current evidence clears the bar. LOW-only at the cap is acceptable with disclosure; MEDIUM/HIGH/CRITICAL, unresolved required evidence or failed required checks need an explicit extension decision before round 3. Review-only is available through `--review-only` or `--report-only`. Keep one fixing owner and preserve all applicable checks.
 
 **Workflow budget:** The coordinator enforces this workflow's two-round default before consulting the shared `review-policy` eligibility helper. The shared three-round default/ceiling in protocols, reminders or tooling does not authorize a third workflow round. All child lenses, repair re-reviews and resumed or nested invocations share the coordinator's spent budget; they never start a separate loop or reset it.
+
+## Contents
+
+- [Workflow Calls and Todo Bootstrap](#workflow-calls-and-todo-bootstrap)
+- [Quick Summary](#quick-summary)
+- [Scope, triage and tasks](#scope-triage-and-tasks)
+- [Reviews and ownership](#reviews-and-ownership)
+- [Fix and fresh review](#fix-and-fresh-review)
+- [Final quality gates](#final-quality-gates)
+- [Closing Reminders](#closing-reminders)
 
 ## Scope, triage and tasks
 

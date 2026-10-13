@@ -64,6 +64,19 @@ That line is the `init-full` preview. Each mode resolves its own manifest (finge
 - **update / spec [mode=tests]:** run when the change alters business-visible behavior, a public contract, or the test evidence of a specified capability. Skip reason: "A purely cosmetic change (styling, comments, configuration) with no behavioral or test-evidence impact."
 - **update / spec [mode=sync]:** run when native case/evidence links or project-declared derived outputs changed in this cycle. Skip reason: "No case/evidence link or declared derived output changed in this cycle."
 
+## Contents
+
+- [Workflow Calls and Todo Bootstrap](#workflow-calls-and-todo-bootstrap)
+- [Quick Summary](#quick-summary)
+- [1. Step 0 — Mode and Scope (MANDATORY FIRST)](#1-step-0--mode-and-scope-mandatory-first)
+- [2. Triage (sets depth, recorded in the run report)](#2-triage-sets-depth-recorded-in-the-run-report)
+- [3. Required Quality Gates (non-negotiable)](#3-required-quality-gates-non-negotiable)
+- [4. Recommended Skills](#4-recommended-skills)
+- [5. Orchestration Freedom](#5-orchestration-freedom)
+- [6. Memory, Reporting and Fix Path](#6-memory-reporting-and-fix-path)
+- [Prompt-Enhance Closing Anchors](#prompt-enhance-closing-anchors)
+- [Closing Reminders](#closing-reminders)
+
 ## 1. Step 0 — Mode and Scope (MANDATORY FIRST)
 
 Resolve the configured business spec root and artifact contract, then suggest a mode: no current spec for the target → `init-full`; a diff touches an already-specified capability → `update`; an explicit audit/freshness request → `audit`. Map changed code to its capability owner through the App Bucket Mapping in the local `spec-system-reference.md` (reference-docs root from `docsRoots.projectReference.path`). For `audit`, choose the supported mode, capability names and target paths under `SYNC:review-decision-autonomy` and record the rationale; ask only for an indispensable missing fact or actual action authority. For non-audit modes, **BLOCKING:** confirm mode, capability names and target paths via `ask user question tool` before any other action.

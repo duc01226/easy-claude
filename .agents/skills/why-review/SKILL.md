@@ -4,18 +4,11 @@ description: '[Code Quality] Use when a workflow step or the user asks for expli
 ---
 
 > Codex compatibility note:
-> - Invoke repository skills with `$skill-name` in Codex; this mirrored copy rewrites legacy Claude `/skill-name` references.
-> - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
-> - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
-> - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
-> - Use ask user question tool to ask user.
-> - Ignore Claude-specific mode-switch instructions when they appear.
-> - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
+> - Invoke `$skill-name`: load the registered `.agents/skills/<name>/SKILL.md` and execute it with Codex tools; no separate `Skill` tool or Claude mode switch is needed. Author `.claude/**`; mirrors are generated.
+> - Track steps before execution and keep progress/evidence current. Explicit skill requests execute their protocol. Use the native question tool for required questions.
+> - Map foreign tool names to available host capabilities. A name mismatch needs no approval; an actually unavailable required capability stops with its step/evidence and a user question before adaptation.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
-> - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
-> - For workflow skills, steps follow the guided contract in `$start-workflow` (gate steps fixed; other steps may flex with a logged reason); report step-by-step evidence.
-> - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
+> - Preserve protocol order unless the user approves a deviation. Workflows use `$start-workflow`: gates stay fixed; other steps may flex with logged reasons and evidence.
 ## Quick Summary
 
 > **Review modes:** For review/audit work, standalone defaults to `--review-only` (`--report-only` alias); `--fix-loop` enables review → validate → authorized fix → fresh re-review, default cap 3. `--fix-loop --loop-owner=caller` returns a read-only pass to the caller that owns fixes/re-review. Create triage, review, validation and re-review todo tasks first; apply the carried `review-policy` contract for LOW deferral and user-approved bounded extensions. Non-review modes and terminal findings validation keep their own dispatch.
@@ -37,7 +30,7 @@ Judge future change cost; resolve target type before choosing the review path.
 
 - **STEP 1 — DETECT MODE FIRST:** terminal validation takes precedence; load its owner and return a verdict.
 - **STEP 2 — FULL-MODE FIRST ACTION:** read `references/full-mode.md` in full, then plan its review tasks.
-- **STEP 3 — RESOLVE TARGET:** resolve target, Goal Contract, project references and concern routes; honor the exact requested source/diff scope.
+- **STEP 3 — RESOLVE TARGET:** resolve target, Goal Contract, project references and concern routes; read `references/code-change-path.md` when its Route References trigger holds (BLOCKING); honor the exact requested source/diff scope.
 - **STEP 4 — REVIEW:** complete seven Anti-Bias checks, Trade-Off Gate, Validation Checklist and both adversarial passes; retain integration linkage's four-context deferral guard.
 - **STEP 5 — VALIDATE FINDINGS:** any finding triggers terminal validation. Reconcile report defects in the current pass; unresolved evidence stays with the shared round owner. CLEAN validates the report; hand off retained target findings with severity, evidence and dual feedback.
 
@@ -46,6 +39,15 @@ Judge future change cost; resolve target type before choosing the review path.
 <!-- FIX-LOOP-MODE:END -->
 
 **Workflow:** detect mode → read active reference → execute its ordered review/validation steps → return evidence-backed verdict. Full mode returns its validated review report; terminal and report-only sub-agent contexts return those decisions to the caller.
+
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Your Mission](#your-mission)
+- [Review Mode (DETECT FIRST — recursion control)](#review-mode-detect-first--recursion-control)
+- [Mode References (read at point of use — BLOCKING)](#mode-references-read-at-point-of-use--blocking)
+- [Prompt-Enhance Closing Anchors](#prompt-enhance-closing-anchors)
+- [Closing Reminders](#closing-reminders)
 
 ## Your Mission
 
@@ -70,6 +72,7 @@ Detect from `$ARGUMENTS` before any review work:
 ## Mode References (read at point of use — BLOCKING)
 
 - **Full mode (default):** your FIRST action after mode detection is to read `references/full-mode.md` in full (BLOCKING). It owns Task Bootstrap, target/concern routing, all review gates, report/output contract, reconciliation and Next Steps.
+- **Full-mode route reference (BLOCKING; full mode only):** `references/code-change-path.md` — read in full when the target is a code change (commit, PR, diff, branch, uncommitted changes), holds integration/E2E tests, or is mixed or unresolved; `references/full-mode.md` → Route References is the trigger. It owns the Code-Change Review Path and the Integration-Test-Review Linkage.
 - **Terminal `validate-findings`:** read `references/validate-findings.md` in full before validation. It owns every finding check, the ≥85% survival bar, dual spec/test feedback and CLEAN / HAS ISSUES output. Load neither full nor fix-loop mode.
 - **`--fix-loop`:** read `references/fix-loop.md` first (BLOCKING), then read full-mode for each review pass. It owns fixed target, severity floor, round budget, material-fix decisions, fresh post-fix review and receipt issuance.
 

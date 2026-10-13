@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 'use strict';
+
+if ((require.main === module || !require.main) && require('./lib/framework-runtime.cjs').skipHook(module)) return;
+
 /**
  * UserPromptSubmit hook — keep the code graph in step with git HEAD.
  *

@@ -2,6 +2,14 @@
 
 Advanced strategies for visual analysis and testing.
 
+## Contents
+
+- [Batch Analysis for Rapid Iteration](#batch-analysis-for-rapid-iteration)
+- [Contextual Testing](#contextual-testing)
+- [A/B Testing Analysis](#ab-testing-analysis)
+- [Iteration Strategy](#iteration-strategy)
+- [Documentation Strategy](#documentation-strategy)
+
 ## Batch Analysis for Rapid Iteration
 
 Analyze multiple generations simultaneously:

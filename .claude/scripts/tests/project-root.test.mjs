@@ -387,7 +387,7 @@ for (const hook of ['graph-session-init.cjs', 'graph-prompt-sync.cjs', 'graph-au
             fs.existsSync = () => true;
             for (const name of ['mkdirSync','writeFileSync','rmdirSync']) fs[name] = (...args) => calls.push([name, String(args[0])]);
             Module._load = function(name, ...args) {
-                if (name.endsWith('/hook-runner.cjs')) return { runHook: (_, action) => action() };
+                if (name.endsWith('/hook-runner.cjs')) return { ...original.call(this, name, ...args), runHook: (_, action) => action() };
                 if (name.endsWith('/debug-log.cjs')) return { debug() {}, debugError() {} };
                 if (name.endsWith('/project-config-loader.cjs')) return { isConfigPopulated: () => true, loadProjectConfig: () => ({}) };
                 if (name === 'child_process') return { execFileSync: (bin, argv, options) => {

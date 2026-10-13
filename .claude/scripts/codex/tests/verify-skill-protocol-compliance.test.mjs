@@ -24,7 +24,8 @@ const {
     DEBUGGER_TRACE_TAG,
     GUIDE_BLOCK_HINT,
     guideTagsIn,
-    checkGuideCarrierRules
+    checkGuideCarrierRules,
+    missingSnippets
 } = await import(pathToFileURL(verifierPath).href);
 // The shared P25 recognizer/writer. Fixtures build guide lines through its own writer so the tests
 // never restate the line format.
@@ -33,6 +34,28 @@ const guideCarrier = createRequire(import.meta.url)('../../lib/protocol-guide-ca
 const joinLines = (...lines) => lines.join('\n');
 
 const BOTH_BODIES = joinLines('[CRITICAL-THINKING-MINDSET]', '## Common AI Mistake Prevention (System Lessons)');
+
+// Guard each preserved requirement independently; the standalone verifier cannot import
+// the generator because adoption fixtures also load it in isolation and from data URLs.
+test('concise Codex preambles retain every execution and authority requirement', async () => {
+    const { prependCodexCompatibilityNote } = await import('../compat-rewrite.mjs');
+    const note = prependCodexCompatibilityNote('# Original skill body\n');
+    assert.deepEqual(missingSnippets(note), []);
+    for (const clause of [
+        'load the registered `.agents/skills/<name>/SKILL.md` and execute it with Codex tools',
+        'Author `.claude/**`; mirrors are generated.',
+        'Track steps before execution and keep progress/evidence current.',
+        'Explicit skill requests execute their protocol.',
+        'Use the native question tool for required questions.',
+        'an actually unavailable required capability stops with its step/evidence and a user question before adaptation.',
+        'Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.',
+        'Preserve protocol order unless the user approves a deviation.',
+        'Workflows use `$start-workflow`: gates stay fixed; other steps may flex with logged reasons and evidence.',
+    ]) {
+        assert.ok(note.includes(clause), `positive control contains ${clause}`);
+        assert.deepEqual(missingSnippets(note.replace(clause, '')), [clause], `missing requirement fails: ${clause}`);
+    }
+});
 
 // A lower-case filename works on Windows but makes a portable export fail on Linux, where the
 // canonical skill manifest is `SKILL.md`. Keep the verifier's explicit trace list case-exact.

@@ -50,6 +50,27 @@ description: '[Testing] Use when a workflow step or the user asks for E2E test s
 - MUST ATTENTION apply the shared E2E quality protocol before writing and carry every applicable gate verdict into the report.
 - NEVER skip mandatory workflow or skill gates.
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Mode Dispatch](#mode-dispatch)
+- [⚠️ MANDATORY: Read Project E2E Reference (FIRST)](#️-mandatory-read-project-e2e-reference-first)
+- [Framework Detection (SECOND STEP)](#framework-detection-second-step)
+- [E2E Applicability and Contract Preflight (before generation)](#e2e-applicability-and-contract-preflight-before-generation)
+- [E2E Execution Profile and Human-QC Preflight](#e2e-execution-profile-and-human-qc-preflight)
+- [Visual Screenshot Review (when requested or required)](#visual-screenshot-review-when-requested-or-required)
+- [UI State Capture](#ui-state-capture)
+- [Workflow Modes](#workflow-modes)
+- [Visual Expectation Transition Gate](#visual-expectation-transition-gate)
+- [First Principle — Easy to Change · Easy to Scale · Easy to Maintain](#first-principle--easy-to-change--easy-to-scale--easy-to-maintain)
+- [Core Principles](#core-principles)
+- [Steps](#steps)
+- [Output](#output)
+- [Sub-Agent Type Override](#sub-agent-type-override)
+- [Next Steps](#next-steps)
+- [Prompt-Enhance Closing Anchors](#prompt-enhance-closing-anchors)
+- [Closing Reminders](#closing-reminders)
+
 ## Mode Dispatch
 
 Select the invocation route before execution; load only its mode reference.

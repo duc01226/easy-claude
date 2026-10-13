@@ -10,6 +10,9 @@ const { childEnv } = require('../lib/hook-runner.cjs');
 const PROJECT_DIR = process.env.CLAUDE_PROJECT_DIR;
 const routing = require(path.join(PROJECT_DIR, '.claude', 'scripts', 'lib', 'workflow-routing-config.cjs'));
 const hook = require(path.join(PROJECT_DIR, '.claude', 'hooks', 'lib', 'workflow-route-delivery.cjs'));
+// Cases that build this repository's own route output assert the gate of the default (compatible)
+// delivery profile, whichever profile the developer or this checkout selected for their own sessions.
+const COMPATIBLE_PROFILE = { config: { contextDelivery: { profile: 'compatible' } } };
 const catalogLib = require(path.join(PROJECT_DIR, '.claude', 'scripts', 'lib', 'workflow-skills-catalog.cjs'));
 const generator = require(path.join(PROJECT_DIR, '.claude', 'skills', 'ai-context-refresh', 'scripts', 'generate-claude-md.cjs'));
 
@@ -499,7 +502,7 @@ module.exports = {
                 }
                 assertTrue(!fs.existsSync(path.join(PROJECT_DIR, '.codex', 'CODEX_CONTEXT.md')), 'the retired Codex context file is gone');
                 // The runtime payload is two outputs: the route output holds the gate, the catalog output the catalog
-                const payload = hook.buildInjection(PROJECT_DIR);
+                const payload = hook.buildInjection(PROJECT_DIR, '', 'ask', 'default', COMPATIBLE_PROFILE);
                 assertContains(payload, '<!-- CK:WORKFLOW-GATE -->');
                 assertNoCatalog(payload, 'route output');
                 const catalog = hook.buildCatalogInjection(PROJECT_DIR);
@@ -612,9 +615,9 @@ module.exports = {
         {
             name: '[workflow-routing-switch] TC-WRS-018 absent protocol adds no block and a configured protocol is marker-wrapped',
             fn: () => {
-                const plain = hook.buildInjection(PROJECT_DIR);
+                const plain = hook.buildInjection(PROJECT_DIR, '', 'ask', 'default', COMPATIBLE_PROFILE);
                 assertNotContains(plain, hook.PROTOCOL_START, 'no protocol configured must add no block');
-                const withProtocol = hook.buildInjection(PROJECT_DIR, 'Custom rule: prefer direct execution.');
+                const withProtocol = hook.buildInjection(PROJECT_DIR, 'Custom rule: prefer direct execution.', 'ask', 'default', COMPATIBLE_PROFILE);
                 assertContains(withProtocol, hook.PROTOCOL_START);
                 assertContains(withProtocol, 'Custom rule: prefer direct execution.');
                 assertContains(withProtocol, hook.PROTOCOL_END);
@@ -936,7 +939,7 @@ module.exports = {
                 for (const mode of ['ask', 'auto']) {
                     // When the two outputs are built for the mode
                     const catalog = hook.buildCatalogInjection(PROJECT_DIR, mode);
-                    const route = hook.buildInjection(PROJECT_DIR, '', mode);
+                    const route = hook.buildInjection(PROJECT_DIR, '', mode, 'default', COMPATIBLE_PROFILE);
                     // Then the catalog output fits the cap in the compact form, with a row per workflow
                     assertTrue(catalog.length <= PAYLOAD_CAP, `${mode}: catalog output is ${catalog.length} chars, cap ${PAYLOAD_CAP}`);
                     assertContains(catalog, COMPACT_HEADER, `${mode}: the framework registry must keep the compact catalog`);
@@ -1084,7 +1087,7 @@ module.exports = {
                 const DOCUMENTED_PROTOCOL_SIZE = 3300;
                 for (const mode of ['ask', 'auto']) {
                     // Given this repository's shipped gate and a project protocol of the documented size
-                    const route = hook.buildInjection(PROJECT_DIR, 'p'.repeat(DOCUMENTED_PROTOCOL_SIZE), mode);
+                    const route = hook.buildInjection(PROJECT_DIR, 'p'.repeat(DOCUMENTED_PROTOCOL_SIZE), mode, 'default', COMPATIBLE_PROFILE);
                     // Then the route output fits the cap, so every host shows it in full and it carries no size line
                     assertTrue(route.length <= PAYLOAD_CAP, `${mode}: a ${DOCUMENTED_PROTOCOL_SIZE}-char protocol gives a route output of ${route.length} chars, cap ${PAYLOAD_CAP}`);
                     assertNotContains(route, 'Route output size: ', `${mode}: no size line within the cap`);

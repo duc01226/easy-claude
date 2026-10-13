@@ -1269,8 +1269,9 @@ module.exports = { name: 'Task tracking runtime contract integration', tests: [
         const read = f.progress(); const shown = shownReport(readReport(f, await reports.ensureReport(f.root))); const standing = section(shown, 'standing-heading');
         const delivery = read.items.filter(item => item.lifecycle === 'delivery');
         assert.deepEqual([...new Set(delivery.map(item => item.kind))].sort(), ['story', 'task']); assert.ok(delivery.length < read.items.length);
-        // One stop per state of the delivery line, each holding the delivery records in that state and no other record.
-        const line = vocabulary.LIFECYCLES.delivery.states.filter(state => !['blocked', 'canceled'].includes(state));
+        // One stop per state of the delivery line the project's vocabulary version has, each holding the delivery records in that state and no other record.
+        const line = read.vocabulary.lifecycles.delivery.states.filter(state => !['blocked', 'canceled'].includes(state));
+        assert.deepEqual(line, ['draft', 'planned', 'ready', 'in_progress', 'verifying', 'done']);
         assert.deepEqual([...standing.matchAll(/<span class="count">(\d+)<\/span>[\s\S]*?<span class="station-name">([^<]*)<\/span>/g)].map(match => [match[2], Number(match[1])]),
             line.map(state => [vocabulary.LABELS.states[state], delivery.filter(item => item.state === state).length]));
         assert.ok(standing.includes(`${delivery.length} open records by recorded state, counting tasks, stories and subtasks only. Initiatives and areas are not counted here.`));

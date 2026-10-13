@@ -43,6 +43,14 @@ const SKILL_NAME_PATTERN = /^[a-z0-9][a-z0-9-]*$/;
  * 'arrayOf' = array of objects matching a sub-schema
  */
 const SCHEMA = {
+  frameworkRuntime: {
+    type: "object",
+    required: false,
+    describe: "Framework on, quiet (no context injection; review checks remain), or off. Use framework-mode.cjs to reconcile Claude/Codex native skills too; personal settings never change tracked projections.",
+    properties: {
+      mode: { type: "string", required: false, enumValues: ["on", "quiet", "off"], describe: "Modes on, quiet, off (default on); later wins: project config, ~/.claude/.ck.json, checkout .claude/.ck.local.json, CK_FRAMEWORK_MODE. Hooks see changes immediately; run framework-mode.cjs apply for native skill changes, then start fresh sessions." },
+    },
+  },
     taskTracking: TASK_TRACKING_SCHEMA,
     _description: { type: 'string', required: false },
     schemaVersion: { type: 'number', required: false },
@@ -902,6 +910,14 @@ const SCHEMA = {
                     excludePathGlobs: { type: 'array', itemType: 'string', required: false, describe: 'Additional repository-relative exclusions; built-in dependency, build and generated-mirror exclusions always apply.' }
                 }
             },
+            failureInvestigationReminder: {
+                type: 'object', required: false,
+                describe: 'Default-on conditional root-cause skill reminder before shell work and on supported native tool failures. Default interval 150000 approximate transcript tokens; transcriptless hosts re-arm on session/reset changes.',
+                properties: {
+                    enabled: { type: 'boolean', required: false, describe: 'Default true. false disables every failure investigation reminder event.' },
+                    reinjectAfterTokens: { type: 'number', required: false, describe: 'Default 150000. Integer from 20000 to 2000000; one transcript-growth window shared across reminder events.' }
+                }
+            },
             // Consumed by .claude/hooks/lib/startup-install.cjs through the single
             // registered SessionStart owner (.claude/hooks/verify-install.cjs).
             // The manager EXECUTABLE and its ARGUMENTS are deliberately not
@@ -989,6 +1005,12 @@ const SCHEMA = {
         required: false,
         describe: 'Optional commit-skill policy. Omitted properties keep the defaults.',
         properties: {
+            reviewMode: {
+                type: 'string',
+                required: false,
+                enumValues: ['lightweight', 'risk-based'],
+                describe: 'Default lightweight: automatically run commit-review --fix-loop for commits at every risk tier, at most two rounds. risk-based restores Low skip / Medium why-review / High changes-review. Does not change PR whole-branch reviews, tests, receipts or Git authority. Later overrides: ~/.claude/.ck.json, .claude/.ck.local.json, CK_COMMIT_REVIEW_MODE.'
+            },
             fixOriginTrailer: {
                 type: 'boolean',
                 required: false,
@@ -1985,11 +2007,13 @@ function validateConfig(config) {
     validateFeatureDocTemplateSemantics(config, errors);
     validateConventionInjectionSemantics(config, errors);
     validateTokenBudgetSemantics(config, errors);
-    const uiTokens = config.hooks?.uiReuseReminder?.reinjectAfterTokens;
-    if (uiTokens !== undefined) {
-        const [min, max] = require('./file-conventions.cjs').CLASS_REINJECT_TOKENS_RANGE;
-        if (!Number.isInteger(uiTokens) || uiTokens < min || uiTokens > max) {
-            errors.push(`hooks.uiReuseReminder.reinjectAfterTokens: expected an integer from ${min} through ${max}`);
+    for (const name of ['uiReuseReminder', 'failureInvestigationReminder']) {
+        const tokens = config.hooks?.[name]?.reinjectAfterTokens;
+        if (tokens !== undefined) {
+            const [min, max] = require('./file-conventions.cjs').CLASS_REINJECT_TOKENS_RANGE;
+            if (!Number.isInteger(tokens) || tokens < min || tokens > max) {
+                errors.push(`hooks.${name}.reinjectAfterTokens: expected an integer from ${min} through ${max}`);
+            }
         }
     }
     validateSpecArtifactProfileSemantics(config, errors);

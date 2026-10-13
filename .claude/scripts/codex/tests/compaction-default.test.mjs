@@ -34,10 +34,12 @@ test('TC-ADS-034 the shipped host settings pin no auto-compaction budget', frame
     assert.equal(Object.hasOwn(env, 'CLAUDE_CODE_AUTO_COMPACT_WINDOW'), false,
         'the shared settings env would override /autocompact, --autocompact and every user setting');
     assert.equal(Object.hasOwn(settings, 'autoCompactWindow'), false, 'the shared scope would outrank a user autoCompactWindow');
-    // And the other shipped env settings stay
-    for (const kept of ['CLAUDE_CODE_ENABLE_TODO_TOOLS', 'MCP_TIMEOUT']) {
-        assert.equal(Object.hasOwn(env, kept), true, `${kept} must still ship`);
-    }
+    // Native skill-listing and tool eligibility defaults remain effective even in quiet mode.
+    assert.equal(Object.hasOwn(settings, 'skillListingBudgetFraction'), false,
+        'a shared skill-listing override would increase context even when injection hooks are quiet');
+    assert.equal(Object.hasOwn(env, 'CLAUDE_CODE_ENABLE_TODO_TOOLS'), false,
+        'the framework must not force extra tool context independently of its runtime mode');
+    assert.equal(Object.hasOwn(env, 'MCP_TIMEOUT'), true, 'the unrelated startup timeout remains');
     // And no third-host model overrides its registry window
     assert.deepEqual(pinnedModels, [], 'a model limit pins the third-host compaction point');
 });

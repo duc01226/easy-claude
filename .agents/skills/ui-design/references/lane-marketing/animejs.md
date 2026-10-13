@@ -1,5 +1,22 @@
 # Anime.js v4 Reference Guide for AI Assistants
 
+## Contents
+
+- [🚨 CRITICAL: ALWAYS USE ANIME.JS V4 SYNTAX 🚨](#-critical-always-use-animejs-v4-syntax-)
+- [🚀 Quick Start - Essential Setup](#-quick-start---essential-setup)
+- [✅ Quick Validation Checklist](#-quick-validation-checklist)
+- [🎯 Core API - Most Common Patterns](#-core-api---most-common-patterns)
+- [❌ Common AI Mistakes to Avoid](#-common-ai-mistakes-to-avoid)
+- [📋 Property Syntax Reference (v3 → v4)](#-property-syntax-reference-v3--v4)
+- [📝 Code Formatting Guidelines](#-code-formatting-guidelines)
+- [🎨 Common Animation Patterns](#-common-animation-patterns)
+- [🔧 Advanced Features](#-advanced-features)
+- [⚡ Performance Tips](#-performance-tips)
+- [🚫 How to Identify V3 Code (DON'T USE)](#-how-to-identify-v3-code-dont-use)
+- [💡 AI Code Generation Rules](#-ai-code-generation-rules)
+- [NPM Installation](#npm-installation)
+- [Version Check](#version-check)
+
 ## 🚨 CRITICAL: ALWAYS USE ANIME.JS V4 SYNTAX 🚨
 
 **Use the configured Anime.js major version from package metadata - DO NOT mix syntax across major versions**

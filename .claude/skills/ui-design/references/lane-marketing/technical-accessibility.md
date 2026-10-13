@@ -2,6 +2,14 @@
 
 WCAG compliance and accessibility guidelines for generated assets.
 
+## Contents
+
+- [Text Overlay Readability](#text-overlay-readability)
+- [CSS Techniques for Accessibility](#css-techniques-for-accessibility)
+- [Integration Testing Analysis](#integration-testing-analysis)
+- [Next.js Integration Example](#nextjs-integration-example)
+- [Common Issues](#common-issues)
+
 ## Text Overlay Readability
 
 ### Color Contrast Ratios

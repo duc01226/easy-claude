@@ -2,7 +2,7 @@
 
 > **Purpose:** the one-page map of the portable `.claude/` framework — what it does, how the parts fit, how to use it day to day, and where each topic's detailed owner doc lives. Read it first when you adopt the framework, change it, or need to explain a hook block, a routing decision or a workflow step.
 >
-> **Framework inventory:** <!-- COUNT:hooks -->34<!-- /COUNT --> top-level hook files · <!-- COUNT:lib-modules -->64<!-- /COUNT --> hook-library modules · <!-- COUNT:skills -->104<!-- /COUNT --> skills · <!-- COUNT:workflows -->19<!-- /COUNT --> workflows · <!-- COUNT:agents -->24<!-- /COUNT --> agents · <!-- COUNT:shared -->15<!-- /COUNT --> shared reference/protocol entries.
+> **Framework inventory:** <!-- COUNT:hooks -->35<!-- /COUNT --> top-level hook files · <!-- COUNT:lib-modules -->66<!-- /COUNT --> hook-library modules · <!-- COUNT:skills -->105<!-- /COUNT --> skills · <!-- COUNT:workflows -->19<!-- /COUNT --> workflows · <!-- COUNT:agents -->24<!-- /COUNT --> agents · <!-- COUNT:shared -->15<!-- /COUNT --> shared reference/protocol entries.
 >
 > **Visual overview:** `.claude/docs/claude-ai-agent-framework-guide.html`. Use this Markdown guide for current inventories and source-owner pointers.
 
@@ -17,11 +17,11 @@
 
 ## 1. What the framework is
 
-A generic LLM is capable but forgetful, confident without evidence, and unaware of your project. This framework wraps Claude Code in **34 top-level hook files**, **104 skills**, **19 registered workflows**, and **24 specialized agents** that make it project-aware, evidence-driven and gated at every quality step — from idea and spec through implementation, testing, review, commit and pull request.
+A generic LLM is capable but forgetful, confident without evidence, and unaware of your project. This framework wraps Claude Code in **35 top-level hook files**, **105 skills**, **19 registered workflows**, and **24 specialized agents** that make it project-aware, evidence-driven and gated at every quality step — from idea and spec through implementation, testing, review, commit and pull request.
 
 | Failure mode of a plain agent        | What counters it                                            | Where it lives                                     |
 | ------------------------------------ | ----------------------------------------------------------- | -------------------------------------------------- |
-| Picks the wrong process for the task | Routing gate + workflow catalog injected at prompt time     | `workflow-route-inject.cjs`, `workflow-catalog-inject.cjs` |
+| Picks the wrong process for the task | Routing cue + workflow catalog delivery or explicit lookup     | `workflow-route-inject.cjs`, `workflow-catalog-inject.cjs` |
 | Skips steps or stops early           | Guided workflows: gate steps, outcome gates, evidence-gated close | `.claude/workflows.json`, `start-workflow`, `workflow-end` |
 | Guesses APIs and project facts       | Evidence protocols, project config, reference docs, code graph | shared protocols, `docs/project-config.json`     |
 | Forgets rules in long sessions       | Rules delivered once per session and re-armed after compaction | protocol-inject hooks, prompt ledger             |
@@ -29,7 +29,7 @@ A generic LLM is capable but forgetful, confident without evidence, and unaware 
 | Drifts from the spec                 | Spec-first workflows, spec sync gates, doc-sync advisory     | `spec`, `docs-manager`, `doc-sync-gate.cjs`         |
 | Leaks one project into another       | Portable source + generated mirrors + residue verifiers     | `framework-portability.md`, `/sync-codex`          |
 
-The design bet: **hooks put the contract in context at the right moment.** The universal rules every task follows are delivered by the universal hook on the first prompt, again after 150K tokens or a compaction, and to every sub-agent; skill protocols arrive when a skill loads, and a skill's project overlays are named when it starts. `CLAUDE.md` holds project information only. Claude Code, Codex and OpenCode run the same hooks; a host with no hooks is unsupported. A few checks must be mechanical, so they are gates.
+The design bet: **hooks put the contract in context at the right moment.** The universal rules every task follows are delivered by the universal hook on the first prompt, again after 150K tokens or a compaction, and to every sub-agent; skill protocols arrive when a skill loads, and a skill's project overlays are named when it starts. `CLAUDE.md` holds project information only. Claude Code, Codex and OpenCode use the same hook sources. In runtime mode `on`, hook delivery is required; intentional `quiet`/`off` modes omit guidance. A few checks must be mechanical, so they are gates.
 
 ---
 
@@ -95,7 +95,7 @@ flowchart TB
 
 ## 4. Routing — how a request becomes a route
 
-The workflow route (source: `.claude/skills/shared/workflow-first-gate.md`) is delivered only by hooks at prompt time, as two outputs: `workflow-route-inject.cjs` writes the gate and `workflow-catalog-inject.cjs` a compact workflow catalog (tier, step count, when to use, parallel groups), in the route mode each person chose — `ask` (default), `auto` or `off`. No tracked file carries it.
+The workflow route is delivered by hooks at prompt time in each person's route mode — `ask` (default), `auto` or `off`. Compatible delivery uses `workflow-route-inject.cjs` for the gate from `.claude/skills/shared/workflow-first-gate.md` and `workflow-catalog-inject.cjs` for a compact catalog. Candidate concise delivery uses a shorter route cue that names the catalog lookup command; selection still retrieves the workflow steps and skill bindings. Missing concise sources retain compatible delivery. Root instruction files carry project information only.
 
 1. **Honor explicit requests** — a `/skill`, `/workflow-*` or "use a workflow" always runs.
 2. **Assess** scope · change type · risk · ambiguity · needed artifacts. Escalate on risk and ambiguity, not file count.
@@ -193,7 +193,7 @@ A skill is a directory with `SKILL.md` (frontmatter `name`, `description` = `[Ca
 
 ## 7. Agents
 
-Specialist sub-agents with their own context. Each declares `memory: project`; all inherit the session model except where a definition pins one. Agent files carry their role protocols; the universal rules reach every sub-agent through the `SubagentStart` hook, so a host that runs no hooks is unsupported. Choose by domain — `.claude/skills/shared/sub-agent-selection-guide.md` maps domain → agent, and specialist work never goes to the generic `code-reviewer`.
+Specialist sub-agents with their own context. Each declares `memory: project`; all inherit the session model except where a definition pins one. Agent files carry their role protocols; the universal rules reach every sub-agent through the `SubagentStart` hook, so in runtime mode `on`, a host that fails to run hooks cannot deliver them. Intentional `quiet`/`off` modes omit guidance. Choose by domain — `.claude/skills/shared/sub-agent-selection-guide.md` maps domain → agent, and specialist work never goes to the generic `code-reviewer`.
 
 | Group              | Agents                                                                                           |
 | ------------------ | ------------------------------------------------------------------------------------------------ |
@@ -211,14 +211,13 @@ A sub-agent starts with no conversation context: its brief must name the files, 
 
 ## 8. Hooks and runtime
 
-Hooks are Node scripts registered in `.claude/settings.json`. They read stdin JSON and write context to stdout. Only two can stop you:
+Hooks are Node scripts registered in `.claude/settings.json`. They read stdin JSON and write context to stdout. Only one can stop you:
 
 | Hook                  | When it blocks                                                                             |
 | --------------------- | ------------------------------------------------------------------------------------------ |
 | `review-commit-gate`  | An agent `git commit` with no review receipt (or valid skip receipt) for that exact changeset |
-| `init-prompt-gate`    | `docs/project-config.json` exists but is invalid (repair commands still pass). A missing config only gets a once-a-day notice. |
 
-Everything else is advisory or silent.
+Everything else is advisory or silent. `init-prompt-gate` never blocks a prompt: a missing config gets a once-a-day notice, and a config that exists but is invalid (or conflicted mid-rebase) adds a warning that its facts are unverified, so you are never locked out of the session that would repair it.
 
 | Event                           | Hooks (purpose)                                                                                          |
 | ------------------------------- | -------------------------------------------------------------------------------------------------------- |
@@ -231,8 +230,8 @@ Everything else is advisory or silent.
 
 **Key mechanisms**
 
-- **Universal bundle** — the framework rules every task follows, in four messages, once per session, again after ~150K tokens of growth or a compaction, and once per spawned sub-agent.
-- **Routing injection** — the gate and the workflow catalog as two hook outputs, each once per session, re-armed on change, compaction or ~200K tokens of growth.
+- **Universal bundle** — compatible delivery uses four messages; candidate concise delivery uses one essential core. Both deliver on the first prompt, after ~150K tokens of growth or a compaction, and at every sub-agent start.
+- **Routing injection** — compatible delivery sends the gate and catalog as two hook outputs; candidate concise delivery sends the route cue and requires catalog lookup before selection. Delivery re-arms on change, compaction or ~200K tokens of growth.
 - **Protocol delivery** — when a skill loads, its group hook sends the full text of the protocols its guide lines name, once per session, capped per message.
 - **Skill overlay reminder** — when a skill starts, a three-line reminder names the project overlay files that apply to it (repeats after ~150K tokens).
 - **File conventions** — touching a file injects the matching `contextGroups[]` rules not already in context (opt-in `conventionInjection.enabled`; shell read: `node .claude/hooks/lib/file-conventions.cjs --lookup <path>`).
@@ -254,8 +253,8 @@ Reusable rules (evidence-based reasoning, root-cause debugging, severity rubric,
 | Normal skills                    | One guide line per protocol (tag, summary, when, path)                 |
 | Protocol-inject hooks            | The full text, delivered when the skill loads                          |
 | Guide line path                  | The fallback when a protocol's text is not in context                  |
-| Review-family skills and agents  | Full inline bodies (a reviewer must never depend on delivery)          |
-| Universal hook                   | The `universal` group in four messages (first prompt, every sub-agent) |
+| Agents and fresh reviewer prompts | Full role bodies and the complete reviewer template; review skills retain guide entrypoints |
+| Universal hook                   | Compatible: four universal bins; candidate concise: one essential core (first prompt, every sub-agent) |
 
 Why hybrid: a rule already in context beats a rule the model must go read, but repeating every body in every skill bloats context. Guides keep skills lean; hooks put the full rule in context exactly when it applies. After editing a canonical block, propagate with `sync-update-blocks.py <tag>` (or `/sync-skills-shared-protocols`) and rebuild the projection.
 
@@ -267,8 +266,8 @@ Why hybrid: a rule already in context beats a rule the model must go read, but r
 2. **Validate findings** — `why-review --validate-findings` checks every finding against evidence before any fix. It is terminal: it never recurses, so validation cannot loop.
 3. **Fix** — `fix --target=review` fixes validated findings at the owning layer and records FIXED / REJECTED / DEFERRED with reasons; an unexplained defect is traced with `investigate --mode=debug` first.
 4. **Receipt** — a converged `--fix-loop` mints a review receipt bound to the exact changeset; any later edit invalidates it.
-5. **Commit** — `/commit` stages, decides the test-verify and review gates by risk without asking (skip for low risk, `/why-review` for medium, `/changes-review` for high), and writes a Conventional Commit. `review-commit-gate` blocks any agent `git commit` without a review receipt or a skip receipt.
-6. **Pull request** — `/pull-request` puts the work on a branch at the latest target (new branch if the old one was merged, rebase if it is unpushed and behind), decides tests and the whole-branch review by risk without asking (the commit skill's decision policy), runs fresh gates, commits, pushes, opens a ready PR and automatically checks CI repairs until green. It never merges or force-pushes. Target: `pullRequest.targetBranch` (default `main`).
+5. **Commit** — `/commit` prepares only the requested scope, runs applicable checks and resolves `commit.reviewMode` through `commit-review-policy.cjs`. The default selects `/commit-review --fix-loop`; configured `risk-based` selects Low skip, Medium `/why-review` or High `/changes-review`. Reuse matching current evidence, require the exact-candidate receipt, and write a concise Conventional Commit. `review-commit-gate` blocks any agent `git commit` without a review receipt or a skip receipt.
+6. **Pull request** — `/pull-request` puts the work on a branch at the latest target (new branch if the old one was merged, rebase if it is unpushed and behind), decides tests and the whole-branch review by risk without asking ([its whole-branch policy](../skills/pull-request/references/check-policy.md)), runs fresh gates, commits, pushes, opens a ready PR and automatically checks CI repairs until green. It never merges or force-pushes. Target: `pullRequest.targetBranch` (default `main`).
 7. **Doc sync** — reviewers flag spec/doc gaps read-only; `docs-manager --mode=update` applies them. `doc-sync-gate` warns when enforced areas change without their spec.
 
 **Git discipline** (model-behavioral on every host): never commit, push or stage without an explicit request; branch before committing on the default branch; never run a command that destroys uncommitted work without asking; treat `gh`/GitHub-MCP writes like a push. Only the literal `permissions.ask` patterns in `.claude/settings.json` still prompt; the commit review gate is the one mechanical rule.
@@ -361,11 +360,11 @@ Codex transforms `/skill` into `$skill`, `Agent` into `spawn_agent` and strips C
 | Runner                                  | Tests  | Covers                                                                 |
 | --------------------------------------- | ------ | ---------------------------------------------------------------------- |
 | `test-all-hooks.cjs` (primary gate)  | **133** | Hook behaviors, bridged suites and the count guard                     |
-| `run-all-tests.cjs` (full aggregate) | **2042** | 121 source-declared `tests/suites/*.test.cjs` files; primary gate runs separately |
+| `run-all-tests.cjs` (full aggregate) | **2063** | 123 `tests/suites/*.test.cjs` files; primary gate runs separately |
 | `node --test .claude/scripts/codex/tests` | —      | Mirror generators and verifiers                                        |
 | `run-codex-sync.mjs --verify-only`      | —      | Every read-only gate before a commit                                   |
 
-> Source-declared inventory: `test-all-hooks.cjs` = 133; `run-all-tests.cjs` = 2042 declared across 121 suites; actual final-run aggregate discovery remains pending. Both runners fail when these numbers drift from the docs. Counts do not establish runtime results; read the actual runner output for outcomes.
+> Source-declared inventory: `test-all-hooks.cjs` = 133; `run-all-tests.cjs` = 2063 executors across 123 suite files. Both runners fail when these numbers drift from the docs. Counts do not establish runtime results; read the actual runner output for outcomes.
 
 **Portable test contract** — shipped tests must pass in any project layout on Windows, macOS and Linux: build a temp fixture project instead of reading this repository's config or git state; blank inherited feature switches and provider keys; point `HOME`, `USERPROFILE`, `TMPDIR`, `TEMP` and `TMP` at the temp dir; name OS differences explicitly (paths, symlinks, `py -3` vs `python3`); run the full suite twice to prove repeatability.
 

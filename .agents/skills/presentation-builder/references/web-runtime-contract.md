@@ -2,6 +2,19 @@
 
 This is the implementation contract for the default HTML output. It is intentionally generic: a deck may use different visual systems, layouts, and subject matter, but it must preserve these presenter and audience capabilities.
 
+## Contents
+
+- [1. Canonical slide schema](#1-canonical-slide-schema)
+- [2. Required controls and state](#2-required-controls-and-state)
+- [3. Navigation and presentation behavior](#3-navigation-and-presentation-behavior)
+- [4. Notes toggle and presenter layer](#4-notes-toggle-and-presenter-layer)
+- [5. Edit mode and persistence](#5-edit-mode-and-persistence)
+- [6. Fullscreen, print, and resilience](#6-fullscreen-print-and-resilience)
+- [7. Accessibility and interaction quality](#7-accessibility-and-interaction-quality)
+- [8. Baseline runtime lessons → upgraded generic contract](#8-baseline-runtime-lessons--upgraded-generic-contract)
+- [9. Conformance profiles](#9-conformance-profiles)
+- [References](#references)
+
 ## 1. Canonical slide schema
 
 Use one semantic slide element per slide and stable IDs. The presentation itself also needs a stable identity for draft persistence:

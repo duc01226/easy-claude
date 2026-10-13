@@ -55,6 +55,15 @@ Variant step chains (each equals the registry variant of that name; gates and op
 
 Activate the `workflow-integration-test` workflow. Run `/start-workflow workflow-integration-test` (add `--mode=green` for the green variant) with the user's prompt as context. The resolved variant is a complete sequence: execute that manifest and never a hand-swapped list.
 
+## Contents
+
+- [Workflow Calls and Todo Bootstrap](#workflow-calls-and-todo-bootstrap)
+- [Quick Summary](#quick-summary)
+- [Mode Selection — FIRST Action](#mode-selection--first-action)
+- [Variant `write`](#variant-write)
+- [Variant `green`](#variant-green)
+- [Closing Reminders](#closing-reminders)
+
 ## Mode Selection — FIRST Action
 
 Pick the variant from the prompt (or an explicit `--mode=`) BEFORE creating tasks and record it, with the resolver fingerprint, in the workflow report. Every variant closes through `/workflow-end`, which checks the variant's own outcome gates.

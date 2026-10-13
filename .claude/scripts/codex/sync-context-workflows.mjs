@@ -55,8 +55,8 @@ const AGENTS_PROJECTION_HEADINGS = [
   // Carries the naming table AND the key-locations / dev-commands / integration-testing SECTION
   // blocks that follow it before the next `##`.
   /^## Naming Conventions$/m,
+  /^## Source Conventions$/m,
   /^## Development Commands$/m,
-  /^## Automatic Skill Activation$/m,
 ];
 
 function escapeRegExp(value) {
@@ -118,9 +118,9 @@ function buildAgentsClaudeMirrorBlock(claudeMd) {
   return [
     AGENTS_CLAUDE_MIRROR_START,
     AGENTS_ROOT_PROJECTION_START,
-    "## Claude Instructions Mirror (Compact Auto-Synced Projection)",
+    "## Project Instructions",
     "",
-    "This bounded projection is generated from `CLAUDE.md` by `node .claude/scripts/codex/sync-context-workflows.mjs`; it carries project information only. The framework rules every agent follows are delivered by the universal hook. For full canonical detail, read `CLAUDE.md` directly. Do not edit generated mirrors.",
+    "Project guidance from `CLAUDE.md`. Edit that source when these instructions need to change.",
     "",
     projection,
     AGENTS_ROOT_PROJECTION_END,

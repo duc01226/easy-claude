@@ -64,6 +64,8 @@ Tool(**/path/**)     # Glob patterns for files
 
 ### Common Patterns
 
+Shipped Git permissions allow requested commits and pushes without an additional ask rule, including force-push syntax. The agent still needs explicit operation authority; this grants none. The commit review hook remains active unless the framework runtime is off. Personal or managed host settings can impose their own prompts.
+
 **Bash Commands:**
 
 ```json
@@ -88,7 +90,6 @@ Tool(**/path/**)     # Glob patterns for files
         "Bash(git reset --hard:*)" // Hard reset
     ],
     "ask": [
-        "Bash(git push:*)", // Regular push needs confirmation
         "Bash(npm publish:*)", // Package publishing
         "Bash(docker push:*)" // Image publishing
     ]
@@ -370,7 +371,7 @@ contract as the repo's other pinned tools.
     "permissions": {
         "allow": ["Bash(git:*)", "Bash(npm:*)", "Edit", "Read", "Write"],
         "deny": ["Bash(rm -rf /*)", "Edit(**/.env*)"],
-        "ask": ["Bash(git push:*)"],
+        "ask": ["Bash(npm publish:*)"],
         "defaultMode": "default"
     },
     "hooks": {

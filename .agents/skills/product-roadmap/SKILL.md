@@ -5,18 +5,11 @@ disable-model-invocation: true
 ---
 
 > Codex compatibility note:
-> - Invoke repository skills with `$skill-name` in Codex; this mirrored copy rewrites legacy Claude `/skill-name` references.
-> - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
-> - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
-> - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
-> - Use ask user question tool to ask user.
-> - Ignore Claude-specific mode-switch instructions when they appear.
-> - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
+> - Invoke `$skill-name`: load the registered `.agents/skills/<name>/SKILL.md` and execute it with Codex tools; no separate `Skill` tool or Claude mode switch is needed. Author `.claude/**`; mirrors are generated.
+> - Track steps before execution and keep progress/evidence current. Explicit skill requests execute their protocol. Use the native question tool for required questions.
+> - Map foreign tool names to available host capabilities. A name mismatch needs no approval; an actually unavailable required capability stops with its step/evidence and a user question before adaptation.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
-> - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
-> - For workflow skills, steps follow the guided contract in `$start-workflow` (gate steps fixed; other steps may flex with a logged reason); report step-by-step evidence.
-> - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
+> - Preserve protocol order unless the user approves a deviation. Workflows use `$start-workflow`: gates stay fixed; other steps may flex with logged reasons and evidence.
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
 > **[BLOCKING]** Execute phases in order; update todo tracking before and after each phase.
@@ -44,6 +37,21 @@ disable-model-invocation: true
 - Do not choose frameworks, database schemas, endpoints, screens, or code in this skill.
 - Never silently reinterpret `ready`, `published`, `delivered`, `paid`, `refunded`, or equivalent lifecycle terms.
 - A roadmap is canonical at one path — default `docs/product-roadmap.md`, overridden by a `docsRoots.productRoadmap.path` entry in `docs/project-config.json`; update that file rather than creating competing roadmap files.
+
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Mission](#mission)
+- [Required Context](#required-context)
+- [Phase 0: Explicit Invocation Gate and Applicability](#phase-0-explicit-invocation-gate-and-applicability)
+- [Phase 1: Frame the Product Outcome](#phase-1-frame-the-product-outcome)
+- [Phase 2: Design Outcome-Based Milestones](#phase-2-design-outcome-based-milestones)
+- [Phase 3: Decision Gate](#phase-3-decision-gate)
+- [Phase 4: Write the Canonical Roadmap](#phase-4-write-the-canonical-roadmap)
+- [Phase 5: Select One Milestone and Write Scope Brief](#phase-5-select-one-milestone-and-write-scope-brief)
+- [Phase 6: Handoff and Stop Conditions](#phase-6-handoff-and-stop-conditions)
+- [Output](#output)
+- [Closing Reminders](#closing-reminders)
 
 ## Mission
 

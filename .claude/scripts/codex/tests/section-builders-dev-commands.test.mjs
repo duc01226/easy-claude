@@ -12,7 +12,7 @@ import { fileURLToPath } from "node:url";
 const require = createRequire(import.meta.url);
 const thisDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(thisDir, "..", "..", "..", "..");
-const { buildDevCommands, buildE2eTesting, buildIntegrationTesting } = require(
+const { buildDevCommands, buildE2eTesting, buildIntegrationTesting, buildProjectContextMap } = require(
   path.join(repoRoot, ".claude", "skills", "ai-context-refresh", "scripts", "section-builders.cjs")
 );
 
@@ -117,4 +117,23 @@ test("SB-DC-010 integration-test guide: linked when applicable, notice (no link)
   assert.doesNotMatch(na, LINK);
   assert.match(na, /`integration-test-reference\.md` is declared not applicable/);
   assert.equal(buildIntegrationTesting({}), null, "no configured doc still omits the section");
+});
+
+test("SB-DC-011 source conventions list the project docs a class declares in any doc field, never framework docs", () => {
+  const out = buildProjectContextMap({
+    contextGroups: [
+      { name: "specs", pathGlobs: ["docs/specs/**/*.md"], referenceDocs: ["docs/project-reference/spec-system-reference.md"] },
+      { name: "api", pathRegexes: ["/api/"], patternsDoc: "docs/api-patterns.md", referenceDocs: ["docs/api-patterns.md", "docs/api-errors.md"] },
+      { name: "hooks", pathRegexes: ["/hooks/"], guideDoc: ".claude/docs/hooks/README.md", referenceDocs: [".claude/docs/hooks/architecture.md"] },
+      { name: "rules-only", pathRegexes: ["/lib/"], rules: ["Keep modules small."] },
+    ],
+  });
+  const rows = out.split("\n").filter(line => line.startsWith("| `") || line.startsWith("| docs") || line.startsWith("| /"));
+  assert.match(out, /\| Files \| Project reference \|/);
+  assert.deepEqual(rows, [
+    "| docs/specs/**/*.md | `docs/project-reference/spec-system-reference.md` |",
+    "| /api/ | `docs/api-patterns.md`, `docs/api-errors.md` |",
+  ], "a referenceDocs-only class gets a row, a doc named twice is listed once, framework-only and doc-less classes get none");
+  assert.equal(buildProjectContextMap({ contextGroups: [{ name: "hooks", guideDoc: ".claude/docs/hooks/README.md" }] }), null,
+    "no project doc declared: the section stays empty");
 });

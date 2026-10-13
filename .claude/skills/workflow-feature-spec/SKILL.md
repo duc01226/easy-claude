@@ -37,6 +37,17 @@ Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs
 
 **Step contract:** steps follow `/start-workflow` → Step Execution Protocol — `gate` steps always run, a step that runs invokes its `Skill` tool, and every other deviation is logged to the run's deviation log. The list above is the recommended default order; the triage below decides which recommendations earn their cost.
 
+## Contents
+
+- [Workflow Calls and Todo Bootstrap](#workflow-calls-and-todo-bootstrap)
+- [Quick Summary](#quick-summary)
+- [1. Triage (FIRST action)](#1-triage-first-action)
+- [2. Required Quality Gates (non-negotiable)](#2-required-quality-gates-non-negotiable)
+- [3. Execution Notes](#3-execution-notes)
+- [4. Orchestration Freedom](#4-orchestration-freedom)
+- [5. Memory, Reporting and Fix Path](#5-memory-reporting-and-fix-path)
+- [Closing Reminders](#closing-reminders)
+
 ## 1. Triage (FIRST action)
 
 Classify the change from the request plus the investigate evidence, and record it in the run report:

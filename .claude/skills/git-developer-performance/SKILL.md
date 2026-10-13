@@ -44,6 +44,17 @@ disable-model-invocation: true
 - Velocity sanity check: both man-day ranges plausible for active days and the selected period.
 - Keep output outside `.claude`; default root `reports/developer-performance/`.
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Git Developer Performance](#git-developer-performance)
+- [Required AI Workflow](#required-ai-workflow)
+- [Command](#command)
+- [Output](#output)
+- [Analysis Rules](#analysis-rules)
+- [Verification](#verification)
+- [Closing Reminders](#closing-reminders)
+
 # Git Developer Performance
 
 Use when the user asks for developer KPI/performance, productivity, contribution value, effort-point estimates, man-day estimates, quality impact, or quality-work reporting from git commits.

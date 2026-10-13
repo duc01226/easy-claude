@@ -14,11 +14,11 @@ Plan / generate / heal lean on the same mechanic: run `npx playwright test --deb
 <!-- SKILL-NAV:START -->
 ## Contents
 
-- 0. How generation works
-- 1. Planning
-- 2. Generate
-- 3. Heal
-- Cross-references
+- [0. How generation works](#0-how-generation-works)
+- [1. Planning](#1-planning)
+- [2. Generate](#2-generate)
+- [3. Heal](#3-heal)
+- [Cross-references](#cross-references)
 
 <!-- SKILL-NAV:END -->
 

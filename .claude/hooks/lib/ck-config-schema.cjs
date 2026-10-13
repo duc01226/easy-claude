@@ -26,6 +26,27 @@ const WORKFLOW_ACTIVATION_TIERS = ["auto", "confirm", "manual"];
 const WORKFLOW_ROUTE_MODES = ["ask", "auto", "off"];
 
 const CK_SCHEMA = {
+  contextDelivery: {
+    type: "object", required: false, closed: true,
+    describe: "Instruction delivery preferences; only profile is accepted. Preferences never grant authority or waive required gates.",
+    properties: { profile: { type: "string", required: false, redactValue: true, enum: ["compatible", "concise"], describe: "Select compatible or concise guidance. Shipping default is compatible pending adoption proof. Personal, tracked project, then checkout settings override earlier values; invalid declarations recover compatible with a redacted diagnostic." } },
+  },
+  commit: {
+    type: "object",
+    required: false,
+    describe: "Personal commit-skill review preference; preserves tests, receipts and requested Git authority.",
+    properties: {
+      reviewMode: { type: "string", required: false, enum: ["lightweight", "risk-based"], describe: "Default lightweight runs commit-review --fix-loop at every commit risk tier; risk-based restores Low skip / Medium why-review / High changes-review. PR whole-branch review remains risk-based. Later wins: project config, ~/.claude/.ck.json, .claude/.ck.local.json, CK_COMMIT_REVIEW_MODE." }
+    }
+  },
+  frameworkRuntime: {
+    type: "object",
+    required: false,
+    describe: "Framework on, quiet (no context injection; review checks remain), or off. Use framework-mode.cjs to reconcile Claude/Codex native skills too; personal settings never change tracked projections.",
+    properties: {
+      mode: { type: "string", required: false, enum: ["on", "quiet", "off"], describe: "Modes on, quiet, off (default on); later wins: project config, ~/.claude/.ck.json, checkout .claude/.ck.local.json, CK_FRAMEWORK_MODE. Hooks see changes immediately; run framework-mode.cjs apply for native skill changes, then start fresh sessions." },
+    },
+  },
   locale: {
     type: "object",
     required: false,
@@ -209,7 +230,7 @@ function validateField(value, fieldSchema, path, errors, warnings) {
       }
       if (fieldSchema.enum && !fieldSchema.enum.includes(value)) {
         errors.push(
-          `${path}: invalid value "${value}" — expected one of: ${fieldSchema.enum.join(", ")}`,
+          `${path}: invalid value${fieldSchema.redactValue ? "" : ` "${value}"`} — expected one of: ${fieldSchema.enum.join(", ")}`,
         );
       }
       if (fieldSchema.nonBlank && (!value.trim() || value.includes('\0'))) {

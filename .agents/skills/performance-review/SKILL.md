@@ -4,18 +4,11 @@ description: '[Debugging] Use when a workflow step or the user asks for performa
 ---
 
 > Codex compatibility note:
-> - Invoke repository skills with `$skill-name` in Codex; this mirrored copy rewrites legacy Claude `/skill-name` references.
-> - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
-> - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
-> - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
-> - Use ask user question tool to ask user.
-> - Ignore Claude-specific mode-switch instructions when they appear.
-> - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
+> - Invoke `$skill-name`: load the registered `.agents/skills/<name>/SKILL.md` and execute it with Codex tools; no separate `Skill` tool or Claude mode switch is needed. Author `.claude/**`; mirrors are generated.
+> - Track steps before execution and keep progress/evidence current. Explicit skill requests execute their protocol. Use the native question tool for required questions.
+> - Map foreign tool names to available host capabilities. A name mismatch needs no approval; an actually unavailable required capability stops with its step/evidence and a user question before adaptation.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
-> - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
-> - For workflow skills, steps follow the guided contract in `$start-workflow` (gate steps fixed; other steps may flex with a logged reason); report step-by-step evidence.
-> - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
+> - Preserve protocol order unless the user approves a deviation. Workflows use `$start-workflow`: gates stay fixed; other steps may flex with logged reasons and evidence.
 ## Quick Summary
 
 > **Review modes:** For review/audit work, standalone defaults to `--review-only` (`--report-only` alias); `--fix-loop` enables review → validate → authorized fix → fresh re-review, default cap 3. `--fix-loop --loop-owner=caller` returns a read-only pass to the caller that owns fixes/re-review. Create triage, review, validation and re-review todo tasks first; apply the carried `review-policy` contract for LOW deferral and user-approved bounded extensions. Non-review modes and terminal findings validation keep their own dispatch.
@@ -82,6 +75,24 @@ description: '[Debugging] Use when a workflow step or the user asks for performa
 > **[BLOCKING]** If task tools unavailable, maintain equivalent step-by-step tracker with synchronized statuses.
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:END -->
+
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Detailed Summary](#detailed-summary)
+- [Report-Only Mode (`--report-only`)](#report-only-mode---report-only)
+- [Phase 0: Detect Scope](#phase-0-detect-scope)
+- [Architecture-Altitude Performance Review](#architecture-altitude-performance-review)
+- [Phase 1: Discover Local Context](#phase-1-discover-local-context)
+- [Phase 2: Baseline Evidence](#phase-2-baseline-evidence)
+- [Phase 3: Serial Dimension Passes](#phase-3-serial-dimension-passes)
+- [Phase 4: Findings And Severity](#phase-4-findings-and-severity)
+- [Phase 5: Optimize Plan](#phase-5-optimize-plan)
+- [Sub-Agent Routing](#sub-agent-routing)
+- [Phase 6: Why-Review Findings Validation Gate (MANDATORY when findings exist)](#phase-6-why-review-findings-validation-gate-mandatory-when-findings-exist)
+- [Phase 7: Validated Fix + Full Performance Re-Review Loop (MANDATORY when validated findings remain)](#phase-7-validated-fix--full-performance-re-review-loop-mandatory-when-validated-findings-remain)
+- [Output](#output)
+- [Closing Reminders](#closing-reminders)
 
 ## Detailed Summary
 

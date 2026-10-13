@@ -36,6 +36,7 @@
 
 ## Contents
 
+- [Quick Summary](#quick-summary)
 - [When To Use](#when-to-use)
 - [Scope And Modes](#scope-and-modes)
 - [Required Context](#required-context)

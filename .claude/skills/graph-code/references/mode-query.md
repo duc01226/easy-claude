@@ -14,18 +14,18 @@
 <!-- SKILL-NAV:START -->
 ## Contents
 
-- Prerequisites
-- Intent Mapping
-- Workflow
-- Semantic Query Protocol (When User Query is Not File-Specific)
-- Available Query Patterns
-- Search (Find Nodes by Keyword)
-- Find Path (Shortest Path Between Nodes)
-- Query Filtering and Limiting
-- Batch Query (Multiple Files)
-- Trace (Full System Flow)
-- Anti-Patterns
-- Related Modes and Skills
+- [Prerequisites](#prerequisites)
+- [Intent Mapping](#intent-mapping)
+- [Workflow](#workflow)
+- [Semantic Query Protocol (When User Query is Not File-Specific)](#semantic-query-protocol-when-user-query-is-not-file-specific)
+- [Available Query Patterns](#available-query-patterns)
+- [Search (Find Nodes by Keyword)](#search-find-nodes-by-keyword)
+- [Find Path (Shortest Path Between Nodes)](#find-path-shortest-path-between-nodes)
+- [Query Filtering and Limiting](#query-filtering-and-limiting)
+- [Batch Query (Multiple Files)](#batch-query-multiple-files)
+- [Trace (Full System Flow)](#trace-full-system-flow)
+- [Anti-Patterns](#anti-patterns)
+- [Related Modes and Skills](#related-modes-and-skills)
 
 <!-- SKILL-NAV:END -->
 

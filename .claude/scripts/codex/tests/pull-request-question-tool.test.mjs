@@ -28,14 +28,14 @@ test('PR test and review gates decide automatically and never display a test/rev
       assert.doesNotMatch(gate, /Call the ask-user question tool/, 'tests and review must not raise a question');
     }
     const tests = section(text, '### Step 3.5', '### Step 4');
-    assert.match(tests, /fix-loop every failure through `commit` Step 3\.5 until all pass/);
+    assert.match(tests, /resolve every failure at its owning layer until all pass/);
     assert.match(tests, /that is a \*\*Blocker\*\*, not a skip/);
     const review = section(text, '### Step 4', '### Step 5');
     assert.match(review, /\*\*Low\*\* → automatic skip; \*\*Medium\*\* → `[/$]why-review --fix-loop`; \*\*High\*\* → `[/$]changes-review --fix-loop`, each at most two review rounds over the whole scope/);
     assert.match(review, /a skip is never minted for a Medium or High branch/);
     assert.match(review, /A failed review is not a skip: never mint one to get past it/);
     const contract = section(text, '## User Choice Contract', '## Related');
-    assert.match(contract, /Test and review decisions are automatic under `commit` → \*\*Test and review decision policy\*\* and raise no question/);
+    assert.match(contract, /Test and review decisions are automatic under `references\/check-policy\.md` and raise no question/);
     assert.match(contract, /invoke the available native ask-user question tool with the actual question and selectable options/);
     assert.match(contract, /do not merely name the tool in prose/);
     assert.match(contract, /split into sequential questions/);
@@ -71,6 +71,21 @@ test('posting an asynchronous PR question never authorizes dependent work', () =
 });
 
 // These are shipped prompt-contract checks, not evidence of live model compliance.
+test('concise commit retains project inputs and configured review without boilerplate', () => {
+  const projectInputs = /[Ll]oad project configuration and matching skill overlays/;
+  assert.match('Load project configuration and matching skill overlays', projectInputs);
+  assert.match('load project configuration and matching skill overlays', projectInputs);
+  for (const text of [commit, rewriteClaudeToolTermsForCodex(commit)]) {
+    assert.match(text, projectInputs);
+    assert.doesNotMatch(text.replaceAll('project configuration and ', ''), projectInputs, 'project configuration is required');
+    assert.doesNotMatch(text.replaceAll(' and matching skill overlays', ''), projectInputs, 'matching skill overlays are required');
+    assert.match(text, /commit-review-policy\.cjs --operation=commit/);
+    assert.match(text, /default `[/$]commit-review --fix-loop`, at most two rounds/);
+    assert.match(text, /current matching review evidence/);
+    assert.doesNotMatch(text, /Estimate:|Reviewers:|PROTOCOL-GUIDES|Closing Reminders/);
+  }
+});
+
 test('full-scope PR evidence is reused only for the exact candidate, and a skip never transfers', () => {
   for (const text of [source, codex]) {
     const review = section(text, '### Step 4', '### Step 5');
@@ -95,76 +110,24 @@ test('CI repairs run fresh gates automatically and hand the recorded decision to
   }
 });
 
-test('commit decides tests and review by risk without a question, stale evidence or a widened skip', () => {
-  for (const text of [commit, rewriteClaudeToolTermsForCodex(commit)]) {
-    const policy = section(text, '## Test and review decision policy', '## Workflow\n\n### Step 1');
-    assert.match(policy, /never ask the user whether to run tests or a review — classify the candidate, decide, act and record the decision/);
-    assert.match(policy, /A series of tiny commits cannot reset risk or conceal a large change/);
-    assert.match(policy, /Any higher-tier signal outranks every lower one — even a one-line diff\. Tie or unclear → the higher tier/);
-    assert.match(policy, /The affected tests already ran and passed in this session, and nothing they cover changed since \| Skip/);
-    assert.match(policy, /The change is really small, or no executable behavior changed \| Skip/);
-    assert.match(policy, /Anything else \| Run the tests scoped to the change and fix-loop every failure until all pass/);
-    assert.match(policy, /Old evidence never covers new content/);
-    assert.match(policy, /\*\*Low\*\* → automatic skip with the recorded signal; \*\*Medium\*\* → `[/$]why-review --fix-loop`; \*\*High\*\* → `[/$]changes-review --fix-loop`\. Each fix-loop runs at most two review rounds/);
-    assert.match(policy, /An explicit user instruction wins/);
-    assert.match(policy, /Automatic skip covers only the Low tier and the two test-skip rows/);
-    assert.match(policy, /never skip after a failed check or a review that did not converge/);
-    assert.match(policy, /MEDIUM or higher findings still open at the two-round cap/);
-    assert.match(policy, /Leave the candidate staged and uncommitted, mint no receipt, and report/);
-    assert.match(policy, /Automatic choices never expand commit\/push authority/);
-    assert.match(policy, /never as a fabricated user answer/);
-    assert.doesNotMatch(text, /USER CHOICE — always|blocking user choice — always|Always ASK the user|On every commit invocation.*ask the user/);
-    assert.doesNotMatch(policy, /human-answer baseline|Ask once for the unsettled|reuse the testing\/review \*\*preference\*\*/i,
-      'the retired question-frequency policy must not return');
-  }
+test('PR owns its policy instead of loading a removed commit procedure', () => {
+  const policy = readFileSync(new URL('../../../skills/pull-request/references/check-policy.md', import.meta.url), 'utf8');
+  assert.match(source, /Read `references\/check-policy\.md`/);
+  assert.match(policy, /--operation=pull-request/);
+  assert.match(policy, /regardless of `commit\.reviewMode`/);
+  assert.match(policy, /whole-branch scope and final candidate match/);
+  assert.match(policy, /Never skip after a failed\/non-converged review/);
+  assert.doesNotMatch(source, /commit\/SKILL\.md#test-and-review|`commit` Step 3\.[56]|Estimate:/);
 });
 
-test('the work-tracking reminder asks once, always offers Skip and never gates the PR', () => {
+test('work tracking keeps tracked work current as the project instruction says, and never gates the PR', () => {
   for (const text of [source, codex]) {
-    const reminder = section(text, '### Step 3.3', '### Step 3.5');
-    assert.match(reminder, /never a gate: Skip, a missing answer, missing tooling or a tracker refusal never stops or delays Steps 3\.5–9/);
-    assert.match(reminder, /`off`, which includes a project with no `taskTracking` section → skip this step silently: no question, no report line/);
-    assert.match(reminder, /`observe` or `linked` → ask once, even when nothing matches/);
-    assert.match(reminder, /Call the ask-user question tool under the \[User Choice Contract\]/);
-    for (const option of ['**Update matching item(s)**', '**Create a new item for this work**', '**Skip work tracking** — always offered']) {
-      assert.ok(reminder.includes(option), `The reminder must offer ${option}`);
-    }
-    assert.match(reminder, /Recommend one option from the evidence/);
-    assert.match(reminder, /A recommendation is advice: never answer for the user/);
-    assert.match(reminder, /Skip is a complete answer: no second prompt, no persuasion, and no repeated reminder/);
-    assert.match(reminder, /continue the PR with no tracker change/);
+    const step = section(text, '### Step 3.3', '### Step 3.5')
+    assert.match(step, /Keep the project's tracked work current with this pull request/)
+    assert.match(step, /root instructions \(`CLAUDE\.md` or `AGENTS\.md`\) point to a work-tracking instruction/)
+    assert.match(step, /the instruction, not this skill, owns the rules/)
+    assert.match(step, /Tracker edits are candidate changes and go through Steps 3\.5–4/)
+    assert.match(step, /No instruction → skip silently\. It never gates or delays Steps 3\.5–9/)
+    assert.doesNotMatch(step, /task-track/, 'the PR skill writes no tracker records through a separate tool')
   }
-});
-
-test('the work-tracking reminder routes writes to task-track and offers only real recorded states', () => {
-  for (const text of [source, codex]) {
-    const reminder = section(text, '### Step 3.3', '### Step 3.5');
-    assert.match(reminder, /This skill adds no tracker writer/);
-    assert.match(reminder, /Update → `[/$]task-track --mode=maintain`.*`[/$]task-track --mode=lifecycle`/);
-    assert.match(reminder, /Create → `[/$]task-track --mode=maintain` \(operation `create`; a new item starts as `draft`\)/);
-    assert.match(reminder, /concerns --root CHECKOUT/);
-    assert.match(reminder, /NEVER match by title resemblance or search the planned work/);
-    assert.match(reminder, /a path match never selects every returned item/);
-    // A pull request is built work, and the tracker's own state for that is the default the reminder offers.
-    assert.match(reminder, /the tracker has a state for exactly that: `implemented`/);
-    assert.match(reminder, /`implemented` \(the default for work this pull request delivers; proof and acceptance are still open\)/);
-    assert.match(reminder, /`implemented` is one step from `draft`, `planned`, `ready` or `in_progress` and needs only the item's captured intent/);
-    assert.match(reminder, /When `catalogue` lists no `implemented` state \(an earlier framework copy\), offer `verifying` in its place/);
-    assert.match(reminder, /NEVER offer `done`/);
-    assert.match(reminder, /Never infer assignment, readiness, proof or acceptance from the diff, commits, test results, CI or PR state/);
-    assert.match(reminder, /A refused transition or a fact the user does not supply leaves the item at its last saved state/);
-    const candidate = section(text, '## Linked work and final candidate', '### Step 1');
-    assert.match(candidate, /a new item comes only from the user's Create answer/);
-  }
-});
-
-// The state names the reminder offers must be the tracker's own lifecycle states.
-test('every state the work-tracking reminder names exists in the tracker lifecycle policy', async () => {
-  const policy = await import('../../../hooks/lib/task-tracking-policy.cjs');
-  const states = (policy.default ?? policy).STATES;
-  assert.ok(Array.isArray(states) && states.length > 0, 'The tracker policy must export its lifecycle states');
-  const step = section(source, '4. **Offer a real recorded state.**', '5. **Route the answer');
-  const listed = step.slice(step.indexOf('Read `states`'), step.indexOf('Let the user pick')).match(/`([a-z_]+)`/g).map(s => s.slice(1, -1)).filter(s => s !== 'states');
-  assert.deepEqual(listed, [...states]);
-  assert.ok(states.includes('implemented'), 'the state a pull request records must be a real lifecycle state');
-});
+})

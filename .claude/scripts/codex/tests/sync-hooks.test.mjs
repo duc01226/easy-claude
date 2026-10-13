@@ -7,7 +7,7 @@ import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 
-import { mapMatcherForCodex } from "../sync-hooks.mjs";
+import { mapMatcherForCodex, normalizeCommand, isProtocolHookPath } from "../sync-hooks.mjs";
 
 const execFileAsync = promisify(execFile);
 const thisDir = path.dirname(fileURLToPath(import.meta.url));
@@ -66,6 +66,49 @@ test("mapMatcherForCodex leaves non-file matchers, existing aliases, and empty i
 function runSync(cwd, ambient = process.env) {
   return execFileAsync(process.execPath, [syncHooksScript], { cwd, env: { ...ambient, CLAUDE_PROJECT_DIR: cwd } });
 }
+
+test('failure reminder mirrors shell preflight and reset, reports unsupported native failure, and skips the Git probe', async () => {
+  const hookPath = '.claude/hooks/failure-investigation-remind.cjs';
+  const command = `node "$CLAUDE_PROJECT_DIR"/${hookPath}`;
+  assert.equal(isProtocolHookPath(hookPath), false, 'an advisory digest must not inherit full-protocol routing');
+  for (const windows of [false, true]) {
+    const rendered = normalizeCommand(command, { windows });
+    assert.ok(rendered.includes(hookPath));
+    assert.ok(!rendered.includes('windows-git.cjs'), 'the reminder executes no Git and needs no capability probe');
+  }
+  const target = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'failure-reminder-mirror-')));
+  try {
+    const hookDir = path.join(target, '.claude/hooks');
+    await fs.mkdir(hookDir, { recursive: true });
+    // The fixture entry prints its resolved root; the generated launcher, not a
+    // duplicate launcher in this test, owns discovery on the current platform.
+    await fs.writeFile(path.join(target, hookPath), 'console.log(process.env.CLAUDE_PROJECT_DIR);\n');
+    const entry = { type: 'command', command, timeout: 3 };
+    await fs.writeFile(path.join(target, '.claude/settings.json'), JSON.stringify({ hooks: {
+      PreToolUse: [{ matcher: 'Bash|exec_command', hooks: [entry] }],
+      PostToolUseFailure: [{ matcher: '*', hooks: [entry] }],
+      SessionStart: [{ matcher: 'compact|clear', hooks: [entry] }]
+    } }));
+    await runSync(target);
+    const { hooks } = JSON.parse(await fs.readFile(path.join(target, '.codex/hooks.json'), 'utf8'));
+    assert.equal(hooks.PreToolUse.length, 1);
+    assert.equal(hooks.PreToolUse[0].matcher, 'Bash|exec_command');
+    assert.equal(hooks.SessionStart.length, 1);
+    assert.equal(hooks.SessionStart[0].matcher, 'compact|clear');
+    assert.equal(hooks.PostToolUseFailure, undefined);
+    const report = JSON.parse(await fs.readFile(path.join(target, 'tmp/hooks.sync.report.json'), 'utf8'));
+    assert.ok(report.skipped_events.some(row => row.event === 'PostToolUseFailure' && row.reason === 'unsupported-by-codex'));
+    assert.ok(report.session_start_mirrors.some(row => row.hook === hookPath));
+    const nested = path.join(target, 'nested session');
+    await fs.mkdir(nested);
+    const rendered = hooks.PreToolUse[0].hooks[0];
+    const result = await runCommand(process.platform === 'win32' ? rendered.commandWindows : rendered.command, nested);
+    assert.equal(result.code, 0, result.stderr);
+    assert.equal(normalizePathForComparison(result.stdout.trim()), normalizePathForComparison(target));
+  } finally {
+    await fs.rm(target, { recursive: true, force: true });
+  }
+});
 
 test('sync-hooks fixture overrides a competing ambient root without touching it', async () => {
   const owner = await fs.mkdtemp(path.join(os.tmpdir(), 'sync-hooks-isolation-'));

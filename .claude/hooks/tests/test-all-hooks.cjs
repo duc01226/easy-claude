@@ -784,10 +784,9 @@ async function testInitPromptGate() {
                     env: { CLAUDE_PROJECT_DIR: tmpDir }
                 }
             );
-            const decision = JSON.parse(result.stdout);
-            logResult('Schema-invalid config blocks normal work', decision.decision === 'block');
-            logResult('Block reason identifies project-init repair route', decision.reason.includes('/project-init'));
-            logResult('Block reason requires a non-empty project identity', decision.reason.includes('project.name'));
+            logResult('Schema-invalid config warns without blocking normal work', !result.stdout.includes('"decision"') && result.stdout.includes('is invalid'));
+            logResult('Warning identifies project-init repair route', result.stdout.includes('/project-init'));
+            logResult('Warning names the non-empty project identity requirement', result.stdout.includes('project.name'));
         } finally {
             cleanupTempDir(tmpDir);
         }
@@ -825,8 +824,7 @@ async function testInitPromptGate() {
         logResult('Repair route: Codex $project-init invocation passes through', result.code === 0 && result.stdout === '');
 
         const incidental = await runInvalidConfigPrompt('Implement this feature; /project-init is a later setup step.');
-        const decision = JSON.parse(incidental.stdout);
-        logResult('Incidental repair-command mention does not bypass the gate', decision.decision === 'block');
+        logResult('Incidental repair-command mention does not suppress the warning', !incidental.stdout.includes('"decision"') && incidental.stdout.includes('is invalid'));
     }
 
     // Test 4: Scan cannot bypass the required config file.
@@ -849,8 +847,7 @@ async function testInitPromptGate() {
                     env: { CLAUDE_PROJECT_DIR: tmpDir }
                 }
             );
-            const decision = JSON.parse(result.stdout);
-            logResult('Scan is blocked until required config exists', decision.decision === 'block');
+            logResult('Scan still warns that the config is invalid', !result.stdout.includes('"decision"') && result.stdout.includes('is invalid'));
         } finally {
             cleanupTempDir(tmpDir);
         }
@@ -878,8 +875,7 @@ async function testInitPromptGate() {
                     env: { CLAUDE_PROJECT_DIR: tmpDir }
                 }
             );
-            const decision = JSON.parse(result.stdout);
-            logResult('Dismiss: skip init is blocked without valid config', decision.decision === 'block');
+            logResult('Dismiss: skip init still warns without valid config', !result.stdout.includes('"decision"') && result.stdout.includes('is invalid'));
             const flagExists = fs.existsSync(path.join(tmpDir, 'tmp', 'claude-temp', '.init-dismissed'));
             logResult('Dismiss: no flag created for missing/invalid config', !flagExists);
         } finally {
@@ -913,8 +909,7 @@ async function testInitPromptGate() {
                     env: { CLAUDE_PROJECT_DIR: tmpDir }
                 }
             );
-            const decision = JSON.parse(result.stdout);
-            logResult('Dismiss: active flag cannot bypass required config', decision.decision === 'block');
+            logResult('Dismiss: active flag cannot suppress the invalid-config warning', !result.stdout.includes('"decision"') && result.stdout.includes('is invalid'));
         } finally {
             cleanupTempDir(tmpDir);
         }
@@ -949,8 +944,7 @@ async function testInitPromptGate() {
                     env: { CLAUDE_PROJECT_DIR: tmpDir }
                 }
             );
-            const decision = JSON.parse(result.stdout);
-            logResult('Dismiss: expired flag cannot bypass required config', decision.decision === 'block');
+            logResult('Dismiss: expired flag cannot suppress the invalid-config warning', !result.stdout.includes('"decision"') && result.stdout.includes('is invalid'));
         } finally {
             cleanupTempDir(tmpDir);
         }
@@ -1114,9 +1108,8 @@ async function testInitPromptGate() {
             fs.mkdirSync(srcDir, { recursive: true });
             fs.writeFileSync(path.join(docsDir, 'project-config.json'), JSON.stringify({ project: { name: '' }, modules: [] }));
             const result = await runHook('init-prompt-gate.cjs', { prompt: 'implement feature X' }, { env: { CLAUDE_PROJECT_DIR: tmpDir } });
-            const decision = JSON.parse(result.stdout);
-            logResult('Invalid config blocks before graph guidance', decision.decision === 'block');
-            logResult('Block reason is config repair (not graph setup)', decision.reason.includes('/project-config') && !decision.reason.includes('/graph-code --mode=build'));
+            logResult('Invalid config warns before graph guidance', !result.stdout.includes('"decision"') && result.stdout.includes('is invalid'));
+            logResult('Warning is config repair (not graph setup)', result.stdout.includes('/project-config') && !result.stdout.includes('/graph-code --mode=build'));
         } finally {
             cleanupTempDir(tmpDir);
         }

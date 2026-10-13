@@ -71,6 +71,24 @@ description: '[Debugging] Use when a workflow step or the user asks for performa
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:END -->
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Detailed Summary](#detailed-summary)
+- [Report-Only Mode (`--report-only`)](#report-only-mode---report-only)
+- [Phase 0: Detect Scope](#phase-0-detect-scope)
+- [Architecture-Altitude Performance Review](#architecture-altitude-performance-review)
+- [Phase 1: Discover Local Context](#phase-1-discover-local-context)
+- [Phase 2: Baseline Evidence](#phase-2-baseline-evidence)
+- [Phase 3: Serial Dimension Passes](#phase-3-serial-dimension-passes)
+- [Phase 4: Findings And Severity](#phase-4-findings-and-severity)
+- [Phase 5: Optimize Plan](#phase-5-optimize-plan)
+- [Sub-Agent Routing](#sub-agent-routing)
+- [Phase 6: Why-Review Findings Validation Gate (MANDATORY when findings exist)](#phase-6-why-review-findings-validation-gate-mandatory-when-findings-exist)
+- [Phase 7: Validated Fix + Full Performance Re-Review Loop (MANDATORY when validated findings remain)](#phase-7-validated-fix--full-performance-re-review-loop-mandatory-when-validated-findings-remain)
+- [Output](#output)
+- [Closing Reminders](#closing-reminders)
+
 ## Detailed Summary
 
 Read [Architecture-Altitude Performance Review](#architecture-altitude-performance-review) when judging a design; apply the same evidence gate before recommendations. Before recommending caching, understand query shape, indexes, pagination, batching and data volume; completion requires measured hit ratio and a bound.

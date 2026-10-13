@@ -78,15 +78,6 @@ const REFERENCE_DOC_TRIGGERS = Object.freeze({
     'skill-protocols-reference.md': 'Before running any skill — project overlays layered on it'
 });
 
-/**
- * Framework docs shipped with the portable `.claude` bundle, routed for questions about the AI
- * tooling itself. Rows render only for files that exist in the adopting project.
- */
-const FRAMEWORK_DOC_ROWS = [
-    ['How the AI framework works — hooks, skills, agents, workflows, config (or run `/project-help`)', ['.claude/docs/README.md']],
-    ['Framework rules, or why a hook blocked or warned', ['.claude/docs/development-rules.md', '.claude/docs/troubleshooting.md']]
-];
-
 // A purpose that OPENS with, or parenthesizes, an N/A marker ("N/A — …", "Backend patterns (N/A for …)").
 // Anchored so ordinary prose ("mocks are not applicable here") never hides a real doc.
 const NOT_APPLICABLE_PURPOSE = /^\s*(?:N\/A|not applicable)\b|\(\s*(?:N\/A|not applicable)\b/i;
@@ -305,6 +296,25 @@ function digestUpperBound(conventions, ordered, cap) {
 
 // How many scanned content extensions the inline rule text names before it counts the rest.
 const CONTENT_EXTENSIONS_NAMED = 6;
+
+/** Project path/document map only; execution policy belongs outside root files. */
+function buildProjectContextMap(config) {
+    const list = value => Array.isArray(value) ? value.filter(nonBlank) : [];
+    const rows = (config.contextGroups || []).flatMap(group => {
+        // The doc fields of a group, as file-conventions `docsOf` reads them: a class may declare its
+        // docs in `referenceDocs` alone.
+        const docs = [...new Set([group.patternsDoc, group.guideDoc, ...list(group.referenceDocs)].filter(nonBlank))]
+            .filter(doc => !/(?:^|[\\/])\.(?:claude|agents|codex|opencode)(?:[\\/]|$)/.test(doc));
+        if (!docs.length) return [];
+        const includes = [...list(group.pathRegexes), ...list(group.pathGlobs), ...list(group.fileNameRegexes)];
+        const excludes = [...list(group.excludePathRegexes), ...list(group.excludePathGlobs)];
+        const scope = [includes.join(', ') || group.name,
+            list(group.fileExtensions).length ? `extensions: ${group.fileExtensions.join(', ')}` : '',
+            excludes.length ? `exclude: ${excludes.join(', ')}` : ''].filter(Boolean).join('; ');
+        return [`| ${tableCell(scope)} | ${docs.map(codeCell).join(', ')} |`];
+    });
+    return rows.length ? `Read the relevant project convention before changing these files.\n\n| Files | Project reference |\n|---|---|\n${rows.join('\n')}` : null;
+}
 
 function buildGoldenRules(config, projectDir) {
     const groups = ruleBearingGroups(config);
@@ -790,6 +800,7 @@ function buildDiscoveryRows(config, projectDir, referenceRoot, routedPaths) {
     for (const doc of Array.isArray(config.referenceDocs) ? config.referenceDocs : []) {
         const filename = typeof doc?.filename === 'string' ? doc.filename.trim() : '';
         // A traversing or absolute name is invalid config (project-reference-registry.cjs rejects it); never probe it.
+        if (['skill-protocols-reference.md', 'custom-prompts-reference.md'].includes(filename)) continue;
         if (!filename || FIXED_ROUTE_DOCS.has(filename) || path.isAbsolute(filename) || /(^|[\\/])\.\.([\\/]|$)/.test(filename)) continue;
         const docPath = underRoot(referenceRoot, filename);
         if (routedPaths.has(docPath) || !existsUnder(projectDir, docPath)) continue;
@@ -816,7 +827,6 @@ function buildDiscoveryRows(config, projectDir, referenceRoot, routedPaths) {
     }
     if (hasAdr) bottom.push({ topic: 'Why the architecture or a convention is the way it is — accepted decisions and trade-offs', files: [underRoot(adrRoot, '')] });
 
-    for (const [topic, files] of FRAMEWORK_DOC_ROWS) pushRow(bottom, topic, files);
     return { top, bottom, notApplicable };
 }
 
@@ -826,7 +836,7 @@ function buildDiscoveryRows(config, projectDir, referenceRoot, routedPaths) {
  * Without `projectDir` it renders only the config-derived spec/pattern rows (the historical shape,
  * pinned byte-for-byte by TC-DOCROOT-065; a pattern doc declared N/A is omitted). With `projectDir`, which the generator always passes, it
  * adds existence-gated discovery rows: the always-on start-here docs, every selected `referenceDocs[]`
- * entry with a when-to-read trigger, the ADR root, and the framework docs.
+ * entry with a when-to-read trigger, and the ADR root. Framework navigation stays in the configuration skill.
  */
 function buildDocLookup(config, projectDir) {
     const modules = config.modules || [];
@@ -883,7 +893,7 @@ function buildDocLookup(config, projectDir) {
         ? `\n\nDeclared not applicable in \`referenceDocs\` (skip unless the project adds that stack): ${notApplicable.join(', ')}.`
         : '';
     // Never render a header-only table: say what to do instead.
-    if (allRows.length === 0) return `No project docs exist yet — run \`/project-init\` or \`/docs-manager --mode=init\` before project work.${skip}`;
+    if (allRows.length === 0) return `No project reference documents are configured or present.${skip}`;
     const intro = 'Match the question or task to a row and read that doc before answering, planning, or editing; ' +
         'every row names a file or folder that exists in this repo.';
     return `${intro}\n\n| If user prompt mentions... | Read first |\n|---|---|\n${allRows.join('\n')}${skip}`;
@@ -894,6 +904,7 @@ module.exports = {
     REDACTED_CREDENTIAL,
     renderCredentialReference,
     buildGoldenRules,
+    buildProjectContextMap,
     pathRulesDelivery,
     buildDecisionQuickRef,
     buildKeyLocations,

@@ -8,7 +8,7 @@ description: '[Project Management] Use when a workflow step or the user asks for
 
 > **Renamed:** formerly `/pbi` — now `/work-item`. The old name no longer resolves as a slash command. Modes are unchanged; the record this skill writes is a task, and `--type=pbi` is now `--type=task`.
 
-> **Work tracking:** Read [the linked work integration guide](../task-track/references/integration-guide.md) at capture, start, saved-work, verification, handoff and close-out checkpoints. Inspect exact selected owners and declared spec/task/subtask dependencies before refinement/story decisions and after their actual successful save. Retain all selected-mode interview, validation and readiness gates; diagnostic concerns never approve readiness or acceptance. Only the primary saving owner records one checkpoint with the actual inherited producer/context. Read-only review and failed saves supply no saved observation. Continue untracked; disclose partial/unavailable concerns and secondary pending reasons.
+> **Work tracking:** Keep the project's tracked work current in the same change, as its root instructions (`CLAUDE.md` or `AGENTS.md`) say. When the project uses the portable tracker (`taskTracking.mode` is `observe` or `linked`), read [the linked work integration guide](../task-track/references/integration-guide.md) at capture, start, saved-work, verification, handoff and close-out checkpoints. Inspect exact selected owners and declared spec/task/subtask dependencies before refinement/story decisions and after their actual successful save. Retain all selected-mode interview, validation and readiness gates; diagnostic concerns never approve readiness or acceptance. Only the primary saving owner records one checkpoint with the actual inherited producer/context. Read-only review and failed saves supply no saved observation. Continue untracked; disclose partial/unavailable concerns and secondary pending reasons.
 >
 > **Work record shape:** Task and story files are work records owned by `/task-track`. Read [Records another skill authors](../task-track/references/integration-guide.md#records-another-skill-authors) before a mode writes or edits one: `status: draft` on generation, no assignee, integer `priority`, labels in `priority_label`, and tracker-owned fields of a tracked record change only through `/task-track`.
 
@@ -27,6 +27,13 @@ description: '[Project Management] Use when a workflow step or the user asks for
 - **[BLOCKING]** No mode, or an unknown mode value, prints the table below and stops. Never infer a mode from the artifact, the flags or the conversation.
 - **[BLOCKING]** Read the selected mode's reference in full FIRST; its rules, gates and reminders are the only instructions for the invocation — why: each mode's gates (scope gate, validated-fix loop, DoR criteria) are not restated here.
 - Keep mode-specific flags (`--type`, `--reuse`, `--explore`, `--source`); ignore flags belonging to another mode. Run exactly one mode; offer follow-ups through its Next Steps and let the user decide. Resolve artifact/spec/design roots from `docs/project-config.json` at runtime.
+
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Mode Dispatch](#mode-dispatch)
+- [The `--reuse` contract](#the---reuse-contract)
+- [Closing Reminders](#closing-reminders)
 
 ## Mode Dispatch
 

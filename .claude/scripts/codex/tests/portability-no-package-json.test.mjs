@@ -447,6 +447,8 @@ test('PORT-007 export-claude payload contains the full pipeline and no package.j
     assert.ok(await exists(portableIgnore), 'exported payload must include the nested portable .gitignore');
     assert.match(await fs.readFile(portableIgnore, 'utf8'), /^\/\.ck\.local\.json\s*$/m,
         'portable .gitignore must explicitly protect the developer-local routing override');
+    assert.match(await fs.readFile(portableIgnore, 'utf8'), /^\/worktrees\/\s*$/m,
+        'portable framework exports must exclude developer-local repository checkouts');
 
     const initialized = await run('git', ['init', '--quiet'], { cwd: defaultTarget });
     assert.equal(initialized.code, 0, `fresh target Git initialization must succeed: ${initialized.stderr}`);
@@ -456,6 +458,10 @@ test('PORT-007 export-claude payload contains the full pipeline and no package.j
     assert.equal(ignored.code, 0, 'copied .ck.local.json must be ignored in a fresh target repository');
     assert.match(ignored.stdout.replaceAll('\\', '/'), /\.claude\/\.gitignore:\d+:\/\.ck\.local\.json/,
         'the copied nested .gitignore must own the ignore decision');
+    const ignoredWorktree = await run('git', ['check-ignore', '-v', '--', '.claude/worktrees/local-checkout/README.md'], { cwd: defaultTarget });
+    assert.equal(ignoredWorktree.code, 0, 'a local checkout must be ignored in a fresh target repository');
+    assert.match(ignoredWorktree.stdout.replaceAll('\\', '/'), /\.claude\/\.gitignore:\d+:\/worktrees\//,
+        'the portable ignore owner must exclude local worktrees without a project-specific root rule');
 });
 
 // ── PORT-015 — the copied runner owns CLAUDE.md preflight before mirror sync ─────────

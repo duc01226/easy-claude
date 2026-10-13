@@ -133,12 +133,13 @@ test('disposable generated-artifact policy is one universal protocol, delivered 
     }
 });
 
-test('task-graph analysis precedes execution in one universal protocol that defers parallel limits to the parallel protocol (TC-PROMPT-009)', async () => {
-    const [template, planning, parallel, shared] = await Promise.all([
+test('main-agent work is preferred while task-graph analysis and parallel limits retain their owners (TC-PROMPT-009)', async () => {
+    const [template, planning, parallel, shared, concise] = await Promise.all([
         read('.claude/skills/ai-context-refresh/references/claude-md-template.md'),
         read('.claude/skills/shared/protocols/task-planning-rules.md'),
         read('.claude/skills/shared/protocols/workflow-step-advancement.md'),
         read('.claude/skills/shared/sync-inline-versions.md'),
+        read('.claude/skills/shared/protocols/concise-agent-core.md'),
     ]);
     const anchor = /Analyze the task graph BEFORE executing/g;
 
@@ -146,10 +147,14 @@ test('task-graph analysis precedes execution in one universal protocol that defe
     assert.equal((template.match(anchor) || []).length, 0, 'the root template carries no copy of it');
     assert.match(planning, /dependencies[\s\S]*write targets[\s\S]*waves[\s\S]*\`SEQ\`/, 'dependency to wave ordering');
     assert.match(planning, /re-run the analysis/i, 're-analysis when tasks are added');
-    assert.match(planning, /Serial execution of independent tasks is a defect/, 'serial default is a defect');
+    for (const text of [planning, concise]) {
+        assert.match(text, /Prefer work in the main agent\./, 'both prompt profiles prefer the main agent');
+        assert.match(text, /Use a sub-agent only when authorized and there is a strong reason/, 'delegation requires authority and a reason');
+        assert.doesNotMatch(text, /Serial execution of independent tasks is a defect/, 'independent tasks do not compel delegation');
+    }
     // No second copy of the parallel-dispatch contract: its limits stay owned by the parallel protocol.
     assert.doesNotMatch(planning, /Do NOT parallelize:|Never parallelize shared writers/, 'exclusions are referenced, not restated');
-    assert.match(planning, /under the Workflow Step Advancement & Parallel Phases limits/, 'the rule defers to the parallel protocol');
+    assert.match(planning, /follow the Workflow Step Advancement & Parallel Phases limits/, 'the rule defers to the parallel protocol');
     assert.match(parallel, /Declare waves before work/, 'the parallel protocol owns the wave-declaration contract');
     assert.match(parallel, /Never parallelize shared writers/, 'the parallel protocol owns the exclusions');
     // The projection files are projections: the canonical file holds the same rule text.

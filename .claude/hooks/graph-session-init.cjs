@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 'use strict';
+
+if ((require.main === module || !require.main) && require('./lib/framework-runtime.cjs').skipHook(module)) return;
+
 /**
  * SessionStart hook — check graph availability and keep graph state fresh.
  *

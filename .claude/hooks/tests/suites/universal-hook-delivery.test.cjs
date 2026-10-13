@@ -189,6 +189,16 @@ const samePath = (a, b) => (process.platform === 'win32' ? path.resolve(a).toLow
 
 const tests = [
     {
+        name: 'runtime modes suppress relevant universal delivery before ledger writes and reenable it',
+        fn: () => withFixture(async fx => {
+            for (const mode of ['off', 'quiet']) {
+                assertAllSilent(await runAllBins(fx, prompt(fx), { env: { CK_FRAMEWORK_MODE: mode } }), mode);
+                assert.equal(fs.existsSync(fx.store), false, `${mode}: no delivery ledger`);
+            }
+            assertAllDelivered(await runAllBins(fx, prompt(fx), { env: { CK_FRAMEWORK_MODE: 'on' } }), 'reenabled');
+        })
+    },
+    {
         name: 'TC-PDL-085 each bin has a bare three-line entry file whose number is a literal, and no other bin entry exists',
         fn: () => {
             // Given the authored layout of the universal group
@@ -517,7 +527,7 @@ const tests = [
             const skewTranscript = path.join(fx.temp, 'skew.jsonl');
             fs.writeFileSync(skewTranscript, '{"type":"user","message":{"content":"start"}}\n');
             const skew = { session_id: 's-skew', transcript_path: skewTranscript };
-            const runWithClock = (number, input, now) => universalLib.runHook(number, { input, projectRoot: fx.project, now, write: (text, done) => done(true) });
+            const runWithClock = (number, input, now) => universalLib.runHook(number, { input, projectRoot: fx.project, homeDir: fx.temp, now, write: (text, done) => done(true) });
             const t0 = Date.now();
             for (const number of BIN_NUMBERS) assert.ok(await runWithClock(number, prompt(fx, skew), t0 + number), `skewed clocks: bin ${number} first prompt`);
             fs.appendFileSync(skewTranscript, `${JSON.stringify({ type: 'system', subtype: 'compact_boundary' })}\n`);
@@ -562,7 +572,7 @@ const tests = [
             const equal = scenario('equal-clock');
             const sameTime = Date.now();
             const runAt = (input, now) => universalLib.runHook(1, {
-                input, projectRoot: fx.project, now, write: (text, done) => done(true)
+                input, projectRoot: fx.project, homeDir: fx.temp, now, write: (text, done) => done(true)
             });
             assert.ok(await runAt(sessionStart(fx, 'compact', equal.extra), sameTime), 'equal clock: compaction delivered');
             equal.boundaryAt(sameTime);

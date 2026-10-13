@@ -312,6 +312,162 @@ test('TC-HARNESS-010: bounded nesting property and boundary counter-cases', t =>
   }
 });
 
+// Contents list of long skill files: the first 100 lines are what a preview shows and what a host
+// keeps after compaction, so a file over 100 lines must list its contents there.
+const sized = (total, newline = '\n', extra = []) =>
+  [...header, '## Quick Summary', ...extra, ...Array(total - 5 - extra.length).fill('Body')].join(newline) + newline;
+const contentsWarning = /\[WARN\] (?:[\w./-]+: )?Contents list must appear in the first 100 lines/;
+
+test('TC-HARNESS-010: a long skill file without a contents list warns without failing or rewriting', t => {
+  const result = fixture(t).run(sized(140), ['--fix']);
+  assert.equal(result.status, 0, result.stdout);
+  assert.match(result.stdout, /\[WARN\] Contents list must appear in the first 100 lines of a file over 100 lines \(missing\)/);
+  assert.match(result.stdout, /0 errors, 1 warnings/);
+  assert.match(result.stdout, /Fixes applied: 0/);
+});
+
+test('TC-HARNESS-010: the contents rule starts above 100 physical lines, LF and CRLF', t => {
+  const f = fixture(t);
+  for (const newline of ['\n', '\r\n']) {
+    for (const total of [99, 100, 101, 102]) {
+      const result = f.run(sized(total, newline));
+      assert.equal(contentsWarning.test(result.stdout), total > 100, `${total} lines`);
+    }
+  }
+});
+
+test('TC-HARNESS-010: a contents heading counts only inside the first 100 lines', t => {
+  const f = fixture(t);
+  assert.doesNotMatch(f.run(sized(140, '\n', ['## Contents', '- [Quick Summary](#quick-summary)'])).stdout, contentsWarning);
+  const atLine = line => [...header, '## Quick Summary', ...Array(line - 6).fill('Body'), '## Contents', '- [Quick Summary](#quick-summary)', ...Array(40).fill('Body')].join('\n') + '\n';
+  assert.doesNotMatch(f.run(atLine(100)).stdout, /Contents list/);
+  assert.match(f.run(atLine(101)).stdout, /Contents list must appear.*\(found at line 101\)/);
+});
+
+test('TC-HARNESS-010: a fenced contents heading is sample output, never the list', t => {
+  assert.match(fixture(t).run(sized(140, '\n', ['```markdown', '## Contents', '```'])).stdout, contentsWarning);
+});
+
+// One linked entry per section, flat, in document order: the list an agent reads is complete.
+const sections = names => names.flatMap(name => [`## ${name}`, 'Body']);
+const doc = (list, names, filler = 120) => [...header, '## Quick Summary', 'Body', '## Contents', '', ...list, '', ...sections(names), ...Array(filler).fill('Body')].join('\n') + '\n';
+
+test('TC-HARNESS-010: a contents list that omits, misnames or empties an entry is reported', t => {
+  const f = fixture(t);
+  const stale = /\[WARN\] Contents list does not match the headings/;
+  const full = ['- [Quick Summary](#quick-summary)', '- [Alpha](#alpha)', '- [Beta](#beta)'];
+  assert.doesNotMatch(f.run(doc(full, ['Alpha', 'Beta'])).stdout, /Contents list/);
+  assert.match(f.run(doc(full.slice(0, 2), ['Alpha', 'Beta'])).stdout, stale, 'a section added without its entry');
+  assert.match(f.run(doc(full, ['Alpha', 'Gamma'])).stdout, stale, 'a renamed section leaves a dead entry');
+  assert.match(f.run(doc([], ['Alpha', 'Beta'])).stdout, stale, 'an empty list');
+  assert.match(f.run(doc(['- Quick Summary', '- Alpha', '- Beta'], ['Alpha', 'Beta'])).stdout, stale, 'entries without links');
+  assert.match(f.run(doc(full, ['Alpha', 'Beta'], 2)).stdout, /Total issues: 0/, 'a short file with a correct list is clean');
+  assert.match(f.run(doc(full.slice(0, 2), ['Alpha', 'Beta'], 2)).stdout, stale, 'a short file is still held to the list it carries');
+});
+
+test('TC-HARNESS-010: entries follow the heading structure: both top levels when a file has several, the next level when sections are few', t => {
+  const f = fixture(t);
+  const body = Array(120).fill('Body');
+  const lateTitle = [...header, '## Quick Summary', 'Body', '## Contents', '',
+    '- [Quick Summary](#quick-summary)', '- [Part One](#part-one)', '- [Inside](#inside)', '- [Part Two](#part-two)', '- [Closing](#closing)', '',
+    '# Part One', '## Inside', '### Detail', '# Part Two', '## Closing', ...body].join('\n') + '\n';
+  assert.doesNotMatch(f.run(lateTitle).stdout, /Contents list/, 'first and second level, flat, deeper levels left out');
+  const few = [...header, '## Quick Summary', 'Body', '## Contents', '',
+    '- [Quick Summary](#quick-summary)', '- [Only](#only)', '- [Step A](#step-a)', '- [Step B](#step-b)', '',
+    '## Only', '### Step A', '### Step B', ...body].join('\n') + '\n';
+  assert.doesNotMatch(f.run(few).stdout, /Contents list/, 'two sections bring their next level in');
+  const repeated = [...header, '## Quick Summary', 'Body', '## Contents', '',
+    '- [Quick Summary](#quick-summary)', '- [Notes](#notes)', '- [`--flag` & more](#--flag--more)', '- [Notes](#notes-1)', '',
+    '## Notes', '## `--flag` & more', '## Notes', ...body].join('\n') + '\n';
+  assert.doesNotMatch(f.run(repeated).stdout, /Contents list/, 'repeated headings are numbered and inline code is kept');
+});
+
+test('TC-HARNESS-010: --fix-contents writes a missing list after Quick Summary, repairs a stale one, and is idempotent', t => {
+  const f = fixture(t);
+  const target = path.join(f.root, 'skills', 'SKILL.md');
+  const reference = path.join(f.root, 'skills', 'references', 'long.md');
+  fs.mkdirSync(path.dirname(reference), { recursive: true });
+  const write = () => spawnSync(process.execPath, [path.join(f.root, 'skill-creator', 'scripts', 'validate-skills.cjs'), '--path', path.join(f.root, 'skills'), '--fix-contents'],
+    { cwd: f.root, env: { CLAUDE_PROJECT_DIR: f.root, PATH: process.env.PATH || '' }, encoding: 'utf8', timeout: 10000 });
+  for (const newline of ['\n', '\r\n']) {
+    fs.writeFileSync(target, [...header, '## Quick Summary', 'Body', '<!-- BLOCK:START -->', '## Alpha', '<!-- BLOCK:END -->', '## Beta', ...Array(120).fill('Body')].join(newline) + newline);
+    fs.writeFileSync(reference, ['# Title', '', 'Intro', '', '## Contents', '', '- [Gone](#gone)', '', '## One', '## Two', '## Three', ...Array(120).fill('Body')].join(newline) + newline);
+    const first = write();
+    assert.equal(first.status, 0, first.stdout + first.stderr);
+    assert.match(first.stdout, /Contents lists written: 2/);
+    const entry = fs.readFileSync(target, 'utf8');
+    assert.equal(entry.includes('\r\n'), newline === '\r\n', 'line endings are kept');
+    const lines = entry.split(/\r?\n/);
+    const at = lines.indexOf('## Contents');
+    assert.ok(at > lines.indexOf('## Quick Summary') && at < lines.indexOf('<!-- BLOCK:START -->'), 'after Quick Summary and never inside a marker block');
+    assert.deepEqual(lines.slice(at + 2, at + 5), ['- [Quick Summary](#quick-summary)', '- [Alpha](#alpha)', '- [Beta](#beta)']);
+    assert.match(fs.readFileSync(reference, 'utf8'), /## Contents\r?\n\r?\n- \[One\]\(#one\)\r?\n- \[Two\]\(#two\)\r?\n- \[Three\]\(#three\)\r?\n\r?\n## One/);
+    const second = write();
+    assert.match(second.stdout, /Contents lists written: 0/);
+    assert.doesNotMatch(second.stdout, /\[WARN\].*Contents list/);
+    assert.equal(fs.readFileSync(target, 'utf8'), entry, 'a second run changes nothing');
+  }
+});
+
+test('TC-HARNESS-010: bundled Markdown follows the contents rule and vendored packages are not inspected', t => {
+  const f = fixture(t);
+  const long = Array(140).fill('Reference line').join('\n') + '\n';
+  const write = (rel, content) => {
+    const target = path.join(f.root, 'skills', rel);
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(target, content);
+  };
+  write('references/long.md', long);
+  write('references/indexed.md', `# Title\n\n## Contents\n\n- [Part](#part)\n\n## Part\n${long}`);
+  write('references/short.md', 'Short reference\n');
+  write('node_modules/vendored/README.md', long);
+  const result = f.run(skill(['Body']));
+  assert.equal(result.status, 0, result.stdout);
+  assert.match(result.stdout, /\[WARN\] references\/long\.md: Contents list must appear/);
+  assert.doesNotMatch(result.stdout, /indexed\.md|short\.md|node_modules/);
+  assert.match(result.stdout, /0 errors, 1 warnings/);
+});
+
+test('TC-HARNESS-010: bundled contents inspect regular files and report unsupported entries without reading them', t => {
+  // A directory-entry seam covers Windows without requiring permission to create symlinks or a FIFO.
+  const source = fs.readFileSync(script, 'utf8');
+  const marker = "const path = require('path');";
+  const shim = `
+const actualReaddir = fs.readdirSync;
+const actualReadFile = fs.readFileSync;
+const unsupportedNames = ['outside.md', 'dangling.md', 'pipe.md'];
+fs.readdirSync = (dir, options) => {
+  const entries = actualReaddir(dir, options);
+  return options?.withFileTypes && path.basename(dir) === 'skills'
+    ? entries.concat(unsupportedNames.map(name => ({ name, isDirectory: () => false, isFile: () => false })))
+    : entries;
+};
+fs.readFileSync = (file, ...args) => {
+  if (unsupportedNames.includes(path.basename(String(file)))) throw new Error('unsupported entry must never be read');
+  return actualReadFile(file, ...args);
+};
+`;
+  assert.ok(source.includes(marker), 'portable CLI seam must exist');
+  const f = fixture(t, source.replace(marker, marker + shim));
+  fs.writeFileSync(path.join(f.root, 'skills', 'regular.md'), Array(140).fill('Regular reference').join('\n'));
+  const result = f.run(skill(['Body']));
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  for (const name of ['outside.md', 'dangling.md', 'pipe.md']) {
+    assert.ok(result.stdout.includes(`${name}: Contents not inspected (non-regular Markdown entry)`), name);
+  }
+  assert.match(result.stdout, /regular\.md: Contents list must appear/);
+  assert.match(result.stdout, /--- Summary ---/);
+  assert.match(result.stdout, /0 errors, 4 warnings/);
+});
+
+test('TC-HARNESS-010: removing the contents check is killed by the long-file oracle', t => {
+  const source = fs.readFileSync(script, 'utf8');
+  const mutant = source.replace('validateContents(filePath, content, result);', '/* seeded mutant: contents ignored */');
+  assert.notEqual(mutant, source, 'mutation site must exist');
+  assert.doesNotMatch(fixture(t, mutant).run(sized(140)).stdout, contentsWarning);
+  assert.match(fixture(t).run(sized(140)).stdout, contentsWarning);
+});
+
 test('TC-HARNESS-010: ignored-body semantic mutant is killed by the defect oracle', t => {
   const source = fs.readFileSync(script, 'utf8');
   // Remove only the body-validation call in an isolated copy; schema/CLI remain live.

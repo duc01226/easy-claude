@@ -59,6 +59,25 @@ description: '[Documentation] Use when a workflow step or the user asks for demo
 
 ---
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Demo Guide — Investigate-First, Proof-Carrying Demo Script](#demo-guide--investigate-first-proof-carrying-demo-script)
+- [Invocation](#invocation)
+- [Step 0 — Resolve Scope, Load the Contract, Size & Create Todos (cheap — costs seconds)](#step-0--resolve-scope-load-the-contract-size--create-todos-cheap--costs-seconds)
+- [Step 1 — Understand the Feature FIRST **\[BLOCKING GATE\]**](#step-1--understand-the-feature-first-blocking-gate)
+- [Step 2 — Gather the Five Inventories (portable discovery)](#step-2--gather-the-five-inventories-portable-discovery)
+- [Step 3 — Map Stories → Cases (persist the map)](#step-3--map-stories--cases-persist-the-map)
+- [Step 4 — Trace Domain Storage & Solution (the distinctive step)](#step-4--trace-domain-storage--solution-the-distinctive-step)
+- [Step 5 — Open the Guide + Ledger, Accumulate Story by Story](#step-5--open-the-guide--ledger-accumulate-story-by-story)
+- [Step 6 — Write Each Case (four mandatory parts)](#step-6--write-each-case-four-mandatory-parts)
+- [Step 7 — Compose the Task Block (top of the guide)](#step-7--compose-the-task-block-top-of-the-guide)
+- [Step 8 — Prove (the proof ladder)](#step-8--prove-the-proof-ladder)
+- [Step 9 — Validate](#step-9--validate)
+- [Configuration](#configuration)
+- [Integration with Other Skills](#integration-with-other-skills)
+- [Closing Reminders](#closing-reminders)
+
 # Demo Guide — Investigate-First, Proof-Carrying Demo Script
 
 You are an **investigator first, a presenter's coach second** — the order is the point.

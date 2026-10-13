@@ -24,6 +24,15 @@ description: '[Documentation] Use when refreshing every selected, evidence-appli
 - Keep project-init-owned lessons/index inputs separate and custom docs manual unless explicitly `scanTarget: "generic"`.
 - Write reference docs only; broader setup and graph work have separate owners. Scan only evidenced capabilities and exact outputs; clear staleness only after verification.
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [When to Use or Skip](#when-to-use-or-skip)
+- [Execution](#execution)
+- [Optional Graph Refresh](#optional-graph-refresh)
+- [Summary Output](#summary-output)
+- [Closing Reminders](#closing-reminders)
+
 ## When to Use or Skip
 
 Use for a reference-doc staleness gate, initial reference population in a content-bearing project, periodic refresh after significant changes, or an explicit `/scan-all` request. First-time project setup belongs to `/docs-manager --mode=init`.

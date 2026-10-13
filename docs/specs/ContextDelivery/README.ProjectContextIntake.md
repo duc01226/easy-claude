@@ -5,7 +5,7 @@ feature_code: 'PCI'
 entities: ['ProjectSettings', 'NoticeRecord']
 status: draft
 owner: 'Framework maintainers'
-last_updated: '2026-10-08'
+last_updated: '2026-10-12'
 scope_mode: FRAMEWORK-LIBRARY
 ---
 
@@ -21,7 +21,7 @@ scope_mode: FRAMEWORK-LIBRARY
 
 ## 1. Overview
 
-A project can use the assistant without recording project settings. Ordinary work then proceeds using repository evidence, with an occasional optional invitation to record those facts. If the project author records settings that cannot be accepted, ordinary work waits for their repair; the assistant must not silently replace declared facts with assumptions. An explicitly requested repair remains available. This capability owns that intake choice, including relocated settings, and the boundary before optional project-context setup guidance.
+A project can use the assistant without recording project settings. Ordinary work then proceeds using repository evidence, with an occasional optional invitation to record those facts. If the project author records settings that cannot be accepted, ordinary work proceeds with a warning; the assistant treats their facts as unverified and derives needed facts from independent repository evidence. An explicitly requested repair remains available. This capability owns that intake choice, including relocated settings, and the boundary before optional project-context setup guidance.
 
 ## 2. Glossary
 
@@ -47,12 +47,14 @@ As a developer adopting the assistant, I want ordinary work to proceed with or w
 
 - **AC-PCI-07:** Given accepted settings and old project references, when I submit ordinary work, then refresh guidance offers available actions for all references or one selected reference; unavailable legacy actions are not suggested. **BR-PCI-04**.
 
-### US-PCI-02: Repair declared facts before ordinary work
+### US-PCI-02: Continue work while rejected facts remain unverified
 
 As a project maintainer, I want invalid recorded settings to be explained and repair actions to remain accessible, so the assistant does not work from rejected facts.
 
-- **AC-PCI-05:** Given invalid settings, when I submit ordinary work, then the request waits and guidance names the settings location and available validation errors; dismissal of optional setup does not waive this requirement. **BR-PCI-02**.
-- **AC-PCI-06:** Given invalid settings, when I explicitly invoke one offered repair action at the start of the request, then the repair proceeds; mentioning a repair action elsewhere or invoking a different action with a similar name still waits. **BR-PCI-02**.
+- **AC-PCI-05:** Given invalid settings, when I submit ordinary work, then work proceeds with guidance naming the settings location and available validation errors, excluding rejected facts and directing independent evidence discovery; dismissal of optional setup does not suppress this warning. **BR-PCI-02**.
+- **AC-PCI-06:** Given invalid settings, when I explicitly invoke one offered repair action at the start of the request, then the repair proceeds without a redundant warning; incidental mentions and similar names retain the warning while ordinary work remains allowed. **BR-PCI-02**.
+
+- **AC-PCI-08:** Given an optional work-tracking declaration uses a newer vocabulary, when project facts are read, then only that section's validation findings become warnings, unrelated valid facts remain available, and tracking stays unavailable; invalid findings outside that section still reject the facts view. **BR-PCI-05**.
 
 ## 4. Business Rules
 
@@ -69,15 +71,15 @@ As a project maintainer, I want invalid recorded settings to be explained and re
 
 **Task-scoped discovery:** After accepting the entire recorded settings, a reader may request the discovery inputs and named sections needed for the task. The view preserves configured reference selection, including the difference between absent selection and an explicitly empty selection, and names other available sections. It never validates only the selected sections. Missing settings remain supported; rejected settings and unknown requested sections return an error without a misleading partial facts view. Editing settings requires the full source.
 
-### BR-PCI-02: Rejected declared facts require exact repair [HARD]
+### BR-PCI-02: Rejected declared facts stay unverified while work proceeds [HARD]
 
 | Trigger | Rule | Failure outcome |
 |---|---|---|
-| Settings exist but are rejected | Wait for repair; name the location and first available validation errors | Request is blocked with actionable settings guidance |
-| A repair action is explicitly invoked first | Permit its exact name, ignoring letter case and leading whitespace, followed by end-of-request or whitespace before arguments | Different names and incidental mentions do not permit ordinary work |
-| Optional setup is dismissed | Keep rejected settings authoritative until repaired or removed | Ordinary work still waits |
+| Settings exist but are rejected or cannot be verified | Allow work; name the location and first available validation errors, exclude rejected facts and derive needed facts from independent repository evidence | Warn and offer repair once, never as a precondition for work |
+| A repair action is explicitly invoked first | Suppress redundant guidance for its exact name, ignoring letter case and leading whitespace, followed by end-of-request or whitespace before arguments | Different names and incidental mentions retain the warning; work still proceeds |
+| Optional setup is dismissed | Continue warning that rejected facts cannot be relied on | Work proceeds using independent evidence |
 
-**Invariant:** For ALL requests with invalid recorded settings, only an explicit first-token invocation of one of the three offered repair actions proceeds; ordinary requests, similar names and incidental mentions wait.
+**Invariant:** For ALL requests with invalid or unverifiable recorded settings, work proceeds without treating rejected sections as project facts. Only an explicit first-token invocation of an offered repair action suppresses the redundant warning; repair is never a precondition for ordinary work.
 
 [Source: rule/framework.contextdelivery/ExactConfigRepair]
 
@@ -92,6 +94,12 @@ The optional invitation names the configured settings location, explains reposit
 When old project references are reported before ordinary project work, offer both the available all-reference refresh action and the available single-reference refresh action with an explicit target. Preserve specific target suggestions supplied by the freshness assessment. Do not suggest unavailable legacy actions. A reference the project author declares not applicable is not assessed for freshness and is never reported as old. Guidance remains advisory and existing dismissal rules remain in effect. SOFT because this invitation guides context refresh without changing data or access rights.
 
 [Source: rule/framework.contextdelivery/StaleReferenceGuidance]
+
+### BR-PCI-05: Unknown optional tracking vocabulary does not invalidate unrelated facts [HARD]
+
+For ALL recorded settings whose optional work-tracking vocabulary is a safe whole-number version newer than the supported one, defer only that section's validation findings to warnings. Unrelated valid project facts remain available, but the work tracker continues to refuse the unsupported declaration. Known, earlier or malformed versions retain normal validation, and every invalid finding outside the tracking section remains an error. This is a narrow forward-compatibility exception, never permission to use unsupported tracking facts.
+
+[Source: rule/framework.contextdelivery/FutureTrackingAdmission]
 
 ## 5. Domain Model
 
@@ -122,10 +130,10 @@ No additional entity invariants or business lifecycle transitions are introduced
 1. A developer submits a request.
 2. Intake evaluates recorded settings at the configured location.
 3. Missing settings: offer the bounded optional reminder, then allow the request using evidence.
-4. Rejected settings: allow an explicit exact repair action; otherwise explain rejection and wait.
+4. Rejected or unverifiable settings: allow work, explain rejection and independent evidence fallback, and offer optional repair once. An explicit exact repair request proceeds without redundant guidance.
 5. Accepted settings: allow the request and retain existing optional context-setup guidance where applicable.
 
-Example: a developer adopts the assistant in a content-bearing project without recorded facts. The first request sees an optional reminder; a second request within a day proceeds quietly. Recording rejected facts changes the next ordinary request to a repair-required outcome.
+Example: a developer adopts the assistant in a content-bearing project without recorded facts. The first request sees an optional reminder; a second request within a day proceeds quietly. Recording rejected facts changes the next ordinary request to a warning and independent-evidence outcome.
 
 No graphical view or navigation surface is owned here; outcomes appear in the assistant conversation.
 
@@ -133,12 +141,12 @@ No graphical view or navigation surface is owned here; outcomes appear in the as
 
 | Role | Ordinary request with missing/accepted settings | Ordinary request with invalid settings | Exact repair request with invalid settings |
 |---|---|---|---|
-| Developer / project maintainer | Allowed | Wait for repair | Allowed |
-| Assistant | Follow evidence or accepted facts | Explain rejection; do not substitute facts | Perform the explicitly requested repair |
+| Developer / project maintainer | Allowed | Allowed with warning | Allowed |
+| Assistant | Follow evidence or accepted facts | Explain rejection; derive needed facts independently | Perform the explicitly requested repair |
 
 ## 8. Test Specifications
 
-Test summary: 10 cases — 1 core preservation, 1 repair-access preservation, 3 validation/notice, 2 refresh workflow, 1 rejection boundary, 2 properties. Property domains cover state-transition eligibility; arithmetic, conservation, inverse and commutativity classes are inapplicable to this read-only intake choice.
+Test summary: 11 cases — 1 core preservation, 1 repair-access preservation, 4 validation/notice, 2 refresh workflow, 1 rejection boundary, 2 properties. Property domains cover state-transition eligibility; arithmetic, conservation, inverse and commutativity classes are inapplicable to this read-only intake choice.
 
 ### Core preservation
 
@@ -244,10 +252,10 @@ Then the portable-default optional invitation appears again without automatic se
 **CoveredBy:** `.claude/hooks/tests/suites/init-prompt-gate.test.cjs::[init-prompt-gate] TC-PCI-012 missing-config notice expires after one day`
 **Status:** Tested
 
-#### TC-PCI-013: Invalid facts remain authoritative until repair [P1]
+#### TC-PCI-013: Invalid facts warn without blocking ordinary work [P1]
 
 **Objective:** Protect BR-PCI-02 through the observable intake outcome.
-**Business Intent / Invariant Guarded:** The request waits with the configured location and available validation errors.
+**Business Intent / Invariant Guarded:** Work proceeds with the configured location and available validation errors, rejected facts excluded, independent evidence discovery and optional repair guidance.
 **Preconditions:** Invalid recorded settings, including an unreadable or malformed record.
 **Real-World Reachability:** A maintainer records incomplete or damaged settings and may previously have dismissed optional setup. These requests follow completed fixture preparation; no timing race or readiness delay is assumed.
 **Demo Flow:** Arrange the stated project facts, submit the described request, and observe guidance or permission.
@@ -255,7 +263,7 @@ Then the portable-default optional invitation appears again without automatic se
 ```gherkin
 Given invalid recorded settings, including an unreadable or malformed record
 When the developer requests ordinary work or dismisses optional setup
-Then the request waits with the configured location and available validation errors
+Then work proceeds with the configured location and available validation errors, rejected facts excluded, independent evidence discovery and optional repair guidance
 ```
 
 **Expected Result:** The conversation shows the stated guidance or permission; recorded project facts are unchanged. Navigation is inapplicable because there is no graphical view.
@@ -265,7 +273,7 @@ Then the request waits with the configured location and available validation err
 **Edge Cases:** A relocated invalid record cannot be replaced by default facts.
 **Evidence:** `[Source: rule/framework.contextdelivery/InvalidSettings]`
 **Related Behaviors:** `operation/framework.contextdelivery/ProjectContextIntake`, `test/framework.contextdelivery/ProjectContextIntake`
-**CoveredBy:** `.claude/hooks/tests/suites/init-prompt-gate.test.cjs::[init-prompt-gate] TC-PCI-013 invalid custom config blocks with its path and schema errors`, `.claude/hooks/tests/suites/init-prompt-gate.test.cjs::[init-prompt-gate] TC-PCI-013 malformed or unreadable config fails closed`, `.claude/hooks/tests/suites/init-prompt-gate.test.cjs::[init-prompt-gate] TC-PCI-013 invalid config ignores setup dismissals`
+**CoveredBy:** `.claude/hooks/tests/suites/init-prompt-gate.test.cjs::[init-prompt-gate] TC-PCI-013 invalid custom config warns with its path and schema errors without blocking`, `.claude/hooks/tests/suites/init-prompt-gate.test.cjs::[init-prompt-gate] TC-PCI-013 malformed or unreadable config warns without blocking`, `.claude/hooks/tests/suites/init-prompt-gate.test.cjs::[init-prompt-gate] TC-PCI-013 invalid config warning ignores setup dismissals`
 **Status:** Tested
 
 ### Refresh workflow
@@ -322,10 +330,10 @@ And a purpose that only mentions the phrase in passing is still assessed
 
 ### Rejection boundaries
 
-#### TC-PCI-051: Similar repair names do not grant access [P1]
+#### TC-PCI-051: Similar repair names do not suppress the warning [P1]
 
 **Objective:** Protect BR-PCI-02 through the observable intake outcome.
-**Business Intent / Invariant Guarded:** The request still waits for exact repair.
+**Business Intent / Invariant Guarded:** The warning remains and work proceeds using independent evidence.
 **Preconditions:** Invalid recorded settings.
 **Real-World Reachability:** A developer types a repair-like action name incorrectly, or mentions a repair while asking for unrelated work. These requests follow completed fixture preparation; no timing race or readiness delay is assumed.
 **Demo Flow:** Arrange the stated project facts, submit the described request, and observe guidance or permission.
@@ -333,17 +341,17 @@ And a purpose that only mentions the phrase in passing is still assessed
 ```gherkin
 Given invalid recorded settings
 When the developer invokes a similar but different name or mentions repair later in the request
-Then the request still waits for exact repair
+Then the warning remains and work proceeds using independent evidence
 ```
 
 **Expected Result:** The conversation shows the stated guidance or permission; recorded project facts are unchanged. Navigation is inapplicable because there is no graphical view.
 **Acceptance Criteria:** Success is the stated outcome; failure is any contrary permission or setup guidance.
 **Test Data:** suffixes punctuation, hyphen, underscore, slash or digit; incidental mentions.
 
-**Edge Cases:** A complete repair name followed by whitespace is accepted instead.
+**Edge Cases:** A complete repair name followed by whitespace suppresses the redundant warning instead.
 **Evidence:** `[Source: rule/framework.contextdelivery/ExactConfigRepair]`
 **Related Behaviors:** `operation/framework.contextdelivery/ProjectContextIntake`, `test/framework.contextdelivery/ProjectContextIntake`
-**CoveredBy:** `.claude/hooks/tests/suites/init-prompt-gate.test.cjs::[init-prompt-gate] TC-PCI-051 repair prefixes and incidental mentions cannot bypass invalid config`
+**CoveredBy:** `.claude/hooks/tests/suites/init-prompt-gate.test.cjs::[init-prompt-gate] TC-PCI-051 repair prefixes and incidental mentions cannot suppress the invalid-config warning`
 **Status:** Tested
 
 ### Invariant / Property
@@ -369,19 +377,19 @@ Then work proceeds without config-dependent setup guidance
 ```yaml
 inputDomain: "ordinary requests with missing settings, default or relocated location, content present and old freshness notice absent or present"
 invariant: "for ALL inputs in this domain, work proceeds with no config-dependent optional setup directives"
-boundaryCounterCase: "settings present but invalid → ordinary work waits for repair"
+boundaryCounterCase: "settings present but invalid → work proceeds with an invalid-facts warning instead of missing-settings guidance"
 ```
 
-**Edge Cases:** Present invalid settings are outside this domain and must wait for repair.
+**Edge Cases:** Present invalid settings are outside this domain and receive invalid-facts guidance while work proceeds.
 **Evidence:** `[Source: rule/framework.contextdelivery/MissingSettings]`
 **Related Behaviors:** `operation/framework.contextdelivery/ProjectContextIntake`, `test/framework.contextdelivery/ProjectContextIntake`
 **CoveredBy:** `.claude/hooks/tests/suites/init-prompt-gate.test.cjs::[init-prompt-gate] TC-PCI-071 missing config stays optional across paths and leftover state`
 **Status:** Tested
 
-#### TC-PCI-072: Invalid settings admit only complete repair tokens [P1]
+#### TC-PCI-072: Only complete repair tokens suppress redundant warnings [P1]
 
 **Objective:** Protect BR-PCI-02 through the observable intake outcome.
-**Business Intent / Invariant Guarded:** Only the explicit exact first action permits repair; all others wait.
+**Business Intent / Invariant Guarded:** Only the explicit exact first repair action suppresses the warning; all requests remain allowed.
 **Preconditions:** Any request with invalid recorded settings.
 **Real-World Reachability:** A maintainer records invalid settings; a developer selects or types an action in the next request. These requests follow completed fixture preparation; no timing race or readiness delay is assumed.
 **Demo Flow:** Arrange the stated project facts, submit the described request, and observe guidance or permission.
@@ -389,7 +397,7 @@ boundaryCounterCase: "settings present but invalid → ordinary work waits for r
 ```gherkin
 Given any request with invalid recorded settings
 When the developer submits either a complete offered repair action or another request
-Then only the explicit exact first action permits repair; all others wait
+Then only the explicit exact first repair action suppresses the warning; all requests remain allowed
 ```
 
 **Expected Result:** The conversation shows the stated guidance or permission; recorded project facts are unchanged. Navigation is inapplicable because there is no graphical view.
@@ -398,12 +406,36 @@ Then only the explicit exact first action permits repair; all others wait
 
 ```yaml
 inputDomain: "requests with invalid settings spanning exact offered repair names and ordinary/different-token/incidental-mention requests"
-invariant: "for ALL inputs in this domain, permission holds exactly for an explicit first repair token ending at whitespace or request end"
-boundaryCounterCase: "append a nonwhitespace suffix to an accepted repair token → request waits for repair"
+invariant: "for ALL inputs in this domain, work proceeds and only an explicit first repair token ending at whitespace or request end suppresses the redundant warning"
+boundaryCounterCase: "append a nonwhitespace suffix to a repair token → warning returns while work remains allowed"
 ```
 
-**Edge Cases:** A single extra nonwhitespace character changes a repair name and must be rejected.
+**Edge Cases:** A single extra nonwhitespace character changes a repair name and must retain the warning.
 **Evidence:** `[Source: rule/framework.contextdelivery/ExactConfigRepair]`
 **Related Behaviors:** `operation/framework.contextdelivery/ProjectContextIntake`, `test/framework.contextdelivery/ProjectContextIntake`
 **CoveredBy:** `.claude/hooks/tests/suites/init-prompt-gate.test.cjs::[init-prompt-gate] TC-PCI-072 exact slash and dollar repair commands remain available`
+**Status:** Tested
+
+#### TC-PCI-073: Newer optional tracking settings preserve unrelated valid project facts [P1]
+
+**Objective:** Protect BR-PCI-05 without granting tracking authority.
+**Business Intent / Invariant Guarded:** Only a newer optional tracking section is deferred; unrelated facts and strict tracking refusal retain their boundaries.
+**Preconditions:** Recorded project settings contain a newer work-tracking vocabulary and otherwise valid facts.
+**Real-World Reachability:** A project created by a newer framework is opened with an older copy.
+**Demo Flow:** Read the recorded project facts, try to open the work tracker, then compare invalid unrelated facts and known or malformed tracking versions.
+
+```gherkin
+Given otherwise valid recorded settings with a newer optional tracking vocabulary
+When project facts are read and tracking is requested
+Then unrelated valid facts remain available with tracking warnings
+And tracking remains unavailable while unrelated invalid facts and malformed or known tracking versions retain normal validation
+```
+
+**Expected Result:** Project facts load only within the narrow exception; tracking never treats the newer declaration as supported.
+**Acceptance Criteria:** Both admission and refusal boundaries hold; no recorded facts are changed by discovery.
+**Test Data:** Next whole-number vocabulary; known vocabulary with an unknown field; text, fractional and missing version markers; invalid project identity.
+**Edge Cases:** An invalid finding outside tracking is never deferred.
+**Evidence:** [Source: rule/framework.contextdelivery/FutureTrackingAdmission]
+**Related Behaviors:** `operation/framework.contextdelivery/ProjectContextIntake`, `test/framework.contextdelivery/ProjectContextIntake`
+**CoveredBy:** `.claude/hooks/tests/suites/task-tracking-vocabulary.test.cjs::TC-PCI-073: a task-tracking vocabulary newer than the framework is deferred to warnings so the rest of the configuration still loads`
 **Status:** Tested

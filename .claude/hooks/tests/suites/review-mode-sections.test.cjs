@@ -1,8 +1,12 @@
 /**
  * Review mode transport guards (TC-PDL-043/044/045/046/064).
  * Live review entrypoints retain official guide fallbacks and role reminders;
- * full/fix-loop sections load only at mode entry. Terminal findings validation
- * selects its own complete reference and never loads full/fix-loop-only actions.
+ * full/fix-loop sections load only at mode entry. Route-only full-mode sections
+ * live in one route reference each; the always-read core points at every route
+ * reference with a BLOCKING read inside its decision section and the router names
+ * it with a read-when, so no reference file is unreachable or undeclared. Terminal
+ * findings validation selects its own complete reference and never loads
+ * full/fix-loop-only actions.
  * Explicit full-body exception fixtures remain supported by the generic checkers.
  * The one canonical reviewer template remains byte-equal, contains all 11 full
  * bodies, and is copied WHOLESALE by both review callers; guides never replace
@@ -48,8 +52,6 @@ const WHY_REVIEW = {
         '## Adversarial Review Mindset',
         '## Trade-Off Interrogation Gate',
         '## Target Resolution',
-        '### Code-Change Review Path',
-        '### Integration-Test-Review Linkage',
         '## Validation Checklist',
         '## Residual Risk Gate',
         '## Output Format',
@@ -57,6 +59,14 @@ const WHY_REVIEW = {
         '## Report Closure Contract',
         '## Findings Validation Gate',
     ],
+    // Route-only sections: each lives in exactly one route reference (never in the router or the
+    // always-read core), and full-mode.md points at the file from the named decision section.
+    routeReferences: {
+        'code-change-path.md': {
+            sections: ['Code-Change Review Path', 'Integration-Test-Review Linkage'],
+            pointerSection: '## Target Resolution',
+        },
+    },
     // Every protocol block why-review carried before the split (base protocols become guides; reminder bodies remain).
     syncTags: [
         'end-to-start-debugger-trace', 'behavioral-delta-matrix', 'cross-stack-impact-trace', 'cross-service-check',
@@ -81,6 +91,23 @@ const lf = text => String(text).replace(/\r\n?/g, '\n');
 const stripSync = text => text.replace(/<!-- SYNC:([^\s>]+) -->[\s\S]*?<!-- \/SYNC:\1 -->/g, '');
 const count = (text, needle) => text.split(needle).length - 1;
 const headingLines = (text, prefix) => text.split('\n').filter(line => line === prefix || line.startsWith(`${prefix} `) || line.startsWith(`${prefix}(`) || line.startsWith(`${prefix}:`));
+// The references a review router always declares by mode; any other reference must be a declared route reference.
+const MODE_REFERENCES = ['full-mode.md', 'fix-loop.md', 'validate-findings.md'];
+/** Heading lines that carry `title` at ANY level, so a section copied back at another level is still found. */
+const titledHeadings = (text, title) => text.split('\n').filter(line => {
+    const match = line.match(/^#{1,6} (.*)$/);
+    return Boolean(match) && (match[1] === title || match[1].startsWith(`${title} `) || match[1].startsWith(`${title}(`) || match[1].startsWith(`${title}:`));
+});
+/** The text of the second-level section that starts with `heading`, up to the next second-level heading. */
+function sectionOf(text, heading) {
+    const lines = text.split('\n');
+    const start = lines.findIndex(line => line === heading || line.startsWith(`${heading} `));
+    if (start < 0) return '';
+    const next = lines.findIndex((line, index) => index > start && line.startsWith('## '));
+    return lines.slice(start, next < 0 ? undefined : next).join('\n');
+}
+/** Lines that make reading `references/<name>` in full a BLOCKING action. */
+const blockingReads = (text, name) => text.split('\n').filter(line => line.includes('**[BLOCKING]**') && line.includes(`read \`references/${name}\` in full`));
 
 /** Read a skill directory as { router, references: { 'full-mode.md': text, ... } }, LF line endings. */
 function loadSkill(dir) {
@@ -107,6 +134,34 @@ function checkRouterSplit(skill, spec) {
     for (const heading of spec.movedHeadings) {
         if (headingLines(localRouter, heading).length > 0) problems.push(`router still holds the moved section: ${heading}`);
         if (headingLines(fullMode, heading).length !== 1) problems.push(`references/full-mode.md must hold exactly one: ${heading}`);
+    }
+    if (spec.routeReferences) {
+        const routerPointers = sectionOf(localRouter, POINTER_HEADING);
+        for (const [name, route] of Object.entries(spec.routeReferences)) {
+            const routeText = references[name];
+            if (routeText === undefined) {
+                problems.push(`route reference is missing: references/${name}`);
+                continue;
+            }
+            for (const title of route.sections) {
+                if (headingLines(routeText, `## ${title}`).length !== 1) problems.push(`references/${name} must hold exactly one: ## ${title}`);
+                if (titledHeadings(fullMode, title).length > 0) problems.push(`references/full-mode.md still holds the route section: ${title}`);
+                if (titledHeadings(localRouter, title).length > 0) problems.push(`router still holds the route section: ${title}`);
+            }
+            // Reachability: the always-read core names the file with a BLOCKING read at its decision point,
+            // and the entry file names it with a read-when.
+            if (blockingReads(sectionOf(fullMode, route.pointerSection), name).length === 0) {
+                problems.push(`references/full-mode.md must point at references/${name} with a BLOCKING read inside ${route.pointerSection}`);
+            }
+            if (!routerPointers.includes(`\`references/${name}\` — read in full when `)) {
+                problems.push(`router ${POINTER_HEADING} must name references/${name} with its read-when`);
+            }
+        }
+        for (const name of Object.keys(references)) {
+            if (!MODE_REFERENCES.includes(name) && !(name in spec.routeReferences)) {
+                problems.push(`undeclared reference (declare its sections and pointer): references/${name}`);
+            }
+        }
     }
     if (spec.terminalReference) {
         const terminal = references['validate-findings.md'] ?? '';
@@ -337,6 +392,25 @@ function fixtureFiles() {
     };
 }
 
+// The same fixture with one route reference: its section, the core's BLOCKING pointer and the router's read-when.
+const FIXTURE_ROUTE_SPEC = {
+    ...FIXTURE_SPEC,
+    routeReferences: { 'route-a.md': { sections: ['Route A Steps'], pointerSection: '## Review plan and tasks' } },
+};
+const FIXTURE_ROUTE_POINTER = '- **[BLOCKING]** When the target takes route A, read `references/route-a.md` in full FIRST; it owns the Route A Steps.';
+const FIXTURE_ROUTE_READ_WHEN = '    - `references/route-a.md` — read in full when the target takes route A.';
+
+function routeFixtureFiles() {
+    const files = fixtureFiles();
+    files['SKILL.md'] = files['SKILL.md'].replace(
+        'read `references/full-mode.md` in full (BLOCKING).\n\n## Findings Validation Routine',
+        `read \`references/full-mode.md\` in full (BLOCKING).\n${FIXTURE_ROUTE_READ_WHEN}\n\n## Findings Validation Routine`,
+    );
+    files['references/full-mode.md'] = files['references/full-mode.md'].replace('Bind it.\n', `Bind it.\n\n${FIXTURE_ROUTE_POINTER}\n`);
+    files['references/route-a.md'] = ['# Fixture — Route A', '', '## Route A Steps', '', 'Walk route A.', ''].join('\n');
+    return files;
+}
+
 const FIXTURE_FIX_LOOP_SPEC = {
     modeHeading: '## Mode: Fix-Loop (`--fix-loop`)',
     syncTags: ['severity-rubric', 'severity-rubric:reminder'],
@@ -428,6 +502,30 @@ const tests = [
             // Losing the validate routine remains a concrete transport failure.
             withFixtureSkill(files => { files['SKILL.md'] = files['SKILL.md'].replace('## Findings Validation Routine', '## Validation'); },
                 skill => assert.ok(checkRouterSplit(skill, FIXTURE_SPEC).some(p => p.includes('router lacks: ## Findings Validation Routine'))));
+
+            // Given the fixture with one route reference, When checked, Then no problem is reported
+            const routeNamed = (mutate, needle) => withFixtureSkill(mutate, skill => {
+                const problems = checkRouterSplit(skill, FIXTURE_ROUTE_SPEC);
+                assert.ok(problems.some(p => p.includes(needle)), `expected "${needle}" in:\n  ${problems.join('\n  ')}`);
+            }, routeFixtureFiles);
+            withFixtureSkill(null, skill => assert.deepEqual(checkRouterSplit(skill, FIXTURE_ROUTE_SPEC), []), routeFixtureFiles);
+            // When the core loses its pointer, softens it, or keeps it only outside the decision section, Then the route is named unreachable
+            const unreachable = 'must point at references/route-a.md with a BLOCKING read inside ## Review plan and tasks';
+            routeNamed(files => { files['references/full-mode.md'] = files['references/full-mode.md'].replace(`${FIXTURE_ROUTE_POINTER}\n`, ''); }, unreachable);
+            routeNamed(files => { files['references/full-mode.md'] = files['references/full-mode.md'].replace('**[BLOCKING]** ', ''); }, unreachable);
+            routeNamed(files => {
+                files['references/full-mode.md'] = `${files['references/full-mode.md'].replace(`${FIXTURE_ROUTE_POINTER}\n`, '')}\n${FIXTURE_ROUTE_POINTER}\n`;
+            }, unreachable);
+            // When the route section is copied back into the core or the router at any level, Then the second owner is named
+            routeNamed(files => { files['references/full-mode.md'] += '\n### Route A Steps\n\nWalk route A.\n'; }, 'references/full-mode.md still holds the route section: Route A Steps');
+            routeNamed(files => { files['SKILL.md'] += '\n## Route A Steps\n\nWalk route A.\n'; }, 'router still holds the route section: Route A Steps');
+            // When the route file loses its section or is deleted, Then it is named
+            routeNamed(files => { files['references/route-a.md'] = files['references/route-a.md'].replace('## Route A Steps', '## Steps'); }, 'references/route-a.md must hold exactly one: ## Route A Steps');
+            routeNamed(files => { delete files['references/route-a.md']; }, 'route reference is missing: references/route-a.md');
+            // When the router stops naming the route with its read-when, Then it is named
+            routeNamed(files => { files['SKILL.md'] = files['SKILL.md'].replace(`${FIXTURE_ROUTE_READ_WHEN}\n`, ''); }, 'must name references/route-a.md with its read-when');
+            // When a reference file appears without a declared route, Then it is named
+            routeNamed(files => { files['references/route-b.md'] = '# Fixture — Route B\n\n## Route B Steps\n\nWalk route B.\n'; }, 'undeclared reference (declare its sections and pointer): references/route-b.md');
         },
     },
     {
@@ -467,6 +565,17 @@ const tests = [
             const leaked = { ...skill, references: { ...skill.references, 'validate-findings.md': `${skill.references['validate-findings.md']}\n## Next Steps\nAsk the user.` } };
             assert.ok(checkRouterSplit(leaked, WHY_REVIEW).some(p => p.includes('full/fix-loop-only')), 'terminal full-mode leakage survives');
             assert.ok(skill.references['full-mode.md'] && skill.references['fix-loop.md'], 'both references exist');
+            // And every route reference is reachable: the core points at it and the router names it; deleting either is caught
+            for (const [name, route] of Object.entries(WHY_REVIEW.routeReferences)) {
+                const pointers = blockingReads(sectionOf(skill.references['full-mode.md'], route.pointerSection), name);
+                assert.ok(pointers.length > 0, `full-mode.md points at ${name} before the mutation`);
+                const unpointed = { ...skill, references: { ...skill.references, 'full-mode.md': skill.references['full-mode.md'].split('\n').filter(line => !line.includes(`\`references/${name}\``)).join('\n') } };
+                assert.ok(checkRouterSplit(unpointed, WHY_REVIEW).some(p => p.includes(`must point at references/${name} with a BLOCKING read`)), `unreachable ${name} survives`);
+                const unnamed = { ...skill, router: skill.router.split('\n').filter(line => !line.includes(`\`references/${name}\``)).join('\n') };
+                assert.ok(checkRouterSplit(unnamed, WHY_REVIEW).some(p => p.includes(`must name references/${name} with its read-when`)), `router silence on ${name} survives`);
+                const { [name]: removed, ...rest } = skill.references;
+                assert.ok(removed && checkRouterSplit({ ...skill, references: rest }, WHY_REVIEW).includes(`route reference is missing: references/${name}`), `missing ${name} survives`);
+            }
         },
     },
     {

@@ -5,18 +5,11 @@ disable-model-invocation: false
 ---
 
 > Codex compatibility note:
-> - Invoke repository skills with `$skill-name` in Codex; this mirrored copy rewrites legacy Claude `/skill-name` references.
-> - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
-> - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
-> - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
-> - Use ask user question tool to ask user.
-> - Ignore Claude-specific mode-switch instructions when they appear.
-> - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
+> - Invoke `$skill-name`: load the registered `.agents/skills/<name>/SKILL.md` and execute it with Codex tools; no separate `Skill` tool or Claude mode switch is needed. Author `.claude/**`; mirrors are generated.
+> - Track steps before execution and keep progress/evidence current. Explicit skill requests execute their protocol. Use the native question tool for required questions.
+> - Map foreign tool names to available host capabilities. A name mismatch needs no approval; an actually unavailable required capability stops with its step/evidence and a user question before adaptation.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
-> - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
-> - For workflow skills, steps follow the guided contract in `$start-workflow` (gate steps fixed; other steps may flex with a logged reason); report step-by-step evidence.
-> - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
+> - Preserve protocol order unless the user approves a deviation. Workflows use `$start-workflow`: gates stay fixed; other steps may flex with logged reasons and evidence.
 > **[IMPORTANT]** Create complete task plan before shell checks, scans, generators, edits, or skill calls.
 > **[IMPORTANT]** The config file is required, but only `project.name` is mandatory; select optional setup work from declared capabilities and repository evidence.
 > **[IMPORTANT]** Run `$scan-all` only when selected built-in or generic scan targets apply; custom references default to manual ownership. Run `$workflow-code-to-spec` only for an existing spec corpus or accepted capability scope.
@@ -59,6 +52,23 @@ disable-model-invocation: false
 - MUST ATTENTION run `$graph-code --mode=build` as a background sub-agent only when graph tooling is available and graph work is relevant; do not make graph support a hidden prerequisite for non-code projects.
 - MUST ATTENTION resolve Codex mirrors through the `$ai-context-refresh` completion handoff when Codex context is installed or selected; otherwise record the host-specific step as not applicable.
 - MUST ATTENTION when the user asks for help, options, or "what does init decide", run **Help Mode** below and STOP — never start Phase -1.
+
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Help Mode (`--help`)](#help-mode---help)
+- [Scope](#scope)
+- [Phase -1: Required Task Plan](#phase--1-required-task-plan)
+- [Phase 0: Assess State](#phase-0-assess-state)
+- [Phase 1: Decide Route](#phase-1-decide-route)
+- [Phase 2: Execute Order](#phase-2-execute-order)
+- [Phase 2.5: Conditional Spec Workflow](#phase-25-conditional-spec-workflow)
+- [Phase 2.6: Final Review Skills](#phase-26-final-review-skills)
+- [Phase 3: Agent Rule When The Init Gate Has Not Run](#phase-3-agent-rule-when-the-init-gate-has-not-run)
+- [Phase 4: Verification](#phase-4-verification)
+- [Phase 5: Conditional Graph Refresh](#phase-5-conditional-graph-refresh)
+- [Output](#output)
+- [Closing Reminders](#closing-reminders)
 
 ## Help Mode (`--help`)
 

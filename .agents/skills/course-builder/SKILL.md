@@ -4,18 +4,11 @@ description: '[Content] Use when a workflow step or the user asks for course mat
 ---
 
 > Codex compatibility note:
-> - Invoke repository skills with `$skill-name` in Codex; this mirrored copy rewrites legacy Claude `/skill-name` references.
-> - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
-> - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
-> - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
-> - Use ask user question tool to ask user.
-> - Ignore Claude-specific mode-switch instructions when they appear.
-> - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
+> - Invoke `$skill-name`: load the registered `.agents/skills/<name>/SKILL.md` and execute it with Codex tools; no separate `Skill` tool or Claude mode switch is needed. Author `.claude/**`; mirrors are generated.
+> - Track steps before execution and keep progress/evidence current. Explicit skill requests execute their protocol. Use the native question tool for required questions.
+> - Map foreign tool names to available host capabilities. A name mismatch needs no approval; an actually unavailable required capability stops with its step/evidence and a user question before adaptation.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
-> - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
-> - For workflow skills, steps follow the guided contract in `$start-workflow` (gate steps fixed; other steps may flex with a logged reason); report step-by-step evidence.
-> - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
+> - Preserve protocol order unless the user approves a deviation. Workflows use `$start-workflow`: gates stay fixed; other steps may flex with logged reasons and evidence.
 ## Quick Summary
 
 **Goal:** Build a learner-ready course with Bloom-aligned objectives, progressive modules, lessons, practice, and assessments so learners achieve and demonstrate intended outcomes.
@@ -44,6 +37,21 @@ description: '[Content] Use when a workflow step or the user asks for course mat
 - Use enforced template `.claude/templates/course-outline-template.md`.
 
 **Critical thinking:** Be skeptical; reason sequentially; trace evidence for every claim; state confidence percentages; ideas >80%.
+
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Course Builder](#course-builder)
+- [Phase 0: Detect Course Context](#phase-0-detect-course-context)
+- [Bloom's Taxonomy Reference](#blooms-taxonomy-reference)
+- [Step 1: Define Learning Scope](#step-1-define-learning-scope)
+- [Step 2: Map Objectives to Bloom's](#step-2-map-objectives-to-blooms)
+- [Step 3: Structure Curriculum](#step-3-structure-curriculum)
+- [Step 4: Develop Lesson Content](#step-4-develop-lesson-content)
+- [Step 5: Create Assessments](#step-5-create-assessments)
+- [Step 6: Review Pedagogy](#step-6-review-pedagogy)
+- [Output](#output)
+- [Closing Reminders](#closing-reminders)
 
 # Course Builder
 

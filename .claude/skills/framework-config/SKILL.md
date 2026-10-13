@@ -1,7 +1,7 @@
 ---
 name: framework-config
-version: 1.2.1
-description: '[Utilities] Use when asking about or configuring the .claude/.codex/.agents/.opencode skills framework: command discovery/help, settings, hooks, workflows, activation or framework usage. Explains options; changes only requested settings.'
+version: 1.2.2
+description: '[Utilities] Use when asking about or configuring the .claude/.codex/.agents/.opencode skills framework: command discovery/help, runtime modes, scoped settings, commit reviews, hooks, workflows or skill visibility. Explains options; changes only requested settings.'
 ---
 
 ## Quick Summary
@@ -9,6 +9,20 @@ description: '[Utilities] Use when asking about or configuring the .claude/.code
 **Goal:** Explain framework options and apply only requested settings at their correct scope, with validated saved and effective results.
 
 **Summary:** Choose help/settings/workflow → discover exact keys and effective layers → answer questions read-only or apply the requested change → validate and read back → report the winning value/source.
+
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Framework Configuration and Help](#framework-configuration-and-help)
+- [Choose a mode](#choose-a-mode)
+- [Help mode](#help-mode)
+- [Workflow mode](#workflow-mode)
+- [Settings mode](#settings-mode)
+- [Discover exact keys and current behavior](#discover-exact-keys-and-current-behavior)
+- [Apply a requested setting](#apply-a-requested-setting)
+- [Runtime machinery and context injection](#runtime-machinery-and-context-injection)
+- [Common language → setting](#common-language--setting)
+- [Closing Reminders](#closing-reminders)
 
 # Framework Configuration and Help
 
@@ -75,6 +89,27 @@ The help backend's `config/settings/options/switches/env` queries use
 
 Resolve the requested preference, apply it only to the selected scope, and report the effective result.
 
+### Configure through the skill
+
+From an updated checkout, use these requests in Claude/OpenCode; Codex uses `$framework-config`:
+
+```text
+/framework-config --mode=settings show framework runtime
+/framework-config --mode=settings quiet --scope=user
+/framework-config --mode=settings off --scope=checkout
+/framework-config --mode=settings on --scope=checkout
+/framework-config --mode=settings reset framework runtime --scope=checkout
+/framework-config --mode=settings apply framework runtime
+/framework-config --mode=settings use lightweight commit reviews --scope=checkout
+/framework-config --mode=settings choose commit reviews by risk --scope=user
+/framework-config --mode=settings make <skill-name> explicit-only --scope=team
+```
+
+Replace `<skill-name>` with the registered skill name. Each line is a separate request, not a setup
+sequence to execute together. Runtime requests use the CLI below, including `apply` to register and
+reconcile this checkout without changing its preference. In `--mode=workflow`, `off` changes routing
+only; it does not select `frameworkRuntime.mode: off`.
+
 ## Discover exact keys and current behavior
 
 Work from the adopting project's root; use that project's copied framework, never an authoring-repo path.
@@ -111,18 +146,70 @@ Work from the adopting project's root; use that project's copied framework, neve
    winning value/source, and whether regeneration is needed. Runtime switches need no mirror regeneration.
    Native visibility/profile changes use their documented generator; never edit generated mirrors by hand.
 
+## Runtime machinery and context injection
+
+Use the platform-neutral Node CLI from an updated checkout on Windows, macOS or Linux:
+
+```text
+node .claude/scripts/framework-mode.cjs show --json
+node .claude/scripts/framework-mode.cjs quiet --scope=user
+node .claude/scripts/framework-mode.cjs off --scope=checkout
+node .claude/scripts/framework-mode.cjs on --scope=checkout
+node .claude/scripts/framework-mode.cjs reset --scope=checkout
+node .claude/scripts/framework-mode.cjs apply
+```
+
+`show --json` inspects all layers and the winning mode without mutation. Execute only the requested
+change with `node .claude/scripts/framework-mode.cjs <mode> --scope=<scope>`:
+
+- `on`: normal framework hooks.
+- `quiet`: no hook-injected instructions, routing, ledgers or automatic context preparation. Commit review and doc checks, formatting and notifications stay active.
+- `off`: all shipped framework hooks return before parsing input or doing work; the CLI also disables this checkout's framework skills in Claude and Codex native discovery.
+- `apply`: reconcile native skill visibility with the effective mode without changing the preference; register this checkout for later global changes.
+- `reset`: remove only this layer's `frameworkRuntime.mode`, exposing the next layer.
+
+Scopes are `checkout` (default, ignored `.claude/.ck.local.json`), `user` (every project using this version, `~/.claude/.ck.json`) and `team` (configured project config). The same Node command works on Windows, macOS and Linux. A missing team config still needs a valid project identity. The CLI validates and reads back changes, refuses malformed existing settings and unignored checkout settings, and reports a masking environment override.
+
+Precedence: default on → team → user → checkout → `CK_FRAMEWORK_MODE`. No mirror regeneration is needed for the mode change. Use the CLI rather than editing JSON for a complete toggle: it writes personal native overrides outside Git, preserving the team profile and previous settings. Off also removes explicit Claude/Codex skill invocation; restore with this Node command. On/quiet/reset restore the previous profile. Host tool permissions and repository Git/CI hooks remain separate. OpenCode currently receives hook control only.
+
+User-scope native changes cover registered existing checkouts; run `apply` once in each new checkout after its mirrors exist. Older framework copies must be updated before they honor this setting. Direct JSON/environment changes need `apply` for native visibility, as do newly added skills or a changed Codex home. The recovery registry is `~/.claude/framework-runtime-projects.json`; do not delete it while disabled. Conflicting native skill settings fail before the preference is saved. Do not remove user settings to silence a refusal. Report missing checkouts, a masking preference, `recoveryPending` and any unsupported host explicitly. Read `.claude/docs/configuration/README.md#framework-runtime-mode` for recovery and scope limits.
+
+Native settings require fresh Claude/Codex sessions; already delivered context cannot be withdrawn. Read `.claude/docs/configuration/native-session-smoke.md` when verifying native discovery and explicit invocation. Enabled skills retain their own checks, including commit/PR reviews.
+
+“Turn off hook context injection” maps to `quiet`; “turn all machinery off” maps to `off`. Do not change a global preference without a request for user/global scope. Keep `CLAUDE.md` and `AGENTS.md` project-only; never put a framework-mode notice or fallback instructions into them.
+
 ## Common language → setting
 
 | Request | Exact setting | Behavior |
 | --- | --- | --- |
+| “Set framework runtime to on / quiet / off” | `frameworkRuntime.mode: "on" / "quiet" / "off"` | Use the runtime CLI to reconcile hooks and native discovery at the requested scope; default on |
 | “Don't automatically start heavy skills” | `portability.skillAutoTrigger: false` | Ask once to run a suitable matched skill or skip and execute directly; named requests, required calls and authorized workflow steps remain allowed |
 | “Restore automatic skills” | `portability.skillAutoTrigger: true`, or reset if requested | Later valid preference wins; default true |
+| “Use lightweight commit reviews” | `commit.reviewMode: "lightweight"` | Default: automatically run `commit-review --fix-loop` at every commit risk tier, at most two rounds; no review-choice question |
+| “Choose commit reviews by risk” | `commit.reviewMode: "risk-based"` | Low skip / Medium why-review / High changes-review; PR whole-branch reviews always retain this policy |
 | “Workflows should ask / start automatically / only run explicitly” | `portability.workflowRouteMode: "ask" / "auto" / "off"` | Separate workflow routing preference |
+| “Make these skills explicit-only for the team” | `skillProfile.commandOnly` in project config | Merge only the requested skill names and regenerate native host projections; profile guards still apply |
 
 Skill-auto-trigger precedence: default → team → user → checkout → `CK_SKILL_AUTO_TRIGGER`.
+Commit review precedence: default lightweight → team → user → checkout → `CK_COMMIT_REVIEW_MODE`.
+After showing, setting or resetting `commit.reviewMode`, run `node .claude/scripts/lib/commit-review-policy.cjs`
+from the requested checkout root and report its winning mode/source. Tests, exact-candidate review
+receipts, required project checks and explicit Git authority remain unchanged; invalid settings fail closed.
+Native manual-only selection is team-scoped: for a requested team profile change, merge the named
+skills into or out of `skillProfile.commandOnly` in the configured project config, preserving its
+preset and unrelated list entries. Do not save this team-only profile in personal runtime overrides.
+Validate with `resolveProfile(root, candidate)` from `.claude/scripts/sync-skill-profile.cjs` and the
+team schema before saving. Report warnings; do not save if validation throws or `refusals` is nonempty.
+Then run `node .claude/scripts/sync-skill-profile.cjs` and
+`node .claude/skills/sync-codex/scripts/run-codex-sync.mjs` to generate host projections. Keep required
+dependencies callable; never set `allowHidingCalledSkills` just to silence a refusal. Removing the
+owned list entries and syncing restores invocation defaults. Do not hand-edit generated host files.
 `commit`, `pull-request` and this configuration/help entry remain eligible under restricted selection.
 An explicitly requested workflow authorizes its scoped planned skill calls, including later/resumed steps
-and required nested calls. Commit and pull-request both decide tests and review themselves by risk, under the commit skill's decision policy, and ask no test/review question; configuration never changes those decisions or approves a skip. Required skills selected by that policy remain callable even when auto-trigger is disabled.
+and required nested calls. Commit and pull-request select tests and review under the commit skill's
+decision policy without a test/review question. `commit.reviewMode` selects commit review depth;
+skill auto-trigger and runtime preferences never approve a skip. Required skills selected by that
+policy remain callable even when auto-trigger is disabled.
 For a suitable unrequested skill match, false asks once to run that skill or skip and execute directly,
 then waits for the answer. Confirmation authorizes its scoped dependencies; Skip keeps direct execution
 and required checks without re-asking for the same task. No match proceeds directly without a question.

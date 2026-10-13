@@ -39,6 +39,38 @@ context-budget: high
 > **Overlay Registry:** Exact > glob > all; derive bodies from `Name` inside the protocols directory; overlays add constraints and never waive framework gates.
 > **MUST ATTENTION READ** `.claude/skills/project-skill-protocol/references/registry.md` when resolving overlays.
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Case Contract Profile Gate (BLOCKING)](#case-contract-profile-gate-blocking)
+- [Mode Dispatch](#mode-dispatch)
+- [First Principle — Easy to Change · Easy to Scale · Easy to Maintain](#first-principle--easy-to-change--easy-to-scale--easy-to-maintain)
+- [Project Pattern Discovery](#project-pattern-discovery)
+- [Native-Profile Task Ordering](#native-profile-task-ordering)
+- [Mandatory Task Ordering (Strict TC Default Only)](#mandatory-task-ordering-strict-tc-default-only)
+- [Module Abbreviation Registry](#module-abbreviation-registry)
+- [TC Code Numbering Rules (Strict TC Default Only)](#tc-code-numbering-rules-strict-tc-default-only)
+- [Integration Test Generation](#integration-test-generation)
+- [Mode Detection](#mode-detection)
+- [Step 1: Find Targets](#step-1-find-targets)
+- [Step 2: Gather Context](#step-2-gather-context)
+- [Step 2b: Look Up TC Codes (Strict TC Default Only)](#step-2b-look-up-tc-codes-strict-tc-default-only)
+- [Step 2c: Real-World Fidelity Check (BEFORE any test code is written)](#step-2c-real-world-fidelity-check-before-any-test-code-is-written)
+- [Test Architecture Contract Preflight (before Step 3)](#test-architecture-contract-preflight-before-step-3)
+- [Step 3: Generate Test File](#step-3-generate-test-file)
+- [Step 4: Verify](#step-4-verify)
+- [Example Files to Study](#example-files-to-study)
+- [REVIEW Mode — Test Quality Audit](#review-mode--test-quality-audit)
+- [DIAGNOSE Mode — Test Failure Root Cause Analysis](#diagnose-mode--test-failure-root-cause-analysis)
+- [VERIFY-TRACEABILITY Mode — Test ↔ Spec ↔ Feature Doc Verification](#verify-traceability-mode--test--spec--feature-doc-verification)
+- [Test Data Setup Guidelines](#test-data-setup-guidelines)
+- [Test Execution & Failure Diagnosis (MANDATORY)](#test-execution--failure-diagnosis-mandatory)
+- [Next Steps](#next-steps)
+- [Related Skills](#related-skills)
+- [Standalone Chain](#standalone-chain)
+- [Prompt-Enhance Closing Anchors](#prompt-enhance-closing-anchors)
+- [Closing Reminders](#closing-reminders)
+
 ## Case Contract Profile Gate (BLOCKING)
 
 Before mode detection, test generation, or any spec/test mutation, read `docs/project-config.json`, `docs/project-reference/docs-index-reference.md`, `docs/project-reference/lessons.md`, the required local spec/integration-test references, and this skill's matching references. Resolve one profile:

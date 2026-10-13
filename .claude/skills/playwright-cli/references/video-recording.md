@@ -5,10 +5,10 @@ Capture browser automation sessions as video for debugging, documentation, or ve
 <!-- SKILL-NAV:START -->
 ## Contents
 
-- Basic Recording
-- Best Practices
-- Tracing vs Video
-- Limitations
+- [Basic Recording](#basic-recording)
+- [Best Practices](#best-practices)
+- [Tracing vs Video](#tracing-vs-video)
+- [Limitations](#limitations)
 
 <!-- SKILL-NAV:END -->
 

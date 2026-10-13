@@ -39,6 +39,19 @@ Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs
 
 **Step contract:** Follow `/start-workflow` → Step Execution Protocol. The registry owns recommended order, roles and applicability; invoke each selected skill through the active host and log deviations. Gates (`work-item --mode=review --type=design`, `ui-design --mode=review`, `workflow-end`) always run; the optional step runs only when `applicability.when` holds. On a skip, UI review records `N/A — no mockup to review`.
 
+## Contents
+
+- [Workflow Calls and Todo Bootstrap](#workflow-calls-and-todo-bootstrap)
+- [Quick Summary](#quick-summary)
+- [0. Mockup Scope Gate (FIRST action of the run)](#0-mockup-scope-gate-first-action-of-the-run)
+- [1. Triage (right after the §0 scope gate, before choosing steps)](#1-triage-right-after-the-0-scope-gate-before-choosing-steps)
+- [2. Journey-First Design Order (BLOCKING — every generation step)](#2-journey-first-design-order-blocking--every-generation-step)
+- [3. Required Quality Gates (non-negotiable)](#3-required-quality-gates-non-negotiable)
+- [4. Recommended Skills](#4-recommended-skills)
+- [5. Orchestration Freedom](#5-orchestration-freedom)
+- [6. Memory, Reporting and Fix Path](#6-memory-reporting-and-fix-path)
+- [Closing Reminders](#closing-reminders)
+
 ## 0. Mockup Scope Gate (FIRST action of the run)
 
 Run `work-item --mode=mockup` Step 0 before any reading, analysis or `/design-spec`; it owns the question, options and no-question-tool fallback. Record its answer once for the whole run; later `--explore` reuses it. Keep the question in the main session; delegated agents may build direction drafts. Asking first lets a skip save tokens and time.

@@ -5,18 +5,18 @@ Use `run-code` to execute arbitrary Playwright code for advanced scenarios not c
 <!-- SKILL-NAV:START -->
 ## Contents
 
-- Syntax
-- Geolocation
-- Permissions
-- Media Emulation
-- Wait Strategies
-- Frames and Iframes
-- File Downloads
-- Clipboard
-- Page Information
-- JavaScript Execution
-- Error Handling
-- Complex Workflows
+- [Syntax](#syntax)
+- [Geolocation](#geolocation)
+- [Permissions](#permissions)
+- [Media Emulation](#media-emulation)
+- [Wait Strategies](#wait-strategies)
+- [Frames and Iframes](#frames-and-iframes)
+- [File Downloads](#file-downloads)
+- [Clipboard](#clipboard)
+- [Page Information](#page-information)
+- [JavaScript Execution](#javascript-execution)
+- [Error Handling](#error-handling)
+- [Complex Workflows](#complex-workflows)
 
 <!-- SKILL-NAV:END -->
 

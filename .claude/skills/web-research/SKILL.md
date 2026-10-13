@@ -43,6 +43,21 @@ description: '[Research] Use when a workflow step or the user asks for web sourc
 
 **MUST ATTENTION** Apply skeptical, sequential thinking; trace every claim and state confidence (>80% to act).
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Web Research](#web-research)
+- [Knowledge Work Rules (canonical for the research chain)](#knowledge-work-rules-canonical-for-the-research-chain)
+- [Step 1: Define Search Scope](#step-1-define-search-scope)
+- [Step 2: Execute Searches](#step-2-execute-searches)
+- [Step 3: Source Triage](#step-3-source-triage)
+- [Step 4: Build Source Map](#step-4-build-source-map)
+- [Step 5: Identify Gaps](#step-5-identify-gaps)
+- [Chain Mode (`--chain=deep-dive`)](#chain-mode---chaindeep-dive)
+- [Next Steps](#next-steps)
+- [Prompt-Enhance Closing Anchors](#prompt-enhance-closing-anchors)
+- [Closing Reminders](#closing-reminders)
+
 # Web Research
 
 ## Knowledge Work Rules (canonical for the research chain)

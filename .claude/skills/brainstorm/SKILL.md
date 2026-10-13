@@ -68,6 +68,30 @@ Discover ──► Define               Develop ──► Deliver
 
 ---
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Roadmap and Scope Modes](#roadmap-and-scope-modes)
+- [Answer this question:](#answer-this-question)
+- [Phase 0: Session Setup (MANDATORY)](#phase-0-session-setup-mandatory)
+- [Phase 1: Problem Framing — Diamond 1 Diverge](#phase-1-problem-framing--diamond-1-diverge)
+- [Phase 2: Opportunity Framing — Diamond 1 Converge](#phase-2-opportunity-framing--diamond-1-converge)
+- [Phase 3: Ideation — Diamond 2 Diverge](#phase-3-ideation--diamond-2-diverge)
+- [Phase 4: Evaluation & Convergence — Diamond 2 Converge](#phase-4-evaluation--convergence--diamond-2-converge)
+- [Phase 5: Hypothesis Validation](#phase-5-hypothesis-validation)
+- [Phase 6: Decision & Recommendations](#phase-6-decision--recommendations)
+- [Multi-Opportunity Discovery Mode](#multi-opportunity-discovery-mode)
+- [Phase 7: Documentation & Handoff](#phase-7-documentation--handoff)
+- [Technique Quick Reference](#technique-quick-reference)
+- [Role-Specific Guidance](#role-specific-guidance)
+- [Collaboration Tools](#collaboration-tools)
+- [Scenario Cheat Sheets](#scenario-cheat-sheets)
+- [Anti-Patterns to Avoid](#anti-patterns-to-avoid)
+- [Critical Constraints](#critical-constraints)
+- [Workflow Integration](#workflow-integration)
+- [Prompt-Enhance Closing Anchors](#prompt-enhance-closing-anchors)
+- [Closing Reminders](#closing-reminders)
+
 ## Roadmap and Scope Modes
 
 Resolve the flag before Phase 0:

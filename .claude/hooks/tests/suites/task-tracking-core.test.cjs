@@ -1690,6 +1690,8 @@ module.exports = { name: 'Task tracking core integration', tests: [
         refused(await f.perform('update', 'UNTYPED', { title: 'Saved over' }), 'INVALID_RECORD'); assert.deepEqual(fs.readFileSync(untyped), bytes);
     }),
     test('TC-TPT-076', 'a record moves only within the lifecycle of its own kind', async f => {
+        // The current version, whose delivery lifecycle holds every state.
+        f.declareVersion(4);
         const { patchRecord } = require('../../lib/task-artifact-store.cjs');
         // The three lifecycles and the kinds that move through each, written out.
         const lifecycles = { delivery: ['draft', 'planned', 'ready', 'in_progress', 'blocked', 'implemented', 'verifying', 'done', 'canceled'],
@@ -2027,8 +2029,8 @@ module.exports = { name: 'Task tracking core integration', tests: [
             assert.throws(() => f.core.validateRequest(request), error => error.code === 'UNSUPPORTED');
             assert.equal(JSON.stringify(request), draft);
         }
-        // Any other version is unsupported as well.
-        for (const schemaVersion of [1, 4, '3', null]) refused(await f.core.executeOperation({ ...update, schemaVersion }, f.authority()), 'UNSUPPORTED');
+        // Any version that is not one of the current structure is unsupported as well.
+        for (const schemaVersion of [1, 5, '3', '4', null]) refused(await f.core.executeOperation({ ...update, schemaVersion }, f.authority()), 'UNSUPPORTED');
         assert.deepEqual(f.storedState(), before); assert.equal(f.core.REQUEST_VERSION, 3);
         // The same change in the current words is saved.
         assert.equal((await f.core.executeOperation(update, f.authority())).primary.status, 'saved');
@@ -2156,13 +2158,47 @@ module.exports = { name: 'Task tracking core integration', tests: [
     }),
 
 
+    test('TC-TPT-337', 'implemented entry rejects adopted work without captured intent, preserves its record, and recovers after intent is captured', async f => {
+        f.declareVersion(4);
+        for (const correction of [false, true]) {
+            const id = correction ? 'TASK-337-correction' : 'TASK-337-usual';
+            f.write(`work/tasks/${id}.md`, `---\nid: ${id}\ntitle: Existing draft\nstatus: draft\n---\nAuthored body retained.\n`);
+            const request = f.request('adopt', id, {});
+            const preview = await f.core.executeOperation({ ...request, preview: true }, f.authority());
+            assert.equal(preview.primary.status, 'preview');
+            const adoption = await f.core.executeOperation({ ...request, previewToken: preview.previewToken }, f.authority());
+            assert.equal(adoption.primary.status, 'saved');
+            const before = f.storedState();
+            const record = f.record(id);
+            const patch = { state: 'implemented', ...(correction ? { correction: true, reason: 'Requested state correction' } : {}) };
+            const authority = correction ? { canCorrectState: true } : {};
+            refused(await f.perform('transition', id, patch, {}, authority), 'NOT_READY');
+            assert.deepEqual(f.storedState(), before, 'refusal preserves every stored record and configuration byte');
+            assert.equal(f.view(id).state, 'draft');
+            assert.deepEqual(f.record(id).tracking.history, record.tracking.history);
+            await f.saved('update', id, { intent: 'Export exactly the selected rows' });
+            await f.saved('transition', id, patch, {}, authority);
+            assert.deepEqual([f.view(id).state, f.view(id).acceptance.accepted], ['implemented', false]);
+        }
+    }),
+
     test('TC-TPT-334', 'implemented says only that the work is built and published for review: it is reached with captured intent alone, earns no acceptance, and automatic upkeep never records it', async f => {
+        f.declareVersion(4);
         // No criteria, no readiness review and no responsible member: a pull request can always record what it built.
         await f.create('TASK-built', 'task', { criteria: [] });
         await f.saved('transition', 'TASK-built', { state: 'implemented' });
         const built = f.view('TASK-built');
         assert.deepEqual([built.state, built.assigneeId, built.acceptance.accepted], ['implemented', null, false]);
         assert.equal(f.progress().metrics.accepted, 0, 'implemented work counts as not accepted');
+        // Reopening the persisted current-version record must allow ordinary upkeep and preserve its prior history.
+        const beforeUpdate = f.record('TASK-built');
+        assert.equal(f.progress().coverage, 'complete');
+        await f.saved('update', 'TASK-built', { title: 'Published work remains editable' });
+        const afterUpdate = f.record('TASK-built');
+        assert.equal(afterUpdate.data.title, 'Published work remains editable');
+        assert.equal(f.view('TASK-built').state, 'implemented');
+        assert.deepEqual(afterUpdate.tracking.history.slice(0, beforeUpdate.tracking.history.length), beforeUpdate.tracking.history);
+        assert.deepEqual(afterUpdate.tracking.acceptance, beforeUpdate.tracking.acceptance);
         // The same step is open from planned, ready and in progress.
         await f.create('TASK-planned'); await f.saved('transition', 'TASK-planned', { state: 'planned' });
         await f.saved('transition', 'TASK-planned', { state: 'implemented' });
@@ -2177,6 +2213,7 @@ module.exports = { name: 'Task tracking core integration', tests: [
         assert.notEqual(automatic.primary.status, 'saved'); assert.equal(f.view('TASK-auto').state, 'in_progress');
     }),
     test('TC-TPT-335', 'verification starts from implemented only with the facts verifying work always has: criteria, a reviewed readiness decision and a responsible member', async f => {
+        f.declareVersion(4);
         const readiness = { reviewed: true, decisionsResolved: true };
         await f.create('TASK-built', 'task', { criteria: [] });
         await f.saved('transition', 'TASK-built', { state: 'implemented' });
@@ -2192,8 +2229,19 @@ module.exports = { name: 'Task tracking core integration', tests: [
         await f.saved('proof', 'TASK-built', { proof: f.proof('TASK-built') });
         await f.saved('accept', 'TASK-built', { reason: 'Observed criteria are accepted' });
         assert.deepEqual([f.view('TASK-built').state, f.view('TASK-built').acceptance.accepted], ['done', true]);
+        // A completed record still carries implemented in its retained history: unrelated updates must not invalidate it.
+        const accepted = f.record('TASK-built');
+        assert.ok(accepted.tracking.history.some(entry => entry.afterState === 'implemented'));
+        assert.equal(f.progress().coverage, 'complete');
+        await f.saved('update', 'TASK-built', { title: 'Accepted work remains editable' });
+        const updated = f.record('TASK-built');
+        assert.equal(updated.data.title, 'Accepted work remains editable');
+        assert.deepEqual(updated.tracking.history.slice(0, accepted.tracking.history.length), accepted.tracking.history);
+        assert.deepEqual(updated.tracking.acceptance, accepted.tracking.acceptance);
+        assert.deepEqual([f.view('TASK-built').state, f.progress().metrics.accepted], ['done', 1]);
     }),
     test('TC-TPT-336', 'implemented work returns to in progress under the rules for starting work and is canceled with a reason, and every read lists the state in the delivery lifecycle', async f => {
+        f.declareVersion(4);
         await f.create('TASK-back', 'task', { criteria: [] });
         await f.saved('transition', 'TASK-back', { state: 'implemented' });
         refused(await f.perform('transition', 'TASK-back', { state: 'in_progress' }), 'NOT_READY');

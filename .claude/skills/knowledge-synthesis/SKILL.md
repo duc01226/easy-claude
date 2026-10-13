@@ -37,6 +37,19 @@ description: '[Research] Use when a workflow step or the user asks for synthesis
 
 **Be skeptical; apply critical/sequential thinking; trace every claim; state confidence (>80% to act).**
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Knowledge Synthesis](#knowledge-synthesis)
+- [Knowledge Work Rules](#knowledge-work-rules)
+- [Step 1: Load Evidence](#step-1-load-evidence)
+- [Step 2: Load Template](#step-2-load-template)
+- [Step 3: Synthesize Report](#step-3-synthesize-report)
+- [Step 4: Citation Audit](#step-4-citation-audit)
+- [Step 5: Confidence Summary](#step-5-confidence-summary)
+- [Output](#output)
+- [Closing Reminders](#closing-reminders)
+
 # Knowledge Synthesis
 
 ## Knowledge Work Rules

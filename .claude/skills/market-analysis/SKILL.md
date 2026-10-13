@@ -35,6 +35,20 @@ description: '[Research] Use when a workflow step or the user asks for market an
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Market Analysis](#market-analysis)
+- [Precondition: Classify Inputs](#precondition-classify-inputs)
+- [Step 1: Define Market Scope](#step-1-define-market-scope)
+- [Step 2: Competitive Research](#step-2-competitive-research)
+- [Step 3: Market Sizing](#step-3-market-sizing)
+- [Step 4: Trend Analysis](#step-4-trend-analysis)
+- [Step 5: SWOT Analysis](#step-5-swot-analysis)
+- [Step 6: Customer Segmentation](#step-6-customer-segmentation)
+- [Output](#output)
+- [Closing Reminders](#closing-reminders)
+
 # Market Analysis
 
 ## Precondition: Classify Inputs

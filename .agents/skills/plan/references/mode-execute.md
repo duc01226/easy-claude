@@ -7,6 +7,31 @@
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Standalone Mode Pipeline (skip entirely only when `nested=true` — a `\[Workflow\]` row that merely exists in the current task list does not count)](#standalone-mode-pipeline-skip-entirely-only-when-nestedtrue--a-workflow-row-that-merely-exists-in-tasklist-does-not-count)
+- [Workflow-Nested Mode](#workflow-nested-mode)
+- [Mode Flags](#mode-flags)
+- [Pre-Implementation Granularity Gate (MANDATORY)](#pre-implementation-granularity-gate-mandatory)
+- [Step 0: Plan Detection & Phase Selection](#step-0-plan-detection--phase-selection)
+- [Workflow Sequence](#workflow-sequence)
+- [Step 1: Analysis & Task Extraction](#step-1-analysis--task-extraction)
+- [Step 2: Implementation](#step-2-implementation)
+- [Step 3: Code Review (static)](#step-3-code-review-static)
+- [Step 4: Verify (tests + mutation check, once)](#step-4-verify-tests--mutation-check-once)
+- [Checklist Walk (own step — standalone AND workflow-nested)](#checklist-walk-own-step--standalone-and-workflow-nested)
+- [Spec-Loop Gate (applies in EVERY mode, standalone included)](#spec-loop-gate-applies-in-every-mode-standalone-included)
+- [Step 5: User Approval ⏸ BLOCKING GATE](#step-5-user-approval--blocking-gate)
+- [Step 6: Finalize](#step-6-finalize)
+- [First Principle — Easy to Change · Easy to Scale · Easy to Maintain](#first-principle--easy-to-change--easy-to-scale--easy-to-maintain)
+- [Critical Enforcement Rules](#critical-enforcement-rules)
+- [Next Steps (Standalone: MUST ATTENTION ask user via `ask user question tool`. Skip only when `nested=true` — THIS run is a step of a `\[Workflow\]` row with its own linked phase tasks; a `\[Workflow\]` row that merely exists in the current task list does not count.)](#next-steps-standalone-must-attention-ask-user-via-ask-user-question-tool-skip-only-when-nestedtrue--this-run-is-a-step-of-a-workflow-row-with-its-own-linked-phase-tasks-a-workflow-row-that-merely-exists-in-tasklist-does-not-count)
+- [Standalone Review Gate (Non-Workflow Only)](#standalone-review-gate-non-workflow-only)
+- [Mode protocols](#mode-protocols)
+- [Prompt-Enhance Closing Anchors](#prompt-enhance-closing-anchors)
+- [Closing Reminders](#closing-reminders)
+
 ## Quick Summary
 
 **Goal:** Complete the selected plan phase as working, fully-tested, reviewed, user-approved code through its testing, code review, and approval gates. Git operations are optional and require an explicit user request — NEVER bypass a quality or authority gate to declare done.

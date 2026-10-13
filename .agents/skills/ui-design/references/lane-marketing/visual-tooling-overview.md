@@ -2,6 +2,16 @@
 
 Entry point for using available image generation, vision analysis, and media tooling to create and review visual assets that align with frontend design thinking and aesthetic guidelines.
 
+## Contents
+
+- [When to Use](#when-to-use)
+- [Core Principles](#core-principles)
+- [Workflow Quick Reference](#workflow-quick-reference)
+- [Integration with Other Tools](#integration-with-other-tools)
+- [Navigation](#navigation)
+- [Quick Commands](#quick-commands)
+- [Remember](#remember)
+
 ## When to Use
 
 Use visual tooling in frontend design when you need to:

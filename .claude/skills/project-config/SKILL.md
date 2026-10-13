@@ -11,7 +11,7 @@ disable-model-invocation: false
 **Summary:**
 
 - The config file is required; the minimum valid content is `{"project":{"name":"<derived name>"}}`.
-- Missing or invalid config blocks ordinary project-specific work until `/project-config` or `/project-init` repairs it.
+- A missing config gets a once-a-day notice and an invalid one adds a warning that its facts are unverified; neither blocks the prompt. Repair it with `/project-config` or `/project-init`.
 - Read the schema and required project references, then select only the capability areas supported by the task or repository evidence.
 - Omitted properties use documented defaults or evidence-backed skips. A declared but incomplete or unsupported section must be repaired or removed explicitly; never treat it as absent.
 - Merge and validate selected changes; report omitted capabilities and follow-up work without inventing architecture or test cases.
@@ -36,6 +36,26 @@ disable-model-invocation: false
 - MUST ATTENTION when the user asks for help, options, or "what can I configure", run **Help Mode** below and STOP — never start a scan
 
 ---
+
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Help Mode (`--help`)](#help-mode---help)
+- [⛔ Plan → Review → Execute Workflow](#-plan--review--execute-workflow)
+- [Intermediate Workspace](#intermediate-workspace)
+- [⛔ Local-Only Workflow Routing — `.claude/.ck.local.json`](#-local-only-workflow-routing--claudecklocaljson)
+- [⛔ Schema Protection Rules](#-schema-protection-rules)
+- [Deriving the Spec-System Config From Source (`specRoots` + `specArtifacts` + `docsRoots` + `techSpecScan`)](#deriving-the-spec-system-config-from-source-specroots--specartifacts--docsroots--techspecscan)
+- [Phase 0: Setup](#phase-0-setup)
+- [Phase 1: Read Current Config](#phase-1-read-current-config)
+- [Phase 2: Evidence-Selected Config Areas](#phase-2-evidence-selected-config-areas)
+- [Phase 3: Consolidate & Write](#phase-3-consolidate--write)
+- [Phase 4: Verify (MANDATORY)](#phase-4-verify-mandatory)
+- [Phase 5: Follow-Up Tasks](#phase-5-follow-up-tasks)
+- [Phase 6: Enhance Selected Guidance (CONDITIONAL)](#phase-6-enhance-selected-guidance-conditional)
+- [Phase 7: Self-Review Verification (MANDATORY)](#phase-7-self-review-verification-mandatory)
+- [Output](#output)
+- [Closing Reminders](#closing-reminders)
 
 ## Help Mode (`--help`)
 

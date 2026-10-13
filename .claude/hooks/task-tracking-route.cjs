@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 'use strict';
 
+if ((require.main === module || !require.main) && require('./lib/framework-runtime.cjs').skipHook(module)) return;
+
 const { isHookEntryPoint } = require('./lib/hook-runner.cjs');
 const { deliverAdvisory } = require('./lib/task-tracking-advisory.cjs');
 const MAX_INPUT_BYTES = 131072;

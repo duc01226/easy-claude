@@ -45,6 +45,21 @@ All three live under the reference-docs root (default `docs/project-reference`; 
 
 **Where the project already has a design system, ADOPT it and record the adoption** rather than re-deciding an axis it already settled. A house style IS an intentional identity; re-deciding it per page is exactly the incoherence this lane exists to prevent. Re-decide an axis only with a stated reason, and surface a genuine conflict to the user with both sides — never resolve it silently.
 
+## Contents
+
+- [Prerequisites](#prerequisites)
+- [Step 1 — Input types & workflows](#step-1--input-types--workflows)
+- [Step 2 — Establish the brief (`DD-1`)](#step-2--establish-the-brief-dd-1)
+- [Step 3 — Pass 1a: brainstorm the design plan](#step-3--pass-1a-brainstorm-the-design-plan)
+- [Step 4 — Pass 1b: review the plan against the brief (BLOCKING)](#step-4--pass-1b-review-the-plan-against-the-brief-blocking)
+- [Step 5 — Pass 2a: build](#step-5--pass-2a-build)
+- [Step 6 — Pass 2b: restraint & self-critique](#step-6--pass-2b-restraint--self-critique)
+- [Writing — copy is design content](#writing--copy-is-design-content)
+- [Working with visual assets](#working-with-visual-assets)
+- [Closing](#closing)
+- [Closing Reminders](#closing-reminders)
+- [Related lanes & skills](#related-lanes--skills)
+
 ## Prerequisites
 
 **⚠️ MUST ATTENTION READ** `design-extraction-overview.md` before executing screenshot-based workflows — contains design guideline extraction protocols, analysis prompts, and visual verification methods required by the screenshot/image input workflow below. For asset generation workflows, also **⚠️ MUST ATTENTION READ** `asset-generation.md`.

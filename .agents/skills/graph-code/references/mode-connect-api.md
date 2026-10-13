@@ -14,15 +14,15 @@
 <!-- SKILL-NAV:START -->
 ## Contents
 
-- How It Works
-- Zero-Config Auto-Detection
-- Auto-Run Behavior
-- Custom Config (Optional)
-- Manual Run
-- Steps (when manually invoked)
-- Matching Strategies
-- See Also
-- Related Modes
+- [How It Works](#how-it-works)
+- [Zero-Config Auto-Detection](#zero-config-auto-detection)
+- [Auto-Run Behavior](#auto-run-behavior)
+- [Custom Config (Optional)](#custom-config-optional)
+- [Manual Run](#manual-run)
+- [Steps (when manually invoked)](#steps-when-manually-invoked)
+- [Matching Strategies](#matching-strategies)
+- [See Also](#see-also)
+- [Related Modes](#related-modes)
 
 <!-- SKILL-NAV:END -->
 

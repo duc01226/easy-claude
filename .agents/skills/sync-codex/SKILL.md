@@ -4,18 +4,11 @@ description: '[Codex] Use when running the full Codex mirror sync and verify pip
 ---
 
 > Codex compatibility note:
-> - Invoke repository skills with `$skill-name` in Codex; this mirrored copy rewrites legacy Claude `/skill-name` references.
-> - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
-> - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
-> - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
-> - Use ask user question tool to ask user.
-> - Ignore Claude-specific mode-switch instructions when they appear.
-> - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
+> - Invoke `$skill-name`: load the registered `.agents/skills/<name>/SKILL.md` and execute it with Codex tools; no separate `Skill` tool or Claude mode switch is needed. Author `.claude/**`; mirrors are generated.
+> - Track steps before execution and keep progress/evidence current. Explicit skill requests execute their protocol. Use the native question tool for required questions.
+> - Map foreign tool names to available host capabilities. A name mismatch needs no approval; an actually unavailable required capability stops with its step/evidence and a user question before adaptation.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
-> - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
-> - For workflow skills, steps follow the guided contract in `$start-workflow` (gate steps fixed; other steps may flex with a logged reason); report step-by-step evidence.
-> - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
+> - Preserve protocol order unless the user approves a deviation. Workflows use `$start-workflow`: gates stay fixed; other steps may flex with logged reasons and evidence.
 ## Quick Summary
 
 **Goal:** Run the full Codex mirror pipeline (sync + verify) from inside the bundle. This runner is the **single and only** entrypoint for the pipeline.
@@ -61,13 +54,25 @@ Also upserts the TUI notification and status-line keys into `.codex/config.toml`
   verifiers, and the cross-surface divergence oracle)
 - Stage 2 upserts `[tui].status_line` to show model+reasoning, current directory, project root, context used, five-hour limit, and weekly limit by default
 - Stage 2 never upserts `model_auto_compact_token_limit`; it retires the top-level key only when its value equals the formerly bundled `500000` and keeps any other value. No host pins a compaction budget — any compaction default change goes here AND in the other two surfaces, never in one alone
-- Stage 2 also raises top-level `project_doc_max_bytes` to 98304 (never lowers a larger value): Codex silently stops reading `AGENTS.md` at 32 KiB by default, which cut the generated root mid-file. The projection still emits Doc Lookup and the project rules first, so they survive a host that ignores the project value; there, set the key in `~/.codex/config.toml` instead. The budget covers every `AGENTS.md` concatenated from the project root to the working directory, not the root alone.
-- Stage 4 generates the bounded `AGENTS.md` projection of `CLAUDE.md` (project information only) and removes the retired `.codex/CODEX_CONTEXT.md`. The framework's shared protocols and the workflow route reach Codex through the mirrored hooks (`.codex/hooks.json`), never through a generated file; a Codex host that runs no hook is unsupported. Review the new handlers in Codex `/hooks` after the first sync and after any handler change: until they are reviewed, Codex receives no universal rules and no workflow route, and no static fallback exists (`.claude/docs/hooks/README.md#hook-only-delivery-host-requirements`).
+- Stage 2 leaves the native instruction budget unchanged. It retires a top-level `project_doc_max_bytes = 98304` only on that exact former bundled value; custom values and other spellings stay. Retirement stops at the first table, multiline string or multiline collection to preserve complex user configuration. Project-only instructions should fit the native 32 KiB budget, shared with nested `AGENTS.md` files. Reduce oversized instructions instead of raising the framework default. A deliberate personal 98304-byte allowance belongs in user config, outside sync ownership.
+- Stage 4 generates the bounded `AGENTS.md` projection of `CLAUDE.md` (project information only) and removes the retired `.codex/CODEX_CONTEXT.md`. The framework's shared protocols and the workflow route reach Codex through the mirrored hooks (`.codex/hooks.json`), never through a generated file; mode `on` requires working hooks; intentionally choosing `quiet` or `off` is supported (read `.claude/docs/configuration/README.md#framework-runtime-mode`). Review the new handlers in Codex `/hooks` after the first sync and after any handler change: until they are reviewed, Codex receives no universal rules and no workflow route, and no static fallback exists (`.claude/docs/hooks/README.md#hook-only-delivery-host-requirements`).
 - Stage 2 must not inline `lessons.md` content — it lives in the project-reference docs root (default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path) — into `.agents/skills/**`; generated skill mirrors carry no project content
 - `AGENTS.md` and the skill mirrors carry no shared-protocol text: the universal hook delivers it (`verify-skill-protocol-compliance.mjs` fails on any copy)
+- Test stages set `CK_FRAMEWORK_MODE=on` only in their child processes so verification still exercises hooks when chat mode is `quiet` or `off`; saved preferences remain unchanged.
 - No npm dependency — pure `node` + spawned subprocesses
 - Idempotent — safe to re-run; second run produces only timestamp diffs
 - **opencode handoff:** when the project has a local `.opencode/` directory, the runner hands off to `$sync-opencode` after all 19 stages pass (its `--verify-only` form under `--verify-only`). The handoff is an integration step, NOT a 20th stage — the 19-stage roster stays fixed
+
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [opencode handoff (when `.opencode/` exists)](#opencode-handoff-when-opencode-exists)
+- [Bootstrap Gate (when AGENTS.md is missing)](#bootstrap-gate-when-agentsmd-is-missing)
+- [Coordination with ai-context-refresh](#coordination-with-ai-context-refresh)
+- [Skill profile on Codex](#skill-profile-on-codex)
+- [Stages](#stages)
+- [Usage](#usage)
+- [Closing Reminders](#closing-reminders)
 
 ## opencode handoff (when `.opencode/` exists)
 
@@ -92,7 +97,7 @@ node .claude/skills/sync-opencode/scripts/run-opencode-sync.mjs
 
 This skill is the route the agent-files bootstrap gate offers for a missing root `AGENTS.md`, the
 generated Codex projection of `CLAUDE.md`. The projection holds project information only (Doc Lookup,
-project rules, naming, development commands, skill activation); the framework rules every agent follows
+project rules, naming and development commands); the framework rules every agent follows
 are delivered by the universal hook, and the workflow route only by the `workflow-route-inject` and
 `workflow-catalog-inject` hooks (in each person's route mode). Stage 4 writes the projection; no protocol text and no route pointer is stamped.
 

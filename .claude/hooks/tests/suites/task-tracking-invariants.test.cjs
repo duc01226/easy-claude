@@ -175,6 +175,7 @@ module.exports = { name: 'Task tracking finite invariant integration', tests: [
         assert.deepEqual(f.record('TASK-101').tracking.acceptanceHistory, acceptance);
     }),
     test('TC-TPT-076', 'every undeclared pair in the finite nine-state matrix preserves exact history and bytes', async f => {
+        f.declareVersion(4);
         let counter = 0;
         for (const before of states) for (const after of states) {
             if (declared[before].includes(after)) continue;
@@ -200,6 +201,7 @@ module.exports = { name: 'Task tracking finite invariant integration', tests: [
         }
     }),
     test('TC-TPT-109', 'reasonless cancellation from every eligible state preserves bytes, attribution, receipts and delivery credit', async f => {
+        f.declareVersion(4);
         for (const state of states.filter(value => value !== 'canceled')) {
             const id = `TASK-cancel-${state}`; await arrangeState(f, id, state);
             const original = f.bytes(id); const record = f.record(id); const metrics = f.progress().metrics;

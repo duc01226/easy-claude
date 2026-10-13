@@ -29,7 +29,10 @@ const {
   recordHookDecision,
 } = require("./debug-log.cjs");
 
-// Default timeout for async hooks (15 seconds)
+// Default timeout for async hooks (15 seconds). This script-level limit is why most settings
+// entries declare no `timeout`: the host default, measured in minutes, is never reached. A
+// synchronous hook has no timer here, so one that runs under a short host budget (session end)
+// declares its limit in settings instead.
 const DEFAULT_TIMEOUT_MS = 15000;
 const MAX_PRE_TOOL_INPUT_BYTES = 1024 * 1024;
 const TIMEOUT_DRAIN_GRACE_MS = 500;

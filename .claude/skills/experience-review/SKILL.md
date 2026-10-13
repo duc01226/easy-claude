@@ -20,6 +20,13 @@ description: '[Testing] Use when a workflow step or the user asks for runtime re
 
 **Workflow:** Follow the six steps in order; track each with evidence or an explicit skip reason using host task tools or an equivalent tracker. Source reading, test-writing and artifact generation alone never verify an experience.
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Procedure](#procedure)
+- [Output](#output)
+- [Closing Reminders](#closing-reminders)
+
 ## Procedure
 
 ### 1. Resolve intent and scope

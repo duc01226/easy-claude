@@ -4,6 +4,24 @@ These apply regardless of design direction. This is the quality floor.
 
 ---
 
+## Contents
+
+- [Surface & Token Architecture](#surface--token-architecture)
+- [Spacing System](#spacing-system)
+- [Symmetrical Padding](#symmetrical-padding)
+- [Border Radius Consistency](#border-radius-consistency)
+- [Depth & Elevation Strategy](#depth--elevation-strategy)
+- [Card Layouts](#card-layouts)
+- [Isolated Controls](#isolated-controls)
+- [Typography Hierarchy](#typography-hierarchy)
+- [Monospace for Data](#monospace-for-data)
+- [Iconography](#iconography)
+- [Animation](#animation)
+- [Contrast Hierarchy](#contrast-hierarchy)
+- [Color Carries Meaning](#color-carries-meaning)
+- [Navigation Context](#navigation-context)
+- [Dark Mode](#dark-mode)
+
 ## Surface & Token Architecture
 
 Professional interfaces don't pick colors randomly — they build systems. Understanding this architecture is the difference between "looks okay" and "feels like a real product."

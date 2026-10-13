@@ -38,6 +38,18 @@ Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs
 - **MUST** search 3+ local examples of the target pattern before planning and follow the project's architecture, code hierarchy and naming from `docs/project-config.json` → `workflowPatterns`.
 - **NEVER** change an assertion or expected value to make a refactor pass — that is a behavior change and needs the user's approval.
 
+## Contents
+
+- [Workflow Calls and Todo Bootstrap](#workflow-calls-and-todo-bootstrap)
+- [Quick Summary](#quick-summary)
+- [Size & Kind Triage (first action)](#size--kind-triage-first-action)
+- [Required Quality Gates](#required-quality-gates)
+- [Gates and Optional Steps](#gates-and-optional-steps)
+- [Orchestration Freedom](#orchestration-freedom)
+- [Memory, Reporting and Fix Path](#memory-reporting-and-fix-path)
+- [Activation](#activation)
+- [Closing Reminders](#closing-reminders)
+
 ## Size & Kind Triage (first action)
 
 Classify the refactor before choosing steps and record the result in the workflow report:

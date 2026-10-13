@@ -5,13 +5,13 @@ Collect-side reference for `feature-presentation`. Governs **content collection*
 <!-- SKILL-NAV:START -->
 ## Contents
 
-- 0. Path roots (resolve before globbing or citing any path below)
-- 1. Scope Resolution (SKILL.md Step 1)
-- 2. Per-Artifact-Type Parse Map
-- 3. Gap-Fill Routing (SKILL.md Step 2 — sub-agent)
-- 4. Branches
-- 5. Accumulation Output (handed to `deck-template.md`)
-- 6. Journey-Extraction Map (main-story flows → ordered journeys)
+- [0. Path roots (resolve before globbing or citing any path below)](#0-path-roots-resolve-before-globbing-or-citing-any-path-below)
+- [1. Scope Resolution (SKILL.md Step 1)](#1-scope-resolution-skillmd-step-1)
+- [2. Per-Artifact-Type Parse Map](#2-per-artifact-type-parse-map)
+- [3. Gap-Fill Routing (SKILL.md Step 2 — sub-agent)](#3-gap-fill-routing-skillmd-step-2--sub-agent)
+- [4. Branches](#4-branches)
+- [5. Accumulation Output (handed to `deck-template.md`)](#5-accumulation-output-handed-to-deck-templatemd)
+- [6. Journey-Extraction Map (main-story flows → ordered journeys)](#6-journey-extraction-map-main-story-flows--ordered-journeys)
 
 <!-- SKILL-NAV:END -->
 

@@ -10,12 +10,15 @@
 ## Contents
 
 - [Quick Summary](#quick-summary)
-- [Adversarial Review Mindset](#adversarial-review-mindset-non-negotiable)
-- [Type-Specific Checklists](#type-specific-checklists---type-dispatch)
-- [M1-M7 Compliance Gate](#m1-m7-compliance-gate-blocking--applies-to-all-artifact-types)
-- [Output Format](#output-format-per---type)
-- [Validated Fix + Full Re-Review](#validated-fix--full-re-review-mandatory-when-fixes-are-applied)
+- [First Principle — Easy to Change · Easy to Scale · Easy to Maintain](#first-principle--easy-to-change--easy-to-scale--easy-to-maintain)
+- [Adversarial Review Mindset (NON-NEGOTIABLE)](#adversarial-review-mindset-non-negotiable)
+- [Type-Specific Checklists (`--type` dispatch)](#type-specific-checklists---type-dispatch)
+- [M1-M7 Compliance Gate (BLOCKING — applies to ALL artifact types)](#m1-m7-compliance-gate-blocking--applies-to-all-artifact-types)
+- [Output Format (per `--type`)](#output-format-per---type)
+- [Validated Fix + Full Re-Review (MANDATORY when fixes are applied)](#validated-fix--full-re-review-mandatory-when-fixes-are-applied)
+- [IMPORTANT Task Planning Notes (MUST ATTENTION FOLLOW)](#important-task-planning-notes-must-attention-follow)
 - [Bulk Multi-Artifact Sweeps](#bulk-multi-artifact-sweeps)
+- [Prompt-Enhance Closing Anchors](#prompt-enhance-closing-anchors)
 - [Closing Reminders](#closing-reminders)
 
 ## Quick Summary

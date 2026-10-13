@@ -11,6 +11,8 @@
 
 'use strict';
 
+if ((require.main === module || !require.main) && require('./lib/framework-runtime.cjs').skipHook(module)) return;
+
 const fs = require('fs');
 const { runHookSync } = require('./lib/hook-runner.cjs');
 const { debug } = require('./lib/debug-log.cjs');

@@ -48,6 +48,24 @@ Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs
 - MUST ATTENTION every research stage that runs is validated with the user before the next stage; every claim cites evidence, confidence >80% to act.
 - NEVER skip mandatory workflow or skill gates.
 
+## Contents
+
+- [Workflow Calls and Todo Bootstrap](#workflow-calls-and-todo-bootstrap)
+- [Quick Summary](#quick-summary)
+- [Size & Kind Triage (FIRST action)](#size--kind-triage-first-action)
+- [Required Quality Gates](#required-quality-gates)
+- [Gates and Optional Steps](#gates-and-optional-steps)
+- [Recommended Skills by Phase](#recommended-skills-by-phase)
+- [Market Analysis Applicability (conditional)](#market-analysis-applicability-conditional)
+- [New-UI Explore Mockup (before the implementation plan)](#new-ui-explore-mockup-before-the-implementation-plan)
+- [Architecture Gates Parallel Phase (`architecture --mode=scalability` + design-rationale `/why-review`)](#architecture-gates-parallel-phase-architecture---modescalability--design-rationale-why-review)
+- [Workflow-Specific Contracts](#workflow-specific-contracts)
+- [Orchestration Freedom](#orchestration-freedom)
+- [Memory & Reporting](#memory--reporting)
+- [Fix Path & Loop Bounds](#fix-path--loop-bounds)
+- [Step Chain](#step-chain)
+- [Closing Reminders](#closing-reminders)
+
 ## Size & Kind Triage (FIRST action)
 
 Classify before choosing steps; write the result to the run report.

@@ -1,6 +1,6 @@
 /**
  * Project-context intake: optional config stays optional; a declared invalid config
- * blocks ordinary work, allowing only an exact, explicit repair invocation.
+ * warns without blocking ordinary work; exact explicit repair suppresses redundant guidance.
  * Real hook processes use content-bearing fixtures, isolated home/temp/cache roots,
  * and no inherited CK_* switches. No authoring-project state is read or changed.
  */
@@ -61,6 +61,15 @@ function isBlocked(stdout) {
     return /"decision"\s*:\s*"block"/.test(stdout);
 }
 
+// An invalid config never blocks a prompt: the model is warned that its facts are unverified and the work proceeds.
+function isInvalidConfigWarning(stdout) {
+    return !isBlocked(stdout) && /Project config at .+ is invalid|Unable to verify the project config/.test(stdout)
+        && stdout.includes('Do not rely on the sections of that config as project facts')
+        && stdout.includes('derive them from repository evidence')
+        && stdout.includes('Work the user asked for proceeds')
+        && stdout.includes('once, never as a precondition');
+}
+
 function assertPortableOnly(stdout, configuredPath) {
     assertTrue(!isBlocked(stdout), `missing config must not block: ${stdout}`);
     assertTrue(stdout.includes(configuredPath), 'notice names the configured config');
@@ -99,7 +108,7 @@ module.exports = {
                         assertPortableOnly(run(dir, 'add a login button'), configuredPath);
                         assertEqual(run(dir, 'continue ordinary work'), '', 'repeat prompt must not introduce setup or repeat the daily notice');
                         write(dir, configuredPath, { project: { name: '' } });
-                        assertTrue(isBlocked(run(dir, 'do normal work')), 'property boundary: invalid recorded settings require repair');
+                        assertTrue(isInvalidConfigWarning(run(dir, 'do normal work')), 'property boundary: invalid recorded settings warn without blocking');
                     });
                 }
             }
@@ -137,40 +146,39 @@ module.exports = {
             })
         },
         {
-            // Business Intent: invalid declared facts never silently become portable defaults.
+            // Business Intent: invalid declared facts are named to the model and never trusted, yet never lock the user out of the session.
             // TestSpec: TC-PCI-013
-            name: '[init-prompt-gate] TC-PCI-013 invalid custom config blocks with its path and schema errors',
+            name: '[init-prompt-gate] TC-PCI-013 invalid custom config warns with its path and schema errors without blocking',
             fn: () => withProject(dir => {
                 write(dir, '.claude/.ck.json', { portability: { projectConfigPath: CUSTOM } });
                 write(dir, CUSTOM, { schemaVersion: 2, project: { name: '' } });
                 const stdout = run(dir, 'do normal work');
-                assertTrue(isBlocked(stdout), `invalid config blocks: ${stdout}`);
-                const decision = JSON.parse(stdout);
-                assertTrue(decision.reason.includes(CUSTOM), 'block names custom path');
-                assertTrue(decision.reason.includes('project.name'), 'block gives actionable validation error');
+                assertTrue(isInvalidConfigWarning(stdout), `invalid config warns: ${stdout}`);
+                assertTrue(stdout.includes(CUSTOM), 'warning names custom path');
+                assertTrue(stdout.includes('project.name'), 'warning gives actionable validation error');
             })
         },
         {
-            // Business Intent: even malformed/unreadable declared facts remain authoritative until repaired.
+            // Business Intent: a malformed or unreadable config (a conflicted file mid-rebase) is warned about and never blocks the prompt.
             // TestSpec: TC-PCI-013
-            name: '[init-prompt-gate] TC-PCI-013 malformed or unreadable config fails closed',
+            name: '[init-prompt-gate] TC-PCI-013 malformed or unreadable config warns without blocking',
             fn: () => {
                 for (const invalidKind of ['malformed', 'directory']) withProject(dir => {
                     if (invalidKind === 'malformed') write(dir, DEFAULT, '{');
                     else fs.mkdirSync(path.join(dir, DEFAULT), { recursive: true });
-                    assertTrue(isBlocked(run(dir, 'do normal work')), `${invalidKind} declared config blocks`);
+                    assertTrue(isInvalidConfigWarning(run(dir, 'do normal work')), `${invalidKind} declared config warns`);
                 });
             }
         },
         {
-            // Business Intent: invalid facts cannot be waived through advisory dismissal state or wording.
+            // Business Intent: the invalid-config warning cannot be waived through advisory dismissal state or wording.
             // TestSpec: TC-PCI-013
-            name: '[init-prompt-gate] TC-PCI-013 invalid config ignores setup dismissals',
+            name: '[init-prompt-gate] TC-PCI-013 invalid config warning ignores setup dismissals',
             fn: () => withProject(dir => {
                 write(dir, DEFAULT, { project: { name: '' } });
                 for (const flag of ['.init-dismissed', '.agent-files-dismissed', '.graph-dismissed']) write(dir, `${STATE}${flag}`, new Date().toISOString());
                 for (const prompt of ['skip init', 'skip setup', 'skip scan', 'skip graph', '/scan-all', '/graph-code --mode=build']) {
-                    assertTrue(isBlocked(run(dir, prompt)), `invalid facts still block ${prompt}`);
+                    assertTrue(isInvalidConfigWarning(run(dir, prompt)), `invalid facts still warn for ${prompt}`);
                 }
             })
         },
@@ -183,23 +191,23 @@ module.exports = {
                 for (const prefix of ['/', '$']) for (const command of ['project-init', 'init-project', 'project-config']) {
                     for (const suffix of ['', ' --update', '\t--update', '\n--update']) {
                         assertEqual(run(dir, `  ${prefix}${command.toUpperCase()}${suffix}`), '', 'explicit repair must remain usable');
-                        assertTrue(isBlocked(run(dir, `${prefix}${command}-extra${suffix}`)), 'a different action cannot inherit repair access');
+                        assertTrue(isInvalidConfigWarning(run(dir, `${prefix}${command}-extra${suffix}`)), 'a different action retains the warning while work proceeds');
                     }
                 }
             })
         },
         {
-            // Business Intent / Invariant: only the complete repair token grants repair access, never another name or incidental mention.
+            // Business Intent / Invariant: only the complete repair token suppresses redundant warnings, never another name or incidental mention.
             // TestSpec: TC-PCI-051
-            name: '[init-prompt-gate] TC-PCI-051 repair prefixes and incidental mentions cannot bypass invalid config',
+            name: '[init-prompt-gate] TC-PCI-051 repair prefixes and incidental mentions cannot suppress the invalid-config warning',
             fn: () => withProject(dir => {
                 write(dir, DEFAULT, { project: { name: '' } });
                 for (const prefix of ['/', '$']) for (const command of ['project-init', 'init-project', 'project-config']) {
                     for (const suffix of ['-extra', '.fake', '_extra', ':extra', '/extra', '!', '2']) {
                         const prompt = `${prefix}${command}${suffix} do normal work`;
-                        assertTrue(isBlocked(run(dir, prompt)), `different command must block: ${prompt}`);
+                        assertTrue(isInvalidConfigWarning(run(dir, prompt)), `different command must still warn: ${prompt}`);
                     }
-                    assertTrue(isBlocked(run(dir, `please mention ${prefix}${command}`)), 'incidental mention does not grant repair');
+                    assertTrue(isInvalidConfigWarning(run(dir, `please mention ${prefix}${command}`)), 'incidental mention does not count as repair');
                 }
             })
         },
@@ -226,7 +234,7 @@ module.exports = {
             fn: () => withProject(dir => {
                 assertPortableOnly(run(dir, 'do normal work', { launcher: true }), DEFAULT);
                 write(dir, DEFAULT, { project: { name: '' } });
-                assertTrue(isBlocked(run(dir, '$project-config-extra', { launcher: true })), 'node-e blocks nonrepair');
+                assertTrue(isInvalidConfigWarning(run(dir, '$project-config-extra', { launcher: true })), 'node-e warns on nonrepair');
                 assertEqual(run(dir, '$project-config --update', { launcher: true }), '', 'node-e permits exact repair');
             })
         },

@@ -6,9 +6,11 @@ import { createRequire } from 'node:module';
 import { buildSkillReferenceMap, prependCodexCompatibilityNote, rewriteClaudeToolTermsForCodex, rewriteSkillMentionsForCodex } from './compat-rewrite.mjs';
 import { CODEX_IMPLICIT_OFF_RE, parseFrontmatter, parseFrontmatterBoolean, stripQuotes } from '../lib/agent-frontmatter.mjs';
 import { writeFileTransientSafe } from '../lib/write-file-transient-safe.mjs';
+import { isOsMetadataFileName } from '../lib/os-metadata-files.mjs';
 import { fileURLToPath } from 'node:url';
 
 const require = createRequire(import.meta.url);
+const { hasConciseInstructions } = require('../lib/skill-instruction-profile.cjs');
 const { resolveMutationProjectRoot, isInvokedAsScript } = require('../lib/project-root.cjs');
 const rootResolution = resolveMutationProjectRoot({
     cwd: process.cwd(),
@@ -65,9 +67,10 @@ const MIRROR_EXCLUDED_DIRS = new Set(['.git', '.hg', '.svn', '.venv', 'node_modu
 // source tree, so mirroring them from disk would track files a clean checkout never has and make
 // the sync-divergence gate pass only on a developer machine.
 const MIRROR_EXCLUDED_FILES = new Set(['package-lock.json', 'yarn.lock', 'pnpm-lock.yaml']);
-// Codex AGENTS.md read budget: AGENTS_ROOT_LIMIT_BYTES (80 KiB) + the context pointer and reference
-// gate, with headroom. Raise it together with that limit, never to hide an overflow warning.
-export const CODEX_PROJECT_DOC_MAX_BYTES = 98304;
+// Retire the allowance shipped for the old 80 KiB projection. Project-only instructions now
+// fit the host default; sync must not raise a user's chosen instruction budget.
+const RETIRED_DOC_BUDGET_KEY = 'project_doc_max_bytes';
+const RETIRED_DOC_BUDGET_VALUE = '98304';
 const RUNTIME_ONLY_SKILL_FILES = new Set([path.normalize(path.join('shared', 'workflow-first-gate.md'))]);
 const agentsMirrorGitignorePath = path.join(path.dirname(agentsSkillsDir), '.gitignore');
 
@@ -85,6 +88,8 @@ export function isLocalInstallArtifact(relativePath) {
 /** True when a path under `.claude/skills` belongs in the generated skill mirror. */
 export function isMirroredSkillSource(relativePath) {
     if (isLocalInstallArtifact(relativePath)) return false;
+    // Kept apart from the install-artifact lists above: those also generate `.agents/.gitignore`.
+    if (isOsMetadataFileName(path.basename(relativePath))) return false;
     return !RUNTIME_ONLY_SKILL_FILES.has(path.normalize(relativePath));
 }
 
@@ -229,29 +234,6 @@ function findTomlAssignmentEnd(lines, assignmentStart, scopeEnd) {
     return assignmentStart + 1;
 }
 
-/**
- * Parse a TOML integer literal: signed decimal and the unsigned `0x` / `0o` / `0b` forms, each
- * with optional single `_` separators between digits (TOML 1.0 §Integer). Anything else — a
- * float, a string, a leading zero, a malformed separator — returns null so callers can refuse to
- * act on a value they cannot read.
- */
-function parseTomlInteger(text) {
-    const value = String(text ?? '').trim();
-    const forms = [
-        [/^[+-]?(?:0|[1-9](?:_?\d)*)$/, 10, 0],
-        [/^0x[0-9A-Fa-f](?:_?[0-9A-Fa-f])*$/, 16, 2],
-        [/^0o[0-7](?:_?[0-7])*$/, 8, 2],
-        [/^0b[01](?:_?[01])*$/, 2, 2],
-    ];
-    for (const [pattern, radix, prefixLength] of forms) {
-        if (!pattern.test(value)) continue;
-        const digits = value.slice(prefixLength).replace(/_/g, '');
-        const parsed = radix === 10 ? Number(digits) : parseInt(digits, radix);
-        return Number.isSafeInteger(parsed) ? parsed : null;
-    }
-    return null;
-}
-
 function upsertTomlKey(lines, key, value, start, end) {
     const keyPattern = new RegExp(`^\\s*${escapeRegExp(key)}\\s*=`);
     const existingIndex = lines.findIndex((line, index) => index >= start && index < end && keyPattern.test(line));
@@ -348,21 +330,21 @@ export function upsertCodexNotificationConfig(configText, options = {}) {
     const compaction = retireBundledTomlKey(lines, RETIRED_COMPACTION_KEY, RETIRED_COMPACTION_VALUE, 0, topLevelEnd, RETIRED_COMPACTION_COMMENT);
     if (compaction.keptValue !== null) notice(`kept user-set ${RETIRED_COMPACTION_KEY}=${compaction.keptValue}`);
 
-    // Codex silently stops reading AGENTS.md at `project_doc_max_bytes` (32 KiB by default), and the
-    // generated root runs up to AGENTS_ROOT_LIMIT_BYTES (sync-context-workflows.mjs) plus the context
-    // pointer and reference gate. Raise the floor so the whole root loads; a larger project value is
-    // kept, never lowered.
-    topLevelEnd = lines.findIndex(isTomlTableHeader);
-    if (topLevelEnd === -1) topLevelEnd = lines.length;
-    const docLimitLine = lines.slice(0, topLevelEnd)
-        .map(line => line.match(/^\s*(?:project_doc_max_bytes|"project_doc_max_bytes"|'project_doc_max_bytes')\s*=\s*(.*?)\s*(?:#.*)?$/))
-        .find(Boolean);
-    // Only a value PROVEN smaller is raised. A value this parser cannot read (a quoted key, a
-    // non-integer) is left untouched: rewriting it could lower a larger limit or duplicate the key.
-    const existingDocLimit = docLimitLine ? parseTomlInteger(docLimitLine[1]) : null;
-    if (!docLimitLine || (existingDocLimit !== null && existingDocLimit < CODEX_PROJECT_DOC_MAX_BYTES && /^\s*project_doc_max_bytes\s*=/.test(docLimitLine.input))) {
-        upsertTomlKey(lines, 'project_doc_max_bytes', String(CODEX_PROJECT_DOC_MAX_BYTES), 0, topLevelEnd);
-    }
+    // No instruction-budget floor: quiet mode should inherit native context limits. Remove only
+    // the exact former bundled allowance; every other spelling/value is a project choice.
+    // Restrict retirement to a simple top-level prefix. This line-based migration must not
+    // mistake multiline string content or a quoted table's values for top-level settings.
+    const complexConfigStart = lines.findIndex(line => {
+        const code = stripTomlComment(line);
+        if (/^\s*\[/.test(code) || code.includes('"""') || code.includes("'''")) return true;
+        const structure = stripTomlStringContent(line);
+        const opens = (structure.match(/[\[{]/g) || []).length;
+        const closes = (structure.match(/[\]}]/g) || []).length;
+        return opens !== closes;
+    });
+    const docBudgetEnd = complexConfigStart === -1 ? lines.length : complexConfigStart;
+    const docBudget = retireBundledTomlKey(lines, RETIRED_DOC_BUDGET_KEY, RETIRED_DOC_BUDGET_VALUE, 0, docBudgetEnd);
+    if (docBudget.keptValue !== null) notice(`kept user-set ${RETIRED_DOC_BUDGET_KEY}=${docBudget.keptValue}`);
 
     let tuiRange = findTomlTableRange(lines, 'tui');
     if (!tuiRange) {
@@ -403,8 +385,9 @@ function deriveSkillDescription(body, skillName) {
     return `Claude skill mirrored for Codex compatibility: ${skillName}`;
 }
 
-function rewriteCodexBody(text, skillReferenceMap) {
-    return prependCodexCompatibilityNote(rewriteClaudeToolTermsForCodex(rewriteSkillMentionsForCodex(text, skillReferenceMap)));
+function rewriteCodexBody(text, skillReferenceMap, concise = false) {
+    const rewritten = rewriteClaudeToolTermsForCodex(rewriteSkillMentionsForCodex(text, skillReferenceMap));
+    return concise ? rewritten : prependCodexCompatibilityNote(rewritten);
 }
 
 function stripTrailingWhitespace(text) {
@@ -492,19 +475,22 @@ async function canonicalProtocolBodies(inlineTags) {
     return tag => extractSyncBody(canonical, tag);
 }
 
-function buildCodexSkillManifest(markdown, fallbackName, skillReferenceMap, options = {}) {
+export function buildCodexSkillManifest(markdown, fallbackName, skillReferenceMap, options = {}) {
     const { frontmatter, body: sourceBody } = parseFrontmatter(markdown);
     const name = stripQuotes(options.overrideName || frontmatter.name || fallbackName || 'unnamed-skill') || 'unnamed-skill';
     const description = stripQuotes(frontmatter.description) || deriveSkillDescription(sourceBody, name);
     const disableModelInvocation = parseFrontmatterBoolean(frontmatter['disable-model-invocation']);
     const body = options.inline ? inlineListedProtocols(sourceBody, options.inline.tags, options.inline.bodyFor) : sourceBody;
-    const rewrittenBody = rewriteCodexBody(body, skillReferenceMap);
+    const concise = hasConciseInstructions(markdown);
+    const rewrittenBody = rewriteCodexBody(body, skillReferenceMap, concise);
 
     const sanitizedFrontmatterLines = ['---', `name: ${name}`, `description: '${escapeYamlSingleQuoted(description)}'`];
 
     if (disableModelInvocation !== null) {
         sanitizedFrontmatterLines.push(`disable-model-invocation: ${disableModelInvocation ? 'true' : 'false'}`);
     }
+
+    if (concise) sanitizedFrontmatterLines.push('metadata:', '  instruction-profile: concise');
 
     sanitizedFrontmatterLines.push('---');
     const sanitizedFrontmatter = sanitizedFrontmatterLines.join('\n');

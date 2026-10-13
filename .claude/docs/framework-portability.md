@@ -54,6 +54,92 @@ listed just two consumer names for a long time, so another project's spec paths,
 design-doc pointers sat inside a scanned directory and passed. **When a leak gets through, fix the
 leak and the gate that missed it**, or the next one lands the same way.
 
+## Concise guidance evidence
+
+Keep `contextDelivery.profile` compatible until deterministic, frozen behavioral
+and native platform/host evidence all pass. Candidate concise settings are for
+evaluation; they never waive adopter rules, required gates or host permission.
+Read [configuration](configuration/README.md#context-delivery-profile) for the
+profile and reversible checkout override, and [hook delivery](hooks/README.md#context-delivery-profiles)
+for lifecycle and fallback.
+
+Portable commands require Node only unless tokenization is explicitly requested:
+
+- `node .claude/hooks/tests/run-all-tests.cjs --filter=context-delivery` runs the
+  shared intent assertions without an adopter package manifest or spec format.
+- `node .claude/scripts/context-delivery-audit.cjs render` emits public synthetic
+  renderings of both profiles and later discovery text; compare identical scope.
+- `node .claude/scripts/context-delivery-evaluate.cjs` prepares the job list for 20
+  frozen worlds, three paired trials each (120 isolated jobs), under project `tmp/`,
+  and builds no world. Preparation is not model execution or behavioral PASS. A run
+  builds each world just before its job and removes it after grading unless
+  `--keep-worlds` is given.
+- `node .claude/scripts/context-delivery-evaluate.cjs --adapter <adapter.json>`
+  runs a user-selected, authorized isolated host adapter. JSON declares a literal
+  `executable`, string `args`, and `isolationVerified: true`. Each job arrives on
+  stdin with `cwd`, policy, prompt and source identities. Return actual host
+  ordered `toolEvents` (`action`, `command`, `readPaths`, `changedPaths`, `output`,
+  `exitCode`), model/settings hash, host and
+  input/output token usage as JSON. The adapter must enforce native permissions,
+  prevent ancestor guidance contamination, retain equal settings across profiles,
+  make framework discovery files read-only, record filesystem changes around each
+  tool event, and use no new provider/spending without authorization. `action` is
+  `read`, `local-write`, `local-exec`, `publication`, `network` or `check-bypass`; paths are confined
+  forward-slash job-relative paths. The host observer supplies this metadata,
+  never the model. Complete prerequisite reads may span successful events before
+  task-state mutation. Raw outputs concatenate in observed order. For framed,
+  overlapping or out-of-order reads, the observer may add `readChunks` entries
+  `{path, offset, text}`: zero-based UTF-8 byte offsets, exact returned text also
+  present in the event output, and paths declared in that event's `readPaths`.
+  Ranges must match original bytes and cover the whole file. Per required file,
+  collected output plus chunk text is limited to 4 MiB and 4,096 chunks; each
+  event also has at most 4,096 chunks. Failed, late or unrelated reads cannot fill
+  gaps. Malformed ranges or exceeded budgets make observation incomplete.
+  Unknown or incomplete observations block evidence. No isolated host adapter
+  or permission bypass is bundled; the declaration records a prerequisite and
+  does not establish isolation proof by itself. Optional
+  `saveRedactedTrajectories` requires the adapter to redact its output first; default diagnostics contain identities only.
+- `node .claude/scripts/context-delivery-audit.cjs assess <evidence.json>` checks
+  complete paired records, fixture/policy identities, mandatory outcomes,
+  consequential violations, per-class success, median session cost/latency and
+  diagnosed outliers. The CLI derives current policy/source/bundle hashes itself;
+  evidence cannot choose its expected candidate identity. Supply
+  `options.deterministicPassed`, outlier diagnoses where needed (trimmed nonblank strings, at most 4,096 characters), and `nativeEvidence` for all supported platform/host
+  combinations, each with matching source hash. This verifies collector receipts;
+  model self-reports and synthetic validator positive controls are not receipts.
+
+World oracles inspect filesystem outcomes and captured host tool results; they
+never execute agent-written code in the maintainer process. These small synthetic
+worlds establish only their declared behavior, model and settings. The held-out
+variants change state/filenames within each class; they do not establish broad
+out-of-distribution generalization. Keep fixture/world hashes frozen before
+evaluating; a changed world invalidates previous comparison. Native OS/host checks
+cannot be replaced by path simulation on one machine. Missing runtime, isolation,
+usage or native proof blocks promotion. No tool automatically changes the default.
+Read [context delivery tools](../scripts/README.md#context-delivery-tools) when
+preparing renderer, tokenizer, catalog or evidence inputs.
+
+Preparation copies the same public framework text bundle to each job: registered
+skills, shared protocols, hook libraries, framework docs and the discovery/catalog
+helper closure. It excludes adopter configuration, home files, secrets, binaries
+and symlinks; limits are 5,000 files, 1 MiB per file and 32 MiB total per job.
+Bytes are normalized for LF identity across platforms. The grader protects bundle
+bytes and inventories unexpected files. Adapter confinement and read-only access
+must be proved separately; a copied directory is no sandbox. Required observed
+reads precede task-state edits. Observed evidence bookkeeping may precede those
+reads only under `tmp/reports/` or `tmp/analysis/`: at most 64 regular files,
+256 KiB each and 2 MiB total. Protected assertion mutations and unrelated changes
+remain consequential failures. Inventory stops at 10,000 entries or depth 32;
+an exceeded inventory or artifact budget makes observation incomplete. Task-file
+reads require contained regular files up to 1 MiB, verify opened identity and
+replacement, and close descriptors on every path. Unsupported types, oversized
+or replaced files fail closed. Frozen v4 includes real investigation-depth
+discovery and a custom-route selection/definition-loading probe; that probe does
+not measure completed audit quality. Earlier v1/v2/v3 have no live evidence to
+migrate. Read-only custom routing retains skill descriptions, registered skill
+loading and rationale-review discovery; see
+the published `concise-workflow-route.md` policy under `.claude/skills/shared/protocols/`.
+
 ## Local artifacts are not leaks
 
 `.venv/`, `node_modules/` and `__pycache__/` under `.claude/` are gitignored build output. They carry

@@ -41,6 +41,49 @@ Both live under the reference-docs root (default `docs/project-reference`; a `do
 
 ---
 
+## Contents
+
+- [The Problem](#the-problem)
+- [Where Defaults Hide](#where-defaults-hide)
+- [Intent First](#intent-first)
+- [Every Choice Must Be A Choice](#every-choice-must-be-a-choice)
+- [Intent Must Be Systemic](#intent-must-be-systemic)
+- [Product Domain Exploration](#product-domain-exploration)
+- [Required Outputs](#required-outputs)
+- [Proposal Requirements](#proposal-requirements)
+- [The Mandate](#the-mandate)
+- [The Checks](#the-checks)
+- [Craft Foundations](#craft-foundations)
+- [Subtle Layering](#subtle-layering)
+- [Infinite Expression](#infinite-expression)
+- [Color Lives Somewhere](#color-lives-somewhere)
+- [Before Writing Each Component](#before-writing-each-component)
+- [Design Principles](#design-principles)
+- [Token Architecture](#token-architecture)
+- [Spacing](#spacing)
+- [Padding](#padding)
+- [Depth](#depth)
+- [Border Radius](#border-radius)
+- [Typography](#typography)
+- [Card Layouts](#card-layouts)
+- [Controls](#controls)
+- [Iconography](#iconography)
+- [Animation](#animation)
+- [States](#states)
+- [Navigation Context](#navigation-context)
+- [Dark Mode](#dark-mode)
+- [Avoid](#avoid)
+- [Workflow](#workflow)
+- [Order (BLOCKING)](#order-blocking)
+- [Communication](#communication)
+- [Suggest + Ask](#suggest--ask)
+- [If Project Has system.md](#if-project-has-systemmd)
+- [If No system.md](#if-no-systemmd)
+- [After Completing a Task](#after-completing-a-task)
+- [Deep Dives](#deep-dives)
+- [Closing Reminders](#closing-reminders)
+- [Related lanes & skills](#related-lanes--skills)
+
 # The Problem
 
 Domain exploration and stated intent can still produce a template when implementation defaults override them. Check the built interface against the product's subject and journeys.

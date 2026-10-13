@@ -25,11 +25,15 @@ const SIDING = 'blocked';
 const SIDING_HOST = 'in_progress';
 const OFF_LINE = 'canceled';
 const lifecycleOf = kind => VOCABULARY.kindLifecycles[kind];
-const statesOf = lifecycle => VOCABULARY.lifecycles[lifecycle]?.states || [];
+// The lifecycles of the report being rendered: the snapshot's own, so a project is shown the states its vocabulary
+// version has. Rendering is synchronous; renderReport sets this for one report and restores it.
+let shownLifecycles = VOCABULARY.lifecycles;
+const statesOf = lifecycle => shownLifecycles[lifecycle]?.states || [];
 const stationsOf = lifecycle => statesOf(lifecycle).filter(state => state !== SIDING && state !== OFF_LINE);
 const DELIVERY_LIFECYCLE = lifecycleOf(DELIVERY_KIND);
 const inDelivery = item => lifecycleOf(item.kind) === DELIVERY_LIFECYCLE;
-const STATIONS = Object.freeze(stationsOf(DELIVERY_LIFECYCLE));
+// The stops of the delivery line in the report being rendered.
+const stations = () => stationsOf(DELIVERY_LIFECYCLE);
 // Work that reached the last stop of a line that has somewhere to go, or that left its line, is closed.
 function closed(item) {
     const line = stationsOf(lifecycleOf(item.kind));
@@ -1203,7 +1207,7 @@ function renderStanding(items, kinds, whole) {
         .filter(([total]) => total).map(([total, name]) => `${total} ${name}`);
     const counted = listWords(VOCABULARY.kinds.filter(kind => lifecycleOf(kind) === DELIVERY_LIFECYCLE && (whole || kind === DELIVERY_KIND)).map(kinds.lowerMany));
     const apart = whole ? ` ${listWords(VOCABULARY.kinds.filter(kind => lifecycleOf(kind) !== DELIVERY_LIFECYCLE).map((kind, index) => (index ? kinds.lowerMany(kind) : kinds.capitalMany(kind))))} are not counted here.` : '';
-    return `<section class="standing card" aria-labelledby="standing-heading"><div class="card-head"><h2 id="standing-heading">Where work stands</h2><p class="aside">${plural(open.filter(onLine).length, 'open record', 'open records')} by recorded state, counting ${counted} only.${apart}${off.length ? ` Off the line: ${off.join(', ')}.` : ''}</p></div><ol class="line line--s${STATIONS.length}">${STATIONS.map(state => {
+    return `<section class="standing card" aria-labelledby="standing-heading"><div class="card-head"><h2 id="standing-heading">Where work stands</h2><p class="aside">${plural(open.filter(onLine).length, 'open record', 'open records')} by recorded state, counting ${counted} only.${apart}${off.length ? ` Off the line: ${off.join(', ')}.` : ''}</p></div><ol class="line line--s${stations().length}">${stations().map(state => {
         const records = inState(state);
         return `<li${records.length ? '' : ' class="station--none"'}><span class="count">${records.length}</span><span class="dot-zone">${dot(state)}</span><span class="station-name">${STATE_NAMES[state]}</span>${records.length ? `<span class="station-kinds">${kindBreakdown(records, kinds)}</span>` : ''}${state === SIDING_HOST && blocked ? `<span class="siding"><span class="siding-hook" aria-hidden="true"></span><span class="siding-tag">${blocked} blocked</span></span>` : ''}</li>`;
     }).join('')}</ol></section>`;
@@ -1446,6 +1450,12 @@ function renderFormNotice(mode, budget, kinds) {
 }
 
 function renderReport(snapshot, manifest, options = {}) {
+    const stated = snapshot?.vocabulary?.lifecycles;
+    shownLifecycles = stated && typeof stated === 'object' && !Array.isArray(stated) ? stated : VOCABULARY.lifecycles;
+    try { return renderSnapshot(snapshot, manifest, options); } finally { shownLifecycles = VOCABULARY.lifecycles; }
+}
+
+function renderSnapshot(snapshot, manifest, options = {}) {
     if (!snapshot || typeof snapshot !== 'object' || !manifest || typeof manifest !== 'object') throw new TypeError('Report needs a snapshot and ownership manifest');
     const mode = DETAIL_FORMS.includes(options.detail) ? options.detail : 'full';
     const items = array(snapshot.items), members = array(snapshot.members);

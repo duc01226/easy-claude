@@ -5,18 +5,11 @@ disable-model-invocation: false
 ---
 
 > Codex compatibility note:
-> - Invoke repository skills with `$skill-name` in Codex; this mirrored copy rewrites legacy Claude `/skill-name` references.
-> - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
-> - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
-> - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
-> - Use ask user question tool to ask user.
-> - Ignore Claude-specific mode-switch instructions when they appear.
-> - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
+> - Invoke `$skill-name`: load the registered `.agents/skills/<name>/SKILL.md` and execute it with Codex tools; no separate `Skill` tool or Claude mode switch is needed. Author `.claude/**`; mirrors are generated.
+> - Track steps before execution and keep progress/evidence current. Explicit skill requests execute their protocol. Use the native question tool for required questions.
+> - Map foreign tool names to available host capabilities. A name mismatch needs no approval; an actually unavailable required capability stops with its step/evidence and a user question before adaptation.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
-> - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
-> - For workflow skills, steps follow the guided contract in `$start-workflow` (gate steps fixed; other steps may flex with a logged reason); report step-by-step evidence.
-> - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
+> - Preserve protocol order unless the user approves a deviation. Workflows use `$start-workflow`: gates stay fixed; other steps may flex with logged reasons and evidence.
 ## Quick Summary
 
 **Goal:** Teach Claude lessons that persist across sessions by generalizing each lesson to its failure mode and routing it to the carrier a future session will actually read — the matching skill's project protocol when the lesson is skill-specific, otherwise the best-fit prose reference doc, `docs/project-config.json` when the lesson is really a machine-readable project fact, or the root `CLAUDE.md` project-rules section when it is a short, broad, project-specific rule or context note every task benefits from.
@@ -61,6 +54,19 @@ disable-model-invocation: false
 - **CLAUDE.md consent + sync:** NEVER silently self-edit an instruction file — show the exact proposed line and target section, ask via `ask user question tool`, write only after confirmation, then run `sync-codex` (after the end tasks) and report which mirrors changed.
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
+
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Usage](#usage)
+- [Reference Doc Catalog (READ before routing)](#reference-doc-catalog-read-before-routing)
+- [Smart File Routing (CRITICAL)](#smart-file-routing-critical)
+- [Budget Enforcement (MANDATORY for `lessons.md`)](#budget-enforcement-mandatory-for-lessonsmd)
+- [Behavior](#behavior)
+- [Auto-Inferred Activation](#auto-inferred-activation)
+- [How Lessons Reach the AI](#how-lessons-reach-the-ai)
+- [Prompt Enhancement (MANDATORY final step)](#prompt-enhancement-mandatory-final-step)
+- [Closing Reminders](#closing-reminders)
 
 ## Usage
 

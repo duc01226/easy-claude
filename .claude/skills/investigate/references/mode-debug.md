@@ -24,15 +24,16 @@
 <!-- SKILL-NAV:START -->
 ## Contents
 
-- [Classify and route](#phase-0-classify-and-route-blocking)
-- [Reproduce](#phase-1-reproduce)
-- [Hypothesize](#phase-2-hypothesize)
-- [Trace end-to-start](#phase-3-trace-end-to-start)
-- [Confirm ownership](#phase-4-confirm-ownership-and-completeness)
-- [Validate](#phase-5-root-cause-validation-why-review-gate)
-- [Report and hand off](#phase-6-report-and-hand-off)
+- [Quick Summary](#quick-summary)
+- [Phase 0: Classify and Route (BLOCKING)](#phase-0-classify-and-route-blocking)
+- [Phase 1: Reproduce](#phase-1-reproduce)
+- [Phase 2: Hypothesize](#phase-2-hypothesize)
+- [Phase 3: Trace End-to-Start](#phase-3-trace-end-to-start)
+- [Phase 4: Confirm Ownership and Completeness](#phase-4-confirm-ownership-and-completeness)
+- [Phase 5: Root Cause Validation (`/why-review` Gate)](#phase-5-root-cause-validation-why-review-gate)
+- [Phase 6: Report and Hand Off](#phase-6-report-and-hand-off)
 - [Mode protocols](#mode-protocols)
-- [Closing reminders](#closing-reminders)
+- [Closing Reminders](#closing-reminders)
 
 <!-- SKILL-NAV:END -->
 

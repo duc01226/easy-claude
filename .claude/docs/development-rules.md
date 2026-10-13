@@ -210,7 +210,7 @@ retitled as a stale test.
 - Stage, commit and push only on explicit user request; implementation approval grants none of them. A plain commit request creates a new commit.
 - Amend only when explicitly requested, and only an unpushed commit created by this task. This includes `reset --soft HEAD~1` followed by commit. The review gate requires a receipt against HEAD's parent with `"amend":true`; merge-commit amendments fail closed.
 - Create a feature branch before committing on `main` or `master`.
-- Read-only inspection needs no approval. Ask before operations that change refs, the index, worktree or Git configuration, including fetch. Listing branches, tags, remotes, configuration or stashes is read-only.
+- Read-only inspection needs no approval. An explicit commit or push request authorizes that operation and its necessary preparation after required checks, with no second confirmation. Ask only when scope or a separate consequential operation lacks authorization. Listing branches, tags, remotes, configuration or stashes is read-only.
 - GitHub CLI/MCP writes require explicit user authorization, including PR/release publication, merging, deletion and API writes.
 - Consent remains the agent's responsibility: no hook enforces these authorization rules or blocks destructive Git operations. Only literal `permissions.ask` patterns in `.claude/settings.json` prompt, even under `bypassPermissions`; unmatched commands can run silently.
 - Before recursive deletion outside `tmp/`, `temp/` or task-created paths, inspect the target and ask. Shipped settings do not prompt for recursive deletion; read `.claude/docs/configuration/README.md` when adding project-specific ask/deny rules.

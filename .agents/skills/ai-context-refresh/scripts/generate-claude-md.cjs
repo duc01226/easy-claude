@@ -301,7 +301,7 @@ const HEADING_MAP = [
 // Builder function map
 const BUILDER_MAP = {
     tldr: c => builders.buildTldr(c),
-    'golden-rules': (c, d) => builders.buildGoldenRules(c, d),
+    'golden-rules': c => builders.buildProjectContextMap(c),
     'decision-quick-ref': c => builders.buildDecisionQuickRef(c),
     'key-locations': c => builders.buildKeyLocations(c),
     'dev-commands': c => builders.buildDevCommands(c),
@@ -309,7 +309,7 @@ const BUILDER_MAP = {
     'api-ports': c => builders.buildApiPorts(c),
     'integration-testing': c => builders.buildIntegrationTesting(c),
     'e2e-testing': c => builders.buildE2eTesting(c),
-    'skill-activation': (c, d) => builders.buildSkillActivation(c, d),
+    'skill-activation': () => null,
     'doc-index': (c, d) => builders.buildDocIndex(c, d),
     'doc-lookup': (c, d) => builders.buildDocLookup(c, d)
 };
@@ -569,6 +569,14 @@ function backfillDocLookupHeading(content) {
  */
 function buildUpdateOutput(existing, sections, { report = true, stripLegacy = false } = {}) {
     let output = updateMarkedSections(existing, sections, report ? undefined : () => {});
+    if (!sections['golden-rules']) {
+        output = output.replace(/^[ \t]*<!-- SECTION:golden-rules -->[\s\S]*?^[ \t]*<!-- \/SECTION:golden-rules -->[ \t]*\r?\n?/gm, '');
+    }
+    // Retire this owned section explicitly: a null builder normally preserves an
+    // old section to protect custom data, but skill policy no longer belongs in roots.
+    output = output.replace(/^[ \t]*<!-- SECTION:skill-activation -->[\s\S]*?^[ \t]*<!-- \/SECTION:skill-activation -->[ \t]*\r?\n?/gm, '');
+    output = output.replace(/^## Automatic Skill Activation[ \t]*\r?\n(?:[ \t]*\r?\n)*(?=## |$)/gm, '');
+    output = output.replace('This file holds project information only. The framework rules every agent follows are delivered by hooks, not written here.', '');
 
     const withE2e = backfillGeneratedE2eSection(output, sections);
     if (withE2e !== output) {

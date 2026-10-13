@@ -4,23 +4,16 @@ description: '[Project Management] Use when a workflow step or the user asks for
 ---
 
 > Codex compatibility note:
-> - Invoke repository skills with `$skill-name` in Codex; this mirrored copy rewrites legacy Claude `/skill-name` references.
-> - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
-> - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
-> - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
-> - Use ask user question tool to ask user.
-> - Ignore Claude-specific mode-switch instructions when they appear.
-> - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
+> - Invoke `$skill-name`: load the registered `.agents/skills/<name>/SKILL.md` and execute it with Codex tools; no separate `Skill` tool or Claude mode switch is needed. Author `.claude/**`; mirrors are generated.
+> - Track steps before execution and keep progress/evidence current. Explicit skill requests execute their protocol. Use the native question tool for required questions.
+> - Map foreign tool names to available host capabilities. A name mismatch needs no approval; an actually unavailable required capability stops with its step/evidence and a user question before adaptation.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
-> - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
-> - For workflow skills, steps follow the guided contract in `$start-workflow` (gate steps fixed; other steps may flex with a logged reason); report step-by-step evidence.
-> - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
+> - Preserve protocol order unless the user approves a deviation. Workflows use `$start-workflow`: gates stay fixed; other steps may flex with logged reasons and evidence.
 > **[BLOCKING] Mode routing — detect FIRST.** An explicit `--mode=refine`, `--mode=story`, `--mode=mockup`, `--mode=challenge`, `--mode=review` or `--mode=dor` selects that mode. With no mode, show the [Mode Dispatch](#mode-dispatch) table and stop: ask nothing, guess nothing, run nothing. Formerly `/refine`, `/story`, `/pbi-mockup`, `/pbi-challenge`, `/artifact-review`, `/dor-gate`: those slash commands no longer exist, and each mode works called directly with no workflow. Read the mode file in full before anything else.
 
 > **Renamed:** formerly `/pbi` — now `$work-item`. The old name no longer resolves as a slash command. Modes are unchanged; the record this skill writes is a task, and `--type=pbi` is now `--type=task`.
 
-> **Work tracking:** Read [the linked work integration guide](../task-track/references/integration-guide.md) at capture, start, saved-work, verification, handoff and close-out checkpoints. Inspect exact selected owners and declared spec/task/subtask dependencies before refinement/story decisions and after their actual successful save. Retain all selected-mode interview, validation and readiness gates; diagnostic concerns never approve readiness or acceptance. Only the primary saving owner records one checkpoint with the actual inherited producer/context. Read-only review and failed saves supply no saved observation. Continue untracked; disclose partial/unavailable concerns and secondary pending reasons.
+> **Work tracking:** Keep the project's tracked work current in the same change, as its root instructions (`CLAUDE.md` or `AGENTS.md`) say. When the project uses the portable tracker (`taskTracking.mode` is `observe` or `linked`), read [the linked work integration guide](../task-track/references/integration-guide.md) at capture, start, saved-work, verification, handoff and close-out checkpoints. Inspect exact selected owners and declared spec/task/subtask dependencies before refinement/story decisions and after their actual successful save. Retain all selected-mode interview, validation and readiness gates; diagnostic concerns never approve readiness or acceptance. Only the primary saving owner records one checkpoint with the actual inherited producer/context. Read-only review and failed saves supply no saved observation. Continue untracked; disclose partial/unavailable concerns and secondary pending reasons.
 >
 > **Work record shape:** Task and story files are work records owned by `$task-track`. Read [Records another skill authors](../task-track/references/integration-guide.md#records-another-skill-authors) before a mode writes or edits one: `status: draft` on generation, no assignee, integer `priority`, labels in `priority_label`, and tracker-owned fields of a tracked record change only through `$task-track`.
 
@@ -39,6 +32,13 @@ description: '[Project Management] Use when a workflow step or the user asks for
 - **[BLOCKING]** No mode, or an unknown mode value, prints the table below and stops. Never infer a mode from the artifact, the flags or the conversation.
 - **[BLOCKING]** Read the selected mode's reference in full FIRST; its rules, gates and reminders are the only instructions for the invocation — why: each mode's gates (scope gate, validated-fix loop, DoR criteria) are not restated here.
 - Keep mode-specific flags (`--type`, `--reuse`, `--explore`, `--source`); ignore flags belonging to another mode. Run exactly one mode; offer follow-ups through its Next Steps and let the user decide. Resolve artifact/spec/design roots from `docs/project-config.json` at runtime.
+
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Mode Dispatch](#mode-dispatch)
+- [The `--reuse` contract](#the---reuse-contract)
+- [Closing Reminders](#closing-reminders)
 
 ## Mode Dispatch
 

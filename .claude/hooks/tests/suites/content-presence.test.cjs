@@ -141,6 +141,9 @@ const AGENTS_DIR = path.resolve(PROJECT_DIR, '.claude', 'agents');
 const SKILLS_DIR = path.resolve(PROJECT_DIR, '.claude', 'skills');
 
 const readFile = p => fs.readFileSync(p, 'utf8');
+// The route cases assert the gate of the default (compatible) delivery profile, whichever profile the
+// developer or this checkout selected for their own sessions.
+const COMPATIBLE_PROFILE = { config: { contextDelivery: { profile: 'compatible' } } };
 const readAgent = name => readFile(path.join(AGENTS_DIR, `${name}.md`));
 const readSkill = name => readFile(path.join(SKILLS_DIR, name, 'SKILL.md'));
 
@@ -252,7 +255,8 @@ const EMPHASIS_ANCHOR_FLOORS = {
     'source-deep-dive': { top: 12, closing: 45 },
     'web-research': { top: 7, closing: 35 },
     'business-evaluation': { top: 9, closing: 39 },
-    test: { top: 11, closing: 38 },
+    // 36 since the mandatory Next Steps menu became a results-based follow-up: one closing line, two markers fewer.
+    test: { top: 11, closing: 36 },
     'work-item/references/mode-dor.md': { top: 6, closing: 35 },
 };
 // Returns one line per anchor that lost markers (or is missing). Frontmatter and SYNC bodies are
@@ -603,17 +607,10 @@ module.exports = {
                 const claudeMd = readFile(path.resolve(PROJECT_DIR, 'CLAUDE.md'));
                 const missing = [];
                 const { readProjectConfigAt } = require('../../lib/project-config-loader.cjs');
-                const { pathRulesDelivery } = require('../../../skills/ai-context-refresh/scripts/section-builders.cjs');
                 const loaded = readProjectConfigAt(PROJECT_DIR);
                 assertTrue(loaded.state !== 'invalid', `Invalid project config: ${loaded.errors.join('; ')}`);
-                if (pathRulesDelivery(loaded.config, PROJECT_DIR).completeLookup) {
-                    for (const fragment of [
-                        'BEFORE the first read, grep, edit or test',
-                        'file-conventions.cjs --lookup <path> --complete',
-                        'Read ALL returned pages and required references',
-                        'No duplicate path table is loaded',
-                    ]) if (!claudeMd.includes(fragment)) missing.push(`complete path lookup: ${fragment}`);
-                } else if (!/Path Pattern/.test(claudeMd)) missing.push('Path Pattern routing table');
+                if (!claudeMd.includes('| Files | Project reference |')) missing.push('project path-to-reference table');
+                assertTrue(!claudeMd.includes('file-conventions.cjs --lookup'), 'root guidance must work without framework machinery');
                 if (!/Read first/.test(claudeMd)) missing.push('prompt → reference-doc lookup table');
                 // The path→doc pointer rows — each names the reference doc a hook used to inject.
                 for (const doc of [
@@ -718,13 +715,13 @@ module.exports = {
                 // The route hook is the only carrier of the gate: its ask payload must carry the same rule. The
                 // generated roots carry no route text (TC-CP-008).
                 const routeHook = require(path.resolve(PROJECT_DIR, '.claude', 'hooks', 'lib', 'workflow-route-delivery.cjs'));
-                const hookPayload = routeHook.buildInjection(PROJECT_DIR, '', 'ask');
+                const hookPayload = routeHook.buildInjection(PROJECT_DIR, '', 'ask', 'default', COMPATIBLE_PROFILE);
                 const midSessionGaps = [['workflow-first-gate.md', gate], ['Routing Decision Guide', guide], ['start-workflow/SKILL.md', skill], ['route hook payload (ask)', hookPayload]]
                     .flatMap(([label, body]) => MID_SESSION.filter(p => !body.includes(p)).map(p => `${label} → "${p}"`));
                 assertTrue(midSessionGaps.length === 0,
                     `mid-session no-auto-activation rule diverges across routing surfaces:\n  ${midSessionGaps.join('\n  ')}`);
                 // Mode auto carries the same guard in its own words: a matched workflow starts only on the first task.
-                const autoPayload = routeHook.buildInjection(PROJECT_DIR, '', 'auto');
+                const autoPayload = routeHook.buildInjection(PROJECT_DIR, '', 'auto', 'default', COMPATIBLE_PROFILE);
                 const autoGaps = [
                     'Mid-session: never auto-activate a workflow.',
                     'A matched workflow starts only on the first task of a session',
@@ -786,7 +783,7 @@ module.exports = {
                     .filter(([, abs]) => fs.existsSync(abs)).map(([r, abs]) => [r, readFile(abs)]);
                 // The roots carry no route text (TC-CP-008); the route hook's ask payload carries the gate.
                 const routeHook = require(path.resolve(PROJECT_DIR, '.claude', 'hooks', 'lib', 'workflow-route-delivery.cjs'));
-                const hookPayload = routeHook.buildInjection(PROJECT_DIR, '', 'ask');
+                const hookPayload = routeHook.buildInjection(PROJECT_DIR, '', 'ask', 'default', COMPATIBLE_PROFILE);
                 const generatedCopies = [['route hook payload (ask)', hookPayload]];
                 const mirrorPaths = [path.join('.agents', 'skills', 'start-workflow', 'SKILL.md')];
                 const skillMirrors = mirrorPaths.flatMap(readIfPresent);
@@ -1810,20 +1807,14 @@ module.exports = {
             // Guards BR-ADS-05: with the trailer switch off (the default) the commit guidance asks for no line
             // that nothing reads, and no text promises an automated check of it. Skill text ships with the
             // bundle, so this asserts unguarded (like TC-CP-004).
-            name: '[content-presence] TC-ADS-006 commit template omits Fix-Origin by default and claims no sensor',
+            name: '[content-presence] TC-ADS-006 commit trailer requires explicit opt-in and claims no sensor',
             fn: () => {
                 // Given the commit skill
                 const body = readSkill('commit');
-                const step4 = sectionBetween(body, '### Step 4: Commit', '### Step 5');
-                // When its default message template (the first bash block of Step 4) is read
-                const template = /```bash\r?\n([\s\S]*?)```/.exec(step4);
-                assertTrue(template !== null && template[1].includes('git commit -F -'),
-                    'commit Step 4 lost its default message template (bash block piping into git commit -F -)');
-                // Then the template carries no Fix-Origin trailer
-                assertTrue(!template[1].includes('Fix-Origin'), `default commit template still carries Fix-Origin:\n${template[1]}`);
-                // And the default (switch absent or false) is stated as "no Fix-Origin line"
-                assertTrue(step4.includes('When the key is absent or `false`, the message carries no `Fix-Origin` line.'),
-                    'commit Step 4 no longer states that the default message has no Fix-Origin line');
+                // Absent/false must not add a trailer; compact guidance need not
+                // restore the old multi-section message template to express it.
+                assertTrue(/Only when `commit\.fixOriginTrailer: true`, add `Fix-Origin:/.test(body),
+                    'Fix-Origin must remain conditional on an explicitly true setting');
                 // And no paragraph about the trailer claims a sensor, a presence check or a mandatory field
                 const claims = paragraphsMentioning(body, /Fix-Origin|fixOriginTrailer/)
                     .filter(p => /\bsensors?\b|verif(?:y|ies)\s+(?:its\s+)?presence|required on every/i.test(p));
@@ -1835,17 +1826,20 @@ module.exports = {
             name: '[content-presence] TC-ADS-007 commit skill names commit.fixOriginTrailer and limits the trailer to new commits',
             fn: () => {
                 // Given the part of the commit skill that describes the trailer option
-                const step4 = sectionBetween(readSkill('commit'), '### Step 4: Commit', '### Step 5');
+                const body = readSkill('commit');
                 // When a maintainer reads it
                 const missing = [
-                    '`commit.fixOriginTrailer` is `true` in `docs/project-config.json`',
-                    'It applies to new commits only',
-                    'never reword existing commits to add it',
-                ].filter(p => !step4.includes(p));
+                    'commit.fixOriginTrailer: true',
+                    'Fix-Origin: feedback',
+                    '`regression` (earlier defect)',
+                    '`not-applicable` (not a fix)',
+                    'to new commits',
+                    'never reword history to add it',
+                ].filter(p => !body.includes(p));
                 // Then it names the switch and scopes the trailer to new commits only
                 assertTrue(missing.length === 0, `commit Fix-Origin opt-in text lost:\n  ${missing.join('\n  ')}`);
                 // And no sentence advises rewording existing commits
-                const rewordAdvice = step4.split(/(?<=[.!?])\s+/).filter(s => /\breword/i.test(s) && !/\bnever\b/i.test(s));
+                const rewordAdvice = body.split(/(?<=[.!?])\s+/).filter(s => /\breword/i.test(s) && !/\bnever\b/i.test(s));
                 assertTrue(rewordAdvice.length === 0, `commit skill advises rewording commits:\n  ${rewordAdvice.join('\n  ')}`);
             },
         },

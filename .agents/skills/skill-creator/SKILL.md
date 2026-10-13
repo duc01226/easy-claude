@@ -5,18 +5,11 @@ disable-model-invocation: true
 ---
 
 > Codex compatibility note:
-> - Invoke repository skills with `$skill-name` in Codex; this mirrored copy rewrites legacy Claude `/skill-name` references.
-> - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
-> - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
-> - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
-> - Todo tracking mandate: BEFORE executing any workflow or skill step, create/update todo tracking for all steps and keep it synchronized as progress changes.
-> - Use ask user question tool to ask user.
-> - Ignore Claude-specific mode-switch instructions when they appear.
-> - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
+> - Invoke `$skill-name`: load the registered `.agents/skills/<name>/SKILL.md` and execute it with Codex tools; no separate `Skill` tool or Claude mode switch is needed. Author `.claude/**`; mirrors are generated.
+> - Track steps before execution and keep progress/evidence current. Explicit skill requests execute their protocol. Use the native question tool for required questions.
+> - Map foreign tool names to available host capabilities. A name mismatch needs no approval; an actually unavailable required capability stops with its step/evidence and a user question before adaptation.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
-> - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
-> - For workflow skills, steps follow the guided contract in `$start-workflow` (gate steps fixed; other steps may flex with a logged reason); report step-by-step evidence.
-> - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
+> - Preserve protocol order unless the user approves a deviation. Workflows use `$start-workflow`: gates stay fixed; other steps may flex with logged reasons and evidence.
 ## Quick Summary
 
 **Goal:** Author, extend, validate, and package Claude Code skills with proper structure, progressive disclosure, SYNC protocol compliance, and AI attention anchoring.
@@ -40,7 +33,7 @@ disable-model-invocation: true
 
 - Every SKILL.md MUST include `## Quick Summary` (Goal/Workflow/Key Rules) within the first 30 lines
 - Single-line `description` with `[Category]` prefix + trigger keywords (multi-line YAML breaks catalog parsing)
-- Progressive disclosure — link task references directly with read-when triggers; add contents near the top of references longer than 100 lines.
+- Progressive disclosure — link task references directly with read-when triggers. Every skill file over 100 lines, `SKILL.md` or a reference, carries a heading-matched `## Contents` list in its first 100 lines; in `SKILL.md` it sits directly after Quick Summary.
 - Shared protocols reach a skill only through the sync tools: a `<!-- SYNC:tag -->` body, which guide mode turns into a guide line in skill entrypoints, including review-family skills (`SYNC:shared-protocol-duplication-policy`) — NEVER a hand-written file reference
 - MUST call `$prompt-enhance` on new/updated SKILL.md as final attention-anchoring quality pass
 - Skills teach task-specific decisions and observable outcomes; retain only useful context.
@@ -52,6 +45,23 @@ disable-model-invocation: true
 - Read `references/schema-reference.md` when editing headers or invocation policy; it owns fields, variable substitution, and structural validation.
 - Read `references/creation-process.md` when creating a skill or choosing bundled resources; it owns the expanded creation narrative.
 - Read `references/authoring-quality.md` when creating, extending, optimizing, repairing, or accepting a skill; it owns principles, bad-practice replacements, retention, and behavioral evaluation.
+
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Skill Creator](#skill-creator)
+- [Authoring quality gate](#authoring-quality-gate)
+- [Helper invocation paths](#helper-invocation-paths)
+- [Mode 1: Create a New Skill](#mode-1-create-a-new-skill)
+- [Mode 2: Add Resources to an Existing Skill](#mode-2-add-resources-to-an-existing-skill)
+- [Mode 3: Scan & Fix Invalid Skills](#mode-3-scan--fix-invalid-skills)
+- [Mode 4: Package & Distribute](#mode-4-package--distribute)
+- [Mode 5: Optimize an Existing Skill](#mode-5-optimize-an-existing-skill)
+- [Mode 6: Fix a Skill from Logs](#mode-6-fix-a-skill-from-logs)
+- [SYNC Protocol Blocks](#sync-protocol-blocks)
+- [Scripts](#scripts)
+- [References](#references)
+- [Closing Reminders](#closing-reminders)
 
 # Skill Creator
 
@@ -68,6 +78,12 @@ three-level progressive-disclosure loading model live in `references/creation-pr
 
 Apply `references/authoring-quality.md` to the selected mode. It owns direct reference discovery, per-step freedom, bounded feedback, model evaluation and dependency setup. Define the supported task, inputs, observable result, scope/authority and failure/stop behavior before writing; match strictness to consequence.
 
+**Quality check on every create, update and audit.** Whenever you create a skill, change one or audit the catalog, run these before handoff and repair what they report within the request's scope:
+
+1. `node .claude/skills/skill-creator/scripts/validate-skills.cjs --path .claude/skills/<skill-name>` (omit `--path` for an audit): fix every error and warning the change caused, and explain the rest. An `Unknown field` error for a framework convention field (`version`, `execution-mode`, `context-budget`, `triggers`) means the project has not declared it in `skillConventions`: report it; never remove the field or edit the project config to clear it.
+2. Contents lists: each file over 100 lines lists its contents in its first 100 lines, one linked entry per section in document order. The validator reports a missing or stale list; `node .claude/skills/skill-creator/scripts/validate-skills.cjs --fix-contents` writes it. Run it after adding, renaming or removing a section.
+3. The gate dimensions in `references/authoring-quality.md` → Quality gate, recorded as below.
+
 Before handoff or packaging, record each applicable gate as `PASS`, `FAIL`, or `N/A` with evidence; behavioral checks not run stay `NOT RUN`. Verify contract, discovery, signal/retention, procedure, resources, trust/recovery, observable behavior, incremental value, and ownership/model compatibility. Structure validation alone is not a behavioral pass. Select relevant cases and report limitations rather than impose a universal trial count.
 
 ## Helper invocation paths
@@ -82,7 +98,7 @@ Run helper commands from the project root. The examples use the canonical instal
 2. **Check Existing** — Glob `.claude/skills/*/SKILL.md` for similar skills. Avoid duplication; prefer extending an existing skill (Mode 2) over creating a near-duplicate.
 3. **Initialize** — Run `python3 .claude/skills/skill-creator/scripts/init_skill.py <skill-name> --path <output-dir>` to scaffold the directory with a template SKILL.md + example `scripts/`, `references/`, `assets/`.
 4. **Plan reusable contents** — For each concrete usage example, identify the scripts, references, and assets worth bundling so the workflow isn't rebuilt each time.
-5. **Write SKILL.md** — Frontmatter per `references/schema-reference.md`; `## Quick Summary` in first 30 lines; imperative/infinitive voice; progressive disclosure. Delete unused scaffold files.
+5. **Write SKILL.md** — Frontmatter per `references/schema-reference.md`; `## Quick Summary` in first 30 lines; `## Contents` directly after it once the file exceeds 100 lines; imperative/infinitive voice; progressive disclosure. Delete unused scaffold files.
 6. **Add SYNC blocks** — Add the relevant protocols as SYNC blocks, then convert them to guide lines where the hybrid policy says so (see `## SYNC Protocol Blocks`).
 7. **Add Closing Reminders** — Echo top rules at the bottom with `:reminder` SYNC blocks (recency anchoring).
 8. **Validate** — `node .claude/skills/skill-creator/scripts/validate-skills.cjs --path .claude/skills/<skill-name>`.
@@ -94,6 +110,7 @@ Run helper commands from the project root. The examples use the canonical instal
 [Frontmatter]
 [SYNC protocol blocks — top attention zone]
 [## Quick Summary — Goal/Workflow/Key Rules]
+[## Contents — heading-matched list, when the file exceeds 100 lines]
 [Detailed instructions — middle zone]
 [## Closing Reminders — bottom attention zone with :reminder SYNC blocks]
 ```
@@ -109,8 +126,8 @@ Detailed step-by-step narrative (understanding examples, planning contents, edit
 **Args:** `$1` = skill name, `$2` = reference-or-script prompt. If either is missing, ask via `ask user question tool`.
 
 1. **Identify** — Determine the target skill and the required additions.
-2. **Create** — Add reference/script files following progressive disclosure (split large files). Scripts must have tests and respect `.env` load order: `process.env` > `.claude/skills/<skill>/.env` > `.claude/skills/.env` > `.claude/.env`.
-3. **Update SKILL.md** — Add SYNC blocks if new protocols apply; wire in references; keep it lean.
+2. **Create** — Add reference/script files following progressive disclosure (split large files); give a reference over 100 lines a `## Contents` list near its top. Scripts must have tests and respect `.env` load order: `process.env` > `.claude/skills/<skill>/.env` > `.claude/skills/.env` > `.claude/.env`.
+3. **Update SKILL.md** — Add SYNC blocks if new protocols apply; wire in references; keep it lean; update its `## Contents` list when a section is added, renamed or removed.
 4. **Enhance** — Call `$prompt-enhance` on the updated SKILL.md.
 5. **Validate** — Verify files work and scripts pass tests, then apply the authoring quality gate to the changed scope.
 
@@ -130,7 +147,7 @@ node .claude/skills/skill-creator/scripts/validate-skills.cjs --path <dir> # Sca
 
 **Workflow:** Discover (`glob .claude/skills/*/SKILL.md`) → Parse frontmatter → Validate each rule → Report grouped by severity (Error > Warning > Info) → Apply requested repairs without confirmation → Revalidate. A report-only request remains read-only.
 
-Full validation-rules table (frontmatter exists, single-line description, name format, category prefix, file size, Quick Summary presence, SYNC-tag balance, official-field check) is in `references/schema-reference.md`.
+Full validation-rules table (frontmatter exists, single-line description, name format, category prefix, Quick Summary presence, contents list of long files, SYNC-tag balance, official-field check) is in `references/schema-reference.md`.
 
 > **Naming order — subject-first.** When a new skill belongs to a subject family, name it `<subject>-<verb>` (e.g. `architecture --mode=review`, `changes-review`), NOT `<verb>-<subject>`. Pure single-action commands with no subject family stay verb-first (`fix`, `investigate`, `prioritize`). See the Canonical Order Rule in `.claude/docs/skill-naming-conventions.md`.
 
@@ -163,7 +180,7 @@ Optimize an existing skill for token efficiency, AI attention anchoring, and SYN
 
 | Group                 | Checks                                                                                                                                                                                                                                       |
 | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Structure**         | `## Quick Summary` (Goal/Workflow/Key Rules) within first 30 lines · `## Closing Reminders` at bottom with `:reminder` SYNC blocks · SYNC protocol blocks at top (primacy zone) · critical rules in BOTH top and bottom (primacy-recency)    |
+| **Structure**         | `## Quick Summary` (Goal/Workflow/Key Rules) within first 30 lines · `## Contents` after it when the file exceeds 100 lines, matching the headings · `## Closing Reminders` at bottom with `:reminder` SYNC blocks · SYNC protocol blocks at top (primacy zone) · critical rules in BOTH top and bottom (primacy-recency)    |
 | **SYNC Protocol**     | no hand-written `.claude/skills/shared/` references — each protocol is a SYNC body or a guide line written by `sync-update-blocks.py --mode=guide` · all SYNC tags balanced · bodies match canonical `.claude/skills/shared/sync-inline-versions.md` · `:reminder` blocks present at bottom per protocol |
 | **Token Efficiency**  | No filler/report bulk · preserve readable conditions and useful navigation/examples · load conditional detail on demand; line count is a triage signal                                                                                                       |
 | **Final Enhancement** | `$prompt-enhance` on finished SKILL.md · semantic disposition map · observable checks and honest NOT RUN limits; word/warning counts are not proof                                                                                     |
@@ -263,7 +280,7 @@ If the skill needs shared protocol enforcement (most do), add them as SYNC block
 
 **IMPORTANT MUST ATTENTION** preserve contract and authority, keep decision-changing signal, and verify observable outcomes through `references/authoring-quality.md`; report `NOT RUN` honestly.
 
-**IMPORTANT MUST ATTENTION** link task references directly, index references longer than 100 lines, and match control to consequence. Check bounded feedback, dependency setup and intended-versus-tested model coverage before handoff.
+**IMPORTANT MUST ATTENTION** link task references directly, give every skill file over 100 lines a matching `## Contents` list, run the quality check on every create, update and audit, and match control to consequence. Check bounded feedback, dependency setup and intended-versus-tested model coverage before handoff.
 
 | Evasion | Required action |
 |---|---|

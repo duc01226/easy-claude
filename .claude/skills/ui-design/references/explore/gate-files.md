@@ -8,6 +8,12 @@
 > 2. Record the user's words VERBATIM where a field says so — a paraphrase is not evidence of a choice.
 > 3. "Continue", "looks good", "go ahead" and silence are NOT a pick and NOT an exemption.
 
+## Contents
+
+- [`run-notes.md`](#run-notesmd)
+- [`brand-spec.md`](#brand-specmd)
+- [`direction-approved.md`](#direction-approvedmd)
+
 ## `run-notes.md`
 
 Written at steps 3–5 of `references/explore/workflow.md`; step 10 adds the journey fixes. Every draft brief carries its path.

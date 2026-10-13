@@ -28,6 +28,17 @@ disable-model-invocation: false
 - Bind screenshots and results to the requested revision and one identified run/attempt per case. Report missing or stale evidence explicitly.
 - Use the existing E2E and HTML export contracts; an encoded file alone proves neither complete coverage nor passing tests.
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Invocation and ownership](#invocation-and-ownership)
+- [1. Resolve scope](#1-resolve-scope)
+- [2. Obtain evidence](#2-obtain-evidence)
+- [3. Compose the storyboard](#3-compose-the-storyboard)
+- [4. Export and inspect](#4-export-and-inspect)
+- [5. Completion](#5-completion)
+- [Closing Reminders](#closing-reminders)
+
 ## Invocation and ownership
 
 ```text

@@ -11,10 +11,11 @@
 
 - [Quick Summary](#quick-summary)
 - [Workflow](#workflow)
-- [Checklist](#checklist-self-contained-dor-m1-m7-gate-below)
+- [Checklist (self-contained DoR; M1-M7 gate below)](#checklist-self-contained-dor-m1-m7-gate-below)
 - [Output](#output)
 - [Key Rules](#key-rules)
 - [Next Steps](#next-steps)
+- [Prompt-Enhance Closing Anchors](#prompt-enhance-closing-anchors)
 - [Closing Reminders](#closing-reminders)
 
 ## Quick Summary

@@ -31,6 +31,17 @@ disable-model-invocation: false
 
 **Invocation:** Standalone only: workflows and wrap-up skills do not invoke `/understand`. Explain current context with bare `/understand`, or exactly the target named by the user. This prepares a human review; `/changes-review` and `/code-quality-review` perform it. `/demo-guide` owns presenter-facing demonstrations.
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Step 0 — Resolve Scope and Plan the Report (do this first, cheaply)](#step-0--resolve-scope-and-plan-the-report-do-this-first-cheaply)
+- [Step 1 — Gather the Material](#step-1--gather-the-material)
+- [Step 2 — Order the Material](#step-2--order-the-material)
+- [Step 3 — Open the Teaching Report](#step-3--open-the-teaching-report)
+- [Step 4 — Teach, Coach & Route: the Report (the deliverable)](#step-4--teach-coach--route-the-report-the-deliverable)
+- [Step 5 — Summarize in Chat & Close](#step-5--summarize-in-chat--close)
+- [Closing Reminders](#closing-reminders)
+
 ## Step 0 — Resolve Scope and Plan the Report (do this first, cheaply)
 
 1. **Resolve scope.** A named target selects its diff, plan, code path, decision, concept, or defect. Bare `/understand` selects current tasks, working-tree changes including untracked files, and an active plan/latest `/watzup` summary if present. On ambiguity, infer the most likely target, state the assumption, and proceed without asking. Announce `Explaining: {scope}`.

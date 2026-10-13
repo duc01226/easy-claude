@@ -188,7 +188,7 @@ const stages = [
     { id: "migrate",  label: "migrate",          cmd: "node", mutate: true, args: [path.join(sourceScriptsDir, "migrate-claude-to-codex.mjs"), ...migrateFlags] },
     { id: "hooks",    label: "sync-hooks",       cmd: "node", mutate: true, args: [path.join(sourceScriptsDir, "sync-hooks.mjs")] },
     { id: "context",  label: "sync-context",     cmd: "node", mutate: true, args: [path.join(sourceScriptsDir, "sync-context-workflows.mjs")] },
-    { id: "tests",    label: "test-codex",       cmd: testNodeCommand, argsAsync: async () => ["--test", ...await listTestFiles(codexTestsDir)] },
+    { id: "tests",    label: "test-codex",       test: true, cmd: testNodeCommand, argsAsync: async () => ["--test", ...await listTestFiles(codexTestsDir)] },
     // General .claude tooling unit tests (*.test.mjs and *.test.cjs).
     // Listed via readdir so the stage works without shell glob expansion (PowerShell does not expand
     // globs the way POSIX shells do; the npm script relied on that, the runner does not).
@@ -196,7 +196,7 @@ const stages = [
     // files where the runtime supports it so per-child timeout guards measure the child rather than
     // runner contention. On older supported Node 18 releases, the legacy runner receives no unknown
     // flag and retains its pre-existing execution behavior.
-    { id: "scripts-tests", label: "test-scripts", cmd: testNodeCommand, argsAsync: async () => ["--test", ...scriptsTestConcurrencyArgs, ...await listTestFiles(claudeTestsDir)] },
+    { id: "scripts-tests", label: "test-scripts", test: true, cmd: testNodeCommand, argsAsync: async () => ["--test", ...scriptsTestConcurrencyArgs, ...await listTestFiles(claudeTestsDir)] },
     // Live read-only release gates run only after their tooling/fixture tests have passed. The
     // tech-spec generator's --check mode compares a fresh in-memory render with committed derived
     // views; the feature registry validates canonical spec identity, links, ranges, and coverage.
@@ -208,11 +208,11 @@ const stages = [
     // render, and the CLAUDE.md/AGENTS.md COUNT markers must match the real inventory (ADR-0001,
     // ADR-0002). This guard existed and worked, but lived ONLY in the hooks suite — which no pipeline
     // stage ran — so a changeset shipped a stale committed catalog while all 12 stages reported green.
-    { id: "hooks-count-drift", label: "hooks-count-drift", cmd: "node", args: [hooksRunner, "--filter=count-drift"] },
+    { id: "hooks-count-drift", label: "hooks-count-drift", test: true, cmd: "node", args: [hooksRunner, "--filter=count-drift"] },
     // Protocol-text + SYNC-carrier parity across the mirrored surfaces.
-    { id: "hooks-parity",     label: "hooks-parity",       cmd: "node", args: [hooksRunner, "--filter=parity"] },
+    { id: "hooks-parity",     label: "hooks-parity",       test: true, cmd: "node", args: [hooksRunner, "--filter=parity"] },
     // Doc↔code sync gate.
-    { id: "hooks-doc-sync",   label: "hooks-doc-sync",     cmd: "node", args: [hooksRunner, "--filter=doc-sync-gate"] },
+    { id: "hooks-doc-sync",   label: "hooks-doc-sync",     test: true, cmd: "node", args: [hooksRunner, "--filter=doc-sync-gate"] },
     { id: "wf-cycle", label: "verify-wf-cycle",  cmd: "node", args: [path.join(sourceScriptsDir, "verify-workflow-cycle-compliance.mjs")] },
     { id: "sk-proto", label: "verify-sk-proto",  cmd: "node", args: [path.join(sourceScriptsDir, "verify-skill-protocol-compliance.mjs")] },
     { id: "residue",  label: "verify-residue",   cmd: "node", args: [path.join(sourceScriptsDir, "verify-no-project-residue.mjs")] },
@@ -335,6 +335,9 @@ async function runStage(stage, index, total) {
     return new Promise((resolve, reject) => {
         const child = spawn(stage.cmd, argv, {
             cwd: rootDir,
+            // Verification exercises hooks even when the user's chat runtime is off.
+            // This child-only override never changes their saved preference or chat.
+            env: stage.test ? { ...process.env, CK_FRAMEWORK_MODE: "on" } : process.env,
             stdio: verbose ? "inherit" : ["ignore", "pipe", "pipe"],
         });
 

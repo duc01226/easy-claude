@@ -4,15 +4,15 @@ Read on demand by `domain-analysis` (SKILL.md → "DDD Reference") and by `--mod
 
 ## Contents
 
-- [Strategic design](#ddd-reference-strategic-design)
-- [Entity vs value object](#ddd-reference-entity-vs-value-object)
-- [Entity design](#ddd-reference-entity-design)
-- [Aggregate design](#ddd-reference-aggregate-design)
-- [ERD design](#ddd-reference-erd-design)
-- [Domain events](#ddd-reference-domain-events)
-- [Repository pattern](#ddd-reference-repository-pattern)
-- [Anti-patterns](#ddd-reference-anti-patterns-quick-reference)
-- [Closing reminders](#closing-reminders)
+- [DDD Reference: Strategic Design](#ddd-reference-strategic-design)
+- [DDD Reference: Entity vs Value Object](#ddd-reference-entity-vs-value-object)
+- [DDD Reference: Entity Design](#ddd-reference-entity-design)
+- [DDD Reference: Aggregate Design](#ddd-reference-aggregate-design)
+- [DDD Reference: ERD Design](#ddd-reference-erd-design)
+- [DDD Reference: Domain Events](#ddd-reference-domain-events)
+- [DDD Reference: Repository Pattern](#ddd-reference-repository-pattern)
+- [DDD Reference: Anti-Patterns Quick Reference](#ddd-reference-anti-patterns-quick-reference)
+- [Closing Reminders](#closing-reminders)
 
 ## DDD Reference: Strategic Design
 

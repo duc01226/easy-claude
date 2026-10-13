@@ -9,11 +9,19 @@
  * in the earlier one is read-only until its explicit migration. The first vocabulary is known by its declaration and its
  * record locations alone, so that a project still storing it is refused by name.
  *
+ * The current structure has two versions. The base version introduced it; the current version added words to it and
+ * moved nothing, so every base word is a current word and a base record is a current record as it stands. A project
+ * stores the current version only when it declares it: until then it is offered, and may hold, the base words alone, so
+ * a framework copy that knows only the base version reads everything the project stores. A copy that does not know a
+ * declared version refuses the project by name instead of meeting a word it cannot read.
+ *
  * Removing earlier-vocabulary support later means removing EARLIER, EARLIER_MAPPING and the non-current branches of
  * resolveVocabulary; version 2 then fails like any unsupported version.
  */
 
-const CURRENT_VERSION = 3;
+const CURRENT_VERSION = 4;
+/** The version that introduced the current structure. A migration from the earlier vocabulary writes it, and a project that declares no version stores it. */
+const BASE_VERSION = 3;
 const EARLIER_VERSION = 2;
 /** The first vocabulary. None of its words is read or migrated here; it is recognised only to be refused by name. */
 const RETIRED_VERSION = 1;
@@ -62,6 +70,15 @@ const CURRENT = freeze({
     tagRoles: { area: 'area', initiative: 'initiative' }
 });
 
+// What the current version added to the base: one delivery state, with the steps into and out of it.
+const ADDED_STATES = Object.freeze(['implemented']);
+const baseStates = states => states.filter(state => !ADDED_STATES.includes(state));
+/** The base version: the current vocabulary without the words the current version added. */
+const BASE = freeze({ ...plain(CURRENT), version: BASE_VERSION, states: baseStates(DELIVERY_STATES),
+    lifecycles: { ...plain(CURRENT.lifecycles), delivery: { ...plain(CURRENT.lifecycles.delivery), states: baseStates(DELIVERY_STATES) } },
+    transitions: { ...plain(CURRENT.transitions), delivery: Object.fromEntries(Object.entries(CURRENT.transitions.delivery)
+        .filter(([from]) => !ADDED_STATES.includes(from)).map(([from, to]) => [from, baseStates(to)])) } });
+
 /** The earlier vocabulary, written out: it differs from the current one in structure, so no word map derives it. */
 const EARLIER = freeze({
     version: EARLIER_VERSION,
@@ -71,7 +88,7 @@ const EARLIER = freeze({
     groupRoles: ['area', 'domain', 'capability', 'program'],
     linkRoles: ['dependency', 'parent', 'initiative', 'spec', 'plan', 'source']
 });
-const VOCABULARIES = Object.freeze({ [EARLIER_VERSION]: EARLIER, [CURRENT_VERSION]: CURRENT });
+const VOCABULARIES = Object.freeze({ [EARLIER_VERSION]: EARLIER, [BASE_VERSION]: BASE, [CURRENT_VERSION]: CURRENT });
 
 /**
  * How the earlier vocabulary is stated in the current terms. These are facts about single earlier words. Putting a
@@ -117,17 +134,22 @@ const INITIATIVE_KIND = 'initiative';
 const PLANNED_STATE = 'planned';
 // Built and published for review; reached with captured intent alone, and verification starts from it.
 const IMPLEMENTED_STATE = 'implemented';
+const recordedStates = words => Object.freeze([...new Set(Object.values(words.lifecycles).flatMap(lifecycle => lifecycle.states))]);
 /** Every state a record or a history entry may hold, whatever its lifecycle. */
-const RECORDED_STATES = Object.freeze([...new Set(Object.values(LIFECYCLES).flatMap(lifecycle => lifecycle.states))]);
+const RECORDED_STATES = recordedStates(CURRENT);
 /** Item-to-item relations whose chains must stay free of cycles. */
 const ACYCLIC_LINK_ROLES = Object.freeze(['dependency', 'parent', 'area', 'initiative']);
 
-const KIND_LIFECYCLE = freeze(Object.fromEntries(KINDS.map(kind => {
+const kindLifecycles = words => Object.fromEntries(KINDS.map(kind => {
     const name = CURRENT.kindLifecycles[kind];
-    return [kind, { name, ...LIFECYCLES[name], transitions: TRANSITIONS[name] }];
-})));
-/** The lifecycle a kind moves through: its name, states, first state and usual steps. A word that is no kind has none. */
-const lifecycleOf = kind => (Object.hasOwn(KIND_LIFECYCLE, kind) ? KIND_LIFECYCLE[kind] : undefined);
+    return [kind, { name, ...words.lifecycles[name], transitions: words.transitions[name] }];
+}));
+const KIND_LIFECYCLE = freeze({ [BASE_VERSION]: kindLifecycles(BASE), [CURRENT_VERSION]: kindLifecycles(CURRENT) });
+/**
+ * The lifecycle a kind moves through: its name, states, first state and usual steps. A word that is no kind has none.
+ * `version` selects the version of the current structure whose lifecycle is meant; without one it is the current version.
+ */
+const lifecycleOf = (kind, version = CURRENT_VERSION) => (Object.hasOwn(KIND_LIFECYCLE[version] || {}, kind) ? KIND_LIFECYCLE[version][kind] : undefined);
 /** The relation that tags a record to a target of the given kind. */
 const tagRole = kind => Object.keys(TAG_ROLES).find(role => TAG_ROLES[role] === kind);
 
@@ -170,12 +192,32 @@ const REFUSALS = freeze({
     MIXED_VOCABULARY: 'Mixed vocabularies: record locations from both vocabularies are present; nothing is counted or saved until one vocabulary remains',
     UNSUPPORTED_VOCABULARY: 'Unsupported vocabulary: this project stores the first vocabulary, which this copy of the tracker neither reads nor migrates; upgrade it with a framework copy that supports the first vocabulary, then run the tracker migration',
     EARLIER_VOCABULARY_RECORD: 'Earlier-vocabulary record: not counted',
-    EARLIER_VOCABULARY_REQUEST: `Request uses the earlier vocabulary (version ${EARLIER_VERSION}); update the procedure that produced it and send a version ${CURRENT_VERSION} request in the current words`
+    EARLIER_VOCABULARY_REQUEST: `Request uses the earlier vocabulary (version ${EARLIER_VERSION}); update the procedure that produced it and send a version ${BASE_VERSION} request in the current words`
 });
 
 // A version is a number; a string that merely looks like one is not a declaration.
 const supportedVersion = version => typeof version === 'number' && Object.hasOwn(VOCABULARIES, version);
 const wordsFor = version => (supportedVersion(version) ? VOCABULARIES[version] : null);
+/** Whether a version stores the current structure: the kinds, locations and links of the base version. */
+const inCurrentStructure = version => version === BASE_VERSION || version === CURRENT_VERSION;
+/** The stamps a project storing the given version reads: its own, and every earlier version of the same structure. */
+const readableStamps = version => (inCurrentStructure(version) ? [BASE_VERSION, CURRENT_VERSION].filter(stamp => stamp <= version) : [version]);
+/** The version a project's configuration says it stores: the current one only when declared, the base one otherwise. */
+const declaredWords = config => (config?.taskTracking?.schemaVersion === CURRENT_VERSION ? CURRENT : BASE);
+/**
+ * The states a tracked record holds, now or in its history, that the given version does not have because a later
+ * version added them. A project never stores one: an older framework copy that reads the project would refuse the record.
+ * A file without tracking metadata is authored content, whose status is any text, so it holds none.
+ */
+function laterStates(record, version) {
+    const words = wordsFor(version);
+    if (!words || !inCurrentStructure(version) || !record?.tracking) return [];
+    const known = recordedStates(words);
+    const held = [record?.data?.status, ...(Array.isArray(record?.tracking?.history) ? record.tracking.history.flatMap(entry => [entry?.beforeState, entry?.afterState]) : [])];
+    return [...new Set(held.filter(state => RECORDED_STATES.includes(state) && !known.includes(state)))];
+}
+/** Why a project storing the given version does not take a state a later version added, and what makes it available. */
+const laterStateRefusal = (state, version) => `The ${state} state belongs to vocabulary version ${CURRENT_VERSION} and this project stores version ${version}; declare taskTracking.schemaVersion ${CURRENT_VERSION} in the project configuration to record it`;
 /** A version a project may declare: one that is read, or the first one, which is then refused by name. */
 const declarableVersion = version => supportedVersion(version) || version === RETIRED_VERSION;
 
@@ -202,7 +244,9 @@ function resolveVocabulary({ declaredVersion, folderNames = [], journalPresent =
     if (earlier && currentLocations.length) return blocked('mixed', 'MIXED_VOCABULARY',
         `${REFUSALS.MIXED_VOCABULARY} (earlier: ${earlierLocations.join(', ') || 'declared by the project'}; current: ${currentLocations.join(', ')})`);
     if (earlier) return freeze({ state: 'earlier', storedVersion: EARLIER_VERSION, readOnly: true, code: 'MIGRATION_REQUIRED', reason: REFUSALS.MIGRATION_REQUIRED, ...found });
-    return freeze({ state: 'current', storedVersion: CURRENT_VERSION, readOnly: false, code: null, reason: null, ...found });
+    // The current structure. Only a declaration makes a project store the current version: the base version is what an
+    // undeclared project, and every project written before the current version existed, already stores.
+    return freeze({ state: 'current', storedVersion: declaredVersion === CURRENT_VERSION ? CURRENT_VERSION : BASE_VERSION, readOnly: false, code: null, reason: null, ...found });
 }
 
 const journalPath = artifactsRoot => `${artifactsRoot}/${JOURNAL_NAME}`;
@@ -247,10 +291,14 @@ const reserved = (words, labels) => Object.freeze([...words, ...Object.values(la
 // and default label of either vocabulary. An earlier project is held to the words and default labels it
 // was written against, so that a label which was valid when it was declared keeps the project readable until its
 // migration, which names any label the current vocabulary uses for something else.
+const withoutAdded = table => Object.fromEntries(Object.entries(table).filter(([word]) => !ADDED_STATES.includes(word)));
+const currentReserved = (words, labels) => reserved([...KINDS, ...recordedStates(words), ...LEVELS, ...INITIATIVE_TYPES, ...PRIORITY_LEVELS, ...LINK_ROLES,
+    ...EARLIER.kinds, ...EARLIER.states, ...EARLIER.groupRoles, ...EARLIER.linkRoles,
+    ...Object.values(EARLIER_LABELS).flatMap(table => Object.values(table))], labels);
 const TAKEN_WORDS = Object.freeze({
-    [CURRENT_VERSION]: reserved([...KINDS, ...RECORDED_STATES, ...LEVELS, ...INITIATIVE_TYPES, ...PRIORITY_LEVELS, ...LINK_ROLES,
-        ...EARLIER.kinds, ...EARLIER.states, ...EARLIER.groupRoles, ...EARLIER.linkRoles,
-        ...Object.values(EARLIER_LABELS).flatMap(table => Object.values(table))], LABELS),
+    [CURRENT_VERSION]: currentReserved(CURRENT, LABELS),
+    // A base project is held to the base words: a label that names what the current version added stays valid until the project declares it.
+    [BASE_VERSION]: currentReserved(BASE, { ...LABELS, states: withoutAdded(LABELS.states) }),
     [EARLIER_VERSION]: reserved([...EARLIER.kinds, ...EARLIER.states, ...EARLIER.groupRoles, ...EARLIER.linkRoles], EARLIER_LABELS)
 });
 
@@ -308,9 +356,11 @@ function currentLabels(declared) {
  * the displayed name of the link relation that carries the kind's word; a declared level or type label replaces that
  * level's or type's displayed name, and so does the label an earlier-vocabulary project declared for the group purpose
  * that became it. Labels are display text only: the kinds, states, levels, types and relations listed here stay the
- * stored and requested words.
+ * stored and requested words. The states and steps are those of the version the selected project stores; with no project
+ * selected the block states the tracker's whole vocabulary. The labels name every state either version has.
  */
 function vocabularyBlock(config) {
+    const words = config ? declaredWords(config) : CURRENT;
     const labels = plain(LABELS);
     const stated = config?.taskTracking;
     const declared = stated ? { ...stated, ...currentLabels(stated) } : stated;
@@ -318,7 +368,7 @@ function vocabularyBlock(config) {
     // it. It may also hold a label the current vocabulary uses for something else: that kind keeps its current word.
     if (declared?.kindLabels && !kindLabelErrors(declared.kindLabels, declared.schemaVersion).length) {
         const shown = Object.fromEntries(Object.entries(declared.kindLabels).filter(([kind]) => KINDS.includes(kind)));
-        const withheld = new Set(kindLabelFindings(shown, CURRENT_VERSION).map(finding => finding.kind));
+        const withheld = new Set(kindLabelFindings(shown, words.version).map(finding => finding.kind));
         for (const [kind, label] of Object.entries(shown)) if (!withheld.has(kind)) {
             labels.kinds[kind] = labels.kindsPlural[kind] = label.trim();
             if (LINK_ROLES.includes(kind)) labels.linkRoles[kind] = label.trim();
@@ -328,7 +378,7 @@ function vocabularyBlock(config) {
         const label = declared?.[key]?.[word];
         if (displayLabel(label)) labels[table][word] = label.trim();
     }
-    return { version: CURRENT_VERSION, ...plain({ kinds: KINDS, states: STATES, lifecycles: LIFECYCLES, kindLifecycles: CURRENT.kindLifecycles, transitions: TRANSITIONS,
+    return { version: words.version, ...plain({ kinds: KINDS, states: words.states, lifecycles: words.lifecycles, kindLifecycles: CURRENT.kindLifecycles, transitions: words.transitions,
         levels: LEVELS, initiativeTypes: INITIATIVE_TYPES, priorityLevels: PRIORITY_LEVELS, linkRoles: LINK_ROLES, tagRoles: TAG_ROLES }),
         deliveryKind: DELIVERY_KIND, areaKind: AREA_KIND, initiativeKind: INITIATIVE_KIND, labels };
 }
@@ -355,9 +405,9 @@ function hierarchyTerms() {
     return [...new Set([...LEVELS, AREA_KIND, INITIATIVE_KIND, ...EARLIER.groupRoles])].map(promptForm);
 }
 
-module.exports = { CURRENT_VERSION, EARLIER_VERSION, RETIRED_VERSION, JOURNAL_NAME, CURRENT, EARLIER, EARLIER_MAPPING, VOCABULARIES,
+module.exports = { CURRENT_VERSION, BASE_VERSION, EARLIER_VERSION, RETIRED_VERSION, JOURNAL_NAME, CURRENT, BASE, EARLIER, EARLIER_MAPPING, VOCABULARIES,
     KINDS, FOLDERS, STATES, LIFECYCLES, TRANSITIONS, RECORDED_STATES, LEVELS, INITIATIVE_TYPES, PRIORITY_LEVELS, LINK_ROLES, TAG_ROLES,
     DELIVERY_KIND, AREA_KIND, INITIATIVE_KIND, PLANNED_STATE, IMPLEMENTED_STATE, ACYCLIC_LINK_ROLES, OWNED_VALUES, LABELS,
     EARLIER_ONLY_LOCATIONS, CURRENT_ONLY_LOCATIONS, RETIRED_LOCATIONS, STRAY_LOCATIONS, REFUSALS,
-    wordsFor, supportedVersion, declarableVersion, strayLocations, lifecycleOf, tagRole, ownedDefaults, resolveVocabulary, projectVocabulary, journalPath, requireCurrentVocabulary,
+    wordsFor, supportedVersion, declarableVersion, inCurrentStructure, readableStamps, declaredWords, laterStates, laterStateRefusal, strayLocations, lifecycleOf, tagRole, ownedDefaults, resolveVocabulary, projectVocabulary, journalPath, requireCurrentVocabulary,
     displayLabel, currentLabels, vocabularyBlock, kindLabelFindings, kindLabelErrors, projectVocabularyView, promptTerms, hierarchyTerms };

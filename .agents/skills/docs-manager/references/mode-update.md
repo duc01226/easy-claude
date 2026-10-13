@@ -4,6 +4,7 @@ Read this reference when updating documentation impacted by code, spec or test c
 
 ## Contents
 
+- [Quick Summary](#quick-summary)
 - [Scope and inputs](#scope-and-inputs)
 - [Ownership and update boundaries](#ownership-and-update-boundaries)
 - [Context quality gates](#context-quality-gates)
@@ -11,6 +12,7 @@ Read this reference when updating documentation impacted by code, spec or test c
 - [Business intent and coverage gates](#business-intent-and-coverage-gates)
 - [Existing demo-guide relevance](#existing-demo-guide-relevance)
 - [Completion and report](#completion-and-report)
+- [Closing Reminders](#closing-reminders)
 
 ## Quick Summary
 

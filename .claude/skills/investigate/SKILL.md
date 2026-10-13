@@ -47,6 +47,20 @@ version: 2.3.0
 - Optional: the code graph can hint at callers/dependents for a high-risk blast radius grep may miss; it can be stale, so verify by reading — never required
 - MUST ATTENTION plan a task to READ `project-structure-reference.md`; if missing, search project documentation, coding standards, and architecture docs
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Mode Dispatch](#mode-dispatch)
+- [Phase 0: Scope Classification](#phase-0-scope-classification)
+- [Investigation Mindset (NON-NEGOTIABLE)](#investigation-mindset-non-negotiable)
+- [Workflow](#workflow)
+- [Investigation Techniques](#investigation-techniques)
+- [Evidence Collection](#evidence-collection)
+- [Related Skills](#related-skills)
+- [Mode: Explain (Developer Narrative)](#mode-explain-developer-narrative)
+- [Investigation & Recommendation Protocol](#investigation--recommendation-protocol)
+- [Closing Reminders](#closing-reminders)
+
 ## Mode Dispatch
 
 Detect the mode from the invocation arguments before any other work; do not load a mode file the invocation did not select.

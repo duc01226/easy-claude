@@ -49,6 +49,22 @@ description: '[Content] Use when a workflow step or the user asks for business v
 
 **Be skeptical; apply critical/sequential thinking. Every claim needs traced proof + confidence percentage (Idea should be more than 80%).**
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Business Evaluation](#business-evaluation)
+- [Step 1: Capture the Idea](#step-1-capture-the-idea)
+- [Step 2: Business Model Canvas](#step-2-business-model-canvas)
+- [Step 3: Financial Projections (3 Years)](#step-3-financial-projections-3-years)
+- [Step 4: Risk Assessment](#step-4-risk-assessment)
+- [Step 5: Execution Plan](#step-5-execution-plan)
+- [Step 6: Go-to-Market](#step-6-go-to-market)
+- [Step 7: Verdict](#step-7-verdict)
+- [Output](#output)
+- [Next Steps](#next-steps)
+- [Prompt-Enhance Closing Anchors](#prompt-enhance-closing-anchors)
+- [Closing Reminders](#closing-reminders)
+
 # Business Evaluation
 
 ## Step 1: Capture the Idea

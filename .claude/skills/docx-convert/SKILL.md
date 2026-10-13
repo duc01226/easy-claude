@@ -24,6 +24,23 @@ disable-model-invocation: true
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [docx-convert](#docx-convert)
+- [Directions](#directions)
+- [Installation Required](#installation-required)
+- [Quick Start](#quick-start)
+- [CLI Options](#cli-options)
+- [Features](#features)
+- [Conversion Pipeline (`--to markdown`)](#conversion-pipeline---to-markdown)
+- [Output](#output)
+- [Compatibility (`--to docx`)](#compatibility---to-docx)
+- [Limitations](#limitations)
+- [Troubleshooting](#troubleshooting)
+- [Tests](#tests)
+- [Closing Reminders](#closing-reminders)
+
 # docx-convert
 
 Convert Microsoft Word (.docx) files to GitHub-Flavored Markdown, and Markdown files to editable

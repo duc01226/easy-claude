@@ -12,6 +12,15 @@
 - Keep claims evidence-based (`file:line`) and task tracking current.
 - Read only this mode body; build is a prerequisite pointer, not an automatic step.
 
+## Contents
+
+- [Prerequisites](#prerequisites)
+- [Format Mode (`--format=`)](#format-mode---format)
+- [Steps](#steps)
+- [Output Format](#output-format)
+- [Implicit Edges in Export](#implicit-edges-in-export)
+- [Closing Reminders](#closing-reminders)
+
 ## Prerequisites
 
 - Graph not built (`.code-graph/graph.db` absent): report "graph not built — run $graph-code --mode=build, or continue with grep" and stop.

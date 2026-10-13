@@ -40,6 +40,18 @@ Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs
 - **[BLOCKING] Tech-agnostic output:** Task / planned work / report prose follows `spec-principles.md` §3 in the project-reference docs root (default `docs/project-reference/`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides) — implementation names appear only in evidence fields, frontmatter and Mermaid.
 - Read `.claude/skills/shared/sdd-artifact-contract.md` when applying M1-M7; `.claude/skills/shared/releasable-task-contract.md` when slicing actor-facing outcomes; `.claude/skills/shared/product-roadmap-contract.md` when `isLargeIdea` governs decomposition. These contracts preserve business-visible criteria, releasable journeys and embedded slice ownership.
 
+## Contents
+
+- [Workflow Calls and Todo Bootstrap](#workflow-calls-and-todo-bootstrap)
+- [Quick Summary](#quick-summary)
+- [Canonical Input Profile](#canonical-input-profile)
+- [Triage — FIRST Action](#triage--first-action)
+- [Required Quality Gates (non-negotiable)](#required-quality-gates-non-negotiable)
+- [Recommended Skills](#recommended-skills)
+- [Outputs](#outputs)
+- [Orchestration, Memory & Fix Path](#orchestration-memory--fix-path)
+- [Closing Reminders](#closing-reminders)
+
 ## Canonical Input Profile
 
 Before loading or mapping a spec, read `docs/project-config.json` (`specRoots.business.path`, `workflowPatterns.featureDocTemplate`, `docsRoots.projectReference.path`, `specArtifacts` when declared), the configured template and the local `spec-system-reference.md` / `spec-principles.md`. Use the native paths, section roles, identifier formats, ownership model and evidence/test carriers they declare; code stays the technical source of truth and the canonical spec the requirements source — never create a second engineering-spec plane.

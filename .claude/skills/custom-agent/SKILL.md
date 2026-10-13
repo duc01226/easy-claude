@@ -22,6 +22,24 @@ disable-model-invocation: true
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Modes](#modes)
+- [Mode 1: Create Agent](#mode-1-create-agent)
+- [Mode 2: Audit Agents](#mode-2-audit-agents)
+- [Mode 3: Enhance Agent](#mode-3-enhance-agent)
+- [Agent Frontmatter Schema](#agent-frontmatter-schema)
+- [Tool Restriction Patterns](#tool-restriction-patterns)
+- [Model Selection](#model-selection)
+- [Description Best Practices](#description-best-practices)
+- [Common Anti-Patterns](#common-anti-patterns)
+- [Context Passing](#context-passing)
+- [Audit Checklist](#audit-checklist)
+- [File Priority (highest first)](#file-priority-highest-first)
+- [Requirements](#requirements)
+- [Closing Reminders](#closing-reminders)
+
 ## Modes
 
 | Mode        | Trigger                                        | Action                 |

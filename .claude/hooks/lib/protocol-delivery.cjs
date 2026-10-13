@@ -805,13 +805,21 @@ function sharedRecordFor(projectRoot, tag, readFile = defaultRead) {
     return { root: path.join(root, ...STORE_SEGMENTS), group: tag, hash };
 }
 
+/** The protocol the concise universal core carries for every task (context-delivery `CORE_TAG`). */
+const CORE_OWNED_TAG = 'core-engineering-principles';
+
 /**
  * The session ledger view for one run (BR-PDL-02, BR-PDL-05). One record per tag, keyed by the
  * sha256 of the tag's published text, in `<store>/<session>/<scope>/<tag>.json`. Each tag belongs
  * to one group, so parallel group entries never share a record. Without a session id there is no
  * scope to remember in: every tag is delivered and nothing is recorded.
+ *
+ * `CORE_OWNED_TAG` also counts as delivered while the concise universal core is present in this
+ * scope: that core carries the principles, and its own successful, current delivery record is the
+ * only evidence accepted (a failed write, a compaction or another scope leaves the tag deliverable).
+ * `profile` holds the delivery-profile inputs (`homeDir`, `config`) that decision reads.
  */
-function openLedger(root, input, read, now) {
+function openLedger(root, input, read, now, profile = {}) {
     const ledger = require('./convention-ledger.cjs');
     const store = path.join(root, ...STORE_SEGMENTS);
     const sessionId = nonBlank(input.session_id) ? input.session_id : null;
@@ -835,6 +843,8 @@ function openLedger(root, input, read, now) {
     };
     const isRecorded = tag => sessionId !== null
         && ledger.isPresent(ledger.readRecord(store, sessionId, scope, tag), hashFor(tag), ctx(), getLedgerSettings());
+    const coreCarries = tag => tag === CORE_OWNED_TAG
+        && require('./universal-delivery.cjs').conciseCoreIsPresent(root, input, normalized, now, profile);
     const delivered = new Map();
 
     if (sessionId !== null) ledger.maybePrune(store, now);
@@ -842,7 +852,7 @@ function openLedger(root, input, read, now) {
     return {
         /** Ledger view for planDelivery; the answer per tag is fixed for the run. */
         isDelivered(tag) {
-            if (!delivered.has(tag)) delivered.set(tag, isRecorded(tag));
+            if (!delivered.has(tag)) delivered.set(tag, isRecorded(tag) || coreCarries(tag));
             return delivered.get(tag);
         },
         /**
@@ -987,7 +997,7 @@ function deliver(group, input, deps, finish) {
         return finish('');
     }
     const now = typeof deps.now === 'number' ? deps.now : Date.now();
-    const ledger = openLedger(root, input, read, now);
+    const ledger = openLedger(root, input, read, now, require('./context-delivery.cjs').profileOptions(deps));
     const env = isPlainObject(deps.env) ? deps.env : process.env;
     let triggerContext = null;
     const provider = typeof deps.triggerContext === 'function' ? deps.triggerContext : () => buildTriggerContext(root, input, env);
@@ -1052,8 +1062,9 @@ function recordCompaction(input, deps = {}) {
 /**
  * Hook entry for one protocol group. Always leaves exit code 0 (delivery never blocks).
  * @param {string} group  protocol group name (a key of protocol-groups.json `groups`)
- * @param {object} [deps] test seams: `input` (skips stdin), `write(text, done)`, `now`, plus
- *   the planDelivery deps (`projectRoot`, `readFile`, `host`)
+ * @param {object} [deps] test seams: `input` (skips stdin), `write(text, done)`, `now`, the
+ *   delivery-profile inputs `homeDir` and `config`, plus the planDelivery deps (`projectRoot`,
+ *   `readFile`, `host`)
  * @returns {Promise<string>} the text written, or '' when nothing was delivered
  */
 function runHook(group, deps = {}) {
@@ -1070,6 +1081,8 @@ function runHook(group, deps = {}) {
         try {
             const input = options.input !== undefined ? options.input : readHookInput();
             if (!isRelevantEvent(input)) return finish(''); // BR-PDL-09: no project module loaded
+            const rootDir = resolveRoot(input, options);
+            if (!rootDir || !require('./framework-runtime.cjs').isHookEnabled(`protocol-inject-${group}.cjs`, { rootDir })) return finish('');
             deliver(group, input, options, finish);
         } catch {
             finish(''); // BR-PDL-05: the skill's guide entries remain the path

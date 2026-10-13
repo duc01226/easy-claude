@@ -51,7 +51,7 @@ const store = require('./task-artifact-store.cjs');
 const vocabulary = require('./task-tracking-vocabulary.cjs');
 const earlierProject = require('./task-tracking-earlier-project.cjs');
 
-const { CURRENT, EARLIER, CURRENT_VERSION, EARLIER_VERSION, EARLIER_MAPPING, AREA_KIND, INITIATIVE_KIND, TAG_ROLES } = vocabulary;
+const { CURRENT, EARLIER, BASE_VERSION, EARLIER_VERSION, EARLIER_MAPPING, AREA_KIND, INITIATIVE_KIND, TAG_ROLES } = vocabulary;
 const JOURNAL_KIND = 'vocabulary-migration';
 const STEP_STATES = Object.freeze(['pending', 'started', 'done', 'skipped']);
 // The recorded steps, in the order they are carried out.
@@ -309,7 +309,7 @@ function jsonMembers(text, wanted) {
  * say current.
  */
 function configEdit(context) {
-    if (!context.enrolled || context.config.taskTracking.schemaVersion === CURRENT_VERSION) return null;
+    if (!context.enrolled || vocabulary.inCurrentStructure(context.config.taskTracking.schemaVersion)) return null;
     const relative = slashed(path.relative(context.root, context.configPath));
     const refuse = reason => fail('CONFIG_NOT_REWRITABLE', `${reason} (${relative})`);
     const declared = context.config.taskTracking;
@@ -321,7 +321,7 @@ function configEdit(context) {
     // something else, and two labels for what becomes one level or type.
     const unkept = [
         ...Object.keys(kindLabels).filter(kind => !CURRENT.kinds.includes(kind)).map(kind => `taskTracking.kindLabels.${kind} labels a kind the current vocabulary does not have; remove that label, then retry`),
-        ...vocabulary.kindLabelFindings(kept, CURRENT_VERSION).map(finding => `taskTracking.kindLabels.${finding.kind}: ${finding.problem}; rename that label in the configuration, then retry`),
+        ...vocabulary.kindLabelFindings(kept, BASE_VERSION).map(finding => `taskTracking.kindLabels.${finding.kind}: ${finding.problem}; rename that label in the configuration, then retry`),
         ...labels.conflicts.map(([purpose, key, word]) => `taskTracking.groupLabels.${purpose} and taskTracking.${key}.${word} both label what becomes one ${key === 'levelLabels' ? 'level' : 'type'}; keep one of them, then retry`)];
     if (unkept.length) refuse(unkept.length === 1 ? unkept[0] : numbered(unkept));
     const before = readBytes(context.root, relative);
@@ -335,9 +335,9 @@ function configEdit(context) {
         members = jsonMembers(text, new Set([trail('schemaVersion'), trail('groupLabels'), trail('levelLabels'), trail('typeLabels')]));
     } catch { refuse('The project configuration cannot be located value by value'); }
     if (!members.has(trail('schemaVersion'))) refuse('The vocabulary declaration cannot be located');
-    expected.taskTracking.schemaVersion = CURRENT_VERSION;
-    const changes = [{ field: 'taskTracking.schemaVersion', from: EARLIER_VERSION, to: CURRENT_VERSION }];
-    const edits = [{ range: members.get(trail('schemaVersion')).value, text: String(CURRENT_VERSION) }];
+    expected.taskTracking.schemaVersion = BASE_VERSION;
+    const changes = [{ field: 'taskTracking.schemaVersion', from: EARLIER_VERSION, to: BASE_VERSION }];
+    const edits = [{ range: members.get(trail('schemaVersion')).value, text: String(BASE_VERSION) }];
     if (members.has(trail('groupLabels'))) {
         const purposes = expected.taskTracking.groupLabels;
         delete expected.taskTracking.groupLabels;
@@ -552,7 +552,7 @@ function namesIn(context, relative) {
 
 /** The progress record as it is first written: the member index, the captured identities and every step still to do. */
 function firstJournal(planned) {
-    return { schemaVersion: 1, kind: JOURNAL_KIND, from: EARLIER_VERSION, to: CURRENT_VERSION, startedAt: new Date().toISOString(),
+    return { schemaVersion: 1, kind: JOURNAL_KIND, from: EARLIER_VERSION, to: BASE_VERSION, startedAt: new Date().toISOString(),
         // Whether this migration began on a person's confirmation of a backup, because version control could not restore the project.
         backupConfirmed: planned.backupConfirmed,
         capture: { ...captured(planned.reading), groups: planned.recount.groups.map(scopeMark) },
@@ -579,7 +579,7 @@ function plan(context, { run = false, backupConfirmed = false } = {}) {
     const scan = store.inspectStoredRecords(context, { version: EARLIER_VERSION });
     if (scan.coverage !== 'complete') refuse('INCOMPLETE_SCOPE', `Inspection incomplete: ${named(scan.diagnostics.map(finding => finding.path || finding.reason))} cannot be read as a record; repair or remove it, then retry`,
         { diagnostics: scan.diagnostics.slice(0, NAMED).map(finding => ({ ...(finding.path ? { path: finding.path } : {}), ...(finding.itemId ? { itemId: finding.itemId } : {}), code: finding.code })) });
-    const stamped = scan.records.filter(record => record.storedVersion === CURRENT_VERSION).map(record => record.ownerPath);
+    const stamped = scan.records.filter(record => record.storedVersion === BASE_VERSION).map(record => record.ownerPath);
     if (stamped.length) refuse('INCOMPLETE_SCOPE', `Inspection incomplete: ${named(stamped)} is already stamped current inside an earlier-vocabulary project; settle it by hand, then retry`, { paths: stamped });
     const homes = new Map();
     for (const record of scan.records) homes.set(record.id, [...(homes.get(record.id) || []), record.ownerPath]);
@@ -635,7 +635,7 @@ function plan(context, { run = false, backupConfirmed = false } = {}) {
     }
     // One-way: where version control cannot put the earlier project back, a run needs a person's word that a backup can.
     // A preview is not refused for this; it states it. The declaration is named whether or not it can be rewritten yet.
-    const declaration = context.enrolled && context.config.taskTracking.schemaVersion !== CURRENT_VERSION ? slashed(path.relative(context.root, context.configPath)) : null;
+    const declaration = context.enrolled && !vocabulary.inCurrentStructure(context.config.taskTracking.schemaVersion) ? slashed(path.relative(context.root, context.configPath)) : null;
     const unrestorable = control.kind === 'none' ? [...(scan.records.length ? [rootOf(context)] : []), ...(declaration ? [declaration] : [])] : control.clean === null ? [] : control.ignored || [];
     // Every other obstacle is work on the project and this one is a person's word, so it is named last: alone, it is all that is left.
     const unconfirmed = run && unrestorable.length && !backupConfirmed ? { code: 'NO_RESTORE_POINT', reason: `No restore point: ${control.kind === 'none'
@@ -681,7 +681,7 @@ function plan(context, { run = false, backupConfirmed = false } = {}) {
     return closed(planned);
 }
 
-const envelope = context => ({ schemaVersion: 1, kind: 'migration', from: EARLIER_VERSION, to: CURRENT_VERSION, recordRoot: context?.artifactsRoot ?? null });
+const envelope = context => ({ schemaVersion: 1, kind: 'migration', from: EARLIER_VERSION, to: BASE_VERSION, recordRoot: context?.artifactsRoot ?? null });
 const refused = (context, refusals) => ({ ...envelope(context), status: 'refused', code: refusals[0].code, reason: refusals[0].reason, refusals });
 const progressView = capture => ({ total: capture.total, accepted: capture.accepted, remaining: capture.remaining, eligibleIds: [...capture.eligibleIds] });
 const configView = (context, config) => (config ? { path: config.relative, changes: config.changes }
@@ -720,7 +720,7 @@ function loadJournal(context) {
     // migration gives it, so a record naming other paths is never acted on.
     // Captured IDs must match the writer's valid, sorted form: conservation compares their order,
     // so accepting an impossible capture could change files before resume or abandon can reject it.
-    if (value?.schemaVersion !== 1 || value.kind !== JOURNAL_KIND || value.from !== EARLIER_VERSION || value.to !== CURRENT_VERSION
+    if (value?.schemaVersion !== 1 || value.kind !== JOURNAL_KIND || value.from !== EARLIER_VERSION || value.to !== BASE_VERSION
         || (value.backupConfirmed !== undefined && typeof value.backupConfirmed !== 'boolean')
         || !Array.isArray(value.steps) || value.steps.length !== STEPS.length
         || value.steps.some((step, index) => !mapping(step) || step.id !== STEPS[index] || !STEP_STATES.includes(step.status))
@@ -834,14 +834,14 @@ function wholeRestore(context, journal) {
     const held = [...new Set(groups.map(group => locationOf(context, group.from)))].sort();
     const pending = [...held.filter(location => !entryAt(context, location)?.isDirectory()).map(location => `${location} is not back`),
         ...createdLocations(context).filter(location => entryAt(context, location)).map(location => `${location} is still present (remove it if this migration created it, or move it out of ${rootOf(context)} if it is yours)`),
-        ...(context.enrolled && context.config.taskTracking.schemaVersion === CURRENT_VERSION ? [`${configOf(context)} still declares the current vocabulary`] : [])];
+        ...(context.enrolled && vocabulary.inCurrentStructure(context.config.taskTracking.schemaVersion) ? [`${configOf(context)} still declares the current vocabulary`] : [])];
     if (pending.length) return { pending };
     const view = settledVocabulary(context);
     // A project with no group record and no declaration cannot be seen to be earlier by its locations; its records say so below.
     if (view.state !== 'earlier' && !(view.state === 'current' && !view.declared && !groups.length)) return { pending: [`the project does not read as the earlier vocabulary (${view.reason || 'it reads as the current one'})`] };
     const scan = store.inspectStoredRecords(context, { version: EARLIER_VERSION });
     if (scan.coverage !== 'complete') return { pending: [`${named(scan.diagnostics.map(finding => finding.path || finding.reason))} cannot be read as a record of the earlier vocabulary`] };
-    const stamped = scan.records.filter(record => record.storedVersion === CURRENT_VERSION).map(record => record.ownerPath);
+    const stamped = scan.records.filter(record => record.storedVersion === BASE_VERSION).map(record => record.ownerPath);
     if (stamped.length) return { pending: [`${named(stamped)} is still stored in the current vocabulary`] };
     let actual;
     try { actual = progressOf({ ...context, vocabulary: vocabulary.resolveVocabulary({ declaredVersion: EARLIER_VERSION }) }); }
@@ -920,7 +920,7 @@ function contradicted(context, journal, outside) {
 function staleGroups(context, journal, records) {
     const recorded = new Map(journal.value.index.groups.map(group => [group.id, group]));
     const stale = [];
-    for (const stored of earlierProject.memberIndex(records.filter(record => record.storedVersion !== CURRENT_VERSION), context.artifactsRoot).groups) {
+    for (const stored of earlierProject.memberIndex(records.filter(record => record.storedVersion !== BASE_VERSION), context.artifactsRoot).groups) {
         const group = recorded.get(stored.id);
         // A group record the index does not hold appeared after the migration began; the mapping names it.
         if (!group) continue;
@@ -938,7 +938,7 @@ function staleGroups(context, journal, records) {
  */
 function storedProject(context) {
     const earlier = store.inspectStoredRecords(context, { version: EARLIER_VERSION });
-    const moved = store.inspectStoredRecords(context, { version: CURRENT_VERSION,
+    const moved = store.inspectStoredRecords(context, { version: BASE_VERSION,
         folders: Object.fromEntries(Object.entries(CURRENT.folders).filter(([, folder]) => vocabulary.CURRENT_ONLY_LOCATIONS.includes(topLevel(folder)))) });
     return { records: [...earlier.records, ...moved.records], diagnostics: [...earlier.diagnostics, ...moved.diagnostics],
         coverage: earlier.coverage === 'complete' && moved.coverage === 'complete' ? 'complete' : 'partial' };
@@ -1096,7 +1096,7 @@ function advance(context, journal, checkpoint, resumed) {
     journal = mark(context, journal, 'verify', 'done');
     checkpoint('verified');
     removeBytes(context.root, journalOf(context), hash(journal.bytes));
-    const current = store.inspectStoredRecords({ ...declared, vocabulary: view }, { version: CURRENT_VERSION }).records;
+    const current = store.inspectStoredRecords({ ...declared, vocabulary: view }, { version: BASE_VERSION }).records;
     return { ...envelope(context), status: 'migrated', resumed,
         records: { total: actual.records, rewritten, moved }, steps: journal.value.steps.map(step => ({ id: step.id, status: step.status })),
         config: { path: slashed(path.relative(declared.root, declared.configPath)), status: stepOf(journal, 'config').status },
@@ -1117,7 +1117,8 @@ function start(context, planned, checkpoint) {
 /** Records stamped for the earlier vocabulary in a project that reads as current, in its own locations or left in an earlier one. */
 function earlierStamped(context) {
     const stamped = scan => scan.records.filter(record => record.storedVersion === EARLIER_VERSION).map(record => record.ownerPath);
-    return [...stamped(store.inspectStoredRecords(context, { version: CURRENT_VERSION })),
+    // A project that reads as current may store either version of the current structure, so its records are read as the current one reads them.
+    return [...stamped(store.inspectStoredRecords(context, { version: vocabulary.CURRENT_VERSION })),
         ...stamped(store.inspectStoredRecords(context, { version: EARLIER_VERSION,
             folders: Object.fromEntries(Object.entries(EARLIER.folders).filter(([, folder]) => vocabulary.EARLIER_ONLY_LOCATIONS.includes(topLevel(folder)))) }))].sort();
 }
@@ -1130,7 +1131,7 @@ function firstVocabularyOnly(context) {
     if (context.vocabulary.declared || !resolveTrackingProfile(context).available) return [];
     const first = store.firstVocabularyRecords(context);
     if (!first.length) return [];
-    const read = [CURRENT_VERSION, EARLIER_VERSION].flatMap(version => store.inspectStoredRecords(context, { version }).records).some(record => record.storedVersion !== null);
+    const read = [vocabulary.CURRENT_VERSION, EARLIER_VERSION].flatMap(version => store.inspectStoredRecords(context, { version }).records).some(record => record.storedVersion !== null);
     return read ? [] : first.map(record => record.path).sort();
 }
 

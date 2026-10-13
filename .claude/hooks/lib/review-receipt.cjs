@@ -18,7 +18,7 @@
  * from worktree to index without invalidating review. Every index/tree write is
  * isolated under repository `tmp/`; candidate errors remain ERROR, never CLEAN.
  *
- * Kinds that satisfy the gate: `changes-review`, `why-review`,
+ * Kinds that satisfy the gate: `commit-review`, `changes-review`, `why-review`,
  * `workflow-review-changes`. `skip` is the recorded override: the `commit`
  * skill's Low-risk decision or the user's explicit request, named in `reason`.
  *
@@ -37,7 +37,7 @@ const os = require('node:os');
 const crypto = require('node:crypto');
 const { execFileSync } = require('node:child_process');
 
-const REVIEW_KINDS = Object.freeze(['changes-review', 'why-review', 'workflow-review-changes']);
+const REVIEW_KINDS = Object.freeze(['commit-review', 'changes-review', 'why-review', 'workflow-review-changes']);
 const SKIP_KIND = 'skip';
 const KINDS = Object.freeze([...REVIEW_KINDS, SKIP_KIND]);
 const DEFAULT_LIFETIME_MS = 2 * 60 * 60 * 1000;
@@ -547,7 +547,7 @@ function checkReceipt(options) {
     }
 }
 
-/** Return the first matching review kind (`changes-review` | `why-review` | `workflow-review-changes`) or null. */
+/** Return the first matching declared review kind or null. */
 function matchReviewReceipt(options) {
     for (const kind of REVIEW_KINDS) {
         if (checkReceipt({ ...options, kind })) return kind;

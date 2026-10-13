@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 'use strict';
 
+if ((require.main === module || !require.main) && require('./lib/framework-runtime.cjs').skipHook(module)) return;
+
 /**
  * Core engineering principles reminder — Easy to Change · Easy to Scale · Easy to Maintain.
  *
@@ -153,7 +155,7 @@ function defaultWrite(text, done) {
 
 /**
  * Resolve to the text written, or '' when the hook stays silent.
- * deps (tests): env, now, projectDir, rawSettings, content, ledger, storeRoot, write.
+ * deps (tests): env, now, projectDir, rawSettings, content, ledger, storeRoot, write, homeDir, config.
  */
 function run(input, deps = {}) {
     return new Promise(resolve => {
@@ -166,6 +168,12 @@ function run(input, deps = {}) {
             const env = deps.env || process.env;
             const now = typeof deps.now === 'number' ? deps.now : Date.now();
             const projectDir = deps.projectDir || defaultProjectDir(input, env);
+            // The concise universal core owns these principles once for every task.
+            // Missing core projection retains this independent compatible fallback.
+            const contextDelivery = require('./lib/context-delivery.cjs');
+            if (contextDelivery.conciseCore(projectDir, contextDelivery.profileOptions(deps))) {
+                return require('./lib/universal-delivery.cjs').ensureConciseCore(input, { ...deps, projectRoot: projectDir }).then(finish, () => finish(''));
+            }
             const routeUtils = require('./lib/prompt-route-utils.cjs');
             // One settings read serves both the switch and the interval.
             const rawSettings = deps.rawSettings !== undefined ? deps.rawSettings : routeUtils.loadRouterSettings(projectDir, SETTINGS_SECTION);

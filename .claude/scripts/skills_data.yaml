@@ -104,6 +104,18 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
+  description: '[Code Quality] Review an exact pending commit when the commit skill
+    selects lightweight review or the user requests it. --fix-loop repairs and re-reviews;
+    no Git publication authority.'
+  has_references: true
+  has_scripts: false
+  name: commit-review
+  path: commit-review/SKILL.md
+  removal_after: null
+  status: active
+- category: other
+  deprecated_by: null
+  deprecated_since: null
   description: '[Content] Use when a workflow step or the user asks for course material:
     Bloom objectives, modules, lessons, exercises and assessments.'
   has_references: false
@@ -243,7 +255,10 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Implementation] Use when implementing a feature step by step.'
+  description: '[Implementation] Use when the user asks to build a feature from an
+    idea or description with no plan file yet: research and trace the code, create
+    and get the plan approved, build each phase with its tests, review, verify once,
+    sync specs and docs. Existing plan: plan --mode=execute.'
   has_references: false
   has_scripts: false
   name: feature-implement
@@ -278,8 +293,9 @@
   deprecated_by: null
   deprecated_since: null
   description: '[Utilities] Use when asking about or configuring the .claude/.codex/.agents/.opencode
-    skills framework: command discovery/help, settings, hooks, workflows, activation
-    or framework usage. Explains options; changes only requested settings.'
+    skills framework: command discovery/help, runtime modes, scoped settings, commit
+    reviews, hooks, workflows or skill visibility. Explains options; changes only
+    requested settings.'
   has_references: false
   has_scripts: false
   name: framework-config
@@ -623,7 +639,7 @@
   description: '[Git] Use when asked to create, open, finish, update or mark ready
     a pull request. Runs in the main session with risk-based test/review choices and
     automatic checks for routine CI repairs: branch, commit, open PR, CI to green.'
-  has_references: false
+  has_references: true
   has_scripts: false
   name: pull-request
   path: pull-request/SKILL.md
@@ -827,11 +843,10 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Project Management] Use when maintaining team work, inspecting linked
-    spec/task/subtask concerns, verifying tracker evidence, recording explicit acceptance,
-    opening status, migrating a project that stores the earlier vocabulary or maintaining
-    exact linked items at a saved-work checkpoint. Manual modes and shell recipes
-    use the shared tracker core.'
+  description: '[Project Management] Use for explicit project-owned tracker guidance
+    (--mode=guide), or portable-engine work records, placement, linked concerns, lifecycle,
+    evidence, acceptance and local status. Existing engine modes and bare inspect
+    remain supported.'
   has_references: true
   has_scripts: true
   name: task-track
@@ -1013,7 +1028,8 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Workflow] Write, update or fix E2E tests and verify them through
+  description: '[Workflow] Use when E2E tests need to be written, updated or fixed:
+    resolves the scope, authors tests only when needed, then verifies them through
     the configured runner in a bounded fix/retest loop.'
   has_references: false
   has_scripts: false
@@ -1024,8 +1040,9 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Process] Close the active workflow after checking outcome evidence
-    and owned changes; retain recovery state until explicit /clear.'
+  description: '[Process] Use when the active workflow has finished its steps or the
+    user asks to close it: checks outcome evidence and owned changes, then closes
+    the workflow; recovery state stays until an explicit /clear.'
   has_references: true
   has_scripts: false
   name: workflow-end
@@ -1136,9 +1153,9 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Workflow] Review risky or cross-module uncommitted changes with specialists,
-    validated fixes and re-review. Defaults to --fix-loop; --review-only reports without
-    edits.'
+  description: '[Workflow] Use when uncommitted changes are risky or cross-module
+    and need specialist review: reviews, applies validated fixes and re-reviews. Defaults
+    to --fix-loop; --review-only reports without edits.'
   has_references: true
   has_scripts: false
   name: workflow-review-changes

@@ -47,6 +47,19 @@ description: '[Documentation] Use when a workflow step or the user asks for one 
 
 ---
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Scan (parameterized reference-doc scanner)](#scan-parameterized-reference-doc-scanner)
+- [Phase 0.0: Resolve Target (BLOCKING — do this before anything else)](#phase-00-resolve-target-blocking--do-this-before-anything-else)
+- [Phase 0: Classify & Assess](#phase-0-classify--assess)
+- [Phase 1: Plan Scan Strategy](#phase-1-plan-scan-strategy)
+- [Phase 2: Execute Scan (Parallel Sub-Agents)](#phase-2-execute-scan-parallel-sub-agents)
+- [Phase 3: Analyze & Generate](#phase-3-analyze--generate)
+- [Phase 4: Write & Verify](#phase-4-write--verify)
+- [Final Step: Enhance Scanned Doc (MANDATORY — before Phase 4 application)](#final-step-enhance-scanned-doc-mandatory--before-phase-4-application)
+- [Closing Reminders](#closing-reminders)
+
 # Scan (parameterized reference-doc scanner)
 
 ## Phase 0.0: Resolve Target (BLOCKING — do this before anything else)

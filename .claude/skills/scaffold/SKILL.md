@@ -31,6 +31,25 @@ description: '[Architecture] Use when a workflow step or the user asks for proje
 - **MUST ATTENTION** treat checklists as adaptable templates and confirm the final checklist before generating code.
 - **MUST ATTENTION** apply the project's selected architecture and applicable design principles, verify required foundations, and keep `/feature-implement` blocked until the Verification Gate passes.
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Activation Guards (MANDATORY — Check Before Executing)](#activation-guards-mandatory--check-before-executing)
+- [When to Use](#when-to-use)
+- [Workflow](#workflow)
+- [Backend Scaffolding Categories](#backend-scaffolding-categories)
+- [Frontend Scaffolding Categories](#frontend-scaffolding-categories)
+- [Example / Golden-Path Reference Scaffolding (when it improves adoption)](#example--golden-path-reference-scaffolding-when-it-improves-adoption)
+- [Code Quality Gate Selection (MANDATORY MUST ATTENTION — Before Feature Code)](#code-quality-gate-selection-mandatory-must-attention--before-feature-code)
+- [Project Foundation Selection (MANDATORY assessment; foundations are conditional)](#project-foundation-selection-mandatory-assessment-foundations-are-conditional)
+- [OOP/SOLID Compliance Rules (when selected by the project)](#oopsolid-compliance-rules-when-selected-by-the-project)
+- [Adaptation Protocol](#adaptation-protocol)
+- [Output](#output)
+- [Verification Gate (MANDATORY before proceeding to /feature-implement)](#verification-gate-mandatory-before-proceeding-to-feature-implement)
+- [Next Steps](#next-steps)
+- [Prompt-Enhance Closing Anchors](#prompt-enhance-closing-anchors)
+- [Closing Reminders](#closing-reminders)
+
 ## Activation Guards (MANDATORY — Check Before Executing)
 
 **ALL conditions must be true to proceed:**

@@ -4,25 +4,23 @@ Read this reference before scanning UI code; apply the categories relevant to th
 
 ## Contents
 
-- [Accessibility](#1-accessibility-wcag-22-compliance)
-- [Focus & Keyboard Navigation](#2-focus--keyboard-navigation)
-- [Forms](#3-forms)
-- [Animation & Motion](#4-animation--motion)
-- [Typography](#5-typography)
-- [Content Handling](#6-content-handling)
-- [Images & Media](#7-images--media)
-- [Performance](#8-performance-core-web-vitals)
-- [Navigation & State](#9-navigation--state)
-- [Touch & Mobile](#10-touch--mobile)
-- [Layout & Safe Areas](#11-layout--safe-areas)
-- [Dark Mode & Theming](#12-dark-mode--theming)
-- [Internationalization](#13-internationalization-i18n)
-- [Hydration Safety](#14-hydration-safety-ssrssg)
-- [Interactive States](#15-interactive-states)
+- [1. Accessibility (WCAG 2.2 Compliance)](#1-accessibility-wcag-22-compliance)
+- [2. Focus & Keyboard Navigation](#2-focus--keyboard-navigation)
+- [3. Forms](#3-forms)
+- [4. Animation & Motion](#4-animation--motion)
+- [5. Typography](#5-typography)
+- [6. Content Handling](#6-content-handling)
+- [7. Images & Media](#7-images--media)
+- [8. Performance (Core Web Vitals)](#8-performance-core-web-vitals)
+- [9. Navigation & State](#9-navigation--state)
+- [10. Touch & Mobile](#10-touch--mobile)
+- [11. Layout & Safe Areas](#11-layout--safe-areas)
+- [12. Dark Mode & Theming](#12-dark-mode--theming)
+- [13. Internationalization (i18n)](#13-internationalization-i18n)
+- [14. Hydration Safety (SSR/SSG)](#14-hydration-safety-ssrssg)
+- [15. Interactive States](#15-interactive-states)
 - [Anti-Patterns Quick Reference](#anti-patterns-quick-reference)
 - [External References](#external-references)
-
----
 
 ## 1. Accessibility (WCAG 2.2 Compliance)
 

@@ -25,6 +25,20 @@ disable-model-invocation: false
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [html-export](#html-export)
+- [Setup (opt-in only)](#setup-opt-in-only)
+- [Trust](#trust)
+- [Usage](#usage)
+- [Producer selectors](#producer-selectors)
+- [Exit codes](#exit-codes)
+- [Calling from other skills](#calling-from-other-skills)
+- [What exit 0 proves](#what-exit-0-proves)
+- [Resources](#resources)
+- [Closing Reminders](#closing-reminders)
+
 # html-export
 
 Agents and users may invoke this skill directly, and other skills may run the script by path. Either way the exporter only renders; it never installs, commits or publishes anything.

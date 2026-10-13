@@ -8,6 +8,17 @@
 
 ---
 
+## Contents
+
+- [The Sections — ALL mandatory](#the-sections--all-mandatory)
+- [Target forms — the single-owner contract](#target-forms--the-single-owner-contract)
+- [Skeleton](#skeleton)
+- [§0 Detailed Summary — the authoring contract](#0-detailed-summary--the-authoring-contract)
+- [Caps vs split triggers — the distinction, written down once](#caps-vs-split-triggers--the-distinction-written-down-once)
+- [Scaled report layout — ONE file: spine, then a block per group](#scaled-report-layout--one-file-spine-then-a-block-per-group)
+- [Level tuning — sections stay, size flexes](#level-tuning--sections-stay-size-flexes)
+- [Self-check before writing the file](#self-check-before-writing-the-file)
+
 ## The Sections — ALL mandatory
 
 A report missing any **⚠ drop-risk** section below is INCOMPLETE — those are the ones that turn a description into teaching.

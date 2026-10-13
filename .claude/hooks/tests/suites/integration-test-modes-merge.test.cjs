@@ -387,8 +387,13 @@ const tests = [
                 assert.equal(leaf.role, 'gate');
             }
             // why-review: the linkage reads the review mode's gates and keeps its recursion-guard rows
-            const linkage = read(SKILLS, 'why-review', 'references', 'full-mode.md');
-            assert.match(linkage, /### Integration-Test-Review Linkage/);
+            const linkage = read(SKILLS, 'why-review', 'references', 'code-change-path.md');
+            assert.match(linkage, /^## Integration-Test-Review Linkage \(CONDITIONAL — advisory, guarded\)$/m);
+            // The always-read full-mode core still routes the integration/E2E concern to the linkage and makes its owner a BLOCKING read
+            const fullMode = read(SKILLS, 'why-review', 'references', 'full-mode.md');
+            assert.match(fullMode, /^\| Integration\/E2E tests in the target, OR a behavior change whose code has covering integration tests \| Apply the \*\*Integration-Test-Review Linkage\*\* below/m);
+            assert.match(fullMode, /^- \*\*\[BLOCKING\]\*\* When the review path is code-change review, the integration\/E2E row above fires for any target, or the target is mixed or unresolved, read `references\/code-change-path\.md` in full FIRST/m);
+            assert.doesNotMatch(fullMode, /^#{1,6} Integration-Test-Review Linkage/m, 'the linkage has one owner');
             assert.match(linkage, /\| Invoked by `\/integration-test --mode=review` finding validation \|/);
             assert.match(linkage, /Read `\.claude\/skills\/integration-test\/references\/mode-review\.md` §"Single Review Pass — Eight Gates"/);
             assert.ok(fs.existsSync(path.join(SKILLS, 'integration-test', 'references', 'mode-review.md')));

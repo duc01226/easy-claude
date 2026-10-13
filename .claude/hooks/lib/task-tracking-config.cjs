@@ -9,7 +9,7 @@ const LIMITS = Object.freeze({ records: 2000, recordBytes: 2 * 1024 * 1024,
     membershipEdges: 20000, queue: 64, receipts: 128, lockWaitMs: 3000, lockPollMs: 100, readRetries: 1, processTimeoutMs: 10000 });
 // Every tracker word comes from the vocabulary owner; this module re-exports the current ones for its consumers.
 const vocabulary = require('./task-tracking-vocabulary.cjs');
-const { KINDS, LEVELS, INITIATIVE_TYPES, FOLDERS, CURRENT_VERSION, EARLIER_VERSION, RETIRED_VERSION } = vocabulary;
+const { KINDS, LEVELS, INITIATIVE_TYPES, FOLDERS, CURRENT_VERSION, BASE_VERSION, EARLIER_VERSION, RETIRED_VERSION } = vocabulary;
 // How much record detail a status report carries, richest first. A size budget steps down this list and never below its end.
 const REPORT_DETAIL_FORMS = Object.freeze(['full', 'packed', 'none']);
 // What a status report is when neither the request nor the project names a form: the compact version, which packs every
@@ -30,7 +30,7 @@ const object = value => value !== null && typeof value === 'object' && !Array.is
 const TASK_TRACKING_SCHEMA = {
     type: 'object', required: false, describe: 'Optional local work tracking policy; absence leaves automation off.',
     properties: {
-        schemaVersion: { type: 'number', required: true, describe: `Vocabulary the stored records use: ${CURRENT_VERSION} is current; ${EARLIER_VERSION} is the earlier vocabulary, read-only until migrated; ${RETIRED_VERSION}, the first vocabulary, is refused by name.` },
+        schemaVersion: { type: 'number', required: true, describe: `Vocabulary the stored records use: ${CURRENT_VERSION} is current and adds the implemented state; ${BASE_VERSION} is the same vocabulary without that state, and stays readable by a framework copy that predates it; ${EARLIER_VERSION} is the earlier vocabulary, read-only until migrated; ${RETIRED_VERSION}, the first vocabulary, is refused by name.` },
         mode: { type: 'string', required: false, describe: 'Automatic upkeep: off, observe, or linked. Default off.' },
         healthOwnerId: { type: 'string', required: false, describe: 'Exact existing item owning explicit project health attestations; never inferred from delivery.' },
         groupLabels: { type: 'object', required: false, describe: `Earlier vocabulary only (schemaVersion ${EARLIER_VERSION}): inert group display labels keyed by group purpose. The migration turns them into level and type labels.`, properties:
@@ -91,7 +91,7 @@ function validateTaskTracking(config, errors = []) {
     // Group labels belong to a vocabulary that has groups; the current one has none.
     if (!exactKeys(value, ['schemaVersion', 'mode', 'healthOwnerId', ...(declared === EARLIER_VERSION || retired ? ['groupLabels'] : []),
         'kindLabels', 'levelLabels', 'typeLabels', 'profile', 'members', 'report'], 'taskTracking', errors)) return errors;
-    if (!vocabulary.declarableVersion(declared)) errors.push(`taskTracking.schemaVersion: supported versions are ${EARLIER_VERSION} (earlier vocabulary, read-only until migrated) and ${CURRENT_VERSION}`);
+    if (!vocabulary.declarableVersion(declared)) errors.push(`taskTracking.schemaVersion: supported versions are ${EARLIER_VERSION} (earlier vocabulary, read-only until migrated), ${BASE_VERSION} and ${CURRENT_VERSION}`);
     if (value.mode !== undefined && !['off', 'observe', 'linked'].includes(value.mode)) errors.push('taskTracking.mode: expected off, observe, or linked');
     if (value.healthOwnerId !== undefined && (typeof value.healthOwnerId !== 'string' || !ITEM_ID.test(value.healthOwnerId))) errors.push('taskTracking.healthOwnerId: expected exact item identity');
     // Labels keyed by the first vocabulary's words are not judged here: nothing of that project is read.
@@ -132,6 +132,20 @@ function validateTaskTracking(config, errors = []) {
     return errors;
 }
 
+/**
+ * A section declared in a vocabulary newer than this framework knows cannot be judged here, and it is one optional section:
+ * its findings become warnings so the rest of the configuration still loads. Task tracking itself still refuses it
+ * (`trackingContext` validates on its own) until the framework is updated; every other finding stays an error.
+ */
+function deferNewerTracking(config, validation) {
+    const declared = config?.taskTracking?.schemaVersion;
+    if (!Number.isSafeInteger(declared) || declared <= CURRENT_VERSION) return validation;
+    const own = finding => finding.startsWith('taskTracking.');
+    const errors = validation.errors.filter(finding => !own(finding));
+    const deferred = validation.errors.filter(own).map(finding => `${finding} (task-tracking vocabulary ${declared} is newer than this framework supports; task tracking is unavailable until it is updated)`);
+    return { ...validation, valid: errors.length === 0, errors, warnings: [...validation.warnings, ...deferred] };
+}
+
 // How many invalid fields the refusal of a configuration names in its reason before it says there are more.
 const INVALID_NAMED = 3;
 // The reason names the fields at fault, so that every surface that shows it says what to correct; `details` holds them all.
@@ -158,4 +172,4 @@ function trackingContext(rootDir) {
     return { ...context, vocabulary: vocabulary.projectVocabulary(context.root, context.artifactsRoot, context.config.taskTracking?.schemaVersion) };
 }
 
-module.exports = { LIMITS, REPORT_DETAIL_FORMS, REPORT_DEFAULTS, KINDS, FOLDERS, MEMBER_ID, CUSTOM_MEMBER_ID, isEmailId, ITEM_ID, calendarDate, TASK_TRACKING_SCHEMA, validateTaskTracking, trackingContext, relativePath, vocabulary };
+module.exports = { LIMITS, REPORT_DETAIL_FORMS, REPORT_DEFAULTS, KINDS, FOLDERS, MEMBER_ID, CUSTOM_MEMBER_ID, isEmailId, ITEM_ID, calendarDate, TASK_TRACKING_SCHEMA, validateTaskTracking, deferNewerTracking, trackingContext, relativePath, vocabulary };

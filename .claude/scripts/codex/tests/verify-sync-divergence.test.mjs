@@ -106,6 +106,56 @@ test('TC-SKILLFIX-024b: diff ordering is stable and sorted', () => {
     assert.deepEqual(diffs.map(d => d.kind), ['content', 'missing-in-mirror']);
 });
 
+// TC-SKILLFIX-025 — OS metadata a desktop file browser writes on its own (macOS .DS_Store, Windows
+// Thumbs.db / desktop.ini) is never mirror content, and it reappears seconds after deletion while
+// the folder is open. Neither tree may count it: not as an orphan in the committed mirror, not as a
+// file the source "produced". A real stray file beside it must still fail the gate.
+test('TC-SKILLFIX-025: OS metadata files in either tree are not divergence; a real extra mirror file still is', async () => {
+    const expectedDir = await fs.mkdtemp(path.join(os.tmpdir(), 'sync-div-exp-'));
+    const actualDir = await fs.mkdtemp(path.join(os.tmpdir(), 'sync-div-act-'));
+    const describe = diffs => diffs.map(diff => `${diff.kind} ${diff.relPath}`).sort();
+    try {
+        await fs.mkdir(path.join(expectedDir, 'a'), { recursive: true });
+        await fs.mkdir(path.join(actualDir, 'a'), { recursive: true });
+        await fs.writeFile(path.join(expectedDir, 'a', 'SKILL.md'), 'x\n');
+        await fs.writeFile(path.join(actualDir, 'a', 'SKILL.md'), 'x\n');
+
+        // Mirror side: at the mirror root (the observed failure) and nested, in both OS dialects.
+        await fs.writeFile(path.join(actualDir, '.DS_Store'), Buffer.from([0, 0, 0, 1, 0x42, 0x75, 0x64, 0x31]));
+        await fs.writeFile(path.join(actualDir, 'a', '.DS_Store'), Buffer.from([0, 0, 0, 1, 0x42, 0x75, 0x64, 0x31]));
+        await fs.writeFile(path.join(actualDir, 'a', 'Thumbs.db'), Buffer.from([0xd0, 0xcf, 0x11, 0xe0]));
+        await fs.writeFile(path.join(actualDir, 'a', 'Desktop.ini'), '[.ShellClassInfo]\r\n');
+        // Source side: staging is copied from the source tree, so it inherits whatever a file
+        // browser left there. Different bytes on purpose — these files are never compared.
+        await fs.writeFile(path.join(expectedDir, '.DS_Store'), Buffer.from([0, 0, 0, 1, 0x42, 0x75, 0x64, 0x31, 0xff]));
+        await fs.writeFile(path.join(expectedDir, 'a', 'desktop.ini'), '[.ShellClassInfo]\r\nIconResource=x\r\n');
+
+        const expected = await readTreeFiles(expectedDir);
+        assert.deepEqual(describe(diffTrees(expected, await readTreeFiles(actualDir))), [],
+            'OS metadata must not register as extra-in-mirror, missing-in-mirror or content drift');
+        // The rule belongs to the walk, not to the `exclude` default: a caller that supplies its
+        // own exclusions must not switch it off.
+        assert.deepEqual(describe(diffTrees(expected, await readTreeFiles(actualDir, { exclude: new Set(), skip: () => false }))), [],
+            'a caller-supplied exclude/skip must not re-admit OS metadata');
+
+        // Genuine extras stay reportable: a hand-added file, a file whose name merely CONTAINS a
+        // metadata name, and content under a DIRECTORY named like one (only files are metadata).
+        await fs.mkdir(path.join(actualDir, 'Thumbs.db'), { recursive: true });
+        await fs.writeFile(path.join(actualDir, 'a', 'stray.md'), 'hand-added\n');
+        await fs.writeFile(path.join(actualDir, 'a', 'notes.DS_Store.md'), 'hand-added\n');
+        await fs.writeFile(path.join(actualDir, 'Thumbs.db', 'hidden.md'), 'hand-added\n');
+
+        assert.deepEqual(describe(diffTrees(expected, await readTreeFiles(actualDir))), [
+            'extra-in-mirror Thumbs.db/hidden.md',
+            'extra-in-mirror a/notes.DS_Store.md',
+            'extra-in-mirror a/stray.md'
+        ].sort());
+    } finally {
+        await fs.rm(expectedDir, { recursive: true, force: true });
+        await fs.rm(actualDir, { recursive: true, force: true });
+    }
+});
+
 // ── CONTEXT-mirror idempotency (folded into this gate) ─────────────────────────────────────────────
 // checkContextMirror() compares a fresh render of AGENTS.md (keyed by repo-relative path) against the
 // committed copy using the SAME diffTrees. The retired .codex/CODEX_CONTEXT.md is never rendered, so a
@@ -311,6 +361,8 @@ const EXPECTED_RENDERED_GROUPS = [
     ['PostToolUse', 'Bash', 6],
     // Advisory tracking observer preserves the source edit-tool matcher and Codex alias.
     ['PostToolUse', 'Edit|Write|MultiEdit|NotebookEdit|apply_patch', 1],
+    // Conditional diagnostic reminder before shell commands; native failure events remain unsupported.
+    ['PreToolUse', 'Bash|exec_command', 1],
     ['PreToolUse', 'AskUserQuestion', 1],
     // The Bash PreToolUse chain, in settings.json order: doc-sync-gate,
     // review-commit-gate (2026-09-19, the review-before-commit receipt gate).
@@ -335,6 +387,8 @@ const EXPECTED_RENDERED_GROUPS = [
     //   file-convention-inject — compaction re-arm for per-file convention delivery
     //   prompt-ledger          — goal/prompt re-anchor after compact or resume
     //   protocol-inject-universal-1..4 — the universal bundle after a compaction or clear (compact|clear)
+    // Failure reminder's private compact/clear reset precedes the existing startup producers.
+    ['SessionStart', 'compact|clear', 1],
     ['SessionStart', 'startup|resume|clear|compact', 1],
     ['SessionStart', 'startup', 1],
     ['SessionStart', 'compact|clear', 1],
@@ -458,13 +512,12 @@ test('TC-HOOKMIRROR-003: a fresh render produces exactly the expected hook surfa
 // compares it. These cases drive the guard through the states that matter — today's
 // baseline, a new drop, a changed reason, a dropped group, and a baseline gone stale.
 test('TC-HOOKMIRROR-004: the skip guard accepts the reviewed baseline and rejects every drift', () => {
-    // 2026-09-17: SessionEnd and SessionStart left this baseline because Codex supports
-    // both (verified against the official hook reference). Notification is the only event
-    // the reference still does not list. 2026-09-25: UserPromptExpansion joined it with a
-    // reason that records where its protocol entries went (UserPromptSubmit), not a drop.
+    // Codex omits Notification and Claude's native failure accelerator. Protocol
+    // entries on UserPromptExpansion render on UserPromptSubmit instead of dropping.
     const BASELINE = [
         { event: 'Notification', reason: 'unsupported-by-codex' },
-        { event: 'UserPromptExpansion', reason: 'remapped-to-user-prompt-submit' }
+        { event: 'UserPromptExpansion', reason: 'remapped-to-user-prompt-submit' },
+        { event: 'PostToolUseFailure', reason: 'unsupported-by-codex' }
     ];
 
     assert.deepEqual(
@@ -488,6 +541,19 @@ test('TC-HOOKMIRROR-004: the skip guard accepts the reviewed baseline and reject
     assert.equal(changedReason.length, 1);
     assert.match(changedReason[0], /Notification is skipped for a new reason/);
 
+    const nativeFailureBaselineStale = unexpectedHookSkips({
+        skipped_events: BASELINE.filter(entry => entry.event !== 'PostToolUseFailure'),
+        skipped_groups: []
+    });
+    assert.equal(nativeFailureBaselineStale.length, 1);
+    assert.match(nativeFailureBaselineStale[0], /PostToolUseFailure is no longer skipped/);
+    const lostPostToolPath = unexpectedHookSkips({
+        skipped_events: [...BASELINE, { event: 'PostToolUse', reason: 'unsupported-by-codex' }],
+        skipped_groups: []
+    });
+    assert.equal(lostPostToolPath.length, 1);
+    assert.match(lostPostToolPath[0], /PostToolUse is now skipped/);
+
     const droppedGroup = unexpectedHookSkips({
         skipped_events: BASELINE,
         skipped_groups: [{ event: 'PreToolUse', group_index: 3, matcher: 'Bash', reason: 'no-command-hooks' }]
@@ -504,6 +570,7 @@ test('TC-HOOKMIRROR-004: the skip guard accepts the reviewed baseline and reject
     assert.equal(staleBaseline.length, BASELINE.length);
     assert.match(staleBaseline[0], /Notification is no longer skipped/);
     assert.match(staleBaseline[1], /UserPromptExpansion is no longer skipped/);
+    assert.match(staleBaseline[2], /PostToolUseFailure is no longer skipped/);
 
     // The REVIEWED group skips pass. They are the only intended ways a group stops
     // mirroring: a SessionStart group carrying no allowlisted producer, SessionEnd's
@@ -546,7 +613,8 @@ test('TC-PDL-069: the skip guard rejects SubagentStart skipped as unsupported an
     // Given the reviewed baseline events
     const baseline = [
         { event: 'Notification', reason: 'unsupported-by-codex' },
-        { event: 'UserPromptExpansion', reason: 'remapped-to-user-prompt-submit' }
+        { event: 'UserPromptExpansion', reason: 'remapped-to-user-prompt-submit' },
+        { event: 'PostToolUseFailure', reason: 'unsupported-by-codex' }
     ];
 
     // When a report skips SubagentStart as unsupported-by-codex
@@ -560,7 +628,7 @@ test('TC-PDL-069: the skip guard rejects SubagentStart skipped as unsupported an
 
     // When UserPromptExpansion is reported as unsupported instead of remapped (its entries lost)
     const expansionDropped = unexpectedHookSkips({
-        skipped_events: [baseline[0], { event: 'UserPromptExpansion', reason: 'unsupported-by-codex' }],
+        skipped_events: [baseline[0], { event: 'UserPromptExpansion', reason: 'unsupported-by-codex' }, baseline[2]],
         skipped_groups: []
     });
     // Then the guard reports the changed reason

@@ -14,6 +14,17 @@
 
 ---
 
+## Contents
+
+- [1. What counts as one understanding group](#1-what-counts-as-one-understanding-group)
+- [2. Group order — contract-inward at group altitude](#2-group-order--contract-inward-at-group-altitude)
+- [3. Task breakdown — BLOCKING, before the first deep read](#3-task-breakdown--blocking-before-the-first-deep-read)
+- [4. Accumulation — the report grows on disk, never in context](#4-accumulation--the-report-grows-on-disk-never-in-context)
+- [5. Resumability — what to do after a cutoff, compaction, or resume](#5-resumability--what-to-do-after-a-cutoff-compaction-or-resume)
+- [6. Sub-agent fan-out (tier S3+)](#6-sub-agent-fan-out-tier-s3)
+- [7. Split triggers and the truncation rule](#7-split-triggers-and-the-truncation-rule)
+- [8. Degradation ladder](#8-degradation-ladder)
+
 ## 1. What counts as one understanding group
 
 A group is an **explainable unit**: something whose §1–§13 can be answered *about that unit alone*, by a reader who has read the spine and nothing else. If a candidate group cannot carry its own "what was done / how it works / why this shape / how to test it", it is not a group — it is a fragment of one.

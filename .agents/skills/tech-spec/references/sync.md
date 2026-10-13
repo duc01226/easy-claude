@@ -2,15 +2,7 @@
 
 ## Contents
 
-- [Profile dispatch — resolve before TC scanning](#profile-dispatch--resolve-before-tc-scanning)
-- [Direction Detection](#direction-detection)
-- [Quality Gate (Before Any Sync)](#quality-gate-before-any-sync)
-- [TC ↔ Test Join Evidence Gate](#tc--test-join-evidence-gate)
-- [Forward Drift Report (§8 TCs → Test Code)](#forward-drift-report-8-tcs--test-code)
-- [Reverse Candidate Report (Test Code → §8)](#reverse-candidate-report-test-code--8)
-- [Invariant Harvest Candidate Report (Code / Tests / Review → §4·§5·§8)](#invariant-harvest-candidate-report-code--tests--review--458)
-- [Orphan Detection](#orphan-detection)
-- [Staleness Tracking](#staleness-tracking)
+- [Mode: Report §8 TCs ↔ Test Code Drift](#mode-report-8-tcs--test-code-drift)
 - [Phase 5 (sync detail): Reconcile Section 8 TCs ↔ Integration Test Code](#phase-5-sync-detail-reconcile-section-8-tcs--integration-test-code)
 - [Next Steps (sync mode)](#next-steps-sync-mode)
 

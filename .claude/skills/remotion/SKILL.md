@@ -49,6 +49,17 @@ disable-model-invocation: true
 
 ---
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Phase 0: Mode Detection](#phase-0-mode-detection)
+- [Phase 1A: Detect Existing Project](#phase-1a-detect-existing-project)
+- [Phase 2: PLAY Mode](#phase-2-play-mode)
+- [Phase 3: CREATE / UPDATE Mode](#phase-3-create--update-mode)
+- [Update Mode: Specific Scenarios](#update-mode-specific-scenarios)
+- [Remotion API Reference](#remotion-api-reference)
+- [Closing Reminders](#closing-reminders)
+
 ## Phase 0: Mode Detection
 
 Classify prompt:

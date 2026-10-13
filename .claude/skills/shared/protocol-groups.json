@@ -1,11 +1,14 @@
 {
-  "_description": "Delivery groups for the shared protocols in sync-inline-versions.md. Each canonical base tag belongs to exactly one group and carries a one-line summary and a when line, the text of a skill's guide line. node .claude/scripts/build-protocol-projection.cjs reads this file and writes .claude/skills/shared/protocols/<tag>.md plus protocols/index.json; --check fails when the projection is stale. A tag with no group, a group entry naming a tag the canonical file does not define, or a tag in two groups fails the build. universal is the hook-delivered bundle: its bins entry lists the ordered tags of each delivery message, and no skill or agent carries a universal tag. inlineSkills is empty: all skill entrypoints, including review-family skills, use protocol guides with full-text delivery and a required published-file fallback. A future full-body exception requires an explicit owner decision; guide mode never converts a listed exception and hooks never repeat its carried body. Agents, mode-reference SYNC carriers and fresh reviewer prompts retain their full protocol bodies. A tag entry may name a trigger (\"trigger\": \"<name>\") defined under deliveryTriggers: the protocol hooks then deliver the full text only when the trigger applies to the load (a skill listed in the trigger skills, a pattern match in the event text or the session prompts, a pathPattern match in the recent transcript), and the skill guide line stays the path otherwise; an unknown trigger name or an unusable pattern delivers unconditionally. A summary must not contain a semicolon, and neither line may contain the arrow character or a line break, because the guide line is '- `tag` \u2014 summary; when \u2192 path'.",
+  "_description": "Delivery groups for the shared protocols in sync-inline-versions.md. Each canonical base tag belongs to exactly one group and carries a one-line summary and a when line, the text of a skill's guide line. node .claude/scripts/build-protocol-projection.cjs reads this file and writes .claude/skills/shared/protocols/<tag>.md plus protocols/index.json; --check fails when the projection is stale. A tag with no group, a group entry naming a tag the canonical file does not define, or a tag in two groups fails the build. universal is the hook-delivered bundle: its bins entry lists the ordered tags of each delivery message, and no skill or agent carries a universal tag. inlineSkills is empty: all skill entrypoints, including review-family skills, use protocol guides with full-text delivery and a required published-file fallback. A future full-body exception requires an explicit owner decision; guide mode never converts a listed exception and hooks never repeat its carried body. Agents, mode-reference SYNC carriers and fresh reviewer prompts retain their full protocol bodies. A tag entry may name a trigger (\"trigger\": \"<name>\") defined under deliveryTriggers: the protocol hooks then deliver the full text only when the trigger applies to the load (a skill listed in the trigger skills, a pattern match in the event text or the session prompts, a pathPattern match in the recent transcript), and the skill guide line stays the path otherwise; an unknown trigger name or an unusable pattern delivers unconditionally. A summary must not contain a semicolon, and neither line may contain the arrow character or a line break, because the guide line is '- `tag` — summary; when → path'.",
   "version": 1,
   "binChars": 9500,
   "deliveryTriggers": {
     "review-dispatch": {
       "pattern": "\\b(?:spawn(?:ing)?|delegat(?:e|ed|ing|ion)|fresh reviewer|sub[- ]?agents?|parallel reviewers?)\\b",
-      "skills": ["workflow-review-changes", "changes-review"]
+      "skills": [
+        "workflow-review-changes",
+        "changes-review"
+      ]
     },
     "capacity": {
       "pattern": "\\b(?:performance|latency|throughput|bottlenecks?|capacity|scal(?:e|ing|ability)|cach(?:e|es|ing)|load[- ]test(?:s|ing)?|stress[- ]test(?:s|ing)?|rps|qps|concurrent users?|headroom)\\b",
@@ -462,6 +465,14 @@
           "summary": "Journey-first UX gate UX-1 to UX-11: report journeys, read the design authority, generate, then check every UI/UX gate",
           "when": "generating, specifying, planning, mocking up or reviewing a user-facing surface",
           "trigger": "ui"
+        },
+        "concise-agent-core": {
+          "summary": "Consolidated essential working and discovery contract",
+          "when": "concise universal delivery"
+        },
+        "concise-workflow-route": {
+          "summary": "Compact routing authority and catalog retrieval cues",
+          "when": "concise route delivery"
         }
       }
     },
