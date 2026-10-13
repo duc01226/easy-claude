@@ -219,7 +219,6 @@ test('TC-DOCROOT-037: scan scope covers CLAUDE.md and project-reference, and exc
         // Fixture trees that legitimately hardcode the DEFAULT to prove the default still works.
         writeFixture(root, '.claude/hooks/tests/docs/project-config.json', bare);
         writeFixture(root, '.claude/skills/fixture/tests/case.md', bare);
-        writeFixture(root, '.claude/worktrees/local-checkout/.claude/skills/fixture/SKILL.md', bare);
         writeAllowlist(root, {});
 
         const clean = invoke(root);
@@ -354,6 +353,33 @@ test('TC-DOCROOT-041: an allowlist file is excluded from the scan and cannot fla
         const result = invoke(root, ['--json']);
         assert.equal(result.status, 0, result.output);
         assert.equal(JSON.parse(result.stdout).perFile['docs/project-reference/root-literal-allowlist.json'], undefined);
+    } finally {
+        cleanup(root);
+    }
+});
+
+// TC-DOCROOT-042 — other checkouts the agent host keeps under `.claude/worktrees/` are separate
+// working trees, each with its own `.claude/`, reference docs and mirrors. Walking into one reports
+// another branch's files as THIS checkout's residue, under paths no allowlist entry can name, and
+// multiplies the scan by the number of worktrees. Live files beside them still count.
+test('TC-DOCROOT-042: nested worktree checkouts are not this checkout\'s residue; live files beside them still are', () => {
+    const root = makeRepo();
+    try {
+        const bare = `Read ${SPEC_LITERAL}/ first.\n`;
+        writeFixture(root, '.claude/worktrees/other-branch/CLAUDE.md', bare);
+        writeFixture(root, '.claude/worktrees/other-branch/.claude/skills/fixture/SKILL.md', bare);
+        writeFixture(root, '.claude/worktrees/other-branch/docs/project-reference/spec-system-reference.md', bare);
+        writeAllowlist(root, {});
+
+        const clean = invoke(root);
+        assert.equal(clean.status, 0, clean.output);
+        assert.match(clean.output, /residual occurrences: 0 across 0 files/);
+
+        // A skill that merely has the word in its own path is live source, not a nested checkout.
+        writeFixture(root, '.claude/skills/worktrees/SKILL.md', bare);
+        const dirty = invoke(root, ['--json']);
+        assert.equal(dirty.status, 1, dirty.output);
+        assert.deepEqual(Object.keys(JSON.parse(dirty.stdout).perFile), ['.claude/skills/worktrees/SKILL.md']);
     } finally {
         cleanup(root);
     }

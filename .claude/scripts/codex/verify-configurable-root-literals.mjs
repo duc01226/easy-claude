@@ -130,8 +130,14 @@ export const MIRROR_PREFIXES = ['AGENTS.md', '.codex/', '.agents/', '.opencode/'
  * Test fixtures legitimately hardcode the DEFAULT paths to prove the default still works; banning
  * the literal there would force those tests to stop testing the default.
  */
-// Local repository checkouts belong to other work; their prose is outside this repository's scan contract.
-export const EXCLUDED_PREFIXES = ['.claude/hooks/tests/', '.claude/worktrees/'];
+export const EXCLUDED_PREFIXES = ['.claude/hooks/tests/'];
+
+/**
+ * Other checkouts the agent host keeps inside the scanned `.claude` root. Each is a whole working
+ * tree with its own `.claude/`, reference docs and mirrors, so walking into one reports another
+ * branch's files as THIS checkout's residue, under paths no allowlist entry can name.
+ */
+export const NESTED_CHECKOUT_DIRS = ['.claude/worktrees'];
 
 /** `.claude/skills/<name>/tests/**` — same fixture rationale, expressed positionally. */
 const SKILL_TESTS_PATTERN = /^\.claude\/skills\/[^/]+\/tests\//;
@@ -191,6 +197,7 @@ export function isExcluded(relPath) {
     if (path.posix.basename(relPath) === 'root-literal-allowlist.json') return true;
     if (MIRROR_PREFIXES.some(prefix => relPath === prefix || relPath.startsWith(prefix))) return true;
     if (EXCLUDED_PREFIXES.some(prefix => relPath.startsWith(prefix))) return true;
+    if (NESTED_CHECKOUT_DIRS.some(dir => relPath === dir || relPath.startsWith(`${dir}/`))) return true;
     if (SKILL_TESTS_PATTERN.test(relPath)) return true;
     if (SCRIPT_TESTS_PATTERN.test(relPath)) return true;
     if (relPath.split('/').some(part => ignoredParts.has(part))) return true;

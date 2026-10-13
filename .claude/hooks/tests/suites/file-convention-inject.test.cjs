@@ -2354,7 +2354,13 @@ const tests = [
                 portability: { ...config.portability, inlinePathRules: false },
                 conventionInjection: { ...config.conventionInjection, enabled: true, ...limits }
             });
-            const modes = configs.flatMap(config => [config, optedOut(config, { maxChars: widestChars, maxClassesPerEdit: widestCap }), optedOut(config, {})]);
+            // The complete lookup is a third mode: opted out at the default cap with `completeLookup` on,
+            // where compaction must not depend on the cap or the budget.
+            const completeLookupOn = config => {
+                const base = optedOut(config, {});
+                return { ...base, conventionInjection: { ...base.conventionInjection, completeLookup: true } };
+            };
+            const modes = configs.flatMap(config => [config, optedOut(config, { maxChars: widestChars, maxClassesPerEdit: widestCap }), optedOut(config, {}), completeLookupOn(config)]);
             const samplePaths = ['.claude/hooks/a.cjs', '.claude/hooks/tests/a.test.cjs', 'src/a.cjs', 'src/a.TS', 'src/a.md', 'src/x.test.cjs',
                 'docs/a/b.md', 'docs/specs/X/README.Y.md', 'tools/run.cjs', 'README.md', 'README.cjs', 'lib/x.test.cjs', 'a.scss', 'x.html',
                 '.claude/skills/x/SKILL.md', '.claude/agents/a.md', '.claude/scripts/a.cjs', '.codex/a.md', '.agents/a.md', 'app/a.js', 'a.py'];
@@ -2373,21 +2379,32 @@ const tests = [
                 const ranked = conventions.sortEntries(entries);
                 const cap = conventions.resolveSettings(config).maxClassesPerEdit;
                 const withinCap = ranked.every((e, rank) => !e.rules.length || rank < cap);
+                // A project that opts into the complete lookup, on a lib that provides it, is exempt from the cap
+                // and the budget: the pre-action lookup returns every matching class in pages, so no rule is cut.
+                const completeLookup = config.conventionInjection?.completeLookup === true && conventions.COMPLETE_LOOKUP_VERSION === 1;
+                const deliverable = config.portability?.inlinePathRules === false && conventions.isEnabled(config) && ruleBearing.length > 0 && hookDeliversAll;
                 // The size budget is the only other refusal: every other precondition met yet inline ⇒ budget reason.
-                const structural = config.portability?.inlinePathRules === false && conventions.isEnabled(config) && ruleBearing.length > 0 && hookDeliversAll && withinCap;
+                const structural = deliverable && (completeLookup || withinCap);
                 if (delivery.compact) assert.ok(structural, 'compact only when every structural precondition holds');
+                else if (deliverable && completeLookup) assert.fail(`the complete lookup compacts whenever every group is deliverable: ${delivery.reason}`);
                 else if (structural) assert.match(delivery.reason, /exceeds conventionInjection\.maxChars/);
                 if (delivery.compact) compactRuns++;
+                // The complete lookup replaces the static path table with one pointer (TC-PFCI-083 owns that
+                // form), so parity there is: every rule-bearing group is named and the paged lookup returns its rules.
+                const tableReplaced = deliverable && completeLookup;
+                if (tableReplaced) assert.ok(!table.includes('[[convention:'), 'no duplicate path table under the complete lookup');
                 for (const entry of entries) {
-                    const row = table.split('\n').find(line => line.includes(conventions.conventionTag(entry)));
-                    assert.ok(row, `static row for ${entry.name}`);
+                    const row = tableReplaced ? null : table.split('\n').find(line => line.includes(conventions.conventionTag(entry)));
+                    if (!tableReplaced) assert.ok(row, `static row for ${entry.name}`);
                     // Compact: the group is named and the lookup returns its rules for a path it matches.
                     if (delivery.compact) {
                         if (entry.rules.length) {
                             assert.ok(golden.includes(`\`${entry.name.replace(/`/g, '\\`')}\``), `golden names ${entry.name}`);
                             const rel = samplePaths.find(candidate => conventions.groupMatches(entry.group, candidate));
                             if (rel) {
-                                const looked = conventions.lookup(config, fx.abs(rel), { projectDir: fx.project }).text;
+                                // The complete lookup answers in pages; the agent is told to read all of them.
+                                const result = conventions.lookup(config, fx.abs(rel), { projectDir: fx.project });
+                                const looked = result.pages ? result.pages.join('\n') : result.text;
                                 for (const rule of entry.rules) assert.ok(looked.includes(rule), `lookup ${rel} delivers ${entry.name}: ${rule}`);
                                 lookupChecks++;
                             }
@@ -2395,6 +2412,7 @@ const tests = [
                     } else {
                         for (const rule of entry.rules) assert.ok(golden.includes(rule), `golden rule ${rule}`);
                     }
+                    if (tableReplaced) continue;
                     for (const item of [...entry.docs, ...entry.skills]) assert.ok(row.includes(`\`${item}\``), `${entry.name} row has ${item}`);
                     // And the row shows every include pattern of the class. Patterns render inside a
                     // markdown table cell, where the builder escapes `|` (e.g. an `(A|B)` alternation).
@@ -2418,6 +2436,7 @@ const tests = [
                     if (!conventions.isInjectable(group)) assert.ok(!table.includes(`[[convention:${group.name}@`), group.name);
                 }
                 // And rows follow the same precedence order as delivery
+                if (tableReplaced) continue;
                 const rowOrder = conventions.injectableEntries(config)
                     .map(entry => ({ name: entry.name, at: table.indexOf(conventions.conventionTag(entry)) }))
                     .sort((a, b) => a.at - b.at).map(item => item.name);

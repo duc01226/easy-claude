@@ -1535,8 +1535,8 @@ async function runAllTests() {
             },
             {
                 file: path.join(docsDir, 'hooks', 'README.md'),
-                label: 'docs/hooks/README.md "passes with N tests" prose',
-                pattern: /passes with (\d+) tests/
+                label: 'docs/hooks/README.md "primary runner declares N tests" prose',
+                pattern: /primary runner declares (\d+) tests/
             },
             // The framework guide carried the SAME primary-gate figure with no guard
             // on it, and drifted to 215 against a live 224 while the rows above stayed
