@@ -1,7 +1,8 @@
 /**
  * project-config refactor keys — schema contract for the optional project switches
  * `contextGroups[].on`, `portability.workflowActivation`, `hooks.codeGraph`,
- * `hooks.tokenBudget`, `commit.fixOriginTrailer` and `pullRequest.targetBranch`.
+ * `hooks.tokenBudget`, `commit.fixOriginTrailer`, `pullRequest.targetBranch` and
+ * `pullRequest.pushedBranchUpdate`.
  *
  * Guarded business rules:
  * - Every new switch is OPTIONAL: a config that omits them all validates exactly as before,
@@ -230,6 +231,20 @@ module.exports = {
             }
         },
         {
+            name: '[project-config-refactor-keys] pullRequest.pushedBranchUpdate accepts merge|rebase only, so a typo cannot silently opt into rewriting pushed history',
+            fn: () => {
+                for (const mode of ['merge', 'rebase']) {
+                    assertEqual(errorsFor(base({ pullRequest: { pushedBranchUpdate: mode } })).length, 0, `mode ${mode}`);
+                }
+                // Omitted keeps the merge default for every adopter
+                assertEqual(errorsFor(base({ pullRequest: { targetBranch: 'main' } })).length, 0);
+                for (const wrong of ['force', 'Rebase', 'squash']) {
+                    assertContains(onlyErrorFor(base({ pullRequest: { pushedBranchUpdate: wrong } }), 'pullRequest.pushedBranchUpdate'), 'merge|rebase');
+                }
+                assertContains(onlyErrorFor(base({ pullRequest: { pushedBranchUpdate: true } }), 'pullRequest.pushedBranchUpdate'), 'expected string');
+            }
+        },
+        {
             name: '[project-config-refactor-keys] schema regression: a config omitting every new key validates with no errors',
             fn: () => {
                 // Given a representative config that declares the neighbouring sections but none of the new keys
@@ -269,6 +284,7 @@ module.exports = {
                     ['tokenBudget', ['hooks.tokenBudget', 'hooks.tokenBudget.enabled', 'hooks.tokenBudget.checkpointTokens']],
                     ['fixOriginTrailer', ['commit.fixOriginTrailer']],
                     ['targetBranch', ['pullRequest.targetBranch']],
+                    ['pushedBranchUpdate', ['pullRequest.pushedBranchUpdate']],
                     ['read | edit | both', ['contextGroups']]
                 ];
                 const env = isolatedEnv(dir);

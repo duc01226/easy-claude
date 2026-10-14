@@ -116,7 +116,7 @@ hooks:
                 command: './scripts/validate.sh'
 
 # OPTIONAL — Memory (MEMORY.md auto-injected, Read/Write/Edit auto-added)
-memory: project # user (~/.claude/agent-memory/) | project (.claude/agent-memory/) | local (gitignored)
+memory: project # user (~/.claude/agent-memory/) | project (.claude/agent-memory/) | local (.claude/agent-memory-local/); .claude/.gitignore ignores both project folders
 
 # OPTIONAL — Execution
 background: false # true = always background task

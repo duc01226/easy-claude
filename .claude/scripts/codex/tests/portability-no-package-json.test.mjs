@@ -462,6 +462,13 @@ test('PORT-007 export-claude payload contains the full pipeline and no package.j
     assert.equal(ignoredWorktree.code, 0, 'a local checkout must be ignored in a fresh target repository');
     assert.match(ignoredWorktree.stdout.replaceAll('\\', '/'), /\.claude\/\.gitignore:\d+:\/worktrees\//,
         'the portable ignore owner must exclude local worktrees without a project-specific root rule');
+    // Sub-agent memory holds notes about one checkout; committed, it would ship to every adopter.
+    for (const dir of ['agent-memory', 'agent-memory-local']) {
+        const ignoredMemory = await run('git', ['check-ignore', '-v', '--', `.claude/${dir}/docs-manager/MEMORY.md`], { cwd: defaultTarget });
+        assert.equal(ignoredMemory.code, 0, `agent memory under .claude/${dir}/ must be ignored in a fresh target repository`);
+        assert.match(ignoredMemory.stdout.replaceAll('\\', '/'), new RegExp(`\\.claude/\\.gitignore:\\d+:/${dir}/`),
+            'the portable ignore owner must exclude agent memory without a project-specific root rule');
+    }
 });
 
 // ── PORT-015 — the copied runner owns CLAUDE.md preflight before mirror sync ─────────

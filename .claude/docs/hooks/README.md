@@ -821,12 +821,12 @@ Doc paths in this file are defaults resolved against the project-reference docs 
 
 ## Testing
 
-The primary runner declares 133 tests. The aggregate runner `run-all-tests.cjs` discovers 2063 tests declared across 123 suite files. Source inventory is not an execution result; read the runner output for observed discovery, outcomes and skips. The aggregate includes eighteen task-tracking suites with 590 declared executors.
+The primary runner declares 133 tests. The aggregate runner `run-all-tests.cjs` discovers 2064 tests declared across 123 suite files. Source inventory is not an execution result; read the runner output for observed discovery, outcomes and skips. The aggregate includes eighteen task-tracking suites with 590 declared executors.
 
 | Test Surface          | Count | File/Location                                                     |
 | --------------------- | ----- | ----------------------------------------------------------------- |
 | Primary hook runner   | 133   | `.claude/hooks/tests/test-all-hooks.cjs`                          |
-| Aggregate runner      | 2063 | `.claude/hooks/tests/run-all-tests.cjs` (all suites, declared)  |
+| Aggregate runner      | 2064 | `.claude/hooks/tests/run-all-tests.cjs` (all suites, declared)  |
 | Standalone test files | TODO  | `tests/test-*.cjs/.js` excluding runner (re-verify before citing) |
 | Lib unit tests        | TODO  | `lib/__tests__/*.test.cjs` (re-verify before citing)              |
 

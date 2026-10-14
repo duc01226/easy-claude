@@ -1028,6 +1028,14 @@ const SCHEMA = {
                 type: 'string',
                 required: false,
                 describe: 'Default "main". The base branch the pull-request skill branches from and opens PRs into. A base branch named in the request, or the base of an already-open PR for the current branch, takes precedence.'
+            },
+            // Default merge keeps every adopter's pushed history untouched; rebase is an opt-in
+            // because it rewrites commits a collaborator may already hold.
+            pushedBranchUpdate: {
+                type: 'string',
+                required: false,
+                enumValues: ['merge', 'rebase'],
+                describe: 'Default "merge": the pull-request skill brings an already-pushed PR branch up to date by merging the target in and never rewrites a pushed commit. "rebase": it rebases that branch onto the target and pushes with an explicit --force-with-lease, only when every replayed commit is the current git user\'s and the local branch contains the remote one; otherwise it merges. The target branch is never force-pushed.'
             }
         }
     },

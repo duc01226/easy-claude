@@ -193,7 +193,7 @@ A skill is a directory with `SKILL.md` (frontmatter `name`, `description` = `[Ca
 
 ## 7. Agents
 
-Specialist sub-agents with their own context. Each declares `memory: project`; all inherit the session model except where a definition pins one. Agent files carry their role protocols; the universal rules reach every sub-agent through the `SubagentStart` hook, so in runtime mode `on`, a host that fails to run hooks cannot deliver them. Intentional `quiet`/`off` modes omit guidance. Choose by domain — `.claude/skills/shared/sub-agent-selection-guide.md` maps domain → agent, and specialist work never goes to the generic `code-reviewer`.
+Specialist sub-agents with their own context. Each declares `memory: project`, and `.claude/.gitignore` keeps what they write under `.claude/agent-memory/` out of Git; all inherit the session model except where a definition pins one. Agent files carry their role protocols; the universal rules reach every sub-agent through the `SubagentStart` hook, so in runtime mode `on`, a host that fails to run hooks cannot deliver them. Intentional `quiet`/`off` modes omit guidance. Choose by domain — `.claude/skills/shared/sub-agent-selection-guide.md` maps domain → agent, and specialist work never goes to the generic `code-reviewer`.
 
 | Group              | Agents                                                                                           |
 | ------------------ | ------------------------------------------------------------------------------------------------ |
@@ -267,7 +267,7 @@ Why hybrid: a rule already in context beats a rule the model must go read, but r
 3. **Fix** — `fix --target=review` fixes validated findings at the owning layer and records FIXED / REJECTED / DEFERRED with reasons; an unexplained defect is traced with `investigate --mode=debug` first.
 4. **Receipt** — a converged `--fix-loop` mints a review receipt bound to the exact changeset; any later edit invalidates it.
 5. **Commit** — `/commit` prepares only the requested scope, runs applicable checks and resolves `commit.reviewMode` through `commit-review-policy.cjs`. The default selects `/commit-review --fix-loop`; configured `risk-based` selects Low skip, Medium `/why-review` or High `/changes-review`. Reuse matching current evidence, require the exact-candidate receipt, and write a concise Conventional Commit. `review-commit-gate` blocks any agent `git commit` without a review receipt or a skip receipt.
-6. **Pull request** — `/pull-request` puts the work on a branch at the latest target (new branch if the old one was merged, rebase if it is unpushed and behind), decides tests and the whole-branch review by risk without asking ([its whole-branch policy](../skills/pull-request/references/check-policy.md)), runs fresh gates, commits, pushes, opens a ready PR and automatically checks CI repairs until green. It never merges or force-pushes. Target: `pullRequest.targetBranch` (default `main`).
+6. **Pull request** — `/pull-request` puts the work on a branch at the latest target (new branch if the old one was merged, rebase if it is unpushed and behind), decides tests and the whole-branch review by risk without asking ([its whole-branch policy](../skills/pull-request/references/check-policy.md)), runs fresh gates, commits, pushes, opens a ready PR and automatically checks CI repairs until green. It never merges; it force-pushes only its own rebased PR branch, with an explicit lease, when `pullRequest.pushedBranchUpdate` is `rebase`. Target: `pullRequest.targetBranch` (default `main`).
 7. **Doc sync** — reviewers flag spec/doc gaps read-only; `docs-manager --mode=update` applies them. `doc-sync-gate` warns when enforced areas change without their spec.
 
 **Git discipline** (model-behavioral on every host): never commit, push or stage without an explicit request; branch before committing on the default branch; never run a command that destroys uncommitted work without asking; treat `gh`/GitHub-MCP writes like a push. Only the literal `permissions.ask` patterns in `.claude/settings.json` still prompt; the commit review gate is the one mechanical rule.
@@ -360,11 +360,11 @@ Codex transforms `/skill` into `$skill`, `Agent` into `spawn_agent` and strips C
 | Runner                                  | Tests  | Covers                                                                 |
 | --------------------------------------- | ------ | ---------------------------------------------------------------------- |
 | `test-all-hooks.cjs` (primary gate)  | **133** | Hook behaviors, bridged suites and the count guard                     |
-| `run-all-tests.cjs` (full aggregate) | **2063** | 123 `tests/suites/*.test.cjs` files; primary gate runs separately |
+| `run-all-tests.cjs` (full aggregate) | **2064** | 123 `tests/suites/*.test.cjs` files; primary gate runs separately |
 | `node --test .claude/scripts/codex/tests` | —      | Mirror generators and verifiers                                        |
 | `run-codex-sync.mjs --verify-only`      | —      | Every read-only gate before a commit                                   |
 
-> Source-declared inventory: `test-all-hooks.cjs` = 133; `run-all-tests.cjs` = 2063 executors across 123 suite files. Both runners fail when these numbers drift from the docs. Counts do not establish runtime results; read the actual runner output for outcomes.
+> Source-declared inventory: `test-all-hooks.cjs` = 133; `run-all-tests.cjs` = 2064 executors across 123 suite files. Both runners fail when these numbers drift from the docs. Counts do not establish runtime results; read the actual runner output for outcomes.
 
 **Portable test contract** — shipped tests must pass in any project layout on Windows, macOS and Linux: build a temp fixture project instead of reading this repository's config or git state; blank inherited feature switches and provider keys; point `HOME`, `USERPROFILE`, `TMPDIR`, `TEMP` and `TMP` at the temp dir; name OS differences explicitly (paths, symlinks, `py -3` vs `python3`); run the full suite twice to prove repeatability.
 
@@ -384,6 +384,7 @@ Codex transforms `/skill` into `$skill`, `Agent` into `spawn_agent` and strips C
 | Post-edit formatter             | `formatting.formatter` (`none` disables)          | Prettier         |
 | Commit `Fix-Origin` trailer     | `commit.fixOriginTrailer`                         | off              |
 | PR target branch                | `pullRequest.targetBranch`                        | `main`           |
+| PR pushed-branch update         | `pullRequest.pushedBranchUpdate` (`merge`/`rebase`) | `merge`        |
 | Skill visibility                | `skillProfile.preset`                             | `full`           |
 | Prompt ledger                   | `.ck.json` `promptLedger.enabled`                 | on               |
 | Commit / judgement / AI-feature routers | `.ck.json` `commitSkillRoute`, `judgementIntegrityRoute`, `aiFeatureRoute` | on |

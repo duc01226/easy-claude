@@ -453,7 +453,7 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
         <li><div><b>Fix at the owner</b><span><code>fix --target=review</code> records FIXED / REJECTED / DEFERRED; an unexplained defect is traced first.</span></div></li>
         <li><div><b>Receipt</b><span>A converged fix-loop mints a receipt for that exact changeset; any later edit invalidates it.</span></div></li>
         <li><div><b>Commit</b><span><code>/commit</code> decides the test and review gates by risk without asking; the commit gate blocks any agent commit without a receipt.</span></div></li>
-        <li><div><b>Pull request</b><span><code>/pull-request</code> decides tests and the whole-branch review by risk without asking, runs the selected gates, commits, pushes, opens a ready PR and fixes CI until green. It never merges or force-pushes.</span></div></li>
+        <li><div><b>Pull request</b><span><code>/pull-request</code> decides tests and the whole-branch review by risk without asking, runs the selected gates, commits, pushes, opens a ready PR and fixes CI until green. It never merges; it force-pushes only its own rebased PR branch, with an explicit lease, when <code>pullRequest.pushedBranchUpdate</code> is <code>rebase</code>.</span></div></li>
       </ol>
       <div class="callout"><b>Git discipline</b><span>Never commit, push or stage without an explicit request; branch first on the default branch; never destroy uncommitted work without asking; treat <code>gh</code> writes like a push. Only the literal <code>permissions.ask</code> patterns still prompt; the commit review gate is the one mechanical rule.</span></div>
     </section>
@@ -556,6 +556,7 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
           <tr><td>Token checkpoint</td><td><code>hooks.tokenBudget.checkpointTokens</code></td><td>500,000</td></tr>
           <tr><td>Post-edit formatter</td><td><code>formatting.formatter</code></td><td>Prettier</td></tr>
           <tr><td>PR target branch</td><td><code>pullRequest.targetBranch</code></td><td><code>main</code></td></tr>
+          <tr><td>PR pushed-branch update</td><td><code>pullRequest.pushedBranchUpdate</code> (<code>merge</code>/<code>rebase</code>)</td><td><code>merge</code></td></tr>
           <tr><td>Skill visibility</td><td><code>skillProfile.preset</code></td><td><code>full</code></td></tr>
           <tr><td>Prompt ledger</td><td><code>.ck.json</code> <code>promptLedger.enabled</code></td><td>on</td></tr>
           <tr><td>Desktop notifications</td><td>env <code>ENABLE_DESKTOP_NOTIFICATIONS</code></td><td>on</td></tr>

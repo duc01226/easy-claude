@@ -1,1 +1,0 @@
-- [Spec sidecar and registry checks](project_spec_sidecar_and_registry_checks.md) — provenance map has no generator; run the feature-registry verifier with no flag (314-error baseline)

@@ -686,6 +686,10 @@ A `checkpointTokens` value outside the range, or not a whole number, is a valida
 
 `docs/project-config.json` `pullRequest.targetBranch` (string, default `main`) is the base branch the `pull-request` skill branches from and opens PRs into. Two things take precedence over it: a base branch named in the request, and the base of a PR already open for the current branch. When omitted, the skill uses `main`.
 
+### Pull-request update of a pushed branch
+
+`docs/project-config.json` `pullRequest.pushedBranchUpdate` (`merge` | `rebase`, default `merge`) decides how the `pull-request` skill brings a PR branch whose commits are already pushed up to date with the target. It changes only the method: in both modes the skill updates such a branch only when GitHub reports it conflicting or behind, or when asked, because every update makes a new head. `merge` merges the target in and never rewrites a pushed commit. `rebase` rebases the branch onto the target and pushes it with `git push --force-with-lease=<branch>:<sha>`, only when every replayed commit belongs to the current git user and the local branch contains the remote one; otherwise the skill merges. Choose `rebase` when the project wants feature branches kept linear, so catch-up merge commits never reach the target through a merge-commit PR merge. The target branch is never force-pushed in either mode, and a branch that was never pushed is rebased in both.
+
 ### Configure without knowing JSON keys
 
 Ask “How do these .claude skills work?”, “What can I configure in this .codex framework?” or
