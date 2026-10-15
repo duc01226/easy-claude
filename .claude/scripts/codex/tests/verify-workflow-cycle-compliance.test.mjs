@@ -445,7 +445,7 @@ test("verify-workflow-cycle-compliance rejects docs delegation that lands before
     await fs.mkdir(path.join(tempRoot, ".agents", "skills"), { recursive: true });
 
     const workflowsJson = makeWorkflowJson();
-    // workflow-spec-sync shape: `workflow-review-changes` runs FIRST and canonical spec steps mutate
+    // A review-first shape (spec-sync's order before its verify-last reorder): `workflow-review-changes` runs FIRST and canonical spec steps mutate
     // afterwards, so the nested docs-manager --mode=update cannot satisfy this workflow's closure — the parent must
     // keep its own terminal docs-manager --mode=update. Dropping it must fail the gate.
     const removals = ["integration-test --mode=review", "scan --target=domain-entities", "docs-manager --mode=update"];
@@ -1619,6 +1619,25 @@ test('a review that defers its tests is still the review gate and owns the termi
   const unverified = policyFailures([...base, 'integration-test --mode=verify', 'test', 'workflow-review-changes --tests=defer', 'workflow-end', 'watzup']);
   assert.equal(unverified.some((line) => /--tests=defer needs a verify step/.test(line)), true);
   assert.equal(deferred.some((line) => /--tests=defer needs a verify step/.test(line)), false);
+});
+
+test('a test-first regression written before the fix is proven by the verify after it', () => {
+  // Business Intent / Invariant Guarded: a bug fix's reproducing test exists before the fix and runs after it;
+  // a test written only before the change, with no verify after it, never proves the change.
+  const policyFailures = (sequence) => {
+    const failures = [];
+    ensureWorkflowPolicy('workflow-bugfix', { preActions: { injectContext: '' } }, sequence, failures);
+    return failures.filter((line) => /implementation must be verified/.test(line));
+  };
+  const head = ['investigate --mode=debug', 'spec [mode=tests]', 'work-item --mode=review --type=spec-tests', 'integration-test', 'fix', 'spec [mode=sync]'];
+  // Given the regression test is written before the fix and the verify runs after the static review
+  assert.deepEqual(policyFailures([...head, 'workflow-review-changes --tests=defer', 'integration-test --mode=verify', 'workflow-end', 'watzup']), []);
+  // When nothing verifies after the fix, Then the implementation is unverified
+  assert.equal(policyFailures([...head, 'workflow-review-changes --tests=defer', 'workflow-end', 'watzup']).length, 1);
+  // And a verify that runs before the fix proves nothing about it
+  assert.equal(policyFailures(['investigate --mode=debug', 'spec [mode=tests]', 'integration-test', 'integration-test --mode=verify', 'fix', 'spec [mode=sync]', 'workflow-review-changes --tests=defer', 'workflow-end', 'watzup']).length, 1);
+  // And with no nested review at all, a test written before the fix and a verify after it are not enough
+  assert.equal(policyFailures([...head, 'integration-test --mode=verify', 'workflow-end', 'watzup']).length, 1);
 });
 
 test('the integration gate identifies the review and verify ROLE of integration-test/e2e-test, whatever flags accompany it', () => {

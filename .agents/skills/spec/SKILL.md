@@ -11,7 +11,7 @@ description: '[Documentation] Use when a workflow step or the user asks for cano
 > - Preserve protocol order unless the user approves a deviation. Workflows use `$start-workflow`: gates stay fixed; other steps may flex with logged reasons and evidence.
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
-> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
+> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval. Inside a workflow run, `$start-workflow` → Workflow-step mode bounds this rule.
 > **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
@@ -171,7 +171,9 @@ This skill owns the canonical artifact and cases selected by the active profile.
 
 ## Next Steps
 
-**[BLOCKING]** After completing, use `ask user question tool` to present options. Do NOT skip — user decides:
+> **Inside a workflow:** when this skill runs as a step of an active workflow, skip the prompts in this section and return the result — the workflow's next step decides what runs (`$start-workflow` → Step Execution Protocol, Workflow-step mode).
+
+**[BLOCKING]** After completing a standalone run, use `ask user question tool` to present options. Do NOT skip it there — user decides:
 
 - **"$spec [mode=tests] (Recommended)"** — Generate/update the selected profile's canonical test scenarios (strict default: Section 8 TCs)
 - **"$spec [mode=sync]"** — Reconcile the selected profile's canonical cases with executing test code

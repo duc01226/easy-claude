@@ -1,6 +1,6 @@
 # `$work-item --mode=review` — `--type=spec-tests` checklist and output template
 
-Loaded by `references/mode-review.md` when the resolved type is `spec-tests`. Scoring, verdict rule, M1-M7 gate and the validated-fix loop stay in `references/mode-review.md`; the M1-M7 criteria live in `.claude/skills/shared/m1-m7-gates.md`.
+Loaded by `references/mode-review.md` when the resolved type is `spec-tests`, including an untyped review of a Feature Spec (see [Spec body](#spec-body-1-7--required-when-in-scope)). Scoring, verdict rule, M1-M7 gate and the validated-fix loop stay in `references/mode-review.md`; the M1-M7 criteria live in `.claude/skills/shared/m1-m7-gates.md`.
 
 ## Checklist — Test Spec Review
 
@@ -28,6 +28,18 @@ Loaded by `references/mode-review.md` when the resolved type is `spec-tests`. Sc
 | 13 | **UI interaction intent (UI-bearing specs)** — required views, navigation, observable states, and user flows are present in the selected profile. | Under the default, are §6.2–§6.5 present or is the backend-only skip reason stated? Under a native profile, are its declared interaction fields covered? | Is UI intent linked to configured logical IDs and M1-clean, with visual fidelity left to its linked design artifact? An absent applicable interaction contract is a finding. |
 
 > **[BLOCKING] Spec-Loop property coverage (`--type=spec-tests`):** Verify every universal hard rule/invariant in the selected contract sections maps to a universally quantified property case **and** a boundary counter-case. For the strict default, these are `[HARD]` §4/§5 invariants and property TCs. For a native profile, resolve the configured contract section and case carrier. Example-only coverage is a blocking finding; a missing/unresolvable property case is `NEEDS WORK` or `BLOCKED`, never a pass.
+
+### Spec body (§1-7) — Required when in scope
+
+There is no separate spec type: a Feature Spec is reviewed here, with this section added to the rows above. **In scope when** the review is untyped on a Feature Spec, the run authored or changed §1-7 before this review (an author, update or clarify step; confirm from the run report or the spec's diff), or the caller asks for it. Otherwise record `Spec body: N/A — only the cases changed`. Section names follow the strict default (`spec/SKILL.md` → 8 sections: Overview · Glossary · User Stories & Acceptance Criteria · Business Rules · Domain Model · Process Flows & Interaction Surface · Permissions & Roles · Test Specifications); under a native profile, apply each row to the profile's declared section roles.
+
+| #   | Check | Presence | Quality Depth |
+| --- | --- | --- | --- |
+| S1 | **M1-M7 over the body** — mandates in `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M7)"; M1/M2 and M4 depth are rows S4 and S5 | Is a verdict recorded for each applicable mandate over §1-7, with the carrier exemption applied only to declared carriers? | Could a team with no codebase knowledge rebuild the same behavior from §1-7 alone (M5)? Are IDs the citation spine (M3)? Does every statement a case is built on describe something a user or QC could demo (M7)? |
+| S2 | **Eight sections present and substantive** | Are all eight sections present in order, each with content rather than a heading, placeholder or "TBD"? For a UI-bearing spec, is §6 interaction intent present, or the backend-only reason stated? | Does §5 give every entity its purpose, attributes, constraints, lifecycle states and invariants, and every operation its validation, authorization, success result and named failures (Implementation-Complete Gate)? Does §7 say what each role may and may not do? |
+| S3 | **Every AC and BR traced to §8** | Does every §3 acceptance criterion and every §4 business rule map to at least one §8 case? | Would the mapped case fail if the criterion or rule broke — a positive case per AC, a negative case per BR (Test-Complete Gate)? An AC or BR with no case is a finding even when row 3 passes from the case side. |
+| S4 | **Tech-agnostic prose (M1/M2)** | Is §1-7 narrative free of framework, product, language-type, class, method and file-path names outside declared carriers? | Is behavior stated in business operation names a non-developer can follow? Never flag a declared carrier. |
+| S5 | **One testable interpretation (M4)** | Does each requirement, rule and flow step state an observable completion state and its named failures? | Could two engineers build different behavior while both claiming conformance (AI-Implementability Gate)? If yes, name the missing rule, limit or example. |
 
 ### Recommended (≥50% should pass)
 
@@ -61,6 +73,10 @@ Loaded by `references/mode-review.md` when the resolved type is `spec-tests`. Sc
 
 - ✅/❌ Check description
 
+### Spec Body §1-7 ({X}/5 | N/A — {reason})
+
+- ✅/❌ S1-S5 check description
+
 ### Recommended ({X}/{Y})
 
 - ✅/⚠️ Check description
@@ -68,6 +84,7 @@ Loaded by `references/mode-review.md` when the resolved type is `spec-tests`. Sc
 ### Missing Coverage
 
 - {Stories/AC without mapped canonical cases}
+- {§4 business rules without a §8 case, when the spec body is in scope}
 
 ### Verdict
 

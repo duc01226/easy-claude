@@ -33,7 +33,7 @@ description: '[Content] Use when a workflow step or the user asks for business v
 
 **Before evaluation — detect + reason:** classify supplied idea, scope, and market evidence as present, missing, or ambiguous; for each step run focused `Think: evidence / economics / execution / decision` passes. Derive concerns from idea + evidence; required blocks/categories guide coverage, not checklist recitation.
 
-**Precondition — load market analysis:** In `workflow-research` business-eval mode, read exact parent-provided `MARKET_ANALYSIS_PATH` (`{plan-dir}/research/market-analysis.md` only copy fallback); standalone, use explicitly supplied path.
+**Precondition — load market analysis:** In `workflow-research` business-eval mode, read exact parent-provided `MARKET_ANALYSIS_PATH` (`{plan-dir}/research/market-analysis.md` only copy fallback); in another workflow, read the exact path `market-analysis` returned in this run (or its `{plan-dir}/research/market-analysis.md` copy); standalone, use explicitly supplied path.
 **Absent → do NOT re-derive:** state `$market-analysis` did not run; mark every market-sizing figure (TAM/SAM/SOM, share, segment size) N/A with that reason; cap verdict confidence at 60%.
 
 1. **Capture idea** — Problem, solution, target customer
@@ -50,6 +50,7 @@ description: '[Content] Use when a workflow step or the user asks for business v
 - Financial projections require explicit assumptions table
 - Require ≥5 risks, each with mitigation AND residual risk
 - Verdict requires evidence + confidence declaration
+- Inside a delivery or product workflow (not `workflow-research`, whose `knowledge-review` gate covers this), when the verdict feeds a go/no-go, run knowledge-review's core rows (citation, calibration, cross-validation) on the business case before presenting the decision; see Output
 - **Risk profile:** analysis. Fresh-eyes review, specialist routing, inline sub-agent protocols, and recursive quality loops: N/A — not required by this target contract; this skill does not delegate or own fix convergence.
 
 **Be skeptical; apply critical/sequential thinking. Every claim needs traced proof + confidence percentage (Idea should be more than 80%).**
@@ -153,9 +154,13 @@ Consider market, execution, financial, competitive, regulatory, technical.
 
 Write to `docs/knowledge/strategy/business/{descriptive-slug}.md` using enforced template from `.claude/templates/business-evaluation-template.md`.
 
+**Business-case check before a go/no-go:** when this skill runs inside a delivery or product workflow (for example `workflow-big-feature` or `workflow-greenfield-init`) and the verdict feeds that workflow's go/no-go, run the core rows of `.claude/skills/knowledge-review/SKILL.md` on the written business case before presenting the decision: checklist 2 Citation Audit, 3 Confidence Accuracy and 6 Cross-Validation. Run one read-only pass, fix each failed row in the artifact (or lower the confidence it overstates), then present the verdict with the check result. Inside `workflow-research` its `knowledge-review` gate reviews the artifact instead; standalone runs skip this check.
+
 ---
 
 ## Next Steps
+
+> **Inside a workflow:** when this skill runs as a step of an active workflow, skip the prompts in this section and return the result — the workflow's next step decides what runs (`$start-workflow` → Step Execution Protocol, Workflow-step mode).
 
 **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** After completion, use `ask user question tool` to present these options. Do NOT skip because the task seems "simple" or "obvious"—the user decides:
 
@@ -173,7 +178,7 @@ Write to `docs/knowledge/strategy/business/{descriptive-slug}.md` using enforced
 
 ## Prompt-Enhance Closing Anchors
 
-**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval
+**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval; inside a workflow run, `$start-workflow` → Workflow-step mode bounds this
 **IMPORTANT MUST ATTENTION** for every step/sub-skill call: set `in_progress` before execution, set `completed` after execution
 **IMPORTANT MUST ATTENTION** every skipped step MUST include explicit reason; every completed step MUST include concise evidence
 **IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses
@@ -194,6 +199,7 @@ Write to `docs/knowledge/strategy/business/{descriptive-slug}.md` using enforced
 **MANDATORY IMPORTANT MUST ATTENTION** minimum 5 risks, each with mitigation AND a residual-risk entry across market/execution/financial/competitive/regulatory/technical — why: a risk without residual pretends mitigation is total.
 **MANDATORY IMPORTANT MUST ATTENTION** detect idea/scope/evidence completeness; load exact market-analysis evidence first (parent `MARKET_ANALYSIS_PATH`; `{plan-dir}/research/market-analysis.md` copy fallback; supplied standalone path; absent → market figures N/A + confidence cap 60%); then run ALL 7 steps in order: idea → 9-block BMC → 3-year financials → 5+ risks → 3-phase execution → GTM → verdict; output via template; `ask user question tool` for next route. NEVER re-derive sizing, skip/reorder/merge steps, drop financials/execution/GTM, or auto-decide — why: verdict quality follows the weakest step/evidence.
 **MANDATORY IMPORTANT MUST ATTENTION** before writing any figure or claim, search market-analysis output + prior evaluations for 3+ comparable patterns and cite them — why: a number with no comparable anchor is a fabrication.
+**MANDATORY IMPORTANT MUST ATTENTION** inside a delivery or product workflow whose go/no-go rests on this verdict, run knowledge-review checklists 2, 3 and 6 (citation, calibration, cross-validation) on the written business case and fix failed rows before presenting the decision — why: those workflows run no `knowledge-review` gate on the artifact the build decision rests on.
 **MANDATORY IMPORTANT MUST ATTENTION** write the result to `docs/knowledge/strategy/business/{descriptive-slug}.md` via the enforced `.claude/templates/business-evaluation-template.md` — NEVER hand-roll the structure — why: the template is the contract downstream skills (domain-analysis/plan) read.
 **MANDATORY IMPORTANT MUST ATTENTION** persist intermediate findings to `tmp/reports/` for lengthy evaluations — why: external memory survives context loss and serves as the deliverable.
 

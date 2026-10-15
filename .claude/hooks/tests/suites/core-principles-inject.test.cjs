@@ -308,6 +308,46 @@ const tests = [
         })
     },
     {
+        name: '[core-principles] TC-CEP-022 every sub-agent start receives the body as start context, once per spawn',
+        fn: () => withFixture(async fx => {
+            // Given the main conversation already received it
+            assert.ok(await fire(fx, promptEvent(fx)));
+            fx.sub('a1');
+            const start = id => promptEvent(fx, { hook_event_name: 'SubagentStart', agent_id: id, agent_type: 'Explore', prompt: undefined });
+            // When a sub-agent starts / Then the body arrives as SubagentStart context in its own scope
+            const parsed = JSON.parse(await fire(fx, start('a1')));
+            assert.equal(parsed.hookSpecificOutput.hookEventName, 'SubagentStart');
+            assert.ok(parsed.hookSpecificOutput.additionalContext.includes('fixture body'));
+            // And a resumed start of the same agent stays silent until that agent's own compaction
+            assert.equal(await fire(fx, start('a1')), '', 'same spawn deduplicated');
+            fs.appendFileSync(fx.sub('a1'), `${JSON.stringify({ type: 'system', subtype: 'compact_boundary', timestamp: new Date(Date.now() + 1000).toISOString() })}\n`);
+            assert.ok(await fire(fx, start('a1'), { now: Date.now() + 2000 }), 'the agent\'s compaction re-arms its next start');
+            // And a start that reports no agent id is still its own spawn, never the main scope
+            assert.ok(await fire(fx, start(undefined)), 'anonymous spawn delivered');
+            assert.equal(await fire(fx, promptEvent(fx)), '', 'the main scope is unaffected');
+        })
+    },
+    {
+        name: '[core-principles] TC-CEP-023 a compaction report delivers at once and the prompt after the host boundary stays silent',
+        fn: () => withFixture(async fx => {
+            const t1 = Date.parse('2026-01-01T00:00:00Z');
+            assert.ok(await fire(fx, promptEvent(fx), { now: t1 }));
+            // When the host reports a compaction (its boundary line is written after the session-start hooks)
+            const compact = promptEvent(fx, { hook_event_name: 'SessionStart', source: 'compact', prompt: undefined });
+            const parsed = JSON.parse(await fire(fx, compact, { now: t1 + 1000 }));
+            // Then the body arrives at once as SessionStart context, with no prompt needed
+            assert.equal(parsed.hookSpecificOutput.hookEventName, 'SessionStart');
+            assert.ok(parsed.hookSpecificOutput.additionalContext.includes('fixture body'));
+            fs.appendFileSync(fx.main, `${JSON.stringify({ type: 'system', subtype: 'compact_boundary', timestamp: new Date(t1 + 2000).toISOString() })}\n`);
+            // And that same compaction's boundary is absorbed: the next prompt stays silent
+            assert.equal(await fire(fx, promptEvent(fx), { now: t1 + 3000 }), '', 'one delivery per compaction');
+            // And a clear, startup or resume report delivers nothing (the next prompt carries it)
+            for (const source of ['clear', 'startup', 'resume']) {
+                assert.equal(await fire(fx, promptEvent(fx, { hook_event_name: 'SessionStart', source }), { now: t1 + 4000 }), '', source);
+            }
+        })
+    },
+    {
         name: '[core-principles] TC-CEP-013 a compaction re-delivers at once, without transcript growth past the window',
         fn: () => withFixture(async fx => {
             const t1 = Date.parse('2026-01-01T00:00:00Z');
@@ -452,16 +492,21 @@ const tests = [
         }
     },
     {
-        name: '[core-principles] TC-CEP-011 registered on UserPromptSubmit and the task-step PostToolUse matcher (framework repo only)',
+        name: '[core-principles] TC-CEP-011 registered on UserPromptSubmit, the task-step PostToolUse matcher, every SubagentStart and SessionStart compact (framework repo only)',
         skip: IS_FRAMEWORK_REPO ? false : 'asserts the framework repo\'s own settings (framework-repo signal)',
         fn: () => {
             const settings = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, '.claude', 'settings.json'), 'utf8'));
             const owns = group => group.hooks.some(h => h.command.includes('core-principles-inject.cjs'));
             const prompt = settings.hooks.UserPromptSubmit.filter(owns);
             const post = settings.hooks.PostToolUse.filter(owns);
+            const agent = settings.hooks.SubagentStart.filter(owns);
+            const compaction = settings.hooks.SessionStart.filter(owns);
             assert.equal(prompt.length, 1, 'one UserPromptSubmit registration');
             assert.equal(post.length, 1, 'one PostToolUse registration');
             assert.equal(post[0].matcher, STEP_MATCHER);
+            assert.equal(agent.length, 1, 'one SubagentStart registration');
+            assert.equal(agent[0].matcher, undefined, 'every agent type');
+            assert.deepEqual(compaction.map(group => group.matcher), ['compact'], 'one SessionStart registration, compaction only');
         }
     }
 ];

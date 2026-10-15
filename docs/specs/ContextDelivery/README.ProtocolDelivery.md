@@ -21,7 +21,7 @@ entities:
 status: draft
 provisional: true
 owner: 'Framework maintainers'
-last_updated: '2026-10-10'
+last_updated: '2026-10-14'
 scope_mode: FRAMEWORK-LIBRARY
 large_idea_decomposition: null
 roadmap: null
@@ -245,6 +245,20 @@ Many skills follow the same shared protocols — evidence rules, review rules, t
 - **AC-PDL-30** — Given project-specific frontend ownership, when the maintainer extends or replaces default file matching, excludes generated areas, changes the refresh interval or disables the reminder, then the project choices govern delivery.
 - **AC-PDL-31** — Given successful delivery, when further eligible work occurs within the same scope and refresh window, then no duplicate arrives; at the default 100,000-token boundary, after compaction or after guidance/settings change, it becomes eligible again. Failed output never consumes eligibility and a short reminder never counts as the full protocol.
 
+---
+
+### US-PDL-12: Keep prompt-time guidance in delegated and long-running work
+
+**As a** project maintainer
+**I want** delegated agents and long, compacted runs to keep the guidance a user prompt brings, and the assistant reminded which project skills own reviews, tests and failures
+**So that** work done without a fresh prompt follows the same rules and uses the project's own quality skills
+
+**Acceptance Criteria:**
+
+- **AC-PDL-32** — **Given** an agent of any type starts **When** its start is reported **Then** it receives the core engineering principles and the UI reuse guidance once for that spawn, plus the verdict and AI-feature directives when the session's latest recorded user prompt asks for one; workflow routing, commit and tracking guidance, setup offers and the prompt record stay with the main conversation (BR-PDL-21)
+- **AC-PDL-33** — **Given** the host reports a compaction **When** no prompt follows **Then** the core principles, the UI reuse guidance, the workflow route and catalog, and those two directives (judged on the latest recorded prompt) arrive at once, and the prompt that follows the host's own compaction boundary stays silent (BR-PDL-21)
+- **AC-PDL-34** — **Given** a long run that produces tool results **When** a scope's first tool result arrives, or about 150,000 tokens of growth, a compaction or a changed digest occurred since the last delivery **Then** a short digest routes reviews (a rationale or claim, a focused change or simple pull request, a complex pull request), tests and failure diagnosis to the project's registered skills; otherwise nothing arrives (BR-PDL-22)
+
 ## 4. Business Rules
 
 ### Rule Catalog
@@ -271,6 +285,8 @@ Many skills follow the same shared protocols — evidence rules, review rules, t
 | BR-PDL-18 | The universal bundle is delivered in authored bins on prompt and agent start | Delivery  | [HARD]      |
 | BR-PDL-19 | A skill start reminds the assistant of its project overlays                  | Delivery  | [HARD]      |
 | BR-PDL-20 | Concise UI reuse guidance precedes interface work within one refresh window | Delivery | [HARD] |
+| BR-PDL-21 | Prompt-time guidance reaches delegated agents and survives compaction        | Delivery  | [HARD]      |
+| BR-PDL-22 | Quality-skill routes refresh after tool results                              | Delivery  | [HARD]      |
 
 ### BR-PDL-01: Every converted skill keeps a guide entry per protocol [HARD]
 
@@ -331,7 +347,7 @@ IF a section of a skill is used by one mode only — the full review of the reas
 
 ### BR-PDL-08: Agent-start delivery decided per agent [HARD]
 
-Delivery at agent start is registered with no agent-type filter, so every agent type — a named agent, a custom agent or the general-purpose agent — reaches the delivery steps, and each step decides per agent what to deliver. IF an agent that preloads skills starts THEN it receives the protocols of the converted skills it preloads (an inline skill among them contributes nothing). IF Explore or Plan starts, or an agent that preloads no skill starts, THEN the five group steps deliver nothing to it. Every agent type — custom or general-purpose, with or without preloaded skills, whether or not its definition file exists or is trusted — receives the universal bundle at its start, once per spawn (BR-PDL-18). A protocol whose full body the agent's own definition carries between paired fences is not delivered again (a reminder digest never counts as the body); this applies only when the definition's declared name equals the agent type. The second host mirrors agent start the same way; its agent type is the agent's name in the generated agent file. ADR-0004 records the decision.
+Delivery at agent start is registered with no agent-type filter, so every agent type — a named agent, a custom agent or the general-purpose agent — reaches the delivery steps, and each step decides per agent what to deliver. IF an agent that preloads skills starts THEN it receives the protocols of the converted skills it preloads (an inline skill among them contributes nothing). IF Explore or Plan starts, or an agent that preloads no skill starts, THEN the five group steps deliver nothing to it. Every agent type — custom or general-purpose, with or without preloaded skills, whether or not its definition file exists or is trusted — receives the universal bundle at its start, once per spawn (BR-PDL-18). A protocol whose full body the agent's own definition carries between paired fences is not delivered again (a reminder digest never counts as the body); this applies only when the definition's declared name equals the agent type. The same start also carries the prompt-time guidance of BR-PDL-21. The second host mirrors agent start the same way; its agent type is the agent's name in the generated agent file. ADR-0004 records the decision.
 
 `[Source: rule/hooks/protocol-agent-start]`
 
@@ -435,9 +451,21 @@ The project keeps a registry of overlay rules layered onto framework skills. IF 
 
 Every conversation scope receives concise guidance to find and read the current project's design system, tokens, shared components, controls and related usage examples before planning, implementing or changing frontend UI. The assistant follows house conventions, reuses fitting controls and records searched paths and gaps before adding a new control. The reminder itself is never evidence that discovery occurred.
 
-User prompts and eligible pre-action frontend or planning operations share one suppression window per scope: by default 100,000 tokens of conversation growth. Only successful delivery starts the window. Compaction or changed guidance/settings re-arm it; wall-clock passage alone does not. Projects may disable the reminder, extend or replace common UI path defaults, add exclusions or configure the interval. Missing configuration retains defaults; malformed declared configuration stays silent. A short reminder never suppresses delivery of the full UI protocol. No interface is generated by this reminder.
+User prompts and eligible pre-action frontend or planning operations share one suppression window per scope: by default 100,000 tokens of conversation growth. Only successful delivery starts the window. Compaction or changed guidance/settings re-arm it; wall-clock passage alone does not. An agent start delivers it once per spawn and a compaction report delivers it at once (BR-PDL-21); a clear waits for the next prompt. Projects may disable the reminder, extend or replace common UI path defaults, add exclusions or configure the interval. Missing configuration retains defaults; malformed declared configuration stays silent. A short reminder never suppresses delivery of the full UI protocol. No interface is generated by this reminder.
 
 `[Source: rule/hooks/ui-reuse-reminder]`
+
+### BR-PDL-21: Prompt-time guidance reaches delegated agents and survives compaction [HARD]
+
+An agent start and a compaction report carry no user prompt, yet both begin work that no prompt precedes. IF an agent of any type starts THEN it receives the core engineering principles and the UI reuse guidance once for that spawn (a start that names no agent is still its own spawn), plus the verdict directive and the AI-feature directive when the session's latest recorded user prompt asks for one; IF no prompt was recorded THEN those two stay silent. A resumed agent receives them again only after its own compaction. Workflow routing, commit and tracking guidance, setup offers and the prompt record belong to the main conversation and never reach an agent start. IF the host reports a compaction (source `compact`) THEN the core principles, the UI reuse guidance, the workflow route and catalog, and those two directives (judged on the latest recorded prompt) are delivered at once, because a long run may continue with no prompt; the boundary line the host writes after its report is absorbed, so the prompt that follows stays silent. A clear, startup or resume report delivers none of them; the next prompt does. Every switch that silences one of them on prompts silences it here too. No host event reports a running agent's own compaction: until the agent is resumed, only tool-result guidance (BR-PDL-22) reaches it again.
+
+`[Source: rule/hooks/prompt-context-agent-start-compaction]`
+
+### BR-PDL-22: Quality-skill routes refresh after tool results [HARD]
+
+The universal bundle carries the quality-skill routing protocol: review, test and failure work use the project's registered skills first — judging a rationale, decision, claim or statement; reviewing a focused code change or a simple pull request; reviewing a pull request or change set that is complex, risky or cross-module; running or writing tests; diagnosing the root cause of a failure or error before any fix — and a generic equivalent only when none fits. IF a tool result arrives in a scope (the main conversation or one agent) THEN a short digest of those routes is delivered once; afterwards it is delivered again only after about 150,000 tokens of conversation growth, a compaction recorded in that scope's own conversation (an agent's included) or a changed digest. Elapsed time alone never re-delivers it, and a host that exposes no conversation record receives one delivery until a compaction. A tool result without a session identity receives nothing. The project may switch the digest off; the universal protocol still binds.
+
+`[Source: rule/hooks/quality-skill-reminder]`
 
 ## 5. Domain Model
 
@@ -640,9 +668,9 @@ SecondHostInlineList    1──N Protocol           (decided: none)
 | Priority  | Count   | Automated | Manual |
 | --------- | ------- | --------- | ------ |
 | P0        | 24      | 23        | 1      |
-| P1        | 76      | 74        | 2      |
+| P1        | 79      | 77        | 2      |
 | P2        | 8       | 7         | 1      |
-| **Total** | **108** | **104**   | **4**  |
+| **Total** | **111** | **107**   | **4**  |
 
 | Category                       | TCs                                                                                                                                                                                |
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -658,6 +686,8 @@ SecondHostInlineList    1──N Protocol           (decided: none)
 | Conditional Pruning Tests      | TC-PDL-050, TC-PDL-051, TC-PDL-052                                                                                                                                                 |
 | Universal Bundle Tests         | TC-PDL-085, TC-PDL-086, TC-PDL-087, TC-PDL-088, TC-PDL-089, TC-PDL-090, TC-PDL-091, TC-PDL-092, TC-PDL-093, TC-PDL-094, TC-PDL-095, TC-PDL-096, TC-PDL-097, TC-PDL-098, TC-PDL-099, TC-PDL-110, TC-PDL-111, TC-PDL-112, TC-PDL-113, TC-PDL-114 |
 | UI Reuse Reminder Tests | TC-PDL-115, TC-PDL-116, TC-PDL-117 |
+| Prompt-Time Guidance Tests | TC-PDL-118, TC-PDL-119 |
+| Quality-Skill Reminder Tests | TC-PDL-120 |
 | Skill Overlay Reminder Tests   | TC-PDL-100, TC-PDL-101, TC-PDL-102, TC-PDL-103, TC-PDL-104, TC-PDL-105, TC-PDL-106, TC-PDL-107, TC-PDL-108, TC-PDL-109                                                             |
 
 ### Planned Executors
@@ -672,7 +702,12 @@ SecondHostInlineList    1──N Protocol           (decided: none)
 | `.claude/hooks/tests/suites/content-presence.test.cjs`                                                          | TC-PDL-028, TC-PDL-084                                                                                                                                                             |
 | `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs`                                                   | TC-PDL-085, TC-PDL-086, TC-PDL-087, TC-PDL-088, TC-PDL-089, TC-PDL-090, TC-PDL-091, TC-PDL-092, TC-PDL-093, TC-PDL-094, TC-PDL-095, TC-PDL-096, TC-PDL-097, TC-PDL-098, TC-PDL-099, TC-PDL-110, TC-PDL-111, TC-PDL-112, TC-PDL-113, TC-PDL-114 |
 | `.claude/hooks/tests/suites/skill-overlay-remind.test.cjs`                                                      | TC-PDL-100, TC-PDL-101, TC-PDL-102, TC-PDL-103, TC-PDL-104, TC-PDL-105, TC-PDL-106, TC-PDL-107, TC-PDL-108, TC-PDL-109                                                             |
-| `.claude/hooks/tests/suites/ui-reuse-remind.test.cjs` | TC-PDL-115, TC-PDL-116, TC-PDL-117 |
+| `.claude/hooks/tests/suites/ui-reuse-remind.test.cjs` | TC-PDL-115, TC-PDL-116, TC-PDL-117, TC-PDL-118, TC-PDL-119 |
+| `.claude/hooks/tests/suites/core-principles-inject.test.cjs` | TC-PDL-118, TC-PDL-119 |
+| `.claude/hooks/tests/suites/judgement-integrity-route.test.cjs` | TC-PDL-118, TC-PDL-119 |
+| `.claude/hooks/tests/suites/ai-feature-route.test.cjs` | TC-PDL-118, TC-PDL-119 |
+| `.claude/hooks/tests/suites/workflow-route-modes.test.cjs` | TC-PDL-119 |
+| `.claude/hooks/tests/suites/quality-skill-remind.test.cjs` | TC-PDL-120 |
 | `.claude/scripts/tests/sync-update-blocks-guide.test.cjs`                                                       | TC-PDL-029, TC-PDL-030, TC-PDL-031, TC-PDL-036, TC-PDL-061, TC-PDL-081                                                                                                             |
 | `.claude/scripts/codex/tests/verify-skill-protocol-compliance.test.mjs`                                         | TC-PDL-032, TC-PDL-033, TC-PDL-065, TC-PDL-083                                                                                                                                     |
 | `.claude/hooks/tests/suites/sync-carrier-parity.test.cjs`                                                       | TC-PDL-034, TC-PDL-035, TC-PDL-037, TC-PDL-039, TC-PDL-040, TC-PDL-050, TC-PDL-062, TC-PDL-065, TC-PDL-082                                                                         |
@@ -715,7 +750,9 @@ SecondHostInlineList    1──N Protocol           (decided: none)
 | BR-PDL-17 | `core-principles-inject.test.cjs::TC-CEP-019` (both directions of the shared record); `codex-launcher.test.cjs::TC-CXL-009` (record location)                                                              |
 | BR-PDL-18 | TC-PDL-038, TC-PDL-080, TC-PDL-085, TC-PDL-086, TC-PDL-087, TC-PDL-088, TC-PDL-089, TC-PDL-090, TC-PDL-091, TC-PDL-092, TC-PDL-093, TC-PDL-094, TC-PDL-095, TC-PDL-096, TC-PDL-097, TC-PDL-098, TC-PDL-099, TC-PDL-110, TC-PDL-111, TC-PDL-112, TC-PDL-113, TC-PDL-114 |
 | BR-PDL-19 | TC-PDL-100, TC-PDL-101, TC-PDL-102, TC-PDL-103, TC-PDL-104, TC-PDL-105, TC-PDL-106, TC-PDL-107, TC-PDL-108, TC-PDL-109                                                                                     |
-| BR-PDL-20 | TC-PDL-115, TC-PDL-116, TC-PDL-117 |
+| BR-PDL-20 | TC-PDL-115, TC-PDL-116, TC-PDL-117, TC-PDL-118, TC-PDL-119 |
+| BR-PDL-21 | TC-PDL-118, TC-PDL-119 |
+| BR-PDL-22 | TC-PDL-120 |
 
 ### Published Protocol Text Tests
 
@@ -6909,7 +6946,7 @@ boundaryCounterCase: 'a bare safe name → its body path'
 
 **Demo Flow / GWT:** Given the preconditions, when the following flow occurs, then the expected result holds: Receive guidance, continue frontend work below the refresh window, cross the exact boundary, compact the conversation, then change guidance or settings.
 
-**Expected Result:** The same scope stays silent below the window, refreshes at the boundary or after change, and then suppresses duplicates again. Independent scopes receive their own guidance. Failed output remains retryable. Reminder resets preserve other protocol and universal delivery records.
+**Expected Result:** The same scope stays silent below the window, refreshes at the boundary or after change, and then suppresses duplicates again. A compaction report delivers the guidance at once and the next prompt stays silent; a clear waits for the next prompt. Independent scopes receive their own guidance. Failed output remains retryable. Reminder resets preserve other protocol and universal delivery records.
 
 **Acceptance Criteria:** AC-PDL-31; every delivery precedes the matching operation and remains advisory.
 
@@ -6924,5 +6961,103 @@ boundaryCounterCase: 'a bare safe name → its body path'
 **Related Behaviors:** BR-PDL-20; US-PDL-11.
 
 **CoveredBy:** `.claude/hooks/tests/suites/ui-reuse-remind.test.cjs::TC-PDL-117`
+
+**Status:** Implemented — executable coverage named above.
+
+### Prompt-Time Guidance Tests
+
+> Guidance a user prompt brings reaches delegated agents and survives a compaction (US-PDL-12).
+
+#### TC-PDL-118: Every agent start receives prompt-time guidance once per spawn [P1]
+
+**Objective:** Delegated agents follow the same prompt-time rules as the main conversation.
+
+**Business Intent / Invariant Guarded:** BR-PDL-21; AC-PDL-32.
+
+**Preconditions:** A session whose main conversation already received its prompt-time guidance; a recorded latest user prompt that asks for a verdict or for AI-feature work, or none.
+
+**Real-World Reachability:** The assistant delegates a review or an exploration to an agent of any type during a user's request.
+
+**Demo Flow / GWT:** Given the preconditions, when an agent starts, the same agent is resumed, another agent starts and an agent starts without a name, then the expected result holds.
+
+**Expected Result:** Each new spawn receives the core principles and the UI reuse guidance once, as its start context; the verdict and AI-feature directives arrive only when the latest recorded prompt asks for one, and an older matching prompt followed by an unrelated one routes nothing. The resumed agent receives nothing new until its own compaction. The main conversation is unaffected. Workflow routing, commit and tracking guidance never arrive at an agent start.
+
+**Acceptance Criteria:** AC-PDL-32.
+
+**Test Data:** Synthetic projects with recorded prompts, separate agent scopes and agent conversation records.
+
+**Edge Cases:** No recorded prompt; start without an agent name; project switch off; resumed agent after its own compaction.
+
+**Property:** inputDomain = all agent starts within one session; invariant = each spawn receives each guidance item at most once until its own compaction; boundaryCounterCase = a compaction in that agent's own conversation makes its next start eligible again.
+
+**Evidence:** [Source: rule/hooks/prompt-context-agent-start-compaction]
+
+**Related Behaviors:** BR-PDL-08; BR-PDL-20; US-PDL-12.
+
+**CoveredBy:** `.claude/hooks/tests/suites/core-principles-inject.test.cjs::TC-CEP-022`; `.claude/hooks/tests/suites/ui-reuse-remind.test.cjs::TC-PDL-118`; `.claude/hooks/tests/suites/judgement-integrity-route.test.cjs::TC-JIR-011`; `.claude/hooks/tests/suites/ai-feature-route.test.cjs::TC-AIR-014`
+
+**Status:** Implemented — executable coverage named above.
+
+#### TC-PDL-119: A compaction report re-delivers prompt-time guidance at once [P1]
+
+**Objective:** A long run keeps its guidance after a compaction even when no prompt follows.
+
+**Business Intent / Invariant Guarded:** BR-PDL-21; AC-PDL-33.
+
+**Preconditions:** A session that already received its prompt-time guidance on a prompt.
+
+**Real-World Reachability:** An autonomous run fills its context and the host compacts it in the middle of a turn.
+
+**Demo Flow / GWT:** Given the preconditions, when the host reports a compaction, writes its own boundary line and the next prompt arrives, and when it reports a clear, startup or resume instead, then the expected result holds.
+
+**Expected Result:** The core principles, the UI reuse guidance, the workflow route and catalog (in the same route mode) and, when the latest recorded prompt asks for one, the verdict and AI-feature directives arrive at once as session-start context; the prompt after the host's boundary stays silent. A clear, startup or resume report delivers none of them.
+
+**Acceptance Criteria:** AC-PDL-33.
+
+**Test Data:** Synthetic projects with recorded prompts and conversation records with compaction boundaries.
+
+**Edge Cases:** No conversation record; no recorded prompt; concise delivery, where the universal core owns the principles.
+
+**Property:** inputDomain = all session-start reports; invariant = only a compaction report delivers, once per compaction; boundaryCounterCase = a clear report delivers nothing and leaves the next prompt eligible.
+
+**Evidence:** [Source: rule/hooks/prompt-context-agent-start-compaction]
+
+**Related Behaviors:** BR-PDL-18; BR-PDL-20; US-PDL-12.
+
+**CoveredBy:** `.claude/hooks/tests/suites/core-principles-inject.test.cjs::TC-CEP-023`; `.claude/hooks/tests/suites/ui-reuse-remind.test.cjs::TC-PDL-117`; `.claude/hooks/tests/suites/workflow-route-modes.test.cjs::TC-WFR-027`; `.claude/hooks/tests/suites/judgement-integrity-route.test.cjs::TC-JIR-011`; `.claude/hooks/tests/suites/ai-feature-route.test.cjs::TC-AIR-014`
+
+**Status:** Implemented — executable coverage named above.
+
+### Quality-Skill Reminder Tests
+
+> Reviews, tests and failures go to the project's registered skills, refreshed during long runs (US-PDL-12).
+
+#### TC-PDL-120: Tool results refresh the quality-skill routes once per window and scope [P1]
+
+**Objective:** A long run keeps choosing the project's review, test and diagnosis skills.
+
+**Business Intent / Invariant Guarded:** BR-PDL-22; AC-PDL-34.
+
+**Preconditions:** A session with the digest enabled and a conversation record.
+
+**Real-World Reachability:** The assistant runs many tools during one long request, sometimes inside a delegated agent that compacts its own context.
+
+**Demo Flow / GWT:** Given the preconditions, when tool results arrive below and at the 150,000-token boundary, after a compaction in the main conversation or in an agent's own conversation, after a changed digest and after days with no growth, then the expected result holds.
+
+**Expected Result:** The first tool result of each scope delivers the digest as advisory context naming the rationale, focused-change and complex-pull-request review routes, the test skills and root-cause diagnosis; it is delivered again only at the growth boundary, after that scope's compaction or after a changed digest. Elapsed time, other events, a missing session identity and a switched-off project deliver nothing.
+
+**Acceptance Criteria:** AC-PDL-34.
+
+**Test Data:** Synthetic projects with a fixture digest, main and agent conversation records and bounded growth.
+
+**Edge Cases:** Exact boundary minus one; second-host compaction record; malformed input; switch off by setting or environment.
+
+**Property:** inputDomain = all tool results in one scope below the refresh distance; invariant = at most one delivery; boundaryCounterCase = the exact distance or that scope's compaction makes the next tool result eligible.
+
+**Evidence:** [Source: rule/hooks/quality-skill-reminder]
+
+**Related Behaviors:** BR-PDL-18; US-PDL-12.
+
+**CoveredBy:** `.claude/hooks/tests/suites/quality-skill-remind.test.cjs::TC-QSR-001` through `TC-QSR-009`
 
 **Status:** Implemented — executable coverage named above.

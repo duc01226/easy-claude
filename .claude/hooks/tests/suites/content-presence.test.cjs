@@ -13,8 +13,8 @@
  *   TC-CP-008 — tracked context surfaces carry the route gate without a duplicated catalog.
  *   TC-CP-015 — the canonical route gate carries the brief complexity assessment, the >80%
  *               catalog-fit rule, table precedence, downgrade guards (investigation, spec/doc sync,
- *               test, review) and auto-select; route examples use canonical step ids; start-workflow
- *               never proposes or asks the user to choose a route.
+ *               test, review) and a declared (never asked) direct or custom route; route examples use canonical
+ *               step ids; start-workflow never proposes or asks the user to choose a route.
  *   TC-CP-002 — the universal subagent-bootstrap phrases are present in a
  *               representative sample of agents (one code, one non-code).
  *   TC-CP-003 — agent-code-standards (dev-rules + pattern docs) is present in a
@@ -196,9 +196,13 @@ const HTML_EXPORT_CALLERS = ['presentation-builder', 'feature-presentation'];
 const RENAMED_TRACKING_SKILLS = [
     ['pbi', 'work-item'],
     ['idea', 'initiative'],
-    ['workflow-idea-to-pbi', 'workflow-initiative-to-task'],
-    ['workflow-spec-to-pbi', 'workflow-spec-to-task'],
-    ['workflow-idea-to-spec', 'workflow-initiative-to-spec'],
+    ['workflow-idea-to-pbi', 'workflow-planned-work'],
+    ['workflow-spec-to-pbi', 'workflow-planned-work'],
+    ['workflow-idea-to-spec', 'workflow-planned-work'],
+    // The three planning workflows merged into one with a mode each (P41).
+    ['workflow-initiative-to-task', 'workflow-planned-work'],
+    ['workflow-initiative-to-spec', 'workflow-planned-work'],
+    ['workflow-spec-to-task', 'workflow-planned-work'],
 ];
 // Skill reference files (relative to the skills root) that carry the same one-line rule.
 const HTML_EXPORT_CALLER_REFERENCES = ['ui-design/references/lane-marketing/motion-storyboard.md', 'work-item/references/mode-mockup.md'];
@@ -644,10 +648,11 @@ module.exports = {
         },
         {
             // Guards routing INTENT: a brief complexity assessment picks direct / custom-simple /
-            // catalog workflow, a catalog workflow needs >80% of its steps to do real work, and the
-            // route is auto-selected (declared, never asked). Without these, a focused change routes
-            // into a full catalog workflow whose spec/scenario/seed-data steps do no work.
-            name: '[content-presence] TC-CP-015 route gate assesses complexity, applies catalog fit, never asks',
+            // catalog workflow, a catalog workflow needs >80% of its steps to do real work, and a direct,
+            // single-skill or custom-simple route is declared, never asked (only starting a catalog workflow
+            // asks the workflow question, P46). Without these, a focused change routes into a full catalog
+            // workflow whose spec/scenario/seed-data steps do no work.
+            name: '[content-presence] TC-CP-015 route gate assesses complexity, applies catalog fit, never asks about a direct or custom route',
             fn: () => {
                 const gate = readFile(path.join(SKILLS_DIR, 'shared', 'workflow-first-gate.md'));
                 const missing = [
@@ -659,7 +664,8 @@ module.exports = {
                     'custom-simple: only the canonical steps it needs',
                     '>80% of its unconditional steps would do real work',
                     'A behavior change keeps its test and review steps',
-                    'never ask the user to choose the execution path',
+                    'a direct, single-skill or custom-simple route (a Catalog-fit downgrade included) proceeds without asking',
+                    "the declared route is the user's override point",
                     '— because {key signals}',
                 ].filter(phrase => !gate.includes(phrase));
                 assertTrue(missing.length === 0,
@@ -720,11 +726,11 @@ module.exports = {
                     .flatMap(([label, body]) => MID_SESSION.filter(p => !body.includes(p)).map(p => `${label} → "${p}"`));
                 assertTrue(midSessionGaps.length === 0,
                     `mid-session no-auto-activation rule diverges across routing surfaces:\n  ${midSessionGaps.join('\n  ')}`);
-                // Mode auto carries the same guard in its own words: a matched workflow starts only on the first task.
+                // Mode auto carries the same guard: it asks the same question, on the first task only (P46).
                 const autoPayload = routeHook.buildInjection(PROJECT_DIR, '', 'auto', 'default', COMPATIBLE_PROFILE);
                 const autoGaps = [
-                    'Mid-session: never auto-activate a workflow.',
-                    'A matched workflow starts only on the first task of a session',
+                    'Mid-session: never auto-activate a workflow or ask to start one.',
+                    'The workflow question applies only to the first task of a session',
                     'a lean chain of at most 3 skills',
                     'An explicit workflow request always runs, mid-session included'
                 ].filter(phrase => !autoPayload.includes(phrase));
@@ -784,7 +790,8 @@ module.exports = {
                 // The roots carry no route text (TC-CP-008); the route hook's ask payload carries the gate.
                 const routeHook = require(path.resolve(PROJECT_DIR, '.claude', 'hooks', 'lib', 'workflow-route-delivery.cjs'));
                 const hookPayload = routeHook.buildInjection(PROJECT_DIR, '', 'ask', 'default', COMPATIBLE_PROFILE);
-                const generatedCopies = [['route hook payload (ask)', hookPayload]];
+                const autoPayload = routeHook.buildInjection(PROJECT_DIR, '', 'auto', 'default', COMPATIBLE_PROFILE);
+                const generatedCopies = [['route hook payload (ask)', hookPayload], ['route hook payload (auto)', autoPayload]];
                 const mirrorPaths = [path.join('.agents', 'skills', 'start-workflow', 'SKILL.md')];
                 const skillMirrors = mirrorPaths.flatMap(readIfPresent);
                 assertTrue(skillMirrors.length === mirrorPaths.filter(rel => fs.existsSync(path.join(PROJECT_DIR, rel))).length,
@@ -844,9 +851,51 @@ module.exports = {
                 ];
                 const stale = surfaces.flatMap(([label, body]) =>
                     STALE.filter(pattern => pattern.test(body)).map(pattern => `${label} → ${pattern}`));
+                // And no surface a person or the model reads says mode auto starts a self-selected workflow unasked (P46):
+                // the routing surfaces above, every workflow skill and the docs that explain the modes
+                // Each pattern matches a sentence a carrier held before P46 (checked against `git show HEAD:` of every file
+                // below); a bare /without asking/ is avoided because a direct route correctly "proceeds without asking".
+                const AUTO_STALE = [
+                    /\bstarts? (?:it |a matched workflow |a self-selected workflow )?without asking/,
+                    /\bstarts? (?:it )?by (?:its )?tier/,
+                    /`manual` never starts on (?:its|your) own/,
+                    /\basks? only (?:for a [^.;|]{0,40})?when a leaner route would (?:also )?do/,
+                    /\bauto`? (?:mode )?(?:starts|activates) (?:a |the )?(?:matched|self-selected|catalog) workflow/,
+                    /\bstart by (?:itself|themselves)\b/,
+                    /\btier decides? whether to ask/,
+                    /\blets the tier decide\b/,
+                    /\bauto runs, confirm asks\b/,
+                    /\bstarts? (?:a matched|the catalog) workflow[^.;]{0,40}(?:without asking|by its tier)/,
+                    /\bstart the catalog workflow you matched without asking/,
+                    // Bound to a workflow subject, so a skill saying a dev server or a heavy skill "starts automatically" never trips it
+                    /\b(?:workflows?|the workflow|a matched workflow)\b[^.;|\n]{0,40}\bstarts? automatically\b/i,
+                ];
+                const harmless = ['The dev server starts automatically when the app runs.', 'Heavy skills start automatically unless disabled.'];
+                assertTrue(harmless.every(text => !AUTO_STALE.some(pattern => pattern.test(text))), 'the auto-start guard must not flag text about anything but a workflow');
+                // In the framework repo every skill and framework doc is scanned, not a hand-kept list: each review round found one more
+                // carrier the list missed. An adopter's own skills and docs are theirs, so there only the routing surfaces above are scanned.
+                const workflowSkills = IS_FRAMEWORK_REPO ? fs.readdirSync(SKILLS_DIR).map(name => path.join('.claude', 'skills', name, 'SKILL.md')).flatMap(readIfPresent) : [];
+                const docFiles = dir => fs.existsSync(dir) ? fs.readdirSync(dir, { withFileTypes: true }).flatMap(entry =>
+                    entry.isDirectory() ? docFiles(path.join(dir, entry.name)) : /\.(md|html)$/.test(entry.name) ? [path.join(dir, entry.name)] : []) : [];
+                const modeDocs = IS_FRAMEWORK_REPO ? [...docFiles(path.join(PROJECT_DIR, '.claude', 'docs')).map(abs => path.relative(PROJECT_DIR, abs)),
+                    '.claude/config/README.md', '.claude/scripts/lib/config-option-describes.cjs', '.claude/hooks/lib/project-config-schema.cjs',
+                    '.claude/scripts/lib/workflow-routing-config.cjs', '.claude/skills/shared/protocols/concise-workflow-route.md',
+                    'README.md'].flatMap(readIfPresent) : [];
+                const autoCatalog = buildWorkflowSkillsCatalog({ rootDir: PROJECT_DIR, sections: ['workflows'], compact: true, mode: 'auto' });
+                assertTrue(autoCatalog.includes('**Activation (mode auto):**'), 'the auto tier legend must reach the auto-start scan');
+                const autoStale = [...surfaces, ...workflowSkills, ...modeDocs, ['runtime tier legend (auto)', autoCatalog]].flatMap(([label, body]) =>
+                    AUTO_STALE.filter(pattern => pattern.test(body)).map(pattern => `${label} → ${pattern}`));
+                assertTrue(!IS_FRAMEWORK_REPO || workflowSkills.length > 0, 'the framework skills must reach the auto-start scan');
+                // And every confirm-tier workflow skill states the auto rule in its own words: the same question, full workflow first
+                const registry = JSON.parse(readFile(path.join(PROJECT_DIR, '.claude', 'workflows.json'))).workflows;
+                const confirmTier = Object.keys(registry).filter(id => registry[id].activation === 'confirm');
+                const confirmGaps = confirmTier.filter(id => !readFile(path.join(SKILLS_DIR, id, 'SKILL.md')).includes('Route mode `auto` asks the same question, recommending the full workflow first'));
+                // The framework's own tiers only: an adopter may retier its copy of the registry
+                if (IS_FRAMEWORK_REPO) assertTrue(confirmTier.length > 0 && confirmGaps.length === 0, `confirm-tier skills must say auto asks the same question: ${confirmGaps.join(', ')}`);
                 // Then every surface carries the question and none lets a tier start on its own
                 assertTrue(gaps.length === 0, `workflow-question rule diverges across routing surfaces:\n  ${gaps.join('\n  ')}`);
                 assertTrue(stale.length === 0, `a routing surface still lets a tier self-start:\n  ${stale.join('\n  ')}`);
+                assertTrue(autoStale.length === 0, `a surface still lets mode auto start a workflow unasked:\n  ${autoStale.join('\n  ')}`);
             },
         },
         {
@@ -889,9 +938,9 @@ module.exports = {
                 assertTrue(protocol.length > 0, 'start-workflow lost its Step Execution Protocol section');
                 assertTrue(missing.length === 0,
                     `start-workflow step contract lost load-bearing rules:\n  ${missing.join('\n  ')}`);
-                // And the task list shows each task's role, so gate tasks stay visible
-                assertTrue(readSkill('start-workflow').includes('subject="[Workflow] [{role}] {step-name}'),
-                    'start-workflow task subjects no longer show the occurrence role');
+                // And every step row inside its phase task shows its role, so gate steps stay visible
+                assertTrue(readSkill('start-workflow').includes('- [ ] {occurrence-id} [{role}] /{skill} {args}'),
+                    'start-workflow phase-task rows no longer show the occurrence role');
                 // And the always-read closing reminder repeats the gate rule
                 assertTrue(readSkill('start-workflow').includes('`gate` steps never skip;'),
                     'start-workflow closing reminder lost the gate-never-skips rule');
@@ -958,6 +1007,137 @@ module.exports = {
                 const testsRule = check.split('\n').find(line => line.includes('`tests-pass`:')) || '';
                 assertTrue(testsRule.includes('cover every behaviour the run changed and ran green in this run'),
                     'workflow-end tests-pass evidence no longer has to cover the changed behaviour');
+            },
+        },
+        {
+            // Guards BR-GWF-13 (workflow-step mode): a skill run as a workflow step leaves the next step, the goal
+            // and a caller-owned validation to the run, and citing earlier work never replaces a proof.
+            name: '[content-presence] TC-GWF-071 a skill run as a workflow step leaves progression, goal and validation to the run',
+            fn: () => {
+                // Given the flex-rule owner
+                const protocol = stepContract();
+                // When the workflow-step and decision-log rules are read
+                const required = [
+                    '**Workflow-step mode.**',
+                    'it ends without its own next-step, follow-up or council prompt',
+                    "it reuses the run's Goal Contract and decision log instead of creating its own",
+                    'the caller validates the merged report once',
+                    "only when that artifact meets the phase's own exit criteria",
+                    'holds each finding to the evidence bar inside its own pass but makes no separate terminal findings-validation call',
+                    "Citation never replaces a proof: a root-cause trace counts only when this run's own step produced it for the same problem, a user decision only as the user's answer (asked now, or recorded in this run's decision log under rule 12)",
+                    'and findings validation, a mutation check or gate evidence only as a result of this run.',
+                    '**Decision log.**',
+                    'asks only what it leaves open or what new evidence reopened',
+                ];
+                const missing = required.filter(p => !protocol.includes(p));
+                // Then every duty and the never-by-citation list are stated
+                assertTrue(missing.length === 0, `start-workflow workflow-step rules lost:\n  ${missing.join('\n  ')}`);
+            },
+        },
+        {
+            // Guards BR-GWF-02 (triage batch close): optional steps whose condition is false at triage close in one
+            // write, each still logged and its task kept; every generated call block points to the batch close.
+            name: '[content-presence] TC-GWF-072 inapplicable optional steps close in one triage batch, each still logged',
+            fn: () => {
+                // Given the flex-rule owner
+                const protocol = stepContract();
+                // When the batch-close rule is read
+                const required = [
+                    '**Triage batch close:**',
+                    'append all of their `when-false` lines to the deviation log in one write',
+                    'mark each of those tasks `completed`',
+                    'reopens `in_progress` and runs',
+                    // Only conditions already false at triage close; one that depends on a later step stays open
+                    'is already false at triage in one batch (a condition that depends on a later step stays open and is decided when reached)',
+                ];
+                const missing = required.filter(p => !protocol.includes(p));
+                // Then the batch keeps one log line and one task per skipped step
+                assertTrue(missing.length === 0, `start-workflow batch-close rule lost:\n  ${missing.join('\n  ')}`);
+                // And every workflow skill's generated call block points to the batch close
+                const wrappers = fs.readdirSync(SKILLS_DIR).filter(dir => dir.startsWith('workflow-')
+                    && fs.existsSync(path.join(SKILLS_DIR, dir, 'SKILL.md'))
+                    && readSkill(dir).includes('<!-- WORKFLOW-CALLS:START -->'));
+                const lacking = wrappers.filter(dir => !readSkill(dir).includes('close, in one batch at triage, the todos whose condition is already false there'));
+                assertTrue(wrappers.length > 0 && lacking.length === 0, `call blocks without the batch close: ${lacking.join(', ')}`);
+            },
+        },
+        {
+            // Guards the step-skill rules the workflow optimization moved: each line keeps a gate, a validation or a
+            // user confirmation that a workflow step would otherwise drop. Deleting or inverting one turns this red.
+            name: '[content-presence] workflow-step gate rules in step skills keep their guarantee',
+            fn: () => {
+                const read = rel => readFile(path.join(SKILLS_DIR, rel));
+                // Given each rule's owner file and the sentence that carries the guarantee
+                const rules = [
+                    ['changes-review/SKILL.md', "with `--loop-owner=caller`, the caller's single validation of the merged report satisfies this"],
+                    ['domain-analysis/references/mode-review.md', 'Called with `--loop-owner=caller` → log "Skipped — the caller validates the merged report once"'],
+                    ['workflow-review-changes/references/caller-mode.md', "the separate terminal `/why-review --validate-findings` call runs once, on the caller's merged report"],
+                    ['work-item/references/mode-dor.md', '**ST4 M1-M7 per story**'],
+                    ['work-item/references/mode-dor.md', 'A task, or one of its stories when the DoR covers them (row ST4), violating any of M1-M5 or M7 is NOT ready to plan'],
+                    ['spec/references/tests.md', 'whose sequence runs both an independent `/work-item --mode=review --type=spec-tests` and `/spec [mode=clarify]` after this step'],
+                    ['spec/references/tests.md', 'otherwise, inside a workflow, keep this question narrowed to the material decisions the cases encode; a standalone run keeps the full TC-list review'],
+                    ['changes-review/SKILL.md', 'run `/why-review --target=whole-review-target` on the complete review target'],
+                    ['changes-review/SKILL.md', 'Skip it only when `--defer=whole-target` assigns it to a named caller'],
+                    // A test verify run starts only after an environment check sized to the project, stack and OS
+                    ['integration-test/references/mode-verify.md', '**Environment readiness (before any test command):** decide from this project, its stack and the OS what the run needs'],
+                    ['integration-test/references/mode-verify.md', 'free only disposable output this step\'s own earlier runs created and no other run is using, or report `ENVIRONMENT-BLOCKED`'],
+                    // The shared repeatable-test rule keeps two greens for integration suites only (P43)
+                    ['shared/sync-inline-versions.md', 'an integration suite whose persistent/shared state or async effects make one run insufficient converges on two consecutive fresh green runs; any other suite converges on one fresh green run'],
+                    ['e2e-test/references/mode-verify.md', 'Before the command, check environment readiness — what this project, its stack and the OS need'],
+                    ['e2e-test/references/mode-verify.md', 'this report-only pass frees nothing'],
+                    ['test/SKILL.md', 'first check the environment can run the suites (what this project, stack and OS need'],
+                    ['shared/protocols/task-planning-rules.md', '**Before a test verify run**, check its environment is ready — whatever this project, stack and OS need'],
+                    // Two consecutive greens are the integration-test rule; every other suite converges on one fresh green (P43)
+                    ['shared/verify-convergence-loop.md', '— 2 for integration tests, where one run hides order/state flakiness; 1 for every other suite, E2E included'],
+                    ['e2e-test/SKILL.md', 'one fresh green full run converges unless the project configures more'],
+                    ['workflow-e2e/SKILL.md', 'Converge on one fresh green run (default 1; the project may configure more consecutive greens)'],
+                    ['integration-test/SKILL.md', 'Verification requires 2 consecutive successful suite/project runs without reset'],
+                    // why-review's second adversarial round runs only where it pays; the analysis block never drops (P41 X8)
+                    ['why-review/references/full-mode.md', '**When it runs:** only when Round 1 found at least one MEDIUM or higher finding, or the target is a one-way door'],
+                    ['why-review/references/full-mode.md', 'Round 1 then fills the Adversarial Analysis itself'],
+                    // spec-sync reviews once, after the spec sync, and loops back when a review fix changes behavior (P41)
+                    ['workflow-spec-sync/SKILL.md', 'A review fix that changes behavior re-runs `/spec [mode=tests]`, the changed-case review when it changed a case, and `/spec [mode=sync]` on the changed part, then the review again on the settled tree, before the verify'],
+                    ['workflow-spec-sync/SKILL.md', 'whose reviewed scope (commit or diff identity) still matches the trigger'],
+                    ['workflow-spec-sync/SKILL.md', 'any trigger edit made after that report is part of the delta, and the review is never skipped'],
+                    // The task review carries the checks an optional challenge used to own (P41 B3)
+                    ['work-item/references/review-type-task.md', '| 10  | **Module confirmed**'],
+                    ['work-item/references/review-type-task.md', '| 11  | **Technically feasible against entities and service ownership**'],
+                    ['work-item/references/review-type-task.md', '| 12  | **Cross-cutting concerns addressed**'],
+                    // Search and query changes never scan rows on large data: both review owners block on it
+                    ['performance-review/SKILL.md', '**[BLOCKING] Query Scan Gate — no search or query scans rows on large data.**'],
+                    ['performance-review/SKILL.md', 'or an unindexed filter, join, sort or group key on such data is at least a HIGH finding and blocks the verdict'],
+                    ['changes-review/SKILL.md', "Apply `/performance-review`'s Query Scan Gate, the single owner of the patterns it blocks"],
+                    // A focused review of a performance-sensitive change runs the performance review as its own step (P53)
+                    ['changes-review/SKILL.md', '**Performance review (conditional step):** when the diff touches data access (queries, loops over collections, paging, indexes), hot paths, caching, concurrency, batch/job throughput, or render-heavy UI, run `/performance-review` on the changed code as its own step'],
+                    ['changes-review/SKILL.md', 'Skip it only when `--defer=specialists` assigns it to a named caller (`workflow-review-changes` runs it as its own conditional step)'],
+                    ['changes-review/SKILL.md', '**Query scan gate (blocking):** every query, search or filter the change adds or alters on data that can grow large uses an index-backed, sargable access path with a bounded result.'],
+                    // The universal planning rule every prompt and spawned agent receives: code changes carry tests, docs sync and review
+                    ['shared/protocols/task-planning-rules.md', '**A task that changes code** always plans, as its own tasks, updating its tests, syncing stale docs and specs, and a review after those edits'],
+                    ['spec/references/mode-clarify.md', 'an applied change to the reviewed content re-runs that review on the changed part'],
+                    ['test/SKILL.md', '`@verify` covers nothing and every requested tier runs'],
+                    ['integration-test/references/fix-loop.md', 'except that (b) runs only when (a) leaves a test-side fault possible'],
+                    ['e2e-test/references/mode-verify.md', "**Nested deferral:** when this loop runs inside a parent workflow whose `workflow-review-changes` gate re-runs after this step's edits"],
+                    ['seed-test-data/SKILL.md', 'skip the loop and hand the final independent review to that gate'],
+                    ['plan/SKILL.md', "`Human approval` and the branch's owner-approval fields included"],
+                    ['shared/product-roadmap-contract.md', '**Light-profile evidence.**'],
+                    ['architecture/references/mode-full.md', 'marked `Validation: deferred to <occurrence-id>`'],
+                    ['architecture/references/mode-full.md', 'standalone use always runs Step 5'],
+                    ['work-item/references/mode-mockup.md', '**Spec link (workflow step):**'],
+                    ['workflow-end/SKILL.md', '**Nested children:**'],
+                    ['workflow-end/SKILL.md', "a child gate without evidence blocks this close like the run's own"],
+                    ['integration-test/SKILL.md', 'inside `workflow-refactor` by its one baseline run'],
+                    ['workflow-refactor/SKILL.md', 'A red characterization test written in this run gets a five-way verdict first'],
+                    ['workflow-bugfix/SKILL.md', 'it validates the material decisions it leaves open inside its step, which is the plan approval'],
+                    ['plan/SKILL.md', 'an unapproved Plan Gate (`Human approval: REQUIRED`) counts as one, and its question is the plan approval'],
+                    ['work-item/references/mode-dor.md', '| ST4 | M1-M5/M7 per story |'],
+                    ['workflow-end/SKILL.md', 'in a writing mode (not `--review-only` or `--report-only`, whose findings are handed off as diagnostics)'],
+                    ...['why-review/references/full-mode.md', 'architecture/references/mode-review.md', 'ui-design/references/mode-review.md', 'ai-engineering-review/SKILL.md', 'production-readiness-review/SKILL.md', 'performance-review/SKILL.md', 'security-audit/SKILL.md']
+                        .map(rel => [rel, 'Also skip when called with `--loop-owner=caller`: the caller validates the merged report once']),
+                ];
+                // When each owner file is read
+                const missing = rules.filter(([rel, phrase]) => !read(rel).includes(phrase)).map(([rel, phrase]) => `${rel}: ${phrase}`);
+                // Then every guarantee is still stated by its owner
+                assertTrue(missing.length === 0, `step-skill gate rules lost:\n  ${missing.join('\n  ')}`);
             },
         },
         {

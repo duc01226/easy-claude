@@ -64,7 +64,7 @@ Legend: ✅ always probe · ◑ probe when present/relevant · ▫ usually out o
   §8 TCs); the spec is canonical input, so validate decisions before tasks, do NOT re-author (confirmed changes
   route via `$spec [mode=update]`).
 - **TEST-SPEC** — center on refined-idea coverage, §8 TC decisions, and implied rules the §8 set assumes but no
-  §4 rule states yet (initiative-to-task deep mode has no §1-7 draft).
+  §4 rule states yet (the planned-work `idea-to-tasks` deep mode has no §1-7 draft).
 
 ## Category catalog
 

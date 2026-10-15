@@ -153,7 +153,7 @@ const ROUTE_MENTIONERS_NOT_SCANNED = new Set([
     'why-review',              // the terminal validator that DEFINES the route
     'sync-codex',              // documents the route inside the verify-coverage sensor description
     'workflow-review-changes', // orchestrator: wires review skills, references the route in prose
-    'workflow-initiative-to-task', // workflow orchestrator: references the route in a gate step
+    'workflow-code-to-spec',   // workflow orchestrator: its audit mode wires the route as the report gate
     'fix'                      // its --target=review branch CONSUMES findings already validated by the route; it fixes, it does not grade
 ]);
 

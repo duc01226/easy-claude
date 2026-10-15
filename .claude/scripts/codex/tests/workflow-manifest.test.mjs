@@ -49,6 +49,52 @@ test("legacy: command-key barriers resolve to occurrence IDs and retain conditio
   assert.ok(result.occurrences[1].applicability.skipReason);
 });
 
+// P41 D6: phases group a mode's steps into one todo per phase. Each rule the resolver enforces has its own rejecting case,
+// so deleting any check turns a case red.
+test("phases: every grouping rule rejects its own violation; a valid grouping resolves", () => {
+  const steps = [occurrence("look", "investigate"), occurrence("draft", "spec"), occurrence("ship", "plan", { args: "--mode=execute" }), occurrence("close", "workflow-end")];
+  const gates = [{ id: "run-closed", satisfiedBy: ["workflow-end"] }, { id: "spec-synced", satisfiedBy: ["spec"] }];
+  const valid = () => [
+    { id: "discover", steps: ["look"] },
+    { id: "specify", steps: ["draft"], exit: ["spec-synced"] },
+    { id: "build", steps: ["ship"] },
+    { id: "close", steps: ["close"], exit: ["run-closed"] },
+  ];
+  const doc = (phases, extra = {}) => document({ sequence: steps, outcomeGates: gates, phases, ...extra });
+  const ok = run(doc(valid()));
+  assert.deepEqual(ok.phases.map(phase => phase.id), ["discover", "specify", "build", "close"]);
+  assert.deepEqual(run(document({ sequence: steps })).phases, [], "a mode without phases resolves to none");
+  const cases = [
+    ["not an array", () => "discover", /non-empty array/],
+    ["empty list", () => [], /non-empty array/],
+    ["unknown field", () => { const p = valid(); p[0].note = "x"; return p; }, /Unknown phase/],
+    ["unknown phase id", () => { const p = valid(); p[0].id = "explore"; return p; }, /out-of-order phase/],
+    ["out of order", () => { const p = valid(); [p[0], p[1]] = [p[1], p[0]]; return p; }, /out-of-order phase/],
+    ["repeated phase", () => { const p = valid(); p[2].id = "specify"; return p; }, /out-of-order phase/],
+    ["empty steps", () => { const p = valid(); p[2].steps = []; return p; }, /needs step IDs/],
+    ["bad exit list", () => { const p = valid(); p[3].exit = "run-closed"; return p; }, /Invalid exit/],
+    ["missing step", () => { const p = valid(); p[2].steps = []; p.splice(2, 1); return p; }, /every occurrence once, in sequence order/],
+    ["extra step", () => { const p = valid(); p[0].steps = ["look", "ghost"]; return p; }, /every occurrence once, in sequence order/],
+    ["steps out of sequence order", () => { const p = valid(); p[0].steps = ["draft"]; p[1].steps = ["look"]; return p; }, /every occurrence once, in sequence order/],
+    ["undeclared exit gate", () => { const p = valid(); p[3].exit.push("tests-pass"); return p; }, /undeclared outcome gate/],
+    ["gate exit twice", () => { const p = valid(); p[2].exit = ["spec-synced"]; return p; }, /exit of two phases/],
+    ["exit before its satisfier", () => { const p = valid(); p[1].exit = []; p[0].exit = ["spec-synced"]; return p; }, /no satisfier in or before the phase/],
+    ["gate with no exit", () => { const p = valid(); p[1].exit = []; return p; }, /is no phase's exit/],
+  ];
+  for (const [label, make, pattern] of cases) assert.throws(() => run(doc(make())), pattern, label);
+  // Legacy string steps cannot be named by a phase
+  assert.throws(() => run(document({ sequence: ["investigate", "workflow-end"], outcomeGates: [gates[0]], phases: [{ id: "discover", steps: ["x"] }] })), /explicit occurrence objects/);
+  // A barrier group stays inside one phase
+  const grouped = doc(valid(), { parallelGroups: [{ id: "pair", members: ["draft", "ship"], barrier: true }] });
+  assert.throws(() => run(grouped), /spans two phases/);
+});
+
+test("phases: the resolver's phase list matches the schema enum, in order", () => {
+  const { PHASES } = require(modulePath);
+  const schema = JSON.parse(fs.readFileSync(path.join(root, ".claude/workflows.schema.json"), "utf8"));
+  assert.deepEqual(schema.definitions.Phase.properties.id.enum, PHASES);
+});
+
 test("variants: selected complete list replaces default and enumerates all modes", () => {
   const doc = variantDoc();
   const original = structuredClone(doc);
@@ -248,15 +294,15 @@ test("variants: shipped research/spec/integration-test workflows resolve every c
   const registry = JSON.parse(fs.readFileSync(path.join(root, ".claude/workflows.json"), "utf8"));
   const expected = {
     "workflow-research": {
-      synthesis: ["web-research --chain=deep-dive", "knowledge-synthesis", "knowledge-review", "workflow-end", "watzup"],
-      "business-eval": ["web-research --chain=deep-dive", "market-analysis", "business-evaluation", "knowledge-review", "workflow-end", "watzup"],
-      marketing: ["web-research --chain=deep-dive", "market-analysis", "strategy-builder", "knowledge-review", "workflow-end", "watzup"],
-      course: ["web-research --chain=deep-dive", "course-builder", "knowledge-review", "workflow-end", "watzup"]
+      synthesis: ["web-research --chain=deep-dive", "knowledge-synthesis", "knowledge-review --fix-loop", "workflow-end", "watzup"],
+      "business-eval": ["web-research --chain=deep-dive", "market-analysis", "business-evaluation", "knowledge-review --fix-loop", "workflow-end", "watzup"],
+      marketing: ["web-research --chain=deep-dive", "market-analysis", "strategy-builder", "knowledge-review --fix-loop", "workflow-end", "watzup"],
+      course: ["web-research --chain=deep-dive", "course-builder", "knowledge-review --fix-loop", "workflow-end", "watzup"]
     },
     "workflow-code-to-spec": {
-      "init-full": ["investigate", "plan", "plan --mode=validate", "spec [mode=init]", "spec [mode=tests]", "work-item --mode=review --type=spec-tests", "work-item --mode=review", "docs-manager --mode=update", "workflow-end", "watzup"],
-      update: ["workflow-review-changes", "spec [mode=update]", "spec [mode=tests]", "work-item --mode=review --type=spec-tests", "spec [mode=sync]", "docs-manager --mode=update", "workflow-end", "watzup"],
-      audit: ["investigate", "spec [mode=audit]", "work-item --mode=review", "docs-manager --mode=update", "workflow-end", "watzup"]
+      "init-full": ["investigate", "plan", "plan --mode=validate", "spec [mode=init]", "spec [mode=tests]", "work-item --mode=review --type=spec-tests --fix-loop", "docs-manager --mode=update", "workflow-end", "watzup"],
+      update: ["workflow-review-changes --review-only", "spec [mode=update]", "spec [mode=tests]", "work-item --mode=review --type=spec-tests --fix-loop", "spec [mode=sync]", "docs-manager --mode=update", "workflow-end", "watzup"],
+      audit: ["investigate", "spec [mode=audit]", "why-review --validate-findings", "workflow-end", "watzup"]
     },
     "workflow-integration-test": {
       write: ["investigate", "spec [mode=tests]", "work-item --mode=review --type=spec-tests", "integration-test", "integration-test --mode=review", "integration-test --mode=verify", "spec [mode=sync]", "docs-manager --mode=update", "workflow-end", "watzup"],
@@ -297,13 +343,14 @@ test("plan --mode=review is confined to confirmed large/init workflows and no wo
 test("production workflows declare required and opt-in near-end E2E handoffs", () => {
   const registry = JSON.parse(fs.readFileSync(path.join(root, ".claude/workflows.json"), "utf8"));
   const cases = [
-    ["workflow-greenfield-init", "test", true],
+    ["workflow-implement-spec", "test", false],
+    ["workflow-implement-spec", "test", true, "greenfield-slice"],
     ["workflow-big-feature", "test", true],
     ["workflow-feature", "test", false],
     ["workflow-bugfix", "demo-guide", false],
   ];
-  for (const [workflowId, nextSkill, required] of cases) {
-    const manifest = resolve(registry, workflowId, { rootDir: root });
+  for (const [workflowId, nextSkill, required, mode] of cases) {
+    const manifest = resolve(registry, workflowId, { rootDir: root, ...(mode ? { mode } : {}) });
     const index = manifest.occurrences.findIndex(item => item.skill === "workflow-e2e");
     assert.ok(index > 0, `${workflowId} must include workflow-e2e`);
     // Verify-last order: the near-end E2E handoff comes after the static review and after the verify

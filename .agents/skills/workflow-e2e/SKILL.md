@@ -15,17 +15,18 @@ disable-model-invocation: false
 
 Read [the registry](../../../.claude/workflows.json) → `workflows.workflow-e2e` together with this skill. Call [`$start-workflow workflow-e2e`](../start-workflow/SKILL.md) to resolve the selected mode, pre-actions and fingerprint.
 
-**Todo FIRST:** create one todo for EVERY selected occurrence before triage, analysis or step execution, including conditional/optional ones; preserve occurrence IDs, roles and barrier groups. Use native todo tools or an equivalent persistent ledger. Then mark the first todo `in_progress`; attach evidence before `completed`.
+**Todo FIRST:** before triage, analysis or step execution, create one todo per phase of the selected mode, in order, listing every occurrence of that phase as a line, including conditional/optional ones (a mode that declares no phases gets one todo per occurrence); preserve occurrence IDs, roles and barrier groups. Use native todo tools or an equivalent persistent ledger. Then mark the first todo `in_progress`; close each step line with its run or skip evidence, and complete a phase todo only when every line is closed and its applicable exit gates hold.
 Mode selection and registry loading prepare tracking; any 'first action' below means the first substantive action after this bootstrap.
 
 **Call each step skill:** read its linked SKILL.md and execute its protocol through the active host with the registry args. Reading or naming a skill alone is not execution. Required gates and core/optional flex follow the linked start-workflow Step Execution Protocol; keep this skill's quality gates, loops and evidence requirements.
 
-**Conditions:** load each occurrence's registry `applicability.when` and `skipReason` verbatim, and record its run/skip evidence through the linked start-workflow protocol. Do not silently omit a todo or turn a conditional skill into an unconditional call. Declared parallel groups retain their all-return barrier.
+**Conditions:** load each occurrence's registry `applicability.when` and `skipReason` verbatim, and record its run/skip evidence through the linked start-workflow protocol. Do not silently omit a todo or turn a conditional skill into an unconditional call; close, in one batch at triage, the todos whose condition is already false there. Declared parallel groups retain their all-return barrier.
 
 Explicit step-skill calls by mode (registry order; roles and conditions remain owned by the registry):
 
-- Mode `default`: [`$investigate`](../investigate/SKILL.md) (core) → [`$e2e-test`](../e2e-test/SKILL.md) (optional; conditional) → [`$e2e-test --mode=verify --fix-loop`](../e2e-test/SKILL.md) (gate) → [`$docs-manager --mode=update`](../docs-manager/SKILL.md) (optional; conditional) → [`$workflow-end`](../workflow-end/SKILL.md) (gate) → [`$watzup`](../watzup/SKILL.md) (optional; conditional)
-<!-- workflow-mode:default fingerprint:e6937ef861d9cbfd7aefabb299e457dd6be0c5990518f57a2202e0b8c77a5e70 -->
+- Mode `default`: [`$investigate`](../investigate/SKILL.md) (optional; conditional) → [`$e2e-test`](../e2e-test/SKILL.md) (optional; conditional) → [`$e2e-test --mode=verify --fix-loop`](../e2e-test/SKILL.md) (gate) → [`$docs-manager --mode=update`](../docs-manager/SKILL.md) (optional; conditional) → [`$workflow-end`](../workflow-end/SKILL.md) (optional; conditional) → [`$watzup`](../watzup/SKILL.md) (optional; conditional)
+  Phase todos: Discover (1) → Build (1) → Verify (2; exit tests-pass) → Close (2; exit run-closed)
+<!-- workflow-mode:default fingerprint:a1ba99b235b5c816b8417b5e47045c2a5ec4059ba9abc05783e14458d322f510 -->
 
 Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs --write` after registry edits; [`$sync-codex`](../sync-codex/SKILL.md) refreshes it before mirroring.
 <!-- WORKFLOW-CALLS:END -->
@@ -85,7 +86,7 @@ The triage picks which recommended skills run and how deep. An unresolvable sour
 | Explicit acceptance                                                                        | No snapshot, baseline, fixture or expectation changes without a named acceptance record; otherwise `ACCEPTANCE-PENDING`                                                                                                                       |
 | Visual (when it applies)                                                                   | One review pass per verification attempt: every required capture opened/read case by case via `$experience-review --rounds=0`; blocking findings return to the execution/fix/retest loop. A false value cannot waive a required gate            |
 | Docs synced (when the run changed tests, baselines, product source or documented behavior) | `$docs-manager --mode=update` triage result with terminal evidence                                                                                                                                                                                           |
-| `run-closed`                                                                               | `$workflow-end` (top-level only) verifies every gate above                                                                                                                                                                                    |
+| `run-closed` (top-level run)                                                               | `$workflow-end` verifies every gate above; a nested run is closed by its parent workflow, whose `$workflow-end` checks this run's `tests-pass` evidence                                                                                      |
 
 `N/A` needs evidence: E2E is `APPLICABLE` only with a configured framework, runner and command; a relevant but unavailable capability is `ENVIRONMENT-BLOCKED`, never green.
 
@@ -93,21 +94,23 @@ The triage picks which recommended skills run and how deep. An unresolvable sour
 
 | Skill                                   | Earns its cost when                                                                                | Proves / feeds                                             |
 | --------------------------------------- | -------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| `$investigate`                          | Scope, runner, case profile or test organization is not already evidenced in this session; M+ size | Applicability, case map, commands, data strategy           |
+| `$investigate` (conditional)            | Scope, runner, case profile or test organization is not already evidenced in this session; M+ size | Applicability, case map, commands, data strategy           |
 | `$e2e-test` (`e2e-author`, conditional) | `--source` is `changes`, `recording` or `update-ui`                                                | Authored/updated artifact + exact scope handed to the loop |
 | `$e2e-test --mode=verify --fix-loop` (gate)    | Always                                                                                             | `tests-pass`, verdicts, visual gate, fresh reruns          |
 | `$experience-review --rounds=0`         | Called by the loop when visual review applies                                                      | Per-capture records, blocking vs advisory findings         |
 | `$docs-manager --mode=update` (conditional)            | The run changed tests, baselines, product source, specs or documented behavior                     | Docs synced                                                |
-| `$workflow-end` (gate)                  | Always                                                                                             | `run-closed`                                               |
+| `$workflow-end` (`e2e-end`, conditional) | Top-level run only; a nested run is closed by its parent workflow                                 | `run-closed`                                               |
 | `$watzup` (`e2e-watzup`, conditional)   | Top-level run only; a nested run leaves the recap to its parent                                    | Handoff summary                                            |
 
 `$test` is not a second top-level run and no separate visual-fix loop exists — `$e2e-test --mode=verify --fix-loop` is the single convergence and remediation owner after preparation. Skipping a recommended skill is fine when triage shows it does no real work; log it as a deviation (`intent-skip` / `when-false`) with evidence.
 
 **Conditional step notes (registry `skipReason`, verbatim):**
 
+- `$investigate` — skip when: The parent run or this session already evidences the scope, runner, case map and test organization.
 - `$e2e-test` — skip when: Resolved --source is prompt, context, or whole; e2e-test --mode=verify --fix-loop owns scenario selection or generation for that source.
 - `$docs-manager --mode=update` — skip when: Verification-only run: no test, baseline, product source, spec, or documented behavior changed, so docs-manager --mode=update has nothing to record; cite the unchanged diff and the terminal verify report.
-- `$watzup` — skip when: Nested inside a parent workflow (workflow-feature, workflow-bugfix, workflow-big-feature, workflow-greenfield-init); the parent's tail (workflow-end then watzup) owns the whole run's recap, so this nested run's workflow-end skips its recap as `covered by the parent workflow's watzup` instead of printing a second one.
+- `$workflow-end` — skip when: Nested inside a parent workflow, whose own workflow-end closes the run and checks this workflow's tests-pass evidence.
+- `$watzup` — skip when: Nested inside a parent workflow (workflow-feature, workflow-bugfix, workflow-big-feature, workflow-implement-spec); the parent's tail (workflow-end then watzup) owns the whole run's recap, so this nested run skips its own workflow-end and records its recap as `covered by the parent workflow's watzup` instead of printing a second one.
 
 ## Source Dispatch (`--source`)
 
@@ -140,23 +143,23 @@ Resolve one record before the first authoring or verification step and carry it 
 | `fullCommand` / `focusedCommand` | Copy-ready configured commands; invalid or zero-match selections exit non-zero                                                                                             |
 | `runIdentity` / `dataStrategy`   | Unique non-sensitive run identity, public-path setup, declared seed/accumulation mode, parallel-worker isolation                                                           |
 | `testOrganization`               | The declared local pattern and its canonical locator/action/wait owners; never require a Page Object Model or abstract base the project does not select                    |
-| `result`                         | Exact counts, failing names, exit status, repeat evidence; two consecutive no-reset full runs for each applicable persistent-state suite                                   |
+| `result`                         | Exact counts, failing names, exit status, repeat evidence; one fresh green full run, or the project's configured `consecutiveGreen` count                                   |
 
 Browser journeys follow observe → act → observe with the configured runner's native waits or an evidenced project helper; action pacing applies only when the project contract configures it and never substitutes for a real settle signal.
 
 ## Orchestration Freedom
 
-You choose inline vs sub-agent, batching and wave layout, optimizing wall-clock and token cost at equal quality. Fixed constraints only: a test exists before it is verified; fixes are re-verified after they land; `$workflow-end` runs last; gates awaiting user approval never run in parallel; each loop round runs the default verify pass inline (never a nested `--fix-loop`). Recommended: XS/S inline without sub-agents; L/XL partition authoring and failure triage per module or feature batch (one report per batch), while the green gate still runs the full fixed scope; delegate authoring to the `e2e-runner` agent when the batch is large.
+You choose inline vs sub-agent, batching and wave layout, optimizing wall-clock and token cost at equal quality. Fixed constraints only: a test exists before it is verified; fixes are re-verified after they land; `$workflow-end` runs last in a top-level run; nested in a parent workflow, this run records its evidence in the parent's Goal Contract instead of creating a second one, and the parent closes the run; gates awaiting user approval never run in parallel; each loop round runs the default verify pass inline (never a nested `--fix-loop`). Recommended: XS/S inline without sub-agents; L/XL partition authoring and failure triage per module or feature batch (one report per batch), while the green gate still runs the full fixed scope; delegate authoring to the `e2e-runner` agent when the batch is large.
 
 ## Memory & Reporting
 
-- One task per selected step (and per batch for L/XL) so nothing is lost after compaction.
+- One phase task per phase, one row per selected step (and per batch for L/XL) so nothing is lost after compaction.
 - Write the run report under `tmp/reports/` FIRST, then append per step, round and batch; visual records are appended one capture at a time.
 - After compaction, re-read the report and the current task list before continuing; sub-agent briefs make report writing their first deliverable and return only the summary envelope.
 
 ## Fix Path & Loop Bounds
 
-Owned by `$e2e-test --mode=verify --fix-loop`; this workflow only enforces its bounds. Classify before editing, trace root cause with `$investigate --mode=debug`, fix at the owning layer with `$fix`, review the round's diff with `$changes-review`, run the Round Integrity Check, then rerun fresh over the same scope. Converge on the configured consecutive fresh green runs (default 2) within the round cap (default 3). A non-shrinking or rising failure count, a cap hit with failures open, scope shrink or test loss → `NOT-CONVERGED` and escalate via `ask user question tool` with exact evidence. Never weaken, skip, narrow, delete, silence or auto-accept to obtain green.
+Owned by `$e2e-test --mode=verify --fix-loop`; this workflow only enforces its bounds. Classify before editing, trace root cause with `$investigate --mode=debug`, fix at the owning layer with `$fix`, review the round's diff with `$changes-review` — nested in a parent workflow whose review gate re-runs after this step, that per-round review defers to the parent's re-review, which receives the round's changed files — run the Round Integrity Check every round, then rerun fresh over the same scope. Converge on one fresh green run (default 1; the project may configure more consecutive greens) within the round cap (default 3). A non-shrinking or rising failure count, a cap hit with failures open, scope shrink or test loss → `NOT-CONVERGED` and escalate via `ask user question tool` with exact evidence. Never weaken, skip, narrow, delete, silence or auto-accept to obtain green.
 
 <!-- PROTOCOL-GUIDES:START -->
 
@@ -202,4 +205,4 @@ Owned by `$e2e-test --mode=verify --fix-loop`; this workflow only enforces its b
 - **MUST ATTENTION** map every selected owner-qualified case (or strict-default TC/§8) to an actual test, assertion and result; classify each failure before editing and fix at the owning layer.
 - **MUST ATTENTION** visual review only when requested or required by the project contract for an applicable surface; read and record every required capture case by case via `$experience-review --rounds=0`; a false value cannot waive a project-required gate.
 - **MUST ATTENTION** cap E2E quality/visual review at one pass per verification attempt; do not confuse bounded execution/fix/retest convergence with review rounds.
-- **MUST ATTENTION** write the report under `tmp/reports/` first, keep one task per selected step, re-read both after compaction; `$workflow-end` runs last.
+- **MUST ATTENTION** write the report under `tmp/reports/` first, keep one phase task per phase, one row per selected step, re-read both after compaction; `$workflow-end` runs last in a top-level run, and a nested run is closed by its parent.

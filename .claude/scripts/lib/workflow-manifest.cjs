@@ -8,6 +8,8 @@ const SLUG = /^[a-z][a-z0-9-]*$/;
 // Keep in lockstep with workflows.schema.json definitions.Occurrence.role and OutcomeGate.id.
 const ROLES = ["gate", "core", "optional"];
 const GATE_IDS = ["tests-pass", "review-converged", "spec-synced", "plan-approved", "root-cause-traced", "run-closed"];
+// Keep in lockstep with workflows.schema.json definitions.Phase.id. The order is the only allowed order.
+const PHASES = ["discover", "specify", "plan", "build", "review", "verify", "close"];
 const own = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
 const isObject = value => value !== null && typeof value === "object" && !Array.isArray(value);
 const nonempty = value => typeof value === "string" && value.trim().length > 0;
@@ -152,6 +154,48 @@ function normalizeGroups(groups, records, legacyKeys) {
   });
 }
 
+// Phases group a mode's occurrences for task tracking: one todo per phase, each occurrence one line in it.
+// When declared they name explicit occurrences only, cover every occurrence once in sequence order (so each
+// phase is a contiguous run), follow PHASES order, never split a barrier group, and tie every outcome gate to
+// exactly one phase exit whose own steps or an earlier phase's contain a satisfier. Absent phases resolve to [].
+function normalizePhases(phases, occurrences, legacyKeys, parallelGroups, outcomeGates, label) {
+  if (phases === undefined) return [];
+  check(Array.isArray(phases) && phases.length > 0, `Invalid phases for ${label}: expected a non-empty array`);
+  check(legacyKeys.size === 0, `Phases need explicit occurrence objects in ${label}`);
+  let lastRank = -1;
+  const covered = [];
+  const result = phases.map(phase => {
+    fields(phase, ["id", "steps", "exit"], `phase in ${label}`);
+    const rank = PHASES.indexOf(phase.id);
+    check(rank > lastRank, `Unknown, repeated or out-of-order phase ${String(phase.id)} in ${label}`);
+    lastRank = rank;
+    check(Array.isArray(phase.steps) && phase.steps.length > 0 && phase.steps.every(nonempty), `Phase ${phase.id} needs step IDs in ${label}`);
+    const exit = phase.exit === undefined ? [] : phase.exit;
+    check(Array.isArray(exit) && exit.every(nonempty), `Invalid exit for phase ${phase.id} in ${label}`);
+    covered.push(...phase.steps);
+    return { id: phase.id, steps: [...phase.steps], exit: [...exit] };
+  });
+  check(covered.length === occurrences.length && covered.every((id, index) => id === occurrences[index].id),
+    `Phases must list every occurrence once, in sequence order, in ${label}`);
+  const phaseOf = new Map();
+  result.forEach((phase, index) => phase.steps.forEach(id => phaseOf.set(id, index)));
+  for (const group of parallelGroups) check(new Set(group.members.map(id => phaseOf.get(id))).size === 1, `Barrier ${group.id} spans two phases in ${label}`);
+  const exits = new Set();
+  result.forEach((phase, index) => {
+    const reached = new Set(result.slice(0, index + 1).flatMap(item => item.steps));
+    for (const gateId of phase.exit) {
+      const gate = outcomeGates.find(item => item.id === gateId);
+      check(gate !== undefined, `Phase ${phase.id} exit names an undeclared outcome gate in ${label}: ${gateId}`);
+      check(!exits.has(gateId), `Outcome gate ${gateId} is the exit of two phases in ${label}`);
+      exits.add(gateId);
+      check(occurrences.some(record => reached.has(record.id) && gate.satisfiedBy.some(skill => satisfierMatches(skill, record))),
+        `Phase ${phase.id} exit ${gateId} has no satisfier in or before the phase in ${label}`);
+    }
+  });
+  for (const gate of outcomeGates) check(exits.has(gate.id), `Outcome gate ${gate.id} is no phase's exit in ${label}`);
+  return result;
+}
+
 /**
  * Resolve one complete workflow mode without executing commands or filtering tasks.
  * args is opaque skill-invocation text, never shell text. Explicit occurrence IDs
@@ -167,7 +211,7 @@ function resolveWorkflowManifest(document, workflowId, options = {}) {
   const mode = own(options, "mode") ? options.mode : (entry.defaultMode ?? "default");
   check(typeof mode === "string" && modes.includes(mode), `Unknown workflow mode: ${String(mode)} for ${workflowId}`);
   const selected = own(entry, "variants") ? entry.variants[mode] : entry;
-  if (own(entry, "variants")) fields(selected, ["sequence", "parallelGroups", "stepMeta", "outcomeGates"], `variant ${mode}`);
+  if (own(entry, "variants")) fields(selected, ["sequence", "parallelGroups", "stepMeta", "outcomeGates", "phases"], `variant ${mode}`);
   check(isObject(selected) && Array.isArray(selected.sequence) && selected.sequence.length > 0, `Invalid sequence for ${workflowId}/${mode}`);
   const sourceVersion = document.version === undefined ? "unversioned" : document.version;
   check(nonempty(sourceVersion), "Invalid workflow source version");
@@ -210,9 +254,10 @@ function resolveWorkflowManifest(document, workflowId, options = {}) {
   }
   const intent = normalizeIntent(entry, workflowId);
   const outcomeGates = normalizeOutcomeGates(entry, workflowId, mode, occurrences, selected);
-  const fingerprint = digest({ sourceHash, mode, occurrences, parallelGroups, stepMeta });
+  const phases = normalizePhases(selected.phases, occurrences, legacyKeys, parallelGroups, outcomeGates, `${workflowId}/${mode}`);
+  const fingerprint = digest({ sourceHash, mode, occurrences, parallelGroups, stepMeta, phases });
   return { workflow: workflowId, mode, sourceVersion, fingerprint, intent, outcomeGates, occurrences,
-    sequence: occurrences.map(({ skill, args }) => args ? `${skill} ${args}` : skill), parallelGroups, stepMeta };
+    sequence: occurrences.map(({ skill, args }) => args ? `${skill} ${args}` : skill), parallelGroups, stepMeta, phases };
 }
 
 function resolveAllWorkflowManifests(document, workflowId, options = {}) {
@@ -220,4 +265,4 @@ function resolveAllWorkflowManifests(document, workflowId, options = {}) {
   return listWorkflowModes(document.workflows[workflowId]).map(mode => resolveWorkflowManifest(document, workflowId, { ...options, mode }));
 }
 
-module.exports = { resolveWorkflowManifest, resolveAllWorkflowManifests, listWorkflowModes, satisfierMatches };
+module.exports = { resolveWorkflowManifest, resolveAllWorkflowManifests, listWorkflowModes, satisfierMatches, PHASES };

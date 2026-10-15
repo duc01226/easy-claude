@@ -27,7 +27,7 @@ disable-model-invocation: false
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
-> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
+> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval. Inside a workflow run, `$start-workflow` → Workflow-step mode bounds this rule.
 > **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
@@ -368,7 +368,7 @@ Optionally, when a graph DB exists, `trace` can hint at data flow paths for secu
 
 > **Purpose:** Adversarial validation of own findings BEFORE handoff. Catches over-flagged Highs, false positives, and severity inflation at the source rather than letting them propagate downstream.
 
-**Trigger:** Any finding produced (Critical, High, Medium, OR Low). Skip ONLY when the report's verdict is unconditional PASS with literally zero findings.
+**Trigger:** Any finding produced (Critical, High, Medium, OR Low). Skip ONLY when the report's verdict is unconditional PASS with literally zero findings. Also skip when called with `--loop-owner=caller`: the caller validates the merged report once (`$start-workflow` → Workflow-step mode).
 
 **Protocol:**
 
@@ -383,6 +383,7 @@ Optionally, when a graph DB exists, `trace` can hint at data flow paths for secu
 
 - Verdict is unconditional PASS with zero findings → log "Skipped — no findings to validate"
 - Why-review skill itself is the active context (avoid recursion)
+- Called with `--loop-owner=caller` → log "Skipped — the caller validates the merged report once"
 
 
 ---
@@ -423,6 +424,8 @@ Optionally, when a graph DB exists, `trace` can hint at data flow paths for secu
 ---
 
 ## Next Steps
+
+> **Inside a workflow:** when this skill runs as a step of an active workflow, skip the prompts in this section and return the result — the workflow's next step decides what runs (`$start-workflow` → Step Execution Protocol, Workflow-step mode).
 
 **MANDATORY — NO EXCEPTIONS** after completing this skill, you MUST use `ask user question tool` to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
 
@@ -508,7 +511,7 @@ Optionally, when a graph DB exists, `trace` can hint at data flow paths for secu
 
 ## Prompt-Enhance Closing Anchors
 
-**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval
+**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval; inside a workflow run, `$start-workflow` → Workflow-step mode bounds this
 **IMPORTANT MUST ATTENTION** for every step/sub-skill call: set `in_progress` before execution, set `completed` after execution
 **IMPORTANT MUST ATTENTION** every skipped step MUST include explicit reason; every completed step MUST include concise evidence
 **IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses

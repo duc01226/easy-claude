@@ -27,18 +27,24 @@ const DEFAULT_SECTIONS = ["routing", "workflows", "skills"];
 const ACTIVATION_TIERS = routingConfig.ACTIVATION_TIERS;
 const ACTIVATION_LEGEND_ASK =
   "**Activation:** ask the workflow question (full workflow · slimmer custom route · execute directly) before you start a catalog workflow, in every tier; a direct, single-skill or custom-simple route asks nothing; the tier only orders the recommendation — `auto` by catalog fit, `confirm` the full workflow only when no leaner route would do, `manual` never the full workflow first. An explicit request runs every tier with no question. Rows show the effective tier: project config may tighten a workflow's `.claude/workflows.json` tier or override it.";
-// Route mode `auto`: a matched workflow starts without asking, by its tier (the route mode owner is workflow-routing-config.cjs).
+// Route mode `auto`: the workflow question still comes first; it only recommends the full workflow first (the route mode owner is workflow-routing-config.cjs).
 const ACTIVATION_LEGEND_AUTO =
-  "**Activation (mode auto):** start a workflow you matched without asking, by its tier — `auto` starts it; `confirm` asks ONE question (full workflow · slimmer custom route · execute directly) only when a leaner route would also do, otherwise it starts; `manual` never starts on your own: name it in your route declaration; it runs on explicit request only. An explicit request runs every tier with no question. Rows show the effective tier: project config may tighten a workflow's `.claude/workflows.json` tier or override it.";
+  "**Activation (mode auto):** ask the workflow question (full workflow · slimmer custom route · execute directly) before a catalog workflow you selected starts, recommending the full workflow first for an `auto` or `confirm` tier and never first for `manual`; a direct, single-skill or custom-simple route asks nothing. An explicit request runs every tier with no question. Rows show the effective tier: project config may tighten a workflow's `.claude/workflows.json` tier or override it.";
 /** The tier legend for a route mode; `ask` (the default) for any other value. */
 function activationLegend(mode) {
   return mode === "auto" ? ACTIVATION_LEGEND_AUTO : ACTIVATION_LEGEND_ASK;
 }
+// The routing discriminator (P46): which workflow a change belongs to, judged by its observable behavior, so the model can
+// recommend feature, bugfix, refactor, implement-spec, planned-work or greenfield from the catalog it reads anyway.
+const ROUTING_DISCRIMINATOR =
+  "**Judge by observable behavior:** it worked or met its spec and now fails → `workflow-bugfix`; it changes and is not yet in a canonical spec → `workflow-feature` (`workflow-big-feature` when large or ambiguous); it is specified but not yet built → `workflow-implement-spec`; it stays the same → `workflow-refactor` (a local tidy-up stays direct); planning only, nothing built (an idea, or specs to turn into tasks) → `workflow-planned-work`; a new product from scratch → `workflow-greenfield-init`. Size alone never makes a task a workflow: a focused change in one module stays custom-simple.";
 // The barrier legend carries the advancement rule (wf-cycle W5 reads it); every form renders it.
 const BARRIER_LEGEND =
   "`[a ∥ b]` = one parallel phase (all-return barrier): start every member together and advance only after ALL return; `*` marks a conditional member.";
 // Compact (runtime-hook) rendering: a when-to-use hint cap and the pointer that replaces step lists.
-const COMPACT_HINT_MAX = 140;
+const COMPACT_HINT_MAX = 190;
+// The shorter whole-clause hint a large registry falls back to before the catalog shrinks to an index (BR-WFR-02).
+const COMPACT_HINT_FALLBACK_MAX = 130;
 const COMPACT_STEPS_NOTE =
   "Step lists are omitted here: `start-workflow <id>` resolves the full sequence from `.claude/workflows.json` before creating tasks.";
 // Pointer-only rendering: used when even the compact catalog would overflow the hook output cap.
@@ -144,31 +150,36 @@ function unquote(value) {
 
 /**
  * Condense a workflow's `whenToUse` into a short, scannable trigger hint.
- * Parity twin of `extractKeywords` in sync-context-workflows.mjs — keep behavior
- * aligned so all three surfaces render the same hint (asserted by TC-WSC-004).
+ * Every runtime surface renders the hint through this one function; TC-WSC-004 holds an independent
+ * reference copy, so a change here must be made there too.
  */
 function condenseWhenToUse(
   whenToUse,
-  { maxClauses = 3, wordsPerClause = 6, maxLen = 130 } = {}
+  { maxClauses = 5, maxLen = COMPACT_HINT_MAX } = {}
 ) {
   if (!whenToUse || typeof whenToUse !== "string") return "";
+  // Whole clauses, so the model reads complete triggers (BR-WFR-02): a clause that would push the hint past maxLen is
+  // left out rather than cut mid-phrase; only a first clause longer than maxLen is shortened, marked "…".
   const clauses = whenToUse
     .split(/[,;]/)
     .map((c) => c.trim().toLowerCase())
     .map((c) =>
       c.replace(
-        /^(?:user (?:wants to|reports|has)|wants to|po(?:\/| or )ba wants to|generate|create|after)\s+/i,
+        /^(?:user (?:wants to|reports|has)|wants to|po(?:\/| or )ba(?: or user)? wants(?: to)?|generate|create|after)\s+/i,
         ""
       )
     )
-    .map((c) => c.split(/\s+/).slice(0, wordsPerClause).join(" "))
     .filter((c) => c.length > 2);
   const picked = [];
   const seen = new Set();
+  let length = 0;
   for (const clause of clauses) {
     if (seen.has(clause)) continue;
+    const added = (picked.length ? 2 : 0) + clause.length;
+    if (picked.length && length + added > maxLen) break;
     seen.add(clause);
     picked.push(clause);
+    length += added;
     if (picked.length >= maxClauses) break;
   }
   let out = picked.join(", ");
@@ -310,10 +321,12 @@ function renderRoutingSection() {
 // COMPACT_HINT_MAX. The barrier legend stays in both forms: it carries the advancement rule.
 function renderWorkflowsSection(entries, rootDir, config, opts = {}) {
   const compact = opts.compact === true;
+  // A caller may ask for shorter hints (never longer than the cap) so a large registry keeps its compact rows
+  const hintMax = Number.isInteger(opts.hintMax) && opts.hintMax > 0 ? Math.min(opts.hintMax, COMPACT_HINT_MAX) : COMPACT_HINT_MAX;
   const activation = catalogActivation(rootDir, config, opts);
   const rows = entries.map(([id, wf]) => {
     const whenToUse = resolvePortabilityTokens(wf && wf.whenToUse, config);
-    const hint = condenseWhenToUse(whenToUse) || safeCell((wf && wf.name) || id);
+    const hint = condenseWhenToUse(whenToUse, { maxLen: compact ? hintMax : COMPACT_HINT_MAX }) || safeCell((wf && wf.name) || id);
     const modes = resolveCatalogManifests(rootDir, id, wf);
     const label = modes.length > 1 ? (manifest, text) => `${safeCell(manifest.mode)}: ${text}` : (manifest, text) => text;
     const last = compact
@@ -323,7 +336,7 @@ function renderWorkflowsSection(entries, rootDir, config, opts = {}) {
           .map(([manifest, groups]) => label(manifest, groups))
           .join("; ")
       : modes.map((manifest) => label(manifest, renderGroupedSequence(manifest))).join("; ");
-    const cell = compact ? clipCell(hint, COMPACT_HINT_MAX) : hint;
+    const cell = compact ? clipCell(hint, hintMax) : hint;
     return `| \`${id}\` | ${activationTier(wf, { workflowId: id, activation })} · ${stepCountLabel(modes)} | ${cell} | ${last} |`;
   });
   return [
@@ -332,6 +345,8 @@ function renderWorkflowsSection(entries, rootDir, config, opts = {}) {
     BARRIER_LEGEND,
     "",
     activationLegend(opts.mode),
+    "",
+    ROUTING_DISCRIMINATOR,
     "",
     ...(compact
       ? [COMPACT_STEPS_NOTE, "", "| Workflow | Activation | When to use | Parallel phases |"]
@@ -418,7 +433,7 @@ function renderSkillsSection(skills, rootDir, cache, config, opts = {}) {
 function buildWorkflowSkillsCatalog(opts = {}) {
   const rootDir = opts.rootDir || defaultRootDir();
   const config = opts.config;
-  const render = { compact: opts.compact === true, mode: opts.mode, activation: catalogActivation(rootDir, config, opts) };
+  const render = { compact: opts.compact === true, mode: opts.mode, hintMax: opts.hintMax, activation: catalogActivation(rootDir, config, opts) };
   const sections = opts.sections || DEFAULT_SECTIONS;
   const doc = readWorkflowsDoc(rootDir);
 
@@ -516,6 +531,7 @@ module.exports = {
   activationTier,
   ACTIVATION_TIERS,
   COMPACT_HINT_MAX,
+  COMPACT_HINT_FALLBACK_MAX,
   condenseWhenToUse,
   baseSkill,
   resolvedModeSequences,

@@ -448,9 +448,7 @@ const ROADMAP_BOUNDARY_POLICY = {
     "workflow-big-feature",
     "workflow-feature",
     "workflow-greenfield-init",
-    "workflow-initiative-to-task",
-    "workflow-initiative-to-spec",
-    "workflow-spec-to-task",
+    "workflow-planned-work",
   ],
   largeIdeaSignals: [
     "multipleIndependentOutcomes",
@@ -685,7 +683,7 @@ const CHECKS = [
   },
   {
     code: "SDD003",
-    file: ".claude/skills/workflow-initiative-to-task/SKILL.md",
+    file: ".claude/skills/workflow-planned-work/references/mode-idea-to-tasks.md",
     requireAll: [
       "Feature doc Section 8",
       "TC IDs",
@@ -695,7 +693,7 @@ const CHECKS = [
       "tmp/reports/docs-update",
     ],
     forbidAny: UNCONFIGURED_ARTIFACT_ROOT_TERMS,
-    message: "Initiative-to-task workflow must route task artifacts to canonical TC/spec sync.",
+    message: "Planned-work idea-to-tasks mode must route task artifacts to canonical TC/spec sync.",
   },
   {
     code: "SDD004",
@@ -798,7 +796,7 @@ const CHECKS = [
   },
   {
     code: "SDD015",
-    file: ".agents/skills/workflow-initiative-to-task/SKILL.md",
+    file: ".agents/skills/workflow-planned-work/references/mode-idea-to-tasks.md",
     requireAll: [
       "Feature doc Section 8",
       "TC IDs",
@@ -808,7 +806,7 @@ const CHECKS = [
       "tmp/reports/docs-update",
     ],
     forbidAny: [LEGACY_CLAUDE_SDD_CONTRACT_REFERENCE, ...UNCONFIGURED_ARTIFACT_ROOT_TERMS],
-    message: "Codex initiative-to-task workflow must preserve SDD gates without pointing at the Claude source path.",
+    message: "Codex planned-work idea-to-tasks mode must preserve SDD gates without pointing at the Claude source path.",
   },
   {
     code: "SDD016",
@@ -1624,27 +1622,43 @@ async function scanEvidenceModelFile(rootDir, relativeFile, options = {}) {
   };
 }
 
+// Every file that states a default route's procedure: a router skill keeps its mode bodies in references,
+// and each of them can add a roadmap writer.
 const ROADMAP_BOUNDARY_ROUTE_FILES = new Map([
-  ["workflow-big-feature", ".claude/skills/workflow-big-feature/SKILL.md"],
-  ["workflow-feature", ".claude/skills/workflow-feature/SKILL.md"],
-  ["workflow-greenfield-init", ".claude/skills/workflow-greenfield-init/SKILL.md"],
-  ["workflow-initiative-to-task", ".claude/skills/workflow-initiative-to-task/SKILL.md"],
-  ["workflow-initiative-to-spec", ".claude/skills/workflow-initiative-to-spec/SKILL.md"],
-  ["workflow-spec-to-task", ".claude/skills/workflow-spec-to-task/SKILL.md"],
+  ["workflow-big-feature", [".claude/skills/workflow-big-feature/SKILL.md"]],
+  ["workflow-feature", [".claude/skills/workflow-feature/SKILL.md"]],
+  ["workflow-greenfield-init", [".claude/skills/workflow-greenfield-init/SKILL.md"]],
+  [
+    "workflow-planned-work",
+    [
+      ".claude/skills/workflow-planned-work/SKILL.md",
+      ".claude/skills/workflow-planned-work/references/planned-work-core.md",
+      ".claude/skills/workflow-planned-work/references/mode-idea-to-tasks.md",
+      ".claude/skills/workflow-planned-work/references/mode-idea-to-spec.md",
+      ".claude/skills/workflow-planned-work/references/mode-spec-to-tasks.md",
+    ],
+  ],
 ]);
+
+// The steps of every mode a route can run: the base sequence and each variant's own sequence.
+function roadmapRouteSequence(workflow) {
+  const stepText = (step) => (typeof step === "string" ? step : [step?.skill, step?.args].filter(Boolean).join(" "));
+  const sequences = [workflow.sequence, ...Object.values(workflow.variants ?? {}).map((variant) => variant?.sequence)];
+  return sequences.filter(Array.isArray).flatMap((sequence) => sequence.map(stepText));
+}
 
 async function loadRoadmapBoundarySurface(rootDir, options = {}) {
   const workflowJson = await readFileOrNull(rootDir, ".claude/workflows.json", options);
   const roadmapSkill = await readFileOrNull(rootDir, ".claude/skills/product-roadmap/SKILL.md", options);
   const routeContents = new Map(
     await Promise.all(
-      [...ROADMAP_BOUNDARY_ROUTE_FILES.entries()].map(async ([routeId, relativeFile]) => [
+      [...ROADMAP_BOUNDARY_ROUTE_FILES.entries()].map(async ([routeId, relativeFiles]) => [
         routeId,
-        await readFileOrNull(rootDir, relativeFile, options),
+        await Promise.all(relativeFiles.map(async (relativeFile) => [relativeFile, await readFileOrNull(rootDir, relativeFile, options)])),
       ])
     )
   );
-  const routePresentCount = [...routeContents.values()].filter((content) => content !== null).length;
+  const routePresentCount = [...routeContents.values()].filter((files) => files.every(([, content]) => content !== null)).length;
   const hasBoundaryArtifacts =
     roadmapSkill !== null || routePresentCount >= ROADMAP_BOUNDARY_ROUTE_FILES.size - 1;
   if (!hasBoundaryArtifacts) return null;
@@ -1668,21 +1682,24 @@ async function loadRoadmapBoundarySurface(rootDir, options = {}) {
   }
 
   const routes = [];
-  for (const [routeId, relativeFile] of ROADMAP_BOUNDARY_ROUTE_FILES) {
-    const text = routeContents.get(routeId);
-    if (text === null) {
-      coverageFailures.push(`roadmap boundary surface is missing ${relativeFile}`);
+  for (const [routeId, relativeFiles] of ROADMAP_BOUNDARY_ROUTE_FILES) {
+    const files = routeContents.get(routeId);
+    const missing = files.filter(([, content]) => content === null).map(([relativeFile]) => relativeFile);
+    if (missing.length) {
+      for (const relativeFile of missing) coverageFailures.push(`roadmap boundary surface is missing ${relativeFile}`);
       continue;
     }
+    const text = files.map(([, content]) => content).join("\n");
     if (!workflows[routeId]) {
       coverageFailures.push(`roadmap boundary surface is missing workflow route ${routeId} in .claude/workflows.json`);
       continue;
     }
     routes.push({
       routeId,
-      sequence: Array.isArray(workflows[routeId].sequence) ? workflows[routeId].sequence : [],
+      sequence: roadmapRouteSequence(workflows[routeId]),
       text: `${text}\n${JSON.stringify(workflows[routeId].preActions ?? {})}`,
-      file: relativeFile,
+      file: relativeFiles[0],
+      files: relativeFiles,
     });
   }
 

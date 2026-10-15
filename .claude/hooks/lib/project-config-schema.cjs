@@ -539,7 +539,7 @@ const SCHEMA = {
                         describe: 'Bounded verify/fix loop controls. A cap or missing capability produces an escalation, never an infinite retry.',
                         properties: {
                             maxAttempts: { type: 'number', required: false, describe: 'Positive bounded maximum remediation attempts.' },
-                            consecutiveGreen: { type: 'number', required: false, describe: 'Fresh consecutive green runs required before convergence.' },
+                            consecutiveGreen: { type: 'number', required: false, describe: 'Fresh consecutive green runs required before E2E convergence (default 1; two consecutive runs are the integration-test rule).' },
                             settleTimeoutSeconds: { type: 'number', required: false, describe: 'Positive bounded timeout for observable readiness/settle signals.' }
                         }
                     }
@@ -810,7 +810,7 @@ const SCHEMA = {
                 type: 'string',
                 required: false,
                 enumValues: WORKFLOW_ROUTE_MODES,
-                describe: 'Team default for the workflow route mode: ask (default; the workflow question is asked only when the route is to start a catalog workflow; direct and custom-simple routes ask nothing) | auto (start it without asking, by its tier) | off (no workflow is started without an explicit request). A person overrides it in ~/.claude/.ck.json, .claude/.ck.local.json or env CK_WORKFLOW_ROUTE_MODE.'
+                describe: 'Team default for the workflow route mode: ask (default; the workflow question is asked only when the route is to start a catalog workflow; direct and custom-simple routes ask nothing) | auto (the same question, recommending the full workflow first) | off (no workflow is started without an explicit request). A person overrides it in ~/.claude/.ck.json, .claude/.ck.local.json or env CK_WORKFLOW_ROUTE_MODE.'
             },
             skillAutoTrigger: {
                 type: 'boolean',

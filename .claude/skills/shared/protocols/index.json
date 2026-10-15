@@ -239,12 +239,12 @@
       "group": "design",
       "summary": "Consolidated essential working and discovery contract",
       "when": "concise universal delivery",
-      "chars": 8948,
+      "chars": 8953,
       "file": ".claude/skills/shared/protocols/concise-agent-core.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/concise-agent-core.md",
-          "chars": 8948
+          "chars": 8953
         }
       ]
     },
@@ -253,12 +253,12 @@
       "group": "design",
       "summary": "Compact routing authority and catalog retrieval cues",
       "when": "concise route delivery",
-      "chars": 2958,
+      "chars": 3755,
       "file": ".claude/skills/shared/protocols/concise-workflow-route.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/concise-workflow-route.md",
-          "chars": 2958
+          "chars": 3755
         }
       ]
     },
@@ -893,6 +893,20 @@
       ]
     },
     {
+      "tag": "quality-skill-routing",
+      "group": "universal",
+      "summary": "Route review, test and failure work to the project's registered skills first",
+      "when": "delivered by the universal hook",
+      "chars": 1020,
+      "file": ".claude/skills/shared/protocols/quality-skill-routing.md",
+      "parts": [
+        {
+          "file": ".claude/skills/shared/protocols/quality-skill-routing.md",
+          "chars": 1020
+        }
+      ]
+    },
+    {
       "tag": "rationalization-prevention",
       "group": "evidence-trace",
       "summary": "Recognize and reject the evasions used to skip required steps",
@@ -953,12 +967,12 @@
       "group": "spec-test",
       "summary": "Same contract result across fresh runs and supported concurrency",
       "when": "writing or reviewing tests",
-      "chars": 938,
+      "chars": 1041,
       "file": ".claude/skills/shared/protocols/repeatable-test-principle.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/repeatable-test-principle.md",
-          "chars": 938
+          "chars": 1041
         }
       ]
     },
@@ -1265,12 +1279,12 @@
       "group": "universal",
       "summary": "Task breakdown, task-graph analysis and the session goal ledger",
       "when": "delivered by the universal hook",
-      "chars": 1350,
+      "chars": 1887,
       "file": ".claude/skills/shared/protocols/task-planning-rules.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/task-planning-rules.md",
-          "chars": 1350
+          "chars": 1887
         }
       ]
     },
@@ -1559,12 +1573,12 @@
       "group": "workflow-task",
       "summary": "Read the workflow registry entry and the workflow skill together, since they must agree",
       "when": "executing or editing a workflow",
-      "chars": 3287,
+      "chars": 3364,
       "file": ".claude/skills/shared/protocols/workflow-registry-binding.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/workflow-registry-binding.md",
-          "chars": 3287
+          "chars": 3364
         }
       ]
     },

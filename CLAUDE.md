@@ -138,10 +138,10 @@ See [integration-test-reference.md](docs/project-reference/integration-test-refe
 
 | Kind        | Count                                       |
 | ----------- | ------------------------------------------- |
-| Skills      | <!-- COUNT:skills -->105<!-- /COUNT -->     |
-| Hooks       | <!-- COUNT:hooks -->35<!-- /COUNT -->       |
+| Skills      | <!-- COUNT:skills -->103<!-- /COUNT -->     |
+| Hooks       | <!-- COUNT:hooks -->36<!-- /COUNT -->       |
 | Agents      | <!-- COUNT:agents -->24<!-- /COUNT -->      |
-| Workflows   | <!-- COUNT:workflows -->19<!-- /COUNT -->   |
+| Workflows   | <!-- COUNT:workflows -->17<!-- /COUNT -->   |
 | Shared      | <!-- COUNT:shared -->15<!-- /COUNT -->      |
 | Lib modules | <!-- COUNT:lib-modules -->66<!-- /COUNT --> |
 

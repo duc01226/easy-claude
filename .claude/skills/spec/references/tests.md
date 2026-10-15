@@ -93,7 +93,7 @@ Each reference doc below sits in the project-reference docs root — default `do
     - **Performance TCs:** Feature within SLA under production-like volume
     - **Data Change TCs:** business data state transforms correctly and remains visible/usable as expected
     - **Preservation TCs (MANDATORY business-visible bugfixes):** ≥1 per "Healthy input" row — authored from OLD code semantics BEFORE fix lands. Technical-only bugfixes with no business-visible result produce zero business TCs.
-- **Interactive review:** ALWAYS `ask user question tool` — review TC list with user before writing
+- **Interactive review:** ALWAYS `ask user question tool` — review TC list with user before writing. Inside a workflow whose sequence runs both an independent `/work-item --mode=review --type=spec-tests` and `/spec [mode=clarify]` after this step, that review replaces this question and the material decisions the cases encode go to that later clarify through the decision log; otherwise, inside a workflow, keep this question narrowed to the material decisions the cases encode; a standalone run keeps the full TC-list review
 - **Real-world fidelity (per TC):** every TC's `Preconditions` and `Demo Flow` MUST describe a situation real actor behaviour can actually produce. State HOW production reaches the precondition, and — whenever two consecutive steps are distinct actor actions — state the realistic elapsed gap between them. A TC specifying a sequence production could never reach GUARANTEES an unrealistic test downstream: the spec is the upstream lever, so fix it here, never in the generated test's assertions.
 
 <!-- SYNC:real-world-fidelity-testing -->
@@ -557,6 +557,8 @@ The full reconciliation procedure (direction detection, quality gate, forward/re
 
 ### Phase 6: Next Step Suggestion
 
+> **Inside a workflow:** when this skill runs as a step of an active workflow, skip the prompts in this section and return the result — the workflow's next step decides what runs (`/start-workflow` → Step Execution Protocol, Workflow-step mode).
+
 Based on mode, suggest via `ask user question tool`:
 
 **TDD-first:**
@@ -656,7 +658,7 @@ When feature behavior removed or significantly changed:
 - ❌ Writing TCs to the business spec root (default `docs/specs/`, overridden by `specRoots.business.path` in `docs/project-config.json`) as the primary destination (use feature docs Section 8)
 - ❌ Using `TC-{SVC}-{NNN}` or `TC-{SVC}-{FEATURE}-{NNN}` format (use unified `TC-{FEATURE}-{NNN}`)
 - ❌ Generating TCs without reading existing Section 8 (causes ID collisions)
-- ❌ Skipping the interactive review step (user must approve TC list)
+- ❌ Skipping the interactive review step (the user approves the TC list, unless a later spec-tests review and clarify step in the same workflow take it over)
 - ❌ Writing TCs without Evidence field (every TC needs it, even if `TBD`)
 - ❌ Specifying a scenario production could never reach — unreachable `Preconditions`, or two distinct actor actions with no realistic gap (mis-specified TC → unrealistic test → false defect report)
 

@@ -20,19 +20,26 @@ if ((require.main === module || !require.main) && require('./lib/framework-runti
  * the prompt that asks. Detection is a small heuristic and the directive is conditional, so a false
  * positive costs a few lines of context and a false negative falls back to the universal rule.
  *
+ * A sub-agent start and the host's compaction report carry no prompt, so there the router classifies
+ * the session's latest recorded user prompt (`routedPrompt`): a delegated agent works on the verdict
+ * the user asked for, and a compaction mid-turn drops the directive the turn was answering. Those
+ * events answer with the JSON context envelope (`routerOutput`); no prompt ledger keeps them silent.
+ *
  * Mirrored to Codex and OpenCode by the hook sync generators, which is why the directive
- * names the skill host-neutrally. Advisory plaintext; always exit 0.
+ * names the skill host-neutrally. Advisory plaintext on a prompt; always exit 0.
  *
  * On by default; off with `.claude/.ck.json` judgementIntegrityRoute.enabled:false (a developer
  * override in `.claude/.ck.local.json` wins) or CK_JUDGEMENT_INTEGRITY_ROUTE=0. Failures stay
  * silent; CK_DEBUG=1 prints the diagnostic to stderr.
  *
  * @hook UserPromptSubmit
+ * @hook SubagentStart
+ * @hook SessionStart (compact)
  */
 
 const { isHookEntryPoint } = require('./lib/hook-runner.cjs');
 const { debugError } = require('./lib/debug-log.cjs');
-const { readUserPrompt, isRouterEnabled } = require('./lib/prompt-route-utils.cjs');
+const { readUserPrompt, isRouterEnabled, routedPrompt, routerOutput } = require('./lib/prompt-route-utils.cjs');
 
 const HOOK_NAME = 'judgement-integrity-route';
 const MARKER_START = '<!-- CK:JUDGEMENT-INTEGRITY -->';
@@ -164,14 +171,13 @@ function buildDirective(leans, reminder = loadCanonicalReminder(), allowSkillRou
 }
 
 /**
- * Return the text to emit for a UserPromptSubmit event, or '' to stay silent.
- * deps (tests): env, projectDir, rawSettings — forwarded to the opt-out check.
+ * Return the directive for the event's prompt (`routedPrompt`), or '' to stay silent.
+ * deps (tests): env, projectDir, rawSettings — forwarded to the prompt lookup and the opt-out check.
  */
 function evaluate(input, deps = {}) {
     try {
         if (!input || typeof input !== 'object' || Array.isArray(input)) return '';
-        if (input.hook_event_name && input.hook_event_name !== 'UserPromptSubmit') return '';
-        const leans = detectLeans(input.prompt);
+        const leans = detectLeans(routedPrompt(input, deps));
         if (leans.length === 0) return '';
         // Checked only on a match, so most prompts never pay for the settings read.
         if (!isRouterEnabled(SETTINGS_SECTION, ENV_SWITCH, deps)) return '';
@@ -203,7 +209,7 @@ if (isHookEntryPoint(module)) {
         const { parseStdinSync } = require('./lib/stdin-parser.cjs');
         const input = parseStdinSync({ defaultValue: null, throwOnError: true, context: HOOK_NAME });
         const text = evaluate(input);
-        if (text) process.stdout.write(text);
+        if (text) process.stdout.write(routerOutput(input, text));
     } catch (error) {
         debugError(HOOK_NAME, error); // fail open: an advisory hook never blocks a prompt
     }

@@ -134,7 +134,10 @@ const tests = [
             const workflow = JSON.parse(read('.claude', 'workflows.json')).workflows['workflow-review-changes'];
             assert.equal(workflow.defaultMode, 'fix-loop');
             const reviews = ['changes-review','why-review','architecture','domain-analysis','performance-review','integration-test','security-audit','production-readiness-review','ui-design','ai-engineering-review','experience-review'];
-            for (const mode of ['review-only','report-only']) {
+            // `--report-only` selects mode `review-only`: one read-only mode, not two identical copies (P47)
+            assert.equal(workflow.variants['report-only'], undefined, 'report-only is a flag for review-only, not a duplicate mode');
+            assert.match(skillText('workflow-review-changes', 'SKILL.md'), /`--review-only` or `--report-only`; both select mode `review-only`/, 'the skill maps the report-only flag to the review-only mode');
+            for (const mode of ['review-only']) {
                 const steps = workflow.variants[mode].sequence;
                 assert.ok(steps.length > 0);
                 assert.ok(!steps.some(step => ['fix','code-simplifier','docs-manager','scan'].includes(step.skill)));
@@ -146,8 +149,12 @@ const tests = [
             }
             const initial = workflow.sequence.find(step => step.id === 'initial-changes-review');
             assert.match(initial.args, /--defer=whole-target,specialists,tests,entities/);
-            assert.equal(workflow.sequence.find(step => step.id === 'code-simplifier').args, '--defer=review');
-            assert.match(workflow.sequence.find(step => step.id === 'why-review').applicability.when, /simplification/);
+            // The simplifier is a report-only lens: the fix step applies validated simplifications and the fresh
+            // re-review of the settled target (a rerun of the whole-target why-review row) covers them, so no separate
+            // post-fix why-review step exists.
+            assert.equal(workflow.sequence.find(step => step.id === 'code-simplifier').args, '--report-only');
+            assert.ok(!workflow.sequence.some(step => step.id === 'why-review'), 'the post-fix review is the rerun of the whole-target why-review row');
+            assert.match(skillText('workflow-review-changes', 'SKILL.md'), /re-invokes those same occurrences as `rerun N`, with no separate post-fix rationale step/);
             const caller = skillText('workflow-review-changes','references','caller-mode.md');
             assert.match(caller, /full fresh `\/why-review` of the settled target after simplification/i);
             assert.match(caller, /omit its deferral so the duty stays with the skill/);

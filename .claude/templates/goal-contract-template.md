@@ -32,6 +32,10 @@
 - {Command evidence — verification/test commands whose output proves criteria.}
 - {Review evidence — report paths from review gates.}
 
+## Decisions
+
+- {Occurrence ID — the decision asked, the user's answer, date. Later interviews read this first and ask only what it leaves open (`/start-workflow` → Step Execution Protocol, rule 12).}
+
 ## Iteration Log
 
 ### Iteration 1

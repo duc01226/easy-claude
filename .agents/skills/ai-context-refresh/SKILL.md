@@ -77,7 +77,7 @@ tokens of growth or a compaction. A host that runs no hook is unsupported.
 
 **Workflow routing is delivered only by hooks** — `workflow-route-inject` for the gate and `workflow-catalog-inject` for the catalog (Claude, the mirrored Codex hooks, the OpenCode bridge) —
 never written into tracked files. The hooks inject the route for each person's mode —
-`ask` (default: the workflow question is asked only when the route is to start a catalog workflow; direct and custom-simple routes ask nothing), `auto` (a matched workflow starts without asking, by its tier)
+`ask` (default: the workflow question is asked only when the route is to start a catalog workflow; direct and custom-simple routes ask nothing), `auto` (the same question, recommending the full workflow first)
 or `off` (only a short state notice; nothing starts without an explicit request). A team sets the default in tracked `docs/project-config.json`:
 
 ```jsonc

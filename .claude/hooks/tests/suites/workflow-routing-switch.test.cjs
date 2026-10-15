@@ -562,18 +562,17 @@ module.exports = {
                         assertTrue(hook.buildCatalogInjection(withRoot) === catalog, 'root files never change the catalog output');
                         assertTrue(!STALE_SELF_START.test(withPointer), 'the payload must not let a tier start on its own');
                     });
-                    // And in `auto` mode the question is gone from both outputs: a matched workflow starts by its tier
+                    // And in `auto` mode the same question is asked, the full workflow recommended first (P46)
                     const auto = hook.buildInjection(noRoot, '', 'auto');
                     const autoCatalog = hook.buildCatalogInjection(noRoot, 'auto');
-                    assertNotContains(auto, '**Workflow question**', 'mode auto must not ask the workflow question');
-                    assertNotContains(auto, 'NEVER starts before the answer', 'mode auto must not forbid a matched workflow from starting');
-                    assertContains(auto, '**Workflow start** (mode auto)');
-                    assertContains(auto, '`manual` never starts on your own: name it in your route declaration and take (b) or (c)');
-                    assertContains(auto, 'Mid-session: never auto-activate a workflow.');
-                    assertContains(auto, 'An explicit request (as above; `$workflow-*` on Codex) runs any tier with no question');
-                    assertNotContains(autoCatalog, 'before you start a catalog workflow, in every tier', 'the tier legend must not say every tier asks');
+                    assertContains(auto, '**Workflow question** (every tier)');
+                    assertContains(auto, 'NEVER starts before the answer');
+                    assertContains(auto, '**Route mode `auto`:**');
+                    assertContains(auto, 'Mid-session: never auto-activate a workflow or ask to start one.');
+                    assertContains(auto, 'runs any tier with no question');
+                    assertTrue(!STALE_SELF_START.test(auto), 'mode auto must not let a tier start on its own');
                     assertContains(autoCatalog, '**Activation (mode auto):**');
-                    assertContains(autoCatalog, '`manual` never starts on your own: name it in your route declaration; it runs on explicit request only');
+                    assertContains(autoCatalog, 'before a catalog workflow you selected starts, recommending the full workflow first');
                 });
             }
         },
@@ -737,7 +736,13 @@ module.exports = {
                     const row = workflowRow(catalog, id);
                     assertTrue(Boolean(row), `missing row for ${id}`);
                     assertContains(row, `| ${workflow.activation} · 18 steps |`, `${id} must show its tier and step count`);
+                    // A registry too large for full hints keeps its rows with the shorter whole-clause hints (BR-WFR-02)
+                    const hint = row.split(' | ')[2];
+                    assertTrue(hint.length <= catalogLib.COMPACT_HINT_FALLBACK_MAX && !hint.endsWith('…'), `${id}: shorter whole-clause hint expected, got ${hint.length} chars`);
                 }
+                // And the full-hint compact rows really did overflow, so the shorter tier is what kept the compact form
+                const fullRows = catalogLib.buildWorkflowSkillsCatalog({ rootDir: dir, sections: ['workflows'], compact: true });
+                assertTrue(fullRows.length > PAYLOAD_CAP, `precondition: full hints overflow the cap (${fullRows.length} chars)`);
                 // And it is an output of its own: the route output carries the gate and none of the catalog
                 assertCatalogBlock(catalog, '30 workflows');
                 assertNoCatalog(hook.buildInjection(dir), '30 workflows');
@@ -951,7 +956,7 @@ module.exports = {
                     assertCatalogBlock(catalog, mode);
                     // And the route output is the full gate for that mode, with no catalog
                     assertContains(route, hook.renderGateForMode(gateFile, mode), `${mode}: the route output must carry the full gate`);
-                    assertContains(route, mode === 'ask' ? '**Workflow question** (every tier)' : '**Workflow start** (mode auto)');
+                    assertContains(route, mode === 'ask' ? '**Workflow question** (every tier)' : '**Route mode `auto`:**');
                     assertNotContains(route, COMPACT_HEADER, `${mode}: the route output carries no catalog header`);
                     assertNoCatalog(route, mode);
                     // And without a project protocol it fits one hook output, so no host cuts the gate to a preview
@@ -1142,9 +1147,9 @@ module.exports = {
                 const ask = hook.renderGateForMode(gateFile, 'ask');
                 const auto = hook.renderGateForMode(gateFile, 'auto');
                 assertContains(ask, '**Workflow question** (every tier)');
-                assertNotContains(ask, '**Workflow start** (mode auto)');
-                assertContains(auto, '**Workflow start** (mode auto)');
-                assertNotContains(auto, '**Workflow question**');
+                assertNotContains(ask, '**Route mode `auto`:**');
+                assertContains(auto, '**Route mode `auto`:**');
+                assertContains(auto, '**Workflow question** (every tier)');
                 for (const text of [ask, auto]) {
                     assertNotContains(text, 'CK:GATE-MODE', 'no fence line may reach the model');
                     assertContains(text, 'An explicit workflow request always runs, mid-session included');

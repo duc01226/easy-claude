@@ -1,7 +1,7 @@
 ---
 name: why-review
 version: 1.7.1
-description: '[Code Quality] Use when a workflow step or the user asks for explicit rationale review: necessity, choices and trade-offs. --validate-findings checks review reports; --fix-loop fixes and re-reviews. Not generic reviews or how-it-works.'
+description: '[Code Quality] Use when a workflow step or the user asks for rationale evaluation or critical judgment of a decision, claim or statement: necessity, options, trade-offs. --validate-findings checks findings; --fix-loop fixes. Diffs: changes-review.'
 ---
 
 ## Quick Summary
@@ -16,7 +16,7 @@ Judge future change cost; resolve target type before choosing the review path.
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
-> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
+> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval. Inside a workflow run, `/start-workflow` → Workflow-step mode bounds this rule.
 > **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
@@ -26,7 +26,7 @@ Judge future change cost; resolve target type before choosing the review path.
 - **STEP 1 — DETECT MODE FIRST:** terminal validation takes precedence; load its owner and return a verdict.
 - **STEP 2 — FULL-MODE FIRST ACTION:** read `references/full-mode.md` in full, then plan its review tasks.
 - **STEP 3 — RESOLVE TARGET:** resolve target, Goal Contract, project references and concern routes; read `references/code-change-path.md` when its Route References trigger holds (BLOCKING); honor the exact requested source/diff scope.
-- **STEP 4 — REVIEW:** complete seven Anti-Bias checks, Trade-Off Gate, Validation Checklist and both adversarial passes; retain integration linkage's four-context deferral guard.
+- **STEP 4 — REVIEW:** complete seven Anti-Bias checks, Trade-Off Gate, Validation Checklist and the Adversarial Analysis, plus the second adversarial pass when Round 1 found MEDIUM+ or the target is a one-way door; retain integration linkage's four-context deferral guard.
 - **STEP 5 — VALIDATE FINDINGS:** any finding triggers terminal validation. Reconcile report defects in the current pass; unresolved evidence stays with the shared round owner. CLEAN validates the report; hand off retained target findings with severity, evidence and dual feedback.
 
 <!-- FIX-LOOP-MODE:START -->
@@ -56,13 +56,13 @@ Detect from `$ARGUMENTS` before any review work:
 
 | Mode | Trigger | Execution |
 | --- | --- | --- |
-| **full** (default) | no `validate-findings` or `--fix-loop` token | Read the full-mode owner, execute both adversarial passes, then the Findings Validation Gate when findings exist. Each report cycle has one terminal validation call; reconcile report defects within the same pass. |
+| **full** (default) | no `validate-findings` or `--fix-loop` token | Read the full-mode owner, execute Round 1 and, when it found MEDIUM+ or the target is a one-way door, the second adversarial pass, then the Findings Validation Gate when findings exist. Each report cycle has one terminal validation call; reconcile report defects within the same pass. |
 | **validate-findings** | `--validate-findings`, `mode=validate-findings` or `validate findings in` | Read only the terminal validator reference, validate the supplied report, emit CLEAN / HAS ISSUES and return. TERMINAL — NEVER calls `/why-review`, runs the full gate, binds a loop, asks the user or spawns a sub-agent. |
 | **fix-loop** (opt-in) | `$ARGUMENTS` contains `--fix-loop` AND no `validate-findings` token | Read fix-loop first; each round uses ordinary full mode INLINE without the flag. |
 
 > **Recursion guard (NON-NEGOTIABLE):** `validate-findings` beats `--fix-loop`; terminal mode ignores the flag, never reads `references/full-mode.md` or `references/fix-loop.md`, and skips Task Bootstrap, Adversarial Rounds, full Validation Checklist, Next Steps and council. The full caller owns report reconciliation under the shared round policy; never delegate terminal validation to another reviewer.
 
-> **Full-mode sub-agent callers (parallel, report-only):** applies when spawned, named a parallel/barrier member, or assigned a nested report-only occurrence. Keep the target read-only. Return evidenced trade-offs, supported remedy decisions and indispensable fact/authority gaps under `SYNC:review-decision-autonomy`; never call `ask user question tool`, Next Steps, `/llm-council` or the caller. Run your own terminal findings validation INLINE in this sub-agent context, without spawning another agent; retain the caller’s spent rounds. The caller separately validates its merged report. A caller may pass `--fix-loop --loop-owner=caller`; return a read-only validated pass for its fixing coordinator.
+> **Full-mode sub-agent callers (parallel, report-only):** applies when spawned, named a parallel/barrier member, or assigned a nested report-only occurrence. Keep the target read-only. Return evidenced trade-offs, supported remedy decisions and indispensable fact/authority gaps under `SYNC:review-decision-autonomy`; never call `ask user question tool`, Next Steps, `/llm-council` or the caller. Run your own terminal findings validation INLINE in this sub-agent context, without spawning another agent — unless the caller passed `--loop-owner=caller`: then hold each finding to the evidence bar inside the pass and make no separate terminal call; the caller validates its merged report once (`/start-workflow` → Workflow-step mode). Retain the caller’s spent rounds. A caller may pass `--fix-loop --loop-owner=caller`; return a read-only validated pass for its fixing coordinator.
 
 ## Mode References (read at point of use — BLOCKING)
 
@@ -169,7 +169,7 @@ Detect from `$ARGUMENTS` before any review work:
 
 ## Prompt-Enhance Closing Anchors
 
-- **IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval
+- **IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval; inside a workflow run, `/start-workflow` → Workflow-step mode bounds this
 - **IMPORTANT MUST ATTENTION** for every step/sub-skill call: set `in_progress` before execution, set `completed` after execution
 - **IMPORTANT MUST ATTENTION** every skipped step MUST include explicit reason; every completed step MUST include concise evidence
 - **IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses

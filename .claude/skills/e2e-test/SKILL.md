@@ -7,7 +7,7 @@ description: '[Testing] Use when a workflow step or the user asks for E2E test s
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
-> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
+> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval. Inside a workflow run, `/start-workflow` → Workflow-step mode bounds this rule.
 > **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
@@ -138,7 +138,7 @@ When E2E is applicable, add the following fields to the test plan/report before 
 
 - Use only configured browser/service commands. A focused selection must be copy-ready and invalid or zero-match selections must fail or follow the runner's documented non-green behavior; never report zero matches as a passing scope.
 - Generate unique self-sufficient data through supported public paths. Reference data is count-before-create, idempotent, and restart-safe; intentional persistent data is keyed and additive. Preserve realistic actor pacing and arrange barriers, and isolate mutable data across parallel workers.
-- If the configured stack has persistent state, capture exact Passed/Failed/Skipped counts and exit status for each applicable focused/full scope and require two consecutive no-reset full runs. If no runnable E2E stack exists, report the evidence-backed N/A instead of substituting generic browser tooling.
+- Capture exact Passed/Failed/Skipped counts and exit status for each applicable focused/full scope; one fresh green full run converges unless the project configures more (`e2eTesting.execution.convergence.consecutiveGreen`). Two consecutive runs are the integration-test rule, not this one. If no runnable E2E stack exists, report the evidence-backed N/A instead of substituting generic browser tooling.
 
 ## E2E Execution Profile and Human-QC Preflight
 
@@ -357,7 +357,7 @@ Report:
 - E2E applicability and evidence (`APPLICABLE` or `N/A — <file:line evidence>`)
 - Full and focused/partial commands, zero-match behavior, and simple Windows/macOS/Linux entry point (or evidence-backed N/A)
 - Run identity, reference/additive data mode, parallel-isolation strategy, and exact Passed/Failed/Skipped counts + exit status for each executed scope
-- Repeat evidence: two consecutive no-reset full runs when persistent state is applicable
+- Repeat evidence: one fresh green full run, or the project's configured `consecutiveGreen` count
 - Prompt/current-context scope, whole-project vs focused decision, and the Given/When/Then + protected invariant record
 - Resolved `e2eTesting.execution` profile and linked `experienceVerification` surface, including startup/readiness/auth/seed/browser/evidence/convergence capability outcomes
 - Browser visibility/pacing policy, viewport/device conditions, runtime/visual evidence references, redaction status, and any `ENVIRONMENT-BLOCKED` or `ACCEPTANCE-PENDING` decision
@@ -409,7 +409,7 @@ Standalone (no parent workflow): after writing or updating E2E tests, suggest `/
 
 ## Prompt-Enhance Closing Anchors
 
-**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval
+**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval; inside a workflow run, `/start-workflow` → Workflow-step mode bounds this
 **IMPORTANT MUST ATTENTION** for every step/sub-skill call: set `in_progress` before execution, set `completed` after execution
 **IMPORTANT MUST ATTENTION** every skipped step MUST include explicit reason; every completed step MUST include concise evidence
 **IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses

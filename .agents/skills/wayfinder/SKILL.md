@@ -63,7 +63,7 @@ disable-model-invocation: false
 | A plan, design or decision that fits one conversation | `$grill` |
 | A well-defined feature ready to specify and build | `$workflow-feature` |
 | A large feature whose decisions are already made | `$workflow-big-feature` |
-| A cleared map | `$workflow-initiative-to-spec`, then `$workflow-spec-to-task` and `$workflow-implement-spec` |
+| A cleared map | `$workflow-planned-work --from=idea --to=spec`, then `$workflow-planned-work --from=spec --to=tasks` and `$workflow-implement-spec` |
 
 The split is session count, not project size. When the breadth-first mapping finds nothing foggy, the effort fits one session: stop, say so, and offer `$grill` or the matching workflow.
 
@@ -196,7 +196,7 @@ The argument is a map path; without a ticket id, you choose.
 
 ## Hand-Off
 
-A cleared map is a set of linked decisions, not a build plan. Name the next step and stop: `$workflow-initiative-to-spec` (or `$spec` for one capability) with the map path as the source, then `$workflow-spec-to-task`, then `$workflow-implement-spec`. Go straight to a build workflow only when the effort turned out small.
+A cleared map is a set of linked decisions, not a build plan. Name the next step and stop: `$workflow-planned-work --from=idea --to=spec` (or `$spec` for one capability) with the map path as the source, then `$workflow-planned-work --from=spec --to=tasks`, then `$workflow-implement-spec`. Go straight to a build workflow only when the effort turned out small.
 
 ## Output
 

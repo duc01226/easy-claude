@@ -13,7 +13,7 @@
 - [Validation Checklist](#validation-checklist)
 - [Residual Risk Gate](#residual-risk-gate)
 - [Output Format](#output-format)
-- [Round 2: Adversarial Re-Review (MANDATORY)](#round-2-adversarial-re-review-mandatory)
+- [Round 2: Adversarial Re-Review (conditional)](#round-2-adversarial-re-review-conditional)
 - [Scope](#scope)
 - [Important Notes](#important-notes)
 - [Report Closure Contract](#report-closure-contract)
@@ -259,11 +259,13 @@ For code-change reviews, use Code-Change Review Path instead of forcing plan che
 {Proceed to $feature-implement | Add missing sections first | Add adversarial analysis to plan/task | Fix code findings | Update docs or specs | Continue manually}
 ```
 
-## Round 2: Adversarial Re-Review (MANDATORY)
+## Round 2: Adversarial Re-Review (conditional)
 
 > **Protocol:** Deep Multi-Round Review (published full owner `.claude/skills/shared/protocols/review-policy.md`; read it when absent from current context)
 
-After Round 1, execute **second full adversarial round**:
+**When it runs:** only when Round 1 found at least one MEDIUM or higher finding, or the target is a one-way door (irreversible or costly to walk back: a public contract, data or schema, an architecture boundary, a security or money path). Otherwise skip it and record `Round 2: SKIPPED — Round 1 found no MEDIUM+ finding and the target is two-way`; Round 1 then fills the Adversarial Analysis itself (at least 2 arguments against, 1 unexamined alternative, 2 hidden assumptions with consequences, a pre-mortem and the Trade-Off Assessment), so every review keeps its anti-bias floor.
+
+When it runs, execute a **second full adversarial round** after Round 1:
 
 1. **Assume Round 1 was wrong** — start with: "Round 1 missed something. Find it."
 2. **Challenge every PASS item** from Round 1 — generate at least 2 sentences arguing the opposite for each
@@ -281,7 +283,7 @@ After Round 1, execute **second full adversarial round**:
     - Assumptions embedded in the problem statement itself
     - Scope creep disguised as "related improvements"
 6. **Update verdict** if Round 2 found new issues
-7. **Final verdict** incorporates BOTH rounds + Adversarial Analysis
+7. **Final verdict** incorporates every round that ran + Adversarial Analysis
 
 ## Scope
 
@@ -307,7 +309,7 @@ This skill is report-only. Shared fix/re-review guidance applies here as validat
 
 > **Purpose:** Before handoff, re-validate THIS review's OWN findings: **correct, proof-backed, reasonable, best-practice**. Catch finding issues and missed enhancements.
 
-**Trigger:** Full mode with ANY finding, weakness, missing item, or NEEDS WORK verdict — of ANY severity (Critical, High, Medium, OR Low). A Medium or Low severity NEVER exempts a finding from validation; even one low-severity nit triggers the gate. Skip ONLY unconditional PASS with a literally empty finding set (zero findings/missing items of any severity); record skip reason. **NEVER run in `validate-findings` mode**. — why: "it's only Low" is itself a severity claim the validation pass must confirm, not a reason to skip it.
+**Trigger:** Full mode with ANY finding, weakness, missing item, or NEEDS WORK verdict — of ANY severity (Critical, High, Medium, OR Low). A Medium or Low severity NEVER exempts a finding from validation; even one low-severity nit triggers the gate. Skip ONLY unconditional PASS with a literally empty finding set (zero findings/missing items of any severity); record skip reason. Also skip when called with `--loop-owner=caller`: the caller validates the merged report once (`$start-workflow` → Workflow-step mode). **NEVER run in `validate-findings` mode**. — why: "it's only Low" is itself a severity claim the validation pass must confirm, not a reason to skip it.
 
 **Findings validation:** Run `$why-review --validate-findings` once on the current report when findings exist. Reconcile rejected or inflated claims with evidence and retain valid findings for the fixing owner. Fix-loop then repairs validated findings and freshly re-runs the complete target review; review-only hands them off. Any unresolved report/evidence issue remains blocked under the same round budget, never a second nested loop.
 

@@ -162,6 +162,8 @@ An exemption is not permission to guess behavior, skip the existing spec/test ga
 
 EXEMPT is a separate applicability branch, not a roadmap status. It does not require `{roadmap-file}` or a milestone ID, and downstream artifacts MUST use explicit `EXEMPT`/`N/A — {reason}` values instead of fabricated roadmap or milestone placeholders. The branch still requires a stable scope brief, scenario analysis, existing spec/test/review gates, commands, observable evidence, and accepting-owner approval.
 
+**Light-profile evidence.** A light-profile plan (a supplied spec, or an XS/S change; `plan/SKILL.md` → Plan profile), on the EXEMPT or FRAMEWORK-LIBRARY branch, may point at inline evidence instead of files: scope `INLINE — spec_baseline <path>@<revision>` or `INLINE — plan.md §1`; scenarios the governing spec's case IDs or `INLINE — plan.md §7`. Approval fields stay, under the same honest-state rules.
+
 For a reusable framework or library change, record the technical branch instead:
 
 ```markdown
@@ -173,7 +175,7 @@ For a reusable framework or library change, record the technical branch instead:
 - Evidence: {tests, generated-carrier parity, operational checks}
 ```
 
-`FRAMEWORK-LIBRARY` requires a stable technical scope brief, operational scenario analysis, known commands, named evidence owners, preserved spec/test/review gates, and accepting-owner approval. It MUST NOT create `{roadmap-file}` or a product milestone.
+`FRAMEWORK-LIBRARY` requires a stable technical scope brief, operational scenario analysis (files, or the light-profile evidence above), known commands, named evidence owners, preserved spec/test/review gates, and accepting-owner approval. It MUST NOT create `{roadmap-file}` or a product milestone.
 
 ## Required roadmap content
 
@@ -255,8 +257,8 @@ For an EXEMPT change, use this branch instead of the roadmap/milestone fields ab
 - Status: EXEMPT
 - Roadmap: EXEMPT — {reason}
 - Milestone: EXEMPT — product-level scope unchanged
-- Scope brief: {plan-dir}/scope-brief.md
-- Scenarios: {plan-dir}/scenario-analysis.md
+- Scope brief: {plan-dir}/scope-brief.md | INLINE — {light-profile pointer}
+- Scenarios: {plan-dir}/scenario-analysis.md | INLINE — {light-profile pointer}
 - Product decisions: N/A — {why no product decision changed}
 - Project skeleton: CONFIRMED | MISSING — {frontend/backend/data/config status}
 - Commands: CONFIRMED | MISSING — {build/test/run commands}
@@ -264,7 +266,7 @@ For an EXEMPT change, use this branch instead of the roadmap/milestone fields ab
 - Human approval: APPROVED | REQUIRED
 ```
 
-`EXEMPT` requires the explicit scope-brief exemption, a matching scenario artifact, preserved existing spec/test/review gates, known commands and evidence, and accepting-owner approval. It does not require a roadmap or milestone, and it MUST NOT be upgraded to `READY` merely because the change is small.
+`EXEMPT` requires the explicit scope-brief exemption, a matching scenario artifact (the light-profile evidence above counts), preserved existing spec/test/review gates, known commands and evidence, and accepting-owner approval. It does not require a roadmap or milestone, and it MUST NOT be upgraded to `READY` merely because the change is small.
 
 For embedded large-idea work, use this branch:
 
@@ -290,8 +292,8 @@ For a framework/library change, use this branch:
 - Status: FRAMEWORK-LIBRARY | BLOCKED
 - Roadmap: NOT APPLICABLE — framework/library branch
 - Milestone: {technical registry ID or NOT APPLICABLE}
-- Scope brief: {plan-dir}/scope-brief.md
-- Scenarios: {plan-dir}/scenario-analysis.md
+- Scope brief: {plan-dir}/scope-brief.md | INLINE — {light-profile pointer}
+- Scenarios: {plan-dir}/scenario-analysis.md | INLINE — {light-profile pointer}
 - Product decisions: N/A — no adopter product intent changed
 - Framework owner: APPROVED | REQUIRED
 - Project skeleton: CONFIRMED | MISSING — {status}

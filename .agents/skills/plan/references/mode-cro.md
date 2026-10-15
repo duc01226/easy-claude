@@ -55,5 +55,5 @@ tags: [cro, conversion]
 
 - PLANNING-ONLY: do not implement, only create the CRO plan.
 - Focus on user behavior, conversion funnels, and measurable outcomes.
-- Preserve standard handoff: standalone follows the Standalone Validation Chain in `plan/SKILL.md`, setting and exits included, then asks once whether the user wants `$plan --mode=review`; workflow invocation returns directly to its parent.
+- Preserve standard handoff: standalone follows the Standalone Validation Chain in `plan/SKILL.md`, setting and exits included, after its Self-Review Pass, and asks no further review question; a workflow invocation runs the same Self-Review Pass unless the workflow lists its own `$plan --mode=review` step, then returns to its parent, after the same chain when that workflow lists no `$plan --mode=validate` step.
 - Be skeptical; every claim needs traced proof, confidence >80% to act.

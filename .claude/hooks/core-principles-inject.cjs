@@ -10,9 +10,13 @@ if ((require.main === module || !require.main) && require('./lib/framework-runti
  * `.claude/skills/shared/sync-inline-versions.md` so the gate stays near the model's attention
  * while it plans, implements and reviews. The universal `critical-thinking-mindset` protocol carries
  * its one-paragraph digest for every task. Triggers:
- *   - UserPromptSubmit (plain stdout), and
+ *   - UserPromptSubmit (plain stdout),
  *   - PostToolUse on the task/plan step boundaries `TodoWrite|TaskCreate|TaskUpdate|update_plan`
- *     (JSON `additionalContext`), so a long autonomous turn with no new prompt is covered too.
+ *     (JSON `additionalContext`), so a long autonomous turn with no new prompt is covered too,
+ *   - SubagentStart (JSON), once per spawn: a sub-agent receives no prompt event, and
+ *   - SessionStart `compact` (JSON): delivered at once, because the compaction dropped the earlier copy
+ *     and a run may continue with no prompt; the record absorbs the host's boundary line
+ *     (`deliverWithCompaction`), so the prompt that follows stays silent.
  *
  * De-duplication: `deliverOnce` of the session-scoped convention ledger (`lib/convention-ledger.cjs`,
  * the same owner `workflow-route-inject.cjs` delivers through) keeps one record per scope (main
@@ -36,6 +40,8 @@ if ((require.main === module || !require.main) && require('./lib/framework-runti
  *
  * @hook UserPromptSubmit
  * @hook PostToolUse (TodoWrite|TaskCreate|TaskUpdate|update_plan)
+ * @hook SubagentStart
+ * @hook SessionStart (compact)
  */
 
 const crypto = require('crypto');
@@ -77,6 +83,8 @@ function eventKind(input) {
     const event = input.hook_event_name;
     if (event === 'PostToolUse') return STEP_TOOLS.has(input.tool_name) ? 'step' : null;
     if (event === undefined || event === 'UserPromptSubmit') return 'prompt';
+    if (event === 'SubagentStart') return 'agent';
+    if (event === 'SessionStart' && input.source === 'compact') return 'compaction';
     return null;
 }
 
@@ -124,11 +132,11 @@ function recordTarget(projectDir, contentHash) {
     }
 }
 
-function formatPayload(kind, content) {
-    if (kind === 'step') {
-        return JSON.stringify({ hookSpecificOutput: { hookEventName: 'PostToolUse', additionalContext: content } });
-    }
-    return `${content}\n`;
+/** Plain stdout on a prompt; the JSON context envelope on every other event. */
+function formatPayload(input, content) {
+    const event = input.hook_event_name;
+    if (event === undefined || event === 'UserPromptSubmit') return `${content}\n`;
+    return JSON.stringify({ hookSpecificOutput: { hookEventName: event, additionalContext: content } });
 }
 
 function defaultWrite(text, done) {
@@ -172,6 +180,8 @@ function run(input, deps = {}) {
             // Missing core projection retains this independent compatible fallback.
             const contextDelivery = require('./lib/context-delivery.cjs');
             if (contextDelivery.conciseCore(projectDir, contextDelivery.profileOptions(deps))) {
+                // Bin 1 is registered on agent start and compaction itself; a second carrier would race it.
+                if (kind === 'agent' || kind === 'compaction') return finish('');
                 return require('./lib/universal-delivery.cjs').ensureConciseCore(input, { ...deps, projectRoot: projectDir }).then(finish, () => finish(''));
             }
             const routeUtils = require('./lib/prompt-route-utils.cjs');
@@ -183,12 +193,12 @@ function run(input, deps = {}) {
             const content = deps.content || buildContent(projectDir);
             const target = recordTarget(projectDir, crypto.createHash('sha256').update(content, 'utf8').digest('hex'));
             const ledger = deps.ledger || require('./lib/convention-ledger.cjs');
-            ledger.deliverOnce({
+            ledger.deliverWithCompaction({
                 root: deps.storeRoot || target.root,
-                input,
+                input: ledger.agentStartInput(input),
                 group: RECORD_GROUP,
                 hash: target.hash,
-                payload: formatPayload(kind, content),
+                payload: formatPayload(input, content),
                 settings,
                 now,
                 write: deps.write || defaultWrite

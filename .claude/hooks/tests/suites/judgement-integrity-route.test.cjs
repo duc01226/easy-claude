@@ -5,7 +5,7 @@ const os = require('os');
 const path = require('path');
 const { execFileSync, spawnSync } = require('child_process');
 const { assertTrue, assertContains } = require('../lib/assertions.cjs');
-const { runCodexLauncher, childEnv, makeHookTreeProject, removeTempDir } = require('../lib/hook-runner.cjs');
+const { runCodexLauncher, childEnv, makeHookTreeProject, removeTempDir, recordUserPrompts } = require('../lib/hook-runner.cjs');
 
 const PROJECT_DIR = process.env.CLAUDE_PROJECT_DIR;
 const HOOK_PATH = path.join(PROJECT_DIR, '.claude', 'hooks', 'judgement-integrity-route.cjs');
@@ -260,6 +260,39 @@ module.exports = {
             }
         },
         {
+            name: '[judgement-integrity-route] TC-JIR-011 sub-agent start and compaction classify the latest recorded user prompt and answer as context',
+            fn: () => {
+                const project = makeSettingsProject({});
+                const deps = { ...ISOLATED, projectDir: project };
+                const agentStart = { hook_event_name: 'SubagentStart', session_id: 's1', agent_id: 'a1', agent_type: 'general-purpose' };
+                const compaction = { hook_event_name: 'SessionStart', session_id: 's1', source: 'compact' };
+                try {
+                    // Given no recorded prompt / Then neither prompt-less event routes
+                    assertTrue(hook.evaluate(agentStart, deps) === '' && hook.evaluate(compaction, deps) === '', 'no ledger stays silent');
+                    // Given the latest recorded prompt asks for a verdict
+                    recordUserPrompts(project, 's1', ['refactor the loader', 'does this plan have any gaps?']);
+                    for (const input of [agentStart, compaction]) {
+                        // When the event carries no prompt of its own / Then the directive names the recorded lean
+                        const text = hook.evaluate(input, deps);
+                        assertContains(text, `lean: ${PROBLEM_PRESUMED}`);
+                        // And the output is the event's context envelope, not plain stdout
+                        const envelope = JSON.parse(require('../../lib/prompt-route-utils.cjs').routerOutput(input, text));
+                        assertTrue(envelope.hookSpecificOutput.hookEventName === input.hook_event_name, 'envelope names the event');
+                        assertContains(envelope.hookSpecificOutput.additionalContext, hook.MARKER_START);
+                    }
+                    // Given a later build request recorded after the verdict ask / Then the latest prompt decides: silent
+                    recordUserPrompts(project, 's1', ['does this plan have any gaps?', 'implement the plan']);
+                    assertTrue(hook.evaluate(agentStart, deps) === '', 'an older verdict ask never routes');
+                    // And other session-start sources never read the ledger
+                    for (const source of ['startup', 'resume', 'clear']) {
+                        assertTrue(hook.evaluate({ ...compaction, source }, deps) === '', `${source} stays silent`);
+                    }
+                } finally {
+                    fs.rmSync(project, { recursive: true, force: true });
+                }
+            }
+        },
+        {
             name: '[judgement-integrity-route] TC-JIR-005 entry point emits the directive and exits 0',
             fn: () => {
                 // Given a fixture project with no settings and the developer's switch removed from the environment
@@ -296,11 +329,15 @@ module.exports = {
             }
         },
         {
-            name: '[judgement-integrity-route] TC-JIR-006 registered on UserPromptSubmit and carried by the universal critical-thinking protocol',
+            name: '[judgement-integrity-route] TC-JIR-006 registered on UserPromptSubmit, SubagentStart and SessionStart compact, and carried by the universal critical-thinking protocol',
             fn: () => {
                 const settings = require(path.join(PROJECT_DIR, '.claude', 'settings.json'));
-                const commands = (settings.hooks.UserPromptSubmit || []).flatMap(group => group.hooks.map(h => h.command));
-                assertTrue(commands.some(c => c.includes('judgement-integrity-route.cjs')), 'hook must be wired in settings.json');
+                const wired = (event, matcher) => (settings.hooks[event] || [])
+                    .filter(group => matcher === undefined || group.matcher === matcher)
+                    .some(group => group.hooks.some(h => h.command.includes('judgement-integrity-route.cjs')));
+                assertTrue(wired('UserPromptSubmit'), 'hook must be wired on prompts');
+                assertTrue(wired('SubagentStart'), 'hook must be wired on every sub-agent start');
+                assertTrue(wired('SessionStart', 'compact'), 'hook must be wired on the compaction report');
                 // The universal protocol carries the rule for every task; the hook adds the lean-specific directive.
                 const full = extractSyncBody(fs.readFileSync(SYNC_PATH, 'utf8'), 'critical-thinking-mindset');
                 assertContains(full, '**Judgement integrity:**');

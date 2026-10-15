@@ -2,7 +2,7 @@
 
 > Loaded by `spec/SKILL.md`'s Mode Dispatch when invoked as `/spec [mode=index] [action=index|audit] [bucket=<scope>] [artifacts=INDEX[,ERD]]`. This contract REPLACES the spec authoring body for the invocation: it assembles regenerable navigation aids (index, cross-capability ERD, reimplementation guide) FROM canonical specs only, or audits them for staleness. It never authors canonical content and never becomes a source of truth.
 
-> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
+> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval. Inside a workflow run, `/start-workflow` → Workflow-step mode bounds this rule.
 > **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
@@ -186,6 +186,8 @@ If a requested artifact conflicts with the project's canonical ownership or outp
 
 ## Next Steps
 
+> **Inside a workflow:** when this skill runs as a step of an active workflow, skip the prompts in this section and return the result — the workflow's next step decides what runs (`/start-workflow` → Step Execution Protocol, Workflow-step mode).
+
 **[BLOCKING]** After completing, use `ask user question tool` — DO NOT skip:
 
 - **"/docs-manager --mode=update (Recommended)"** — reconcile stale canonical specs and their profile-defined case/test carriers
@@ -216,7 +218,7 @@ The protocols below apply to this mode only; their full text is inline so this r
 
 ## Prompt-Enhance Closing Anchors
 
-**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval
+**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval; inside a workflow run, `/start-workflow` → Workflow-step mode bounds this
 **IMPORTANT MUST ATTENTION** for every step/sub-skill call: set `in_progress` before execution, set `completed` after execution
 **IMPORTANT MUST ATTENTION** every skipped step MUST include explicit reason; every completed step MUST include concise evidence
 **IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses

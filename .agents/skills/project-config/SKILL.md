@@ -243,7 +243,7 @@ protocol on top of the canonical route gate. The value is either:
 
 ### Workflow activation tiers (`portability.workflowActivation`)
 
-In route mode `ask` the route gate's workflow question is asked only when the route is to start a catalog workflow (direct and custom-simple routes ask nothing) (mode `auto` lets the tier decide whether to ask); use this when the
+In route mode `ask` the route gate's workflow question is asked only when the route is to start a catalog workflow (direct and custom-simple routes ask nothing) (mode `auto` asks the same question, recommending the full workflow first); use this when the
 project wants to change which option that question recommends (or hide a workflow's wrapper skill from
 implicit invocation with `manual`), without forking `.claude/workflows.json`. Tier order is `auto` < `confirm` < `manual`.
 

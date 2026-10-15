@@ -2,7 +2,7 @@
 
 > Loaded by `architecture/SKILL.md`'s Mode Dispatch when invoked as `/architecture --mode=scalability [init|audit] [scope]`. Formerly `/architecture-scalability-review`. This contract is the whole invocation: run it exactly as written, standalone or as a workflow step. `$ARGUMENTS` in this file means the invocation text after `--mode=scalability`. The `mode=init` / `mode=audit` tokens below are this mode's run type (passed as `init` / `audit` or `mode=init` / `mode=audit`); they are separate from the skill-level `--mode=scalability` that selected this file.
 
-> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
+> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval. Inside a workflow run, `/start-workflow` → Workflow-step mode bounds this rule.
 > **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
@@ -164,7 +164,7 @@ Run this cross-cutting setup gate after G1-G7 and before report emission. Consum
 
 1. Verify one row each for Unit, Integration/System, and E2E. Each row is `APPLICABLE` only with runner/framework/configuration/root evidence, or `N/A — {specific evidence}`. An E2E `N/A` must cite the verified absence of a browser runner/configuration/command, never the absence of a preferred tool.
 2. For every applicable row, verify copy-ready full and focused commands, invalid/zero-match non-zero behavior, CI gate, simple Windows/macOS/Linux entry point where needed, owner, and exact result fields.
-3. Verify the declared run identity and business-data suffix, supported public setup path, realistic valid data, idempotent/restart-safe reference setup, additive persistent-data policy, mutable-root/parallel-worker isolation, pacing/arrange barrier, and two consecutive no-reset full runs for each applicable persistent-state suite. Missing or placeholder evidence is `BLOCKED`, not a guessed pass.
+3. Verify the declared run identity and business-data suffix, supported public setup path, realistic valid data, idempotent/restart-safe reference setup, additive persistent-data policy, mutable-root/parallel-worker isolation, pacing/arrange barrier, and two consecutive no-reset full runs for each applicable persistent-state integration suite (one fresh green full run for other tiers). Missing or placeholder evidence is `BLOCKED`, not a guessed pass.
 4. Emit `TVC: PASS | PARTIAL | BLOCKED` with the matrix, evidence, owner, and follow-up. `PASS` means every tier is resolved and every applicable field is evidenced; `PARTIAL` records the bounded gap without inventing a tier or command.
 
 TVC is setup/verification status, not an eighth score area. It MUST NOT change any 0-2 grade, `/20` denominator or total, verdict band, G1-G7 status, or advisory matrix. `BLOCKED` prevents a `setup complete` claim and remains a report follow-up, not a score deduction.

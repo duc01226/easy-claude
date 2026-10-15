@@ -498,6 +498,7 @@
         [
           "project-protocol-overlay",
           "lesson-extraction-gate",
+          "quality-skill-routing",
           "universal-closing-reminders"
         ]
       ],
@@ -548,6 +549,10 @@
         },
         "lesson-extraction-gate": {
           "summary": "Extract root-cause lessons at the end of a non-trivial task",
+          "when": "delivered by the universal hook"
+        },
+        "quality-skill-routing": {
+          "summary": "Route review, test and failure work to the project's registered skills first",
           "when": "delivered by the universal hook"
         },
         "universal-closing-reminders": {

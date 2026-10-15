@@ -268,14 +268,9 @@ function getLedgerSettings() {
     return ledgerSettings;
 }
 
-/**
- * The ledger input of this event. A sub-agent start is always its own scope: a host that reports no
- * agent id would otherwise share the main conversation's record and the agent would get nothing.
- */
+/** The ledger input of this event: a sub-agent start is always its own scope (`agentStartInput`). */
 function scopedInput(input) {
-    if (input.hook_event_name !== 'SubagentStart' || nonBlank(input.agent_id)) return input;
-    const crypto = require('node:crypto');
-    return { ...input, agent_id: `start-${crypto.randomBytes(6).toString('hex')}` };
+    return require('./convention-ledger.cjs').agentStartInput(input);
 }
 
 /**
@@ -310,11 +305,7 @@ function ensureConciseCore(input, deps = {}) { return deliverBin(1, input, deps)
  * record to remove, and delivery then runs fail-open without one.
  */
 function forgetRecord(ledger, store, input, group) {
-    try {
-        fs.rmSync(ledger.recordFile(store, input.session_id, ledger.scopeFor(input), group), { force: true });
-    } catch {
-        /* nothing to forget, or the store is unusable: delivery still runs */
-    }
+    ledger.forgetRecord(store, input, group);
 }
 
 function defaultWrite(text, done) {

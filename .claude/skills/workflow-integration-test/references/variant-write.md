@@ -42,7 +42,7 @@ Each gate names the evidence `/workflow-end` checks. None of them flexes.
 | `/spec [mode=sync]`                  | gate     | Always.                                                                                                                                                                                                                                                                                  | `spec-synced`                                                   |
 | `/docs-manager --mode=update`                       | optional | When: Test coverage changed materially, or a doc records evidence, coverage or test counts this run changed. · Skip reason: Coverage did not change materially and no doc records evidence, coverage or test counts this run changed; the spec sync gate already updated the case links. | Feature-doc evidence and version history.                       |
 | `/workflow-end`                      | gate     | Always, last.                                                                                                                                                                                                                                                                            | `run-closed`                                                    |
-| `/watzup`                            | core     | Always; produces the session recap and next-step prompt.                                                                                                                                                                                                                                  | Recap.                                                          |
+| `/watzup`                            | optional | When a session report is wanted; otherwise `/workflow-end` prints the recap.                                                                                                                                                                                                                                  | Recap.                                                          |
 
 ## Orchestration Freedom
 
@@ -57,7 +57,7 @@ Before `/integration-test`, `/investigate` emits one evidence-backed record and 
 
 ## Memory & Reporting
 
-- One task per selected step plus a final review task; a step that closes as `when-false` completes with its recorded skip reason.
+- One phase task per phase, one row per selected step plus a final review task; a step that closes as `when-false` completes with its recorded skip reason.
 - Write `tmp/reports/workflow-integration-test-{mode}-{YYMMDD}-{HHmm}-{slug}.md` FIRST (triage, contract record, case-to-test map), then append per step or partition.
 - After compaction or resume, re-read the report, the Goal Contract and `TaskList` before continuing.
 
@@ -75,4 +75,4 @@ Before `/integration-test`, `/investigate` emits one evidence-backed record and 
 - **MUST ATTENTION** read the production and test source BEFORE writing any assertion; every test names the invariant it protects and asserts an outcome the system owns — NEVER smoke-only.
 - **MUST ATTENTION** follow the project's configured test conventions (runner, fixtures, waits, annotations); wait on a real observable signal, never a blanket helper or a blind sleep.
 - **MUST ATTENTION** a failing test gets a five-way Fault Verdict before any edit; NEVER force green, and never claim verification without runner output.
-- **MUST ATTENTION** bootstrap one task per selected step plus a final review task, write the report FIRST, cite `file:line` evidence, and end with the lessons-learned check.
+- **MUST ATTENTION** bootstrap one phase task per phase, one row per selected step plus a final review task, write the report FIRST, cite `file:line` evidence, and end with the lessons-learned check.

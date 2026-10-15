@@ -46,10 +46,10 @@ Detect the mode from the invocation arguments before any other work; do not load
 | `--mode=story [task path]` | User stories from tasks: slicing features, breaking down requirements into INVEST stories. Formerly `/story` | `references/mode-story.md` |
 | `--mode=mockup [--source=<path>] [--explore]` | Interactive HTML mockup from a task, story or spec artifact; `--explore` offers 1-3 design directions behind a scope gate. Formerly `/pbi-mockup` | `references/mode-mockup.md` |
 | `--mode=challenge [task path] [--reuse=<report \| task-review>]` | Dev BA PIC review of a task draft: an AI-assisted challenge of each draft by a different reviewer. Formerly `/pbi-challenge` | `references/mode-challenge.md` |
-| `--mode=review [--type={task\|story\|spec-tests\|design}] [artifact path]` | Artifact quality review before handoff: per-type checklist, M1-M7 gate, validated-fix loop with full re-review. Formerly `/artifact-review` | `references/mode-review.md` |
-| `--mode=dor [task path] [--reuse=<report \| task-review>]` | Readiness check of a task (8 DoR criteria, M1-M7 gates) before planning. Formerly `/dor-gate` | `references/mode-dor.md` |
+| `--mode=review [--type={task\|story\|spec-tests\|design}] [artifact path]` | Artifact quality review before handoff: per-type checklist (a Feature Spec reviews as `spec-tests` with its §1-7 section), M1-M7 gate, validated-fix loop with full re-review. Formerly `/artifact-review` | `references/mode-review.md` |
+| `--mode=dor [task path] [--reuse=<report \| task-review>]` | Readiness check of a task and, once sliced, its stories (8 DoR criteria, story rows, M1-M7 gates) before planning. Formerly `/dor-gate` | `references/mode-dor.md` |
 
-The selected reference owns every gate, flag, output, report path, round cap and reminder. `challenge` is cross-person review; `review` owns type scoring and validated-fix re-review; `dor` owns the eight readiness criteria. Mockup's scope gate, journey report and design-authority read precede generation; run it in the main session when user questions are required.
+The selected reference owns every gate, flag, output, report path, round cap and reminder. `challenge` is cross-person review; `review` owns type scoring and validated-fix re-review; `dor` owns the eight readiness criteria and the story rows. Mockup's scope gate, journey report and design-authority read precede generation; run it in the main session when user questions are required.
 
 ### Conditional detail references
 

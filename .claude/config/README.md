@@ -32,7 +32,7 @@ claude --settings .claude/config/vanilla-settings.json --disable-slash-commands
 
 Project agents in `.claude/agents/` and the permission rules in `.claude/settings.json` stay active. `--settings` overrides the same keys in every settings file for this session only; the next plain `claude` session runs the full framework again.
 
-To keep the framework but change how workflows start, set the workflow route mode instead (`off` = no workflow or workflow skill starts without an explicit request, `auto` = start without asking, `ask` = the default) — for the team in `docs/project-config.json`, or for yourself in `~/.claude/.ck.json`, `.claude/.ck.local.json` or env `CK_WORKFLOW_ROUTE_MODE` (see `.claude/docs/configuration/README.md`).
+To keep the framework but change how workflows start, set the workflow route mode instead (`off` = no workflow or workflow skill starts without an explicit request, `auto` = ask, recommending the full workflow first, `ask` = the default) — for the team in `docs/project-config.json`, or for yourself in `~/.claude/.ck.json`, `.claude/.ck.local.json` or env `CK_WORKFLOW_ROUTE_MODE` (see `.claude/docs/configuration/README.md`).
 
 ## Adopter quick settings
 
@@ -103,6 +103,21 @@ After refreshing `.claude/` from the framework:
 3. **Update project overlays** whose Target is an old name (`/project-skill-protocol list`). Targets match by exact name, so an old one stops applying without a warning.
 4. **Re-run `node .claude/scripts/sync-skill-profile.cjs`** when you use `skillProfile`: it removes the `skillOverrides` keys it wrote for the old names, and until then a committed `"code-review": "off"` still blocks the built-in. Then run `/sync-codex` to regenerate the Codex and OpenCode mirrors.
 
+### Planned-work merge and workflow phases — migrating an adopting project
+
+Three planning workflows are now one, `workflow-planned-work`, with a mode per former workflow. There is no alias: the old ids no longer resolve.
+
+| Old name | New name | What changes for the caller |
+| --- | --- | --- |
+| `workflow-initiative-to-task` | `workflow-planned-work` | Mode `idea-to-tasks`, the default (`--from=idea --to=tasks`); step ids `initiative-to-task-*` are `idea-to-tasks-*`. |
+| `workflow-initiative-to-spec` | `workflow-planned-work` | Mode `idea-to-spec` (`--from=idea --to=spec`); step ids `initiative-to-spec-*` are `idea-to-spec-*`. |
+| `workflow-spec-to-task` | `workflow-planned-work` | Mode `spec-to-tasks` (`--from=spec --to=tasks`); step ids `spec-to-task-*` are `spec-to-tasks-*`. |
+| `workflow-greenfield-init` (idea to built first slice) | `workflow-greenfield-init` (idea to reviewed foundation), then `workflow-implement-spec` | The id stays; the run stops after the foundation review and hands the first slice, its spec and the approved plan to `/workflow-implement-spec`, whose near-end E2E always runs for it. |
+| One todo per workflow step | One todo per phase (`phases` in `.claude/workflows.json`) | Each phase todo lists its steps as rows with run or skip evidence; a workflow of your own without `phases` keeps one todo per step. |
+| Route mode `auto` started a matched workflow without asking | Every route mode asks the workflow question before a self-selected workflow starts | `auto` now only recommends the full workflow first; an explicit `/workflow-*` request still runs with no question. |
+
+After refreshing `.claude/`: delete `.claude/skills/{workflow-initiative-to-task,workflow-initiative-to-spec,workflow-spec-to-task}/`, rename the old ids wherever your `docs/project-config.json` names them (`portability.workflowActivation.overrides` included: an override on an old id no longer applies), then run `/sync-codex`.
+
 ### Work-tracker vocabulary — migrating an adopting project
 
 The work tracker and the skills around it use one vocabulary: initiative, task, story, subtask and area, each kind with its own statuses. Skills, templates, keys, tracker commands and stored records that used other words were renamed or replaced with it. There is no alias: an old name no longer resolves.
@@ -111,9 +126,9 @@ The work tracker and the skills around it use one vocabulary: initiative, task, 
 | --- | --- | --- |
 | `pbi` | `work-item` | `/work-item --mode={refine\|story\|mockup\|challenge\|review\|dor}`; modes unchanged, `--type=pbi` is `--type=task`, `--reuse=pbi-review` is `--reuse=task-review`. The record it writes is a task. |
 | `idea` | `initiative` | `/initiative`; the record it writes is an initiative. |
-| `workflow-idea-to-pbi` | `workflow-initiative-to-task` | Workflow id and step ids `idea-to-pbi-*` are `initiative-to-task-*`. |
-| `workflow-spec-to-pbi` | `workflow-spec-to-task` | Workflow id and step ids `spec-to-pbi-*` are `spec-to-task-*`. |
-| `workflow-idea-to-spec` | `workflow-initiative-to-spec` | Workflow id and step ids `idea-to-spec-*` are `initiative-to-spec-*`. |
+| `workflow-idea-to-pbi` | `workflow-initiative-to-task`, since merged into `workflow-planned-work` | Workflow id and step ids `idea-to-pbi-*` became `initiative-to-task-*`, now mode `idea-to-tasks` with step ids `idea-to-tasks-*` (see the planned-work merge above). |
+| `workflow-spec-to-pbi` | `workflow-spec-to-task`, since merged into `workflow-planned-work` | Workflow id and step ids `spec-to-pbi-*` became `spec-to-task-*`, now mode `spec-to-tasks` with step ids `spec-to-tasks-*`. |
+| `workflow-idea-to-spec` | `workflow-initiative-to-spec`, since merged into `workflow-planned-work` | Workflow id and step ids `idea-to-spec-*` became `initiative-to-spec-*`, now mode `idea-to-spec` with step ids `idea-to-spec-*`. |
 | `pbi-template.md`, `idea-template.md` | `task-template.md`, `initiative-template.md` | Framework template files (same folder as before, framework-owned path); new records use `TASK-{YYMMDD}-{NNN}` and `INITIATIVE-{YYMMDD}-{NNN}`. |
 | `shared/releasable-pbi-contract.md` | `shared/releasable-task-contract.md` | Update any pointer of your own. |
 | Frontmatter keys `source_idea`, `idea_reference`, `pbi_references`, `parent_pbi`, `source_pbi` (design spec and test spec) | `source_initiative`, `initiative_reference`, `task_references`, `parent_task`, `source_task` | New artifacts write the new key. `migrate` does not rewrite authored keys: an existing artifact keeps the earlier key and it is read as the same link. |

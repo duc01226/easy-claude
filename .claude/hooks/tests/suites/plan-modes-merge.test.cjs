@@ -29,9 +29,11 @@
  *                verify-last order and the no-implicit-Git rule.
  *   TC-PMM-012 — a standalone plan creation chains into the validation interview as the
  *                `plan.validation.mode` setting directs (shipped default auto), applies the answers
- *                and shows its edits; a workflow, a calling skill, an off setting, a declined request
- *                and a context that cannot reach the user never start it; the intake modes and the
- *                planner agent state the same hand-off.
+ *                and shows its edits; a workflow plan step runs the same chain when its workflow lists
+ *                no validate step, and closes without the review question; a workflow with its own
+ *                validate step, a calling skill, an off setting, a declined request and a context that
+ *                cannot reach the user never start it; the intake modes and the planner agent state
+ *                the same hand-off.
  *
  * Portability: TC-PMM-007 runs on in-memory fixture registries. Every other row asserts this
  * framework repository's own skills and registry and is skipped in any other project (framework-repo
@@ -389,7 +391,7 @@ const tests = [
         }
     },
     {
-        name: 'TC-PMM-012 a standalone plan creation chains into the validation interview as the setting directs; workflow, calling-skill, off, declined and no-user runs never start it',
+        name: 'TC-PMM-012 a plan creation reviews itself once, then chains into the validation interview as the setting directs, standalone or in a workflow with no validate step; a workflow with its own validate step, calling-skill, off, declined and no-user runs never start the interview, and inside a workflow the plan approval is always asked',
         skip: SKIP,
         fn: () => {
             // Given the chain section of the default plan skill, placed after the self-check
@@ -442,7 +444,14 @@ const tests = [
             assert.match(chain, /an answer of no to the `prompt` question counts/);
             assert.match(chain, /From the project root, read the effective value/);
             const exits = chain.slice(exitsAt);
-            assert.match(exits, /- \*\*A workflow owns this run\*\*/);
+            assert.match(exits, /- \*\*A workflow owns this run and lists its own `\/plan --mode=validate` step\*\* — that step decides/);
+            // A workflow with no validate step runs the chain inside its plan step, so the answers are applied there, and closes without the review question
+            assert.match(exits, /When the workflow lists no validate step, run this chain inside the workflow too, so the answers are applied in this same step/);
+            assert.match(chain, /3\. \*\*Close\*\* — return the plan path and summary with the review and validation results; ask no further question, standalone or inside a workflow/);
+            // Inside a workflow the interview asks only open material decisions; with none open the plan records it and returns
+            assert.match(exits, /Inside a workflow the interview asks only the material decisions the plan leaves open that the run's decision log does not already hold; an unapproved Plan Gate \(`Human approval: REQUIRED`\) counts as one, and its question is the plan approval\. With none open, write `Validation: not needed — no open material decision`/);
+            // And no setting or decline skips the Plan Gate approval inside a workflow
+            assert.match(exits, /Inside a workflow plan step this exit skips the decision interview only: an unapproved Plan Gate still gets its one approval question/);
             assert.match(exits, /- \*\*Another skill runs plan creation as one of its own steps\*\* — that skill owns what follows the plan/);
             assert.match(exits, /- \*\*The setting is `off`, or the request explicitly declines validation\*\* \(an answer of no to the `prompt` question counts\) — write `Validation: SKIPPED/);
             // And a context with no user channel records PENDING in the plan, hands back, and the receiving session resumes the chain
@@ -453,8 +462,8 @@ const tests = [
             // The off-or-declined exit is listed before the no-user exit: a sub-agent under `off` records SKIPPED, not PENDING
             assert.ok(exits.indexOf('**The setting is `off`') < exits.indexOf('**This context cannot reach the user**'), 'off is checked before the no-user hand-back');
             // And both invocation contexts agree with the chain
-            assert.match(text, /\*\*Workflow invocation:\*\*[^\n]*do not run the validation interview/);
-            assert.match(text, /\*\*Standalone invocation:\*\*[^\n]*run the \[Standalone Validation Chain\]\(#standalone-validation-chain\) as the `plan\.validation\.mode` setting directs/);
+            assert.match(text, /\*\*Workflow invocation:\*\*[^\n]*Run the validation interview only when the workflow lists no `\/plan --mode=validate` step of its own; when it does, that parent step owns validation/);
+            assert.match(text, /\*\*Standalone invocation:\*\*[^\n]*run the \[Self-Review Pass\]\(#self-review-pass\); then run the \[Standalone Validation Chain\]\(#standalone-validation-chain\) as the `plan\.validation\.mode` setting directs/);
             assert.match(text, /the chain's own exits cover a plan that another skill creates as one of its steps/);
             // And review and execute stay separate invocations that creation never starts
             assert.match(text, /`--mode=review` and `--mode=execute` are separate invocations over an existing plan; plan creation never chains into them/);
@@ -462,8 +471,11 @@ const tests = [
             const validate = modeValidate();
             assert.match(validate, /1\. Chained from a standalone plan creation → use the plan path that creation just saved/);
             assert.match(validate, /\*\*Chained from a standalone plan creation:\*\* present none of the options below/);
+            assert.match(validate, /which applies the action items and closes with no further question\. A workflow plan step that runs the chain counts as chained/);
+            assert.match(validate, /inside a workflow the setting never skips the Plan Gate approval question/);
             assert.match(validate, /decides only whether a standalone plan creation starts this interview/);
-            assert.match(validate, /A direct `--mode=validate` invocation and a workflow step always run it/);
+            assert.match(validate, /A direct `--mode=validate` invocation and a `\/plan --mode=validate` workflow step always run it/);
+            assert.match(validate, /a workflow plan step that runs the chain counts as one \(`plan\/SKILL\.md` → Standalone Validation Chain/);
             assert.ok(validate.includes("require('./.claude/hooks/lib/ck-config-loader.cjs').loadConfig().plan.validation"), 'the range is read as the effective merged value');
             // A decision with one reading is recorded as an unasked assumption with its evidence, never as confirmed
             assert.match(validate, /is not asked: record it under `### Assumptions Not Asked` with that evidence/);
@@ -473,7 +485,7 @@ const tests = [
             }
             // And the intake modes and the planner agent state the same hand-off
             for (const mode of ['mode-ci.md', 'mode-cro.md']) {
-                assert.match(read(SKILLS, 'plan', 'references', mode), /standalone follows the Standalone Validation Chain in `plan\/SKILL\.md`, setting and exits included, then asks once whether the user wants `\/plan --mode=review`/);
+                assert.match(read(SKILLS, 'plan', 'references', mode), /standalone follows the Standalone Validation Chain in `plan\/SKILL\.md`, setting and exits included, after its Self-Review Pass, and asks no further review question/);
             }
             const planner = read(REPO_ROOT, '.claude', 'agents', 'planner.md');
             const owed = planner.split('\n').filter(l => /standalone (invocation )?follows the Standalone Validation Chain in `plan\/SKILL\.md`, setting and exits included/i.test(l));
@@ -481,6 +493,11 @@ const tests = [
             assert.match(planner, /hand back `Validation: PENDING — run the Standalone Validation Chain of the plan skill on <plan-path>`/);
             assert.doesNotMatch(planner, /owes the (automatic )?validation interview/i, 'the planner never restates the chain without its setting');
             assert.doesNotMatch(planner, /Invoke only when the caller selected this gate/);
+            // And a workflow plan step reviews its own plan too, unless its workflow lists its own plan review (round 5 M1):
+            // the workflow branch of the invocation context, the post-save step and the planner agent all say so
+            assert.match(text, /\*\*Workflow invocation:\*\*[^\n]*Run the \[Self-Review Pass\]\(#self-review-pass\) unless the workflow lists its own `\/plan --mode=review` step/);
+            assert.match(text, /Persist the plan path and a short summary, then run the \[Self-Review Pass\]\(#self-review-pass\); its own list says when it is skipped/);
+            assert.match(planner, /workflow invocation runs the same Self-Review Pass unless the workflow lists its own `\/plan --mode=review` step, then returns to its parent/);
             // And a calling skill that plans as its own step keeps its own contract
             assert.match(read(SKILLS, 'project-config', 'SKILL.md'), /recon → `\/plan` → execute/);
         }

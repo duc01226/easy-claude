@@ -10,23 +10,27 @@ disable-model-invocation: false
 
 Read [the registry](../../../.claude/workflows.json) → `workflows.workflow-research` together with this skill. Call [`/start-workflow workflow-research`](../start-workflow/SKILL.md) to resolve the selected mode, pre-actions and fingerprint.
 
-**Todo FIRST:** create one todo for EVERY selected occurrence before triage, analysis or step execution, including conditional/optional ones; preserve occurrence IDs, roles and barrier groups. Use native todo tools or an equivalent persistent ledger. Then mark the first todo `in_progress`; attach evidence before `completed`.
+**Todo FIRST:** before triage, analysis or step execution, create one todo per phase of the selected mode, in order, listing every occurrence of that phase as a line, including conditional/optional ones (a mode that declares no phases gets one todo per occurrence); preserve occurrence IDs, roles and barrier groups. Use native todo tools or an equivalent persistent ledger. Then mark the first todo `in_progress`; close each step line with its run or skip evidence, and complete a phase todo only when every line is closed and its applicable exit gates hold.
 Mode selection and registry loading prepare tracking; any 'first action' below means the first substantive action after this bootstrap.
 
 **Call each step skill:** read its linked SKILL.md and execute its protocol through the active host with the registry args. Reading or naming a skill alone is not execution. Required gates and core/optional flex follow the linked start-workflow Step Execution Protocol; keep this skill's quality gates, loops and evidence requirements.
 
-**Conditions:** load each occurrence's registry `applicability.when` and `skipReason` verbatim, and record its run/skip evidence through the linked start-workflow protocol. Do not silently omit a todo or turn a conditional skill into an unconditional call. Declared parallel groups retain their all-return barrier.
+**Conditions:** load each occurrence's registry `applicability.when` and `skipReason` verbatim, and record its run/skip evidence through the linked start-workflow protocol. Do not silently omit a todo or turn a conditional skill into an unconditional call; close, in one batch at triage, the todos whose condition is already false there. Declared parallel groups retain their all-return barrier.
 
 Explicit step-skill calls by mode (registry order; roles and conditions remain owned by the registry):
 
-- Mode `synthesis`: [`/web-research --chain=deep-dive`](../web-research/SKILL.md) (core) → [`/knowledge-synthesis`](../knowledge-synthesis/SKILL.md) (core) → [`/knowledge-review`](../knowledge-review/SKILL.md) (gate) → [`/workflow-end`](../workflow-end/SKILL.md) (gate) → [`/watzup`](../watzup/SKILL.md) (core)
-<!-- workflow-mode:synthesis fingerprint:7b809eaa17484de91e90130dde3c8a4e187ecaeaff3cb8ef7968d2bd4bcd15eb -->
-- Mode `business-eval`: [`/web-research --chain=deep-dive`](../web-research/SKILL.md) (core) → [`/market-analysis`](../market-analysis/SKILL.md) (core) → [`/business-evaluation`](../business-evaluation/SKILL.md) (core) → [`/knowledge-review`](../knowledge-review/SKILL.md) (gate) → [`/workflow-end`](../workflow-end/SKILL.md) (gate) → [`/watzup`](../watzup/SKILL.md) (core)
-<!-- workflow-mode:business-eval fingerprint:622a9e93b416189e82165b0b513bd8a5db7a7750c07f3e6f5118860ca132c306 -->
-- Mode `marketing`: [`/web-research --chain=deep-dive`](../web-research/SKILL.md) (core) → [`/market-analysis`](../market-analysis/SKILL.md) (core) → [`/strategy-builder`](../strategy-builder/SKILL.md) (core) → [`/knowledge-review`](../knowledge-review/SKILL.md) (gate) → [`/workflow-end`](../workflow-end/SKILL.md) (gate) → [`/watzup`](../watzup/SKILL.md) (core)
-<!-- workflow-mode:marketing fingerprint:5a96e8ce8e5fe7c6c1dccc4ff6a9a3ddeeec248a49e2dc6dffe53041739e509e -->
-- Mode `course`: [`/web-research --chain=deep-dive`](../web-research/SKILL.md) (core) → [`/course-builder`](../course-builder/SKILL.md) (core) → [`/knowledge-review`](../knowledge-review/SKILL.md) (gate) → [`/workflow-end`](../workflow-end/SKILL.md) (gate) → [`/watzup`](../watzup/SKILL.md) (core)
-<!-- workflow-mode:course fingerprint:9db24af512eba31bd575de0016c9d583ababd30a05f1829b98736ca0175031bd -->
+- Mode `synthesis`: [`/web-research --chain=deep-dive`](../web-research/SKILL.md) (core) → [`/knowledge-synthesis`](../knowledge-synthesis/SKILL.md) (core) → [`/knowledge-review --fix-loop`](../knowledge-review/SKILL.md) (gate) → [`/workflow-end`](../workflow-end/SKILL.md) (gate) → [`/watzup`](../watzup/SKILL.md) (optional; conditional)
+  Phase todos: Discover (3; exit review-converged) → Close (2; exit run-closed)
+<!-- workflow-mode:synthesis fingerprint:ed8edfe31886313e9385ad0a8a18aed5072c6368009a258d7c54e008514d9b02 -->
+- Mode `business-eval`: [`/web-research --chain=deep-dive`](../web-research/SKILL.md) (core) → [`/market-analysis`](../market-analysis/SKILL.md) (core) → [`/business-evaluation`](../business-evaluation/SKILL.md) (core) → [`/knowledge-review --fix-loop`](../knowledge-review/SKILL.md) (gate) → [`/workflow-end`](../workflow-end/SKILL.md) (gate) → [`/watzup`](../watzup/SKILL.md) (optional; conditional)
+  Phase todos: Discover (4; exit review-converged) → Close (2; exit run-closed)
+<!-- workflow-mode:business-eval fingerprint:bb1eafaad9be2c4b1483ac6165360c484dee08040f83f403ffa6c3050dd4787b -->
+- Mode `marketing`: [`/web-research --chain=deep-dive`](../web-research/SKILL.md) (core) → [`/market-analysis`](../market-analysis/SKILL.md) (core) → [`/strategy-builder`](../strategy-builder/SKILL.md) (core) → [`/knowledge-review --fix-loop`](../knowledge-review/SKILL.md) (gate) → [`/workflow-end`](../workflow-end/SKILL.md) (gate) → [`/watzup`](../watzup/SKILL.md) (optional; conditional)
+  Phase todos: Discover (4; exit review-converged) → Close (2; exit run-closed)
+<!-- workflow-mode:marketing fingerprint:b0e4bb1aff30678ab7f703db24452a741e085cae20c94c9a1ec757fb13889fb0 -->
+- Mode `course`: [`/web-research --chain=deep-dive`](../web-research/SKILL.md) (core) → [`/course-builder`](../course-builder/SKILL.md) (core) → [`/knowledge-review --fix-loop`](../knowledge-review/SKILL.md) (gate) → [`/workflow-end`](../workflow-end/SKILL.md) (gate) → [`/watzup`](../watzup/SKILL.md) (optional; conditional)
+  Phase todos: Discover (3; exit review-converged) → Close (2; exit run-closed)
+<!-- workflow-mode:course fingerprint:e5ecac5bd853bc1f7f56e420d0afba33433a66a87c42e678231b9c0656fe5cc9 -->
 
 Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs --write` after registry edits; [`/sync-codex`](../sync-codex/SKILL.md) refreshes it before mirroring.
 <!-- WORKFLOW-CALLS:END -->
@@ -37,7 +41,7 @@ Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs
 
 **Use it when** the answer must come from external sources and end in a durable, cited deliverable. **Use a sibling instead** for a quick lookup with no artifact (plain `/web-research`) or for questions about this codebase (`/investigate`).
 
-**IMPORTANT MANDATORY Steps:** resolve the `workflow-research` manifest variant for `--output` first, then create one task per returned occurrence (the research occurrence runs `/web-research --chain=deep-dive`) (default: /web-research -> /knowledge-synthesis -> /knowledge-review -> /workflow-end -> /watzup).
+**IMPORTANT MANDATORY Steps:** resolve the `workflow-research` manifest variant for `--output` first (default `synthesis`), then create one task per phase with a row per returned occurrence (default: /web-research --chain=deep-dive -> /knowledge-synthesis -> /knowledge-review --fix-loop -> /workflow-end -> /watzup).
 
 **Step contract:** steps follow `/start-workflow` → Step Execution Protocol — `gate` steps always run, a step that runs invokes its `Skill` tool, and every other deviation is logged. NEVER batch-complete validation gates.
 
@@ -59,7 +63,7 @@ This skill is the canonical Research & Synthesis entry point. Invoke it with `--
 
 ## Output Modes (--output)
 
-Pick the mode from the prompt BEFORE creating tasks. When the prompt is ambiguous, use `synthesis` and state the assumption. Every mode shares one research step, `/web-research --chain=deep-dive` (source map, then evidence base; the `/source-deep-dive` procedure runs inside it per `.claude/skills/web-research/references/research-chain.md`), and the `/knowledge-review → /workflow-end → /watzup` close; only the terminal synthesis skill(s) differ.
+Pick the mode from the prompt BEFORE creating tasks. When the prompt is ambiguous, use `synthesis` and state the assumption. Every mode shares one research step, `/web-research --chain=deep-dive` (source map, then evidence base; the `/source-deep-dive` procedure runs inside it per `.claude/skills/web-research/references/research-chain.md`), and the `/knowledge-review --fix-loop → /workflow-end` close, followed by `/watzup` only when its condition holds; only the terminal synthesis skill(s) differ. The `/market-analysis` step of `business-eval` and `marketing` reads that evidence base first and searches only the gaps it names.
 
 | `--output`              | Deliverable                          | Terminal synthesis skill(s)                 |
 | ----------------------- | ------------------------------------ | ------------------------------------------- |
@@ -93,7 +97,7 @@ Classify the question and record it in the workflow report. Scope sets research 
 
 | Gate                                             | Evidence that proves it                                                                                                                                                                 |
 | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Review converged (`review-converged`)            | `/knowledge-review` verdict APPROVED on the final artifact, after validated REVISE/BLOCKED findings were fixed and re-reviewed.                                                         |
+| Review converged (`review-converged`)            | `/knowledge-review --fix-loop` verdict APPROVED on the final artifact: the gate validated its REVISE/BLOCKED findings, had them fixed at their owner and re-reviewed the fixed artifact in a fresh pass. |
 | Citation bar                                     | Every factual claim, number, table row and inference ends with an inline `[N]` citation mapped to a Sources row (Title, URL, Author/Publisher, Date, Tier).                             |
 | Cross-validated and calibrated | Factual claims rest on 2+ independent sources; a single-source claim is marked unverified and held below 60%; confidence above 80% needs contradicting evidence addressed; Tier 4 is never cited as fact; findings below 60% and open gaps are flagged. |
 | Artifact identity (`business-eval`, `marketing`) | One `MARKET_ANALYSIS_PATH`, written by `market-analysis` and read by its consumer.                                                                                                      |
@@ -106,9 +110,9 @@ Classify the question and record it in the workflow report. Scope sets research 
 | --------------------------- | ---- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | `/web-research --chain=deep-dive` | core | Always; depth per triage. Runs the `/source-deep-dive` procedure inline; the synthesis skills read its evidence base. | Tiered source map with gaps (`tmp/research/_sources-{slug}.md`), then the cross-validated evidence base (`tmp/research/_evidence-{slug}.md`). |
 | Terminal synthesis skill(s) | core | Per the Output Modes table.                                                  | The deliverable.                                                                         |
-| `/knowledge-review`         | gate | Always.                                                                      | `review-converged`: template, citation, confidence, source-quality and anti-bias checks. |
-| `/workflow-end`             | gate | Always, last.                                                                | `run-closed`.                                                                            |
-| `/watzup`                   | core | Always.                                                                      | Handoff summary with the artifact path.                                                  |
+| `/knowledge-review --fix-loop` | gate | Always. It owns validate → fix → fresh re-review.                         | `review-converged`: template, citation, confidence, source-quality and anti-bias checks. |
+| `/workflow-end`             | gate | Always, last.                                                                | `run-closed`, and the short handoff with the artifact path when nothing was built.       |
+| `/watzup`                   | optional | The user asked for a session report or an HTML wrap-up, or the session spanned several workflows or prompts that need one consolidated handoff. Skip reason: workflow-end printed the recap, or the short handoff when nothing was built, and every applicable outcome gate passed. | Session report with the artifact path.                                                  |
 
 ## Orchestration
 
@@ -118,7 +122,7 @@ Fixed data dependencies: inside the research step the source map exists before t
 
 ## Memory & Reporting
 
-- Create one task per resolved occurrence. Child skills expand their own phases under the parent row.
+- Create one task per phase, with a row per resolved occurrence. Child skills expand their own steps under the parent row.
 - Create the workflow report FIRST at `tmp/reports/workflow-research-{YYMMDD}-{HHmm}-{slug}.md`: mode, triage, resolver fingerprint, per-step evidence and deviations, and the paths of the source map, evidence base and final artifact. Append after each step.
 - Sub-agent briefs carry the topic, the slug, the exact paths and the evidence bar, and make report writing the first deliverable.
 - After compaction, re-read `TaskList` and the workflow report before continuing.
@@ -129,7 +133,7 @@ Retain this run’s source map and evidence base during synthesis, all review ro
 
 ## Findings & Fix Path
 
-- `/knowledge-review` is read-only. Validate each REVISE/BLOCKED finding against the evidence, then fix it at its owner. An evidence gap takes a targeted `/source-deep-dive` pass over the existing source map, or a `/web-research --chain=deep-dive` pass on the gap when the map lacks the needed sources. A synthesis defect (missing section, uncited claim, miscalibrated confidence) is fixed in the artifact through its synthesis skill. Then re-run `/knowledge-review` on the fixed artifact.
+- `/knowledge-review --fix-loop` owns the loop; each of its review passes is read-only. It validates each REVISE/BLOCKED finding against the evidence, has it fixed at its owner, then re-reviews the fixed artifact in a fresh pass. An evidence gap takes a targeted `/source-deep-dive` pass over the existing source map, or a `/web-research --chain=deep-dive` pass on the gap when the map lacks the needed sources. A synthesis defect (missing section, uncited claim, miscalibrated confidence) is fixed in the artifact through its synthesis skill.
 - Loop bounds: round 1 exits on zero open findings (LOW deferral); from round 2 the bar is zero CRITICAL/HIGH/MEDIUM, with LOWs deferred and listed; cap 3 review rounds; escalate via `ask user question tool` when a round makes no progress.
 
 <!-- PROTOCOL-GUIDES:START -->
@@ -156,7 +160,7 @@ Retain this run’s source map and evidence base during synthesis, all review ro
 
 - **MUST ATTENTION** select the `--output` mode and triage the question scope FIRST. Scope sets research depth inside the skill caps; it never lowers the citation or cross-validation bar.
 - **MUST ATTENTION** for `business-eval` and `marketing`, derive one `ARTIFACT_SLUG` and `MARKET_ANALYSIS_PATH` before the first research step and pass the exact values to every child.
-- **MUST ATTENTION** fix validated review findings at their owner (evidence gap → targeted `/source-deep-dive` or `/web-research --chain=deep-dive` pass, synthesis defect → the artifact), then re-run `/knowledge-review`.
+- **MUST ATTENTION** `/knowledge-review --fix-loop` fixes validated findings at their owner (evidence gap → targeted `/source-deep-dive` or `/web-research --chain=deep-dive` pass, synthesis defect → the artifact), then re-reviews the fixed artifact in a fresh pass.
 - **MUST ATTENTION Variant closure:** record the selected `--output` mode, resolver fingerprint, ordered occurrence IDs, each invoked skill's evidence, and every deviation before `/workflow-end`; a variant mismatch is a workflow failure.
 
 **Protocols in force (digest; the guide entries above point to the full text):** Nested Task Creation · Incremental Persistence · Sub-Agent Return Contract · Session Goal Ledger · Workflow Registry Binding.

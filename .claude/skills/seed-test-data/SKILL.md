@@ -24,7 +24,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob, TaskCreate, Agent
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
-> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
+> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval. Inside a workflow run, `/start-workflow` → Workflow-step mode bounds this rule.
 > **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
@@ -83,7 +83,7 @@ Create tasks for the ordered steps before editing; finish with the self-audit be
 6. **Implement:** apply the algorithm below with project keys, marker and scope handling.
 7. **Validate:** evidence every universal rule and project-required pattern, including registration/config, scope, timing, run integrity and redaction. Resolve applicable Unit/Integration/System/E2E types and modes from actual runner/config evidence: owner/root/data, full/focused commands, zero-match behavior, CI/platform entry point, supported environments, unique identity and repeat proof. Missing applicable fields block handoff; unsupported tiers need evidence-backed N/A.
 8. **Self-audit:** run this skill's `--mode=review` on changed seeder code; fix confirmed FAILs through Generate, then re-audit.
-9. **Fresh review:** run the Review Loop below.
+9. **Fresh review:** run the Review Loop below. As a workflow step (`nested=true`, defined in [Next Steps](#next-steps)) whose sequence runs `/changes-review` after this step, as `workflow-seed-test-data` does, skip the loop and hand the final independent review to that gate; record `fresh review handed to the workflow's changes-review gate` as the skip reason. Step 8's self-audit still runs. A standalone run keeps the loop.
 10. **Final review handoff:** `/changes-review` remains the final changes review after self-audit; follow Next Steps for standalone choices.
 11. **Lessons:** analyze AI mistakes and recurring lessons; record unresolved gaps.
 
@@ -115,6 +115,8 @@ Use discovery help for a large codebase, a `code-reviewer` for the post-implemen
 Treat direct domain inserts, duplicated validation, hardcoded counts, missing environment/count gates, loops starting at zero, shared scope and same-instant timestamps as violations of the corresponding Universal Seed Data Rule. Correct them at that rule's owner; use the documented exception only for justified special fixtures.
 
 ## Review Loop
+
+**Workflow step:** skip this loop when a later `/changes-review` gate of the same workflow owns the final review (Generate step 9); the step-8 self-audit still covers the convention checklist and the universal seeder rules.
 
 **Round 1:** After implementation, spawn fresh `code-reviewer` sub-agent with zero memory of implementation:
 
@@ -182,7 +184,7 @@ After Generate’s self-audit and fresh review, ask with the native question too
 
 | Temptation | Required action |
 | --- | --- |
-| Skip self-audit or fresh review for a simple seeder | Run both before final review handoff. |
+| Skip self-audit or fresh review for a simple seeder | Run both before final review handoff; only a later `/changes-review` gate of the same workflow replaces the fresh review (Generate step 9). |
 | Fix a finding during Review mode | Validate it, fix through Generate, then re-audit. |
 
 <!-- SYNC:understand-code-first:reminder -->

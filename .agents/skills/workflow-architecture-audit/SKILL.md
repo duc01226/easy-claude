@@ -15,17 +15,18 @@ disable-model-invocation: false
 
 Read [the registry](../../../.claude/workflows.json) → `workflows.workflow-architecture-audit` together with this skill. Call [`$start-workflow workflow-architecture-audit`](../start-workflow/SKILL.md) to resolve the selected mode, pre-actions and fingerprint.
 
-**Todo FIRST:** create one todo for EVERY selected occurrence before triage, analysis or step execution, including conditional/optional ones; preserve occurrence IDs, roles and barrier groups. Use native todo tools or an equivalent persistent ledger. Then mark the first todo `in_progress`; attach evidence before `completed`.
+**Todo FIRST:** before triage, analysis or step execution, create one todo per phase of the selected mode, in order, listing every occurrence of that phase as a line, including conditional/optional ones (a mode that declares no phases gets one todo per occurrence); preserve occurrence IDs, roles and barrier groups. Use native todo tools or an equivalent persistent ledger. Then mark the first todo `in_progress`; close each step line with its run or skip evidence, and complete a phase todo only when every line is closed and its applicable exit gates hold.
 Mode selection and registry loading prepare tracking; any 'first action' below means the first substantive action after this bootstrap.
 
 **Call each step skill:** read its linked SKILL.md and execute its protocol through the active host with the registry args. Reading or naming a skill alone is not execution. Required gates and core/optional flex follow the linked start-workflow Step Execution Protocol; keep this skill's quality gates, loops and evidence requirements.
 
-**Conditions:** load each occurrence's registry `applicability.when` and `skipReason` verbatim, and record its run/skip evidence through the linked start-workflow protocol. Do not silently omit a todo or turn a conditional skill into an unconditional call. Declared parallel groups retain their all-return barrier.
+**Conditions:** load each occurrence's registry `applicability.when` and `skipReason` verbatim, and record its run/skip evidence through the linked start-workflow protocol. Do not silently omit a todo or turn a conditional skill into an unconditional call; close, in one batch at triage, the todos whose condition is already false there. Declared parallel groups retain their all-return barrier.
 
 Explicit step-skill calls by mode (registry order; roles and conditions remain owned by the registry):
 
-- Mode `default`: [`$investigate`](../investigate/SKILL.md) (optional; conditional) → [`$architecture --mode=full`](../architecture/SKILL.md) (gate) → [`$why-review`](../why-review/SKILL.md) (gate) → [`$docs-manager --mode=update`](../docs-manager/SKILL.md) (optional; conditional) → [`$workflow-end`](../workflow-end/SKILL.md) (gate) → [`$watzup`](../watzup/SKILL.md) (core)
-<!-- workflow-mode:default fingerprint:37dc314df81d82bc14a169056f78c3ba3719588f06fee2cc4acc9a622be52207 -->
+- Mode `default`: [`$investigate`](../investigate/SKILL.md) (optional; conditional) → [`$architecture --mode=full --defer=validate`](../architecture/SKILL.md) (gate) → [`$why-review`](../why-review/SKILL.md) (gate) → [`$docs-manager --mode=update`](../docs-manager/SKILL.md) (optional; conditional) → [`$workflow-end`](../workflow-end/SKILL.md) (gate) → [`$watzup`](../watzup/SKILL.md) (optional; conditional)
+  Phase todos: Discover (1) → Review (3; exit review-converged) → Close (2; exit run-closed)
+<!-- workflow-mode:default fingerprint:d2ba3c5cc58b73dc512e13ce20df04a43946c7d9cc7d817ae131c88480e0107a -->
 
 Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs --write` after registry edits; [`$sync-codex`](../sync-codex/SKILL.md) refreshes it before mirroring.
 <!-- WORKFLOW-CALLS:END -->
@@ -34,11 +35,11 @@ Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs
 
 **Goal:** Audit architecture, scalability and production readiness without changing code; deliver ONE validated Architecture Health Report with follow-up owners.
 
-**Summary:** Triage scope/size/risk → map scope when needed → run the three-face `architecture --mode=full` engine inline → validate its `FINISHED` report with `$why-review` → update contradictory docs when applicable → close → hand off. Retain three sub-scores, the worst-case combined verdict and merged advisory Technique Applicability and Scenario Stress matrices.
+**Summary:** Triage scope/size/risk → map scope when needed → run the three-face `architecture --mode=full --defer=validate` engine inline → validate its `FINISHED` report once with `$why-review`, face by face → update contradictory docs when applicable → close with the handoff. Retain three sub-scores, the worst-case combined verdict and merged advisory Technique Applicability and Scenario Stress matrices.
 
 **Use when:** project/path architecture health, production readiness or scalability/coupling audit. **Adjacent requests:** single-change compliance → `$architecture --mode=review`; standalone consolidated report without run closure → `$architecture --mode=full`; change-set review → `workflow-review-changes`.
 
-**IMPORTANT MANDATORY Steps:** $investigate -> $architecture --mode=full -> $why-review -> $docs-manager --mode=update -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $investigate -> $architecture --mode=full --defer=validate -> $why-review -> $docs-manager --mode=update -> $workflow-end -> $watzup
 
 **Workflow:** The parsed chain above follows `$start-workflow` → Step Execution Protocol — `gate` steps always run, a step that runs invokes its skill invocation, and every other deviation is logged. NEVER batch-complete validation gates.
 
@@ -72,8 +73,8 @@ Record target scope, size and risk at the top of the workflow report before choo
 
 Before `$workflow-end`, verify every gate with evidence:
 
-- Consolidated report finished (`review-converged`) — The `architecture --mode=full` report at status `FINISHED`: `Faces merged: 3/3`, three sub-scores, the worst-case combined verdict, the merged advisory matrices, and its Why-Review Fix Notes or Validation section.
-- Report validated at report level — The workflow-level `$why-review` record over the FINISHED report: scope (nothing in-scope missed, nothing out-of-scope pulled in), verdict rollup, dedup completeness, cross-face severity consistency. When it demotes or restores a finding, the report is fixed in place.
+- Consolidated report finished (`review-converged`) — The `architecture --mode=full --defer=validate` report at status `FINISHED`: `Faces merged: 3/3`, three sub-scores, the worst-case combined verdict, the merged advisory matrices, and `Validation: deferred to <occurrence-id>` naming the workflow's `$why-review` gate.
+- Report validated once — The workflow-level `$why-review` record over the FINISHED report: it walks each face's findings (`file:line` proof, severity), then scope (nothing in-scope missed, nothing out-of-scope pulled in), verdict rollup, dedup completeness and cross-face severity consistency, and appends its Why-Review Fix Notes or Validation section. When it demotes or restores a finding, the report is fixed in place.
 - Evidence bar — Every finding carries `file:line` proof and a confidence; findings below 60% are flagged and never recommended.
 - Read-only — This workflow edits no source or config. Every validated finding names its follow-up owner: `$plan` for large or cross-module fixes, a feature or refactor workflow otherwise.
 - Advisory stays advisory — The technique and scenario matrices and any coverage gaps never change a sub-score, the combined verdict, or a gate.
@@ -83,11 +84,11 @@ Before `$workflow-end`, verify every gate with evidence:
 ## Recommended Skills
 
 - `$investigate` (optional) — The prompt does not pin the audit scope to an explicit path or the current diff, or the scope is medium or larger (more than about 15 files) so modules, boundaries and hotspots must be mapped before the reviewers fan out. Skip reason: The prompt pins a small audit scope to an explicit path or the current diff, so `architecture --mode=full` resolves the scope itself without a separate map. · Evidence: Scope map for the engine and for the final scope check.
-- `$architecture --mode=full` (gate) — Always. · Evidence: Three non-overlapping faces (`architecture --mode=scalability`, `architecture --mode=review`, `production-readiness-review`), progressive dedup synthesis, per-face `$why-review` fix, finalized verdict → `review-converged`.
-- `$why-review` (gate) — Always, after the report is `FINISHED`. · Evidence: Report-level validation. The engine skips its own Step 5 on a zero-open-finding PASS (LOW deferral), so this step is the one validation every run gets.
+- `$architecture --mode=full --defer=validate` (gate) — Always. · Evidence: Three non-overlapping faces (`architecture --mode=scalability`, `architecture --mode=review`, `production-readiness-review`), progressive dedup synthesis, finalized verdict → `review-converged`. `--defer=validate` skips the engine's own Step 5 findings validation and hands it to the next gate (`.claude/skills/architecture/references/mode-full.md` → `--defer=validate`).
+- `$why-review` (gate) — Always, after the report is `FINISHED`. · Evidence: The run's one findings validation: it walks each face exactly as the engine's Step 5 describes, then validates the report level, so the merged findings are validated once, never twice.
 - `$docs-manager --mode=update` (optional) — The validated audit found project documentation (reference docs, project config, README, ADR status) that contradicts the audited code. Skip reason: The validated audit found no project documentation contradicting the audited code, and a read-only audit leaves no diff for docs-manager --mode=update to sync. · Evidence: Docs truthful.
 - `$workflow-end` (gate) — Always, last. · Evidence: `run-closed`.
-- `$watzup` (core) — Always. · Evidence: Handoff: verdict, sub-scores, follow-up owners per finding.
+- `$watzup` (optional) — The user asked for a session report or an HTML wrap-up, or the session spanned several workflows or prompts that need one consolidated handoff. Skip reason: workflow-end printed the recap, or the short handoff when nothing was built, and every applicable outcome gate passed. · Evidence: Session report. Without it, the verdict, sub-scores and follow-up owner per finding live in the `FINISHED` report, and `$workflow-end` prints the short handoff.
 
 ## Orchestration
 
@@ -102,14 +103,14 @@ Recommended: XS/S → inline `$investigate` or engine scope resolution; L/XL →
 
 ## Memory & Reporting
 
-- Create one task per selected step. The engine pre-expands its own phases under the parent row.
+- Create one phase task per phase, one row per selected step. The engine pre-expands its own phases under the parent row.
 - Create the workflow report FIRST at `tmp/reports/workflow-architecture-audit-{YYMMDD}-{HHmm}-{slug}.md`: triage, per-step evidence, deviations, and the path of the engine's consolidated report (`tmp/reports/architecture-full-review-{date}-{slug}.md`). Append after each step.
 - Sub-agent briefs make report writing their first deliverable and return only the `subagent-return-contract` envelope.
 - After compaction, re-read the current task list, the workflow report, and the consolidated report's status line before continuing.
 
 ## Findings & Fix Path
 
-- Repair the report only: first the engine's merged review, then workflow-level `$why-review`. Source fixes belong to follow-up workflows.
+- Repair the report only, through the workflow-level `$why-review` that validates it (the engine defers its own validation to that gate). Source fixes belong to follow-up workflows.
 - Validate findings through `$why-review` with evidence. Hand off each with owner, severity and confidence: `$plan` for large, cross-module or ambiguous fixes; feature/refactor workflow for bounded fixes.
 - Loop bounds for the report-level `$why-review`: round 1 exits on zero open findings; from round 2 the bar is zero CRITICAL/HIGH/MEDIUM, with LOWs deferred and listed; cap 3 review rounds; escalate via `ask user question tool` when a round makes no progress.
 
@@ -142,7 +143,7 @@ Recommended: XS/S → inline `$investigate` or engine scope resolution; L/XL →
 
 **IMPORTANT MUST ATTENTION Goal:** Audit architecture, scalability and production readiness without changing code; deliver ONE validated Architecture Health Report with follow-up owners.
 
-**MUST ATTENTION Main steps:** triage → map scope when needed → inline `architecture --mode=full` → `$why-review` on the `FINISHED` report → `$docs-manager --mode=update` for contradictory docs → `$workflow-end` → `$watzup` handoff. Verify all gates before closure.
+**MUST ATTENTION Main steps:** triage → map scope when needed → inline `architecture --mode=full --defer=validate` → one `$why-review` validation of the `FINISHED` report → `$docs-manager --mode=update` for contradictory docs → `$workflow-end` with its handoff → `$watzup` only when a session report is wanted. Verify all gates before closure.
 
 - **MUST ATTENTION** triage scope, size and risk FIRST and record them. Depth follows the triage: a small pinned scope does not need a separate `$investigate` map, and L/XL targets batch per module.
 - **MUST ATTENTION** run `architecture --mode=full` INLINE (it owns the fan-out and the all-return barrier), then the `$why-review` gate over the `FINISHED` report. Every finding carries `file:line` proof and a confidence.

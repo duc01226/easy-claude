@@ -48,12 +48,25 @@ test('all mode calls preserve occurrence order, flags, roles and bootstrap befor
   const content = updateWorkflowSkillContract(source, renderWorkflowSkillContract(workflowId, manifests(document)));
   assert.deepEqual(check(document, content), []);
   assert.ok(content.indexOf('Todo FIRST') < content.indexOf('## Quality'));
-  assert.match(content, /create one todo for EVERY selected occurrence before triage, analysis or step execution/);
+  assert.match(content, /before triage, analysis or step execution, create one todo per phase of the selected mode, in order, listing every occurrence of that phase as a line, including conditional\/optional ones \(a mode that declares no phases gets one todo per occurrence\)/);
   assert.match(content, /review --mode=code`\]\(\.\.\/review\/SKILL\.md\) \(gate\)/);
   assert.match(content, /review --mode=ui`\]\(\.\.\/review\/SKILL\.md\) \(optional; conditional\)/);
   assert.ok(content.indexOf('/review --mode=code') < content.indexOf('/review --mode=ui'));
   assert.match(content, /`audit`:.*inspect --audit.*review --mode=audit/);
   assert.ok(content.endsWith(source.slice(source.indexOf('\n## Quality'))));
+});
+
+// Invariant: a mode that declares phases tells the runner its phase todos in order, with each phase's size and exit gates,
+// so one todo per phase never hides a step (P41 D6).
+test('a mode with phases renders its phase todos in order with step counts', () => {
+  const document = fixtureDocument();
+  document.workflows[workflowId].variants.build.phases = [
+    { id: 'discover', steps: ['inspect-first'] },
+    { id: 'review', steps: ['review-code', 'review-ui'] },
+  ];
+  const block = renderWorkflowSkillContract(workflowId, manifests(document));
+  assert.match(block, /^  Phase todos: Discover \(1\) → Review \(2\)$/m);
+  assert.doesNotMatch(block.split('- Mode `audit`')[1], /Phase todos:/, 'a mode without phases renders no phase line');
 });
 
 // Invariant: removing execution rules or either direction of linkage must block parity, not pass

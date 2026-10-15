@@ -85,36 +85,43 @@ test("TC-WSC-003 output is deterministic", () => {
   assert.equal(a, b);
 });
 
-// TC-WSC-004 — condenseWhenToUse matches the Codex extractKeywords behavior
-// (ported twin). Re-derive the reference inline so the test is self-contained.
+// TC-WSC-004 — condenseWhenToUse matches an independent reference copy of the whole-clause rule (BR-WFR-02), and no
+// shipped hint ends mid-clause: a cut mark appears only when the first clause alone is longer than the cap.
 test("TC-WSC-004 condenseWhenToUse parity for all workflow whenToUse strings", () => {
-  function referenceExtract(whenToUse, { maxClauses = 3, wordsPerClause = 6, maxLen = 130 } = {}) {
+  function referenceExtract(whenToUse, { maxClauses = 5, maxLen = 190 } = {}) {
     if (!whenToUse || typeof whenToUse !== "string") return "";
     const clauses = whenToUse
       .split(/[,;]/)
       .map((c) => c.trim().toLowerCase())
       .map((c) =>
         c.replace(
-          /^(?:user (?:wants to|reports|has)|wants to|po(?:\/| or )ba wants to|generate|create|after)\s+/i,
+          /^(?:user (?:wants to|reports|has)|wants to|po(?:\/| or )ba(?: or user)? wants(?: to)?|generate|create|after)\s+/i,
           ""
         )
       )
-      .map((c) => c.split(/\s+/).slice(0, wordsPerClause).join(" "))
       .filter((c) => c.length > 2);
     const picked = [];
     const seen = new Set();
+    let length = 0;
     for (const clause of clauses) {
       if (seen.has(clause)) continue;
+      const added = (picked.length ? 2 : 0) + clause.length;
+      if (picked.length && length + added > maxLen) break;
       seen.add(clause);
       picked.push(clause);
+      length += added;
       if (picked.length >= maxClauses) break;
     }
     let out = picked.join(", ");
     if (out.length > maxLen) out = `${out.slice(0, maxLen).replace(/[\s,]+\S*$/, "")}…`;
     return out.replace(/\|/g, "\\|");
   }
-  for (const wf of Object.values(workflowsDoc.workflows)) {
-    assert.equal(condenseWhenToUse(wf.whenToUse), referenceExtract(wf.whenToUse));
+  for (const [id, wf] of Object.entries(workflowsDoc.workflows)) {
+    const hint = condenseWhenToUse(wf.whenToUse);
+    assert.equal(hint, referenceExtract(wf.whenToUse));
+    // No shipped hint is cut mid-clause: a cut mark appears only when the first clause alone exceeds the cap
+    const firstClause = wf.whenToUse.split(/[,;]/)[0].trim();
+    if (hint.endsWith("…")) assert.ok(firstClause.length > 190, `${id}: hint cut mid-clause: ${hint}`);
   }
 });
 
@@ -418,6 +425,8 @@ test("TC-WSC-012 activation tiers render per row and agree with the wrapper skil
 // trigger to route, and the parallel phases it must start together and wait on.
 test("TC-WFR-004 compact rows: id, tier, step count and capped hint; barrier tokens only; names-only skills", () => {
   const { COMPACT_HINT_MAX } = require(path.join(repoRoot, ".claude", "scripts", "lib", "workflow-skills-catalog.cjs"));
+  // The published limit (BR-WFR-02, AC-WFR-02): a change to the cap is a spec change, not a silent code edit
+  assert.equal(COMPACT_HINT_MAX, 190, "BR-WFR-02 publishes a 190-character hint cap");
   // Given a fixture registry with a grouped workflow, a plain one, and one whose only hint source
   // (its name) is far longer than the cap, built in a temp project that HOME and temp point at
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "wsc-compact-"));
@@ -472,6 +481,20 @@ test("TC-WFR-004 compact rows: id, tier, step count and capped hint; barrier tok
     assert.ok(longRow && longRow.includes("| manual · 2 steps | word0 word1"), longRow);
     const longHint = longRow.split(" | ")[2];
     assert.ok(longHint.length <= COMPACT_HINT_MAX && longHint.endsWith("…"), `hint must be capped and marked: ${longHint}`);
+    // And the whole-clause rule holds at its boundary (BR-WFR-02): a hint of exactly the cap is kept whole, and a clause
+    // that would take the hint past the cap is left out, so the hint ends on a whole clause with no cut mark
+    const [a, b] = ["a".repeat(62), "b".repeat(62)];
+    const exact = `${a}, ${b}, ${"c".repeat(62)}`;
+    assert.equal(exact.length, COMPACT_HINT_MAX);
+    assert.equal(condenseWhenToUse(exact), exact, "a hint of exactly the cap is kept whole");
+    assert.equal(condenseWhenToUse(`${a}, ${b}, ${"c".repeat(63)}`), `${a}, ${b}`, "a clause past the cap is left out, never cut mid-phrase");
+    // And a clause is never cut by its word count: 25 words under the cap stay whole, with the next clause after them
+    const manyWords = Array.from({ length: 25 }, (_, i) => `word${i}`).join(" ");
+    assert.ok(manyWords.length < COMPACT_HINT_MAX);
+    assert.equal(condenseWhenToUse(`${manyWords}, tail clause`), `${manyWords}, tail clause`, "a multi-word clause under the cap is kept whole");
+    // And only a first clause longer than the cap is shortened: kept (never dropped), at most the cap, marked with a cut mark
+    const overlong = condenseWhenToUse(Array.from({ length: 40 }, (_, i) => `word${i}`).join(" "));
+    assert.ok(overlong.startsWith("word0 word1 ") && overlong.endsWith("…") && overlong.length <= COMPACT_HINT_MAX, `an overlong first clause is shortened and marked: ${overlong}`);
     // And no full step list survives: a grouped row keeps only its barrier token, a plain row nothing
     assert.ok(grouped.endsWith("| [review-a ∥ review-b ∥ review-c*] |"), grouped);
     for (const step of ["investigate", "finish", "plain-step", " → "]) {
@@ -820,4 +843,41 @@ test("TC-WSC-014 activation tiers: runtime ignores an unknown tier and both vali
   assert.ok(badOverride.errors.some((error) => error.includes("portability.workflowActivation.overrides.workflow-feature") && error.includes("auto, confirm, manual")), badOverride.errors.join("; "));
   // Team validator accepts the same valid shape
   assert.ok(validateConfig({ project: { name: "fixture" }, portability: { workflowActivation: { default: "confirm", overrides: { "workflow-feature": "auto" } } } }).valid);
+});
+
+// TC-WFR-028 (BR-WFR-16): the catalog and the concise route tell a bug, a feature, already-specified work,
+// a behavior-preserving restructure and not-yet-built work apart by observable behavior, so size alone never
+// picks a workflow. A renamed or removed workflow must update the line in the same change.
+test("TC-WFR-028 the catalog and the concise route pick a workflow by observable behavior and name only registered workflows", () => {
+  const registered = new Set(Object.keys(workflowsDoc.workflows));
+  const namedIn = (line) => [...line.matchAll(/`(workflow-[a-z0-9-]+)`/g)].map((match) => match[1]);
+  // Given each catalog form that lists when to use each workflow, in both route modes
+  for (const mode of ["ask", "auto"]) {
+    for (const compact of [true, false]) {
+      const out = buildWorkflowSkillsCatalog({ rootDir: repoRoot, sections: ["workflows"], compact, mode });
+      const where = `${compact ? "compact" : "full"} / ${mode}`;
+      // When the behavior line is read
+      const lines = out.split("\n").filter((line) => line.startsWith("**Judge by observable behavior:**"));
+      assert.equal(lines.length, 1, `${where}: exactly one behavior line`);
+      const [line] = lines;
+      // Then it maps each kind of behavior to its workflow and keeps size out of the choice
+      assert.match(line, /met its spec and now fails → `workflow-bugfix`/, where);
+      assert.match(line, /not yet in a canonical spec → `workflow-feature` \(`workflow-big-feature` when large or ambiguous\)/, where);
+      assert.match(line, /specified but not yet built → `workflow-implement-spec`/, where);
+      assert.match(line, /stays the same → `workflow-refactor` \(a local tidy-up stays direct\)/, where);
+      assert.match(line, /planning only, nothing built \(an idea, or specs to turn into tasks\) → `workflow-planned-work`; a new product from scratch → `workflow-greenfield-init`/, where);
+      assert.match(line, /Size alone never makes a task a workflow/, where);
+      // And every workflow it names is registered
+      const unknown = namedIn(line).filter((id) => !registered.has(id));
+      assert.deepEqual(unknown, [], `${where}: the behavior line names unregistered workflows`);
+    }
+  }
+  // Given the concise route cue
+  const route = normalizeEol(fs.readFileSync(path.join(repoRoot, ".claude", "skills", "shared", "protocols", "concise-workflow-route.md"), "utf8"));
+  // Then it carries the same discriminator and every workflow it names is registered
+  assert.match(route, /^Judge by observable behavior: it worked or met its spec and now fails → bug; it changes and is not yet specified → feature; specified but not yet built → implement-spec; it stays the same → refactor; planning only, nothing built \(an idea, or specs to turn into tasks\) → planned work; a new product → greenfield\. Size alone never makes a task a workflow\.$/m);
+  for (const id of ["workflow-bugfix", "workflow-implement-spec", "workflow-refactor", "workflow-planned-work", "workflow-greenfield-init"]) {
+    assert.ok(route.includes(`\`${id}\``), `concise route lost its ${id} cue`);
+  }
+  assert.deepEqual(namedIn(route).filter((id) => !registered.has(id)), [], "the concise route names unregistered workflows");
 });

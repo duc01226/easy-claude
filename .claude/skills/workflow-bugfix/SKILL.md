@@ -10,17 +10,18 @@ disable-model-invocation: false
 
 Read [the registry](../../../.claude/workflows.json) → `workflows.workflow-bugfix` together with this skill. Call [`/start-workflow workflow-bugfix`](../start-workflow/SKILL.md) to resolve the selected mode, pre-actions and fingerprint.
 
-**Todo FIRST:** create one todo for EVERY selected occurrence before triage, analysis or step execution, including conditional/optional ones; preserve occurrence IDs, roles and barrier groups. Use native todo tools or an equivalent persistent ledger. Then mark the first todo `in_progress`; attach evidence before `completed`.
+**Todo FIRST:** before triage, analysis or step execution, create one todo per phase of the selected mode, in order, listing every occurrence of that phase as a line, including conditional/optional ones (a mode that declares no phases gets one todo per occurrence); preserve occurrence IDs, roles and barrier groups. Use native todo tools or an equivalent persistent ledger. Then mark the first todo `in_progress`; close each step line with its run or skip evidence, and complete a phase todo only when every line is closed and its applicable exit gates hold.
 Mode selection and registry loading prepare tracking; any 'first action' below means the first substantive action after this bootstrap.
 
 **Call each step skill:** read its linked SKILL.md and execute its protocol through the active host with the registry args. Reading or naming a skill alone is not execution. Required gates and core/optional flex follow the linked start-workflow Step Execution Protocol; keep this skill's quality gates, loops and evidence requirements.
 
-**Conditions:** load each occurrence's registry `applicability.when` and `skipReason` verbatim, and record its run/skip evidence through the linked start-workflow protocol. Do not silently omit a todo or turn a conditional skill into an unconditional call. Declared parallel groups retain their all-return barrier.
+**Conditions:** load each occurrence's registry `applicability.when` and `skipReason` verbatim, and record its run/skip evidence through the linked start-workflow protocol. Do not silently omit a todo or turn a conditional skill into an unconditional call; close, in one batch at triage, the todos whose condition is already false there. Declared parallel groups retain their all-return barrier.
 
 Explicit step-skill calls by mode (registry order; roles and conditions remain owned by the registry):
 
-- Mode `default`: [`/investigate --mode=debug`](../investigate/SKILL.md) (gate) → [`/spec [mode=amend]`](../spec/SKILL.md) (optional; conditional) → [`/work-item --mode=mockup --explore`](../work-item/SKILL.md) (optional; conditional) → [`/plan`](../plan/SKILL.md) (optional; conditional) → [`/spec [mode=tests]`](../spec/SKILL.md) (optional; conditional) → [`/work-item --mode=review --type=spec-tests`](../work-item/SKILL.md) (optional; conditional) → [`/integration-test`](../integration-test/SKILL.md) (gate) → [`/fix`](../fix/SKILL.md) (core) → [`/integration-test`](../integration-test/SKILL.md) (core) → [`/spec [mode=sync]`](../spec/SKILL.md) (optional; conditional) → [`/workflow-review-changes --tests=defer`](../workflow-review-changes/SKILL.md) (gate) → [`/integration-test --mode=verify`](../integration-test/SKILL.md) (gate) → [`/workflow-e2e --source=context`](../workflow-e2e/SKILL.md) (optional; conditional) → [`/demo-guide`](../demo-guide/SKILL.md) (optional; conditional) → [`/workflow-end`](../workflow-end/SKILL.md) (gate) → [`/watzup`](../watzup/SKILL.md) (core)
-<!-- workflow-mode:default fingerprint:c70d5b81774fdab40e667b46a5c2376c6680565771d987c941bb46cf700f0a73 -->
+- Mode `default`: [`/investigate --mode=debug`](../investigate/SKILL.md) (gate) → [`/spec [mode=amend]`](../spec/SKILL.md) (optional; conditional) → [`/work-item --mode=mockup --explore`](../work-item/SKILL.md) (optional; conditional) → [`/plan`](../plan/SKILL.md) (optional; conditional) → [`/spec [mode=tests]`](../spec/SKILL.md) (optional; conditional) → [`/work-item --mode=review --type=spec-tests`](../work-item/SKILL.md) (optional; conditional) → [`/integration-test`](../integration-test/SKILL.md) (gate) → [`/fix`](../fix/SKILL.md) (core) → [`/spec [mode=sync]`](../spec/SKILL.md) (optional; conditional) → [`/workflow-review-changes --tests=defer`](../workflow-review-changes/SKILL.md) (gate) → [`/integration-test --mode=verify`](../integration-test/SKILL.md) (gate) → [`/workflow-e2e --source=context`](../workflow-e2e/SKILL.md) (optional; conditional) → [`/demo-guide`](../demo-guide/SKILL.md) (optional; conditional) → [`/workflow-end`](../workflow-end/SKILL.md) (gate) → [`/watzup`](../watzup/SKILL.md) (optional; conditional)
+  Phase todos: Discover (1; exit root-cause-traced) → Specify (2) → Plan (3) → Build (3; exit spec-synced) → Review (1; exit review-converged) → Verify (3; exit tests-pass) → Close (2; exit run-closed)
+<!-- workflow-mode:default fingerprint:90e61d1135f1f9baaed4b0f6bc586cfc905ee2a7f98ac59a3836cfbeab38cbcf -->
 
 Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs --write` after registry edits; [`/sync-codex`](../sync-codex/SKILL.md) refreshes it before mirroring.
 <!-- WORKFLOW-CALLS:END -->
@@ -72,7 +73,7 @@ Non-negotiable — `/workflow-end` checks each against its evidence before the r
 
 1. **Root cause traced** (`/investigate --mode=debug`, gate) — end-to-start trace from the observed final state through reader → storage/projection → writer → consumer/job → producer, every feeder path, a hypothesis matrix with the environment weighed as a competing cause, the owning fix layer and a forward convergence proof, all with `file:line`.
 2. **Code Bug vs Spec Bug classified** before any regression TC or test (gate below), with a preservation note: `current behavior → expected behavior → unchanged behavior to preserve → regression evidence`.
-3. **Regression guard RED → GREEN** — the first `/integration-test` (gate) writes a test that reproduces the bug; the verify step's mutation check reverts `/fix` and the test FAILS (RED), with the fix it PASSES (GREEN). A test that passes without the fix does not catch the bug. Each regression test names its `Business Intent / Invariant Guarded`; lifecycle/state logic asserts state before/after and invalid-transition rejection. A reproducing test that cannot run here is `ENVIRONMENT-BLOCKED` and escalated, never assumed green.
+3. **Regression guard RED → GREEN** — the `/integration-test` step (gate) writes a test that reproduces the bug before `/fix`, without running it; `/fix` adjusts that test when the fix changes its seams; the verify step's mutation check reverts `/fix` and the test FAILS (RED), with the fix it PASSES (GREEN). A test that passes without the fix does not catch the bug. Each regression test names its `Business Intent / Invariant Guarded`; lifecycle/state logic asserts state before/after and invalid-transition rejection. A reproducing test that cannot run here is `ENVIRONMENT-BLOCKED` and escalated, never assumed green.
 4. **Tests pass** (`/integration-test --mode=verify`, gate) — every behavior the fix changed is covered by tests that ran green in THIS run.
 5. **Spec synced** — when a canonical spec or test-case artifact governs the affected area and behavior or a public contract changed, or that spec lacked the case the bug exposed. No canonical spec governs the area → the gate is N/A: record that fact with the searched paths and offer `/spec` as a follow-up.
 6. **Review converged** (`/workflow-review-changes`, gate, INLINE in the main session) — validated blocking findings fixed and the fixed state re-reviewed over the whole package (spec + tests + fix).
@@ -95,19 +96,18 @@ Non-negotiable — `/workflow-end` checks each against its evidence before the r
 | `/investigate --mode=debug` | gate | root cause traced — owns discovery and root cause |
 | `/spec [mode=amend]` | optional | spec states intent |
 | `/work-item --mode=mockup --explore` | optional | selected mockup before planning — see below |
-| `/plan` | optional | fix plan |
+| `/plan` | optional | fix plan; it validates the material decisions it leaves open inside its step, which is the plan approval |
 | `/spec [mode=tests]` | optional | regression TC |
 | `/work-item --mode=review --type=spec-tests` | optional | TC quality |
-| `/integration-test` | gate | guard written — write the regression test that reproduces the bug (not run here) |
-| `/fix` | core | the change, at the owning layer |
-| `/integration-test` | core | guard ready — adjust the regression test after the fix (not run here); may fold into the write step |
+| `/integration-test` | gate | guard written — write the regression test that reproduces the bug, before the fix (not run here) |
+| `/fix` | core | the change, at the owning layer; adjusts the pre-written regression test when the fix changes its seams (not run here) |
 | `/spec [mode=sync]` | optional | spec synced |
 | `/workflow-review-changes --tests=defer` | gate | review converged — INLINE in the main session |
 | `/integration-test --mode=verify` | gate | tests pass — the one verify, after the review: full suite + mutation check (RED proof) |
 | `/workflow-e2e --source=context` | optional | E2E evidence |
 | `/demo-guide` | optional | demo path |
-| `/workflow-end` | gate | run closed |
-| `/watzup` | core | handoff |
+| `/workflow-end` | gate | run closed — prints the recap when `/watzup` does not run |
+| `/watzup` | optional | consolidated session report on request or across several workflows |
 
 **New-UI Explore Mockup (conditional, BEFORE `/plan`).** Only when the fix is large (size M+) and creates completely new user-facing UI like a feature — a new page/view, component or dialog — run `/work-item --mode=mockup --explore`, passing the investigation report (or the amended spec) as `--source`. `work-item --mode=mockup` Step 0 owns the scope gate (asked first, before any analysis or drafting) and the direction pick; both run in the main session only. A fix inside existing UI skips it with the registry `skipReason`.
 
@@ -134,7 +134,7 @@ Recommended: XS/S work inline without sub-agents; independent read-only investig
 
 ## Memory, Reporting and Fix Path
 
-- **Tasks:** one task per selected step or aspect so nothing is lost after compaction; child skills expand their phases under the parent row.
+- **Tasks:** one phase task per phase, one row per selected step or aspect so nothing is lost after compaction; child skills expand their phases under the parent row.
 - **Report first:** create `tmp/reports/workflow-bugfix-{YYMMDD}-{HHmm}-{slug}.md` before the first finding; append triage, trace, RED/GREEN evidence and deviations per step; re-read it and `TaskList` after compaction. Sub-agent briefs make report-writing their first deliverable.
 - **Goal Contract:** resolve the active goal at start per `SYNC:goal-contract-satisfaction-loop` (active plan `goal.md` → `goals/{YYMMDD-HHmm}-{slug}/goal.md` under the plans root, default `plans/`, relocated by `docsRoots.plans.path` in `docs/project-config.json` → create from the bug report); pass the same goal file to every child step; emit the Goal Satisfaction matrix before `/workflow-end`.
 - **Spec context:** when the business spec root (default `docs/specs/`; `specRoots.business.path` in `docs/project-config.json` overrides) holds a spec for the affected module, read its rules and contracts before investigating.
@@ -147,7 +147,7 @@ Activate the `workflow-bugfix` workflow: run `/start-workflow workflow-bugfix` w
 
 Recommended default order (roles in the table above):
 
-**IMPORTANT MANDATORY Steps:** /investigate --mode=debug -> /spec [mode=amend] -> /work-item --mode=mockup --explore -> /plan -> /spec [mode=tests] -> /work-item --mode=review --type=spec-tests -> /integration-test -> /fix -> /integration-test -> /spec [mode=sync] -> /workflow-review-changes --tests=defer -> /integration-test --mode=verify -> /workflow-e2e --source=context -> /demo-guide -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /investigate --mode=debug -> /spec [mode=amend] -> /work-item --mode=mockup --explore -> /plan -> /spec [mode=tests] -> /work-item --mode=review --type=spec-tests -> /integration-test -> /fix -> /spec [mode=sync] -> /workflow-review-changes --tests=defer -> /integration-test --mode=verify -> /workflow-e2e --source=context -> /demo-guide -> /workflow-end -> /watzup
 
 <!-- PROTOCOL-GUIDES:START -->
 
@@ -213,5 +213,5 @@ Recommended default order (roles in the table above):
 
 - **MUST ATTENTION** triage size, kind and risk FIRST; run only the recommended skills the triage shows do real work, and log every deviation with evidence.
 - **MUST ATTENTION** root cause before fix: `/investigate --mode=debug` (gate) produces the trace, feeder paths, hypothesis matrix, owning fix layer and forward convergence proof; classify Code Bug vs Spec Bug before any regression test.
-- **MUST ATTENTION** regression guard: the first `/integration-test` (gate) writes the regression test without running it; the one `/integration-test --mode=verify` (gate, after the static review) proves it FAILS with the fix reverted by hand-edit (never `git checkout`/`restore`/`stash`) and PASSES with it in this run; NEVER encode buggy behavior or weaken a test to go green.
+- **MUST ATTENTION** regression guard: the `/integration-test` step (gate) writes the regression test before `/fix` without running it, and `/fix` adjusts it when the fix changes its seams; the one `/integration-test --mode=verify` (gate, after the static review) proves it FAILS with the fix reverted by hand-edit (never `git checkout`/`restore`/`stash`) and PASSES with it in this run; NEVER encode buggy behavior or weaken a test to go green.
 - **MUST ATTENTION** `/workflow-review-changes` runs INLINE in the main session and converges the whole package; sync the spec when a canonical spec or specified behavior changed; emit the Goal Satisfaction matrix and close with `/workflow-end`.

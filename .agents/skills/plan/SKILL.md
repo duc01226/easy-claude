@@ -20,15 +20,16 @@ disable-model-invocation: false
 
 **Goal:** Produce a concise, evidence-backed implementation plan that fixes direction and proof while leaving code-level discovery and mechanics to the executing agent.
 
-**Summary:** Select the mode first: create a plan, review once, interview for validation, execute, or add CI/CRO intake. For creation: resolve evidence → settle decisions → derive gates → write → self-check → standalone only: validate with the user → hand back.
+**Summary:** Select the mode first: create a plan, review once, interview for validation, execute, or add CI/CRO intake. For creation: resolve evidence → settle decisions → derive gates → write → self-check → one `$why-review` fix pass → validate with the user (standalone, or in a workflow that lists no validate step) → hand back.
 
 - **Creation is planning only:** decide direction, ownership, dependencies, risks, bounded discovery and proof; leave code and edit mechanics to execution.
 - Derive the task-specific `## Quality Gates & Concerns Checklist` before phases: verification, evidence, owner and how open concerns will be settled.
 - Keep one `plan.md`; separate phase files only for independent execution, context isolation or disjoint ownership.
-- Plan creation never runs `--mode=review` or another review skill. After saving, standalone runs the validation interview ([Standalone Validation Chain](#standalone-validation-chain); automatic unless the `plan.validation.mode` setting says `prompt` or `off`), then asks once about `$plan --mode=review`; a workflow returns to its parent without the interview or next-step prompts.
+- **Profile:** full by default and for M+ work; a spec-supplied or XS/S run uses the light profile — `spec_baseline` or inline files/steps/rollback, the checklist, no scope-brief or scenario files ([Plan profile](#plan-profile--full-or-light)).
+- Plan creation never runs `--mode=review` or `--mode=execute`. After saving, it reviews its own plan once with `$why-review` and fixes the validated findings ([Self-Review Pass](#self-review-pass); skipped when the request declines it or the workflow lists its own `$plan --mode=review` step), then runs the validation interview ([Standalone Validation Chain](#standalone-validation-chain); automatic unless the `plan.validation.mode` setting says `prompt` or `off`), and asks no further review question; a workflow returns to its parent without next-step prompts, and without the interview when the workflow lists its own `$plan --mode=validate` step (a workflow with no such step runs the chain inside this step).
 - Write tests with implementation; schedule suites after all implementation and static review, never per phase.
 
-**Workflow:** Resolve context → inspect governing evidence and representative patterns → settle material decisions → derive the quality-gates checklist → write the lean plan → self-check scope, discovery, checklist, and verify-last order → standalone only: run the validation interview and apply its answers → hand back.
+**Workflow:** Resolve context → inspect governing evidence and representative patterns → settle material decisions → derive the quality-gates checklist → write the lean plan → self-check scope, discovery, checklist, and verify-last order → one `$why-review` fix pass on the plan → run the validation interview and apply its answers (standalone, or in a workflow that lists no validate step) → hand back.
 
 **Key Rules:**
 
@@ -46,6 +47,7 @@ disable-model-invocation: false
 - [Plan Artifact Contract](#plan-artifact-contract)
 - [Scope-Specific Gates](#scope-specific-gates)
 - [Self-Check Before Handoff](#self-check-before-handoff)
+- [Self-Review Pass](#self-review-pass)
 - [Standalone Validation Chain](#standalone-validation-chain)
 - [Closing Reminders](#closing-reminders)
 
@@ -53,12 +55,12 @@ disable-model-invocation: false
 
 Determine once before writing:
 
-- **Workflow invocation:** THIS run is a step of a `[Workflow]` row (`nested=true`: its own phase tasks are linked to that parent row) or the caller identifies this as a workflow step; a `[Workflow]` row that merely exists in the current task list, such as an abandoned one, does not count. Finish by returning the plan path and concise summary. Do not ask about review, execution, or other next steps, and do not run the validation interview: the parent workflow owns its own validation step.
-- **Standalone invocation:** no parent workflow owns progression. After saving the plan, run the [Standalone Validation Chain](#standalone-validation-chain) as the `plan.validation.mode` setting directs (default `auto`: no question first; the chain's own exits cover a plan that another skill creates as one of its steps), then finish by asking exactly one optional question: `Run $plan --mode=review on this plan?` Do not call the review automatically, and do not bundle other next-step choices into that question.
+- **Workflow invocation:** THIS run is a step of a `[Workflow]` row (`nested=true`: its own phase tasks are linked to that parent row) or the caller identifies this as a workflow step; a `[Workflow]` row that merely exists in the current task list, such as an abandoned one, does not count. Finish by returning the plan path and concise summary. Do not ask about review, execution, or other next steps. Run the [Self-Review Pass](#self-review-pass) unless the workflow lists its own `$plan --mode=review` step. Run the validation interview only when the workflow lists no `$plan --mode=validate` step of its own; when it does, that parent step owns validation.
+- **Standalone invocation:** no parent workflow owns progression. After saving the plan, run the [Self-Review Pass](#self-review-pass); then run the [Standalone Validation Chain](#standalone-validation-chain) as the `plan.validation.mode` setting directs (default `auto`: no question first; the chain's own exits cover a plan that another skill creates as one of its steps), and finish without a further review question: the plan was reviewed. `$plan --mode=review` stays available as its own invocation; do not call it automatically.
 
 ## Mode Dispatch
 
-Detect the mode from the invocation arguments before any other work; do not load a mode file the invocation did not select. One exception: a standalone plan creation loads `references/mode-validate.md` after the plan is saved, for the [Standalone Validation Chain](#standalone-validation-chain).
+Detect the mode from the invocation arguments before any other work; do not load a mode file the invocation did not select. One exception: a plan creation that runs the Standalone Validation Chain (standalone, or a workflow plan step whose workflow lists no validate step) loads `references/mode-validate.md` after the plan is saved, for the [Standalone Validation Chain](#standalone-validation-chain).
 
 | Mode | Purpose | Read in full FIRST |
 | --- | --- | --- |
@@ -73,7 +75,7 @@ Detect the mode from the invocation arguments before any other work; do not load
 - **[BLOCKING]** When `--mode=validate`, read `references/mode-validate.md` in full FIRST; it replaces plan creation for the invocation (interview via `ask user question tool`, annotate `plan.md` only). Workflow invocation and standalone both run the interview.
 - **[BLOCKING]** When `--mode=execute`, read `references/mode-execute.md` in full FIRST; it replaces plan creation for the invocation and owns the `--approval`, `--tests` and `--parallel` flags (no flag is set by default: no flags = the full spine, run sequentially). Workflow invocation runs Steps 0–2, the Checklist Walk (parent-owned rows carried as `PENDING-PARENT`) and Step 6 only; standalone runs the full spine.
 - **[BLOCKING]** When `--mode=ci`, read `references/mode-ci.md` in full FIRST; when `--mode=cro`, read `references/mode-cro.md` in full FIRST. Both add domain intake only; they do not add review or change the plan-creation contract.
-- `--mode=review` and `--mode=execute` are separate invocations over an existing plan; plan creation never chains into them. `--mode=validate` is the one mode a standalone plan creation chains into after saving; a workflow invocation reaches it only as its own workflow step.
+- `--mode=review` and `--mode=execute` are separate invocations over an existing plan; plan creation never chains into them. `--mode=validate` is the one mode a standalone plan creation chains into after saving; a workflow invocation reaches it as its own workflow step, or through the chain inside the plan step when the workflow lists no validate step.
 
 ## Evidence and Discovery
 
@@ -92,11 +94,20 @@ Use direct repository inspection for focused work. Add research agents or extern
 
 Write `plan.md` under the configured plans root. Use this compact shape; omit a section only with a stated `N/A` reason.
 
+### Plan profile — full or light
+
+Choose the profile before writing and state it under the plan title as `Plan profile: full` or `Plan profile: light — {spec-supplied | XS/S}`.
+
+- **Full (default):** every section below, with the branch-required scope-brief and scenario artifacts. It applies to M+ work and to any public-contract, data/schema, security, cross-module or irreversible change unless the spec-supplied form applies.
+- **Light, spec-supplied:** the run supplies a canonical spec as governing intent (for example `workflow-implement-spec`). Cite the run's `spec_baseline` (spec path and revision; record it in section 1 when the run has none) as governing intent, trace every phase and acceptance gate to that spec's sections or case IDs, and write the Quality Gates & Concerns Checklist. Write no scope-brief file and no scenario file: the spec is the scope and its cases are the scenario evidence. The [Supplied spec](#scope-specific-gates) gate still applies: behavior outside the baseline goes under `Proposed additions — owner approval required`. At M+ size keep every section; only those artifacts drop.
+- **Light, XS/S:** the run's size triage records XS or S, with no public-contract, data/schema, security, cross-module or irreversible decision. Keep the affected files, the ordered steps and the rollback inline in `plan.md`, as one phase or a short ordered list, plus the checklist and the final verification order. Write no separate scope-brief, scenario or phase files; mark a section that has nothing to add `N/A — light profile`.
+- **Plan Gate in the light profile:** keep exactly one `## Plan Gate` with the branch section 0 selects. Inline scope and scenario evidence applies on the EXEMPT and FRAMEWORK-LIBRARY branches; an explicit-roadmap or decomposition branch keeps its owner artifacts. `Scope brief` and `Scenarios` point at inline evidence instead of files, in the forms `product-roadmap-contract.md` → Light-profile evidence lists. Write every field section 0 requires, `Human approval` and the branch's owner-approval fields included, under section 0's honest-state rules; the light profile changes only where scope and scenario evidence live (the inline forms `product-roadmap-contract.md` → Light-profile evidence accepts).
+
 ### 0. Applicability and Plan Gate (required producer handoff)
 
 Before the technical sections, write exactly one `## Plan Gate` using the selected branch from `product-roadmap-contract.md`: EXPLICIT-ROADMAP, DECOMPOSITION-EMBEDDED, FRAMEWORK-LIBRARY, or EXEMPT. Preserve the shared owner's status values and required fields: Roadmap, Milestone, Scope brief, Scenarios, Product decisions, Project skeleton, Commands, Evidence plan, Human approval, plus Decomposition owner or Framework owner when applicable.
 
-- Reuse the stable `{plan-dir}` and the actual upstream scope/scenario artifacts. Create the branch-required scope brief and scenario evidence there if absent, using verified intent; an embedded ordinary route uses its owning artifact and conditional scenario evidence. Do not invent a roadmap, milestone or decomposition block.
+- Reuse the stable `{plan-dir}` and the actual upstream scope/scenario artifacts. In the full profile, create the branch-required scope brief and scenario evidence there if absent, using verified intent; the light profile keeps them inline (see [Plan profile](#plan-profile--full-or-light)). An embedded ordinary route uses its owning artifact and conditional scenario evidence. Do not invent a roadmap, milestone or decomposition block.
 - Record approval only from explicit user/session evidence. An authorized scope may be recorded `APPROVED`; unknown approval stays `REQUIRED`, open intent stays `OPEN`, and the gate stays `BLOCKED` where the branch requires it. Saving a blocked plan is valid; implementation remains blocked.
 - Self-check these fields against the shared owner’s Plan Gate and Handoff rules before handoff without loading or running another mode. This supplies the applicability contract consumed by validation Phase 0.5; missing applicability is an incomplete producer artifact, not a discovery task for the validator.
 
@@ -163,7 +174,7 @@ List phase waves only when `PAR` phases have proven disjoint write sets. Otherwi
 
 ## Self-Check Before Handoff
 
-- **Producer handoff:** exactly one branch-correct `## Plan Gate`, real required scope/scenario paths, commands/evidence and honest approval state, as required by the shared owner and validation Phase 0.5.
+- **Producer handoff:** exactly one branch-correct `## Plan Gate`, real required scope/scenario paths, commands/evidence and honest approval state, as required by the shared owner and validation Phase 0.5. A light-profile plan states its profile, points scope and scenarios at inline evidence and keeps every approval field.
 - **Plan, not implementation:** could an executor choose local mechanics without contradicting the plan?
 - **Decision completeness:** are product/public-contract/irreversible choices settled or explicitly blocked? Is every not-yet-specified item named with what it waits on, and kept apart from the non-goals?
 - **Discovery completeness:** does every unknown have a bounded source, owner, and stop condition? A not-yet-specified item is the one exception: it names what it waits on and who settles it instead.
@@ -172,7 +183,19 @@ List phase waves only when `PAR` phases have proven disjoint write sets. Otherwi
 - **Verify-last:** are tests run only after all implementation and static review?
 - **Efficiency:** remove repeated rationale, exhaustive inventories, generic advice, and any phase that proves no distinct fact.
 
-Persist the plan path and a short summary. Workflow invocation returns immediately to its parent; standalone continues with the Standalone Validation Chain.
+Persist the plan path and a short summary, then run the [Self-Review Pass](#self-review-pass); its own list says when it is skipped. After it, a workflow that lists its own `$plan --mode=validate` step gets the plan back; standalone, and a workflow with no validate step, continue with the Standalone Validation Chain.
+
+## Self-Review Pass
+
+After saving, plan creation reviews its own plan once, before the validation interview: run one `$why-review --review-only` pass on the saved plan (it validates its own findings and edits nothing), then plan creation, the plan's author, fixes the validated findings in `plan.md` and its phase files. The loop runs one round: one review pass and one fix pass, with no second review round; the validation interview that follows checks the fixed plan with the user.
+
+Skip it when:
+
+- **The request declines it** (for example "no review").
+- **A workflow owns this run and lists its own `$plan --mode=review` step** — that step reviews the plan.
+- **Another skill runs plan creation as one of its own steps** — that skill owns what follows the plan.
+
+Record the pass under `## Self-Review` in `plan.md`: the review report path, each validated finding with its severity and the fix applied, and each finding left open. An open finding that needs a user decision becomes a question in the validation interview; when no interview runs, list it in the hand-back. A skipped pass writes `Self-review: SKIPPED — {reason}` there.
 
 ## Standalone Validation Chain
 
@@ -180,16 +203,16 @@ A standalone plan creation, the `--mode=ci` and `--mode=cro` intakes included, v
 
 Check these exits first, in this order. Do not start the chain when:
 
-- **A workflow owns this run** — its own validation step decides.
+- **A workflow owns this run and lists its own `$plan --mode=validate` step** — that step decides. When the workflow lists no validate step, run this chain inside the workflow too, so the answers are applied in this same step. Inside a workflow the interview asks only the material decisions the plan leaves open that the run's decision log does not already hold; an unapproved Plan Gate (`Human approval: REQUIRED`) counts as one, and its question is the plan approval. With none open, write `Validation: not needed — no open material decision` under `## Validation Summary` with the decisions checked, and return.
 - **Another skill runs plan creation as one of its own steps** — that skill owns what follows the plan; hand the plan back to it.
-- **The setting is `off`, or the request explicitly declines validation** (an answer of no to the `prompt` question counts) — write `Validation: SKIPPED — {setting off | declined by the user}` under `## Validation Summary` in `plan.md`.
+- **The setting is `off`, or the request explicitly declines validation** (an answer of no to the `prompt` question counts) — write `Validation: SKIPPED — {setting off | declined by the user}` under `## Validation Summary` in `plan.md`. Inside a workflow plan step this exit skips the decision interview only: an unapproved Plan Gate still gets its one approval question (step 1 then asks only that).
 - **This context cannot reach the user** (a sub-agent or a headless run) — write `Validation: PENDING` under `## Validation Summary` in `plan.md` and return `Validation: PENDING — run the Standalone Validation Chain of the plan skill on <plan-path>` in the hand-back; never self-answer it. A session that receives that hand-back and can reach the user runs this chain from its first paragraph for that plan, so the setting and these exits apply.
 
 When no exit applies:
 
 1. **[BLOCKING]** Read `references/mode-validate.md` in full and run its interview on the plan just saved, passing that plan path; skip its closing next-step prompt.
 2. **Apply the answers.** The interview only annotates; plan creation authored the plan, so it edits `plan.md` and any phase file for each action item the answers created, ticks that item in the `## Validation Summary`, lists every edit under `### Applied Changes` there (section → what changed) and shows that list in the conversation. When an applied answer creates a new material decision, ask it as a further round through the same reference before closing, and repeat until applying answers creates no new one; never settle it yourself. Then re-check the Self-Check Before Handoff bullets once; do not start this chain again. An answer that leaves product intent open, a preservation invariant unsure or the Plan Gate unapproved keeps the plan `BLOCKED`: report it, never settle it by assumption.
-3. **Close** with the one optional review question from [Invocation Context](#invocation-context).
+3. **Close** — return the plan path and summary with the review and validation results; ask no further question, standalone or inside a workflow.
 
 <!-- PROTOCOL-GUIDES:START -->
 
@@ -236,13 +259,14 @@ When no exit applies:
 
 **IMPORTANT MUST ATTENTION Goal:** Produce a concise, evidence-backed implementation plan that fixes direction and proof while leaving code-level discovery and mechanics to the executing agent.
 
-**MUST ATTENTION Main steps:** select mode → read its reference when selected; creation resolves evidence → settles decisions → derives gates → writes → self-checks → standalone only: validates with the user → hands back. Review follows the selected review-only/fix-loop mode; validation interviews; execution follows its flags; CI/CRO add intake.
+**MUST ATTENTION Main steps:** select mode → read its reference when selected; creation resolves evidence → settles decisions → derives gates → writes → self-checks → one `$why-review` fix pass → validates with the user (standalone, or in a workflow with no validate step) → hands back. Review follows the selected review-only/fix-loop mode; validation interviews; execution follows its flags; CI/CRO add intake.
 
 - **MUST ATTENTION** record outcome/non-goals, important decisions, affected owners/areas, bounded discovery, risks, and final quality gates.
+- **MUST ATTENTION** choose the plan profile first: full by default and for M+ work; light for a spec-supplied run (`spec_baseline`, traced phases, checklist, `Proposed additions — owner approval required`) or an XS/S run (files, steps and rollback inline) — no scope-brief or scenario files; every Plan Gate field, approvals included, stays.
 - **MUST ATTENTION** write a task-specific `## Quality Gates & Concerns Checklist` before the phases (per `references/plan-quality-checklist.md`): every applicable gate with how it is verified, the evidence expected and the owner phase; NO rows with reasons; open concerns with a way to settle each.
 - **MUST ATTENTION** resolve the active Goal Contract and map the plan to its saved required criteria.
-- **MUST ATTENTION** plan creation never runs `--mode=review`; standalone asks once whether the user wants it, workflow invocation returns without next-step prompts.
-- **MUST ATTENTION** a standalone plan creation runs the validation interview after saving (`plan.validation.mode`: `auto` runs it, `prompt` asks first, `off` skips it) and applies the answers before it closes; a workflow invocation or a calling skill never starts it, and a context that cannot reach the user hands back `Validation: PENDING` instead of self-answering.
+- **MUST ATTENTION** plan creation never runs `--mode=review`; it reviews its own plan once with `$why-review` (one round: review, fix, no second review round) unless the request declines it or the workflow lists its own `$plan --mode=review` step, and returns without next-step prompts.
+- **MUST ATTENTION** a standalone plan creation runs the validation interview after saving (`plan.validation.mode`: `auto` runs it, `prompt` asks first, `off` skips it) and applies the answers before it closes; a workflow that lists its own `$plan --mode=validate` step, or a calling skill, never starts it (a workflow with no validate step runs it inside its plan step), and a context that cannot reach the user hands back `Validation: PENDING` instead of self-answering.
 - **MUST ATTENTION** `--mode=review`, `--mode=validate` and `--mode=execute` read their `references/mode-<x>.md` in full FIRST and follow it alone; default plan creation loads none of them, except `mode-validate.md` for the standalone validation chain.
 - **MUST ATTENTION** write tests with implementation and run test suites only after all implementation and static review; never plan per-phase test/review cycles.
 - **MUST ATTENTION** one `plan.md` by default; add phases/files only for real dependency, verification, context, or ownership boundaries.

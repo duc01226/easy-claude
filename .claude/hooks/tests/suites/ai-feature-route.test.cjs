@@ -359,12 +359,15 @@ module.exports = {
             // Given the framework repo's settings, .ck.json schema and option help
             // When they are inspected
             // Then the hook is wired and its enabled option is configurable and documented
-            name: '[ai-feature-route] TC-AIR-008 registered on UserPromptSubmit and configurable in the .ck.json schema (framework repo)',
+            name: '[ai-feature-route] TC-AIR-008 registered on UserPromptSubmit, SubagentStart and SessionStart compact and configurable in the .ck.json schema (framework repo)',
             fn: () => {
                 if (!isFrameworkRepo(REPO_ROOT)) return;
                 const settings = require(path.join(REPO_ROOT, '.claude', 'settings.json'));
-                const commands = (settings.hooks.UserPromptSubmit || []).flatMap(group => group.hooks.map(h => h.command));
-                assertTrue(commands.some(c => c.includes('ai-feature-route.cjs')), 'hook must be wired in settings.json');
+                const wired = (event, matcher) => (settings.hooks[event] || [])
+                    .filter(group => matcher === undefined || group.matcher === matcher)
+                    .some(group => group.hooks.some(h => h.command.includes('ai-feature-route.cjs')));
+                assertTrue(wired('UserPromptSubmit'), 'hook must be wired on prompts');
+                assertTrue(wired('SubagentStart') && wired('SessionStart', 'compact'), 'hook must be wired on every sub-agent start and the compaction report');
                 const { CK_SCHEMA } = require(path.join(HOOKS_DIR, 'lib', 'ck-config-schema.cjs'));
                 assertTrue(CK_SCHEMA[hook.SETTINGS_SECTION] && CK_SCHEMA[hook.SETTINGS_SECTION].properties.enabled.type === 'boolean', 'aiFeatureRoute.enabled is a schema field');
                 const { CK_CONFIG_DESCRIBES } = require(path.join(REPO_ROOT, '.claude', 'scripts', 'lib', 'config-option-describes.cjs'));
@@ -477,6 +480,39 @@ module.exports = {
                     assertTrue(fs.readdirSync(path.join(project, 'store')).length === 0, 'a silent prompt writes nothing to the delivery store');
                 } finally {
                     removeDir(project);
+                }
+            }
+        },
+        {
+            // Given a session whose latest recorded user prompt asks for AI-feature work
+            // When a sub-agent starts, the host reports a compaction, or the same sub-agent starts again
+            // Then each new scope gets the directive once as its event's context, and a compaction delivers at once
+            name: '[ai-feature-route] TC-AIR-014 sub-agent start and compaction route the latest recorded prompt: once per spawn, at once after a compaction',
+            fn: async () => {
+                const dir = makeProject();
+                const store = path.join(dir, 'store');
+                const deps = { projectDir: dir };
+                const agentStart = id => ({ hook_event_name: 'SubagentStart', session_id: 'sess-p', agent_id: id, agent_type: 'general-purpose' });
+                const compaction = { hook_event_name: 'SessionStart', session_id: 'sess-p', source: 'compact' };
+                const context = result => JSON.parse(result.out).hookSpecificOutput;
+                try {
+                    assertTrue((await deliver(store, agentStart('a1'), T0, deps)).out === '', 'no recorded prompt: silent');
+                    require('../lib/hook-runner.cjs').recordUserPrompts(dir, 'sess-p', ['add a RAG pipeline with embeddings to the search service']);
+                    const spawned = context(await deliver(store, agentStart('a1'), T0, deps));
+                    assertTrue(spawned.hookEventName === 'SubagentStart', 'agent start answers with its own envelope');
+                    assertContains(spawned.additionalContext, hook.MARKER_START);
+                    assertTrue((await deliver(store, agentStart('a1'), T0 + MINUTE, deps)).out === '', 'the same spawn is deduplicated');
+                    assertContains((await deliver(store, agentStart('a2'), T0 + MINUTE, deps)).out, hook.MARKER_START);
+                    // The main scope has its own record: a prompt delivers, then a compaction delivers again at once
+                    assertContains((await deliver(store, event('add a RAG pipeline with embeddings to the search service', 'sess-p'), T0, deps)).out, hook.MARKER_START);
+                    const compacted = context(await deliver(store, compaction, T0 + 2 * MINUTE, deps));
+                    assertTrue(compacted.hookEventName === 'SessionStart', 'compaction answers with its own envelope');
+                    assertContains(compacted.additionalContext, hook.MARKER_START);
+                    // A later non-AI prompt becomes the latest one: nothing routes for the next spawn
+                    require('../lib/hook-runner.cjs').recordUserPrompts(dir, 'sess-p', ['add a RAG pipeline', 'rename the settings page']);
+                    assertTrue((await deliver(store, agentStart('a3'), T0 + 3 * MINUTE, deps)).out === '', 'only the latest prompt counts');
+                } finally {
+                    removeDir(dir);
                 }
             }
         },

@@ -2,7 +2,7 @@
 
 > **Purpose:** the one-page map of the portable `.claude/` framework — what it does, how the parts fit, how to use it day to day, and where each topic's detailed owner doc lives. Read it first when you adopt the framework, change it, or need to explain a hook block, a routing decision or a workflow step.
 >
-> **Framework inventory:** <!-- COUNT:hooks -->35<!-- /COUNT --> top-level hook files · <!-- COUNT:lib-modules -->66<!-- /COUNT --> hook-library modules · <!-- COUNT:skills -->105<!-- /COUNT --> skills · <!-- COUNT:workflows -->19<!-- /COUNT --> workflows · <!-- COUNT:agents -->24<!-- /COUNT --> agents · <!-- COUNT:shared -->15<!-- /COUNT --> shared reference/protocol entries.
+> **Framework inventory:** <!-- COUNT:hooks -->36<!-- /COUNT --> top-level hook files · <!-- COUNT:lib-modules -->66<!-- /COUNT --> hook-library modules · <!-- COUNT:skills -->103<!-- /COUNT --> skills · <!-- COUNT:workflows -->17<!-- /COUNT --> workflows · <!-- COUNT:agents -->24<!-- /COUNT --> agents · <!-- COUNT:shared -->15<!-- /COUNT --> shared reference/protocol entries.
 >
 > **Visual overview:** `.claude/docs/claude-ai-agent-framework-guide.html`. Use this Markdown guide for current inventories and source-owner pointers.
 
@@ -17,7 +17,7 @@
 
 ## 1. What the framework is
 
-A generic LLM is capable but forgetful, confident without evidence, and unaware of your project. This framework wraps Claude Code in **35 top-level hook files**, **105 skills**, **19 registered workflows**, and **24 specialized agents** that make it project-aware, evidence-driven and gated at every quality step — from idea and spec through implementation, testing, review, commit and pull request.
+A generic LLM is capable but forgetful, confident without evidence, and unaware of your project. This framework wraps Claude Code in **36 top-level hook files**, **103 skills**, **17 registered workflows**, and **24 specialized agents** that make it project-aware, evidence-driven and gated at every quality step — from idea and spec through implementation, testing, review, commit and pull request.
 
 | Failure mode of a plain agent        | What counters it                                            | Where it lives                                     |
 | ------------------------------------ | ----------------------------------------------------------- | -------------------------------------------------- |
@@ -52,7 +52,7 @@ The design bet: **hooks put the contract in context at the right moment.** The u
 | Capture a lesson                      | `/learn`                                                |
 | Ask what the framework does here      | `/project-help`                                         |
 
-A typical request: you type a prompt → hooks inject the routing catalog and your project context → Claude declares a route (`Route: workflow-bugfix — because …`) → a workflow creates one task per step → steps run inline or as sub-agents → review, tests and outcome gates must pass → `workflow-end` closes with a summary.
+A typical request: you type a prompt → hooks inject the routing catalog and your project context → Claude declares a route (`Route: workflow-bugfix — because …`) → a workflow creates one task per phase, one row per step → steps run inline or as sub-agents → review, tests and outcome gates must pass → `workflow-end` closes with a summary.
 
 ---
 
@@ -103,7 +103,7 @@ The workflow route is delivered by hooks at prompt time in each person's route m
 4. **Catalog fit:** keep a workflow only if >80% of its unconditional steps do real work; otherwise downgrade to custom-simple — but a behavior change keeps test and review, a bug keeps root-cause, a contract change keeps spec/doc sync.
 5. **Declare and activate:** `Route: {id | skill | custom-simple [a → b] | direct} — because {signals}`, then start it before any edit. A route that starts a catalog workflow first asks the **workflow question** (a direct, single-skill or custom-simple route asks nothing): one question offering the full workflow (with its step count), a slimmer custom route listing its steps (required gates kept), or direct execution, with the recommended option first. An explicit request skips it.
 
-**Activation tiers** (per workflow in `.claude/workflows.json`; absent = `auto`). In mode `ask` every tier asks the workflow question before a self-routed catalog workflow start (direct, single-skill and custom-simple routes ask nothing) and the tier only orders the recommendation (mode `auto` lets the tier decide whether to ask): `auto` by catalog fit · `confirm` recommends the full workflow only when no leaner route would do · `manual` never recommends it first (its wrapper skill is also hidden from implicit invocation). Projects adjust tiers with `portability.workflowActivation` in `docs/project-config.json` (`default` only tightens; a per-workflow `overrides` entry may loosen); a local `.claude/.ck.local.json` wins for one developer. Set the route mode with `portability.workflowRouteMode` (team default in `docs/project-config.json`; a person overrides it in `~/.claude/.ck.json`, `.claude/.ck.local.json` or env `CK_WORKFLOW_ROUTE_MODE`); `off` turns prompt-time routing off.
+**Activation tiers** (per workflow in `.claude/workflows.json`; absent = `auto`). In mode `ask` every tier asks the workflow question before a self-routed catalog workflow start (direct, single-skill and custom-simple routes ask nothing) and the tier only orders the recommendation (mode `auto` asks too, recommending the full workflow first except for a `manual` tier): `auto` by catalog fit · `confirm` recommends the full workflow only when no leaner route would do · `manual` never recommends it first (its wrapper skill is also hidden from implicit invocation). Projects adjust tiers with `portability.workflowActivation` in `docs/project-config.json` (`default` only tightens; a per-workflow `overrides` entry may loosen); a local `.claude/.ck.local.json` wins for one developer. Set the route mode with `portability.workflowRouteMode` (team default in `docs/project-config.json`; a person overrides it in `~/.claude/.ck.json`, `.claude/.ck.local.json` or env `CK_WORKFLOW_ROUTE_MODE`); `off` turns prompt-time routing off.
 
 **Mid-session rule:** the workflow question applies only to the first task of a session; mid-session the model neither starts a workflow nor asks to. It works directly or with a chain of at most three skills; required gates still run and don't count toward the cap.
 
@@ -122,34 +122,32 @@ A workflow is an **intent** plus **outcome gates** plus an ordered list of **ste
 **How a run works** (owner: `.claude/skills/start-workflow/SKILL.md`):
 
 - **Triage first** — size (XS to XL), change kinds and risk decide depth; small work stays lean, large work batches per module.
-- **Read the workflow's own SKILL.md, then create tasks 1:1** — one task per occurrence, titled `[Workflow] [{role}] {step}`, all before the first starts.
+- **Read the workflow's own SKILL.md, then create phase tasks** — one task per phase, titled `[Workflow] [Phase {n}/{total}: {Phase}] …`, with one row per occurrence showing its role, all before the first starts.
 - **Log every deviation** to `tmp/workflow-runs/<runId>/skips.md` as `<occurrence-id> · <kind> · <evidence>`; a skipped task is completed with a comment, never deleted.
 - **Parallel groups** run as waves: all members spawn in one message; the next step waits until every member returns.
 - **Nested workflows** run as sub-agents that return a summary — except `workflow-review-changes`, which always runs inline in the main session (its loop owns the session Stop hook); its own reviewers stay sub-agents.
 - **Run record** — run id, mode, fingerprint and occurrence ids persist, so a resume detects a changed definition and stops instead of silently switching.
 - **Evidence-gated close** — `workflow-end` refuses to close until every outcome gate (`root-cause-traced`, `plan-approved`, `tests-pass`, `spec-synced`, `review-converged`, `run-closed`) has evidence: a review receipt or cited report, test command output, and so on.
 
-### Workflow Catalog (19 Workflows)
+### Workflow Catalog (17 Workflows)
 
 | Workflow                          | Tier    | Steps | Use when                                                          |
 | --------------------------------- | ------- | ----- | ----------------------------------------------------------------- |
-| `workflow-feature`                | auto    | 28    | A well-defined feature or capability without a spec for it yet    |
-| `workflow-big-feature`            | confirm | 45    | Large, ambiguous or research-heavy feature                        |
-| `workflow-implement-spec`         | auto    | 11    | Behavior already written in a canonical spec                      |
-| `workflow-bugfix`                 | auto    | 16    | A bug, crash, regression or stale output                          |
-| `workflow-refactor`               | auto    | 15    | Restructure without changing behavior                             |
-| `workflow-review-changes`         | auto    | 19    | Review uncommitted changes before commit                          |
-| `workflow-spec-to-mockup`         | auto    | 8     | Clickable mockup of a UI spec, 1–3 design directions              |
-| `workflow-feature-spec`           | auto    | 8     | Create or update a canonical feature spec                         |
-| `workflow-code-to-spec`           | auto    | 6–11  | Spec from existing code, sync after changes, staleness audit      |
-| `workflow-spec-sync`              | auto    | 11    | Update test specs after code, bug or PR changes                   |
-| `workflow-initiative-to-spec`           | auto    | 19    | Raw idea → one reviewed provisional spec                          |
-| `workflow-initiative-to-task`            | auto    | 30    | Initiative → ready-to-plan task, stories and test specs                  |
-| `workflow-spec-to-task`            | auto    | 22    | Specs → prioritized, dependency-aware planned work                     |
-| `workflow-greenfield-init`        | confirm | 55    | A new project from scratch                                        |
+| `workflow-feature`                | auto    | 22    | A well-defined feature or capability without a spec for it yet    |
+| `workflow-big-feature`            | confirm | 39    | Large, ambiguous or research-heavy feature                        |
+| `workflow-implement-spec`         | auto    | 13    | Behavior already written in a canonical spec; a greenfield first slice |
+| `workflow-bugfix`                 | auto    | 15    | A bug, crash, regression or stale output                          |
+| `workflow-refactor`               | auto    | 14    | Restructure without changing behavior                             |
+| `workflow-review-changes`         | auto    | 14–19 | Review uncommitted changes before commit                          |
+| `workflow-spec-to-mockup`         | auto    | 6     | Clickable mockup of a UI spec, 1–3 design directions              |
+| `workflow-feature-spec`           | auto    | 10    | Create or update a canonical feature spec                         |
+| `workflow-code-to-spec`           | auto    | 5–9   | Spec prose from existing code: first spec, rewrite, staleness audit |
+| `workflow-spec-sync`              | auto    | 9     | Code already changed: reconcile cases and tests, prove them green |
+| `workflow-planned-work`          | auto    | 18–26 | Idea or spec → reviewed spec or ready-to-plan tasks (`--from`/`--to`) |
+| `workflow-greenfield-init`        | confirm | 35    | A new project from scratch to a reviewed foundation; first slice via implement-spec |
 | `workflow-integration-test`       | auto    | 6–10  | Write or update integration tests spec-first, or drive a red suite to green |
 | `workflow-e2e`                    | auto    | 6     | Write, update and verify E2E tests                                |
-| `workflow-seed-test-data`         | auto    | 9     | Idempotent seeders and realistic dev data                         |
+| `workflow-seed-test-data`         | auto    | 8     | Idempotent seeders and realistic dev data                         |
 | `workflow-architecture-audit`     | auto    | 6     | Whole-project architecture and production-readiness check         |
 | `workflow-research`               | auto    | 5–6   | Web research → synthesis, business, marketing or course output           |
 
@@ -157,10 +155,10 @@ A workflow is an **intent** plus **outcome gates** plus an ordered list of **ste
 
 - **Feature:** investigate → spec (+ optional discovery, domain, scenario, mockup) → test specs → plan → implement + integration tests → one spec sync → **review changes** → **verify once** → **close**.
 - **Bug fix:** **root-cause investigation** → optional spec amend / plan → **regression test written** → fix → **review changes** (static) → **verify** (tests + mutation check: the test fails without the fix, passes with it) → **close**.
-- **Refactor:** investigate → **run tests (green baseline)** → plan → optional safety-net tests → execute → **review changes** → **test** → **close**.
+- **Refactor:** investigate → optional characterization tests → **run tests (green baseline)** → plan → execute → **review changes** → **test** → **close**.
 - **Implement spec:** investigate → spec [mode=clarify] → plan → execute → integration tests → **review changes** (static) → **verify** → **test** → **close**.
-- **Spec to mockup:** design spec → **design review** → `work-item --mode=mockup --explore` → `html-export` → **UI review** → **close**.
-- **Review changes:** `changes-review` ∥ whole-target `why-review` → triage-selected `--report-only` specialists (the integration-test review with `--prove-tests` always runs; a parent workflow that verifies once, last — `SYNC:verify-last-order` — passes `--tests=defer` and the review stays static) → validate findings → trace unexplained defects → `fix --target=review` → simplify → post-fix re-review → `scan --target=domain-entities → docs-manager --mode=update`. The domain-entity scan runs only when the final diff changes an entity/model, DTO/data contract, persistence schema/migration, or entity-sync evidence; otherwise complete the scan task with a cited skip reason. `docs-manager --mode=update` always applies the spec/doc gaps the reviewers flagged read-only.
+- **Spec to mockup:** design spec → **design review** → `work-item --mode=mockup --explore` (renders its own PNG evidence) → **UI review** → **close**.
+- **Review changes:** `changes-review` ∥ whole-target `why-review` → triage-selected specialists as read-only `--fix-loop --loop-owner=caller` passes (the integration-test review with `--prove-tests` always runs; a parent workflow that verifies once, last — `SYNC:verify-last-order` — passes `--tests=defer` and the review stays static) → validate findings once → trace unexplained defects → `fix --target=review` (applying the simplifier lens's validated suggestions) → `scan --target=domain-entities → docs-manager --mode=update` → fresh re-run of every applicable lens, the post-fix re-review. The domain-entity scan runs only when the final diff changes an entity/model, DTO/data contract, persistence schema/migration, or entity-sync evidence; otherwise complete the scan task with a cited skip reason. `docs-manager --mode=update` always applies the spec/doc gaps the reviewers flagged read-only.
 
 ---
 
@@ -170,7 +168,7 @@ A skill is a directory with `SKILL.md` (frontmatter `name`, `description` = `[Ca
 
 | Category                         | Count | Examples                                                             |
 | -------------------------------- | ----- | -------------------------------------------------------------------- |
-| Workflows (entry + lifecycle)    | 22    | `workflow-*`, `start-workflow`, `workflow-end`                       |
+| Workflows (entry + lifecycle)    | 19    | `workflow-*`, `start-workflow`, `workflow-end`                       |
 | Planning & architecture          | 7     | `plan` (modes `review`, `validate`, `execute`), `scenario`, `architecture` (modes `design`, `review`, `scalability`, `full`) |
 | Implementation                   | 6     | `feature-implement`, `code-simplifier`                               |
 | Understand, fix, debug, graph    | 4     | `investigate` (mode `debug`), `understand`, `fix`, `graph-code` (includes export mode) |
@@ -360,11 +358,11 @@ Codex transforms `/skill` into `$skill`, `Agent` into `spawn_agent` and strips C
 | Runner                                  | Tests  | Covers                                                                 |
 | --------------------------------------- | ------ | ---------------------------------------------------------------------- |
 | `test-all-hooks.cjs` (primary gate)  | **133** | Hook behaviors, bridged suites and the count guard                     |
-| `run-all-tests.cjs` (full aggregate) | **2064** | 123 `tests/suites/*.test.cjs` files; primary gate runs separately |
+| `run-all-tests.cjs` (full aggregate) | **2088** | 124 `tests/suites/*.test.cjs` files; primary gate runs separately |
 | `node --test .claude/scripts/codex/tests` | —      | Mirror generators and verifiers                                        |
 | `run-codex-sync.mjs --verify-only`      | —      | Every read-only gate before a commit                                   |
 
-> Source-declared inventory: `test-all-hooks.cjs` = 133; `run-all-tests.cjs` = 2064 executors across 123 suite files. Both runners fail when these numbers drift from the docs. Counts do not establish runtime results; read the actual runner output for outcomes.
+> Source-declared inventory: `test-all-hooks.cjs` = 133; `run-all-tests.cjs` = 2088 executors across 124 suite files. Both runners fail when these numbers drift from the docs. Counts do not establish runtime results; read the actual runner output for outcomes.
 
 **Portable test contract** — shipped tests must pass in any project layout on Windows, macOS and Linux: build a temp fixture project instead of reading this repository's config or git state; blank inherited feature switches and provider keys; point `HOME`, `USERPROFILE`, `TMPDIR`, `TEMP` and `TMP` at the temp dir; name OS differences explicitly (paths, symlinks, `py -3` vs `python3`); run the full suite twice to prove repeatability.
 

@@ -105,7 +105,7 @@ If the tested path calls a model, prompt, agent, tool/MCP, retrieval, eval or gu
 ## Finding Validation and Verdict
 
 1. Deduplicate findings by root cause/owner.
-2. Confirm reachable consequence, evidence, confidence, and normalized severity. Validate findings through `$why-review --validate-findings <report-path>`; terminal validation is part of round 1 and never opens another review round.
+2. Confirm reachable consequence, evidence, confidence, and normalized severity. Validate findings through `$why-review --validate-findings <report-path>` (called with `--loop-owner=caller`, leave that call to the caller, which validates the merged report once); terminal validation is part of round 1 and never opens another review round.
 3. Emit:
    - `PASS` — all gates clear with no validated blocking finding.
    - `PASS_WITH_NOTES` — LOW observations only.

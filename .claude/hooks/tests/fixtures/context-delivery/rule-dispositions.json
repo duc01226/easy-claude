@@ -1,13 +1,13 @@
 {
   "version": 5,
-  "policyVersion": "de8a4fde657bc2519448b247c318619fe5f7b559629ab37a18c2b063794fb682",
+  "policyVersion": "cd40fe8d5c06eb5d8b2349a5f58efc735bacda6a7ade37ee110f1f6b326cfdc7",
   "sourceHashes": {
     "universal-1": "45228cc48fef77d6bfd75e88f62a5930c53f418b30856038b3dda52024c6cc7e",
     "universal-2": "1338c56f7c77d68d3cc75236b6e549468ff1dcf05e8b0a8e3bb1efb19077676a",
-    "universal-3": "622bf72a06bed5d1661f2ddf7751ae88e70929374b172f828c0d869ad0ec033c",
-    "universal-4": "95216bb872305b25af963fbc699e7d7660bdfc52beaeaabb18eb37c02ede92bb",
-    "route": "a991b2f7d033fa3a4e03b1ae8e52eb2ee9a7ef5ab16cdc57e77f99a720a1e9b4",
-    "catalog": "6c611ad48d7ca466d91216413c3ad6c26b48cf8cfaf62b5df11a14c8312d8e79",
+    "universal-3": "ca1bc16c01457b87eb07c3237074902a744c937d0aa3027114dd6828598fe7f9",
+    "universal-4": "56d419e6efa428b1dc72633a9a94f4390290fed3e1674a393441bcff7b62af23",
+    "route": "46422fdacf61e11928a242baf5170b8d56abe1f5652d1cb524554b971ce3e994",
+    "catalog": "b4874fb4389e876f8ce8df0f6ff422c480c94073d786110f48b638c209cff24d",
     "core": "f129dc46a1bb06a26cc3c342b9a0e35fe4f7a5bc44cfb57f32f12e8cb99ba3b8"
   },
   "unit": "Every nonblank line of the seven frozen compatible payloads: `id` is `<payload>:<line>` and `sha256` hashes its text. `policyVersion` is the sha256 of the concise core and route texts the dispositions were reviewed against.",
@@ -688,7 +688,7 @@
       "id": "universal-3:5",
       "source": "universal-3",
       "line": 5,
-      "sha256": "543e5fa07188df77a041ed195a9ccbed18d76a4c39c972b08344ddc81d76374a",
+      "sha256": "da332af74efbe66ad02c91bf420214e8056a87aa49d66eebbc2f447a84244cc0",
       "disposition": "merge-and-relax-method",
       "destination": ".claude/skills/shared/protocols/concise-agent-core.md",
       "fullSources": [
@@ -703,7 +703,9 @@
         "Use one writer per shared target",
         "Preserve the original goal and subsequent corrections",
         "after interruption or compaction, restore it and re-read the relevant current instructions",
-        "Routing, overlays, delegation and completion pressure never waive approvals or required gates"
+        "Routing, overlays, delegation and completion pressure never waive approvals or required gates",
+        "regardless of route, as tasks for every code change",
+        "Before a test run, check its environment"
       ]
     },
     {
@@ -949,6 +951,46 @@
       "id": "universal-4:14",
       "source": "universal-4",
       "line": 14,
+      "sha256": "0f5ae278f0f20cee52889e66ea382f721a1c78b54bf67f6aeec2bc1fcf271067",
+      "disposition": "defer",
+      "destination": ".claude/skills/shared/protocols/quality-skill-routing.md",
+      "readWhen": "choosing a skill for review, test or failure work",
+      "note": "The concise core keeps the failure-diagnosis row naming `investigate`; the quality-skill reminder hook delivers the route digest after tool results in both profiles."
+    },
+    {
+      "id": "universal-4:16",
+      "source": "universal-4",
+      "line": 16,
+      "sha256": "1bd5e75590d3e1c720a277587ea7fef287dcdd4f24b462411332b49c19a6c4d5",
+      "disposition": "defer",
+      "destination": ".claude/skills/shared/protocols/quality-skill-routing.md",
+      "readWhen": "choosing a skill for review, test or failure work",
+      "note": "The concise core keeps the failure-diagnosis row naming `investigate`; the quality-skill reminder hook delivers the route digest after tool results in both profiles."
+    },
+    {
+      "id": "universal-4:17",
+      "source": "universal-4",
+      "line": 17,
+      "sha256": "e51dcc42a4633173efaa2de1507c63e4ea32ef6eccfa497ecc89fd4127ef20ca",
+      "disposition": "defer",
+      "destination": ".claude/skills/shared/protocols/quality-skill-routing.md",
+      "readWhen": "choosing a skill for review, test or failure work",
+      "note": "The concise core keeps the failure-diagnosis row naming `investigate`; the quality-skill reminder hook delivers the route digest after tool results in both profiles."
+    },
+    {
+      "id": "universal-4:18",
+      "source": "universal-4",
+      "line": 18,
+      "sha256": "9efafb6ab709ccdcdf01504b73c9e8674b94e18d49724e2117a78b0deb5f562d",
+      "disposition": "defer",
+      "destination": ".claude/skills/shared/protocols/quality-skill-routing.md",
+      "readWhen": "choosing a skill for review, test or failure work",
+      "note": "The concise core keeps the failure-diagnosis row naming `investigate`; the quality-skill reminder hook delivers the route digest after tool results in both profiles."
+    },
+    {
+      "id": "universal-4:20",
+      "source": "universal-4",
+      "line": 20,
       "sha256": "c5c875252740a8c318bb953563e55b80f46791a1d26faf82203c3f80a5b5e3be",
       "disposition": "merge",
       "destination": ".claude/skills/shared/protocols/concise-agent-core.md",
@@ -1278,7 +1320,7 @@
       "id": "route:32",
       "source": "route",
       "line": 32,
-      "sha256": "2131a89512fc62d8c569f0b9d94d4794fd6b0197ff612ed921c95161bc190eb3",
+      "sha256": "0f018d59e5d55f2f50f8d627c87514dcee71c8a8ecd8a84669917c3bd2caa598",
       "disposition": "merge",
       "destination": ".claude/skills/shared/protocols/concise-workflow-route.md",
       "fullSources": [
@@ -1286,22 +1328,31 @@
       ],
       "anchors": [
         "requires one question: full workflow, slimmer gate-preserving route, or direct work",
-        "first-task selection follows configured activation tiers: auto runs, confirm asks, manual requires explicit invocation"
+        "In auto mode, ask the same question with the full workflow recommended first"
       ]
     },
     {
       "id": "route:33",
       "source": "route",
       "line": 33,
-      "sha256": "62b67e1f685b7fef51102005dddd27774be3fee38c42965c53aab035d0b6b221",
-      "disposition": "remove-wrapper",
-      "destination": null
+      "sha256": "8c723cbd389021a2daa5af7c7b07a05fc119a0b543b174584bc9bd6d118b4e85",
+      "disposition": "defer",
+      "destination": ".claude/skills/shared/workflow-first-gate.md",
+      "readWhen": "before workflow selection or a routing exception"
     },
     {
       "id": "route:34",
       "source": "route",
       "line": 34,
-      "sha256": "b923ed2175ed3cb6e9b71ed5acf8824449e34145db087489b0e6a238c9fe3b2b",
+      "sha256": "62b67e1f685b7fef51102005dddd27774be3fee38c42965c53aab035d0b6b221",
+      "disposition": "remove-wrapper",
+      "destination": null
+    },
+    {
+      "id": "route:35",
+      "source": "route",
+      "line": 35,
+      "sha256": "b0e69b4337dc0c49bdc0ceb67bb5f0784e645ad0e58d6b05c6e558ad74561e79",
       "disposition": "merge",
       "destination": ".claude/skills/shared/protocols/concise-workflow-route.md",
       "fullSources": [
@@ -1314,17 +1365,17 @@
       ]
     },
     {
-      "id": "route:35",
+      "id": "route:36",
       "source": "route",
-      "line": 35,
+      "line": 36,
       "sha256": "62b67e1f685b7fef51102005dddd27774be3fee38c42965c53aab035d0b6b221",
       "disposition": "remove-wrapper",
       "destination": null
     },
     {
-      "id": "route:36",
+      "id": "route:37",
       "source": "route",
-      "line": 36,
+      "line": 37,
       "sha256": "cc27e889f38fadb29011059c0eb418b70b55f211acfb0982b04745077d9d57e0",
       "disposition": "merge",
       "destination": ".claude/skills/shared/protocols/concise-workflow-route.md",
@@ -1337,17 +1388,17 @@
       ]
     },
     {
-      "id": "route:38",
+      "id": "route:39",
       "source": "route",
-      "line": 38,
+      "line": 39,
       "sha256": "16b5e5c349b4b0b822e9d85fa6b3ed1ca37922f49b5f4c5b4f91532745cce039",
       "disposition": "remove-wrapper",
       "destination": null
     },
     {
-      "id": "route:39",
+      "id": "route:40",
       "source": "route",
-      "line": 39,
+      "line": 40,
       "sha256": "c9aae592013f0297291d9ebdb19581d426286e8077d99b2847418296a77e2ea1",
       "disposition": "remove-wrapper",
       "destination": null
@@ -1381,7 +1432,7 @@
       "id": "catalog:6",
       "source": "catalog",
       "line": 6,
-      "sha256": "96938f5ee56a778589a6e6d8677db2a7fea9f0b7f59789e823b3932ea8161351",
+      "sha256": "bb78a993c41acb24098bea140775104fc4138dd5f2446a77064c5c4f7a23d9e2",
       "disposition": "remove-wrapper",
       "destination": null
     },
@@ -1407,33 +1458,28 @@
       "id": "catalog:12",
       "source": "catalog",
       "line": 12,
+      "sha256": "6f72d196ba51becdf9b95c0bbe588d0a352607f8449011f5b44477387e215cfc",
+      "disposition": "merge",
+      "destination": ".claude/skills/shared/protocols/concise-workflow-route.md",
+      "fullSources": [],
+      "anchors": [
+        "Judge by observable behavior"
+      ]
+    },
+    {
+      "id": "catalog:14",
+      "source": "catalog",
+      "line": 14,
       "sha256": "ede380102929136cd2ae506b914819d52ec89cbc9d4c0e6cc64eb3e35a5f9b60",
       "disposition": "defer",
       "destination": ".claude/scripts/workflow-catalog.cjs",
       "readWhen": "before choosing a workflow"
     },
     {
-      "id": "catalog:14",
-      "source": "catalog",
-      "line": 14,
-      "sha256": "59e1361e47ab8a67458db2e642d89551f40cfe09b43157e7c560caf227fac1cc",
-      "disposition": "defer",
-      "destination": ".claude/scripts/workflow-catalog.cjs",
-      "readWhen": "before choosing a workflow"
-    },
-    {
-      "id": "catalog:15",
-      "source": "catalog",
-      "line": 15,
-      "sha256": "f1a346b3c63ca7ac887076df3f598cbd2f85f0c97e31d43fb3803be524f20102",
-      "disposition": "remove-wrapper",
-      "destination": null
-    },
-    {
       "id": "catalog:16",
       "source": "catalog",
       "line": 16,
-      "sha256": "a819e93ea9d1066dfe209de8a9aa5d6c7c37332391f68aa01ab39b2aa0e95da4",
+      "sha256": "59e1361e47ab8a67458db2e642d89551f40cfe09b43157e7c560caf227fac1cc",
       "disposition": "defer",
       "destination": ".claude/scripts/workflow-catalog.cjs",
       "readWhen": "before choosing a workflow"
@@ -1442,16 +1488,15 @@
       "id": "catalog:17",
       "source": "catalog",
       "line": 17,
-      "sha256": "4bbef9e3f3aa1558874083747a484b31cb71541de1227594f717fbeca346e7a3",
-      "disposition": "defer",
-      "destination": ".claude/scripts/workflow-catalog.cjs",
-      "readWhen": "before choosing a workflow"
+      "sha256": "f1a346b3c63ca7ac887076df3f598cbd2f85f0c97e31d43fb3803be524f20102",
+      "disposition": "remove-wrapper",
+      "destination": null
     },
     {
       "id": "catalog:18",
       "source": "catalog",
       "line": 18,
-      "sha256": "f93fa2baa972d9a9a999230651366314563312212fbd86e3e84c6d8886768c04",
+      "sha256": "fa8e018fa335a0c1c123d527ece70da111ad2f6b58878febb8c3490c192615f2",
       "disposition": "defer",
       "destination": ".claude/scripts/workflow-catalog.cjs",
       "readWhen": "before choosing a workflow"
@@ -1460,7 +1505,7 @@
       "id": "catalog:19",
       "source": "catalog",
       "line": 19,
-      "sha256": "108b7c7d907275bfd0c08fa450cd11d5c12c6d1d54433b2f2cb0091a8bea6d9d",
+      "sha256": "2d6b9a474b510823fb2bfdb50ca44c38ba480fa060faf90bcf9edd2c20a3d0f1",
       "disposition": "defer",
       "destination": ".claude/scripts/workflow-catalog.cjs",
       "readWhen": "before choosing a workflow"
@@ -1469,7 +1514,7 @@
       "id": "catalog:20",
       "source": "catalog",
       "line": 20,
-      "sha256": "4dd76acf770d7c1cbf394a4bf9e70fbd49152d22f14731de002390fb9f3916c9",
+      "sha256": "64e0089ecce206658b7eaf87ebc3f06b631e988e21e3336fd99fdbd1650b84b7",
       "disposition": "defer",
       "destination": ".claude/scripts/workflow-catalog.cjs",
       "readWhen": "before choosing a workflow"
@@ -1478,7 +1523,7 @@
       "id": "catalog:21",
       "source": "catalog",
       "line": 21,
-      "sha256": "6b6e41e58839086237108e247f100acf38decdf7253e6ccd8876bd8d9907611f",
+      "sha256": "436b658463ee3d3e5b0fb3493d41e2934a32696f4badb928e2786aa090811791",
       "disposition": "defer",
       "destination": ".claude/scripts/workflow-catalog.cjs",
       "readWhen": "before choosing a workflow"
@@ -1487,7 +1532,7 @@
       "id": "catalog:22",
       "source": "catalog",
       "line": 22,
-      "sha256": "ee86faa73f20cfc9fc3a2e6320d1c656c6af209471452ba210e1cbdd957bb4c9",
+      "sha256": "40f8d05f106e40b9570f7fdd092baf93e0bb3cefbb63b8bb1e894c56dd4d5189",
       "disposition": "defer",
       "destination": ".claude/scripts/workflow-catalog.cjs",
       "readWhen": "before choosing a workflow"
@@ -1496,7 +1541,7 @@
       "id": "catalog:23",
       "source": "catalog",
       "line": 23,
-      "sha256": "df784db2dec29b04e90a1708601157752a2c1191b1661070a7570071ee010f2e",
+      "sha256": "59f11b37b6bb934a9463394c6072a6125f982c4dac069854ab7c3a5b26da07cb",
       "disposition": "defer",
       "destination": ".claude/scripts/workflow-catalog.cjs",
       "readWhen": "before choosing a workflow"
@@ -1505,7 +1550,7 @@
       "id": "catalog:24",
       "source": "catalog",
       "line": 24,
-      "sha256": "567b71f41d1f14fe166d85d28f2d9ed9270f91c00557b3b2e3304274bc8a23a1",
+      "sha256": "b8ecc5c20c6f28e7b28d4ae8e30d5693aa1ead081d567e0493a24412edb61198",
       "disposition": "defer",
       "destination": ".claude/scripts/workflow-catalog.cjs",
       "readWhen": "before choosing a workflow"
@@ -1514,7 +1559,7 @@
       "id": "catalog:25",
       "source": "catalog",
       "line": 25,
-      "sha256": "efbf3bbc8456ff88a10da07572a7bf01b0d3bfe6fccd84ccd8bcecc9b907cfbb",
+      "sha256": "b587a1638bfeb002c4b03c2413231991935b814743291849d4460cf8fd71cc8e",
       "disposition": "defer",
       "destination": ".claude/scripts/workflow-catalog.cjs",
       "readWhen": "before choosing a workflow"
@@ -1523,7 +1568,7 @@
       "id": "catalog:26",
       "source": "catalog",
       "line": 26,
-      "sha256": "9fd77d6a925fe4c736f9ba2935bdcd22af786a1ebb6414472df6ea85523ec166",
+      "sha256": "9e2061186c7b5a5e401161e80b226602027f726ffa3760f09bf8320993b289dd",
       "disposition": "defer",
       "destination": ".claude/scripts/workflow-catalog.cjs",
       "readWhen": "before choosing a workflow"
@@ -1532,7 +1577,7 @@
       "id": "catalog:27",
       "source": "catalog",
       "line": 27,
-      "sha256": "6742c7cf0fe6a4199def21408c1ff5a3ac475e95a7a2686f97f85f15569dff33",
+      "sha256": "60f68e6c171f0bf08caea67658870edc2755807a2dc93af2051d06aa38f7161b",
       "disposition": "defer",
       "destination": ".claude/scripts/workflow-catalog.cjs",
       "readWhen": "before choosing a workflow"
@@ -1541,7 +1586,7 @@
       "id": "catalog:28",
       "source": "catalog",
       "line": 28,
-      "sha256": "60d226d6425c2a3418ae32693f2169a2a8bdd92b670e99d1388605ff157a9b6f",
+      "sha256": "55baec0b7be9552d2235c8bb0f0bddf6b7e09a7cd31f388a38122595cc5ee5ac",
       "disposition": "defer",
       "destination": ".claude/scripts/workflow-catalog.cjs",
       "readWhen": "before choosing a workflow"
@@ -1550,7 +1595,7 @@
       "id": "catalog:29",
       "source": "catalog",
       "line": 29,
-      "sha256": "3154ae33351162a1697d23f12c40353da71db1c40cd95dd52af3203dca8be975",
+      "sha256": "7c3f05a40a90b1d9046392ed8a9e8e17ecbcb5ac68b6762dfb3480c0e479bc23",
       "disposition": "defer",
       "destination": ".claude/scripts/workflow-catalog.cjs",
       "readWhen": "before choosing a workflow"
@@ -1559,7 +1604,7 @@
       "id": "catalog:30",
       "source": "catalog",
       "line": 30,
-      "sha256": "7749d6f6ffd788d5c599a827a474344765d0e1164ddc1a15f684a0f7843e9dab",
+      "sha256": "cc2fffb39063055107d2beb3e8c7ddbc506d417396c6829de3ff42c6d9e43ee3",
       "disposition": "defer",
       "destination": ".claude/scripts/workflow-catalog.cjs",
       "readWhen": "before choosing a workflow"
@@ -1568,7 +1613,7 @@
       "id": "catalog:31",
       "source": "catalog",
       "line": 31,
-      "sha256": "e132f5a33f6693a66ad8b81ce7471cb339b9ec30ce71e0f7dfd25ce4e62cdd08",
+      "sha256": "4a83f173f06389df7564df0cea909dce63be1cb890bc29ce034e0ff0a89d8ac6",
       "disposition": "defer",
       "destination": ".claude/scripts/workflow-catalog.cjs",
       "readWhen": "before choosing a workflow"
@@ -1577,7 +1622,7 @@
       "id": "catalog:32",
       "source": "catalog",
       "line": 32,
-      "sha256": "660b39429105fb664e7990f6aa6505f5919557f028c267afe9cfcdddae115dfe",
+      "sha256": "f558e4b1a6a66818f39a59a170e5b83b01ff1a842e813ad23c114bfdbbfbcc77",
       "disposition": "defer",
       "destination": ".claude/scripts/workflow-catalog.cjs",
       "readWhen": "before choosing a workflow"
@@ -1586,7 +1631,7 @@
       "id": "catalog:33",
       "source": "catalog",
       "line": 33,
-      "sha256": "b828d97f3166b7cdc0fe42224255ec9f4939ab8322cd26e71fbd9ca13f4d3e2b",
+      "sha256": "09ebe0e84a94826875bc78c38464e42f761c7fe56020cfbea25f13cddbe429ac",
       "disposition": "defer",
       "destination": ".claude/scripts/workflow-catalog.cjs",
       "readWhen": "before choosing a workflow"
@@ -1595,7 +1640,7 @@
       "id": "catalog:34",
       "source": "catalog",
       "line": 34,
-      "sha256": "7a7f7933fb04836fe9b925eaffa99ebd4814dfdd22dcae88cf7406964de435c5",
+      "sha256": "2e14e1a5f10349a34e182d49eef68c5e73e6c85452d92bba174af766640f332f",
       "disposition": "defer",
       "destination": ".claude/scripts/workflow-catalog.cjs",
       "readWhen": "before choosing a workflow"
@@ -1604,7 +1649,7 @@
       "id": "catalog:36",
       "source": "catalog",
       "line": 36,
-      "sha256": "00d8934aa312ce40dd5a2ff382125a81893de012e6bef801c97e849931d36fa1",
+      "sha256": "f47cc7a05448538ad527bdfe3b93a05cdbe0c47d24142fc4a132fc8d7d2d8608",
       "disposition": "defer",
       "destination": ".claude/scripts/workflow-catalog.cjs",
       "readWhen": "before choosing a workflow"

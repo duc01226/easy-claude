@@ -27,9 +27,9 @@ Claude Code uses a **three-pillar architecture** to assist every role:
 
 | Pillar                        | What It Does                                                          | Count                                                      |
 | ----------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------------- |
-| **Hooks** (Enforcement)       | Enforce quality gates, block unsafe actions, manage session lifecycle | <!-- COUNT:hooks -->35<!-- /COUNT --> top-level hook files |
-| **Skills** (Intelligence)     | Prompt-engineered protocols loaded on demand via `/skill-name`        | <!-- COUNT:skills -->105<!-- /COUNT --> skills             |
-| **Workflows** (Orchestration) | Multi-step sequences of skills with progress tracking                 | <!-- COUNT:workflows -->19<!-- /COUNT --> workflows        |
+| **Hooks** (Enforcement)       | Enforce quality gates, block unsafe actions, manage session lifecycle | <!-- COUNT:hooks -->36<!-- /COUNT --> top-level hook files |
+| **Skills** (Intelligence)     | Prompt-engineered protocols loaded on demand via `/skill-name`        | <!-- COUNT:skills -->103<!-- /COUNT --> skills             |
+| **Workflows** (Orchestration) | Multi-step sequences of skills with progress tracking                 | <!-- COUNT:workflows -->17<!-- /COUNT --> workflows        |
 
 ### Workflow Detection
 
@@ -40,7 +40,7 @@ When you describe the first task of a session, Claude automatically:
 3. **Creates tasks** for every step and tracks progress
 4. **Executes** each step in sequence
 
-Each person sets how this works: route mode `ask` (default), `auto` (a matched workflow starts without asking, by its tier) or `off` (nothing starts without an explicit request). See [Workflow route mode](configuration/README.md#workflow-route-mode-per-person); change it with `/framework-config --mode=workflow`.
+Each person sets how this works: route mode `ask` (default), `auto` (the same question, recommending the full workflow first) or `off` (nothing starts without an explicit request). See [Workflow route mode](configuration/README.md#workflow-route-mode-per-person); change it with `/framework-config --mode=workflow`.
 
 Mid-session (follow-ups, corrections, new asks), Claude does the work directly, with the best-fit skill, or with a lean chain of at most 3 skills instead of auto-activating a workflow. An explicit workflow request — `/start-workflow <id>`, `/workflow-*`, or asking in words — always runs.
 
@@ -89,7 +89,7 @@ Project knowledge — backend/frontend patterns, design tokens, code-review rule
     ```
     Scores and orders tasks using RICE, MoSCoW, or Value-Effort framework
 
-**Workflow trigger:** Say "new feature idea" or "new initiative" → activates **initiative-to-task** workflow
+**Workflow trigger:** Say "new feature idea" or "new initiative" → activates the **planned-work** workflow (mode `idea-to-tasks`)
 
 ---
 
@@ -111,7 +111,7 @@ Project knowledge — backend/frontend patterns, design tokens, code-review rule
 
     Slices task into vertical stories meeting INVEST criteria
 
-**Workflow trigger:** Say "refine this idea" → activates **initiative-to-task** workflow
+**Workflow trigger:** Say "refine this idea" → activates the **planned-work** workflow (mode `idea-to-tasks`)
 
 ---
 
@@ -231,7 +231,7 @@ Project knowledge — backend/frontend patterns, design tokens, code-review rule
 
 ## Workflow Tutorials
 
-### Workflow 1: Initiative to Task (`initiative-to-task`)
+### Workflow 1: Planned Work, idea to tasks (`planned-work`, mode `idea-to-tasks`)
 
 **Trigger:** "new idea", "feature request", "new initiative"
 **Roles:** Product Owner, Business Analyst
@@ -306,7 +306,7 @@ Claude provides end-to-end workflows that span multiple roles:
 
 | Workflow              | Roles | Trigger          | Steps                                                                        |
 | --------------------- | ----- | ---------------- | ---------------------------------------------------------------------------- |
-| `initiative-to-task` (PO→BA) | PO→BA | "hand off to BA" | `/initiative` → `/work-item --mode=review` → `/work-item --mode=refine` → `/work-item --mode=story` (conditional first step) |
+| `idea-to-tasks` (PO→BA) | PO→BA | "hand off to BA" | `/initiative` → `/work-item --mode=review` → `/work-item --mode=refine` → `/work-item --mode=story` (conditional first step) |
 
 Each workflow tracks progress across roles so the next role has full visibility into upstream artifacts.
 
@@ -467,8 +467,8 @@ PLANNING
 
 | Role | Primary Skills                                                  | Workflow               |
 | ---- | --------------------------------------------------------------- | ---------------------- |
-| PO   | `/initiative`, `/prioritize`                                          | initiative-to-task            |
-| BA   | `/work-item --mode=refine`, `/work-item --mode=story`                                             | initiative-to-task            |
+| PO   | `/initiative`, `/prioritize`                                          | planned-work (idea-to-tasks)            |
+| BA   | `/work-item --mode=refine`, `/work-item --mode=story`                                             | planned-work (idea-to-tasks)            |
 | QA   | `/spec [mode=tests]`, `/integration-test`, `/test`              | workflow-integration-test |
 | QC   | `/work-item --mode=dor`, `/work-item --mode=review`, `/production-readiness-review` | —                      |
 | UX   | `/design-spec`, `/ui-design`                                       | —                      |
@@ -479,7 +479,7 @@ Plan status tracking is not a separate role here: `/plan --mode=execute` updates
 
 | Say This                       | Activates                    | Sequence                                                |
 | ------------------------------ | ---------------------------- | ------------------------------------------------------- |
-| "new idea" / "feature request" | initiative-to-task                  | /initiative → /work-item --mode=refine → /work-item --mode=story → /prioritize                  |
+| "new idea" / "feature request" | planned-work (idea-to-tasks)                  | /initiative → /work-item --mode=refine → /work-item --mode=story → /prioritize                  |
 | "test this task" / "test cases" | `/spec [mode=tests]` (skill) | /spec [mode=tests] → /work-item --mode=review --type=spec-tests |
 | "design spec for"              | `/design-spec`               | /design-spec → /ui-design --lane=product                   |
 | "TDD" / "test-first"           | feature                      | /plan → /spec [mode=tests] → /feature-implement → /test |

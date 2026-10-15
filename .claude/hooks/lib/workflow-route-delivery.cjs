@@ -5,13 +5,15 @@
  * No root instruction file carries routing text; the route arrives here, in the mode the
  * person chose. Resolved by `routing.resolveWorkflowRouteMode` (owner: .claude/scripts/lib/workflow-routing-config.cjs):
  *   - ask  (default): the gate and the catalog; the workflow question is asked only when the model's own route is to start a catalog workflow (direct, single-skill and custom-simple routes ask nothing).
- *   - auto: the gate and the catalog; a matched workflow starts without asking, by its tier.
+ *   - auto: the gate and the catalog; the workflow question is still asked before a self-selected workflow starts, recommending the full workflow first.
  *   - off:  a short state notice only (no gate, no catalog): nothing starts without an explicit request.
  * Runs on every host that runs hooks: Claude (settings.json), Codex (the mirrored .codex/hooks.json
  * launcher) and the OpenCode bridge (compiled from settings.json); all three run the same two entry files.
  * Delivery is advisory plaintext, never a blocking decision. A session-scoped ledger suppresses
  * duplicates until content changes (a mode change is a content change), context is compacted, or the
- * transcript grows by about 4.5 MB (the framework's ~200k-token proxy).
+ * transcript grows by about 4.5 MB (the framework's ~200k-token proxy). The host's compaction report
+ * (SessionStart `compact`) delivers both outputs at once as the JSON context envelope, because a run may
+ * continue with no prompt; the record absorbs the host's boundary line, so the next prompt stays silent.
  *
  * An optional project-supplied protocol (`portability.workflowRouteProtocol`, team or local,
  * local wins) is appended to the route output in its own marker block. It is part of the delivery
@@ -218,8 +220,8 @@ function buildInjection(projectDir, protocolText, mode = DEFAULT_MODE, source = 
 
 /**
  * Build the catalog output: the compact catalog when it fits PAYLOAD_CAP, otherwise the first smaller
- * form that fits (compact rows without the step-skill names → index rows with barrier groups → rows
- * with tier only → no rows). The output holds nothing else, so the form depends on the registry alone,
+ * form that fits (compact rows without the step-skill names → the compact catalog with shorter whole-clause
+ * hints, then without the step-skill names → index rows with barrier groups → rows with tier only → no rows). The output holds nothing else, so the form depends on the registry alone,
  * never on the gate or a project protocol. The last form is returned even when it stays over the cap.
  * `mode` is `ask` (default) or `auto`: it selects the tier legend the catalog prints.
  */
@@ -227,10 +229,14 @@ function buildCatalogInjection(projectDir, mode = DEFAULT_MODE) {
     const catalogLib = require('../../scripts/lib/workflow-skills-catalog.cjs');
     const effectiveMode = mode === 'auto' ? 'auto' : DEFAULT_MODE;
     const assemble = catalog => [CATALOG_START, catalog, CATALOG_END].join('\n');
-    const compact = sections => () => catalogLib.buildWorkflowSkillsCatalog({ rootDir: projectDir, sections, compact: true, mode: effectiveMode });
+    const compact = (sections, hintMax) => () => catalogLib.buildWorkflowSkillsCatalog({ rootDir: projectDir, sections, compact: true, mode: effectiveMode, hintMax });
+    // Full whole-clause hints first; a registry too large for them keeps its compact rows with shorter whole-clause
+    // hints before the catalog shrinks to an index without hints
     const forms = [
         compact(['workflows', 'skills']),
         compact(['workflows']),
+        compact(['workflows', 'skills'], catalogLib.COMPACT_HINT_FALLBACK_MAX),
+        compact(['workflows'], catalogLib.COMPACT_HINT_FALLBACK_MAX),
         ...catalogLib.POINTER_ROWS.map(rows => () => catalogLib.buildWorkflowPointerCatalog({ rootDir: projectDir, rows, mode: effectiveMode }))
     ];
     let payload = '';
@@ -373,7 +379,9 @@ function run(input, deps = {}) {
         const finish = value => resolve(value);
         try {
             if (!input || typeof input !== 'object' || Array.isArray(input)) return finish('');
-            if (input.hook_event_name && input.hook_event_name !== 'UserPromptSubmit') return finish('');
+            const event = input.hook_event_name;
+            const isCompaction = event === 'SessionStart' && require('./convention-ledger.cjs').isCompactionStart(input);
+            if (event && event !== 'UserPromptSubmit' && !isCompaction) return finish('');
             if (!nonBlank(input.session_id)) return finish('');
 
             const part = deps.part === undefined ? PART_ROUTE : deps.part;
@@ -399,6 +407,7 @@ function run(input, deps = {}) {
             const { mode, source } = resolveMode(routing, routeOptions);
             const skillPolicy = typeof routing.resolveSkillAutoTrigger === 'function' ? routing.resolveSkillAutoTrigger(routeOptions) : null;
             const write = deps.write || defaultWrite;
+            const output = text => require('./prompt-route-utils.cjs').routerOutput(input, text);
             const context = require('./context-delivery.cjs');
             const profile = context.profileOptions(deps);
             const concise = context.conciseCore(projectDir, profile)
@@ -412,12 +421,12 @@ function run(input, deps = {}) {
                 // command. Missing concise sources retain full compatible catalog delivery.
                 if (concise) return finish('');
                 const catalog = deps.content || buildCatalogInjectionOrNotice(projectDir, mode);
-                ledger.deliverOnce({
+                ledger.deliverWithCompaction({
                     root: storeRoot,
                     input,
                     group: CATALOG_RECORD_GROUP,
                     hash: crypto.createHash('sha256').update(catalog, 'utf8').digest('hex'),
-                    payload: `${catalog}\n`,
+                    payload: output(`${catalog}\n`),
                     settings: SETTINGS,
                     now,
                     write,
@@ -439,12 +448,12 @@ function run(input, deps = {}) {
             const hash = crypto.createHash('sha256').update(content, 'utf8').digest('hex');
             // This output is the only carrier of the route and of the off notice, so an unusable record store
             // must not silence it: failOpen delivers without a record (a duplicate is accepted over silence).
-            ledger.deliverOnce({
+            ledger.deliverWithCompaction({
                 root: storeRoot,
                 input,
                 group: RECORD_GROUP,
                 hash,
-                payload: ack ? `${content}\n${ack}\n` : `${content}\n`,
+                payload: output(ack ? `${content}\n${ack}\n` : `${content}\n`),
                 settings: SETTINGS,
                 now,
                 write,

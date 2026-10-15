@@ -8,7 +8,7 @@ context-budget: high
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
-> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, merge steps without explicit user approval.
+> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, merge steps without explicit user approval. Inside a workflow run, `/start-workflow` → Workflow-step mode bounds this rule.
 > **[BLOCKING]** Before each step or sub-skill call, update todo tracking: `in_progress` on start, `completed` on end.
 > **[BLOCKING]** Every completed/skipped step MUST include evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools unavailable, maintain equivalent step-by-step plan tracker with same status transitions.
@@ -36,8 +36,6 @@ context-budget: high
 - User approval required at plan stage
 - Break work into todo tasks; add final self-review task
 
-> **Renamed:** formerly `cook` — now `/feature-implement`. The old name no longer resolves as a slash command.
-
 > **feature-implement vs plan --mode=execute:** `feature-implement` takes an idea/feature description and goes idea → research → **plan (created here)** → shipped. Use `/plan --mode=execute` instead when a plan file already exists and you only need disciplined phase-by-phase execution + commit. feature-implement owns the front of the pipeline (research + planning); plan --mode=execute owns the back (phase gates + auto-commit + `--parallel`/`--approval`/`--tests` flags).
 
 ## Contents
@@ -62,7 +60,7 @@ context-budget: high
 > 2. **`/plan`** — author the implementation plan from the spec. feature-implement's Comprehensive Planning phase (Step 2) satisfies this; emit a reviewable plan artifact under the plans root (default `plans/`; `docsRoots.plans.path` in `docs/project-config.json` overrides). Map each plan phase's `## Test Specifications` to the spec's §8 `TC-{FEATURE}-{NNN}` IDs.
 > 3. **Proceed** — execute the core implementation spine up to the static code review (research already done → implement every phase with its tests → Step 4 review); the single Step 5 verify runs LAST, after every review below.
 > 4. **`/spec [mode=sync]`** — *spec-driven closure.* Reconcile the spec's §8 `TC-{FEATURE}-{NNN}` ↔ integration tests and refresh `Evidence: TBD` markers to real `file:line` now that code exists. Run `/spec [mode=tests]` first if the implementation introduced behavior not yet captured as a test case. Skip only when step 1 was skipped (fast-mode trivial, no spec touched).
-> 6. **`/changes-review`** — review the diff before commit.
+> 6. **`/changes-review --defer=whole-target`** — review the diff before commit (step 7 owns the rationale review).
 > 7. **`/why-review`** — review rationale and change quality of the implementation.
 > 8. **Verify once (Step 5)** — full tests + mutation check on the settled tree, then the documentation update and final report; a fix made here re-runs items 6-7 before the task is done (`SYNC:verify-last-order`).
 

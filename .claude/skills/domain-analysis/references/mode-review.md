@@ -442,7 +442,7 @@ Return the health score, findings grouped by severity with `file:line` and fix, 
 
 > **Purpose:** Adversarial validation of own findings BEFORE handoff. Catches over-flagged Highs, false positives, and severity inflation at the source rather than letting them propagate downstream.
 
-**Trigger:** Any finding produced (Critical, High, Medium, OR Low). Skip ONLY when the report's verdict is unconditional PASS with literally zero findings.
+**Trigger:** Any finding produced (Critical, High, Medium, OR Low). Skip ONLY under the skip conditions below (an unconditional zero-finding PASS, the recursion guard, or a caller-owned validation).
 
 **Protocol:**
 
@@ -456,10 +456,13 @@ Return the health score, findings grouped by severity with `file:line` and fix, 
 
 - Verdict is unconditional PASS with zero findings → log "Skipped — no findings to validate"
 - Why-review skill itself is the active context (avoid recursion)
+- Called with `--loop-owner=caller` → log "Skipped — the caller validates the merged report once" (`/start-workflow` → Workflow-step mode)
 
 
 
 ## Next Steps
+
+> **Inside a workflow:** when this skill runs as a step of an active workflow, skip the prompts in this section and return the result — the workflow's next step decides what runs (`/start-workflow` → Step Execution Protocol, Workflow-step mode).
 
 when standalone, use `ask user question tool` after completing to present:
 

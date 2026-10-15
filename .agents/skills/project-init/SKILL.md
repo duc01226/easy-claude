@@ -48,7 +48,7 @@ disable-model-invocation: false
 - MUST ATTENTION run `$workflow-code-to-spec` only when an existing canonical spec corpus or accepted project/capability scope supplies a real owner target; code/package names alone are not acceptance.
 - MUST ATTENTION if both scan and spec work are selected, run them as siblings and wait for both outcomes; otherwise run only the applicable task.
 - MUST ATTENTION preserve valid native `specArtifacts`; absence keeps strict TC/Section-8 defaults; an invalid declared profile blocks spec setup instead of falling back silently.
-- MUST ATTENTION keep `$changes-review` then `$why-review` as final review gates after setup changes; report a no-change result when no artifacts were modified.
+- MUST ATTENTION keep `$changes-review --defer=whole-target` then `$why-review` as final review gates after setup changes; report a no-change result when no artifacts were modified.
 - MUST ATTENTION run `$graph-code --mode=build` as a background sub-agent only when graph tooling is available and graph work is relevant; do not make graph support a hidden prerequisite for non-code projects.
 - MUST ATTENTION resolve Codex mirrors through the `$ai-context-refresh` completion handoff when Codex context is installed or selected; otherwise record the host-specific step as not applicable.
 - MUST ATTENTION when the user asks for help, options, or "what does init decide", run **Help Mode** below and STOP — never start Phase -1.
@@ -149,8 +149,8 @@ Minimum required task rows:
 8. Run `$ai-context-refresh` when root instructions are missing or stale; otherwise record the verified state.
 9. Resolve Codex mirrors through the completed `$ai-context-refresh` handoff only when Codex context is present or requested.
 10. Configure or review `experienceVerification` only for evidenced observable surfaces; do not invent surface commands or baselines.
-11. Call `$changes-review` after selected setup/scan/spec work.
-12. Call `$why-review` after `$changes-review`.
+11. Call `$changes-review --defer=whole-target` after selected setup/scan/spec work.
+12. Call `$why-review` after `$changes-review --defer=whole-target`.
 13. Run focused verification for changed config, selected docs, and generated outputs; run broader harness gates only when the change plan calls for them.
 14. Spawn `Spawn background $graph-code --mode=build sub-agent` only when graph tooling is available and graph work is relevant; otherwise record the evidence-backed skip.
 15. Record the graph sub-agent outcome or skip reason.
@@ -242,7 +242,7 @@ When existing canonical specs or accepted product/capability scope selects spec 
 
 After selected setup, scan, and spec work, create and execute these final tasks in order:
 
-2. `Call $changes-review` - run after all selected setup, scan, and spec work so changed config/context/artifacts are reviewed from the current diff.
+2. `Call $changes-review --defer=whole-target` - run after all selected setup, scan, and spec work so changed config/context/artifacts are reviewed from the current diff.
 3. `Call $why-review` - run after `$changes-review` to validate rationale and avoid closing on unchallenged setup decisions.
 
 If a listed task's skill cannot run because the environment lacks the required tool, stop and report the missing tool. If no files changed, still record that result rather than claiming a review of nonexistent changes.
@@ -277,7 +277,7 @@ For selected spec work, confirm:
 For selected observable-surface work, validate only declared or evidenced surfaces. Configuration is not live-review evidence; a relevant but unusable surface is `ENVIRONMENT-BLOCKED`, and first-run expectations remain `ACCEPTANCE-PENDING`.
 
 
-Run `$changes-review` and then `$why-review` after setup and selected work are complete. If no files changed, record that result without claiming a review of nonexistent changes.
+Run `$changes-review --defer=whole-target` and then `$why-review` after setup and selected work are complete. If no files changed, record that result without claiming a review of nonexistent changes.
 
 Check root instructions and host mirrors only when those hosts/context files are installed or selected. Preserve user content; if Codex mirrors need regeneration, use the documented `$ai-context-refresh` completion handoff, or report the `$sync-codex` route when that handoff is unavailable.
 
@@ -329,7 +329,7 @@ Report:
 **IMPORTANT MUST ATTENTION** when both scan and spec work are selected, run them as parallel siblings when supported and wait for both outcomes; otherwise run only selected tasks.
 **IMPORTANT MUST ATTENTION** preserve valid native `specArtifacts`; absence uses strict TC/Section-8 defaults when spec work is selected, while an invalid declaration blocks spec work.
 **IMPORTANT MUST ATTENTION** run `$graph-code --mode=build` only when graph tooling exists and relevant code relationships or task needs justify it; record an evidence-backed skip otherwise.
-**IMPORTANT MUST ATTENTION** run `$changes-review` and then `$why-review` after setup and selected work; report no-change explicitly.
+**IMPORTANT MUST ATTENTION** run `$changes-review --defer=whole-target` and then `$why-review` after setup and selected work; report no-change explicitly.
 **IMPORTANT MUST ATTENTION** record explicit blocker for any unavailable required skill/tool; silent skip is not completion.
 **IMPORTANT MUST ATTENTION** preserve user-authored root instruction files; do not overwrite project-only content.
 **IMPORTANT MUST ATTENTION** rerun Phase 0 after every setup phase because the next route depends on current evidence.

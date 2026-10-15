@@ -4,7 +4,7 @@
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
-> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
+> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval. Inside a workflow run, `$start-workflow` → Workflow-step mode bounds this rule.
 > **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
@@ -133,6 +133,8 @@ Rules:
 ---
 
 ## Step 2: System Check + Environment Precondition Gate
+
+**Environment readiness (before any test command):** decide from this project, its stack and the OS what the run needs, then check it: free disk on the workspace and temp volumes (`df -h` on macOS/Linux, `Get-PSDrive` on Windows) and available memory (`vm_stat` on macOS, `free -m` on Linux, `Get-CimInstance Win32_OperatingSystem` on Windows) against a floor the project documents, else the last measured run's peak with headroom, else the measured values recorded as evidence; plus the required services, toolchain versions, environment variables, config and ports. On a gap, free only disposable output this step's own earlier runs created and no other run is using, or report `ENVIRONMENT-BLOCKED` with what is missing; never run into it and read the failures as defects. Record the result as a row of the settled checklist (item 5 below).
 
 ### Persistent Python readiness
 
@@ -371,7 +373,7 @@ Typical sequence: create networks → remove stale containers → build images �
 3. Identify: is the assertion wrong, or is the code wrong?
 4. Fix at the root cause layer; use real use cases or valid seeded fixtures for data setup
 5. Re-run to confirm green
-6. **If step 3 found the CODE was wrong (SOURCE-WRONG) and your fix changed production/source code**, route that changed source into a fresh `$changes-review` (or emit a HIGH finding requiring it) BEFORE declaring verification PASS — a source fix that greens a test must not ship un-code-reviewed. (In `workflow-feature`/`workflow-bugfix` the downstream `workflow-review-changes` step already covers this; the route matters for standalone runs.)
+6. **If step 3 found the CODE was wrong (SOURCE-WRONG) and your fix changed production/source code**, route that changed source into a fresh `$changes-review` (or emit a HIGH finding requiring it) BEFORE declaring verification PASS — a source fix that greens a test must not ship un-code-reviewed. (In `workflow-feature`/`workflow-bugfix` the `workflow-review-changes --tests=defer` gate runs BEFORE this verify; a source or test edit made here re-runs that review over the settled tree (`SYNC:verify-last-order` step 5), which covers this route. The route itself matters for standalone runs.)
 
 If the system is unavailable, report `system not ready` and reference `startupScript` / `runScript`. NEVER change the test.
 
@@ -480,7 +482,7 @@ The protocols below are carried in full because only this mode needs them; the p
 
 ## Prompt-Enhance Closing Anchors
 
-**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval
+**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval; inside a workflow run, `$start-workflow` → Workflow-step mode bounds this
 **IMPORTANT MUST ATTENTION** for every step/sub-skill call: set `in_progress` before execution, set `completed` after execution
 **IMPORTANT MUST ATTENTION** every skipped step MUST include explicit reason; every completed step MUST include concise evidence
 **IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses

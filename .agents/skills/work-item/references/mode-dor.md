@@ -2,7 +2,7 @@
 
 > Loaded by `work-item/SKILL.md`'s Mode Dispatch when invoked as `$work-item --mode=dor [task path] [--reuse=<task review report | task-review>]`. This contract is the whole invocation: the readiness check (`--mode=dor`) verifies a task against the DoR criteria and the M1-M7 gates before planning. It works called directly with no workflow; every rule, flag, output and gate below is the contract of that mode.
 
-> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
+> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval. Inside a workflow run, `$start-workflow` → Workflow-step mode bounds this rule.
 > **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
@@ -24,7 +24,7 @@
 
 **Summary:**
 
-- **Purpose:** Automated quality gate, not collaborative review (`$work-item --mode=challenge` handles collaboration). Run 8 required DoR criteria plus M1-M7; any failure returns `FAIL`.
+- **Purpose:** Automated quality gate, not collaborative review (`$work-item --mode=challenge` handles collaboration). Run 8 required DoR criteria, the story rows ST1-ST4 when the task has stories, plus M1-M7; any failure returns `FAIL`.
 - **Execution:** Before step 1, use todo tracking for every step plus a final review; keep one `in_progress` and record evidence/skips. Then run: (1) locate task → (2) apply self-contained DoR checklist → (3) evaluate all 8 criteria (story template; GIVEN/WHEN/THEN ×3 + auth; full-flow surface; UI design; AI review; estimate; dependencies; releasable outcome) → (4) run M1-M7 → (5) verify estimation → (6) classify → (7) emit result template → (8) route via `ask user question tool` (`$prioritize`, `$work-item --mode=refine`, `$work-item --mode=challenge`, or skip).
 - **Evidence/gates:** the Checklist below is self-contained; cite concrete task section + line/AC for every verdict; any M1-M5 or M7 violation forces `FAIL`; M1/M2 carriers are exempt.
 - **Contract/estimate:** Apply the shared releasable-task contract; technical-only/foundation/setup tasks fail, UI tasks need a connected multi-view flow, and effort-point frontmatter needs Fibonacci 1-21, complexity, man-day, risk, and blast-radius evidence. `>13` EP = SHOULD-SPLIT `WARN`, not `FAIL`.
@@ -38,7 +38,7 @@
 3. **Evaluate all 8 criteria** — Check story format; AC vagueness, GIVEN/WHEN/THEN (minimum 3 plus 1 auth scenario); full-flow page/view, navigation, component, state, and mockup coverage; UI design; AI pre-review; effort points/complexity; dependency columns; and the releasable actor-facing outcome with entry → result, evidence, and no standalone technical/foundation/migration/setup scope.
 4. **Run M1-M7 gate** — Apply each mandate from `.claude/skills/shared/m1-m7-gates.md`; M1-M5 or M7 failure forces `FAIL`. Distinguish M1 vocabulary from M7 demoability and exempt carriers from M1/M2.
 5. **Verify estimation** — Check frontmatter against the SYNC estimation framework: `effort_points` Fibonacci 1-21, complexity, man-day range, risk, and blast radius. `>13` EP is a SHOULD-SPLIT `WARN`, not a `FAIL`.
-6. **Classify result** — `PASS` only when all 8 criteria and applicable M1-M5/M7 checks pass; otherwise `FAIL` and list fixes.
+6. **Classify result** — `PASS` only when all 8 criteria, the story rows ST1-ST4 when the task has stories, and applicable M1-M5/M7 checks pass; otherwise `FAIL` and list fixes.
 7. **Output verdict** — Emit the DoR Gate Result template; cite evidence for every criterion and mandate.
 8. **Route next step** — After output, use `ask user question tool` to present the options in **Next Steps**; never decide the user's route.
 
@@ -63,11 +63,20 @@
 - MUST ATTENTION verify **Effort points** — Valid Fibonacci (1-21) + complexity (Low/Medium/High)
 - MUST ATTENTION verify **Dependencies table** — Complete with Dependency, Type (must-before/can-parallel/blocked-by/independent), and Status columns
 
+### Stories (Required when the task has stories)
+
+When the task has been sliced (its story files under `tasks/stories/`, or this run's `--mode=story` output), the DoR covers the task and its stories: rows ST1-ST4 also block `READY_TO_PLAN`. They are the checks of `--mode=review --type=story` (`references/review-type-story.md`), so a DoR run over the stories covers that review. They are DoR-owned and never satisfied from a `--reuse` report. Before slicing, record `Stories: N/A — not sliced yet`.
+
+- MUST ATTENTION verify **ST1 INVEST per story** — each story is Independent, Negotiable, Valuable, Estimable, Small (≤8 effort points or one delivery slice) and Testable (`references/mode-story.md` → INVEST Criteria); an implicit order between stories needs a Story Dependencies row, with no cycles
+- MUST ATTENTION verify **ST2 Task AC → story coverage** — every task acceptance criterion maps to at least one story; an unmapped AC is a missing story
+- MUST ATTENTION verify **ST3 Story scenarios** — each story has at least 3 GIVEN/WHEN/THEN scenarios (happy, edge, error) with a meaningful GIVEN, plus 1 authorization scenario
+- MUST ATTENTION verify **ST4 M1-M7 per story** — each story file passes M1-M5 and M7 of `.claude/skills/shared/m1-m7-gates.md` (carrier exemption applies), the gate `--mode=review --type=story` applied; name the mandate ID and the story line for each violation
+
 ### M1-M7 Compliance Gate (BLOCKING — each check FAILs the gate)
 
 > **[BLOCKING] MUST ATTENTION READ `.claude/skills/shared/m1-m7-gates.md`** — the six criteria (M1-M5, M7), the carrier exemption and the M1-vs-M7 rule are defined there once; do not restate them from memory.
 >
-> **M6 enforcement:** See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M7)". A task violating any of M1-M5 or M7 is NOT ready to plan — return `FAIL` and name the mandate ID with its concrete task section + line/AC citation. A DoR `PASS` over an M1-M5 or M7 violation is defective.
+> **M6 enforcement:** See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M7)". A task, or one of its stories when the DoR covers them (row ST4), violating any of M1-M5 or M7 is NOT ready to plan — return `FAIL` and name the mandate ID with its concrete task section + line/AC citation. A DoR `PASS` over an M1-M5 or M7 violation is defective.
 
 If ANY criterion fails → DoR result is FAIL; list each violated mandate ID with its concrete section/line citation in the Blocking Items.
 
@@ -98,6 +107,18 @@ If ANY criterion fails → DoR result is FAIL; list each violated mandate ID wit
 | 7   | Effort points estimated      | ✅/❌     | {evidence}       |
 | 8   | Dependencies complete       | ✅/❌     | {evidence}       |
 
+### Stories ({count} | N/A — not sliced yet)
+
+| #   | Criterion | Status | Evidence / Issue |
+| --- | --------- | ------ | ---------------- |
+| ST1 | INVEST per story | ✅/❌/N/A | {evidence} |
+| ST2 | Task AC → story coverage | ✅/❌/N/A | {evidence} |
+| ST3 | 3+ GIVEN/WHEN/THEN + 1 authorization scenario per story | ✅/❌/N/A | {evidence} |
+| ST4 | M1-M5/M7 per story | ✅/❌/N/A | {mandate ID + story line per violation} |
+
+| Task AC | Covered By Story | Status |
+| ------- | ---------------- | ------ |
+
 ### Blocking Items (if FAIL)
 
 1. {Fix instruction}
@@ -118,6 +139,8 @@ If ANY criterion fails → DoR result is FAIL; list each violated mandate ID wit
 ---
 
 ## Next Steps
+
+> **Inside a workflow:** when this skill runs as a step of an active workflow, skip the prompts in this section and return the result — the workflow's next step decides what runs (`$start-workflow` → Step Execution Protocol, Workflow-step mode).
 
 **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use `ask user question tool` to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
 
@@ -304,7 +327,7 @@ If ANY criterion fails → DoR result is FAIL; list each violated mandate ID wit
 
 ## Prompt-Enhance Closing Anchors
 
-**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval
+**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval; inside a workflow run, `$start-workflow` → Workflow-step mode bounds this
 **IMPORTANT MUST ATTENTION** for every step/sub-skill call: set `in_progress` before execution, set `completed` after execution
 **IMPORTANT MUST ATTENTION** every skipped step MUST include explicit reason; every completed step MUST include concise evidence
 **IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses

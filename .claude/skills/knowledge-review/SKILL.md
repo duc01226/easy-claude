@@ -12,16 +12,16 @@ description: '[Research] Use when a workflow step or the user asks for knowledge
 
 **Summary:**
 
-- PURPOSE: audit a knowledge artifact (research report / course / strategy) for completeness, citation accuracy, confidence calibration, source quality and template compliance. Review-only returns a verdict; standalone fix-loop validates, repairs and freshly audits the artifact.
-- MAIN STEPS in order: (1) read the artifact → (2) run the 7-checklist audit — template compliance · citation audit · confidence accuracy · source quality · knowledge gaps · cross-validation · actionability, verifying presence AND quality depth (never just that a section exists) → (3) run the adversarial Anti-Bias Gate → (4) emit PASS/WARN/FAIL per-check + verdict (APPROVED/REVISE/BLOCKED) → (5) conditional Round 2 focused re-review.
-- Default to SKEPTIC: run the Anti-Bias Gate before any verdict — find a contradicting source per major claim, stress-test every score ≥80%, state the strongest alternative conclusion, check supporting-vs-contradicting source ratio, run a pre-mortem, and argue the opposite verdict in 2+ sentences.
+- PURPOSE: audit a knowledge artifact (research report / market analysis / business evaluation / marketing strategy / course) for completeness, citation accuracy, confidence calibration, source quality and template compliance. Review-only returns a verdict; standalone fix-loop validates, repairs and freshly audits the artifact.
+- MAIN STEPS in order: (1) read the artifact and set its profile (type → template, applicable rows) and depth (scope triage → core or full) → (2) run the checklist rows they select from the 7-checklist audit — template compliance · citation audit · confidence accuracy · source quality · knowledge gaps · cross-validation · actionability, verifying presence AND quality depth (never just that a section exists) → (3) run the adversarial Anti-Bias Gate at that depth → (4) emit PASS/WARN/FAIL per-check + verdict (APPROVED/REVISE/BLOCKED) → (5) conditional Round 2 focused re-review.
+- Default to SKEPTIC: run the Anti-Bias Gate before any verdict — find a contradicting source per major claim, stress-test every score ≥80%, state the strongest alternative conclusion, check supporting-vs-contradicting source ratio, run a pre-mortem, and argue the opposite verdict in 2+ sentences. Core depth runs the compressed gate (Artifact Profile and Depth).
 - Calibrate confidence to evidence: a single source ≠ 80%, scores >80% need 2+ independent sources with contradicting evidence addressed, single-source claims marked unverified must be <60%, and findings <60% must be flagged prominently.
 - Convergence: a clean Round 1 ENDS the review once the persisted `minRounds` is met; otherwise validate and fix only current-round blocking findings, then full re-review until the severity bar is clear (Round 2 LOW-only findings are deferred and end the loop).
 
 **Workflow:**
 
-1. **Read artifact** — Load the knowledge report/course/strategy
-2. **Template compliance** — Verify all enforced sections present
+1. **Read artifact** — Load the knowledge report/market analysis/business evaluation/strategy/course; set its profile and depth (Artifact Profile and Depth)
+2. **Template compliance** — Verify all enforced sections of the profile's template present
 3. **Citation audit** — Check inline citations and source table
 4. **Confidence check** — Verify scores match evidence
 5. **Output review** — Validate findings with `/why-review --validate-findings <report-path>`, then emit the summary with pass/warn/fail per check
@@ -41,6 +41,7 @@ description: '[Research] Use when a workflow step or the user asks for knowledge
 - [First Principle — Easy to Change · Easy to Scale · Easy to Maintain](#first-principle--easy-to-change--easy-to-scale--easy-to-maintain)
 - [Adversarial Review Mindset (NON-NEGOTIABLE)](#adversarial-review-mindset-non-negotiable)
 - [Knowledge Review](#knowledge-review)
+- [Artifact Profile and Depth](#artifact-profile-and-depth)
 - [Review Checklist](#review-checklist)
 - [Output Format](#output-format)
 - [Round 2: Focused Re-Review (conditional — triggered by findings)](#round-2-focused-re-review-conditional--triggered-by-findings)
@@ -93,7 +94,34 @@ Citation presence, plausible scores, broad coverage, and actionable wording are 
 
 Any item unmet → adversarial review incomplete. Go back. — why: skipping the gate ships confirmation-biased verdicts as fact.
 
+At core depth (Artifact Profile and Depth) the gate is the compressed three-item form stated there; full depth runs all six items.
+
 # Knowledge Review
+
+## Artifact Profile and Depth
+
+Set both before the checklist and record them in the review output.
+
+**Profile — the artifact type selects the template and the rows.** Every type runs all 7 checklists against its own template, with the exceptions below. A row that checks a section its template does not define (Recommendations, a Gaps section) is recorded N/A with that reason, never failed; its duty still applies, so open gaps, limitations and low-confidence claims stay flagged beside the claims they affect.
+
+| Artifact type | Written to | Template | Row exceptions |
+| --- | --- | --- | --- |
+| Research report | `docs/knowledge/research/` | `.claude/templates/research-report-template.md` | None |
+| Market analysis | `docs/knowledge/strategy/market-analysis/` | `.claude/templates/market-analysis-template.md` | None |
+| Business evaluation | `docs/knowledge/strategy/business/` | `.claude/templates/business-evaluation-template.md` | None |
+| Marketing strategy | `docs/knowledge/strategy/marketing/` | `.claude/templates/marketing-strategy-template.md` | None |
+| Course outline | `docs/knowledge/courses/` | `.claude/templates/course-outline-template.md` | No per-finding confidence row; its Sources table is Resources & References; add the pedagogy check |
+
+**Pedagogy check (course outlines):** objectives are measurable (an observable verb at a stated Bloom level); objectives and assessments align, so every objective is tested by at least one knowledge-check or final-assessment item and every assessment item traces to an objective; prerequisites are stated for the course, and each module builds on the earlier ones.
+
+An artifact type outside the table uses the template its producer skill names; with none, review it against the research-report rows and record that assumption.
+
+**Depth — the scope triage selects how much runs.** Read the triage the workflow recorded (`workflow-research` records Narrow, Standard or Broad in its workflow report); standalone, classify with the Question-Scope Triage table in `.claude/skills/workflow-research/SKILL.md`.
+
+| Depth | When | Runs |
+| --- | --- | --- |
+| Core | Narrow scope, and no decision rides on the artifact | Checklists 1 Template, 2 Citation, 3 Confidence and 6 Cross-Validation (with the profile's exceptions), plus the compressed Anti-Bias Gate: 1+ contradicting source for the main claim (or its absence flagged), a stress test of the highest score ≥80%, and 2+ sentences arguing the opposite verdict |
+| Full | Standard or Broad scope, a decision-critical artifact (business evaluation, marketing strategy, any go/no-go input), or triage unknown | Every applicable row and the full Anti-Bias Gate |
 
 ## Review Checklist
 
@@ -164,8 +192,9 @@ Check both presence and substantive quality for every row; headings, placeholder
 
 **Status:** PASS | WARN | FAIL
 **Artifact:** {path}
+**Profile:** {artifact type} · **Depth:** {core | full} — {triage evidence}
 
-### Checks (N/7 passed)
+### Checks (N/7 passed; N/A rows named with reason)
 
 - [x] Template compliance
 - [x] Citation audit
@@ -294,10 +323,11 @@ When Round 1 surfaces findings, run this focused re-review as part of that full 
 - **Severity Rubric:** classify findings Critical/High/Medium/Low by consequence using `SYNC:severity-rubric`; round 1 blocks on every open validated finding (LOW deferral), round 2 blocks only CRITICAL/HIGH/MEDIUM, and LOW is recorded/deferred. Failed binary gates always block.
 - **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
 
-**IMPORTANT MUST ATTENTION** default SKEPTIC, not VALIDATOR — run the full Anti-Bias Gate before ANY verdict: 1+ contradicting source per major claim, stress-test every score ≥80%, state the strongest alternative conclusion, check supporting-vs-contradicting source ratio, run a pre-mortem, argue the opposite verdict in 2+ sentences
+**IMPORTANT MUST ATTENTION** default SKEPTIC, not VALIDATOR — run the full Anti-Bias Gate before ANY verdict (core depth: the compressed three-item gate): 1+ contradicting source per major claim, stress-test every score ≥80%, state the strongest alternative conclusion, check supporting-vs-contradicting source ratio, run a pre-mortem, argue the opposite verdict in 2+ sentences
 **IMPORTANT MUST ATTENTION** calibrate confidence to evidence — a single source ≠ 80%; scores >80% need 2+ independent sources with contradicting evidence addressed; single-source claims marked unverified MUST be <60%; findings <60% flagged prominently
-**IMPORTANT MUST ATTENTION** main steps in order — read artifact → 7-checklist audit (presence AND quality depth) → adversarial Anti-Bias Gate → emit PASS/WARN/FAIL per-check + verdict (APPROVED/REVISE/BLOCKED) → conditional Round 2 re-review
-**IMPORTANT MUST ATTENTION** verify presence AND quality depth across all 7 checklists (template compliance, citation audit, confidence accuracy, source quality, knowledge gaps, cross-validation, actionability)
+**IMPORTANT MUST ATTENTION** main steps in order — read artifact + set profile and depth → 7-checklist audit (presence AND quality depth) → adversarial Anti-Bias Gate → emit PASS/WARN/FAIL per-check + verdict (APPROVED/REVISE/BLOCKED) → conditional Round 2 re-review
+**IMPORTANT MUST ATTENTION** verify presence AND quality depth on every row the profile and depth select from the 7 checklists (template compliance, citation audit, confidence accuracy, source quality, knowledge gaps, cross-validation, actionability); course outlines add the pedagogy check
+**IMPORTANT MUST ATTENTION** validate findings with `/why-review --validate-findings` whenever the report has findings, before any repair
 **IMPORTANT MUST ATTENTION** Review-only/caller-owned passes report without artifact edits; standalone fix-loop repairs validated findings between passes, then freshly audits citations and the full artifact.
 - break work into small todo tasks using `TaskCreate` BEFORE starting; add a final review todo to verify work quality
 - cite evidence for every claim — for a knowledge artifact that is the supporting source citation `[N]` / source-table row (use `file:line` only for the rare code-linked claim); confidence >80% to act, <60% DO NOT recommend

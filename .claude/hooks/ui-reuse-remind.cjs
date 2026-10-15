@@ -4,8 +4,9 @@
 if ((require.main === module || !require.main) && require('./lib/framework-runtime.cjs').skipHook(module)) return;
 
 /**
- * Default-on concise UI reuse reminder: every prompt and before matching frontend reads/changes
- * or plan loads. SessionStart compact/clear silently re-arms blind contexts.
+ * Default-on concise UI reuse reminder: every prompt, every sub-agent start, right after a compaction
+ * (a run may continue with no prompt) and before matching frontend reads/changes or plan loads.
+ * SessionStart compact/clear also re-arms blind contexts of every scope; after a clear the next prompt delivers.
  * One private reminder record per scope: a digest must never suppress full protocol delivery. Config: docs/project-config.json hooks.uiReuseReminder. Reuses the convention matcher,
  * canonical protocol reader and delivery ledger; never scans the repository or opens target files.
  * Windows/macOS/Linux accept either path separator; shell tokens are hints, never executed.
@@ -39,7 +40,7 @@ function matcher(settings) {
 }
 
 function relevant(input, root, settings) {
-    if (input.hook_event_name === 'UserPromptSubmit') return true;
+    if (['UserPromptSubmit', 'SubagentStart', 'SessionStart'].includes(input.hook_event_name)) return true;
     if (input.hook_event_name !== 'PreToolUse') return false;
     const ti = input.tool_input || {};
     if (input.tool_name === 'Skill') return (ti.skill || ti.name) === 'plan';
@@ -78,7 +79,7 @@ function defaultWrite(text, done) {
 
 async function run(input, deps = {}) {
     try {
-        if (!input || !['UserPromptSubmit', 'PreToolUse', 'SessionStart'].includes(input.hook_event_name)) return '';
+        if (!input || !['UserPromptSubmit', 'PreToolUse', 'SessionStart', 'SubagentStart'].includes(input.hook_event_name)) return '';
         const delivery = require('./lib/protocol-delivery.cjs');
         const root = delivery.resolveRoot(input, deps);
         const config = loadConfig(deps);
@@ -94,7 +95,8 @@ async function run(input, deps = {}) {
                 && fs.existsSync(ledger.sessionDir(store, input.session_id))) {
                 ledger.writeSessionState(store, input.session_id, HOOK_NAME, { generation: crypto.randomBytes(8).toString('hex') });
             }
-            return '';
+            // A compaction delivers at once: a run may continue with no prompt. A clear waits for the next prompt.
+            if (!ledger.isCompactionStart(input)) return '';
         }
         if (!relevant(input, root, settings)) return '';
         const { readCanonicalProtocol } = require('../scripts/lib/canonical-protocol.cjs');
@@ -103,7 +105,7 @@ async function run(input, deps = {}) {
         const content = body || 'Before frontend UI work, read .claude/skills/shared/protocols/ui-system-context.md; UI reuse reminder source unavailable.';
         const text = `<!-- CK:UI-REUSE-REMINDER -->\n${content}\n`;
         const payload = input.hook_event_name === 'UserPromptSubmit' ? text : JSON.stringify({
-            hookSpecificOutput: { hookEventName: 'PreToolUse', additionalContext: text }
+            hookSpecificOutput: { hookEventName: input.hook_event_name, additionalContext: text }
         });
         const write = deps.write || defaultWrite;
         if (!body || typeof input.session_id !== 'string' || !input.session_id.trim()) {
@@ -115,9 +117,9 @@ async function run(input, deps = {}) {
         const { BYTES_PER_TOKEN, CLASS_REINJECT_TOKENS_RANGE: [min, max] } = require('./lib/file-conventions.cjs');
         const value = settings.reinjectAfterTokens;
         const tokens = Number.isInteger(value) && value >= min && value <= max ? value : DEFAULT_REINJECT_TOKENS;
-        return await ledger.deliverOnce({
+        return await ledger.deliverWithCompaction({
             root: store,
-            input,
+            input: ledger.agentStartInput(input),
             group: HOOK_NAME,
             hash: crypto.createHash('sha256').update(JSON.stringify([text, settings, generation])).digest('hex'),
             payload,

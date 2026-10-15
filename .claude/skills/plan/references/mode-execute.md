@@ -2,7 +2,7 @@
 
 > Loaded by `plan/SKILL.md`'s Mode Dispatch when invoked as `/plan --mode=execute [plan-path] [--approval=off] [--tests=off] [--parallel={auto|on|off}]`. This contract REPLACES default plan creation for the invocation: it consumes an EXISTING plan, one phase per run. Flags default off; with no flags the full 7-step spine runs sequentially. Below, `$ARGUMENTS` means the text after `--mode=execute` with the flags removed.
 
-> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
+> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval. Inside a workflow run, `/start-workflow` → Workflow-step mode bounds this rule.
 > **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
@@ -45,7 +45,7 @@
 - **Step 2 is SEQUENTIAL by default; wave fan-out is OPT-IN.** `--parallel` / `--parallel=on` dispatches disjoint-write-set phases as one wave of `fullstack-developer` subagents in ONE message, barrier, then recomputes the next wave against the updated repo. `--parallel=auto` fans out ONLY when every in-scope phase carries the `## Parallel Execution` block (`PAR`/`SEQ` tag + declared write set) written by `/plan` — no block, no fan-out.
 - **Verify-last order (`SYNC:verify-last-order`):** tests run ONCE, in Step 4, after the static Step 3 review — never per phase, per wave or inside the review. **Workflow-nested** (THIS run is a step of a `[Workflow]` row: its own phase tasks are linked to that parent row, `nested=true` — a `[Workflow]` row that merely exists in `TaskList`, such as an abandoned one, does not count): run Steps 0–2, the Checklist Walk and Step 6 only; the parent's review and verify steps are Steps 3–4 (see [Workflow-Nested Mode](#workflow-nested-mode)).
 - **Mode flags** add/remove ONE step, never relax a running gate: `--approval=off` (auto/trust, skip Step 5, optional `$ALL_PHASES` loop over every incomplete phase), `--tests=off` (skip Step 4), `--parallel={auto|on|off}` (`off` default = sequential; bare `--parallel`/`on` opts in to wave dispatch; `auto` fans out only on plan-declared `PAR`/`SEQ` metadata). No flags = full 7-step spine, run sequentially.
-- **Standalone** (not `nested=true`; a `[Workflow]` row that merely exists in `TaskList` does not make this run nested) → ensure a plan exists → Steps 0-3 → `/changes-review` → `/why-review` (static, run BEFORE the Step 4 verify) → Steps 4-6. Plan review is never automatic; the user may request it separately.
+- **Standalone** (not `nested=true`; a `[Workflow]` row that merely exists in `TaskList` does not make this run nested) → ensure a plan exists → Steps 0-3 → `/changes-review --defer=whole-target` → `/why-review` (it owns the rationale review; static, run BEFORE the Step 4 verify) → Steps 4-6. Plan review is never automatic; the user may request it separately.
 
 > **Slash-command routing:** `/code`, `/code-auto`, `/code-no-test`, `/code-parallel` no longer resolve — use `/plan --mode=execute` with the matching flag: `/code-auto` → `--approval=off`, `/code-no-test` → `--tests=off`, `/code-parallel` → `--parallel`.
 
@@ -87,7 +87,7 @@
 >
 > 1. **`/plan`** — if Step 0 finds no plan for the request, author one first. If a plan already exists, record that and proceed.
 > 2. **Proceed to Step 3** — run Steps 0-3 (implement code + tests, static code review) against the plan.
-> 3. **`/changes-review`** — review the diff before commit, static (the post-gate; runs BEFORE Step 4 so its fixes are covered by the one verify).
+> 3. **`/changes-review --defer=whole-target`** — review the diff before commit, static (item 4, `/why-review`, owns the rationale review) (the post-gate; runs BEFORE Step 4 so its fixes are covered by the one verify).
 > 4. **`/why-review`** — review rationale and change quality of the implementation, static.
 > 5. **Steps 4-6** — verify once (tests + mutation check), the **Checklist Walk** (own task, after Step 4), approval, finalize; a fix made after the reviews re-runs them (Step 4 rule).
 >
@@ -97,7 +97,7 @@
 
 > **When THIS run is a step of a `[Workflow]` row (`nested=true`: its own phase tasks are linked to that parent row — a `[Workflow]` row that merely exists in `TaskList`, such as an abandoned one, does not count), the parent owns review and verification** — its later `workflow-review-changes` and test/verify steps ARE Steps 3–4 (`SYNC:verify-last-order`). Running them here too re-reviews and re-tests the same tree.
 >
-> - Run Steps 0–2 (detect, read, implement code + its tests), the [Checklist Walk](#checklist-walk-own-step--standalone-and-workflow-nested) (rows owned by a parent step are carried forward as `PENDING-PARENT`) and Step 6 (status + docs; record the phase as `implemented — review and verify owned by the parent workflow`).
+> - Run Steps 0–2 (detect, read, implement code + its tests), the [Checklist Walk](#checklist-walk-own-step--standalone-and-workflow-nested) (rows owned by a parent step are carried forward as `PENDING-PARENT`) and Step 6 (status update; record the phase as `implemented — review, verify and docs owned by the parent workflow`). The docs update is deferred to the parent's docs step — the nested `/workflow-review-changes` `docs-manager --mode=update`, or the workflow's own — recorded as `PENDING-PARENT: docs`, so it runs once, after the review settles the change.
 > - SKIP Step 3 (`code-reviewer`), Step 4 (`tester`) and Step 5 (approval): the parent's `review-converged` and `tests-pass` gates prove quality, and the user's approval moves to `workflow-end` step 5a (one prompt on the final, verified result). Log each skip as `merged` in the deviation log, naming the parent step (`workflow-end` for Step 5); the log is evidence only, `workflow-end` step 5a reads the task list.
 > - Everything before the code stays: Goal Contract, Trace Gate, granularity gate, Spec-Loop obligations (write the property TC and the killing test — the parent's verify runs them).
 > - Standalone runs (no parent row) use the full spine.
@@ -234,7 +234,7 @@ Call `code-reviewer` subagent (multi-phase run: once, after the last wave, over 
 
 Call `tester` subagent ONCE over the whole changeset (multi-phase run: once, after Step 3) for the full affected suite. Then the main session runs the mutation check — `tester` is read-only — on every changed core-logic line and each new rule or regression test (`SYNC:verify-last-order` step 3; a bugfix's mutation check is its RED proof). ANY test fails or a mutant survives → record the provisional verdict (SOURCE-WRONG · TEST-WRONG · TEST-NOT-OPTIMAL · ENVIRONMENT-BLOCKED · AMBIGUOUS) before any edit, call `debugger` subagent, fix at the owning layer, re-run the failing set, then the whole set once. Repeat until 100% pass with every mutant killed. A surviving mutant is a missing test: write the killing test, then re-run.
 
-**Re-review loop:** if fixing in this step edited ANY source or test file, re-run Step 3 over the settled tree; a re-review that applies a fix sends you back to Step 4. This alternation is capped at 3 turns; a fourth turn, or the same failure returning, escalates via `ask user question tool`. In a standalone run, `/changes-review` and `/why-review` re-run with Step 3 whenever it does. Step 4 is complete only when a verify run is green AND no edit followed the last Step 3. An edit after the last green run invalidates that run.
+**Re-review loop:** if fixing in this step edited ANY source or test file, re-run Step 3 over the settled tree; a re-review that applies a fix sends you back to Step 4. This alternation is capped at 3 turns; a fourth turn, or the same failure returning, escalates via `ask user question tool`. In a standalone run, `/changes-review --defer=whole-target` and `/why-review` re-run with Step 3 whenever it does. Step 4 is complete only when a verify run is green AND no edit followed the last Step 3. An edit after the last green run invalidates that run.
 
 **Testing standards:** Unit tests may use mocks. Integration tests use test environment. Forbidden: commenting out tests, changing assertions to pass, TODO/FIXME to defer fixes.
 
@@ -283,7 +283,7 @@ This approval accepts the implementation; it does not authorize staging, committ
 
 **Prerequisites:** Running quality gates passed; the Checklist Walk has no FAIL or unverified applicable row (a `PENDING-PARENT` or `DEFERRED-BY-PLAN` row is carried, not unverified); user approved in Step 5 or `--approval=off` explicitly skips that implementation-approval gate.
 
-1. **STATUS UPDATE:** the main session updates `plan.md` + phase status inline — this write is REQUIRED and is never delegated — and spawns `docs-manager` for documentation; barrier on its return before continuing.
+1. **STATUS UPDATE:** the main session updates `plan.md` + phase status inline — this write is REQUIRED and is never delegated — and spawns `docs-manager` for documentation; barrier on its return before continuing. A workflow-nested run skips the spawn: the parent's docs step owns it (see Workflow-Nested Mode).
 
 2. **ONBOARDING CHECK:** Detect onboarding requirements + generate summary.
 
@@ -307,7 +307,7 @@ This approval accepts the implementation; it does not authorize staging, committ
 
 **TaskCreate tracking required:** Initialize at Step 0, mark each step complete before next.
 
-**Mandatory subagent calls:** Step 3: `code-reviewer` | Step 4: `tester` | Step 6: `docs-manager` (status updated inline)
+**Mandatory subagent calls:** Step 3: `code-reviewer` | Step 4: `tester` | Step 6: `docs-manager` (status updated inline; standalone only — a workflow-nested run defers docs to the parent)
 
 **Conditional subagent call:** Step 6: `git-manager` only for an explicit user request with operation/scope/sourceRequest. No request means implementation can finish without Git.
 
@@ -336,7 +336,7 @@ Execute every step in declared order; proceed only when validation passes and th
 
 > **Post-gate:** follow the [Standalone Mode Pipeline](#standalone-mode-pipeline-skip-entirely-only-when-nestedtrue--a-workflow-row-that-merely-exists-in-tasklist-does-not-count) above. It owns `/changes-review` → `/why-review` between Step 3 and the single Step 4 verify; their fixes must be covered by that verify.
 >
-> **MANDATORY IMPORTANT MUST ATTENTION:** If this skill is called **outside a workflow** (standalone `/plan --mode=execute`), you MUST ATTENTION create `TaskCreate` todo tasks for `/changes-review` then `/why-review` between the Step 3 and Step 4 tasks (the last reviews before the verify). This ensures all changes are reviewed before commit even without a workflow enforcing it.
+> **MANDATORY IMPORTANT MUST ATTENTION:** If this skill is called **outside a workflow** (standalone `/plan --mode=execute`), you MUST ATTENTION create `TaskCreate` todo tasks for `/changes-review --defer=whole-target` then `/why-review` between the Step 3 and Step 4 tasks (the last reviews before the verify). This ensures all changes are reviewed before commit even without a workflow enforcing it.
 >
 > If this run is a nested workflow step (`nested=true`, e.g., `workflow-feature`, `workflow-refactor`; a `[Workflow]` row that merely exists in `TaskList` does not count), skip this — the workflow sequence handles `/changes-review` at the appropriate step.
 
@@ -525,7 +525,7 @@ The protocols below apply to this mode only; their full text is inline so this r
 
 ## Prompt-Enhance Closing Anchors
 
-**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval
+**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval; inside a workflow run, `/start-workflow` → Workflow-step mode bounds this
 **IMPORTANT MUST ATTENTION** for every step/sub-skill call: set `in_progress` before execution, set `completed` after execution
 **IMPORTANT MUST ATTENTION** every skipped step MUST include explicit reason; every completed step MUST include concise evidence
 **IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses
@@ -585,7 +585,7 @@ The protocols below apply to this mode only; their full text is inline so this r
 **IMPORTANT MUST ATTENTION** Step 2 is SEQUENTIAL by default — fan out only on the explicit `--parallel`/`--parallel=on` opt-in, or under `--parallel=auto` when EVERY in-scope phase carries a plan-declared `## Parallel Execution` block; `auto` with no such block falls back to sequential and NEVER derives write sets optimistically — why: a derived write set cannot see cascade/generated writes, so two "disjoint" phases silently collide on the same generated artifact.
 **IMPORTANT MUST ATTENTION** when a wave does run — NEVER co-schedule two writers of the same file, declare the wave plan, spawn every member in ONE message, then hold the barrier until EVERY member is accounted for by name; a failed, timed-out, or partial member blocks the barrier, is never assumed successful, and its phase is re-implemented sequentially before the next wave — why: an advanced barrier on an incomplete wave ships half a phase as if it were whole.
 **IMPORTANT MUST ATTENTION** gates are SEQ boundaries — Step 3 Code Review, Step 4 Verify, and the Step 5 approval gate run after the barrier on the merged result; a subagent's self-report NEVER substitutes for a host gate — why: parallelism may shorten the run, never the gate.
-**IMPORTANT MUST ATTENTION** standalone (not `nested=true`; a `[Workflow]` row that merely exists in `TaskList` does not count) → ensure a plan exists → Steps 0-3 → `/changes-review` → `/why-review` (static, BEFORE the Step 4 verify) → Steps 4-6, with a nested run (`nested=true`) instead running Steps 0-2 and 6 only (`SYNC:verify-last-order`); plan review remains user-selected, and material decisions still go to the user via `ask user question tool` — why: standalone runs need implementation review without silently adding plan --mode=review work.
+**IMPORTANT MUST ATTENTION** standalone (not `nested=true`; a `[Workflow]` row that merely exists in `TaskList` does not count) → ensure a plan exists → Steps 0-3 → `/changes-review --defer=whole-target` → `/why-review` (it owns the rationale review; static, BEFORE the Step 4 verify) → Steps 4-6, with a nested run (`nested=true`) instead running Steps 0-2 and 6 only (`SYNC:verify-last-order`); plan review remains user-selected, and material decisions still go to the user via `ask user question tool` — why: standalone runs need implementation review without silently adding plan --mode=review work.
 **IMPORTANT MUST ATTENTION** READ `CLAUDE.md` and the path-matched project-reference docs (frontend/scss/design-system for UI, domain-entities for models) before starting.
 **IMPORTANT MUST ATTENTION** Easy to Change is the success metric — every finding, test, refactor, abstraction must make the NEXT change cheaper; name the real enemies (coupling, hidden state, duplicated knowledge, unclear intent) and reject anything that raises change cost.
 
@@ -600,7 +600,7 @@ The protocols below apply to this mode only; their full text is inline so this r
 | "Phase is clear enough to start"                 | Run the Granularity Gate — planning verbs / unnamed files / open decisions → sub-plan, don't code. |
 | "It's a quick fix, skip the trace"               | Bug/regression plan needs the End→Start trace + hypothesis matrix BEFORE the fix.                  |
 | "Code change is enough, spec/tests later"        | Behavior change → property TC + mutation-killed test + Dual-Feedback into spec AND tests, or INCOMPLETE. |
-| "Standalone, so skip review"                     | No workflow = YOU add `/changes-review` + `/why-review` as the last todos.                         |
+| "Standalone, so skip review"                     | No workflow = YOU add `/changes-review --defer=whole-target` + `/why-review` as the last todos.                         |
 | "The plan looks parallelizable — fan it out"     | Fan-out is OPT-IN: `--parallel`/`--parallel=on`, or `--parallel=auto` **plus** a plan-declared `## Parallel Execution` block. No opt-in, no metadata → sequential. |
 | "I can infer the write sets from the plan"       | Not under `auto` — a derived set misses cascade/generated writes and collides on files no phase names. Fall back to sequential. |
 | "Both phases only touch different functions"     | The unit of ownership is the FILE — any shared path splits the phases into different waves.        |

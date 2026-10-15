@@ -235,7 +235,10 @@ const tests = [
                 const document = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, '.claude', 'workflows.json'), 'utf8'));
                 let named = 0;
                 for (const id of Object.keys(document.workflows)) {
-                    for (const liveGate of document.workflows[id].outcomeGates || []) {
+                    // Entry gates and each mode's own gates: a merged workflow (planned-work) keeps its gates per mode
+                    const workflow = document.workflows[id];
+                    const liveGates = [...(workflow.outcomeGates || []), ...Object.values(workflow.variants || {}).flatMap(variant => variant.outcomeGates || [])];
+                    for (const liveGate of liveGates) {
                         for (const satisfier of liveGate.satisfiedBy) {
                             if (!/^docs-manager\b/.test(satisfier)) continue;
                             named += 1;

@@ -6,7 +6,7 @@ description: '[Testing] Use when a workflow step or the user asks for a local te
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
-> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
+> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval. Inside a workflow run, `/start-workflow` → Workflow-step mode bounds this rule.
 > **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
@@ -27,7 +27,7 @@ description: '[Testing] Use when a workflow step or the user asks for a local te
 
 **Workflow:**
 
-1. **Delegate** — Launch `tester` subagent with test scope from arguments; run every requested tier unless the caller passed `--proven` evidence (Proven-Tier Evidence below)
+1. **Delegate** — first check the environment can run the suites (what this project, stack and OS need: free disk, RAM, services, toolchain, config; on a gap report `ENVIRONMENT-BLOCKED` with what is missing, since this read-only skill frees nothing), then launch `tester` subagent with test scope from arguments; run every requested tier unless the caller passed `--proven` evidence (Proven-Tier Evidence below)
 2. **Analyze** — Review test results, identify failures and patterns
 3. **Report** — Summarize pass/fail counts, highlight failing tests
 
@@ -62,7 +62,7 @@ Use the `tester` subagent to run tests locally and analyze the summary report.
 
 ## Proven-Tier Evidence (caller-passed)
 
-A workflow or caller that already holds a green run on the final tree passes it explicitly: `--proven=<report path>[,<report path>…]` (for example the `/integration-test --mode=verify` report). Only then:
+A workflow or caller that already holds a green run on the final tree passes it explicitly: `--proven=<report path>[,<report path>…]` (for example the `/integration-test --mode=verify` report). A workflow registry passes the symbolic `--proven=@verify`, which names the report of this run's latest `/integration-test --mode=verify` occurrence: resolve it from the run's task evidence; when that step did not run in this run, or its report is missing or stale, `@verify` covers nothing and every requested tier runs. With a report in hand:
 
 - Read each named report; a tier counts as covered only when the report shows its exact command, counts and exit status green for the same scope and no source or test file changed after it (`SYNC:verify-last-order` — an edit after the run invalidates it). A missing, unreadable, red or stale report covers nothing.
 - Run the `tester` only for the configured tiers the reports do not cover. Record each covered tier as `covered by <report path> — <command, exact counts>`; report the union of covered and freshly run results.
@@ -74,7 +74,7 @@ A workflow or caller that already holds a green run on the final tree passes it 
 The `tester` subagent receives the resolved contract matrix and executes only configured commands; this skill never invents a fallback runner or invokes commands directly.
 
 - Select the configured `fullCommand` or `focusedCommand` for the requested scope and report the command verbatim, scope, and any simple Windows/macOS/Linux entry point used. If the tier has no configured command, report evidence-backed `N/A` or `BLOCKED` rather than substituting another command.
-- Return exact `exitStatus`, `discovered`, `passed`, `failed`, and `skipped` counts, failing-test names, `runIdentity`, seed/accumulation mode, and repeat/parallel evidence. For applicable persistent-state suites, include two consecutive no-reset full-run results.
+- Return exact `exitStatus`, `discovered`, `passed`, `failed`, and `skipped` counts, failing-test names, `runIdentity`, seed/accumulation mode, and repeat/parallel evidence. For applicable persistent-state integration suites, include two consecutive no-reset full-run results; other suites need one fresh green run.
 - A zero-match or invalid selection is non-pass even when no test throws; a non-zero exit is non-pass even when text says all tests passed. Never infer counts from a summary or silently pass an empty filter.
 - Remain read-only: do not edit tests or production code, seed or reset data, delete fixtures, or widen retries/timeouts to make a result green.
 
@@ -131,7 +131,7 @@ After reporting, choose the appropriate follow-up from the results and the autho
 
 ## Prompt-Enhance Closing Anchors
 
-**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval
+**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval; inside a workflow run, `/start-workflow` → Workflow-step mode bounds this
 **IMPORTANT MUST ATTENTION** for every step/sub-skill call: set `in_progress` before execution, set `completed` after execution
 **IMPORTANT MUST ATTENTION** every skipped step MUST include explicit reason; every completed step MUST include concise evidence
 **IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses

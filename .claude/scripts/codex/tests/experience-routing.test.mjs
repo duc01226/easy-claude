@@ -63,16 +63,23 @@ test("TC-EA-ROUTE-002: unified E2E workflow routes authoring into one convergenc
   assert.equal(workflow.sequence.some((step) => (typeof step === "string" ? step : step?.skill) === "test"), false);
 });
 
-test("TC-EA-ROUTE-003: feature, bugfix, refactor, and greenfield paths inherit the gate", () => {
+// Greenfield reviews its foundation through workflow-review-changes, and its first slice runs
+// workflow-implement-spec --mode=greenfield-slice, so both paths carry the gate (P41 D7).
+test("TC-EA-ROUTE-003: feature, bugfix, refactor, greenfield and implement-spec paths (the greenfield first slice included) inherit the gate", () => {
   for (const workflowId of [
     "workflow-feature",
     "workflow-bugfix",
     "workflow-refactor",
     "workflow-greenfield-init",
+    "workflow-implement-spec",
   ]) {
-    assert.ok(
-      indexOfSkill(workflows[workflowId].sequence, "workflow-review-changes") >= 0,
-      `${workflowId} must route through workflow-review-changes`
-    );
+    const workflow = workflows[workflowId];
+    for (const sequence of [workflow.sequence, ...Object.values(workflow.variants ?? {}).map((variant) => variant.sequence)].filter(Array.isArray)) {
+      assert.ok(
+        indexOfSkill(sequence, "workflow-review-changes") >= 0,
+        `${workflowId} must route through workflow-review-changes in every mode`
+      );
+    }
   }
+  assert.ok(workflows["workflow-implement-spec"].variants["greenfield-slice"], "the greenfield first slice has its own implement-spec mode");
 });

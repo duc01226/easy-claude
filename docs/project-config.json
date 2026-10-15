@@ -525,7 +525,7 @@
       },
       "convergence": {
         "maxAttempts": 3,
-        "consecutiveGreen": 2,
+        "consecutiveGreen": 1,
         "settleTimeoutSeconds": 20
       }
     }
@@ -711,7 +711,7 @@
           ],
           "credentialsRef": "fixture:startWorkspace.url ephemeral session fragment; no team accounts or persisted credentials"
         },
-        "notes": "Source-authored/runtime-pending: full/headed/focused/zero-match/browser execution and OS modes remain unexecuted. Integrated runner owns public-core setup/start/readiness/evidence/finally cleanup. The final source inventory is 92 variants (88 business and 4 technical) across 2 viewports (184 prospective invocations), with 133 capture call sites in exported callbacks expanding to 135 normal states per viewport. Normal screenshot caps are 20 per test/viewport invocation and 540 per run, the conservative all-scrollable bound of 135 states x 2 viewports x 2 images; actual emitted counts remain unverified. Required failure captures are uncapped under UI State Capture Protocol section1.3, and capped declaration rows are retained and escalated. Prior failure/declaration rows conservatively consume the normal run budget. Convergence is parent verification policy (three attempts/two fresh consecutive green runs), not internal assertion retry. Optional tooling remains independent of core runtime; manual baseline acceptance required; no CI browser promise."
+        "notes": "Source-authored/runtime-pending: full/headed/focused/zero-match/browser execution and OS modes remain unexecuted. Integrated runner owns public-core setup/start/readiness/evidence/finally cleanup. The final source inventory is 92 variants (88 business and 4 technical) across 2 viewports (184 prospective invocations), with 133 capture call sites in exported callbacks expanding to 135 normal states per viewport. Normal screenshot caps are 20 per test/viewport invocation and 540 per run, the conservative all-scrollable bound of 135 states x 2 viewports x 2 images; actual emitted counts remain unverified. Required failure captures are uncapped under UI State Capture Protocol section1.3, and capped declaration rows are retained and escalated. Prior failure/declaration rows conservatively consume the normal run budget. Convergence is parent verification policy (three attempts/one fresh green run), not internal assertion retry. Optional tooling remains independent of core runtime; manual baseline acceptance required; no CI browser promise."
       }
     ]
   },

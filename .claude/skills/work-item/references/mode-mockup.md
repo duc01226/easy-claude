@@ -2,7 +2,7 @@
 
 > Loaded by `work-item/SKILL.md`'s Mode Dispatch when invoked as `/work-item --mode=mockup [--source=<path>] [--explore]`. This contract is the whole invocation: generate an interactive HTML mockup from a task, story or spec artifact. It works called directly with no workflow; every rule, flag, output and gate below is the contract of that mode.
 
-> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
+> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval. Inside a workflow run, `/start-workflow` → Workflow-step mode bounds this rule.
 > **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
@@ -53,10 +53,10 @@
 3c. **Load Domain Entities** — entity fields, relationships, enums for realistic sample data
 3d. **Explore N Directions (`--explore` only)** — N (Step 0 count) `ui-ux-designer` drafts of the primary journey's key views, rendered with html-export, opened in the default browser; with 2–3 drafts ASK the user to pick (`ask user question tool`, your recommended draft first); record the pick or the `Selection:` line in `direction-approved.md`
 4. **Generate HTML** — one self-contained scripted clickable prototype + guided walkthrough matching the app's look and feel (and the approved direction under `--explore`)
-5. **Save** — write `{task-filename}-mockup.html` beside the task artifact (spec source: `design-specs/{YYMMDD}-mockup-{spec-slug}.html` under the team-artifacts root (default `team-artifacts/`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path))
+5. **Save** — write `{task-filename}-mockup.html` beside the task artifact (spec source: `design-specs/{YYMMDD}-mockup-{spec-slug}.html` under the team-artifacts root (default `team-artifacts/`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path)); as a workflow step with a governing spec, also set its `mockup:` frontmatter link
 6. **Report** — path, priority, stories, journeys, demo flows, components, states, fidelity + demo-quality verdicts
-7. **[BLOCKING] Fidelity Validation** — mock-up matches inventoried UI (tokens/components/layout/connected flows) and each view's information priority; record PASS/FAIL
-8. **[BLOCKING] Demo-Quality Review Gate** — every flow clicks end-to-end, `UX-8` walkthrough of every main journey + traceability matrix, no dead controls, narration + "⚠ Simulated" banner, offline, real data, iframe-safe; record PASS/FAIL
+7. **[BLOCKING] Fidelity Validation** — mock-up matches inventoried UI (tokens/components/layout/connected flows) and each view's information priority; record PASS/FAIL; per-view render evidence is required in a review-gated workflow
+8. **[BLOCKING] Demo-Quality Review Gate** — every flow clicks end-to-end, `UX-8` walkthrough of every main journey + traceability matrix (a self-check in a review-gated workflow, where `ui-design --mode=review` walks independently), no dead controls, narration + "⚠ Simulated" banner, offline, real data, iframe-safe; record PASS/FAIL
 
 **Key Rules:**
 
@@ -93,7 +93,7 @@ Generate visual HTML mockup reports from task and user story artifacts.
 - When a canonical feature spec with a UI intent layer needs an interactive preview (`--source=<spec path>`, optionally with a `/design-spec` output)
 - Before moving to implementation planning or design spec
 - When stakeholders need a visual preview of the feature, or 1–3 design directions to choose from first (`--explore`)
-- As the final step in `workflow-initiative-to-task` and similar workflows
+- As the last step of the UI block in `workflow-planned-work` and similar workflows, after the reviewed design spec
 
 **NOT for**: Implementing production UI (use `/feature-implement`), creating design specs (use `/design-spec`), or wireframing from scratch (use `/design-spec --mode=wireframe`).
 
@@ -130,7 +130,7 @@ Generate visual HTML mockup reports from task and user story artifacts.
 
 - **Input from:** `/work-item --mode=refine`, `/work-item --mode=story`, `/spec` (canonical feature spec), `/design-spec`
 - **Command:** `/work-item --mode=mockup [--source=<path>] [--explore]`
-- **Uses:** `html-export` (Step 3d renders, Step 7 optional render evidence), `ui-ux-designer` sub-agents (Step 3d)
+- **Uses:** `html-export` (Step 3d renders, Step 7 render evidence — required in a review-gated workflow), `ui-ux-designer` sub-agents (Step 3d)
 - **Next Step:** `/prioritize`, `/design-spec`, `/plan`
 
 ---
@@ -414,6 +414,7 @@ Map wireframe components to HTML elements AND to their scripted demo interaction
 - **Name:** `{task-filename-without-ext}-mockup.html`
 - Example: `tasks/260324-task-goal-tracking-mockup.html` under the team-artifacts root (default `team-artifacts`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path)
 - **Spec source:** `design-specs/{YYMMDD}-mockup-{spec-slug}.html` under the team-artifacts root (default `team-artifacts/`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path) — never inside the business spec root, which holds canonical specs only
+- **Spec link (workflow step):** when this mode runs as a workflow step (`workflow-spec-to-mockup`, the UI block of the planned-work workflows, or any workflow whose next step is `ui-design --mode=review`) and a governing spec exists, set that spec's `mockup:` frontmatter key (or the artifact profile's native companion link) to the saved mockup path: add it if absent, update it if stale. Frontmatter only, never the spec body — the rule `design-spec` Step 8 applies to `design_spec:`. A profile that declares no companion link records `N/A` with that reason.
 - **Requirement-report source:** `tmp/design/<run>/mockup.html` beside the drafts (no task or spec folder exists yet); record that path in the calling plan or run report so the plan's UI Layout links it
 - **`--explore`:** the direction drafts, renders and `direction-approved.md` stay under `tmp/design/<run>/` (disposable run output); only the full mock app is saved here
 
@@ -437,6 +438,8 @@ Mockup generated: {path}
 - States included: {default, loading, empty, error}
 - Full-flow coverage: PASS | FAIL
 - Fidelity vs existing UI: PASS | FAIL
+- Render evidence (Step 7): {per-view PNGs named by report.json files[] | NOT VERIFIABLE — exit code + reason | optional, not run}
+- Spec linked (`mockup:`): {spec path | N/A — reason | not a workflow step}
 - Demo quality: PASS | FAIL
 - Journey walkthrough + traceability (UX-8): PASS | FAIL — {unserved steps / orphan elements, or none}
 - Interaction cost + wayfinding (UX-9, UX-10): PASS | FAIL — {per-journey counts vs baseline; dead ends, or none}
@@ -459,6 +462,8 @@ Validate the produced mockup against the inventoried existing UI and record an e
 4. **Connected flows** — entry/exit navigation matches the connected feature flows mapped in Step 3b.
 5. **Information priority (`UX-4`)** — each view's rendered hierarchy implements its Step 2b tiers: the Primary-tier item is the single focal point, ONE primary action matches the journey's next step, On-demand items sit behind progressive disclosure, and no high cost-of-missing item is hidden. A visual hierarchy that reshuffles the ranking FAILS.
 6. **Approved direction (`--explore` only)** — colour, type and layout skeleton match `direction-approved.md` across EVERY view, not only the drafted key views.
+
+**Required in a review-gated workflow:** when this mode runs as a step of `workflow-spec-to-mockup`, or of any workflow whose next step is `ui-design --mode=review`, the render evidence below is mandatory: run it over the final mockup, record the per-view PNGs in the Step 6 report and pass them to that review. The exit rule below still decides what the run proves; `NOT VERIFIABLE` is recorded as such, never as a pass.
 
 **Optional render evidence (when html-export is installed):** `node .claude/skills/html-export/scripts/export.cjs --to=png <mockup.html> --slides='[data-state]'` at the default viewports captures EVERY screen; attach the per-screen PNGs to the fidelity verdict. Exit 0 is evidence ONLY for per-screen render, zero page errors, and no blank captures — items 1–4 still judge fidelity. **html-export exit rule:** exit 0 → evidence as scoped; exit 4 → fix the page and re-run; exit 3 → `NOT VERIFIABLE` plus a one-line pointer to `/html-export` setup, never run install commands; exit 1/2 → tool failure: quote stderr, mark `NOT VERIFIABLE`, never count it as a design defect or a pass; any other code (such as 130 after an interrupt) → handle it like 1/2; evidence is only the files this run's manifest names (`report.json` `files[]` for png, `output` for pdf, `frames.json` `output` for video), since a reused `--out` keeps older files. The HTML stays canonical; never restructure it for an exporter.
 
@@ -491,6 +496,8 @@ If **FAIL**, revise the mockup to match the existing UI and re-validate before h
 9. **Traceability matrix (`UX-8`)** — one row per journey step: `Journey · step | View | Element(s) serving it | Information shown (tier) | Rule enforced | States covered | Walkthrough result`. An **unserved step** (no view/element) or an **orphan element** (traces to no step, need or rule — delete or justify it) FAILS the gate. Include the matrix in the Step 6 report.
 10. **Interaction cost + wayfinding (`UX-9`, `UX-10`, catalog §12)** — per main journey record steps · clicks · view changes · fields · decisions on the prototype against the existing flow or the source flow, and cut what does not advance the job; every view marks where the user is, labels destinations in user words, and offers a back/exit path that keeps entered data — no dead-end or orphan view. The primary tier renders in the first viewport.
 11. **UI/UX Gate Report (`UX-11`, catalog §13)** — one row per gate (`UX-*`, applicable `UI-*`, `DD-*`, `CL-*` with at least the `CL-5` triage, UI copy), each `PASS` / `FAIL → fixed` / `N/A` with evidence. A gate missing from the report counts as not checked; an unresolved `FAIL` blocks hand-off.
+
+**In a review-gated workflow** (as in Step 7), items 8-11 are this step's self-check and the following `ui-design --mode=review` gate is the independent walk. Click through each main journey once as its actor, record the traceability matrix and a self-assessed UI/UX Gate Report, and fix every unserved step, orphan element and `FAIL` you find before hand-off; record `UX-8/UX-11: self-check — independent walk by ui-design --mode=review`. The per-step four-question walkthrough log belongs to that gate. Items 0-7 stay blocking here, because that review does not own them. Run standalone, items 8-11 keep the full gate.
 
 Record the outcome in the Step 6 report:
 
@@ -567,6 +574,8 @@ Before completing:
 ---
 
 ## Next Steps
+
+> **Inside a workflow:** when this skill runs as a step of an active workflow, skip the prompts in this section and return the result — the workflow's next step decides what runs (`/start-workflow` → Step Execution Protocol, Workflow-step mode).
 
 **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use `ask user question tool` to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
 
@@ -780,7 +789,7 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 
 ## Prompt-Enhance Closing Anchors
 
-**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval
+**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval; inside a workflow run, `/start-workflow` → Workflow-step mode bounds this
 **IMPORTANT MUST ATTENTION** for every step/sub-skill call: set `in_progress` before execution, set `completed` after execution
 **IMPORTANT MUST ATTENTION** every skipped step MUST include explicit reason; every completed step MUST include concise evidence
 **IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses

@@ -184,6 +184,11 @@ Every workflow states the goal it must reach and the quality results a finished 
 - **AC-GWF-21** — **Given** any flex decision **When** it is applied **Then** no step runs before a step whose output it needs
 - **AC-GWF-22** — **Given** a run that changed behavior **When** it closes **Then** tests covering that behavior ran green in this run, whichever test steps or cases were chosen
 - **AC-GWF-23** — **Given** the framework's surfaces **When** they are read **Then** the flex rules are written once in the rule owner, and every other surface carries at most a one-line pointer
+- **AC-GWF-27** — **Given** a skill running as a workflow step **When** it finishes or meets work the run already produced **Then** it leaves the next step to the workflow, reuses the run's goal and decision log, leaves a caller-owned validation to the caller, and merges an inner phase only with a cited artifact that meets the phase's exit criteria — citation never replaces a proof: a root-cause trace counts only from the run's own step for the same problem, and a user decision only as the user's answer, asked now or recorded in the run's decision log
+- **AC-GWF-28** — **Given** any workflow mode **When** a run starts **Then** it creates one task per phase with one row per step, and a phase task closes only when every row is closed and its applicable exit gates hold
+- **AC-GWF-29** — **Given** the merged planning workflow **When** each mode is read **Then** it equals the workflow it replaced, step for step, and the former identifiers no longer resolve
+- **AC-GWF-30** — **Given** the new-product workflow **When** it closes **Then** plan approval, the foundation review, a change review of the foundation that converged and a final test have run, and the first slice goes to the spec-supplied route in its first-slice mode, where the near-end end-to-end step is a gate and the plan step re-plans only when no approved plan still covers the slice
+- **AC-GWF-31** — **Given** a chain that readies tasks (each planned-work mode that produces tasks, big-feature and greenfield) **When** a task is readied **Then** the independent challenge runs only when a second reviewer is available or the task is size M or larger or risky, and the fresh-context task review and the readiness check are never optional
 
 ### US-GWF-08: The session report opens safely
 
@@ -195,6 +200,7 @@ Every workflow states the goal it must reach and the quality results a finished 
 
 - **AC-GWF-24** — **Given** a path to open **When** the session report is opened **Then** only an existing report file inside the project's temporary work area opens, judged on the real file after following links; any other location, any non-report file type, and any path the command line would reinterpret is refused, and nothing runs
 - **AC-GWF-25** — **Given** continuous integration, auto-open turned off, or a Linux machine without a display **When** the session report is ready **Then** nothing opens and the path is printed; **Given** the viewer cannot start **Then** the run continues and the path is printed
+- **AC-GWF-26** — **Given** a run whose session report step does not run **When** it closes **Then** the close step gives the recap, or a short handoff naming the artifacts, gate verdicts and next owner when nothing was built
 
 ---
 
@@ -222,12 +228,14 @@ Every workflow states the goal it must reach and the quality results a finished 
 | BR-GWF-16 | One owner for the flex rules                                            | Consistency  | [HARD]      |
 | BR-GWF-17 | Usage output shows counts, never content                                | Privacy      | [HARD]      |
 | BR-GWF-18 | The session report opens only a report file from the work area          | Safety       | [HARD]      |
+| BR-GWF-19 | A run keeps one task per phase; every step is a row in it                | Execution    | [HARD]      |
+| BR-GWF-20 | Splitting or merging workflows keeps every step and gate                 | Quality      | [HARD]      |
 
 ### BR-GWF-01: Gate steps are fixed [HARD]
 
 **Host contract:** Each supported host performs the same required step and proves the same outcome through its native capabilities. Loading a skill activates its instructions; executing those instructions performs the step. A source inspection does not change the active host. A tool name belonging to another host is not a reason to stop or ask for a substitute; only a genuinely unavailable required capability blocks execution.
 
-**Statement:** A gate step is never skipped, merged into another step, simplified away or moved ahead of a step it depends on. Every workflow's close step is a gate, with one exception: a workflow built to run nested inside another (the change-review workflow) closes only when it runs on its own, so its close is optional and is skipped when nested — the parent's close closes the run. The gate outcomes are: tests pass for changed behavior, the review converged, the spec is synced when behavior or a public contract changed, a bug has a root-cause trace, and the run closes. Every outcome gate that always applies is produced by at least one gate step; other satisfying steps may be core. A gate step carries no run condition; a gate that applies only sometimes expresses that through its outcome gate's condition, and may be produced by an optional step whose run condition states the same trigger — for example the root-cause investigation that runs only when a verify run reported a failing test.
+**Statement:** A gate step is never skipped, merged into another step, simplified away or moved ahead of a step it depends on. Every workflow's close step is a gate, with one exception: a workflow built to run nested inside another (the change-review and E2E workflows) closes only when it runs on its own, so its close is optional and is skipped when nested — the parent's close closes the run and checks the outcome gates of a nested run that writes (a review-only nested run hands its findings off instead). The gate outcomes are: tests pass for changed behavior, the review converged, the spec is synced when behavior or a public contract changed, a bug has a root-cause trace, and the run closes. Every outcome gate that always applies is produced by at least one gate step; other satisfying steps may be core. A gate step carries no run condition; a gate that applies only sometimes expresses that through its outcome gate's condition, and may be produced by an optional step whose run condition states the same trigger — for example the root-cause investigation that runs only when a verify run reported a failing test.
 
 ```
 IF step role = gate
@@ -240,7 +248,7 @@ IF an outcome gate always applies AND no gate step satisfies it
 
 ### BR-GWF-02: Optional steps follow their condition [HARD]
 
-**Statement:** An optional step declares a run condition and a skip reason. When the condition is false the step is skipped and the deviation log records the step, the "condition false" category and the declared reason. When the condition holds the step is recommended like a core step and may still be flexed under BR-GWF-13. An optional step missing either field fails validation.
+**Statement:** An optional step declares a run condition and a skip reason. When the condition is false the step is skipped and the deviation log records the step, the "condition false" category and the declared reason. Steps whose condition is already false at triage may be closed together in one write that still adds one log line per step and keeps each step's row in its phase task. When the condition holds the step is recommended like a core step and may still be flexed under BR-GWF-13. An optional step missing either field fails validation.
 
 | Run condition declared | Skip reason declared | Validation | At run time, condition false |
 | ---------------------- | -------------------- | ---------- | ---------------------------- |
@@ -314,7 +322,7 @@ ELSE
 
 ### BR-GWF-13: Core and optional steps flex with a logged reason [HARD]
 
-**Statement:** The listed steps are recommendations. Intent first, the assistant may skip, merge, simplify or reorder core and optional steps, provided every applicable outcome gate is still satisfied and BR-GWF-14 holds. Every such decision adds one deviation log line naming the step, the deviation kind and a short reason. Gate steps are outside this freedom (BR-GWF-01).
+**Statement:** The listed steps are recommendations. Intent first, the assistant may skip, merge, simplify or reorder core and optional steps, provided every applicable outcome gate is still satisfied and BR-GWF-14 holds. Every such decision adds one deviation log line naming the step, the deviation kind and a short reason. Gate steps are outside this freedom (BR-GWF-01). Inside a step, the same freedom covers a skill's own inner phase whose output the run already produced: it may be merged with the cited artifact when that artifact meets the phase's exit criteria, and the merge is logged like any other. Citation never replaces a proof: a root-cause trace counts only when the run's own step produced it for the same problem, a user decision only as the user's answer, asked now or recorded in the run's decision log, and findings validation, a mutation check or gate evidence only as a result of the run. Every user decision a step obtains is appended to the run's decision log; a later interviewing step reads it first, asks only what it leaves open or what new evidence reopened, and cites a reused answer instead of asking again.
 
 | Step role | Skip            | Merge / simplify | Reorder                            |
 | --------- | --------------- | ---------------- | ---------------------------------- |
@@ -324,7 +332,7 @@ ELSE
 
 ### BR-GWF-14: Flex decisions keep data dependencies [HARD]
 
-**Statement:** No flex decision runs a step before a step whose output it needs. The standing dependencies are: a change is made before it is reviewed and before its tests run; the spec sync runs before the review that checks it; and the close runs last. A reorder or merge that would break one of these is not allowed.
+**Statement:** No flex decision runs a step before a step whose output it needs. The standing dependencies are: a change is made before it is reviewed and before its tests run; the spec sync runs before the review that checks it; and the close runs last. A reorder or merge that would break one of these is not allowed. In the spec-sync workflow this gives one order: the case writing, the changed-case review and the spec sync, then one review, then the verify. A review fix that changes behavior re-runs the case writing, the changed-case review when a case changed, and the spec sync on the changed part, then the review, before the verify. An earlier converged review of the triggering change narrows that review only while it still matches the change; a later edit is reviewed.
 
 ### BR-GWF-15: Test choice flexes; the test outcome does not [HARD]
 
@@ -340,7 +348,7 @@ ELSE
 
 ### BR-GWF-18: The session report opens safely [HARD]
 
-**Statement:** Every workflow ends with a session summary whose written report may be opened in the developer's default viewer. The opener opens only an existing file inside the project's temporary work area (the `tmp` or `temp` folder at the project root), judged on the real file after following links. It opens only report types a viewer displays — a web page, markdown, plain text, PDF, an image or JSON, in any letter case — and refuses every other type, including scripts and program launchers. A path containing characters the platform's command line would reinterpret is refused. Nothing is opened in continuous integration, when auto-open is turned off, or on a Linux machine without a display. In every case the path is printed, and a refusal or a failure to open never stops the run.
+**Statement:** Every workflow ends with a session summary: the close step's recap, a short handoff when nothing was built, or the session report when that optional step runs under its registry condition (the developer asked for it, the session spanned several workflows or prompts that need one consolidated handoff, or a nestable workflow runs top-level). A written session report may be opened in the developer's default viewer. The opener opens only an existing file inside the project's temporary work area (the `tmp` or `temp` folder at the project root), judged on the real file after following links. It opens only report types a viewer displays — a web page, markdown, plain text, PDF, an image or JSON, in any letter case — and refuses every other type, including scripts and program launchers. A path containing characters the platform's command line would reinterpret is refused. Nothing is opened in continuous integration, when auto-open is turned off, or on a Linux machine without a display. In every case the path is printed, and a refusal or a failure to open never stops the run.
 
 ```
 IF the file is missing, or lies outside the temporary work area after following links
@@ -356,6 +364,21 @@ ELSE
 ```
 
 ---
+
+### BR-GWF-19: One task per phase, one row per step [HARD]
+
+**Statement:** Every workflow mode groups its steps into phases, in the fixed order discover, specify, plan, build, review, verify, close, using only the phases it needs. The run creates one task per phase; each step of that phase is a row in the task, closed with its run evidence or its logged skip reason. A phase task completes only when every row is closed and the applicable outcome gates that phase closes hold; a gate whose condition is false is recorded as not applicable. A workflow an adopting project defines without phases keeps one task per step, so its runs work unchanged; every framework workflow mode declares phases. The phases list every step exactly once and in sequence order, keep a parallel group inside one phase, and tie every outcome gate to exactly one phase whose steps, or an earlier phase's, can satisfy it; a phase list that breaks any of these fails validation.
+
+```
+IF a mode's phases leave out, repeat or reorder a step, or split a parallel group
+  → REJECT at validation
+IF an outcome gate is no phase's exit, or its phase and the phases before it hold no satisfying step
+  → REJECT at validation
+```
+
+### BR-GWF-20: Splitting or merging workflows keeps every step and gate [HARD]
+
+**Statement:** When workflows merge into one, each former workflow becomes a mode whose steps, arguments and roles equal the workflow it replaced, and the former identifiers are removed rather than left as aliases. When a workflow splits, every gate it held stays with one of the parts: the new-product workflow keeps plan approval, the foundation review, a change review of the foundation that must converge (its review-converged gate, as before the split) and a final test run, and hands its first slice to the spec-supplied route in its first-slice mode. In that mode the near-end end-to-end step is a gate, seed data runs when the product persists state, and the plan step is skipped only while the approved plan the new-product workflow handed off still covers the slice and its spec. An optional step may replace a gate only through an approved trade-off recorded in the owning plan, as the independent task challenge was (optional when no second reviewer is available and the task is small and low-risk).
 
 ## 5. Domain Model
 
@@ -544,7 +567,7 @@ WorkflowRun    1──N SpendCheckpoint   (at most one per threshold)
 
 > Business-readable acceptance scenarios. The "user" of this capability is a developer, a framework maintainer or the AI assistant; the observable surface is the text the assistant receives, the run's deviation log, registry validation messages and command output (no screen exists, so the UI dimension is stated as not applicable).
 
-> Numbering note: the IDs were pre-allocated by the release plan so implementation phases could reference them in parallel; categories below group them by behavior rather than by decade. TC-GWF-057…062 were added for intent-first flexible execution, TC-GWF-063…067 for the session report opener (BR-GWF-18), and TC-GWF-068 for the order of a clean-up rewrite (BR-GWF-14).
+> Numbering note: the IDs were pre-allocated by the release plan so implementation phases could reference them in parallel; categories below group them by behavior rather than by decade. TC-GWF-057…062 were added for intent-first flexible execution, TC-GWF-063…067 for the session report opener (BR-GWF-18), TC-GWF-068 for the order of a clean-up rewrite (BR-GWF-14), and TC-GWF-071…073 for workflow-step mode, the triage batch close and the optional session report.
 
 > Size note: this spec holds more than forty cases. It stays one document because every case guards one capability — how a workflow run executes and what it costs — and the pre-allocated IDs are referenced by the implementation plan; a split into a continuation part is a follow-up for the spec owner.
 
@@ -555,28 +578,28 @@ WorkflowRun    1──N SpendCheckpoint   (at most one per threshold)
 | Priority  | Count  | Automated | Manual |
 | --------- | ------ | --------- | ------ |
 | P0        | 18     | 16        | 2      |
-| P1        | 42     | 41        | 1      |
+| P1        | 45     | 44        | 1      |
 | P2        | 8      | 8         | 0      |
-| **Total** | **68** | **65**    | **3**  |
+| **Total** | **71** | **68**    | **3**  |
 
 | Category                  | TCs                                                                                                                                                        |
 | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Step Role and Gate Tests  | TC-GWF-001, TC-GWF-002, TC-GWF-003, TC-GWF-004, TC-GWF-005, TC-GWF-052, TC-GWF-006, TC-GWF-007, TC-GWF-008, TC-GWF-009, TC-GWF-010, TC-GWF-041, TC-GWF-042 |
-| Workflow Annotation Tests | TC-GWF-011, TC-GWF-012, TC-GWF-013, TC-GWF-014, TC-GWF-015, TC-GWF-016                                                                                     |
-| Intent-First Flex Tests   | TC-GWF-057, TC-GWF-058, TC-GWF-059, TC-GWF-060, TC-GWF-061, TC-GWF-062, TC-GWF-068                                                                         |
+| Workflow Annotation Tests | TC-GWF-011, TC-GWF-012, TC-GWF-013, TC-GWF-014, TC-GWF-015, TC-GWF-016, TC-GWF-074, TC-GWF-075, TC-GWF-076, TC-GWF-077                                 |
+| Intent-First Flex Tests   | TC-GWF-057, TC-GWF-058, TC-GWF-059, TC-GWF-060, TC-GWF-061, TC-GWF-062, TC-GWF-068, TC-GWF-071, TC-GWF-072                                                 |
 | Lean Route Tests          | TC-GWF-017, TC-GWF-018, TC-GWF-019, TC-GWF-020, TC-GWF-021, TC-GWF-022, TC-GWF-043, TC-GWF-044, TC-GWF-051                                                 |
 | Scope Guard Tests         | TC-GWF-023, TC-GWF-024, TC-GWF-025, TC-GWF-026, TC-GWF-027, TC-GWF-045, TC-GWF-046                                                                         |
 | Usage Reading Tests       | TC-GWF-028, TC-GWF-029, TC-GWF-030, TC-GWF-047, TC-GWF-048, TC-GWF-049, TC-GWF-056                                                                         |
 | Usage Report Tests        | TC-GWF-031, TC-GWF-032, TC-GWF-033, TC-GWF-054                                                                                                             |
 | Spend Checkpoint Tests    | TC-GWF-034, TC-GWF-035, TC-GWF-036, TC-GWF-037, TC-GWF-038, TC-GWF-039, TC-GWF-040, TC-GWF-050, TC-GWF-053, TC-GWF-055                                     |
-| Session Report Tests      | TC-GWF-063, TC-GWF-064, TC-GWF-065, TC-GWF-066, TC-GWF-067                                                                                                 |
+| Session Report Tests      | TC-GWF-063, TC-GWF-064, TC-GWF-065, TC-GWF-066, TC-GWF-067, TC-GWF-073                                                                                     |
 
 ### Planned Executors
 
 | Executor                                                       | TCs                                                                                                                                                                                                                                |
 | -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `.claude/hooks/tests/suites/workflow.test.cjs`                 | TC-GWF-001, TC-GWF-002, TC-GWF-003, TC-GWF-004, TC-GWF-005, TC-GWF-011, TC-GWF-012, TC-GWF-013, TC-GWF-014, TC-GWF-015, TC-GWF-017, TC-GWF-018, TC-GWF-022, TC-GWF-043, TC-GWF-044, TC-GWF-052, TC-GWF-057, TC-GWF-061, TC-GWF-062, TC-GWF-068 |
-| `.claude/hooks/tests/suites/content-presence.test.cjs`         | TC-GWF-006, TC-GWF-007, TC-GWF-010, TC-GWF-019, TC-GWF-020, TC-GWF-041, TC-GWF-042, TC-GWF-044, TC-GWF-058, TC-GWF-059, TC-GWF-060                                                                                                 |
+| `.claude/hooks/tests/suites/workflow.test.cjs`                 | TC-GWF-001, TC-GWF-002, TC-GWF-003, TC-GWF-004, TC-GWF-005, TC-GWF-011, TC-GWF-012, TC-GWF-013, TC-GWF-014, TC-GWF-015, TC-GWF-017, TC-GWF-018, TC-GWF-022, TC-GWF-043, TC-GWF-044, TC-GWF-052, TC-GWF-057, TC-GWF-061, TC-GWF-062, TC-GWF-068, TC-GWF-073, TC-GWF-074, TC-GWF-075, TC-GWF-076, TC-GWF-077 |
+| `.claude/hooks/tests/suites/content-presence.test.cjs`         | TC-GWF-006, TC-GWF-007, TC-GWF-010, TC-GWF-019, TC-GWF-020, TC-GWF-041, TC-GWF-042, TC-GWF-044, TC-GWF-058, TC-GWF-059, TC-GWF-060, TC-GWF-071, TC-GWF-072                                                                         |
 | Manual-QC (dry run or live replay)                             | TC-GWF-008, TC-GWF-009, TC-GWF-041, TC-GWF-051, TC-GWF-058                                                                                                                                                                         |
 | `.claude/hooks/tests/suites/review-commit-gate.test.cjs`       | TC-GWF-042                                                                                                                                                                                                                         |
 | `.claude/scripts/codex/tests/workflow-skills-catalog.test.mjs` | TC-GWF-016                                                                                                                                                                                                                         |
@@ -593,7 +616,7 @@ WorkflowRun    1──N SpendCheckpoint   (at most one per threshold)
 | Rule      | Proven by                                                                                      |
 | --------- | ---------------------------------------------------------------------------------------------- |
 | BR-GWF-01 | TC-GWF-002, TC-GWF-006, TC-GWF-010, TC-GWF-013, TC-GWF-017, TC-GWF-058, TC-GWF-062             |
-| BR-GWF-02 | TC-GWF-001, TC-GWF-008, TC-GWF-014, TC-GWF-018                                                 |
+| BR-GWF-02 | TC-GWF-001, TC-GWF-008, TC-GWF-014, TC-GWF-018, TC-GWF-072, TC-GWF-077                         |
 | BR-GWF-03 | TC-GWF-007, TC-GWF-009, TC-GWF-042                                                             |
 | BR-GWF-04 | TC-GWF-019, TC-GWF-044, TC-GWF-051                                                             |
 | BR-GWF-05 | TC-GWF-020, TC-GWF-023, TC-GWF-024, TC-GWF-025, TC-GWF-026, TC-GWF-027, TC-GWF-045, TC-GWF-046 |
@@ -604,12 +627,14 @@ WorkflowRun    1──N SpendCheckpoint   (at most one per threshold)
 | BR-GWF-10 | TC-GWF-028, TC-GWF-029, TC-GWF-031, TC-GWF-047                                                 |
 | BR-GWF-11 | TC-GWF-048, TC-GWF-049, TC-GWF-056                                                             |
 | BR-GWF-12 | TC-GWF-003, TC-GWF-004, TC-GWF-005, TC-GWF-011, TC-GWF-012, TC-GWF-016, TC-GWF-057, TC-GWF-062 |
-| BR-GWF-13 | TC-GWF-006, TC-GWF-058                                                                         |
+| BR-GWF-13 | TC-GWF-006, TC-GWF-058, TC-GWF-071                                                             |
 | BR-GWF-14 | TC-GWF-018, TC-GWF-059, TC-GWF-068                                                             |
 | BR-GWF-15 | TC-GWF-007, TC-GWF-060                                                                         |
 | BR-GWF-16 | TC-GWF-015, TC-GWF-052, TC-GWF-061                                                             |
 | BR-GWF-17 | TC-GWF-032, TC-GWF-033, TC-GWF-050                                                             |
-| BR-GWF-18 | TC-GWF-063, TC-GWF-064, TC-GWF-065, TC-GWF-066, TC-GWF-067                                     |
+| BR-GWF-18 | TC-GWF-063, TC-GWF-064, TC-GWF-065, TC-GWF-066, TC-GWF-067, TC-GWF-073                         |
+| BR-GWF-19 | TC-GWF-074                                                                                     |
+| BR-GWF-20 | TC-GWF-075, TC-GWF-076, TC-GWF-077                                                             |
 
 ### Step Role and Gate Tests
 
@@ -979,7 +1004,7 @@ And every skip writes one deviation log line with its reason
 
 **Edge Cases:**
 
-- A task list shows each task's role
+- A phase task shows each step row's role
 
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
@@ -1815,12 +1840,13 @@ boundaryCounterCase: 'moving the review ahead of the spec sync → not allowed'
 **Edge Cases:**
 
 - Two independent steps swapped → allowed and logged
+- Spec sync, a review fix that changes behavior → the case writing, the changed-case review and the spec sync re-run on the changed part, then the review, before the verify; an earlier review report narrows the review only while it still matches the trigger
 
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
 > **Evidence:** `[Source: rule/skills/start-workflow-dependencies]`
 > **Related Behaviors:** `rule/skills/start-workflow-dependencies`
-> **CoveredBy:** `.claude/hooks/tests/suites/content-presence.test.cjs::TC-GWF-059` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/content-presence.test.cjs:499` (passed in P13; not re-run at the final gate)
+> **CoveredBy:** `.claude/hooks/tests/suites/content-presence.test.cjs::TC-GWF-059`, `.claude/hooks/tests/suites/content-presence.test.cjs::[content-presence] workflow-step gate rules in step skills keep their guarantee` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/content-presence.test.cjs:499` (passed in P13; not re-run at the final gate)
 
 ---
 
@@ -2018,7 +2044,7 @@ boundaryCounterCase: 'the investigation step marked core → rejected'
 
 - The framework registry
 
-**Real-World Reachability:** The seed-test-data workflow and the review workflow, which both run the simplifier.
+**Real-World Reachability:** The review workflow, which runs the simplifier as a report-only lens inside its review round; any workflow that adds a rewriting clean-up step.
 
 **Demo Flow:** Read each workflow's recommended order around its clean-up step.
 
@@ -2064,13 +2090,427 @@ boundaryCounterCase: 'the simplifier moved behind the test and review gates → 
 
 ---
 
+#### TC-GWF-071: A skill run as a workflow step leaves progression, goal and validation to the run [P1]
+
+**Objective:** Prove that the flex-rule owner tells a skill that runs as a workflow step to end without its own next-step prompt, to reuse the run's goal and decision log, to leave findings validation to the caller that owns the loop, and to merge an inner phase only with a cited artifact that meets that phase's exit criteria — citation never replaces a root-cause trace from another problem, a user decision the user did not give in this run, findings validation, a mutation check or gate evidence.
+
+**Business Intent / Invariant Guarded:** A step's standalone ceremony never repeats work the run already did, and citing earlier work never replaces a proof the quality floor needs (BR-GWF-13).
+
+**Traces:** AC-GWF-27 / BR-GWF-13
+
+**Preconditions:**
+
+- The workflow starter's instructions
+
+**Real-World Reachability:** Every workflow step that loads a skill written for standalone use, such as the spec author, task refinement or research skills, which otherwise end with their own next-step question.
+
+**Demo Flow:** Read the workflow starter's step rules.
+
+```gherkin
+Given the workflow starter's step rules
+When the rule for a skill running as a workflow step is read
+Then it ends without its own next-step prompt and reuses the run's goal and decision log
+And a reviewer called for a caller-owned loop leaves the single validation to that caller
+And an inner phase is merged only with a cited artifact that meets the phase's exit criteria
+And citation never replaces a proof: a user decision counts only as the user's answer, asked now or recorded in the run's decision log
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                                                        |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the run's deviation log, registry validation messages and command output |
+| **System behavior**     | Validates                                                                                                                                                                          |
+| **Business data state** | No change                                                                                                                                                                          |
+| **Data shown on UI**    | The missing part of the rule                                                                                                                                                       |
+
+**Acceptance Criteria:**
+
+- ✅ All four duties and the never-by-citation list are stated in the rule owner
+- ❌ A rule that lets citation replace a root-cause trace, a validation, a user decision, a mutation check or gate evidence
+- ❌ A rule that keeps a step's own next-step prompt inside a workflow
+
+**Test Data:**
+
+```yaml
+inputDomain: 'the workflow starter step rules'
+invariant: 'the workflow-step rule states every duty and the never-by-citation list'
+boundaryCounterCase: 'one duty or one never-by-citation item removed → reported missing'
+```
+
+**Edge Cases:**
+
+- A skill invoked directly by the user → its own next steps and validation stay unchanged
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/workflows/workflow-step-mode]`
+> **Related Behaviors:** `rule/workflows/workflow-step-mode`
+> **CoveredBy:** `.claude/hooks/tests/suites/content-presence.test.cjs::TC-GWF-071` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/content-presence.test.cjs` (passed in the change's targeted run; not yet in a release-close full run)
+
+---
+
+#### TC-GWF-072: Optional steps that do not apply close in one triage batch, each still logged [P1]
+
+**Objective:** Prove that the run may close every optional step whose condition is false at triage in one write, and that the batch still records one deviation-log line per step and keeps every step's task.
+
+**Business Intent / Invariant Guarded:** A small run pays one bookkeeping write for the steps it does not need, while every skip stays visible to review and to the close check (BR-GWF-02).
+
+**Traces:** AC-GWF-08 / BR-GWF-02
+
+**Preconditions:**
+
+- The workflow starter's step rules and the generated call block of each workflow skill
+
+**Real-World Reachability:** A small feature or bug-fix run whose triage finds most optional steps inapplicable.
+
+**Demo Flow:** Read the batch-close rule and the workflow skill's call block.
+
+```gherkin
+Given the workflow starter's step rules and a workflow skill's generated call block
+When the triage batch-close rule is read
+Then optional steps whose condition is false close together in one write
+And each still adds its own deviation-log line and keeps its row in its phase task
+And a closed step that new evidence makes applicable reopens and runs
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                                                        |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the run's deviation log, registry validation messages and command output |
+| **System behavior**     | Validates                                                                                                                                                                          |
+| **Business data state** | No change                                                                                                                                                                          |
+| **Data shown on UI**    | The missing part of the rule                                                                                                                                                       |
+
+**Acceptance Criteria:**
+
+- ✅ One write per batch, one log line per skipped step, every row kept
+- ❌ A batch that drops a step's log line or deletes its row
+
+**Test Data:**
+
+```yaml
+inputDomain: 'the batch-close rule in the step rules and in every generated call block'
+invariant: 'the batch keeps one log line and one row per skipped step'
+boundaryCounterCase: 'the per-step log line removed from the rule → reported missing'
+```
+
+**Edge Cases:**
+
+- A step whose condition is unknown at triage → it stays open and is decided when reached
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/workflows/triage-batch-close]`
+> **Related Behaviors:** `rule/workflows/triage-batch-close`
+> **CoveredBy:** `.claude/hooks/tests/suites/content-presence.test.cjs::TC-GWF-072` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/content-presence.test.cjs` (passed in the change's targeted run; not yet in a release-close full run)
+
+---
+
+#### TC-GWF-073: The session report step runs when asked for; otherwise the close gives the summary [P1]
+
+**Objective:** Prove that every workflow keeps its session report step last but optional with a stated condition, and that the close step gives the recap — or, when nothing was built, a short handoff — whenever that report step does not run.
+
+**Business Intent / Invariant Guarded:** Every run still ends with a summary the developer can act on, without paying for a second full report the developer did not ask for (BR-GWF-18).
+
+**Traces:** AC-GWF-26 / BR-GWF-18
+
+**Preconditions:**
+
+- The framework registry and the close step's instructions
+
+**Real-World Reachability:** Every workflow run; research and audit runs that build nothing rely on the handoff.
+
+**Demo Flow:** Read each workflow's last two steps and the close step's recap rule.
+
+```gherkin
+Given every workflow in the registry
+When its last two steps are read
+Then the close step comes first and the session report step last
+And the session report step is optional with a run condition and a skip reason
+And the close step gives the recap, or a short handoff when nothing was built, whenever the report step does not run
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                                                        |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the run's deviation log, registry validation messages and command output |
+| **System behavior**     | Validates                                                                                                                                                                          |
+| **Business data state** | No change                                                                                                                                                                          |
+| **Data shown on UI**    | The workflow whose report step is not optional, or the missing close rule                                                                                                          |
+
+**Acceptance Criteria:**
+
+- ✅ Report step optional and last in every workflow and mode; close step covers the summary otherwise
+- ❌ A workflow whose report step is core or unconditional
+- ❌ A close step that leaves a no-build run without a handoff
+
+**Test Data:**
+
+```yaml
+inputDomain: 'every workflow and every mode in the registry'
+invariant: 'the session report step is optional, has applicability and runs last'
+boundaryCounterCase: 'one workflow with the report step made core → reported'
+```
+
+**Edge Cases:**
+
+- A nested workflow → the parent's close owns the summary
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/workflows/optional-session-report]`
+> **Related Behaviors:** `rule/workflows/optional-session-report`
+> **CoveredBy:** `.claude/hooks/tests/suites/workflow.test.cjs::TC-GWF-073` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/workflow.test.cjs` (passed in the change's targeted run; not yet in a release-close full run)
+
+---
+
+#### TC-GWF-074: Every mode tracks one task per phase and ties each outcome gate to a phase [P1]
+
+**Objective:** Prove that every workflow mode declares phases that list each step once in order, that each outcome gate is the exit of exactly one phase, and that a phase list dropping a step is rejected.
+
+**Business Intent / Invariant Guarded:** Fewer tasks never hide a step or a gate (BR-GWF-19).
+
+**Traces:** AC-GWF-28 / BR-GWF-19
+
+**Preconditions:**
+
+- The framework registry and the workflow resolver
+
+**Real-World Reachability:** Every workflow run since phases replaced one task per step.
+
+**Demo Flow:** Resolve every workflow mode and read its phases.
+
+```gherkin
+Given every workflow mode in the registry
+When its phases are resolved
+Then the phases list every step once, in sequence order
+And every outcome gate is the exit of exactly one phase
+And a phase list that drops a step is rejected
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                                                        |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the run's deviation log, registry validation messages and command output |
+| **System behavior**     | Validates                                                                                                                                                                          |
+| **Business data state** | No change                                                                                                                                                                          |
+| **Data shown on UI**    | The mode whose phases miss a step or a gate |
+
+**Acceptance Criteria:**
+
+- ✅ Every mode declares phases covering every step once
+- ✅ Every outcome gate tied to exactly one phase exit
+- ❌ A phase list missing a step accepted
+
+**Test Data:**
+
+```yaml
+inputDomain: 'every workflow and every mode in the registry'
+invariant: 'phases cover every step once in order and close every outcome gate'
+boundaryCounterCase: 'the last step of a phase removed → rejected'
+```
+
+**Edge Cases:**
+
+- A parallel group stays inside one phase
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/workflows/phases]`
+> **Related Behaviors:** `rule/workflows/phases`
+> **CoveredBy:** `.claude/hooks/tests/suites/workflow.test.cjs::[guided-workflow] every workflow mode declares phases that list each step once, in order, with every outcome gate tied to a phase exit` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/workflow.test.cjs` (written with the change; run at the change's final verify)
+
+---
+
+#### TC-GWF-075: The merged planning workflow keeps every step of the three it replaced [P1]
+
+**Objective:** Prove that each mode of the merged planning workflow equals, step for step with arguments and roles, the workflow it replaced, and that the former identifiers are gone.
+
+**Business Intent / Invariant Guarded:** A merge drops no step or gate (BR-GWF-20).
+
+**Traces:** AC-GWF-29 / BR-GWF-20
+
+**Preconditions:**
+
+- The framework registry and the workflow resolver
+
+**Real-World Reachability:** A PO or BA planning work from an idea or a spec.
+
+**Demo Flow:** Compare each mode with the workflow it replaced.
+
+```gherkin
+Given the merged planning workflow
+When each mode is read by content
+Then idea-to-tasks, idea-to-spec and spec-to-tasks equal the workflows they replaced
+And the former identifiers are not in the registry
+And a mode with one step dropped fails the comparison
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                                                        |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the run's deviation log, registry validation messages and command output |
+| **System behavior**     | Validates                                                                                                                                                                          |
+| **Business data state** | No change                                                                                                                                                                          |
+| **Data shown on UI**    | The mode and step that differ |
+
+**Acceptance Criteria:**
+
+- ✅ Every mode equal to the workflow it replaced
+- ❌ A dropped step or changed role accepted
+- ❌ A former identifier still present
+
+**Test Data:**
+
+```yaml
+inputDomain: 'the three modes of the merged planning workflow'
+invariant: 'each mode equals its former workflow by skill, arguments and role'
+boundaryCounterCase: 'one step removed from spec-to-tasks → detected'
+```
+
+**Edge Cases:**
+
+- Step identifiers change with the mode prefix; content does not
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/workflows/planned-work-merge]`
+> **Related Behaviors:** `rule/workflows/planned-work-merge`
+> **CoveredBy:** `.claude/hooks/tests/suites/workflow.test.cjs::[guided-workflow] the merged planned-work workflow keeps every step and role of the three workflows it replaced, one mode each`, `.claude/hooks/tests/suites/workflow.test.cjs::[rename-guard] TC-RENAMEFIX-030 catalog holds exactly the current workflow-id set, no removed ids` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/workflow.test.cjs` (written with the change; run at the change's final verify)
+
+---
+
+#### TC-GWF-076: The new-product workflow hands its first slice on without losing a gate [P1]
+
+**Objective:** Prove that the new-product workflow keeps plan approval, the foundation review, the converging change review of the foundation, a final test and the close as gates, names its hand-off, and that the spec-supplied route runs the first slice's review, verify, test and near-end end-to-end step.
+
+**Business Intent / Invariant Guarded:** A split keeps every gate (BR-GWF-20).
+
+**Traces:** AC-GWF-30 / BR-GWF-20
+
+**Preconditions:**
+
+- The framework registry and the workflow resolver
+
+**Real-World Reachability:** A new product whose foundation is built and whose first slice is next.
+
+**Demo Flow:** Read both workflows' gates, hand-off and conditions.
+
+```gherkin
+Given the new-product workflow and the spec-supplied route
+When their steps and gates are read
+Then plan approval, the foundation review, the foundation change review, a final test and the close are gates of the new-product workflow
+And its review-converged gate rests on the converging change review, not on the read-only foundation diagnostic
+And its context names the spec-supplied route's first-slice mode as the hand-off
+And in that mode the review, verify, near-end end-to-end, test and close steps are gates, the end-to-end step after the verify and before the final test
+And its plan step runs only when no approved plan was handed off or the slice changed, and its seed data when the product persists state
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                                                        |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the run's deviation log, registry validation messages and command output |
+| **System behavior**     | Validates                                                                                                                                                                          |
+| **Business data state** | No change                                                                                                                                                                          |
+| **Data shown on UI**    | The gate or condition that is missing |
+
+**Acceptance Criteria:**
+
+- ✅ Every former gate held by one of the two workflows
+- ❌ A first slice without its near-end end-to-end step, or with that step no longer a gate
+- ❌ The foundation's review-converged gate resting on the read-only foundation diagnostic, or the change review placed before the foundation it reviews
+
+**Test Data:**
+
+```yaml
+inputDomain: 'the new-product workflow and the spec-supplied route'
+invariant: 'every gate of the former new-product workflow survives the split'
+boundaryCounterCase: 'the first-slice end-to-end step demoted from gate to optional, the foundation review-converged moved to the read-only diagnostic, or the foundation change review moved before the foundation → detected'
+```
+
+**Edge Cases:**
+
+- A product with no end-to-end surface records an evidence-backed not-applicable result
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/workflows/greenfield-split]`
+> **Related Behaviors:** `rule/workflows/greenfield-split`
+> **CoveredBy:** `.claude/hooks/tests/suites/workflow.test.cjs::[guided-workflow] greenfield hands its first slice to implement-spec without losing a gate` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/workflow.test.cjs` (written with the change; run at the change's final verify)
+
+---
+
+#### TC-GWF-077: The independent task challenge is optional; the task review and readiness check are never optional [P1]
+
+**Objective:** Prove that the independent challenge in every planned-work chain is optional with the second-reviewer-or-risk condition and a skip reason naming the task review's module, feasibility and cross-cutting rows, while the task review and the readiness check are never optional: gates in the planned-work chains, core steps in big-feature and greenfield.
+
+**Business Intent / Invariant Guarded:** A small, low-risk task without a second reviewer still gets a fresh-context review and a readiness decision (BR-GWF-20).
+
+**Traces:** AC-GWF-31 / BR-GWF-02 / BR-GWF-20
+
+**Preconditions:**
+
+- The framework registry and the workflow resolver
+
+**Real-World Reachability:** A small task drafted when no second reviewer is available.
+
+**Demo Flow:** Read the challenge, task review and readiness steps of each planned-work chain.
+
+```gherkin
+Given each planned-work chain
+When its challenge, task review and readiness steps are read
+Then the challenge is optional and runs when a second reviewer is available or the task is size M or larger or risky
+And its skip reason names the task review rows that carry its checks
+And the task review and the readiness check are not optional
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                                                        |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the run's deviation log, registry validation messages and command output |
+| **System behavior**     | Validates                                                                                                                                                                          |
+| **Business data state** | No change                                                                                                                                                                          |
+| **Data shown on UI**    | The chain whose challenge or gates differ |
+
+**Acceptance Criteria:**
+
+- ✅ Challenge optional with its condition everywhere
+- ❌ The task review or readiness check made optional
+
+**Test Data:**
+
+```yaml
+inputDomain: 'the planned-work chains of four workflows and modes'
+invariant: 'the challenge is optional; task review and readiness are not'
+boundaryCounterCase: 'the readiness check made optional → detected'
+```
+
+**Edge Cases:**
+
+- A size M or risky task always gets the challenge
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/workflows/challenge-optional]`
+> **Related Behaviors:** `rule/workflows/challenge-optional`
+> **CoveredBy:** `.claude/hooks/tests/suites/workflow.test.cjs::[guided-workflow] the independent challenge is optional in every planned-work chain, while the fresh-context task review and DoR are never optional` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/workflow.test.cjs` (written with the change; run at the change's final verify)
+
+---
+
 ### Lean Route Tests
 
 > Route shape, escalation and routing predicate (US-GWF-03).
 
-#### TC-GWF-017: The lean route has nine steps plus close and every gate [P1]
+#### TC-GWF-017: The lean route has eleven steps plus close and every gate [P1]
 
-**Objective:** Prove the lean route's shape: investigate, gap review, plan, build, optional spec sync, integration tests, their check, review, tests, close.
+**Objective:** Prove the lean route's shape: investigate, gap review, plan, build, optional seed data, integration tests and spec sync, review, the integration check, the optional near-end end-to-end step, tests, close.
 
 **Business Intent / Invariant Guarded:** The lean route is shorter only where the spec already exists; it keeps every gate (BR-GWF-01, BR-GWF-09).
 
@@ -2087,7 +2527,7 @@ boundaryCounterCase: 'the simplifier moved behind the test and review gates → 
 ```gherkin
 Given the lean route
 When the registry is validated
-Then it has nine steps plus close in the stated order
+Then it has eleven steps plus close in the stated order
 And it declares "tests pass", "review converged" and "spec synced"
 And its test check, review, test and close steps are gates
 ```
@@ -2115,7 +2555,7 @@ And its test check, review, test and close steps are gates
 
 > **Evidence:** `[Source: rule/workflows/implement-spec]`
 > **Related Behaviors:** `rule/workflows/implement-spec`
-> **CoveredBy:** `.claude/hooks/tests/suites/workflow.test.cjs::TC-GWF-017` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/workflow.test.cjs:1054` (passed in P15; not re-run at the final gate)
+> **CoveredBy:** `.claude/hooks/tests/suites/workflow.test.cjs::TC-GWF-017` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/workflow.test.cjs:1313` (updated in P41 so its mutation drops the mode's phases before the check; not yet re-run)
 
 ---
 

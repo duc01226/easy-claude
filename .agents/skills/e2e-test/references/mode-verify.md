@@ -4,7 +4,7 @@
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
-> **[BLOCKING]** Execute the steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
+> **[BLOCKING]** Execute the steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval. Inside a workflow run, `$start-workflow` → Workflow-step mode bounds this rule.
 > **[BLOCKING]** Before each step or sub-skill call, update todo tracking; set `completed` only with evidence or an explicit skip reason.
 > **[BLOCKING]** The default pass is report-only: it may write its report, but it does not edit source, tests, fixtures, baselines, generated output, or user data. Only the opt-in `--fix-loop` mode lands repairs, and only through its owning-layer fix step.
 
@@ -23,7 +23,7 @@
 - The default is report-only, with one static/runtime/visual review pass per attempt. Return `PASS`, `NOT-APPLICABLE`, `ENVIRONMENT-BLOCKED`, or `UNVERIFIED`; preserve source, tests, fixtures, scope, data and baselines.
 - **One review pass maximum:** perform one static/runtime/visual review pass per verification attempt, then report. Never start an E2E review/re-review loop; `--fix-loop` rounds are execution/fix/retest attempts, not review rounds.
 <!-- FIX-LOOP-MODE:START -->
-- **OPTIONAL `--fix-loop` MODE (opt-in; absent flag = everything above unchanged)** — drives a configured E2E suite or human-QC journey to a truthful green result over a fixed scope: resolve visual-review applicability from the explicit request and project contract, scope, and Goal Contract → resolve the project execution contract → select or generate a test in the project's declared format → bring up the whole system → per round { run the DEFAULT pass inline (never with the flag) → run the visual gate only when applicable and required → five-way verdict → `$investigate --mode=debug` → `$fix` at the owning layer → `$changes-review` → Round Integrity Check → fresh same-scope rerun } → converge on the configured consecutive fresh green runs (default 2) within the round cap (default 3), or escalate. It is the convergence engine `workflow-e2e` calls; report-only callers NEVER pass it. Full protocol: **Mode: Fix-Loop** section.
+- **OPTIONAL `--fix-loop` MODE (opt-in; absent flag = everything above unchanged)** — drives a configured E2E suite or human-QC journey to a truthful green result over a fixed scope: resolve visual-review applicability from the explicit request and project contract, scope, and Goal Contract → resolve the project execution contract → select or generate a test in the project's declared format → bring up the whole system → per round { run the DEFAULT pass inline (never with the flag) → run the visual gate only when applicable and required → five-way verdict → `$investigate --mode=debug` → `$fix` at the owning layer → `$changes-review` (deferred to the parent's re-review when nested in a parent whose review gate re-runs after this step's edits) → Round Integrity Check → fresh same-scope rerun } → converge on the configured consecutive fresh green runs (default 1) within the round cap (default 3), or escalate. It is the convergence engine `workflow-e2e` calls; report-only callers NEVER pass it. Full protocol: **Mode: Fix-Loop** section.
 <!-- FIX-LOOP-MODE:END -->
 
 **Workflow:**
@@ -101,6 +101,8 @@ For a UI surface where visual review is requested or required by the project con
 
 ## Step 3 — Run one report-only verification attempt
 
+Before the command, check environment readiness — what this project, its stack and the OS need for the suite and its browsers: free disk on the workspace and temp volumes, available memory, required services, browsers, toolchain and config (`integration-test/references/mode-verify.md` → Step 2 gives the per-OS disk and memory commands). On a gap report `ENVIRONMENT-BLOCKED` with what is missing and its remedy; this report-only pass frees nothing, and never runs into it and reads the failures as defects.
+
 When `APPLICABLE`, run the configured full command for the fixed scope. Use a focused command only as additional evidence, never as a replacement for the declared full scope. Record the exact command, start/end, exit status, Passed/Failed/Skipped counts, names, run identity, data mode, and artifact paths. Tear down only what this attempt started, after evidence capture.
 
 Do not repair failures in this default pass. Classify each failure as `SOURCE-WRONG`, `TEST-WRONG`, `TEST-NOT-OPTIMAL`, `ENVIRONMENT-BLOCKED`, or `AMBIGUOUS`, cite evidence, and route it to the owning caller. If visual evidence is applicable, record every missing/unread state × viewport artifact as a gate failure or blocker; runtime/screenshot observations belong to `experience-review`.
@@ -119,7 +121,7 @@ Persist: fixed scope and applicability evidence · GWT/invariant records · prof
 
 > **Scope gate:** this section runs ONLY when the invocation carries `--fix-loop`. Without the flag NOTHING here applies — Steps 0–4, their report-only boundary, and every report-only caller behave exactly as documented above. It is the ONLY path through which this skill changes source, tests, fixtures, or configuration, and only through Step FL-4's `$investigate --mode=debug` → `$fix` route.
 >
-> **Flag rules:** `--visual-review={true|false}` is resolved once, in Step FL-0.1, from an explicit value, the project contract, and the task request. There is no framework-wide screenshot default. Outside `--fix-loop`, an explicit `--visual-review` value is only caller-supplied applicability that Step 2 verifies; report-only callers (`$changes-review` Phase 3.9 and the `$workflow-review-changes` step-1 E2E route) invoke the default pass and NEVER pass `--fix-loop`. NEVER self-invoke with the flag: each round's pass is the default pass (Steps 0–4) run inline, never `$e2e-test --mode=verify --fix-loop` — one loop, no nesting.
+> **Flag rules:** `--visual-review={true|false}` is resolved once, in Step FL-0.1, from an explicit value, the project contract, and the task request. There is no framework-wide screenshot default. Outside `--fix-loop`, an explicit `--visual-review` value is only caller-supplied applicability that Step 2 verifies; report-only callers (`$changes-review`'s E2E route and the `$workflow-review-changes` step-1 E2E route) invoke the default pass and NEVER pass `--fix-loop`. Both labels name one call: `changes-review/SKILL.md` § Review concerns invokes the default pass, and `$workflow-review-changes` reaches it through its first step, `initial-changes-review`. NEVER self-invoke with the flag: each round's pass is the default pass (Steps 0–4) run inline, never `$e2e-test --mode=verify --fix-loop` — one loop, no nesting.
 
 **Goal:** Drive a configured E2E suite or real-user journey to a truthful green result over a fixed scope. Resolve the project contract first, select an existing test or generate one in the project's declared format, bring up the whole system, use a visible browser for web human-QC when requested, inspect applicable runtime/visual evidence, adjudicate every failure, fix the owning layer, and re-run fresh until the declared scope converges or a bounded blocker is escalated.
 
@@ -190,7 +192,9 @@ Before any test command or edit:
 5. When visual review is requested or required by the project contract, verify that every applicable surface has a configured screenshot matrix, evidence root, and image-inspection path; a missing required capability is `ENVIRONMENT-BLOCKED`.
 6. Create a Goal Contract whose required criterion is:
 
-   > A fresh full E2E verification over the fixed scope reports zero failed scenarios across the configured consecutive-green requirement (default 2), with exact runner output, no scope shrink, no test deletion/skip/weakening, and no automatic baseline acceptance.
+   > A fresh full E2E verification over the fixed scope reports zero failed scenarios across the configured consecutive-green requirement (default 1), with exact runner output, no scope shrink, no test deletion/skip/weakening, and no automatic baseline acceptance.
+
+   When this loop runs as a step of an active workflow run, including a `workflow-e2e` run nested under a parent workflow, record this criterion in that run's existing Goal Contract instead of creating a second one (`.claude/skills/shared/verify-convergence-loop.md` § 2.2); a standalone run creates its own.
 
 7. Record the round cap (default 3), expected consecutive-green count, the
    visual mode, screenshot matrix, and the executed/skipped scenario counts
@@ -270,6 +274,7 @@ Each round is a fresh full verification over the exact recorded scope:
 
 7. For non-blocked failures, invoke `$investigate --mode=debug` inline and trace end-to-start from the observed failure or screenshot to the invariant-owning layer. Then invoke `$fix` at that owning layer (`--target=ui` for a validated visual/layout/responsiveness defect). Preserve the assertion and screenshot evidence that exposed the failure.
 8. If the round changed files, invoke `$changes-review` inline, report-only, over the round’s fix diff. Resolve validated blocking findings before re-running. If no files changed, record the skip reason.
+   **Nested deferral:** when this loop runs inside a parent workflow whose `workflow-review-changes` gate re-runs after this step's edits under the verify-last order (`$start-workflow` → Verify-last loop; `SYNC:verify-last-order` step 5), defer the per-round review to that parent re-review. Record `changes-review deferred to parent re-review — <parent workflow · review occurrence>` in the round record and list the round's changed files in the hand-back so the parent re-review covers them. The Round Integrity Check (item 9) and the never-weaken rules (no skip, scope shrink, widened timeout or retried assertion) still apply every round. A standalone run, or a parent whose review gate does not re-run after this step, keeps the per-round review.
 9. Run the Round Integrity Check: executed count must not decrease, skipped count must not increase, fixed scope must not narrow, runtime logs must not be hidden, screenshot states/viewports must not be removed, capture triggers must not be unwired and caps must not be tightened to shrink the capture set, and evidence collection must not be disabled.
 10. Restart from a fresh bring-up/exercise and run the same configured E2E command again. A green run or clean screenshot before the fix does not count.
 
@@ -299,7 +304,7 @@ promotes a baseline automatically.
 - existing-test reuse or generated test files and owner/case/variant-to-test/assertion/result coverage; strict TC coverage only when no native profile applies;
 - every command, run identity, exact Passed/Failed/Skipped counts, exit status, and fresh repeat evidence;
 - runtime/visual evidence paths and redaction/read status;
-- each failure’s single fault verdict, debug/fix/review references, and owning layer;
+- each failure’s single fault verdict, debug/fix/review references (or the recorded parent-review deferral), and owning layer;
 - Round Integrity Check results and final `CONVERGED`, `N/A`, `ENVIRONMENT-BLOCKED`, `NOT-CONVERGED`, or `ACCEPTANCE-PENDING` status.
 
 ### Fix-Loop Anti-Rationalization
@@ -394,7 +399,7 @@ The protocols below are carried in full because only this mode needs them; the p
 
 <!-- FIX-LOOP-MODE:START -->
 
-**IMPORTANT MUST ATTENTION `--fix-loop` (OPTIONAL mode — only when the flag is passed):** drive a configured E2E suite or real-user journey to a truthful green result over a fixed scope. Resolve the project contract first, select an existing test or generate a traceable Given/When/Then test, bring up the whole system, use a visible browser for web human-QC, inspect runtime/visual evidence, adjudicate every failure, fix the owning layer, and re-run fresh until the declared scope converges (configured consecutive fresh green runs, default 2, within the round cap, default 3) or a bounded blocker is escalated. Each round runs the default pass INLINE — NEVER `$e2e-test --mode=verify --fix-loop` — and report-only callers NEVER pass the flag.
+**IMPORTANT MUST ATTENTION `--fix-loop` (OPTIONAL mode — only when the flag is passed):** drive a configured E2E suite or real-user journey to a truthful green result over a fixed scope. Resolve the project contract first, select an existing test or generate a traceable Given/When/Then test, bring up the whole system, use a visible browser for web human-QC, inspect runtime/visual evidence, adjudicate every failure, fix the owning layer, and re-run fresh until the declared scope converges (configured consecutive fresh green runs, default 1, within the round cap, default 3) or a bounded blocker is escalated. Each round runs the default pass INLINE — NEVER `$e2e-test --mode=verify --fix-loop` — and report-only callers NEVER pass the flag.
 
 **IMPORTANT MUST ATTENTION** in `--fix-loop`, resolve `--visual-review=true|false` from an explicit value, the task request, and the project contract before the first command; there is no framework-wide screenshot default. When requested or required on an applicable visual surface, capture per the resolved `uiStateCapture.mode` (default `declared-only`: required state × viewport matrix; transitions only under explicitly selected, supported `every-action`) into the configured evidence index → have `$experience-review --rounds=0` read and record every required capture case by case, then synthesize clustered owner-routed findings and coverage gaps → fix validated blocking UI defects once at the owning layer → rerun the same E2E scope until the visual blocker count and E2E failure count converge to zero. A false value cannot waive a project-required gate; a required evidence row with no per-case record is `UNVERIFIED`, not clean.
 

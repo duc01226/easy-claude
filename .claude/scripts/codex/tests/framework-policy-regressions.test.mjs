@@ -48,9 +48,9 @@ test("retired dispatch protocol is absent from skill injection tiers", async () 
 test("large ideas use embedded decomposition and ordinary workflows do not add a roadmap writer", async () => {
   const [contract, initiativeToTask, initiativeToSpec, specToTask, presentation, mockup, roadmap] = await Promise.all([
     read(".claude/skills/shared/product-roadmap-contract.md"),
-    read(".claude/skills/workflow-initiative-to-task/SKILL.md"),
-    read(".claude/skills/workflow-initiative-to-spec/SKILL.md"),
-    read(".claude/skills/workflow-spec-to-task/SKILL.md"),
+    read(".claude/skills/workflow-planned-work/references/mode-idea-to-tasks.md"),
+    read(".claude/skills/workflow-planned-work/references/mode-idea-to-spec.md"),
+    read(".claude/skills/workflow-planned-work/references/mode-spec-to-tasks.md"),
     read(".claude/skills/feature-presentation/SKILL.md"),
     read(".claude/skills/work-item/references/mode-mockup.md"),
     read(".claude/skills/product-roadmap/SKILL.md"),
@@ -333,19 +333,27 @@ test("mutating workflow closures refresh domain-entity references before docs-ma
     assert.match(workflows[id].preActions.domainEntityReferenceRefresh, /cited skip reason/);
   }
   // Workflows that delegate their review/docs tail to the nested workflow-review-changes must name
-  // it — the nested workflow owns the scan -> docs-manager --mode=update refresh and the cited-skip-reason rule.
-  for (const id of ["workflow-greenfield-init", "workflow-refactor"]) {
-    assert.ok(
-      workflows[id].sequence.some((step) => (typeof step === "string" ? step : step?.skill) === "workflow-review-changes"),
-      `${id} must delegate the terminal domain-entity refresh to workflow-review-changes`
-    );
+  // it in every mode — the nested workflow owns the scan -> docs-manager --mode=update refresh and the
+  // cited-skip-reason rule. Greenfield reviews its foundation this way, and its first slice runs
+  // workflow-implement-spec --mode=greenfield-slice, which reviews the slice (P41 D7).
+  for (const id of ["workflow-greenfield-init", "workflow-implement-spec", "workflow-refactor"]) {
+    const modes = [workflows[id].sequence, ...Object.values(workflows[id].variants ?? {}).map((variant) => variant.sequence)].filter(Array.isArray);
+    for (const sequence of modes) {
+      assert.ok(
+        sequence.some((step) => (typeof step === "string" ? step : step?.skill) === "workflow-review-changes"),
+        `${id} must delegate the terminal domain-entity refresh to workflow-review-changes in every mode`
+      );
+    }
   }
 });
 
-test("plan creation never runs --mode=review and only offers it after a standalone plan", async () => {
+test("plan creation never runs --mode=review and reviews its own plan once with why-review", async () => {
   const plan = await read(".claude/skills/plan/SKILL.md");
-  assert.match(plan, /Plan creation never runs `--mode=review` or another review skill/);
-  assert.match(plan, /Standalone invocation:\*{0,2}[\s\S]*(?:ask|asking) exactly one optional question: `Run \/plan --mode=review on this plan\?`/);
+  assert.match(plan, /Plan creation never runs `--mode=review` or `--mode=execute`/);
+  // Business intent: a generated plan gets one independent rationale review and one fix pass before the user validates it
+  assert.match(plan, /## Self-Review Pass[\s\S]*run one `\/why-review --review-only` pass on the saved plan \(it validates its own findings and edits nothing\)[\s\S]*one review pass and one fix pass, with no second review round/);
+  assert.match(plan, /A workflow owns this run and lists its own `\/plan --mode=review` step\*\* — that step reviews the plan/);
+  assert.match(plan, /Standalone invocation:\*{0,2}[\s\S]*finish without a further review question: the plan was reviewed/);
   assert.match(plan, /Workflow invocation:\*{0,2}[\s\S]*Do not ask about review, execution, or other next steps/);
   assert.doesNotMatch(plan, /run `--mode=review` automatically|then run `\/plan --mode=review`/i);
 });

@@ -10,17 +10,21 @@ disable-model-invocation: false
 
 Read [the registry](../../../.claude/workflows.json) → `workflows.workflow-implement-spec` together with this skill. Call [`/start-workflow workflow-implement-spec`](../start-workflow/SKILL.md) to resolve the selected mode, pre-actions and fingerprint.
 
-**Todo FIRST:** create one todo for EVERY selected occurrence before triage, analysis or step execution, including conditional/optional ones; preserve occurrence IDs, roles and barrier groups. Use native todo tools or an equivalent persistent ledger. Then mark the first todo `in_progress`; attach evidence before `completed`.
+**Todo FIRST:** before triage, analysis or step execution, create one todo per phase of the selected mode, in order, listing every occurrence of that phase as a line, including conditional/optional ones (a mode that declares no phases gets one todo per occurrence); preserve occurrence IDs, roles and barrier groups. Use native todo tools or an equivalent persistent ledger. Then mark the first todo `in_progress`; close each step line with its run or skip evidence, and complete a phase todo only when every line is closed and its applicable exit gates hold.
 Mode selection and registry loading prepare tracking; any 'first action' below means the first substantive action after this bootstrap.
 
 **Call each step skill:** read its linked SKILL.md and execute its protocol through the active host with the registry args. Reading or naming a skill alone is not execution. Required gates and core/optional flex follow the linked start-workflow Step Execution Protocol; keep this skill's quality gates, loops and evidence requirements.
 
-**Conditions:** load each occurrence's registry `applicability.when` and `skipReason` verbatim, and record its run/skip evidence through the linked start-workflow protocol. Do not silently omit a todo or turn a conditional skill into an unconditional call. Declared parallel groups retain their all-return barrier.
+**Conditions:** load each occurrence's registry `applicability.when` and `skipReason` verbatim, and record its run/skip evidence through the linked start-workflow protocol. Do not silently omit a todo or turn a conditional skill into an unconditional call; close, in one batch at triage, the todos whose condition is already false there. Declared parallel groups retain their all-return barrier.
 
 Explicit step-skill calls by mode (registry order; roles and conditions remain owned by the registry):
 
-- Mode `default`: [`/investigate`](../investigate/SKILL.md) (core) → [`/spec [mode=clarify]`](../spec/SKILL.md) (core) → [`/plan`](../plan/SKILL.md) (core) → [`/plan --mode=execute`](../plan/SKILL.md) (core) → [`/integration-test`](../integration-test/SKILL.md) (core) → [`/spec [mode=sync]`](../spec/SKILL.md) (optional; conditional) → [`/workflow-review-changes --tests=defer`](../workflow-review-changes/SKILL.md) (gate) → [`/integration-test --mode=verify`](../integration-test/SKILL.md) (gate) → [`/test`](../test/SKILL.md) (gate) → [`/workflow-end`](../workflow-end/SKILL.md) (gate) → [`/watzup`](../watzup/SKILL.md) (core)
-<!-- workflow-mode:default fingerprint:235c2b9f3476f380213bf45fca43bea1532f6a2817fd99de5c494c8099130f9e -->
+- Mode `default`: [`/investigate`](../investigate/SKILL.md) (core) → [`/spec [mode=clarify]`](../spec/SKILL.md) (core) → [`/plan`](../plan/SKILL.md) (core) → [`/plan --mode=execute`](../plan/SKILL.md) (core) → [`/seed-test-data`](../seed-test-data/SKILL.md) (optional; conditional) → [`/integration-test`](../integration-test/SKILL.md) (optional; conditional) → [`/spec [mode=sync]`](../spec/SKILL.md) (optional; conditional) → [`/workflow-review-changes --tests=defer`](../workflow-review-changes/SKILL.md) (gate) → [`/integration-test --mode=verify`](../integration-test/SKILL.md) (gate) → [`/workflow-e2e --source=context`](../workflow-e2e/SKILL.md) (optional; conditional) → [`/test --proven=@verify`](../test/SKILL.md) (gate) → [`/workflow-end`](../workflow-end/SKILL.md) (gate) → [`/watzup`](../watzup/SKILL.md) (optional; conditional)
+  Phase todos: Discover (1) → Specify (1) → Plan (1) → Build (4; exit spec-synced) → Review (1; exit review-converged) → Verify (3; exit tests-pass) → Close (2; exit run-closed)
+<!-- workflow-mode:default fingerprint:4a87d18a9bc48695dbbddc7f9130b82f2c63ad73d5b8b466c0f59de4c58190e2 -->
+- Mode `greenfield-slice`: [`/investigate`](../investigate/SKILL.md) (core) → [`/spec [mode=clarify]`](../spec/SKILL.md) (core) → [`/plan`](../plan/SKILL.md) (optional; conditional) → [`/plan --mode=execute`](../plan/SKILL.md) (core) → [`/seed-test-data`](../seed-test-data/SKILL.md) (optional; conditional) → [`/integration-test`](../integration-test/SKILL.md) (optional; conditional) → [`/spec [mode=sync]`](../spec/SKILL.md) (optional; conditional) → [`/workflow-review-changes --tests=defer`](../workflow-review-changes/SKILL.md) (gate) → [`/integration-test --mode=verify`](../integration-test/SKILL.md) (gate) → [`/workflow-e2e --source=context`](../workflow-e2e/SKILL.md) (gate) → [`/test --proven=@verify`](../test/SKILL.md) (gate) → [`/workflow-end`](../workflow-end/SKILL.md) (gate) → [`/watzup`](../watzup/SKILL.md) (optional; conditional)
+  Phase todos: Discover (1) → Specify (1) → Plan (1) → Build (4; exit spec-synced) → Review (1; exit review-converged) → Verify (3; exit tests-pass) → Close (2; exit run-closed)
+<!-- workflow-mode:greenfield-slice fingerprint:d657cccd3935fbf443ac766ba8730e9373cec5ff63e0b951c537122c06854d2c -->
 
 Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs --write` after registry edits; [`/sync-codex`](../sync-codex/SKILL.md) refreshes it before mirroring.
 <!-- WORKFLOW-CALLS:END -->
@@ -31,7 +35,7 @@ Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs
 
 **Goal:** Implement already-specified behavior within the supplied baseline, proven by green tests, converged review and reconciled spec evidence.
 
-**Summary:** The supplied spec replaces feature discovery, spec-authoring and test-spec rounds. Triage → investigate → clarify gaps → plan → execute → author integration tests → sync changed behavior/evidence → review statically → verify integration tests → test remaining tiers → close → hand off.
+**Summary:** The supplied spec replaces feature discovery, spec-authoring and test-spec rounds. Triage → investigate → clarify gaps → plan → execute (code and tests together) → optional seed data → missing integration tests → sync changed behavior/evidence → review statically → verify integration tests → E2E (when asked for; always in `greenfield-slice`) → test remaining tiers → close → hand off.
 
 **Workflow:** Activate `/start-workflow workflow-implement-spec` with the user's prompt; follow the registry and step contracts below.
 
@@ -59,20 +63,21 @@ Classify the target before choosing depth; record it in the run report:
 
 Depth by band:
 
-- **XS/S** — a short investigation and a light plan (a few tasks, each traced to the spec baseline; log it as a `simplified` deviation); work inline.
-- **M, or any public-contract, data/schema or security kind** — full investigation and one lean plan; user-owned decisions go through `/plan --mode=validate`.
+- **XS/S** — a short investigation and a short plan (a few tasks, each traced to the spec baseline); work inline. The plan step asks for plan approval only when the run's request does not already authorize the scope.
+- **M, or any public-contract, data/schema or security kind** — full investigation and one lean plan that keeps every section; user-owned decisions go through the validation chain `/plan` runs inside this workflow (`plan` → Standalone Validation Chain; the route lists no separate validate step), which applies the answers in the same step.
 - **L/XL** — partition the build, the integration tests and the review into bounded batches per module or TC group, one report per batch; the plan names the batches.
 
-At every size, `/spec [mode=clarify]` checks the supplied spec against the request before `/plan`.
+At every size, `/spec [mode=clarify]` checks the supplied spec against the request before `/plan`, through its EXISTING-SPEC gap-review profile (`spec/references/mode-clarify.md`), and `/plan` uses its light spec-supplied profile: the supplied spec is the scope and its cases are the scenario evidence, so it writes no scope-brief or scenario file.
 
 ## Required Quality Gates
 
-- **Tests pass** (`tests-pass`) — `/integration-test --mode=verify` (incl. the mutation check) and `/test` ran green in THIS run, once, after the static review; every implemented TC has a test that names its `Business Intent / Invariant Guarded` and would fail if that intent broke
+- **Tests pass** (`tests-pass`) — `/integration-test --mode=verify` (incl. the mutation check) ran green in THIS run, once, after the static review, and `/test --proven=@verify` ran every tier that verify report does not cover; every implemented TC has a test that names its `Business Intent / Invariant Guarded` and would fail if that intent broke
 - **Review converged** (`review-converged`) — nested `/workflow-review-changes` ran inline in the main session and converged — validated blocking findings fixed and the fixed state re-reviewed
-- **Spec synced** (`spec-synced`, when behavior or evidence mappings changed) — `/spec [mode=sync]` reconciled the supplied spec with implemented behavior and actual case-to-test evidence after test authoring and before review
+- **Spec synced** (`spec-synced`, when behavior or evidence mappings changed) — `/spec [mode=sync]` reconciled the supplied spec with implemented behavior and actual case-to-test evidence after test authoring and before review; when review fixes invalidate that reconciliation, repeat only that scoped sync before final verification
 - **Run closed** (`run-closed`) — `/workflow-end` checked every gate
 - **No guessed behavior** — the gap review passed, or the route stopped per the escalation rule below
 - **Scope held** — the workflow records the supplied `spec_baseline`; plan phases and acceptance evidence stay within it
+- **Greenfield first slice** — `/workflow-greenfield-init` hands its first slice off as `/workflow-implement-spec --mode=greenfield-slice`. That mode skips `/plan` while the approved plan the foundation handed off still covers the slice and its spec (its registry `when` is false; cite the plan and its Validation Summary), runs seed data when the product persists state, and makes the near-end `/workflow-e2e --source=context` a gate
 
 > **[ESCALATION — BLOCKING]** `/spec [mode=clarify]` runs as a gap review of the supplied spec against the request. When the spec is vague or contradictory, or the requested behavior is not in the supplied spec, STOP before `/plan` and ask the user to clarify the spec or switch to `workflow-feature`, which updates the spec first. Never guess the missing behavior and never drop it silently. A spec with one open question is clarified before planning.
 
@@ -85,22 +90,31 @@ At every size, `/spec [mode=clarify]` checks the supplied spec against the reque
 | Step                       | Role     | Earns its cost when                                                           | Proves / feeds                |
 | -------------------------- | -------- | ----------------------------------------------------------------------------- | ----------------------------- |
 | `/investigate`             | core     | always — read the supplied spec and the affected code; find 3+ local examples | gap-review input              |
-| `/spec [mode=clarify]`            | core     | always — the gap review                                                       | no guessed behavior           |
-| `/plan`                    | core     | always; XS/S keeps it light                                                   | `spec_baseline`, traced tasks |
-| `/plan --mode=execute`            | core     | always                                                                        | the change                    |
-| `/integration-test`        | core     | always — tests from the spec's TCs                                            | tests-pass                    |
+| `/spec [mode=clarify]`            | core     | always — the EXISTING-SPEC gap review                                         | no guessed behavior           |
+| `/plan`                    | core     | always; light spec-supplied profile, with its own validation interview        | `spec_baseline`, traced tasks |
+| `/plan --mode=execute`            | core     | always                                                                        | the change and its tests, written together per phase |
+| `/seed-test-data`          | optional | `default`: the change adds entities or flows that need realistic development data · `greenfield-slice`: the product persists state, or its tests or demo need seeded data | development data for manual QC |
+| `/integration-test`        | optional | a test case still has no executing test after the execute step               | tests for the remaining TCs   |
 | `/spec [mode=sync]`        | optional | behavior or canonical case-to-test evidence/mappings changed                  | spec-synced                   |
 | `/workflow-review-changes --tests=defer` | gate     | always                                                                        | review-converged              |
-| `/integration-test --mode=verify` | gate     | always                                                                        | tests-pass                    |
-| `/test` | gate | always | tests-pass — pass `--proven=<integration-test --mode=verify report path>` so only tiers it does not cover run |
-| `/workflow-end`            | gate     | always                                                                        | run-closed                    |
-| `/watzup`                  | core     | always                                                                        | handoff summary               |
+| `/integration-test --mode=verify` | gate     | always                                                                        | tests-pass — the one verify, with the mutation check |
+| `/workflow-e2e --source=context` | optional (`default`) · gate (`greenfield-slice`) | `default`: the user explicitly asks for E2E work · `greenfield-slice`: always | near-end E2E evidence, or an evidence-backed `N/A` / `ENVIRONMENT-BLOCKED` |
+| `/test --proven=@verify` | gate | always | tests-pass — runs only the tiers this run's verify report does not cover |
+| `/workflow-end`            | gate     | always                                                                        | run-closed — prints the recap when `/watzup` does not run |
+| `/watzup`                  | optional | a session report was requested, or several workflows need one handoff         | consolidated session report   |
 
-> **Conditional step:** `/spec [mode=sync]` runs after integration-test authoring when behavior differs or canonical case-to-test evidence/mappings changed, and before the nested review. Skip reason: "Behavior and canonical case-to-test evidence still match the supplied spec, so no reconciliation is needed."
+> **Conditional steps:**
+>
+> - `/integration-test` runs after the execute step only for test cases still without an executing test. Skip reason: "Every test case already has an executing test written by the execute step."
+> - `/spec [mode=sync]` runs after the tests exist when behavior differs or canonical case-to-test evidence/mappings changed, and before the nested review. Skip reason: "Behavior and canonical case-to-test evidence still match the supplied spec, so no reconciliation is needed."
+> - `/seed-test-data` runs after the execute step when the change adds entities or flows that need development data (`greenfield-slice`: when the product persists state). Skip reason: "The implemented behavior adds no entity or flow that needs new development data." (`greenfield-slice`: "The product persists no state, and its tests and demo need no seeded data.")
+> - `/workflow-e2e --source=context` (`default` only; a gate in `greenfield-slice`) runs on an explicit E2E request. Skip reason: "No explicit E2E request was found in the user prompt; the optional E2E handoff is disabled by default."
+> - `/plan` (`greenfield-slice` only) runs when no approved plan was handed off, or the slice or its spec changed since approval. Skip reason: "The approved implementation plan workflow-greenfield-init handed off still covers this slice and its spec; cite its path and its Validation Summary."
+> - `/watzup` runs on a request for a session report or when several workflows or prompts need one handoff. Skip reason: "workflow-end printed the recap, or the short handoff when nothing was built, and every applicable outcome gate passed."
 
 Keep this verifier-parsed chain equal to the registry; roles determine permitted flex:
 
-**IMPORTANT MANDATORY Steps:** /investigate -> /spec [mode=clarify] -> /plan -> /plan --mode=execute -> /integration-test -> /spec [mode=sync] -> /workflow-review-changes --tests=defer -> /integration-test --mode=verify -> /test -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /investigate -> /spec [mode=clarify] -> /plan -> /plan --mode=execute -> /seed-test-data -> /integration-test -> /spec [mode=sync] -> /workflow-review-changes --tests=defer -> /integration-test --mode=verify -> /workflow-e2e --source=context -> /test --proven=@verify -> /workflow-end -> /watzup
 
 **On-demand skill (not a registry step):** `/investigate --mode=debug` — a test fails and its cause is unknown.
 
@@ -109,14 +123,14 @@ Keep this verifier-parsed chain equal to the registry; roles determine permitted
 Choose inline/sub-agent execution, parallel waves, batching and ordering at equal quality, preserving these dependencies:
 
 - the gap review precedes `/plan`; a change exists before it is reviewed or tested; tests run once, last, after the static review (`--tests=defer`); a fix made by the verify step re-runs `/workflow-review-changes --tests=defer`, and a fix made by that re-review re-runs the verify (`SYNC:verify-last-order`);
-- `/integration-test` writes the executing evidence before the single conditional `/spec [mode=sync]` reconciliation; the sync precedes review;
+- `/plan --mode=execute` writes each phase's code and tests together, and `/integration-test` (when its condition holds) adds the executing tests still missing, before the single conditional `/spec [mode=sync]` reconciliation; the sync precedes review, and only that scoped sync repeats before final verification when review fixes invalidate it;
 - the nested `/workflow-review-changes` runs inline in the main session — it owns the session's review→fix→re-review loop, and its own reviewers run as sub-agents;
 - a gap-review question to the user is never parallelized with later work;
-- `/workflow-end` runs last, then `/watzup`.
+- `/workflow-end` runs last, then `/watzup` when its condition holds.
 
 ## Memory & Reporting
 
-- One task per selected step or L/XL batch; skipped steps keep tasks closed with logged deviations.
+- One phase task per phase, one row per selected step or L/XL batch; skipped steps keep tasks closed with logged deviations.
 - Write the run report FIRST under `tmp/reports/` — triage result, `spec_baseline`, gate evidence, deviations — and append per step or batch; re-read it and `TaskList` after compaction.
 - Sub-agent briefs carry the supplied spec path, `spec_baseline`, resolved reference-doc paths and report-writing as their first deliverable.
 
@@ -149,7 +163,7 @@ Choose inline/sub-agent execution, parallel waves, batching and ordering at equa
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Implement already-specified behavior within the supplied baseline, proven by green tests, converged review and reconciled spec evidence.
-**IMPORTANT MUST ATTENTION Main steps:** triage → investigate → clarify gaps → plan → execute → author integration tests → sync changed behavior/evidence → review statically → verify integration tests → test remaining tiers → close → hand off.
+**IMPORTANT MUST ATTENTION Main steps:** triage → investigate → clarify gaps → plan → execute (code and tests together) → missing integration tests → sync changed behavior/evidence → review statically → verify integration tests → E2E (when asked for; always in `greenfield-slice`) → test remaining tiers → close → hand off.
 **IMPORTANT MUST ATTENTION** a vague, contradictory or incomplete spec stops the route before `/plan` — the user clarifies the spec or switches to `workflow-feature`.
 **IMPORTANT MUST ATTENTION** the workflow records the supplied baseline before planning; every plan phase and acceptance gate stays within it, and anything beyond it needs owner approval.
 **IMPORTANT MUST ATTENTION** gates never flex: tests green in THIS run · nested `/workflow-review-changes` converged inline · spec synced before the review when behavior differs · `/workflow-end` last.

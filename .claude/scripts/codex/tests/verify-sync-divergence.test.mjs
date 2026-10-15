@@ -361,6 +361,9 @@ const EXPECTED_RENDERED_GROUPS = [
     ['PostToolUse', 'Bash', 6],
     // Advisory tracking observer preserves the source edit-tool matcher and Codex alias.
     ['PostToolUse', 'Edit|Write|MultiEdit|NotebookEdit|apply_patch', 1],
+    // quality-skill-remind (2026-10-14): the review/test/failure skill digest after any tool result,
+    // ~150K-token dedup per scope. The source `*` matcher renders matcherless (every tool).
+    ['PostToolUse', null, 1],
     // Conditional diagnostic reminder before shell commands; native failure events remain unsupported.
     ['PreToolUse', 'Bash|exec_command', 1],
     ['PreToolUse', 'AskUserQuestion', 1],
@@ -398,6 +401,9 @@ const EXPECTED_RENDERED_GROUPS = [
     ['SessionStart', 'startup|resume|compact|clear', 1],
     // Private UI reminder generation reset preserves sibling universal/full-protocol records.
     ['SessionStart', 'compact|clear', 1],
+    // Compaction re-delivery (2026-10-14): core principles, judgement and AI-feature directives (latest
+    // recorded prompt), workflow route and catalog — a long run has no following prompt.
+    ['SessionStart', 'compact', 5],
     ['Stop', null, 1],
     // SubagentStart: Codex supports it and it mirrors — the five group entries and the four universal
     // bins, registered without an agent-type matcher so every agent type (skill preloaders,
@@ -406,6 +412,9 @@ const EXPECTED_RENDERED_GROUPS = [
     // anchored, because Codex matchers are unanchored regexes).
     ['SubagentStart', null, 9],
     ['SubagentStart', null, 1],
+    // Prompt-time context for delegated agents (2026-10-14): core principles, UI reuse reminder, and the
+    // judgement and AI-feature directives classified from the session's latest recorded prompt.
+    ['SubagentStart', null, 4],
     // The universal bundle: one entry per bin, first on every prompt so its ledger records predate
     // every other prompt hook.
     ['UserPromptSubmit', null, 4],

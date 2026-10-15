@@ -10,17 +10,18 @@ disable-model-invocation: false
 
 Read [the registry](../../../.claude/workflows.json) → `workflows.workflow-feature` together with this skill. Call [`/start-workflow workflow-feature`](../start-workflow/SKILL.md) to resolve the selected mode, pre-actions and fingerprint.
 
-**Todo FIRST:** create one todo for EVERY selected occurrence before triage, analysis or step execution, including conditional/optional ones; preserve occurrence IDs, roles and barrier groups. Use native todo tools or an equivalent persistent ledger. Then mark the first todo `in_progress`; attach evidence before `completed`.
+**Todo FIRST:** before triage, analysis or step execution, create one todo per phase of the selected mode, in order, listing every occurrence of that phase as a line, including conditional/optional ones (a mode that declares no phases gets one todo per occurrence); preserve occurrence IDs, roles and barrier groups. Use native todo tools or an equivalent persistent ledger. Then mark the first todo `in_progress`; close each step line with its run or skip evidence, and complete a phase todo only when every line is closed and its applicable exit gates hold.
 Mode selection and registry loading prepare tracking; any 'first action' below means the first substantive action after this bootstrap.
 
 **Call each step skill:** read its linked SKILL.md and execute its protocol through the active host with the registry args. Reading or naming a skill alone is not execution. Required gates and core/optional flex follow the linked start-workflow Step Execution Protocol; keep this skill's quality gates, loops and evidence requirements.
 
-**Conditions:** load each occurrence's registry `applicability.when` and `skipReason` verbatim, and record its run/skip evidence through the linked start-workflow protocol. Do not silently omit a todo or turn a conditional skill into an unconditional call. Declared parallel groups retain their all-return barrier.
+**Conditions:** load each occurrence's registry `applicability.when` and `skipReason` verbatim, and record its run/skip evidence through the linked start-workflow protocol. Do not silently omit a todo or turn a conditional skill into an unconditional call; close, in one batch at triage, the todos whose condition is already false there. Declared parallel groups retain their all-return barrier.
 
 Explicit step-skill calls by mode (registry order; roles and conditions remain owned by the registry):
 
-- Mode `default`: [`/investigate`](../investigate/SKILL.md) (core) → [`/spec [mode=discovery]`](../spec/SKILL.md) (optional; conditional) → [`/domain-analysis`](../domain-analysis/SKILL.md) (optional; conditional) → [`/why-review`](../why-review/SKILL.md) (optional; conditional) → [`/spec`](../spec/SKILL.md) (core) → [`/spec [mode=clarify]`](../spec/SKILL.md) (optional; conditional) → [`/scenario`](../scenario/SKILL.md) (optional; conditional) → [`/work-item --mode=mockup --explore`](../work-item/SKILL.md) (optional; conditional) → [`/spec [mode=tests]`](../spec/SKILL.md) (core) → [`/work-item --mode=review --type=spec-tests`](../work-item/SKILL.md) (core) → [`/plan`](../plan/SKILL.md) (core) → [`/plan --mode=validate`](../plan/SKILL.md) (optional; conditional) → [`/plan --mode=execute`](../plan/SKILL.md) (core) → [`/seed-test-data`](../seed-test-data/SKILL.md) (optional; conditional) → [`/integration-test`](../integration-test/SKILL.md) (core) → [`/spec [mode=sync]`](../spec/SKILL.md) (core) → [`/workflow-review-changes --tests=defer`](../workflow-review-changes/SKILL.md) (gate) → [`/integration-test --mode=verify`](../integration-test/SKILL.md) (core) → [`/workflow-e2e --source=context`](../workflow-e2e/SKILL.md) (optional; conditional) → [`/test`](../test/SKILL.md) (gate) → [`/demo-guide`](../demo-guide/SKILL.md) (optional; conditional) → [`/workflow-end`](../workflow-end/SKILL.md) (gate) → [`/watzup`](../watzup/SKILL.md) (core)
-<!-- workflow-mode:default fingerprint:ca5f27e066f04a68838f3d45c88de5c85901f2b254e02a7c64bbd121d57f3be8 -->
+- Mode `default`: [`/investigate`](../investigate/SKILL.md) (core) → [`/spec [mode=discovery]`](../spec/SKILL.md) (optional; conditional) → [`/domain-analysis`](../domain-analysis/SKILL.md) (optional; conditional) → [`/why-review`](../why-review/SKILL.md) (optional; conditional) → [`/spec`](../spec/SKILL.md) (core) → [`/scenario`](../scenario/SKILL.md) (optional; conditional) → [`/work-item --mode=mockup --explore`](../work-item/SKILL.md) (optional; conditional) → [`/spec [mode=tests]`](../spec/SKILL.md) (core) → [`/work-item --mode=review --type=spec-tests`](../work-item/SKILL.md) (core) → [`/spec [mode=clarify]`](../spec/SKILL.md) (optional; conditional) → [`/plan`](../plan/SKILL.md) (core) → [`/plan --mode=execute`](../plan/SKILL.md) (core) → [`/seed-test-data`](../seed-test-data/SKILL.md) (optional; conditional) → [`/integration-test`](../integration-test/SKILL.md) (optional; conditional) → [`/spec [mode=sync]`](../spec/SKILL.md) (core) → [`/workflow-review-changes --tests=defer`](../workflow-review-changes/SKILL.md) (gate) → [`/integration-test --mode=verify`](../integration-test/SKILL.md) (gate) → [`/workflow-e2e --source=context`](../workflow-e2e/SKILL.md) (optional; conditional) → [`/test --proven=@verify`](../test/SKILL.md) (gate) → [`/demo-guide`](../demo-guide/SKILL.md) (optional; conditional) → [`/workflow-end`](../workflow-end/SKILL.md) (gate) → [`/watzup`](../watzup/SKILL.md) (optional; conditional)
+  Phase todos: Discover (4) → Specify (6) → Plan (1) → Build (4; exit spec-synced) → Review (1; exit review-converged) → Verify (4; exit tests-pass) → Close (2; exit run-closed)
+<!-- workflow-mode:default fingerprint:8f289c03b40bb45e9b4044680c7d58cb70861dd450852bb5c72bff537d12e649 -->
 
 Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs --write` after registry edits; [`/sync-codex`](../sync-codex/SKILL.md) refreshes it before mirroring.
 <!-- WORKFLOW-CALLS:END -->
@@ -34,7 +35,7 @@ Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs
 **Summary:**
 
 - Triage size, kind and risk; activate the workflow and resolve its registry, Goal Contract and artifact authority.
-- Main route: investigate → spec discovery → domain analysis → rationale review → spec authoring → clarification → scenarios → explore mockup → test specs → test-spec review → plan → plan validation → execute → QC seed data → integration tests → spec sync → static change review → integration verification → E2E → remaining tests → demo → close → handoff. Evaluate optional steps by the registry's conditions and record its skip reasons.
+- Main route: investigate → spec discovery → domain analysis → design rationale review (real alternatives only) → spec authoring → scenarios → explore mockup → test specs → test-spec review → clarification → plan (with its own validation interview) → execute (code and tests together) → QC seed data → missing integration tests → spec sync → static change review → integration verification → E2E → remaining test tiers → demo → close → handoff. Evaluate optional steps by the registry's conditions and record its skip reasons.
 - Preserve spec-first/test-first dependencies, human approval gates and verify-last ordering; close only with the required outcome evidence. Spec-complete work uses `workflow-implement-spec`; large ambiguous work uses `workflow-big-feature`.
 
 ## Contents
@@ -67,8 +68,8 @@ Classify the target before choosing steps and record the result in the run repor
 
 Escalate depth on risk and ambiguity, not file count alone:
 
-- **XS/S, one module, clear intent** — light investigation; update only the affected spec sections; one lean plan; no re-plan. Test specs receive one quality review before the build. Work inline — sub-agents rarely pay off.
-- **M, or any public-contract, data/schema, security or cross-module kind** — every core step at full depth plus each optional step whose condition holds (`/scenario`, `/domain-analysis`, `/plan --mode=validate`, ...).
+- **XS/S, one module, clear intent** — light investigation; update only the affected spec sections; one plan in the light profile; no re-plan. Test specs receive one quality review before the build. Work inline — sub-agents rarely pay off.
+- **M, or any public-contract, data/schema, security or cross-module kind** — every core step at full depth plus each optional step whose condition holds (`/scenario`, `/domain-analysis`, `/spec [mode=clarify]`, ...).
 - **L/XL, or `isLargeIdea` true** — everything M runs, plus the embedded decomposition and bounded batches per module or slice for the build, test specs and review (one report per batch). A research-heavy scope that cannot be cut into slices → recommend `workflow-big-feature` to the user.
 
 **Representation authority:** resolve `shared/sdd-artifact-contract.md` and the configured/native case contract before interpreting the gates. Section/TC examples below apply only to the strict fallback; native profiles use their declared intent/evidence roles, owner-qualified IDs, carriers and mapping relation. Never create a second registry or default section to satisfy an example; unresolved mappings block.
@@ -77,13 +78,13 @@ Escalate depth on risk and ambiguity, not file count alone:
 
 The run is not done until each applicable gate holds with its evidence:
 
-- **Tests pass** (`tests-pass`) — `/test` ran green in THIS run — once, after the static review, with `/integration-test --mode=verify` (incl. the mutation check) for the integration suite; every changed behavior maps to a §8 TC that names its `Business Intent / Invariant Guarded` and would fail if that intent broke; lifecycle behavior asserts persisted state transitions and invalid-transition rejection
+- **Tests pass** (`tests-pass`) — `/integration-test --mode=verify` (incl. the mutation check) ran green in THIS run — once, after the static review — and `/test --proven=@verify` ran every tier that verify report does not cover; every changed behavior maps to a §8 TC that names its `Business Intent / Invariant Guarded` and would fail if that intent broke; lifecycle behavior asserts persisted state transitions and invalid-transition rejection
 - **Review converged** (`review-converged`) — nested `/workflow-review-changes` ran inline in the main session and converged — validated blocking findings fixed and the fixed state re-reviewed
 - **Spec synced** (`spec-synced`, when behavior or a public contract changed) — Feature Spec §1-7 re-verified against the built behavior (the post-implementation re-verify is part of the gate, not optional cleanup); every divergence adjudicated per `SYNC:spec-drift-adjudication` in `shared/sdd-artifact-contract.md` → Drift Gates: CODE-WRONG → fix code/tests, SPEC-STALE → `/spec` update then the test-spec update and `/spec [mode=sync]`, AMBIGUOUS → escalate to the spec owner; §8 TCs ↔ test code synced
 - **Run closed** (`run-closed`) — `/workflow-end` checked every gate and emitted the Goal Satisfaction matrix
 - **Spec-first, test-first** — the canonical Feature Spec was authored or updated before the first `/plan`; test specs were written and reviewed before `/plan --mode=execute`
 - **Goal Contract** — the active Goal Contract is resolved at start per `SYNC:goal-contract-satisfaction-loop` (active plan `goal.md` → `goals/{YYMMDD-HHmm}-{slug}/goal.md` under the plans root, default `plans/`, relocated by `docsRoots.plans.path` in `docs/project-config.json` → create from the request); the plan's success criteria map to it before `/plan --mode=execute`; every child step reads that same goal file; closure needs every criterion PASS, or BLOCKED with a user-facing escalation
-- **Plan Gate** — `/plan --mode=execute` never starts while the plan's `## Plan Gate` is `BLOCKED` or lacks human approval
+- **Plan Gate** — `/plan` runs its own validation chain inside this workflow (`plan` → Standalone Validation Chain; the route lists no separate validate step) and applies the answers in that step; `/plan --mode=execute` never starts while the plan's `## Plan Gate` is `BLOCKED` or lacks human approval
 - **Large idea** (when `isLargeIdea` is true) — the complete five-field `large_idea_decomposition` block (`outcome_slices`, `dependencies_order`, `non_goals`, `risks_evidence`, `deferred_work_owner`) sits in the owning spec/task before the first mutating `/spec` and carries its slice IDs through downstream presentation/mock-up artifacts; all-false work omits it; a genuinely isolated brownfield change records `EXEMPT` with reason and accepting owner and keeps the spec, scenario, test, review and human-confirmation gates. This workflow never creates a roadmap artifact — an explicitly supplied roadmap is read-only context
 - **Existing behavior preserved** (when an existing final output, persisted state, API response, projection or user-visible flow changes) — before the build: an end-to-start trace of the existing path (final reader → storage/projection → writer → producer/origin), its feeder paths, the invariants to keep, and forward proof for the new behavior; the plan and review evidence state expected, unchanged and no-regression behavior
 - **Performance route** (when the feature is a performance enhancement) — `/performance-review` with SLA/benchmark evidence — target metric, baseline, measurement command, regression budget; `/plan --mode=execute` still runs; functional no-regression checks run whenever behavior can change; spec/docs updated for a changed SLA, performance constraint or behavior boundary
@@ -98,32 +99,31 @@ The run is not done until each applicable gate holds with its evidence:
 | `/investigate` | core | plan evidence — read the affected area's spec under the business spec root first (default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path) and find 3+ local examples |
 | `/spec [mode=discovery]` | optional | overlaps and missing TCs before authoring — pass this run's investigation report as `--investigation=<report path>` so it is not re-run |
 | `/domain-analysis` | optional | entity model, ownership |
-| `/why-review` | optional | design rationale |
+| `/why-review` | optional | a design choice between real alternatives in the investigation or spec draft |
 | `/spec` | core | spec-first gate — Feature Spec §1-7 before planning |
-| `/spec [mode=clarify]` | optional | user-confirmed decisions |
 | `/scenario` | optional | plan risk coverage |
 | `/work-item --mode=mockup --explore` | optional | selected mockup before planning — see New-UI Explore Mockup below |
 | `/spec [mode=tests]` | core | test-first gate — every invariant mapped to TC IDs in §8 |
-| `/work-item --mode=review --type=spec-tests` | core | test-spec quality |
-| `/plan` | core | decisions, areas, discovery, gates — one lean plan over the reviewed intent and cases |
-| `/plan --mode=validate` | optional | human plan approval |
-| `/plan --mode=execute` | core | the change, the performance route included |
+| `/work-item --mode=review --type=spec-tests` | core | test-spec quality, and the design trade-offs the spec encodes (its trade-off questions) |
+| `/spec [mode=clarify]` | optional | one decision interview after the test-spec review: user-confirmed spec decisions, including the material trade-offs that review raised |
+| `/plan` | core | decisions, areas, discovery, gates — one plan over the reviewed intent and cases; its own validation interview records human approval and applies the answers (light profile for XS/S) |
+| `/plan --mode=execute` | core | the change and its tests, written together per phase; the performance route included |
 | `/seed-test-data` | optional | QC data |
-| `/integration-test` | core | tests from the TCs (tests-pass) |
+| `/integration-test` | optional | executing tests for any TC the execute step left without one |
 | `/spec [mode=sync]` | core | spec-synced — after executing tests exist, reconcile spec, cases and actual test evidence |
 | `/workflow-review-changes --tests=defer` | gate | review-converged |
-| `/integration-test --mode=verify` | core | tests-pass — the one verify, after the review; runs the mutation check |
+| `/integration-test --mode=verify` | gate | tests-pass — the one verify, after the review; runs the mutation check |
 | `/workflow-e2e --source=context` | optional | E2E evidence |
-| `/test` | gate | tests-pass — pass `--proven=<integration-test --mode=verify report path>` so only tiers that report does not cover run |
+| `/test --proven=@verify` | gate | tests-pass — runs only the tiers this run's verify report does not cover |
 | `/demo-guide` | optional | demo path |
-| `/workflow-end` | gate | run-closed |
-| `/watzup` | core | handoff summary |
+| `/workflow-end` | gate | run-closed — prints the recap when `/watzup` does not run |
+| `/watzup` | optional | consolidated session report on request or across several workflows |
 
 **New-UI Explore Mockup (conditional, BEFORE `/plan`).** When the requirement or spec adds completely new user-facing UI — a new page/view, component or dialog — run `/work-item --mode=mockup --explore`, passing the spec (or the investigation report when no spec covers the UI yet) as `--source`. `work-item --mode=mockup` Step 0 owns the scope gate (asked first, before any analysis or drafting) and the direction pick; both run in the main session only. Record the outcome (`Mockup: SKIPPED by user` or the `Selection:` line) in the plan or run report; the plan's UI Layout builds on the selected mockup. Changes inside existing views skip it with the registry `skipReason`.
 
 The registry's default order, parsed by the workflow verifier — keep it equal to `workflows.json`; the roles above decide what may flex:
 
-**IMPORTANT MANDATORY Steps:** /investigate -> /spec [mode=discovery] -> /domain-analysis -> /why-review -> /spec -> /spec [mode=clarify] -> /scenario -> /work-item --mode=mockup --explore -> /spec [mode=tests] -> /work-item --mode=review --type=spec-tests -> /plan -> /plan --mode=validate -> /plan --mode=execute -> /seed-test-data -> /integration-test -> /spec [mode=sync] -> /workflow-review-changes --tests=defer -> /integration-test --mode=verify -> /workflow-e2e --source=context -> /test -> /demo-guide -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /investigate -> /spec [mode=discovery] -> /domain-analysis -> /why-review -> /spec -> /scenario -> /work-item --mode=mockup --explore -> /spec [mode=tests] -> /work-item --mode=review --type=spec-tests -> /spec [mode=clarify] -> /plan -> /plan --mode=execute -> /seed-test-data -> /integration-test -> /spec [mode=sync] -> /workflow-review-changes --tests=defer -> /integration-test --mode=verify -> /workflow-e2e --source=context -> /test --proven=@verify -> /demo-guide -> /workflow-end -> /watzup
 
 **On-demand skills (not registry steps):**
 
@@ -139,16 +139,16 @@ You choose inline vs sub-agent, parallel waves vs sequential, batching and order
 
 - a change exists before it is reviewed or tested; tests run once, last, after the static review (`--tests=defer`); a fix made by the verify step re-runs `/workflow-review-changes --tests=defer`, and a fix made by that re-review re-runs the verify (`SYNC:verify-last-order`);
 - the Feature Spec precedes the first `/plan`, and test specs are reviewed before `/plan --mode=execute`;
-- `/integration-test` authors the executing evidence before one `/spec [mode=sync]` reconciliation; the sync runs before the review that checks it;
+- `/plan --mode=execute` writes each phase's code and tests together, and `/integration-test` (when its condition holds) adds the executing tests still missing, before one `/spec [mode=sync]` reconciliation; the sync runs before the review that checks it;
 - the nested `/workflow-review-changes` runs inline in the main session — it owns the session's review→fix→re-review loop, and its own reviewers run as sub-agents;
-- gates awaiting user approval (`/spec [mode=clarify]`, `/plan --mode=validate`, Plan Gate approval) are never parallelized;
-- `/workflow-end` runs last, then `/watzup`.
+- steps awaiting user answers (`/spec [mode=clarify]`, the plan's validation interview and Plan Gate approval) are never parallelized;
+- `/workflow-end` runs last, then `/watzup` when its condition holds.
 
 Recommended: independent read-only work in one parallel wave (`/spec [mode=discovery]` follows `/investigate` and reuses its report); L/XL partitioned into bounded batches per module or slice with one report per batch; XS/S done inline. The nested review owns `/integration-test --mode=review`, `/security-audit`, `/domain-analysis --mode=review`, `/experience-review` and the conditional domain-entity reference refresh (`/scan --target=domain-entities` → `/docs-manager --mode=update`, run when the final diff changes an entity, data contract or schema represented in `domain-entities-reference.md`); this workflow's tail does not repeat them. `/experience-review` records `NOT-APPLICABLE` or `ENVIRONMENT-BLOCKED` honestly and never promotes a new expectation without explicit acceptance.
 
 ## Memory & Reporting
 
-- One task per selected step (and per batch for L/XL) so nothing is lost after compaction; a step that does not run keeps its task, closed with its logged deviation.
+- One phase task per phase, one row per selected step (and per batch for L/XL) so nothing is lost after compaction; a step that does not run keeps its task, closed with its logged deviation.
 - Write the run report FIRST under `tmp/reports/` — triage result, gate evidence, deviations — and append per step or batch; re-read it and `TaskList` after compaction.
 - Sub-agent briefs carry the goal file path and the resolved reference-doc paths, and make report-writing their first deliverable.
 - Project conventions come from `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`; apply the shared SDD Artifact Contract (`shared/sdd-artifact-contract.md` in the active skills root). Any supported AI tool may implement or review once that contract, synced context and local docs are available. Code-extracted specs and TCs stay reference-only until canonical review accepts them.
@@ -215,7 +215,7 @@ Recommended: independent read-only work in one parallel wave (`/spec [mode=disco
 
 **IMPORTANT MUST ATTENTION Goal:** Deliver a well-defined feature whose reviewed canonical spec matches the implementation, verified tests and converged change review.
 
-**IMPORTANT MUST ATTENTION Main route:** triage and activate → investigate → spec discovery → domain analysis → rationale review → spec authoring → clarification → scenarios → explore mockup → test specs → test-spec review → plan → plan validation → execute → QC seed data → integration tests → spec sync → static change review → integration verification → E2E → remaining tests → demo → close → handoff. Registry conditions govern optional steps; record their skip reasons.
+**IMPORTANT MUST ATTENTION Main route:** triage and activate → investigate → spec discovery → domain analysis → design rationale review (real alternatives only) → spec authoring → scenarios → explore mockup → test specs → test-spec review → clarification → plan (with its own validation interview) → execute (code and tests together) → QC seed data → missing integration tests → spec sync → static change review → integration verification → E2E → remaining test tiers → demo → close → handoff. Registry conditions govern optional steps; record their skip reasons.
 
 **IMPORTANT MUST ATTENTION** triage size, kind and risk FIRST — depth follows risk and ambiguity, not file count; record the triage and every deviation.
 **IMPORTANT MUST ATTENTION** gates never flex: tests green in THIS run · nested `/workflow-review-changes` converged inline · Feature Spec re-verified and synced when behavior changed · Goal Satisfaction matrix at `/workflow-end`.

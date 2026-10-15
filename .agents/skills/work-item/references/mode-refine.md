@@ -2,7 +2,7 @@
 
 > Loaded by `work-item/SKILL.md`'s Mode Dispatch when invoked as `$work-item --mode=refine [initiative | task | requirement text]`. This contract is the whole invocation: refine an initiative (or raw request) into one or more tasks: problem-hypothesis validation, the interview, acceptance criteria, estimates. It works called directly with no workflow; every rule, flag, output and gate below is the contract of that mode.
 
-> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
+> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval. Inside a workflow run, `$start-workflow` → Workflow-step mode bounds this rule.
 > **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
@@ -43,7 +43,7 @@
 
 - **Purpose:** turn a raw idea into a ready-to-plan task that passes the readiness check (`--mode=dor`) and that a team can build without re-asking what or why.
 - **Main steps — run in order, track EACH (AI keeps forgetting sub-phases):** Phase 0 locate active plan → 0.5 applicability and large-idea decomposition gate → 1 idea intake + module detect → 2 domain research → 3 problem-hypothesis validation (GATE) → 4 BABOK elicitation → 5 BDD acceptance criteria → 5.1 AI-SDD M1-M5/M7 gate (BLOCKING) → 5.5 testability assessment → 6 prioritization + draft estimate → 7 validation interview (GATE, 3-5 Qs) → 7.5 RE-DERIVE estimate vs locked scope → 7.6 RELEASABLE OUTCOME gate → 8 task artifact generation.
-- Two gates are NON-OPTIONAL: validate the problem hypothesis (Phase 3) before building, and run the 3-5 question validation interview (Phase 7) before writing the task — the user decides assumptions, scope, and dependencies, never the AI.
+- Two gates are NON-OPTIONAL: validate the problem hypothesis (Phase 3) before building, and run the 3-5 question validation interview (Phase 7) before writing the task — the user decides assumptions, scope, and dependencies, never the AI. From a governing spec, Phase 3 cites the spec and Phase 7 asks only what the spec and decision log leave open.
 - Acceptance criteria are BDD GIVEN/WHEN/THEN (min 3: happy/edge/error) and MUST satisfy the AI-SDD M1-M5 and M7 gate (Phase 5.1): tech-agnostic Business Intent, logical FR-/BR- IDs first, observable single-interpretation ACs, rebuild-from-scratch validity, and every AC demoable as a business outcome (M7).
 - Estimate twice: Phase 6 drafts effort points/man-days against draft scope, then Phase 7.5 RE-DERIVES them against the locked post-interview scope (per SYNC:estimation-framework) — shipping stale Phase 6 numbers is the cardinal failure.
 - The task frontmatter MUST carry `effort_points`, `complexity`, `man_days_traditional`, `man_days_ai`, and every task MUST include a complete Dependencies table with Dependency, Type (`must-before`/`can-parallel`/`blocked-by`/`independent`) and Status columns.
@@ -157,6 +157,8 @@ Use WebSearch with domain terms. Summarize in max 3 bullets (market context, com
 Validate hypothesis with user via ask user question tool. 42% of startups fail from no market need — validate before building.
 
 **Skip:** `--skip-hypothesis`, validated hypothesis exists, bug fix/tech debt.
+
+**From a governing spec:** when the task derives from a canonical spec that was clarified in this run (`spec [mode=clarify]`) or supplied as the governing spec, that spec is the validated hypothesis: cite its path and the sections that state the problem, users and success signal (§1 and §3 under the strict default) in the task, and ask no hypothesis question. A spec section marked unresolved or open still goes through the validation process below.
 
 ### Problem Hypothesis Template
 
@@ -324,9 +326,13 @@ Effort: Effort points (1, 2, 3, 5, 8, 13, 21)
 
 ## Phase 7: Validation Interview (MANDATORY)
 
+> **Decision log:** inside a workflow, read the run's `## Decisions` first (`$start-workflow` → Step Execution Protocol, Decision log): ask only what it leaves open or new evidence reopened, cite reused answers instead of asking again, and append every new answer.
+
 Generate 3-5 questions covering assumptions, scope, dependencies, edge cases. Use ask user question tool. Document in task. **NOT optional.**
 
-**Reuse the initiative interview:** when the input initiative artifact carries a `## Discovery Interview` (Phase 1), do NOT re-ask a category its answers already settle (scope boundaries, business impact, constraints, persona) — record those answers in the Validation Summary as `(from initiative Discovery Interview)` and spend the 3-5 questions on the categories it never asks (Assumptions, Dependencies, Edge Cases, Entities, Prod Readiness, Authorization, Seed Data, Data Migration). With no initiative artifact, or an initiative without that section (standalone `$work-item --mode=refine` on a raw request), run the full interview below.
+**Reuse the initiative interview:** when the input initiative artifact carries a `## Discovery Interview` (Phase 1), do NOT re-ask a category its answers already settle (scope boundaries, business impact, constraints, persona) — record those answers in the Validation Summary as `(from initiative Discovery Interview)` and spend the 3-5 questions on the categories it never asks (Assumptions, Dependencies, Edge Cases, Entities, Prod Readiness, Authorization, Seed Data, Data Migration). With no initiative artifact and no governing spec, or an initiative without that section (standalone `$work-item --mode=refine` on a raw request), run the full interview below.
+
+**From a governing spec** (Phase 3): the spec and the run's decision log are the settled sources. Record what they answer as `(from {spec path})` or `(from decision log)` and ask only the categories both leave open for this task, often Dependencies, Entities, Prod Readiness, Seed Data and Data Migration. With fewer open decisions, ask those and say so; with none, record `Validation interview: nothing open — {cited sources}`.
 
 | Category            | Example Question                                                            |
 | ------------------- | --------------------------------------------------------------------------- |
@@ -773,6 +779,8 @@ For domain tasks: detect module from the directory names under the business spec
 
 ## Next Steps
 
+> **Inside a workflow:** when this skill runs as a step of an active workflow, skip the prompts in this section and return the result — the workflow's next step decides what runs (`$start-workflow` → Step Execution Protocol, Workflow-step mode).
+
 **MANDATORY IMPORTANT MUST ATTENTION** after completing this skill, use `ask user question tool` to present these options. NEVER skip because task seems "simple" or "obvious":
 
 - **"$why-review (Recommended)"** — Validate design rationale, alternatives, risk assessment before `$work-item --mode=story` or implementation
@@ -1017,7 +1025,7 @@ For domain tasks: detect module from the directory names under the business spec
 
 ## Prompt-Enhance Closing Anchors
 
-**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval
+**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval; inside a workflow run, `$start-workflow` → Workflow-step mode bounds this
 **IMPORTANT MUST ATTENTION** for every step/sub-skill call: set `in_progress` before execution, set `completed` after execution
 **IMPORTANT MUST ATTENTION** every skipped step MUST include explicit reason; every completed step MUST include concise evidence
 **IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses

@@ -113,6 +113,15 @@ const CK_SCHEMA = {
       enabled: { type: "boolean", required: false },
     },
   },
+  // Quality-skill reminder after tool results (quality-skill-remind.cjs). On by default;
+  // `enabled: false` or CK_QUALITY_SKILL_REMINDER=0 switches it off.
+  qualitySkillReminder: {
+    type: "object",
+    required: false,
+    properties: {
+      enabled: { type: "boolean", required: false },
+    },
+  },
   // Core engineering principles reminder (core-principles-inject.cjs). On by default;
   // `enabled: false` or CK_CORE_PRINCIPLES_INJECT=0 switches it off.
   corePrinciplesInject: {

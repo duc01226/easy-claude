@@ -23,7 +23,7 @@ Write a temporary JSON evidence record, using values observed in those sources:
 ```
 
 These are illustrative values, never evidence to copy into a real run. Take
-`satisfiedBy` from the manifest and the skill identity from its satisfying
+`satisfiedBy` from the manifest and the skill identity (skill and mode, without pass-through flags such as `--defer=validate`) from its satisfying
 occurrence, not from the report's own claim. Where a target fingerprint exists,
 include both `report.targetFingerprint` and `currentTargetFingerprint`; a missing
 counterpart or a mismatch blocks. Do not reconstruct a review time from the

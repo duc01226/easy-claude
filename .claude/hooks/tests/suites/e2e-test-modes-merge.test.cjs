@@ -142,7 +142,7 @@ const tests = [
             // Shared convergence skeleton read from its single owner
             assert.match(text, /MUST ATTENTION READ `\.claude\/skills\/shared\/verify-convergence-loop\.md` before round 1/);
             // Round budget defaults
-            assert.match(text, /consecutive-green requirement \(default 2\)/);
+            assert.match(text, /consecutive-green requirement \(default 1\)/);
             assert.match(text, /round cap \(default 3\)/);
             // The four delimited --fix-loop regions stay paired
             assert.equal(text.split('<!-- FIX-LOOP-MODE:START -->').length - 1, 4, 'four mode openers');

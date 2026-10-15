@@ -29,12 +29,12 @@ function renderWorkflowSkillContract(workflowId, manifests, { dialect = "/" } = 
     "",
     `Read [the registry](../../../.claude/workflows.json) → \`workflows.${workflowId}\` together with this skill. Call ${call("start-workflow", workflowId)} to resolve the selected mode, pre-actions and fingerprint.`,
     "",
-    "**Todo FIRST:** create one todo for EVERY selected occurrence before triage, analysis or step execution, including conditional/optional ones; preserve occurrence IDs, roles and barrier groups. Use native todo tools or an equivalent persistent ledger. Then mark the first todo `in_progress`; attach evidence before `completed`.",
+    "**Todo FIRST:** before triage, analysis or step execution, create one todo per phase of the selected mode, in order, listing every occurrence of that phase as a line, including conditional/optional ones (a mode that declares no phases gets one todo per occurrence); preserve occurrence IDs, roles and barrier groups. Use native todo tools or an equivalent persistent ledger. Then mark the first todo `in_progress`; close each step line with its run or skip evidence, and complete a phase todo only when every line is closed and its applicable exit gates hold.",
     "Mode selection and registry loading prepare tracking; any 'first action' below means the first substantive action after this bootstrap.",
     "",
     "**Call each step skill:** read its linked SKILL.md and execute its protocol through the active host with the registry args. Reading or naming a skill alone is not execution. Required gates and core/optional flex follow the linked start-workflow Step Execution Protocol; keep this skill's quality gates, loops and evidence requirements.",
     "",
-    "**Conditions:** load each occurrence's registry `applicability.when` and `skipReason` verbatim, and record its run/skip evidence through the linked start-workflow protocol. Do not silently omit a todo or turn a conditional skill into an unconditional call. Declared parallel groups retain their all-return barrier.",
+    "**Conditions:** load each occurrence's registry `applicability.when` and `skipReason` verbatim, and record its run/skip evidence through the linked start-workflow protocol. Do not silently omit a todo or turn a conditional skill into an unconditional call; close, in one batch at triage, the todos whose condition is already false there. Declared parallel groups retain their all-return barrier.",
     "",
     "Explicit step-skill calls by mode (registry order; roles and conditions remain owned by the registry):",
     "",
@@ -45,6 +45,10 @@ function renderWorkflowSkillContract(workflowId, manifests, { dialect = "/" } = 
       return `${call(step.skill, step.args)} (${step.role}${condition})`;
     });
     lines.push(`- Mode \`${manifest.mode}\`: ${calls.join(" → ")}`);
+    if (manifest.phases.length) {
+      const phases = manifest.phases.map(phase => `${phase.id[0].toUpperCase()}${phase.id.slice(1)} (${phase.steps.length}${phase.exit.length ? `; exit ${phase.exit.join(", ")}` : ""})`);
+      lines.push(`  Phase todos: ${phases.join(" → ")}`);
+    }
     lines.push(`<!-- workflow-mode:${manifest.mode} fingerprint:${manifest.fingerprint} -->`);
   }
   lines.push("", `Regenerate this block with \`node .claude/scripts/lib/workflow-skill-contract.cjs --write\` after registry edits; ${call("sync-codex")} refreshes it before mirroring.`, END);

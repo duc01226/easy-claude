@@ -5,7 +5,7 @@ feature_code: 'WFR'
 entities: ['Workflow', 'ActivationPolicy', 'RoutingGuidance', 'RootInstructionFile', 'RouteMode']
 status: draft
 owner: 'Framework maintainers'
-last_updated: '2026-10-08'
+last_updated: '2026-10-14'
 scope_mode: FRAMEWORK-LIBRARY
 large_idea_decomposition: null
 roadmap: null
@@ -45,7 +45,7 @@ roadmap_status: null
 
 ## 1. Overview
 
-Before each prompt the assistant receives short routing guidance in two messages: the route message, holding the rule that it must choose how to handle the request first, and the catalog message, holding a catalog of the project's workflows with the activation tier of each. The guidance is the only carrier of that rule: the always-loaded root instruction files hold no route text, so no second copy can contradict the mode a person chose. Each person chooses how a matched workflow starts — ask first (the default), start by itself, or never unasked — through the environment, a personal file, or a first line in a prompt, without touching shared files. A message larger than the host shows in one added message reaches the assistant only as its first part; this capability sends the rule and the catalog as separate messages, sizes the catalog to the host limit whatever the length of the rule, and never drops the marks that make parallel quality steps finish together. It also lets a project decide how freely workflows may start by themselves — one project-wide default that can only make tiers stricter, plus explicit per-workflow choices — while an explicit request from the user still runs any workflow.
+Before each prompt the assistant receives short routing guidance in two messages: the route message, holding the rule that it must choose how to handle the request first, and the catalog message, holding a catalog of the project's workflows with the activation tier of each. The guidance is the only carrier of that rule: the always-loaded root instruction files hold no route text, so no second copy can contradict the mode a person chose. Each person chooses how the assistant treats a workflow it matches — ask first (the default), ask with the full workflow recommended first, or never offer one unasked — through the environment, a personal file, or a first line in a prompt, without touching shared files. A message larger than the host shows in one added message reaches the assistant only as its first part; this capability sends the rule and the catalog as separate messages, sizes the catalog to the host limit whatever the length of the rule, and never drops the marks that make parallel quality steps finish together. It also lets a project decide how strongly the assistant recommends each workflow — one project-wide default that can only make tiers stricter, plus explicit per-workflow choices — while an explicit request from the user still runs any workflow.
 
 ---
 
@@ -70,10 +70,10 @@ Before each prompt the assistant receives short routing guidance in two messages
 | Workflow Override     | A project's explicit tier for one named workflow                                                                                                              | Optional; may loosen or tighten                                                                                                           |
 | Effective Tier        | The tier that applies after the framework tier, the project default and any override                                                                          | What the catalog shows and the assistant obeys                                                                                            |
 | Size Cap              | The largest message the host shows in full when a prompt gains added context: 10,000 characters                                                               | The catalog message stays at or below 9,500 characters; so does the route message unless a project route protocol makes it longer         |
-| Catalog Form          | How much of the catalog the catalog message carries: the compact catalog, the same rows without the step-skill names, an index with tiers and parallel-phase marks, an index with tiers only, or a pointer only | The first form that fits the size cap is used; it depends on the workflow set alone                                                       |
+| Catalog Form          | How much of the catalog the catalog message carries: the compact catalog with full hints, then with shorter hints, each first with and then without the step-skill names; an index with tiers and parallel-phase marks; an index with tiers only; or a pointer only | The first form that fits the size cap is used; it depends on the workflow set alone                                                       |
 | Workflow Pointer      | A line saying that starting a workflow resolves its full list and steps from the workflow registry                                                            | Present in every catalog form                                                                                                             |
-| Route Mode            | How a workflow the assistant matched by itself starts: ask (default), auto or off                                                                             | Resolved from the built-in default, the team configuration, the person's files, the environment and a session directive                   |
-| Workflow Question     | The one question the assistant asks when its own route is to start a catalog workflow: run the full workflow, a slimmer custom route, or execute directly     | Mode ask, every tier; or mode auto for a confirm-tier workflow when a leaner route would do; never for an explicit request or mid-session |
+| Route Mode            | How the assistant treats a workflow it matched by itself: ask (default), auto or off                                                                          | Resolved from the built-in default, the team configuration, the person's files, the environment and a session directive                   |
+| Workflow Question     | The one question the assistant asks when its own route is to start a catalog workflow: run the full workflow, a slimmer custom route, or execute directly     | Modes ask and auto, every tier, on the first task of a session; never for an explicit request, in mode off or mid-session |
 | Off Notice            | The short state shown instead of the guidance when the mode is off                                                                                            | Tells the assistant to run workflows only on explicit request                                                                             |
 | Personal File         | A person's own untracked settings: the every-project file in the home directory, or the checkout file                                                         | A valid value there wins over the team value                                                                                              |
 | Prompt Directive      | A first line of a prompt that sets the mode for the session: "workflow-mode: auto"                                                                            | Wins over every other source; never fires on prose                                                                                        |
@@ -92,11 +92,12 @@ Before each prompt the assistant receives short routing guidance in two messages
 **Acceptance Criteria:**
 
 - **AC-WFR-01** — **Given** automatic routing is on **When** a prompt is received **Then** the guidance arrives as two messages: the route message with the mode line, the full routing gate for the mode and the project's route protocol when one is configured, and the catalog message of at most 9,500 characters, which uses the compact catalog naming every workflow with its effective tier whenever that fits and otherwise the first shorter catalog form that fits; without a project route protocol the route message also stays within 9,500 characters, so the host shows both messages in full; the framework never drops or cuts a project route protocol, so a long one makes the route message longer (AC-WFR-25)
-- **AC-WFR-02** — **Given** the compact catalog **When** it is rendered **Then** each row shows name, tier, step count and a hint of at most 140 characters, never the full step list, and the step skills appear as one line of names; a workflow with several modes shows its step count as a range and prefixes each mode's parallel-phase marks with the mode name
+- **AC-WFR-02** — **Given** the compact catalog **When** it is rendered **Then** each row shows name, tier, step count and a hint of at most 190 characters made of whole clauses, never the full step list, and the step skills appear as one line of names; a workflow with several modes shows its step count as a range and prefixes each mode's parallel-phase marks with the mode name
 - **AC-WFR-13** — **Given** the guidance was already delivered in this conversation **When** the next prompt is received **Then** it is not repeated, unless the conversation was compacted since the delivery — recorded by either host in its own form — in which case it is delivered again, once; the word "compacted" appearing only inside another record is not a compaction
 - **AC-WFR-23** — **Given** a routing gate of any length and any project route protocol **When** the catalog message is built **Then** its form depends only on the workflow set: a longer gate or a project route protocol of any size never changes it, and the framework's own workflow set keeps the compact catalog
 - **AC-WFR-24** — **Given** the state the route message reports **When** a prompt is received **Then** the catalog message follows it: none is sent when routing is off or automatic skill selection is disabled; otherwise it is delivered once and again only when it may have left the assistant's context — its own content changed, the conversation was compacted, or the conversation record grew by the re-arm distance or shrank (BR-WFR-09); a first-line mode directive is recorded and acknowledged once, by the route message, and the catalog message follows the directive's mode in that same prompt
 - **AC-WFR-25** — **Given** a project route protocol long enough to take the route message past the 10,000 characters a host shows in full **When** the route message is sent **Then** it still holds the complete gate and the complete protocol, and its second line states the message size, that the host may show only a preview, where to read the gate and the protocol in full, and the protocol size that brings the message back within 9,500 characters; a route message of 10,000 characters or fewer carries no such line
+- **AC-WFR-26** — **Given** a catalog form that lists when to use each workflow, in ask or auto, or the concise route cue **When** it is delivered **Then** it carries one line that maps failing, changing-and-unspecified, specified-but-unbuilt, unchanged and plan-only work to the bug-fix, feature, implement-spec, refactor, and planned-work or greenfield workflows, says that size alone never makes a task a workflow, and names only workflows that exist in the registry
 
 ### US-WFR-02: The routing gate is carried once, by the guidance only
 
@@ -110,11 +111,11 @@ Before each prompt the assistant receives short routing guidance in two messages
 - **AC-WFR-04** — **Given** a generated root instruction file **When** it is read **Then** it holds no pointer, no routing rule, no workflow question and no catalog; regenerating a root file removes a pointer or gate block an earlier version wrote
 - **AC-WFR-05** — **Given** any workflow with parallel phases **When** the catalog message is built in the compact catalog or the index with parallel-phase marks **Then** its row keeps at least one parallel-phase mark per phase, and every catalog form states the advancement rule
 
-### US-WFR-03: A project controls which workflows start by themselves
+### US-WFR-03: A project controls which workflows the assistant recommends
 
 **As a** project maintainer adopting the framework
 **I want** one default tier and optional per-workflow tiers
-**So that** my team gets no surprise workflow starts without editing the framework
+**So that** my team gets the workflow recommendations it wants without editing the framework
 
 **Acceptance Criteria:**
 
@@ -128,18 +129,18 @@ Before each prompt the assistant receives short routing guidance in two messages
 ### US-WFR-04: Each person chooses how workflows start
 
 **As a** developer using the assistant
-**I want** to choose, for myself only, whether a matched workflow asks first, starts by itself, or is never started without my request
+**I want** to choose, for myself only, whether the assistant asks before a matched workflow (ask), asks with the full workflow recommended first (auto), or never starts or offers one without my request (off)
 **So that** the project's shared files and my teammates' settings stay untouched
 
 **Acceptance Criteria:**
 
 - **AC-WFR-12** — **Given** the mode is off **When** a prompt is received **Then** a short state notice is shown and no catalog or gate is added; it tells the assistant not to choose or start a workflow by itself, to run a workflow (or the one skill the user names) only on explicit request, and that every quality gate still binds
-- **AC-WFR-14** — **Given** the mode is ask, auto or off **When** a prompt is received **Then** the route message — or, in off, the state notice — opens with a line naming the mode and the source that decided it; ask (the default) asks the workflow question before a catalog workflow the assistant routes to starts; auto starts a matched workflow without asking, by its tier; off delivers the state notice only
+- **AC-WFR-14** — **Given** the mode is ask, auto or off **When** a prompt is received **Then** the route message — or, in off, the state notice — opens with a line naming the mode and the source that decided it; ask (the default) asks the workflow question before a catalog workflow the assistant routes to starts; auto asks the same question before a catalog workflow it routes to starts, recommending the full workflow first except for a manual-tier workflow; off delivers the state notice only
 - **AC-WFR-15** — **Given** several sources name a mode **When** the mode is resolved **Then** the latest of these wins: built-in ask, the team project configuration, the person's every-project file, the person's checkout file, the environment variable, this session's prompt directive; with no project configuration, no setting anywhere, or an invalid or unreadable value in a source, that source expresses no opinion, the next source decides, the result ends at ask, and the prompt is never failed or blocked
 - **AC-WFR-16** — **Given** a prompt whose whole first line is a mode directive **When** it is received **Then** the mode applies to that prompt and, when the session preference can be remembered, the rest of the session; otherwise the reply reports that it could not be remembered and later prompts use the recorded or configured mode. The new route is delivered even though one was delivered earlier, and with "save" the person's every-project file is updated; prose that merely mentions the words is never a directive
 - **AC-WFR-17** — **Given** any personal source **When** tracked, team-shared output is generated **Then** it reads the built-in and team layers only, and no personal value is ever written to a tracked file
 - **AC-WFR-18** — **Given** a host that delivers no guidance **When** the assistant starts **Then** it receives no route: a host that runs no hook is unsupported, and the personal auto and off modes need a host that runs the hook; a project settings file that registers one of the two guidance deliveries without the other is named by the session-start install check
-- **AC-WFR-19** — **Given** a workflow that an explicit skill step, the user's named skill or an already-running parent workflow requires **When** it starts **Then** it is part of that run, not a workflow the assistant chose: in mode ask it asks no workflow question and in mode off it is not skipped; ask and off govern only a workflow the assistant chooses to start, and the gate and the off notice say so while still saying a self-chosen workflow asks (ask) or is not started (off)
+- **AC-WFR-19** — **Given** a workflow that an explicit skill step, the user's named skill or an already-running parent workflow requires **When** it starts **Then** it is part of that run, not a workflow the assistant chose: in modes ask and auto it asks no workflow question and in mode off it is not skipped; the modes govern only a workflow the assistant chooses to start, and the gate and the off notice say so while still saying a self-chosen workflow asks (ask) or is not started (off)
 
 ---
 
@@ -187,22 +188,25 @@ Before each prompt the assistant receives short routing guidance in two messages
 | BR-WFR-13 | A workflow a run requires is part of that run                                                                                               | Activation   | [HARD]      |
 | BR-WFR-14 | Additional route guidance excludes private file names and final targets                                                                     | Privacy      | [HARD]      |
 | BR-WFR-15 | Decision discovery matches uncertainty and preserves prior confirmed choices                                                                | Activation   | [HARD]      |
+| BR-WFR-16 | The catalog picks a workflow by what happens to observable behavior                                                                         | Activation   | [HARD]      |
 
 ### BR-WFR-01: Two guidance messages within the size cap [HARD]
 
-**Statement:** The routing guidance added to a prompt reaches the assistant as two messages, so that neither the rule nor the catalog is cut to the host's preview of one long message: the route message — the mode line, the full routing gate for the resolved mode (BR-WFR-03) and the project's own route protocol when one is configured — and the catalog message — the workflow catalog. The catalog message is at most 9,500 characters, leaving margin under the host's 10,000-character cap, and uses the first of these catalog forms that fits: the compact catalog (BR-WFR-02); the same rows without the line of step-skill names; an index with each workflow's name, effective tier and parallel-phase marks; an index with each workflow's name and effective tier only; a pointer only, with no workflow rows. Every catalog form keeps the advancement rule and the workflow pointer. The size is measured on the catalog message alone, so the catalog form depends only on the workflow set: the length of the gate never changes it, and neither does a project route protocol. The framework's own workflow set keeps the compact catalog.
+**Statement:** The routing guidance added to a prompt reaches the assistant as two messages, so that neither the rule nor the catalog is cut to the host's preview of one long message: the route message — the mode line, the full routing gate for the resolved mode (BR-WFR-03) and the project's own route protocol when one is configured — and the catalog message — the workflow catalog. The catalog message is at most 9,500 characters, leaving margin under the host's 10,000-character cap, and uses the first of these catalog forms that fits: the compact catalog (BR-WFR-02); the same rows without the line of step-skill names; the compact catalog with the shorter hints of BR-WFR-02; those rows without the line of step-skill names; an index with each workflow's name, effective tier and parallel-phase marks; an index with each workflow's name and effective tier only; a pointer only, with no workflow rows. Every catalog form keeps the advancement rule and the workflow pointer. The size is measured on the catalog message alone, so the catalog form depends only on the workflow set: the length of the gate never changes it, and neither does a project route protocol. The framework's own workflow set keeps the compact catalog.
 
 The route message always carries the gate in full and is never shortened to make room for the catalog; without a project route protocol it stays within 9,500 characters. The framework never drops or cuts a project's own route protocol: it travels complete in the route message, so a long protocol makes that message longer. This is the only case in which a guidance message exceeds 9,500 characters.
 
 What the assistant sees of a long route message is the host's decision, not the framework's: a host shows one added message in full up to 10,000 characters and only a preview of a longer one, the gate included. With the framework's own gate, a project route protocol of about 3,300 characters or fewer keeps the route message within 9,500 characters, and one longer than about 3,850 characters takes it past 10,000. A route message longer than 10,000 characters says so on its second line, where a preview still shows it: the message size, that the host may show only a preview, where to read the gate and the protocol in full, and the protocol size that brings the message back within 9,500 characters. A message of 10,000 characters or fewer carries no such line, so the line is never what pushes a message past the limit.
 
-| Compact catalog fits | Compact rows fit | Index with phase marks fits | Index with tiers fits | Catalog form used                                  |
-| -------------------- | ---------------- | --------------------------- | --------------------- | -------------------------------------------------- |
-| Yes                  | —                | —                           | —                     | compact catalog                                    |
-| No                   | Yes              | —                           | —                     | the same rows without the line of step-skill names |
-| No                   | No               | Yes                         | —                     | index with tiers and parallel-phase marks          |
-| No                   | No               | No                          | Yes                   | index with tiers only                              |
-| No                   | No               | No                          | No                    | pointer only                                       |
+| Order | Catalog form (the first that fits within 9,500 characters is used)            |
+| ----- | ------------------------------------------------------------------------------ |
+| 1     | compact catalog, full whole-clause hints (at most 190 characters)              |
+| 2     | the same rows without the line of step-skill names                             |
+| 3     | compact catalog, shorter whole-clause hints (at most 130 characters)           |
+| 4     | those rows without the line of step-skill names                                |
+| 5     | index with tiers and parallel-phase marks                                      |
+| 6     | index with tiers only                                                          |
+| 7     | pointer only                                                                   |
 
 | Route message holds                                             | Route message                 | Catalog form                                |
 | --------------------------------------------------------------- | ----------------------------- | ------------------------------------------- |
@@ -213,7 +217,7 @@ What the assistant sees of a long route message is the host's decision, not the 
 
 ### BR-WFR-02: Compact catalog content [HARD]
 
-**Statement:** Each catalog row in the catalog message shows the workflow name, its effective tier, its step count and a when-to-use hint of at most 140 characters. Full step lists are left out: starting a workflow resolves its full sequence before any work begins. A workflow with parallel phases keeps only its parallel-phase marks in the last column. The step skills appear as a single line of names. The tier legend stays. A workflow with several modes shows its step count as the range from its shortest to its longest mode, and each parallel-phase mark is prefixed with the name of the mode it belongs to; a mode without parallel phases adds no mark. The index with parallel-phase marks prefixes its marks the same way.
+**Statement:** Each catalog row in the catalog message shows the workflow name, its effective tier, its step count and a when-to-use hint of at most 190 characters, made of whole clauses: a clause that would push the hint past the limit is left out rather than cut mid-phrase, and only a single overlong clause is shortened with a cut mark. When a large registry's catalog would not fit with these hints, it is built again with whole-clause hints of at most 130 characters before it shrinks to an index without hints. Full step lists are left out: starting a workflow resolves its full sequence before any work begins. A workflow with parallel phases keeps only its parallel-phase marks in the last column. The step skills appear as a single line of names. The tier legend stays. A workflow with several modes shows its step count as the range from its shortest to its longest mode, and each parallel-phase mark is prefixed with the name of the mode it belongs to; a mode without parallel phases adds no mark. The index with parallel-phase marks prefixes its marks the same way.
 
 ### BR-WFR-03: Gate payload [HARD]
 
@@ -250,18 +254,18 @@ When a guidance message cannot be built from a shipped source, it is never silen
 | Override for workflow W   | any          | Yes, for W              | personal value for W | team value for W, else no override     |
 | Override for workflow W   | Yes, for W   | No (names others)       | team value for W     | team value for W                       |
 
-### BR-WFR-06: Explicit requests run every tier; what a self-matched workflow does depends on the mode [HARD]
+### BR-WFR-06: Explicit requests run every tier; a self-matched workflow never starts before the user answers [HARD]
 
-**Statement:** A workflow the user asks for explicitly — by command on any host or in words — runs in every mode and whatever its effective tier, with no question. A workflow the assistant decides by itself to start acts by the mode. In ask (the default) it never starts until the user answers the workflow question, whatever its tier: one question offering the full workflow with its step count, a slimmer custom route listing its steps with every required quality gate kept, or direct execution, the recommended option first with a one-line reason; the effective tier only decides which option is recommended. In auto it starts without asking, by its tier: an auto-tier workflow starts; a confirm-tier workflow starts too unless a leaner route would also do, in which case the same one question is asked; a manual-tier workflow never starts by itself. In off nothing the assistant chooses starts unasked (BR-WFR-08). A workflow that a skill step, a named skill or a running parent workflow requires is part of that run, not self-matched, and follows neither rule (BR-WFR-13). In ask and auto, the workflow question or the start applies on the first task of a session only; mid-session the assistant neither starts a workflow nor asks to. A route that is not the start of a catalog workflow (a direct answer, one skill, or a focused custom route — including one chosen after downgrading a matched workflow because it fits poorly) asks nothing, in every mode, and the assistant declares the route and acts.
+**Statement:** A workflow the user asks for explicitly — by command on any host or in words — runs in every mode and whatever its effective tier, with no question. A workflow the assistant decides by itself to start acts by the mode. In ask (the default) and in auto it never starts until the user answers the workflow question, whatever its tier: one question offering the full workflow with its step count, a slimmer custom route listing its steps with every required quality gate kept, or direct execution, the recommended option first with a one-line reason. In ask the effective tier decides which option is recommended; in auto the full workflow is recommended first for an auto-tier or confirm-tier workflow, and a manual-tier workflow is never recommended first. In off nothing the assistant chooses starts unasked (BR-WFR-08). A workflow that a skill step, a named skill or a running parent workflow requires is part of that run, not self-matched, and follows neither rule (BR-WFR-13). In ask and auto, the workflow question applies on the first task of a session only; mid-session the assistant neither starts a workflow nor asks to. A route that is not the start of a catalog workflow (a direct answer, one skill, or a focused custom route — including one chosen after downgrading a matched workflow because it fits poorly) asks nothing, in every mode, and the assistant declares the route and acts.
 
 | Request                                                                       | Mode      | Tier    | Assistant                                                        |
 | ----------------------------------------------------------------------------- | --------- | ------- | ---------------------------------------------------------------- |
 | Explicit, by command or in words                                              | any       | any     | runs it, no question                                             |
 | Required by a skill step, a named skill or a running parent workflow          | any       | any     | runs as part of that run, no question, never skipped (BR-WFR-13) |
 | Self-matched, first task of a session                                         | ask       | any     | asks the workflow question, then follows the answer              |
-| Self-matched, first task of a session                                         | auto      | auto    | starts it without asking                                         |
-| Self-matched, first task of a session                                         | auto      | confirm | starts it; asks the question only when a leaner route would do   |
-| Self-matched, first task of a session                                         | auto      | manual  | does not start it; takes the slimmer route or works directly     |
+| Self-matched, first task of a session                                         | auto      | auto    | asks the workflow question, the full workflow recommended first  |
+| Self-matched, first task of a session                                         | auto      | confirm | asks the workflow question, the full workflow recommended first  |
+| Self-matched, first task of a session                                         | auto      | manual  | asks the workflow question; the full workflow is never first     |
 | Self-matched, first task of a session                                         | off       | any     | starts nothing; works directly                                   |
 | Self-matched, mid-session                                                     | ask, auto | any     | no workflow, no question; works directly                         |
 | No workflow matched, or route downgraded to direct, one skill or custom route | any       | —       | no question; declares the route and acts                         |
@@ -276,7 +280,7 @@ When a guidance message cannot be built from a shipped source, it is never silen
 
 ### BR-WFR-09: Delivered once, re-armed after a compaction [HARD]
 
-**Statement:** Each guidance message — the route message, the catalog message, or the off notice while routing is off — is delivered once per conversation and is not repeated while it is still in the assistant's context. Each message keeps its own delivery record, so one is delivered again without the other. A message is delivered again when it may have left that context: its own content changed, the conversation record grew by the re-arm distance (about 4.5 MB) or shrank since its delivery, or the conversation was compacted after its delivery. A compaction re-arms delivery on both hosts: the primary host (Claude) records it as a compaction-boundary entry in its conversation record, and the second host (Codex) records it as a compaction record of its own at the top level of its conversation record. The word "compacted" appearing only inside another record — nested in its content or quoted in a message — is not a compaction and re-arms nothing. Any number of compactions before the next prompt re-arm exactly one delivery.
+**Statement:** Each guidance message — the route message, the catalog message, or the off notice while routing is off — is delivered once per conversation and is not repeated while it is still in the assistant's context. Each message keeps its own delivery record, so one is delivered again without the other. A message is delivered again when it may have left that context: its own content changed, the conversation record grew by the re-arm distance (about 4.5 MB) or shrank since its delivery, or the conversation was compacted after its delivery. A compaction re-arms delivery on both hosts: the primary host (Claude) records it as a compaction-boundary entry in its conversation record, and the second host (Codex) records it as a compaction record of its own at the top level of its conversation record. The word "compacted" appearing only inside another record — nested in its content or quoted in a message — is not a compaction and re-arms nothing. Any number of compactions before the next prompt re-arm exactly one delivery. When the host itself reports a compaction at session start, both messages are delivered at once as session-start context, because a long run may continue with no prompt; that delivery absorbs the boundary the host records after its report, so the next prompt stays silent. A clear, startup or resume report delivers neither; the next prompt does.
 
 | Since a message's last delivery                                       | Next prompt                                         |
 | --------------------------------------------------------------------- | --------------------------------------------------- |
@@ -286,6 +290,7 @@ When a guidance message cannot be built from a shipped source, it is never silen
 | "compacted" only nested in or quoted by another record                | silent                                              |
 | That message's content changed                                        | that message delivered again; the other is silent   |
 | The record grew by the re-arm distance since that delivery, or shrank | that message delivered again                        |
+| The host reported the compaction at session start                     | both delivered at the report; the next prompt silent |
 
 ### BR-WFR-10: Route mode: ask by default, fixed precedence, fail-safe to ask [HARD]
 
@@ -311,7 +316,7 @@ When a guidance message cannot be built from a shipped source, it is never silen
 
 ### BR-WFR-13: A workflow a run requires is part of that run [HARD]
 
-**Statement:** A workflow that an explicit skill step, a skill the user named or an already-running parent workflow requires (for example a pull-request skill that runs the review workflow as its own step, or a nested review or end-to-end workflow inside a feature workflow) is part of that run, not a workflow the assistant chose by itself. It asks no workflow question in ask and is not skipped in off; it still runs with the quality gates of its run. Modes ask and off govern only a workflow the assistant chooses to start for the task: in ask a self-chosen catalog workflow still waits for the workflow question, and in off it is still not started. The routing gate, the off notice, the workflow start guidance and the configuration guide each state this in one sentence. A commit of unreviewed changes stays blocked by the review gate whatever the mode.
+**Statement:** A workflow that an explicit skill step, a skill the user named or an already-running parent workflow requires (for example a pull-request skill that runs the review workflow as its own step, or a nested review or end-to-end workflow inside a feature workflow) is part of that run, not a workflow the assistant chose by itself. It asks no workflow question in ask or auto and is not skipped in off; it still runs with the quality gates of its run. The modes govern only a workflow the assistant chooses to start for the task: in ask and auto a self-chosen catalog workflow still waits for the workflow question, and in off it is still not started. The routing gate, the off notice, the workflow start guidance and the configuration guide each state this in one sentence. A commit of unreviewed changes stays blocked by the review gate whatever the mode.
 
 ---
 
@@ -332,6 +337,14 @@ Confirmed choices from linked decision records or resolved map tickets are reuse
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
 > **Evidence:** `[Source: operation/hooks/workflow-route-inject]` · `[Source: constraint/skills/decision-interview]`
+
+### BR-WFR-16: The catalog picks a workflow by what happens to observable behavior [HARD]
+
+**Statement:** Every catalog form that tells the assistant when to use each workflow, in ask and in auto, and the concise route cue carry one line that chooses a workflow by what happens to observable behavior. Behavior that worked or met its spec and now fails goes to the bug-fix workflow. Behavior that changes and is not yet in a canonical spec goes to the feature workflow, or the big-feature workflow when the change is large or ambiguous. Behavior specified in a canonical spec but not yet built goes to the implement-spec workflow. Behavior that stays the same goes to the refactor workflow, and a local tidy-up stays direct. Work to be planned and not built — an idea, or specs to turn into tasks — goes to the planned-work workflow, and a new product from scratch to the greenfield workflow. Size alone never makes a task a workflow: a focused change in one module stays a custom route. Every workflow the line names exists in the registry. The line informs the route only: the workflow question still decides whether a workflow starts (BR-WFR-06). The pointer form, which lists only names and tiers so a large catalog still fits, does not carry it.
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: operation/scripts/workflow-skills-catalog]` · `[Source: constraint/skills/concise-workflow-route]`
 
 ---
 
@@ -360,7 +373,7 @@ Session           0──1 SessionMode         (set by a prompt directive)
 | Name             | text                | Yes      | Unique                       | What the assistant and user call it           |
 | Framework tier   | enum ActivationTier | Yes      | —                            | Tier before project settings                  |
 | Step count       | number              | Yes      | At least 1                   | Size shown to the assistant and the user      |
-| When-to-use hint | text                | Yes      | Shown at most 140 characters | Helps the assistant pick a route              |
+| When-to-use hint | text                | Yes      | Shown at most 190 characters | Helps the assistant pick a route              |
 | Parallel phases  | list                | No       | Each has two or more members | Steps that start together and finish together |
 
 ### Entity: ActivationPolicy
@@ -408,6 +421,8 @@ Session           0──1 SessionMode         (set by a prompt directive)
 | ---------------------- | ---------------------------------------------------------------- |
 | Compact catalog        | Name, tier, step count, hint and phase marks per workflow        |
 | Compact rows           | The same rows without the line of step-skill names               |
+| Compact catalog, shorter hints | The compact catalog with whole-clause hints of at most 130 characters |
+| Compact rows, shorter hints    | Those rows without the line of step-skill names                  |
 | Index with phase marks | Name, tier and phase marks per workflow                          |
 | Index with tiers       | Name and tier per workflow                                       |
 | Pointer only           | No workflow rows; the workflow pointer and advancement rule only |
@@ -417,7 +432,7 @@ Session           0──1 SessionMode         (set by a prompt directive)
 | Value | Meaning                                                                                                                           |
 | ----- | --------------------------------------------------------------------------------------------------------------------------------- |
 | ask   | Default. A catalog workflow the assistant routes to asks the workflow question first; direct, skill and custom routes ask nothing |
-| auto  | A matched workflow starts without asking, by its tier                                                                             |
+| auto  | Like ask, but the workflow question recommends the full workflow first (never for a manual tier)                                  |
 | off   | Only the state notice is delivered; nothing starts without an explicit request                                                    |
 
 ### Domain Events (business occurrences)
@@ -455,7 +470,7 @@ Session           0──1 SessionMode         (set by a prompt directive)
 | 3    | Assistant | Route is to start a workflow, mode ask | Asks the workflow question, recommendation by tier                                        | 4    |
 | 4    | User      | Picks full, slimmer or direct          | The assistant follows the answer without re-asking                                        | end  |
 | 5    | User      | Asks for a workflow explicitly         | It runs whatever its tier and mode (BR-WFR-06)                                            | end  |
-| 6    | Assistant | Route matches a workflow, mode auto    | Starts it by its tier; asks only for a confirm-tier workflow when a leaner route would do | end  |
+| 6    | Assistant | Route matches a workflow, mode auto    | Asks the workflow question, the full workflow first unless its tier is manual             | 4    |
 | 7    | Assistant | Route matches a workflow, mode off     | Starts nothing; works directly                                                            | end  |
 
 ---
@@ -485,17 +500,17 @@ Session           0──1 SessionMode         (set by a prompt directive)
 | Priority  | Count  | Automated | Manual |
 | --------- | ------ | --------- | ------ |
 | P0        | 2      | 2         | 0      |
-| P1        | 23     | 23        | 0      |
+| P1        | 25     | 25        | 0      |
 | P2        | 1      | 1         | 0      |
-| **Total** | **26** | **26**    | **0**  |
+| **Total** | **28** | **28**    | **0**  |
 
 | Category                    | TCs                                                                    |
 | --------------------------- | ---------------------------------------------------------------------- |
-| Core Routing Guidance Tests | TC-WFR-001, TC-WFR-002, TC-WFR-003, TC-WFR-004, TC-WFR-005, TC-WFR-013, TC-WFR-024, TC-WFR-026 |
+| Core Routing Guidance Tests | TC-WFR-001, TC-WFR-002, TC-WFR-003, TC-WFR-004, TC-WFR-005, TC-WFR-013, TC-WFR-024, TC-WFR-026, TC-WFR-028 |
 | Activation Tier Tests       | TC-WFR-006, TC-WFR-007, TC-WFR-009, TC-WFR-011, TC-WFR-012             |
 | Validation Tests            | TC-WFR-008                                                             |
 | Invariant / Property Tests  | TC-WFR-010, TC-WFR-022                                                             |
-| Route Mode Tests            | TC-WFR-014, TC-WFR-015, TC-WFR-016, TC-WFR-017, TC-WFR-018, TC-WFR-019, TC-WFR-020, TC-WFR-021, TC-WFR-023, TC-WFR-025 |
+| Route Mode Tests            | TC-WFR-014, TC-WFR-015, TC-WFR-016, TC-WFR-017, TC-WFR-018, TC-WFR-019, TC-WFR-020, TC-WFR-021, TC-WFR-023, TC-WFR-025, TC-WFR-027 |
 
 ### Core Routing Guidance Tests
 
@@ -521,7 +536,7 @@ Given automatic routing is on and the project defines its workflows
 When the assistant receives a prompt and the catalog message is added
 Then the catalog message is at most 9,500 characters long
 And while the compact catalog fits, it names every workflow with its tier
-And when it does not fit, the catalog message takes the first shorter form that fits: the same rows without the line of step-skill names, an index with tiers and parallel-phase marks, an index with tiers only, or a pointer only
+And when it does not fit, the catalog message takes the first shorter form that fits: the same rows without the line of step-skill names, the compact rows with shorter whole-clause hints (with, then without, that line), an index with tiers and parallel-phase marks, an index with tiers only, or a pointer only
 And every catalog form keeps the advancement rule and the pointer to the full workflow list
 And the route message carries the gate in full whatever form the catalog takes
 ```
@@ -558,14 +573,14 @@ boundaryCounterCase: 'a project route protocol larger than the cap → the route
     "guardCharacters": 9500,
     "measuredMessage": "catalog message",
     "fixtureWorkflowCounts": [30, 250],
-    "formOrder": ["compact catalog", "compact rows without step-skill names", "index: id, tier, parallel phases", "index: id, tier", "pointer only"]
+    "formOrder": ["compact catalog", "compact rows without step-skill names", "compact catalog with shorter hints", "compact rows with shorter hints, without step-skill names", "index: id, tier, parallel phases", "index: id, tier", "pointer only"]
 }
 ```
 
 **Edge Cases:**
 
 - A workflow hint longer than the hint limit → shortened, never dropped
-- A thirty-workflow set whose compact catalog fits → the compact catalog, whatever the length of the gate
+- A thirty-workflow set whose compact catalog fits only with shorter hints → the compact catalog with whole-clause hints of at most 130 characters (step-skill line kept while it fits), whatever the length of the gate; the framework's own set keeps the full hints
 - A workflow set whose compact catalog fits only without the line of step-skill names → the same rows without that line
 - A workflow set whose compact rows do not fit but whose index with parallel-phase marks does → the index with tiers and parallel-phase marks
 - A workflow set whose index with parallel-phase marks does not fit but whose index with tiers does → the index with tiers only
@@ -666,7 +681,7 @@ And every workflow with parallel phases still shows its parallel-phase marks and
 Given the generated root instruction files of every host
 When each is read
 Then it holds no route pointer, no gate body, no workflow question, no routing table and no catalog
-And the gate text renders an ask variant that asks the workflow question and an auto variant that starts by tier
+And the gate text renders an ask variant and an auto variant that both ask the workflow question, the auto variant recommending the full workflow first except for a manual tier
 And regenerating a root file that still carries a pointer or gate block removes it
 ```
 
@@ -726,7 +741,7 @@ And regenerating a root file that still carries a pointer or gate block removes 
 ```gherkin
 Given the project defines workflows, some with parallel phases
 When the compact catalog is rendered for the guidance
-Then each row shows the workflow name, its activation tier, its step count and a hint of at most 140 characters
+Then each row shows the workflow name, its activation tier, its step count and a hint of at most 190 characters made of whole clauses
 And no row lists the full step sequence
 And a row with parallel phases keeps only its parallel-phase marks
 And the step skills appear as one line of names
@@ -748,13 +763,13 @@ And the tier legend stays
 - ✅ Parallel-phase marks kept on grouped rows
 - ✅ Tier legend present
 - ❌ A full step list in any row
-- ❌ A hint longer than 140 characters
+- ❌ A hint longer than 190 characters, or a clause cut mid-phrase to fit
 
 **Test Data:**
 
 ```json
 {
-    "hintMaxCharacters": 140,
+    "hintMaxCharacters": 190,
     "skillsLine": "Step skills: a, b, …"
 }
 ```
@@ -762,7 +777,7 @@ And the tier legend stays
 **Edge Cases:**
 
 - A workflow with no parallel phase → its last cell is empty
-- A hint of exactly 140 characters → kept whole; a hint of 141 characters → shortened to at most 140 characters ending in a cut mark
+- A hint of exactly 190 characters → kept whole; a clause that would take the hint past 190 characters → left out, so the hint ends on a whole clause; a single clause longer than the limit → shortened to at most 190 characters ending in a cut mark
 - A workflow with two modes of different lengths → its step count shown as a range, and each mode's parallel-phase marks prefixed with the mode name
 
 <!-- machine-only carrier — ignore when reading as BA/QA -->
@@ -1070,6 +1085,58 @@ boundaryCounterCase: 'a route message of exactly 10,000 characters → no size l
 
 ---
 
+#### TC-WFR-028: The catalog picks a workflow by what happens to observable behavior [P1]
+
+**Objective:** Prove that every catalog form that lists when to use each workflow, in ask and in auto, and the concise route cue carry the line that chooses a workflow by observable behavior, and that every workflow it names exists.
+
+**Business Intent / Invariant Guarded:** The assistant tells a bug, a feature, specified but unbuilt work, a behavior-preserving restructure and plan-only work apart before it recommends a workflow, so size alone never decides (BR-WFR-16).
+
+**Traces:** AC-WFR-26 / BR-WFR-16
+
+**Preconditions:**
+
+- A project with the framework workflows
+
+**Real-World Reachability:** Every first prompt of a session: the assistant reads the catalog before it recommends a workflow.
+
+**Demo Flow:** Render the catalog in each form and mode and read the concise route cue; look for the line and check each workflow it names against the registry.
+
+```gherkin
+Given the framework workflows
+When the catalog is rendered in each form that lists when to use each workflow, in ask and in auto, and the concise route cue is read
+Then each carries one line that maps failing behavior to the bug-fix workflow, changing and unspecified behavior to the feature workflow, specified but unbuilt behavior to the implement-spec workflow, unchanged behavior to the refactor workflow, and plan-only work to the planned-work workflow, or a new product to the greenfield workflow
+And the line says that size alone never makes a task a workflow
+And every workflow the line names exists in the registry
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                               |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives                                                 |
+| **System behavior**     | The line is rendered once per catalog form, after the tier legend                                                                                         |
+| **Business data state** | No change                                                                                                                                                 |
+| **Data shown on UI**    | The behavior line in the catalog and in the concise route cue                                                                                             |
+
+**Acceptance Criteria:**
+
+- ✅ The line in both modes, in each catalog form that lists when to use each workflow, and in the concise route cue
+- ✅ Every workflow the line names exists in the registry
+- ❌ A catalog that lets size alone pick a workflow, or names a workflow that no longer exists
+
+**Edge Cases:**
+
+- A renamed or removed workflow → the line must be updated in the same change, or this case fails
+- The pointer form, used when a large catalog would not fit → carries no line; the assistant reads the registry instead
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: operation/scripts/workflow-skills-catalog]` · `[Source: constraint/skills/concise-workflow-route]`
+> **Related Behaviors:** `operation/scripts/workflow-skills-catalog` · `test/scripts/workflow-skills-catalog`
+> **CoveredBy:** `.claude/scripts/codex/tests/workflow-skills-catalog.test.mjs::TC-WFR-028 the catalog and the concise route pick a workflow by observable behavior and name only registered workflows` · **Status:** Tested
+
+---
+
 ### Activation Tier Tests
 
 #### TC-WFR-006: A project default tier only tightens [P1]
@@ -1145,7 +1212,7 @@ boundaryCounterCase: 'framework "manual" with default "auto" → effective "manu
 
 **Objective:** Prove that naming one workflow in the project overrides gives it exactly that tier, even when that loosens it.
 
-**Business Intent / Invariant Guarded:** A project can deliberately allow one workflow to start by itself while keeping a strict default (BR-WFR-04).
+**Business Intent / Invariant Guarded:** A project can deliberately loosen one workflow so the assistant recommends it more readily, while keeping a strict default (BR-WFR-04).
 
 **Traces:** AC-WFR-07 / BR-WFR-04
 
@@ -1397,7 +1464,7 @@ And each states that a direct, single-skill or custom-simple route proceeds with
 
 #### TC-WFR-014: Each mode delivers its own route [P1]
 
-**Objective:** Prove, by running the real hook, that ask delivers the gate with the workflow question, auto delivers the auto-start gate with no question, and off delivers only a short state with no gate and no catalog.
+**Objective:** Prove, by running the real hook, that ask delivers the gate with the workflow question, auto delivers the same question with the full workflow recommended first, and off delivers only a short state with no gate and no catalog.
 
 **Business Intent / Invariant Guarded:** A person's chosen mode changes what the assistant is told, on every prompt, within the size cap (BR-WFR-06, BR-WFR-08, BR-WFR-10).
 
@@ -1408,7 +1475,7 @@ And each states that a direct, single-skill or custom-simple route proceeds with
 - A project with the framework workflows and no other configuration
 - The mode set through the environment variable
 
-**Real-World Reachability:** A developer who finds the workflow question tedious sets auto; one who never wants workflows sets off.
+**Real-World Reachability:** A developer who usually wants the full workflow sets auto; one who never wants workflows sets off.
 
 **Demo Flow:** Submit a first prompt under each mode and read the text the assistant receives.
 
@@ -1417,7 +1484,7 @@ Given a project with no configuration
 When the first prompt arrives
 Then the mode is ask, the route message opens "Route mode: ask (default)" and contains the gate and the workflow question, and the catalog message carries the catalog
 And given the mode is auto
-Then the route message contains the auto-start gate, the catalog message carries the auto tier legend, and neither holds the workflow question
+Then the route message contains the workflow question and the auto recommendation line, and the catalog message carries the auto tier legend
 And given the mode is off
 Then only the short off state is delivered, without gate or catalog and with no catalog message, and it keeps explicit requests and every quality gate
 And each message is delivered once per session and stays within 9,500 characters
@@ -1434,9 +1501,9 @@ And each message is delivered once per session and stays within 9,500 characters
 
 **Acceptance Criteria:**
 
-- ✅ Ask carries the workflow question; auto carries the auto-start text; off carries neither gate nor catalog
+- ✅ Ask and auto carry the workflow question; auto adds its recommendation line; off carries neither gate nor catalog
 - ✅ Every message is at most 9,500 characters; the route message and the off notice open with the mode line
-- ❌ The workflow question in auto or off
+- ❌ A self-matched workflow starting before the answer in ask or auto; the workflow question in off
 - ❌ A catalog in off
 
 **Test Data:**
@@ -1458,7 +1525,7 @@ And each message is delivered once per session and stays within 9,500 characters
 
 > **Evidence:** `[Source: operation/hooks/workflow-route-inject]`
 > **Related Behaviors:** `operation/hooks/workflow-route-inject` · `test/hooks/workflow-route-modes`
-> **CoveredBy:** `.claude/hooks/tests/suites/workflow-route-modes.test.cjs::[workflow-route-modes] TC-WFR-014 mode ask (the default) delivers the gate, the workflow question and the catalog once per session`, `.claude/hooks/tests/suites/workflow-route-modes.test.cjs::[workflow-route-modes] TC-WFR-014 mode auto delivers the auto-start gate and never the workflow question`, `.claude/hooks/tests/suites/workflow-route-modes.test.cjs::[workflow-route-modes] TC-WFR-014 mode off delivers a short state with no gate and no catalog, once per session, keeping explicit requests`, `.claude/hooks/tests/suites/workflow-route-modes.test.cjs::[workflow-route-modes] TC-WFR-014 every mode stays under the host output cap`, `.claude/hooks/tests/suites/workflow-route-modes.test.cjs::[workflow-route-modes] TC-WFR-014 the shipped gate renders a distinct, fence-free text for ask and for auto`, `.claude/hooks/tests/suites/workflow-routing-switch.test.cjs::[workflow-routing-switch] TC-WRS-026 TC-WFR-012 runtime payload asks the workflow question before any tier starts` · **Status:** Tested
+> **CoveredBy:** `.claude/hooks/tests/suites/workflow-route-modes.test.cjs::[workflow-route-modes] TC-WFR-014 mode ask (the default) delivers the gate, the workflow question and the catalog once per session`, `.claude/hooks/tests/suites/workflow-route-modes.test.cjs::[workflow-route-modes] TC-WFR-014 mode auto asks the workflow question and recommends the full workflow first`, `.claude/hooks/tests/suites/workflow-route-modes.test.cjs::[workflow-route-modes] TC-WFR-014 mode off delivers a short state with no gate and no catalog, once per session, keeping explicit requests`, `.claude/hooks/tests/suites/workflow-route-modes.test.cjs::[workflow-route-modes] TC-WFR-014 every mode stays under the host output cap`, `.claude/hooks/tests/suites/workflow-route-modes.test.cjs::[workflow-route-modes] TC-WFR-014 the shipped gate renders a distinct, fence-free text for ask and for auto`, `.claude/hooks/tests/suites/workflow-routing-switch.test.cjs::[workflow-routing-switch] TC-WRS-026 TC-WFR-012 runtime payload asks the workflow question before any tier starts` · **Status:** Tested
 
 ---
 
@@ -1543,7 +1610,7 @@ And given a file saved with a byte-order mark or as UTF-16, or a variable wrappe
 
 - A project with the framework workflows; the person's file may set another mode
 
-**Real-World Reachability:** A developer mid-session decides the next task should start without asking.
+**Real-World Reachability:** A developer mid-session changes how the assistant routes the next task.
 
 **Demo Flow:** Send "workflow-mode: off" with a task, then a plain prompt, then "/workflow-mode auto", then start a new session.
 
@@ -1742,7 +1809,7 @@ And with ask, the ask route arrives
 
 #### TC-WFR-019: A workflow a run requires is part of that run, in every mode [P1]
 
-**Objective:** Prove that the route the assistant receives in ask and auto, and the off notice, each say that a workflow required by a skill step, a named skill or a running parent workflow is part of that run, while a workflow the assistant chooses by itself still asks (ask) or is not started (off).
+**Objective:** Prove that the route the assistant receives in ask and auto, and the off notice, each say that a workflow required by a skill step, a named skill or a running parent workflow is part of that run, while a workflow the assistant chooses by itself still asks (ask and auto) or is not started (off).
 
 **Business Intent / Invariant Guarded:** A skill the user invoked keeps its documented flow — a pull-request run reaches its review workflow without a question and without being skipped — while the person's ask and off policy still binds every workflow the assistant picks on its own (BR-WFR-13).
 
@@ -2063,13 +2130,75 @@ Then no catalog message is added, and the assistant receives only that state's o
 
 ---
 
+#### TC-WFR-027: A compaction report delivers the route and catalog at once [P1]
+
+**Objective:** Prove that the host's compaction report delivers the route message and the catalog message immediately, in the session's mode, and that other session-start reports deliver nothing.
+
+**Business Intent / Invariant Guarded:** A long autonomous run that the host compacts may send no further prompt; without this delivery it would continue without the routing gate (BR-WFR-09).
+
+**Traces:** AC-WFR-13 / BR-WFR-09
+
+**Preconditions:**
+
+- A project with the framework workflows and routing in mode ask
+- A conversation that already received both messages on its first prompt
+
+**Real-World Reachability:** An autonomous run fills its context and the host compacts it in the middle of a turn.
+
+**Demo Flow:** Submit a prompt, then have the host report a compaction, then a startup, a resume and a clear, and read what each adds.
+
+```gherkin
+Given routing is on in mode ask and both messages were delivered on the first prompt
+When the host reports a compaction at session start
+Then the route message and the catalog message are each added at once as session-start context, in mode ask
+When the host reports a startup, a resume or a clear instead
+Then neither message is added
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                               |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives                                                 |
+| **System behavior**     | Delivers both messages on the compaction report and records each delivery, absorbing the boundary the host records afterwards                             |
+| **Business data state** | One renewed delivery record per message                                                                                                                   |
+| **Data shown on UI**    | The route message (mode line and gate) and the catalog after the compaction report; nothing after a startup, resume or clear report                     |
+
+**Acceptance Criteria:**
+
+- ✅ Both messages arrive at the compaction report, in the session's mode
+- ✅ The prompt after the host's compaction boundary stays silent (one delivery per compaction)
+- ❌ A message added at a startup, resume or clear report
+
+**Test Data:**
+
+```json
+{
+    "mode": "ask",
+    "sessionStartReports": ["compact", "startup", "resume", "clear"]
+}
+```
+
+**Edge Cases:**
+
+- Routing off → the off notice is delivered at the compaction report and no catalog follows (BR-WFR-08)
+- Concise delivery → the route cue is delivered and the catalog stays on explicit retrieval
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: operation/hooks/workflow-route-inject]` · `[Source: operation/hooks/workflow-catalog-inject]`
+> **Related Behaviors:** `operation/hooks/workflow-route-inject` · `operation/hooks/workflow-catalog-inject` · `test/hooks/workflow-route-modes`
+> **CoveredBy:** `.claude/hooks/tests/suites/workflow-route-modes.test.cjs::[workflow-route-modes] TC-WFR-027 a compaction report delivers the route and the catalog at once, as session-start context` · **Status:** Tested
+
+---
+
 ### Validation Tests
 
 #### TC-WFR-008: An unknown tier value is rejected by name [P1]
 
 **Objective:** Prove that a project default tier outside the three allowed values fails validation with a message naming the setting and the allowed tiers.
 
-**Business Intent / Invariant Guarded:** A typo never silently changes which workflows may start by themselves (BR-WFR-07).
+**Business Intent / Invariant Guarded:** A typo never silently changes which workflows the assistant recommends (BR-WFR-07).
 
 **Traces:** AC-WFR-08 / BR-WFR-07
 

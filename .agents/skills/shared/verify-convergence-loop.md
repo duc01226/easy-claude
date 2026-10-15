@@ -33,7 +33,7 @@ A change is progress **only if** the next fresh verify has fewer failures. Reach
 ### 2.2 Loop contract (every loop skill)
 
 - **Scope is fixed and explicit.** Record `{scope}` once as a stable list, pass it explicitly to every round's verify pass (never re-derive it from the diff), widen it only with a logged reason, never narrow it.
-- **Goal Contract first.** Resolve or create it per the Goal Contract protocol; its single required criterion is a fresh full verify over `{scope}` with zero failed tests across the configured consecutive fresh runs (default 2), real runner output, and no test deleted, skipped, weakened, or de-scoped to get there. Record round cap (default 3) and baseline executed/skipped counts.
+- **Goal Contract first.** Resolve or create it per the Goal Contract protocol. When the loop runs as a step of an active workflow run, including a workflow nested under a parent, reuse that run's Goal Contract and record the loop's criterion in it instead of creating a second contract (`$start-workflow` → Workflow-step mode); a standalone loop creates its own. The loop's single required criterion is a fresh full verify over `{scope}` with zero failed tests across the required consecutive fresh runs (2 without a reset for integration tests; 1 for every other suite, E2E included, unless the project configures more), real runner output, and no test deleted, skipped, weakened, or de-scoped to get there. Record round cap (default 3) and baseline executed/skipped counts.
 - **Protocol loop is primary, `/goal` is an optional accelerator.** The loop binds on every host with or without the command; if `/goal` is unavailable, record one Goal Contract line `/goal accelerator unavailable — loop bound by protocol` and proceed.
 - **Each round runs the skill's DEFAULT pass, never the flag.** No self-invocation with `--fix-loop`; one outer loop, no nesting. The round's default pass reports; every edit lands through the round's fix step.
 - **One written Fault Verdict per failure BEFORE any edit** (`SOURCE-WRONG` · `TEST-WRONG` · `TEST-NOT-OPTIMAL` · `ENVIRONMENT-BLOCKED` · `AMBIGUOUS`, per the fault-adjudication protocol), with `file:line` evidence and confidence. `AMBIGUOUS` → `ask user question tool`; `ENVIRONMENT-BLOCKED` → stop and escalate.
@@ -59,7 +59,7 @@ A round converges ONLY when all five hold; each blocks a different false-green p
 
 1. **Fresh verify over post-fix code** — a pre-fix green proves nothing; every fix invalidates the prior verdict.
 2. **Zero failed tests** — one red test means unconverged; "known failures" do not count.
-3. **Required consecutive green runs without a destructive reset** (default 2) — one run hides order/state flakiness.
+3. **Required consecutive green runs without a destructive reset** — 2 for integration tests, where one run hides order/state flakiness; 1 for every other suite, E2E included, unless the project configures more (`e2eTesting.execution.convergence.consecutiveGreen`).
 4. **Real runner output** — Passed/Failed/Skipped counts and names; "looks like it passed" is theater.
 5. **Round Integrity Check passed** — executed count not shrunk, skipped count not grown, `{scope}` not narrowed.
 

@@ -168,6 +168,17 @@
           }
         ]
       }
+,
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/quality-skill-remind.cjs",
+            "timeout": 3,
+            "type": "command"
+          }
+        ]
+      }
     ],
     "PostToolUseFailure": [
       {
@@ -358,6 +369,31 @@
             "type": "command"
           }
         ]
+      },
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/core-principles-inject.cjs",
+            "type": "command"
+          },
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/judgement-integrity-route.cjs",
+            "type": "command"
+          },
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/ai-feature-route.cjs",
+            "type": "command"
+          },
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/workflow-route-inject.cjs",
+            "type": "command"
+          },
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/workflow-catalog-inject.cjs",
+            "type": "command"
+          }
+        ]
       }
     ],
     "Stop": [
@@ -415,6 +451,27 @@
         "hooks": [
           {
             "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/skill-activation-inject.cjs",
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/core-principles-inject.cjs",
+            "type": "command"
+          },
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/ui-reuse-remind.cjs",
+            "timeout": 3,
+            "type": "command"
+          },
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/judgement-integrity-route.cjs",
+            "type": "command"
+          },
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/ai-feature-route.cjs",
             "type": "command"
           }
         ]

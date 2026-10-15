@@ -20,7 +20,7 @@ context-budget: high
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
-> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
+> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval. Inside a workflow run, `/start-workflow` → Workflow-step mode bounds this rule.
 > **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
@@ -280,7 +280,7 @@ Group files by AI SURFACE first (one sub-agent owns a surface end to end so no s
 
 ## Phase 8: Why-Review Findings Validation Gate (MANDATORY when findings exist)
 
-**Trigger:** any finding produced (Critical, High, Medium or Low). Skip ONLY when the verdict is an unconditional PASS with zero findings, or when why-review is itself the active context.
+**Trigger:** any finding produced (Critical, High, Medium or Low). Skip ONLY when the verdict is an unconditional PASS with zero findings, or when why-review is itself the active context. Also skip when called with `--loop-owner=caller`: the caller validates the merged report once (`/start-workflow` → Workflow-step mode).
 
 1. Read the finalized report `tmp/reports/ai-engineering-review-{date}-{slug}.md`.
 2. Invoke `/why-review --validate-findings tmp/reports/ai-engineering-review-{date}-{slug}.md` when the skill is available. When it is not (no Skill tool in this context), run the adversarial self-validation pass instead — re-trace each finding to its `file:line`, look for the compensating control, and drop every finding without a reachable trigger path — and record `Validation: self adversarial re-read — caller runs /why-review --validate-findings`. Record which of the two was used.
@@ -302,6 +302,8 @@ Group files by AI SURFACE first (one sub-agent owns a surface end to end so no s
 **Non-negotiable:** never fix a finding before validation · never call the review clean after a targeted check only · never review only the fixed files · never reuse old task items.
 
 ## Next Steps
+
+> **Inside a workflow:** when this skill runs as a step of an active workflow, skip the prompts in this section and return the result — the workflow's next step decides what runs (`/start-workflow` → Step Execution Protocol, Workflow-step mode).
 
 **MANDATORY — NO EXCEPTIONS:** after completing, use `ask user question tool` to present (skip under `--report-only`, when invoked by a parent skill, or as a sub-agent — return the report and next-step recommendations instead):
 
@@ -405,7 +407,7 @@ Before reporting ANY work done:
 
 ## Prompt-Enhance Closing Anchors
 
-**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval
+**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval; inside a workflow run, `/start-workflow` → Workflow-step mode bounds this
 **IMPORTANT MUST ATTENTION** for every step/sub-skill call: set `in_progress` before execution, set `completed` after execution
 **IMPORTANT MUST ATTENTION** every skipped step MUST include explicit reason; every completed step MUST include concise evidence
 **IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses

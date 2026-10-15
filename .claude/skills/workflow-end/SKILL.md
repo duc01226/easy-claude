@@ -6,7 +6,7 @@ description: "[Process] Use when the active workflow has finished its steps or t
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
-> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
+> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval. Inside a workflow run, `/start-workflow` → Workflow-step mode bounds this rule.
 > **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
@@ -36,7 +36,7 @@ description: "[Process] Use when the active workflow has finished its steps or t
 **Key Rules:**
 
 - MUST ATTENTION first check evidence for every outcome gate (step 0); `review-converged` runs `review-receipt.cjs check` and reads its JSON, or accepts a cited review report logged as a `review-report` deviation-log line. Missing evidence blocks the close.
-- MUST ATTENTION when the workflow produced a diff and no `/watzup` occurrence follows, print the comprehension recap (what changed / purpose / how it works / why) — NEVER fully skip it when changes exist and nothing else owns the recap. A following `/watzup` owns it (its Session summary); record `covered by watzup` — if that `/watzup` is later skipped, the recap duty stays with `workflow-end`: print it at that point.
+- MUST ATTENTION when the workflow produced a diff and no `/watzup` occurrence follows, print the comprehension recap (what changed / purpose / how it works / why) — NEVER fully skip it when changes exist and nothing else owns the recap. A following `/watzup` owns it (its Session summary); record `covered by watzup` — if that `/watzup` is later skipped, the recap duty stays with `workflow-end`: print it at that point. An optional `/watzup` whose `applicability.when` does not hold counts as not following. A run with no diff gets the short handoff of step 6 instead of the recap.
 - MUST ATTENTION reuse the run's own evidence for steps 1–2 only when it is cited and fresh (step 0 evidence names the report or occurrence, no source/test/spec edit since); with no such evidence — standalone `/workflow-end`, or the run skipped that step — run the full check.
 - MUST ATTENTION the recap is one-way — NO quiz, NO teach-back, NEVER blocks. Keep it concise and complete enough to explain the workflow result without routing to another skill.
 - MUST ATTENTION run the spec ↔ TDD-test sync gate (`spec-tdd-test-sync-gate`) BEFORE task-completion verification when behavior-changing files are in the diff — the workflow MUST NOT report completed while a behavior-vs-spec divergence is unadjudicated; surface unsynced drift via `ask user question tool`, never silent-close.
@@ -59,7 +59,7 @@ description: "[Process] Use when the active workflow has finished its steps or t
 
 ## When This Runs
 
-This skill closes workflow state. In workflows with `/watzup`, it runs after final verification/docs and before `/watzup`, which owns the recap; with no `/watzup` after it, print the one-way recap itself. Then retain per-session tracking until explicit `/clear`.
+This skill closes workflow state. In workflows with `/watzup`, it runs after final verification/docs and before `/watzup`, which owns the recap when its condition holds; with no `/watzup` running after it, print the one-way recap (or, with no diff, the short handoff) itself. Then retain per-session tracking until explicit `/clear`.
 
 **NOT for:** manual mid-workflow invocation; switch via `/start-workflow`.
 
@@ -73,6 +73,7 @@ This skill closes workflow state. In workflows with `/watzup`, it runs after fin
     - `spec-synced`: cite the spec-sync diff, or a "no behavior change" statement with the diff stat.
     - `root-cause-traced`: cite the root-cause trace (`file:line`) from the investigation report.
     - `plan-approved`: cite the workflow's declared plan approval evidence, such as `/plan --mode=validate`, an explicit user decision, or another registry-declared approval gate.
+    - **Nested children:** for each workflow this run ran nested in a writing mode (not `--review-only` or `--report-only`, whose findings are handed off as diagnostics) whose own close was skipped because it ran nested (for example `workflow-e2e`), check that child's outcome gates the same way from its evidence; a child gate without evidence blocks this close like the run's own.
     - `run-closed`: proved by steps 4–7 of this skill; confirm at step 9.
     - **Plan checklist rows** (optional evidence input, only when a `/plan --mode=execute` occurrence ran nested in this run AND its `plan.md` carries a `## Quality Gates & Concerns Checklist`; otherwise record `N/A — no plan checklist` and add no gate): read that checklist and close each row the execute walk recorded `PENDING-PARENT: <step> — evidence expected: …` using the evidence cited for the gates above (test run, mutation result, review receipt or report). A row whose evidence is present → `PASS`; a row whose evidence is missing or failed → `FAIL`, which blocks the close like any missing gate evidence: name the row and suggest the step that produces it. A nested execute run covers one plan phase, so also scan the same checklist for rows still recorded `DEFERRED-BY-PLAN: phase <n>` at close: name them as `unfinished plan phases: <n…>` and treat them like missing gate evidence — the close is refused and surfaced via `ask user question tool` (Option A: "Continue the remaining phases" (Recommended); Option B: "Accept as-is — I will record the reason", the reason captured in the recap or close message). No plan checklist → record `N/A — no plan checklist` for this scan too.
 
@@ -100,9 +101,9 @@ This skill closes workflow state. In workflows with `/watzup`, it runs after fin
 
 3. **Sync knowledge graph** (optional best-effort index refresh; skip if `.code-graph/` dir doesn't exist):
     ```bash
-    if [ -d ".code-graph" ]; then python .claude/scripts/code_graph sync --json && python .claude/scripts/code_graph update --json; fi
+    if [ -d ".code-graph" ]; then python3 .claude/scripts/code_graph sync --json && python3 .claude/scripts/code_graph update --json; fi
     ```
-    Report results briefly.
+    On Windows use `py -3` in place of `python3`. Skip with reason `no source change` when the run changed no source files (research, audit, planning or docs-only runs). Report results briefly.
 4. **Verify workflow ownership baseline** (when `/start-workflow` recorded a run):
    - Run `node .claude/scripts/lib/workflow-baseline.cjs report` with the run ID and project root.
    - Treat `QUALIFIED` as “no observed unowned path changes,” not proof that every hunk was authored by this run.
@@ -121,7 +122,7 @@ This skill closes workflow state. In workflows with `/watzup`, it runs after fin
     git diff --name-only HEAD && git ls-files --others --exclude-standard
     ```
 
-    - **No diff** (pure investigation/research/docs-only workflow with nothing built) → skip with reason `"no changes to explain"`.
+    - **No diff** (pure investigation/research/docs-only workflow with nothing built) → skip the recap with reason `"no changes to explain"`. When no `watzup` runs after it, print instead a short **handoff** of at most five lines: the artifacts the run produced (paths, including reports under `tmp/`), each outcome gate's verdict, and the next owner or step.
     - **A `watzup` occurrence follows** (the Tier-2 manifest's next occurrence is `watzup`) → skip with reason `"covered by watzup"`: its Session summary owns Done / Key changes / Why / How it works. If that `watzup` is later skipped as a logged deviation, the recap duty stays with `workflow-end`: print the recap at that point.
     - **Nested in a parent workflow** (this workflow runs as a step of another workflow, e.g. a nested `workflow-e2e` whose own `watzup` its registry applicability skips; the parent's tail `workflow-end` → `watzup` owns the whole run's recap) → skip with reason `"covered by the parent workflow's watzup"`. One rule covers every case: `workflow-end` prints the recap exactly when no `watzup` will run after it, in this run or in its parent workflow's tail.
     - **Diff present and nothing follows to own it** (standalone `/workflow-end`, or a workflow without `watzup`) → ALWAYS print a one-way teaching recap so the developer understands the work **without re-reading the diff**. This is one-way — NO quiz, NO teach-back, NEVER blocks.
@@ -134,6 +135,10 @@ This skill closes workflow state. In workflows with `/watzup`, it runs after fin
     2. **Purpose / kind** — feature / bug fix / enhancement / refactor / perf / security — and the problem it solves.
     3. **How it works** — mechanism, key logic, invariants relied on, edge cases preserved; focus the **non-obvious**.
     4. **Why this way** — rationale and trade-offs; why over the obvious alternative.
+
+    When the workflow's own skill names a next command for its hand-off (for example `workflow-greenfield-init` names `/workflow-implement-spec --mode=greenfield-slice` with the first slice), print it as one `Next:` line after the recap or handoff; when a `watzup` follows, pass the command to it.
+
+    When no `watzup` runs after it, end the recap or handoff with one `Lessons:` line — `none`, or the one recurring lesson worth `/learn` under the Lesson Extraction Gate.
 
 7. **Close only the workflow-owned baseline run** after the final report is persisted and the recap step is resolved (printed, or skipped as `no changes to explain` / `covered by watzup` / `covered by the parent workflow's watzup`):
    - When `/start-workflow` recorded a run, invoke `node .claude/scripts/lib/workflow-baseline.cjs close` with JSON stdin containing the recorded `rootDir`, `runId`, and `storeDir` when one was recorded. Use the exact same identity as step 4; never guess a replacement run or directory.
@@ -175,7 +180,7 @@ Finalize and close the active workflow while retaining per-session recovery stat
 
 ## Prompt-Enhance Closing Anchors
 
-**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval
+**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval; inside a workflow run, `/start-workflow` → Workflow-step mode bounds this
 **IMPORTANT MUST ATTENTION** for every step/sub-skill call: set `in_progress` before execution, set `completed` after execution
 **IMPORTANT MUST ATTENTION** every skipped step MUST include explicit reason; every completed step MUST include concise evidence
 **IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses

@@ -2,7 +2,7 @@
 
 > Loaded by `work-item/SKILL.md`'s Mode Dispatch when invoked as `/work-item --mode=challenge [task path] [--reuse=<task review report | task-review>]`. This contract is the whole invocation: run the cross-person Dev BA PIC challenge of a BA drafter's task. It works called directly with no workflow; every rule, flag, output and gate below is the contract of that mode.
 
-> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
+> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval. Inside a workflow run, `/start-workflow` → Workflow-step mode bounds this rule.
 > **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
@@ -41,7 +41,7 @@
 
 ## Why This Skill Exists
 
-Informal task review misses architecture feasibility, vague AC, auth, and cross-service gaps. `/work-item --mode=refine` creates tasks; `/work-item --mode=review --type=task` self-reviews and leaves drafter blind spots. This skill gives a different Dev BA PIC specific, evidence-backed challenges before planning.
+Informal task review misses architecture feasibility, vague AC, auth, and cross-service gaps. `/work-item --mode=refine` creates tasks; `/work-item --mode=review --type=task` is an AI review, even from a fresh context, and leaves drafter blind spots. This skill gives a different Dev BA PIC specific, evidence-backed challenges before planning.
 
 For teams whose Dev BA PIC availability is a chronic bottleneck, an async comment-thread challenge is a valid alternative; it requires the drafter to research responses and an external ticket integration. Human decision ownership remains unchanged.
 
@@ -64,6 +64,9 @@ For frontend/UI changes, read — every filename below resolves inside the refer
 - Design system tokens: `design-system/README.md`
 
 ## Workflow
+
+> **After a task review in this run.** When this run's `work-item --mode=review --type=task` report holds rows 10-12 (module, feasibility, cross-cutting), cite its path and start Steps 2, 3 and 5 from those rows: offer the report's module in the Step 2 confirmation, re-read the evidence each row cites against the current task, evaluate each row in full yourself, and report where you disagree with the review and what it missed. These checks stay consumer-owned in the shared coverage map, so the challenge still states its own verdict on each. Spend the depth on what only this mode does: drafter-specific prompts (Step 6), shown before the AI verdict so the Dev BA PIC judges first (Step 7), and the human decision (Step 8).
+> **Order.** When the workflow runs this challenge before story slicing, revisions land before stories are cut.
 
 1. **Locate task draft** — Find BA drafter's draft in `tasks/` under the team-artifacts root (default `team-artifacts`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path) or the user-provided path. Note an optional `--reuse=<task review report>` input (see the M1-M7 gate section below).
 2. **Load domain context** — Auto-detect module from task content. **MANDATORY: Use `ask user question tool` to confirm the module with the Dev BA PIC before loading domain docs.** Wrong module = wrong entity context = false APPROVE risk. Then load:
@@ -180,6 +183,8 @@ Follow "Reusing an earlier verdict" in `.claude/skills/shared/m1-m7-gates.md`. W
 ---
 
 ## Next Steps
+
+> **Inside a workflow:** when this skill runs as a step of an active workflow, skip the prompts in this section and return the result — the workflow's next step decides what runs (`/start-workflow` → Step Execution Protocol, Workflow-step mode).
 
 **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use `ask user question tool` to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
 
@@ -464,7 +469,7 @@ Follow "Reusing an earlier verdict" in `.claude/skills/shared/m1-m7-gates.md`. W
 
 ## Prompt-Enhance Closing Anchors
 
-**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval
+**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval; inside a workflow run, `/start-workflow` → Workflow-step mode bounds this
 **IMPORTANT MUST ATTENTION** for every step/sub-skill call: set `in_progress` before execution, set `completed` after execution
 **IMPORTANT MUST ATTENTION** every skipped step MUST include explicit reason; every completed step MUST include concise evidence
 **IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses

@@ -11,7 +11,7 @@ description: '[Content] Use when a workflow step or the user asks for marketing 
 **Summary:**
 
 - **Main path:** load the market-analysis artifact → define positioning and differentiation → plan channels with budget and ROI → craft messaging → build the campaign roadmap with KPIs → assess risks and mitigations.
-- **Evidence gate:** base positioning on competitive analysis, label market evidence, and make KPIs specific, measurable, and time-bound.
+- **Evidence gate:** base positioning on competitive analysis, label market evidence, cite every factual claim inline `[N]` mapped to a Sources row, and make KPIs specific, measurable, and time-bound.
 
 **Workflow:**
 
@@ -28,6 +28,7 @@ description: '[Content] Use when a workflow step or the user asks for marketing 
 - Every channel: purpose, budget %, expected ROI, priority
 - KPIs must be specific, measurable, time-bound
 - Market evidence must be labelled as the exact market-analysis artifact or as unverified inline context; never silently treat the latter as reviewed research
+- Every factual claim and number ends with an inline `[N]` citation mapped to a Sources row (Title, URL, Author/Org, Date, Tier); reuse the market-analysis Sources rows for market facts. Factual claims rest on 2+ independent sources; a single-source claim is marked unverified and held below 60% confidence. Planning choices you set (budget split, KPI targets) state their basis as labelled assumptions
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
@@ -97,7 +98,7 @@ Total budget % must equal 100%.
 
 ## Output
 
-Write to `docs/knowledge/strategy/marketing/{descriptive-slug}.md` using enforced template from `.claude/templates/marketing-strategy-template.md`.
+Write to `docs/knowledge/strategy/marketing/{descriptive-slug}.md` using enforced template from `.claude/templates/marketing-strategy-template.md`. List every cited source in its Sources table with Title, URL, Author/Org, Date and Tier; every `[N]` resolves to a row and every row is cited.
 
 ---
 
@@ -111,8 +112,8 @@ Write to `docs/knowledge/strategy/marketing/{descriptive-slug}.md` using enforce
 
 **IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting
 
-**IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code
-**IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
+**IMPORTANT MUST ATTENTION** cite every factual claim and number inline `[N]` mapped to a Sources row (Title, URL, Author/Org, Date, Tier); reuse the market-analysis Sources rows for market facts
+**IMPORTANT MUST ATTENTION** back factual claims with 2+ independent sources; mark a single-source claim unverified and hold it below 60% confidence
 **IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.

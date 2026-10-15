@@ -28,6 +28,11 @@ if ((require.main === module || !require.main) && require('./lib/framework-runti
  *     signal delivers once until a compaction. A prompt without a session id is never delivered: a
  *     directive that cannot be de-duplicated would repeat on every prompt.
  *
+ * Sub-agent start and the host's compaction report carry no prompt: there the router classifies the
+ * session's latest recorded user prompt (`routedPrompt` in `lib/prompt-route-utils.cjs`) and answers with
+ * the JSON context envelope. A sub-agent spawn is its own scope; a compaction report delivers at once
+ * and absorbs the boundary the host writes after it (`deliverWithCompaction`).
+ *
  * Accelerator only: the same protocol reaches the model through the `ai-feature-gate` convention class
  * (file-convention-inject.cjs, static table + `--lookup`) and the review skill. A false negative falls back
  * to those; a false positive costs one short directive per window. Advisory plaintext; always exit 0.
@@ -39,6 +44,8 @@ if ((require.main === module || !require.main) && require('./lib/framework-runti
  * the diagnostic to stderr.
  *
  * @hook UserPromptSubmit
+ * @hook SubagentStart
+ * @hook SessionStart (compact)
  */
 
 const { isHookEntryPoint } = require('./lib/hook-runner.cjs');
@@ -171,14 +178,18 @@ function renderDirective(file, shown, allowSkillRouting) {
 }
 
 /**
- * The text for a matching prompt, or '' — detection, opt-out and directive only; no delivery memory.
- * deps (tests): env, projectDir, rawSettings — forwarded to the opt-out check.
+ * The text for a matching prompt (`routedPrompt`), or '' — detection, opt-out and directive only; no
+ * delivery memory.
+ * deps (tests): env, projectDir, rawSettings — forwarded to the prompt lookup and the opt-out check.
  */
 function evaluate(input, deps = {}) {
     try {
         if (!input || typeof input !== 'object' || Array.isArray(input)) return '';
-        if (input.hook_event_name && input.hook_event_name !== 'UserPromptSubmit') return '';
-        const detection = detectAiFeature(input.prompt);
+        // A prompt event carries its own text; only the prompt-less events load the ledger lookup, so a prompt
+        // with no AI vocabulary still pays a single regex test.
+        const event = input.hook_event_name;
+        const prompt = !event || event === 'UserPromptSubmit' ? input.prompt : require('./lib/prompt-route-utils.cjs').routedPrompt(input, deps);
+        const detection = detectAiFeature(prompt);
         if (!detection) return '';
         // Checked only on a match, so most prompts never pay for the settings read.
         if (!require('./lib/prompt-route-utils.cjs').isRouterEnabled(SETTINGS_SECTION, ENV_SWITCH, deps)) return '';
@@ -232,13 +243,13 @@ function run(input, deps = {}) {
             const env = deps.env || process.env;
             const ledger = deps.ledger || require('./lib/convention-ledger.cjs');
             const crypto = require('crypto');
-            ledger.deliverOnce({
+            ledger.deliverWithCompaction({
                 root: deps.storeRoot || ledger.storeRoot(env),
-                input,
+                input: ledger.agentStartInput(input),
                 group: RECORD_GROUP,
                 // One record for every intent: the window is per session scope, not per wording.
                 hash: crypto.createHash('sha256').update(`${HOOK_NAME}:${GATE_FILE}:${FRAMING_FILE}:${require('./lib/prompt-route-utils.cjs').resolveHookSkillAutoTrigger(deps).enabled}`, 'utf8').digest('hex'),
-                payload: text,
+                payload: require('./lib/prompt-route-utils.cjs').routerOutput(input, text),
                 settings: ledgerSettings(ledger),
                 now: typeof deps.now === 'number' ? deps.now : Date.now(),
                 write: deps.write || defaultWrite

@@ -2,7 +2,7 @@
 
 > Loaded by `architecture/SKILL.md`'s Mode Dispatch when invoked as `$architecture --mode=full [scope]`. Formerly `/architecture-review-full`. This contract is the whole invocation: run it exactly as written, standalone or as a workflow step. `$ARGUMENTS` in this file means the invocation text after `--mode=full`.
 
-> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
+> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval. Inside a workflow run, `$start-workflow` → Workflow-step mode bounds this rule.
 > **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
@@ -171,19 +171,23 @@ Flip the report status to `🔍 VALIDATING`, then run ONE merged `$why-review` p
 3. `$why-review` demotes/removes any finding → FIX the report in place: revise severities, remove false positives, restore any distinct issue the dedup wrongly collapsed, and add a `## Why-Review Fix Notes` section listing per-face what changed + why.
 4. `$why-review` confirms all findings → append `## Why-Review Validation` stating "All N merged findings re-validated across 3 faces; no severity changes."
 
-Skip ONLY on an unconditional zero-open-finding PASS (LOW deferral) across all three children (log the skip reason, then proceed to Step 6 to finalize the clean PASS).
+Skip ONLY on an unconditional zero-open-finding PASS (LOW deferral) across all three children (log the skip reason, then proceed to Step 6 to finalize the clean PASS), or under `--defer=validate` below (Step 6 then finalizes the report as pending the deferred gate).
+
+**`--defer=validate`** (passed by a workflow whose next gate is its own report-level `$why-review`, such as `workflow-architecture-audit`): record `Validation: deferred to <occurrence-id>` and go to Step 6. That gate walks each face exactly as items 1-4 describe, fixes the report in place and appends the `## Why-Review Validation` evidence, in its one pass — the merged findings are validated once, never twice.
 
 ## Step 6: Finalize (status `FINISHED`)
 
-The report is now validated — lock it and hand off a stable artifact.
+The report is now validated — or, under `--defer=validate`, marked `Validation: deferred to <occurrence-id>` — lock it and hand off a stable artifact.
 
-1. Compute the **Combined Verdict** as the worst-case rollup across the three now-validated sub-scores (any BLOCKED / NOT READY / HIGH RISK dominates); write it into the header, replacing the `⏳ pending` placeholder.
-2. Flip the report status from `🔍 VALIDATING` to `✅ FINISHED` and append a `## Finalization` block: the three sub-scores, the non-scoring TVC status/source, the combined verdict, the total validated finding count by severity, and the `Faces merged: 3/3` confirmation.
-3. This finalized report is the single deliverable the downstream workflow-level `$why-review` step and `docs-manager --mode=update` consume. Do NOT emit a second report file or re-synthesize — one file, finalized once.
+1. Compute the **Combined Verdict** as the worst-case rollup across the three sub-scores (validated, or pending the deferred gate) (any BLOCKED / NOT READY / HIGH RISK dominates); write it into the header, replacing the `⏳ pending` placeholder.
+2. Flip the report status (`🔍 VALIDATING`, or the pre-validation status under `--defer=validate`) to `✅ FINISHED` and append a `## Finalization` block: the three sub-scores, the non-scoring TVC status/source, the combined verdict, the total validated finding count by severity, and the `Faces merged: 3/3` confirmation.
+3. This finalized report is the single deliverable the downstream workflow-level `$why-review` step and `docs-manager --mode=update` consume. Do NOT emit a second report file or re-synthesize — one file, finalized once; under `--defer=validate` the named gate revises this same file in place.
 
-> **Two-tier validation (why this skill runs `$why-review` AND the workflow adds a `why-review` step):** Step 5 here is the FINDING-level, per-face fix that also protects standalone use of this skill. The workflow-level `why-review` step that follows is the REPORT-level final gate over the finalized artifact (verdict-rollup correctness, dedup completeness, cross-review severity consistency) and the machine-visible guarantee in the rendered sequence. Distinct altitudes; do not collapse one into the other.
+> **Two-tier validation (why this skill runs `$why-review` AND the workflow adds a `why-review` step):** Step 5 here is the FINDING-level, per-face fix that also protects standalone use of this skill. The workflow-level `why-review` step that follows is the REPORT-level final gate over the finalized artifact (verdict-rollup correctness, dedup completeness, cross-review severity consistency) and the machine-visible guarantee in the rendered sequence. Distinct altitudes; do not collapse one into the other — except under `--defer=validate`, where the workflow's gate performs both tiers in its one pass (the per-face walk of Step 5 items 1-4, then the report-level checks); standalone use always runs Step 5.
 
 ## Next Steps
+
+> **Inside a workflow:** when this skill runs as a step of an active workflow, skip the prompts in this section and return the result — the workflow's next step decides what runs (`$start-workflow` → Step Execution Protocol, Workflow-step mode).
 
 **MANDATORY — NO EXCEPTIONS:** After completing, use `ask user question tool` to present:
 
@@ -730,7 +734,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 ## Prompt-Enhance Closing Anchors
 
-**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval
+**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval; inside a workflow run, `$start-workflow` → Workflow-step mode bounds this
 **IMPORTANT MUST ATTENTION** for every step/sub-skill call: set `in_progress` before execution, set `completed` after execution
 **IMPORTANT MUST ATTENTION** every skipped step MUST include explicit reason; every completed step MUST include concise evidence
 **IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses

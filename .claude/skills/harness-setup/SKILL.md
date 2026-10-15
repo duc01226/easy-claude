@@ -6,7 +6,7 @@ description: '[Quality] Use when a workflow step or the user asks for an agent q
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
-> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
+> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval. Inside a workflow run, `/start-workflow` → Workflow-step mode bounds this rule.
 > **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
@@ -143,7 +143,7 @@ Copy the `architecture --mode=design` contract into `test-strategy.md`; resolve 
 
 ### Run, Data, Isolation & Repeat Policy (write beside the matrix)
 
-For each applicable persistent-state tier, record run/test identity generation and unique business-data suffix, supported public paths, realistic valid data, count-before-create idempotent/restart-safe reference setup, keyed additive accumulation with integrity checks, mutable-root/parallel-worker isolation, immutable shared data, realistic actor pacing, observable arrange barriers, and exact results. Require two consecutive no-reset full runs; until executed, mark proof `planned — {owner}`, not PASS. Keep property/invariant, mutation, change, and behavior coverage meaningful; line coverage remains diagnostic only.
+For each applicable persistent-state tier, record run/test identity generation and unique business-data suffix, supported public paths, realistic valid data, count-before-create idempotent/restart-safe reference setup, keyed additive accumulation with integrity checks, mutable-root/parallel-worker isolation, immutable shared data, realistic actor pacing, observable arrange barriers, and exact results. Require two consecutive no-reset full runs for an integration tier and one fresh green full run for any other tier; until executed, mark proof `planned — {owner}`, not PASS. Keep property/invariant, mutation, change, and behavior coverage meaningful; line coverage remains diagnostic only.
 
 **Test-strength sensors (NOT a line-coverage gate):**
 
@@ -224,6 +224,8 @@ Present inventory to user for review via `ask user question tool`.
 
 ## Next Steps
 
+> **Inside a workflow:** when this skill runs as a step of an active workflow, skip the prompts in this section and return the result — the workflow's next step decides what runs (`/start-workflow` → Step Execution Protocol, Workflow-step mode).
+
 `ask user question tool`:
 
 - **"/feature-implement (Recommended)"** — Begin implementing the project plan with full harness in place
@@ -249,7 +251,7 @@ Present inventory to user for review via `ask user question tool`.
 
 ## Prompt-Enhance Closing Anchors
 
-**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval
+**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval; inside a workflow run, `/start-workflow` → Workflow-step mode bounds this
 **IMPORTANT MUST ATTENTION** for every step/sub-skill call: set `in_progress` before execution, set `completed` after execution
 **IMPORTANT MUST ATTENTION** every skipped step MUST include explicit reason; every completed step MUST include concise evidence
 **IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses

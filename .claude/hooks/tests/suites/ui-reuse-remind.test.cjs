@@ -223,15 +223,34 @@ tests.push({ name: '[authoring] registrations, canonical reminder and plan guide
     const start = settings.hooks.SessionStart.filter(owns);
     assert.equal(start.length, 1);
     assert.equal(start[0].matcher, 'compact|clear');
+    const agent = settings.hooks.SubagentStart.filter(owns);
+    assert.equal(agent.length, 1);
+    assert.equal(agent[0].matcher, undefined, 'every agent type');
 } });
 
-test('TC-PDL-117 host compact/clear re-arms even without a transcript; startup/resume never re-arm', () => fixture(async fx => {
+test('TC-PDL-118 every sub-agent start receives the reminder as start context, once per spawn', () => fixture(async fx => {
+    assert.ok(await fx.fire(fx.event()));
+    const start = id => fx.event({ hook_event_name: 'SubagentStart', agent_id: id, agent_type: 'Explore', prompt: undefined });
+    const context = JSON.parse(await fx.fire(start('a1'))).hookSpecificOutput;
+    assert.equal(context.hookEventName, 'SubagentStart');
+    assert.ok(context.additionalContext.includes(BODY));
+    assert.equal(await fx.fire(start('a1')), '', 'the same spawn is deduplicated');
+    assert.ok(await fx.fire(start('a2')), 'another spawn is its own scope');
+    assert.ok(await fx.fire(start(undefined)), 'a start without an agent id is still its own spawn');
+    assert.equal(await fx.fire(fx.event()), '', 'the main scope is unaffected');
+    assert.equal(await fx.fire(start('a3'), configured({ enabled: false })), '', 'the project switch silences agent starts too');
+}));
+
+test('TC-PDL-117 host compact delivers at once and compact/clear re-arm even without a transcript; startup/resume never re-arm', () => fixture(async fx => {
     const now = Date.now();
     const event = fx.event({ transcript_path: undefined });
     const ledger = require('../../lib/convention-ledger.cjs');
     const store = path.join(fx.root, 'tmp/protocol-delivery');
-    assert.equal(await fx.fire({ ...event, hook_event_name: 'SessionStart', source: 'compact' }), '');
-    assert.equal(fs.existsSync(store), false, 'a reset with no delivery creates no store');
+    // A compaction report is the only signal a promptless run gets: it delivers, and the next prompt stays silent.
+    const compacted = { ...event, session_id: 'compacted' };
+    const delivered = await fx.fire({ ...compacted, hook_event_name: 'SessionStart', source: 'compact' }, {}, { now });
+    assert.equal(JSON.parse(delivered).hookSpecificOutput.hookEventName, 'SessionStart');
+    assert.equal(await fx.fire(compacted, {}, { now: now + 500 }), '');
     assert.ok(await fx.fire(event, {}, { now }));
     const child = { ...event, agent_id: 'child' };
     assert.ok(await fx.fire(child, {}, { now }));
@@ -248,7 +267,8 @@ test('TC-PDL-117 host compact/clear re-arms even without a transcript; startup/r
             before.set(group, fs.readFileSync(ledger.recordFile(store, 'main', 'main', group), 'utf8'));
         }
         // Deterministically model UI reset finishing AFTER same-event sibling deliveries.
-        assert.equal(await fx.fire({ ...event, hook_event_name: 'SessionStart', source }, {}, { now: at }), '');
+        const reset = await fx.fire({ ...event, hook_event_name: 'SessionStart', source }, {}, { now: at });
+        assert.equal(Boolean(reset), source === 'compact', `${source} delivers only on a compaction`);
         for (const group of siblings) {
             assert.equal(fs.readFileSync(ledger.recordFile(store, 'main', 'main', group), 'utf8'), before.get(group));
             let siblingWrites = 0;
@@ -258,7 +278,8 @@ test('TC-PDL-117 host compact/clear re-arms even without a transcript; startup/r
             assert.equal(siblingWrites, 0, 'UI reset invalidated a fresh sibling delivery');
             assert.equal(repeat, '');
         }
-        assert.ok(await fx.fire(event, {}, { now: at + 1000 }));
+        // After a compaction the main scope already holds the reminder; after a clear its next prompt delivers.
+        assert.equal(Boolean(await fx.fire(event, {}, { now: at + 1000 })), source === 'clear');
         assert.ok(await fx.fire(child, {}, { now: at + 1000 }));
         assert.equal(await fx.fire(child, {}, { now: at + 2000 }), '');
         assert.equal(await fx.fire(event, {}, { now: at + 2000 }), '');

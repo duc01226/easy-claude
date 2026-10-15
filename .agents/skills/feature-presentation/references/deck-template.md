@@ -584,7 +584,7 @@ The example above carries four slides; a real deck adds the taxonomy sections be
 - **Scope & planned work** [`scope-backlog`] — task cards, user stories, acceptance criteria, priorities.
 - **Behavior & rules** [`rules`] — Feature Spec §4 business rules / §5 invariants, §8 test cases.
 - **Demo flows / user journeys** [`demo-{journey-slug}`] — one slide per main user story: interactive mockup embed + narration beside it (see §3b); spec-only → one wireframe-demo slide per ASCII frame [`demo-{journey-slug}`, `demo-{journey-slug}-2`, …] (§3b "Spec-only wireframe demo").
-- **UI / mockups** [`ui-{feature-slug}`] — one of: `<iframe srcdoc>` embed (initiative-to-task), design-spec ASCII wireframe in an escaped `<pre class="deck__wireframe" tabindex="0" role="region" aria-label="Wireframe: {screen}">` + Component Inventory / States / Design-Tokens tables (initiative-to-spec), or the empty-state text "No prototype or design available for {feature}".
+- **UI / mockups** [`ui-{feature-slug}`] — one of: `<iframe srcdoc>` embed (idea-to-tasks), design-spec ASCII wireframe in an escaped `<pre class="deck__wireframe" tabindex="0" role="region" aria-label="Wireframe: {screen}">` + Component Inventory / States / Design-Tokens tables (idea-to-spec), or the empty-state text "No prototype or design available for {feature}".
 - **QC view** [`qc-view`] — test specifications, states matrix, edge cases.
 - **Summary / next steps** [`summary`].
 
@@ -702,7 +702,7 @@ No-visual demo notes (same six labels; the build fills the `{…}` placeholders)
 </template>
 ```
 
-### Spec-only wireframe demo (`initiative-to-spec`)
+### Spec-only wireframe demo (`idea-to-spec`)
 
 A spec-only journey has no prototype: it steps through the design spec's ASCII wireframes, ONE SLIDE PER FRAME, so Next (or the Right arrow) advances the frames like any slide. Each frame slide replaces the scaffold demo's iframe AND its `.deck__empty` line with a wireframe figure — keeping the empty-state line would show "No prototype or design available" beside the design. Keep the narration and its "⚠ Simulated" note. The engine's empty-demo swap acts only on an embed that holds an iframe, so it leaves this slide alone.
 

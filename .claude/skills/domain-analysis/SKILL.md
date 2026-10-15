@@ -67,7 +67,7 @@ Find the active `*/plan.md` by modification time. Read its scope/goals/decisions
 
 ### Step 1: Load Business Context
 
-Read the active plan, business evaluation, refined task and discovery notes from the resolved roots. Extract nouns (candidate entities), verbs (events), roles (permissions/views) and processes (business workflows).
+Read the active plan, business evaluation (where `/business-evaluation` writes it: `docs/knowledge/strategy/business/`, or the path the caller supplies), refined task and discovery notes from the resolved roots. Extract nouns (candidate entities), verbs (events), roles (permissions/views) and processes (business workflows).
 
 ### Step 2: Identify Bounded Contexts
 
@@ -119,7 +119,9 @@ Before finalizing, consider decomposing tables with >20 columns, remove cross-se
 
 ### Step 7: User Validation Interview
 
-**MANDATORY** present domain model and ask 5-8 questions via `ask user question tool`:
+> **Decision log:** inside a workflow, read the run's `## Decisions` first (`/start-workflow` → Step Execution Protocol, Decision log): ask only what it leaves open or new evidence reopened, cite reused answers instead of asking again, and append every new answer.
+
+**MANDATORY** present domain model and ask 5-8 questions via `ask user question tool`. With fewer genuine open decisions, ask those and say so; never pad, and never re-ask an answer the run's decision log holds.
 
 Cover context boundaries, aggregate roots, entity/VO classification, relationship type/cardinality, missing concepts and event recipients/payloads. For boundaries offer Correct (Recommended), Need changes or Explain more.
 
@@ -175,6 +177,8 @@ Report must be **≤250 lines**. Use tables over prose.
 
 
 ## Next Steps
+
+> **Inside a workflow:** when this skill runs as a step of an active workflow, skip the prompts in this section and return the result — the workflow's next step decides what runs (`/start-workflow` → Step Execution Protocol, Workflow-step mode).
 
 **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, use `ask user question tool` to present these options:
 

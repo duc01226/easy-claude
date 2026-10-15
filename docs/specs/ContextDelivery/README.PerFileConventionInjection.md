@@ -5,7 +5,7 @@ feature_code: 'PFCI'
 entities: ['ConventionClass', 'ClassMatcher', 'ContentSignal', 'ConventionDigest', 'DeliveryRecord', 'WorkingContext', 'PromptAdvisory', 'ChangeSetScan']
 status: draft
 owner: 'Framework maintainers'
-last_updated: '2026-09-30'
+last_updated: '2026-10-14'
 scope_mode: FRAMEWORK-LIBRARY
 large_idea_decomposition: null
 roadmap: null
@@ -489,7 +489,7 @@ Detection is narrow and needs both an AI technique and an action on it. Concrete
 
 Detection favours precision over recall by policy. A prompt that asks for AI-feature work only in generic vocabulary beside framework words, or in wording the cues do not cover, may stay silent; a prompt that merely resembles AI vocabulary (a request for prompt templates in a command-line wizard, or an audit of a guardrails setting in an infrastructure file) may draw one directive. Both costs are bounded — a missed prompt is still met by the AI-feature class on files, the change-set scan and the review skills, and a false directive is one short text per reminder window.
 
-The advisory is an accelerator of the AI-feature class, never the only carrier (BR-PFCI-13). It is delivered at most once per working context and reminder window, through the same delivery memory as file reminders: a condensation or clear re-arms it (reported by the host, or recorded in the conversation history by either supported host), so does about 150,000 tokens of further conversation, elapsed time alone never does, and a prompt without a conversation identifier is never delivered because it could not be de-duplicated (AC-PFCI-51). A prompt with no AI vocabulary is decided by one cheap test and writes no memory. It is on by default and off when the project setting, its per-developer override, or the machine's environment switch turns it off; the switch is consulted only after a match. It never blocks or alters the prompt, any internal failure shows nothing, and the diagnostic stream carries the failure only in diagnostic mode (BR-PFCI-10).
+The advisory is an accelerator of the AI-feature class, never the only carrier (BR-PFCI-13). It is delivered at most once per working context and reminder window, through the same delivery memory as file reminders: a condensation or clear re-arms it (reported by the host, or recorded in the conversation history by either supported host), so does about 150,000 tokens of further conversation, elapsed time alone never does, and a prompt without a conversation identifier is never delivered because it could not be de-duplicated (AC-PFCI-51). A prompt with no AI vocabulary is decided by one cheap test and writes no memory. An agent start and the host's compaction report carry no prompt: there the advisory is decided on the session's latest recorded user prompt, an agent start is its own working context (once per spawn), and a compaction report delivers it at once and absorbs the boundary the host records after it, so the next prompt stays silent; with no recorded prompt nothing is shown (ProtocolDelivery BR-PDL-21). It is on by default and off when the project setting, its per-developer override, or the machine's environment switch turns it off; the switch is consulted only after a match. It never blocks or alters the prompt, any internal failure shows nothing, and the diagnostic stream carries the failure only in diagnostic mode (BR-PFCI-10).
 
 ### BR-PFCI-25: Review-time scan uses the delivery decision [HARD]
 

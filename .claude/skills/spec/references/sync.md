@@ -171,6 +171,8 @@ Forward-sync the canonical business §8 TCs against the test suite (§8 is canon
 
 ## Next Steps (sync mode)
 
+> **Inside a workflow:** when this skill runs as a step of an active workflow, skip the prompts in this section and return the result — the workflow's next step decides what runs (`/start-workflow` → Step Execution Protocol, Workflow-step mode).
+
 Based on the reconciliation outcome, suggest via `ask user question tool`:
 
 ```

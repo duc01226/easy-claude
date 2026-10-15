@@ -206,7 +206,7 @@ test("roadmap surface coverage failure is hard and does not silently disable the
 
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "roadmap-boundary-surface-"));
   try {
-    for (const routeId of ["workflow-feature", "workflow-initiative-to-task"]) {
+    for (const routeId of ["workflow-feature", "workflow-planned-work"]) {
       const routeFile = path.join(tempRoot, ".claude", "skills", routeId, "SKILL.md");
       await fs.mkdir(path.dirname(routeFile), { recursive: true });
       await fs.writeFile(routeFile, "isLargeIdea large_idea_decomposition", "utf8");
@@ -219,6 +219,52 @@ test("roadmap surface coverage failure is hard and does not silently disable the
     assert.ok(
       evaluateRoadmapBoundary(surface).some((finding) => finding.code === "ROADMAP-SURFACE-COVERAGE")
     );
+  } finally {
+    await fs.rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test("roadmap boundary reads every mode file and every variant sequence of a merged default route", async () => {
+  // Given a default route whose router keeps its mode bodies in references and its modes in variants
+  const CLEAN = "isLargeIdea large_idea_decomposition; standalone product-roadmap route is explicit-only; ordinary scope does not create docs/product-roadmap.md";
+  const PLANNED = [
+    ".claude/skills/workflow-planned-work/SKILL.md",
+    ".claude/skills/workflow-planned-work/references/planned-work-core.md",
+    ".claude/skills/workflow-planned-work/references/mode-idea-to-tasks.md",
+    ".claude/skills/workflow-planned-work/references/mode-idea-to-spec.md",
+    ".claude/skills/workflow-planned-work/references/mode-spec-to-tasks.md",
+  ];
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "roadmap-boundary-variants-"));
+  const write = async (relativeFile, text) => {
+    await fs.mkdir(path.dirname(path.join(tempRoot, relativeFile)), { recursive: true });
+    await fs.writeFile(path.join(tempRoot, relativeFile), text, "utf8");
+  };
+  const registry = (variantSteps) => ({
+    workflows: Object.fromEntries(ROADMAP_BOUNDARY_POLICY.defaultRouteIds.map((routeId) => [routeId, {
+      sequence: [{ skill: "plan" }],
+      ...(routeId === "workflow-planned-work" ? { variants: { "idea-to-tasks": { sequence: [{ skill: "plan" }] }, "spec-to-tasks": { sequence: variantSteps } } } : {}),
+    }])),
+  });
+  const writers = async () => (evaluateRoadmapBoundary(await loadRoadmapBoundarySurface(tempRoot)))
+    .filter((finding) => finding.code === "ROADMAP-DEFAULT-WRITER").map((finding) => finding.routeId);
+  try {
+    for (const routeId of ["workflow-big-feature", "workflow-feature", "workflow-greenfield-init"]) await write(`.claude/skills/${routeId}/SKILL.md`, CLEAN);
+    for (const file of PLANNED) await write(file, CLEAN);
+    await write(".claude/skills/product-roadmap/SKILL.md", "explicit-only docs/product-roadmap.md");
+    await write(".claude/workflows.json", JSON.stringify(registry([{ skill: "plan" }])));
+    // When every file and sequence is clean, Then no route writes the roadmap
+    assert.deepEqual(await writers(), []);
+    // When a non-default variant gains a roadmap step, Then that route is caught
+    await write(".claude/workflows.json", JSON.stringify(registry([{ skill: "plan" }, { skill: "product-roadmap" }])));
+    assert.deepEqual(await writers(), ["workflow-planned-work"]);
+    // When only a mode reference names the writer, Then that route is caught
+    await write(".claude/workflows.json", JSON.stringify(registry([{ skill: "plan" }])));
+    await write(PLANNED[4], `${CLEAN}\nRun product-roadmap after the task review.`);
+    assert.deepEqual(await writers(), ["workflow-planned-work"]);
+    // When a mode reference is missing, Then coverage fails and names it
+    await fs.rm(path.join(tempRoot, PLANNED[3]));
+    const surface = await loadRoadmapBoundarySurface(tempRoot);
+    assert.ok(surface.coverageFailures.some((message) => message.includes(PLANNED[3])), surface.coverageFailures.join("; "));
   } finally {
     await fs.rm(tempRoot, { recursive: true, force: true });
   }
@@ -687,7 +733,7 @@ test("runChecks passes positive SDD fixture", async () => {
         "Code Bug vs Spec Bug Spec Bug Code Bug performance-review SLA functional no-regression docs/project-config.json",
       ],
       [
-        ".claude/skills/workflow-initiative-to-task/SKILL.md",
+        ".claude/skills/workflow-planned-work/references/mode-idea-to-tasks.md",
         "Feature doc Section 8 TC IDs docs-manager --mode=update docs/project-config.json team-artifacts/initiatives team-artifacts/tasks tmp/reports/docs-update",
       ],
       [
@@ -739,7 +785,7 @@ test("runChecks passes positive SDD fixture", async () => {
         "Code Bug vs Spec Bug Spec Bug Code Bug shared/sdd-artifact-contract.md",
       ],
       [
-        ".agents/skills/workflow-initiative-to-task/SKILL.md",
+        ".agents/skills/workflow-planned-work/references/mode-idea-to-tasks.md",
         "Feature doc Section 8 TC IDs docs-manager --mode=update shared/sdd-artifact-contract.md team-artifacts/initiatives team-artifacts/tasks tmp/reports/docs-update",
       ],
       [
@@ -1022,7 +1068,7 @@ test("TC-DOCROOT-090: SDD probes the configured teamArtifacts root, not the defa
     await writeProjectConfig(tempRoot, { docsRoots: { teamArtifacts: { path: "artifacts" } } });
 
     const initiativeToTask = CHECKS.find(
-      (check) => check.code === "SDD003" && check.file === ".claude/skills/workflow-initiative-to-task/SKILL.md"
+      (check) => check.code === "SDD003" && check.file === ".claude/skills/workflow-planned-work/references/mode-idea-to-tasks.md"
     );
     assert.ok(initiativeToTask);
     assert.ok(initiativeToTask.requireAll.includes("{TEAM_ARTIFACTS_ROOT}/initiatives"));

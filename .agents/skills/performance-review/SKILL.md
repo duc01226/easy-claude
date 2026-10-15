@@ -40,6 +40,8 @@ description: '[Debugging] Use when a workflow step or the user asks for performa
 > 2. **Right data structure & algorithm for the stack.** Match the structure to the access pattern via the runtime's efficient primitive — O(1) `Set`/`Map`/dict/hash lookup instead of a linear `find`/`includes`/`contains`/`in list` scan inside a loop; no O(n²) where O(n log n) / O(n) / O(1) exists; single-pass min/max/partition instead of redundant re-sort. Prove the complexity class at worst-case N, never by intuition.
 > 3. **Batch once, or parallelize — never serial fan-out.** Collapse per-item query / API / cache calls into ONE batched call (`IN` / bulk / aggregate / prefetch dictionary); where independent calls remain, run bounded-parallel with a fresh safe resource per worker instead of sequential awaits — always preserving ordering, authorization, idempotency.
 
+> **[BLOCKING] Query Scan Gate — no search or query scans rows on large data.** Every query, search or filter the change adds or alters on data that can grow large (no proven small, invariant-bounded size) reaches its rows through an index-backed, sargable access path and returns a bounded result (page, limit or cursor). A full table or collection scan, a leading-wildcard `LIKE`, unanchored regex or `contains` search, a non-sargable predicate (dimension 2), or an unindexed filter, join, sort or group key on such data is at least a HIGH finding and blocks the verdict; free-text search needs a full-text or search index, not a scan. Evidence: the serving index (`file:line` in the schema or migration) and, when available, plan/explain output at realistic volume. A scan stays only when the data is provably bounded (state the bound) or the plan is shown cheap at production volume. This gate sets the severity floor for these patterns; the scale-evidence rule under severity governs every other finding.
+
 > **Performance Knowledge (calibration constants & domain laws)** — the anchors severity depends on:
 >
 > - **Latency ladder** `1 ns → 100 ns → 100 µs → 10 ms → 100 ms` (L1 → RAM → SSD → disk seek → intercontinental), each rung ~100-1000×; **~1 ms RTT per 100 km of fiber is a hard floor** no code fix beats.
@@ -69,7 +71,7 @@ description: '[Debugging] Use when a workflow step or the user asks for performa
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
-> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
+> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval. Inside a workflow run, `$start-workflow` → Workflow-step mode bounds this rule.
 > **[BLOCKING]** Before each step/sub-skill call, update todo tracking: set `in_progress` when step starts, `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If task tools unavailable, maintain equivalent step-by-step tracker with synchronized statuses.
@@ -507,7 +509,7 @@ Sub-agent prompt MUST include target, detected scope, local context evidence, re
 
 > **Purpose:** Validate performance findings before optimization work. Performance reports overstate easily when evidence is static-only, a plan lacks production-like scale, or a proposed index/cache changes write-cost or data-freshness risk.
 
-**Trigger:** Any performance finding or optimization recommendation (Critical, High, Medium, Low, WARN, or static risk). Skip ONLY when the report's verdict is unconditional PASS with literally zero findings.
+**Trigger:** Any performance finding or optimization recommendation (Critical, High, Medium, Low, WARN, or static risk). Skip ONLY when the report's verdict is unconditional PASS with literally zero findings. Also skip when called with `--loop-owner=caller`: the caller validates the merged report once (`$start-workflow` → Workflow-step mode).
 
 **Protocol:**
 
@@ -522,6 +524,7 @@ Sub-agent prompt MUST include target, detected scope, local context evidence, re
 
 - Verdict is unconditional PASS with zero findings.
 - Why-review skill itself is the active context.
+- Called with `--loop-owner=caller` → log "Skipped — the caller validates the merged report once".
 
 ---
 

@@ -14,16 +14,15 @@ const expectedApplicability = {
   skipReason: "This scope has no commercial market to size (for example, an internal tool, migration, or infrastructure-only change), or this product's addressable market is already sized and unchanged by this feature.",
 };
 const expectedSequence = [
-  "initiative", "web-research", "source-deep-dive", "market-analysis", "business-evaluation",
-  "spec [mode=discovery]", "domain-analysis", "why-review", "tech-stack-research", "architecture --mode=design",
+  "initiative", "web-research --chain=deep-dive", "market-analysis", "business-evaluation",
+  "spec [mode=discovery]", "domain-analysis", "tech-stack-research", "architecture --mode=design",
   "architecture --mode=scalability", "why-review", "scenario", "plan", "plan --mode=review",
-  "work-item --mode=refine", "work-item --mode=review --type=task", "work-item --mode=story", "work-item --mode=review --type=story", "work-item --mode=challenge --reuse=task-review",
+  "work-item --mode=refine", "work-item --mode=review --type=task", "work-item --mode=challenge --reuse=task-review", "work-item --mode=story",
   "work-item --mode=dor --reuse=task-review", "work-item --mode=mockup --explore", "spec", "spec [mode=tests]", "work-item --mode=review --type=spec-tests",
-  "spec [mode=clarify]", "plan", "plan --mode=review", "scaffold", "architecture --mode=full",
-  "scan --target=ui-system", "scan --target=backend-patterns", "scan --target=integration-tests",
-  "scan --target=project-structure", "plan --mode=validate", "plan --mode=execute", "seed-test-data",
+  "spec [mode=clarify]", "plan", "plan --mode=review", "plan --mode=validate", "scaffold", "architecture --mode=review",
+  "scan-all --targets=ui-system,backend-patterns,integration-tests,project-structure", "plan --mode=execute", "seed-test-data",
   "integration-test", "spec [mode=sync]", "workflow-review-changes --tests=defer", "integration-test --mode=verify",
-  "workflow-e2e --source=context", "test", "workflow-end", "watzup",
+  "workflow-e2e --source=context", "test --proven=@verify", "workflow-end", "watzup",
 ];
 
 async function readBigFeatureWorkflow() {
@@ -111,11 +110,11 @@ test("market-analysis parity, consumer obligations, and all workflow steps stay 
   assert.equal(skill.split(when).length - 1, 1);
   assert.equal(skill.split(skipReason).length - 1, 1);
   assert.match(skill, /every market-sizing figure N\/A with the exact skip reason/i);
-  assert.match(skill, /never waives `\/web-research`, `\/source-deep-dive`.*required user confirmations/i);
+  assert.match(skill, /never waives `\/web-research --chain=deep-dive`.*required user confirmations/i);
   assert.match(evaluationSkill, /mark every market-sizing figure.*N\/A with that reason/i);
   assert.match(evaluationSkill, /NEVER re-derive sizing/);
-  assert.match(workflow.preActions.injectContext, /EVERY research stage requires ask user question tool validation before proceeding/);
-  assert.equal(sequence.length, 45);
+  assert.match(workflow.preActions.injectContext, /research phase .* is validated with the user once via ask user question tool, and the business case gets one go\/no-go confirmation/);
+  assert.equal(sequence.length, 39);
   assert.deepEqual(sequence, expectedSequence);
   assert.equal(sequence[sequence.indexOf("market-analysis") + 1], "business-evaluation");
   // The registry owns the chain; the skill carries exactly ONE parity line (the verifier parses it) and no display copy.

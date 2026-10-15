@@ -5,7 +5,7 @@
  *
  * The OWNER of the per-person route mode and its precedence. Three modes:
  *   - `ask`  (default): the workflow question is asked only when the model's own route is to start a catalog workflow; direct, single-skill and custom-simple routes ask nothing.
- *   - `auto`: a matched workflow starts without asking, by its own tier.
+ *   - `auto`: the workflow question is still asked before a self-selected workflow starts, recommending the full workflow first.
  *   - `off`:  no workflow or workflow skill is started without an explicit user request.
  * The hook (`workflow-route-inject.cjs`) delivers the route for the resolved mode on every host
  * that runs it (Claude, Codex, OpenCode bridge); no other surface decides the mode.

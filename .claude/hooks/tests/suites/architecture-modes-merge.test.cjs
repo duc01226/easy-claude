@@ -262,10 +262,12 @@ const tests = [
             for (const id of Object.keys(document.workflows)) {
                 for (const manifest of resolveAllWorkflowManifests(document, id, { rootDir: REPO_ROOT })) {
                     for (const occurrence of manifest.occurrences.filter(step => step.skill === 'architecture')) {
-                        const match = /^--mode=(design|review|scalability|full)(?: (?:--report-only|--review-only|--fix-loop|--loop-owner=caller))*$/.exec(occurrence.args.trim());
+                        const match = /^--mode=(design|review|scalability|full)(?: (?:--report-only|--review-only|--fix-loop|--loop-owner=caller|--defer=validate))*$/.exec(occurrence.args.trim());
                         assert.ok(match, `${id}/${manifest.mode}/${occurrence.id}: unsupported architecture arguments "${occurrence.args}"`);
                         assert.ok(dispatch.includes(`\`--mode=${match[1]}`), `${id}/${occurrence.id}: architecture has no --mode=${match[1]}`);
                         seen.add(match[1]);
+                        // Deferring validation is a full-mode contract: only full owns the Step 5 that a later gate takes over
+                        if (/--defer=validate/.test(occurrence.args)) assert.equal(match[1], 'full', `${id}/${occurrence.id}: --defer=validate outside --mode=full`);
                         // The review-changes specialist wave runs review mode as a read-only leaf
                         if (id === 'workflow-review-changes') assert.equal(occurrence.args.trim(), manifest.mode === 'fix-loop'
                             ? '--mode=review --fix-loop --loop-owner=caller' : '--mode=review --review-only');

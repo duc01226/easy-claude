@@ -9,7 +9,7 @@
  * processes (and the real Codex launcher command) inside a temp fixture project with its own HOME, so a
  * mode switch that stops working fails here — a check of the source text alone would keep passing.
  * Intents protected:
- * - Each mode delivers its own text: `ask` asks the workflow question, `auto` starts without asking,
+ * - Each mode delivers its own text: `ask` and `auto` both ask the workflow question (`auto` recommends the full workflow first),
  *   `off` delivers a one-line state with no gate and no catalog (BR-WFR-06, BR-WFR-08).
  * - The catalog is an output of its own: silent wherever no gate is delivered, recorded and re-delivered
  *   independently of the route output, and never a second writer of a prompt directive (TC-WFR-025).
@@ -55,7 +55,10 @@ const CATALOG_START = '<!-- CK:RUNTIME-WORKFLOW-CATALOG -->';
 const CATALOG_END = '<!-- /CK:RUNTIME-WORKFLOW-CATALOG -->';
 const CATALOG_HEADING = '## Workflow & Skills Catalog';
 const ASK_QUESTION = '**Workflow question** (every tier)';
-const AUTO_START = '**Workflow start** (mode auto)';
+// Mode auto's own line: the same workflow question, with the full workflow recommended first (P46).
+const AUTO_START = '**Route mode `auto`:**';
+// Mode ask's own line: how the tier orders the recommendation. Both modes carry the workflow question.
+const ASK_TIER = 'The tier (workflow `activation`) only orders the recommendation';
 // The catalog's tier legend, in each mode's own words.
 const ASK_LEGEND = 'before you start a catalog workflow, in every tier';
 const AUTO_LEGEND = '**Activation (mode auto):**';
@@ -87,14 +90,16 @@ function makeProject() {
         ...SWITCHES, CLAUDE_PROJECT_DIR: root, HOME: home, USERPROFILE: home, TMPDIR: tmp, TEMP: tmp, TMP: tmp, ...extra
     });
     const env = extra => childEnv(overrides(extra));
-    const spawnHook = (hookFile, session, prompt, extraEnv) => {
+    const spawnEvent = (hookFile, payload, extraEnv) => {
         const result = spawnSync(process.execPath, [path.join(root, '.claude', 'hooks', hookFile)], {
             cwd: root,
-            input: JSON.stringify({ hook_event_name: 'UserPromptSubmit', session_id: session, cwd: root, prompt }),
+            input: JSON.stringify({ cwd: root, ...payload }),
             env: env(extraEnv), encoding: 'utf8', windowsHide: true, timeout: 30000
         });
         return { code: result.status, out: result.stdout || '', err: result.stderr || '' };
     };
+    const spawnHook = (hookFile, session, prompt, extraEnv) =>
+        spawnEvent(hookFile, { hook_event_name: 'UserPromptSubmit', session_id: session, prompt }, extraEnv);
     const project = {
         root,
         home,
@@ -117,6 +122,9 @@ function makeProject() {
         },
         runEntry(hookFile, session, prompt, extraEnv = {}) {
             return spawnHook(hookFile, session, prompt, extraEnv);
+        },
+        runEvent(hookFile, payload, extraEnv = {}) {
+            return spawnEvent(hookFile, payload, extraEnv);
         },
         cli(args, extraEnv = {}) {
             const result = spawnSync(process.execPath, [path.join(root, '.claude', 'scripts', 'workflow-mode.cjs'), ...args], {
@@ -183,8 +191,35 @@ module.exports = {
             })
         },
         {
-            // Intent: `auto` removes the question for this person: a matched workflow starts by its tier.
-            name: '[workflow-route-modes] TC-WFR-014 mode auto delivers the auto-start gate and never the workflow question',
+            // Intent: a compaction drops the route and catalog from the conversation, and a long autonomous run
+            // may never send another prompt, so the host's compaction report carries both at once.
+            name: '[workflow-route-modes] TC-WFR-027 a compaction report delivers the route and the catalog at once, as session-start context',
+            fn: () => withProject(p => {
+                // Given a session that already received both outputs
+                const session = newSession();
+                assertContains(p.run(session, 'fix the flaky login test').out, ROUTE_START);
+                assertContains(p.runCatalog(session, 'fix the flaky login test').out, CATALOG_HEADING);
+                // When the host reports a compaction
+                const compact = { hook_event_name: 'SessionStart', session_id: session, source: 'compact' };
+                const route = p.runEvent(ROUTE_HOOK, compact);
+                const catalog = p.runEvent(CATALOG_HOOK, compact);
+                // Then each arrives again as the session-start context envelope, with the same mode
+                assertEqual(route.code, 0, route.err);
+                const routeContext = JSON.parse(route.out).hookSpecificOutput;
+                assertEqual(routeContext.hookEventName, 'SessionStart');
+                assertContains(routeContext.additionalContext, ROUTE_START);
+                assertEqual(modeOf(routeContext.additionalContext).join('|'), 'ask|default');
+                assertContains(JSON.parse(catalog.out).hookSpecificOutput.additionalContext, CATALOG_HEADING);
+                // And the other session-start sources stay silent: the next prompt carries the route
+                for (const source of ['startup', 'resume', 'clear']) {
+                    assertEqual(p.runEvent(ROUTE_HOOK, { ...compact, source }).out, '', `${source} delivers nothing`);
+                    assertEqual(p.runEvent(CATALOG_HOOK, { ...compact, source }).out, '', `${source} delivers no catalog`);
+                }
+            })
+        },
+        {
+            // Intent: `auto` keeps the question (the user's always-ask rule, P46) and only recommends the full workflow first.
+            name: '[workflow-route-modes] TC-WFR-014 mode auto asks the workflow question and recommends the full workflow first',
             fn: () => withProject(p => {
                 // Given the person sets auto in the environment
                 const session = newSession();
@@ -192,25 +227,26 @@ module.exports = {
                 // When the first prompt arrives and both route hooks run
                 const first = p.run(session, 'add a retry to the fetcher', env);
                 const catalog = p.runCatalog(session, 'add a retry to the fetcher', env);
-                // Then the route says start without asking, by tier, and keeps the mid-session and explicit-request rules
+                // Then the route asks the same question before any self-selected workflow starts, recommends the full workflow first,
+                // and keeps the mid-session and explicit-request rules
                 assertEqual(first.code, 0, first.err);
                 assertEqual(modeOf(first.out).join('|'), 'auto|env CK_WORKFLOW_ROUTE_MODE');
                 assertContains(first.out, AUTO_START);
-                assertContains(first.out, '`manual` never starts on your own');
-                assertContains(first.out, 'Mid-session: never auto-activate a workflow.');
-                assertContains(first.out, 'An explicit request (as above; `$workflow-*` on Codex) runs any tier with no question');
-                assertNotContains(first.out, '**Workflow question**', 'mode auto must not ask the workflow question');
-                assertNotContains(first.out, 'NEVER starts before the answer', 'mode auto must not forbid a matched workflow from starting');
+                assertContains(first.out, ASK_QUESTION);
+                assertContains(first.out, 'it NEVER starts before the answer');
+                assertContains(first.out, '**Route mode `auto`:** recommend (a) first, except for a `manual` tier.');
+                assertNotContains(first.out, ASK_TIER, 'the ask tier line is its own text');
+                assertContains(first.out, 'Mid-session: never auto-activate a workflow or ask to start one.');
+                assertContains(first.out, 'An explicit request (`$workflow-*` on Codex too) runs any tier with no question');
                 // And the catalog output carries the auto tier legend, never the ask one
                 assertEqual(catalog.code, 0, catalog.err);
                 assertContains(catalog.out, CATALOG_HEADING);
                 assertContains(catalog.out, AUTO_LEGEND);
-                assertNotContains(catalog.out, ASK_LEGEND, 'the tier legend must not say every tier asks');
-                assertNotContains(catalog.out, '**Workflow question**', 'mode auto must not ask the workflow question');
+                assertNotContains(catalog.out, ASK_LEGEND, 'the auto legend is its own text');
+                assertContains(catalog.out, 'recommending the full workflow first for an `auto` or `confirm` tier and never first for `manual`');
                 assertNotContains(first.out, CATALOG_HEADING, 'the route output carries no catalog');
-                // And a manual workflow is still named in the route declaration, in both the gate and the tier legend
-                assertContains(first.out, '`manual` never starts on your own: name it in your route declaration and take (b) or (c)');
-                assertContains(catalog.out, '`manual` never starts on your own: name it in your route declaration; it runs on explicit request only');
+                // And no auto-start wording survives in either output
+                for (const out of [first.out, catalog.out]) assertTrue(!/starts? (?:it )?without asking/.test(out), 'mode auto must never start a self-selected workflow unasked');
             })
         },
         {
@@ -302,6 +338,8 @@ module.exports = {
                 for (const hookFile of [ROUTE_HOOK, CATALOG_HOOK]) {
                     assertTrue(fs.existsSync(path.join(CLAUDE_DIR, 'hooks', hookFile)), `${hookFile} must exist`);
                     assertTrue(commands.some(c => c.includes(`.claude/hooks/${hookFile}`)), `settings.json must register ${hookFile} for UserPromptSubmit`);
+                    assertTrue((settings.hooks.SessionStart || []).some(group => group.matcher === 'compact' && group.hooks.some(h => (h.command || '').includes(`.claude/hooks/${hookFile}`))),
+                        `settings.json must register ${hookFile} for the SessionStart compaction report`);
                     if (codexCommands) {
                         assertTrue(codexCommands.some(c => c.includes(`.claude/hooks/${hookFile}`)), `.codex/hooks.json must register ${hookFile}`);
                     }
@@ -781,7 +819,9 @@ module.exports = {
                 assertContains(ask, '(never for direct or custom-simple)');
                 assertNotContains(ask, 'a route that matches a catalog workflow', 'a matched-but-downgraded route must not be told to ask');
                 assertTrue(!/(?:direct|custom-simple)[^.;|]{0,80}\b(?:must|MUST|always) ask\b/.test(ask), 'a direct or custom-simple route must never be told to ask');
-                assertNotContains(auto, 'NEVER starts before the answer');
+                assertContains(auto, 'NEVER starts before the answer', 'mode auto asks the same question (P46)');
+                assertContains(auto, '**Route mode `auto`:**');
+                assertNotContains(ask, '**Route mode `auto`:**');
             }
         },
         {
@@ -833,7 +873,7 @@ module.exports = {
                     ['a workflow without injectContext', () => p.write(registry, withoutInject)],
                     ['empty file', () => p.write(registry, '')]
                 ];
-                const modes = [['ask', ASK_QUESTION, AUTO_START], ['auto', AUTO_START, ASK_QUESTION]];
+                const modes = [['ask', ASK_TIER, AUTO_START], ['auto', AUTO_START, ASK_TIER]];
                 // The route output a healthy registry gives each mode: the full gate
                 const healthy = Object.fromEntries(modes.map(([mode]) => [mode, p.run(newSession(), 'fix the flaky login test', { CK_WORKFLOW_ROUTE_MODE: mode }).out]));
                 for (const [label, breakIt] of breakers) {

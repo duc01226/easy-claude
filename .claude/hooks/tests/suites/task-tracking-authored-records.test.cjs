@@ -332,8 +332,8 @@ module.exports = { name: 'Task tracking authored records integration', tests: [
             const section = guide.slice(heading.index);
             for (const field of [...TRACKER_OWNED, 'tracking']) assert.ok(section.includes(`\`${field}\``), `owner section names ${field}`);
             for (const surface of ['skills/initiative/SKILL.md', 'skills/work-item/SKILL.md', 'skills/work-item/references/mode-refine.md', 'skills/work-item/references/mode-story.md',
-                'skills/work-item/references/mode-dor.md', 'skills/prioritize/SKILL.md', 'skills/workflow-initiative-to-task/SKILL.md', 'skills/workflow-spec-to-task/SKILL.md',
-                'skills/workflow-initiative-to-spec/SKILL.md']) {
+                'skills/work-item/references/mode-dor.md', 'skills/prioritize/SKILL.md', 'skills/workflow-planned-work/references/mode-idea-to-tasks.md', 'skills/workflow-planned-work/references/mode-spec-to-tasks.md',
+                'skills/workflow-planned-work/references/mode-idea-to-spec.md']) {
                 assert.ok(read(surface).includes(GUIDE_ANCHOR), `${surface} points to the record shape owner`);
             }
             for (const template of TEMPLATES.filter(item => !item.heading)) assert.ok(read(template.source).includes('task-track/references/integration-guide.md'), `${template.source} points to the owner`);

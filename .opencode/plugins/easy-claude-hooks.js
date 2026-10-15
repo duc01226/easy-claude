@@ -161,6 +161,15 @@ const HOOKS = {
         }
       ],
       "matcher": "Edit|Write|MultiEdit|NotebookEdit|apply_patch"
+    },
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": ".claude/hooks/quality-skill-remind.cjs"
+        }
+      ],
+      "matcher": "*"
     }
   ],
   "PreToolUse": [
@@ -334,6 +343,31 @@ const HOOKS = {
         }
       ],
       "matcher": "compact|clear"
+    },
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": ".claude/hooks/core-principles-inject.cjs"
+        },
+        {
+          "type": "command",
+          "command": ".claude/hooks/judgement-integrity-route.cjs"
+        },
+        {
+          "type": "command",
+          "command": ".claude/hooks/ai-feature-route.cjs"
+        },
+        {
+          "type": "command",
+          "command": ".claude/hooks/workflow-route-inject.cjs"
+        },
+        {
+          "type": "command",
+          "command": ".claude/hooks/workflow-catalog-inject.cjs"
+        }
+      ],
+      "matcher": "compact"
     }
   ],
   "Stop": [

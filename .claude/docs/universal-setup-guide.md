@@ -20,7 +20,7 @@ Copy the entire `.claude/` directory to your target project. This includes:
 - `skills/` — planning, implementation, review, testing, setup, and sync skills
 - `agents/` — specialized agents (code-reviewer, debugger, architect, etc.)
 - `hooks/` — context injection, workflow routing, enforcement, and setup gates
-- `workflows/` + `workflows.json` — <!-- COUNT:workflows -->19<!-- /COUNT --> workflow definitions (feature, bugfix, refactor, E2E verification, etc.)
+- `workflows/` + `workflows.json` — <!-- COUNT:workflows -->17<!-- /COUNT --> workflow definitions (feature, bugfix, refactor, E2E verification, etc.)
 - `scripts/` — Catalog generators, audit scripts, Codex sync/verification tooling
 - `docs/` — Framework documentation
 
@@ -119,7 +119,7 @@ For new projects with no existing code:
 /workflow-greenfield-init
 ```
 
-This activates the greenfield workflow: idea → research → architecture → plan → scaffold → implement.
+This activates the greenfield workflow: idea → research → architecture → plan → scaffold → reviewed foundation, then it hands the first slice to `/workflow-implement-spec --mode=greenfield-slice`.
 
 ## Troubleshooting
 

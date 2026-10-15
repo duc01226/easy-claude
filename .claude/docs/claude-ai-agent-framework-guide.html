@@ -197,10 +197,10 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
       <h1>Claude AI Agent Framework Guide</h1>
       <p class="lead">A portable <code>.claude/</code> framework that makes Claude Code project-aware, evidence-driven and gated at every quality step, from idea and spec to reviewed commit and pull request. This page is the map; each topic links to its owner doc.</p>
       <div class="stats" aria-label="Framework inventory">
-        <div class="stat"><b><!-- COUNT:skills -->105<!-- /COUNT --></b><span>skills</span></div>
-        <div class="stat"><b><!-- COUNT:workflows -->19<!-- /COUNT --></b><span>workflows</span></div>
+        <div class="stat"><b><!-- COUNT:skills -->103<!-- /COUNT --></b><span>skills</span></div>
+        <div class="stat"><b><!-- COUNT:workflows -->17<!-- /COUNT --></b><span>workflows</span></div>
         <div class="stat"><b><!-- COUNT:agents -->24<!-- /COUNT --></b><span>agents</span></div>
-        <div class="stat"><b><!-- COUNT:hooks -->35<!-- /COUNT --></b><span>hook files</span></div>
+        <div class="stat"><b><!-- COUNT:hooks -->36<!-- /COUNT --></b><span>hook files</span></div>
         <div class="stat"><b><!-- COUNT:lib-modules -->66<!-- /COUNT --></b><span>hook libraries</span></div>
       </div>
       <details class="toc-mobile"><summary>Contents</summary><ol id="toc-mobile-list"></ol></details>
@@ -257,7 +257,7 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
         <li><span class="node">Your prompt</span></li>
         <li><span class="node">Hooks add routing + context</span></li>
         <li><span class="node gate">Route declared<small>before any edit</small></span></li>
-        <li><span class="node">One task per step</span></li>
+        <li><span class="node">One task per phase, a row per step</span></li>
         <li><span class="node">Steps run inline or as sub-agents</span></li>
         <li><span class="node gate">Review, tests, outcome gates</span></li>
         <li><span class="node">Close + summary</span></li>
@@ -318,34 +318,32 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
       <h3>How a run works</h3>
       <ol class="steps">
         <li><div><b>Triage</b><span>Size (XS to XL), change kinds and risk decide the depth.</span></div></li>
-        <li><div><b>Read the guide, create tasks 1:1</b><span>One task per step, titled <code>[Workflow] [gate] …</code>, all before the first starts.</span></div></li>
+        <li><div><b>Read the guide, create phase tasks</b><span>One task per phase, titled <code>[Workflow] [Phase 1/5: Discover] …</code>, with a row per step showing its role, all before the first starts.</span></div></li>
         <li><div><b>Run, logging every deviation</b><span>Skips go to <code>tmp/workflow-runs/&lt;runId&gt;/skips.md</code> with evidence; a task is never deleted. Parallel groups run as one wave and wait for every member.</span></div></li>
         <li><div><b>Close on evidence</b><span><code>workflow-end</code> refuses to close until each outcome gate (root cause traced, plan approved, tests pass, spec synced, review converged) has evidence.</span></div></li>
       </ol>
       <div class="callout"><b>Nested workflows</b><span>Run as sub-agents that return a summary — except <code>workflow-review-changes</code>, which always runs inline so its review loop can hold the session open until it converges.</span></div>
 
       <h3>Workflow catalog</h3>
-      <div class="filter"><label for="wf-filter" class="caption">Filter</label><input id="wf-filter" type="search" placeholder="e.g. spec, test, bug" autocomplete="off" /><span id="wf-count">19 workflows</span></div>
+      <div class="filter"><label for="wf-filter" class="caption">Filter</label><input id="wf-filter" type="search" placeholder="e.g. spec, test, bug" autocomplete="off" /><span id="wf-count">17 workflows</span></div>
       <div class="scroll"><table id="wf-table">
         <thead><tr><th>Workflow</th><th>Tier</th><th>Steps</th><th>Use when</th></tr></thead>
         <tbody>
-          <tr><td><code>workflow-feature</code></td><td><span class="pill auto">auto</span></td><td class="num">28</td><td>A well-defined feature without a spec for it yet</td></tr>
-          <tr><td><code>workflow-big-feature</code></td><td><span class="pill confirm">confirm</span></td><td class="num">45</td><td>Large, ambiguous or research-heavy feature</td></tr>
-          <tr><td><code>workflow-implement-spec</code></td><td><span class="pill auto">auto</span></td><td class="num">11</td><td>Behavior already written in a canonical spec</td></tr>
-          <tr><td><code>workflow-bugfix</code></td><td><span class="pill auto">auto</span></td><td class="num">16</td><td>A bug, crash, regression or stale output</td></tr>
-          <tr><td><code>workflow-refactor</code></td><td><span class="pill auto">auto</span></td><td class="num">15</td><td>Restructure without changing behavior</td></tr>
-          <tr><td><code>workflow-review-changes</code></td><td><span class="pill auto">auto</span></td><td class="num">19</td><td>Review uncommitted changes before commit</td></tr>
-          <tr><td><code>workflow-spec-to-mockup</code></td><td><span class="pill auto">auto</span></td><td class="num">8</td><td>Clickable mockup of a UI spec, 1–3 design directions</td></tr>
-          <tr><td><code>workflow-feature-spec</code></td><td><span class="pill auto">auto</span></td><td class="num">8</td><td>Create or update a canonical feature spec</td></tr>
-          <tr><td><code>workflow-code-to-spec</code></td><td><span class="pill auto">auto</span></td><td class="num">6–11</td><td>Spec from existing code, sync, staleness audit</td></tr>
-          <tr><td><code>workflow-spec-sync</code></td><td><span class="pill auto">auto</span></td><td class="num">11</td><td>Update test specs after code, bug or PR changes</td></tr>
-          <tr><td><code>workflow-initiative-to-spec</code></td><td><span class="pill auto">auto</span></td><td class="num">19</td><td>Raw idea → one reviewed provisional spec</td></tr>
-          <tr><td><code>workflow-initiative-to-task</code></td><td><span class="pill auto">auto</span></td><td class="num">30</td><td>Initiative → ready-to-plan task, stories, test specs</td></tr>
-          <tr><td><code>workflow-spec-to-task</code></td><td><span class="pill auto">auto</span></td><td class="num">22</td><td>Specs → prioritized, dependency-aware planned work</td></tr>
-          <tr><td><code>workflow-greenfield-init</code></td><td><span class="pill confirm">confirm</span></td><td class="num">55</td><td>A new project from scratch</td></tr>
+          <tr><td><code>workflow-feature</code></td><td><span class="pill auto">auto</span></td><td class="num">22</td><td>A well-defined feature without a spec for it yet</td></tr>
+          <tr><td><code>workflow-big-feature</code></td><td><span class="pill confirm">confirm</span></td><td class="num">39</td><td>Large, ambiguous or research-heavy feature</td></tr>
+          <tr><td><code>workflow-implement-spec</code></td><td><span class="pill auto">auto</span></td><td class="num">13</td><td>Behavior already written in a canonical spec; a greenfield first slice</td></tr>
+          <tr><td><code>workflow-bugfix</code></td><td><span class="pill auto">auto</span></td><td class="num">15</td><td>A bug, crash, regression or stale output</td></tr>
+          <tr><td><code>workflow-refactor</code></td><td><span class="pill auto">auto</span></td><td class="num">14</td><td>Restructure without changing behavior</td></tr>
+          <tr><td><code>workflow-review-changes</code></td><td><span class="pill auto">auto</span></td><td class="num">14–19</td><td>Review uncommitted changes before commit</td></tr>
+          <tr><td><code>workflow-spec-to-mockup</code></td><td><span class="pill auto">auto</span></td><td class="num">6</td><td>Clickable mockup of a UI spec, 1–3 design directions</td></tr>
+          <tr><td><code>workflow-feature-spec</code></td><td><span class="pill auto">auto</span></td><td class="num">10</td><td>Create or update a canonical feature spec</td></tr>
+          <tr><td><code>workflow-code-to-spec</code></td><td><span class="pill auto">auto</span></td><td class="num">5–9</td><td>Spec prose from existing code: first spec, rewrite, staleness audit</td></tr>
+          <tr><td><code>workflow-spec-sync</code></td><td><span class="pill auto">auto</span></td><td class="num">9</td><td>Code already changed: reconcile cases and tests, prove them green</td></tr>
+          <tr><td><code>workflow-planned-work</code></td><td><span class="pill auto">auto</span></td><td class="num">18–26</td><td>Idea or spec → reviewed spec or ready-to-plan tasks (<code>--from</code>/<code>--to</code>)</td></tr>
+          <tr><td><code>workflow-greenfield-init</code></td><td><span class="pill confirm">confirm</span></td><td class="num">35</td><td>A new project from scratch to a reviewed foundation; first slice via implement-spec</td></tr>
           <tr><td><code>workflow-integration-test</code></td><td><span class="pill auto">auto</span></td><td class="num">6–10</td><td>Write or update integration tests spec-first, or drive a red suite to green</td></tr>
           <tr><td><code>workflow-e2e</code></td><td><span class="pill auto">auto</span></td><td class="num">6</td><td>Write, update and verify E2E tests</td></tr>
-          <tr><td><code>workflow-seed-test-data</code></td><td><span class="pill auto">auto</span></td><td class="num">9</td><td>Idempotent seeders and realistic dev data</td></tr>
+          <tr><td><code>workflow-seed-test-data</code></td><td><span class="pill auto">auto</span></td><td class="num">8</td><td>Idempotent seeders and realistic dev data</td></tr>
           <tr><td><code>workflow-architecture-audit</code></td><td><span class="pill auto">auto</span></td><td class="num">6</td><td>Whole-project architecture and readiness check</td></tr>
           <tr><td><code>workflow-research</code></td><td><span class="pill auto">auto</span></td><td class="num">5–6</td><td>Web research → synthesis, business, marketing or course</td></tr>
         </tbody>

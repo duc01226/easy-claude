@@ -6,7 +6,7 @@ description: '[Architecture] Use when a workflow step or the user asks for tech-
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
-> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
+> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval. Inside a workflow run, `/start-workflow` → Workflow-step mode bounds this rule.
 > **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
@@ -26,7 +26,7 @@ description: '[Architecture] Use when a workflow step or the user asks for tech-
 
 **Workflow:**
 
-1. **Load Business Context** — Read prior business evaluation, domain/ERD, refined task, and discovery notes from the plans and team-artifacts roots (defaults `plans/` and `team-artifacts/`; `docsRoots.plans.path` / `docsRoots.teamArtifacts.path` in `docs/project-config.json` override them).
+1. **Load Business Context** — Read the prior business evaluation from `docs/knowledge/strategy/business/`, where `business-evaluation` writes it (a supplied path wins), and the domain/ERD, refined task, and discovery notes from the plans and team-artifacts roots (defaults `plans/` and `team-artifacts/`; `docsRoots.plans.path` / `docsRoots.teamArtifacts.path` in `docs/project-config.json` override them).
 2. **Derive Technical Requirements** — Map signals to constraints; confirm via `ask user question tool`.
 3. **Research Per Layer** — Research only unresolved required layers; compare 2–3 viable alternatives within the agreed query budget.
 4. **Deep Compare** — Build pros/cons matrices with benchmarks, community health, and team fit.
@@ -41,6 +41,7 @@ description: '[Architecture] Use when a workflow step or the user asks for tech-
 - **MANDATORY IMPORTANT MUST ATTENTION** include confidence % with evidence for every recommendation
 - **MANDATORY IMPORTANT MUST ATTENTION** run user validation interview at end (NEVER skip)
 - All claims must cite sources (URL, benchmark, case study)
+- Tier every source; a decision-critical claim needs 2+ independent sources, else `single source, unverified` below 60%; at most 10 searches and 8 fetches per pass
 - Recommend on benchmarked evidence (URL, benchmark, case study); NEVER on familiarity alone
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
@@ -62,7 +63,7 @@ description: '[Architecture] Use when a workflow step or the user asks for tech-
 
 ## Step 1: Load Business Context
 
-Read artifacts from prior workflow steps — search the plans and team-artifacts roots (defaults `plans/` and `team-artifacts/`; `docsRoots.plans.path` / `docsRoots.teamArtifacts.path` in `docs/project-config.json` override them):
+Read artifacts from prior workflow steps. The business evaluation is at `docs/knowledge/strategy/business/{descriptive-slug}.md`, where `business-evaluation` writes it: use the path the workflow or user supplies, else the evaluation for this product or initiative in that folder; when none exists, record `business evaluation: not run` and confirm its signals in Step 2. Search the plans and team-artifacts roots (defaults `plans/` and `team-artifacts/`; `docsRoots.plans.path` / `docsRoots.teamArtifacts.path` in `docs/project-config.json` override them) for the others:
 
 - Business evaluation report (viability, scale, constraints)
 - Domain model / ERD (complexity, entity count, relationships)
@@ -104,6 +105,8 @@ Before searching, record an applicability table for the candidate layers below: 
 For each OPEN-REQUIRED layer, compare 2–3 viable alternatives (include the current/simple option). If constraints leave fewer, record the eliminated candidates and evidence rather than manufacture options. FIXED and N/A layers remain in the report with rationale but need no alternatives or search quota.
 
 Set a total search cap before searching: default at most 10 queries for this pass across all open layers, prioritizing consequential uncertainty; there is no per-layer minimum. Reuse relevant verified evidence. Stop when decision-critical claims have sufficient current authoritative support; do not pad searches. If the cap leaves a consequential uncertainty, record the gap and ask the user to authorize a bounded additional pass specifying its question and cap. Never silently multiply the cap by layer or subtopic.
+
+**Source rules (the `web-research` evidence bar):** classify every source Tier 1 (official docs, peer-reviewed) > Tier 2 (industry reports, major publications) > Tier 3 (established blogs, verified experts; cross-validate) > Tier 4 (forums, personal blogs, social media; never cite as fact). A decision-critical claim (performance, scale limit, cost, licence, security record) needs 2+ independent sources; a claim with one source is marked `single source, unverified` and held below 60% confidence. Read benchmarks and case studies with at most 8 `WebFetch` calls in this pass; the bounded additional pass above covers fetches too.
 
 ### Stack Layers to Evaluate
 
@@ -186,7 +189,7 @@ Calculate weighted total per option per OPEN-REQUIRED layer. Present ranking:
 Write report to `{plan-dir}/research/tech-stack-comparison.md` with:
 
 1. Executive summary (recommended applicable stack in 5 lines)
-2. Technical requirements and layer applicability table (from Steps 2–3), including the query cap, queries used and unresolved evidence gaps
+2. Technical requirements and layer applicability table (from Steps 2–3), including the query and fetch caps, queries and fetches used, single-source claims and unresolved evidence gaps
 3. Per-layer comparison matrices (from Step 4)
 4. Per-layer rankings with recommendations (from Step 5)
 5. Combined recommended stack diagram
@@ -198,7 +201,9 @@ Report must be **<=200 lines**. Use tables over prose.
 
 ## Step 7: User Validation Interview
 
-**MANDATORY IMPORTANT MUST ATTENTION** present findings and ask 5-8 questions via `ask user question tool`:
+> **Decision log:** inside a workflow, read the run's `## Decisions` first (`/start-workflow` → Step Execution Protocol, Decision log): ask only what it leaves open or new evidence reopened, cite reused answers instead of asking again, and append every new answer.
+
+**MANDATORY IMPORTANT MUST ATTENTION** present findings and ask 5-8 questions via `ask user question tool`. With fewer genuine open decisions, ask those and say so; never pad, and never re-ask an answer the run's decision log holds.
 
 ### Required Questions
 
@@ -235,6 +240,8 @@ After user confirms, update report with final decisions, mark `status: confirmed
 ---
 
 ## Next Steps
+
+> **Inside a workflow:** when this skill runs as a step of an active workflow, skip the prompts in this section and return the result — the workflow's next step decides what runs (`/start-workflow` → Step Execution Protocol, Workflow-step mode).
 
 **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use `ask user question tool` to present these options. Do NOT skip because task seems "simple"/"obvious" — the user decides:
 
@@ -276,7 +283,7 @@ After the existing `## Next Steps` prompt above resolves, present a **second**, 
 
 ## Prompt-Enhance Closing Anchors
 
-- **IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval
+- **IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval; inside a workflow run, `/start-workflow` → Workflow-step mode bounds this
 - **IMPORTANT MUST ATTENTION** for every step/sub-skill call: set `in_progress` before execution, set `completed` after execution
 - **IMPORTANT MUST ATTENTION** every skipped step MUST include explicit reason; every completed step MUST include concise evidence
 - **IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses
@@ -325,7 +332,7 @@ After the existing `## Next Steps` prompt above resolves, present a **second**, 
 | "I already know this is the best framework"      | Show the weighted 8-criteria score + confidence %. No matrix = no recommendation.          |
 | "Skip the user interview, the choice is clear"   | The end interview is MANDATORY — only `status: confirmed` decisions get written.            |
 | "Just research the stack, requirements are fine" | Derive + user-confirm technical requirements FIRST (Steps 1-2), then research.              |
-| "One source is enough for this layer"            | Cite URL + benchmark + case study; a single anecdote is not benchmarked evidence.          |
+| "One source is enough for this layer"            | Cite URL + benchmark + case study; a single anecdote is not benchmarked evidence. A decision-critical claim needs 2+ independent sources, else `single source, unverified` below 60%. |
 
 > **External Memory:** For research/analysis work, write intermediate findings and final results to a report file in `tmp/reports/` — prevents context loss and serves as deliverable.
 

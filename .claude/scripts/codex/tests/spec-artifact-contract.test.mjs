@@ -133,9 +133,8 @@ test("Given the post-change spec-sync workflow, When the catalog and wrapper are
   const injected = workflow.preActions.injectContext;
   const steps = skill.match(/^\*\*Steps:\*\* (.+)$/m)?.[1].split(" → ").map(step => step.trim().replace(/^\//, ""));
   const expected = [
-    "workflow-review-changes --tests=defer", "spec [mode=tests]", "work-item --mode=review --type=spec-tests",
-    "spec [mode=sync]", "integration-test", "integration-test --mode=review", "integration-test --mode=verify",
-    "test", "docs-manager --mode=update", "workflow-end", "watzup",
+    "spec [mode=tests]", "work-item --mode=review --type=spec-tests", "integration-test", "spec [mode=sync]",
+    "workflow-review-changes --tests=defer", "integration-test --mode=verify", "test --proven=@verify", "workflow-end", "watzup",
   ];
 
   assert.deepEqual(workflow.sequence.map((step) => (typeof step === "string" ? step : [step.skill, step.args].filter(Boolean).join(" "))), expected);

@@ -1,6 +1,6 @@
 ---
 name: changes-review
-description: '[Code Quality] Use when a workflow step or the user asks for staged, unstaged or branch-diff review. --fix-loop reviews, fixes, re-reviews. Cross-module or risky changes: workflow-review-changes.'
+description: '[Code Quality] Use when a workflow step or the user asks for a focused code-change review: staged, unstaged, branch diff or simple pull request. --fix-loop fixes and re-reviews. Complex pull request: workflow-review-changes; rationale: why-review.'
 ---
 
 > Codex compatibility note:
@@ -15,7 +15,7 @@ description: '[Code Quality] Use when a workflow step or the user asks for stage
 
 **Summary:** Triage every changed file and write a short plan → create review tasks → check connected behavior and applicable concerns → validate findings → report once or fix and freshly re-review. Choose review depth and delegation from risk and available context.
 
-**Workflow:** Resolve scope → plan/tasks → review → validate → review-only report or fix/re-review → final checks and recap.
+**Workflow:** Resolve scope → plan/tasks → review, with the whole-target `$why-review` rationale pass and a `$performance-review` pass when the change can affect performance → validate → review-only report or fix/re-review → final checks and recap.
 
 **Key Rules:** Review-only is the standalone default; `--fix-loop` enables the shared three-round loop. `--loop-owner=caller` returns a read-only pass to its fixing coordinator. Use the carried `review-policy` protocol for completion and user-approved extensions.
 
@@ -41,7 +41,13 @@ For every applicable changed behavior, inspect correctness against intent, suppo
 
 Check spec/test/code consistency, meaningful test assertions and documentation drift. Treat secrets, authorization, privacy, public contracts, migrations, dependencies, operational behavior, hot paths, UI and AI features as risk signals for relevant deeper review. Skip inapplicable concerns with evidence; do not silently omit required gates.
 
-Route specialist depth only where applicable: architecture, domain-analysis, performance-review, integration-test review, security-audit, production-readiness-review, ui-design review and ai-engineering-review. For current AI surfaces run `node .claude/scripts/ai-signal-scan.cjs --json` (add `--base <base>` for branch/PR scope, or `--files <paths>` for named files). `clean` allows skipping; `unknown` requires source inspection and conservative coverage. Historical assessment inspects the selected historical sides directly; a live scan cannot prove them clean.
+**Query scan gate (blocking):** every query, search or filter the change adds or alters on data that can grow large uses an index-backed, sargable access path with a bounded result. Apply `$performance-review`'s Query Scan Gate, the single owner of the patterns it blocks, the evidence it needs, its severity floor and its one exception (provably bounded data, or a plan shown cheap at production volume): read it in `performance-review/SKILL.md` and route depth there whenever the change touches data access.
+
+**Performance review (conditional step):** when the diff touches data access (queries, loops over collections, paging, indexes), hot paths, caching, concurrency, batch/job throughput, or render-heavy UI, run `$performance-review` on the changed code as its own step — `--review-only` in review-only mode, `--fix-loop --loop-owner=caller` inside this skill's fixing loop — and validate its findings with this review's. Otherwise record the skip with its evidence: "No data-access, hot-path, caching, concurrency or render-heavy change is in the diff; record the triage evidence." Skip it only when `--defer=specialists` assigns it to a named caller (`workflow-review-changes` runs it as its own conditional step).
+
+**Whole-target rationale:** run `$why-review --target=whole-review-target` on the complete review target so the change's necessity, alternatives and trade-offs are judged, not only its correctness — read-only, as `--fix-loop --loop-owner=caller` inside this skill's fixing loop and `--review-only` otherwise. Skip it only when `--defer=whole-target` assigns it to a named caller (`workflow-review-changes` runs it as its own step).
+
+Route other specialist depth only where applicable: architecture, domain-analysis, integration-test review, security-audit, production-readiness-review, ui-design review and ai-engineering-review. For current AI surfaces run `node .claude/scripts/ai-signal-scan.cjs --json` (add `--base <base>` for branch/PR scope, or `--files <paths>` for named files). `clean` allows skipping; `unknown` requires source inspection and conservative coverage. Historical assessment inspects the selected historical sides directly; a live scan cannot prove them clean.
 
 When integration tests are in the target or guard changed behavior, run `$integration-test --mode=review --report-only` in review-only mode, or `$integration-test --mode=review --fix-loop --loop-owner=caller` inside the fixing loop. This owner applies all eight test-quality gates; a named parent may own the gate, but deferral never waives it.
 
@@ -49,7 +55,7 @@ Review executable E2E/browser/user-flow changes under `.claude/skills/shared/e2e
 
 ## Validation, fixes and re-review
 
-Report each finding with severity, reachable trigger, consequence, `file:line` and confidence. Keep observations separate. Consolidate duplicate causes while retaining every report and conflicting claim. Any surviving finding requires `$why-review --validate-findings <report>` before fixes or handoff. Resolve the configured canonical owner, profile-declared canonical scenario/case identity and executing test assertion/result. Carry behavior-changing findings into both the governing spec and guarding tests; adjudicate intended changes rather than rewriting either side merely to pass.
+Report each finding with severity, reachable trigger, consequence, `file:line` and confidence. Keep observations separate. Consolidate duplicate causes while retaining every report and conflicting claim. Any surviving finding requires `$why-review --validate-findings <report>` before fixes or handoff; with `--loop-owner=caller`, the caller's single validation of the merged report satisfies this. Resolve the configured canonical owner, profile-declared canonical scenario/case identity and executing test assertion/result. Carry behavior-changing findings into both the governing spec and guarding tests; adjudicate intended changes rather than rewriting either side merely to pass.
 
 Review-only returns the validated report without source changes. Fix-loop follows `review-policy`: trace the owning cause, apply authorized fixes, then freshly review the whole updated target and affected interactions. Create an explicit re-review task even for a small fix. Update relevant specs/docs before the final pass so no terminal edit escapes review.
 
@@ -280,6 +286,6 @@ Read [references/fix-loop.md](references/fix-loop.md) when issuing a full-candid
 
 **Goal:** Find real diff defects and converge authorized fixes with complete coverage.
 
-**Main steps:** scope → triage/plan/tasks → connected review → findings validation → report or fix/fresh re-review → final checks.
+**Main steps:** scope → triage/plan/tasks → connected review, plus `$performance-review` when the diff can affect performance → findings validation → report or fix/fresh re-review → final checks.
 
 Preserve exact scope, evidence and applicable gates. Default review-only; fix-loop has three rounds, accepts deferred LOWs and asks about bounded extension for remaining MEDIUM+ or failed checks. Never accept stale pre-fix evidence.

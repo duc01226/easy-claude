@@ -131,6 +131,8 @@ description: '[Project Management] Use when a workflow step or the user asks for
 
 ### Step 6.5: Discovery Interview (MANDATORY — the ONE interview)
 
+> **Decision log:** inside a workflow, read the run's `## Decisions` first (`/start-workflow` → Step Execution Protocol, Decision log): ask only what it leaves open or new evidence reopened, cite reused answers instead of asking again, and append every new answer.
+
 Apply the Decision Interview protocol: brief the user first on the drafted problem, value, users and scope, then ask. Use `ask user question tool` for 4-6 structured questions, a hard cap for this interview, batched into as few calls as the tool allows; each question MUST ATTENTION be a decision card with 2-4 options, what each option gives and costs, and one marked "(Recommended)" with its reason. Every category is asked AT MOST ONCE across this skill — there is no second question round on the same category. Ask a question only after the answers it depends on: a category that depends on an earlier answer goes in a later call.
 
 | Category        | Purpose                           | Example                                   |
@@ -238,6 +240,8 @@ Paths below show the default team-artifacts root; a `docsRoots.teamArtifacts.pat
 ---
 
 ## Next Steps
+
+> **Inside a workflow:** when this skill runs as a step of an active workflow, skip the prompts in this section and return the result — the workflow's next step decides what runs (`/start-workflow` → Step Execution Protocol, Workflow-step mode).
 
 **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** After completion, use `ask user question tool`:
 

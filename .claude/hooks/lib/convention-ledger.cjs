@@ -85,6 +85,20 @@ function scopeFor(input) {
     return input && nonBlank(input.agent_id) ? `agent-${sanitizeId(input.agent_id)}` : MAIN_SCOPE;
 }
 
+/**
+ * The ledger input of an event. A sub-agent start is always its own scope: a host that reports no
+ * agent id would otherwise share the main conversation's record and the agent would get nothing.
+ */
+function agentStartInput(input) {
+    if (!input || input.hook_event_name !== 'SubagentStart' || nonBlank(input.agent_id)) return input;
+    return { ...input, agent_id: `start-${crypto.randomBytes(6).toString('hex')}` };
+}
+
+/** True for the host's report that it just compacted the conversation (session start, source `compact`). */
+function isCompactionStart(input) {
+    return Boolean(input) && input.hook_event_name === 'SessionStart' && input.source === 'compact';
+}
+
 function sessionDir(root, sessionId) {
     return path.join(root, sanitizeId(nonBlank(sessionId) ? sessionId : 'unknown-session'));
 }
@@ -878,6 +892,27 @@ function deliverOnce({ root, input, group, hash, payload, settings, now = Date.n
     });
 }
 
+/** Remove a scope's record so the next delivery runs; nothing to forget or an unusable store changes nothing. */
+function forgetRecord(root, input, group) {
+    try {
+        fs.rmSync(recordFile(root, input.session_id, scopeFor(input), group), { force: true });
+    } catch {
+        /* nothing to forget, or the store is unusable: delivery still runs */
+    }
+}
+
+/**
+ * `deliverOnce` that also answers the host's compaction report (`isCompactionStart`): the compaction
+ * dropped the earlier delivery from the conversation, so the record is forgotten and the delivery runs
+ * now, and the record absorbs the boundary line the host writes after its session-start hooks
+ * (`expectBoundary`), so the prompt that follows stays silent. Any other event is plain `deliverOnce`.
+ */
+function deliverWithCompaction(options) {
+    if (!isCompactionStart(options && options.input)) return deliverOnce(options);
+    forgetRecord(options.root, options.input, options.group);
+    return deliverOnce({ ...options, expectBoundary: true });
+}
+
 module.exports = {
     MAIN_SCOPE,
     CODEX_COMPACTION_MARKER,
@@ -889,6 +924,8 @@ module.exports = {
     storeRoot,
     sanitizeId,
     scopeFor,
+    agentStartInput,
+    isCompactionStart,
     sessionDir,
     scopeDir,
     recordFile,
@@ -914,5 +951,7 @@ module.exports = {
     pruneStale,
     maybePrune,
     deliverOnce,
+    forgetRecord,
+    deliverWithCompaction,
     _resetCarrierCache: () => carrierCache.clear()
 };

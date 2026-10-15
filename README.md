@@ -4,7 +4,7 @@
 
 ## What is this?
 
-**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **<!-- COUNT:hooks -->35<!-- /COUNT --> top-level hook files**, **<!-- COUNT:skills -->105<!-- /COUNT --> skills**, **<!-- COUNT:workflows -->19<!-- /COUNT --> workflows**, and **<!-- COUNT:agents -->24<!-- /COUNT --> specialized agents**. It covers the entire software development lifecycle — from initiative capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`.
+**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **<!-- COUNT:hooks -->36<!-- /COUNT --> top-level hook files**, **<!-- COUNT:skills -->103<!-- /COUNT --> skills**, **<!-- COUNT:workflows -->17<!-- /COUNT --> workflows**, and **<!-- COUNT:agents -->24<!-- /COUNT --> specialized agents**. It covers the entire software development lifecycle — from initiative capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`.
 
 **Core insight:** LLMs forget, hallucinate, and drift. Instead of hoping the AI "just gets it right," this framework uses **programmatic guardrails** (hooks) and **prompt-engineered protocols** (skills/workflows) to enforce correctness at every stage.
 
@@ -136,7 +136,7 @@ node .claude/skills/sync-codex/scripts/run-codex-sync.mjs   # standalone Codex s
 
 ## What's Inside
 
-### Hooks (<!-- COUNT:hooks -->35<!-- /COUNT --> top-level `.cjs` files, <!-- COUNT:lib-modules -->66<!-- /COUNT --> lib modules)
+### Hooks (<!-- COUNT:hooks -->36<!-- /COUNT --> top-level `.cjs` files, <!-- COUNT:lib-modules -->66<!-- /COUNT --> lib modules)
 
 Runtime Node.js scripts that fire on Claude Code lifecycle events.
 
@@ -164,7 +164,7 @@ again after 150K tokens of growth or a compaction, and to every sub-agent; the w
 `workflow-route-inject.cjs` (the gate) and `workflow-catalog-inject.cjs` (the catalog). `CLAUDE.md` and `AGENTS.md` hold project information only. This design prevents
 context drift over long sessions.
 
-### Skills (<!-- COUNT:skills -->105<!-- /COUNT --> definitions)
+### Skills (<!-- COUNT:skills -->103<!-- /COUNT --> definitions)
 
 Markdown-based prompts with YAML frontmatter that guide AI behavior.
 
@@ -181,9 +181,9 @@ Markdown-based prompts with YAML frontmatter that guide AI behavior.
 | **Scanning**       | `/scan-all`, `/scan --target=<key>`, `/scan-codebase-health`                                                             | Generate reference docs the project-reference gate reads |
 | **Documents**      | `/pdf-convert`, `/docx-convert`                                                                                          | Document format conversion (both directions via `--to`)  |
 
-### Workflows (<!-- COUNT:workflows -->19<!-- /COUNT --> definitions)
+### Workflows (<!-- COUNT:workflows -->17<!-- /COUNT --> definitions)
 
-End-to-end process orchestration with step enforcement. The table below shows the most-used workflows — see `.claude/workflows.json` for all <!-- COUNT:workflows -->19<!-- /COUNT --> (including `workflow-architecture-audit`, `workflow-feature-spec`, `workflow-spec-to-task`, `workflow-spec-sync`, and `workflow-seed-test-data`).
+End-to-end process orchestration with step enforcement. The table below shows the most-used workflows — see `.claude/workflows.json` for all <!-- COUNT:workflows -->17<!-- /COUNT --> (including `workflow-architecture-audit`, `workflow-feature-spec`, `workflow-planned-work` (`spec-to-tasks`), `workflow-spec-sync`, and `workflow-seed-test-data`).
 
 **Pick a workflow by use case:**
 
@@ -194,8 +194,8 @@ End-to-end process orchestration with step enforcement. The table below shows th
 | Build a large/ambiguous feature (needs R&D)                    | `workflow-big-feature`      |
 | Refactor without changing behavior                             | `workflow-refactor`         |
 | Start a brand-new project from scratch                         | `workflow-greenfield-init`  |
-| Turn a raw idea into a Feature Spec                            | `workflow-initiative-to-spec`     |
-| Take one idea to a groomed task                                 | `workflow-initiative-to-task`      |
+| Turn a raw idea into a Feature Spec                            | `workflow-planned-work` (`idea-to-spec`)     |
+| Take one idea to a groomed task                                 | `workflow-planned-work`      |
 | Turn a spec into a clickable mockup (1–3 designs)              | `workflow-spec-to-mockup`   |
 | Author/maintain Feature Specs from code                        | `workflow-code-to-spec`     |
 | Add or update integration tests, or drive a red suite to green | `workflow-integration-test` |
@@ -203,7 +203,7 @@ End-to-end process orchestration with step enforcement. The table below shows th
 | Research a topic into a cited report                           | `workflow-research`         |
 | **Review uncommitted changes before commit**                   | `workflow-review-changes`   |
 
-**How to run one:** just describe your task — the `WORKFLOW-GATE` (delivered by a hook at prompt time) classifies and routes it; when it matches a workflow, it asks one question first: run the full workflow, a slimmer custom route, or execute directly. That is the default `ask` mode; each person can switch to `auto` (start without asking) or `off` (never start a workflow unasked) without touching shared files — see `.claude/docs/configuration/README.md`. To force a specific one, run `/start-workflow <id>`; it loads that workflow's canonical step sequence and builds the task list 1:1. An explicit `/skill` or `/workflow` you type is always honored as-is.
+**How to run one:** just describe your task — the `WORKFLOW-GATE` (delivered by a hook at prompt time) classifies and routes it; when it matches a workflow, it asks one question first: run the full workflow, a slimmer custom route, or execute directly. That is the default `ask` mode; each person can switch to `auto` (the same question, recommending the full workflow first) or `off` (never start a workflow unasked) without touching shared files — see `.claude/docs/configuration/README.md`. To force a specific one, run `/start-workflow <id>`; it loads that workflow's canonical step sequence and builds one task per phase, one row per step. An explicit `/skill` or `/workflow` you type is always honored as-is.
 
 ### Quality Gates & Review Skills
 
@@ -283,7 +283,7 @@ The entire framework is **project-agnostic**. All project-specific knowledge liv
 ```
 ┌─────────────────────────────────────┐
 │     Generic Framework (reusable)    │
-│ 35 Hook Files + 105 Skills + 19 Flows │
+│ 36 Hook Files + 103 Skills + 17 Flows │
 └──────────────┬──────────────────────┘
                │
         ┌──────┴──────┐
@@ -325,7 +325,7 @@ The workflow router (the `WORKFLOW-GATE`) automatically classifies each prompt b
 - a focused change (one module/policy, clear intent, no public-contract change) → custom-simple: only the steps it needs, keeping test and review
 - a trivial, low-risk one-off → direct execution (no workflow)
 
-The gate assesses the task and declares a route (direct, skill, custom chain or workflow). By default (`ask`) a catalog workflow it decides to start waits for one workflow question (a direct, single-skill or custom-simple route asks nothing) — full workflow, slimmer custom route, or direct execution — on the first task of a session; each person can switch to `auto` (start without asking, by tier) or `off` (nothing starts without an explicit request), see [Workflow route mode](.claude/docs/configuration/README.md#workflow-route-mode-per-person). Once work is under way, follow-ups and new asks run directly or with a lean chain of at most 3 skills. An explicit request always wins, at any point in the session: call a workflow skill (`/workflow-*`, `/start-workflow <id>`) or ask in words ("use the bugfix workflow") and it runs. A standard workflow is activated via `/start-workflow <id>`, which loads the workflow's canonical step sequence and builds the task list 1:1. An explicit `/skill` or `/workflow` in your prompt is always honored as-is.
+The gate assesses the task and declares a route (direct, skill, custom chain or workflow). By default (`ask`) a catalog workflow it decides to start waits for one workflow question (a direct, single-skill or custom-simple route asks nothing) — full workflow, slimmer custom route, or direct execution — on the first task of a session; each person can switch to `auto` (the same question, recommending the full workflow first) or `off` (nothing starts without an explicit request), see [Workflow route mode](.claude/docs/configuration/README.md#workflow-route-mode-per-person). Once work is under way, follow-ups and new asks run directly or with a lean chain of at most 3 skills. An explicit request always wins, at any point in the session: call a workflow skill (`/workflow-*`, `/start-workflow <id>`) or ask in words ("use the bugfix workflow") and it runs. A standard workflow is activated via `/start-workflow <id>`, which loads the workflow's canonical step sequence and builds one task per phase, one row per step. An explicit `/skill` or `/workflow` in your prompt is always honored as-is.
 
 ## Design Principles
 

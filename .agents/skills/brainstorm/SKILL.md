@@ -12,7 +12,7 @@ disable-model-invocation: false
 > - Preserve protocol order unless the user approves a deviation. Workflows use `$start-workflow`: gates stay fixed; other steps may flex with logged reasons and evidence.
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
-> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
+> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval. Inside a workflow run, `$start-workflow` → Workflow-step mode bounds this rule.
 > **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
@@ -143,7 +143,7 @@ Ask:
     - Multi-opportunity discovery — a raw product vision / problem statement spanning MULTIPLE distinct opportunities that should each become a separate task (do NOT converge to one — produce a ranked RICE opportunity map for multi-select; see [Multi-Opportunity Discovery Mode](#multi-opportunity-discovery-mode))
     - Mixed — multiple of the above
 
-> **Mode routing:** A broad vision/problem spanning distinct opportunities (typically from `workflow-initiative-to-task`'s MULTI-OPPORTUNITY DISCOVERY MODE) selects **Multi-opportunity discovery**. It changes Phase 6 from "pick ONE" to "rank a 3–8-item RICE map for multi-select." All other scenarios keep the single-recommendation default.
+> **Mode routing:** A broad vision/problem spanning distinct opportunities (typically from `workflow-planned-work`'s MULTI-OPPORTUNITY DISCOVERY MODE) selects **Multi-opportunity discovery**. It changes Phase 6 from "pick ONE" to "rank a 3–8-item RICE map for multi-select." All other scenarios keep the single-recommendation default.
 
 2. **"What is the primary role in this session?"**
     - Product Owner — outcome-focused, business value, user outcomes
@@ -589,13 +589,13 @@ Time to validation: [Days/weeks]
 
 > **Select in Phase 0.1 when the input is a raw product vision/problem spanning MULTIPLE distinct opportunities.** This is an additional mode; every other scenario keeps Phase 6's single-recommendation default.
 
-**When to use:** a broad vision, problem statement, or "explore this whole area" brief expects several distinct, independently shippable opportunities, each becoming its own downstream task. This is the mode driven by `workflow-initiative-to-task`'s **MULTI-OPPORTUNITY DISCOVERY MODE**.
+**When to use:** a broad vision, problem statement, or "explore this whole area" brief expects several distinct, independently shippable opportunities, each becoming its own downstream task. This is the mode driven by `workflow-planned-work`'s **MULTI-OPPORTUNITY DISCOVERY MODE**.
 
 **How convergence differs:** the default flow produces ONE opinionated recommendation (Phase 6); this mode does NOT. Use the SAME Phase 4 techniques (RICE / Kano / 2×2) to **RANK and present 3–8 distinct opportunities**, not a single winner. The user then multi-selects opportunities to develop; choosing one would discard downstream tasks.
 
 **Technique flow:** run Phases 1–4 normally (problem framing → opportunity framing → ideation → convergence). In Phase 2, use JTBD / Opportunity Solution Tree to surface the FULL landscape, not one focus; in Phase 4, use RICE / Kano / 2×2 to SCORE and RANK every distinct opportunity instead of collapsing to one recommendation.
 
-**Output contract (must match what `workflow-initiative-to-task` consumes):**
+**Output contract (must match what `workflow-planned-work` consumes):**
 
 - An **opportunity map of 3–8 distinct, RICE-scored opportunities**, ranked descending by RICE.
 - Documented in **`plans/{plan-dir}/brainstorm-opportunity-map.md`** (plans root default `plans/`; `docsRoots.plans.path` in `docs/project-config.json` overrides).
@@ -610,7 +610,7 @@ Time to validation: [Days/weeks]
 | 2    | ...         | ...                    | ...   | ...    | ...        | ...    | ...  | ...  |
 ```
 
-**Multi-select handoff:** present the ranked map with `ask user question tool` and `multiSelect: true`: "Which opportunities should we develop into tasks?". Selected opportunities feed `workflow-initiative-to-task`'s **per-opportunity task loop** (initiative → work-item --mode=refine → review → work-item --mode=story → challenge → DoR → mockup, then final cross-task prioritization). Do NOT author tasks, specs, or plans here; the deliverable is only the scored, multi-selected map.
+**Multi-select handoff:** present the ranked map with `ask user question tool` and `multiSelect: true`: "Which opportunities should we develop into tasks?". Selected opportunities feed `workflow-planned-work`'s **per-opportunity task loop** (initiative → work-item --mode=refine → task review → challenge → work-item --mode=story → DoR, then cross-task prioritization and the UI block in the main session). Do NOT author tasks, specs, or plans here; the deliverable is only the scored, multi-selected map.
 
 ---
 
@@ -695,6 +695,8 @@ Read `references/brainstorm-skill-scenarios.md` after Phase 0 scenario selection
 
 ## Workflow Integration
 
+> **Inside a workflow:** when this skill runs as a step of an active workflow, skip the prompts in this section and return the result — the workflow's next step decides what runs (`$start-workflow` → Step Execution Protocol, Workflow-step mode).
+
 After the session, use `ask user question tool` to present next steps:
 
 | Next Step              | When                                                        | Skill/Workflow          |
@@ -707,7 +709,7 @@ After the session, use `ask user question tool` to present next steps:
 | `$domain-analysis`     | Idea touches domain entities, need model first              | `domain-analysis` skill |
 | Continue brainstorming | More scenarios to explore                                   | Stay in this session    |
 
-**Multi-Opportunity Discovery handoff:** in discovery mode, do NOT pick one next step. Present the ranked 3–8-item RICE map (write to `plans/{plan-dir}/brainstorm-opportunity-map.md`; plans root default `plans/`, overridable via `docsRoots.plans.path` in `docs/project-config.json`) via `ask user question tool` with `multiSelect: true`, then hand selected opportunities to `workflow-initiative-to-task`'s per-opportunity task loop. `workflow-initiative-to-task` consumes this map directly.
+**Multi-Opportunity Discovery handoff:** in discovery mode, do NOT pick one next step. Present the ranked 3–8-item RICE map (write to `plans/{plan-dir}/brainstorm-opportunity-map.md`; plans root default `plans/`, overridable via `docsRoots.plans.path` in `docs/project-config.json`) via `ask user question tool` with `multiSelect: true`, then hand selected opportunities to `workflow-planned-work`'s per-opportunity task loop. `workflow-planned-work` consumes this map directly.
 
 ---
 
@@ -733,7 +735,7 @@ After the session, use `ask user question tool` to present next steps:
 
 ## Prompt-Enhance Closing Anchors
 
-**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval
+**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval; inside a workflow run, `$start-workflow` → Workflow-step mode bounds this
 **IMPORTANT MUST ATTENTION** for every step/sub-skill call: set `in_progress` before execution, set `completed` after execution
 **IMPORTANT MUST ATTENTION** every skipped step MUST include explicit reason; every completed step MUST include concise evidence
 **IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses

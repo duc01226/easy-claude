@@ -49,7 +49,7 @@ const codexSessionStartMirrors = new Map([
   ],
   [
     ".claude/hooks/ui-reuse-remind.cjs",
-    "rotates the UI reminder's private reset generation on compact/clear; blind prompt/pre-tool consumers cannot infer context resets from static instructions",
+    "re-delivers the UI reminder right after a compaction and rotates its private reset generation on compact/clear; blind prompt/pre-tool consumers cannot infer context resets from static instructions",
   ],
   [
     ".claude/hooks/skill-activation-inject.cjs",
@@ -71,6 +71,18 @@ const codexSessionStartMirrors = new Map([
     ".claude/hooks/verify-install.cjs",
     "probes and repairs machine-native Git/Git Bash capability and publishes a child/session environment signal that static Codex context cannot represent",
   ],
+  // Prompt-time context with no static carrier: a long autonomous run has no following prompt, so the
+  // compaction report (SessionStart compact) is the only event that can put it back.
+  ...[
+    ".claude/hooks/core-principles-inject.cjs",
+    ".claude/hooks/judgement-integrity-route.cjs",
+    ".claude/hooks/ai-feature-route.cjs",
+    ".claude/hooks/workflow-route-inject.cjs",
+    ".claude/hooks/workflow-catalog-inject.cjs",
+  ].map(hookPath => [
+    hookPath,
+    "re-delivers its prompt-time context right after a compaction (SessionStart compact); a long autonomous run has no following prompt, and no static carrier holds that context",
+  ]),
   ...[1, 2, 3, 4].map(bin => [
     `.claude/hooks/protocol-inject-universal-${bin}.cjs`,
     "re-delivers the universal bundle right after a compaction or clear (SessionStart compact|clear); a long autonomous run has no following prompt, and no static carrier holds the bundle",

@@ -10,9 +10,9 @@
 2. **Plan** — `/plan` (add `/plan --mode=validate` when decisions need user confirmation; `/plan --mode=review` only on explicit request or inside the big workflows), save in the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path)
 3. **Design Review** — `/why-review`; spec and test-spec work follows the project's configured spec-artifact profile or documented native spec contract
 4. **Implement** — `/feature-implement` or `/plan --mode=execute`, compile-check after every file change
-5. **Verify** — `/test`, `/integration-test`, and any spec reconciliation step defined by the selected project profile
-6. **Quality** — Use `workflow-review-changes` for the canonical review and repair cycle; follow its registered sequence in `.claude/workflows.json`. It invokes the `changes-review` skill as one part of the workflow.
-7. **Ship** — `/production-readiness-review`, `/security-audit`, `/docs-manager --mode=update`, `/watzup`, `/workflow-end`
+5. **Quality** — reconcile the spec with the selected project profile's spec step first, then use `workflow-review-changes` for the canonical review and repair cycle; follow its registered sequence in `.claude/workflows.json`. It invokes the `changes-review` skill as one part of the workflow.
+6. **Verify** — `/test` and `/integration-test`, once, after the static review (`SYNC:verify-last-order`)
+7. **Ship** — `/production-readiness-review`, `/security-audit`, `/docs-manager --mode=update`, `/workflow-end`, then `/watzup` only when a session report is wanted
 
 **Key Rules:**
 
@@ -37,7 +37,7 @@
 ## Phase 1: Planning
 
 - Use `/plan` skill to create an implementation plan with tasks in the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path)
-- Use `/web-research` → `/source-deep-dive` for investigating technical topics before planning
+- Use `/web-research --chain=deep-dive` (the source map and the cross-validated evidence base in one step) for investigating technical topics before planning
 - Confirm plan decisions via `/plan --mode=validate` (critical questions) when needed; `/plan --mode=review` is a single pass, never automatic, and only `workflow-big-feature` and `workflow-greenfield-init` include it
 - **DO NOT** create new enhanced files — update existing files directly
 
@@ -79,7 +79,7 @@
 - Use `/production-readiness-review` for production readiness (service-layer/API changes)
 - Use `/security-audit` for security review
 - Use `/docs-manager --mode=update` to update documentation if needed
-- Use `/watzup` for summary report of all changes
+- Use `/watzup` for a session report of all changes; `/workflow-end` prints the recap when it does not run
 - Use `/workflow-end` to clear workflow state
 
 ## Phase 7: Debugging (when issues arise)
@@ -113,11 +113,11 @@
 
 | Workflow ID             | When to use                                                                                                       |
 | ----------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `workflow-initiative-to-task`  | Turn an idea or product opportunity into planned work that is ready to plan.                                         |
-| `workflow-initiative-to-spec` | Turn an idea into one provisional feature specification.                                                          |
+| `workflow-planned-work`  | Turn an idea or product opportunity into planned work that is ready to plan.                                         |
+| `workflow-planned-work` (`idea-to-spec`) | Turn an idea into one provisional feature specification.                                                          |
 | `workflow-spec-to-mockup` | Turn canonical specs into a reviewed, journey-first interactive mockup (the user chooses 3 / 2 / 1 directions or skips). |
 | `workflow-code-to-spec` | Create or update capability documentation from existing code.                                                     |
-| `workflow-spec-to-task`  | Build dependency-aware planned work from existing feature specifications.                                            |
+| `workflow-planned-work` (`spec-to-tasks`)  | Build dependency-aware planned work from existing feature specifications.                                            |
 | `workflow-feature-spec` | Create or maintain business feature documentation.                                                                |
 | `workflow-spec-sync`    | Reconcile affected spec and test-spec artifacts according to the project's configured profile or native contract. |
 

@@ -13,7 +13,7 @@ description: '[Content] Use when a workflow step or the user asks for course mat
 - **Purpose:** Turn user/research scope into a template-compliant course with aligned outcomes, practice, and assessments.
 - **Main flow:** Phase 0 detect course context; (1) define audience, prerequisites, duration, outcomes; (2) map objectives to Bloom; (3) structure modules → lessons → exercises → assessments.
 - **Continue:** (4) develop each lesson's duration, concept, explanation, examples, exercise, assessment; (5) create module knowledge checks + comprehensive final; (6) review alignment, evidence, progression, prerequisites.
-- **Gates/output:** Create `TaskCreate` tasks before work; map every objective to Bloom; use the enforced template; write `docs/knowledge/courses/{descriptive-slug}.md`; no modes/flags specified.
+- **Gates/output:** Create `TaskCreate` tasks before work; map every objective to Bloom; cite every factual claim inline `[N]`; use the enforced template; write `docs/knowledge/courses/{descriptive-slug}.md`; no modes/flags specified.
 
 **Workflow:**
 
@@ -30,6 +30,7 @@ description: '[Content] Use when a workflow step or the user asks for course mat
 - Build progressive complexity; each module builds on previous prerequisites.
 - Derive lesson depth, examples, exercises, and assessment format from learner context and objectives; do not fill templates mechanically.
 - Use enforced template `.claude/templates/course-outline-template.md`.
+- Every factual claim and number in the content ends with an inline `[N]` citation mapped to a Resources & References row (Title, URL, Author/Org, Date, Tier). Factual claims rest on 2+ independent sources; a single-source claim is marked unverified and held below 60% confidence. Exercises, assessment items and constructed examples are course design, not factual claims.
 
 **Critical thinking:** Be skeptical; reason sequentially; trace evidence for every claim; state confidence percentages; ideas >80%.
 
@@ -67,7 +68,7 @@ Classify course type, learner level, delivery mode, and constraints before choos
 
 ## Step 1: Define Learning Scope
 
-Gather from user or research: **Target audience** — who + background; **Prerequisites** — prior knowledge; **Duration** — total hours/weeks; **Desired outcomes** — learner capabilities after course.
+Gather from user or research (in a research run, read the evidence base `tmp/research/_evidence-{slug}.md` that `web-research --chain=deep-dive` returned and cite its sources): **Target audience** — who + background; **Prerequisites** — prior knowledge; **Duration** — total hours/weeks; **Desired outcomes** — learner capabilities after course.
 
 ## Step 2: Map Objectives to Bloom's
 
@@ -94,7 +95,7 @@ Verify objective/activity/assessment alignment, evidence for content claims, lab
 
 ## Output
 
-Write to `docs/knowledge/courses/{descriptive-slug}.md` using enforced template from `.claude/templates/course-outline-template.md`.
+Write to `docs/knowledge/courses/{descriptive-slug}.md` using enforced template from `.claude/templates/course-outline-template.md`. List every cited source in Resources & References with Title, URL, Author/Org, Date and Tier; every `[N]` resolves to a row and every row is cited.
 
 ---
 
@@ -105,7 +106,7 @@ Write to `docs/knowledge/courses/{descriptive-slug}.md` using enforced template 
 **IMPORTANT MUST ATTENTION Goal:** Build a learner-ready course with Bloom-aligned objectives, progressive modules, lessons, practice, and assessments so learners achieve and demonstrate intended outcomes.
 **IMPORTANT MUST ATTENTION** Course flow: Phase 0 detect context; (1) define scope; (2) map every objective to Bloom; (3) structure 3-8 modules with 2-5 lessons and prerequisite links; (4) develop each lesson's duration, concept, explanation, examples, exercise, and assessment; (5) create 3-5-question module checks plus a comprehensive final with every taught Bloom level; (6) review alignment, evidence, assumptions, progression, and prerequisites.
 
-**IMPORTANT MUST ATTENTION** Gate/output: create `TaskCreate` tasks before work and a final review task; search 3+ similar patterns before creating code; cite `file:line` evidence with confidence >80%; use enforced `.claude/templates/course-outline-template.md`; write `docs/knowledge/courses/{descriptive-slug}.md`; no modes/flags specified.
+**IMPORTANT MUST ATTENTION** Gate/output: create `TaskCreate` tasks before work and a final review task; cite every factual claim inline `[N]` mapped to a Resources & References row (Title, URL, Author/Org, Date, Tier), with a single-source claim marked unverified below 60% confidence; use enforced `.claude/templates/course-outline-template.md`; write `docs/knowledge/courses/{descriptive-slug}.md`; no modes/flags specified.
 
 **IMPORTANT MUST ATTENTION** use user/research evidence, label assumptions, and state confidence; NEVER fabricate course facts.
 
@@ -114,7 +115,7 @@ Write to `docs/knowledge/courses/{descriptive-slug}.md` using enforced template 
 | Evasion | Rebuttal |
 | --- | --- |
 | "Course is simple" | Wrong assumptions waste time; apply the full flow. |
-| "Already searched" | Show `file:line` evidence; no proof means no search. |
+| "This fact is common knowledge" | Cite it `[N]` to a Resources & References row; with one source, mark it unverified below 60%. |
 | "Just do it" | Create task tracking first; skip depth only when justified, never skip tracking. |
 
-**[TASK-PLANNING]** **MUST ATTENTION** Before acting, analyze scope; create small `TaskCreate` tasks, search 3+ similar patterns before creating code, cite `file:line` evidence, and complete a final quality review.
+**[TASK-PLANNING]** **MUST ATTENTION** Before acting, analyze scope; create small `TaskCreate` tasks, cite every factual claim inline `[N]` to a Resources & References row, and complete a final quality review.

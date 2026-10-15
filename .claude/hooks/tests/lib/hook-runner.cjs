@@ -380,6 +380,17 @@ function removeTempDir(dir) {
   }
 }
 
+/**
+ * Record `prompts` (oldest first) as the session's user prompts in the project's prompt ledger, the
+ * store the prompt routers read at sub-agent start and after a compaction.
+ */
+function recordUserPrompts(projectDir, sessionId, prompts) {
+  const store = require('../../lib/prompt-ledger-store.cjs');
+  let ledger = null;
+  for (const prompt of prompts) ledger = store.appendPrompt(ledger, prompt, { sessionId }).ledger;
+  store.writeLedger(store.sessionDir(store.storeRoot({}, projectDir), sessionId), ledger);
+}
+
 module.exports = {
   runHook,
   runHookSync,
@@ -398,5 +409,6 @@ module.exports = {
   childEnv,
   makeHookTreeProject,
   removeTempDir,
+  recordUserPrompts,
   DEFAULT_TIMEOUT
 };

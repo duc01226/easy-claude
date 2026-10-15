@@ -36,7 +36,7 @@ const MODE_GATES = [
   /`e2eTesting\.execution`/,
   /`surfaceIds\[\]` → `experienceVerification\.surfaces\[\]` → `localRun`/,
   /Goal Contract whose required criterion/,
-  /consecutive-green requirement \(default 2\)/,
+  /consecutive-green requirement \(default 1\)/,
   /round cap \(default 3\)/,
   /`SOURCE-WRONG` — /,
   /`TEST-WRONG` — /,
@@ -54,7 +54,7 @@ const MODE_GATES = [
   /`CONVERGED`, `N\/A`, `ENVIRONMENT-BLOCKED`, `NOT-CONVERGED`, or `ACCEPTANCE-PENDING`/,
   /Run the default pass \(Steps 0–4\) INLINE, WITHOUT `--fix-loop`/,
   /NEVER self-invoke with the flag/,
-  /report-only callers \(`\/changes-review` Phase 3\.9 and the `\/workflow-review-changes` step-1 E2E route\) invoke the default pass and NEVER pass `--fix-loop`/,
+  /report-only callers \(`\/changes-review`'s E2E route and the `\/workflow-review-changes` step-1 E2E route\) invoke the default pass and NEVER pass `--fix-loop`/,
   /<!-- SYNC:e2e-visual-design-contract -->|resolved `uiStateCapture\.mode`/,
 ];
 

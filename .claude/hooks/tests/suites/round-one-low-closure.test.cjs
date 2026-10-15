@@ -13,10 +13,14 @@ const tests = [
         assert.equal(policy.evaluateRound({ round: 3, findings: [{ id: 'low', severity: 'LOW' }], hardGates: [{ id: 'tests', kind: 'test', status: 'FAIL' }] }).status, 'ESCALATE');
     } },
     { name: 'TC-R1LC-004 every post-fix edit requires fresh review including simplification', skip: isFrameworkRepo(root) ? false : 'authoring source contract', fn: () => {
+        // The post-fix review re-runs the same review occurrences, so its trigger set lives in the workflow context and its skill
         const w = JSON.parse(fs.readFileSync(path.join(root,'.claude/workflows.json'),'utf8')).workflows['workflow-review-changes'];
-        const post = w.sequence.find(step => step.id === 'why-review');
-        assert.match(post.applicability.when, /Any fix, simplification, spec\/doc\/test repair/);
-        assert.doesNotMatch(post.applicability.skipReason, /LOW.*scoped check/);
+        const skill = fs.readFileSync(path.join(root, '.claude/skills/workflow-review-changes/SKILL.md'), 'utf8');
+        for (const [owner, text] of [['injectContext', w.preActions.injectContext], ['SKILL.md', skill]]) {
+            assert.match(text, /any fix, simplification, spec\/doc\/test repair or validated blocking finding the fix step rejects needs (that|this) fresh (re-)?review/i, owner);
+            assert.match(text, /a narrower spot check never replaces it/, owner);
+            assert.doesNotMatch(text, /no post-fix (full )?re-review/i, `${owner} never exempts a fix from the post-fix review`);
+        }
     } }
 ];
 module.exports = { name: 'round-one-low-closure', tests };

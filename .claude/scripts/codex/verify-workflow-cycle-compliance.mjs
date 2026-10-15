@@ -81,7 +81,7 @@ function delegatesNestedReview(sequence) {
 // The domain-entity refresh is anchored on the step it must follow. That anchor is derived from the
 // workflow's own sequence rather than hard-coded, because not every delivery workflow ends its
 // verification with the same step: `workflow-bugfix` runs no standalone `test` step (its regression
-// evidence is the RED/GREEN `integration-test` pair plus `integration-test --mode=verify`). The prose anchor
+// evidence is the test-first `integration-test` regression written before the fix, proven by `integration-test --mode=verify` and its mutation check after it). The prose anchor
 // skips conditional neighbours, so the injectContext names the last step that ALWAYS runs.
 const DOMAIN_ENTITY_REFERENCE_REFRESH_CONTEXT_TERMS = [
   "before /docs-manager --mode=update",
@@ -886,10 +886,14 @@ function ensureSddWorkflowPolicy(workflowId, sequence, failures) {
         implementationStep,
         "integration-test",
         "integration-test --mode=verify",
-      ]));
+      ])) ||
+    // Test-first regression: the reproducing test is written BEFORE the change (a bug fix) and the
+    // verify after the change proves it red without the fix and green with it.
+    (nestedReview &&
+      hasOrderedSubsequence(sequence, ["integration-test", implementationStep, "integration-test --mode=verify"]));
   if (!implementationVerified) {
     failures.push(
-      `Workflow policy violation (${workflowId}): implementation must be verified by integration-test -> integration-test --mode=review -> integration-test --mode=verify after '${implementationStep}' (a nested workflow-review-changes occurrence satisfies integration-test --mode=review)`
+      `Workflow policy violation (${workflowId}): implementation must be verified by integration-test -> integration-test --mode=review -> integration-test --mode=verify after '${implementationStep}' (a nested workflow-review-changes occurrence satisfies integration-test --mode=review; a test written before '${implementationStep}' counts when the verify runs after it)`
     );
   }
 

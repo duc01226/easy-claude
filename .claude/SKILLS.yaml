@@ -1,10 +1,10 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-10-13'
-  total_skills: 105
+  last_updated: '2026-10-15'
+  total_skills: 103
   total_by_status:
-    active: 105
+    active: 103
     deprecated: 0
     experimental: 0
 categories:
@@ -88,9 +88,10 @@ skills:
       removal_after: null
     - name: changes-review
       path: changes-review/SKILL.md
-      description: '[Code Quality] Use when a workflow step or the user asks for staged,
-        unstaged or branch-diff review. --fix-loop reviews, fixes, re-reviews. Cross-module
-        or risky changes: workflow-review-changes.'
+      description: '[Code Quality] Use when a workflow step or the user asks for a
+        focused code-change review: staged, unstaged, branch diff or simple pull request.
+        --fix-loop fixes and re-reviews. Complex pull request: workflow-review-changes;
+        rationale: why-review.'
       category: other
       has_scripts: false
       has_references: true
@@ -671,8 +672,9 @@ skills:
       removal_after: null
     - name: scan-all
       path: scan-all/SKILL.md
-      description: '[Documentation] Use when refreshing every selected, evidence-applicable
-        reference-doc scan target at once. One doc: scan; first-time setup: docs-manager
+      description: '[Documentation] Use when a workflow step or the user asks for
+        a refresh of every selected, evidence-applicable reference-doc scan target,
+        or a --targets= subset, at once. One doc: scan; first-time setup: docs-manager
         --mode=init.'
       category: other
       has_scripts: false
@@ -881,9 +883,10 @@ skills:
       removal_after: null
     - name: why-review
       path: why-review/SKILL.md
-      description: '[Code Quality] Use when a workflow step or the user asks for explicit
-        rationale review: necessity, choices and trade-offs. --validate-findings checks
-        review reports; --fix-loop fixes and re-reviews. Not generic reviews or how-it-works.'
+      description: '[Code Quality] Use when a workflow step or the user asks for rationale
+        evaluation or critical judgment of a decision, claim or statement: necessity,
+        options, trade-offs. --validate-findings checks findings; --fix-loop fixes.
+        Diffs: changes-review.'
       category: other
       has_scripts: false
       has_references: true
@@ -997,8 +1000,9 @@ skills:
       removal_after: null
     - name: workflow-greenfield-init
       path: workflow-greenfield-init/SKILL.md
-      description: '[Workflow] Take a new product from idea through architecture and
-        scaffolding to a reviewed, tested first releasable slice.'
+      description: '[Workflow] Take a new product from idea through architecture,
+        an approved plan and scaffolding to a reviewed, tested foundation; hand the
+        first slice to workflow-implement-spec.'
       category: other
       has_scripts: false
       has_references: false
@@ -1018,32 +1022,22 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-    - name: workflow-initiative-to-spec
-      path: workflow-initiative-to-spec/SKILL.md
-      description: '[Workflow] Turn a raw idea, vision or problem into reviewed provisional
-        canonical specs with planned test cases; stop before planned work or implementation.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: workflow-initiative-to-task
-      path: workflow-initiative-to-task/SKILL.md
-      description: '[Workflow] Turn a product idea into reviewed, prioritized, readiness-checked
-        planned tasks and stories; stop before implementation.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
     - name: workflow-integration-test
       path: workflow-integration-test/SKILL.md
       description: '[Workflow] Write and verify spec-traced integration tests, or
         diagnose and fix failing suites to repeatable green. --mode={write|green}.'
+      category: other
+      has_scripts: false
+      has_references: true
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
+    - name: workflow-planned-work
+      path: workflow-planned-work/SKILL.md
+      description: '[Workflow] Turn an idea or existing canonical specs into a reviewed
+        provisional spec or reviewed, readiness-checked, prioritized planned tasks
+        and stories; stop before implementation. --from=idea|spec --to=spec|tasks.'
       category: other
       has_scripts: false
       has_references: true
@@ -1064,9 +1058,10 @@ skills:
       removal_after: null
     - name: workflow-review-changes
       path: workflow-review-changes/SKILL.md
-      description: '[Workflow] Use when uncommitted changes are risky or cross-module
-        and need specialist review: reviews, applies validated fixes and re-reviews.
-        Defaults to --fix-loop; --review-only reports without edits.'
+      description: '[Workflow] Use when reviewing a pull request or changes that are
+        complex, risky or cross-module and need specialist reviewers: reviews, applies
+        validated fixes, re-reviews. Defaults to --fix-loop; --review-only reports.
+        Simple PR: changes-review.'
       category: other
       has_scripts: false
       has_references: true
@@ -1101,17 +1096,6 @@ skills:
       path: workflow-spec-to-mockup/SKILL.md
       description: '[Workflow] Turn UI-bearing canonical specs into reviewed, interactive
         multi-view HTML mockups; stop before planned work or production code.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: workflow-spec-to-task
-      path: workflow-spec-to-task/SKILL.md
-      description: '[Workflow] Convert existing canonical specs into complete, dependency-ordered,
-        prioritized, readiness-checked planned tasks and stories.'
       category: other
       has_scripts: false
       has_references: false

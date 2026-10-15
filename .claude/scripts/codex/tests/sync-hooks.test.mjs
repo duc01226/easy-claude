@@ -418,6 +418,35 @@ test("sync-hooks mirrors the Git capability producer while static-only SessionSt
 });
 
 
+test("sync-hooks mirrors the compaction re-delivery of prompt-time context hooks", async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-sync-hooks-compaction-"));
+  const hookFiles = ["core-principles-inject", "judgement-integrity-route", "ai-feature-route", "workflow-route-inject", "workflow-catalog-inject"];
+  try {
+    await fs.mkdir(path.join(tempRoot, ".claude"), { recursive: true });
+    const settings = {
+      hooks: {
+        SessionStart: [
+          { matcher: "compact", hooks: hookFiles.map(name => ({ type: "command", command: `node "$CLAUDE_PROJECT_DIR"/.claude/hooks/${name}.cjs` })) },
+          { matcher: "startup", hooks: [{ type: "command", command: 'node "$CLAUDE_PROJECT_DIR"/.claude/hooks/session-init.cjs' }] },
+        ],
+      },
+    };
+    await fs.writeFile(path.join(tempRoot, ".claude", "settings.json"), JSON.stringify(settings), "utf8");
+    await runSync(tempRoot);
+    const hooksConfig = JSON.parse(await fs.readFile(path.join(tempRoot, ".codex", "hooks.json"), "utf8"));
+    const groups = hooksConfig.hooks.SessionStart;
+    assert.equal(groups.length, 1, "only the compaction group mirrors; a static-context restatement stays skipped");
+    assert.equal(groups[0].matcher, "compact");
+    const report = JSON.parse(await fs.readFile(path.join(tempRoot, "tmp", "hooks.sync.report.json"), "utf8"));
+    for (const name of hookFiles) {
+      assert.ok(groups[0].hooks.some(hook => hook.command.includes(`${name}.cjs`)), `${name} mirrored`);
+      assert.ok(report.session_start_mirrors.some(entry => entry.hook === `.claude/hooks/${name}.cjs`), `${name} carries a mirror reason`);
+    }
+  } finally {
+    await fs.rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
 test("sync-hooks mirrors compact/clear UI reminder resets for contexts without transcripts", async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-sync-hooks-ui-reuse-"));
   try {

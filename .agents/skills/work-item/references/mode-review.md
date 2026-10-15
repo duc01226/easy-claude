@@ -2,7 +2,7 @@
 
 > Loaded by `work-item/SKILL.md`'s Mode Dispatch when invoked as `$work-item --mode=review [--type={task|story|spec-tests|design}] [artifact path]`. This contract is the whole invocation: review one artifact (task, story, test spec or design spec) for completeness and quality before handoff. It works called directly with no workflow; every rule, flag, output and gate below is the contract of that mode.
 
-> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
+> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval. Inside a workflow run, `$start-workflow` → Workflow-step mode bounds this rule.
 > **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
@@ -92,13 +92,13 @@ If any box is unchecked → adversarial review incomplete. Go back.
 
 ## Type-Specific Checklists (`--type` dispatch)
 
-Select the checklist by artifact type. Pass `--type={task|story|spec-tests|design}` to force a type; if omitted, infer it from the artifact (step 1 "Identify"). Each type scores **Required (all must pass)** + **Recommended (≥50% should pass)** → verdict **PASS** (all Required + ≥50% Recommended) | **WARN** (all Required, <50% Recommended) | **FAIL** (any Required fails).
+Select the checklist by artifact type. Pass `--type={task|story|spec-tests|design}` to force a type; if omitted, infer it from the artifact (step 1 "Identify"). An untyped review of a Feature Spec resolves to `spec-tests` with that reference's spec-body (§1-7) section in scope; there is no separate spec type. Each type scores **Required (all must pass)** + **Recommended (≥50% should pass)** → verdict **PASS** (all Required + ≥50% Recommended) | **WARN** (all Required, <50% Recommended) | **FAIL** (any Required fails).
 
 | `--type`     | Artifact             | Checklist + output template (MANDATORY read)                         |
 | ------------ | -------------------- | -------------------------------------------------------------------- |
 | `task`        | Task | `references/review-type-task.md` — Task Review Result                              |
 | `story`      | User story set       | `references/review-type-story.md` — Story Review Result (+ AC Coverage Matrix)   |
-| `spec-tests` | Test specification   | `references/review-type-spec-tests.md` — Test Spec Review Result (+ Coverage Matrix) |
+| `spec-tests` | Test specification; a Feature Spec (adds the §1-7 spec-body section) | `references/review-type-spec-tests.md` — Test Spec Review Result (+ Coverage Matrix) |
 | `design`     | Design spec / mockup | `references/review-type-design.md` — Artifact Review (+ journey-first checks + UI/UX principles pass) |
 
 **[BLOCKING] Read `references/review-type-<type>.md` for the resolved type BEFORE scoring** — it holds that type's Required/Recommended checks and its output template, and this file alone is not enough to review. Read only the resolved type's file. Whatever the type, the report header records `Artifact identity: {path} · sha256:{hex digest of the file bytes} (content hash required; size + mtime is not an identity)` so `$work-item --mode=challenge` and `$work-item --mode=dor` can `--reuse` the report while the artifact is unchanged (`.claude/skills/shared/m1-m7-gates.md` → "Reusing an earlier verdict").
@@ -701,7 +701,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 ## Prompt-Enhance Closing Anchors
 
-**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval
+**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval; inside a workflow run, `$start-workflow` → Workflow-step mode bounds this
 **IMPORTANT MUST ATTENTION** for every step/sub-skill call: set `in_progress` before execution, set `completed` after execution
 **IMPORTANT MUST ATTENTION** every skipped step MUST include explicit reason; every completed step MUST include concise evidence
 **IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses

@@ -171,7 +171,8 @@ const deadModuleVerificationTests = [
 //   workflow-build-specs → workflow-code-to-spec,
 //   workflow-product-discovery → workflow-idea-to-spec → workflow-initiative-to-spec,
 //   workflow-idea-to-pbi → workflow-initiative-to-task,
-//   workflow-spec-to-pbi → workflow-spec-to-task, idea → initiative, pbi → work-item
+//   workflow-spec-to-pbi → workflow-spec-to-task, idea → initiative, pbi → work-item,
+//   workflow-initiative-to-task + workflow-initiative-to-spec + workflow-spec-to-task → workflow-planned-work (P41)
 //
 // Ports Guard A from the deleted orphan .claude/tests/workflow-routing-test.cjs:
 //   - Guard A (orphan Section 3): every workflow sequence step resolves to a
@@ -194,14 +195,12 @@ const EXPECTED_WORKFLOW_IDS = [
     'workflow-feature-spec',
     'workflow-implement-spec',
     'workflow-greenfield-init',
-    'workflow-initiative-to-task',
-    'workflow-initiative-to-spec',
+    'workflow-planned-work',
     'workflow-refactor',
     'workflow-research',
     'workflow-review-changes',
     'workflow-architecture-audit',
     'workflow-code-to-spec',
-    'workflow-spec-to-task',
     'workflow-spec-to-mockup',
     'workflow-spec-sync',
     'workflow-seed-test-data',
@@ -209,7 +208,8 @@ const EXPECTED_WORKFLOW_IDS = [
 ];
 
 // Ids removed by the rename — must never reappear as workflow keys.
-const REMOVED_WORKFLOW_IDS = ['workflow-build-specs', 'workflow-product-discovery', 'workflow-idea-to-pbi', 'workflow-idea-to-spec', 'workflow-spec-to-pbi'];
+const REMOVED_WORKFLOW_IDS = ['workflow-build-specs', 'workflow-product-discovery', 'workflow-idea-to-pbi', 'workflow-idea-to-spec', 'workflow-spec-to-pbi',
+    'workflow-initiative-to-task', 'workflow-initiative-to-spec', 'workflow-spec-to-task'];
 // Step/skill ids renamed away — must never reappear as a sequence step.
 // Checked by EXACT array-element match (NOT substring) so legitimate compound
 // ids (code-quality-review, code-simplifier, code-to-spec) are never false-flagged.
@@ -254,7 +254,7 @@ const renameFixGuardTests = [
             }
             // Renamed-IN ids present (proves the rename actually landed).
             assertTrue(ids.includes('workflow-code-to-spec'), 'Renamed-in "workflow-code-to-spec" must be present');
-            for (const renamedIn of ['workflow-initiative-to-spec', 'workflow-initiative-to-task', 'workflow-spec-to-task']) {
+            for (const renamedIn of ['workflow-planned-work']) {
                 assertTrue(ids.includes(renamedIn), `Renamed-in "${renamedIn}" must be present`);
             }
 
@@ -529,11 +529,20 @@ const CODE_WRITING_INVOCATIONS = ['plan --mode=execute'];
 const CODE_WRITING_SKILLS = ['fix', 'seed-test-data', 'integration-test', 'e2e-test', 'code-simplifier', 'scaffold'];
 const CHANGE_REVIEW_SKILLS = ['workflow-review-changes', 'changes-review'];
 const ALWAYS_GATE_SKILLS = ['workflow-review-changes', 'test'];
+// Workflows built to run nested inside another: their close is conditional and the parent's close checks their gates (BR-GWF-01)
+const NESTED_BUILT_WORKFLOWS = ['workflow-review-changes', 'workflow-e2e'];
 const HEAVY_WRAPPERS = ['workflow-feature', 'workflow-bugfix', 'workflow-refactor', 'workflow-big-feature'];
 const FLEX_VERBS = [/\bskip/i, /\bmerg/i, /\bsimplif/i, /\breorder/i];
 const STEP_CONTRACT_POINTER = /^\*\*Step contract:\*\*/;
 
 const cloneConfig = config => JSON.parse(JSON.stringify(config));
+// A mutation that edits gates or step order would trip the phase rules (BR-GWF-19) before the check under test runs:
+// drop the phases of the entry and of every mode, so the copy tests only the property it mutates.
+const withoutPhases = entry => {
+    delete entry.phases;
+    for (const variant of Object.values(entry.variants || {})) delete variant.phases;
+    return entry;
+};
 const commandOf = occurrence => (occurrence.args ? `${occurrence.skill} ${occurrence.args}` : occurrence.skill);
 
 // Every resolved mode of one workflow; resolution itself proves each satisfiedBy skill exists.
@@ -583,6 +592,8 @@ function findGateRoleGaps(config) {
             // The gates of THIS mode: entry-level gates plus the variant's own.
             const gates = manifest.outcomeGates;
             const closeIsConditional = gates.some(gate => gate.id === 'run-closed' && gate.when);
+            // BR-GWF-01: only a workflow built to run nested may make its close conditional; its parent's close checks its gates
+            if (closeIsConditional && !NESTED_BUILT_WORKFLOWS.includes(id)) gaps.push(`${id}/${manifest.mode}: conditional close outside a nested-built workflow`);
             const label = `${id}/${manifest.mode}`;
             for (const step of manifest.occurrences) {
                 if (ALWAYS_GATE_SKILLS.includes(step.skill) && step.role !== 'gate') gaps.push(`${label}: ${commandOf(step)} is ${step.role}`);
@@ -723,6 +734,20 @@ function declaredStepLists(config) {
     return lists;
 }
 
+// The session report (watzup) closes every mode and runs only on its stated condition (BR-GWF-18); the
+// close-tail check owns its position.
+function findMandatorySessionReports(config) {
+    const gaps = [];
+    for (const id of Object.keys(config.workflows)) {
+        for (const manifest of manifestsOf(config, id)) {
+            const last = manifest.occurrences[manifest.occurrences.length - 1];
+            if (!last || last.skill !== 'watzup') continue;
+            if (last.role !== 'optional' || last.applicability.when === 'always') gaps.push(`${id}/${manifest.mode}: watzup is ${last.role}`);
+        }
+    }
+    return gaps;
+}
+
 function findMissingCloseTail(config) {
     return declaredStepLists(config)
         .filter(([, skills]) => skills.length < 2 || skills[skills.length - 2] !== 'workflow-end' || skills[skills.length - 1] !== 'watzup')
@@ -766,6 +791,7 @@ const annotatedRegistryTests = [
             // And dropping a floor gate is detected, including tests-pass on a code-changing workflow with no test step
             const mutated = cloneConfig(config);
             const drop = (id, gateId) => {
+                withoutPhases(mutated.workflows[id]);
                 mutated.workflows[id].outcomeGates = mutated.workflows[id].outcomeGates.filter(gate => gate.id !== gateId);
             };
             drop('workflow-feature', 'tests-pass');
@@ -808,7 +834,7 @@ const annotatedRegistryTests = [
             mutated.workflows['workflow-feature'].sequence.find(step => step.skill === 'test').role = 'core';
             mutated.workflows['workflow-bugfix'].sequence.find(isIntegrationVerify).role = 'core';
             const found = findGateRoleGaps(mutated);
-            assertTrue(found.includes('workflow-feature/default: test is core'), `a core test step must be detected: ${found.join('; ')}`);
+            assertTrue(found.includes('workflow-feature/default: test --proven=@verify is core'), `a core test step must be detected: ${found.join('; ')}`);
             assertTrue(found.includes('workflow-bugfix/default: tests-pass has no gate step'), `an unprovable tests-pass must be detected: ${found.join('; ')}`);
         }
     },
@@ -856,11 +882,236 @@ const annotatedRegistryTests = [
             investigate.applicability = { when: 'Cause unknown', skipReason: 'Cause known' };
             assertDeepEqual(findRootCauseGaps(mutated), ['workflow-bugfix: investigation step is not a gate']);
             const regrown = cloneConfig(config);
+            delete regrown.workflows['workflow-integration-test'].variants.green.phases;
             regrown.workflows['workflow-integration-test'].variants.green.sequence.splice(2, 0, {
                 id: 'green-fix', skill: 'fix', args: '[on-failure]', role: 'optional',
                 applicability: { when: 'A verify run reported a failing test.', skipReason: 'Every verify run was green.' }
             });
             assertDeepEqual(findRootCauseGaps(regrown), [`workflow-integration-test: root-cause-traced by ${ROOT_CAUSE_SATISFIER}`]);
+        }
+    },
+    {
+        name: '[guided-workflow] TC-GWF-073 the session report step runs when asked for; otherwise the close gives the summary',
+        fn: () => {
+            // Business Intent / Invariant Guarded: every run still ends with a summary the developer can act on,
+            // without a second full report nobody asked for (BR-GWF-18).
+            // Given the shipped registry
+            const config = loadWorkflowConfig();
+            // When each mode's last step is read, Then the session report step is optional with a run condition
+            assertDeepEqual(findMandatorySessionReports(config), []);
+            // And a report step made unconditional in one workflow is detected
+            const mutated = cloneConfig(config);
+            const refactor = mutated.workflows['workflow-refactor'].sequence;
+            refactor[refactor.length - 1] = { id: refactor[refactor.length - 1].id, skill: 'watzup' };
+            assertDeepEqual(findMandatorySessionReports(mutated), ['workflow-refactor/default: watzup is core']);
+            // And the close step gives the recap, or a handoff when nothing was built, whenever the report step does not run
+            const end = readWrapper('workflow-end');
+            for (const phrase of ['An optional `/watzup` whose `applicability.when` does not hold counts as not following.', 'print instead a short **handoff**']) {
+                assertTrue(end.includes(phrase), `workflow-end lost: ${phrase}`);
+            }
+        }
+    },
+    {
+        name: '[guided-workflow] never-skipped quality bars rest on gate steps; feature-spec reviews the final spec',
+        fn: () => {
+            // Business Intent / Invariant Guarded: a bar a workflow declares never skipped is a registry gate step, so no
+            // logged deviation can drop it (BR-GWF-01); a review gate judges content no later step rewrites (BR-GWF-14).
+            // Given the shipped registry
+            const config = loadWorkflowConfig();
+            const roleOf = (workflow, id) => (config.workflows[workflow].sequence.find(step => typeof step !== 'string' && step.id === id) || {}).role;
+            // When the declared never-skipped steps are read, Then each is a gate
+            const required = [
+                ['workflow-big-feature', 'architecture-scalability-gate'], ['workflow-big-feature', 'architecture-rationale-review'], ['workflow-big-feature', 'big-feature-e2e'],
+                ['workflow-greenfield-init', 'architecture-scalability-gate'], ['workflow-greenfield-init', 'architecture-rationale-review'],
+                ['workflow-greenfield-init', 'greenfield-foundation-review'], ['workflow-greenfield-init', 'greenfield-review'], ['workflow-greenfield-init', 'final-test'],
+            ];
+            const notGates = required.filter(([workflow, id]) => roleOf(workflow, id) !== 'gate').map(([workflow, id]) => `${workflow}:${id}`);
+            assertDeepEqual(notGates, []);
+            // And feature-spec's review gate runs after clarify and sync, the steps that edit the spec it reviews
+            const order = config.workflows['workflow-feature-spec'].sequence.map(step => typeof step === 'string' ? step : step.id);
+            const at = id => order.indexOf(id);
+            assertTrue(at('feature-spec-clarification') < at('feature-spec-spec-review') && at('feature-spec-sync') < at('feature-spec-spec-review'),
+                `feature-spec reviews before the spec stops changing: ${order.join(' -> ')}`);
+        }
+    },
+    {
+        name: '[guided-workflow] the independent challenge is optional in every planned-work chain, while the fresh-context task review and DoR are never optional',
+        fn: () => {
+            // Business Intent / Invariant Guarded: a small, low-risk task with no second reviewer skips the cross-person challenge, but the
+            // fresh-context task review (its rows 10-12: module, feasibility, cross-cutting) and the DoR gate still judge every task (P41 B3).
+            // Given the shipped registry
+            const config = loadWorkflowConfig();
+            const occurrences = (workflow, mode) => (mode ? config.workflows[workflow].variants[mode] : config.workflows[workflow]).sequence.filter(step => typeof step !== 'string');
+            for (const [workflow, mode] of [['workflow-planned-work', 'idea-to-tasks'], ['workflow-planned-work', 'spec-to-tasks'], ['workflow-big-feature'], ['workflow-greenfield-init']]) {
+                // When its challenge occurrence is read, Then it is optional with the second-reviewer-or-risk condition
+                const challenge = occurrences(workflow, mode).find(step => step.skill === 'work-item' && /--mode=challenge/.test(step.args || ''));
+                assertTrue(challenge && challenge.role === 'optional', `${workflow}: the challenge must be optional`);
+                assertTrue(/second reviewer/.test(challenge.applicability.when) && /size M or larger/.test(challenge.applicability.when), `${workflow}: challenge condition: ${challenge.applicability.when}`);
+                assertTrue(/rows 10-12/.test(challenge.applicability.skipReason), `${workflow}: the skip names the task-review rows that carry the checks`);
+                // And the fresh-context task review that carries its checks, and the DoR that follows it, are never optional
+                const review = occurrences(workflow, mode).find(step => step.skill === 'work-item' && /--mode=review --type=task\b/.test(step.args || ''));
+                assertTrue(review && review.role !== 'optional', `${workflow}${mode ? ` (${mode})` : ''}: the task review must not be optional`);
+                const dor = occurrences(workflow, mode).find(step => step.skill === 'work-item' && /--mode=dor/.test(step.args || ''));
+                assertTrue(dor && dor.role !== 'optional', `${workflow}${mode ? ` (${mode})` : ''}: DoR must not be optional`);
+            }
+            // And the planning chains keep the task review as a gate (big-feature and greenfield run it as a core step)
+            for (const [mode, id] of [['idea-to-tasks', 'idea-to-tasks-task-review'], ['spec-to-tasks', 'spec-to-tasks-task-review']]) {
+                assertTrue(occurrences('workflow-planned-work', mode).find(step => step.id === id).role === 'gate', `${mode}: the task review must stay a gate`);
+            }
+        }
+    },
+    {
+        name: '[guided-workflow] the merged planned-work workflow keeps every step and role of the three workflows it replaced, one mode each',
+        fn: () => {
+            // Business Intent / Invariant Guarded: merging initiative-to-task, initiative-to-spec and spec-to-task into one workflow
+            // drops no step, argument or gate: each mode equals, by content, the workflow it replaced (P41 D8).
+            const config = loadWorkflowConfig();
+            const expected = {
+                'idea-to-tasks': [
+                    'web-research --chain=deep-dive [optional]',
+                    'brainstorm [optional]',
+                    'initiative [core]',
+                    'spec [mode=discovery] [optional]',
+                    'work-item --mode=review [optional]',
+                    'domain-analysis [optional]',
+                    'why-review [optional]',
+                    'spec [mode=draft] [optional]',
+                    'spec [mode=tests] [optional]',
+                    'work-item --mode=review --type=spec-tests [optional]',
+                    'spec [mode=clarify] [optional]',
+                    'scenario [optional]',
+                    'plan [optional]',
+                    'work-item --mode=refine [core]',
+                    'work-item --mode=review --type=task --fix-loop [gate]',
+                    'work-item --mode=challenge --reuse=task-review [optional]',
+                    'work-item --mode=story [core]',
+                    'work-item --mode=dor --reuse=task-review [gate]',
+                    'prioritize [optional]',
+                    'design-spec [optional]',
+                    'work-item --mode=review --type=design [optional]',
+                    'work-item --mode=mockup --explore [optional]',
+                    'docs-manager --mode=update [optional]',
+                    'feature-presentation [optional]',
+                    'workflow-end [gate]',
+                    'watzup [optional]',
+                ],
+                'idea-to-spec': [
+                    'web-research --chain=deep-dive [optional]',
+                    'brainstorm [optional]',
+                    'spec [mode=discovery] [optional]',
+                    'scenario [optional]',
+                    'domain-analysis [optional]',
+                    'why-review [optional]',
+                    'initiative [optional]',
+                    'spec [mode=draft] [core]',
+                    'spec [mode=tests] [core]',
+                    'work-item --mode=review --type=spec-tests --fix-loop [gate]',
+                    'design-spec [optional]',
+                    'work-item --mode=review --type=design [optional]',
+                    'spec [mode=clarify] [gate]',
+                    'why-review [optional]',
+                    'docs-manager --mode=update [optional]',
+                    'feature-presentation [optional]',
+                    'workflow-end [gate]',
+                    'watzup [optional]',
+                ],
+                'spec-to-tasks': [
+                    'investigate [core]',
+                    'spec [mode=index] [optional]',
+                    'domain-analysis [optional]',
+                    'why-review [optional]',
+                    'spec [mode=clarify] [gate]',
+                    'scenario [optional]',
+                    'plan [optional]',
+                    'work-item --mode=refine [core]',
+                    'work-item --mode=review --type=task --fix-loop [gate]',
+                    'work-item --mode=challenge --reuse=task-review [optional]',
+                    'work-item --mode=story [core]',
+                    'work-item --mode=dor --reuse=task-review [gate]',
+                    'prioritize [optional]',
+                    'design-spec [optional]',
+                    'work-item --mode=review --type=design [optional]',
+                    'work-item --mode=mockup --explore [optional]',
+                    'docs-manager --mode=update [optional]',
+                    'feature-presentation [optional]',
+                    'workflow-end [gate]',
+                    'watzup [optional]',
+                ],
+            };
+            const entry = config.workflows['workflow-planned-work'];
+            // Given the merged workflow, When each mode is read by content, Then it equals the workflow it replaced
+            const tuples = workflow => Object.fromEntries(Object.entries(workflow.variants).map(([mode, variant]) => [mode, variant.sequence.map(step => `${step.skill}${step.args ? ' ' + step.args : ''} [${step.role || 'core'}]`)]));
+            assertDeepEqual(tuples(entry), expected);
+            assertEqual(entry.defaultMode, 'idea-to-tasks');
+            // And each step keeps the condition it had before the merge: a digest of (skill, args, role, applicability) per mode,
+            // recorded when the merge was checked against the replaced workflows (the only difference: the challenge's approved B3
+            // condition in idea-to-tasks and spec-to-tasks). A changed `when`
+            // or `skipReason` turns this red: review it against BR-GWF-20, then record the new digest.
+            const conditions = workflow => Object.fromEntries(Object.entries(workflow.variants).map(([mode, variant]) => [mode,
+                require('crypto').createHash('sha256').update(JSON.stringify(variant.sequence.map(step => [step.skill, step.args || '', step.role || 'core', step.applicability || null]))).digest('hex').slice(0, 16)]));
+            assertDeepEqual(conditions(entry), { 'idea-to-tasks': 'a353904706bc8301', 'idea-to-spec': '8211254ab42c0f6a', 'spec-to-tasks': '22b8f788eccd8618' });
+            // And a mode that drops a step is detected
+            const mutated = cloneConfig(config);
+            mutated.workflows['workflow-planned-work'].variants['spec-to-tasks'].sequence.splice(1, 1);
+            assertTrue(JSON.stringify(tuples(mutated.workflows['workflow-planned-work'])) !== JSON.stringify(expected), 'a dropped step must fail the comparison');
+        }
+    },
+    {
+        name: '[guided-workflow] greenfield hands its first slice to implement-spec without losing a gate',
+        fn: () => {
+            // Business Intent / Invariant Guarded: splitting greenfield keeps every gate it had: plan approval, the foundation review and the
+            // converging change review of the foundation stay in the foundation, and the first slice's review, verify, test and near-end E2E run in workflow-implement-spec (P41 D7).
+            const config = loadWorkflowConfig();
+            const greenfield = config.workflows['workflow-greenfield-init'];
+            const gateSkills = greenfield.sequence.filter(step => step.role === 'gate').map(step => `${step.skill}${step.args ? ' ' + step.args : ''}`);
+            for (const gate of ['plan --mode=validate', 'architecture --mode=full', 'workflow-review-changes --tests=defer', 'test', 'workflow-end']) assertTrue(gateSkills.includes(gate), `greenfield lost its gate ${gate}`);
+            // And the foundation's review-converged rests on the converging change review (its receipt), never on the read-only architecture diagnostic
+            assertDeepEqual(greenfield.outcomeGates.find(gate => gate.id === 'review-converged').satisfiedBy, ['workflow-review-changes']);
+            // And it reviews the finished foundation (BR-GWF-14): after scaffold, the foundation review and the reference docs, before the final test
+            const at = id => greenfield.sequence.findIndex(step => step.id === id);
+            const foundationOrder = ['greenfield-scaffold', 'greenfield-foundation-review', 'greenfield-foundation-docs', 'greenfield-review', 'final-test'].map(at);
+            assertTrue(foundationOrder.every((index, position) => index >= 0 && (position === 0 || index > foundationOrder[position - 1])), `the foundation change review must follow the foundation and precede the final test: ${foundationOrder.join(', ')}`);
+            assertDeepEqual(greenfield.outcomeGates.map(gate => gate.id).sort(), ['plan-approved', 'review-converged', 'run-closed', 'tests-pass']);
+            assertTrue(greenfield.preActions.injectContext.includes('/workflow-implement-spec'), 'greenfield names its hand-off');
+            // And implement-spec's greenfield-slice mode owns the first slice's build tail, with its near-end E2E a gate
+            assertTrue(greenfield.preActions.injectContext.includes('/workflow-implement-spec --mode=greenfield-slice'), 'greenfield names the exact hand-off mode');
+            const implement = config.workflows['workflow-implement-spec'].variants['greenfield-slice'].sequence;
+            const byId = id => implement.find(step => step.id === id) || {};
+            const SLICE_GATES = ['implement-spec-review', 'implement-spec-integration-verify', 'implement-spec-e2e', 'implement-spec-test', 'implement-spec-end'];
+            const sliceGateGaps = cfg => SLICE_GATES.filter(id => ((cfg.workflows['workflow-implement-spec'].variants['greenfield-slice'].sequence.find(step => step.id === id) || {}).role) !== 'gate');
+            assertDeepEqual(sliceGateGaps(config), [], 'every first-slice gate is a gate in greenfield-slice');
+            assertTrue(/workflow-greenfield-init/.test(byId('implement-spec-plan').applicability.when), 'the plan step re-plans only when no approved plan was handed off or the slice changed');
+            assertTrue(/persists state/.test(byId('implement-spec-seed-test-data').applicability.when), 'seed data runs when the product persists state');
+            // And demoting the slice's E2E gate is detected
+            const demoted = cloneConfig(config);
+            demoted.workflows['workflow-implement-spec'].variants['greenfield-slice'].sequence.find(step => step.id === 'implement-spec-e2e').role = 'optional';
+            assertDeepEqual(sliceGateGaps(demoted), ['implement-spec-e2e'], 'a demoted first-slice E2E must be detected');
+            const order = implement.map(step => step.id);
+            assertTrue(order.indexOf('implement-spec-integration-verify') < order.indexOf('implement-spec-e2e') && order.indexOf('implement-spec-e2e') < order.indexOf('implement-spec-test'), 'E2E runs after the verify and before the final test');
+        }
+    },
+    {
+        name: '[guided-workflow] every workflow mode declares phases that list each step once, in order, with every outcome gate tied to a phase exit',
+        fn: () => {
+            // Business Intent / Invariant Guarded: one todo per phase never hides a step or a gate (P41 D6): the resolver accepts a mode only when
+            // its phases cover every occurrence once in order and each outcome gate is the exit of exactly one phase.
+            const config = loadWorkflowConfig();
+            const { resolveAllWorkflowManifests } = require(path.resolve(__dirname, '..', '..', '..', 'scripts', 'lib', 'workflow-manifest.cjs'));
+            const missing = [];
+            for (const id of Object.keys(config.workflows)) {
+                for (const manifest of resolveAllWorkflowManifests(config, id, { rootDir: path.resolve(__dirname, '..', '..', '..', '..') })) {
+                    if (!manifest.phases.length) missing.push(`${id}/${manifest.mode}`);
+                    assertDeepEqual(manifest.phases.flatMap(phase => phase.steps), manifest.occurrences.map(step => step.id));
+                    assertDeepEqual(manifest.phases.flatMap(phase => phase.exit).sort(), manifest.outcomeGates.map(gate => gate.id).sort());
+                }
+            }
+            assertDeepEqual(missing, [], 'every mode declares phases');
+            // And a phase list that drops a step is rejected by the resolver
+            const mutated = cloneConfig(config);
+            mutated.workflows['workflow-bugfix'].phases[0].steps.pop();
+            let rejected = false;
+            try { resolveAllWorkflowManifests(mutated, 'workflow-bugfix', { rootDir: path.resolve(__dirname, '..', '..', '..', '..') }); } catch { rejected = true; }
+            assertTrue(rejected, 'a phase list that drops a step must be rejected');
         }
     },
     {
@@ -872,9 +1123,9 @@ const annotatedRegistryTests = [
             assertDeepEqual(findPostCheckRewrites(config), [], 'a clean-up rewrite runs after the checks that prove the change');
             // And a sequence that moves the clean-up behind its test and review gates is detected
             const mutated = cloneConfig(config);
+            delete mutated.workflows['workflow-seed-test-data'].phases;
             const sequence = mutated.workflows['workflow-seed-test-data'].sequence;
-            sequence.splice(sequence.indexOf('code-simplifier'), 1);
-            sequence.splice(sequence.indexOf('docs-manager --mode=update'), 0, 'code-simplifier');
+            sequence.splice(sequence.findIndex(step => (typeof step === 'string' ? step : step.skill) === 'docs-manager'), 0, { id: 'seed-code-simplifier', skill: 'code-simplifier' });
             assertDeepEqual(findPostCheckRewrites(mutated), [
                 'workflow-seed-test-data: code-simplifier runs after a test run',
                 'workflow-seed-test-data: no review after code-simplifier'
@@ -958,7 +1209,7 @@ const annotatedRegistryTests = [
             const synthesis = mutated.workflows['workflow-research'].variants.synthesis.sequence;
             synthesis.splice(synthesis.findIndex(step => step.skill === 'watzup'), 1);
             const flat = mutated.workflows['workflow-spec-sync'].sequence;
-            const [watzup] = flat.splice(flat.indexOf('watzup'), 1);
+            const [watzup] = flat.splice(flat.findIndex(step => (typeof step === 'string' ? step : step.skill) === 'watzup'), 1);
             flat.splice(flat.length - 1, 0, watzup);
             assertDeepEqual(findMissingCloseTail(mutated), ['workflow-research/synthesis', 'workflow-spec-sync']);
         }
@@ -982,11 +1233,13 @@ const LEAN_ROUTE_SEQUENCE = [
     'spec [mode=clarify]',
     'plan',
     'plan --mode=execute',
+    'seed-test-data',
     'integration-test',
     'spec [mode=sync]',
     'workflow-review-changes --tests=defer',
     'integration-test --mode=verify',
-    'test',
+    'workflow-e2e --source=context',
+    'test --proven=@verify',
     'workflow-end',
     'watzup'
 ];
@@ -1012,7 +1265,9 @@ function findLeanRouteShapeGaps(config) {
     const steps = manifest.occurrences.map(commandOf);
     if (JSON.stringify(steps) !== JSON.stringify(LEAN_ROUTE_SEQUENCE)) gaps.push(`sequence: ${steps.join(' -> ')}`);
     for (const step of manifest.occurrences) {
-        const expected = isLeanRouteGate(step) ? 'gate' : commandOf(step) === 'spec [mode=sync]' ? 'optional' : 'core';
+        // Conditional by design: the sync (behavior difference), test authoring for cases execute left uncovered, seed data and the
+        // near-end E2E (explicit request or a greenfield first slice, P41 D7) and the session report.
+        const expected = isLeanRouteGate(step) ? 'gate' : ['spec [mode=sync]', 'integration-test', 'seed-test-data', 'workflow-e2e --source=context', 'watzup'].includes(commandOf(step)) ? 'optional' : 'core';
         if (step.role !== expected) gaps.push(`role: ${commandOf(step)} is ${step.role}, expected ${expected}`);
     }
     const gates = workflow.outcomeGates || [];
@@ -1026,20 +1281,23 @@ function findLeanRouteShapeGaps(config) {
 }
 
 function findLeanSpecSyncGaps(config) {
-    const sequence = config.workflows[LEAN_ROUTE_ID].sequence;
-    const index = sequence.findIndex(step => step && typeof step === 'object' && step.skill === 'spec');
-    if (index < 0) return ['spec sync: not an occurrence object'];
     const gaps = [];
-    const step = sequence[index];
-    if (step.id !== 'implement-spec-sync' || step.args !== '[mode=sync]') gaps.push(`spec sync: identity ${step.id} ${step.args}`);
-    if (step.role !== 'optional') gaps.push(`spec sync: role ${step.role}`);
-    const applicability = step.applicability || {};
-    if (!/behavior differs from the supplied spec/i.test(applicability.when || '')) gaps.push('spec sync: when');
-    if (!/behavior and canonical case-to-test evidence still match the supplied spec/i.test(applicability.skipReason || '')) gaps.push('spec sync: skipReason');
-    const integrationIndex = sequence.findIndex(other => stepSkill(other) === 'integration-test');
-    if (!(integrationIndex >= 0 && integrationIndex < index)) gaps.push('spec sync: not after integration-test authoring');
-    for (const later of ['workflow-review-changes']) {
-        if (!(index < sequence.findIndex(other => stepSkill(other) === later))) gaps.push(`spec sync: not before ${later}`);
+    // Every resolved mode (default and greenfield-slice): the sync step is found by its ID, never by its skill,
+    // because `spec` also runs the gap review earlier in the route
+    for (const manifest of manifestsOf(config, LEAN_ROUTE_ID)) {
+        const sequence = manifest.occurrences;
+        const prefix = `${manifest.mode}: spec sync`;
+        const index = sequence.findIndex(step => step.id === 'implement-spec-sync');
+        if (index < 0) { gaps.push(`${prefix}: missing`); continue; }
+        const step = sequence[index];
+        if (commandOf(step) !== 'spec [mode=sync]') gaps.push(`${prefix}: command ${commandOf(step)}`);
+        if (step.role !== 'optional') gaps.push(`${prefix}: role ${step.role}`);
+        const applicability = step.applicability || {};
+        if (!/behavior differs from the supplied spec/i.test(applicability.when || '')) gaps.push(`${prefix}: when`);
+        if (!/behavior and canonical case-to-test evidence still match the supplied spec/i.test(applicability.skipReason || '')) gaps.push(`${prefix}: skipReason`);
+        const integrationIndex = sequence.findIndex(other => commandOf(other) === 'integration-test');
+        if (!(integrationIndex >= 0 && integrationIndex < index)) gaps.push(`${prefix}: not after integration-test authoring`);
+        if (!(index < sequence.findIndex(other => other.skill === 'workflow-review-changes'))) gaps.push(`${prefix}: not before workflow-review-changes`);
     }
     return gaps;
 }
@@ -1064,9 +1322,13 @@ function findRoutePredicateGaps(config) {
 function findSpecGapEscalationGaps(config) {
     const gaps = [];
     const workflow = config.workflows[LEAN_ROUTE_ID];
-    const commands = workflow.sequence.map(stepCommand);
-    const gapReview = commands.indexOf('spec [mode=clarify]');
-    if (!(commands.indexOf('investigate') < gapReview && gapReview >= 0 && gapReview < commands.indexOf('plan'))) gaps.push('gap review does not run between investigate and plan');
+    // Every resolved mode runs the gap review between investigate and plan
+    const outOfOrder = manifestsOf(config, LEAN_ROUTE_ID).some(manifest => {
+        const commands = manifest.occurrences.map(commandOf);
+        const gapReview = commands.indexOf('spec [mode=clarify]');
+        return !(commands.indexOf('investigate') < gapReview && gapReview >= 0 && gapReview < commands.indexOf('plan'));
+    });
+    if (outOfOrder) gaps.push('gap review does not run between investigate and plan');
     const context = workflow.preActions.injectContext;
     for (const phrase of ['vague, contradictory, or missing behavior stops before /plan', 'routes to user clarification or workflow-feature']) {
         if (!context.includes(phrase)) gaps.push(`injectContext: ${phrase}`);
@@ -1085,9 +1347,12 @@ const leanRouteTests = [
             // And a demoted test check, a dropped spec gate, or a reordered step is detected
             const mutated = cloneConfig(config);
             const lean = mutated.workflows[LEAN_ROUTE_ID];
-            lean.sequence.find(isIntegrationVerify).role = 'core';
+            // The shape is read from the resolved default mode, so the mutation reshapes that mode (and drops every mode's phases)
+            const leanDefault = lean.variants ? lean.variants.default : lean;
+            withoutPhases(lean);
+            leanDefault.sequence.find(isIntegrationVerify).role = 'core';
             lean.outcomeGates = lean.outcomeGates.filter(gate => gate.id !== 'spec-synced');
-            [lean.sequence[2], lean.sequence[3]] = [lean.sequence[3], lean.sequence[2]];
+            [leanDefault.sequence[2], leanDefault.sequence[3]] = [leanDefault.sequence[3], leanDefault.sequence[2]];
             const found = findLeanRouteShapeGaps(mutated);
             assertTrue(found.includes('role: integration-test --mode=verify is core, expected gate'), `a demoted gate must be detected: ${found.join('; ')}`);
             assertTrue(found.includes('outcome gate: spec-synced'), `a dropped outcome gate must be detected: ${found.join('; ')}`);
@@ -1103,16 +1368,17 @@ const leanRouteTests = [
             assertDeepEqual(findLeanSpecSyncGaps(config), []);
             // And a spec sync moved after the review, or made unconditional, is detected
             const mutated = cloneConfig(config);
-            const sequence = mutated.workflows[LEAN_ROUTE_ID].sequence;
-            const [sync] = sequence.splice(sequence.findIndex(step => step.skill === 'spec'), 1);
+            const lean = withoutPhases(mutated.workflows[LEAN_ROUTE_ID]);
+            const sequence = (lean.variants ? lean.variants.default : lean).sequence;
+            const [sync] = sequence.splice(sequence.findIndex(step => step.id === 'implement-spec-sync'), 1);
             sequence.splice(sequence.findIndex(step => step.skill === 'test'), 0, sync);
             sync.role = 'core';
             delete sync.applicability;
             assertDeepEqual(findLeanSpecSyncGaps(mutated), [
-                'spec sync: role core',
-                'spec sync: when',
-                'spec sync: skipReason',
-                'spec sync: not before workflow-review-changes'
+                'default: spec sync: role core',
+                'default: spec sync: when',
+                'default: spec sync: skipReason',
+                'default: spec sync: not before workflow-review-changes'
             ]);
         }
     },
@@ -1142,8 +1408,8 @@ const leanRouteTests = [
             assertDeepEqual(findSpecGapEscalationGaps(config), []);
             // And a lean route without the gap review, or without the stop rule, is detected
             const mutated = cloneConfig(config);
-            const lean = mutated.workflows[LEAN_ROUTE_ID];
-            lean.sequence = lean.sequence.filter(step => stepCommand(step) !== 'spec [mode=clarify]');
+            const lean = withoutPhases(mutated.workflows[LEAN_ROUTE_ID]);
+            for (const mode of [lean, ...Object.values(lean.variants || {})]) mode.sequence = mode.sequence.filter(step => stepCommand(step) !== 'spec [mode=clarify]');
             lean.preActions.injectContext = lean.preActions.injectContext.replace('stops before /plan', 'continues to /plan');
             assertDeepEqual(findSpecGapEscalationGaps(mutated), [
                 'gap review does not run between investigate and plan',
@@ -1197,20 +1463,26 @@ const PRE_CHANGE_BASELINE_IDS = new Set(['refactor-baseline-test']);
 function findVerifyLastGaps(config) {
     const gaps = [];
     for (const id of VERIFY_LAST_WORKFLOWS) {
-        const [manifest] = manifestsOf(config, id);
-        const steps = manifest.occurrences;
-        const reviewIndex = steps.findIndex(step => step.skill === 'workflow-review-changes');
-        if (reviewIndex < 0) {
-            gaps.push(`${id}: no workflow-review-changes step`);
-            continue;
-        }
-        if (!/(^|\s)--tests=defer(\s|$)/.test(steps[reviewIndex].args || '')) gaps.push(`${id}: review does not defer tests`);
-        steps.forEach((step, index) => {
-            if (index < reviewIndex && isVerifyLastRun(step) && !PRE_CHANGE_BASELINE_IDS.has(step.id)) {
-                gaps.push(`${id}: ${commandOf(step)} runs tests before the review`);
+        // Every mode: a variant such as implement-spec's greenfield-slice keeps the same order (P41 D7)
+        const manifests = manifestsOf(config, id);
+        for (const manifest of manifests) {
+            const label = manifests.length > 1 ? `${id}/${manifest.mode}` : id;
+            const steps = manifest.occurrences;
+            // The review is the step that satisfies review-converged (workflow-review-changes in every code-changing workflow today)
+            const reviewGate = manifest.outcomeGates.find(gate => gate.id === 'review-converged');
+            const reviewIndex = reviewGate ? steps.findIndex(step => reviewGate.satisfiedBy.some(invocation => isInvocation(commandOf(step), invocation))) : -1;
+            if (reviewIndex < 0) {
+                gaps.push(`${label}: no step satisfies review-converged`);
+                continue;
             }
-        });
-        if (!steps.some((step, index) => index > reviewIndex && isVerifyLastRun(step))) gaps.push(`${id}: no verify step after the review`);
+            if (steps[reviewIndex].skill === 'workflow-review-changes' && !/(^|\s)--tests=defer(\s|$)/.test(steps[reviewIndex].args || '')) gaps.push(`${label}: review does not defer tests`);
+            steps.forEach((step, index) => {
+                if (index < reviewIndex && isVerifyLastRun(step) && !PRE_CHANGE_BASELINE_IDS.has(step.id)) {
+                    gaps.push(`${label}: ${commandOf(step)} runs tests before the review`);
+                }
+            });
+            if (!steps.some((step, index) => index > reviewIndex && isVerifyLastRun(step))) gaps.push(`${label}: no verify step after the review`);
+        }
     }
     return gaps;
 }
@@ -1225,13 +1497,19 @@ const verifyLastTests = [
             assertDeepEqual(findVerifyLastGaps(config), [], 'review must precede every test run and defer its own');
             // And a verify step moved ahead of the review, or a review that runs its own tests, is detected
             const mutated = cloneConfig(config);
+            delete mutated.workflows['workflow-feature'].phases;
             const sequence = mutated.workflows['workflow-feature'].sequence;
-            const [verify] = sequence.splice(sequence.findIndex(step => step === 'integration-test --mode=verify'), 1);
+            const [verify] = sequence.splice(sequence.findIndex(step => stepCommand(step) === 'integration-test --mode=verify'), 1);
             sequence.splice(sequence.findIndex(step => step.skill === 'workflow-review-changes'), 0, verify);
             delete sequence.find(step => step.skill === 'workflow-review-changes').args;
             const found = findVerifyLastGaps(mutated);
             assertTrue(found.includes('workflow-feature: review does not defer tests'), `a review that runs tests must be detected: ${found.join('; ')}`);
             assertTrue(found.includes('workflow-feature: integration-test --mode=verify runs tests before the review'), `a verify before the review must be detected: ${found.join('; ')}`);
+            // And a non-default mode is checked too: greenfield-slice's review that stops deferring its tests is detected
+            const slice = cloneConfig(config);
+            const lean = withoutPhases(slice.workflows['workflow-implement-spec']);
+            lean.variants['greenfield-slice'].sequence.find(step => step.skill === 'workflow-review-changes').args = '';
+            assertTrue(findVerifyLastGaps(slice).includes('workflow-implement-spec/greenfield-slice: review does not defer tests'), 'the greenfield-slice mode must be checked');
         }
     },
     {

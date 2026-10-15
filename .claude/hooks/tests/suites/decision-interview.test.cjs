@@ -281,7 +281,7 @@ const tests = [
             assert.match(text, /set the old ticket `status: superseded` with `superseded_by`/);
             // A cleared map hands off to the spec workflow
             assert.match(text, /A cleared map is a set of linked decisions, not a build plan/);
-            for (const next of ['`/workflow-initiative-to-spec`', '`/workflow-spec-to-task`', '`/workflow-implement-spec`']) assert.ok(text.includes(next), `hands off to ${next}`);
+            for (const next of ['`/workflow-planned-work --from=idea --to=spec`', '`/workflow-planned-work --from=spec --to=tasks`', '`/workflow-implement-spec`']) assert.ok(text.includes(next), `hands off to ${next}`);
             // And every skill it names exists
             for (const name of ['grill', 'domain-analysis', 'ui-design', 'web-research', 'investigate', 'task-track', 'spec', 'workflow-feature', 'workflow-big-feature']) {
                 assert.ok(fs.existsSync(path.join(SKILLS, name, 'SKILL.md')), `skill ${name} exists`);

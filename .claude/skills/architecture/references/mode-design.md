@@ -2,7 +2,7 @@
 
 > Loaded by `architecture/SKILL.md`'s Mode Dispatch when invoked as `/architecture --mode=design [brief]`. Formerly `/architecture-design`. This contract is the whole invocation: run it exactly as written, standalone or as a workflow step. `$ARGUMENTS` in this file means the invocation text after `--mode=design`.
 
-> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
+> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval. Inside a workflow run, `/start-workflow` → Workflow-step mode bounds this rule.
 > **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
@@ -49,7 +49,7 @@
 - **Purpose:** fit architecture to workload, constraints, team, and risk while preserving upstream decisions and giving downstream steps an ADR-backed report plus Scaffold/Harness choices.
 - **Decision gates:** choose Greenfield/Brownfield first; rank one-way doors; quantify workload/NFRs; choose ≤3 drivers + sacrifices; interrogate each irreversible choice, design it twice, then self-audit.
 - **Evidence gates:** read project docs/ADRs; research ≥3 options per applicable concern; prescribe tactics before products; cite sources + confidence; complete the testability/execution matrix; get user confirmation; NEVER skip the Step-12 gate.
-- **Ordered work:** 1 Context (+mode) → 2 Requirements (+workload/scaling, reversibility, NFRs, interrogation, validation) → 3A/3B backend styles/patterns → 3C data (when persistence/tenancy/consistency) → 3D integration (when a boundary exists) → 4 frontend → 4B UI (when UI exists) → 5 libraries → 6 testing → 7 delivery → 8 observability → 9 quality/Scaffold → 10 dependency risk → 11 report/ADRs → 12 ask user question tool user validation → Next Steps ask user question tool + independent council offer.
+- **Ordered work:** 1 Context (+mode) → 2 Requirements (+workload/scaling, reversibility, NFRs, interrogation, validation; reuse a `tech-stack-research` run's requirements, or 2-3 stack comparison when a new stack dependency is unsettled) → 3A/3B backend styles/patterns → 3C data (when persistence/tenancy/consistency) → 3D integration (when a boundary exists) → 4 frontend → 4B UI (when UI exists) → 5 libraries → 6 testing → 7 delivery → 8 observability → 9 quality/Scaffold → 10 dependency risk → 11 report/ADRs → 12 ask user question tool user validation → Next Steps ask user question tool + independent council offer.
 
 **Workflow (12 steps):**
 
@@ -99,6 +99,11 @@ Skill sits mid-workflow: consume settled upstream decisions; produce named artif
 
 If an upstream artifact is missing, capture its minimum needed input and record the gap; NEVER silently rerun full upstream analysis — why: silent reruns hide the gap the owning step must resolve.
 
+**Stack decisions — reuse or own, one interview:**
+
+- **`tech-stack-research` ran in this run:** reuse its confirmed requirements, context signals and per-layer option research instead of re-deriving them, citing `{plan-dir}/research/tech-stack-comparison.md` and `{plan-dir}/phase-02-tech-stack.md` (`status: confirmed`). Step 1 copies the shared signals, Step 2 confirms only the requirements that research left uncovered, Step 5 researches libraries for the confirmed stack, and Step 12 asks only the stack questions the run's decision log leaves open or new evidence reopened.
+- **It did not run, and a new stack-layer dependency is in play** (a language, framework, database, messaging, infrastructure or auth choice that the project's references and ADRs have not settled): run [Step 2-3](#2-3-stack-comparison-own-phase) as this mode's own first research phase — the top 3 viable alternatives per open layer with license and cost evidence — and carry its choices into the Step 12 interview. One interview covers the stack and the architecture; never run a separate stack interview. The phase is recorded in the report, so it is an owned phase, not a silent upstream rerun.
+
 ---
 
 ## Step 1: Load Context
@@ -112,6 +117,8 @@ Read prior-step artifacts (search the plans root, default `plans/`, and the team
 - Business evaluation (scale, constraints, compliance)
 - Refined task (scope, acceptance criteria)
 - Discovery interview (team skills, experience level)
+
+When `tech-stack-research` ran in this run, take the signals it already extracted (scale, team skills, budget, compliance, real-time, integration complexity) from its report and cite it; extract only the rows it lacks.
 
 Extract + summarize:
 
@@ -215,6 +222,8 @@ Quality attributes CONFLICT, and that conflict IS the architecture: consistency�
 
 **MANDATORY IMPORTANT MUST ATTENTION** validate derived requirements with user via `ask user question tool` before proceeding.
 
+When `tech-stack-research` confirmed requirements in this run, cite them and ask only about the requirements they leave uncovered. When this mode owns the stack phase (2-3), this one confirmation also covers the stack requirements.
+
 ### 2-2: Pre-Decision Interrogation (MANDATORY for every one-way door from 2-0)
 
 Answer the 15-question pre-decision script in `.claude/docs/architecture-knowledge.md` §20.1 for each one-way door BEFORE researching options. Record answers in the Step 11 report; each "unknown" becomes an `Unresolved question`, never a silent gap.
@@ -243,6 +252,15 @@ Record these decisions so init-time `architecture --mode=scalability` (`mode=ini
 | Dependency-boundary enforcement | Decide explicit dependency directions between modules/contexts and the mechanism that enforces them (no circular deps). | Step 9 "Arch rules / fitness" handoff → `linter-setup` |
 
 `architecture --mode=scalability` grades these inputs at init/audit; `architecture --mode=review` catches per-change regressions. Do NOT turn this step into an auditor: record decisions here and route grading to those skills.
+
+### 2-3: Stack Comparison (own phase)
+
+Run this phase only when `tech-stack-research` did not run in this run and a new stack-layer dependency is in play (see [Inputs & Handoffs](#inputs--handoffs-consume-vs-produce)). Otherwise record `Stack: reused — <tech-stack-research report path>` or `Stack: settled — <reference doc or ADR>` and continue to Step 3.
+
+1. Classify each stack layer `OPEN-REQUIRED`, `FIXED` or `N/A` with evidence; only open layers need alternatives.
+2. For each open layer, compare the top 3 viable alternatives, including the current or simplest option; when constraints leave fewer, record the eliminated candidates and why. Cite evidence for license, cost (hosting and licensing), maturity and maintenance, team fit and lock-in. Set one total search cap before searching, as `tech-stack-research` Step 3 does, and stop when the decision-critical claims are supported.
+3. Rank each layer with a confidence %; treat a lock-in choice as a one-way door (2-0, 2-2) and record the comparison in the Step 11 report.
+4. Ask the user nothing here: the Step 2 confirmation covers the stack requirements and the Step 12 interview carries the stack choices.
 
 ---
 
@@ -544,7 +562,7 @@ Complete this owner-owned matrix in the architecture report before Step 6 ends. 
 | Performance/Scale | `APPLICABLE` / `N/A — {B/T-tier evidence}` | {owner} | {load/benchmark runner + config} | {root} | {volume AND shape: distribution, cardinality, skew — plus the ≥2 volumes ~10× apart} | `{copy-ready command}` | `{copy-ready command}` / `N/A — {evidence}` | {local · CI · prod-shaped} | `{single-scenario filter}` | `{invalid/zero-match exit}` | {budgets that FAIL the run} | `{simple cross-OS command, or .cmd + .sh pair}` | `{two-run evidence or planned owner}` |
 
 - `APPLICABLE` requires a verified runner, framework, configuration, root, and command. For E2E, use `N/A — {evidence}` when no browser framework/configuration/command is verified; never turn the candidate list above into an invented stack.
-- Record full/focused commands as copy-ready, with explicit scope/filter and non-zero invalid/zero-match behavior. Data/fixture and repeat columns must name unique run/test identity + business suffix, supported public setup path, realistic valid data, count-before-create idempotent/restart-safe reference setup, additive persistent-data policy, mutable-root/worker isolation, real pacing/arrange barrier, exact result, and two consecutive no-reset full runs for each applicable persistent-state suite. If implementation is downstream, mark repeat proof `planned` with its owner, not PASS.
+- Record full/focused commands as copy-ready, with explicit scope/filter and non-zero invalid/zero-match behavior. Data/fixture and repeat columns must name unique run/test identity + business suffix, supported public setup path, realistic valid data, count-before-create idempotent/restart-safe reference setup, additive persistent-data policy, mutable-root/worker isolation, real pacing/arrange barrier, exact result, and two consecutive no-reset full runs for each applicable persistent-state integration suite (one fresh green full run for other tiers). If implementation is downstream, mark repeat proof `planned` with its owner, not PASS.
 
 - **Host vs container commands (both columns, per tier).** Fill BOTH when the project supports both run modes, driven from ONE source of truth for config and topology; record `N/A — {evidence}` when a mode genuinely does not apply (a tier needing a real device or host GPU, or a deliberately container-only project). Name which mode CI exercises — an unexercised mode rots silently, and a **claimed-but-rotten** mode is worse than one never claimed.
 - **Environment reach (per tier).** Which of local / CI / production-shaped this tier can target. The SAME suite must reach each one **parameterized by configuration, never by a forked copy of the test code** — only one fork ever stays maintained. A target missing a required capability reports `ENVIRONMENT-BLOCKED`, never a silent pass; anything unsafe against production is excluded by an ENFORCED mechanism, so *"prod reach"* means a safe, declared, **NON-MUTATING** subset.
@@ -818,7 +836,11 @@ graph TB
 
 ## Step 12: User Validation Interview
 
-**MANDATORY IMPORTANT MUST ATTENTION** present findings; ask 8-12 questions via `ask user question tool`:
+> **Decision log:** inside a workflow, read the run's `## Decisions` first (`/start-workflow` → Step Execution Protocol, Decision log): ask only what it leaves open or new evidence reopened, cite reused answers instead of asking again, and append every new answer.
+
+**Stack questions:** when `tech-stack-research` ran in this run, its confirmed stack and the decision log settle the stack; ask only the stack questions they leave open. When Step 2-3 ran, ask its open stack choices here, one-way doors first. This is the run's only stack interview.
+
+**MANDATORY IMPORTANT MUST ATTENTION** present findings; ask 8-12 questions via `ask user question tool`. With fewer genuine open decisions, ask those and say so; never pad, and never re-ask an answer the run's decision log holds.
 
 ### Required Questions
 
@@ -905,6 +927,8 @@ docs/adr/{NNNN}-{slug}.md                       # One ADR per hard-to-reverse de
 ---
 
 ## Next Steps
+
+> **Inside a workflow:** when this skill runs as a step of an active workflow, skip the prompts in this section and return the result — the workflow's next step decides what runs (`/start-workflow` → Step Execution Protocol, Workflow-step mode).
 
 **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after this skill, use `ask user question tool` to present these options. NEVER skip because the task seems "simple" or "obvious"; the user decides:
 
@@ -1108,7 +1132,7 @@ The protocols below apply to this mode only; their full text is inline so this r
 
 ## Prompt-Enhance Closing Anchors
 
-- **IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval
+- **IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval; inside a workflow run, `/start-workflow` → Workflow-step mode bounds this
 - **IMPORTANT MUST ATTENTION** for every step/sub-skill call: set `in_progress` before execution, set `completed` after execution
 - **IMPORTANT MUST ATTENTION** every skipped step MUST include explicit reason; every completed step MUST include concise evidence
 - **IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses
@@ -1167,6 +1191,7 @@ The protocols below apply to this mode only; their full text is inline so this r
 **MANDATORY IMPORTANT MUST ATTENTION** correctness floors: name the ISOLATION LEVEL on every critical write path and a fencing token on every distributed lock; write-then-publish uses an outbox or CDC (never a dual write); consumers are idempotent; queues are bounded with a monitored DLQ; tenant isolation is enforced at the data-access boundary from the authenticated principal — why: these defects pass every single-user functional test and corrupt data under production concurrency.
 **MANDATORY IMPORTANT MUST ATTENTION** research ≥3 options per concern with cited evidence (stars, last release, downloads, CVE scan), cite `file:line`/URL and a confidence % for EVERY claim (>80% recommend, <60% DO NOT recommend), and evaluate fit before copying a nearby pattern; brownfield: read project reference docs + accepted ADRs FIRST and never re-litigate a settled ADR without a superseding one — why: familiarity and closest-example bias ship mismatched or unmaintained choices.
 **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with the user via `ask user question tool` (Step 12) — NEVER auto-decide a hard-to-reverse choice — and emit the two binding downstream contracts: one ADR per one-way door AND the Step-9 Scaffold Handoff, where every machine-checkable ADR constraint becomes an executable fitness function and existing debt is paid with a CI RATCHET — why: a rule not automatically verified is a suggestion, and the user owns irreversible decisions.
+**MANDATORY IMPORTANT MUST ATTENTION** stack decisions take one interview: reuse a `tech-stack-research` run's confirmed requirements, signals and option research (cite its report) and ask only what the decision log leaves open; when it did not run and a new stack dependency is unsettled, run Step 2-3 (top 3 alternatives with license and cost evidence) and ask its choices in Step 12 — why: re-deriving and re-asking settled stack choices doubles the user's interview without adding evidence.
 **MANDATORY IMPORTANT MUST ATTENTION** reason FROM `.claude/docs/architecture-knowledge.md`, but the project's OWN reference docs and accepted ADRs OUTRANK it on any conflict — why: universal reasoning must not be mistaken for binding project convention.
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting; mark one `in_progress`, mark `completed` immediately after evidence lands; add a final review todo — why: external task state survives context compaction; memory does not.
 

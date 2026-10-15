@@ -1610,7 +1610,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > 1. Isolate mutable data across tests/runs. Generate identities in shared namespaces/stores; stable IDs are valid in isolated disposable databases or deterministic fixtures.
 > 2. Cleanup only resources created AND owned by the test/run. Use harness-supported transactions, ephemeral databases, namespaces, teardown, or additive fixtures; never reset shared/user-owned state.
 > 3. Make repeatable shared setup idempotent. Retain contract-required schema/migration tests using the migration harness; assume no rollback unsupported in production.
-> 4. Follow `integrationTestVerify.guidance`. If absent, use two fresh runs when persistent/shared state or async effects make one insufficient; never delete another run's data to verify repeatability.
+> 4. Follow `integrationTestVerify.guidance`. If absent, an integration suite whose persistent/shared state or async effects make one run insufficient converges on two consecutive fresh green runs; any other suite converges on one fresh green run. Never delete another run's data to verify repeatability.
 
 ---
 
@@ -2117,7 +2117,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 >
 > | Registry field | Governs | Rule |
 > | --- | --- | --- |
-> | `sequence` | the ordered recommended step list | One task per occurrence. Skip, merge, simplify and reorder follow `/start-workflow` → Step Execution Protocol; `gate` steps always run. |
+> | `sequence` | the ordered recommended step list | One task per declared phase, one row per occurrence (a mode with no phases: one task per occurrence). Skip, merge, simplify and reorder follow `/start-workflow` → Step Execution Protocol; `gate` steps always run. |
 > | `sequence[].applicability` | every conditional step | `when` is the ONLY run condition; on skip, record `skipReason` VERBATIM as the step's evidence. |
 > | `sequence[].args` | step flags | Pass exactly as declared. |
 > | `parallelGroups` | all-return barriers | Spawn all members in ONE message; advance only after EVERY member returns. |
@@ -2203,7 +2203,7 @@ Before writing, read target code and `.claude/docs/development-rules.md`; grep 3
 
 ## Task Planning Rules
 
-Plan the work and create a small todo task per change before acting; keep exactly one `in_progress`, complete it immediately after evidence, and include final consistency review. **Prefer work in the main agent.** Use a sub-agent only when authorized and there is a strong reason, such as a required independent review or substantial independent work whose benefit exceeds context and coordination costs. **Analyze the task graph BEFORE executing** (every host): map output dependencies and shared write targets, order work into waves (`SEQ` by default; `PAR` only when justified), then follow the Workflow Step Advancement & Parallel Phases limits for any declared parallel phase; re-run the analysis when tasks are added. For non-trivial work resolve the active goal contract and observable acceptance criteria; persist findings incrementally to `tmp/reports/`. Pin `Original goal:` as the first task, keep a running `User prompts this session: P1…Pn` list, re-read both at each step, before delegation and after compaction, and map the finished result to every prompt before claiming done (`SYNC:session-goal-ledger`). On compaction inspect existing tasks/state and re-read files before continuing. Required quality gates and native host permissions cannot be waived by routing, overlays, delegation or completion pressure.
+Plan the work and create a small todo task per change before acting; keep exactly one `in_progress`, complete it immediately after evidence, and include final consistency review. **A task that changes code** always plans, as its own tasks, updating its tests, syncing stale docs and specs, and a review after those edits; it then runs the tests once, last (`SYNC:verify-last-order`). **Before a test verify run**, check its environment is ready — whatever this project, stack and OS need (disk, RAM, services, toolchain, config); on a gap report `ENVIRONMENT-BLOCKED` with what is missing (a writing step may first free only disposable output its own runs created), never reading an environment failure as a defect. **Prefer work in the main agent.** Use a sub-agent only when authorized and there is a strong reason, such as a required independent review or substantial independent work whose benefit exceeds context and coordination costs. **Analyze the task graph BEFORE executing** (every host): map output dependencies and shared write targets, order work into waves (`SEQ` by default; `PAR` only when justified), then follow the Workflow Step Advancement & Parallel Phases limits for any declared parallel phase; re-run the analysis when tasks are added. For non-trivial work resolve the active goal contract and observable acceptance criteria; persist findings incrementally to `tmp/reports/`. Pin `Original goal:` as the first task, keep a running `User prompts this session: P1…Pn` list, re-read both at each step, before delegation and after compaction, and map the finished result to every prompt before claiming done (`SYNC:session-goal-ledger`). On compaction inspect existing tasks/state and re-read files before continuing. Required quality gates and native host permissions cannot be waived by routing, overlays, delegation or completion pressure.
 
 ---
 
@@ -2260,6 +2260,22 @@ Edit framework source `.claude/**` and root source `CLAUDE.md`. Never hand-edit 
 ## Continuous Improvement — Lesson Extraction Gate
 
 Add `Analyze AI mistakes & lessons learned` to non-trivial tasks. Extract the root reasoning failure, generalize to at least three contexts, remove incident specifics and consolidate duplicates. Recommend only a project convention or a universal best-practice protocol worth reading on everyday work — skip rare AI-agent quirks, one-off incidents and details of the current task. Skip nonrecurring lessons; improve the review skill when mechanical review can catch the failure. If valuable, recurring and not mechanically catchable, ask the user to run `/learn`; never silently self-edit instructions.
+
+---
+
+## SYNC:quality-skill-routing
+
+**Quality skill routing:** For review, test or failure work, use the project's registered skill first; use a generic host or plugin equivalent only when no registered skill fits, and say why.
+
+- **Review:** `why-review` judges a rationale, decision, plan, claim or statement: necessity, alternatives, trade-offs, or the validity of review findings. `changes-review` reviews a focused code change: staged, unstaged, one branch diff or a simple pull request. `workflow-review-changes` reviews a pull request or change set that is complex, risky or cross-module, with specialist reviewers and a fix loop; for a whole pull request, choose between the two by how complex its changes are, not by file count alone.
+- **Tests:** `test` runs the suites and summarizes the results; `integration-test` and `e2e-test` write, fix or verify their suites.
+- **Failures and errors:** `investigate --mode=debug` establishes the root cause of a failed command, test or unexpected error before any fix; `fix` then repairs it at that cause.
+
+---
+
+## SYNC:quality-skill-routing:reminder
+
+**Quality skills first:** review → `why-review` (rationale, decision, claim or statement), `changes-review` (focused diff or simple pull request), `workflow-review-changes` (complex, risky or cross-module pull request or changes); tests → `test`, `integration-test`, `e2e-test`; a failure or error → `investigate --mode=debug` before any fix. Use a generic host or plugin equivalent only when none fits.
 
 ---
 
@@ -2795,7 +2811,7 @@ Complete the user's requested outcome with changes that are easy to verify and m
 - **Design.** Keep one authoritative owner for each rule. Reuse what fits; keep dependencies explicit and domain rules in their owning domain. Add abstractions for actual reuse or an evidenced change axis. Bound work and resource growth where it matters; match the project's real scale. Prefer reversible choices and avoid speculative infrastructure or pass-through wrappers with no benefit. Before done, answer: next change → how many edit sites? 10× → what breaks? which test goes red?
 - **Diagnosis.** Establish the cause before correcting a failure. Compare intended behavior, source, tests and environment; a failure or successful retry alone does not identify a defect. Do not weaken assertions, skip tests, inflate timeouts or alter product behavior merely to make a check pass. Load the investigation procedure when diagnosing failures.
 - **Impact.** Trace affected consumers and alternate/error paths. For shared definitions, renames, deletion or bulk changes, check all consumer file types for stale references and keep dependent contracts and documentation aligned. Investigate existing rationale before changing or condemning a limit or established behavior.
-- **Verification.** Protect changed intent with meaningful, isolated tests and checks appropriate to the delta and the project's authorized phase. Preserve required test, review and spec/doc synchronization gates regardless of route. Verify real outputs and state, including delegated work; do not claim success from a task status or agent self-report. Re-run a green check when its inputs change or new evidence warrants it.
+- **Verification.** Protect changed intent with meaningful, isolated tests and checks appropriate to the delta and the project's authorized phase. Preserve required test, review and spec/doc synchronization gates regardless of route, as tasks for every code change. Verify real outputs and state, including delegated work; do not claim success from a task status or agent self-report. Before a test run, check its environment; re-run a green check when its inputs change.
 - **Missing dependencies.** Verify the declared package/version, then try one bounded, noninteractive install with a supported installer; on failure use an isolated/local runtime or equivalent tool. Skip only optional capabilities. Never use sudo, force the system Python or retry indefinitely.
 - **Ownership and artifacts.** Edit canonical source; regenerate declared projections with their owning tool. For this framework, author `.claude/**` and `CLAUDE.md`; generate `.agents/`, `.codex/`, `.opencode/` and `AGENTS.md`. Keep disposable reports, logs and results under ignored project `tmp/` or `temp/`. Canonical specs, accepted fixtures/baselines and intentionally versioned projections stay at their declared paths.
 - **Coordination and completion.** Plan the work and create todo tasks before acting. Prefer work in the main agent. Use a sub-agent only when authorized and there is a strong reason, such as a required independent review or substantial independent work whose benefit exceeds context and coordination costs. Use one writer per shared target; give delegated work a clear scope and verify the return. Report the result, relevant evidence, remaining risks and unavailable verification concisely. Suggest a durable lesson only for a recurring, useful gap; never silently rewrite persistent instructions.
@@ -2806,7 +2822,7 @@ Run `node .claude/scripts/project-context.cjs --context` for validated discovery
 
 For non-trivial project work, read the configured docs index and lessons, then only task-relevant owners and sections. An explicit reference selection, including an empty one, controls generic selection; it does not disable required task/skill references or overlays. Respect relocated roots. Before entering an unfamiliar path class, run `node .claude/hooks/lib/file-conventions.cjs --lookup <path> --complete`, read all returned pages and follow required references. Reuse unchanged documents already read in the current context; reminders and another agent's read are not proof of loading. Re-select after material scope changes and reload after compaction or resume.
 
-Use the root Doc Lookup and docs index for task routing. Code establishes actual implementation; owning specs establish expected behavior; project rules govern operation; Git history supplies rationale. Read `.claude/docs/README.md` for framework questions. Do not invent missing guidance; use its narrow repair owner before relying on it. Record relevant references and material missing inputs with the work evidence.
+Use the root Doc Lookup and docs index for task routing. Code shows implementation; owning specs, expected behavior; project rules, operation; Git history, rationale. Read `.claude/docs/README.md` for framework questions. Do not invent missing guidance; use its narrow repair owner before relying on it. Record relevant references and material missing inputs with the work evidence.
 
 ## Conditional depth
 
@@ -2825,7 +2841,7 @@ Load specialized procedures when their trigger applies:
 | Review, planning or implementation needs domain depth | Matching project guide and selected skill; load detailed review, engineering, test or orchestration protocols only for applicable work. |
 | Model calls, prompts, agents, tools, retrieval or evals change | `.claude/skills/shared/protocols/ai-engineering-gate.md` and registered `ai-engineering-review` skill; treat untrusted content and model output as data, retain controls outside the model and require behavioral evidence before rollout. |
 
-For rule detail omitted here, find the protocol by summary in `.claude/skills/shared/protocols/index.json` and read its file.
+For omitted rule detail, find the protocol by summary in `.claude/skills/shared/protocols/index.json` and read its file.
 
 **Concise method policy:** Within framework guidance, choose routine methods proportionately. Fixed confidence/sibling quotas, compulsory delegation, repeated reporting templates and unconditional lesson extraction are recommendations, not gates. This never relaxes project/host authority, required reviews/tests, evidence or explicit user instructions. Specialist procedures remain applicable through their registered skills and read paths.
 
@@ -2842,14 +2858,20 @@ Honor explicit skill/workflow requests. Otherwise choose direct work, a suitable
 | Question, lookup, trivial low-risk edit | Direct, or one matching skill |
 | Read-only code audit with solution options | Custom-simple: `investigate` → compare options → rationale check → report |
 | Focused implementation with clear intent | Custom-simple: `plan` when needed → `feature-implement`; retain test, review and spec/doc gates |
-| Bug with unknown cause | `investigate --mode=debug` → `fix`; retain regression and review gates |
+| Bug with unknown cause or wide reach | Inspect `workflow-bugfix` fit; a known cause in one module: `investigate --mode=debug` → `fix`; retain regression and review gates |
+| Behavior already in a canonical spec | Inspect `workflow-implement-spec` fit |
+| Behavior-preserving restructure across modules | Inspect `workflow-refactor` fit; a local tidy-up stays direct |
+| Tasks from an idea, ticket, brief or spec, or a first spec from an idea, before any build | Inspect `workflow-planned-work` fit |
+| New product from scratch | Inspect `workflow-greenfield-init` fit |
 | Saved plan or rationale review | `plan --mode=review` or `why-review`, according to the request |
 | Cross-module behavior/contract or material ambiguity | Inspect catalog fit before choosing a standard workflow |
+
+Judge by observable behavior: it worked or met its spec and now fails → bug; it changes and is not yet specified → feature; specified but not yet built → implement-spec; it stays the same → refactor; planning only, nothing built (an idea, or specs to turn into tasks) → planned work; a new product → greenfield. Size alone never makes a task a workflow.
 
 Resolve custom steps from the current host's registered skill descriptions; if unavailable, read `.claude/docs/skills/README.md`. Read the selected `SKILL.md` before calling it. Comparison and a brief self-check are reasoning steps, not invented skills; formal rationale audits use `why-review`. Declare `Route: custom-simple [steps] — because <scope/risk>` (or the selected skill/workflow/direct). Mid-session, keep optional chains to three skills; required quality gates do not count toward that cap.
 
 - In ask mode, starting a self-selected catalog workflow on the first task requires one question: full workflow, slimmer gate-preserving route, or direct work. Direct, skill and custom routes ask no workflow question. Wait for the answer.
-- In auto mode, first-task selection follows configured activation tiers: auto runs, confirm asks, manual requires explicit invocation.
+- In auto mode, ask the same question with the full workflow recommended first (never for a manual tier).
 - In off mode, do not self-select a workflow. Named user requests and required steps/nested workflows of authorized operations still run.
 - Mid-session, do not self-start or ask to start a catalog workflow; honor explicit requests and required nested workflows. A session mode directive re-arms the first-task rule as its state line says.
 - Skill auto-trigger restrictions remain independent. A disabled switch permits named requests and required calls while suitable unrequested candidates follow its single skill-choice question.

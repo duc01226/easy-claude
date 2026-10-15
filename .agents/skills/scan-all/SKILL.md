@@ -1,6 +1,6 @@
 ---
 name: scan-all
-description: '[Documentation] Use when refreshing every selected, evidence-applicable reference-doc scan target at once. One doc: scan; first-time setup: docs-manager --mode=init.'
+description: '[Documentation] Use when a workflow step or the user asks for a refresh of every selected, evidence-applicable reference-doc scan target, or a --targets= subset, at once. One doc: scan; first-time setup: docs-manager --mode=init.'
 ---
 
 > Codex compatibility note:
@@ -26,6 +26,7 @@ description: '[Documentation] Use when refreshing every selected, evidence-appli
 **Key Rules:**
 
 - Treat the target registry as options, never a required scan list; explicit `referenceDocs` arrays, including `[]`, are exact.
+- Optional `--targets=<key,key>` limits the run to those registered targets with the same per-target checks; an unknown key is refused with the list of registered keys.
 - Keep project-init-owned lessons/index inputs separate and custom docs manual unless explicitly `scanTarget: "generic"`.
 - Write reference docs only; broader setup and graph work have separate owners. Scan only evidenced capabilities and exact outputs; clear staleness only after verification.
 
@@ -40,7 +41,7 @@ description: '[Documentation] Use when refreshing every selected, evidence-appli
 
 ## When to Use or Skip
 
-Use for a reference-doc staleness gate, initial reference population in a content-bearing project, periodic refresh after significant changes, or an explicit `$scan-all` request. First-time project setup belongs to `$docs-manager --mode=init`.
+Use for a reference-doc staleness gate, initial reference population in a content-bearing project, periodic refresh after significant changes, a refresh of a named target subset (`--targets=`, for example after a scaffold builds a new foundation), or an explicit `$scan-all` request. First-time project setup belongs to `$docs-manager --mode=init`.
 
 Skip capability scans for empty/greenfield projects without evidence; project-init handles always-on inputs. Skip the run when no selected applicable docs are stale and always-on inputs are current.
 
@@ -57,6 +58,8 @@ Resolve effective `referenceDocs` through `.claude/hooks/lib/session-init-helper
 - Project-init-owned `lessons.md` and docs-index inputs: confirm through their owner, separately from task-specific work.
 
 ### 2. Map selected docs to targets
+
+**Target subset (`--targets=<key,key>`, optional):** limits the run to the named built-in targets; without it the run covers the whole effective selection. Parse it before any scan. Every key must be a registered key in `.claude/skills/scan/references/targets.md`: refuse an unknown key — stop before scanning, list the registered keys and never guess the intended target. Each named target gets the same treatment as in a full run: the selection and ownership check, its applicability head, disjoint parallel writes and the one all-return barrier. A named target whose output is not selected or whose capability is absent is reported `SKIPPED`, never forced. Naming `ui-system` runs its orchestration over the applicable children; a child key also named is folded into it, not launched alongside. A subset run reconciles and reports its subset only, and clears `.claude/.scan-stale` only under the full-run rule in step 3.
 
 **Target registry** owns filename mapping, custom-doc safety and capability gates. Read `.claude/skills/scan/references/targets.md` when mapping selected docs; resolve every filename exactly. Built-in filenames use only their framework-owned manifest target; never infer a built-in target from a custom basename; a custom filename with `scanTarget: "generic"` uses `$scan --target=generic-reference-doc --filename="<filename>"`; a custom filename with no target or `scanTarget: "manual"` remains under curated project ownership. Resolve the containing root from `docsRoots.projectReference.path` in `docs/project-config.json` (default `docs/project-reference/`).
 
@@ -112,6 +115,7 @@ Report each selected target with its status, output path, and evidence-backed re
 **IMPORTANT MUST ATTENTION Main steps:** resolve config/selection → classify ownership/capability → run disjoint scans → reconcile results/freshness → report; refresh a graph only through its conditional owner.
 
 - Keep exact selection and always-on inputs separate; custom docs default to manual ownership.
+- `--targets=<key,key>` narrows the run, never the checks: refuse unknown keys with the registered list, report unselected or inapplicable named targets `SKIPPED`, and clear the stale flag only under the full-run rule.
 - Read each target's applicability header; use evidence rather than catalog membership.
 - Reconcile every output and target quality gate before refreshing the stale flag; retain skips/blockers.
 - Track tasks before work, cite `file:line` evidence (>80% confidence to act), and finish with a consistency review. Search 3+ fitting patterns before creating code.

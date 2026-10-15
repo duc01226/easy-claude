@@ -1,8 +1,8 @@
 # `$plan --mode=validate` — critical-questions plan validation reference
 
-> Loaded by `plan/SKILL.md`'s Mode Dispatch when invoked as `$plan --mode=validate [plan-path]`, or by its Standalone Validation Chain right after a standalone plan is saved. Invoked directly, this contract REPLACES default plan creation for the invocation: interview the user about a finished plan, record the answers on `plan.md`, stop. Chained, it runs the same interview on the plan just saved and returns to the chain. Either way it never rewrites the plan or its phase files.
+> Loaded by `plan/SKILL.md`'s Mode Dispatch when invoked as `$plan --mode=validate [plan-path]`, or by its Standalone Validation Chain right after a standalone plan is saved. Invoked directly, this contract REPLACES default plan creation for the invocation: interview the user about a finished plan, record the answers on `plan.md`, stop. Chained, it runs the same interview on the plan just saved and returns to the chain. Either way the interview itself never rewrites the plan or its phase files. As a workflow step that validates a plan written earlier in the same run, it ends by applying the answers through `plan/SKILL.md` → Standalone Validation Chain step 2 (Apply the answers), which owns those edits, so the plan that executes carries every confirmed decision.
 
-> **[BLOCKING]** Run declared steps in order. NEVER skip, reorder, or merge without explicit user approval.
+> **[BLOCKING]** Run declared steps in order. NEVER skip, reorder, or merge without explicit user approval. Inside a workflow run, `$start-workflow` → Workflow-step mode bounds this rule.
 > **[BLOCKING]** Before each step/sub-skill, update todo tracking: `in_progress` at start, `completed` at end.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or an explicit skip reason.
 > **[BLOCKING]** If Task tools unavailable, maintain an equivalent step tracker with the same status transitions.
@@ -77,7 +77,7 @@ Classify plan type BEFORE generating questions; it drives category weighting:
 
 ## Plan Resolution
 
-1. Chained from a standalone plan creation → use the plan path that creation just saved
+1. Chained from a standalone plan creation → use the plan path that creation just saved (a workflow plan step that runs the chain, because its workflow lists no validate step, counts as one)
 2. `$ARGUMENTS` provided (the path after the mode flag) → use that path
 3. Else use the active path from `## Plan Context`
 4. No plan → ask user for a path or run `$plan` first
@@ -91,13 +91,13 @@ Before extracting technical questions, classify the plan's branch.
 - Framework/library: read technical scope, operational scenarios, generated-carrier evidence, and commands.
 - Verify one `## Plan Gate` in `plan.md`: matching branch/outcome/boundaries; explicit non-goals; lifecycle terms when applicable; branch decision state; known or explicitly inapplicable skeleton/configuration; build/test/run commands; redacted evidence; `Human approval: APPROVED`.
 - Missing upstream artifacts or `BLOCKED`/`OPEN`/`MISSING`/`REQUIRED` values create a blocking Applicability question. Do not implement or recommend `implement` while unresolved.
-- Isolated brownfield/bugfix: verify the shared contract's EXEMPT branch: scope brief and plan reason/owner, required sibling scenario, explicit `EXEMPT` roadmap/milestone, explicit `N/A` product-decision rationale, known commands/evidence/approval. Retain preservation/spec/test/review questions.
+- Isolated brownfield/bugfix: verify the shared contract's EXEMPT branch: scope brief and plan reason/owner, required sibling scenario (for a light-profile plan, the inline evidence in `shared/product-roadmap-contract.md` → Light-profile evidence satisfies both), explicit `EXEMPT` roadmap/milestone, explicit `N/A` product-decision rationale, known commands/evidence/approval. Retain preservation/spec/test/review questions.
 
 ## Configuration (from injected context)
 
 Check `## Plan Context` section; when it is absent, read the effective `plan.validation` settings, which merge the user, project and checkout settings files (the later one wins), with `node -e "console.log(JSON.stringify(require('./.claude/hooks/lib/ck-config-loader.cjs').loadConfig().plan.validation))"`; the default range is `3-8`:
 
-- `mode` — `auto` | `prompt` | `off`: decides only whether a standalone plan creation starts this interview (`plan/SKILL.md` → Standalone Validation Chain: `auto` runs it, `prompt` asks first, `off` skips it). A direct `--mode=validate` invocation and a workflow step always run it.
+- `mode` — `auto` | `prompt` | `off`: decides only whether a standalone plan creation starts this interview; a workflow plan step that runs the chain counts as one (`plan/SKILL.md` → Standalone Validation Chain: `auto` runs it, `prompt` asks first, `off` skips it). A direct `--mode=validate` invocation and a `$plan --mode=validate` workflow step always run it, and inside a workflow the setting never skips the Plan Gate approval question.
 - `questions` — MIN-MAX range (e.g. `3-8`)
 
 MAX is the most questions in one round, and rounds continue until every material decision is asked. MIN asks you to look wider: with fewer than MIN genuine decisions, ask those and record `below-MIN: only N real decisions surfaced` — never invent a filler question.
@@ -205,6 +205,8 @@ Short enough to read in a couple of minutes, complete enough that the user never
 
 ### Step 4: Interview User
 
+> **Decision log:** inside a workflow, read the run's `## Decisions` first (`$start-workflow` → Step Execution Protocol, Decision log): ask only what it leaves open or new evidence reopened, cite reused answers instead of asking again, and append every new answer.
+
 Use `ask user question tool` — NEVER skip or auto-answer.
 
 **Rules:**
@@ -263,7 +265,9 @@ After validation:
 
 ## Next Steps
 
-**Chained from a standalone plan creation:** present none of the options below. Return the `## Validation Summary` to the Standalone Validation Chain in `plan/SKILL.md`, which applies the action items and asks its own single closing question.
+> **Inside a workflow:** when this skill runs as a step of an active workflow, skip the prompts in this section and return the result — the workflow's next step decides what runs (`$start-workflow` → Step Execution Protocol, Workflow-step mode).
+
+**Chained from a standalone plan creation:** present none of the options below. Return the `## Validation Summary` to the Standalone Validation Chain in `plan/SKILL.md`, which applies the action items and closes with no further question. A workflow plan step that runs the chain counts as chained.
 
 **MANDATORY IMPORTANT MUST ATTENTION** after completing a direct `--mode=validate` invocation, use `ask user question tool` to present:
 
@@ -400,7 +404,7 @@ The protocols below apply to this mode only; their full text is inline so this r
 
 ## Prompt-Enhance Closing Anchors
 
-**IMPORTANT MUST ATTENTION** follow declared step order for this mode; NEVER skip, reorder, or merge steps without explicit user approval
+**IMPORTANT MUST ATTENTION** follow declared step order for this mode; NEVER skip, reorder, or merge steps without explicit user approval; inside a workflow run, `$start-workflow` → Workflow-step mode bounds this
 **IMPORTANT MUST ATTENTION** for every step/sub-skill call: set `in_progress` before execution, set `completed` after execution
 **IMPORTANT MUST ATTENTION** every skipped step MUST include explicit reason; every completed step MUST include concise evidence
 **IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses

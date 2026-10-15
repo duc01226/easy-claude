@@ -11,7 +11,7 @@ description: '[Code Quality] Use when a workflow step or the user asks for code 
 > - Preserve protocol order unless the user approves a deviation. Workflows use `$start-workflow`: gates stay fixed; other steps may flex with logged reasons and evidence.
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
-> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
+> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval. Inside a workflow run, `$start-workflow` → Workflow-step mode bounds this rule.
 > **[BLOCKING]** Before each step or sub-skill call, update todo tracking: set `in_progress` when step starts, set `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
@@ -81,7 +81,9 @@ description: '[Code Quality] Use when a workflow step or the user asks for code 
 
 > **Use when** a caller needs simplification opportunities as findings without edits — e.g. a review skill running its simplification dimension, a workflow parallel review barrier, or a review batch — and another step owns every fix. `--report-only` in `$ARGUMENTS` selects it; without the flag every step applies unchanged.
 >
-> **MANDATORY — when `--report-only` is passed, read `.claude/skills/workflow-review-changes/references/caller-mode.md` § `--report-only` in full FIRST.** It holds the rules every read-only leaf shares (no fix or restart, scope from the caller's brief, no nested fan-out, no user questions, write only the report, return contract); the rules below are this skill's own.
+> **MANDATORY — when `--report-only` is passed, read `.claude/skills/workflow-review-changes/references/caller-mode.md` in full FIRST.** It holds the shared caller rules: a `--report-only` pass returns one report with no source edits, the caller fixes once and requests fresh passes, and a child never mutates source in parallel or runs a nested loop. The rules below are this skill's own.
+>
+> **Review lens in `workflow-review-changes`.** This mode can serve as the simplification lens inside the review barrier: report the findings, and the review's `fix --target=review` step applies the validated simplifications after findings validation.
 >
 > 1. **Run steps 1–3 only** (Phase 0 Detect → Identify Targets → Analyze). Apply, Verify, the Self-Recursive loop, and the Self-Review Gate do not run: edit NO file — source, test, config, or doc. The caller runs its own findings-validation gate and owns every fix and re-review. — why: a simplifier that edits inside a review barrier races the diff every sibling reviewer is reading.
 > 2. **Every finding carries:** `file:line` · the simplification dimension · the proposed change (concrete before → after, or the exact edit described) · a behavior-preservation note (the usages and consumers traced — grep/read evidence, plus any graph hint — and why observable behavior stays unchanged) · severity per `SYNC:severity-rubric` · confidence. A proposal whose behavior preservation cannot be proven is reported as `behavior-change risk`, never as a safe simplification. — why: the fixer applies it later without this skill's trace, so the evidence must travel with the finding.
@@ -254,7 +256,7 @@ After applying simplifications, follow the [Self-Recursive Simplification Loop](
 > 2. **Self-invoke `$code-quality-review` scoped to ONLY the changed files.** Pass the explicit changed-file set as the review target — not the full diff, not unrelated files.
 > 3. **Integrate the `$code-quality-review` findings.** If it surfaces blocking issues caused by the simplification, fix them (behavior-preserving only) and re-run the self-recursive loop + this gate. If issues are out of simplification scope, report them up — do not silently drop.
 >
-> **Recursion safety:** `$code-quality-review` is a LEAF review skill — it does NOT invoke `$code-simplifier` back, so there is no cycle. Use `$code-quality-review` here, NEVER `$changes-review` (the heavyweight workflow that itself contains `$code-simplifier` and would recurse).
+> **Recursion safety:** `$code-quality-review` is a LEAF review skill — it does NOT invoke `$code-simplifier` back, so there is no cycle. Use `$code-quality-review` here, NEVER `$workflow-review-changes` (its sequence contains a `code-simplifier` step and would recurse) or `$changes-review` (a full-diff review heavier than this file-scoped gate needs).
 >
 > **Why this gate exists:** `$code-simplifier` rewrites code after the main review batch has already run. Without this gate, the simplifier's output would ship unreviewed. This gate moves that review responsibility into the mutator itself — so the `workflow-review-changes` workflow no longer needs a separate `$code-quality-review` step after `$code-simplifier`.
 
@@ -361,7 +363,7 @@ Rules:
 
 ## Prompt-Enhance Closing Anchors
 
-**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval
+**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval; inside a workflow run, `$start-workflow` → Workflow-step mode bounds this
 **IMPORTANT MUST ATTENTION** for every step/sub-skill call: set `in_progress` before execution, set `completed` after execution
 **IMPORTANT MUST ATTENTION** every skipped step MUST include explicit reason; every completed step MUST include concise evidence
 **IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses
@@ -405,7 +407,7 @@ Rules:
 - **MANDATORY IMPORTANT MUST ATTENTION** compare repeated behavior before abstraction and assign responsibility from project docs and traced code; names/suffixes are clues only. After every extraction/move/rename, grep ENTIRE scope for dangling references — zero tolerance. — why: "primary file done" ≠ secondary files clean.
 - **MANDATORY IMPORTANT MUST ATTENTION** preserve ALL invariants — NEVER weaken, delete, or trivialize a property/mutation test guarding a `[HARD]` §4 rule or §5 invariant; a behavior change is a Dual-Feedback finding (feed spec AND tests, re-review) — report and stop, never ship silently. — why: green tests on a weakened bar are not a pass.
 - **MANDATORY IMPORTANT MUST ATTENTION** verify ALL affected outputs and tests pass after EACH change (apply one refactoring type at a time) — one build green ≠ all green; when a caller runs the tests once, last (`SYNC:verify-last-order`), compile/type-check each change and leave the test run to that caller's single verify. — why: multi-stack changes regress the stack you didn't check.
-- **MANDATORY IMPORTANT MUST ATTENTION** Self-Review Gate — when this skill changed code, self-invoke `$code-quality-review` scoped to ONLY the changed files (recursion-safe leaf skill; NEVER `$changes-review` — it recurses into `$code-simplifier`); skip + log the reason when nothing changed or when the caller passed `--defer=review`. The simplifier owns review of its own output. — why: the simplifier rewrites code after the main review batch, so its output ships unreviewed without this gate.
+- **MANDATORY IMPORTANT MUST ATTENTION** Self-Review Gate — when this skill changed code, self-invoke `$code-quality-review` scoped to ONLY the changed files (recursion-safe leaf skill; NEVER `$workflow-review-changes`, whose `code-simplifier` step would recurse, nor the heavier `$changes-review`); skip + log the reason when nothing changed or when the caller passed `--defer=review`. The simplifier owns review of its own output. — why: the simplifier rewrites code after the main review batch, so its output ships unreviewed without this gate.
 - **MANDATORY IMPORTANT MUST ATTENTION** `--report-only` runs steps 1–3 only — edit NO file, no nested sub-agent, no user question; every finding carries `file:line` + proposed change + behavior-preservation note; write only the report and return it. — why: a mutator inside a read-only review barrier races the diff its siblings are reading.
 
 **Anti-Rationalization:**

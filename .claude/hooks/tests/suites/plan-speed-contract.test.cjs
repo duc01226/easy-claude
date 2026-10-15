@@ -160,7 +160,7 @@ const tests = [
             // And the main session owns the mutation check when no editing verify step runs
             assert.match(protocol, /the main session when no such step runs/);
             // And integration-test carries the same characterization exception
-            assert.match(read('integration-test/SKILL.md'), /characterization tests written BEFORE a refactor moves code get ONE targeted run/);
+            assert.match(read('integration-test/SKILL.md'), /characterization tests written BEFORE a refactor moves code are proven green on the unrefactored tree before it moves — inside `workflow-refactor` by its one baseline run \(this skill does not run them again\), elsewhere by ONE targeted run/);
             // And the mutation result is part of the verify report and of the close evidence
             assert.match(read('integration-test/references/mode-verify.md'), /mutation-check result \(mutants killed n\/n/);
             assert.match(read('workflow-end/SKILL.md'), /cite the mutation-check result/);

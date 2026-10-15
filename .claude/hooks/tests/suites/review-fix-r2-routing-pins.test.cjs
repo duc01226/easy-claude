@@ -98,12 +98,14 @@ const tests = [
             for (const [label, out] of [['ask', ask.out], ['auto', auto.out]]) {
                 assert.ok(out.includes(GATE_CLAUSE), `${label} route lost the required-workflow clause`);
             }
-            // And a workflow the assistant chooses itself still waits for the question in ask
-            assert.ok(ask.out.includes('**Workflow question** (every tier)'), 'ask route keeps the workflow question');
-            assert.ok(ask.out.includes('it NEVER starts before the answer'), 'ask route keeps "never starts before the answer"');
-            assert.ok(ask.out.includes('ask the workflow question (below) only when YOUR route is to start a catalog workflow'), 'ask route keeps the own-route trigger');
-            // And a manual-tier workflow still never starts by itself in auto
-            assert.ok(auto.out.includes('`manual` never starts on your own'), 'auto route keeps the manual-tier rule');
+            // And a workflow the assistant chooses itself still waits for the question, in ask and in auto
+            for (const [label, out] of [['ask', ask.out], ['auto', auto.out]]) {
+                assert.ok(out.includes('**Workflow question** (every tier)'), `${label} route keeps the workflow question`);
+                assert.ok(out.includes('it NEVER starts before the answer'), `${label} route keeps "never starts before the answer"`);
+                assert.ok(out.includes('ask the workflow question (below) only when YOUR route is to start a catalog workflow'), `${label} route keeps the own-route trigger`);
+            }
+            // And auto recommends the full workflow first, never for a manual-tier workflow
+            assert.ok(auto.out.includes('recommend (a) first, except for a `manual` tier'), 'auto route keeps the manual-tier rule');
         })
     },
     {
@@ -133,14 +135,14 @@ const tests = [
         ...guarded(() => {
             const start = skillText('start-workflow', 'SKILL.md');
             // Then the ask-mode rule exempts a required workflow from the question and from `off`
-            assert.match(start, /A workflow \(or workflow skill\) that an explicit skill step, the user's named skill or an already-running parent workflow requires is part of that run, not a self-matched workflow: it neither asks the workflow question nor is skipped by `off`; `off`\/`ask` govern only a workflow YOU choose to start for the task\./);
+            assert.match(start, /A workflow \(or workflow skill\) that an explicit skill step, the user's named skill or an already-running parent workflow requires is part of that run, not a self-matched workflow: it neither asks the workflow question nor is skipped by `off`; the route modes \(`ask`, `auto`, `off`\) govern only a workflow YOU choose to start for the task\./);
             // And the off rule runs a required workflow in every mode
             assert.match(start, /An explicit request, and a workflow that a skill step, the user's named skill or a running parent workflow requires, run in every mode\./);
             // And a hand-off the assistant chose still counts as its own selection
             assert.match(start, /hand-off after you chose to invoke that skill — is your own selection, never an explicit request/);
             // And the route-mode guide carries the same sentence, with the commit example: a failing test's fix workflow
             const guide = read('.claude', 'docs', 'configuration', 'README.md');
-            assert.match(guide, /So does a workflow that an explicit skill step, the skill you named or an already-running parent workflow requires[^\n]*`\/commit` running `\/workflow-integration-test --mode=green` to fix a failing test\): it is part of that run, not a self-matched workflow — it asks no workflow question and `off` does not skip it; `ask` and `off` govern only a workflow the model chooses to start\./);
+            assert.match(guide, /So does a workflow that an explicit skill step, the skill you named or an already-running parent workflow requires[^\n]*`\/commit` running `\/workflow-integration-test --mode=green` to fix a failing test\): it is part of that run, not a self-matched workflow — it asks no workflow question and `off` does not skip it; `ask`, `auto` and `off` govern only a workflow the model chooses to start\./);
             // And the gate file owns the clause once, next to the explicit-request rule
             const gate = read('.claude', 'skills', 'shared', 'workflow-first-gate.md');
             assert.equal(gate.split(GATE_CLAUSE).length - 1, 1, 'the gate file carries the clause exactly once');

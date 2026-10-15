@@ -10,19 +10,21 @@ disable-model-invocation: false
 
 Read [the registry](../../../.claude/workflows.json) → `workflows.workflow-integration-test` together with this skill. Call [`/start-workflow workflow-integration-test`](../start-workflow/SKILL.md) to resolve the selected mode, pre-actions and fingerprint.
 
-**Todo FIRST:** create one todo for EVERY selected occurrence before triage, analysis or step execution, including conditional/optional ones; preserve occurrence IDs, roles and barrier groups. Use native todo tools or an equivalent persistent ledger. Then mark the first todo `in_progress`; attach evidence before `completed`.
+**Todo FIRST:** before triage, analysis or step execution, create one todo per phase of the selected mode, in order, listing every occurrence of that phase as a line, including conditional/optional ones (a mode that declares no phases gets one todo per occurrence); preserve occurrence IDs, roles and barrier groups. Use native todo tools or an equivalent persistent ledger. Then mark the first todo `in_progress`; close each step line with its run or skip evidence, and complete a phase todo only when every line is closed and its applicable exit gates hold.
 Mode selection and registry loading prepare tracking; any 'first action' below means the first substantive action after this bootstrap.
 
 **Call each step skill:** read its linked SKILL.md and execute its protocol through the active host with the registry args. Reading or naming a skill alone is not execution. Required gates and core/optional flex follow the linked start-workflow Step Execution Protocol; keep this skill's quality gates, loops and evidence requirements.
 
-**Conditions:** load each occurrence's registry `applicability.when` and `skipReason` verbatim, and record its run/skip evidence through the linked start-workflow protocol. Do not silently omit a todo or turn a conditional skill into an unconditional call. Declared parallel groups retain their all-return barrier.
+**Conditions:** load each occurrence's registry `applicability.when` and `skipReason` verbatim, and record its run/skip evidence through the linked start-workflow protocol. Do not silently omit a todo or turn a conditional skill into an unconditional call; close, in one batch at triage, the todos whose condition is already false there. Declared parallel groups retain their all-return barrier.
 
 Explicit step-skill calls by mode (registry order; roles and conditions remain owned by the registry):
 
-- Mode `write`: [`/investigate`](../investigate/SKILL.md) (core) → [`/spec [mode=tests]`](../spec/SKILL.md) (optional; conditional) → [`/work-item --mode=review --type=spec-tests`](../work-item/SKILL.md) (optional; conditional) → [`/integration-test`](../integration-test/SKILL.md) (core) → [`/integration-test --mode=review`](../integration-test/SKILL.md) (gate) → [`/integration-test --mode=verify`](../integration-test/SKILL.md) (gate) → [`/spec [mode=sync]`](../spec/SKILL.md) (gate) → [`/docs-manager --mode=update`](../docs-manager/SKILL.md) (optional; conditional) → [`/workflow-end`](../workflow-end/SKILL.md) (gate) → [`/watzup`](../watzup/SKILL.md) (core)
-<!-- workflow-mode:write fingerprint:7ea549d045ce08701eac6701663b91643463ce8a56018c50270e6c828f229b7f -->
-- Mode `green`: [`/investigate`](../investigate/SKILL.md) (core) → [`/integration-test --mode=verify --fix-loop`](../integration-test/SKILL.md) (gate) → [`/spec [mode=sync]`](../spec/SKILL.md) (optional; conditional) → [`/docs-manager --mode=update`](../docs-manager/SKILL.md) (optional; conditional) → [`/workflow-end`](../workflow-end/SKILL.md) (gate) → [`/watzup`](../watzup/SKILL.md) (core)
-<!-- workflow-mode:green fingerprint:6b23001aa3e3431ed2e4154f10df5e44f0e480814a9166ae979d0747d55e5708 -->
+- Mode `write`: [`/investigate`](../investigate/SKILL.md) (core) → [`/spec [mode=tests]`](../spec/SKILL.md) (optional; conditional) → [`/work-item --mode=review --type=spec-tests`](../work-item/SKILL.md) (optional; conditional) → [`/integration-test`](../integration-test/SKILL.md) (core) → [`/integration-test --mode=review`](../integration-test/SKILL.md) (gate) → [`/integration-test --mode=verify`](../integration-test/SKILL.md) (gate) → [`/spec [mode=sync]`](../spec/SKILL.md) (gate) → [`/docs-manager --mode=update`](../docs-manager/SKILL.md) (optional; conditional) → [`/workflow-end`](../workflow-end/SKILL.md) (gate) → [`/watzup`](../watzup/SKILL.md) (optional; conditional)
+  Phase todos: Discover (1) → Specify (2) → Build (1) → Review (1; exit review-converged) → Verify (3; exit tests-pass, spec-synced) → Close (2; exit run-closed)
+<!-- workflow-mode:write fingerprint:f60054694803176457053fb6122fb63beecefb5dbeba82481818f38f21c7a43b -->
+- Mode `green`: [`/investigate`](../investigate/SKILL.md) (optional; conditional) → [`/integration-test --mode=verify --fix-loop`](../integration-test/SKILL.md) (gate) → [`/spec [mode=sync]`](../spec/SKILL.md) (optional; conditional) → [`/docs-manager --mode=update`](../docs-manager/SKILL.md) (optional; conditional) → [`/workflow-end`](../workflow-end/SKILL.md) (gate) → [`/watzup`](../watzup/SKILL.md) (optional; conditional)
+  Phase todos: Discover (1) → Verify (3; exit tests-pass, root-cause-traced, spec-synced) → Close (2; exit run-closed)
+<!-- workflow-mode:green fingerprint:665a489c4f94b4944c71892329539b9fa76ca8a66f931432dd9252b8ce2e5a15 -->
 
 Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs --write` after registry edits; [`/sync-codex`](../sync-codex/SKILL.md) refreshes it before mirroring.
 <!-- WORKFLOW-CALLS:END -->
@@ -44,7 +46,7 @@ Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs
 
 **Use when:** `write` — covering untested or changed behavior with integration tests, converting existing cases into test code, or auditing and stabilising an existing suite. `green` — a suite or a named test is red, flaky, or must be proven repeatably green. To reconcile specs and tests after a code change, use `/workflow-spec-sync`; for case authoring with no test code, run `/spec [mode=tests]` directly. Formerly `/workflow-write-integration-test` (`--mode=write`) and `/workflow-integration-test-green` (`--mode=green`).
 
-**IMPORTANT MANDATORY Steps:** resolve the `workflow-integration-test` manifest variant for `--mode` first (default `write`), then create one task per returned occurrence (default: /investigate -> /spec [mode=tests] -> /work-item --mode=review --type=spec-tests -> /integration-test -> /integration-test --mode=review -> /integration-test --mode=verify -> /spec [mode=sync] -> /docs-manager --mode=update -> /workflow-end -> /watzup)
+**IMPORTANT MANDATORY Steps:** resolve the `workflow-integration-test` manifest variant for `--mode` first (default `write`), then create one task per phase with a row per returned occurrence (default: /investigate -> /spec [mode=tests] -> /work-item --mode=review --type=spec-tests -> /integration-test -> /integration-test --mode=review -> /integration-test --mode=verify -> /spec [mode=sync] -> /docs-manager --mode=update -> /workflow-end -> /watzup)
 
 Variant step chains (each equals the registry variant of that name; gates and optional steps are declared there and restated in the variant reference):
 
@@ -153,6 +155,6 @@ Pick the variant from the prompt (or an explicit `--mode=`) BEFORE creating task
 - **MUST ATTENTION** a failing test gets ONE written five-way Fault Verdict (`SOURCE-WRONG` · `TEST-WRONG` · `TEST-NOT-OPTIMAL` · `ENVIRONMENT-BLOCKED` · `AMBIGUOUS`) BEFORE any edit; NEVER force green — no weakened or removed assertions, skips, widened assertion timeouts, retried assertions, or narrowed scope — why: a weakened assertion protects nothing.
 - **MUST ATTENTION** never claim verification without runner output; every pass/fail claim cites the command, exact counts and exit status.
 - **MUST ATTENTION** `write`: read the production and test source BEFORE writing any assertion; every test names the invariant it protects and asserts an outcome the system owns — NEVER smoke-only. `green`: run the fix-loop and the skills it drives INLINE, and review every round's fix diff.
-- **MUST ATTENTION** bootstrap exactly one task per selected occurrence before triage; record final consistency and lessons-learned checks under closure, write the report FIRST and cite `file:line` evidence.
+- **MUST ATTENTION** bootstrap the phase tasks, one row per selected occurrence, before triage; record final consistency and lessons-learned checks under closure, write the report FIRST and cite `file:line` evidence.
 
 **[TASK-PLANNING]** Resolve the variant, create all occurrence tasks with `TaskCreate`, then run its triage and execute the selected steps.

@@ -13,6 +13,10 @@
  * - `loadRouterSettings(projectDir, section)` — the whole merged `<section>` object, for a hook
  *   that reads more than the switch (`core-principles-inject.cjs` reads `reinjectAfterTokens`).
  * - `isHostEnvelope(prompt)` / `userPromptText(prompt)` — the two halves of `readUserPrompt`.
+ * - `routedPrompt(input, deps)` / `routerOutput(input, text)` — the prompt a router classifies and the
+ *   output form for its event, so a router that also runs at sub-agent start or after a compaction reads
+ *   the session's latest recorded user prompt there (neither event carries one) and answers with a
+ *   context envelope.
  * - `isHookEntryPoint(mod)` — re-exported from `hook-runner.cjs`, its owner.
  */
 
@@ -105,6 +109,39 @@ function userPromptText(prompt) {
     return stripCode(stripHostBlocks(prompt));
 }
 
+/**
+ * The prompt a router classifies for this event, or `null` to stay silent. A prompt event carries its
+ * own text. A sub-agent start and the host's compaction report carry none, so the router reads the
+ * latest user prompt the session's prompt ledger recorded: the request driving the turn that delegated
+ * or was compacted (host-generated payloads are never recorded). No session id, no ledger or an
+ * unreadable one → `null`. Any other event → `null`.
+ * deps (tests): env, projectDir.
+ */
+function routedPrompt(input, deps = {}) {
+    const event = input && input.hook_event_name;
+    if (!event || event === 'UserPromptSubmit') return input ? input.prompt : null;
+    if (event !== 'SubagentStart' && !require('./convention-ledger.cjs').isCompactionStart(input)) return null;
+    try {
+        const sessionId = input.session_id;
+        if (typeof sessionId !== 'string' || !sessionId.trim()) return null;
+        const env = deps.env || process.env;
+        const projectDir = deps.projectDir || require('./project-root.cjs').resolveProjectRoot({ cwd: process.cwd(), scriptPath: __filename, env }).rootDir;
+        const store = require('./prompt-ledger-store.cjs');
+        const { ledger } = store.readLedgerStatus(store.sessionDir(store.storeRoot(env, projectDir), sessionId));
+        const latest = ledger && ledger.entries[ledger.entries.length - 1];
+        return latest && typeof latest.text === 'string' ? latest.text : null;
+    } catch {
+        return null; // advisory: an unreadable ledger leaves the agent to the universal rules
+    }
+}
+
+/** A router's text in its event's form: plain text for a prompt, the context envelope for any other event. */
+function routerOutput(input, text) {
+    const event = input && input.hook_event_name;
+    if (!text || !event || event === 'UserPromptSubmit') return text;
+    return JSON.stringify({ hookSpecificOutput: { hookEventName: event, additionalContext: text.trimEnd() } });
+}
+
 const OFF_VALUES = new Set(['0', 'off', 'false', 'no', 'disabled']);
 
 function readJsonObject(file) {
@@ -163,6 +200,8 @@ module.exports = {
     readUserPrompt,
     isHostEnvelope,
     userPromptText,
+    routedPrompt,
+    routerOutput,
     loadRouterSettings,
     resolveHookSkillAutoTrigger,
     isRouterEnabled

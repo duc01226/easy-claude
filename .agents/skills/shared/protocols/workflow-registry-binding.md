@@ -4,7 +4,7 @@
 >
 > | Registry field | Governs | Rule |
 > | --- | --- | --- |
-> | `sequence` | the ordered recommended step list | One task per occurrence. Skip, merge, simplify and reorder follow `$start-workflow` → Step Execution Protocol; `gate` steps always run. |
+> | `sequence` | the ordered recommended step list | One task per declared phase, one row per occurrence (a mode with no phases: one task per occurrence). Skip, merge, simplify and reorder follow `$start-workflow` → Step Execution Protocol; `gate` steps always run. |
 > | `sequence[].applicability` | every conditional step | `when` is the ONLY run condition; on skip, record `skipReason` VERBATIM as the step's evidence. |
 > | `sequence[].args` | step flags | Pass exactly as declared. |
 > | `parallelGroups` | all-return barriers | Spawn all members in ONE message; advance only after EVERY member returns. |

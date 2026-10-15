@@ -314,7 +314,7 @@ const tests = [
             for (const name of REMOVED_DIR_ONLY) assert.ok(!fs.existsSync(path.join(SKILLS, name)), `${name} must not exist as a skill folder`);
             const occurrences = allOccurrences();
             for (const { workflow, occurrence } of occurrences) assert.ok(!REMOVED.includes(occurrence.skill), `${workflow}/${occurrence.id}: a workflow step still runs the removed skill ${occurrence.skill}`);
-            const flagsOf = { refine: [], story: [], mockup: ['--explore', '--source='], challenge: ['--reuse='], review: ['--type='], dor: ['--reuse='] };
+            const flagsOf = { refine: [], story: [], mockup: ['--explore', '--source='], challenge: ['--reuse='], review: ['--type=', '--fix-loop'], dor: ['--reuse='] };
             const seen = new Set();
             for (const { workflow, mode, occurrence } of workItemOccurrences()) {
                 const tokens = occurrence.args.trim().split(/\s+/).filter(Boolean);
