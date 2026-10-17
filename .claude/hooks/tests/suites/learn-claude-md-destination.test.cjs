@@ -125,7 +125,12 @@ const tests = [
             assert.match(routing, /^\| Performance\/load\/stress\/soak\/capacity tests[^\n]*\| `performance-test-reference\.md`[^\n]*preferences[^\n]*existing harness guides/m, 'routing preserves project preferences and existing harness owners');
             assert.match(catalog, /supported carriers, not mandatory files/, 'catalog does not require every supported reference');
             assert.match(catalog, /preserve an existing authoritative project guide/i, 'existing guides remain viable owners');
-            assert.match(catalog, /compare[^\n]*`performance-test-reference\.md`[^\n]*new file or selection/i, 'carrier choice explains alternatives and their discovery cost');
+            assert.match(catalog, /compare viable alternatives[^\n]*new file or selection/i, 'carrier choice explains alternatives and their discovery cost for every reference');
+            const introduction = catalog.slice(0, catalog.indexOf('\n| File'));
+            assert.match(introduction, /`session-init-docs\.cjs`[^\n]*missing selected references[^\n]*placeholders/, 'introduction names the hook and its selected placeholder scope');
+            assert.match(introduction, /`\/scan --target=<key>`[^\n]*manual guides remain owner-maintained/, 'introduction names scan ownership without imposing it on manual guides');
+            assert.match(introduction, /Routing is static[^\n]*\*\*Read Trigger\*\*/, 'introduction explains task-triggered lookup');
+            assert.doesNotMatch(introduction, /performance/i, 'catalog introduction applies to all reference categories');
             // Saving prose is complete only when the selected carrier is initialized and discoverable.
             const decision = text.slice(text.indexOf('\n### Routing Decision Process'), text.indexOf('\n### Format by Target File'));
             assert.match(decision, /reference doc\/guide[^\n]*Reference-doc handoff/, 'confirmed reference saves invoke the handoff');

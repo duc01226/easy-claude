@@ -107,7 +107,9 @@ disable-model-invocation: false
 
 ## Reference Doc Catalog (READ before routing)
 
-Resolve the reference-docs root from `docsRoots.projectReference.path` in `docs/project-config.json` (default `docs/project-reference`). This catalog lists supported carriers, not mandatory files: initialization and scans follow the project's selected references and evidenced capabilities. Read the configured Doc Lookup and docs index before recommending a target; preserve an existing authoritative project guide and compare viable alternatives. For performance lessons, compare that guide with `performance-test-reference.md`, explaining any new file or selection needed. Keep one owner per rule and link executable budgets and harness details instead of duplicating them.
+Reference docs live in the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path). The `session-init-docs.cjs` hook initializes missing selected references and always-on routing inputs as placeholders; their declared `/scan --target=<key>` owners populate them, while manual guides remain owner-maintained. This catalog lists supported carriers, not mandatory files.
+
+Routing is static: read the doc whose **Read Trigger** matches your task. Before recommending a target, read the configured Doc Lookup and docs index, preserve an existing authoritative project guide, and compare viable alternatives, explaining any new file or selection needed. Keep one owner per rule and link executable budgets and harness details instead of duplicating them.
 
 | File                             | Role & Content                                                                                   | Read Trigger (static)               | Scan Skill                |
 | -------------------------------- | ------------------------------------------------------------------------------------------------ | ----------------------------------- | ------------------------- |
