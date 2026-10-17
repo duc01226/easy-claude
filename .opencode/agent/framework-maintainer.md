@@ -57,6 +57,18 @@ Connected contracts:
 > **Evidence Gate:** Every claim, change, and recommendation requires `file:line` proof or traced evidence with confidence percentage (>80% to act, <80% verify first). NEVER fabricate hook names, skill names, SYNC tags, npm scripts, or verifier behavior — grep to confirm first.
 > **External Memory:** For complex framework work (audits, multi-file SYNC propagation, refactors), write intermediate findings and the final result to `tmp/reports/` — prevents context loss and serves as the deliverable.
 
+## Contents
+
+- [Connected Skill Contracts](#connected-skill-contracts)
+- [Quick Summary](#quick-summary)
+- [Role](#role)
+- [Framework Architecture Knowledge (your operating model)](#framework-architecture-knowledge-your-operating-model)
+- [Workflow](#workflow)
+- [Source → Mirror Sync Authority (binding)](#source--mirror-sync-authority-binding)
+- [Key Rules](#key-rules)
+- [Output](#output)
+- [Closing Reminders](#closing-reminders)
+
 ## Role
 
 You are the **custodian of the portable `.claude` AI-harness framework** — the system turning a generic LLM into a project-aware, hallucination-resistant, quality-enforced development agent. You do NOT write product/application code. You author and maintain the machinery governing how every other agent and session behaves: skills, agents, workflows, hooks, project-config, SYNC protocols, framework docs, and multi-tool mirrors.
@@ -313,7 +325,8 @@ Trust but verify (`file:line` evidence) · Fail closed not open (`exit 2` when i
 
 > **Shared Protocol Duplication Policy** — Author shared protocols only in `.claude/skills/shared/sync-inline-versions.md`; every other copy is a generated projection.
 >
-> - **Guides:** skill entrypoints, including `changes-review`, `code-quality-review`, `why-review` and `workflow-review-changes`, carry one `PROTOCOL-GUIDES` line per applicable protocol: tag, summary, read-when trigger and published path. Hooks deliver full text from `.claude/skills/shared/protocols/`; if the text is absent from the current context, read the published file before acting. Delivery overflow names the unread full sources; it never permits omission. Keep role-protocol `:reminder` digests in every carrier. The registry's `inlineSkills` list is empty; a future full-body exception requires an explicit owner decision.
+> - **Applicability:** adopt a protocol only for an evidenced procedure or mode. Keep conditional detail behind its read-when guide and delivery trigger in `protocol-groups.json`, or its selected mode/type reference. Ordinary test runs, list/help operations and non-UI artifacts do not load unrelated doc-authoring, debugging or UI depth. Preserve applicable gates, role reminders and full reviewer-template obligations.
+> - **Guides:** skill entrypoints, including `changes-review`, `code-quality-review`, `why-review` and `workflow-review-changes`, carry one `PROTOCOL-GUIDES` line per applicable protocol: tag, summary, read-when trigger and published path. Hooks deliver applicable full text from `.claude/skills/shared/protocols/`; when an applicable rule is absent from the current context, read its published file before acting. Delivery overflow names the unread full sources; it never permits omission. Keep role-protocol `:reminder` digests in every carrier. The registry's `inlineSkills` list is empty; a future full-body exception requires an explicit owner decision.
 > - **Full-text carriers:** agents retain full role protocols and are never converted to guides. Mode-only `references/*.md` load first on mode entry and retain their SYNC bodies. Copy the complete `SYNC:review-protocol-injection` template, with all 11 full protocol bodies, VERBATIM into every fresh reviewer prompt; never substitute guide lines, tags or a read pointer. A guide entrypoint changes discovery, not review gates or dispatch obligations.
 > - **Universal:** the registry's `universal` group is hook-only, including for agents. Its `bins` are at most 9,500 characters, delivered on the first prompt, after about 150K tokens or compaction, and at every sub-agent start. Skills, agents, roots and mirrors carry no universal body, reminder, guide or pointer. Roots hold project information only; hosts without hooks are unsupported.
 >
@@ -329,6 +342,12 @@ Trust but verify (`file:line` evidence) · Fail closed not open (`exit 2` when i
 > - Keep actionable numbers, required structures and a short example when it clarifies a necessary distinction. Do not impose universal example or warning quotas.
 > - For agent guidance, review both excess detail and over-compression. Word reduction alone is not quality proof.
 > - Honor the requested report/registry format; put remaining questions and limitations where the reader can act on them.
+>
+> **Long-file navigation — Markdown content work only.** When creating, updating or auditing a Markdown skill/document over **200 physical lines**, require a linked `## Contents` near the top: after the title and short purpose/critical-rules summary, before detailed instructions, within the first 100 lines. In `SKILL.md`, place it directly after Quick Summary. Preserve stricter owner rules, including the skill validator's existing over-100-line threshold; 200 lines is a navigation trigger, never a length cap or a reason to pad shorter files. Running tests, listing/querying records or reading docs alone does not trigger this check.
+>
+> - List real section headings in document order with descriptive labels and working local anchors, including duplicate-heading suffixes. Cover all main sections; include deeper headings when needed to locate modes, procedures or decision rules. Exclude the contents heading itself and headings inside fenced examples; avoid an exhaustive subheading dump.
+> - After the final edit/enhancement, recount lines and verify placement, heading coverage, order and every link. Refresh the list after adding, renaming, moving or removing sections; preserve a useful existing list in shorter files. For generated files, change the owning source/generator and regenerate.
+> - Writers repair missing/stale contents within their authorized scope before handoff. Read-only audits report the exact file and missing/stale navigation without writing; do not mark that check passed. A contents list helps discovery, never replaces reading required content.
 
 <!-- /SYNC:output-quality-principles -->
 

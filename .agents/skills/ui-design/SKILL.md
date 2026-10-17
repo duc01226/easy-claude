@@ -163,10 +163,10 @@ The 40 UI/UX Design Principles (`UI-1.1`–`UI-9.4`) carried as the `SYNC:ui-ux-
 **Generative modes (`fast`, `good`, `explore`) — APPLY the clauses as an output contract on the design you produce:**
 
 1. **States first.** Design and build the empty, loading and error state BEFORE the populated state (`UI-1.5`), and reserve space for anything that loads so nothing shifts in (`UI-9.3`).
-2. **All 5 interaction states per interactive element** — default, hover, focus, active, disabled — plus loading where it applies (`UI-5.2`); keep a visible focus ring, restyled if it clashes but NEVER removed (`UI-5.5`).
-3. **Declare the scales, never improvise them.** State the type scale as 6 named steps with no one-off sizes (`UI-2.5`), body 16px web / 17px mobile and never below 14px (`UI-2.2`), measure 45–75 characters (`UI-2.3`); and declare ONE spacing unit — 4px or 8px base, every gap a multiple of it (`UI-4.1`). Both declarations belong in the summary you report back at stage 9; an undeclared scale is an incomplete design, not a style choice.
-4. **Contrast is measured, not eyeballed** — state the target AND the measured value: 4.5:1 text, 3:1 UI edges (`UI-3.1`); colour NEVER carries meaning alone — pair it with an icon, label or position (`UI-3.3`).
-5. **Touch surfaces.** When the design covers a mobile/touch surface, hit targets are ≥44×44pt and 8px apart (`UI-8.1`) and primary actions sit in the bottom third where the thumb lives (`UI-8.2`). When it does not, state that explicitly so the §8 skip is auditable.
+2. **Supported interaction states.** Specify states for the platform/input modes (for example default, focus, active, disabled and loading); hover applies only where supported (`UI-5.2`). Preserve a visible focus indicator wherever focus navigation applies (`UI-5.5`).
+3. **Declare purposeful type and spacing.** Use project/platform tokens, readable text measures and consistent scales (`UI-2.2`–`UI-2.5`, `UI-4.1`). Report those decisions at stage 9; do not impose a fixed step count, pixel base or font minimum without an authoritative requirement.
+4. **Measure contrast.** State the selected accessibility standard, its applicable targets and measured results (`UI-3.1`); colour never carries meaning alone (`UI-3.3`). Catalog ratios are standard-specific examples, not universal values.
+5. **Touch surfaces.** Meet the applicable platform/accessibility target-size and spacing requirements (`UI-8.1`); place primary actions for the actual device/orientation/input reachability (`UI-8.2`). Record N/A when touch is absent.
 
 **Reporting modes (`describe`, and the analysis pass of `screenshot` / `video`) — REPORT against the clauses:** the super-detailed description MUST name which clauses the OBSERVED design SATISFIES and which it VIOLATES, cited by ID — e.g. type-scale drift (`UI-2.5`), contrast failure with the measured ratio (`UI-3.1`), undersized touch targets (`UI-8.1`), missing empty/loading/error states (`UI-1.5`), a removed focus ring (`UI-5.5`). A violation is RECORDED, never silently reproduced: `describe` carries it into the implementation plan as a correction; `screenshot` / `video` then apply the five generative obligations above so the recreation FIXES the violation rather than inheriting it — flag any correction that changes the visual match and confirm it with the user before shipping it.
 
@@ -274,14 +274,14 @@ Treat `$ARGUMENTS` as the video to recreate exactly. Same as `--mode=screenshot`
 
 ---
 
-> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. Keep task depth proportional to the work.
+> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting. This prevents context loss from long files. Keep task depth proportional to the work.
 
 Think hard to plan & start working on these tasks follow the Orchestration Protocol, Core Responsibilities, Subagents Team and Development Rules. Parse `--mode` from the input (default `fast`; an explicit mode wins) and route to the matching branch above:
 <tasks>$ARGUMENTS</tasks>
 
 <!-- PROTOCOL-GUIDES:START -->
 
-> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
+> **Protocol guides** — Apply each protocol only when its read-when condition holds. If a protocol's text is not in your context, read its file below before you act on it.
 
 - `design-distinctiveness-gate` — Design identity gate DD-1 to DD-8: subject, design plan, generic test, restraint; designing, implementing or reviewing a visual surface → .claude/skills/shared/protocols/design-distinctiveness-gate.md
 - `design-review-checklist` — Executable front-end design review protocol CL-1 to CL-6; reviewing, planning or building front-end work → .claude/skills/shared/protocols/design-review-checklist.md
@@ -346,7 +346,7 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 - **MANDATORY IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code
 - **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
 - **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
-- **MANDATORY IMPORTANT MUST ATTENTION** apply the 40 UI/UX Design Principles (`UI-1.1`–`UI-9.4`) to every design: empty/loading/error states designed FIRST (`UI-1.5`), all 5 interaction states per interactive element (`UI-5.2`), type scale (6 named steps, `UI-2.5`) and spacing unit (4/8px base, `UI-4.1`) DECLARED not improvised, contrast measured and stated (4.5:1 text / 3:1 edges, `UI-3.1`), ≥44×44pt touch targets + bottom-third primaries on mobile surfaces (`UI-8.1`, `UI-8.2`); `fast`/`good`/`explore` APPLY them, `describe`/`screenshot`/`video` also REPORT by clause ID which the observed design satisfies or violates — project design-system docs outrank the clauses, conflicts go to the user
+- **MANDATORY IMPORTANT MUST ATTENTION** apply relevant UI clauses to the established platform/input modes and accessibility standard: required states first, supported interaction/focus states, purposeful project type/spacing, measured contrast and applicable touch reachability. Catalog examples are not universal thresholds. Generative modes APPLY; reporting/recreation modes also REPORT by clause ID. Project design authority wins; surface genuine authoritative conflicts.
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using todo tracking.
 

@@ -14,6 +14,8 @@ description: '[Project Management] Use when a workflow step or the user asks for
 
 ## Quick Summary
 
+For UI-bearing artifact reviews, read `references/review-type-design.md` → **Shared UI protocol bodies** at the review mode's UI gate; its **Design-only UI/UX principles** apply only to `--type=design`. Non-UI reviews keep their own rubric without loading UI depth.
+
 > **Review modes:** For review/audit work, standalone defaults to `--review-only` (`--report-only` alias); `--fix-loop` enables review → validate → authorized fix → fresh re-review, default cap 3. `--fix-loop --loop-owner=caller` returns a read-only pass to the caller that owns fixes/re-review. Create triage, review, validation and re-review todo tasks first; apply the carried `review-policy` contract for LOW deferral and user-approved bounded extensions. Non-review modes and terminal findings validation keep their own dispatch.
 
 **Goal:** Run one selected task mode to refine an initiative, slice stories, create a mockup, challenge a draft, review artifacts, or check readiness to plan.
@@ -94,7 +96,7 @@ Read these only after the selected mode's full reference, at the step it names:
 
 <!-- PROTOCOL-GUIDES:START -->
 
-> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
+> **Protocol guides** — Apply each protocol only when its read-when condition holds. If a protocol's text is not in your context, read its file below before you act on it.
 
 - `review-decision-autonomy` — Choose supported review decisions and ask before extending the round budget; running any review or audit skill or mode → .claude/skills/shared/protocols/review-decision-autonomy.md
 - `review-policy` — Review-only or a three-round fix loop with explicit extension and fresh post-fix evidence; deciding round eligibility, blocking findings or review state → .claude/skills/shared/protocols/review-policy.md

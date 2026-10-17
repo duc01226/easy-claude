@@ -1,6 +1,6 @@
 # `/domain-analysis --mode=review` — domain entity and value-object DDD quality review reference
 
-> Read this complete contract when `/domain-analysis --mode=review [changes | scan [<module>]] [--report-only]` is selected. It replaces default business analysis with evidence-based A–P/E2 review, finding validation, and the severity-gated fix/re-review loop. `--report-only` returns validated findings without fixes. Read `references/ddd-reference.md` sections on demand as routed below.
+> Read this complete contract when `/domain-analysis --mode=review [changes | scan [<module>]] [--report-only]` is selected. It replaces default business analysis with evidence-based A–P/E2 review, finding validation, and the severity-gated fix/re-review loop. `--report-only` returns validated findings without fixes. Read `entity-quality.md` for the shared quality criteria; use `ddd-reference.md` sections only for additional modeling decisions.
 
 ## Quick Summary
 
@@ -46,7 +46,7 @@
 > **MANDATORY — when `--report-only` is passed, read `.claude/skills/workflow-review-changes/references/caller-mode.md` § `--report-only` in full FIRST.** It holds the rules every read-only leaf shares (no fix or restart, scope from the caller's brief, no nested fan-out, no user questions, write only the report, return contract); the rules below are this skill's own.
 >
 > 1. **Run Phases 0–4, then the Phase 5 Why-Review Self-Validation Gate only.** Phase 5 `/why-review --validate-findings` still validates every finding. The Phase 5 fix and full-review restart, the Phase 3 fresh-context `code-reviewer` spawn, and the Next Steps `ask user question tool` do not run: return the validated report; the caller owns fixes and any re-review. Contradictory Phase 2 evidence that would have triggered a fresh read is recorded under `Unresolved Questions` as `NOT VERIFIABLE`. — why: two writers of one artifact inside a barrier race each other.
-> 2. **Default scope.** Use the entity files, diff or module the brief names (else the default `changes` scope) and record the mode and file set in the report.
+> 2. **Default scope.** Use the files, diff or module the brief names (else default `changes`); trace affected models and write/load/event paths under Mode Detection. Record selected changes and implicated dependencies without expanding into an unrelated repository audit.
 > 3. **No nested fan-out.** Skip the Systematic Review Strategy's delegated assignments; review files sequentially in this context, still appending findings per file and respecting working-set bounds.
 > 4. **Return** the report path, the health score, validated findings grouped Critical/High/Medium/Low per the mapping below, every unconfirmed material trade-off (the `SYNC:trade-off-interrogation-gate` non-asking handoff), and the next-step recommendations the Next Steps prompt would have offered.
 >
@@ -57,11 +57,11 @@
 
 ## Canonical Owner — Domain Entity Change Gate
 
-> `/domain-analysis --mode=review` is the **canonical owner** of `SYNC:domain-entity-change-gate`. `/plan`, `/plan --mode=review`, and `/changes-review` inline that gate and route here for the full checklist, so a design planned under the gate is reviewed under the same rules. The gate's 6 decision points map to this skill as: classification → **A** · invariant ownership + failure signalling → **E/M** · aggregate boundary + concurrency → **F/P** · construction vs reconstitution → **N** · events → **H/O** · test obligation → **E2**; paradigm detection is **0.4** and subdomain fit is **3.1**.
+> `/domain-analysis --mode=review` is the **canonical owner** of `SYNC:domain-entity-change-gate`. Planning, implementation and change-review entrypoints carry the compact gate and route here for a full review, so a design planned under the gate is reviewed under the same rules. Read `entity-quality.md` when this mode reviews entity work; it owns the shared decisions and detailed criteria. The gate's 6 decision points map to this skill as: classification → **A** · invariant ownership + failure signalling → **E/M** · aggregate boundary + concurrency → **F/P** · construction vs reconstitution → **N** · events → **H/O** · test obligation → **E2**; paradigm detection is **0.4** and subdomain fit is **3.1**.
 >
 > Do NOT apply the gate as a separate pass when running this mode — Phase 2 A–P **is** the gate, in full. Record `Gate is this skill's own body — A–P checklist owns it.` — why: a second pass over the same rules duplicates findings and inflates severity counts.
 >
-> Changing an entity rule here → update `.claude/skills/shared/sync-inline-versions.md` FIRST if the rule belongs to the gate's 6 decision points, then propagate to the three consumers. NEVER edit an inlined copy directly.
+> Change detailed quality criteria in `entity-quality.md`. Change shared trigger/phase/exit rules in `.claude/skills/shared/sync-inline-versions.md` first, then propagate and rebuild its projections. Keep this index aligned; never edit generated copies.
 
 
 ## First Principle — Easy to Change · Easy to Scale · Easy to Maintain
@@ -77,7 +77,7 @@ Create tasks for Phases 0–5 and final lessons review before any work. Set Phas
 
 ### 0.1 Discover Project Stack and Entity Conventions
 
-Read `CLAUDE.md` and discovered entity/backend/code-review references under the configured reference-docs root (default `docs/project-reference`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides). Locate build/runtime markers, entity/VO bases and persistence annotations in configured source roots. If docs are absent, infer conventions from 3+ existing entities; verify fit before reusing a pattern.
+Read `CLAUDE.md` and discovered entity/backend/code-review references under the configured reference-docs root (default `docs/project-reference`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides). Locate build/runtime markers, entity/VO bases and persistence annotations in configured source roots. If docs are absent, infer conventions from fitting existing entities; seek 3+ when available and record scarcity. Use `none`/N/A for absent bases, ORM or framework mechanisms; never invent requirements.
 
 **Record in report (required before Phase 2):**
 
@@ -97,7 +97,7 @@ If project reference docs exist → read them and extract: service-specific base
 
 ### 0.2 Determine Entity File Scope
 
-Apply mode-appropriate command from Mode Detection table, adapted to discovered stack.
+Resolve the caller's selected changes/module through Mode Detection. Include affected models even when their definitions are unchanged; record the write/load/event path connecting each to the selected change. Empty entity filename results alone never prove irrelevance.
 
 ### 0.3 Blast Radius Analysis
 
@@ -107,20 +107,7 @@ Record: entity file count, downstream consumers, risk level. Use to prioritize r
 
 ### 0.4 Modelling Paradigm Detection (— gates which per-file rules apply)
 
-> Sections C/D/N assume a mutable OO entity. Applying them to an immutable or event-sourced model manufactures false findings — detect the paradigm BEFORE the checklist. — why: "no public setters" is a finding in OO code and meaningless in a model that has no setters by construction.
-
-Detect from the domain source, NEVER assume:
-
-| Paradigm | Detection signal | Checklist adaptation |
-| --- | --- | --- |
-| **OO-mutable** (default) | Classes with private setters + state-changing methods | Full A–P checklist as written |
-| **Type-driven / immutable** | Sealed hierarchies, discriminated unions, records-only, `With*()`/copy-returning methods, smart constructors returning `Result` | Section C immutability applies to entities too; Section D reads "no state-mutating method returns void"; illegal-state-representability replaces runtime guards — flag a status enum + nullable per-status fields as the union that was never made |
-| **Event-sourced** | `apply`/`evolve`/`when` per event, `From(events)` / stream-fold reconstitution, no persisted state | Section C setter rules N/A; Section N reconstitution = the fold; Section O owns event-schema evolution; a CRUD-shaped event (`{Entity}Updated` with full payload) is a HIGH finding — it carries no business meaning |
-
-- record the detected paradigm in the report before Phase 2 and state which sections were adapted or marked N/A — why: an unrecorded adaptation reads as a skipped check.
-- NEVER flag a paradigm-appropriate pattern as a violation of a rule written for another paradigm — verify against 0.4 first.
-- Mixed paradigms per aggregate are legitimate (event-source one aggregate, not the system) — detect per aggregate, NEVER once per repo.
-
+Detect per affected aggregate from source: OO-mutable, immutable/type-driven, event-sourced, or another evidenced model. Read `entity-quality.md` → Applicability before selecting criteria. Adapt encapsulation, mutation and reconstitution checks to that model; no mandatory class/base/setter/union shape. Record fit and N/A evidence before Phase 2. When tactical DDD does not fit, review actual invariants under the project's architecture.
 
 ## Phase 1: Collect Files + Grep Patterns + Create Report
 
@@ -139,7 +126,7 @@ Search for these intent categories with the configured source roots and discover
 - Value objects with mutable public state or missing structural equality.
 - Domain methods throwing low-context generic errors instead of configured domain/validation errors.
 - Business conditionals and entity mutation leaking into a higher layer when the entity/value object owns the invariant.
-- Query/filter expressions placed in handlers/services when the entity, repository extension, specification, or equivalent local pattern owns them.
+- Duplicated queries/rules whose documented owner differs from their actual callers; keep query construction at the project-appropriate boundary.
 - Entity classes missing identity markers required by the configured persistence framework.
 - Domain models performing direct persistence, network, or infrastructure work.
 
@@ -151,197 +138,95 @@ Write ALL grep results to report IMMEDIATELY.
 
 | Category | Definition |
 | --- | --- |
-| Aggregate Root | Has dedicated repository; aggregate entry point |
+| Aggregate Root | Entry point owning an atomic consistency boundary; repository optional |
 | Entity | Has identity; accessed/persisted through root |
 | Value Object | Structural equality; must be immutable |
-| Unknown | Plain class in domain layer without clear classification |
+| Unknown | Establish domain meaning before applying entity criteria; DTO/config shapes may be N/A |
 
 
 ## Phase 2: Entity-by-Entity DDD Review
 
-For EACH entity/VO file: read file → append findings to report IMMEDIATELY. NEVER batch.
+Read [entity-quality.md](entity-quality.md) when this phase applies. It is the single owner of the decisions, quality dimensions and completion gate used by planning, implementation and review. For each scoped model, inspect relevant callers/write/load paths and append evidence immediately. The A–P/E2 index below routes to its named dimensions; it adds no second checklist or automatic severity floor.
 
 ### Per-File Review Checklist
 
 #### A. Entity vs Value Object Classification
 
-- verify: does class need unique persistent identity? No → suspect VO misclassification.
-- flag: "snapshot at point in time" (contact at referral, price at purchase, measurement at check-in) → MUST be VO, NEVER entity.
-- CRITICAL if VO has primary key or repository → VO masquerading as entity.
-- MEDIUM if entity has 3+ scalar fields always moving together → data clump → VO candidate.
-- MEDIUM if entity is effectively stateless (no state changes after creation) → suspect VO.
+Apply **Identity and equality** in `entity-quality.md`.
 
 #### B. Base Class Compliance
 
-- verify aggregate root extends project's root entity base (from Phase 0 discovery).
-- NEVER use root entity base for non-root child entities — child entities MUST NOT have their own repository.
-- verify VOs extend project's VO base class — NEVER plain POCO/POJO in domain.
-- verify audited entities extend audited base where audit trail required.
-- cross-check each entity's base class against service/module-specific requirements from reference docs.
+Apply **Persistence and dependencies; reuse required bases only when the project establishes them** in `entity-quality.md`.
 
 #### C. Value Object Immutability and Equality
 
-- NEVER allow mutable public state on value objects. Use the immutability mechanism idiomatic to the configured language/runtime.
-- Parameterless/default constructor allowed when required for framework deserialization.
-- verify equality based on structural value — NEVER reference equality. Use the equality mechanism idiomatic to the configured language/runtime or the repository's documented value-object base pattern.
-- verify `validate()` overridden when VO has constraints (format, range, required).
-- verify factory method exists for non-trivial construction: `Create()`, `New()`, `Of()`, `From*()`.
-- NEVER put async operations, repository calls, or infrastructure dependencies inside VO.
-- Conversion/implicit operator defined when VO wraps single primitive.
+Apply **Encapsulation and values; Identity and equality** in `entity-quality.md`.
 
 #### D. Encapsulation and Anemic Domain Model
 
-- verify entity has at least ONE domain method when it has business rules — NEVER pure property bag.
-- NEVER allow direct property assignment for state transitions from outside entity — MUST use domain methods (`changeStatus()`, `approve()`, `assign()`).
-- flag: same guard clause in 3+ handlers for same entity → extract to `ensureCan*()` on entity.
-- flag: handler doing multi-field mutation (`entity.a=x; entity.b=y; entity.c=z`) without validation → domain method candidate.
-- flag: business conditionals in application layer referencing single entity's state → move to entity guard.
-- Entity behavior MUST be caller-agnostic — methods describe domain intent, NEVER reference who calls them.
+Apply **Behavior and failure atomicity; Encapsulation and values; assess subdomain fit first** in `entity-quality.md`.
 
 #### E. Domain Invariants
 
-- verify entity validates own invariants (via `validate()`, constructor guard, or factory) — NEVER handler-only enforcement.
-- verify pre-operation guards as `ensureCan*()` / `validateCan*()` methods on entity.
-- NEVER throw raw language exceptions for domain violations — MUST use project's domain exception type (discovered Phase 0): `ArgumentException`, `IllegalArgumentException`, `Error`, `ValueError` all WRONG.
-- Invariants from creation MUST be enforced in factory method or constructor.
-- CRITICAL: `validate()` MUST NOT be hidden by same-name method without calling `super` → silent validation dead zone.
+Apply **Invariant ownership** in `entity-quality.md`.
 
 #### E2. Spec-Loop Discipline — Invariant → Property-TC Mapping
 
-- verify each entity/VO invariant maps to a **universally-quantified property TC** (holds for ALL valid inputs) plus a **boundary counter-case** — NEVER accept a single happy-path example as coverage for an invariant.
-- flag any invariant with no guarding property TC as a **Dual-Feedback finding**: the spec must NAME the invariant AND a test must GUARD it — blank either axis = INCOMPLETE, NEVER report a behavior-affecting invariant finding as code-only.
-- review the whole package (spec + tests + entity code), not the entity diff alone; loop until zero new invariant→property-TC gaps remain — each cycle enriches the spec.
+Apply **Tests and specification; Proof and completion gate** in `entity-quality.md`.
 
 #### F. Aggregate Design
 
-- NEVER give child entity its own repository — ONLY aggregate root has repository.
-- NEVER reference another aggregate by object — MUST use ID only (`string productId` NOT `Product product`).
-- NEVER expose mutable collection directly — aggregate root MUST use domain methods for collection mutations.
-- verify composite-key entities implement project's composite ID pattern (discovered Phase 0).
-- flag aggregates with >5 independent child entities with separate lifecycles → splitting candidate.
-- Deletion of aggregate root MUST validate pre-conditions on children (orphan prevention).
+Apply **Aggregate boundaries** in `entity-quality.md`.
 
 #### G. Navigation / Relationship Properties
 
-- CRITICAL: ALL navigation/relationship properties that can serialize recursively MUST use the configured serialization-ignore mechanism or an explicit DTO/projection boundary.
-- Navigation properties MUST be nullable/optional — not always loaded.
-- FK ID MUST be stored as primitive alongside navigation — NEVER navigation-only reference.
-- NEVER use navigation properties in domain logic without null guard.
-- Prefer unidirectional navigation — bidirectional only when both directions actively used.
+Apply **Aggregate boundaries; Persistence and dependencies; prevent unsafe serialization and unloaded-navigation access where reachable** in `entity-quality.md`.
 
 #### H. Domain Events
 
-- verify meaningful state changes raise domain events — NEVER tracked only by polling DB.
-- Events MUST be raised INSIDE entity domain methods — NEVER from handlers/services.
-- Side effects MUST go to event handlers — NEVER inline in entity domain method.
-- Domain event naming: `{Entity}{Action}Event` or `{Entity}{PastTense}Event` (e.g., `OrderShippedEvent`).
-- Entity domain methods MUST remain focused: raise event + update own state. Nothing else.
+Apply **Domain and integration events** in `entity-quality.md`.
 
 #### I. Static Query Expressions
 
-- verify reusable filter expressions defined as static methods on entity (or companion class) — NEVER duplicated in repos/handlers.
-- Expression naming: descriptive static method (e.g., `isActive()`, `filteredByDepartment()`).
-- NEVER duplicate expressions across multiple repository or handler files.
-- Query expressions MUST have corresponding database indexes (verify in migration/schema files).
+Apply **Scale and change safety; Persistence and dependencies; no mandatory entity-owned query syntax** in `entity-quality.md`.
 
 #### J. Naming and Ubiquitous Language
 
-- NEVER use technical class name suffixes: `Manager`, `Helper`, `Processor`, `Util`, `Handler`, `Service`.
-- Domain methods MUST use domain verbs: `approve()`, `reject()`, `assign()`, `changeStatus()` — NEVER `process()`, `handle()`, `execute()`.
-- Boolean properties MUST use `is*`/`has*`/`can*` prefix: `isActive`, `hasPermission`, `canBeDeleted`.
-- Status/type enums MUST be co-located with owning entity — NEVER in shared `Enums/` catch-all folder.
-- Method parameters MUST use domain nouns — NEVER `data`, `model`, `obj`, `input`, `payload`.
+Apply **Language and context** in `entity-quality.md`.
 
 #### K. Code Smells
 
-| Smell | Detection Signal | Severity |
-| --- | --- | --- |
-| **Fat Entity** | >500 lines with unrelated concerns | MEDIUM — split by domain concept |
-| **Feature Envy** | Method uses 5+ properties of another entity | HIGH — wrong responsibility |
-| **Data Clump** | 3+ primitives always together | MEDIUM — VO candidate |
-| **Primitive Obsession** | Raw `string` for email/phone/money/ID | MEDIUM — domain type opportunity |
-| **Leaky Abstraction** | Entity exposes persistence internals | HIGH |
-| **Collection Exposure** | Public mutable collection returned directly | HIGH — domain method needed |
-| **Constructor Overload** | 5+ params without factory method | MEDIUM |
+Apply **Language and context; Scale and change safety; a smell needs a demonstrated consequence, not a size threshold** in `entity-quality.md`.
 
 #### L. OOP Principles
 
-- verify SRP: entity represents ONE domain concept — conflating two → flag for split.
-- NEVER instantiate infrastructure inside entity (repositories, HTTP clients, loggers) — MUST receive as parameters.
-- New behaviors MUST go via new event handlers — NEVER by modifying entity conditionals (Open/Closed).
-- Capability traits added via focused interfaces — NEVER monolithic interface bundle (ISP).
-- Entity subclasses MUST be substitutable for base — `base.method()` NEVER skipped in override (LSP).
+Apply **Language and context; Persistence and dependencies; apply OO principles only to OO boundaries** in `entity-quality.md`.
 
 #### M. Invariant vs Validation Ownership + Failure Signalling
 
-**Think:** for each rule the entity enforces, ask who is allowed to violate it. A user typo → boundary validation. A code path reaching an impossible state → entity invariant.
-
-- flag input-shape checks inside the entity (required-field, max-length, format-for-UX, localized messages) → MEDIUM, belongs at the boundary — why: the entity now changes when the form changes.
-- flag a business rule living ONLY in a `*Validator` / `*Rules` / handler guard while the entity permits the state → HIGH invariant gap — why: every other entry point reaches invalid state.
-- NEVER accept a database constraint or trigger as the invariant's enforcement — it is a backstop; the model must state the rule — why: an opaque SQL error is not a domain contract and cannot be unit-tested.
-- verify failure signalling matches the convention discovered in Phase 0 — mixed exception/`Result` for the SAME class of failure is a HIGH finding — why: callers cannot know which to handle, so one path goes unhandled.
-- Expected business outcomes (insufficient funds, slot taken) returning `Result`, unreachable-state guards throwing → correct split; flag the inverse (throwing for expected outcomes in a hot path, or `Result` for a "cannot happen") as MEDIUM.
-- flag mutations returning bare `bool` → MEDIUM: loses WHY and is trivially ignored.
-- flag silent clamping of bad input (`if (qty < 0) qty = 0`) → HIGH — why: hides a caller bug and persists wrong data with no signal.
+Apply **Invariant ownership; Behavior and failure atomicity** in `entity-quality.md`.
 
 #### N. Construction vs Reconstitution
 
-**Think:** trace both paths separately — `new` from a command, and materialization by the ORM/stream fold. Ask what each is allowed to run.
-
-- verify a distinct reconstitution path exists (private/protected ctor, ORM materialization hook, or `From(events)` fold) separate from the creation factory — why: without it, creation invariants must be weakened until loading passes.
-- CRITICAL if the load path raises domain events — loading N entities emits N phantom events — why: downstream handlers fire for things that did not happen.
-- flag creation rules re-run on load (clock checks, uniqueness calls, `startsOn >= today`) → HIGH: historical rows fail to load once the rule tightens.
-- verify required data sits in the constructor/factory and optional data in methods — an entity constructible without a value it cannot exist without is a HIGH invariant gap.
-- flag public parameterless constructor + public setters as the creation path → CRITICAL anemic entry point (paradigm-adjusted per 0.4; framework-required non-public ctors are fine).
-- flag 5+ positional constructor params → MEDIUM: group into VOs FIRST, consider a builder only after.
-- NEVER flag a framework-mandated non-public parameterless constructor as a violation — verify the discovered persistence convention first.
+Apply **Construction and reconstitution; Lifecycle and deletion** in `entity-quality.md`.
 
 #### O. Event Dispatch Timing + Contract Boundary
 
-**Think:** follow one raised event to its consumer and ask what happens if the consumer throws, if the transaction rolls back, and if the event is delivered twice.
-
-- CRITICAL if events dispatch synchronously INSIDE the write transaction — a handler failure rolls back the business operation — why: an unrelated feature can now break the core write.
-- CRITICAL if events publish to a broker BEFORE the transaction commits — you announced a fact that may never have happened; require the transactional outbox (events persisted in the SAME transaction, relayed after commit).
-- verify the event buffer is cleared after dispatch — an uncleared buffer republishes on the next save (MEDIUM–HIGH by blast radius).
-- verify internal domain events are distinct from published integration events — flag an internal event placed on the bus as HIGH — why: consumers become coupled to your model's internal shape, permanently, and it can no longer be refactored.
-- flag fat events carrying the whole aggregate → MEDIUM: violates least privilege and blocks schema evolution. Events carry IDs + the minimal meaningful payload.
-- flag events named as commands (`SendEmail`, `UpdateStock`) → MEDIUM: an event states what happened; command-naming re-couples producer to consumer.
-- flag handlers with no idempotency guard where delivery is at-least-once → HIGH.
-- Event-sourced projects (0.4): verify a versioning/upcasting strategy exists — why: a past event can never be changed, only upcast, and the first schema change without a plan has no rollback.
+Apply **Domain and integration events; pre-commit internal handlers can be intentional** in `entity-quality.md`.
 
 #### P. Aggregate Concurrency + Transaction Boundary
 
-**Think:** two users act on the same aggregate at the same instant — what stops the second write from silently discarding the first?
-
-- verify aggregate roots carry an optimistic-concurrency token (version/rowversion/etag) when the discovered persistence layer supports one — absence is HIGH on any contended or money/data-integrity path — why: last-write-wins silently discards a committed decision.
-- NEVER accept a concurrency token on a CHILD entity as the aggregate's token — the version belongs to the ROOT, because a change anywhere inside the aggregate is a change to the aggregate.
-- flag a single transaction mutating 2+ aggregate roots → HIGH: lock-ordering and deadlock risk, and it blocks later service extraction. Route the second change through a domain event.
-- flag an aggregate whose parts are routinely written by different users concurrently → MEDIUM sizing finding: the boundary is too big and produces concurrency failures on unrelated work.
-- check invariants claimed to span aggregates (uniqueness across all instances, "max N active per tenant") — these cannot live inside one aggregate; verify the owning mechanism (DB constraint + domain service, or a reservation pattern) exists and is stated — why: a set-based invariant enforced by an in-memory check races under concurrency and passes every single-threaded test.
-
+Apply **Concurrency and retries; Aggregate boundaries** in `entity-quality.md`.
 
 ## Phase 3: Holistic Synthesis + Fresh-Context Gate
 
 After all Phase 2 files are reviewed, synthesize cross-entity DDD concerns in the current report. Do not spawn a fresh sub-agent only because findings exist. Findings must go through the why-review validation gate before any fix.
 
-### 3.1 Model-Level Dimensions (— judged over the whole model, NEVER per file)
+### 3.1 Model-Level Dimensions (— judged over affected relationships)
 
-Two concerns are invisible file-by-file and only appear when the model is viewed whole. Run one focused pass each.
+Review **Language and context**, **Aggregate boundaries**, and **Scale and change safety** in `entity-quality.md` across the affected models. Trace shared owners and divergent rules before recommending consolidation or separation. Consumer-specific rules leaking into generic infrastructure need a concrete coupling consequence. Preserve legitimately separate models and accepted shared kernels.
 
-**Dimension 1 — Bounded-context sharing.** **Think:** does one entity class serve two different businesses?
-
-- flag a single entity class consumed by two contexts with divergent rules (a `Customer` used by Sales, Support, AND Billing) → HIGH — why: the class accretes every context's fields and rules, becomes the god entity nobody can change, and no context owns it.
-- The same word meaning different things per context is CORRECT, NEVER a duplication to eliminate — flag an attempt to unify them as a MEDIUM finding against the unifier.
-- verify a translation boundary exists where contexts meet (anti-corruption layer, mapper, published contract) — direct cross-context entity reuse is HIGH.
-- flag domain concepts leaking into a shared/generic/infrastructure layer (tenant/customer/product IDs, business rules in a "reusable" base) → HIGH — why: a layer coupled to one consumer's domain is no longer reusable.
-
-**Dimension 2 — Subdomain fit.** **Think:** does this code deserve a rich domain model at all?
-
-- judge fit BEFORE reporting anemic-model findings: a rich entity is correct in a **core** subdomain (complex, differentiating, changes often); Active Record or Transaction Script is CORRECT in supporting/generic subdomains and in pure CRUD.
-- NEVER report "anemic model" against code whose subdomain has no invariants beyond required-field — that is CRUD, and the finding is noise — why: uniform tactical DDD over CRUD is itself an anti-pattern, adding ceremony and indirection with no invariant to protect.
-- flag the inverse too: a **core** subdomain implemented as Transaction Script with business rules scattered across handlers → HIGH, this is where the rich model was owed.
-- flag generic subdomains modelled in-house (auth, billing, email, scheduling) → MEDIUM: buy or adopt, do not model.
-- state the subdomain judgment and its evidence in the report — an anemic-model finding without it is unproven — why: "anemic" and "appropriately simple" look identical in a diff.
+Judge subdomain fit before anemia findings: simple CRUD or functional rule owners can be correct; complex rules scattered across bypassable consumers require one authoritative owner. Core/supporting/generic labels guide investigation, not mandatory rich models or buy-versus-build verdicts. Record fit evidence and the effect on the next change.
 
 Spawn a fresh `code-reviewer` sub-agent only when one of these conditions is true (never under `--report-only` — see [Report-Only Mode](#report-only-mode---report-only)):
 
@@ -383,45 +268,27 @@ Write the report with these sections:
 
 ### Entity vs Value Object / Aggregate Boundary (reused from `domain-analysis`)
 
-> The decision matrix, fast heuristics, primitive-obsession → VO mapping, aggregate boundary rules and the anti-pattern list live once in `references/ddd-reference.md` (sections **Entity vs Value Object**, **Aggregate Design**, **Anti-Patterns Quick Reference**). Read the section you need on demand while applying Phase 2 A, B, C, F and K — never classify from memory. Two review-specific rows are not in that matrix: a **snapshot at a moment in time** (contact at referral, price at purchase) is a VO candidate; a class that **needs its own repository** is an Aggregate Root.
+> Modeling primers live once in `references/ddd-reference.md`; read only the relevant section for strategic or persistence alternatives. Tactical quality criteria live in `entity-quality.md`, shared by planning, implementation and this review. Identity and consistency semantics decide entity/root classification, not storage shape.
 
 ### Invariant Enforcement Decision Table
 
-| Location | When to Use |
-| --- | --- |
-| Constructor / Factory | Invariants must hold from creation |
-| `validate()` override | State invariants run before persistence |
-| `ensureCan*()` guard | Operation preconditions (throw domain exception) |
-| Before-delete hook | Pre-delete constraints |
-| Application layer ONLY | ← NEVER — always enforce in entity too |
+Read `entity-quality.md` → **Invariant ownership**, **Behavior and failure atomicity**, and **Concurrency and retries** when judging enforcement. Use the documented owner and actual transaction mechanism; keep untrusted-input validation at its boundary.
 
 ### Invariant vs Validation Decision Table
 
-| | **Invariant** | **Validation** |
-| --- | --- | --- |
-| Question | "Can this state legally exist?" | "Is this input acceptable right now?" |
-| Owner | entity / aggregate | application boundary |
-| Failure means | a bug, a broken model | a user error |
-| Signalled as | domain exception (or `Result` per convention) | validation result / problem details |
-| Example | order total always equals the sum of its lines | the email field is required |
+State the rule and its scope. Input-shape validation and domain invariants may overlap; a user-caused rejection can be correct behavior. Reject invalid state at the authoritative owner using the project's failure convention, with no partial mutation.
 
 ### Paradigm Adaptation Table (from Phase 0.4)
 
-| Rule as written | OO-mutable | Type-driven / immutable | Event-sourced |
-| --- | --- | --- | --- |
-| "No public setters" (D) | applies | N/A — nothing mutates | N/A — no state to set |
-| "VO immutable" (C) | applies | applies to entities too | applies |
-| "Reconstitution path separate" (N) | ORM ctor/hook | smart constructor | the event fold |
-| "Status enum + guards" | correct | **anti-pattern** — should be a union | replaced by event stream |
-| "Events raised in entity" (H/O) | applies | applies | events ARE the state |
+Mutable models guard mutation, immutable models return valid replacements, event-sourced models validate commands and replay facts without external side effects. Choose the actual model; no required setter, union, inheritance or ORM shape.
 
 ### Code Smell Signals
 
-Read **K** for code-smell thresholds. >20 properties prompts a cohesion check, not an automatic finding; no methods plus handler-owned rules suggests anemia only after subdomain-fit assessment.
+Read `entity-quality.md` → **Quality dimensions** when a smell suggests a risk. Size, field counts, method presence and missing patterns are investigation cues, not defects without consequences.
 
 ### Related decisions
 
-Read **Phase 0.4** when adapting to immutable or event-sourced models; **M** for invariant versus boundary validation; **F** for root-only mutation and ID references.
+Read `entity-quality.md` → **Feedforward and execution** when checking plan-to-code consistency; preserve settled decisions and identify missing proof.
 
 ## Systematic Review Strategy
 
@@ -483,21 +350,24 @@ when standalone, use `ask user question tool` after completing to present:
 
 | Invocation | Scope | Files |
 | --- | --- | --- |
-| `/domain-analysis --mode=review` (default) | **changes** | Changed domain entity files from `git diff` |
-| `/domain-analysis --mode=review changes` | **changes** | Changed domain entity files |
-| `/domain-analysis --mode=review scan` | **scan** | All entity/VO files in domain layer directories |
-| `/domain-analysis --mode=review scan <module>` | **scan-service** | Entities in named module only |
+| `/domain-analysis --mode=review` (default) | **changes** | Worktree changes and implicated models/write/load/event paths |
+| `/domain-analysis --mode=review changes` | **changes** | Selected diff and implicated models/write/load/event paths |
+| `/domain-analysis --mode=review scan` | **scan** | All discovered models and relevant write/load/event paths |
+| `/domain-analysis --mode=review scan <module>` | **scan-service** | Named module's models and relevant paths; trace external contracts as dependencies |
 
-**Entity file detection — adapt to discovered stack:**
+**Semantic scope detection — adapt to discovered stack:**
+
+Honor an explicit caller range/file set. For standalone worktree changes, include tracked edits and relevant new/untracked files; use the following discovery commands (deleted/renamed owners require the selected base for comparison):
 
 ```bash
 git diff --name-only HEAD
+git ls-files --others --exclude-standard
 rg --files {configured-source-roots}
 ```
 
-Filter those results using the entity/value-object/aggregate naming conventions discovered from project config and project-reference docs. Never hardcode source roots, extensions, or framework folder names from this mode.
+Use discovered naming conventions as locators, not inclusion/exclusion rules. Inspect changed behavior and trace handlers, imports, jobs, adapters, loads and events to the actual entity/VO/aggregate or invariant owner, including unchanged definitions. Bound inspection to the selected changes/module and dependencies needed to assess their effects; never hardcode source roots, extensions or domain folders.
 
-If no domain entity files match in changes mode → announce "No domain entity changes detected" and report clean.
+After tracing, no semantic domain surface → record `No domain-entity surface — gate N/A` with inspected paths and reason. Unresolved relevance or inaccessible required paths → `NOT VERIFIABLE` with the missing evidence; never report clean from an empty filename match.
 
 
 ## Mode protocols
@@ -722,7 +592,7 @@ If no domain entity files match in changes mode → announce "No domain entity c
 
 <!-- SYNC:understand-code-first:reminder -->
 
-**IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code/conventions BEFORE any modification or explanation. The code graph is optional advice for high-risk blast radius (a hint that may be stale), never a requirement.
+**IMPORTANT MUST ATTENTION** for code work, read the target and relevant conventions before planning or editing; seek 3+ fitting examples when available and record fewer/none. Do not impose code discovery on work with no code surface. The code graph is optional, stale-able advice for high-risk impact, never a requirement.
 
 <!-- /SYNC:understand-code-first:reminder -->
 

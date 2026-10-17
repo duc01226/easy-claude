@@ -11,7 +11,8 @@
  *   TC-LCM-001 — the skill carries the "which destination fits" comparison table with every carrier.
  *   TC-LCM-002 — the CLAUDE.md option needs all five conditions, user confirmation of the exact line,
  *                the sync-codex runner, a size/headroom check, and falls back to the other carriers.
- *   TC-LCM-003 — every pre-existing destination, gate and end task is still present (nothing weakened).
+ *   TC-LCM-003 — every destination, gate and end task remains, including performance references and
+ *                the selection-preserving reference-doc discovery handoff.
  *   TC-LCM-004 — the durable section survives `ai-context-refresh --mode update` (real generator);
  *                a note inside a generated fence does not — which is why the skill names the section.
  *   TC-LCM-005 — the project-skill-protocol pointer and the docs describe the new destination.
@@ -117,6 +118,32 @@ const tests = [
             for (const doc of ['code-review-rules.md', 'backend-patterns-reference.md', 'integration-test-reference.md', 'project-structure-reference.md', 'lessons.md']) {
                 assert.ok(text.includes('`' + doc + '`'), `${doc} still routable`);
             }
+            // Each table must independently route performance lessons; a mention elsewhere is insufficient.
+            const catalog = text.slice(text.indexOf('## Reference Doc Catalog (READ before routing)'), text.indexOf('\n### Also a routing destination:'));
+            const routing = text.slice(text.indexOf('\n### Routing Table'), text.indexOf('\n### Prevention Depth Assessment'));
+            assert.match(catalog, /^\| `performance-test-reference\.md`[^\n]*performance\/load\/soak\/capacity tests[^\n]*`\/scan --target=performance-tests`/m, 'catalog names the performance carrier, read trigger and scan owner');
+            assert.match(routing, /^\| Performance\/load\/stress\/soak\/capacity tests[^\n]*\| `performance-test-reference\.md`[^\n]*preferences[^\n]*existing harness guides/m, 'routing preserves project preferences and existing harness owners');
+            assert.match(catalog, /supported carriers, not mandatory files/, 'catalog does not require every supported reference');
+            assert.match(catalog, /preserve an existing authoritative project guide/i, 'existing guides remain viable owners');
+            assert.match(catalog, /compare[^\n]*`performance-test-reference\.md`[^\n]*new file or selection/i, 'carrier choice explains alternatives and their discovery cost');
+            // Saving prose is complete only when the selected carrier is initialized and discoverable.
+            const decision = text.slice(text.indexOf('\n### Routing Decision Process'), text.indexOf('\n### Format by Target File'));
+            assert.match(decision, /reference doc\/guide[^\n]*Reference-doc handoff/, 'confirmed reference saves invoke the handoff');
+            assert.match(decision, /\*\*Reference-doc handoff \(before marking learned\):\*\*/);
+            const handoff = decision.slice(decision.indexOf('**Reference-doc handoff (before marking learned):**'));
+            assert.match(handoff, /Update an existing owner in place[^\n]*optional[^\n]*another guide/, 'an existing authoritative guide does not force a new conventional file');
+            assert.match(handoff, /new or unselected reference[^\n]*discovery changes[^\n]*Carrier Choice proposal/, 'new discovery work is explained before carrier selection');
+            assert.match(handoff, /Preserve explicit `referenceDocs` selections, including `\[\]`/, 'explicit empty or subset selections remain authoritative');
+            assert.match(handoff, /user-approved selection changes[^\n]*`\/project-config`[^\n]*never silently append/, 'selection changes use the approved config owner');
+            assert.match(handoff, /docs-manager\/SKILL\.md[^\n]*--mode=init[^\n]*scan\/SKILL\.md[^\n]*selected scan owner/, 'initialization and scanning use their declared owners');
+            assert.match(handoff, /header-only file[^\n]*does not complete initialization/, 'a placeholder is not initialized guidance');
+            assert.match(handoff, /docs index[^\n]*Doc Lookup[^\n]*owners[^\n]*\/scan --target=docs-index[^\n]*\/ai-context-refresh/, 'index and generated root routing reconcile through their owners');
+            assert.match(handoff, /Verify[^\n]*future task[^\n]*actual saved path/, 'future task discovery is verified');
+            assert.match(handoff, /Missing initialization or discovery[^\n]*pending[^\n]*do not claim[^\n]*learned/, 'unresolved discovery cannot be reported as learned');
+            const behavior = text.slice(text.indexOf('\n## Behavior'), text.indexOf('\n## Auto-Inferred Activation'));
+            assert.match(behavior, /`\/learn list`[^\n]*selected reference docs[^\n]*explicitly routed project guides/, 'listing uses the actual selected and routed carriers');
+            assert.doesNotMatch(behavior, /\bALL \d+ (?:target files|reference docs)\b/i, 'listing does not impose a hardcoded catalog size');
+            assert.match(behavior, /\*\*File creation\*\*[^\n]*New reference targets[^\n]*Reference-doc handoff/, 'new reference creation cannot bypass initialization and discovery');
             assert.match(text, /### Skill-Specific Project-Protocol Route \(BLOCKING\)/);
             assert.match(text, /\/project-skill-protocol add/);
             assert.match(text, /Also a routing destination: `docs\/project-config\.json`/);
@@ -130,7 +157,7 @@ const tests = [
             assert.match(text, /### Prevention Depth Assessment \(MANDATORY before saving\)/);
             // The generalize-first quality gate and the three mandatory end tasks
             assert.match(text, /### Lesson Quality Gate \(BLOCKING — generalize before you save\)/);
-            assert.match(text, /\*\*Mandatory end tasks are ALWAYS \(in order\):\*\*/);
+            assert.match(text, /\*\*Mandatory end tasks[^\n]*\(in order\):\*\*/);
             assert.match(text, /Run \*\*Learn Review\*\*/);
             assert.match(text, /Run `\/why-review`/);
             assert.match(text, /Run the carrier-specific final quality pass[^\n]*`\/prompt-enhance <modified-prose-file>`[^\n]*owner parser\/schema validation after the final configuration write/);

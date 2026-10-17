@@ -18,7 +18,7 @@ description: '[Project Management] Use when a workflow step or the user asks for
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:END -->
 
-> **Renamed:** formerly `/idea` — now `$initiative`. The old name no longer resolves as a slash command. The record this skill writes is an initiative.
+> **Renamed:** formerly `/idea`; use `$initiative`. The old slash command has no alias. `$work-item --mode=refine` turns the initiative into delivery work.
 
 > **AI-SDD Artifact Contract (M1–M7):** Initiatives stay tech-agnostic business intent; logical IDs belong downstream, and abstract `[Source: namespace/service/id]` anchors stay in a separate evidence carrier. Keep physical code coordinates and repository paths out of portable narrative.
 > MUST ATTENTION READ `.claude/skills/shared/sdd-artifact-contract.md` for full mandate and carrier rules.
@@ -36,7 +36,7 @@ description: '[Project Management] Use when a workflow step or the user asks for
 **Summary:**
 
 - **Purpose:** capture raw idea as structured, validated initiative artifact; preserve problem intent, keep the problem statement tech-agnostic with no solution/stack/IDs, and hand clean narrative to `$work-item --mode=refine`.
-- **Main steps/tasks (run in order):** (1) Gather problem/value/users/scope; (2) Generate `INITIATIVE-{YYMMDD}-{NNN}` draft from `initiative-template.md`; (3) Capture problem/value/users; (4) Detect module by globbing `*/README.md` under the business spec root (default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path) silently, prompting only if ambiguous/no match; (5) Load feature context (8-12K tokens: entities, BR-/TC patterns); (6) Save canonical artifact; (6.5) **Discovery Interview** — ONE interview of 4-6 `ask user question tool` questions; (7) **Validation Summary** — written from those answers, then ONE short unconditional `ask user question tool` confirming the revised problem statement / scope (not a second interview); (8) Suggest `$work-item --mode=refine`.
+- **Main steps/tasks (run in order):** (1) Gather problem/value/users/scope; (2) Generate `INITIATIVE-{YYMMDD}-{NNN}` draft from `initiative-template.md`; (3) Capture problem/value/users; (4) Detect module through project structure and selected-profile canonical indexes/owners silently, prompting only if ambiguous/no match; (5) Load feature context (8-12K tokens: entities, BR-/TC patterns); (6) Save canonical artifact; (6.5) **Discovery Interview** — ONE interview of 4-6 `ask user question tool` questions; (7) **Validation Summary** — written from those answers, then ONE short unconditional `ask user question tool` confirming the revised problem statement / scope (not a second interview); (8) Suggest `$work-item --mode=refine`.
 - **Modes/gates:** Existing repo → silently detect module and load context; Greenfield → skip module detection and structure reads, use market/WebSearch context, ask business questions more often, and NEVER ask about tech stack. The Discovery Interview (Step 6.5: 4-6 questions incl. always-on testability, each category asked once) and the Validation Summary with its one confirm question (Step 7) are NON-NEGOTIABLE.
 - **Output:** Persist to `initiatives/{YYMMDD}-{role}-initiative-{slug}.md` under the team-artifacts root (default `team-artifacts`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path) with `t_shirt_size`; downstream task owns `FR-`/`BR-` IDs and inherits the clean narrative.
 
@@ -106,7 +106,7 @@ description: '[Project Management] Use when a workflow step or the user asks for
 
 **Dynamic Discovery:**
 
-1. Glob `*/README.md` under the business spec root (default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path); extract module names from paths; match initiative keywords against module keywords.
+1. Resolve modules and canonical artifact owners from config, required references and existing indexes. A valid native contract supplies its own owner/roles/identifiers; absent-profile strict defaults may use module/bucket READMEs and canonical `README.*.md` owners. Invalid/unresolved declarations stay BLOCKED. Match initiative intent to this discovered structure; a filename alone does not select a profile.
 
 | Scenario             | Action                                                                          |
 | -------------------- | ------------------------------------------------------------------------------- |
@@ -116,13 +116,13 @@ description: '[Project Management] Use when a workflow step or the user asks for
 
 **If module detected:**
 
-1. Read `{module}/README.md` under the business spec root (default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path) (first 200 lines); extract its Quick Navigation feature list.
+1. Read the discovered module/index overview and relevant owner sections; use verified navigation to select the related capabilities. Do not require a module README or treat a preview as a complete required read.
 2. Add frontmatter: `module: {detected_module}`, `related_features: [Feature1, Feature2]`.
 
 ### Step 5: Load Feature Context
 
-1. Read module README overview (~2K tokens); identify closest matching feature(s).
-2. Read corresponding feature doc (3-5K tokens); extract related entities, existing business rules (`BR-{MOD}-XXX`), and test patterns (`TC-{FEATURE}-{NNN}`).
+1. Read the selected module/index overview and identify the closest capability owner(s).
+2. Read relevant intent/contracts/evidence using the resolved profile; extract related concepts, rules and case identities. `BR-`/`TC-` are absent-profile examples, never a parallel namespace for native owners. Keep the context budget and explicit missing-owner gaps.
 
 **Token Budget:** Target 8-12K tokens total.
 
@@ -224,7 +224,7 @@ Output: "Initiative captured! To refine into a task, run: `$work-item --mode=ref
 
 ### Key Components
 
-- **{Component}** — {purpose} _(tier: common | domain-shared | page/app)_
+- **{Component}** — {purpose} _(project owner/boundary; tier only when the project defines one)_
 ```
 
 > Search existing libs before proposing new components.
@@ -256,7 +256,7 @@ $initiative "Add goal progress tracking notification"
 
 ---
 
-> **[IMPORTANT]** Before starting, use todo tracking for small tasks, including each file read. For simple tasks, AI MUST ATTENTION ask whether to skip.
+> **[IMPORTANT]** Before starting, use todo tracking for small tasks. Keep task depth proportional to the work.
 
 > **External Memory:** For complex/lengthy research, analysis, scans, or reviews, write intermediate findings to `tmp/reports/` — prevents context loss and preserves a deliverable.
 
@@ -264,7 +264,7 @@ $initiative "Add goal progress tracking notification"
 
 <!-- PROTOCOL-GUIDES:START -->
 
-> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
+> **Protocol guides** — Apply each protocol only when its read-when condition holds. If a protocol's text is not in your context, read its file below before you act on it.
 
 - `decision-interview` — Brief the user, then ask every material decision as a decision card in dependency-ordered rounds; asking the user to confirm, choose or validate decisions → .claude/skills/shared/protocols/decision-interview.md
 - `sequential-thinking-protocol` — Structured multi-step reasoning with revision, branch and hypothesis markers; planning, debugging or reviewing complex or ambiguous work → .claude/skills/shared/protocols/sequential-thinking-protocol.md
@@ -299,13 +299,13 @@ $initiative "Add goal progress tracking notification"
 
 **IMPORTANT MUST ATTENTION Goal:** Turn a vague product idea into a validated, tech-agnostic, module-anchored initiative artifact ready for `$work-item --mode=refine` to convert into a task — preserving problem intent without leaking solution or stack choices.
 
-**IMPORTANT MUST ATTENTION — Main steps (run in order, NEVER skip/reorder):** (1) Gather info; (2) Generate artifact `INITIATIVE-{YYMMDD}-{NNN}` draft from `initiative-template.md`; (3) Capture problem/value/users; (4) Detect module by globbing `*/README.md` under the business spec root (default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path); (5) Load feature context (8-12K budget); (6) Save to canonical path; (6.5) Discovery Interview (ONE interview, `ask user question tool` 4-6); (7) Validation Summary derived from its answers + ONE confirm `ask user question tool`; (8) Suggest next → `$work-item --mode=refine`. — why: AI keeps dropping the skill's own mid-pipeline steps; the interview and module detection are the most-forgotten.
+**IMPORTANT MUST ATTENTION — Main steps (run in order, NEVER skip/reorder):** (1) Gather info; (2) Generate artifact `INITIATIVE-{YYMMDD}-{NNN}` draft from `initiative-template.md`; (3) Capture problem/value/users; (4) Detect module through project structure and selected-profile canonical indexes/owners; (5) Load feature context (8-12K budget); (6) Save to canonical path; (6.5) Discovery Interview (ONE interview, `ask user question tool` 4-6); (7) Validation Summary derived from its answers + ONE confirm `ask user question tool`; (8) Suggest next → `$work-item --mode=refine`. — why: AI keeps dropping the skill's own mid-pipeline steps; the interview and module detection are the most-forgotten.
 
 **IMPORTANT MUST ATTENTION** Mode gate: existing codebase → detect module and load context; Greenfield → skip module and structure reads, use market/WebSearch context, ask business questions more often, and NEVER ask about tech stack.
 
 **IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
-- **UI Wireframe:** classify each component into ONE tier; search libs first, reuse ≥80% match.
+- **UI Wireframe:** for UI-bearing initiatives, use project ownership/observed boundaries; search existing components and reuse only when behavior/platform contracts fit. Backend-only is N/A.
 - **AI-SDD M1–M3:** Keep initiative prose tech-agnostic business intent; defer logical IDs and `[Source: ...]` carriers to the downstream task.
 - **Sequential Thinking:** multi-step Thought N/M with REVISION/BRANCH/HYPOTHESIS markers and confidence closer.
 
@@ -314,12 +314,12 @@ $initiative "Add goal progress tracking notification"
 **IMPORTANT MUST ATTENTION** in greenfield mode NEVER ask about tech stack — acknowledge a volunteered preference, then defer to the business-evaluation phase — why: stack is a research-driven decision after business analysis, not a capture-time guess
 **IMPORTANT MUST ATTENTION** todo tracking break ALL work into small tasks BEFORE starting — including a task to READ `project-structure-reference.md` (skip in greenfield — it won't exist)
 **IMPORTANT MUST ATTENTION** validate all decisions with user via `ask user question tool` — NEVER auto-decide — and NEVER show confidence levels on an auto-detected module match
-**IMPORTANT MUST ATTENTION** auto-detect module silently by globbing `*/README.md` under the business spec root (default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path) — prompt only when ambiguous or no match; greenfield → skip module detection — why: confirm with `Glob()` evidence, not assumption
+**IMPORTANT MUST ATTENTION** auto-detect module from the evidenced project structure and selected artifact owners/indexes — prompt only when ambiguous or no match; greenfield → skip module detection — why: confirm with `Glob()` evidence, not assumption
 **IMPORTANT MUST ATTENTION** assign NO logical IDs (M3) — an initiative is tech-agnostic business intent only; the downstream task owns `FR-`/`BR-` assignment and `[Source: namespace/service/id]` anchors — why: keep the problem/value narrative free of source identifiers so the task inherits it cleanly
 **IMPORTANT MUST ATTENTION** include `t_shirt_size` (XS/S/M/L/XL) in the artifact and keep the feature-context load within the 8-12K token budget — why: early sizing feeds prioritization; over-budget reads dilute attention
 **IMPORTANT MUST ATTENTION** persist to `initiatives/{YYMMDD}-{role}-initiative-{slug}.md` under the team-artifacts root (default `team-artifacts`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path), then hand off to `$work-item --mode=refine` for task conversion — why: canonical path keeps downstream tooling aligned
 **IMPORTANT MUST ATTENTION** the initiative file is a work record owned by `$task-track`: unused `id`, `status: draft`, no assignee, no decision or priority key of this skill's own; approval, type, priority level and due date are recorded only through `$task-track`, and on a tracked initiative so are `title`/`intent`/`status`/`priority` — why: a second status vocabulary makes the tracker refuse the record
-**IMPORTANT MUST ATTENTION** search existing component libraries before proposing any new UI component (≥80% match = reuse); classify each into exactly ONE tier — why: duplicate UI code = wrong tier
+**IMPORTANT MUST ATTENTION** on UI-bearing initiatives, search existing components and reuse when behavior/platform contracts fit; classify by project ownership/observed boundaries. A visual percentage does not establish compatibility; backend-only work is N/A.
 **IMPORTANT MUST ATTENTION** cite `file:line` proof or traced evidence for every claim/recommendation, confidence >80% to act, <80% verify first — why: certainty without evidence is the root of hallucination
 **IMPORTANT MUST ATTENTION** add a final review task to verify work quality
 
@@ -333,7 +333,7 @@ $initiative "Add goal progress tracking notification"
 | "Greenfield check is optional"            | Auto-detect is MANDATORY — no manual override                           |
 | "User mentioned a framework, capture it"  | Stay tech-agnostic — acknowledge, defer to tech-research phase           |
 | "I'll assign FR-/BR- IDs now"             | NO logical IDs at initiative stage — the task assigns them downstream           |
-| "Reuse an existing component? new is faster" | Search libs first — ≥80% match = reuse; new without search = wrong tier |
+| "Reuse an existing component? new is faster" | For UI, search existing components and verify behavior/platform fit before proposing a new owner; use the project’s taxonomy |
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using todo tracking.
 

@@ -776,6 +776,12 @@
       ]
     },
     {
+      "filename": "performance-test-reference.md",
+      "purpose": "Project preferences for performance-test setup, workloads, hardware budgets, reusable helpers, commands and evidence",
+      "sections": [],
+      "templatePath": ".claude/templates/reference-docs/performance-test-reference.md"
+    },
+    {
       "filename": "feature-spec-reference.md",
       "purpose": "Feature Spec structure, authoring rules, and test case format",
       "sections": [

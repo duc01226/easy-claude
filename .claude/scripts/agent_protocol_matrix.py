@@ -384,6 +384,17 @@ AGENT_QUALITY_BLOCKS = {
         "ai-agent-as-user-access",
     ],
     # --- test family -----------------------------------------------------
+    "performance-tester": [
+        "agent-code-standards", "agent-bootstrap", "sequential-thinking-protocol",
+        "understand-code-first", "evidence-based-reasoning",
+        "cross-service-check", "fix-layer-accountability",
+        "core-engineering-principles", "measured-capacity-engineering",
+        "real-world-fidelity-testing", "repeatable-test-principle",
+        "test-architecture-execution-contract", "test-failure-fault-adjudication",
+        "environment-fault-hypothesis", "source-test-drift-check",
+        "review-decision-autonomy", "severity-rubric", "review-principle-awareness",
+        "logic-and-intention-review", "bug-detection", "spec-tests-code-triangulation",
+    ],
     "integration-tester": [
         "review-decision-autonomy",  # Applies only to review/audit decisions.
         "measured-capacity-engineering",
@@ -576,6 +587,7 @@ AGENT_SKILL_CONNECTIONS = {
     "journal-writer": ["learn"],
     "knowledge-worker": ["knowledge-review", "knowledge-synthesis"],
     "performance-optimizer": ["performance-review"],
+    "performance-tester": ["performance-test"],
     "planner": ["plan"],
     "researcher": ["web-research"],
     "security-auditor": ["security-audit"],
@@ -595,12 +607,14 @@ TEST_ARCHITECTURE_SKILLS = {
     "architecture",
     "scaffold", "harness-setup", "workflow-greenfield-init",
     "integration-test",
+    "performance-test",
     "e2e-test", "workflow-e2e",
     "workflow-integration-test", "test",
     "seed-test-data",
 }
 TEST_ARCHITECTURE_AGENTS = {
     "architect", "code-reviewer", "e2e-runner", "integration-tester",
+    "performance-tester",
     "solution-architect", "tester",
 }
 
@@ -620,7 +634,7 @@ FAMILIES = {
         "planner", "architect", "solution-architect",
     ],
     "test": [
-        "integration-tester", "tester", "e2e-runner", "database-admin",
+        "integration-tester", "performance-tester", "tester", "e2e-runner", "database-admin",
     ],
     "craft": [
         "ui-ux-designer", "code-simplifier", "docs-manager", "framework-maintainer",

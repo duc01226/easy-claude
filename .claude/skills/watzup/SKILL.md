@@ -240,7 +240,7 @@ After the report is written, MUST ATTENTION use `ask user question tool` to pres
 - **"/commit"** — Commit changes if not using workflow
 - **"Skip, continue manually"** — user decides
 
-> **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
+> **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting. This prevents context loss from long files. Keep task depth proportional to the work.
 
 > **External Memory:** For complex or lengthy work (research, analysis, scan, review), write intermediate findings and final results to a report file in `tmp/reports/` — prevents context loss and serves as deliverable.
 
@@ -248,9 +248,10 @@ After the report is written, MUST ATTENTION use `ask user question tool` to pres
 
 <!-- PROTOCOL-GUIDES:START -->
 
-> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
+> **Protocol guides** — Apply each protocol only when its read-when condition holds. If a protocol's text is not in your context, read its file below before you act on it.
 
 - `evidence-based-reasoning` — Ground every material claim in file:line, config or source evidence, with stated confidence; making any claim, finding or recommendation → .claude/skills/shared/protocols/evidence-based-reasoning.md
+- `output-quality-principles` — Readable guidance and verified contents for long skill/doc files; writing, updating or auditing a skill or reference document, or another Markdown artifact over 200 lines → .claude/skills/shared/protocols/output-quality-principles.md
 - `task-tracking-external-report` — Task breakdown before the work and report files written incrementally; starting any multi-step skill, plan or review → .claude/skills/shared/protocols/task-tracking-external-report.md
 
 <!-- PROTOCOL-GUIDES:END -->
@@ -280,6 +281,14 @@ After the report is written, MUST ATTENTION use `ask user question tool` to pres
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
 
+
+
+<!-- SYNC:output-quality-principles:reminder -->
+
+**IMPORTANT MUST ATTENTION** lead with useful guidance and readable priorities; preserve action-changing conditions/numbers and required structures. When writing, updating or auditing Markdown skill/doc content, verify top, heading-linked contents over 200 lines (stricter owner thresholds remain); refresh after edits and report gaps in read-only audits. Remove report bulk; judge semantic value rather than word counts.
+
+<!-- /SYNC:output-quality-principles:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Hand the developer an evidence-backed wrap-up of the session — a **Session summary** first (Done · Key changes · Why · How it works), then the detail, doc/spec staleness flags and root-cause lessons — delivered as a self-contained HTML report opened for them, WITHOUT changing any repository file, so they understand the work and decide the next step from full context.
@@ -299,7 +308,7 @@ After the report is written, MUST ATTENTION use `ask user question tool` to pres
 **IMPORTANT MUST ATTENTION** extract lessons by ROOT CAUSE (the reasoning/assumption failure), NOT the symptom; write each as a universal rule that holds on ≥3 codebases (or a stable project convention); recommend `/learn` ONLY for a project convention or a universal best-practice protocol worth reading on everyday work — rare AI-agent quirks, one-off incidents and current-task details are noise, and so are surface-level "always check file X" notes — why: persisted lessons are read on every task, so only everyday-valuable prevention compounds across sessions.
 **IMPORTANT MUST ATTENTION** send lessons to `/learn` ONLY after explicit user confirmation — NEVER auto-persist or self-edit instruction files — why: lesson capture is a durable instruction change the user must own.
 **IMPORTANT MUST ATTENTION** use `ask user question tool` for the Next Steps decision — NEVER auto-decide the route even when it "seems obvious" — why: the user owns the workflow-end / commit / continue choice.
-**IMPORTANT MUST ATTENTION** break work into small todo tasks with `TaskCreate` BEFORE starting (one task per file read), keep exactly one `in_progress`, and add a final review todo to verify work quality — why: long files exhaust context; granular tasks survive compaction.
+**IMPORTANT MUST ATTENTION** break work into small todo tasks with `TaskCreate` BEFORE starting, keep exactly one `in_progress`, and add a final review todo to verify work quality — why: long files exhaust context; granular tasks survive compaction.
 **IMPORTANT MUST ATTENTION** cite `file:line` proof or traced evidence with a confidence % for every claim/finding (>80% to act, <80% verify first) — NEVER present a guess as fact — why: an unverified staleness/lesson flag misleads the developer's next decision.
 **IMPORTANT MUST ATTENTION** grep/glob to verify any referenced doc, path, or API actually exists before flagging it — NEVER hallucinate a doc mapping or count — why: AI invents file paths and method names; the change summary must match the real diff.
 **IMPORTANT MUST ATTENTION** read `CLAUDE.md` and the project-reference docs gate (`lessons.md` always) before the wrap-up — why: project conventions override generic staleness assumptions.

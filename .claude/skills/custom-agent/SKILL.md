@@ -18,7 +18,7 @@ disable-model-invocation: true
 - Agent does NOT inherit Claude Code system prompt — write complete instructions
 - Minimize tools to only what the agent needs
 - System prompt structure: `## Role` → `## Workflow` → `## Key Rules` → `## Output`
-- Analyze scope and use `TaskCreate` for small tasks/subtasks before starting, including per-file reads and final review. For simple tasks, ask whether to skip.
+- Analyze scope and use `TaskCreate` for small tasks/subtasks before starting, including final review. Keep task depth proportional to the work.
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
@@ -204,7 +204,7 @@ Same `name` across levels: higher-priority wins. Use `claude agents` CLI to list
 
 <!-- PROTOCOL-GUIDES:START -->
 
-> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
+> **Protocol guides** — Apply each protocol only when its read-when condition holds. If a protocol's text is not in your context, read its file below before you act on it.
 
 - `review-decision-autonomy` — Choose supported review decisions and ask before extending the round budget; running any review or audit skill or mode → .claude/skills/shared/protocols/review-decision-autonomy.md
 
@@ -226,7 +226,7 @@ Same `name` across levels: higher-priority wins. Use `claude agents` CLI to list
 
 - **AI Mistakes:** holistic-first debug, fix at responsible layer, surgical diff, verify ALL outputs.
 
-- Use `TaskCreate` before starting, including per-file reads and final review; ask whether to skip for simple tasks.
+- Use `TaskCreate` before starting, including final review; keep task depth proportional to the work.
 - Search 3+ similar patterns before creating code; cite `file:line` for every claim, with confidence >80% to act.
 
 | Evasion | Required action |

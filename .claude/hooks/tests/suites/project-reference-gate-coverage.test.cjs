@@ -122,7 +122,7 @@ module.exports = {
                 for (const phase of ['investigate, explain, plan', 'edit or write code', 'tests or test data', 'specs, test cases, or docs', 'review a diff']) {
                     assertTrue(top.includes(phase), `phase routing row missing: ${phase}`);
                 }
-                for (const doc of ['project-structure-reference.md', 'code-review-rules.md', 'backend-patterns-reference.md', 'frontend-patterns-reference.md', 'integration-test-reference.md', 'e2e-test-reference.md', 'seed-test-data-reference.md', 'feature-spec-reference.md']) {
+                for (const doc of ['project-structure-reference.md', 'code-review-rules.md', 'backend-patterns-reference.md', 'frontend-patterns-reference.md', 'integration-test-reference.md', 'e2e-test-reference.md', 'performance-test-reference.md', 'seed-test-data-reference.md', 'feature-spec-reference.md']) {
                     assertTrue(top.includes(doc), `routing table must name ${doc}`);
                 }
                 assertTrue(top.includes('file-conventions.cjs --lookup'), 'gate must point shell reads and edits at the per-file convention lookup');

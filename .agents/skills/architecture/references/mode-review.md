@@ -715,7 +715,7 @@ Before reporting ANY work done:
 4. **Evaluate pattern fit.** Copying nearby code? Verify preconditions match — same scope, lifetime, base class, constraints.
 5. **New artifact = wired artifact.** Created something? Prove registered, imported, reachable by all consumers.
 
-> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting. Simple tasks: ask user whether to skip.
+> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting. Keep task depth proportional to the work.
 
 
 ## Sub-Agent Type Override

@@ -1,4 +1,4 @@
-<!-- Last scanned: 2026-10-09 -->
+<!-- Last scanned: 2026-10-17 -->
 
 # Documentation Index Reference
 
@@ -15,7 +15,21 @@ Read this index when locating the authoritative document for a project question 
 - Resolve configured roots; regenerate category globs into a normalized unique-path union.
 - Compare broad `docs/**/*.md` results with the category union and expose every remainder.
 - Verify relationships and lookup paths; keep every path real, unique, and traceable to the current tree.
-- Index 516 unique authored Markdown files across 12 categories; `docs/` contains 54 files with 0 uncategorized. Design System is a one-file Project Reference subset counted once.
+- Index 524 unique authored Markdown files across 12 categories; `docs/` contains 55 files with 0 uncategorized. Design System is a one-file Project Reference subset counted once.
+
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Workflow](#workflow)
+- [Key Rules](#key-rules)
+- [Documentation System](#documentation-system)
+- [Documentation Graph](#documentation-graph)
+- [Key Doc Relationships](#key-doc-relationships)
+- [Doc Lookup Guide](#doc-lookup-guide)
+- [Resolved default paths (tooling index)](#resolved-default-paths-tooling-index)
+- [Uncategorized Files](#uncategorized-files)
+- [Source-adjacent guides outside the published total](#source-adjacent-guides-outside-the-published-total)
+- [Closing Reminders](#closing-reminders)
 
 ## Workflow
 
@@ -31,7 +45,7 @@ Read this index when locating the authoritative document for a project question 
 
 ## Documentation System
 
-516 unique authored markdown files across 12 indexed categories. Last scanned: 2026-10-09.
+524 unique authored markdown files across 12 indexed categories. Last scanned: 2026-10-17.
 
 **Relocatable roots.** Resolve these configurable roots before running their category globs:
 
@@ -45,7 +59,7 @@ The **Reproducible scope** column states each glob relative to its category's ro
 | Category               | Verified count | Reproducible scope                                                                    |
 | ---------------------- | -------------: | ------------------------------------------------------------------------------------- |
 | Root-Level Docs        |              3 | root-only `*.md`                                                                      |
-| Project Reference      |             18 | `**/*.md` under the project-reference docs root                                       |
+| Project Reference      |             19 | `**/*.md` under the project-reference docs root                                       |
 | Operations             |              0 | direct getting-started/deployment/operations/runbook/setup/install/configuration docs |
 | Design System          |              1 | `design-system/**/*.md` under the project-reference docs root                         |
 | Feature Specs          |             20 | `*/README.*.md` under the business spec root                                          |
@@ -55,7 +69,7 @@ The **Reproducible scope** column states each glob relative to its category's ro
 | Release Notes          |              3 | `docs/release/**/*.md` + `docs/release-notes/**/*.md`                                 |
 | Knowledge Reports      |              1 | `docs/knowledge/**/*.md`                                                             |
 | Framework Docs         |             43 | `.claude/docs/**/*.md`                                                                |
-| Skill Markdown         |            416 | `rg --files .claude/skills -g '*.md'`                                                 |
+| Skill Markdown         |            423 | `rg --files .claude/skills -g '*.md'`                                                 |
 
 The unique total is the normalized union returned by `rg --files` for Root-Level Docs, all `docs/**/*.md`, Framework Docs, and Skill Markdown. Design System is nested inside Project Reference, so its count is informative rather than additive. For this inventory, the authored/tracked scope includes generated protocol projections deliberately published as reader-facing documentation; Codex/OpenCode mirrors are excluded. Ignored dependency artifacts such as skill-local `.venv/` files are excluded.
 
@@ -68,14 +82,14 @@ easy-claude/
 ├── AGENTS.md                                      # Codex/agent instructions
 ├── CLAUDE.md                                      # Claude project instructions
 ├── README.md                                      # Project overview and adoption entry point
-├── docs/                                          # 54 markdown files
+├── docs/                                          # 55 markdown files
 │   ├── adr/                                       # 5 architecture decisions
 │   │   ├── 0001-skill-lifecycle.md
 │   │   ├── 0002-canonical-count-metrics.md
 │   │   ├── 0003-config-driven-doc-and-spec-roots.md
 │   │   ├── 0004-protocol-delivery-hybrid.md
 │   │   └── 0005-work-tracker-vocabulary-and-migration.md
-│   ├── project-reference/                         # 18 files
+│   ├── project-reference/                         # 19 files
 │   │   ├── backend-patterns-reference.md
 │   │   ├── code-review-rules.md
 │   │   ├── custom-prompts-reference.md
@@ -84,6 +98,7 @@ easy-claude/
 │   │   ├── e2e-test-reference.md
 │   │   ├── feature-spec-reference.md
 │   │   ├── frontend-patterns-reference.md
+│   │   ├── performance-test-reference.md
 │   │   ├── integration-test-reference.md
 │   │   ├── lessons.md
 │   │   ├── project-structure-reference.md
@@ -139,7 +154,7 @@ easy-claude/
 │   ├── hooks/                                     # 3
 │   ├── skills/                                    # 2
 │   └── team-artifacts/templates/                  # 6
-└── .claude/skills/                                # 416 authored/tracked markdown assets
+└── .claude/skills/                                # 423 authored/tracked markdown assets
 ```
 
 Absent whitelist branches: Operations only.
@@ -233,6 +248,7 @@ Read `docs/project-config.json` first for any project question or task — paths
 | Project Reference      | resolving spec paths or canonical vs derived spec artifacts                                                                                                                        | `spec-system-reference.md`                                                                                  |
 | Project Reference      | judging spec quality or local SDD rules                                                                                                                                            | `spec-principles.md`                                                                                        |
 | Project Reference      | changing behavior or a public contract — keep specs, tests, code in sync                                                                                                           | `workflow-spec-test-code-cycle-reference.md`                                                                |
+| Project Reference | planning, writing, running, fixing or reviewing performance/load/capacity tests — project preferences, reusable harness, workload/data/hardware/SLO budgets and evidence | `performance-test-reference.md` |
 | Project Reference      | a saved project prompt, playbook, or runbook may apply                                                                                                                             | `custom-prompts-reference.md`                                                                               |
 | Project Reference      | about to run any skill — check project overlays                                                                                                                                    | `skill-protocols-reference.md`                                                                              |
 | Design System          | reusing skill-local visual assets or checking design ownership                                                                                                                     | `design-system/README.md`                                                                                   |
@@ -292,11 +308,11 @@ Read `docs/project-config.json` first for any project question or task — paths
 
 ### Resolved default paths (tooling index)
 
-With no `docsRoots.projectReference.path` entry in `docs/project-config.json`, the 18 project-reference docs above resolve to: `docs/project-reference/backend-patterns-reference.md`, `docs/project-reference/code-review-rules.md`, `docs/project-reference/custom-prompts-reference.md`, `docs/project-reference/design-system/README.md`, `docs/project-reference/docs-index-reference.md`, `docs/project-reference/domain-entities-reference.md`, `docs/project-reference/e2e-test-reference.md`, `docs/project-reference/feature-spec-reference.md`, `docs/project-reference/frontend-patterns-reference.md`, `docs/project-reference/integration-test-reference.md`, `docs/project-reference/lessons.md`, `docs/project-reference/project-structure-reference.md`, `docs/project-reference/scss-styling-guide.md`, `docs/project-reference/seed-test-data-reference.md`, `docs/project-reference/skill-protocols-reference.md`, `docs/project-reference/spec-principles.md`, `docs/project-reference/spec-system-reference.md`, `docs/project-reference/workflow-spec-test-code-cycle-reference.md`. An override moves every one of them; the filenames never change.
+With no `docsRoots.projectReference.path` entry in `docs/project-config.json`, the 19 project-reference docs above resolve to: `docs/project-reference/backend-patterns-reference.md`, `docs/project-reference/code-review-rules.md`, `docs/project-reference/custom-prompts-reference.md`, `docs/project-reference/design-system/README.md`, `docs/project-reference/docs-index-reference.md`, `docs/project-reference/domain-entities-reference.md`, `docs/project-reference/e2e-test-reference.md`, `docs/project-reference/feature-spec-reference.md`, `docs/project-reference/frontend-patterns-reference.md`, `docs/project-reference/integration-test-reference.md`, `docs/project-reference/performance-test-reference.md`, `docs/project-reference/lessons.md`, `docs/project-reference/project-structure-reference.md`, `docs/project-reference/scss-styling-guide.md`, `docs/project-reference/seed-test-data-reference.md`, `docs/project-reference/skill-protocols-reference.md`, `docs/project-reference/spec-principles.md`, `docs/project-reference/spec-system-reference.md`, `docs/project-reference/workflow-spec-test-code-cycle-reference.md`. An override moves every one of them; the filenames never change.
 
 ## Uncategorized Files
 
-None. A fresh broad `docs/**/*.md` scan returned 54 paths; the normalized union of Project Reference, Operations, Design System, Feature Specs, Spec Catalogs, Architecture Decisions, Templates, Release Notes, and Knowledge Reports covered all 54.
+None. A fresh broad `docs/**/*.md` scan returned 55 paths; the normalized union of Project Reference, Operations, Design System, Feature Specs, Spec Catalogs, Architecture Decisions, Templates, Release Notes, and Knowledge Reports covered all 55.
 
 ### Source-adjacent guides outside the published total
 

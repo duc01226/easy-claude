@@ -35,6 +35,26 @@ function createTempProjectDir() {
 
 const unitTests = [
     {
+        // Technical contract: performance guidance is capability-selected, never a hidden doc floor.
+        name: '[init-reference-docs] performance reference has a scan owner and preserves exact selection',
+        fn: () => {
+            const { resolveDefaultReferenceDocs, normalizeReferenceDocs, mergeReferenceDocs } = require('../../lib/session-init-helpers.cjs');
+            const { resolveReferenceDocTarget } = require('../../lib/project-reference-registry.cjs');
+            const { validateConfig } = require('../../lib/project-config-schema.cjs');
+            const filename = 'performance-test-reference.md';
+            const config = { project: { name: 'Performance fixture' }, framework: { name: 'native', performanceTestDoc: 'handbook/performance.md' } };
+            assertEqual(validateConfig(config).valid, true);
+            assertTrue(resolveDefaultReferenceDocs(config).some(doc => doc.filename === filename));
+            assertTrue(resolveDefaultReferenceDocs({ testing: { filePatterns: { performance: '*.load.py' } } }).some(doc => doc.filename === filename));
+            assertTrue(!resolveDefaultReferenceDocs({ project: { name: 'Minimal' } }).some(doc => doc.filename === filename));
+            assertEqual(JSON.stringify(normalizeReferenceDocs([], config).normalized), '[]');
+            assertEqual(JSON.stringify(normalizeReferenceDocs([{ filename: 'code-review-rules.md', purpose: 'Review' }], config).normalized.map(doc => doc.filename)), '["code-review-rules.md"]');
+            assertEqual(resolveReferenceDocTarget(filename).command, 'scan --target=performance-tests');
+            assertEqual(mergeReferenceDocs([{ filename }])[0].templatePath, '.claude/templates/reference-docs/performance-test-reference.md');
+            assertEqual(validateConfig({ ...config, framework: { ...config.framework, performanceTestDoc: 42 } }).valid, false);
+        }
+    },
+    {
         // Invariant: new guide scaffolds enable discovery without prescribing an unevidenced architecture.
         name: '[init-reference-docs] guide scaffolds preserve local sections without imposing architecture',
         fn: () => {
@@ -1122,6 +1142,7 @@ const integrationTests = [
                     'backend-patterns-reference.md',
                     'frontend-patterns-reference.md',
                     'integration-test-reference.md',
+                    'performance-test-reference.md',
                     'e2e-test-reference.md',
                     'scss-styling-guide.md',
                     'feature-spec-reference.md'
@@ -1202,6 +1223,43 @@ const integrationTests = [
                 const content = fs.readFileSync(refFile, 'utf-8');
                 assertContains(content, '# Seed Template', 'Template title copied');
                 assertContains(content, 'Seed template content.', 'Template content copied');
+            } finally {
+                cleanupTempDir(tmpDir);
+            }
+        }
+    },
+    {
+        // Technical contract: relocated project preferences materialize once and user edits survive reinitialization.
+        name: '[init-reference-docs] performance template respects relocated roots and preserves local preferences',
+        fn: async () => {
+            const tmpDir = createTempProjectDir();
+            try {
+                const docsDir = path.join(tmpDir, 'docs');
+                fs.mkdirSync(docsDir, { recursive: true });
+                fs.writeFileSync(path.join(docsDir, 'project-config.json'), JSON.stringify({
+                    project: { name: 'Performance template fixture' },
+                    docsRoots: { projectReference: { path: 'handbook/reference' } },
+                    referenceDocs: [{ filename: 'performance-test-reference.md', purpose: 'Performance preferences' }]
+                }));
+                const template = path.join(tmpDir, '.claude', 'templates', 'reference-docs', 'performance-test-reference.md');
+                fs.mkdirSync(path.dirname(template), { recursive: true });
+                // Use the shipped scaffold, so its sentinel cannot drift behind a synthetic fixture.
+                fs.copyFileSync(path.resolve(__dirname, '../../../templates/reference-docs/performance-test-reference.md'), template);
+                const options = { cwd: tmpDir, env: {
+                    CLAUDE_PROJECT_DIR: tmpDir, CK_FRAMEWORK_MODE: 'on', HOME: tmpDir, USERPROFILE: tmpDir,
+                    TMPDIR: tmpDir, TEMP: tmpDir, TMP: tmpDir
+                } };
+                const input = createUserPromptInput('initialize selected references');
+                assertAllowed((await runHook(HOOK_PATH, input, options)).code);
+                const output = path.join(tmpDir, 'handbook', 'reference', 'performance-test-reference.md');
+                const { isPlaceholderFile } = require('../../lib/session-init-helpers.cjs');
+                assertEqual(fs.readFileSync(output, 'utf8'), fs.readFileSync(template, 'utf8'));
+                assertEqual(isPlaceholderFile(output), true, 'Copied performance scaffold remains recognizable for project authoring');
+                assertTrue(!fs.existsSync(path.join(docsDir, 'project-reference', 'performance-test-reference.md')));
+                fs.writeFileSync(output, '# Project preferences\n\nKeep the accepted latency budget.\n');
+                assertEqual(isPlaceholderFile(output), false, 'Authored preferences are not a scaffold');
+                assertAllowed((await runHook(HOOK_PATH, input, options)).code);
+                assertEqual(fs.readFileSync(output, 'utf8'), '# Project preferences\n\nKeep the accepted latency budget.\n');
             } finally {
                 cleanupTempDir(tmpDir);
             }

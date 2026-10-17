@@ -792,7 +792,7 @@ For domain tasks: detect module from the directory names under the business spec
 
 ---
 
-> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting. Simple tasks: ask user whether to skip.
+> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting. Keep task depth proportional to the work.
 
 > **External Memory:** Complex/lengthy work → write findings to `tmp/reports/` — prevents context loss.
 

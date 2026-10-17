@@ -132,7 +132,7 @@ Define the project behaviour harness:
 
 - **Functional spec:** `ask user question tool`: "Feature documentation format?" Options: feature-spec (8-section tech-free), TDD specs only, lightweight ADRs. Establish the business spec root (default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path) or an equivalent spec home.
 - **Test tiers:** Select boundaries from the actual architecture and runner. Unit may cover pure rules; integration exercises applicable production boundaries (CQRS or persistence only where present); system/E2E cover warranted user/runtime paths. Record absent tiers as evidence-backed N/A, never impose a real database or CQRS layout on a stack that has neither.
-- **Approved fixtures:** pre-seed reference/lookup data as approved snapshots; integration tests accumulate data and NEVER delete/reset it.
+- **Approved fixtures:** follow the project’s supported data/isolation policy; share only immutable reference snapshots. Preserve persistent/additive data and prove repeatability without destructive reset. After evidence capture, supported cleanup may remove only current-run ephemeral resources, never shared/user-owned or another run’s data.
 
 ### Testability & Execution Matrix (write to `test-strategy.md`)
 
@@ -239,11 +239,11 @@ Present inventory to user for review via `ask user question tool`.
 
 ---
 
-> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
+> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting. This prevents context loss from long files. Keep task depth proportional to the work.
 
 <!-- PROTOCOL-GUIDES:START -->
 
-> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
+> **Protocol guides** — Apply each protocol only when its read-when condition holds. If a protocol's text is not in your context, read its file below before you act on it.
 
 - `engineering-foundation-gate` — Seven engineering-foundation dimensions judged by project profile; creating or reviewing how a project is built, run, tested or checked → .claude/skills/shared/protocols/engineering-foundation-gate.md
 - `harness-setup` — Agent quality harness: feedforward guides and feedback sensors; setting up an agent quality harness → .claude/skills/shared/protocols/harness-setup.md

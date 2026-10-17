@@ -112,6 +112,7 @@ For persistent instruction files (`CLAUDE.md`, `AGENTS.md` or host equivalents),
 2. Remove low-value repetition/report material by explicit disposition. Keep clear sentences and necessary conditions; retain action-governing numbers and a useful short example. Preserve consumer-required data/syntax.
 3. Make purpose/read-when and critical rules easy to find, with brief closing reminders when useful. Do not duplicate substantive protocols into summaries or invent missing implementation examples.
 4. Verify sources and triggered discovery, then review final semantic dispositions against the baseline after all transforms. Reject both report bulk and lost exceptions; no word, warning or example quota proves quality.
+   Apply the shared output-quality long-file navigation check here, before this branch returns, for every operation.
 5. Before applying, use the owning writer's baseline and freshness rules. Editorial enhancement alone does not claim a full scan or refresh its ledger.
 
 Return this review to the caller; a scan candidate remains unapplied until its final gate. Other target types use the general transforms below.
@@ -365,6 +366,7 @@ For each `.claude/` protocol reference:
 | Main steps anchored | Task/purpose target → ALL main steps/tasks enumerated in BOTH Summary and Closing Reminders |
 | Readability         | Clear priorities and conditions; no report bulk packed into dense prose |
 | Formatting          | Blank lines between sections, headers correct  |
+| Navigation          | Shared output-quality contents check passes on the final file for every operation; preserve stricter skill-owner rules |
 | READ classification | `.claude/` → inline summary, `docs/` → skipped |
 | Skill authoring quality | Enhance → authoring-quality gate recorded; compress/expand → discovery, freedom, checks, dependencies and compatibility retained. Unrun behavioral/model comparisons remain `NOT RUN` |
 
@@ -401,7 +403,7 @@ For each `.claude/` protocol reference:
 >       This is what makes a skill work across any project without modification.
 > 8. **Dimensions > Checklists** — Structure variable review/analysis as named thinking dimensions: (1) state the dimension's role, (2) derive what could go wrong, (3) apply with evidence. Retain execution checklists for dependencies and exit conditions; mark completion only after checks pass.
 >    **Serial attention:** When applying a dimension-based framework, NEVER scan all dimensions simultaneously. One focused pass per dimension. AI misses violations when attention is split across concurrent concerns. Pattern: identify applicable dimensions → sequential focused passes → aggregate.
->    **Threshold invariant:** 3+ similar patterns in any dimension pass = MANDATORY extraction. 2+ violations of same kind = structural/architectural finding, not individual instance.
+>    **Ownership gate:** repetition prompts investigation, never automatic extraction or a severity quota. Share behavior only when consumers, invariants and reasons to change align and indirection lowers future change cost. Group evidenced violations when they share one cause; name the consequence.
 > 9. **Recursive Quality Loop** — For targets whose contract includes review/fix convergence, use Fix → Re-review; each round uses a NEW fresh sub-agent and stops at 2 rounds with escalation. For other targets, do not invent a loop: preserve their declared terminal state and record this principle as N/A.
 > 10. **Anti-Rationalization Anchors** — Explicitly name and embed the evasion patterns AI uses to skip steps in the skill's closing reminders:
 >
@@ -415,10 +417,10 @@ For each `.claude/` protocol reference:
 
 <!-- PROTOCOL-GUIDES:START -->
 
-> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
+> **Protocol guides** — Apply each protocol only when its read-when condition holds. If a protocol's text is not in your context, read its file below before you act on it.
 
 - `context-engineering-principles` — Prompt clarity and semantic retention principles; writing or enhancing prompts, skills or agents → .claude/skills/shared/protocols/context-engineering-principles.md
-- `output-quality-principles` — Useful, readable guidance without lost conditions; writing generated docs or reports → .claude/skills/shared/protocols/output-quality-principles.md
+- `output-quality-principles` — Readable guidance and verified contents for long skill/doc files; writing, updating or auditing a skill or reference document, or another Markdown artifact over 200 lines → .claude/skills/shared/protocols/output-quality-principles.md
 - `prompt-enhancement-transforms-base` — Base transforms shared by every prompt-enhance operation; running prompt-enhance → .claude/skills/shared/protocols/prompt-enhancement-transforms-base.md
 - `shared-protocol-duplication-policy` — Protocol copies in carriers are intentional: edit the canonical source, then propagate; editing a shared protocol or its carriers → .claude/skills/shared/protocols/shared-protocol-duplication-policy.md
 

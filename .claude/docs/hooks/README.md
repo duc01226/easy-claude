@@ -2,6 +2,24 @@
 
 > <!-- COUNT:hooks -->36<!-- /COUNT --> top-level `.cjs` hooks and <!-- COUNT:lib-modules -->66<!-- /COUNT --> lib modules for context-aware AI behavior (some hooks register on multiple events; the unified notification router lives under `.claude/hooks/notifications/notify.cjs`)
 
+## Contents
+
+- [Overview](#overview)
+- [Hook Events](#hook-events)
+- [Hook Catalog](#hook-catalog)
+- [Team work observer](#team-work-observer)
+- [Lessons System](#lessons-system)
+- [Matcher vocabulary and limits](#matcher-vocabulary-and-limits)
+- [Session Lifecycle](#session-lifecycle-1)
+- [Lib Modules](#lib-modules)
+- [Per-File Convention Injection](#per-file-convention-injection)
+- [Session Prompt Ledger](#session-prompt-ledger)
+- [Workflow Route Injection](#workflow-route-injection)
+- [Hook Input/Output](#hook-inputoutput)
+- [Configuration](#configuration-1)
+- [Testing](#testing)
+- [Related Documentation](#related-documentation)
+
 ## Overview
 
 Hooks are Node.js scripts (`.cjs`, plus one `.js`) that execute at specific Claude Code lifecycle events, enabling session initialization, safety gates, graph maintenance, code formatting, and optional runtime guidance. The universal framework rules (the `universal` group of `protocol-groups.json`), the workflow route (profile-specific gate cues and catalog delivery, in the mode each person chose) and the project skill-overlay reminder arrive only from runtime hooks; the root `CLAUDE.md` holds project information only. Mode `on` requires working hooks; intentional `quiet` and `off` modes are supported. Read [runtime modes](../configuration/README.md#framework-runtime-mode) to configure them.
@@ -282,6 +300,8 @@ Lessons are managed via the `/learn` skill. See `.claude/skills/learn/SKILL.md`.
 > on resume); `session-init.cjs` / `session-end.cjs` handle the remaining temp cleanup.
 
 ### Protocol Delivery
+
+A domain-model signal delivers the compact entity-change gate to planning, implementation, fix and review skills that declare it. Entity/value-object wording and domain/entity/aggregate/value-object paths establish a candidate signal; the agent confirms semantic relevance before reading `domain-analysis/references/entity-quality.md`. Hooks never eagerly load that detailed reference. Readable unrelated context withholds the gate; unreadable context retains the conservative compact fallback.
 
 A converted skill keeps one guide line per shared protocol (`<!-- PROTOCOL-GUIDES:START -->` block); the group hooks deliver the published text of those protocols once per session when the skill loads. A miss degrades to the guide line (read the file by path), never to silence. Read `ContextDelivery/README.ProtocolDelivery.md` in the business spec root (default `docs/specs`; `specRoots.business.path` overrides) when changing delivery behavior, and `0004-protocol-delivery-hybrid.md` in the ADR root (default `docs/adr`; a `docsRoots.adr.path` entry in `docs/project-config.json` overrides the path) for why delivery is hybrid.
 
@@ -828,12 +848,12 @@ Doc paths in this file are defaults resolved against the project-reference docs 
 
 ## Testing
 
-The primary runner declares 133 tests. The aggregate runner `run-all-tests.cjs` discovers 2088 tests declared across 124 suite files. Source inventory is not an execution result; read the runner output for observed discovery, outcomes and skips. The aggregate includes eighteen task-tracking suites with 590 declared executors.
+The primary runner declares 133 tests. The aggregate runner `run-all-tests.cjs` discovers 2094 tests declared across 124 suite files. Source inventory is not an execution result; read the runner output for observed discovery, outcomes and skips. The aggregate includes eighteen task-tracking suites with 590 declared executors.
 
 | Test Surface          | Count | File/Location                                                     |
 | --------------------- | ----- | ----------------------------------------------------------------- |
 | Primary hook runner   | 133   | `.claude/hooks/tests/test-all-hooks.cjs`                          |
-| Aggregate runner      | 2088 | `.claude/hooks/tests/run-all-tests.cjs` (all suites, declared)  |
+| Aggregate runner      | 2094 | `.claude/hooks/tests/run-all-tests.cjs` (all suites, declared)  |
 | Standalone test files | TODO  | `tests/test-*.cjs/.js` excluding runner (re-verify before citing) |
 | Lib unit tests        | TODO  | `lib/__tests__/*.test.cjs` (re-verify before citing)              |
 

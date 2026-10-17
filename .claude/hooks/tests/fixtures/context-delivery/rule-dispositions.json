@@ -2,7 +2,7 @@
   "version": 5,
   "policyVersion": "cd40fe8d5c06eb5d8b2349a5f58efc735bacda6a7ade37ee110f1f6b326cfdc7",
   "sourceHashes": {
-    "universal-1": "45228cc48fef77d6bfd75e88f62a5930c53f418b30856038b3dda52024c6cc7e",
+    "universal-1": "766ee6f680ab736b0dc210931818280ad1fdef2163a2c6f99311adee5a8797f3",
     "universal-2": "1338c56f7c77d68d3cc75236b6e549468ff1dcf05e8b0a8e3bb1efb19077676a",
     "universal-3": "ca1bc16c01457b87eb07c3237074902a744c937d0aa3027114dd6828598fe7f9",
     "universal-4": "56d419e6efa428b1dc72633a9a94f4390290fed3e1674a393441bcff7b62af23",
@@ -342,7 +342,7 @@
       "id": "universal-1:35",
       "source": "universal-1",
       "line": 35,
-      "sha256": "527e56f5725cdba52254bbfbce448445d9b90c7a2b12469d6be7d71900d4f72f",
+      "sha256": "30cd3eaebc0b2f11830fc4e6036887d6ee6cbfc280bbe1cbf52a8bd0ae7b6d45",
       "disposition": "defer",
       "destination": ".claude/skills/shared/protocols/project-reference-docs-guide.md",
       "readWhen": "choosing which project reference documents to read for the phase about to start"

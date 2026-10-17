@@ -92,9 +92,9 @@ This skill closes workflow state. In workflows with `/watzup`, it runs after fin
     **Evidence-driven skip:** when the run has a completed `spec [mode=sync]` occurrence (task list or registry sequence), step 0's `spec-synced` evidence cites its result with no unadjudicated drift, and no source, test or spec file changed after it (same freshness rule as `SYNC:verify-last-order`), record `synced by <occurrence or report path>` and skip the re-run and the question below. A stale or absent result (standalone `/workflow-end`, or the run skipped the sync) → run this step in full:
 
     - Scope to the behavior-changing files in the diff (same surface the coverage check above scanned — handlers/commands/queries/services/controllers/entities/event processors and behavior-bearing frontend logic).
-    - Run `/spec [mode=sync]` over the §8 TCs ↔ executing tests for those files: reconcile every §8 TC against its covering test, and surface any §8 TC with no covering test or any business `TestSpec` guarding behavior with no §8 TC.
-    - Re-check for **unadjudicated spec-vs-code drift**: any behavior-changing file whose divergence from the canonical Feature Spec was never classified CODE-WRONG / SPEC-STALE / AMBIGUOUS / in-sync (per `SYNC:spec-drift-adjudication`).
-    - If `/spec [mode=sync]` finds an unsynced §8 TC, OR any behavior-vs-spec divergence is unadjudicated → **MANDATORY**: surface via `ask user question tool`:
+    - Resolve or inherit the validated artifact profile from config and required references; unresolved/malformed declarations stay `UNKNOWN`/`BLOCKED`, never default. Run `/spec [mode=sync]` for the affected canonical owner/case/variant identities and declared proof carriers, reconciling cases ↔ inspected assertions and observed results in both directions. Use §8 TCs and `TestSpec` only when neither config nor required references declares a native contract; never create a second registry.
+    - Re-check for **unadjudicated spec-vs-code drift** against the selected canonical owner’s intent/contracts: every divergence must be classified CODE-WRONG / SPEC-STALE / AMBIGUOUS / in-sync (per `SYNC:spec-drift-adjudication`). An ID/link alone proves no execution; retain uncovered and unknown outcomes.
+    - If `/spec [mode=sync]` finds an unreconciled canonical case/proof carrier, unresolved profile/coverage, OR unadjudicated behavior-vs-spec drift → **MANDATORY**: keep the gate open and surface via `ask user question tool`:
         - Option A: "Reconcile now — run `/spec [mode=sync]` / `/spec [update]` to close the drift" (Recommended)
         - Option B: "Accept as-is — I will record the reason" (the user's accept-as-is reason is captured in the recap, or in the close message when watzup owns the recap)
     - **No silent skip, no silent close.** **Workflow MUST NOT report `completed` while a behavior-vs-spec divergence is unadjudicated** — record the gate outcome (synced / accepted-as-is-with-reason) before proceeding.
@@ -170,7 +170,7 @@ Finalize and close the active workflow while retaining per-session recovery stat
 
 <!-- PROTOCOL-GUIDES:START -->
 
-> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
+> **Protocol guides** — Apply each protocol only when its read-when condition holds. If a protocol's text is not in your context, read its file below before you act on it.
 
 - `session-goal-ledger` — Keep the original goal and every user prompt of the session; running a long or multi-prompt session → .claude/skills/shared/protocols/session-goal-ledger.md
 

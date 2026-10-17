@@ -37,7 +37,7 @@ Apply Generate's **Discover conventions** step: confirm the actual seeder base/i
 - [ ] **Restart-safe loop** — loop starts at `existing_count`, NEVER 0.
 - [ ] **Scoped DI per iteration** — fresh scope per loop iteration; no shared DbContext/session.
 - [ ] **Real-world reachable state** — every seeded entity is a state the application itself could produce; any direct store write fabricating an otherwise-unreachable state carries a comment justifying WHY it is legitimate; seeded entities carry plausible relative timing, not one shared instant.
-- [ ] **Spec-consistency** — every seeded scenario satisfies the §5 invariants; any encoded domain rule (precondition / status / default) is reflected in the spec (and tests where testable), not seeder-only.
+- [ ] **Spec-consistency** — every seeded scenario satisfies the selected canonical contract invariants (strict-default §5 only when no native contract is declared; invalid/unresolved profile → BLOCKED); any encoded domain rule (precondition / status / default) is reflected in the spec (and tests where testable), not seeder-only.
 - [ ] **Run identity and public-path setup** — every run has a unique reusable identity, keyed synthetic values, and supported application-path arrangement.
 - [ ] **Accumulation and integrity** — `target` vs explicit `additive` mode is declared; additive runs preserve prior data and prove before/created/after counts, unique keys, command success, and invariant/reference integrity.
 - [ ] **Redacted evidence** — reports/logs expose only safe identifiers and exact counts/status; credentials, tokens, headers, connection strings, PII, and full payloads are redacted.

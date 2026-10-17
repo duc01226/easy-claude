@@ -26,6 +26,7 @@ description: '[Documentation] Use when a workflow step or the user asks for docu
 - `--mode=` (two dashes) selects the skill mode. The `update` caller flag `mode=update` (no dashes, see that mode's Scope and inputs) only overrides `$spec` mode detection and never selects a skill mode.
 - The `docs-manager` sub-agent (`agent_type="docs-manager"`) is an agent, not this skill; it drives `$docs-manager --mode=update`.
 - MUST ATTENTION keep claims evidence-based (`file:line`, confidence >80% to act) and task tracking live as each step starts and completes.
+- Verify the shared output-quality contents check for each scoped document, including returned scan results; retain read-only audit boundaries.
 
 ## Mode Dispatch
 
@@ -37,6 +38,22 @@ description: '[Documentation] Use when a workflow step or the user asks for docu
 - **[BLOCKING]** When `--mode=update`, read `references/mode-update.md` in full FIRST; it owns scope, owners, freshness, intent/coverage, caller flags and the report (`tmp/reports/docs-update-{YYMMDD}-{HHMM}.md`). Workflow invocation and standalone both run the full contract.
 - **[BLOCKING]** When `--mode=init`, read `references/mode-init.md` in full FIRST; it owns optional config, document selection and applicability-gated scans.
 - One-doc rebuilds stay in `scan` (`$scan --target=<key>`); refreshing every selected reference doc at once stays in `scan-all`. `--mode=update` escalates to them and `--mode=init` delegates to `scan`; neither is a mode of this skill.
+
+
+
+<!-- PROTOCOL-GUIDES:START -->
+
+> **Protocol guides** — Apply each protocol only when its read-when condition holds. If a protocol's text is not in your context, read its file below before you act on it.
+
+- `output-quality-principles` — Readable guidance and verified contents for long skill/doc files; writing, updating or auditing a skill or reference document, or another Markdown artifact over 200 lines → .claude/skills/shared/protocols/output-quality-principles.md
+
+<!-- PROTOCOL-GUIDES:END -->
+
+<!-- SYNC:output-quality-principles:reminder -->
+
+**IMPORTANT MUST ATTENTION** lead with useful guidance and readable priorities; preserve action-changing conditions/numbers and required structures. When writing, updating or auditing Markdown skill/doc content, verify top, heading-linked contents over 200 lines (stricter owner thresholds remain); refresh after edits and report gaps in read-only audits. Remove report bulk; judge semantic value rather than word counts.
+
+<!-- /SYNC:output-quality-principles:reminder -->
 
 ## Closing Reminders
 

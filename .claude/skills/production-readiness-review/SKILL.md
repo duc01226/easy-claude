@@ -323,6 +323,8 @@ _Any failed or unresolved binary gate above blocks PASS regardless of score or o
 
 ## Next Steps
 
+**Optional performance-test handoff:** when readiness evidence lacks repeatable workload, large-data, query or memory checks, hint at `/performance-test --mode=write <scope>`. Read [the handoff contract](../performance-test/SKILL.md#optional-handoff-from-system-reviews) when offering it. An interactive owner may ask whether to write tests; an affirmative authorizes authoring plus static review only. Report-only/caller-owned/sub-agent runs return the suggestion without asking or starting work. Never auto-init, auto-write or auto-run tests from the readiness review. This optional offer does not change the score/verdict and does not require a routine question.
+
 **MANDATORY** after a standalone run, use `ask user question tool`. Skip it when a parent workflow or skill invoked this review, when it runs as a sub-agent, or under `--report-only` — return the report path, score, gate verdict, and findings to the caller instead:
 
 - **"/watzup (Recommended)"** — wrap up + check doc staleness
@@ -345,7 +347,7 @@ _Any failed or unresolved binary gate above blocks PASS regardless of score or o
 
 <!-- PROTOCOL-GUIDES:START -->
 
-> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
+> **Protocol guides** — Apply each protocol only when its read-when condition holds. If a protocol's text is not in your context, read its file below before you act on it.
 
 - `category-review-thinking` — Derive review concerns per category of changed files from domain knowledge; reviewing a changeset that spans several file categories → .claude/skills/shared/protocols/category-review-thinking.md
 - `engineering-foundation-gate` — Seven engineering-foundation dimensions judged by project profile; creating or reviewing how a project is built, run, tested or checked → .claude/skills/shared/protocols/engineering-foundation-gate.md

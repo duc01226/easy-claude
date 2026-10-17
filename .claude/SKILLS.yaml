@@ -1,10 +1,10 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-10-15'
-  total_skills: 103
+  last_updated: '2026-10-17'
+  total_skills: 104
   total_by_status:
-    active: 103
+    active: 104
     deprecated: 0
     experimental: 0
 categories:
@@ -487,6 +487,19 @@ skills:
       description: '[Debugging] Use when a workflow step or the user asks for performance
         bottleneck analysis and validated fixes: queries, memory, network, rendering
         and concurrency.'
+      category: other
+      has_scripts: false
+      has_references: true
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
+    - name: performance-test
+      path: performance-test/SKILL.md
+      description: '[Testing] Use when initializing, writing, reviewing or verifying
+        performance/load/soak/capacity tests. --mode=verify --fix-loop (or --mode=green)
+        diagnoses, fixes and remeasures with performance-review. Static bottleneck
+        audits use performance-review.'
       category: other
       has_scripts: false
       has_references: true

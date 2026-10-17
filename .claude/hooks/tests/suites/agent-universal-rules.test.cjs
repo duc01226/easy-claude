@@ -115,7 +115,7 @@ const CODE_TAGS = [...READONLY_CODE_TAGS, ...MUTATION_CODE_TAGS];
 const CODE_AGENTS = new Set([
     'ai-engineering-reviewer', 'architect', 'backend-developer', 'code-reviewer', 'code-simplifier',
     'database-admin', 'debugger', 'e2e-runner', 'framework-maintainer', 'frontend-developer',
-    'fullstack-developer', 'integration-tester', 'performance-optimizer',
+    'fullstack-developer', 'integration-tester', 'performance-optimizer', 'performance-tester',
     'planner', 'security-auditor',
     'solution-architect', 'spec-compliance-reviewer', 'tester',
 ]);
@@ -162,7 +162,7 @@ const AGENT_SKILL_CONNECTIONS_CLOSE = '<!-- AGENT-SKILL-CONNECTIONS:END -->';
 const TEST_ARCHITECTURE_SKILLS = [
     'architecture',
     'scaffold', 'harness-setup', 'workflow-greenfield-init',
-    'integration-test',
+    'integration-test', 'performance-test',
     'e2e-test', 'workflow-e2e',
     'workflow-integration-test', 'test',
     'seed-test-data',
@@ -173,7 +173,7 @@ const CODE_STANDARDS_AGENTS = new Set([
     'ai-engineering-reviewer', 'architect', 'backend-developer', 'code-reviewer', 'code-simplifier',
     'database-admin', 'debugger', 'e2e-runner', 'framework-maintainer',
     'frontend-developer', 'fullstack-developer', 'integration-tester',
-    'performance-optimizer', 'planner', 'security-auditor', 'solution-architect',
+    'performance-optimizer', 'performance-tester', 'planner', 'security-auditor', 'solution-architect',
     'spec-compliance-reviewer', 'tester',
 ]);
 const REVIEW_CYCLE_TAGS = [

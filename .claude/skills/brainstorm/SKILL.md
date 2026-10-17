@@ -41,7 +41,7 @@ disable-model-invocation: false
 - **Evidence:** Every claim and recommendation needs `file:line`, source, or traced evidence; confidence >80% required.
 - **Output:** Scored, ranked shortlist with hypothesis validation—never a flat idea list.
 - **User decisions:** Use `ask user question tool` for scenario selection, prioritization, and handoff.
-- **Technique selection:** Derive the sequence from the detected scenario; use cheat sheets for routing, not a one-size-fits-all checklist.
+- **Technique selection:** The selected scenario and routing references govern which techniques and outputs apply. Preserve the ordered Double Diamond spine, grounding, ranking, hypothesis/RAT and decision/handoff; optional methods run only for an evidenced need. Mark unselected template fields N/A with the reason instead of creating unrelated artifacts.
 - **Risk profile:** Content skill; fresh-eyes review, specialist delegation, embedded sub-agent protocols, and recursive fix loops are N/A. Preserve the existing terminal state.
 
 **Four Scenarios:**
@@ -249,7 +249,7 @@ From the POV statement:
 - Too broad = "How might we improve HR?" (useless); too narrow = "How might we add a sort button?" (skip ideation, just build it).
 - Sweet spot: one-concept questions inviting multiple solutions.
 
-**Phase 1 output (all required):** Problem statement (POV); root cause (5 Whys or Fishbone, Problem-Solving only); 3–5 Job Stories; 5–10 HMW questions.
+**Phase 1 output (selected-route techniques only):** Problem statement (POV); root cause (5 Whys or Fishbone, Problem-Solving only); 3–5 Job Stories; 5–10 HMW questions.
 
 ---
 
@@ -325,7 +325,7 @@ Connect customer profile to product value:
 
 **Fit = Pain Relievers match Pains and Gain Creators match Gains.**
 
-**Phase 2 output (all required):** OST with 2 selected opportunities (Enhancement); Lean Canvas (New Product); ERRC grid (New Product or Enhancement); Value Proposition fit assessment.
+**Phase 2 output (selected-route techniques only):** OST with 2 selected opportunities (Enhancement); Lean Canvas (New Product); ERRC grid (New Product or Enhancement); Value Proposition fit assessment.
 
 ---
 
@@ -409,7 +409,7 @@ Ask: "How does [industry X] solve [similar problem Y]?"
 | Amazon recommendation engine  | Next goal suggestion                   |
 | Netflix "because you watched" | "Colleagues like you also achieved..." |
 
-**Phase 3 output (all required):** SCAMPER grid with 14+ ideas; Crazy 8s with 8 directions; Impact Map for top 2 goals; 3–5 analogy-inspired ideas; 25–40 total raw ideas.
+**Phase 3 output (selected-route techniques only):** SCAMPER grid with 14+ ideas; Crazy 8s with 8 directions; Impact Map for top 2 goals; 3–5 analogy-inspired ideas; 25–40 total raw ideas.
 
 ---
 
@@ -483,7 +483,7 @@ Assign release priority to each shortlisted idea:
 | **Could Have**  | Nice to have, low risk to cut      | Include if effort ≤ 3 EP               |
 | **Won't Have**  | Explicitly out of scope this cycle | Document for future                    |
 
-**Phase 4 output (all required):** Dot-voted shortlist (10–15 ideas); top-5 RICE table; Kano classification; 2×2 placement; MoSCoW assignment per idea.
+**Phase 4 output (selected-route techniques only):** Dot-voted shortlist (10–15 ideas); top-5 RICE table; Kano classification; 2×2 placement; MoSCoW assignment per idea.
 
 ---
 
@@ -714,7 +714,7 @@ After the session, use `ask user question tool` to present next steps:
 
 <!-- PROTOCOL-GUIDES:START -->
 
-> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
+> **Protocol guides** — Apply each protocol only when its read-when condition holds. If a protocol's text is not in your context, read its file below before you act on it.
 
 - `sequential-thinking-protocol` — Structured multi-step reasoning with revision, branch and hypothesis markers; planning, debugging or reviewing complex or ambiguous work → .claude/skills/shared/protocols/sequential-thinking-protocol.md
 
@@ -743,7 +743,7 @@ After the session, use `ask user question tool` to present next steps:
 - **IMPORTANT MUST ATTENTION Roadmap mode:** `--mode=roadmap` is explicit-only; it frames outcome-based milestones, risks, non-goals, human decisions, and evidence, then hands off to `/product-roadmap`; it does not choose technology or implementation.
 - **IMPORTANT MUST ATTENTION Embedded decomposition:** when any shared `isLargeIdea` signal is true, write the complete five-field `large_idea_decomposition` block in the owning handoff and carry its stable slice IDs into tasks, stories, mock-ups, and the all-task presentation; do not create a default roadmap file.
 - **IMPORTANT MUST ATTENTION Scope mode:** `--mode=scope` resolves and amends exactly one approved `plans/{plan-id}/scope-brief.md` in place (plans root default `plans/`; `docsRoots.plans.path` in `docs/project-config.json` overrides), then stops before `/scenario` or `/plan`; it never creates a competing brief.
-- **IMPORTANT MUST ATTENTION Main steps (run in order, track each):** P0 Setup (detect scenario/role/known + context) → P1 Problem Framing/diverge (POV → 5 Whys/Fishbone → JTBD → HMW) → P2 Opportunity Framing/converge (OST / Lean Canvas / ERRC / Value Proposition) → P3 Ideation/diverge (SCAMPER → Crazy 8s → Brainwriting → Impact Mapping → Analogy, 25–40 ideas) → P4 Evaluation/converge (Dot Vote → RICE → Kano → 2×2 → MoSCoW, shortlist 3–5) → P5 Validation (problem/value cards + RAT + cheapest test + Build-Measure-Learn for top 3) → P6 Decision (one recommendation, or Multi-Opportunity map) → P7 Documentation/Handoff — why: phase steps are easy to forget in long sessions; re-anchor before each phase.
+- **IMPORTANT MUST ATTENTION Main steps (run in order, track each):** P0 select scenario/context → P1 ground problem/users and HMW → P2 frame applicable opportunities → P3 generate with selected techniques, without evaluation → P4 rank using the selected route → P5 hypothesis/RAT and cheapest validation → P6 recommend or preserve the multi-opportunity scored map/user selection → P7 document/handoff. Keep required phase outcomes; do not run every catalog technique to fill output lists.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 

@@ -260,5 +260,5 @@ If gate does NOT fire, the prioritization decision stands; do NOT prompt.
 
 > **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
 
-> **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
+> **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting. This prevents context loss from long files. Keep task depth proportional to the work.
 

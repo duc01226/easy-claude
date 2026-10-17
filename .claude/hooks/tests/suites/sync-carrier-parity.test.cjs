@@ -374,6 +374,7 @@ module.exports = {
                     '.claude/skills/code-quality-review/SKILL.md',
                     '.claude/skills/changes-review/SKILL.md',
                     '.claude/skills/knowledge-review/SKILL.md',
+                    '.claude/skills/performance-test/SKILL.md',
                     '.claude/skills/production-readiness-review/SKILL.md',
                     '.claude/skills/why-review/SKILL.md',
                     '.claude/skills/workflow-review-changes/SKILL.md',
@@ -533,8 +534,8 @@ module.exports = {
                 // And the hybrid rule is present in the policy body
                 const required = [
                     [/skill entrypoints[^\n]+carry one `PROTOCOL-GUIDES` line per applicable protocol/, 'skills keep guides'],
-                    [/Hooks deliver full text/, 'hooks deliver the full text'],
-                    [/if the text is absent from the current context, read the published file before acting/, 'the guide path is the fallback'],
+                    [/Hooks deliver applicable full text/, 'hooks deliver applicable full text'],
+                    [/when an applicable rule is absent from the current context, read its published file before acting/, 'the applicable guide path is the fallback'],
                     [/Keep role-protocol `:reminder` digests in every carrier/, 'reminder digests stay'],
                     [/agents retain full role protocols and are never converted to guides/, 'agents keep full text'],
                     [/Copy the complete `SYNC:review-protocol-injection` template, with all 11 full protocol bodies, VERBATIM into every fresh reviewer prompt; never substitute guide lines, tags or a read pointer/, 'reviewer prompts carry bodies inline'],

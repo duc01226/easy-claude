@@ -28,9 +28,9 @@ description: '[Architecture] Use when a workflow step or the user asks for DDD d
 
 - Track every step before work; execute in order without skipping, merging or reordering unless the user approves. Keep one task in progress, complete with evidence, record skip reasons, and resume existing tracking after context loss. Use an equivalent tracker if Task tools are unavailable.
 - **MANDATORY IMPORTANT MUST ATTENTION** run user validation interview at end (NEVER skip).
-- Validate every bounded context and key relationship with the user. Each entity belongs to exactly one context; cross-context communication uses events, not direct references.
+- Validate every bounded context and key relationship with the user. Establish each model's owning context and explicit cross-context contracts; choose integration patterns from business and architecture evidence.
 - Derive decisions from business artifacts; cite artifact/`file:line` evidence and confidence (>80% to act, otherwise verify). Compare 3+ existing reference entities before adding one; reuse only when identity, lifecycle and transaction scope fit.
-- Include a Mermaid ERD; keep cross-service links ID-only. Apply the DDD reference's classification, aggregate and event rules.
+- Include a Mermaid ERD; distinguish domain ownership from storage relationships and cross-service contracts. Use the shared entity-quality decisions and applicable DDD reference sections.
 - Persist intermediate findings in `tmp/reports/`; add a final quality-review task. Reference updates require approval.
 
 ## Contents
@@ -55,12 +55,11 @@ Detect the mode from the invocation arguments before any other work; do not load
 - **[BLOCKING]** Read `references/mode-review.md` in full FIRST when `--mode=review` is selected, standalone or in a workflow. It replaces default analysis and owns Phases 0–5, `changes` (default), `scan [<module>]` and `--report-only`.
 
 
-**Review reference:** Classification, aggregate boundaries and anti-patterns use the shared DDD primer. Read `references/ddd-reference.md` sections Entity vs Value Object, Aggregate Design and Anti-Patterns Quick Reference when review Phase 2 A/B/C/F/K needs them.
+**Entity quality:** Read [references/entity-quality.md](references/entity-quality.md) when Step 3 or review mode creates/changes entities, VOs, aggregates or their write/load/event paths. It owns the shared decisions and proof gates; planning and implementation use the same criteria.
 
 ## DDD Reference (on-demand)
 
-**[MANDATORY]** Read `references/ddd-reference.md` (in this skill's directory) before Step 2, then re-read the section for each step you enter — never model from memory. Sections: Strategic Design (context-boundary signals, context-map patterns) → Steps 2 and 4 · Entity vs Value Object, Entity Design, Aggregate Design, Repository Pattern → Step 3 · Domain Events → Step 5 · ERD Design → Step 6 · Anti-Patterns Quick Reference → Steps 3 and 7.
-
+Read only the applicable section of `references/ddd-reference.md` before its step: Strategic Design → Steps 2/4; Entity vs Value Object, Entity Design, Aggregate Design, Repository Pattern → Step 3; Domain Events → Step 5; ERD Design → Step 6; Anti-Patterns → Steps 3/7. Do not load unrelated sections or the review workflow during ordinary planning/implementation.
 
 ## Skill Workflow
 
@@ -88,39 +87,39 @@ Ask the user whether the grouping makes sense. Offer Agree (Recommended), Merge,
 
 Per bounded context: classify each concept using the Entity vs VO matrix in `references/ddd-reference.md`, then apply its aggregate boundary rules.
 
-For each context record its **aggregate roots, identity strategy and justification, lifecycle, child entities, value objects, atomic invariants, factory method and other aggregates with their purposes**.
+Record applicable **roots, entity identity or value semantics, lifecycle, owned children, invariants and consistency boundaries**. Read `references/entity-quality.md` for construction/load, concurrency, events and proof decisions; use the project's paradigm and justified boundaries.
 
 ### Entity Detail Template
 
 | Entity | Classification                         | Identity                | Key Fields | Lifecycle States | Invariants       |
 | ------ | -------------------------------------- | ----------------------- | ---------- | ---------------- | ---------------- |
-| {Name} | Aggregate Root / Entity / Value Object | ULID / UUID / Composite | {fields}   | {states}         | {business rules} |
+| {Name} | Aggregate Root / Entity / Value Object | {identity or value semantics} | {fields} | {states or N/A} | {business rules} |
 
-Check VO candidates: 3+ primitives traveling together, formatted strings, constrained numbers, or named but implicit business concepts. Aggregates require one transaction, cross-aggregate IDs only, root-only mutations and ≤5 entities; justify or decompose exceptions.
+Choose VOs and aggregate boundaries by meaning, atomic invariants and bounded load/contention. Apply the shared quality criteria; field/entity counts and database shape do not determine the model.
 
 ### Step 4: Map Relationships
 
-Record intra-context relationships as **From | To | Type | Cardinality | Identifying/non-identifying | Description**. A child FK in its PK identifies a parent-owned child; a separate FK suggests independent aggregates.
+Record intra-context relationships as **From | To | Type | Cardinality | Ownership/consistency | Description**. Derive aggregate ownership from business invariants and lifecycle; PK/FK shape describes persistence, not the consistency boundary.
 
 Record integrations as **Upstream | Downstream | Pattern | Integration point | Sync mechanism**. Apply Strategic Design's context-map table: ACL for hostile/external models, Customer-Supplier when downstream negotiates, Open Host Service for many consumers, Conformist without influence.
 
 ### Step 5: Domain Events
 
-Identify cross-context events; name them `{AggregateNoun}{PastTenseVerb}`.
+Identify meaningful domain facts and their consumers where events are warranted; use past-tense business names and the project's naming convention. Record N/A when no event is needed.
 
-| Event            | Source Context | Target Context(s)    | Payload (minimal)            | Trigger        |
+| Event            | Source Context | Target Context(s)    | Payload needed by contract   | Trigger        |
 | ---------------- | -------------- | -------------------- | ---------------------------- | -------------- |
 | `OrderPlaced`    | Sales          | Order, Fulfillment   | cartId, productId, placedDate | Checkout completed |
 
-Verify past-tense aggregate naming; minimal changed data and correlation IDs; AggregateId, OccurredOn (UTC) and Version; schema evolution; and domain/integration classification.
+Distinguish internal domain events from integration contracts. Apply `references/entity-quality.md` for payload stability, commit/delivery semantics and evolution; choose metadata from actual consumer and recovery needs.
 
 ### Step 6: Generate ERD
 
 Produce Mermaid ER diagram. Apply the ERD-to-Aggregate mapping + anti-patterns from `references/ddd-reference.md`.
 
-Use Mermaid comments `%% Context: ...` to group entities, Crow's Foot cardinality (1:1/1:N/M:N), PK/FK and key business fields. Cross-service IDs are string/ULID fields with comments and no relationship arrows. Represent M:N through explicit named association entities.
+Use Mermaid comments `%% Context: ...` to group entities, Crow's Foot cardinality, key business fields and actual identity types. Mark external references without implying a local FK. Distinguish conceptual relationships from storage associations.
 
-Before finalizing, consider decomposing tables with >20 columns, remove cross-service FKs and clarify optional relationships rather than making every FK nullable. Apply the reference's ERD-to-aggregate mapping.
+Verify ownership, cardinality, optionality and compatibility against domain evidence; do not derive aggregate boundaries from table size or FK shape. Apply the reference's ERD-to-aggregate guidance.
 
 ### Step 7: User Validation Interview
 
@@ -208,6 +207,12 @@ After the existing `## Next Steps` prompt above resolves, present a **second**, 
 
 <!-- /SYNC:review-decision-autonomy:reminder -->
 
+<!-- SYNC:output-quality-principles:reminder -->
+
+**IMPORTANT MUST ATTENTION** lead with useful guidance and readable priorities; preserve action-changing conditions/numbers and required structures. When writing, updating or auditing Markdown skill/doc content, verify top, heading-linked contents over 200 lines (stricter owner thresholds remain); refresh after edits and report gaps in read-only audits. Remove report bulk; judge semantic value rather than word counts.
+
+<!-- /SYNC:output-quality-principles:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Produce a user-confirmed DDD model and ERD from business evidence so implementation preserves domain invariants and boundaries.
@@ -216,7 +221,7 @@ After the existing `## Next Steps` prompt above resolves, present a **second**, 
 
 - Track steps and evidence; derive the model from artifacts rather than guesses.
 - Validate boundaries and key relationships; run the 5-8-question interview.
-- Keep events `{AggregateNoun}{PastTenseVerb}`, cross-service links ID-only, and aggregates root-mutated, ID-referenced, one-transaction and ≤5 entities (justify/decompose exceptions).
+- Use the shared entity-quality decisions: fit the paradigm, enforce atomic invariants at their owner, bound load/contention, and prove successful and rejected operations.
 - Preserve approval-dependent updates and both terminal prompts; verify final artifacts.
 
 | Evasion | Required action |
@@ -226,8 +231,9 @@ After the existing `## Next Steps` prompt above resolves, present a **second**, 
 
 <!-- PROTOCOL-GUIDES:START -->
 
-> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
+> **Protocol guides** — Apply each protocol only when its read-when condition holds. If a protocol's text is not in your context, read its file below before you act on it.
 
+- `output-quality-principles` — Readable guidance and verified contents for long skill/doc files; writing, updating or auditing a skill or reference document, or another Markdown artifact over 200 lines → .claude/skills/shared/protocols/output-quality-principles.md
 - `review-decision-autonomy` — Choose supported review decisions and ask before extending the round budget; running any review or audit skill or mode → .claude/skills/shared/protocols/review-decision-autonomy.md
 - `review-policy` — Review-only or a three-round fix loop with explicit extension and fresh post-fix evidence; deciding round eligibility, blocking findings or review state → .claude/skills/shared/protocols/review-policy.md
 

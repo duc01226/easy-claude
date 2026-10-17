@@ -222,7 +222,7 @@ cd .claude/skills/pdf-convert/to-pdf && node tests/run-tests.cjs
 
 ---
 
-> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
+> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting. This prevents context loss from long files. Keep task depth proportional to the work.
 
 ## Closing Reminders
 

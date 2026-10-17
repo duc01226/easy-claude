@@ -321,7 +321,7 @@ Judge the whole package: configured canonical owner requirements/invariants and 
 
 For bugfix, regression or behavior-changing reviews, walk the End-to-Start trace and produce the Behavioral Delta Matrix (≥3 rows, including ≥1 outside the bug report). A REGRESSION delta blocks until a preservation test covers it. Fix recommendations name the contract owner supported by architecture and source evidence; a layer order or number of touched files does not establish ownership.
 
-Gate every finding on concrete file:line evidence, severity and confidence (>80% to act; <60% do not recommend; ≥85% to retain a finding). Flag 3+ duplicated patterns or same-suffix classes for extraction/shared-base evaluation only when it lowers future change cost; do not recommend a pattern with fewer than 3 occurrences. For any review round using sub-agents, spawn fresh reviewers, include all 11 verbatim prompt protocols, integrate their findings raw and never filter, soften or override them.
+Gate every finding on concrete file:line evidence, severity and confidence (>80% to act; <60% do not recommend; ≥85% to retain a finding). Evaluate repeated responsibilities for sharing only when actual consumers or an evidenced change axis justify one owner and lower future change cost. Similar names/text or occurrence counts alone neither require nor forbid an abstraction. For any review round using sub-agents, spawn fresh reviewers, include all 11 verbatim prompt protocols, integrate their findings raw and never filter, soften or override them.
 
 ## Next Steps
 

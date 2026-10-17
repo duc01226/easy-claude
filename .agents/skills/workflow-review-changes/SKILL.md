@@ -25,10 +25,10 @@ Explicit step-skill calls by mode (registry order; roles and conditions remain o
 
 - Mode `review-only`: [`$changes-review --defer=whole-target,specialists,tests,entities --review-only`](../changes-review/SKILL.md) (gate) → [`$why-review --target=whole-review-target --review-only`](../why-review/SKILL.md) (core) → [`$architecture --mode=review --review-only`](../architecture/SKILL.md) (optional; conditional) → [`$domain-analysis --mode=review --review-only`](../domain-analysis/SKILL.md) (optional; conditional) → [`$performance-review --review-only`](../performance-review/SKILL.md) (optional; conditional) → [`$integration-test --mode=review --prove-tests --review-only`](../integration-test/SKILL.md) (gate) → [`$security-audit --review-only`](../security-audit/SKILL.md) (optional; conditional) → [`$production-readiness-review --review-only`](../production-readiness-review/SKILL.md) (optional; conditional) → [`$ui-design --mode=review --review-only`](../ui-design/SKILL.md) (optional; conditional) → [`$ai-engineering-review --review-only`](../ai-engineering-review/SKILL.md) (optional; conditional) → [`$experience-review --review-only`](../experience-review/SKILL.md) (optional; conditional) → [`$why-review --validate-findings`](../why-review/SKILL.md) (optional; conditional) → [`$workflow-end`](../workflow-end/SKILL.md) (optional; conditional) → [`$watzup`](../watzup/SKILL.md) (optional; conditional)
   Phase todos: Review (12; exit review-converged, tests-pass) → Close (2; exit run-closed)
-<!-- workflow-mode:review-only fingerprint:0b24367a087db62fc805d5b37bce29fb10ec356032d6cf57ae18bc1095c22b60 -->
+<!-- workflow-mode:review-only fingerprint:2dafcd8d8ef1c1610bd60517125e16cc64bcc51a2b93c557cf4c4a28a7ae4aca -->
 - Mode `fix-loop`: [`$changes-review --defer=whole-target,specialists,tests,entities --fix-loop --loop-owner=caller`](../changes-review/SKILL.md) (gate) → [`$why-review --target=whole-review-target --fix-loop --loop-owner=caller`](../why-review/SKILL.md) (core) → [`$architecture --mode=review --fix-loop --loop-owner=caller`](../architecture/SKILL.md) (optional; conditional) → [`$domain-analysis --mode=review --fix-loop --loop-owner=caller`](../domain-analysis/SKILL.md) (optional; conditional) → [`$performance-review --fix-loop --loop-owner=caller`](../performance-review/SKILL.md) (optional; conditional) → [`$integration-test --mode=review --prove-tests --fix-loop --loop-owner=caller`](../integration-test/SKILL.md) (gate) → [`$security-audit --fix-loop --loop-owner=caller`](../security-audit/SKILL.md) (optional; conditional) → [`$production-readiness-review --fix-loop --loop-owner=caller`](../production-readiness-review/SKILL.md) (optional; conditional) → [`$ui-design --mode=review --fix-loop --loop-owner=caller`](../ui-design/SKILL.md) (optional; conditional) → [`$ai-engineering-review --fix-loop --loop-owner=caller`](../ai-engineering-review/SKILL.md) (optional; conditional) → [`$code-simplifier --report-only`](../code-simplifier/SKILL.md) (optional; conditional) → [`$experience-review --fix-loop --loop-owner=caller`](../experience-review/SKILL.md) (optional; conditional) → [`$why-review --validate-findings`](../why-review/SKILL.md) (optional; conditional) → [`$investigate --mode=debug`](../investigate/SKILL.md) (optional; conditional) → [`$fix --target=review`](../fix/SKILL.md) (optional; conditional) → [`$scan --target=domain-entities`](../scan/SKILL.md) (optional; conditional) → [`$docs-manager --mode=update`](../docs-manager/SKILL.md) (core) → [`$workflow-end`](../workflow-end/SKILL.md) (optional; conditional) → [`$watzup`](../watzup/SKILL.md) (optional; conditional)
   Phase todos: Review (17; exit review-converged, tests-pass, root-cause-traced) → Close (2; exit run-closed)
-<!-- workflow-mode:fix-loop fingerprint:f21d921e3c4d8da16eecc6e054de34bac8ab478230e0e6fe1740b3fc04977e82 -->
+<!-- workflow-mode:fix-loop fingerprint:48e839382d243c9794151bbdd574d57cedf9db2c310280fc8126f87b8c11d506 -->
 
 Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs --write` after registry edits; [`$sync-codex`](../sync-codex/SKILL.md) refreshes it before mirroring.
 <!-- WORKFLOW-CALLS:END -->
@@ -39,7 +39,7 @@ Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs
 
 **Goal:** Review the requested changes, fix validated findings and re-review until the shared quality bar clears.
 
-**Summary:** This workflow defaults to `--fix-loop`. Triage all files and plan tasks → run general/rationale and applicable specialist reviews, with the simplifier as a report-only lens → consolidate and validate once → fix at the owner and refresh affected domain docs and docs → re-review the settled target, doc edits included → check required tests and specs. Every review child joins the same coordinator-owned loop.
+**Summary:** This workflow defaults to `--fix-loop`. Triage all files and plan tasks → run general/rationale and applicable specialist reviews, including domain entity quality when entities change, with the simplifier as a report-only lens → consolidate and validate once → fix at the owner and refresh affected domain docs and docs → re-review the settled target, doc edits included → check required tests and specs. Every review child joins the same coordinator-owned loop.
 
 **Workflow:** Activate `$start-workflow workflow-review-changes`; resolve the registry and selected occurrences, create their todo tasks, and execute the dependencies below.
 
@@ -77,6 +77,8 @@ Independent read-only reviews may run together: the applicable specialists, the 
 
 Read [references/caller-mode.md](references/caller-mode.md) when delegating duties or using `--tests=defer`; it defines child ownership and review-only precedence.
 
+For entity/VO/aggregate or write/load/event-path changes, including indirect handler/import/job changes, `domain-entities-design-review` owns [the conditional quality task](../changes-review/SKILL.md#domain-entity-quality-conditional-task). Pass scope, project/paradigm fit, rules and affected callers/tests; merge evidence once. Otherwise record the registry skip: "No domain entity, value-object, aggregate or affected write/load/event path changes; record the inspected paths." Re-evaluate after repairs; general reviewers do not duplicate this pass.
+
 ## Fix and fresh review
 
 Consolidate reports and validate findings once through `$why-review --validate-findings` before edits; children called with `--loop-owner=caller` return their findings without their own terminal validation (`$start-workflow` → Step Execution Protocol, Workflow-step mode). Trace untraced defects, fix validated findings at their owning component, and apply the validated simplifications the simplifier lens reported, only where they improve the requested change. Update spec/test/doc drift in the same repair work: the domain-entities refresh and docs-manager run right after the fix and before the fresh re-review, so their edits are reviewed in the same pass. Read-only workflow mode reports the validated results and stops before source mutation.
@@ -97,10 +99,10 @@ Refresh domain docs only when affected domain/data contracts justify it. Docs-ma
 
 <!-- PROTOCOL-GUIDES:START -->
 
-> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
+> **Protocol guides** — Apply each protocol only when its read-when condition holds. If a protocol's text is not in your context, read its file below before you act on it.
 
 - `core-engineering-principles` — Core quality gate: easy to change, easy to scale, easy to maintain, judged by future change cost; planning, implementing or reviewing any change → .claude/skills/shared/protocols/core-engineering-principles.md
-- `end-to-start-debugger-trace` — Walk backward from the observed end state through every feeder path before fixing; fixing a non-trivial bug, a regression or unclear code flow → .claude/skills/shared/protocols/end-to-start-debugger-trace.md
+- `end-to-start-debugger-trace` — Walk backward from the observed end state through every feeder path before fixing; investigating non-trivial bugs or failed verification, changing code behavior, or tracing unclear code flow → .claude/skills/shared/protocols/end-to-start-debugger-trace.md
 - `goal-contract-satisfaction-loop` — Save the goal in a file and loop until every saved criterion passes; executing work against a user goal → .claude/skills/shared/protocols/goal-contract-satisfaction-loop.md
 - `incremental-persistence` — Persist results per file or section while the work proceeds; a sub-agent or heavy step processes more than three files → .claude/skills/shared/protocols/incremental-persistence.md
 - `measured-capacity-engineering` — Model demand, reduce measured work safely and prove capacity before scaling; planning, building, testing or reviewing hot paths, caches or capacity → .claude/skills/shared/protocols/measured-capacity-engineering.md
@@ -135,7 +137,7 @@ Refresh domain docs only when affected domain/data contracts justify it. Docs-ma
 
 <!-- SYNC:end-to-start-debugger-trace:reminder -->
 
-**IMPORTANT MUST ATTENTION** debugger trace gate: for non-trivial bug/fix/investigation/review work, start at the observed final output and trace backward through reader -> storage/projection -> writer -> consumer/job -> producer/trigger. Enumerate all feeder paths and hypotheses before fixing; select the authoritative invariant owner from project architecture and retain validation at untrusted boundaries. **BLOCKED until** trace, hypothesis matrix, owning fix layer, and forward convergence proof exist.
+**IMPORTANT MUST ATTENTION** for non-trivial bugs, failed verification, regression fixes, behavior-changing code or unclear code flow, trace backward from the observed output through every feeder path before fixing. Establish hypotheses, the authoritative invariant owner and forward proof; retain validation at untrusted boundaries. Ordinary artifact review or graph lookup alone does not trigger a debugging workflow.
 
 <!-- /SYNC:end-to-start-debugger-trace:reminder -->
 
@@ -211,6 +213,6 @@ Refresh domain docs only when affected domain/data contracts justify it. Docs-ma
 
 **Goal:** Converge validated fixes on the complete current target.
 
-**Main steps:** triage/plan/todo tasks → applicable reviews (one specialist batch, simplifier lens included) → validate once → fix → domain/docs refresh → fresh whole-target and specialist re-review → final checks → close.
+**Main steps:** triage/plan/todo tasks → applicable reviews (domain entity quality when entities change; one specialist batch, simplifier lens included) → validate once → fix → domain/docs refresh → fresh whole-target and specialist re-review → final checks → close.
 
 Default fix-loop includes all review children under one fixing coordinator. Maximum two rounds by default, even where shared guidance names a three-round ceiling; disclose LOWs, ask and wait before any additional round for MEDIUM+, unresolved required evidence or failed checks. Every extension is explicitly bounded. Preserve coverage and applicable gates; no stale verdict or hidden scope reduction.

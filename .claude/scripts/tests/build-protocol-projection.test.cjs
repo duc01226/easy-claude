@@ -466,6 +466,7 @@ test('TC-PDL-080: the shipped groups file bins every universal tag once and uses
     for (const name of ['changes-review', 'code-quality-review', 'why-review', 'workflow-review-changes']) {
         const text = fs.readFileSync(path.join(REPO_ROOT, '.claude', 'skills', name, 'SKILL.md'), 'utf8');
         assert.match(text, /<!-- PROTOCOL-GUIDES:START -->/);
+        assert.match(text, /Apply each protocol only when its read-when condition holds/);
         assert.match(text, /If a protocol's text is not in your context, read its file below before you act on it/);
         const guides = [...text.matchAll(/^- `([^`]+)` — [^\n]+ → (\.claude\/skills\/shared\/protocols\/[^\s]+\.md)$/gm)];
         assert.ok(guides.length > 0, `${name} has no guides`);

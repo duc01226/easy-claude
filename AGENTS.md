@@ -36,6 +36,7 @@ Match the question or task to a row and read that doc before answering, planning
 | Where code lives, modules, stack, setup — before planning or investigating. Holds: Project directory structure and module overview | `docs/project-reference/project-structure-reference.md` |
 | Seeding or reviewing development/test data. Holds: Seed test data patterns: idempotent seeder architecture, DI scope safety, command dispatch, and config-driven counts | `docs/project-reference/seed-test-data-reference.md` |
 | Writing, fixing, or reviewing integration tests. Holds: Integration test patterns and conventions | `docs/project-reference/integration-test-reference.md` |
+| Planning, writing, running, fixing, or reviewing performance / load / capacity tests. Holds: Project preferences for performance-test setup, workloads, hardware budgets, reusable helpers, commands and evidence | `docs/project-reference/performance-test-reference.md` |
 | Before editing or reviewing code — rules, anti-patterns, checklists. Holds: Code review checklist and rules | `docs/project-reference/code-review-rules.md` |
 | UI design — tokens, components, app-to-doc map. Holds: Design system index: app-to-doc mapping, design tokens overview, component inventory | `docs/project-reference/design-system/README.md` |
 | Writing, running, or reviewing E2E / user-flow tests. Holds: Optional task-track workspace browser tests: isolated public-core fixtures, native waits, portable runner modes and redacted journey evidence | `docs/project-reference/e2e-test-reference.md` |

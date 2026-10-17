@@ -49,15 +49,15 @@ Detect the mode from the invocation arguments before any other work; do not load
 
 <!-- PROTOCOL-GUIDES:START -->
 
-> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
+> **Protocol guides** — Apply each protocol only when its read-when condition holds. If a protocol's text is not in your context, read its file below before you act on it.
 
-- `end-to-start-debugger-trace` — Walk backward from the observed end state through every feeder path before fixing; fixing a non-trivial bug, a regression or unclear code flow → .claude/skills/shared/protocols/end-to-start-debugger-trace.md
+- `end-to-start-debugger-trace` — Walk backward from the observed end state through every feeder path before fixing; investigating non-trivial bugs or failed verification, changing code behavior, or tracing unclear code flow → .claude/skills/shared/protocols/end-to-start-debugger-trace.md
 
 <!-- PROTOCOL-GUIDES:END -->
 
 <!-- SYNC:end-to-start-debugger-trace:reminder -->
 
-**IMPORTANT MUST ATTENTION** debugger trace gate: for non-trivial bug/fix/investigation/review work, start at the observed final output and trace backward through reader -> storage/projection -> writer -> consumer/job -> producer/trigger. Enumerate all feeder paths and hypotheses before fixing; select the authoritative invariant owner from project architecture and retain validation at untrusted boundaries. **BLOCKED until** trace, hypothesis matrix, owning fix layer, and forward convergence proof exist.
+**IMPORTANT MUST ATTENTION** for non-trivial bugs, failed verification, regression fixes, behavior-changing code or unclear code flow, trace backward from the observed output through every feeder path before fixing. Establish hypotheses, the authoritative invariant owner and forward proof; retain validation at untrusted boundaries. Ordinary artifact review or graph lookup alone does not trigger a debugging workflow.
 
 <!-- /SYNC:end-to-start-debugger-trace:reminder -->
 
@@ -67,7 +67,7 @@ Detect the mode from the invocation arguments before any other work; do not load
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
-- **End-To-Start Debugger Trace:** start at observed final output, trace backward, hypothesis matrix before fixing.
+- **End-To-Start Debugger Trace:** for bug/failure or unclear-code investigation, trace backward from the observed output and establish hypotheses before fixing. Build, query and export alone do not trigger debugging.
 
 - **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting
 - **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)

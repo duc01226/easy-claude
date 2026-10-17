@@ -6,18 +6,20 @@
 
 ---
 
-## Quick Navigation
+## Contents
 
 | Section                                       | Audience  | Purpose                        |
 | --------------------------------------------- | --------- | ------------------------------ |
 | [How It Works](#how-it-works)                 | All Roles | Understand the workflow system |
+| [Before You Start](#before-you-start) | All Roles | Prerequisites and output locations |
 | [Quick Start](#quick-start-by-role)           | All Roles | First success in 2 minutes     |
 | [Skills Reference](#skills-reference-by-role) | All Roles | Key skills with examples       |
 | [Workflows](#workflow-tutorials)              | All Roles | End-to-end process flows       |
-| [Role Handoffs](#role-handoff-workflows)      | All Roles | Cross-role collaboration       |
+| [Role Handoffs](#cross-role-workflows)      | All Roles | Cross-role collaboration       |
 | [Real-World Example](#real-world-example)     | All Roles | Employee Photo Upload feature  |
 | [Cheat Sheet](#cheat-sheet)                   | All Roles | Printable quick reference      |
 | [Troubleshooting](#troubleshooting)           | All Roles | Common issues and fixes        |
+| [Source Files](#source-files) | All Roles | Canonical configuration owners |
 
 ---
 
@@ -28,7 +30,7 @@ Claude Code uses a **three-pillar architecture** to assist every role:
 | Pillar                        | What It Does                                                          | Count                                                      |
 | ----------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------------- |
 | **Hooks** (Enforcement)       | Enforce quality gates, block unsafe actions, manage session lifecycle | <!-- COUNT:hooks -->36<!-- /COUNT --> top-level hook files |
-| **Skills** (Intelligence)     | Prompt-engineered protocols loaded on demand via `/skill-name`        | <!-- COUNT:skills -->103<!-- /COUNT --> skills             |
+| **Skills** (Intelligence)     | Prompt-engineered protocols loaded on demand via `/skill-name`        | <!-- COUNT:skills -->104<!-- /COUNT --> skills             |
 | **Workflows** (Orchestration) | Multi-step sequences of skills with progress tracking                 | <!-- COUNT:workflows -->17<!-- /COUNT --> workflows        |
 
 ### Workflow Detection

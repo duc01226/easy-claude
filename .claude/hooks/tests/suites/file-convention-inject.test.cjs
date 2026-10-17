@@ -1066,6 +1066,32 @@ const tests = [
             assert.ok(!none.some(g => g.name === 'e2e-test'), 'framework none is not detected');
         }
     },
+    {
+        // Technical contract: only configured performance files receive their existing project guide and skill.
+        name: '[performance-reference] configured performance files receive guidance without affecting ordinary tests',
+        fn: async () => withFixture(async fx => {
+            fx.write('handbook/performance.md', '# Local performance policy');
+            fx.write('.claude/skills/performance-test/SKILL.md', '# Performance protocol');
+            const config = {
+                framework: { name: 'native', performanceTestDoc: 'handbook/performance.md' },
+                testing: { filePatterns: { performance: 'bench/**/*.load.py' } }
+            };
+            const detected = merge.detectGroups(config, { projectDir: fx.project });
+            const group = detected.find(item => item.name === 'performance-test');
+            assert.ok(group, 'performance convention is detected');
+            assert.deepEqual(group.referenceDocs, ['handbook/performance.md']);
+            assert.deepEqual(group.skills, ['performance-test']);
+            assert.equal(conventions.groupMatches(group, 'bench/api/load.load.py'), true);
+            assert.equal(conventions.groupMatches(group, 'tests/unit.test.py'), false);
+            const configWithGroups = enabled([group]);
+            const context = await deliver(fx, configWithGroups, post(fx, 'Edit', 'bench/api/load.load.py'));
+            assert.ok(context.includes('read: handbook/performance.md'), context);
+            assert.ok(context.includes('performance-test'), context);
+            assert.ok(!merge.detectGroups({}, { projectDir: fx.project }).some(item => item.name === 'performance-test'));
+            const missing = merge.detectGroups(config, { projectDir: fx.project, fileExists: () => false });
+            assert.ok(!missing.some(item => item.name === 'performance-test'), 'no dead guide or skill is advertised');
+        })
+    },
     // TC-PFCI-021: Setup adds a newly detected class
     {
         name: 'TC-PFCI-021 merge adds detected group',

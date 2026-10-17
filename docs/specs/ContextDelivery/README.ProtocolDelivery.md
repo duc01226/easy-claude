@@ -38,6 +38,19 @@ roadmap_status: null
 
 > **DRAFT — provisional spec.** The decided values in Section 4 were confirmed on all three assistant hosts by the delivery confirmation run recorded in ADR-0004; one default changed there (the second host keeps its shell-read path) and is written here as decided behavior. The delivery code has landed: cases with an executing test carry `Implemented` (see the Section 8 status note); close-time, manual and conditional cases stay `Planned` or `Untested` with their reason. After the release-close full test run, reconcile with `/spec [mode=update]`, flip the implemented cases to `Tested`, and clear the provisional flag.
 
+## Contents
+
+- [Related Documentation](#related-documentation)
+- [Overview](#1-overview)
+- [Glossary](#2-glossary)
+- [User Stories & Acceptance Criteria](#3-user-stories--acceptance-criteria)
+- [Business Rules](#4-business-rules)
+- [Rule evidence](#source-rulehooksskill-overlay-reminder)
+- [Domain Model](#5-domain-model)
+- [Process Flows](#6-process-flows)
+- [Permissions & Roles](#7-permissions--roles)
+- [Test Specifications](#8-test-specifications)
+
 ## Related Documentation
 
 | Type                      | Path                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | Description                                                                                                            |
@@ -54,16 +67,6 @@ roadmap_status: null
 | Carrier tooling           | `.claude/scripts/sync-update-blocks.py` (guide mode)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | Converts skill bodies to guide entries; propagates canonical edits to full-text carriers.                              |
 | Test suites (planned)     | `.claude/scripts/tests/build-protocol-projection.test.cjs`, `.claude/hooks/tests/suites/protocol-delivery.test.cjs`, `.claude/hooks/tests/suites/protocol-inject-hook.test.cjs`, `.claude/hooks/tests/suites/protocol-host-mapping.test.cjs`, `.claude/scripts/codex/tests/verify-sync-divergence.test.mjs`, `.claude/scripts/opencode/tests/sync-hooks.test.mjs`, `.claude/scripts/tests/sync-update-blocks-guide.test.cjs`, `.claude/hooks/tests/suites/sync-carrier-parity.test.cjs`, `.claude/scripts/codex/tests/verify-skill-protocol-compliance.test.mjs`, `.claude/hooks/tests/suites/content-presence.test.cjs`, `.claude/scripts/tests/injectors-respect-guides.test.cjs`, `.claude/hooks/tests/suites/review-mode-sections.test.cjs` | Executors for Section 8.                                                                                               |
 
-## Sections
-
-1. [Overview](#1-overview)
-2. [Glossary](#2-glossary)
-3. [User Stories & Acceptance Criteria](#3-user-stories--acceptance-criteria)
-4. [Business Rules](#4-business-rules)
-5. [Domain Model](#5-domain-model)
-6. [Process Flows](#6-process-flows)
-7. [Permissions & Roles](#7-permissions--roles)
-8. [Test Specifications](#8-test-specifications)
 
 ---
 
@@ -2284,7 +2287,7 @@ boundaryCounterCase: 'a read of a skill file → the full path runs'
 
 **Preconditions:**
 
-- A generated second-host hook configuration holding a start command
+- An isolated fixture supplies a start command rendered by the current second-host generator
 - A fixture project subfolder
 
 **Real-World Reachability:** Every second-host prompt without a skill name.
@@ -2318,18 +2321,18 @@ And the wall time of six sequential runs is recorded next to the baseline
 ```yaml
 inputDomain: 'any start command the generator renders'
 invariant: 'for ALL rendered commands a non-matching event loads only the expected modules'
-boundaryCounterCase: 'no generated configuration present → the case reports skipped'
+boundaryCounterCase: 'the rendered command cannot start the fixture delivery step → the case fails'
 ```
 
 **Edge Cases:**
 
-- A project that never ran the second-host sync → skipped with its reason
+- A project that never ran the second-host sync → the fixture supplies the generated start command and the case still runs
 
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
 > **Evidence:** `[Source: rule/hooks/protocol-cost-budget]`
 > **Related Behaviors:** `operation/scripts/codex-sync-hooks`
-> **CoveredBy:** `.claude/hooks/tests/suites/protocol-inject-hook.test.cjs::TC-PDL-067` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/protocol-inject-hook.test.cjs:457` (passed in P44; not re-run at the final gate)
+> **CoveredBy:** `.claude/hooks/tests/suites/protocol-inject-hook.test.cjs::TC-PDL-067` · **Status:** Implemented — verify current execution with the configured runner
 
 ---
 

@@ -135,7 +135,7 @@ Report the subject, rounds and questions, the decisions with chosen options, unc
 
 <!-- PROTOCOL-GUIDES:START -->
 
-> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
+> **Protocol guides** — Apply each protocol only when its read-when condition holds. If a protocol's text is not in your context, read its file below before you act on it.
 
 - `decision-interview` — Brief the user, then ask every material decision as a decision card in dependency-ordered rounds; asking the user to confirm, choose or validate decisions → .claude/skills/shared/protocols/decision-interview.md
 

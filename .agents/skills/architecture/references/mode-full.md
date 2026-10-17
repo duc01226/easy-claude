@@ -200,7 +200,7 @@ The report is now validated — or, under `--defer=validate`, marked `Validation
 
 > **Repair ownership.** Review-only and caller-owned audits return validated findings without fixes. Standalone `--fix-loop` repairs authorized findings at their owner after Step 5 validation, then repeats Steps 1–6 over the updated target, including all three lenses and their interactions. Create fresh review tasks, retain spent rounds, and apply the shared cap/LOW/extension rules. A pre-fix scorecard never proves the repaired target clean.
 
-> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting. For simple tasks, ask the user whether to skip.
+> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting. Keep task depth proportional to the work.
 
 > **External Memory:** Complex/lengthy work → write intermediate findings + final results to `tmp/reports/` — prevents context loss, serves as deliverable.
 

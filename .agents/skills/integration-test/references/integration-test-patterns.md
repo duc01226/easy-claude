@@ -38,8 +38,8 @@ Every integration test created through this skill must satisfy these rules:
 - Exercise real dependency wiring for the scope under test. Do not replace the behavior under review with mocks unless the local reference docs explicitly define that boundary.
 - Reproduce a sequence, pacing, and data shape production can actually reach — pass the Real-World Fidelity Gate below before writing the arrange step (barrier shape: Pattern 10).
 - Link to one protected business intent or invariant.
-- Include a TC ID comment and the configured test-spec annotation mechanism.
-- Seed unique data so the test can run repeatedly without cleanup.
+- Use the resolved canonical owner/case/variant and configured test carrier; strict-default business TCs only when no native contract exists. Technical-only tests name their guarded contract without inventing a business case.
+- Follow the project’s isolation policy: shared mutable namespaces need unique identities; deterministic isolated fixtures may use stable values. Supported cleanup removes only run-owned ephemeral resources after evidence, never shared/persistent additive data.
 - Assert persisted or externally observable state, not just "no exception".
 - Wrap data-state assertions in the repository's async wait/poll helper when writes, handlers, consumers, projections, or background work can be delayed.
 - Keep one behavior per test unless the local pattern uses scenario tables for the same invariant.
@@ -141,8 +141,8 @@ Do not create a new fixture architecture unless existing patterns cannot cover t
 
 Test data must be:
 
-- Unique per run.
-- Additive and repeatable.
+- Isolated per test/run under the project policy; unique identities where namespaces are shared.
+- Repeatable through supported fixtures/transactions or integrity-checked additive setup; preserve shared/persistent data.
 - Created through the same command/application pipeline when the business invariant depends on command-side behavior.
 - Minimal but realistic enough to exercise permissions, relationships, and derived fields.
 - Isolated from production or shared non-test resources by configured environment gates.
@@ -222,7 +222,7 @@ settleBarrier(readObservable, maxWait, pollInterval, stableReads):
 
 ## Verification Checklist
 
-- TC ID is present in the spec and in test code.
+- The selected business case identity/carrier maps to its canonical owner and actual assertion; technical-only contracts need no invented business TC.
 - Protected business intent or invariant is named.
 - Existing local integration-test patterns were cited before implementation.
 - Test data is unique and repeatable.

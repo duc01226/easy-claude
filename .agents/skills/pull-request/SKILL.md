@@ -91,7 +91,7 @@ Write `tmp/reports/pull-request-<date>-<branch>.md` from the first step; append 
 
 ### Step 2 — Choose branch
 
-<!-- REVIEWED FIXES — DO NOT REVERT. Each was reproduced in a throwaway git repo during the "branch PRs fresh" PR review; a framework re-sync had silently re-applied the old text three times.
+<!-- Branch-selection safeguards: preserve these command and reachability constraints.
 1. `git switch -c --no-track <name> R` FAILS with "only one reference expected": `-c` consumes the next word as the branch name. Write `git switch --no-track -c <name> R`.
 2. Every "merged" test must exclude HEAD == R: a zero-commit branch cut from an up-to-date R satisfies both `--is-ancestor` and the `merge-tree` tree comparison, and would be replaced, dropping the user's branch name.
 3. "No `origin/<branch>` ref" does NOT mean never pushed (a branch cut a moment ago, a detached HEAD on a pushed commit, and a branch deleted after its merge all lack one). Test the commits themselves against the remote refs.
@@ -241,7 +241,7 @@ A **Blocker** ends the run. Pending user choices pause only dependent steps. If 
 
 <!-- PROTOCOL-GUIDES:START -->
 
-> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
+> **Protocol guides** — Apply each protocol only when its read-when condition holds. If a protocol's text is not in your context, read its file below before you act on it.
 
 - `environment-fault-hypothesis` — Weigh the environment as a competing cause, with a named discriminator; judging a bug report, failing test, error or unexpected output → .claude/skills/shared/protocols/environment-fault-hypothesis.md
 - `root-cause-debugging` — Systematic root-cause debugging, never guess-and-check; debugging a failure → .claude/skills/shared/protocols/root-cause-debugging.md

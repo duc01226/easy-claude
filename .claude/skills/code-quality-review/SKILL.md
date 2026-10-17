@@ -25,7 +25,7 @@ context-budget: critical
 
 - Evaluate feedback, review named code, or verify completion; current/branch diffs route to `changes-review`. Prepared inputs establish scope, never acceptance.
 - Create report → assess blast radius and full-pipeline impact → detect risks, plan compliance and surfaces → review each file → holistic assessment → final result → validate findings → fix validated blockers → full re-review after fixes.
-- Direct named-code reviews resolve the requested files and applicable rules. Feedback evaluation uses the supplied evidence. Trace consumers/dependents and tests; cite `file:line` before acceptance.
+- Direct named-code reviews resolve the requested files and applicable rules, including a conditional domain entity quality task for new or updated entities. Feedback evaluation uses the supplied evidence. Trace consumers/dependents and tests; cite `file:line` before acceptance.
 - Round 1 closes every validated severity; from round 2 CRITICAL/HIGH/MEDIUM block and LOW-only defers. Failed binary gates always block; retain the shared LOW deferral and fresh post-fix evidence rule.
 
 > **Routing boundary:** If the user asks to review current changes, uncommitted work, staged/unstaged diffs, or a branch-to-branch diff, use `changes-review` instead.
@@ -41,7 +41,7 @@ context-budget: critical
 > **Test conventions** — search: `integration-test-reference`, `test-guide`, `test-conventions`
 > **Design system** — search: `design-system`, `design-tokens`, `component-library`
 >
-> Read found docs before reviewing. None found → rely on tech stack knowledge from file extensions/directory structure.
+> Read found docs relevant to the selected surface; UI design authorities apply to UI changes. Resolve the canonical artifact/case profile from config and required references before spec/test checks: use native owners, roles, IDs, carriers and cardinality when declared; strict §3/§4/§5/§8 and TC examples below apply only when absent. Invalid or unresolved declarations stay BLOCKED; do not create a shadow registry. None found → inspect local code/config and state material assumptions.
 
 **Workflow:**
 
@@ -123,8 +123,8 @@ Three practices: receiving feedback with technical rigor, requesting systematic 
 | ------------------ | ----------------------------------------------------------------------------------------------------------- |
 | **YAGNI**          | Flag code solving hypothetical problems (unused params, speculative interfaces)                             |
 | **KISS**           | Flag unnecessary complexity. "Is there a simpler way?"                                                      |
-| **DRY**            | Grep for similar/duplicate code. 3+ similar patterns → flag for extraction                                  |
-| **Clean Code**     | Readable > clever. Names reveal intent. Functions do ONE thing. Nesting <=3. Methods <30 lines              |
+| **DRY**            | Compare repeated responsibilities; share only with aligned ownership/change reasons and lower change cost                                  |
+| **Clean Code**     | Readable intent, cohesive responsibilities and purposeful names; size/nesting signal investigation, not automatic refactors              |
 | **Convention**     | MUST ATTENTION grep 3+ existing examples before flagging violations. Codebase convention wins over textbook |
 | **No Bugs**        | Trace logic paths. Verify edge cases (null, empty, boundary). Check error handling                          |
 | **Proof Required** | Every claim backed by `file:line` evidence. Speculation is forbidden                                        |
@@ -155,6 +155,7 @@ For a high-risk shared contract, many callers, cross-module/service flow or publ
 | `[Review Phase 0.5] Plan compliance check (skip if no active plan)`    | pending     |
 | `[Review Phase 0.7] Detect categories + route sub-agents`              | pending     |
 | `[Review Phase 0.7b] /ui-design --mode=review sub-review — skip if no frontend/UI files in changeset` | pending     |
+| `[Review Phase 0.7c] Domain entity quality — conditional on new or updated domain entities, value objects or aggregates` | pending |
 | `[Review Phase 1] File-by-file review + update report`                 | pending     |
 | `[Review Phase 2] Holistic assessment`                                 | pending     |
 | `[Review Phase 3] Final findings, docs triage, and test sync findings` | pending     |
@@ -221,6 +222,10 @@ If the changeset contains any frontend/UI files matching the project's configure
 
 **Skip (record reason)** when no frontend/UI files are present in the changeset — log "Skipped Phase 0.7b — no frontend/UI files in changeset".
 
+**Phase 0.7c: Domain Entity Quality (CONDITIONAL)**
+
+For new or updated domain entities/VOs/aggregates, read [the conditional task contract](../changes-review/SKILL.md#domain-entity-quality-conditional-task); it routes the shared quality criteria only when relevant. Complete the task or incorporate the named caller's domain pass. No surface → record inspected paths and skip; leaves return gaps without nested delegation.
+
 **Phase 0.8: Derive Review Categories**
 
 Group changed files by: file language (extension), directory semantics (path), change nature (new entity, schema, config, UI, test).
@@ -247,20 +252,20 @@ After all files reviewed, re-read accumulated report:
 
 - **Technical Solution**: Overall approach coherent as unified plan?
 - **Responsibility**: Is behavior placed with its documented owner, and are consumers kept behind the project's intended boundaries?
-- **Data ownership**: Constants/config in model/entity, not controller/component?
+- **Data ownership**: Are constants/config/derivations at the invariant or contract owner established by this architecture?
 - **Duplication**: Grep to verify — duplicated logic across changes?
-- **Architecture**: Clean Architecture? Service boundaries respected?
+- **Architecture**: Does the change preserve the project’s selected dependency, module and service boundaries where present?
 - **Plan Compliance**: If active plan → check `## Plan Context`: impl matches requirements, TCs have code evidence (not "TBD"), no requirement unaddressed
-- **Design Patterns**: Pattern opportunities (switch→Strategy)? Anti-patterns (God Object, Copy-Paste, Circular Dep)? DRY via base classes?
+- **Design Patterns**: Do actual coupling, duplicated knowledge or variation justify a simpler/shared owner? Preserve fitting local branches and independent responsibilities; do not require base classes or a particular layer.
 - **Cross-Boundary Behavior**: Callers/callees aligned? API/event contracts consistent? New wiring reachable?
 - **Whole-diff correctness** (every behavior-changing diff): cover the complete behavior flows per `SYNC:whole-diff-correctness`. One reader owns a fitting working set; otherwise the parent assigns bounded overlapping flow leaves and cross-flow synthesis with complete entry/range/rule coverage. Batches add depth but never replace flow coverage.
 - **Test Sync**: Business logic changes have corresponding tests or explicit user-facing gap
 - **Translation Sync**: Multilingual UI text changes have translation updates or explicit risk acceptance
 - **Bugfix Trace Completeness**: If the diff is a bugfix or behavior-changing fix, the review report must state whether final-state trace, feeder paths, hypothesis matrix, owning fix layer, forward convergence proof, and tests/proof mapping are complete
 
-**MUST ATTENTION CHECK — Spec-Loop Test Discipline (changed core logic):** Beyond the happy/error path traces above, hold changed core logic to a hard-to-fake bar. Apply a **MUTATION-SCORE** bar — a surviving mutant means a missing invariant, so demand the killing test — and do NOT accept a line-coverage % as proof of test strength. Flag any `[HARD]`/§5 invariant whose only coverage is example tests with no universally-quantified **property TC** (plus boundary counter-case) as a HIGH finding. Every behavior-changing finding requires a **Dual-Feedback row** (does it feed the spec? does it feed the tests? a blank axis = INCOMPLETE) — record it in the report. Adjudicate any spec divergence per `SYNC:spec-drift-adjudication` (CODE-WRONG / SPEC-STALE / AMBIGUOUS / **SPEC-SILENT**); a **SPEC-SILENT** finding — the code correctly enforces an invariant NO spec artifact states — has BOTH axes non-N/A: Spec feedback = add the missing §4 BR / §3 AC (+ §5 invariant if applicable) and a §8 TC via `/spec [update]` + `/spec [mode=tests]`; Test feedback = the new property/regression test guarding the now-written invariant — never leave a discovered invariant only in code or only in tests. Review the **whole package** (spec + tests + code), not just the diff, so the spec is enriched, not just patched.
+**MUST ATTENTION CHECK — Spec-Loop Test Discipline (changed core logic):** Review the whole canonical intent/contracts + tests + code package through the resolved profile. Use the project’s required mutation/fault/intent-strength proof; a surviving required probe exposes a missing invariant, while line coverage alone proves no assertion strength. Universally quantified hard invariants need property/boundary coverage in the selected case format. Every behavior-changing finding records both spec feedback and the mapped executor/assertion/result action. Adjudicate CODE-WRONG / SPEC-STALE / AMBIGUOUS / SPEC-SILENT through the shared owner. A proven spec-silent invariant must be added to the selected canonical intent/contracts and guarding evidence case/test; strict-default §4/§3/§5/§8 and TC only when no native contract exists. Never leave the rule only in code/tests or fabricate execution.
 
-**MUST ATTENTION CHECK — Clean Code:** YAGNI (unused params, speculative interfaces)? KISS (simpler exists)? Methods >30 lines or nesting >3?
+**MUST ATTENTION CHECK — Clean Code:** YAGNI (unused params, speculative interfaces)? KISS (simpler exists)? Does size/nesting obscure intent or amplify changes under the project’s conventions?
 
 **MUST ATTENTION CHECK — Correctness:** Null/empty/boundary handled? Error paths caught? Async race conditions? Trace happy + error paths.
 
@@ -297,13 +302,13 @@ After sub-agent returns:
 
 | #   | Rule                      | Details                                                                                                                                 |
 | --- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | **No Magic Values**       | All literals → named constants                                                                                                          |
-| 2   | **Type Annotations**      | Explicit parameter and return types on all functions                                                                                    |
-| 3   | **Single Responsibility** | One concern per method/class. Event handlers/consumers: one handler = one concern. NEVER bundle — a framework event dispatcher can swallow handler exceptions silently |
-| 4   | **DRY**                   | No duplication; extract shared logic                                                                                                    |
+| 1   | **No Magic Values**       | Name values when they encode shared policy or unexplained meaning; retain obvious local literals                                                                                                          |
+| 2   | **Type Annotations**      | Use the project’s supported type/static-checking conventions; do not impose syntax absent from its language                                                                                    |
+| 3   | **Single Responsibility** | Keep cohesive responsibilities; inspect the actual dispatcher/error contract before splitting handlers or assuming swallowed exceptions |
+| 4   | **DRY**                   | Share aligned rules/behavior when an evidenced owner reduces future change cost; independent look-alikes may remain separate                                                                                                    |
 | 5   | **Naming**                | Names reveal purpose, not mechanism: specific names (`orderRecords` not `data`), Verb+Noun methods, is/has/can/should booleans, no unexplained abbreviations; public/cross-layer abstractions name the capability or domain contract and keep provider details on concrete adapters (`IStorage`/`Storage` → `AzureBlobStorage`), with narrow contracts and local interface syntax |
-| 6   | **Performance**           | No O(n²) (use dictionary). Project in query (not load-all). ALWAYS paginate. Batch-by-IDs (not N+1)                                     |
-| 7   | **Entity Indexes**        | Collections: index management methods. EF Core: composite indexes. Expression fields match index order. Text search → text indexes      |
+| 6   | **Performance**           | Judge complexity and bounds against expected/worst workload. Apply supported projection, paging and batching where the actual data path warrants them                                     |
+| 7   | **Entity Indexes**        | When persistence/search is in scope, verify the configured store’s actual access paths, index/query semantics and relevant volume evidence; no universal ORM/index recipe      |
 
 ## Data Lifecycle Rules (MUST ATTENTION CHECK)
 
@@ -460,7 +465,7 @@ Choose and report the best supported next step under `SYNC:review-decision-auton
 
 ---
 
-> **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, choose the smallest gate-preserving task breakdown without a skip question.
+> **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting. This prevents context loss from long files. For simple tasks, choose the smallest gate-preserving task breakdown without a skip question.
 
 > **Critical Purpose:** Ensure quality — no flaws, bugs, missing updates, stale content. Verify code AND documentation.
 
@@ -468,11 +473,11 @@ Choose and report the best supported next step under `SYNC:review-decision-auton
 
 > **Evidence Gate:** MANDATORY — every claim, finding, recommendation requires `file:line` proof + confidence % (>80% act, <80% verify first).
 
-> **OOP & DRY:** MANDATORY — flag patterns extractable to base class/generic/helper. Same-suffix/lifecycle/responsibility classes share common base. Apply idiomatic abstraction (base class, mixin, trait, protocol) for project's language. Verify linting/analyzer configured.
+> **Ownership & reuse:** Inspect actual consumers, invariants and change reasons before recommending sharing. Similar names/lifecycles do not require a base class. Choose the project’s idiom only when it reduces change cost; retain applicable quality-tooling checks.
 
 <!-- PROTOCOL-GUIDES:START -->
 
-> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
+> **Protocol guides** — Apply each protocol only when its read-when condition holds. If a protocol's text is not in your context, read its file below before you act on it.
 
 - `bug-detection` — Four bug-detection categories checked on every review; reviewing code for defects → .claude/skills/shared/protocols/bug-detection.md
 - `category-review-thinking` — Derive review concerns per category of changed files from domain knowledge; reviewing a changeset that spans several file categories → .claude/skills/shared/protocols/category-review-thinking.md
@@ -481,13 +486,15 @@ Choose and report the best supported next step under `SYNC:review-decision-auton
 - `cross-service-check` — Scan producers, consumers, sagas and shared contracts for cross-service impact; concluding an investigation, plan or spec in a service-based system → .claude/skills/shared/protocols/cross-service-check.md
 - `cross-stack-impact-trace` — Trace the changed area end to end across the client-server seam before judging files; starting a review of a diff that touches more than one tier → .claude/skills/shared/protocols/cross-stack-impact-trace.md
 - `design-patterns-quality` — Design quality: one owner per rule, fitted patterns, no speculative abstraction; designing or reviewing code structure → .claude/skills/shared/protocols/design-patterns-quality.md
-- `end-to-start-debugger-trace` — Walk backward from the observed end state through every feeder path before fixing; fixing a non-trivial bug, a regression or unclear code flow → .claude/skills/shared/protocols/end-to-start-debugger-trace.md
+- `domain-entity-change-gate` — DDD entity, value object and aggregate change gate; planning, implementing or reviewing a domain model change → .claude/skills/shared/protocols/domain-entity-change-gate.md
+- `end-to-start-debugger-trace` — Walk backward from the observed end state through every feeder path before fixing; investigating non-trivial bugs or failed verification, changing code behavior, or tracing unclear code flow → .claude/skills/shared/protocols/end-to-start-debugger-trace.md
 - `evidence-based-reasoning` — Ground every material claim in file:line, config or source evidence, with stated confidence; making any claim, finding or recommendation → .claude/skills/shared/protocols/evidence-based-reasoning.md
 - `fix-layer-accountability` — Fix at the component that owns the violated contract, not at the crash site; choosing where to apply a fix → .claude/skills/shared/protocols/fix-layer-accountability.md
 - `goal-contract-satisfaction-loop` — Save the goal in a file and loop until every saved criterion passes; executing work against a user goal → .claude/skills/shared/protocols/goal-contract-satisfaction-loop.md
 - `graph-assisted-investigation` — Optional hint: a code-graph query can add callers and dependents when grep may miss a high-risk blast radius, and it can be stale; a high-risk change where grep and reading alone may miss the blast radius → .claude/skills/shared/protocols/graph-assisted-investigation.md
 - `logic-and-intention-review` — Check that what the code does matches why it changed, with happy and error path traces; reviewing a code change against its stated intent → .claude/skills/shared/protocols/logic-and-intention-review.md
 - `measured-capacity-engineering` — Model demand, reduce measured work safely and prove capacity before scaling; planning, building, testing or reviewing hot paths, caches or capacity → .claude/skills/shared/protocols/measured-capacity-engineering.md
+- `output-quality-principles` — Readable guidance and verified contents for long skill/doc files; writing, updating or auditing a skill or reference document, or another Markdown artifact over 200 lines → .claude/skills/shared/protocols/output-quality-principles.md
 - `rationalization-prevention` — Recognize and reject the evasions used to skip required steps; tempted to skip a step, a test or a review → .claude/skills/shared/protocols/rationalization-prevention.md
 - `review-decision-autonomy` — Choose supported review decisions and ask before extending the round budget; running any review or audit skill or mode → .claude/skills/shared/protocols/review-decision-autonomy.md
 - `review-policy` — Review-only or a three-round fix loop with explicit extension and fresh post-fix evidence; deciding round eligibility, blocking findings or review state → .claude/skills/shared/protocols/review-policy.md
@@ -608,7 +615,7 @@ Choose and report the best supported next step under `SYNC:review-decision-auton
 
 <!-- SYNC:end-to-start-debugger-trace:reminder -->
 
-**IMPORTANT MUST ATTENTION** debugger trace gate: for non-trivial bug/fix/investigation/review work, start at the observed final output and trace backward through reader -> storage/projection -> writer -> consumer/job -> producer/trigger. Enumerate all feeder paths and hypotheses before fixing; select the authoritative invariant owner from project architecture and retain validation at untrusted boundaries. **BLOCKED until** trace, hypothesis matrix, owning fix layer, and forward convergence proof exist.
+**IMPORTANT MUST ATTENTION** for non-trivial bugs, failed verification, regression fixes, behavior-changing code or unclear code flow, trace backward from the observed output through every feeder path before fixing. Establish hypotheses, the authoritative invariant owner and forward proof; retain validation at untrusted boundaries. Ordinary artifact review or graph lookup alone does not trigger a debugging workflow.
 
 <!-- /SYNC:end-to-start-debugger-trace:reminder -->
 
@@ -677,13 +684,27 @@ Choose and report the best supported next step under `SYNC:review-decision-auton
 
 <!-- /SYNC:review-decision-autonomy:reminder -->
 
+
+
+<!-- SYNC:output-quality-principles:reminder -->
+
+**IMPORTANT MUST ATTENTION** lead with useful guidance and readable priorities; preserve action-changing conditions/numbers and required structures. When writing, updating or auditing Markdown skill/doc content, verify top, heading-linked contents over 200 lines (stricter owner thresholds remain); refresh after edits and report gaps in read-only audits. Remove report bulk; judge semantic value rather than word counts.
+
+<!-- /SYNC:output-quality-principles:reminder -->
+
+<!-- SYNC:domain-entity-change-gate:reminder -->
+
+**MUST ATTENTION** only for relevant entity/VO/aggregate changes, read `domain-analysis/references/entity-quality.md`: establish fit → plan owned decisions/proof → implement through all write/load paths → review the same rules. Keep simple models simple; unresolved material decisions or required proof block. Use one caller-owned review pass.
+
+<!-- /SYNC:domain-entity-change-gate:reminder -->
+
 ## Closing Reminders
 
 **MUST ATTENTION** resolve the named scope and applicable rules → review current source and connected flows → validate findings → verify any fixes through fresh review; feedback evaluation uses the supplied evidence.
 
 **IMPORTANT MUST ATTENTION Goal:** Verify feedback, request targeted code-reviewer reviews, and gate completion claims so accepted code is correct, easy to change and convention-aligned.
 
-**IMPORTANT MUST ATTENTION — Main steps:** create report → blast-radius (grep/read; optional graph hint) + full-pipeline trace → detect risks/plan/surfaces → file-by-file review → holistic review → final result → validate findings before fixes → full re-review after fixes; current/branch diff requests route to `changes-review`.
+**IMPORTANT MUST ATTENTION — Main steps:** create report → blast-radius (grep/read; optional graph hint) + full-pipeline trace → detect risks/plan/surfaces, including domain entity quality when entities change → file-by-file review → holistic review → final result → validate findings before fixes → full re-review after fixes; current/branch diff requests route to `changes-review`.
 
 **MUST ATTENTION** apply the triggered protocols named by the guides above: systematic coverage, evidence and full-flow tracing; category/intention/test review; validation before repair at the contract owner; fresh full re-review under the current severity bar. Read the bodies when triggered; this digest grants no gate skip. Embed all 11 required review protocol bodies in emitted reviewer prompts.
 

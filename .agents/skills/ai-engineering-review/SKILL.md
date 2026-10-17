@@ -56,7 +56,7 @@ description: '[Code Quality] Use when a workflow step or the user asks for AI co
 
 **Workflow:**
 
-1. **Phase 0: Load** — protocol guides, checklist, calibration, project policy and ADRs
+1. **Phase 0: Scope preflight, then load** — apply Phase 1’s cheap scope/surface detection before AI-only depth; confirmed no-AI returns the documented skip; AI/unknown loads required protocols, checklist, policy and applicable calibration
 2. **Phase 1: Scope + AI-surface detection** — changed files (or the plan), the AI-signal scan, expansion from file to surface; skip when none
 3. **Phase 2: Surface map** — AI-surface map, trust-boundary / lethal-trifecta table, autonomy and action map (`AR-1`, `AR-5`)
 4. **Phase 3: Framing pass** — `AF-1`–`AF-6` (checklist §M)
@@ -158,7 +158,7 @@ Skeptical. Every claim needs traced proof, confidence >80%.
 
 ## Phase 0: Load (MANDATORY FIRST) (MUST ATTENTION)
 
-> **MUST ATTENTION:** Read the protocol, procedure and project policy BEFORE the first finding. Rules come from these documents and project evidence, not general knowledge.
+> **MUST ATTENTION:** First apply the scope/surface detection in Phase 1 using the requested code range or plan. A confirmed complete no-AI result returns the documented skip before specialist-only reads. Unknown/inconclusive detection retains the signal-grep fallback and full required review; never turn uncertainty into clean. For AI/unknown scope, read all required protocol/procedure/project policy BEFORE the first finding; the remaining Phase 1 expansion and all applicable passes still run.
 
 - confirm `AF-1`–`AF-6`, `AE-1.1`–`AE-9.4` and `AR-1`–`AR-6` are in context; if a text is missing, read the file its guide line names
 - read `.claude/docs/ai-engineering-review-checklist.md` whole (§0 context, evidence rules and P0–P4 map, then the sweeps)
@@ -308,11 +308,7 @@ Group files by AI SURFACE first (one sub-agent owns a surface end to end so no s
 
 > **Inside a workflow:** when this skill runs as a step of an active workflow, skip the prompts in this section and return the result — the workflow's next step decides what runs (`$start-workflow` → Step Execution Protocol, Workflow-step mode).
 
-**MANDATORY — NO EXCEPTIONS:** after completing, use `ask user question tool` to present (skip under `--report-only`, when invoked by a parent skill, or as a sub-agent — return the report and next-step recommendations instead):
-
-- **"$security-audit" (Recommended when a P0/P1 touches injection, secrets or authorization)** — exploit-class depth
-- **"$integration-test --mode=review"** — assertion quality of the AI feature's tests
-- **"Skip, continue manually"** — user decides
+Return the validated report and choose the supported next-step recommendation under review-decision-autonomy: security depth for injection/secrets/authorization, or integration-test review for assertion gaps. Continue only already-authorized work. Caller-owned/report-only leaves return recommendations; retain indispensable-fact, legal-owner, actual authority and round-extension questions.
 
 ## AI Agent Integrity Gate (NON-NEGOTIABLE)
 
@@ -332,7 +328,7 @@ Before reporting ANY work done:
 
 <!-- PROTOCOL-GUIDES:START -->
 
-> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
+> **Protocol guides** — Apply each protocol only when its read-when condition holds. If a protocol's text is not in your context, read its file below before you act on it.
 
 - `ai-engineering-gate` — Thirty-eight AI-engineering clauses, AE-1.1 to AE-9.4: prompt contract, security, agents, retrieval, reliability, evals, operations, governance, UX; planning, building or reviewing a feature that calls a model → .claude/skills/shared/protocols/ai-engineering-gate.md
 - `ai-feature-framing-gate` — Plan-time AI-feature framing AF-1 to AF-6: job and fit, eval first, blast radius, autonomy, data boundaries, operations; planning or specifying a feature that uses an LLM, agent, RAG or ML model → .claude/skills/shared/protocols/ai-feature-framing-gate.md
@@ -477,7 +473,7 @@ Before reporting ANY work done:
 
 **IMPORTANT MUST ATTENTION Goal:** Review a plan or a change that calls a model — LLM calls, prompts, agents, tool use, RAG, MCP, evals, guardrails, fine-tuned or classical ML — against the AI-engineering protocol, and report evidence-backed findings ranked by real consequence. Skip when nothing in scope touches a model.
 
-**IMPORTANT MUST ATTENTION Workflow:** Phase 0 load protocol, checklist, calibration and project policy → Phase 1 scope and AI-surface detection (scan, expand file → surface; skip with the announcement when none) → Phase 2 surface map, trifecta table, autonomy and action map → Phase 3 framing `AF-1`–`AF-6` → Phase 4 nine `AE` dimension passes with `Think:` first → Phase 5 conditional RAG / agent / ML sweeps → Phase 6 verify provider facts → Phase 7 write the AI Gate Report → Phase 8 validate findings with `$why-review` → Phase 9 repair validated blocking findings and freshly review code or plan in standalone fix-loop; review-only/caller-owned passes return findings.
+**IMPORTANT MUST ATTENTION Workflow:** Phase 0 cheap scope/surface preflight then required AI/unknown depth → Phase 1 scope expansion and AI-surface detection (scan, expand file → surface; skip with the announcement when none) → Phase 2 surface map, trifecta table, autonomy and action map → Phase 3 framing `AF-1`–`AF-6` → Phase 4 nine `AE` dimension passes with `Think:` first → Phase 5 conditional RAG / agent / ML sweeps → Phase 6 verify provider facts → Phase 7 write the AI Gate Report → Phase 8 validate findings with `$why-review` → Phase 9 repair validated blocking findings and freshly review code or plan in standalone fix-loop; review-only/caller-owned passes return findings.
 
 **Critical reminders:**
 
@@ -488,7 +484,7 @@ Before reporting ANY work done:
 - Run nine AE passes serially with `Think:` first. Report every AF / AE / AR gate; deduplicate across AI, UI and security lenses, cluster systemic defects, and retain the top-10 cap unless a full audit was requested.
 - Respect the round bar: round 1 clears at zero open validated findings, with no-edit LOW deferral; round 2 clears Critical/High/Medium and defers Low. Binary gates always block. Every applied fix needs fresh Phase 0 review and tasks; when delegating, use a fresh `ai-engineering-reviewer` if available.
 - Review-only and caller-owned passes: Phases 0–8 only; no fix, nested fan-out, user question or writer beyond the report. Return validated Critical/High/Medium/Low groups (P0/P1/P2/P3 respectively). Standalone fix-loop may repair code or plan after validation, then freshly review it.
-- Ask for next steps only standalone; under `--report-only`, parent invocation or delegation, return next-step recommendations without asking.
+- Choose supported recommendations without a routine next-step question; caller-owned/report-only leaves return them. Keep legal-owner, indispensable facts, actual authority and bounded-extension questions.
 - Honor the protected protocol guides/reminders: evidence and critical thinking, task/report persistence, subagent return envelope, trade-off confirmation or caller handoff, and PAR/SEQ disjoint waves, one message per wave, with an all-return barrier.
 
 **Anti-Rationalization:**

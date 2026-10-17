@@ -125,7 +125,7 @@ Before delivering a generated report:
 
 <!-- PROTOCOL-GUIDES:START -->
 
-> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
+> **Protocol guides** — Apply each protocol only when its read-when condition holds. If a protocol's text is not in your context, read its file below before you act on it.
 
 - `estimation-framework` — Bottom-up estimation with derived effort points and a min-max range; estimating effort → .claude/skills/shared/protocols/estimation-framework.md
 

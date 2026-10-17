@@ -493,7 +493,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:understand-code-first:reminder -->
 
-**IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code/conventions BEFORE any modification or explanation. The code graph is optional advice for high-risk blast radius (a hint that may be stale), never a requirement.
+**IMPORTANT MUST ATTENTION** for code work, read the target and relevant conventions before planning or editing; seek 3+ fitting examples when available and record fewer/none. Do not impose code discovery on work with no code surface. The code graph is optional, stale-able advice for high-risk impact, never a requirement.
 
 <!-- /SYNC:understand-code-first:reminder -->
 

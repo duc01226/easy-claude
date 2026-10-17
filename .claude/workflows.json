@@ -1908,8 +1908,8 @@
           "skill": "scaffold",
           "role": "optional",
           "applicability": {
-            "when": "The new codebase has no foundational abstractions yet.",
-            "skipReason": "Base abstractions already exist and are reused."
+            "when": "One or more applicable planned foundation requirements lack a suitable existing owner in the selected boundary.",
+            "skipReason": "All applicable planned foundation requirements are covered by suitable existing owners and reused."
           }
         },
         {
@@ -3524,8 +3524,8 @@
           "args": "--mode=review --fix-loop --loop-owner=caller",
           "role": "optional",
           "applicability": {
-            "when": "Domain entity, value-object or aggregate files changed.",
-            "skipReason": "No domain entity, value-object or aggregate files are in the diff; record the inspected paths."
+            "when": "Domain entities, value objects, aggregates or their write/load/event paths are added or changed, including indirect changes through handlers, imports or jobs.",
+            "skipReason": "No domain entity, value-object, aggregate or affected write/load/event path changes; record the inspected paths."
           }
         },
         {
@@ -3719,8 +3719,8 @@
               "args": "--mode=review --review-only",
               "role": "optional",
               "applicability": {
-                "when": "Domain entity, value-object or aggregate files changed.",
-                "skipReason": "No domain entity, value-object or aggregate files are in the diff; record the inspected paths."
+                "when": "Domain entities, value objects, aggregates or their write/load/event paths are added or changed, including indirect changes through handlers, imports or jobs.",
+                "skipReason": "No domain entity, value-object, aggregate or affected write/load/event path changes; record the inspected paths."
               }
             },
             {
@@ -3882,8 +3882,8 @@
               "args": "--mode=review --fix-loop --loop-owner=caller",
               "role": "optional",
               "applicability": {
-                "when": "Domain entity, value-object or aggregate files changed.",
-                "skipReason": "No domain entity, value-object or aggregate files are in the diff; record the inspected paths."
+                "when": "Domain entities, value objects, aggregates or their write/load/event paths are added or changed, including indirect changes through handlers, imports or jobs.",
+                "skipReason": "No domain entity, value-object, aggregate or affected write/load/event path changes; record the inspected paths."
               }
             },
             {

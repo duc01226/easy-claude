@@ -9,6 +9,125 @@
 
 ---
 
+## Contents
+
+| Protocol | Full rule | Closing reminder |
+| --- | --- | --- |
+| `understand-code-first` | [Rule](#syncunderstand-code-first) | [Reminder](#syncunderstand-code-firstreminder) |
+| `evidence-based-reasoning` | [Rule](#syncevidence-based-reasoning) | [Reminder](#syncevidence-based-reasoningreminder) |
+| `estimation-framework` | [Rule](#syncestimation-framework) | [Reminder](#syncestimation-frameworkreminder) |
+| `ui-system-context` | [Rule](#syncui-system-context) | [Reminder](#syncui-system-contextreminder) |
+| `existing-ui-research` | [Rule](#syncexisting-ui-research) | — |
+| `ui-ux-design-principles` | [Rule](#syncui-ux-design-principles) | [Reminder](#syncui-ux-design-principlesreminder) |
+| `plan-quality` | [Rule](#syncplan-quality) | [Reminder](#syncplan-qualityreminder) |
+| `ai-sdd-artifact-contract` | [Rule](#syncai-sdd-artifact-contract) | [Reminder](#syncai-sdd-artifact-contractreminder) |
+| `rationalization-prevention` | [Rule](#syncrationalization-prevention) | [Reminder](#syncrationalization-preventionreminder) |
+| `output-quality-principles` | [Rule](#syncoutput-quality-principles) | [Reminder](#syncoutput-quality-principlesreminder) |
+| `graph-assisted-investigation` | [Rule](#syncgraph-assisted-investigation) | [Reminder](#syncgraph-assisted-investigationreminder) |
+| `cross-service-check` | [Rule](#synccross-service-check) | [Reminder](#synccross-service-checkreminder) |
+| `cross-stack-impact-trace` | [Rule](#synccross-stack-impact-trace) | [Reminder](#synccross-stack-impact-tracereminder) |
+| `root-cause-debugging` | [Rule](#syncroot-cause-debugging) | — |
+| `end-to-start-debugger-trace` | [Rule](#syncend-to-start-debugger-trace) | [Reminder](#syncend-to-start-debugger-tracereminder) |
+| `environment-fault-hypothesis` | [Rule](#syncenvironment-fault-hypothesis) | [Reminder](#syncenvironment-fault-hypothesisreminder) |
+| `scan-and-update-reference-doc` | [Rule](#syncscan-and-update-reference-doc) | [Reminder](#syncscan-and-update-reference-docreminder) |
+| `red-flag-stop-conditions` | [Rule](#syncred-flag-stop-conditions) | [Reminder](#syncred-flag-stop-conditionsreminder) |
+| `review-policy` | [Rule](#syncreview-policy) | [Reminder](#syncreview-policyreminder) |
+| `logic-and-intention-review` | [Rule](#synclogic-and-intention-review) | [Reminder](#synclogic-and-intention-reviewreminder) |
+| `behavioral-delta-matrix` | [Rule](#syncbehavioral-delta-matrix) | — |
+| `bug-detection` | [Rule](#syncbug-detection) | [Reminder](#syncbug-detectionreminder) |
+| `test-spec-verification` | [Rule](#synctest-spec-verification) | [Reminder](#synctest-spec-verificationreminder) |
+| `integration-test-sync-check` | [Rule](#syncintegration-test-sync-check) | [Reminder](#syncintegration-test-sync-checkreminder) |
+| `translation-sync-check` | [Rule](#synctranslation-sync-check) | [Reminder](#synctranslation-sync-checkreminder) |
+| `domain-entity-change-gate` | [Rule](#syncdomain-entity-change-gate) | [Reminder](#syncdomain-entity-change-gatereminder) |
+| `integration-test-execution-discipline` | [Rule](#syncintegration-test-execution-discipline) | — |
+| `iterative-phase-quality` | [Rule](#synciterative-phase-quality) | — |
+| `design-patterns-quality` | [Rule](#syncdesign-patterns-quality) | [Reminder](#syncdesign-patterns-qualityreminder) |
+| `complexity-prevention` | [Rule](#synccomplexity-prevention) | [Reminder](#synccomplexity-preventionreminder) |
+| `core-engineering-principles` | [Rule](#synccore-engineering-principles) | [Reminder](#synccore-engineering-principlesreminder) |
+| `plan-granularity` | [Rule](#syncplan-granularity) | [Reminder](#syncplan-granularityreminder) |
+| `preservation-inventory` | [Rule](#syncpreservation-inventory) | — |
+| `cross-cutting-quality` | [Rule](#synccross-cutting-quality) | — |
+| `scaffold-production-readiness` | [Rule](#syncscaffold-production-readiness) | [Reminder](#syncscaffold-production-readinessreminder) |
+| `measured-capacity-engineering` | [Rule](#syncmeasured-capacity-engineering) | [Reminder](#syncmeasured-capacity-engineeringreminder) |
+| `scale-technique-gate` | [Rule](#syncscale-technique-gate) | [Reminder](#syncscale-technique-gatereminder) |
+| `scenario-stress-eval` | [Rule](#syncscenario-stress-eval) | [Reminder](#syncscenario-stress-evalreminder) |
+| `engineering-foundation-gate` | [Rule](#syncengineering-foundation-gate) | [Reminder](#syncengineering-foundation-gatereminder) |
+| `scale-ready-foundation` | [Rule](#syncscale-ready-foundation) | [Reminder](#syncscale-ready-foundationreminder) |
+| `ai-agent-as-user-access` | [Rule](#syncai-agent-as-user-access) | [Reminder](#syncai-agent-as-user-accessreminder) |
+| `review-decision-autonomy` | [Rule](#syncreview-decision-autonomy) | [Reminder](#syncreview-decision-autonomyreminder) |
+| `review-principle-awareness` | [Rule](#syncreview-principle-awareness) | [Reminder](#syncreview-principle-awarenessreminder) |
+| `harness-setup` | [Rule](#syncharness-setup) | — |
+| `web-research` | [Rule](#syncweb-research) | [Reminder](#syncweb-researchreminder) |
+| `graph-impact-analysis` | [Rule](#syncgraph-impact-analysis) | [Reminder](#syncgraph-impact-analysisreminder) |
+| `ui-wireframe` | [Rule](#syncui-wireframe) | — |
+| `ui-wireframe-protocol` | [Rule](#syncui-wireframe-protocol) | [Reminder](#syncui-wireframe-protocolreminder) |
+| `knowledge-graph-template` | [Rule](#syncknowledge-graph-template) | [Reminder](#syncknowledge-graph-templatereminder) |
+| `module-detection` | [Rule](#syncmodule-detection) | — |
+| `ba-team-decision-model` | [Rule](#syncba-team-decision-model) | — |
+| `refinement-dor-checklist` | [Rule](#syncrefinement-dor-checklist) | — |
+| `design-system-check` | [Rule](#syncdesign-system-check) | — |
+| `project-reference-docs-guide` | [Rule](#syncproject-reference-docs-guide) | — |
+| `project-protocol-overlay` | [Rule](#syncproject-protocol-overlay) | — |
+| `shared-protocol-duplication-policy` | [Rule](#syncshared-protocol-duplication-policy) | [Reminder](#syncshared-protocol-duplication-policyreminder) |
+| `review-protocol-injection` | [Rule](#syncreview-protocol-injection) | — |
+| `spec-tests-code-triangulation` | [Rule](#syncspec-tests-code-triangulation) | — |
+| `repeatable-test-principle` | [Rule](#syncrepeatable-test-principle) | — |
+| `test-data-isolation` | [Rule](#synctest-data-isolation) | — |
+| `real-world-fidelity-testing` | [Rule](#syncreal-world-fidelity-testing) | — |
+| `experience-acceptance-contract` | [Rule](#syncexperience-acceptance-contract) | [Reminder](#syncexperience-acceptance-contractreminder) |
+| `e2e-visual-design-contract` | [Rule](#synce2e-visual-design-contract) | [Reminder](#synce2e-visual-design-contractreminder) |
+| `test-architecture-execution-contract` | [Rule](#synctest-architecture-execution-contract) | [Reminder](#synctest-architecture-execution-contractreminder) |
+| `fix-layer-accountability` | [Rule](#syncfix-layer-accountability) | [Reminder](#syncfix-layer-accountabilityreminder) |
+| `context-engineering-principles` | [Rule](#synccontext-engineering-principles) | — |
+| `prompt-enhancement-transforms-base` | [Rule](#syncprompt-enhancement-transforms-base) | — |
+| `category-review-thinking` | [Rule](#synccategory-review-thinking) | [Reminder](#synccategory-review-thinkingreminder) |
+| `whole-diff-correctness` | [Rule](#syncwhole-diff-correctness) | [Reminder](#syncwhole-diff-correctnessreminder) |
+| `systematic-review-batching` | [Rule](#syncsystematic-review-batching) | [Reminder](#syncsystematic-review-batchingreminder) |
+| `severity-rubric` | [Rule](#syncseverity-rubric) | [Reminder](#syncseverity-rubricreminder) |
+| `trade-off-interrogation-gate` | [Rule](#synctrade-off-interrogation-gate) | [Reminder](#synctrade-off-interrogation-gatereminder) |
+| `decision-interview` | [Rule](#syncdecision-interview) | [Reminder](#syncdecision-interviewreminder) |
+| `subagent-return-contract` | [Rule](#syncsubagent-return-contract) | [Reminder](#syncsubagent-return-contractreminder) |
+| `incremental-persistence` | [Rule](#syncincremental-persistence) | — |
+| `task-tracking-external-report` | [Rule](#synctask-tracking-external-report) | [Reminder](#synctask-tracking-external-reportreminder) |
+| `workflow-registry-binding` | [Rule](#syncworkflow-registry-binding) | — |
+| `parallel-phase-advancement` | [Rule](#syncparallel-phase-advancement) | — |
+| `critical-thinking-mindset` | [Rule](#synccritical-thinking-mindset) | — |
+| `ai-mistake-prevention` | [Rule](#syncai-mistake-prevention) | — |
+| `discovery-and-first-principles` | [Rule](#syncdiscovery-and-first-principles) | — |
+| `task-planning-rules` | [Rule](#synctask-planning-rules) | — |
+| `artifact-storage` | [Rule](#syncartifact-storage) | — |
+| `workflow-step-advancement` | [Rule](#syncworkflow-step-advancement) | — |
+| `code-responsibility-hierarchy` | [Rule](#synccode-responsibility-hierarchy) | — |
+| `evidence-investigation` | [Rule](#syncevidence-investigation) | — |
+| `canonical-ownership` | [Rule](#synccanonical-ownership) | — |
+| `lesson-extraction-gate` | [Rule](#synclesson-extraction-gate) | — |
+| `quality-skill-routing` | [Rule](#syncquality-skill-routing) | [Reminder](#syncquality-skill-routingreminder) |
+| `universal-closing-reminders` | [Rule](#syncuniversal-closing-reminders) | — |
+| `agent-bootstrap` | [Rule](#syncagent-bootstrap) | — |
+| `agent-code-standards` | [Rule](#syncagent-code-standards) | — |
+| `verify-last-order` | [Rule](#syncverify-last-order) | [Reminder](#syncverify-last-orderreminder) |
+| `source-test-drift-check` | [Rule](#syncsource-test-drift-check) | [Reminder](#syncsource-test-drift-checkreminder) |
+| `tc-test-join-evidence` | [Rule](#synctc-test-join-evidence) | — |
+| `spec-drift-adjudication` | [Rule](#syncspec-drift-adjudication) | — |
+| `test-failure-fault-adjudication` | [Rule](#synctest-failure-fault-adjudication) | — |
+| `spec-loop-discipline` | [Rule](#syncspec-loop-discipline) | — |
+| `sub-agent-selection` | [Rule](#syncsub-agent-selection) | — |
+| `sequential-thinking-protocol` | [Rule](#syncsequential-thinking-protocol) | [Reminder](#syncsequential-thinking-protocolreminder) |
+| `goal-contract-satisfaction-loop` | [Rule](#syncgoal-contract-satisfaction-loop) | [Reminder](#syncgoal-contract-satisfaction-loopreminder) |
+| `session-goal-ledger` | [Rule](#syncsession-goal-ledger) | [Reminder](#syncsession-goal-ledgerreminder) |
+| `judgement-integrity` | [Rule](#syncjudgement-integrity) | [Reminder](#syncjudgement-integrityreminder) |
+| `ui-intent-layer` | [Rule](#syncui-intent-layer) | [Reminder](#syncui-intent-layerreminder) |
+| `ui-intent-layer:full` | [Rule](#syncui-intent-layerfull) | — |
+| `design-distinctiveness-gate` | [Rule](#syncdesign-distinctiveness-gate) | [Reminder](#syncdesign-distinctiveness-gatereminder) |
+| `ui-copywriting` | [Rule](#syncui-copywriting) | [Reminder](#syncui-copywritingreminder) |
+| `design-review-checklist` | [Rule](#syncdesign-review-checklist) | [Reminder](#syncdesign-review-checklistreminder) |
+| `ux-journey-gate` | [Rule](#syncux-journey-gate) | [Reminder](#syncux-journey-gatereminder) |
+| `ai-feature-framing-gate` | [Rule](#syncai-feature-framing-gate) | [Reminder](#syncai-feature-framing-gatereminder) |
+| `ai-engineering-gate` | [Rule](#syncai-engineering-gate) | [Reminder](#syncai-engineering-gatereminder) |
+| `ai-review-checklist` | [Rule](#syncai-review-checklist) | [Reminder](#syncai-review-checklistreminder) |
+| `concise-agent-core` | [Rule](#syncconcise-agent-core) | — |
+| `concise-workflow-route` | [Rule](#syncconcise-workflow-route) | — |
+
 ## SYNC:understand-code-first
 
 > **Understand Existing Code First** — For code changes, read and trace the target before planning or editing; do not apply a code workflow to work with no code surface.
@@ -27,7 +146,7 @@
 
 ## SYNC:understand-code-first:reminder
 
-**IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code/conventions BEFORE any modification or explanation. The code graph is optional advice for high-risk blast radius (a hint that may be stale), never a requirement.
+**IMPORTANT MUST ATTENTION** for code work, read the target and relevant conventions before planning or editing; seek 3+ fitting examples when available and record fewer/none. Do not impose code discovery on work with no code surface. The code graph is optional, stale-able advice for high-risk impact, never a requirement.
 
 ---
 
@@ -439,12 +558,18 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 > - Keep actionable numbers, required structures and a short example when it clarifies a necessary distinction. Do not impose universal example or warning quotas.
 > - For agent guidance, review both excess detail and over-compression. Word reduction alone is not quality proof.
 > - Honor the requested report/registry format; put remaining questions and limitations where the reader can act on them.
+>
+> **Long-file navigation — Markdown content work only.** When creating, updating or auditing a Markdown skill/document over **200 physical lines**, require a linked `## Contents` near the top: after the title and short purpose/critical-rules summary, before detailed instructions, within the first 100 lines. In `SKILL.md`, place it directly after Quick Summary. Preserve stricter owner rules, including the skill validator's existing over-100-line threshold; 200 lines is a navigation trigger, never a length cap or a reason to pad shorter files. Running tests, listing/querying records or reading docs alone does not trigger this check.
+>
+> - List real section headings in document order with descriptive labels and working local anchors, including duplicate-heading suffixes. Cover all main sections; include deeper headings when needed to locate modes, procedures or decision rules. Exclude the contents heading itself and headings inside fenced examples; avoid an exhaustive subheading dump.
+> - After the final edit/enhancement, recount lines and verify placement, heading coverage, order and every link. Refresh the list after adding, renaming, moving or removing sections; preserve a useful existing list in shorter files. For generated files, change the owning source/generator and regenerate.
+> - Writers repair missing/stale contents within their authorized scope before handoff. Read-only audits report the exact file and missing/stale navigation without writing; do not mark that check passed. A contents list helps discovery, never replaces reading required content.
 
 ---
 
 ## SYNC:output-quality-principles:reminder
 
-**IMPORTANT MUST ATTENTION** lead with useful guidance and readable priorities; preserve action-changing conditions/numbers and required structures. Remove report bulk from guides, use verified discovery, and judge semantic value rather than word or warning counts.
+**IMPORTANT MUST ATTENTION** lead with useful guidance and readable priorities; preserve action-changing conditions/numbers and required structures. When writing, updating or auditing Markdown skill/doc content, verify top, heading-linked contents over 200 lines (stricter owner thresholds remain); refresh after edits and report gaps in read-only audits. Remove report bulk; judge semantic value rather than word counts.
 
 ---
 
@@ -559,7 +684,7 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 
 ## SYNC:end-to-start-debugger-trace:reminder
 
-**IMPORTANT MUST ATTENTION** debugger trace gate: for non-trivial bug/fix/investigation/review work, start at the observed final output and trace backward through reader -> storage/projection -> writer -> consumer/job -> producer/trigger. Enumerate all feeder paths and hypotheses before fixing; select the authoritative invariant owner from project architecture and retain validation at untrusted boundaries. **BLOCKED until** trace, hypothesis matrix, owning fix layer, and forward convergence proof exist.
+**IMPORTANT MUST ATTENTION** for non-trivial bugs, failed verification, regression fixes, behavior-changing code or unclear code flow, trace backward from the observed output through every feeder path before fixing. Establish hypotheses, the authoritative invariant owner and forward proof; retain validation at untrusted boundaries. Ordinary artifact review or graph lookup alone does not trigger a debugging workflow.
 
 ---
 
@@ -791,52 +916,23 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 
 ## SYNC:domain-entity-change-gate
 
-> **Domain Entity Change Gate** — ONE DDD-specific protocol binding every skill or agent that PLANS, IMPLEMENTS, or REVIEWS a change to a domain entity, value object, or aggregate in a model that uses DDD tactical patterns or an evidenced equivalent. First inspect the project's domain model and accepted architecture. If neither uses that model, record `DDD-specific gate N/A — project model: <evidence>`; still apply the project's normal ownership, invariant, assertion-backed test, and evidence rules. `$domain-analysis --mode=review` is the canonical owner of the full A–P checklist; this gate is the shared trigger plus the decisions that must be answered when applicable. NEVER re-derive a weaker local copy — why: when planning and review disagree on entity rules, the plan ships a design that review then rejects, and the rework is paid twice.
+> **Domain Entity Change Gate** — Preserve valid business state and cheap, provable domain changes across planning, implementation and review.
 >
-> **Trigger — after DDD applicability is established, fires when ANY holds:** a new entity / value object / aggregate root is introduced · an existing one gains or loses a field, invariant, relationship, or state transition · an aggregate boundary, repository, or cross-aggregate reference changes · a domain event is added, renamed, or re-payloaded · a concurrency or reconstitution concern on a root changes. State `No domain-entity surface — gate N/A` when none holds.
+> **Trigger:** new or changed entities, value objects, aggregates, or their fields, invariants, relationships, write/load/event paths. Inspect semantics and accepted architecture; DTO/config filenames alone do not qualify. No surface → `No domain-entity surface — gate N/A`.
 >
-> **Step 1 — Detect BEFORE deciding.** Both answers change which rules even apply:
+> **Read only when triggered:** `.claude/skills/domain-analysis/references/entity-quality.md` owns fit, six decisions, quality dimensions and proof. Detect paradigm/subdomain first; non-DDD/CRUD uses normal invariant ownership with an evidence-backed DDD-specific N/A. Never impose rich models, inheritance, repositories or events without a domain need.
 >
-> - **Paradigm** (per aggregate, from the code — NEVER assumed): OO-mutable · type-driven/immutable · event-sourced. Setter, mutability, and reconstitution rules are written for OO-mutable; applying them to the other two manufactures false findings and false plan tasks.
-> - **Subdomain fit:** core (rich model owed) · supporting (Active Record or light model) · generic (buy, do not model) · CRUD (Transaction Script — a rich entity here is ceremony). NEVER plan or flag a rich model where the subdomain has no invariant beyond required-field.
+> **Feedforward → feedback:** plan the applicable classification, invariants/failures, consistency/concurrency, creation/load/evolution, events/dependencies and test proof with owners and acceptance gates; implementation follows them through bypass paths; review checks the same decisions against source and assertions. Missing material decisions block edits; unavailable required proof blocks completion. Direct fixes use a brief pre-edit record, not a new planning ceremony.
 >
-> **Step 2 — Answer all 6 decision points.** Each is a decision the change MUST make explicitly:
+> **One review owner:** `$domain-analysis --mode=review` is the canonical owner of the full A–P checklist and consumes the same quality reference. Apply inline for focused work; route specialist depth by risk/uncertainty, not entity-file count. The running skill IS `$domain-analysis --mode=review` → `Gate is this skill's own body — A–P checklist owns it.` Under `workflow-review-changes`, defer to `domain-entities-design-review`; terminal `why-review --validate-findings` makes no sub-skill calls. Leaves return gaps without fan-out.
 >
-> | # | Decision point | Answered when |
-> | - | -------------- | ------------- |
-> | 1 | **Classification** — entity vs value object vs aggregate root | The swap test is applied ("would an identical copy be interchangeable?"); a VO is immutable with structural equality and has no repository |
-> | 2 | **Invariant ownership** — entity owns "can this state exist?", the boundary owns "is this input acceptable?" | Each rule is placed on one side and named; failure signalling (throw vs `Result`) matches the project convention consistently; a DB constraint is a backstop, NEVER the rule |
-> | 3 | **Aggregate boundary + concurrency** | Only true always-consistent invariants share an aggregate; cross-aggregate references are by ID; one aggregate mutates per transaction; the ROOT carries the concurrency token; set-based invariants (uniqueness across instances) name a real enforcing mechanism, never an in-memory check |
-> | 4 | **Construction vs reconstitution** | Creation and load are separate paths; the load path raises NO domain events and re-runs NO creation rules; required data sits in the constructor/factory |
-> | 5 | **Events** | Raised inside the aggregate; dispatched AFTER commit (outbox when crossing a process); internal domain events kept distinct from published integration contracts; handlers idempotent |
-> | 6 | **Test obligation** | Every applicable invariant is named and protected by an executing assertion in the project's native test format, with property and boundary-countercase coverage where applicable; GWT is optional. A valid `specArtifacts` profile supplies case identity/carriers; use property TCs only when the profile is absent. A malformed declared profile blocks; a happy-path example alone is NOT coverage |
->
-> **Step 3 — Apply by context.** Same decisions, different obligation:
->
-> | Calling context | Obligation |
-> | --------------- | ---------- |
-> | **Planning** (`$plan`) | The plan MUST name the decision and the owning file for every triggered row. An unanswered row is a plan that is not executable — surface it, do NOT let implementation discover it. |
-> | **Plan review** (`$plan --mode=review`) | An unanswered, hand-waved, or deferred-to-implementation row is a FINDING with `file:line` into the plan. Presence of the word "entity" is NEVER an answer. |
-> | **Implementation** (`$plan --mode=execute`, `$fix`, and any implementing agent — e.g. `backend-developer`) | The decisions are INPUTS, not questions to reopen: implement each triggered row as the plan/spec decided it, at the owning file it named. A row that arrives UNANSWERED is a blocker — surface it and get it decided; NEVER settle it silently at the keyboard, and NEVER pick an aggregate boundary from a DB table or UI screen because the plan left it open. Paradigm and subdomain fit still gate which rules apply. |
-> | **Change review** (`$changes-review`) | Route to the owner — **Mode A (default):** read `$domain-analysis --mode=review`'s Phase 2 A–P checklist and apply it as review lenses. **Mode B (escalation):** delegate to `$domain-analysis --mode=review` when standalone AND the diff carries 3+ entity files. Findings enter the normal finding set with `file:line` + severity. |
->
-> **Duplication guard — SKIP the gate entirely when ANY row holds.** Record the deferral line, then proceed:
->
-> | Suppressing context | Deferral line |
-> | ------------------- | ------------- |
-> | The running skill IS `$domain-analysis --mode=review` | `Gate is this skill's own body — A–P checklist owns it.` |
-> | Invoked inside `$workflow-review-changes` (its step 4 runs `$domain-analysis --mode=review` as a dedicated conditional parallel member) | `Gate deferred to workflow step 4 $domain-analysis --mode=review.` |
-> | `$why-review` running in `--validate-findings` terminal mode | `Gate N/A — validate-findings is terminal, no sub-skill calls.` |
->
-> — why: unguarded, this edge duplicates a review the parent workflow already runs and closes a `changes-review → domain-analysis --mode=review → why-review → changes-review` cycle.
->
-> **BLOCKED until:** DDD applicability evaluated with project evidence (or the DDD-specific gate is recorded N/A) · if applicable, trigger evaluated (or `gate N/A` recorded), paradigm + subdomain fit stated, all 6 triggered decision points answered or raised as findings, and guard row checked before any delegation.
+> **Gate:** relevance/fit evidenced · applicable decisions owned · success/rejection proof named (actual verified proof for completed implementation) · no duplicate pass. Preserve existing scope, modes and authority.
 
 ---
 
 ## SYNC:domain-entity-change-gate:reminder
 
-**MUST ATTENTION** when a changed model uses DDD tactical patterns or an evidenced equivalent, apply the **Domain Entity Change Gate** — `$domain-analysis --mode=review` owns the full A–P checklist; detect paradigm + subdomain fit FIRST, then answer all 6 applicable decisions (classification · invariant ownership + failure signalling · aggregate boundary + concurrency · construction vs reconstitution · events · assertion-backed native test obligation). Use property TCs only under the absent-profile default; a malformed declared `specArtifacts` profile blocks without fallback. When the project does not use this model, record the DDD-specific gate N/A and still protect actual invariants and outcomes through the configured owner. Planning must NAME each applicable decision; plan review treats an unanswered row as a FINDING; change review routes to the owner (Mode A read / Mode B delegate). SKIP under the 3-row duplication guard and record the deferral line. — why: one protocol shared by planner and reviewer is what stops a plan shipping an entity design that review then rejects.
+**MUST ATTENTION** only for relevant entity/VO/aggregate changes, read `domain-analysis/references/entity-quality.md`: establish fit → plan owned decisions/proof → implement through all write/load paths → review the same rules. Keep simple models simple; unresolved material decisions or required proof block. Use one caller-owned review pass.
 
 ---
 
@@ -1365,7 +1461,7 @@ Assess quality, error handling, async interaction, runtime/deployment, and integ
 > | --- | --- |
 > | investigate, explain, plan, design, estimate | `project-structure-reference.md`, `domain-entities-reference.md`, plus the edit-row docs for every file type the plan will touch |
 > | edit or write code | `code-review-rules.md`, plus server-side / non-UI code → `backend-patterns-reference.md`; UI → `frontend-patterns-reference.md`, `scss-styling-guide.md`, `design-system/README.md` |
-> | write, run, fix, or review tests or test data | the matching kind: `integration-test-reference.md` · `e2e-test-reference.md` · `seed-test-data-reference.md` |
+> | plan, write, run, fix, or review tests or test data | the matching kind: `integration-test-reference.md` · `e2e-test-reference.md` · `performance-test-reference.md` · `seed-test-data-reference.md`; performance work reads the project's workload/SLO, data, hardware, harness, commands and evidence preferences before choosing tools or targets |
 > | author or change specs, test cases, or docs | `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`; `workflow-spec-test-code-cycle-reference.md` when specs, tests, and code must stay in sync |
 > | review a diff, plan, spec, or artifact | `code-review-rules.md`, plus the edit/test/spec-row docs for every file type under review |
 >
@@ -1391,7 +1487,8 @@ Assess quality, error handling, async interaction, runtime/deployment, and integ
 
 > **Shared Protocol Duplication Policy** — Author shared protocols only in `.claude/skills/shared/sync-inline-versions.md`; every other copy is a generated projection.
 >
-> - **Guides:** skill entrypoints, including `changes-review`, `code-quality-review`, `why-review` and `workflow-review-changes`, carry one `PROTOCOL-GUIDES` line per applicable protocol: tag, summary, read-when trigger and published path. Hooks deliver full text from `.claude/skills/shared/protocols/`; if the text is absent from the current context, read the published file before acting. Delivery overflow names the unread full sources; it never permits omission. Keep role-protocol `:reminder` digests in every carrier. The registry's `inlineSkills` list is empty; a future full-body exception requires an explicit owner decision.
+> - **Applicability:** adopt a protocol only for an evidenced procedure or mode. Keep conditional detail behind its read-when guide and delivery trigger in `protocol-groups.json`, or its selected mode/type reference. Ordinary test runs, list/help operations and non-UI artifacts do not load unrelated doc-authoring, debugging or UI depth. Preserve applicable gates, role reminders and full reviewer-template obligations.
+> - **Guides:** skill entrypoints, including `changes-review`, `code-quality-review`, `why-review` and `workflow-review-changes`, carry one `PROTOCOL-GUIDES` line per applicable protocol: tag, summary, read-when trigger and published path. Hooks deliver applicable full text from `.claude/skills/shared/protocols/`; when an applicable rule is absent from the current context, read its published file before acting. Delivery overflow names the unread full sources; it never permits omission. Keep role-protocol `:reminder` digests in every carrier. The registry's `inlineSkills` list is empty; a future full-body exception requires an explicit owner decision.
 > - **Full-text carriers:** agents retain full role protocols and are never converted to guides. Mode-only `references/*.md` load first on mode entry and retain their SYNC bodies. Copy the complete `SYNC:review-protocol-injection` template, with all 11 full protocol bodies, VERBATIM into every fresh reviewer prompt; never substitute guide lines, tags or a read pointer. A guide entrypoint changes discovery, not review gates or dispatch obligations.
 > - **Universal:** the registry's `universal` group is hook-only, including for agents. Its `bins` are at most 9,500 characters, delivered on the first prompt, after about 150K tokens or compaction, and at every sub-agent start. Skills, agents, roots and mirrors carry no universal body, reminder, guide or pointer. Roots hold project information only; hosts without hooks are unsupported.
 >

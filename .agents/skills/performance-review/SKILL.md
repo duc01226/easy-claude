@@ -53,7 +53,7 @@ description: '[Debugging] Use when a workflow step or the user asks for performa
 
 <!-- PROTOCOL-GUIDES:START -->
 
-> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
+> **Protocol guides** — Apply each protocol only when its read-when condition holds. If a protocol's text is not in your context, read its file below before you act on it.
 
 - `category-review-thinking` — Derive review concerns per category of changed files from domain knowledge; reviewing a changeset that spans several file categories → .claude/skills/shared/protocols/category-review-thinking.md
 - `goal-contract-satisfaction-loop` — Save the goal in a file and loop until every saved criterion passes; executing work against a user goal → .claude/skills/shared/protocols/goal-contract-satisfaction-loop.md
@@ -134,7 +134,7 @@ Classify before analysis. Detection drives dimensions, evidence, sub-agent choic
 | Runtime/GC          | latency spikes uncorrelated with load, pauses, RSS growth, blocked event loop                    | GC log/pause histogram, allocation rate, RSS vs heap, thread states, event-loop lag             |
 | Resilience/load     | retry storm, no timeout, unbounded queue, cold-start blip, one tenant degrades all               | timeout/retry config, queue depth AND age, breaker state, per-tenant rate limits                |
 
-Skip reason allowed only when target explicitly narrows scope and evidence proves dimension irrelevant.
+Check applicability for all 12 dimensions; skip a dimension when project configuration and inspected paths prove its surface absent or outside the selected scope. Record the evidence; do not invent dependencies or setup to fill an inapplicable dimension.
 
 **Triage accelerator (symptom → usual cause).** MUST ATTENTION use the symptom→cause matrix in `references/performance-knowledge.md` §3 to pick the FIRST evidence to pull — it maps signatures AI habitually misreads, e.g. `p99 bad + p50 fine` → GC pause / lock contention / fan-out tail / cold cache (NOT a slow query); `latency scales with result size` → N+1; `sudden cliff at some load` → utilization knee or pool exhaustion; `degrades over days, fine after restart` → leak/bloat/connection leak; `slow for one tenant only` → hot key/partition skew. NEVER let the matrix replace evidence — it orders the hypotheses, Phase 2 proves one.
 
@@ -182,7 +182,7 @@ MANDATORY discovery before findings (MUST ATTENTION):
 - map callers and frequency using available graph/call-trace/profiler tools; if none exist, use grep/import/call hierarchy. Optional: when the hot-path fan-out is hard to see by grep and `.code-graph/graph.db` exists, a graph blast-radius pass (`trace --direction downstream` on the hot path) can hint at the fan-out (it may be stale — verify by reading) — see the Graph-Assisted Investigation advice below.
 - identify data shape: tenant/security-review filters, cardinality, expected max rows, selected columns/fields, sort, joins, aggregation/grouping, cache keys, partition/shard key, primary vs replica routing.
 - ALWAYS discover the local **SLA/budget** (latency target, page-size cap, throughput/SLO) before judging any number — the local budget outranks every anchor in `references/performance-knowledge.md`.
-- ALWAYS read the local resilience + delivery configuration the new dimensions rest on: HTTP client/keep-alive and pool settings, timeout/retry/breaker policy, queue and consumer bounds, rate limits, GC/runtime and container memory limits, CDN/asset caching headers, and whatever RUM/field-metrics source exists.
+- Read the local configuration used by the inspected path: runtime/memory settings and, where present, HTTP/connection pools, timeout/retry/breaker policy, queue/consumer bounds, rate limits, container limits, CDN/assets or field metrics. Record absent surfaces as N/A; a CPU-only utility need not acquire service or database configuration.
 - NEVER hardcode project names, repository paths, ID formats, DB engines, ORMs, runtime/GC flags, HTTP clients, or framework defaults; derive every one from discovered files.
 
 ---
@@ -217,9 +217,9 @@ MANDATORY baseline for saturation/pooling findings:
 MANDATORY calibration + measurement rigor on EVERY baseline (`references/performance-knowledge.md` §1-2, §10):
 
 - ALWAYS state which anchor the number violates (ladder rung, utilization knee, CWV threshold, hit-ratio target) — a raw number with no anchor cannot carry a severity.
-- ALWAYS report distributions, never means: p50/p90/p99/p99.9 + max, segmented by endpoint/tenant/region. NEVER average percentiles across instances or windows — aggregate histograms instead.
-- ALWAYS name the load model behind any throughput/latency number: open-model (arrival-rate) exposes queueing collapse, closed-model (fixed VUs) can reduce offered demand as responses slow; flag suspected **coordinated omission** when a tool reports an implausibly clean tail.
-- ALWAYS state data volume and cache state of the measurement — toy data or warm-only results cannot establish production or cold-cache capacity; use soak/endurance to expose leaks, fragmentation, and bloat. **Produce that volume with the project's seeder** — `seed-test-data` exposes a configurable count built for exactly this (self-test the cases AND enrich volume); measure at ≥2 volumes ~10× apart so a super-linear curve is visible, and demand realistic **shape** (distribution, cardinality, skew), since uniform rows hide the skew that breaks real hot paths.
+- Report sample count, repetitions and meaningful distributions; do not hide tails behind a mean. Segment by the workload dimensions that exist (such as endpoint/tenant/region in a service). NEVER average percentiles across instances or windows — aggregate histograms instead; do not invent segments for a CPU-only benchmark.
+- For concurrent request/load measurements, disclose the load model: open arrival-rate versus closed fixed-user demand, offered/achieved work and possible coordinated omission. For a compute microbenchmark, disclose input shape, iteration/repetition and timing method instead; do not present it as system capacity.
+- State input/data volume and relevant cache state. For growth comparisons use representative and worst-case sizes with realistic shape/skew; a roughly 10× comparison can expose super-linear work. Persistent-data tests reuse the project’s supported seed/fixture owner; compute-only tests generate valid inputs without a database/seeder. Capacity/leak claims require the applicable cold-state or soak evidence; toy or warm-only data cannot establish those claims.
 - ALWAYS warm up (JIT + caches), measure steady state, repeat, and name the environment before comparing to a baseline; NEVER present a microbenchmark as system behavior.
 - NEVER quote an anchor from the reference as a project requirement — local SLA/spec/config wins; the anchor calibrates, it does not govern.
 
@@ -565,6 +565,8 @@ MANDATORY final report sections:
 
 If evidence insufficient, output: `Insufficient evidence. Verified: [...]. Not verified: [...]. Next evidence needed: [...].`
 
+**Optional performance-test handoff:** when missing repeatable workload/query/memory evidence would benefit this scope, include a hint to `$performance-test --mode=write <scope>`. Read [the handoff contract](../performance-test/SKILL.md#optional-handoff-from-system-reviews) when offering it: an interactive owner may ask whether to write tests; report-only/caller-owned leaves only return the suggestion. An affirmative authorizes writing plus static review, never execution. Do not automatically initialize, write or verify tests from a review.
+
 ---
 
 <!-- SYNC:systematic-review-batching:reminder -->
@@ -641,7 +643,7 @@ If evidence insufficient, output: `Insufficient evidence. Verified: [...]. Not v
 **IMPORTANT MUST ATTENTION — Main steps:** Detect scope and symptom→cause triage → discover local context and 3+ patterns → baseline evidence and calibrate anchors → run 12 serial dimension passes → order findings by severity → plan the smallest behavior-preserving optimization → validate findings with `$why-review --validate-findings` → fix only validated findings that block the current round and restart the full Phase-0 review (Round 1: all severities; Round 2: CRITICAL/HIGH/MEDIUM; LOW-only deferred; binary gates always block).
 
 - **Evidence and calibration:** measure before/after or label `static risk` with an exact verification command. Read `references/performance-knowledge.md` before severity or anchor comparisons; local SLA/spec wins. An anchor breach is a hypothesis requiring local proof. Apply the confidence table in Phase 2.
-- **Coverage:** run all 12 dimensions serially; skip only with explicit scope narrowing and evidence. Count `call count × RTT`, verify connection reuse, and inspect runtime/GC and resilience alongside data access and compute.
+- **Coverage:** check all 12 dimensions serially and record evidence-backed N/A for absent or out-of-scope surfaces. Inspect actual runtime/dependencies; count calls × RTT, connection reuse and resilience where those paths exist.
 - **Hot paths:** reduce rows at the source before projection/caching, bound result sets and memory, verify index usability with query shape and plan/explain, prove worst-case complexity, and batch or use safe bounded parallelism.
 - **Measurement:** report segmented distributions, never average percentiles, disclose load model and cache/data state, and measure pool acquire-wait, resource hold-time and fleet dependency budgets. Shorten unnecessary hold-time before growing pools.
 - **Fix authority:** validate findings through `$why-review --validate-findings` before fixing. Restart the full Phase-0 review over the complete target after current-round blocking fixes; retain the LOW deferral exception. Under `--report-only`, return the validated report after Phase 6; the caller owns fixes/re-review.

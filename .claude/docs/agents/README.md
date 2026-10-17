@@ -1,6 +1,20 @@
 # Agents Reference
 
-> 24 specialized subagents for autonomous task execution
+> 25 specialized subagents for autonomous task execution
+
+## Contents
+
+- [Overview](#overview)
+- [Agent Catalog](#agent-catalog)
+- [Agent Usage](#agent-usage)
+- [Agent Selection Guide](#agent-selection-guide)
+- [Agent Configuration](#agent-configuration)
+- [Agent Communication](#agent-communication)
+- [Best Practices](#best-practices)
+- [Agent Model Selection](#agent-model-selection)
+- [Authoring Rule — No Meta-Log](#authoring-rule--no-meta-log)
+- [Quality-Parity with Skills](#quality-parity-with-skills)
+- [Related Documentation](#related-documentation)
 
 ## Overview
 
@@ -46,6 +60,7 @@ Main Claude Session
 | `fullstack-developer` | Execute implementation phases                                          | All tools |
 | `backend-developer`   | Backend features using the project's configured stack and architecture | All tools |
 | `integration-tester`  | Generate integration tests from changes                                | All tools |
+| `performance-tester` | Write/update or statically review performance tests and reusable harnesses through `performance-test`; execution stays with the explicitly authorized caller | All tools |
 | `code-simplifier`     | Simplify code for clarity and maintainability                          | All tools |
 
 ### Quality & Review
@@ -155,6 +170,7 @@ Task({
 | Design system architecture    | `architect`            | ADR creation, cross-service analysis                        |
 | Greenfield project inception  | `solution-architect`   | Tech stack, DDD, project structure                          |
 | Plan E2E test structure       | `e2e-runner`           | Configured test organization and stable accessible locators |
+| Write/update or review performance tests | `performance-tester` | Shared performance-test gates; author/static review only; explicit caller owns runs |
 | Implement from plan           | `fullstack-developer`  | Executes implementation phases                              |
 | Debug failing tests           | `debugger`             | Systematic issue investigation                              |
 | Run and analyze tests         | `tester`               | Test execution and coverage analysis                        |
@@ -367,13 +383,13 @@ Every agent carries the **same role-specific quality protocol** as its twin skil
 
 **Tier model** (enforced by `agent_protocol_matrix.py` `validate()` and the `agent-universal-rules` test suite — `TC-UAR-003..007`):
 
-- **Core-2** universal blocks (`sequential-thinking-protocol`, `agent-bootstrap`) → all 24 agents. The protocols of the `universal` group are not blocks: the universal hook delivers them to every agent, so an agent file holds no body, reminder or pointer for them.
-- **Code-6** blocks (Core-2 plus `understand-code-first`, `evidence-based-reasoning`, `cross-service-check`, `fix-layer-accountability`) → only the 18 code-touching/fixing agents; NEVER a core-only agent (docs-manager, git-manager, journal-writer, knowledge-worker).
+- **Core-2** universal blocks (`sequential-thinking-protocol`, `agent-bootstrap`) → all 25 agents. The protocols of the `universal` group are not blocks: the universal hook delivers them to every agent, so an agent file holds no body, reminder or pointer for them.
+- **Code-6** blocks (Core-2 plus `understand-code-first`, `evidence-based-reasoning`, `cross-service-check`, `fix-layer-accountability`) → only the 19 code-touching/fixing agents; NEVER a core-only agent (docs-manager, git-manager, journal-writer, knowledge-worker).
 - **Readonly-Code-4** blocks (Core-2 plus `understand-code-first`, `evidence-based-reasoning` only) → the 2 read-only/design agents (`researcher`, `ui-ux-designer`) that locate/read/design code but never fix a layer or cross a service boundary; the two mutation-oriented blocks (`cross-service-check`, `fix-layer-accountability`) are deliberately excluded to save tokens.
-- **Code-standards** (`agent-code-standards`) → the 18 agents that author/review code (a separate axis — `researcher`/`ui-ux-designer` read code but don't author it, so they're excluded).
-- **Additive quality blocks** → per the matrix manifest; all 24 agents carry a quality-block row. Operational agents may have an empty additive row when their connected skill has no role-specific SYNC block; `git-manager` carries `SYNC:estimation-framework` through the manifest. Every agent also carries a generated **Connected Skill Contracts** block from `AGENT_SKILL_CONNECTIONS`, which links the prompt to its canonical task-specific skill procedures without blanket-copying orchestrator-only instructions.
+- **Code-standards** (`agent-code-standards`) → the 19 agents that author/review code (a separate axis — `researcher`/`ui-ux-designer` read code but don't author it, so they're excluded).
+- **Additive quality blocks** → per the matrix manifest; all 25 agents carry a quality-block row. Operational agents may have an empty additive row when their connected skill has no role-specific SYNC block; `git-manager` carries `SYNC:estimation-framework` through the manifest. Every agent also carries a generated **Connected Skill Contracts** block from `AGENT_SKILL_CONNECTIONS`, which links the prompt to its canonical task-specific skill procedures without blanket-copying orchestrator-only instructions.
 
-Partition: 18 Code-6 + 2 Readonly-Code-4 + 4 Core-2 = 24 agents (pairwise disjoint).
+Partition: 19 Code-6 + 2 Readonly-Code-4 + 4 Core-2 = 25 agents (pairwise disjoint).
 
 > See [agent-patterns.md](./agent-patterns.md) → _Adding or changing an agent's quality protocol_ for the contributor loop and the `framework-maintainer` orchestration whitelist. Source-side edits land first; mirrors (`.agents/`, `.codex/`, `AGENTS.md`) regenerate via `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs` + `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --verify-only` as a tracked follow-up.
 
@@ -386,4 +402,4 @@ Partition: 18 Code-6 + 2 Readonly-Code-4 + 4 Core-2 = 24 agents (pairwise disjoi
 
 ---
 
-_Source: Task tool system prompt | 24 specialized agent types_
+_Source: Task tool system prompt | 25 specialized agent types_

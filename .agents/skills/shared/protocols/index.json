@@ -435,12 +435,12 @@
       "group": "design",
       "summary": "DDD entity, value object and aggregate change gate",
       "when": "planning, implementing or reviewing a domain model change",
-      "chars": 6431,
+      "chars": 2012,
       "file": ".claude/skills/shared/protocols/domain-entity-change-gate.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/domain-entity-change-gate.md",
-          "chars": 6431
+          "chars": 2012
         }
       ]
     },
@@ -462,7 +462,7 @@
       "tag": "end-to-start-debugger-trace",
       "group": "evidence-trace",
       "summary": "Walk backward from the observed end state through every feeder path before fixing",
-      "when": "fixing a non-trivial bug, a regression or unclear code flow",
+      "when": "investigating non-trivial bugs or failed verification, changing code behavior, or tracing unclear code flow",
       "chars": 2250,
       "file": ".claude/skills/shared/protocols/end-to-start-debugger-trace.md",
       "parts": [
@@ -783,14 +783,14 @@
     {
       "tag": "output-quality-principles",
       "group": "workflow-task",
-      "summary": "Useful, readable guidance without lost conditions",
-      "when": "writing generated docs or reports",
-      "chars": 792,
+      "summary": "Readable guidance and verified contents for long skill/doc files",
+      "when": "writing, updating or auditing a skill or reference document, or another Markdown artifact over 200 lines",
+      "chars": 2375,
       "file": ".claude/skills/shared/protocols/output-quality-principles.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/output-quality-principles.md",
-          "chars": 792
+          "chars": 2375
         }
       ]
     },
@@ -869,12 +869,12 @@
       "group": "universal",
       "summary": "Read the project config and the right reference docs just in time",
       "when": "delivered by the universal hook",
-      "chars": 4778,
+      "chars": 4962,
       "file": ".claude/skills/shared/protocols/project-reference-docs-guide.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/project-reference-docs-guide.md",
-          "chars": 4778
+          "chars": 4962
         }
       ]
     },
@@ -1167,12 +1167,12 @@
       "group": "workflow-task",
       "summary": "Protocol copies in carriers are intentional: edit the canonical source, then propagate",
       "when": "editing a shared protocol or its carriers",
-      "chars": 2164,
+      "chars": 2608,
       "file": ".claude/skills/shared/protocols/shared-protocol-duplication-policy.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/shared-protocol-duplication-policy.md",
-          "chars": 2164
+          "chars": 2608
         }
       ]
     },

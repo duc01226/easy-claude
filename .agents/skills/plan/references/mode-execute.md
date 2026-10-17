@@ -161,6 +161,8 @@ Read plan file completely. Map dependencies. List ambiguities. Read the plan's `
 
 **Goal Contract read (BEFORE any code change):** resolve the active Goal Contract per `SYNC:goal-contract-satisfaction-loop` — active plan `goal.md` → `<plans root>/goals/{YYMMDD-HHmm}-{slug}/goal.md` (plans root default `plans`; a `docsRoots.plans.path` entry in `docs/project-config.json` wins, else `.ck.json` `paths.plans`) → create from the current request via `.claude/templates/goal-contract-template.md` — and read its saved success criteria. After implementation/verification (Step 3+), append an Iteration Log entry with evidence and remaining gaps.
 
+**Domain work:** when a phase creates or updates entities/VOs/aggregates or their write/load paths, read `.claude/skills/domain-analysis/references/entity-quality.md`; check the plan's decisions and proof obligations before edits. Resolve missing material choices at their owner and retain normal invariant review for non-DDD models. Skip this depth for unrelated phases.
+
 **Pre-Implementation Trace Gate:** If the plan is for a bugfix, failed verification, stale/incorrect final output, regression, or behavior-changing fix, MUST ATTENTION verify the plan or referenced analysis includes `Debugger Trace: End -> Start`, all feeder paths, hypothesis matrix, owning fix layer, and forward convergence proof. If missing, STOP and report the missing trace links instead of implementing.
 
 **todo tracking Initialization:**
@@ -340,7 +342,7 @@ Execute every step in declared order; proceed only when validation passes and th
 >
 > If this run is a nested workflow step (`nested=true`, e.g., `workflow-feature`, `workflow-refactor`; a `[Workflow]` row that merely exists in the current task list does not count), skip this — the workflow sequence handles `$changes-review` at the appropriate step.
 
-> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. Keep task depth proportional to the work.
+> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting. This prevents context loss from long files. Keep task depth proportional to the work.
 
 **Prerequisites:** **MUST ATTENTION READ** before executing — every filename below resolves inside the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path):
 
@@ -499,7 +501,7 @@ The protocols below apply to this mode only; their full text is inline so this r
 
 <!-- SYNC:understand-code-first:reminder -->
 
-**IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code/conventions BEFORE any modification or explanation. The code graph is optional advice for high-risk blast radius (a hint that may be stale), never a requirement.
+**IMPORTANT MUST ATTENTION** for code work, read the target and relevant conventions before planning or editing; seek 3+ fitting examples when available and record fewer/none. Do not impose code discovery on work with no code surface. The code graph is optional, stale-able advice for high-risk impact, never a requirement.
 
 <!-- /SYNC:understand-code-first:reminder -->
 
@@ -511,7 +513,7 @@ The protocols below apply to this mode only; their full text is inline so this r
 
 <!-- SYNC:end-to-start-debugger-trace:reminder -->
 
-**IMPORTANT MUST ATTENTION** debugger trace gate: for non-trivial bug/fix/investigation/review work, start at the observed final output and trace backward through reader -> storage/projection -> writer -> consumer/job -> producer/trigger. Enumerate all feeder paths and hypotheses before fixing; select the authoritative invariant owner from project architecture and retain validation at untrusted boundaries. **BLOCKED until** trace, hypothesis matrix, owning fix layer, and forward convergence proof exist.
+**IMPORTANT MUST ATTENTION** for non-trivial bugs, failed verification, regression fixes, behavior-changing code or unclear code flow, trace backward from the observed output through every feeder path before fixing. Establish hypotheses, the authoritative invariant owner and forward proof; retain validation at untrusted boundaries. Ordinary artifact review or graph lookup alone does not trigger a debugging workflow.
 
 <!-- /SYNC:end-to-start-debugger-trace:reminder -->
 

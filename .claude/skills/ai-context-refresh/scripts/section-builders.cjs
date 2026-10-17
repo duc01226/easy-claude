@@ -72,6 +72,7 @@ const REFERENCE_DOC_TRIGGERS = Object.freeze({
     'scss-styling-guide.md': 'Style files — styling conventions, theming, responsive rules',
     'design-system/README.md': 'UI design — tokens, components, app-to-doc map',
     'integration-test-reference.md': 'Writing, fixing, or reviewing integration tests',
+    'performance-test-reference.md': 'Planning, writing, running, fixing, or reviewing performance / load / capacity tests',
     'e2e-test-reference.md': 'Writing, running, or reviewing E2E / user-flow tests',
     'seed-test-data-reference.md': 'Seeding or reviewing development/test data',
     'custom-prompts-reference.md': 'A saved project prompt, playbook, or runbook may apply (`/custom-prompt`)',

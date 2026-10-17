@@ -5,7 +5,7 @@ description: '[User-Invoked] Use when creating, updating, or previewing Remotion
 disable-model-invocation: true
 ---
 
-> **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting. For simple tasks, ask user whether to skip.
+> **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting. Keep task depth proportional to the work.
 > **MUST ATTENTION** wait for user approval of scene plan (Step 3.3) before writing any files — NEVER skip.
 > **MUST ATTENTION** read existing project files before modifying — NEVER overwrite scenes blindly.
 > **MUST ATTENTION** update `totalChapters` in ALL existing scene files when adding/removing scenes.

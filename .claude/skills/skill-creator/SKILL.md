@@ -10,18 +10,18 @@ disable-model-invocation: true
 
 **Goal:** Author, extend, validate, and package Claude Code skills with proper structure, progressive disclosure, SYNC protocol compliance, and AI attention anchoring.
 
-**Summary:** Select one of the six modes, preserve the skill's contract and authority, and evaluate decision-changing guidance. Inspect existing owners → author or repair → validate structure/resources → enhance → run the quality gate → hand off or package. `/skill-create` no longer resolves.
+**Summary:** Select one of the six modes, preserve the skill's contract and authority, and evaluate decision-changing guidance. Inspect existing owners → author or repair → validate structure/resources → enhance → run the quality gate → hand off or package.
 
 **Workflow:** Clarify intent → choose Create/Add Resources/Scan & Fix/Package/Optimize/Fix from Logs → follow the mode steps → verify SYNC/structure → validate → call `/prompt-enhance` → apply the authoring quality gate → hand off or package.
 
 | Mode              | Trigger                                                | Jump to                                 |
 | ----------------- | ------------------------------------------------------ | --------------------------------------- |
-| **Create**        | New skill from a description                           | `## Mode 1: Create a New Skill`         |
-| **Add Resources** | Add reference/script files to an existing skill        | `## Mode 2: Add Resources`              |
-| **Scan & Fix**    | Audit/repair invalid frontmatter across the catalog    | `## Mode 3: Scan & Fix`                 |
-| **Package**       | Validate + zip a finished skill for distribution       | `## Mode 4: Package & Distribute`       |
-| **Optimize**      | Optimize an existing skill (tokens / anchoring / SYNC) | `## Mode 5: Optimize an Existing Skill` |
-| **Fix from Logs** | Fix a skill from its captured `logs.txt`               | `## Mode 6: Fix a Skill from Logs`      |
+| **Create**        | New skill from a description                           | [Create a New Skill](#mode-1-create-a-new-skill) |
+| **Add Resources** | Add reference/script files to an existing skill        | [Add Resources](#mode-2-add-resources-to-an-existing-skill) |
+| **Scan & Fix**    | Audit/repair invalid frontmatter across the catalog    | [Scan & Fix](#mode-3-scan--fix-invalid-skills) |
+| **Package**       | Validate + zip a finished skill for distribution       | [Package & Distribute](#mode-4-package--distribute) |
+| **Optimize**      | Optimize an existing skill (tokens / anchoring / SYNC) | [Optimize an Existing Skill](#mode-5-optimize-an-existing-skill) |
+| **Fix from Logs** | Fix a skill from its captured `logs.txt`               | [Fix from Logs](#mode-6-fix-a-skill-from-logs) |
 
 > Modes 5 and 6 cover optimization and log-driven repair inside `/skill-creator`; there are no separate standalone commands for those tasks.
 
@@ -229,7 +229,7 @@ If the skill needs shared protocol enforcement (most do), add them as SYNC block
 ## References
 
 - [Agent Skills](https://docs.claude.com/en/docs/claude-code/skills.md)
-- [Agent Skills Spec](.claude/skills/agent_skills_spec.md)
+- Read [the local schema reference](references/schema-reference.md) when validating framework skill fields and invocation policy.
 - [Best Practices](https://docs.claude.com/en/docs/agents-and-tools/agent-skills/best-practices.md)
 
 ---
@@ -238,9 +238,9 @@ If the skill needs shared protocol enforcement (most do), add them as SYNC block
 
 <!-- PROTOCOL-GUIDES:START -->
 
-> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
+> **Protocol guides** — Apply each protocol only when its read-when condition holds. If a protocol's text is not in your context, read its file below before you act on it.
 
-- `output-quality-principles` — Useful, readable guidance without lost conditions; writing generated docs or reports → .claude/skills/shared/protocols/output-quality-principles.md
+- `output-quality-principles` — Readable guidance and verified contents for long skill/doc files; writing, updating or auditing a skill or reference document, or another Markdown artifact over 200 lines → .claude/skills/shared/protocols/output-quality-principles.md
 - `shared-protocol-duplication-policy` — Protocol copies in carriers are intentional: edit the canonical source, then propagate; editing a shared protocol or its carriers → .claude/skills/shared/protocols/shared-protocol-duplication-policy.md
 
 <!-- PROTOCOL-GUIDES:END -->
@@ -253,7 +253,7 @@ If the skill needs shared protocol enforcement (most do), add them as SYNC block
 
 <!-- SYNC:output-quality-principles:reminder -->
 
-**IMPORTANT MUST ATTENTION** lead with useful guidance and readable priorities; preserve action-changing conditions/numbers and required structures. Remove report bulk from guides, use verified discovery, and judge semantic value rather than word or warning counts.
+**IMPORTANT MUST ATTENTION** lead with useful guidance and readable priorities; preserve action-changing conditions/numbers and required structures. When writing, updating or auditing Markdown skill/doc content, verify top, heading-linked contents over 200 lines (stricter owner thresholds remain); refresh after edits and report gaps in read-only audits. Remove report bulk; judge semantic value rather than word counts.
 
 <!-- /SYNC:output-quality-principles:reminder -->
 

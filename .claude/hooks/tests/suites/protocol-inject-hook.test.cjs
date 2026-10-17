@@ -25,13 +25,14 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { pathToFileURL } = require('node:url');
 const { spawn, spawnSync } = require('node:child_process');
 
-const { childEnv, codexLauncherCommand, makeHookTreeProject, removeTempDir } = require('../lib/hook-runner.cjs');
+const { childEnv, makeHookTreeProject, removeTempDir } = require('../lib/hook-runner.cjs');
 
 const HOOKS_DIR = path.resolve(__dirname, '..', '..');
 const LIB = path.join(HOOKS_DIR, 'lib', 'protocol-delivery.cjs');
-const REPO_ROOT = path.resolve(HOOKS_DIR, '..', '..');
+const CODEX_SYNC = path.resolve(HOOKS_DIR, '..', 'scripts', 'codex', 'sync-hooks.mjs');
 // The index lists six groups; the five skill-load groups have an entry file (the universal bundle has its own: universal-hook-delivery.test.cjs).
 const INDEX_GROUPS = ['review', 'evidence-trace', 'workflow-task', 'spec-test', 'design', 'universal'];
 const ENTRY_GROUPS = INDEX_GROUPS.filter(group => group !== 'universal');
@@ -230,29 +231,6 @@ function loadedFiles(entries) {
 }
 
 const samePath = (a, b) => (process.platform === 'win32' ? path.resolve(a).toLowerCase() === path.resolve(b).toLowerCase() : path.resolve(a) === path.resolve(b));
-
-// ── TC-PDL-067 launcher discovery (synchronous, so `skip` is decided while the list is built) ──
-
-/** The generated second-host launcher for any node hook, or null when the mirror was never generated. */
-function discoverLauncher() {
-    try {
-        const file = path.join(REPO_ROOT, '.codex', 'hooks.json');
-        if (!fs.existsSync(file)) return null;
-        const hooks = JSON.parse(fs.readFileSync(file, 'utf8')).hooks || {};
-        const commands = Object.values(hooks).flat().flatMap(group => (group.hooks || []).map(h => h.command || ''));
-        for (const command of commands) {
-            const match = /node -e .* -- "\.claude\/hooks\/([^"/]+\.cjs)"\s*$/.exec(command);
-            if (!match) continue;
-            const launcher = codexLauncherCommand(match[1]);
-            if (launcher && launcher.includes('node -e')) return { hookFile: match[1], command: launcher };
-        }
-        return null;
-    } catch {
-        return null;
-    }
-}
-
-const LAUNCHER = discoverLauncher();
 
 // ── tests ───────────────────────────────────────────────────────────────────
 
@@ -703,13 +681,14 @@ const tests = [
     },
     {
         name: 'TC-PDL-067 through the generated second-host launcher, a non-matching event loads only the expected modules',
-        skip: LAUNCHER === null,
-        fn: () => {
+        fn: async () => {
+            // Use the shipped renderer, independent of an adopter's generated mirror or shell quoting.
+            const { normalizeCommand } = await import(pathToFileURL(CODEX_SYNC).href);
+            const command = normalizeCommand('node "$CLAUDE_PROJECT_DIR"/.claude/hooks/protocol-inject-review.cjs', { windows: process.platform === 'win32' });
+            assert.ok(typeof command === 'string' && command.length > 0, 'the current native launcher is generated');
             const fixture = makeHookTreeProject('pdl067');
             try {
                 // Given the generated launcher pointed at the review entry file, run from a project subfolder
-                const command = LAUNCHER.command.replace(/-- "\.claude\/hooks\/[^"]+"\s*$/, '-- ".claude/hooks/protocol-inject-review.cjs"');
-                assert.notEqual(command, LAUNCHER.command, 'hook-path argument swapped');
                 const sub = path.join(fixture, 'packages', 'app');
                 fs.mkdirSync(sub, { recursive: true });
                 const temp = fs.mkdtempSync(path.join(fixture, 'tmp-'));
@@ -727,7 +706,7 @@ const tests = [
                     const started = process.hrtime.bigint();
                     const result = spawnSync(command, {
                         cwd: sub,
-                        env: scrubbedEnv(temp, { NODE_OPTIONS: `--require "${preload}"`, PDL_LOAD_LOG: log }),
+                        env: scrubbedEnv(temp, { CK_NODE_PATH: process.execPath, NODE_OPTIONS: `--require "${preload}"`, PDL_LOAD_LOG: log }),
                         input,
                         encoding: 'utf8',
                         shell: true,

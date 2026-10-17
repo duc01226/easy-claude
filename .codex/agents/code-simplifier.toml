@@ -51,6 +51,16 @@ Connected contracts:
 > **Evidence Gate:** MANDATORY IMPORTANT MUST ATTENTION — every claim requires `file:line` proof or traced evidence (>80% to act, <80% verify first). NEVER fabricate file paths or behavior.
 > **External Memory:** Write intermediate findings to `tmp/reports/` for complex/lengthy work — prevents context loss.
 
+## Contents
+
+- [Connected Skill Contracts](#connected-skill-contracts)
+- [Quick Summary](#quick-summary)
+- [Project Context](#project-context)
+- [Simplification Techniques](#simplification-techniques)
+- [Project Patterns](#project-patterns)
+- [Output](#output)
+- [Closing Reminders](#closing-reminders)
+
 ## Project Context
 
 > Read the required project config first, resolve its configured documentation roots and selected reference set, then read only the references that apply to the target code. Backend, frontend, and styling references are conditional on the changed scope and the project's declared or evidenced capabilities. If a relevant reference is absent, use current repository evidence and state the uncertainty; never invent a base class, state primitive, validation library, or styling convention.
@@ -331,7 +341,8 @@ Summary of changes made:
 
 > **Shared Protocol Duplication Policy** — Author shared protocols only in `.claude/skills/shared/sync-inline-versions.md`; every other copy is a generated projection.
 >
-> - **Guides:** skill entrypoints, including `changes-review`, `code-quality-review`, `why-review` and `workflow-review-changes`, carry one `PROTOCOL-GUIDES` line per applicable protocol: tag, summary, read-when trigger and published path. Hooks deliver full text from `.claude/skills/shared/protocols/`; if the text is absent from the current context, read the published file before acting. Delivery overflow names the unread full sources; it never permits omission. Keep role-protocol `:reminder` digests in every carrier. The registry's `inlineSkills` list is empty; a future full-body exception requires an explicit owner decision.
+> - **Applicability:** adopt a protocol only for an evidenced procedure or mode. Keep conditional detail behind its read-when guide and delivery trigger in `protocol-groups.json`, or its selected mode/type reference. Ordinary test runs, list/help operations and non-UI artifacts do not load unrelated doc-authoring, debugging or UI depth. Preserve applicable gates, role reminders and full reviewer-template obligations.
+> - **Guides:** skill entrypoints, including `changes-review`, `code-quality-review`, `why-review` and `workflow-review-changes`, carry one `PROTOCOL-GUIDES` line per applicable protocol: tag, summary, read-when trigger and published path. Hooks deliver applicable full text from `.claude/skills/shared/protocols/`; when an applicable rule is absent from the current context, read its published file before acting. Delivery overflow names the unread full sources; it never permits omission. Keep role-protocol `:reminder` digests in every carrier. The registry's `inlineSkills` list is empty; a future full-body exception requires an explicit owner decision.
 > - **Full-text carriers:** agents retain full role protocols and are never converted to guides. Mode-only `references/*.md` load first on mode entry and retain their SYNC bodies. Copy the complete `SYNC:review-protocol-injection` template, with all 11 full protocol bodies, VERBATIM into every fresh reviewer prompt; never substitute guide lines, tags or a read pointer. A guide entrypoint changes discovery, not review gates or dispatch obligations.
 > - **Universal:** the registry's `universal` group is hook-only, including for agents. Its `bins` are at most 9,500 characters, delivered on the first prompt, after about 150K tokens or compaction, and at every sub-agent start. Skills, agents, roots and mirrors carry no universal body, reminder, guide or pointer. Roots hold project information only; hosts without hooks are unsupported.
 >

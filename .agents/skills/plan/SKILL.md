@@ -27,6 +27,7 @@ disable-model-invocation: false
 - Keep one `plan.md`; separate phase files only for independent execution, context isolation or disjoint ownership.
 - **Profile:** full by default and for M+ work; a spec-supplied or XS/S run uses the light profile — `spec_baseline` or inline files/steps/rollback, the checklist, no scope-brief or scenario files ([Plan profile](#plan-profile--full-or-light)).
 - Plan creation never runs `--mode=review` or `--mode=execute`. After saving, it reviews its own plan once with `$why-review` and fixes the validated findings ([Self-Review Pass](#self-review-pass); skipped when the request declines it or the workflow lists its own `$plan --mode=review` step), then runs the validation interview ([Standalone Validation Chain](#standalone-validation-chain); automatic unless the `plan.validation.mode` setting says `prompt` or `off`), and asks no further review question; a workflow returns to its parent without next-step prompts, and without the interview when the workflow lists its own `$plan --mode=validate` step (a workflow with no such step runs the chain inside this step).
+- Domain work plans owned entity decisions and proof before writing; load its scope-specific depth only when applicable.
 - Write tests with implementation; schedule suites after all implementation and static review, never per phase.
 
 **Workflow:** Resolve context → inspect governing evidence and representative patterns → settle material decisions → derive the quality-gates checklist → write the lean plan → self-check scope, discovery, checklist, and verify-last order → one `$why-review` fix pass on the plan → run the validation interview and apply its answers (standalone, or in a workflow that lists no validate step) → hand back.
@@ -166,7 +167,7 @@ List phase waves only when `PAR` phases have proven disjoint write sets. Otherwi
 
 - **Bugfix:** include a preservation inventory for the affected invariants and prove the correction owner, not merely the failure site.
 - **New dependency/technology:** compare viable existing/project-native options first; surface material lock-in or operational trade-offs to the user. Do not turn ordinary library selection into a research project.
-- **Domain entity/value object/aggregate:** state actual invariant ownership, boundary, construction, concurrency, events, and test obligation when the project uses those concepts; otherwise record the DDD-specific gate N/A.
+- **Domain entity/value object/aggregate (feedforward):** when planned work may create or update domain data, behavior or write/load paths, read [the shared entity-quality contract](../domain-analysis/references/entity-quality.md). Record applicable decisions, invariant owners and proof obligations in the plan/checklist before implementation; material unresolved choices block their phase. No relevant surface → evidence-backed N/A; do not load the detail.
 - **User-facing UI:** apply the configured UX/design authority and bind relevant states/accessibility criteria to acceptance evidence; do not redesign settled project conventions.
 - **AI surface?** Only if a phase creates or changes a model call, prompt, agent, tool/MCP, retrieval or eval (see `node .claude/scripts/ai-signal-scan.cjs`): read `.claude/skills/shared/protocols/ai-feature-framing-gate.md`, give that phase an `## AI Feature Gate` section and apply it; otherwise skip this line.
 - **Framework/mirror work:** name canonical owners and the generated sync/verify action.
@@ -216,9 +217,7 @@ When no exit applies:
 
 <!-- PROTOCOL-GUIDES:START -->
 
-> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
-
-- `ui-system-context` — Resolve the project's UI conventions before a UI change; changing a user-interface surface → .claude/skills/shared/protocols/ui-system-context.md
+> **Protocol guides** — Apply each protocol only when its read-when condition holds. If a protocol's text is not in your context, read its file below before you act on it.
 
 - `core-engineering-principles` — Core quality gate: easy to change, easy to scale, easy to maintain, judged by future change cost; planning, implementing or reviewing any change → .claude/skills/shared/protocols/core-engineering-principles.md
 - `cross-service-check` — Scan producers, consumers, sagas and shared contracts for cross-service impact; concluding an investigation, plan or spec in a service-based system → .claude/skills/shared/protocols/cross-service-check.md
@@ -232,6 +231,7 @@ When no exit applies:
 - `preservation-inventory` — Table of behavior a bugfix plan must preserve, written before the implementation steps; writing a bugfix plan → .claude/skills/shared/protocols/preservation-inventory.md
 - `review-decision-autonomy` — Choose supported review decisions and ask before extending the round budget; running any review or audit skill or mode → .claude/skills/shared/protocols/review-decision-autonomy.md
 - `review-policy` — Review-only or a three-round fix loop with explicit extension and fresh post-fix evidence; deciding round eligibility, blocking findings or review state → .claude/skills/shared/protocols/review-policy.md
+- `ui-system-context` — Resolve the project's UI conventions before a UI change; changing a user-interface surface → .claude/skills/shared/protocols/ui-system-context.md
 - `ux-journey-gate` — Journey-first UX gate UX-1 to UX-11: report journeys, read the design authority, generate, then check every UI/UX gate; generating, specifying, planning, mocking up or reviewing a user-facing surface → .claude/skills/shared/protocols/ux-journey-gate.md
 - `verify-last-order` — Build all phases and write tests, review statically, then verify once with a mutation check; planning or running any code-changing task → .claude/skills/shared/protocols/verify-last-order.md
 

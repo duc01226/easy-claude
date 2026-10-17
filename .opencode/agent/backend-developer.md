@@ -48,6 +48,16 @@ Connected contracts:
 > **Evidence Gate:** MANDATORY MUST ATTENTION — every claim needs `file:line` proof or traced evidence with confidence % (>80% act, <80% verify first). Speculation is FORBIDDEN.
 > **External Memory:** MUST ATTENTION write intermediate findings + final results to `tmp/reports/` for complex/lengthy work — why: prevents context loss across compaction.
 
+## Contents
+
+- [Connected Skill Contracts](#connected-skill-contracts)
+- [Quick Summary](#quick-summary)
+- [Project Context](#project-context)
+- [Key Rules (Detail)](#key-rules-detail)
+- [Output](#output)
+- [Graph Intelligence (optional advice)](#graph-intelligence-optional-advice)
+- [Closing Reminders](#closing-reminders)
+
 ## Project Context
 
 > **MANDATORY MUST ATTENTION** Before implementing backend code, read `docs/project-config.json`, then resolve and read the applicable project references — filenames below resolve inside the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path):
@@ -293,46 +303,17 @@ Pattern (when used): grep/read first → optional graph query → grep/read veri
 
 <!-- SYNC:domain-entity-change-gate -->
 
-> **Domain Entity Change Gate** — ONE DDD-specific protocol binding every skill or agent that PLANS, IMPLEMENTS, or REVIEWS a change to a domain entity, value object, or aggregate in a model that uses DDD tactical patterns or an evidenced equivalent. First inspect the project's domain model and accepted architecture. If neither uses that model, record `DDD-specific gate N/A — project model: <evidence>`; still apply the project's normal ownership, invariant, assertion-backed test, and evidence rules. `/domain-analysis --mode=review` is the canonical owner of the full A–P checklist; this gate is the shared trigger plus the decisions that must be answered when applicable. NEVER re-derive a weaker local copy — why: when planning and review disagree on entity rules, the plan ships a design that review then rejects, and the rework is paid twice.
+> **Domain Entity Change Gate** — Preserve valid business state and cheap, provable domain changes across planning, implementation and review.
 >
-> **Trigger — after DDD applicability is established, fires when ANY holds:** a new entity / value object / aggregate root is introduced · an existing one gains or loses a field, invariant, relationship, or state transition · an aggregate boundary, repository, or cross-aggregate reference changes · a domain event is added, renamed, or re-payloaded · a concurrency or reconstitution concern on a root changes. State `No domain-entity surface — gate N/A` when none holds.
+> **Trigger:** new or changed entities, value objects, aggregates, or their fields, invariants, relationships, write/load/event paths. Inspect semantics and accepted architecture; DTO/config filenames alone do not qualify. No surface → `No domain-entity surface — gate N/A`.
 >
-> **Step 1 — Detect BEFORE deciding.** Both answers change which rules even apply:
+> **Read only when triggered:** `.claude/skills/domain-analysis/references/entity-quality.md` owns fit, six decisions, quality dimensions and proof. Detect paradigm/subdomain first; non-DDD/CRUD uses normal invariant ownership with an evidence-backed DDD-specific N/A. Never impose rich models, inheritance, repositories or events without a domain need.
 >
-> - **Paradigm** (per aggregate, from the code — NEVER assumed): OO-mutable · type-driven/immutable · event-sourced. Setter, mutability, and reconstitution rules are written for OO-mutable; applying them to the other two manufactures false findings and false plan tasks.
-> - **Subdomain fit:** core (rich model owed) · supporting (Active Record or light model) · generic (buy, do not model) · CRUD (Transaction Script — a rich entity here is ceremony). NEVER plan or flag a rich model where the subdomain has no invariant beyond required-field.
+> **Feedforward → feedback:** plan the applicable classification, invariants/failures, consistency/concurrency, creation/load/evolution, events/dependencies and test proof with owners and acceptance gates; implementation follows them through bypass paths; review checks the same decisions against source and assertions. Missing material decisions block edits; unavailable required proof blocks completion. Direct fixes use a brief pre-edit record, not a new planning ceremony.
 >
-> **Step 2 — Answer all 6 decision points.** Each is a decision the change MUST make explicitly:
+> **One review owner:** `/domain-analysis --mode=review` is the canonical owner of the full A–P checklist and consumes the same quality reference. Apply inline for focused work; route specialist depth by risk/uncertainty, not entity-file count. The running skill IS `/domain-analysis --mode=review` → `Gate is this skill's own body — A–P checklist owns it.` Under `workflow-review-changes`, defer to `domain-entities-design-review`; terminal `why-review --validate-findings` makes no sub-skill calls. Leaves return gaps without fan-out.
 >
-> | # | Decision point | Answered when |
-> | - | -------------- | ------------- |
-> | 1 | **Classification** — entity vs value object vs aggregate root | The swap test is applied ("would an identical copy be interchangeable?"); a VO is immutable with structural equality and has no repository |
-> | 2 | **Invariant ownership** — entity owns "can this state exist?", the boundary owns "is this input acceptable?" | Each rule is placed on one side and named; failure signalling (throw vs `Result`) matches the project convention consistently; a DB constraint is a backstop, NEVER the rule |
-> | 3 | **Aggregate boundary + concurrency** | Only true always-consistent invariants share an aggregate; cross-aggregate references are by ID; one aggregate mutates per transaction; the ROOT carries the concurrency token; set-based invariants (uniqueness across instances) name a real enforcing mechanism, never an in-memory check |
-> | 4 | **Construction vs reconstitution** | Creation and load are separate paths; the load path raises NO domain events and re-runs NO creation rules; required data sits in the constructor/factory |
-> | 5 | **Events** | Raised inside the aggregate; dispatched AFTER commit (outbox when crossing a process); internal domain events kept distinct from published integration contracts; handlers idempotent |
-> | 6 | **Test obligation** | Every applicable invariant is named and protected by an executing assertion in the project's native test format, with property and boundary-countercase coverage where applicable; GWT is optional. A valid `specArtifacts` profile supplies case identity/carriers; use property TCs only when the profile is absent. A malformed declared profile blocks; a happy-path example alone is NOT coverage |
->
-> **Step 3 — Apply by context.** Same decisions, different obligation:
->
-> | Calling context | Obligation |
-> | --------------- | ---------- |
-> | **Planning** (`/plan`) | The plan MUST name the decision and the owning file for every triggered row. An unanswered row is a plan that is not executable — surface it, do NOT let implementation discover it. |
-> | **Plan review** (`/plan --mode=review`) | An unanswered, hand-waved, or deferred-to-implementation row is a FINDING with `file:line` into the plan. Presence of the word "entity" is NEVER an answer. |
-> | **Implementation** (`/plan --mode=execute`, `/fix`, and any implementing agent — e.g. `backend-developer`) | The decisions are INPUTS, not questions to reopen: implement each triggered row as the plan/spec decided it, at the owning file it named. A row that arrives UNANSWERED is a blocker — surface it and get it decided; NEVER settle it silently at the keyboard, and NEVER pick an aggregate boundary from a DB table or UI screen because the plan left it open. Paradigm and subdomain fit still gate which rules apply. |
-> | **Change review** (`/changes-review`) | Route to the owner — **Mode A (default):** read `/domain-analysis --mode=review`'s Phase 2 A–P checklist and apply it as review lenses. **Mode B (escalation):** delegate to `/domain-analysis --mode=review` when standalone AND the diff carries 3+ entity files. Findings enter the normal finding set with `file:line` + severity. |
->
-> **Duplication guard — SKIP the gate entirely when ANY row holds.** Record the deferral line, then proceed:
->
-> | Suppressing context | Deferral line |
-> | ------------------- | ------------- |
-> | The running skill IS `/domain-analysis --mode=review` | `Gate is this skill's own body — A–P checklist owns it.` |
-> | Invoked inside `/workflow-review-changes` (its step 4 runs `/domain-analysis --mode=review` as a dedicated conditional parallel member) | `Gate deferred to workflow step 4 /domain-analysis --mode=review.` |
-> | `/why-review` running in `--validate-findings` terminal mode | `Gate N/A — validate-findings is terminal, no sub-skill calls.` |
->
-> — why: unguarded, this edge duplicates a review the parent workflow already runs and closes a `changes-review → domain-analysis --mode=review → why-review → changes-review` cycle.
->
-> **BLOCKED until:** DDD applicability evaluated with project evidence (or the DDD-specific gate is recorded N/A) · if applicable, trigger evaluated (or `gate N/A` recorded), paradigm + subdomain fit stated, all 6 triggered decision points answered or raised as findings, and guard row checked before any delegation.
+> **Gate:** relevance/fit evidenced · applicable decisions owned · success/rejection proof named (actual verified proof for completed implementation) · no duplicate pass. Preserve existing scope, modes and authority.
 
 <!-- /SYNC:domain-entity-change-gate -->
 
@@ -420,7 +401,7 @@ Pattern (when used): grep/read first → optional graph query → grep/read veri
 
 <!-- SYNC:domain-entity-change-gate:reminder -->
 
-**MUST ATTENTION** when a changed model uses DDD tactical patterns or an evidenced equivalent, apply the **Domain Entity Change Gate** — `/domain-analysis --mode=review` owns the full A–P checklist; detect paradigm + subdomain fit FIRST, then answer all 6 applicable decisions (classification · invariant ownership + failure signalling · aggregate boundary + concurrency · construction vs reconstitution · events · assertion-backed native test obligation). Use property TCs only under the absent-profile default; a malformed declared `specArtifacts` profile blocks without fallback. When the project does not use this model, record the DDD-specific gate N/A and still protect actual invariants and outcomes through the configured owner. Planning must NAME each applicable decision; plan review treats an unanswered row as a FINDING; change review routes to the owner (Mode A read / Mode B delegate). SKIP under the 3-row duplication guard and record the deferral line. — why: one protocol shared by planner and reviewer is what stops a plan shipping an entity design that review then rejects.
+**MUST ATTENTION** only for relevant entity/VO/aggregate changes, read `domain-analysis/references/entity-quality.md`: establish fit → plan owned decisions/proof → implement through all write/load paths → review the same rules. Keep simple models simple; unresolved material decisions or required proof block. Use one caller-owned review pass.
 
 <!-- /SYNC:domain-entity-change-gate:reminder -->
 

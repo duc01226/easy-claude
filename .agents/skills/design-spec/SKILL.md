@@ -415,11 +415,11 @@ Standalone (no parent workflow): after the spec is written, suggest `$ui-design 
 
 ---
 
-> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
+> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting. This prevents context loss from long files. Keep task depth proportional to the work.
 
 <!-- PROTOCOL-GUIDES:START -->
 
-> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
+> **Protocol guides** — Apply each protocol only when its read-when condition holds. If a protocol's text is not in your context, read its file below before you act on it.
 
 - `design-distinctiveness-gate` — Design identity gate DD-1 to DD-8: subject, design plan, generic test, restraint; designing, implementing or reviewing a visual surface → .claude/skills/shared/protocols/design-distinctiveness-gate.md
 - `design-review-checklist` — Executable front-end design review protocol CL-1 to CL-6; reviewing, planning or building front-end work → .claude/skills/shared/protocols/design-review-checklist.md
@@ -520,4 +520,4 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 | "Saved the file — done"                           | Step 8 link-back is required; set the spec's `design_spec:` frontmatter or `work-item --mode=review` fails.   |
 | "'Show feedback' describes the error state"       | M4 FAIL — every state needs one observable completion marker, not a vague phrase.                     |
 
-**[TASK-PLANNING]** Before acting, use todo tracking to break the work into small tasks, including each file read; update statuses per step and add a final review task. For simple tasks, ask whether the user wants to skip workflow depth, never task tracking.
+**[TASK-PLANNING]** Before acting, use todo tracking to break the work into small tasks; update statuses per step and add a final review task. Keep task depth proportional to the work.

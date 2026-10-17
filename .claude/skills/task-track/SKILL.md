@@ -5,9 +5,9 @@ description: '[Project Management] Use for explicit project-owned tracker guidan
 disable-model-invocation: true
 ---
 
-## Purpose and route
+## Quick Summary
 
-Support the selected project's tracker conventions or the portable work engine through one
+**Goal:** Support the selected project's tracker conventions or the portable work engine through one
 explicit entry point. Read only the selected route's reference before acting. These modes are
 skill purposes, not CLI flags; never pass `--mode=guide` to the engine command.
 
@@ -28,6 +28,11 @@ a named authorized invocation remains usable. Invocation supplies guidance, not 
 assignment, acceptance, publication or other actions beyond the user's request.
 
 ## Project customization
+
+For engine command recipes, read [manual operations](references/manual-operations.md) when the selected
+engine route needs exact requests, placement or refusal recovery. Read [the integration guide](references/integration-guide.md)
+when recording an actual saved producer checkpoint or interpreting exact linked concerns. These are
+engine references; project-guide mode keeps the selected project's own guide and mechanism.
 
 Read the selected checkout's root instructions (`CLAUDE.md` or `AGENTS.md`) when resolving its
 work-tracking guide. The project owns its guide path, storage, lifecycle, placement, evidence,

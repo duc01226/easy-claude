@@ -129,7 +129,7 @@ READONLY_CODE_BLOCK_ORDER = CORE_BLOCK_ORDER + [
 CODE_AGENTS = {
     "ai-engineering-reviewer", "architect", "backend-developer", "code-reviewer", "code-simplifier",
     "database-admin", "debugger", "e2e-runner", "framework-maintainer", "frontend-developer",
-    "fullstack-developer", "integration-tester", "performance-optimizer",
+    "fullstack-developer", "integration-tester", "performance-optimizer", "performance-tester",
     "planner", "security-auditor",
     "solution-architect", "spec-compliance-reviewer", "tester",
 }
@@ -154,7 +154,7 @@ CODE_STANDARDS_AGENTS = {
     "ai-engineering-reviewer", "architect", "backend-developer", "code-reviewer", "code-simplifier",
     "database-admin", "debugger", "e2e-runner", "framework-maintainer",
     "frontend-developer", "fullstack-developer", "integration-tester",
-    "performance-optimizer", "planner", "security-auditor", "solution-architect",
+    "performance-optimizer", "performance-tester", "planner", "security-auditor", "solution-architect",
     "spec-compliance-reviewer", "tester",
 }
 

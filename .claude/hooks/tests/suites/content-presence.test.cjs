@@ -1081,17 +1081,21 @@ module.exports = {
                     // A test verify run starts only after an environment check sized to the project, stack and OS
                     ['integration-test/references/mode-verify.md', '**Environment readiness (before any test command):** decide from this project, its stack and the OS what the run needs'],
                     ['integration-test/references/mode-verify.md', 'free only disposable output this step\'s own earlier runs created and no other run is using, or report `ENVIRONMENT-BLOCKED`'],
-                    // The shared repeatable-test rule keeps two greens for integration suites only (P43)
+                    // The shared rule requires two greens where persistent/shared or async state warrants them.
                     ['shared/sync-inline-versions.md', 'an integration suite whose persistent/shared state or async effects make one run insufficient converges on two consecutive fresh green runs; any other suite converges on one fresh green run'],
                     ['e2e-test/references/mode-verify.md', 'Before the command, check environment readiness — what this project, its stack and the OS need'],
                     ['e2e-test/references/mode-verify.md', 'this report-only pass frees nothing'],
                     ['test/SKILL.md', 'first check the environment can run the suites (what this project, stack and OS need'],
                     ['shared/protocols/task-planning-rules.md', '**Before a test verify run**, check its environment is ready — whatever this project, stack and OS need'],
-                    // Two consecutive greens are the integration-test rule; every other suite converges on one fresh green (P43)
+                    // E2E retains its configured single-fresh default; integration repeat depth depends on state.
                     ['shared/verify-convergence-loop.md', '— 2 for integration tests, where one run hides order/state flakiness; 1 for every other suite, E2E included'],
                     ['e2e-test/SKILL.md', 'one fresh green full run converges unless the project configures more'],
                     ['workflow-e2e/SKILL.md', 'Converge on one fresh green run (default 1; the project may configure more consecutive greens)'],
-                    ['integration-test/SKILL.md', 'Verification requires 2 consecutive successful suite/project runs without reset'],
+                    // Repeat proof follows configured policy and the actual state/isolation scope.
+                    ['integration-test/SKILL.md', 'Follow the configured repeat policy.'],
+                    ['integration-test/SKILL.md', 'Without one, persistent/shared-state or async suites need two fresh green runs'],
+                    ['integration-test/SKILL.md', "isolated deterministic suites use the runner's normal fresh run"],
+                    ['integration-test/SKILL.md', 'Clean up only owned fixture state.'],
                     // why-review's second adversarial round runs only where it pays; the analysis block never drops (P41 X8)
                     ['why-review/references/full-mode.md', '**When it runs:** only when Round 1 found at least one MEDIUM or higher finding, or the target is a one-way door'],
                     ['why-review/references/full-mode.md', 'Round 1 then fills the Adversarial Analysis itself'],

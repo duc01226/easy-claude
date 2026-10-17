@@ -238,6 +238,14 @@ function detectGroups(config, opts = {}) {
         rules: strings(testing.integrationRules)
     }, exists));
 
+    push(candidate({
+        name: 'performance-test',
+        priority: 100,
+        pathGlobs: filePatternGlobs(filePatterns.performance),
+        referenceDocs: strings(framework.performanceTestDoc),
+        skills: ['performance-test']
+    }, exists));
+
     const e2e = isPlainObject(cfg.e2eTesting) ? cfg.e2eTesting : null;
     // strings() accepts a string or an array, so a non-string framework value cannot throw here.
     const e2eFrameworks = e2e ? strings(e2e.framework) : [];

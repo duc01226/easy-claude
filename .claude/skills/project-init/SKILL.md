@@ -305,6 +305,22 @@ Report:
 
 
 
+
+
+<!-- PROTOCOL-GUIDES:START -->
+
+> **Protocol guides** — Apply each protocol only when its read-when condition holds. If a protocol's text is not in your context, read its file below before you act on it.
+
+- `output-quality-principles` — Readable guidance and verified contents for long skill/doc files; writing, updating or auditing a skill or reference document, or another Markdown artifact over 200 lines → .claude/skills/shared/protocols/output-quality-principles.md
+
+<!-- PROTOCOL-GUIDES:END -->
+
+<!-- SYNC:output-quality-principles:reminder -->
+
+**IMPORTANT MUST ATTENTION** lead with useful guidance and readable priorities; preserve action-changing conditions/numbers and required structures. When writing, updating or auditing Markdown skill/doc content, verify top, heading-linked contents over 200 lines (stricter owner thresholds remain); refresh after edits and report gaps in read-only audits. Remove report bulk; judge semantic value rather than word counts.
+
+<!-- /SYNC:output-quality-principles:reminder -->
+
 ## Closing Reminders
 
 **MUST ATTENTION** selected review setup delegates evidence → preview → accepted protected merge → validation to project-config; initialize without acquiring review tools.

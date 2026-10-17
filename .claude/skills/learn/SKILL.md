@@ -107,7 +107,7 @@ disable-model-invocation: false
 
 ## Reference Doc Catalog (READ before routing)
 
-Each file in the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path) is auto-initialized by `session-init-docs.cjs` hook and populated by `/scan-*` skills. Understanding their roles is **critical** for correct routing: routing is static — read the doc whose **Read Trigger** matches your task.
+Resolve the reference-docs root from `docsRoots.projectReference.path` in `docs/project-config.json` (default `docs/project-reference`). This catalog lists supported carriers, not mandatory files: initialization and scans follow the project's selected references and evidenced capabilities. Read the configured Doc Lookup and docs index before recommending a target; preserve an existing authoritative project guide and compare viable alternatives. For performance lessons, compare that guide with `performance-test-reference.md`, explaining any new file or selection needed. Keep one owner per rule and link executable budgets and harness details instead of duplicating them.
 
 | File                             | Role & Content                                                                                   | Read Trigger (static)               | Scan Skill                |
 | -------------------------------- | ------------------------------------------------------------------------------------------------ | ----------------------------------- | ------------------------- |
@@ -116,6 +116,7 @@ Each file in the reference-docs root (default `docs/project-reference`; a `docsR
 | `seed-test-data-reference.md`    | Seed/dev-data patterns: environment gate, idempotency loop, DI scope safety, command-dispatch    | Seeder / DataSeeder file edits      | `/scan --target=seed-test-data` |
 | `frontend-patterns-reference.md` | Frontend patterns: components, state mgmt, API services, styling conventions, directives         | Editing frontend / UI files         | `/scan --target=frontend-patterns` |
 | `integration-test-reference.md`  | Test architecture: base classes, fixtures, helpers, service-specific setup, test runners         | Integration test file edits         | `/scan --target=integration-tests` |
+| `performance-test-reference.md` | Project performance-test preferences: reusable harness, workload/data/resource budgets, commands, evidence and quality gates | Planning, writing, reviewing, running or fixing performance/load/soak/capacity tests | `/scan --target=performance-tests` |
 | `feature-spec-reference.md`      | Feature doc templates, app-to-service mapping, doc structure conventions                         | Authoring / reading feature specs   | `/scan --target=feature-spec`      |
 | `code-review-rules.md`           | Review rules, conventions, anti-patterns, decision trees, checklists                             | Any review skill activation         | `/scan --target=code-review-rules` |
 | `lessons.md`                     | General lessons — fallback catch-all. Read on EVERY task (per project-reference-docs gate)       | Every task                          | Managed by `/learn`       |
@@ -253,6 +254,7 @@ Route to the **most relevant file** based on lesson content. Every bare `*.md` f
 | Backend/hook patterns: modules, CQRS, repositories, entities, validation, message bus, background jobs, migrations, configured persistence | `backend-patterns-reference.md`  | Add to relevant section or Anti-Patterns section                |
 | Frontend patterns: components, state stores, forms, API services, styling conventions, directives, pipes                                  | `frontend-patterns-reference.md` | Add to relevant section or Anti-Patterns section                |
 | Integration/unit tests: test base classes, fixtures, test helpers, test patterns, assertions, test runners                               | `integration-test-reference.md`  | Add to relevant section                                         |
+| Performance/load/stress/soak/capacity tests: harness reuse, workload/data, resource and SLO budgets, telemetry, evidence and quality gates | `performance-test-reference.md` | Preserve project preferences; link executable owners and existing harness guides |
 | E2E tests: Playwright, Cypress, Selenium, page objects, E2E config, browser automation, visual regression                                | `e2e-test-reference.md`          | Add to relevant section                                         |
 | Domain entities, data models, DTOs, aggregates, entity relationships, cross-service data sync, ER diagrams                               | `domain-entities-reference.md`   | Add to Entity Catalog or Relationships section                  |
 | Project structure, directory organization, module boundaries, tech stack choices, service architecture                                   | `project-structure-reference.md` | Add to relevant architecture section                            |
@@ -361,7 +363,7 @@ State the rule directly; omit descriptive how-to, reasoning transcripts, and inc
 
 ### End-Phase Learn Review Gate (MANDATORY before marking complete)
 
-Run these 2 tasks at the end of every `/learn` operation:
+Run these 2 tasks when adding or updating a persistent lesson or protocol. `list` only reads/displays existing guidance and returns; it has no candidate to critique. Removal/clear retain their consent and integrity checks without a new-lesson worthiness review:
 
 **Task 1 — Learn Review (value + generality + recurrence):**
 
@@ -395,8 +397,14 @@ Run these 2 tasks at the end of every `/learn` operation:
 6. **Run Prevention Depth Assessment** — determine if doc/config-only or deeper prevention needed
 7. **Match against the generic Routing Table** — pick the best-fit file (or config field); run the [Project Root Context Route](#project-root-context-route-claudemd-blocking) candidate test (C1–C5) — when all five hold, `CLAUDE.md` joins the options
 8. **Ask the user with a recommendation:** `ask user question tool` with the best-fit carrier first as `(Recommended)` plus the one-line reason, then the viable alternatives (another doc, config field, the root `CLAUDE.md` note when C1–C5 hold, a skill overlay if a weak T4 owner exists)
-9. **On confirm** — read target file, find the right section, append the lesson (config target → route through `/project-config`; `CLAUDE.md` target → follow the Root Context Route procedure: write only the hand-owned section, end tasks, `sync-codex`, verify)
+9. **On confirm** — read target file, find the right section, append the lesson (reference doc/guide → complete the Reference-doc handoff below; config target → route through `/project-config`; `CLAUDE.md` target → follow the Root Context Route procedure: write only the hand-owned section, end tasks, `sync-codex`, verify)
 10. **On reject** — ask user which file to use instead
+
+**Reference-doc handoff (before marking learned):**
+
+- Resolve the selected reference or existing authoritative guide through project config, Doc Lookup and the docs index. Update an existing owner in place; creating the conventional filename is optional when the project already routes to another guide.
+- For a new or unselected reference, explain the required discovery changes in the Carrier Choice proposal. Preserve explicit `referenceDocs` selections, including `[]`; route user-approved selection changes through `/project-config`, never silently append the catalog. Read `.claude/skills/docs-manager/SKILL.md` for reference initialization (`--mode=init`) or `.claude/skills/scan/SKILL.md` for the selected scan owner; a header-only file does not complete initialization.
+- Reconcile the docs index and any affected Doc Lookup through their owners (`/scan --target=docs-index`; `/ai-context-refresh` for generated root routing). Verify that the intended future task resolves the actual saved path. Missing initialization or discovery stays pending with its reason; do not claim the guidance is learned merely because a file was written.
 
 ### Format by Target File
 
@@ -458,11 +466,11 @@ Run these 2 tasks at the end of every `/learn` operation:
 ## Behavior
 
 1. **`/learn <text>`** — Run the existing triage and quality gates; for a skill-specific lesson, follow the Skill-Specific Project-Protocol Route (an overlay pick calls `/project-skill-protocol add ...` or `update <exact-name> ...`), otherwise route and append to the best-fit file (check budget if target is `lessons.md`)
-2. **`/learn list`** — Read and display lessons from ALL 12 target files (show file grouping + char count for `lessons.md`), plus the `## Project Rules & Context` entries of the root `CLAUDE.md` when that section exists (show its byte size and the root size against 32768)
+2. **`/learn list`** — Read and display lessons from the selected reference docs and explicitly routed project guides (show file grouping + char count for `lessons.md`), plus the `## Project Rules & Context` entries of the root `CLAUDE.md` when that section exists (show its byte size and the root size against 32768)
 3. **`/learn remove <N>`** — Remove lesson from `lessons.md` by line number
 4. **`/learn clear`** — Clear all lessons from `lessons.md` only (confirm first)
 5. **`/learn trim`** — Manually trigger Budget Trim on `lessons.md`
-6. **File creation** — If target file doesn't exist, create with header only (never create a root `CLAUDE.md` here — that is `/ai-context-refresh`)
+6. **File creation** — New reference targets follow the Reference-doc handoff; other approved prose targets may start with a header (never create a root `CLAUDE.md` here — that is `/ai-context-refresh`).
 7. **Removing a root-note entry** — `/learn remove` still targets `lessons.md` by line number; removing a `## Project Rules & Context` entry follows the same confirm → edit that section only → `sync-codex` flow
 
 ## Auto-Inferred Activation
@@ -511,17 +519,33 @@ For a root `CLAUDE.md` save, scope the enhance to the `## Project Rules & Contex
 
 ---
 
-> **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
+> **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting. This prevents context loss from long files. Keep task depth proportional to the work.
 >
-> **Mandatory end tasks are ALWAYS (in order):**
+> **Mandatory end tasks for an added or updated lesson/protocol (in order):**
 >
 > 1. "Run **Learn Review** (lesson value + generality + recurrence gate)."
 > 2. "Run `/why-review` to challenge whether the lesson is worth persistent memory."
 > 3. "Run the carrier-specific final quality pass: `/prompt-enhance <modified-prose-file>` when applicable, or owner parser/schema validation after the final configuration write."
 >
-> Do NOT mark the skill complete until review, rationale challenge and the applicable final quality pass have evidence. Record documented prose skip conditions explicitly.
+> Do NOT mark an add/update complete until review, rationale challenge and the applicable final quality pass have evidence. Record documented prose skip conditions explicitly. `list` returns after display; remove/clear/trim retain their own confirmation, integrity and modified-carrier quality checks.
 
 
+
+
+
+<!-- PROTOCOL-GUIDES:START -->
+
+> **Protocol guides** — Apply each protocol only when its read-when condition holds. If a protocol's text is not in your context, read its file below before you act on it.
+
+- `output-quality-principles` — Readable guidance and verified contents for long skill/doc files; writing, updating or auditing a skill or reference document, or another Markdown artifact over 200 lines → .claude/skills/shared/protocols/output-quality-principles.md
+
+<!-- PROTOCOL-GUIDES:END -->
+
+<!-- SYNC:output-quality-principles:reminder -->
+
+**IMPORTANT MUST ATTENTION** lead with useful guidance and readable priorities; preserve action-changing conditions/numbers and required structures. When writing, updating or auditing Markdown skill/doc content, verify top, heading-linked contents over 200 lines (stricter owner thresholds remain); refresh after edits and report gaps in read-only audits. Remove report bulk; judge semantic value rather than word counts.
+
+<!-- /SYNC:output-quality-principles:reminder -->
 
 ## Closing Reminders
 

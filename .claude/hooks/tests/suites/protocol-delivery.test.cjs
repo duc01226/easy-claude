@@ -320,6 +320,59 @@ function assertEachOnce(items, result, label) {
 
 const tests = [
     {
+        name: '[protocol-delivery] conditional subjects keep unrelated operations lean without losing applicable guidance',
+        fn: () => withFixture(fx => {
+            // TechnicalSpec=protocol-delivery-conditional-subjects: relevance changes the payload,
+            // never the applicable BR-PDL-16 rule or its full-source fallback.
+            // Use shipped metadata with an isolated fixture projection, skills and empty ledger.
+            const shipped = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../../../skills/shared/protocol-groups.json'), 'utf8'));
+            const cases = [
+                ['output-quality-principles', 'workflow-task', 'e2e-test', 'run the API checks', 'update the reference document'],
+                ['review-policy', 'review', 'architecture', 'describe the existing architecture', 'audit architecture'],
+                ['review-decision-autonomy', 'review', 'work-item', 'refine an idea', '--mode=review'],
+                ['behavioral-delta-matrix', 'review', 'why-review', 'evaluate this decision', 'review a regression fix'],
+                ['end-to-start-debugger-trace', 'evidence-trace', 'graph-code', 'export graph JSON', 'trace an unclear code flow'],
+                ['root-cause-debugging', 'evidence-trace', 'pull-request', 'open the pull request', 'diagnose CI failures'],
+                ['fix-layer-accountability', 'evidence-trace', 'plan', 'plan a new feature', 'plan a bug fix'],
+                ['preservation-inventory', 'workflow-task', 'plan', 'plan a new feature', 'plan a regression fix'],
+                ['test-failure-fault-adjudication', 'spec-test', 'e2e-test', 'run the checks', 'the tests are failing'],
+                ['cross-service-check', 'evidence-trace', 'spec', 'describe local validation', 'describe cross-service events'],
+                ['cross-stack-impact-trace', 'review', 'why-review', 'evaluate a decision', 'review the API response'],
+                ['graph-assisted-investigation', 'evidence-trace', 'understand', 'explain this decision', 'explain the blast-radius'],
+                ['graph-impact-analysis', 'evidence-trace', 'integration-test', 'verify isolated math', 'verify a cross-module change'],
+                ['translation-sync-check', 'review', 'changes-review', 'review retry logic', 'review i18n strings'],
+                ['shared-protocol-duplication-policy', 'workflow-task', 'prompt-enhance', 'rewrite this message', 'update a shared protocol'],
+                ['e2e-visual-design-contract', 'spec-test', 'e2e-test', 'verify the CLI', 'review the UI states'],
+                ['ui-system-context', 'design', 'plan', 'plan worker retries', 'plan the form layout'],
+                ['ui-intent-layer', 'design', 'spec', 'describe worker retries', 'describe the checkout screen'],
+                ['ui-wireframe', 'design', 'initiative', 'capture a worker improvement', 'capture the checkout screen']
+            ];
+            for (const [tag, group, skill, unrelated, relevant] of cases) {
+                fx.projection([{ tag, group }], []);
+                fx.write('.claude/skills/shared/protocol-groups.json', JSON.stringify(shipped));
+                fx.skill(skill, guideBlock([tag]));
+                for (const host of ['claude', 'codex', 'opencode']) {
+                    const event = host === 'codex' ? codexPrompt(`$${skill}`) : skillLoad(skill, host === 'opencode' ? 'name' : 'skill');
+                    const run = context => plan(fx, event, group, { host, triggerContext: () => context });
+                    const context = prompts => ({ prompts, transcript: '', unreadable: false });
+                    assertTags(run(context(unrelated)), [], `${host}/${tag}: unrelated operation`);
+                    assertTags(run(context(relevant)), [tag], `${host}/${tag}: applicable operation`);
+                    assertTags(run({ unreadable: true }), [tag], `${host}/${tag}: unreadable context`);
+                    const guidePath = host === 'codex' ? '.agents' : '.claude';
+                    assert.ok(carrier.guideTags(fs.readFileSync(fx.abs(`${guidePath}/skills/${skill}/SKILL.md`), 'utf8')).includes(tag), 'deferral keeps the full-source fallback');
+                }
+            }
+            // Dedicated authors still receive navigation even when the prompt has no keywords.
+            const tag = 'output-quality-principles';
+            fx.projection([{ tag, group: 'workflow-task' }], []);
+            fx.write('.claude/skills/shared/protocol-groups.json', JSON.stringify(shipped));
+            for (const skill of ['docs-manager', 'scan', 'scan-all', 'prompt-enhance', 'skill-creator']) {
+                fx.skill(skill, guideBlock([tag]));
+                assertTags(plan(fx, skillLoad(skill), 'workflow-task'), [tag], `${skill}: author owner`);
+            }
+        })
+    },
+    {
         name: 'TC-PDL-064 fresh-reviewer template stays deferred for inline work and loads for dispatch or unreadable context',
         fn: () => withFixture(fx => {
             const shipped = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../../../skills/shared/protocol-groups.json'), 'utf8'));
@@ -832,6 +885,56 @@ const tests = [
                 const none = withPrompt(name, 'optimize the batch import query');
                 assertTags(none, companions, `${name} without UI wording`);
                 assert.ok(!none.text.includes('ux-journey-gate'), `${name}: the withheld gate was named for a non-UI task`);
+            }
+        })
+    },
+    {
+        name: '[protocol-delivery] entity quality reaches planning, implementation, fixes and review only for relevant domain work (BR-PDL-16)',
+        fn: () => withFixture(fx => {
+            // Given the shipped conditional gate and real entrypoint declarations in isolated host trees.
+            const frameworkRoot = path.resolve(__dirname, '..', '..', '..');
+            const shipped = JSON.parse(fs.readFileSync(path.join(frameworkRoot, 'skills', 'shared', 'protocol-groups.json'), 'utf8'));
+            const tag = 'domain-entity-change-gate';
+            const entry = shipped.groups.design.tags[tag];
+            const owners = ['plan', 'feature-implement', 'fix', 'changes-review', 'code-quality-review'];
+            assert.equal(entry.trigger, 'domain-model');
+            fx.projection([{ tag, group: 'design' }], []);
+            fx.write('.claude/skills/shared/protocol-groups.json', JSON.stringify({
+                version: 1, deliveryTriggers: { 'domain-model': shipped.deliveryTriggers['domain-model'] },
+                groups: { design: { tags: { [tag]: entry } } }, inlineSkills: []
+            }));
+            for (const name of owners) {
+                const source = fs.readFileSync(path.join(frameworkRoot, 'skills', name, 'SKILL.md'), 'utf8');
+                assert.ok((delivery.declaredTags(source) || []).includes(tag), `${name}: reachable gate`);
+                assert.ok(!shipped.deliveryTriggers['domain-model'].skills.includes(name), `${name}: stays conditional`);
+                fx.write(`.claude/skills/${name}/SKILL.md`, source);
+                fx.write(`.agents/skills/${name}/SKILL.md`, source);
+            }
+            // When intent or a touched domain path establishes relevance, both host read paths deliver once.
+            const contexts = [
+                { prompts: 'plan a new order entity and its transitions', transcript: '' },
+                { prompts: 'fix value-object equality', transcript: '' },
+                { prompts: 'update domain-events and replay handling', transcript: '' },
+                ...['src/domain/Order.ts', 'src/ValueObjects/Money.cs', 'src/value_objects/amount.py',
+                    'src/value-objects/money.js', 'src\\ValueObjects\\Money.cs'].map(file => ({ prompts: '', transcript: JSON.stringify({ file_path: file }) }))
+            ];
+            for (const host of ['claude', 'codex']) for (const name of owners) {
+                const relative = `${host === 'codex' ? '.agents' : '.claude'}/skills/${name}/SKILL.md`;
+                const event = read(fx.abs(relative), fx.project);
+                for (const context of contexts) {
+                    const spy = spyReader();
+                    const result = plan(fx, event, 'design', { host, readFile: spy.readFile, triggerContext: () => context });
+                    assertTags(result, [tag], `${host}/${name}: ${context.prompts || context.transcript}`);
+                    assert.ok(!spy.opened.some(file => file.endsWith('entity-quality.md')), 'delivery never eagerly loads detailed criteria');
+                }
+                // Then unrelated work with readable context loads neither the gate nor its detailed source.
+                const spy = spyReader();
+                const none = plan(fx, event, 'design', { host, readFile: spy.readFile,
+                    triggerContext: () => ({ prompts: 'rename a CLI option', transcript: '', unreadable: false }) });
+                assertTags(none, [], `${host}/${name}: unrelated work`);
+                assert.ok(!spy.opened.some(file => file.endsWith(`${tag}.md`) || file.endsWith('entity-quality.md')), 'unrelated work reads no domain protocol');
+                // Unavailable context retains the existing conservative fallback to the compact gate.
+                assertTags(plan(fx, event, 'design', { host, triggerContext: () => ({ unreadable: true }) }), [tag], `${host}/${name}: unreadable context`);
             }
         })
     },

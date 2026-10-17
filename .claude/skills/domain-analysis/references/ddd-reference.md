@@ -52,137 +52,30 @@ Read on demand by `domain-analysis` (SKILL.md → "DDD Reference") and by `--mod
 
 ### Decision Matrix
 
-| Question | Entity | Value Object |
-| --- | --- | --- |
-| Has identity beyond its attributes? | YES | no |
-| Can two instances with same data be distinct? | YES | no |
-| Has a lifecycle (created, modified, deleted)? | YES | no |
-| Identified by an ID in any downstream system? | YES | no |
-| Measured or described (quantity, address, money)? | no | YES |
-| Replaced rather than modified on change? | no | YES |
-| Must be found independently of parent? | YES | no |
+| Question | Decision |
+| --- | --- |
+| Does continuity of identity matter across time/representations? | Entity, even when accessed only through its parent. |
+| Are equal-valued copies interchangeable in this domain? | Value object; protect immutable value semantics. |
 
-**Fast test:** Equal-valued copies interchangeable → VO; tracked across time or fetched independently by ID → Entity. Parent-only retrieval suggests a VO.
-
-### Canonical Value Objects
-
-| VO | Attributes | Key Invariants |
-| --- | --- | --- |
-| `Money` | amount: Decimal, currency: Currency | amount ≥ 0, valid ISO currency; Add/Subtract require same currency |
-| `Email` | value: string | RFC 5322 format, normalized to lowercase |
-| `Address` | street, city, country, postalCode | All fields non-empty; composed of Country + PostalCode VOs |
-| `DateRange` | start: DateOnly, end: DateOnly | start ≤ end; operations: Contains, Overlaps, Duration |
-| `PhoneNumber` | countryCode, number | E.164 format |
-| `Percentage` | value: int | 0 ≤ value ≤ 100 |
-
-### Primitive Obsession → Value Object Mapping
-
-Use typed IDs and the VOs above for validated primitives or groups that travel together: amount/currency → Money; address fields → Address; start/end → DateRange. A primitive with validation or formatting rules signals a missing VO.
-
-### Value Object Construction Pattern
-
-VO self-validates invariants at construction via a factory; no public constructor may produce an invalid instance; immutable; equality-by-value. Base class and factory names below are illustrative; adapt to your language.
-
-`Email.Of(raw)` validates before creating an immutable, value-equal VO; changing it replaces the instance.
-
-**Rules:**
-
-- No public constructor without validation — factory method (`Of()` / `Create()`) enforces invariants
-- VOs can reference other VOs; VOs NEVER reference entities (lifecycle coupling)
-- Mutation means replacement: `email = Email.Of(newValue)`, NEVER `email.Value = newValue`
-
-### VO Persistence Strategies
-
-| Strategy | When to Use | Trade-offs |
-| --- | --- | --- |
-| Owned types (EF Core) | VO maps to same table as owning entity | Simple, no FK, nullable columns possible |
-| Embedded document store | VO stored as subdocument | Natural fit, no joins |
-| JSON column | Complex VO, low query frequency on VO fields | Flexible, not queryable by parts |
-| Serialized string | Simple VOs (Email, PostalCode) | Compact, unqueryable by parts |
-
-**Rule:** VOs NEVER have own table with primary key — that makes them entities by infrastructure.
+Read `entity-quality.md` → **Identity and equality** and **Encapsulation and values** when classifying or designing entities/VOs. Storage keys, snapshots, field counts and retrieval shape alone do not decide classification.
 
 ## DDD Reference: Entity Design
 
 ### Identity Strategies
 
-| Strategy | When to Use | Trade-offs |
-| --- | --- | --- |
-| **ULID** (default) | New entities in distributed system | Sortable, URL-safe, monotonic, 128-bit |
-| **UUID v4** | True randomness / security-sensitive IDs | Not sortable, fragmented indexes |
-| **UUID v7** | Sortable UUID needed | Time-ordered, good index locality |
-| **Natural key** | Domain guarantees permanent uniqueness (SSN, EAN) | Unstable — domain can change |
-| **Surrogate int** | Legacy/single-DB sequences | No distributed generation |
-| **Composite key** | Relationship/join table | Harder to reference from other aggregates |
-
-**Rules:**
-
-- Prefer ULID for new entities — sortable, no coordination overhead
-- NEVER use email/username as PK — users change them
-- Cross-service references use same ID type as the owning service
-
-### Rich vs Anemic Domain Model
-
-A rich model owns behavior and invariants: `order.Hold(reason)` replaces external checks and assignments. Public setters, data bags, and entity rules duplicated in services signal anemia. Review mode first checks whether the subdomain warrants rich modeling.
-
-### Entity Invariant Enforcement
-
-Rich entity guards its state: private constructor for ORM/persistence hydration, valid-creation factories, and intent-named mutation methods that reject invalid transitions and emit domain events. Base class, guard, and ID-generator names below are illustrative; adapt to your language.
-
-`Order.Create(...)` validates required data; a private hydration path loads existing state. `order.Cancel(reason, date)` rejects invalid transitions, updates state and raises `OrderCancelled`.
-
-### Entity Lifecycle State Machines
-
-Document every permitted transition and intent-named method; reject unmodeled transitions through the project's domain failure convention. Example: Draft → Submitted → Approved/Rejected; Approved → Active → Suspended → Active, or Active → Archived.
-
-Use status + transition methods for simple branching lifecycles, state classes for complex per-state behavior, and event sourcing for full audit/reconstruction. Adapt to the paradigm discovered by review mode.
+Read `entity-quality.md` → **Identity and equality**, **Lifecycle and deletion**, and **Scale and change safety** when choosing identity, construction, behavior or evolution. Preserve the project's ID contract; compare generation, uniqueness, contention, storage/index cost and exposure before changing it. No universal ID algorithm, base class, factory or event requirement.
 
 ### Domain Validation Layers
 
-| Layer | What It Validates | Failure Signal (per stack) |
-| --- | --- | --- |
-| **Value Object** | Single-value format/range invariants | Construction failure (raised error or result type) |
-| **Entity method** | Aggregate consistency rules, state transitions | Domain rule violation (e.g. `DomainException`) |
-| **Application service** | Cross-aggregate rules, authorization, existence | Structured validation result (e.g. `ValidationResult` / problem-details payload) |
-| **Infrastructure** | DB constraints (last resort, NEVER first line) | Persistence-layer error (last-resort constraint) |
-
-**Decision rule:**
-
-- Rule requires loading another aggregate? → Application service
-- Rule needs only data within aggregate? → Entity method
-- Rule concerns single value's format? → Value Object constructor
-
-### Factory Methods on Entities
-
-Use factories for domain creation logic, multiple paths, events or graph initialization: `Create` or a domain verb such as `Place`. Private hydration constructors serve persistence, not public creation.
+Read `entity-quality.md` → **Invariant ownership** and **Behavior and failure atomicity** when placing a rule. Domain and input validation can overlap; cross-instance invariants need real atomic enforcement. Use the project's failure convention and preserve valid state on rejection.
 
 ### Temporal (Bi-Temporal) Entities
 
-Two time axes: **valid time** (fact true in real world) + **transaction time** (recorded in system).
-
-```
-ProductPrice {
-    validFrom: DateOnly     // valid time: price effective from
-    validTo: DateOnly       // valid time: price effective until
-    recordedAt: DateTime    // transaction time: when entered into system
-}
-```
-
-Use when: regulatory compliance, retroactive corrections, "as-of" queries.
+Use valid-time and recorded-time separately only when retroactive corrections, audit or as-of queries require them. Specify timezone, precision and correction semantics; inject time where rules need deterministic proof.
 
 ## DDD Reference: Aggregate Design
 
-### Aggregate Boundary Rules
-
-- Boundary = objects required for atomic invariants. Start with one entity; add members only for atomic root/member consistency. One transaction per aggregate operation; eventual consistency permits separate aggregates. >5 entities or frequent unrelated write conflicts prompts decomposition.
-- Root owns all member invariants, creation/IDs, significant events and every mutation. Outside code holds no direct child references or mutable collection access.
-- Cross-aggregate references are IDs, not object navigation (`CustomerId`, not `order.Customer.Name`). Load separately; cascade deletion through events/compensation. If multiple roots need one transaction, revisit boundaries.
-- Check invariants before mutation and recompute derived state: `root.AddLineItem(...)` checks status/domain limits, then recomputes totals. The former example's limit of 50 is illustrative.
-- Root + embedded VOs need no separate IDs/tables. Nested child entities require atomic invariants; smaller aggregates reduce transaction conflicts.
-
-### When to Break Aggregate Rules (Pragmatic DDD)
-
-Document technical debt and mitigation before exceptions: private owned collections for ORM limitations; embedded VO/owned data for one-query performance; temporary cross-aggregate FKs during legacy migration.
+Read `entity-quality.md` → **Aggregate boundaries** and **Concurrency and retries** when setting consistency boundaries. Size by atomic rules, ownership and measured contention/load, not table cardinality or fixed child counts. Prefer independent boundaries; document justified local transactions and their trade-offs rather than prohibiting every multi-root transaction.
 
 ## DDD Reference: ERD Design
 
@@ -209,7 +102,7 @@ Use 1NF (atomic values/no repeated groups), 2NF for composite keys (no partial d
 | Identifying | YES (FK is part of PK) | Child cannot exist without parent (line item without order) |
 | Non-identifying | NO (FK is separate column) | Child can exist independently (order without warehouse) |
 
-**Mapping to DDD:** Identifying relationship → child entity inside parent aggregate. Non-identifying FK → likely separate aggregates.
+**Mapping to DDD:** database relationships are evidence to inspect, not proof of an aggregate boundary. Business invariants determine atomic ownership.
 
 ### ERD for Microservices
 
@@ -231,78 +124,20 @@ Use 1NF (atomic values/no repeated groups), 2NF for composite keys (no partial d
 
 ### ERD to Aggregate Mapping
 
-Identifying parent/child relationships and strong roots with weak dependents suggest owned children; non-identifying FKs suggest separate aggregates. M:N without extra fields connects separate aggregates by IDs/events; association attributes suggest a separate association aggregate.
+Read `entity-quality.md` → **Aggregate boundaries** when mapping a relational model to domain ownership. Preserve distinct database, domain and integration representations; foreign-key shape alone cannot decide aggregates.
 
 ## DDD Reference: Domain Events
 
-### Event Naming Conventions
-
-Use `{AggregateNoun}{PastTenseVerb}` for what happened: `OrderCancelled`, `OrderConfirmed`, `PaymentProcessed`, `SalaryBandUpdated`. Avoid command names (`CancelOrder`), generic changes (`OrderStatusChanged`), non-past-tense labels (`PaymentComplete`) and vague subjects (`SalaryChanged`).
-
-### Event Payload Design Rules
-
-| Decision | Rule |
-| --- | --- |
-| Minimal vs fat | **Minimal (default):** AggregateId + what changed. Consumer queries for rest if needed |
-| Fat event | Accept when: round-trip cost high AND consumers known AND staleness acceptable |
-| Required fields always | `AggregateId`, `OccurredOn` (UTC timestamp), `Version`, `CorrelationId` |
-| No mutable references | Payload contains value copies, not object references |
-
-### Domain Events vs Integration Events
-
-| Dimension | Domain Event | Integration Event |
-| --- | --- | --- |
-| Scope | Within one bounded context | Across bounded contexts |
-| Delivery | In-process, post-commit | Via configured message bus or event stream |
-| Schema ownership | Domain owns, internal | Published Language contract |
-| Versioning | Internal refactor freely | Versioned, backward-compatible |
-| Failure handling | Transaction rollback | At-least-once delivery, idempotent consumer |
-
-**Rule:** Domain event raised → in-process handlers fire → if cross-service needed, handler publishes integration event to message bus.
-
-### Event Versioning Strategies
-
-Choose additive-only fields (simple but grows payload), multiple explicit versions (clear; consumers support both), or upcasting on deserialization (transparent; more infrastructure). Optional additions are compatible; removals, renames and type changes break compatibility.
+Read `entity-quality.md` → **Domain and integration events** when an event or side-effect path changes. Name meaningful facts, choose payload and schema ownership from consumer needs, and state transaction/delivery guarantees. Internal handlers can share a transaction; durable external publication follows committed facts through an atomic handoff when required. Do not force an event for every field update.
 
 ## DDD Reference: Repository Pattern
 
-### Interface Design Principles
-
-1. One repository per aggregate root — NEVER one for child entities
-2. Domain language in methods — `GetConfirmedOrdersInWarehouse()` not `FindAll(e => e.Status == Active)`
-3. Return domain objects — repositories return entities, not DTOs
-4. No infrastructure concerns — no leaked query/ORM types or connection strings in the interface.
-5. Async-first — methods return the configured runtime's async primitive.
-
-### Repository vs DAO
-
-A repository exposes domain language and returns entities/VOs for application/domain consumers while hiding persistence. A DAO exposes data operations and returns DTOs/raw data, often tied to infrastructure.
-
-### Query Objects — When to Use Specification
-
-Use when a rule repeats, needs a name/test, or needs composition. A specification is a reusable, composable, testable domain-owned query predicate. The expression-tree form below is illustrative; adapt to your language's predicate, query-builder, or specification-object equivalent.
-
-A reusable named predicate such as `ByWarehouse(warehouseId)` combines warehouse identity and confirmed status; adapt to the stack’s query/specification mechanism.
-
-**When NOT to use Specification:** Simple single-use predicate → inline lambda. Rule only used once → repository method directly.
+Read `entity-quality.md` → **Persistence and dependencies** when designing write/load boundaries. Use an existing repository only where it protects a real aggregate contract or change seam; read projections may use a separate query path. No mandatory repository per type, async method, custom base or extra Unit of Work.
 
 ## DDD Reference: Anti-Patterns Quick Reference
 
-| Anti-Pattern | Detection Signal | Fix |
-| --- | --- | --- |
-| **Anemic domain model** | Services have entity-specific logic; entity has all public setters | Move logic to entity |
-| **God aggregate** | Aggregate > 5 entities or 100+ ms load time | Extract sub-aggregates |
-| **Leaky aggregate** | External code mutates child entities directly | Private setters + root mutation methods |
-| **Primitive obsession** | 3+ primitives always travel together as group | Introduce Value Object |
-| **Implicit concept** | Domain expert names it, code doesn't model it | Explicit class |
-| **Feature envy** | Method uses more of B's data than A's | Move method to B |
-| **Getter/setter entity** | All mutation via property assignment, no intent-named methods | Replace with `Cancel()`, `Approve()`, etc. |
-| **Cross-aggregate loading** | Full aggregate loaded just to read one field | Pass scalar; resolve in app service |
-| **Side effects in handler** | Command handler calls multiple services after save | Domain event + separate handlers |
-| **Cross-service FK** | Database FK across microservice schemas | ID reference + event-driven sync |
-| **Shared Kernel overuse** | Two teams, one shared model, constant coordination overhead | Split to Customer-Supplier |
-| **Missing ACL** | External model types bleed into domain classes | ACL at integration boundary |
+Read `entity-quality.md` → **Quality dimensions** when investigating anemic/god models, primitive obsession, exposed collections, lost updates, validation bypasses, unsafe replay/publication or leaking infrastructure. Prove the reachable consequence before a finding; use one invariant owner and the simplest model that protects it.
 
 ## Closing Reminders
 
-Classify by identity and lifecycle; size aggregates by atomic invariants; protect mutation through the root. Use domain language, validated immutable VOs, ID-only cross-service references and explicit event contracts. Follow the entrypoint’s section-to-step routing and the project’s discovered conventions.
+Classify by business identity/value; size boundaries by atomic invariants; preserve valid state across all writes and loads. Use `entity-quality.md` only for relevant tactical work, and strategic/ERD sections only for their selected modeling task.

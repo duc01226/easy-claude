@@ -11,6 +11,7 @@ const SCAN_SKILL_MAP = Object.freeze({
     'seed-test-data-reference.md': 'scan --target=seed-test-data',
     'frontend-patterns-reference.md': 'scan --target=frontend-patterns',
     'integration-test-reference.md': 'scan --target=integration-tests',
+    'performance-test-reference.md': 'scan --target=performance-tests',
     'feature-spec-reference.md': 'scan --target=feature-spec',
     'code-review-rules.md': 'scan --target=code-review-rules',
     'scss-styling-guide.md': 'scan --target=scss-styling',

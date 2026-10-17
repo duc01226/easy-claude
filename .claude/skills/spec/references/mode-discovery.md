@@ -252,7 +252,7 @@ Paths in the template below are DEFAULTS — spec root `docs/specs`, plans root 
 
 ---
 
-> **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including a task per candidate spec read. This prevents context loss from long specs. For trivial single-spec scopes, AI MUST ATTENTION ask user whether to skip.
+> **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting. This prevents context loss from long specs. Keep task depth proportional to the work.
 
 These three filenames resolve inside the project-reference docs root — default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path.
 

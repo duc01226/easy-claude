@@ -4,7 +4,7 @@
 
 > **Portability rule:** Host-owned instruction files keep their native skill-invocation prefix. Content written into shared generated project docs MUST instead use bare skill names without a host-specific prefix, unless it explicitly documents every supported host syntax.
 
-**Registered keys:** `project-structure` · `backend-patterns` · `frontend-patterns` · `scss-styling` · `design-system` · `code-review-rules` · `domain-entities` · `feature-spec` · `docs-index` · `e2e-tests` · `integration-tests` · `seed-test-data` · `ui-system`. `generic-reference-doc` is a reserved dynamic target described below. These targets form an optional capability catalog, not a list of scans every project should run.
+**Registered keys:** `project-structure` · `backend-patterns` · `frontend-patterns` · `scss-styling` · `design-system` · `code-review-rules` · `domain-entities` · `feature-spec` · `docs-index` · `e2e-tests` · `integration-tests` · `performance-tests` · `seed-test-data` · `ui-system`. `generic-reference-doc` is a reserved dynamic target described below. These targets form an optional capability catalog, not a list of scans every project should run.
 
 ## Shared quality and output ownership
 
@@ -49,6 +49,7 @@ The selected entry's `purpose` defines the question the reference should answer;
 | `docs-index` | `<ref>/docs-index-reference.md` | `targets/docs-index.md` |
 | `e2e-tests` | `<ref>/e2e-test-reference.md` | `targets/e2e-tests.md` |
 | `integration-tests` | `<ref>/integration-test-reference.md` | `targets/integration-tests.md` |
+| `performance-tests` | `<ref>/performance-test-reference.md` | `targets/performance-tests.md` |
 | `seed-test-data` | `<ref>/seed-test-data-reference.md` | `targets/seed-test-data.md` |
 | `ui-system` | _(none of its own)_ — selected children write their own configured target docs. | `targets/ui-system.md` |
 

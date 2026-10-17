@@ -10,7 +10,7 @@ disable-model-invocation: true
 > - Map foreign tool names to available host capabilities. A name mismatch needs no approval; an actually unavailable required capability stops with its step/evidence and a user question before adaptation.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
 > - Preserve protocol order unless the user approves a deviation. Workflows use `$start-workflow`: gates stay fixed; other steps may flex with logged reasons and evidence.
-> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting. For simple tasks, ask user whether to skip.
+> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting. Keep task depth proportional to the work.
 > **MUST ATTENTION** wait for user approval of scene plan (Step 3.3) before writing any files — NEVER skip.
 > **MUST ATTENTION** read existing project files before modifying — NEVER overwrite scenes blindly.
 > **MUST ATTENTION** update `totalChapters` in ALL existing scene files when adding/removing scenes.

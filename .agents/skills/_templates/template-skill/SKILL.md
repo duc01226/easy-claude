@@ -29,26 +29,19 @@ description: '[Category] Use when defining the standard skill description patter
 
 ---
 
-> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
+> **[IMPORTANT]** Before multi-step work, track a few outcome/dependency tasks with one active task and a final consistency check. Use the host task tools or an equivalent tracker.
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
-**Prerequisites:**
+**Prerequisites:** Select additional protocols for the new skill's actual procedures; adopt code-discovery guidance only for a code surface, through the skill-creator owner.
 
 <!-- PROTOCOL-GUIDES:START -->
 
-> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
+> **Protocol guides** — Apply each protocol only when its read-when condition holds. If a protocol's text is not in your context, read its file below before you act on it.
 
 - `evidence-based-reasoning` — Ground every material claim in file:line, config or source evidence, with stated confidence; making any claim, finding or recommendation → .claude/skills/shared/protocols/evidence-based-reasoning.md
-- `understand-code-first` — Read and trace the target and existing patterns before changing code; planning or editing code → .claude/skills/shared/protocols/understand-code-first.md
 
 <!-- PROTOCOL-GUIDES:END -->
-
-<!-- SYNC:understand-code-first:reminder -->
-
-**IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code/conventions BEFORE any modification or explanation. The code graph is optional advice for high-risk blast radius (a hint that may be stale), never a requirement.
-
-<!-- /SYNC:understand-code-first:reminder -->
 
 <!-- SYNC:evidence-based-reasoning:reminder -->
 
@@ -58,8 +51,8 @@ description: '[Category] Use when defining the standard skill description patter
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION** break work into small todo tasks using todo tracking BEFORE starting
+**IMPORTANT MUST ATTENTION** track multi-step work by outcomes and dependencies before starting
 **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
 **IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
 
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using todo tracking.
+**[TASK-PLANNING]** Keep task state current and verify the final result against the requested outcome.

@@ -587,7 +587,7 @@ Example for a "Create Invoice" story:
 - **"/plan --mode=validate"** — If stories need validation against plan
 - **"Skip, continue manually"** — user decides
 
-> **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. Keep task depth proportional to the work.
+> **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting. This prevents context loss from long files. Keep task depth proportional to the work.
 
 > **External Memory:** For complex or lengthy work (research, analysis, scan, review), write intermediate findings and final results to a report file in `tmp/reports/` — prevents context loss and serves as deliverable.
 

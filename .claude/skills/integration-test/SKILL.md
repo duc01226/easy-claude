@@ -155,6 +155,8 @@ Select from invocation arguments; load only the selected mode's references in fu
 
 ## Project Pattern Discovery
 
+**Applicability first:** Resolve the project's actual runner, boundary and fixture model. Collection/category attributes, DI containers, user-context factories and database helpers below apply only when that runner and tested contract use them; otherwise record N/A and keep the native harness/fixtures/assertions. Test names and traceability use the project's format. Never invent a service, database, auth actor or framework to satisfy an example.
+
 Before implementation, search codebase for patterns:
 
 - Search: `IntegrationTest`, `TestFixture`, `TestUserContext`, `IntegrationTestBase`
@@ -175,14 +177,14 @@ Before implementation, search codebase for patterns:
 - MUST ATTENTION search existing test patterns in same service BEFORE generating
 - MUST ATTENTION READ `references/integration-test-patterns.md` before writing any test
 - **Organization follows the project-native convention.** Where it groups by domain, colocate related command/query cases; do not impose or prohibit CQRS folders against documented organization.
-- Use project's unique name generator for ALL string test data
+- Use project uniqueness helpers for data in shared mutable namespaces; deterministic values are valid in isolated fixtures.
 - Use project assertion helpers for persisted outcomes; synchronization follows the tested boundary
-- **CRITICAL MUST ATTENTION:** Mirror real workflows. When a command/query/seeder path exists, NEVER create or edit domain data through repositories; shortcut state is a test bug.
+- **CRITICAL MUST ATTENTION:** Exercise the production entry path when it is the boundary under test. For unrelated preconditions, use the project's valid fixtures/builders/seeders without bypassing the protected contract.
 - **Synchronization:** use observable condition-based barriers for asynchronous/eventually consistent outcomes, with a bounded timeout; deterministic synchronous persistence uses the normal read/assert path. Never mask a synchronous defect with retries.
 - **CRITICAL MUST ATTENTION:** Before assertions, READ handler/entity/event source; identify changed fields, created/updated/deleted entities, and fired handlers. **Smoke-only is FORBIDDEN** unless side effect is truly unobservable.
-- **CRITICAL MUST ATTENTION:** Verification requires 2 consecutive successful suite/project runs without reset. One green run proves only the current run.
+- **CRITICAL MUST ATTENTION:** Follow the configured repeat policy. Without one, persistent/shared-state or async suites need two fresh green runs; isolated deterministic suites use the runner's normal fresh run. Clean up only owned fixture state.
 - Derive test cases from distinct protected behaviors, relevant failures and boundaries; a database check is required only when persistence belongs to the tested contract
-- **Authorization tests:** Multiple user contexts — authorized succeeds AND unauthorized rejected
+- **Authorization tests:** When access control belongs to the tested contract, verify allowed and refused actors through the project's actual identity mechanism.
 - **Strict default only:** every business test method has `// TC-{FEATURE}-{NNN}: Description` + `TestSpec`; technical-only tests use `TechnicalSpec`; one TC may map to many methods.
 - **Strict default only:** when a genuinely uncovered business behavior has no TC in the feature doc, add it to Section 8 before generation; never mirror a method already covered by an existing TC. Native profiles update only their declared owner/carrier through the native-profile sequence above.
 - For comprehensive spec generation before coding → `/spec [mode=tests]` first
@@ -302,6 +304,8 @@ Grep pattern="{CommandName}" path="{configured-source-root}" glob="{configured-s
 
 For each target, read in parallel:
 
+Use the project's actual equivalents below. An absent command/query layer, DI base or user-context factory is N/A; a native harness with fixtures remains a valid integration-test setup.
+
 1. **Command/query file** — extract: class name, result type, DTO properties, entity type
 2. **Existing test files in same service** — Glob `{Service}.IntegrationTests/**/*IntegrationTests.*`, read ≥1 for conventions (collection/suite name, test annotations, namespace/imports, base class)
 3. **Service integration test base class** — grep: `class.*ServiceIntegrationTestBase`
@@ -315,7 +319,7 @@ For each target domain, read:
 
 Build mapping: test-case description → TC code (e.g., "create valid order" → TC-OM-001).
 
-- No TC → **CREATE IT** in Section 8 before generation.
+- Uncovered business behavior with no TC → create it in Section 8 before generation. A technical-only contract regression uses the native `TechnicalSpec` carrier without manufacturing a business TC.
 - Outdated/incorrect TC → **UPDATE IT** first.
 - Missing Section 8 → run `/spec [mode=tests]` first.
 
@@ -328,9 +332,9 @@ MUST ATTENTION answer BEFORE the Arrange block exists — never after failure:
 For each test, state:
 
 - **Sequence** — can a real actor reach these steps in this order through the tested paths?
-- **Pacing** — how far apart are production actor actions (milliseconds, seconds, minutes, hours)? Back-to-back distinct actions in one millisecond are a fidelity defect, NOT a speed-up.
+- **Pacing** — when actor timing belongs to the tested contract, preserve it; synchronous independent fixture cases need no artificial action delay.
 - **Data shape** — can a real use-case path reach every seeded value (see direct-repository-write ban)?
-- **Barrier** — for each actor-step gap, name the observable proving the prior step settled (persisted state, audit/version stamp, queue/worker idle marker, completion event) and poll it in ARRANGE.
+- **Barrier** — for asynchronous steps, name and wait on the observable completion signal in ARRANGE. Synchronous outcomes use normal deterministic assertions.
 
 Any "no" → fix the SCENARIO before writing; NEVER widen an assertion timeout afterward. Full contract: `SYNC:real-world-fidelity-testing`; barrier shape: `references/integration-test-patterns.md` → Pattern 10.
 
@@ -388,14 +392,14 @@ public class {CommandName}IntegrationTests : {Service}ServiceIntegrationTestBase
 
 Build test project via project's build tool (see `/integration-test --mode=verify` for config-driven build).
 
-MUST ATTENTION verify ALL of the following:
+Verify the applicable items below against the native runner and tested contract; state N/A for an absent capability rather than inventing it:
 
 - Test collection/group attribute present with correct collection name
 - Test category annotation present
-- All string test data uses project's unique name generator
+- Shared mutable data has unique identities; isolated fixture values may be stable
 - User context created via project's user context factory
 - Persisted assertions use project helpers and polling only for asynchronous/eventually consistent contracts
-- No mocks — real DI only
+- Use real production wiring at the integration boundary under test; test doubles are allowed only outside that boundary and must not replace the protected behavior
 - Every test method has the traceability form required by the selected profile. The strict default uses `// TC-{FEATURE}-{NNN}: Description` plus its test-spec annotation.
 
 ## Example Files to Study
@@ -497,7 +501,7 @@ find . -name "*IntegrationTestFixture.*" -type f
 **Rules:**
 
 - Every test creates own data — no shared mutable state between tests
-- Unique identifiers for ALL string data (search test utilities for unique name/data generator helper)
+- Unique identifiers for shared mutable data (reuse project helpers); stable values are valid in isolated fixtures
 - Factory methods return valid entities by default — tests override only what they test
 - Cross-entity dependencies: create parent first, then child (e.g., User → Order)
 - Feature requires reference/lookup data → set up in collection fixture or per-test preconditions
@@ -583,7 +587,7 @@ integration-test (you are here)
 
 <!-- PROTOCOL-GUIDES:START -->
 
-> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
+> **Protocol guides** — Apply each protocol only when its read-when condition holds. If a protocol's text is not in your context, read its file below before you act on it.
 
 - `core-engineering-principles` — Core quality gate: easy to change, easy to scale, easy to maintain, judged by future change cost; planning, implementing or reviewing any change → .claude/skills/shared/protocols/core-engineering-principles.md
 - `graph-impact-analysis` — Optional blast-radius query that suggests files a high-risk change may affect, a hint that can be stale and never proof; assessing the impact of a high-risk change while the code graph exists → .claude/skills/shared/protocols/graph-impact-analysis.md
@@ -612,7 +616,7 @@ integration-test (you are here)
 
 <!-- SYNC:understand-code-first:reminder -->
 
-**IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code/conventions BEFORE any modification or explanation. The code graph is optional advice for high-risk blast radius (a hint that may be stale), never a requirement.
+**IMPORTANT MUST ATTENTION** for code work, read the target and relevant conventions before planning or editing; seek 3+ fitting examples when available and record fewer/none. Do not impose code discovery on work with no code surface. The code graph is optional, stale-able advice for high-risk impact, never a requirement.
 
 <!-- /SYNC:understand-code-first:reminder -->
 
@@ -688,7 +692,7 @@ integration-test (you are here)
 **IMPORTANT MUST ATTENTION** Main order: (1) FIRST read the selected canonical owner and resolve required case coverage; only the strict default upserts Section 8 TCs; (2) MIDDLE implement real-path tests with the selected traceability carrier; (3) FINAL reconcile changed behavior and the full affected owner/case scope across integration + unit. Per mode: Detect → Find targets → Gather context → Execute → Report.
 **IMPORTANT MUST ATTENTION Review route:** `--mode=review [--review-only|--fix-loop] [--prove-tests]` → scope/profile → package → eight gates → validate/deduplicate → report; standalone fix-loop repairs and freshly re-reviews under the shared cap. Runtime proof belongs to `--mode=verify [--fix-loop]`; read its references before execution.
 **IMPORTANT MUST ATTENTION** Modes: `from-changes`/`from-prompt` generate; `review` audits; `diagnose` classifies failures; `verify-traceability` audits test↔spec↔feature-doc links. The flagged `--mode=review` and `--mode=verify` remain the heavier gates.
-**IMPORTANT MUST ATTENTION** Gates: real DI; owned persisted fields when applicable; synchronization matching the boundary; real use-case setup; fidelity barriers; property/mutation coverage; zero-GAP changed-file + full affected-owner case audit under the selected profile; 2 no-reset runs; review → verify → owner sync.
+**IMPORTANT MUST ATTENTION** Gates: real wiring at the tested boundary; owned persisted fields when applicable; synchronization matching the boundary; valid setup and fidelity; property/mutation coverage; full affected-owner traceability; configured repeat/isolation policy; review → verify → owner sync.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries) — MUST ATTENTION each canonical body below is in force; this digest is the signpost, NEVER the substitute:**
 
@@ -710,7 +714,7 @@ integration-test (you are here)
 
 - **MANDATORY IMPORTANT MUST ATTENTION** NEVER write smoke-only tests — instead read handler/entity/event source, assert specific changed field values — why: DI-resolution / exception-null-only tests pass while the behavior is broken
 - **MANDATORY IMPORTANT MUST ATTENTION** use bounded condition-based polling for asynchronous/eventually consistent outcomes; synchronous persistence uses deterministic reads — why: synchronization must match the actual contract
-- **MANDATORY IMPORTANT MUST ATTENTION** NEVER fabricate state by direct repository writes — instead drive state through real command/query/seeder paths or valid seeded fixtures — why: shortcut data creates invalid state the suite then certifies
+- **MANDATORY IMPORTANT MUST ATTENTION** preserve valid setup and the actual tested boundary; use project fixtures/builders for unrelated preconditions, never a shortcut that bypasses the protected behavior
 - **MANDATORY IMPORTANT MUST ATTENTION** search 3+ existing tests in the SAME service and READ `references/integration-test-patterns.md` BEFORE writing — match collection, base class, helpers, unique-name generators — why: local conventions override generic templates
 - **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence (confidence >80% to act, <60% do NOT recommend) for every claim about field changes, entities, or handler behavior — why: AI hallucinates APIs/signatures; grep to confirm before asserting
 - **MANDATORY IMPORTANT MUST ATTENTION** `TaskCreate` — break ALL work into small tasks BEFORE starting; transition one task at a time, add a final review task — why: tracking survives context loss/compaction
@@ -720,7 +724,7 @@ integration-test (you are here)
 - **MANDATORY IMPORTANT MUST ATTENTION** one business TC maps to MANY tests (1:N, integration + unit) — NEVER split or technicalize a TC to force 1:1 — why: 1:1 splitting breaks the spec's business/user-story orientation (M1/M5)
 - **MANDATORY IMPORTANT MUST ATTENTION** for a broad-input invariant, use property/metamorphic checks supported by the project plus relevant boundary counter-cases tied to the selected profile’s identity/carrier (strict default: §8 Invariant/Property TC) — why: example tests guard fixed points; the rule must fail across its whole input domain (mutation-kill, not line-coverage)
 - **MANDATORY IMPORTANT MUST ATTENTION** preserve documented project-native test organization; group by domain only where that convention applies
-- **MANDATORY IMPORTANT MUST ATTENTION** NEVER mark done after one green run — verification requires 2 consecutive `/integration-test --mode=verify` passes WITHOUT a DB reset — why: one run proves only the current run, not repeatability
+- **MANDATORY IMPORTANT MUST ATTENTION** follow configured repeat/isolation policy; absent one, two fresh green runs prove persistent/shared-state or async suites, while isolated deterministic cases use normal runner proof. Never reset another run's data.
 - **MANDATORY IMPORTANT MUST ATTENTION** make every test parallel-safe — own fresh per-test data down to the root it asserts on, NEVER a shared mutable entity; account for cross-cutting consumers (bulk re-sync/recompute/rebuild/cascade) that wipe a shared parent; on a contradiction between a provably-innocent path and wrong state, suspect cross-test interference FIRST and prove isolation by grepping other tests + consumers — why: shared mutable state lets another test silently corrupt your data and the innocent path takes the blame
 - **MANDATORY IMPORTANT MUST ATTENTION** apply the Real-World Fidelity Gate BEFORE writing any setup — ask "can this sequence, timing, and data actually occur in production?", model real pacing between distinct actor actions instead of firing them in the same millisecond, and wait on an observable settle signal in ARRANGE; NEVER widen an assertion timeout, loosen a comparison, or wrap a failing assertion in a retry to compensate — why: a scenario production can never reach proves nothing when it passes and manufactures phantom "product defects" when it fails
 - **MANDATORY IMPORTANT MUST ATTENTION** positional `review`/`verify` are lightweight positional branches — invoke `--mode=review` and `--mode=verify` for the heavier workflow gates — why: name-collision; the positional branches are not the standalone gates

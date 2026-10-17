@@ -284,20 +284,20 @@ node .claude/hooks/tests/run-all-tests.cjs --filter=agent-files
 
 ---
 
-> **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
+> **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting. This prevents context loss from long files. Keep task depth proportional to the work.
 
 <!-- PROTOCOL-GUIDES:START -->
 
-> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
+> **Protocol guides** — Apply each protocol only when its read-when condition holds. If a protocol's text is not in your context, read its file below before you act on it.
 
-- `output-quality-principles` — Useful, readable guidance without lost conditions; writing generated docs or reports → .claude/skills/shared/protocols/output-quality-principles.md
 - `context-engineering-principles` — Prompt clarity and semantic retention principles; writing or enhancing prompts, skills or agents → .claude/skills/shared/protocols/context-engineering-principles.md
+- `output-quality-principles` — Readable guidance and verified contents for long skill/doc files; writing, updating or auditing a skill or reference document, or another Markdown artifact over 200 lines → .claude/skills/shared/protocols/output-quality-principles.md
 
 <!-- PROTOCOL-GUIDES:END -->
 
 <!-- SYNC:output-quality-principles:reminder -->
 
-**IMPORTANT MUST ATTENTION** lead with useful guidance and readable priorities; preserve action-changing conditions/numbers and required structures. Remove report bulk from guides, use verified discovery, and judge semantic value rather than word or warning counts.
+**IMPORTANT MUST ATTENTION** lead with useful guidance and readable priorities; preserve action-changing conditions/numbers and required structures. When writing, updating or auditing Markdown skill/doc content, verify top, heading-linked contents over 200 lines (stricter owner thresholds remain); refresh after edits and report gaps in read-only audits. Remove report bulk; judge semantic value rather than word counts.
 
 <!-- /SYNC:output-quality-principles:reminder -->
 
@@ -308,7 +308,7 @@ node .claude/hooks/tests/run-all-tests.cjs --filter=agent-files
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):** MUST ATTENTION honor every protocol below.
 
-- **Output Quality:** token-efficient — no inventories/trees/TOCs; tables over prose.
+- **Output Quality:** keep useful guidance and navigation; omit derivable inventories or trees unless their owner needs them. Preserve required linked contents for long Markdown files.
 
 **IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting
 **IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code

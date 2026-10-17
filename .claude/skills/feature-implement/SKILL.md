@@ -56,10 +56,10 @@ context-budget: high
 >
 > Create these as `TaskCreate` tasks up front, in order, then execute them:
 >
-> 1. **`/spec` — spec-driven, BEFORE any plan or code.** Create or update the tech-free 8-section Feature Spec under the business spec root (default `docs/specs/`; `specRoots.business.path` in `docs/project-config.json` overrides) so the plan and implementation satisfy an agreed contract, not chat memory. Decide the case from evidence: net-new capability with no code yet → `/spec [mode=draft]` (provisional, `Evidence: TBD`); enhancement to an already-documented feature → `/spec [mode=update]`; behavior/contract change to existing spec → `/spec [mode=amend]`; buggy/undocumented area that now warrants a spec → `/spec [mode=init]`. If a governing spec already exists and fully covers this change, record `Spec verified current — no change` with `file:line` evidence and proceed. **Skip ONLY in fast mode** (ALL Default Mode Policy trivial-task conditions met — no behavior/contract change); record the skip reason. Decide the case explicitly — skip only the authoring, never the decision.
-> 2. **`/plan`** — author the implementation plan from the spec. feature-implement's Comprehensive Planning phase (Step 2) satisfies this; emit a reviewable plan artifact under the plans root (default `plans/`; `docsRoots.plans.path` in `docs/project-config.json` overrides). Map each plan phase's `## Test Specifications` to the spec's §8 `TC-{FEATURE}-{NNN}` IDs.
+> 1. **`/spec` — spec-driven, BEFORE any plan or code.** Resolve config/required-reference artifact profile first (invalid/unresolved → BLOCKED); create or update its tech-free canonical owner under the business spec root. Use the eight-section Feature Spec only when no native contract is declared, preserving native roles, identifiers and carriers otherwise. Work under that selected owner (default `docs/specs/`; `specRoots.business.path` in `docs/project-config.json` overrides) so the plan and implementation satisfy an agreed contract, not chat memory. Decide the case from evidence: net-new capability with no code yet → `/spec [mode=draft]` (provisional, `Evidence: TBD`); enhancement to an already-documented feature → `/spec [mode=update]`; behavior/contract change to existing spec → `/spec [mode=amend]`; buggy/undocumented area that now warrants a spec → `/spec [mode=init]`. If a governing spec already exists and fully covers this change, record `Spec verified current — no change` with `file:line` evidence and proceed. **Skip ONLY in fast mode** (ALL Default Mode Policy trivial-task conditions met — no behavior/contract change); record the skip reason. Decide the case explicitly — skip only the authoring, never the decision.
+> 2. **`/plan`** — author the implementation plan from the spec. feature-implement's Comprehensive Planning phase (Step 2) satisfies this; emit a reviewable plan artifact under the plans root (default `plans/`; `docsRoots.plans.path` in `docs/project-config.json` overrides). Map each plan phase's `## Test Specifications` to the selected canonical owner/case/variant and intended executor/assertion evidence; §8 `TC-{FEATURE}-{NNN}` only for the absent-profile strict default.
 > 3. **Proceed** — execute the core implementation spine up to the static code review (research already done → implement every phase with its tests → Step 4 review); the single Step 5 verify runs LAST, after every review below.
-> 4. **`/spec [mode=sync]`** — *spec-driven closure.* Reconcile the spec's §8 `TC-{FEATURE}-{NNN}` ↔ integration tests and refresh `Evidence: TBD` markers to real `file:line` now that code exists. Run `/spec [mode=tests]` first if the implementation introduced behavior not yet captured as a test case. Skip only when step 1 was skipped (fast-mode trivial, no spec touched).
+> 4. **`/spec [mode=sync]`** — *spec-driven closure.* Reconcile the selected owner/case/variant ↔ configured test carriers and inspected assertions/results; strict-default §8 TCs only when no native contract exists. Replace provisional evidence with verified source evidence through its owner, never invent execution. Run `/spec [mode=tests]` first if the implementation introduced behavior not yet captured as a test case. Skip only when step 1 was skipped (fast-mode trivial, no spec touched).
 > 6. **`/changes-review --defer=whole-target`** — review the diff before commit (step 7 owns the rationale review).
 > 7. **`/why-review`** — review rationale and change quality of the implementation.
 > 8. **Verify once (Step 5)** — full tests + mutation check on the settled tree, then the documentation update and final report; a fix made here re-runs items 6-7 before the task is done (`SYNC:verify-last-order`).
@@ -195,7 +195,7 @@ mistakes compound through later tasks.
 
 - Use `tester` subagent ONCE for the full affected suite; then run the mutation check yourself (`tester` is read-only) on every changed core-logic line and new rule
 - Tests cover: happy path scenarios, edge cases from research, error handling paths
-- NO mocks or fake data
+- Exercise the owned integration behavior through real paths. Use realistic valid fixtures and project-supported test doubles only at designated external seams; deterministic AI tests mock the model at one seam (AE-6.2), and default CI makes no live paid calls. Never mock away the invariant under test.
 - Any red test or surviving mutant: record the provisional verdict, fix at the owner, re-run until all tests pass and every mutant is killed
 - If fixing edited any source or test file, re-run the Step 4 review over the settled tree; a re-review that applies a fix sends you back here (capped at 3 turns, then escalate via `ask user question tool`)
 - Done = a green verify AND no edit after the last review; an edit after the last green run invalidates it
@@ -229,7 +229,7 @@ mistakes compound through later tasks.
 | Research | 2+ researcher reports     |
 | Planning | Full plan directory       |
 | Review   | No blocking findings under the current severity bar; deferred LOWs listed; static, before the verify |
-| Tests    | Verified once after the review: all pass, no mocks, every mutant killed |
+| Tests    | Verified once after review: all pass, owned behavior real, designated external/model seam doubles allowed, required mutants killed |
 | Docs     | Updated if needed         |
 
 ---
@@ -245,19 +245,20 @@ mistakes compound through later tasks.
 
 > If THIS run is a step of a `[Workflow]` row (`nested=true`: its own phase tasks are linked to that parent row; a `[Workflow]` row that merely exists in `TaskList`, such as an abandoned one, does not count), skip — workflow handles sequencing.
 
-> **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. Prevents context loss from long files. For simple tasks, MUST ATTENTION ask user whether to skip.
+> **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting. Prevents context loss from long files. Keep task depth proportional to the work.
 
 - `domain-entities-reference.md` under the reference-docs root (default `docs/project-reference`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides) — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models)
-- The business spec root (default `docs/specs/`; `specRoots.business.path` in `docs/project-config.json` overrides) — Test specifications by module (read existing TCs; generate/update via `/spec [mode=tests]` after implementation)
+- The business spec root (default `docs/specs/`; `specRoots.business.path` in `docs/project-config.json` overrides) — Canonical case contracts by selected owner/profile (strict-default TCs only when absent); generate/update via `/spec [mode=tests]` after implementation
 
 <!-- PROTOCOL-GUIDES:START -->
 
-> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
+> **Protocol guides** — Apply each protocol only when its read-when condition holds. If a protocol's text is not in your context, read its file below before you act on it.
 
 - `core-engineering-principles` — Core quality gate: easy to change, easy to scale, easy to maintain, judged by future change cost; planning, implementing or reviewing any change → .claude/skills/shared/protocols/core-engineering-principles.md
 - `design-distinctiveness-gate` — Design identity gate DD-1 to DD-8: subject, design plan, generic test, restraint; designing, implementing or reviewing a visual surface → .claude/skills/shared/protocols/design-distinctiveness-gate.md
 - `design-review-checklist` — Executable front-end design review protocol CL-1 to CL-6; reviewing, planning or building front-end work → .claude/skills/shared/protocols/design-review-checklist.md
-- `end-to-start-debugger-trace` — Walk backward from the observed end state through every feeder path before fixing; fixing a non-trivial bug, a regression or unclear code flow → .claude/skills/shared/protocols/end-to-start-debugger-trace.md
+- `domain-entity-change-gate` — DDD entity, value object and aggregate change gate; planning, implementing or reviewing a domain model change → .claude/skills/shared/protocols/domain-entity-change-gate.md
+- `end-to-start-debugger-trace` — Walk backward from the observed end state through every feeder path before fixing; investigating non-trivial bugs or failed verification, changing code behavior, or tracing unclear code flow → .claude/skills/shared/protocols/end-to-start-debugger-trace.md
 - `graph-assisted-investigation` — Optional hint: a code-graph query can add callers and dependents when grep may miss a high-risk blast radius, and it can be stale; a high-risk change where grep and reading alone may miss the blast radius → .claude/skills/shared/protocols/graph-assisted-investigation.md
 - `measured-capacity-engineering` — Model demand, reduce measured work safely and prove capacity before scaling; planning, building, testing or reviewing hot paths, caches or capacity → .claude/skills/shared/protocols/measured-capacity-engineering.md
 - `plan-quality` — Plans decide direction, affected owners, risks and final proof without pre-writing implementation; writing or reviewing a plan → .claude/skills/shared/protocols/plan-quality.md
@@ -283,7 +284,7 @@ mistakes compound through later tasks.
 
 <!-- SYNC:understand-code-first:reminder -->
 
-**IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code/conventions BEFORE any modification or explanation. The code graph is optional advice for high-risk blast radius (a hint that may be stale), never a requirement.
+**IMPORTANT MUST ATTENTION** for code work, read the target and relevant conventions before planning or editing; seek 3+ fitting examples when available and record fewer/none. Do not impose code discovery on work with no code surface. The code graph is optional, stale-able advice for high-risk impact, never a requirement.
 
 <!-- /SYNC:understand-code-first:reminder -->
 
@@ -320,7 +321,7 @@ mistakes compound through later tasks.
 
 <!-- SYNC:end-to-start-debugger-trace:reminder -->
 
-**IMPORTANT MUST ATTENTION** debugger trace gate: for non-trivial bug/fix/investigation/review work, start at the observed final output and trace backward through reader -> storage/projection -> writer -> consumer/job -> producer/trigger. Enumerate all feeder paths and hypotheses before fixing; select the authoritative invariant owner from project architecture and retain validation at untrusted boundaries. **BLOCKED until** trace, hypothesis matrix, owning fix layer, and forward convergence proof exist.
+**IMPORTANT MUST ATTENTION** for non-trivial bugs, failed verification, regression fixes, behavior-changing code or unclear code flow, trace backward from the observed output through every feeder path before fixing. Establish hypotheses, the authoritative invariant owner and forward proof; retain validation at untrusted boundaries. Ordinary artifact review or graph lookup alone does not trigger a debugging workflow.
 
 <!-- /SYNC:end-to-start-debugger-trace:reminder -->
 
@@ -356,6 +357,12 @@ mistakes compound through later tasks.
 
 <!-- /SYNC:measured-capacity-engineering:reminder -->
 
+<!-- SYNC:domain-entity-change-gate:reminder -->
+
+**MUST ATTENTION** only for relevant entity/VO/aggregate changes, read `domain-analysis/references/entity-quality.md`: establish fit → plan owned decisions/proof → implement through all write/load paths → review the same rules. Keep simple models simple; unresolved material decisions or required proof block. Use one caller-owned review pass.
+
+<!-- /SYNC:domain-entity-change-gate:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Ship a correct, fully-verified feature that satisfies the saved Goal Contract — implemented with deep research, comprehensive planning, and maximum quality verification (planned, reviewed, tested, documented) — with no skipped quality gate on any non-trivial change.
@@ -371,7 +378,7 @@ mistakes compound through later tasks.
 - **Nested Task Creation:** Expand child phase tasks and link the parent when nested.
 - **Task Tracking External Report:** Bootstrap task tracking; persist plan/review findings incrementally to disk.
 - **Understand Code First:** Search 3+ patterns and read code before any modification.
-- **Plan Quality:** Add `## Test Specifications` with TC IDs to every plan phase.
+- **Plan Quality:** Map every phase’s Test Specifications to the selected canonical owner/case/variant and evidence; default TC IDs only when the profile is absent.
 
 - **MANDATORY IMPORTANT MUST ATTENTION** default mode HARD — opt out to fast mode ONLY when ALL trivial-task conditions met
 - **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks via `TaskCreate` BEFORE starting

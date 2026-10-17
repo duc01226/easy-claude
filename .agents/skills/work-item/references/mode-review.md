@@ -103,6 +103,8 @@ Select the checklist by artifact type. Pass `--type={task|story|spec-tests|desig
 
 **[BLOCKING] Read `references/review-type-<type>.md` for the resolved type BEFORE scoring** — it holds that type's Required/Recommended checks and its output template, and this file alone is not enough to review. Read only the resolved type's file. Whatever the type, the report header records `Artifact identity: {path} · sha256:{hex digest of the file bytes} (content hash required; size + mtime is not an identity)` so `$work-item --mode=challenge` and `$work-item --mode=dor` can `--reuse` the report while the artifact is unchanged (`.claude/skills/shared/m1-m7-gates.md` → "Reusing an earlier verdict").
 
+**UI depth:** For a UI-bearing task, story or spec-tests artifact, read only `review-type-design.md` → **Shared UI protocol bodies** before judging that surface. A UI-bearing design review reads that entire selected type reference, including its design-only principles. A non-UI artifact skips UI depth with an evidenced N/A; retain the always-run applicability review.
+
 ## M1-M7 Compliance Gate (BLOCKING — applies to ALL artifact types)
 
 > **[BLOCKING] MUST ATTENTION READ `.claude/skills/shared/m1-m7-gates.md`** for the six criteria (M1-M5, M7), the carrier exemption and the M1-vs-M7 rule. Definitions: `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M7)".
@@ -166,55 +168,6 @@ Inventory every artifact and its governing type, plan review tasks and coverage,
 > **Self-check before claiming done:** (1) What is the next plausible change, and how many files would it touch? (2) What breaks at 10× features, data or load? (3) Which named test goes red if this behavior breaks, and does the harness run it?
 
 <!-- /SYNC:core-engineering-principles -->
-
-<!-- SYNC:design-distinctiveness-gate -->
-
-> **[BLOCKING] Design distinctiveness gate (`DD-1`–`DD-8`) — binds on ANY task that designs, plans, mocks up, implements, or reviews a user-facing visual surface.** Deep catalog: `.claude/docs/design-knowledge.md`. Cite findings as `DD-<clause>` + `file:line`.
->
-> **Precedence (resolve in this order, never silently):** the **brief's own stated visual direction WINS outright** — including when it asks for one of the `DD-4` tells. Then the **project's design-system / SCSS / frontend-pattern docs and accepted ADRs** — a house style IS an intentional identity; re-deciding it per feature is incoherence. Then these clauses. A genuine conflict is SURFACED to the user with both sides, NEVER resolved silently.
->
-> **Relationship to `UI-1.1`–`UI-9.4`:** the 40 clauses ask _"is this usable, accessible, consistent?"_ (a measurable floor); this gate asks _"is this THIS product's interface, or the one any generator would emit for any brief?"_. BOTH bind; where they touch (type scale, colour, motion timing) the clause sets the floor and this gate picks the value.
->
-> - `DD-1` **Ground it in the subject matter.** Before designing, name the concrete subject, the audience, and the design's primary job — and CONFIRM with the user when the brief is silent. Distinctive choices come FROM the subject's industry, materials and vernacular, never taste applied on top. **Test: if the palette, type and layout would fit a different product unchanged, there is no identity yet.**
-> - `DD-2` **Every choice carries a WHY.** "It's common", "it's clean", "users expect it" are not reasons; an unexplained decision is a default that arrived unnoticed. Defaults hide in infrastructure — typography, navigation, data display, and TOKEN NAMES. **Token-name test: someone reading only your CSS variables should be able to guess what product this is** (`--ink`/`--parchment` evoke a world; `--gray-700`/`--surface-2` evoke a template).
-> - `DD-3` **Two passes, and the review pass is mandatory.** (1a) Write a compact **design plan** — Colour (4–6 named hex values) · Type (families + roles + scale) · Layout (one-sentence prose + ASCII wireframes to compare alternatives, including alignment: left/centre/justified) · Principles (what makes THIS page unique). (1b) **BLOCKING generic test — before any code:** work through a similar prompt and see whether you arrive somewhere similar; **any part that reads like the generic default for any comparable page rather than a choice for THIS brief gets REVISED, and you state what you changed and why.** Then (2a) build the REVISED plan, (2b) critique. — why: a plan taken straight to code reproduces the default it came from.
-> - `DD-4` **Audit every FREE axis against the generated-design tell catalog** (`[model-knowledge]`, calibration not prohibition — each trait is legitimate for SOME brief): **T1** cream `#F4F1EA` + high-contrast serif + terracotta near `#D97757` (Anthropic's own interaction accent — on a user's brief it reads specifically as a tell) · **T2** near-black + one acid-green/vermilion accent · **T3** broadsheet hairline-rule pastiche, zero radius, dense columns · **T4** the SaaS-card kit: identical rounded cards, ONE radius regardless of hierarchy, the same `rgba(0,0,0,.1)` shadow under each, gradient washes as decoration · **T5** template chrome whatever the subject: tracked-out ALL-CAPS eyebrow above every heading, meta strings joined with middle dots (`A · B · C`), `WORD — fragment` labels with a spaced em dash, tinted near-black (`#0B0B0B`/`#111`) standing in for black, monospace for small data labels, `→` appended to link/button text. **A match is a HYPOTHESIS about a missed decision, never a defect** — promote it only by naming the axis, that the brief left it free, and what the subject suggested instead.
-> - `DD-5` **Typography carries the personality.** One family, or two CLEARLY distinct ones — you do NOT need separate display and body faces. Choose deliberately, set a real scale with intentional weights, widths and spacing; a headline is an ACTIVE part of the design. Measure under ~80 characters; serifs tolerate slightly longer lines and want slightly more line-height than sans at the same size. Hierarchy needs weight/tracking/opacity, not size alone. **Avoid the three commonest tells: accenting a single word in a headline (italic/bold/colour) · ALL CAPS labels · an eyebrow label that names the section the heading already names.**
-> - `DD-6` **Structure is information, not decoration.** Outlines, borders, numbering, eyebrows, dividers and labels must encode something about the content. **Before adding numbered markers (`01 / 02 / 03`), check the content really IS a sequence** — a stepped process, timeline or ranking. Every device must tell the reader something whitespace would not, or it goes. **Hero:** open with the most characteristic thing in the subject's world, in whatever form fits (headline, image, animation, live demo, interactive moment) — big-number-plus-small-label-plus-gradient is the DEFAULT treatment, so use it only when it is genuinely best here. **Composition:** rhythm over monotone (uniform card size, gap and density is no one deciding); articulable proportions; one dominant focal point.
-> - `DD-7` **Motion sparingly and deliberately.** Non-user-triggered motion draws attention ONLY. One orchestrated moment — a single page-load sequence or one reveal — lands better than scattered effects; **fade-and-slide-up entrances on each section and hover transitions on every card are the generic default and read as generated.** Motion that ANSWERS a person's action (opening, expanding, confirming) is welcome when it shows what changed. Honour `prefers-reduced-motion`.
-> - `DD-8` **Spend boldness once, then remove one accessory.** Let ONE element be the memorable thing and keep everything around it quiet and disciplined; cut any decoration that does not serve the brief. **Critique the BUILT page, not just the plan** — composition, craft (density is a decision, not a constant), content coherence, and CSS honesty (negative margins undoing a parent's padding, workaround-only `calc()` values, and absolute positioning to escape layout flow are lies; the correct answer is simpler than the hack). Review screenshots where the environment supports it. Then ask "if they said this lacks craft, what would they point to?" and fix that. **Build the quality floor in silently** — responsive, visible keyboard focus, reduced-motion respected, measured contrast, tokens never raw hex or magic numbers — and watch CSS selector specificity, where a type-based selector (`.section`) and an element-based one (`.cta`) most often cancel each other's padding/margin.
->
-> **Memory:** vary between briefs — light and dark, families, direction. NEVER converge on the same choice across generations (Space Grotesk, for example). Where the project already has a design system, tokens, or an `interface-system.md`, ADOPT and record it rather than re-deciding; write back any pattern used 2+ times with measurements worth remembering.
->
-> **Skip ONLY** when the change has NO user-facing visual surface (backend-only, tooling, docs) — state that reason explicitly so the skip is auditable.
-
-<!-- /SYNC:design-distinctiveness-gate -->
-
-<!-- SYNC:design-review-checklist -->
-
-> **Front-End Design Review Checklist** — the EXECUTABLE review protocol for any artifact carrying a user-facing front-end surface. Full catalog (`A1`…`Q` plus §R, ~155 checks with failure signals and default severities; worked calibration cases in `.claude/docs/design-review-calibration.md`): **`.claude/docs/design-review-checklist.md`**. This gate carries the protocol and the triage pass; the file carries the checks.
->
-> **Applies when — and ONLY when — the change, plan, or artifact carries a user-facing front-end surface.** A back-end-only diff, a doc edit, or a config change is `N/A`: state that once and move on. NEVER run a UI review on a non-UI change to manufacture coverage. When it DOES apply, **MUST ATTENTION READ `.claude/docs/design-review-checklist.md` and work its sections** — a review that cites a check ID without opening the catalog is asserting, not checking.
->
-> **`CL-1` Context before checks (§0.1).** Establish platform · primary user & expertise · primary task · success metric · constraints · review scope · available artifacts. Fewer than four known → state the gap at the top of the report and mark affected findings **low confidence** — why: a check judged against an unknown task is a guess wearing an ID.
->
-> **`CL-2` Evidence or nothing (§0.2).** Every finding cites a specific location (screen · element · `file:line`). NEVER invent a measurement — contrast, tap-target size, and load time that cannot be measured from the given artifact are `NOT VERIFIABLE`, never a guessed number. Tag every finding `MEASURED` · `OBSERVED` · `HEURISTIC`. Status values: `PASS` · `FAIL` · `PARTIAL` · `N/A` · `NOT VERIFIABLE`.
->
-> **`CL-3` Severity, then a cap (§0.3).** `P0` blocks task completion / loses data / excludes a protected group (ship blocker) · `P1` significant friction or a legal accessibility floor (fix before release) · `P2` measurable inefficiency (next iteration) · `P3` polish (later) · `P4` note. Translate to other dialects (BLOCKED/WARN, Critical–Low, BLOCKING/ADVISORY) ONLY through the §0.3 severity map. Cap the report at the top 10 by severity unless a full audit was requested. A clean section reports "no issues found" — NEVER pad. Every `P0`/`P1` carries a concrete fix.
->
-> **`CL-4` Section sweep, in order — over whole SURFACES, not files (§0.5).** Map changed files to the pages/views/dialogs they render into, reconstruct each surface's composition (component tree + style origins; render when it can run, else `ENVIRONMENT-BLOCKED`), then sweep: §A core usability heuristics · §B cognitive load & surface complexity (B12–B15: surface load, progressive disclosure, one job per view, the project's complexity budget) · §C visual design & hierarchy · §D interaction and relevant product states · §E information architecture & container fit (E9–E11: dialog vs full view vs stepped flow vs side panel vs inline) · **§F web / §G mobile — conditional on platform; §H expert & data-heavy use — conditional on usage, not platform** · §I accessibility: use WCAG 2.2 AA as the web baseline and meet any stricter applicable legal or project requirement; for other platforms, use the documented platform standard. Record the selected standard and its source; severity follows the governing release contract · §J content & UX writing · §K trust, ethics & privacy · **§L AI & agentic patterns — conditional on the product having AI features** · §M cross-cutting consistency · **§R forms & data entry — conditional on input: fill the Field Necessity Matrix first** · §N edge-case probes. Make one focused pass per applicable section and record N/A with evidence for sections the surface does not support. Cluster a defect repeated across surfaces into ONE finding; calibrate against `.claude/docs/design-review-calibration.md`.
->
-> **`CL-5` Quick Triage Pass (§P)** when a full sweep is not possible — use these prompts for applicable surfaces: (1) can a new user complete the primary task unaided · (2) is feedback timely against the project/platform expectation · (3) do relevant empty/loading/error states offer a forward path · (4) is the primary action obvious and reachable for supported inputs · (5) do contrast and focus meet the selected accessibility standard (WCAG 2.2 AA baseline for web) · (6) can users operate the surface with its supported input modes · (7) do interactive targets meet the platform's size/spacing guidance · (8) are destructive actions recoverable where appropriate · (9) does the surface work at its smallest supported size and required zoom/reflow · (10) are there deceptive or coercive patterns.
->
-> **`CL-6` Report shape (§O).** Context (+ known gaps) → Verdict (Ship / Ship with fixes / Do not ship) → What works (2–4 specific strengths, cited) → Findings grouped `P0`→`P3`, each with Location · Evidence + tag · Impact · Principle (checklist ID) · Fix → Open questions → Coverage table. Any `P0` caps the grade at Fail regardless of score; report a score only ALONGSIDE findings, never instead of them.
->
-> **Component architecture pass (§M6–§M9) when source code is in scope.** Verify the ownership model documented or demonstrated by the project, reuse/composition decisions, and whether shared behavior is duplicated without a reason. Do not require tiers, a base abstraction, or a particular test hierarchy unless the project uses one. Report applicable checklist IDs with `file:line` evidence; do not infer source architecture from a screenshot alone.
->
-> **Precedence and no-double-counting.** The project's design-system / SCSS / frontend-pattern docs and accepted ADRs OUTRANK this checklist; the brief's stated direction outranks aesthetic judgment. A deliberate, documented convention is NEVER a defect — check intent before flagging, and surface a genuine conflict to the user with both sides, NEVER resolve it silently. This checklist is the review PROCEDURE, not a third set of taste rules: `UI-1.1`–`UI-9.4` ask "does it meet the usability floor?", `DD-1`–`DD-8` ask "is this THIS product's interface?", and these checks ask "did the review actually look, with evidence, and rank it?". Where a check restates a `UI-*` or `DD-*` clause, report the defect ONCE under whichever ID the consuming skill already uses.
->
-> **For a PLAN or a PLAN REVIEW.** When the plan contains UI work, bind applicable acceptance criteria to the target platform/surface, relevant user states, and the selected accessibility standard. Each UI phase MUST name, per new or reshaped view: its primary task, its container (E9), its information priority (what is shown now / later / never here), and — for input — the inputs required at creation vs deferred (§R1–R2). A plan review treats a UI phase missing these as a finding against the checklist IDs it leaves unbound. Use WCAG 2.2 AA as the web baseline and meet any stricter applicable legal or project requirement; for other platforms, identify the documented platform standard. Identify conditional sections (§F/§G/§H, §L) that apply. Do not require every catalogued state; record the standard and its source, and keep unsupported checks N/A.
-
-<!-- /SYNC:design-review-checklist -->
 
 
 <!-- SYNC:evidence-based-reasoning -->
@@ -521,115 +474,6 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:trade-off-interrogation-gate -->
 
-<!-- SYNC:ui-intent-layer -->
-
-> **[BLOCKING] Capture a tech-agnostic UI/UX intent layer in every UI-bearing spec — a reader must be able to visualize how the feature works without naming any technology.** When the feature has a user interface, the spec MUST ATTENTION carry an interaction-surface section so the application — not just its API — can be rebuilt on any stack:
->
-> **Native-first resolution.** A native contract may be declared by config or local references. Before authoring, resolve the configured profile's intent/evidence section roles, logical IDs, and carrier from `docs/project-config.json` (`specArtifacts`) and the required local references, and map every item below onto them. An unresolved owner, role, ID, carrier, or companion link stays `UNKNOWN`/`BLOCKED` — never guessed.
->
-> 1. **View Inventory** — list each view/screen by its UX ROLE and purpose (e.g. "list of items", "item editor", "confirmation step") and what information it presents. Describe by role, never by an implementation name. Per view, record its **information priority** — each piece of information and each input the user meets is classified `now` (the view's task needs it), `later` (deferred to a follow-up view or step), or `not here` (belongs elsewhere) — and its **container role** (full view · focused dialog · side panel · stepped flow · inline edit), chosen for the task, never by habit.
-> 2. **Navigation Map** — how a user moves between views: entry points, transitions, and exits. Trace how this surface connects to neighboring features already in the system.
-> 3. **Key observable states** — the distinct states a user can observe per view (empty, loading, populated, error, success, permission-denied, etc.) — described as what the user perceives, not how it is rendered.
-> 4. **Per-story action flows** — for each user story, the step-by-step click/action path from intent to outcome, cross-referenced to the logical IDs the configured profile owns.
-> 5. **Couple to the companion design artifact** — keep deep visual fidelity (layout, tokens, pixel detail) OUT of the spec; it lives in the linked companion design artifact. Record that artifact's path in the spec frontmatter so the spec stays the navigable hub.
->
-> **M1-clean (NON-NEGOTIABLE):** the prose names ZERO frameworks, routes/URLs, CSS, or component-class names — only roles, information, states, and action flows. Technology detail belongs in the companion design artifact, never here.
->
-> **Strict portable fallback — only when neither config nor local references declares a native artifact contract:** cross-reference each action flow to the default logical IDs `US-`/`OP-`/`BR-`, and record the companion artifact in the default `design_spec:`/`mockup:` frontmatter keys.
->
-> **Skip ONLY** when the feature is backend-only (no UI) — state that reason explicitly in the section.
-
-<!-- /SYNC:ui-intent-layer -->
-
-<!-- SYNC:ui-ux-design-principles -->
-
-> **UI/UX Design Principles (Rev 1.0 — 40 clauses, web + mobile examples)** — a reference catalog, not a universal platform contract. Apply it only to an applicable user-facing interface. Resolve the target platform, input modes, accessibility standard, and relevant design conventions from the brief, project config/reference docs, accepted decisions, and existing UI. For web, use WCAG 2.2 AA as the baseline and meet any stricter applicable legal or project requirement; for non-web surfaces, use the documented platform accessibility standard. Record the selected standard and source.
->
-> Numeric values and patterns below are examples or heuristics for matching surfaces, not required thresholds. Use a value as a fail-condition only when an applicable law, platform standard, project contract, or accepted design decision establishes it. For desktop, game, embedded, command-line, or other interfaces, use their documented platform conventions and accessibility requirements; do not report a mismatch with a web/mobile example as a defect. Skip clauses whose underlying capability is absent and record N/A when needed. Cite applicable clauses by ID (for example `UI-3.1` or `UI-8.2`).
->
-> **Precedence:** accepted product/design decisions → project config and design-system / styling / frontend / platform references → applicable clauses below → general heuristics. A genuine conflict between authoritative project sources is SURFACED with both sides — NEVER resolved silently. An absent project convention is not permission to invent one.
->
-> **1.0 Visual Hierarchy & Layout**
->
-> - `UI-1.1` One focal point per view — or per region on a deliberately multi-panel expert surface. Two elements competing for first read → demote one.
-> - `UI-1.2` Signal order: size → weight → colour → position. Use the cheapest signal that works before adding another.
-> - `UI-1.3` Group by proximity first. Add a border or container only when it encodes a real boundary; boxes inside boxes rarely do.
-> - `UI-1.4` Align to a shared edge. Every unexplained indent reads as an accident.
-> - `UI-1.5` Design the empty, loading and error state FIRST. The full state is the easy one.
->
-> **2.0 Typography**
->
-> - `UI-2.1` Keep type families and weights purposeful; follow the project's type system when present. Two families and three weights are one possible web starting point, not a limit.
-> - `UI-2.2` Meet the readable-text sizes required by the applicable platform and project. Common web/mobile values such as 16px are examples; do not use them as universal minimums.
-> - `UI-2.3` Keep text measures readable for the content and target surface. A 45–75 character line is an editorial heuristic, not a pass threshold.
-> - `UI-2.4` Choose line spacing that supports the font, size, script, and reading context; ratios such as 1.5 for body text are starting points.
-> - `UI-2.5` Use the project's type scale where defined. Otherwise keep sizes purposeful and consistent without requiring a fixed number of named steps.
->
-> **3.0 Colour & Contrast**
->
-> - `UI-3.1` Meet the contrast ratios required by the selected accessibility standard; for web, use WCAG 2.2 AA unless a stricter applicable legal or project requirement applies. Measure where possible. Ratios such as 4.5:1 for text and 3:1 for interface parts are standard-specific examples, not universal values.
-> - `UI-3.2` One accent, one job. An accent that is everywhere points at nothing.
-> - `UI-3.3` Colour NEVER carries meaning alone — pair it with an icon, label or position.
-> - `UI-3.4` Dark mode is NOT inverted light mode. Lift surfaces to signal elevation; soften pure-white text.
->
-> **4.0 Spacing & Grid**
->
-> - `UI-4.1` Follow the project's spacing tokens or grid when defined. A 4px or 8px base is one common option, not a framework requirement.
-> - `UI-4.2` Space belongs to the container, not the child. Use `gap`; reserve margins for exceptions.
-> - `UI-4.3` Use spacing to make grouping and hierarchy clear; the right relationship depends on the content and layout.
-> - `UI-4.4` Breakpoints follow content, not devices. Break where the layout stops working.
->
-> **5.0 Interaction & Feedback**
->
-> - `UI-5.1` Give immediate, perceivable feedback; use a timing target only when the product contract or applicable platform guidance defines one.
-> - `UI-5.2` Specify the interaction states supported by the target platform and input modes (for example default, focus, active, disabled, or loading); hover is not universal.
-> - `UI-5.3` Prefer undo over confirmation. Confirm ONLY what cannot be reversed.
-> - `UI-5.4` Use motion when it clarifies cause and effect; follow project/platform timing and easing, and honor reduced-motion preferences when supported. Durations around 150–250ms are examples, not a rule.
-> - `UI-5.5` Preserve a perceivable focus indicator wherever the interface supports focus navigation; follow the platform and applicable accessibility standard.
->
-> **6.0 Navigation & IA**
->
-> - `UI-6.1` Every screen answers: where am I, what's here, where next.
-> - `UI-6.2` Keep primary navigation understandable for the product's information architecture; do not impose a fixed destination count.
-> - `UI-6.3` Label by the user's word, not the internal one. Team vocabulary is not a taxonomy.
-> - `UI-6.4` Preserve expected return, history, or deep-link behavior where the platform and product provide those concepts.
->
-> **7.0 Forms & Input**
->
-> - `UI-7.1` Ask for less. Every field needs a reason to exist at THIS step — defer, derive, or default what the task does not need now (Field Necessity Matrix: `.claude/docs/design-review-checklist.md` §R).
-> - `UI-7.2` Labels stay visible. Placeholders are hints, NEVER labels.
-> - `UI-7.3` Validate at a point that supports timely, useful correction without disrupting entry; follow the project's interaction contract. Explain errors and associate them with the affected input where supported.
-> - `UI-7.4` Match the input control and available input aids to the data and target platform; use autocomplete or capitalization hints only where supported and appropriate.
-> - `UI-7.5` NEVER lose entered data. Preserve input across errors, navigation and refresh.
->
-> **8.0 Mobile & Touch** _(mobile/touch surfaces)_
->
-> - `UI-8.1` Meet the target-size and spacing requirements of the applicable platform/accessibility standard. The interactive target may exceed the visible icon.
-> - `UI-8.2` Place primary actions where they are reachable for the target device, orientation, handedness, and input mode.
-> - `UI-8.3` Provide an alternative to gesture-only actions when required by the target platform or accessibility contract.
-> - `UI-8.4` Respect safe areas and the keyboard. Notch, home indicator and on-screen keyboard all steal space.
->
-> **9.0 Speed & Perceived Speed**
->
-> - `UI-9.1` Give feedback appropriate to the work and what is known; skeletons and spinners are options, not required patterns.
-> - `UI-9.2` Use optimistic updates only when the operation can be safely reconciled; otherwise show clear pending, success, and failure states.
-> - `UI-9.3` Reserve space for anything that loads. Images, ads and fonts must NEVER shift the layout.
-> - `UI-9.4` For network-dependent surfaces, define useful timeout, retry, and offline behavior according to the product's availability needs.
->
-> **Apply by role** — the clauses are one set; what you DO with them depends on the task:
->
-> | Role | Obligation |
-> | --- | --- |
-> | DESIGN / PLAN a surface | Select applicable clauses for the target platform; document required states, tokens, input, and constraints from the project contract. |
-> | IMPLEMENT a component | Verify the configured behavior and accessibility requirements; use project tokens and abstractions only when defined. |
-> | REVIEW UI code or a design artifact | Treat only applicable, authoritative clauses as fail-conditions; cite `UI-<clause>` + `file:line` + severity. NEVER turn inapplicable defaults into findings. |
-> | SCAN / document a UI system | Record the project's actual platform conventions and deliberate deviations; do not fill gaps with this catalog's examples. |
->
-> **Component architecture (code-bearing UI work):** Follow documented tiers and base abstractions when the project has them. Otherwise identify actual reuse boundaries from the code; do not require a three-tier taxonomy, base class, or lower-tier test model. Reuse shared behavior when a demonstrated consumer and suitable project abstraction justify it; test according to the project's test organization.
->
-> **Skip ONLY** when the change has no user-facing surface (backend-only, tooling, docs) — state that explicitly so the skip is auditable, not an omission.
-
-<!-- /SYNC:ui-ux-design-principles -->
 
 <!-- SYNC:understand-code-first -->
 
@@ -647,31 +491,10 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:understand-code-first -->
 
-<!-- SYNC:ux-journey-gate -->
-
-> **[BLOCKING] Journey-first UX gate (`UX-1`–`UX-11`) — binds on ANY task that generates, specifies, plans, mocks up or reviews a user-facing surface.** Catalog (process, templates, methods, sources): `.claude/docs/ux-journey-process.md`. Each clause is a CHECK: record `PASS` / `FAIL → fixed` / `N/A (reason)` with evidence; cite findings as `UX-<n>` + location.
->
-> **Order is BLOCKING: (1) REPORT the main user journeys → (2) READ the project's design principles, design system and existing UI → (3) only then generate → (4) CHECK every UI/UX gate (`UX-11`).** No wireframe, mockup, design plan, token table or UI code before step 1's report exists.
->
-> - `UX-1` **Journey Report first.** Frame (problem · business goal · success signal · constraints) · actors (context, expertise, frequency) with job statements · 3–5 main journeys ranked by frequency × value × risk × first-use · per journey a step table (intent · decision · information needed · business rule · response · failure → recovery) · derived requirements · assumptions. Evidence from spec, stories, business logic, existing UI — each claim `SOURCED (location)` or `INFERRED`; CONFIRM an inferred primary actor, main job or success outcome with the user; no question tool → record it as `INFERRED — unconfirmed (no question tool)` in the assumptions and hand-off and continue — never block.
-> - `UX-2` **Design authority read before generating.** Project design principles, design system (tokens, components, patterns), styling conventions, design ADRs, existing related UI — record `Design authority read: <paths>` or `N/A — none configured (checked: <paths>)`. Adopt house patterns; never invent what the project defines.
-> - `UX-3` **Screens are journey steps.** Every view hosts ≥1 step and names its primary task; every main-journey step lands on a view; container fits the task (dialog only for short focused tasks).
-> - `UX-4` **Important information first.** Per view, rank items by need-at-the-decision × frequency × cost-of-missing → Primary (the first read and first viewport: one focal point, ONE primary action = the journey's next step) · Secondary (visible, subdued) · On demand (progressive disclosure, always reachable) · Not here (owning view named). Front-load labels and headings so a scan of the first words finds the answer; never hide a high-cost-of-missing item on demand. Hierarchy implements the rank.
-> - `UX-5` **Business rules become interaction.** Prevent before reporting: constraints, defaults, conditional visibility, permission-aware and state-driven actions, undo over confirm, confirm only the irreversible, async feedback; each step's failure and recovery path and each view's empty/loading/error states designed.
-> - `UX-6` **Match the mental model.** User vocabulary · platform and house conventions · recognition over recall · few choices per decision · context carried across steps, never re-typed · accelerators for frequent experts.
-> - `UX-7` **Low-fi before hi-fi.** Walk the main journeys on a structural sketch before the `DD-3` Design Plan and visual design.
-> - `UX-8` **Walk the journeys.** Cognitive walkthrough per main journey on the result — does the user know the step is needed, see the action, link it to the goal, see progress? — plus a traceability matrix (step → view → element → tier → rule → states). Unserved step or orphan element = defect.
-> - `UX-9` **Interaction cost per journey, measured.** Record per main journey: steps · clicks/taps · view changes · fields typed · decisions · waits — against the existing flow or the spec. Remove, default, merge or defer every interaction that does not advance the job; frequent journeys get the shortest path, rare ones may sit deeper. Click count alone is not the bar (the "3-click rule" is a myth): every click must be CONFIDENT — its label predicts the destination (information scent).
-> - `UX-10` **Navigation and wayfinding.** Every view answers: where am I (current location marked), where can I go (labels in user words with strong scent), how do I get back or out (back/cancel/exit that keeps entered data). The navigation map has an entry for every journey, no dead ends or orphan views, works from a deep link, and keeps placement consistent; frequent destinations are one navigation action from where the journey starts.
-> - `UX-11` **All UI/UX gates checked before hand-off.** Close every design output with a **UI/UX Gate Report**: one row per gate — `UX-1`–`UX-10` · `UI-1.1`–`UI-9.4` (floor, applicable clauses) · `DD-1`–`DD-8` (identity) · `CL-1`–`CL-6` (full sweep for a review, at least the `CL-5` triage otherwise) · UI copy — each `PASS` / `FAIL → fixed` / `FAIL — open` / `N/A (reason)` / `NOT VERIFIABLE` (never a guessed measurement) with evidence. An open `FAIL` blocks hand-off; an unlisted gate counts as not checked.
->
-> **Depth scales with scope, never to zero:** tweak → 3–5 line journey note + the gate rows it touches · new/reshaped view → 1–2 journeys · new flow → full report · product → per capability. Recreation modes (screenshot/video) still infer and report the journeys and record violations the walk exposes. **Precedence:** accepted product decisions and the project's specs, design principles, design system and ADRs → the brief → these clauses; surface genuine conflicts to the user, NEVER resolve silently. **Sub-agents inherit nothing from this conversation:** a UI-bearing sub-agent brief carries the Journey Report and the Design Plan verbatim plus the design-system doc paths, or the leaf supplies its own defaults. **Skip ONLY** with no user-facing surface — state the reason.
-
-<!-- /SYNC:ux-journey-gate -->
 
 <!-- SYNC:understand-code-first:reminder -->
 
-**IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code/conventions BEFORE any modification or explanation. The code graph is optional advice for high-risk blast radius (a hint that may be stale), never a requirement.
+**IMPORTANT MUST ATTENTION** for code work, read the target and relevant conventions before planning or editing; seek 3+ fitting examples when available and record fewer/none. Do not impose code discovery on work with no code surface. The code graph is optional, stale-able advice for high-risk impact, never a requirement.
 
 <!-- /SYNC:understand-code-first:reminder -->
 
@@ -692,12 +515,6 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:severity-rubric:reminder -->
 
-
-<!-- SYNC:ui-intent-layer:reminder -->
-
-- **MANDATORY** For UI-bearing specs, author/maintain the tech-agnostic interaction-surface layer (views with information priority now/later/not-here and container role + navigation map + observable states + user-action flows), resolving it through the configured profile's intent/evidence roles and logical IDs; an unresolved owner, role, ID, carrier, or link stays `UNKNOWN`/`BLOCKED`. **Strict portable fallback — only when neither config nor local references declares a native artifact contract:** trace each flow to the default `US-`/`OP-`/`BR-` IDs and record the companion artifact in the `design_spec:`/`mockup:` frontmatter keys. Name ZERO frameworks/routes/CSS/component classes; skip ONLY for backend-only features with a stated reason.
-
-<!-- /SYNC:ui-intent-layer:reminder -->
 
 ## Prompt-Enhance Closing Anchors
 
@@ -725,35 +542,12 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 <!-- /SYNC:trade-off-interrogation-gate:reminder -->
 
 
-<!-- SYNC:ui-ux-design-principles:reminder -->
-
-Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platform and project conventions first. Use WCAG 2.2 AA as the web accessibility baseline plus any stricter applicable legal/project requirement; non-web surfaces use the documented platform standard. Other web/mobile metrics and component tiers are defaults/examples only for matching surfaces. Skip N/A clauses and non-UI work explicitly. Project config, references, and accepted decisions govern; cite applicable findings by `UI-<clause>` + `file:line`.
-
-<!-- /SYNC:ui-ux-design-principles:reminder -->
-
-<!-- SYNC:design-distinctiveness-gate:reminder -->
-
-- **MUST ATTENTION** apply the design distinctiveness gate (`DD-1`–`DD-8`) to any user-facing visual surface: ground it in the named subject/audience/job and confirm when the brief is silent (`DD-1`) · every choice carries a WHY, token names included (`DD-2`) · write a design plan (colour 4–6 named hex · type families+roles+scale · layout prose+ASCII+alignment · principles) then run the BLOCKING generic test and state what you revised BEFORE coding (`DD-3`) · audit every free axis against the T1–T5 tell catalog — cream+serif+`#D97757`, acid-on-black, broadsheet, the SaaS-card kit, template chrome (ALL-CAPS eyebrows, `A · B · C`, spaced-em-dash labels, `#0B0B0B`, mono data labels, trailing `→`) — a match is a missed decision, never a defect (`DD-4`) · 1–2 clearly distinct families, real scale, <80ch, no single-word headline accent / ALL-CAPS labels / redundant eyebrows (`DD-5`) · numbering only on real sequences; hero = the subject's most characteristic thing, not big-number+gradient (`DD-6`) · one orchestrated motion moment, never per-section entrances plus universal card hovers (`DD-7`) · spend boldness once, critique the BUILT page, remove one accessory (`DD-8`). The brief's stated direction OUTRANKS the tell catalog; project design-system docs OUTRANK these clauses — genuine conflicts go to the user, NEVER resolved silently. Cite findings as `DD-<clause>` + `file:line`. Skip ONLY for surfaces with no user-facing visuals, stated explicitly.
-
-<!-- /SYNC:design-distinctiveness-gate:reminder -->
-
-<!-- SYNC:design-review-checklist:reminder -->
-
-- **MUST ATTENTION** when the change/plan/artifact has an applicable user-facing UI surface, READ `.claude/docs/design-review-checklist.md` and run it: `CL-1` establish context first (platform · user · task · metric · constraints · scope · artifacts — state missing context and its confidence impact) · `CL-2` evidence or nothing, cite a location per finding, NEVER invent a measurement (unmeasurable → `NOT VERIFIABLE`), tag `MEASURED`/`OBSERVED`/`HEURISTIC` · `CL-3` rank `P0`–`P4`, cap at top 10 by severity, NEVER pad, concrete fix on every `P0`/`P1` · `CL-4` sweep §A–§N plus §R over whole surfaces (changed files → affected views, composition reconstructed, render or `ENVIRONMENT-BLOCKED`), including surface load B12–B15, container fit E9–E11, §H by usage, Field Necessity Matrix for input, applying only relevant platform/product sections and the WCAG 2.2 AA web baseline plus any stricter applicable legal/project requirement, or the documented standard for other platforms · `CL-5` short on time → use the §P prompts · `CL-6` report in the §O shape · for source code, assess component ownership, base abstractions, reuse, and duplication using the project's documented taxonomy or observed boundaries. Project design-system docs and ADRs OUTRANK the checklist; report a defect ONCE across `UI-*`/`DD-*`/`CL-*`. For a plan, bind only applicable sections and states to acceptance criteria, and name each UI view's primary task, container, information priority, and creation-vs-deferred inputs; a plan review flags a UI phase that omits them. Skip when the work has no user-facing UI surface, and state why.
-
-<!-- /SYNC:design-review-checklist:reminder -->
-
 <!-- SYNC:review-principle-awareness:reminder -->
 
 **IMPORTANT MUST ATTENTION** Every review first checks the change context and routes only applicable principles to their detailed protocols: scale-ready foundation, test intent in the project's native format (GWT is one option), AI-agent-as-user access, and UI/component design when relevant. Record evidence-backed apply/adapt/defer/N/A/block/unverified status with owner and next step; do not invent unrelated findings or expand scope.
 
 <!-- /SYNC:review-principle-awareness:reminder -->
 
-<!-- SYNC:ux-journey-gate:reminder -->
-
-- **MUST ATTENTION** journey-first, BLOCKING order: REPORT the main user journeys (`UX-1`, evidence-tagged; confirm an inferred actor/job/outcome, or with no question tool record it `INFERRED — unconfirmed` and continue) → READ project design principles, design system, existing UI (`UX-2`) → generate → CHECK all gates. Checks: views = journey steps (`UX-3`) · important information first — one focal point, one primary action = next step, first viewport holds the primary tier (`UX-4`) · rules become prevention, states, recovery (`UX-5`) · the user's mental model (`UX-6`) · low-fi first (`UX-7`) · walkthrough + traceability, no unserved step or orphan (`UX-8`) · interaction cost per journey measured — steps, clicks, view changes, fields, decisions — every click confident, not a 3-click rule (`UX-9`) · wayfinding: where am I, where can I go, how do I get back, no dead ends (`UX-10`) · close with the **UI/UX Gate Report** covering `UX-*`, `UI-*`, `DD-*`, `CL-*` and UI copy — an unresolved `FAIL` blocks hand-off (`UX-11`). Catalog: `.claude/docs/ux-journey-process.md`. Skip ONLY with no user-facing surface, stated.
-
-<!-- /SYNC:ux-journey-gate:reminder -->
 
 ## Closing Reminders
 

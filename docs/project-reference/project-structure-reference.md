@@ -90,11 +90,11 @@ Read `docs/project-config.json` → `modules` when selecting a component; module
 | -------------- | --------------------------------------------------------------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------- |
 | Hooks          | <!-- COUNT:hooks -->36<!-- /COUNT -->                                                         | `.claude/hooks/*.cjs`         | Top-level CommonJS Node.js hook scripts counted by ADR-0002                         |
 | Hook Libraries | <!-- COUNT:lib-modules -->66<!-- /COUNT -->                                                   | `.claude/hooks/lib/*.cjs`     | CommonJS utility modules                                                            |
-| Skills         | <!-- COUNT:skills -->103<!-- /COUNT -->                                                       | `.claude/skills/*/SKILL.md`   | Markdown + YAML frontmatter                                                         |
-| Agents         | <!-- COUNT:agents -->24<!-- /COUNT -->                                                        | `.claude/agents/*.md`         | Markdown definitions                                                                |
+| Skills         | <!-- COUNT:skills -->104<!-- /COUNT -->                                                       | `.claude/skills/*/SKILL.md`   | Markdown + YAML frontmatter                                                         |
+| Agents         | <!-- COUNT:agents -->25<!-- /COUNT -->                                                        | `.claude/agents/*.md`         | Markdown definitions                                                                |
 | Workflows      | <!-- COUNT:workflows -->17<!-- /COUNT -->                                                     | `.claude/workflows.json`      | JSON workflow definitions                                                           |
 | Hook Tests     | 124 suites + 9 `test-*` files                                                                  | `.claude/hooks/tests/`        | CJS/JS test files; top-level `test-*` files plus `run-all-tests.cjs` aggregate      |
-| Codex Source Projection | <!-- COUNT:skills -->103<!-- /COUNT --> skills, <!-- COUNT:agents -->24<!-- /COUNT --> agents | `.agents/`, `.codex/`         | Source counts supplied to generated host projections; verify the projections through their owner                                                     |
+| Codex Source Projection | <!-- COUNT:skills -->104<!-- /COUNT --> skills, <!-- COUNT:agents -->25<!-- /COUNT --> agents | `.agents/`, `.codex/`         | Source counts supplied to generated host projections; verify the projections through their owner                                                     |
 
 
 ## Module Codes
@@ -103,8 +103,8 @@ Read `docs/project-config.json` → `modules` when selecting a component; module
 | ---- | -------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
 | HK   | Hooks          | `.claude/hooks/`               | <!-- COUNT:hooks -->36<!-- /COUNT --> top-level `.cjs` runtime hook files (session init, safety gates, graph, formatting) |
 | HL   | Hook Libraries | `.claude/hooks/lib/`           | <!-- COUNT:lib-modules -->66<!-- /COUNT --> shared utility modules for hooks                                              |
-| SK   | Skills         | `.claude/skills/`              | <!-- COUNT:skills -->103<!-- /COUNT --> task automation skill definitions                                                 |
-| AG   | Agents         | `.claude/agents/`              | <!-- COUNT:agents -->24<!-- /COUNT --> specialized subagent role definitions                                              |
+| SK   | Skills         | `.claude/skills/`              | <!-- COUNT:skills -->104<!-- /COUNT --> task automation skill definitions                                                 |
+| AG   | Agents         | `.claude/agents/`              | <!-- COUNT:agents -->25<!-- /COUNT --> specialized subagent role definitions                                              |
 | WF   | Workflows      | `.claude/workflows.json`       | <!-- COUNT:workflows -->17<!-- /COUNT --> end-to-end process orchestrations                                               |
 | SC   | Scripts        | `.claude/scripts/`             | Catalog, protocol, graph and maintenance tools                                        |
 | CX   | Codex Tooling  | `.claude/scripts/codex/`       | ESM sync, migration, notification and verification tools                                                  |

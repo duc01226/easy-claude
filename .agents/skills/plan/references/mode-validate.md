@@ -279,7 +279,7 @@ After validation:
 
 > **[BLOCKING]** MUST ATTENTION use `ask user question tool` to interview user. Completing without asking ≥1 question = violation.
 
-> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. Keep task depth proportional to the work.
+> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting. Keep task depth proportional to the work.
 
 > **External Memory:** Complex/lengthy work → write findings + results to `tmp/reports/` — prevents context loss.
 
@@ -366,7 +366,7 @@ The protocols below apply to this mode only; their full text is inline so this r
 
 <!-- SYNC:understand-code-first:reminder -->
 
-**IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code/conventions BEFORE any modification or explanation. The code graph is optional advice for high-risk blast radius (a hint that may be stale), never a requirement.
+**IMPORTANT MUST ATTENTION** for code work, read the target and relevant conventions before planning or editing; seek 3+ fitting examples when available and record fewer/none. Do not impose code discovery on work with no code surface. The code graph is optional, stale-able advice for high-risk impact, never a requirement.
 
 <!-- /SYNC:understand-code-first:reminder -->
 
@@ -432,7 +432,7 @@ The protocols below apply to this mode only; their full text is inline so this r
 **IMPORTANT MUST ATTENTION** detect plan type FIRST (Phase 0) BEFORE generating questions — bugfix keywords (fix, bug, regression, broken, defect) make the Preservation question BLOCKING, never skipped — why: detection drives which categories fire and the Preservation gate
 **IMPORTANT MUST ATTENTION** NEVER modify phase files — persist results by adding ONLY a `## Validation Summary` (confirmed decisions + action items) to `plan.md` — why: phase files are the plan's source of truth and validation is a read-then-annotate pass
 
-- **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using todo tracking BEFORE starting (including a task per file read); call the current task list first on context loss, never duplicate — why: resume existing tasks rather than re-plan after compaction
+- **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using todo tracking BEFORE starting; call the current task list first on context loss, never duplicate — why: resume existing tasks rather than re-plan after compaction
 - **MANDATORY IMPORTANT MUST ATTENTION** brief the user on the plan before the first question, then ask EVERY material decision as a decision card (2-4 concrete options, what each gives and costs, a reasoned recommendation); the `questions` MIN-MAX range sizes a round, never the interview; never invent a filler question — why: a user who lacks context rubber-stamps, and a decision dropped to fit a number reaches code unconfirmed
 - **MANDATORY IMPORTANT MUST ATTENTION** treat the Preservation "Unsure" answer as BLOCKED → return BLOCKED status and route to `$plan` preservation analysis before any implementation — why: an unverified preserved-correctness invariant is a silent regression risk
 - **MANDATORY IMPORTANT MUST ATTENTION** if the plan introduces new tech/packages, probe whether alternatives were evaluated before accepting the choice — why: unevaluated dependency choices raise future change cost

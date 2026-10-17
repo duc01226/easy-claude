@@ -85,6 +85,7 @@ const SCAN_SKILL_MAP = (referenceRegistry && referenceRegistry.SCAN_SKILL_MAP) |
     'seed-test-data-reference.md': 'scan --target=seed-test-data',
     'frontend-patterns-reference.md': 'scan --target=frontend-patterns',
     'integration-test-reference.md': 'scan --target=integration-tests',
+    'performance-test-reference.md': 'scan --target=performance-tests',
     'feature-spec-reference.md': 'scan --target=feature-spec',
     'code-review-rules.md': 'scan --target=code-review-rules',
     'scss-styling-guide.md': 'scan --target=scss-styling',
@@ -379,6 +380,28 @@ function buildRules(config) {
             testMatchers.some(m => m.test(rel)) ||
             /(^|\/)(tests?|__tests__|spec)\//i.test(rel) ||
             /\.(test|spec)\.[a-z]+$/i.test(rel)
+    });
+
+    const performanceMatchers = [].concat(config.testing?.filePatterns?.performance || [])
+        .filter(pattern => typeof pattern === 'string')
+        .map(pattern => fileConventions && typeof fileConventions.globToRegExp === 'function'
+            ? fileConventions.globToRegExp(pattern.includes('/') ? pattern : `**/${pattern}`)
+            : fragmentMatcher(pattern))
+        .filter(Boolean);
+    const performanceDoc = builtinRefDoc('performance-test-reference.md');
+    // System and resource changes can invalidate the performance contract as well as scenario edits.
+    if (performanceDoc) add({
+        id: 'performance-tests',
+        reason: 'performance contract can drift after system, harness or resource changes',
+        suppressesFallback: false,
+        docs: [performanceDoc],
+        configSections: ['testing', 'framework'],
+        checks: ['claims', 'coverage', 'commands'],
+        match: rel => !/^(tmp|temp)\//i.test(rel) &&
+            (performanceMatchers.some(matcher => matcher.test(rel)) ||
+                /\.(?:cjs|mjs|js|jsx|ts|tsx|py|go|rs|cs|java|kt|sql|rb|php|ex|exs|swift)$/i.test(rel) ||
+                MANIFESTS.test(rel) || INFRA.test(rel) ||
+                /(^|\/)(?:perf(?:ormance)?|bench(?:marks?)?|load-tests?)(\/|\.)/i.test(rel))
     });
 
     // R4 — e2e surface.

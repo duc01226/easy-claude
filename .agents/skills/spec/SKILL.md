@@ -26,7 +26,7 @@ description: '[Documentation] Use when a workflow step or the user asks for cano
 
 > **Portability:** the Feature Spec root is CONFIGURED, not fixed — default `docs/specs/`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path (rationale: `docs/adr/0003-config-driven-doc-and-spec-roots.md`). The spec template defaults to `detailed-feature-spec-template.md` under the templates root (default `docs/templates/`; a `docsRoots.templates.path` entry in `docs/project-config.json` overrides the path) unless `workflowPatterns.featureDocTemplate` points to another template.
 
-**[IMPORTANT] todo tracking** — Break ALL work into small tasks BEFORE starting. For simple tasks, ask user whether to skip.
+**[IMPORTANT] todo tracking** — Break ALL work into small tasks BEFORE starting. Keep task depth proportional to the work.
 
 **Goal:** Author canonical feature intent and test scenarios, then reconcile them with tests and code using the project's declared artifact profile.
 
@@ -196,11 +196,11 @@ This skill owns the canonical artifact and cases selected by the active profile.
 
 ---
 
-> **[IMPORTANT]** Track small tasks before work, including each file read and final review. On context loss, inspect existing tasks before creating more. For simple tasks, ask whether to skip.
+> **[IMPORTANT]** Track small tasks before work and final review. On context loss, inspect existing tasks before creating more. Keep task depth proportional to the work.
 
 <!-- PROTOCOL-GUIDES:START -->
 
-> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
+> **Protocol guides** — Apply each protocol only when its read-when condition holds. If a protocol's text is not in your context, read its file below before you act on it.
 
 - `cross-service-check` — Scan producers, consumers, sagas and shared contracts for cross-service impact; concluding an investigation, plan or spec in a service-based system → .claude/skills/shared/protocols/cross-service-check.md
 - `evidence-based-reasoning` — Ground every material claim in file:line, config or source evidence, with stated confidence; making any claim, finding or recommendation → .claude/skills/shared/protocols/evidence-based-reasoning.md
@@ -240,7 +240,7 @@ This skill owns the canonical artifact and cases selected by the active profile.
 - **Preserve outcome boundaries:** run the four-signal Applicability and Decomposition Gate; require all five `large_idea_decomposition` fields when true, omit roadmap/milestone placeholders when false, and use the roadmap branch only for an explicit request.
 - **Prove execution:** an ID or source mapping is insufficient. Trace owner/scenario/variant to the executor, inspected assertion and observed result; preserve authorized manual-QC proof as distinct from runner execution. Ground claims in traced evidence; >80% confidence to act, <60% do not recommend.
 - **Trace impact and preserve owners:** in service-based systems scan producers, consumers, sagas and contracts; record owner, message, consumers and NONE/ADDITIVE/BREAKING risk. Preserve canonical content during update/sync. Flag derived INDEX/ERD refresh without invoking index from authoring.
-- **Track and inspect:** maintain small tasks, including each file read and final review; inspect existing tasks after context loss. Search 3+ comparable patterns and spec siblings before authoring, checking local fit rather than imposing defaults.
+- **Track and inspect:** maintain small tasks and final review; inspect existing tasks after context loss. Search 3+ comparable patterns and spec siblings before authoring, checking local fit rather than imposing defaults.
 
 **Anti-Rationalization:**
 

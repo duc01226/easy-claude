@@ -46,7 +46,7 @@ disable-model-invocation: false
 
 - Analysis Mindset: systematic review, not guesswork — trace, don't assume
 - Check backend, frontend, dependency, pipeline, AND host attack surfaces — code being clean does not mean the system is clean
-- Use project authorization attributes and entity-level access expressions (see `backend-patterns-reference.md` in the project-reference docs root — default `docs/project-reference/`; path from `docsRoots.projectReference.path` in `docs/project-config.json`)
+- Trace the project’s actual authentication/authorization owner (for example middleware, policies, decorators or explicit guards) and resource/tenant access where relevant. Read the selected applicable auth/backend reference for application scope; honor absent/N/A surfaces.
 - NEVER install or execute unvetted third-party code as part of this review — vet first (Domain D4)
 - Findings are not eligible for fix until `$why-review --validate-findings` confirms them; every validated fix that blocks the current round restarts the full security review from the beginning. Round 1 requires zero open findings (LOW deferral); Round 2 requires zero CRITICAL/HIGH/MEDIUM, with LOW deferred and binary gates still blocking.
 
@@ -118,7 +118,7 @@ Evaluate every category against in-scope code. Categories updated to OWASP Top 1
 
 **A01 Broken Access Control (now includes SSRF)** — #1 risk.
 
-- [ ] Every endpoint has an authorization attribute — no anonymous-by-omission
+- [ ] Every in-scope endpoint reaches the intended authentication/authorization enforcement owner; public access is deliberate, never anonymous-by-omission. Verify the actual guard/policy rather than require an attribute API.
 - [ ] Resource-level check: entity ownership / tenant (`TenantId`) verified, not just role (IDOR)
 - [ ] No client-supplied authority (`request.IsAdmin`, role IDs from body)
 - [ ] Privilege escalation paths traced (can a user reach admin handlers via bus events, background jobs, or internal endpoints?)
@@ -273,7 +273,7 @@ pip-audit                                             # python, if present
 
 ### D7 — API & Cross-Service Boundaries
 
-- [ ] Every controller endpoint: authn + authz attribute + tenant scoping (entity-level access expressions — see `backend-patterns-reference.md` in the project-reference docs root, default `docs/project-reference/`, path from `docsRoots.projectReference.path` in `docs/project-config.json`)
+- [ ] Every in-scope endpoint: intended authn/authz enforcement plus resource/tenant scoping where applicable, using the project’s actual boundary. Inspect relevant selected references; middleware/policy/explicit checks are valid mechanisms.
 - [ ] IDOR sweep: any `GetById`-style handler without ownership check
 - [ ] Mass assignment: DTOs don't bind privileged fields (`Role`, `TenantId`, `IsApproved`) from client input
 - [ ] Message-bus consumers validate producer payloads — a compromised service must not get free writes into yours
@@ -433,7 +433,7 @@ Optionally, when a graph DB exists, `trace` can hint at data flow paths for secu
 - **"$performance-review"** — Analyze performance next
 - **"Skip, continue manually"** — user decides
 
-> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. Keep task depth proportional to the work.
+> **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting. This prevents context loss from long files. Keep task depth proportional to the work.
 
 - `domain-entities-reference.md`, in the project-reference docs root (default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path) — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models)
 
@@ -443,7 +443,7 @@ Optionally, when a graph DB exists, `trace` can hint at data flow paths for secu
 
 <!-- PROTOCOL-GUIDES:START -->
 
-> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
+> **Protocol guides** — Apply each protocol only when its read-when condition holds. If a protocol's text is not in your context, read its file below before you act on it.
 
 - `category-review-thinking` — Derive review concerns per category of changed files from domain knowledge; reviewing a changeset that spans several file categories → .claude/skills/shared/protocols/category-review-thinking.md
 - `evidence-based-reasoning` — Ground every material claim in file:line, config or source evidence, with stated confidence; making any claim, finding or recommendation → .claude/skills/shared/protocols/evidence-based-reasoning.md
@@ -565,7 +565,7 @@ Optionally, when a graph DB exists, `trace` can hint at data flow paths for secu
 **Protocols in force:** Apply the unchanged protocol guides and reminders above for specialist selection, optional graph hints, persistence/return contracts, nested tasks, evidence, source/test drift, bounded batching, severity, category reasoning and PAR/SEQ wave barriers.
 
 - **Scope and trust:** Clean code does not prove a clean system. Resolve `changes`/`full`/`deps`/`vet`/`host`, cover every selected domain, always run D2, and vet third-party code under D4 before any install/clone/run, including automation.
-- **Evidence:** Cite `file:line` or exact command+output with severity and confidence. Trace exploitability; unproven risks are "potential risk, not confirmed". >80% act, 60–80% verify, <60% do not recommend. Search 3+ fitting patterns before flagging conventions; read `backend-patterns-reference.md` under the configured project-reference root for project authorization/entity access rules, rather than assume generic defaults.
+- **Evidence:** Cite `file:line` or exact command+output with severity and confidence. Trace exploitability; unproven risks are "potential risk, not confirmed". >80% act, 60–80% verify, <60% do not recommend. Search 3+ fitting patterns before flagging conventions; read the selected applicable project auth/backend reference for application-boundary checks; honor N/A and do not impose that reference on dependency/vetting/host-only scope.
 - **Fix authority and convergence:** Review-only/caller-owned passes return validated findings; standalone fix-loop authorizes scoped repairs. Ask only for missing operation authority or a bounded round extension. After every applied fix, freshly review the full target from Scope with new tasks; use a fresh `security-auditor` when delegating. From Round 2 onward defer LOW-only findings. Honor `minRounds`, the Phase 1 validation cap and no-progress escalation.
 - **Read-only leaf:** `--report-only` resolves scope from the brief and runs steps 1–4: no fix, restart, nested fan-out, user question or writer beyond the report. Return validated findings to the caller.
 - **Compromise and feedback:** Confirmed host compromise requires isolation, rotation of EVERY credential that touched the host, a clean-image rebuild and lateral-movement checks; do not trust in-place cleanup. Behavior-changing confirmed findings require BOTH a §4/§5 spec invariant and a guarding negative test.

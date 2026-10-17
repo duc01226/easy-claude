@@ -6,7 +6,7 @@ description: '[Research] Use when a workflow step or the user asks for synthesis
 
 > **Web Research Protocol** — Factual claims need 2+ independent sources; rank Tier 1 authoritative > Tier 2 industry reports > Tier 3 credible blogs; Tier 4 unverified, NEVER cite as fact; declare confidence (95/80/60/<60%). Working files → `tmp/research/`; final output → `docs/knowledge/`.
 >
-> **MUST ATTENTION READ** `.claude/skills/web-research/SKILL.md` for canonical research rules.
+> **MUST ATTENTION READ** only the **Knowledge Work Rules (canonical for the research chain)** section of `.claude/skills/web-research/SKILL.md` for canonical research rules; source-discovery procedures belong to a separate discovery request.
 
 ## Quick Summary
 

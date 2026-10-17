@@ -2,13 +2,15 @@
 
 Read this guide when discovering, executing or authoring framework skills. **MUST** execute through the active host; **MUST** keep canonical source ownership separate from runtime paths; **MUST** preserve required gates and report an actual missing capability with evidence.
 
-> <!-- COUNT:skills -->103<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->15<!-- /COUNT --> shared reference/protocol entries for context-aware AI assistance (`_templates/template-skill` is a source template, not a runnable skill)
+> <!-- COUNT:skills -->104<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->15<!-- /COUNT --> shared reference/protocol entries for context-aware AI assistance (`_templates/template-skill` is a source template, not a runnable skill)
 
 ## Quick Summary
 
 **Goal:** Discover, execute and author portable skills through the active host while preserving canonical ownership and required gates.
 
 **Summary:** Discover/load → execute required steps → evidence capabilities and gates → edit canonical source → regenerate mirrors. For reviews, triage the complete target, create tasks first and apply the selected review-only or shared fix-loop policy.
+
+Read `.claude/skills/domain-analysis/references/entity-quality.md` when planning, implementing, fixing or reviewing entity/VO/aggregate changes. The shared gate routes this depth conditionally; planning records owned decisions/proof before edits, and reviews use the same criteria. Complex reviews assign one domain pass to `domain-entities-design-review`; unrelated work skips the detail.
 
 ## Overview
 
@@ -26,6 +28,35 @@ Skills Activated: fix, investigate
 
 `framework-config` automatically matches questions about the .claude/.codex/.agents/.opencode framework and requests to configure it. Ask “How do these skills work?” or “Disable heavy auto-trigger for this checkout”. Questions are read-only; requested changes are scoped, merged and validated. Explicit invocation: `/framework-config` or `$framework-config`. It remains eligible under restricted heavy-skill selection.
 
+## Contents
+
+- [Quick Summary](#quick-summary)
+- [Overview](#overview)
+- [Framework help and configuration](#framework-help-and-configuration)
+- [How Skills Work](#how-skills-work)
+- [Skill Domains](#skill-domains)
+- [Development - Backend](#development---backend)
+- [Development - Frontend](#development---frontend)
+- [Architecture](#architecture)
+- [Debugging/Testing](#debuggingtesting)
+- [Documentation](#documentation)
+- [Git/Workflow](#gitworkflow)
+- [Code Quality](#code-quality)
+- [Planning/Research](#planningresearch)
+- [Context/Memory](#contextmemory)
+- [Team Collaboration](#team-collaboration)
+- [Web/Frameworks](#webframeworks)
+- [Document Processing](#document-processing)
+- [Utility](#utility)
+- [Shared Protocols (SYNC bodies and guides)](#shared-protocols-sync-bodies-and-guides)
+- [Concise skill entrypoints](#concise-skill-entrypoints)
+- [Skill File Structure](#skill-file-structure)
+- [Command-Skill Relationships](#command-skill-relationships)
+- [Authoring Rule — No Meta-Log](#authoring-rule--no-meta-log)
+- [Creating Custom Skills](#creating-custom-skills)
+- [Related Documentation](#related-documentation)
+- [Closing Reminders](#closing-reminders)
+
 ## How Skills Work
 
 Skill loading activates instructions; execution performs their steps through the active host. Claude Code uses its `Skill` tool. Codex loads the registered `.agents/skills/<name>/SKILL.md` and follows it with available tools; OpenCode uses its native skill loader. A canonical `.claude/**` source read never changes the session's host. Read `.claude/docs/troubleshooting.md` when a discovered skill is incorrectly blocked on a foreign-host tool name.
@@ -38,7 +69,7 @@ Read `.claude/scripts/lib/workflow-skill-contract.cjs` when changing workflow re
 
 ## Skill Domains
 
-> Curated highlights — the full catalog has <!-- COUNT:skills -->103<!-- /COUNT --> runnable skills; the tables below list selected skills per domain, not the complete set.
+> Curated highlights — the full catalog has <!-- COUNT:skills -->104<!-- /COUNT --> runnable skills; the tables below list selected skills per domain, not the complete set.
 
 | Domain                                            | Skills | Description                                    |
 | ------------------------------------------------- | ------ | ---------------------------------------------- |
@@ -95,6 +126,7 @@ See `frontend-patterns-reference.md` in the project-reference docs root for proj
 | `e2e-test`                | E2E, Playwright, browser test                                         | End-to-end test authoring and maintenance                                                                                                        |
 | `e2e-demo`                | E2E demo video, screenshots, commit demo, PR demo                      | Screenshot storyboards exported to MP4/GIF with every relevant case mapped to results and timestamps                                              |
 | `experience-review`       | user experience, acceptance, baseline                                 | Exercise and inspect applicable observable output; preserve expectations until explicit acceptance                                               |
+| `performance-test` | performance/load/soak/capacity tests, performance harness, green performance tests | Write/init author only with automatic static review (default two rounds); review is static; run only on explicit verify/green request. `performance-tester` shares its gates; green combines bounded fixes with performance-review. |
 | `spec [mode=tests]`       | test specification, QA spec, test strategy, TC-IDs, test cases        | Unified test case writer — generates TC-{FEATURE}-{NNN} specs from tasks and feature docs                                                         |
 | `spec [mode=sync]`        | sync test specs, update dashboard, reverse sync, sync to feature docs | Dashboard sync mode — syncs TCs from feature docs Section 8 to the business spec root (sync mode retires when dashboards are removed in Phase 7) |
 | `integration-test --mode=review` | integration test review, assertion quality, test gate review, TC gate | Review-only or --fix-loop through eight quality gates covering intended, observable, repeatable and source/spec-aligned behavior                                  |
@@ -200,7 +232,7 @@ Read `.claude/skills/shared/workflow-first-gate.md` when selecting discovery dep
 
 ## Shared Protocols (SYNC bodies and guides)
 
-Shared protocols follow `SYNC:shared-protocol-duplication-policy`. Skill entrypoints, including `changes-review`, `code-quality-review`, `why-review` and `workflow-review-changes`, carry one guide line per applicable protocol in `PROTOCOL-GUIDES`. Hooks deliver full text from `.claude/skills/shared/protocols/`; when text is absent, including after delivery overflow, read its published full source before acting. The live `inlineSkills` list is empty. Agents and mode-reference SYNC bodies remain full text; every fresh reviewer prompt still receives the complete 11-body review template VERBATIM. Role reminders remain in each carrier. Universal protocols are hook-only: no skill holds their body, reminder, guide or pointer. All SYNC content is authored in `.claude/skills/shared/sync-inline-versions.md`.
+Shared protocols follow `SYNC:shared-protocol-duplication-policy`. Skill entrypoints, including `changes-review`, `code-quality-review`, `why-review` and `workflow-review-changes`, carry one guide line per applicable protocol in `PROTOCOL-GUIDES`. Apply each read-when condition; hooks deliver applicable full text from `.claude/skills/shared/protocols/`, and an absent applicable source must be read before acting, including after delivery overflow. Conditional detail uses registry delivery triggers or a selected mode/type reference. For example, an ordinary E2E run skips Markdown navigation depth; updating its reference document reads it. The live `inlineSkills` list is empty. Agents and mode-reference SYNC bodies remain full text; every fresh reviewer prompt still receives the complete 11-body review template VERBATIM. Role reminders remain in each carrier. Universal protocols are hook-only: no skill holds their body, reminder, guide or pointer. All SYNC content is authored in `.claude/skills/shared/sync-inline-versions.md`.
 
 **Why hybrid?** A rule in context is followed more reliably than one the model must choose to read, so hooks put the full text in context when the skill loads; full bodies stay only where hook delivery cannot reach the reader or carry the text.
 
@@ -308,7 +340,7 @@ Use `/skill-creator` to create a new skill:
 
 ---
 
-_Source: `.claude/skills/` | <!-- COUNT:skills -->103<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->15<!-- /COUNT --> shared reference/protocol entries (the `_templates/template-skill` source is excluded from runtime discovery)_
+_Source: `.claude/skills/` | <!-- COUNT:skills -->104<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->15<!-- /COUNT --> shared reference/protocol entries (the `_templates/template-skill` source is excluded from runtime discovery)_
 
 ## Closing Reminders
 

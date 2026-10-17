@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "corpusVersion": "1.1.0",
+  "corpusVersion": "1.2.0",
   "cases": [
     {
       "id": "activation-positive",
@@ -13,7 +13,8 @@
       "fixture": "Synthetic source map and evidence base with two independent sources per factual finding.",
       "assertions": [
         "Select knowledge-synthesis for this synthesis request.",
-        "Preserve provenance and report unresolved gaps."
+        "Preserve provenance and report unresolved gaps.",
+        "On a cold standalone synthesis route, read the canonical Knowledge Work Rules section without loading unrelated source-discovery procedures; preserve all seven research rules."
       ],
       "pressures": []
     },
@@ -368,6 +369,269 @@
       "assertions": [
         "Count the correct uncommitted owner update as current evidence.",
         "Report MATCH with inspected locations; age remains metadata only."
+      ],
+      "pressures": [
+        "simplicity"
+      ]
+    },
+    {
+      "id": "repair-domain-handler-scope",
+      "kind": "repair",
+      "skills": [
+        "domain-analysis"
+      ],
+      "expectedActivation": "domain-analysis",
+      "prompt": "Review only the changed order-import handler for domain correctness.",
+      "fixture": "Synthetic diff changes the handler to bypass a quantity invariant; the unchanged functional domain module enforces quantity > 0 on the normal creation path. No entity file is edited.",
+      "assertions": [
+        "Trace the changed feeder to the unchanged invariant owner and report the bypass with source evidence.",
+        "Do not return clean merely because no entity filename changed; keep the scope on affected behavior."
+      ],
+      "pressures": [
+        "simplicity"
+      ]
+    },
+    {
+      "id": "repair-domain-absent-surface",
+      "kind": "repair",
+      "skills": [
+        "domain-analysis"
+      ],
+      "expectedActivation": "domain-analysis",
+      "prompt": "Review this changed CLI output formatter for domain concerns.",
+      "fixture": "Synthetic diff only aligns terminal columns; no business model, mutation, persistence, load or event path exists.",
+      "assertions": [
+        "Inspect the changed path and record evidence-backed domain N/A.",
+        "Do not invent a model or scan unrelated modules to fill a checklist."
+      ],
+      "pressures": [
+        "simplicity"
+      ]
+    },
+    {
+      "id": "repair-learn-list-scope",
+      "kind": "repair",
+      "skills": [
+        "learn"
+      ],
+      "expectedActivation": "learn",
+      "prompt": "List the saved lessons.",
+      "fixture": "Synthetic existing lesson/reference files and tool traces; no lesson candidate or save/update request, no linked work item.",
+      "assertions": [
+        "Read and display existing guidance without changing durable files.",
+        "Return after listing; do not critique a nonexistent new lesson or start persistence review/enhancement."
+      ],
+      "pressures": [
+        "simplicity"
+      ]
+    },
+    {
+      "id": "repair-harness-fixture-fit",
+      "kind": "repair",
+      "skills": [
+        "harness-setup"
+      ],
+      "expectedActivation": "harness-setup",
+      "prompt": "Define the integration-fixture policy for this native harness.",
+      "fixture": "Synthetic harness supports isolated run-owned temp stores cleaned after evidence, plus separate immutable shared reference data; a persistent additive suite forbids reset.",
+      "assertions": [
+        "Preserve the native run-owned ephemeral cleanup policy after evidence capture.",
+        "Keep shared/user-owned and persistent/additive data protected; preserve required no-reset repeat proof."
+      ],
+      "pressures": [
+        "simplicity"
+      ]
+    },
+    {
+      "id": "repair-performance-cpu-fit",
+      "kind": "repair",
+      "skills": [
+        "performance-review"
+      ],
+      "expectedActivation": "performance-review",
+      "prompt": "Review the quadratic parser loop in this offline library.",
+      "fixture": "Synthetic local CPU-only parser with input-size bounds, timings at representative/worst N, profiler samples and a local regression budget. No service, tenant, region, database, container, queue or seeder.",
+      "assertions": [
+        "Judge CPU complexity/timing/input evidence; record absent dimensions as evidence-backed N/A.",
+        "Do not require endpoint/tenant/region segmentation, load-generator profiles, database seeding or service configuration.",
+        "Keep static risks distinct from measured performance and preserve result-equivalence checks."
+      ],
+      "pressures": [
+        "simplicity"
+      ]
+    },
+    {
+      "id": "repair-security-enforcement-fit",
+      "kind": "repair",
+      "skills": [
+        "security-audit"
+      ],
+      "expectedActivation": "security-audit",
+      "prompt": "Audit the access control on these two Node endpoints.",
+      "fixture": "Synthetic server has an actual central identity/policy guard with permitted/refused actor traces on endpoint A; endpoint B bypasses it and exposes private data. No attribute framework or backend reference applies.",
+      "assertions": [
+        "Trace and accept endpoint A’s real enforcement mechanism without demanding attributes.",
+        "Report endpoint B’s reachable missing enforcement and retain negative-path proof.",
+        "Do not load an N/A backend guide or invent tenant scope where absent."
+      ],
+      "pressures": [
+        "simplicity"
+      ]
+    },
+    {
+      "id": "repair-ui-platform-fit",
+      "kind": "repair",
+      "skills": [
+        "ui-design"
+      ],
+      "expectedActivation": "ui-design",
+      "prompt": "Design the focus and action states for this keyboard-operated native panel.",
+      "fixture": "Synthetic accepted platform standard and project tokens specify four type roles, a 6-unit spacing scale and focus/active/disabled states. Mouse hover and touch input are absent; explicit contrast targets and labels are supplied.",
+      "assertions": [
+        "Use the declared platform/input modes, type/spacing system and contrast requirements.",
+        "Do not impose six type steps, a 4/8px grid, hover, web pixel minima or touch-target placement.",
+        "Preserve supported focus states and measure the authoritative contrast targets."
+      ],
+      "pressures": [
+        "simplicity"
+      ]
+    },
+    {
+      "id": "repair-abstraction-ownership",
+      "kind": "repair",
+      "skills": [
+        "prompt-enhance"
+      ],
+      "expectedActivation": "prompt-enhance",
+      "prompt": "Improve these simplification instructions so they follow our ownership conventions.",
+      "fixture": "Synthetic instructions review three textually similar independently owned policies plus two callers sharing one volatile invariant. Project convention selects evidence-based ownership and rejects count-only extraction.",
+      "assertions": [
+        "Preserve separate policies with independent reasons to change.",
+        "Permit a justified shared owner for two real consumers without a three-occurrence minimum.",
+        "Do not introduce mandatory abstractions, structural findings or method/depth limits based only on counts."
+      ],
+      "pressures": [
+        "simplicity"
+      ]
+    },
+    {
+      "id": "repair-simple-tracking-scope",
+      "kind": "repair",
+      "skills": [
+        "custom-prompt"
+      ],
+      "expectedActivation": "custom-prompt",
+      "prompt": "List the saved project prompts.",
+      "fixture": "Synthetic prompt index with two entries and separate bodies; complete input, no mutation or missing fact.",
+      "assertions": [
+        "Read the index and list its entries without loading bodies.",
+        "Keep proportional tracking and finish without asking whether to skip ordinary task tracking."
+      ],
+      "pressures": [
+        "simplicity"
+      ]
+    },
+    {
+      "id": "repair-workflow-native-closure",
+      "kind": "repair",
+      "skills": [
+        "workflow-end"
+      ],
+      "expectedActivation": "workflow-end",
+      "prompt": "Close this completed behavior-change workflow; the last spec-sync receipt is stale.",
+      "fixture": "Synthetic valid native contract with owner-qualified CASE identifiers/variants and YAML proof carriers; no Section8 or TestSpec. All other outcome evidence is current. The canonical sync tool can return inspected assertion/results, unknown coverage or malformed profile errors.",
+      "assertions": [
+        "Reconcile the selected native owner/case/variant and proof carriers without inventing default TC headings or a shadow registry.",
+        "Keep unknown coverage, malformed/unresolved profiles and unadjudicated drift open; do not turn helper success into evidence.",
+        "Preserve the fresh-evidence and no-behavior-change skip paths; absent profile still uses the strict default."
+      ],
+      "pressures": [
+        "simplicity"
+      ]
+    },
+    {
+      "id": "repair-native-authoring-consumers",
+      "kind": "repair",
+      "skills": [
+        "feature-implement"
+      ],
+      "expectedActivation": "feature-implement",
+      "prompt": "Implement the specified enhancement using the supplied canonical case contract.",
+      "fixture": "Synthetic valid native Behavior/Interface/Cases contract, MUST-/CHECK-/CASE- identifiers and declared carriers; no default module README or Section8. Alternate absent/malformed config fixtures are provided.",
+      "assertions": [
+        "Preserve the selected native owner/roles/IDs/carrier/cardinality in spec, plan and test mapping; create no shadow TC registry.",
+        "Use strict defaults only when neither config nor required references declares a native contract; malformed/unresolved stays BLOCKED."
+      ],
+      "pressures": [
+        "simplicity"
+      ]
+    },
+    {
+      "id": "repair-ai-feature-test-seam",
+      "kind": "repair",
+      "skills": [
+        "feature-implement"
+      ],
+      "expectedActivation": "feature-implement",
+      "prompt": "Implement the planned deterministic parser around this model client.",
+      "fixture": "Synthetic approved AI feature with a designated mock-model seam and integration fixtures; default CI forbids live paid calls.",
+      "assertions": [
+        "Test deterministic parser/router/guards with the model doubled at the approved seam.",
+        "Exercise owned integration behavior through real paths and meaningful assertions; no live paid default-CI calls."
+      ],
+      "pressures": [
+        "simplicity"
+      ]
+    },
+    {
+      "id": "repair-brainstorm-selected-techniques",
+      "kind": "repair",
+      "skills": [
+        "brainstorm"
+      ],
+      "expectedActivation": "brainstorm",
+      "prompt": "Help solve this known-user onboarding problem.",
+      "fixture": "Synthetic confirmed problem-solving scenario with POV/root cause/HMW/SCAMPER/RICE/hypothesis/RAT route; no differentiation, product-market-fit or release-scoping need.",
+      "assertions": [
+        "Keep the ordered problem/solution divergence-convergence and selected-route outcomes.",
+        "Do not require JTBD/ERRC/Canvas/Crazy8s/Kano/MoSCoW artifacts solely because the catalog lists them; record unselected template fields N/A.",
+        "Preserve the separate multi-opportunity scored-map and user-selection contract."
+      ],
+      "pressures": [
+        "simplicity"
+      ]
+    },
+    {
+      "id": "repair-greenfield-foundation-fit",
+      "kind": "repair",
+      "skills": [
+        "workflow-greenfield-init"
+      ],
+      "expectedActivation": "workflow-greenfield-init",
+      "prompt": "Continue the approved foundation phase.",
+      "fixture": "Synthetic approved plan requires an integration boundary; an unrelated utility already exists. Alternate fixtures cover all planned owners reusable and a prototype with no abstract layer selected.",
+      "assertions": [
+        "Scaffold missing/unsuitable planned owners despite the unrelated utility.",
+        "Skip only when every applicable planned requirement is covered; do not impose interfaces/base classes absent from the plan.",
+        "Preserve harness/linter ownership and approval/review/verify gates."
+      ],
+      "pressures": [
+        "simplicity"
+      ]
+    },
+    {
+      "id": "repair-ai-review-no-surface",
+      "kind": "repair",
+      "skills": [
+        "ai-engineering-review"
+      ],
+      "expectedActivation": "ai-engineering-review",
+      "prompt": "Review this changed plain-text formatter for AI concerns.",
+      "fixture": "Synthetic complete changed-file scan returns clean with no prompt/model/tool/retrieval/eval surface. Alternate unknown scan and actual AI fixtures are supplied.",
+      "assertions": [
+        "Confirm scope/surface before AI-only manual loads and return the documented no-AI skip on complete clean evidence.",
+        "Unknown/inconclusive detection preserves fallback and required review; actual AI retains every applicable pass.",
+        "Return supported recommendations without a routine standalone next-step choice question."
       ],
       "pressures": [
         "simplicity"

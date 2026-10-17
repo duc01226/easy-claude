@@ -311,6 +311,12 @@ const REFERENCE_DOC_CATALOG = [
         sections: ['Execution & Boundaries', 'Fixtures & Isolation', 'Assertions & Exceptions', 'Discovery']
     },
     {
+        filename: 'performance-test-reference.md',
+        purpose: 'Project performance-test preferences: reusable harness, workload/data/resource budgets, commands and evidence.',
+        sections: [],
+        templatePath: '.claude/templates/reference-docs/performance-test-reference.md'
+    },
+    {
         filename: 'feature-spec-reference.md',
         purpose: 'Feature documentation patterns: app-to-service mapping, doc structure, templates, and conventions.',
         sections: ['App-to-Service Mapping', 'Feature Doc Structure', 'Templates', 'Conventions'],
@@ -570,6 +576,7 @@ const CAPABILITY_REFERENCE_DOCS = Object.freeze({
     backend: ['backend-patterns-reference.md'],
     frontend: ['frontend-patterns-reference.md'],
     integrationTests: ['integration-test-reference.md'],
+    performanceTests: ['performance-test-reference.md'],
     featureSpecs: [
         'feature-spec-reference.md',
         'spec-system-reference.md',
@@ -640,6 +647,10 @@ function resolveDefaultReferenceDocs(config = loadProjectConfig()) {
         hasConfiguredValue(projectConfig.integrationTestVerify) ||
         (Array.isArray(projectConfig.testing?.integrationRules) && projectConfig.testing.integrationRules.length > 0)
     ) includeCapability('integrationTests');
+    if (
+        hasFrameworkDoc(projectConfig, 'performanceTestDoc') ||
+        hasConfiguredValue(projectConfig.testing?.filePatterns?.performance)
+    ) includeCapability('performanceTests');
     if (hasFrameworkDoc(projectConfig, 'e2eTestDoc') || hasConfiguredValue(projectConfig.e2eTesting)) {
         includeCapability('e2e');
     }

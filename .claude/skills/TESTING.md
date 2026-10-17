@@ -4,6 +4,14 @@ Test prompts to verify skills activate correctly. Each section contains prompts 
 
 > Prompts are adaptable examples; their domain names and technologies do not define a project's architecture. Read `docs/project-config.json` and the relevant project-reference docs to decide which checks apply. When a convention is absent or marked N/A, expected behavior is to follow relevant code evidence or state N/A rather than invent a pattern.
 
+## Contents
+
+- [Testing Instructions](#testing-instructions)
+- [Interactive Skills](#interactive-skills)
+- [Frontend Skills](#frontend-skills)
+- [Architecture Skills](#architecture-skills)
+- [Verification Checklist](#verification-checklist)
+
 ## Testing Instructions
 
 1. **Direct Invocation**: Test with `/skill-name` to verify the skill loads

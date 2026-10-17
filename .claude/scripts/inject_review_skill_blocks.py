@@ -128,7 +128,7 @@ TRADE_OFF = list(ALL_REVIEW_SKILLS)
 # surface (design, design-spec, `work-item --mode=mockup`) and the two that REVIEW such an artifact against
 # its journeys (ui-design --mode=review walks the journeys on the built surface; `work-item --mode=review --type=design`
 # checks the spec carries the Journey Report). The two `work-item` modes carry the body inline in
-# `work-item/references/mode-mockup.md` and `work-item/references/mode-review.md`, so `work-item` is not a target. Deliberately NARROWER than DESIGN_DISTINCTIVENESS:
+# `work-item/references/mode-mockup.md` and the UI section of `work-item/references/review-type-design.md`, so `work-item` is not a target. Deliberately NARROWER than DESIGN_DISTINCTIVENESS:
 # the build spine (feature-implement, fix; plan --mode=execute keeps its UI guides in its mode reference) implements a design already derived from
 # journeys upstream, and web-design-guidelines / scaffold / presentation skills do not derive a
 # product surface from user journeys. Every body is self-gating on "has a user-facing surface".

@@ -50,6 +50,16 @@ Connected contracts:
 > **Evidence Gate:** Every claim needs `file:line` proof or log excerpt. Confidence >80% act, <80% state hypothesis and verify first. NEVER speculate without traced evidence.
 > **External Memory:** Write intermediate findings to `tmp/reports/` after each step â€” prevents context loss on long investigations.
 
+## Contents
+
+- [Connected Skill Contracts](#connected-skill-contracts)
+- [Quick Summary](#quick-summary)
+- [Project Context](#project-context)
+- [Key Rules](#key-rules)
+- [Graph Intelligence (optional advice)](#graph-intelligence-optional-advice)
+- [Output Format](#output-format)
+- [Closing Reminders](#closing-reminders)
+
 ## Project Context
 
 > **MANDATORY MUST ATTENTION** Read `project-structure-reference.md` for service list, ports, architecture.
@@ -393,7 +403,7 @@ Name report files under `tmp/reports/` via `{date}-{slug}` convention. Concise â
 
 <!-- SYNC:end-to-start-debugger-trace:reminder -->
 
-**IMPORTANT MUST ATTENTION** debugger trace gate: for non-trivial bug/fix/investigation/review work, start at the observed final output and trace backward through reader -> storage/projection -> writer -> consumer/job -> producer/trigger. Enumerate all feeder paths and hypotheses before fixing; select the authoritative invariant owner from project architecture and retain validation at untrusted boundaries. **BLOCKED until** trace, hypothesis matrix, owning fix layer, and forward convergence proof exist.
+**IMPORTANT MUST ATTENTION** for non-trivial bugs, failed verification, regression fixes, behavior-changing code or unclear code flow, trace backward from the observed output through every feeder path before fixing. Establish hypotheses, the authoritative invariant owner and forward proof; retain validation at untrusted boundaries. Ordinary artifact review or graph lookup alone does not trigger a debugging workflow.
 
 <!-- /SYNC:end-to-start-debugger-trace:reminder -->
 

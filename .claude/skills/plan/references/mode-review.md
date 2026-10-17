@@ -52,6 +52,8 @@ Challenge the reasoning, not section length or presentation:
 
 **User-facing UI:** apply journey, design-system, accessibility, state, and container-fit plan checks.
 
+**Domain work:** when the plan may create/update entities, VOs, aggregates or their write/load paths, read `.claude/skills/domain-analysis/references/entity-quality.md`. Check applicable decisions, invariant owners and planned proof; unresolved material choices are findings. Skip this detail when no domain surface exists.
+
 Apply required domain/safety protocols only where the plan triggers them, inline in this pass. For an AI-feature plan, retain the AI-engineering gate. This mode does not dispatch a panel of specialist reviewers or invoke full `/why-review`; it uses the concise rationale protocol above.
 
 ## Finding Validation and Verdict

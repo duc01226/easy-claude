@@ -8,7 +8,7 @@ description: '[Code Quality] Use when a workflow step or the user asks for a foc
 
 **Goal:** Find real defects in the requested diff and, when requested, converge its fixes without losing coverage or quality.
 
-**Summary:** Triage every changed file and write a short plan → create review tasks → check connected behavior and applicable concerns → validate findings → report once or fix and freshly re-review. Choose review depth and delegation from risk and available context.
+**Summary:** Triage every changed file and write a short plan → create review tasks, including domain entity quality and performance-test quality when those surfaces change → check connected behavior and applicable concerns → validate findings → report once or fix and freshly re-review. Choose review depth and delegation from risk and available context.
 
 **Workflow:** Resolve scope → plan/tasks → review, with the whole-target `/why-review` rationale pass and a `/performance-review` pass when the change can affect performance → validate → review-only report or fix/re-review → final checks and recap.
 
@@ -46,7 +46,15 @@ Route other specialist depth only where applicable: architecture, domain-analysi
 
 When integration tests are in the target or guard changed behavior, run `/integration-test --mode=review --report-only` in review-only mode, or `/integration-test --mode=review --fix-loop --loop-owner=caller` inside the fixing loop. This owner applies all eight test-quality gates; a named parent may own the gate, but deferral never waives it.
 
+**Performance-test quality (conditional task):** when changed files add, update, rename or remove performance/load/stress/soak/benchmark scenarios or their harness, workload/data profiles, resource constraints, collectors or gate/report evaluator, create `[Review] Performance tests` and call `/performance-test --mode=review --report-only --loop-owner=caller` on that scope and its affected consumers. Detect from configured native performance paths, runner/config membership and file contents; a document merely mentioning performance tests is not a trigger. This static test-quality pass is distinct from `/performance-review` on product bottlenecks. Use `performance-tester` for authorized delegated depth (embed the full shared reviewer template); otherwise execute inline. Merge its coverage/findings into this review, validate once at the caller, and freshly review affected test/harness repairs. The caller owns every fix and round budget; never run tests or start a nested fixing loop from this task. Deferral is allowed only to a named caller with this exact duty and evidence; otherwise record an evidenced N/A when no executable performance-test surface changed.
+
 Review executable E2E/browser/user-flow changes under `.claude/skills/shared/e2e-quality-protocol.md`; a document merely naming E2E is not a trigger. Invoke `/e2e-test --mode=verify` report-only for applicable executable E2E changes. Run applicable test proof unless `--tests=defer` assigns it to a later named verification step. Required checks that cannot run stay unavailable, never PASS.
+
+### Domain entity quality (conditional task)
+
+Inspect domain meaning and affected write/load paths during triage. New or updated entities, VOs or aggregates → create `[Review] Domain entity quality` and read [the shared gate](../shared/protocols/domain-entity-change-gate.md), then [the quality criteria](../domain-analysis/references/entity-quality.md) only when relevant. No applicable surface → record an explicit skip with inspected paths. Apply project/paradigm fit; simple CRUD does not require rich DDD.
+
+Use one inline pass or the named caller's `domain-entities-design-review` occurrence. Incorporate its current evidence/findings, return uncovered duties from leaves, and complete applicable checks before the verdict; no duplicate pass or opt-in prompt. Existing review-only/fix-loop authority stays intact.
 
 ## Validation, fixes and re-review
 
@@ -60,7 +68,7 @@ Read [references/fix-loop.md](references/fix-loop.md) when issuing a full-candid
 
 <!-- PROTOCOL-GUIDES:START -->
 
-> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
+> **Protocol guides** — Apply each protocol only when its read-when condition holds. If a protocol's text is not in your context, read its file below before you act on it.
 
 - `bug-detection` — Four bug-detection categories checked on every review; reviewing code for defects → .claude/skills/shared/protocols/bug-detection.md
 - `category-review-thinking` — Derive review concerns per category of changed files from domain knowledge; reviewing a changeset that spans several file categories → .claude/skills/shared/protocols/category-review-thinking.md
@@ -71,12 +79,13 @@ Read [references/fix-loop.md](references/fix-loop.md) when issuing a full-candid
 - `design-patterns-quality` — Design quality: one owner per rule, fitted patterns, no speculative abstraction; designing or reviewing code structure → .claude/skills/shared/protocols/design-patterns-quality.md
 - `design-review-checklist` — Executable front-end design review protocol CL-1 to CL-6; reviewing, planning or building front-end work → .claude/skills/shared/protocols/design-review-checklist.md
 - `domain-entity-change-gate` — DDD entity, value object and aggregate change gate; planning, implementing or reviewing a domain model change → .claude/skills/shared/protocols/domain-entity-change-gate.md
-- `end-to-start-debugger-trace` — Walk backward from the observed end state through every feeder path before fixing; fixing a non-trivial bug, a regression or unclear code flow → .claude/skills/shared/protocols/end-to-start-debugger-trace.md
+- `end-to-start-debugger-trace` — Walk backward from the observed end state through every feeder path before fixing; investigating non-trivial bugs or failed verification, changing code behavior, or tracing unclear code flow → .claude/skills/shared/protocols/end-to-start-debugger-trace.md
 - `goal-contract-satisfaction-loop` — Save the goal in a file and loop until every saved criterion passes; executing work against a user goal → .claude/skills/shared/protocols/goal-contract-satisfaction-loop.md
 - `graph-assisted-investigation` — Optional hint: a code-graph query can add callers and dependents when grep may miss a high-risk blast radius, and it can be stale; a high-risk change where grep and reading alone may miss the blast radius → .claude/skills/shared/protocols/graph-assisted-investigation.md
 - `integration-test-sync-check` — Changed business logic has matching tests; reviewing changed business logic → .claude/skills/shared/protocols/integration-test-sync-check.md
 - `logic-and-intention-review` — Check that what the code does matches why it changed, with happy and error path traces; reviewing a code change against its stated intent → .claude/skills/shared/protocols/logic-and-intention-review.md
 - `measured-capacity-engineering` — Model demand, reduce measured work safely and prove capacity before scaling; planning, building, testing or reviewing hot paths, caches or capacity → .claude/skills/shared/protocols/measured-capacity-engineering.md
+- `output-quality-principles` — Readable guidance and verified contents for long skill/doc files; writing, updating or auditing a skill or reference document, or another Markdown artifact over 200 lines → .claude/skills/shared/protocols/output-quality-principles.md
 - `review-decision-autonomy` — Choose supported review decisions and ask before extending the round budget; running any review or audit skill or mode → .claude/skills/shared/protocols/review-decision-autonomy.md
 - `review-policy` — Review-only or a three-round fix loop with explicit extension and fresh post-fix evidence; deciding round eligibility, blocking findings or review state → .claude/skills/shared/protocols/review-policy.md
 - `review-principle-awareness` — Classify the change context first, then apply the current principles that fit it; starting any review → .claude/skills/shared/protocols/review-principle-awareness.md
@@ -103,13 +112,13 @@ Read [references/fix-loop.md](references/fix-loop.md) when issuing a full-candid
 
 <!-- SYNC:domain-entity-change-gate:reminder -->
 
-**MUST ATTENTION** when a changed model uses DDD tactical patterns or an evidenced equivalent, apply the **Domain Entity Change Gate** — `/domain-analysis --mode=review` owns the full A–P checklist; detect paradigm + subdomain fit FIRST, then answer all 6 applicable decisions (classification · invariant ownership + failure signalling · aggregate boundary + concurrency · construction vs reconstitution · events · assertion-backed native test obligation). Use property TCs only under the absent-profile default; a malformed declared `specArtifacts` profile blocks without fallback. When the project does not use this model, record the DDD-specific gate N/A and still protect actual invariants and outcomes through the configured owner. Planning must NAME each applicable decision; plan review treats an unanswered row as a FINDING; change review routes to the owner (Mode A read / Mode B delegate). SKIP under the 3-row duplication guard and record the deferral line. — why: one protocol shared by planner and reviewer is what stops a plan shipping an entity design that review then rejects.
+**MUST ATTENTION** only for relevant entity/VO/aggregate changes, read `domain-analysis/references/entity-quality.md`: establish fit → plan owned decisions/proof → implement through all write/load paths → review the same rules. Keep simple models simple; unresolved material decisions or required proof block. Use one caller-owned review pass.
 
 <!-- /SYNC:domain-entity-change-gate:reminder -->
 
 <!-- SYNC:understand-code-first:reminder -->
 
-**IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code/conventions BEFORE any modification or explanation. The code graph is optional advice for high-risk blast radius (a hint that may be stale), never a requirement.
+**IMPORTANT MUST ATTENTION** for code work, read the target and relevant conventions before planning or editing; seek 3+ fitting examples when available and record fewer/none. Do not impose code discovery on work with no code surface. The code graph is optional, stale-able advice for high-risk impact, never a requirement.
 
 <!-- /SYNC:understand-code-first:reminder -->
 
@@ -198,7 +207,7 @@ Read [references/fix-loop.md](references/fix-loop.md) when issuing a full-candid
 
 <!-- SYNC:end-to-start-debugger-trace:reminder -->
 
-**IMPORTANT MUST ATTENTION** debugger trace gate: for non-trivial bug/fix/investigation/review work, start at the observed final output and trace backward through reader -> storage/projection -> writer -> consumer/job -> producer/trigger. Enumerate all feeder paths and hypotheses before fixing; select the authoritative invariant owner from project architecture and retain validation at untrusted boundaries. **BLOCKED until** trace, hypothesis matrix, owning fix layer, and forward convergence proof exist.
+**IMPORTANT MUST ATTENTION** for non-trivial bugs, failed verification, regression fixes, behavior-changing code or unclear code flow, trace backward from the observed output through every feeder path before fixing. Establish hypotheses, the authoritative invariant owner and forward proof; retain validation at untrusted boundaries. Ordinary artifact review or graph lookup alone does not trigger a debugging workflow.
 
 <!-- /SYNC:end-to-start-debugger-trace:reminder -->
 
@@ -277,10 +286,18 @@ Read [references/fix-loop.md](references/fix-loop.md) when issuing a full-candid
 
 <!-- /SYNC:review-policy:reminder -->
 
+
+
+<!-- SYNC:output-quality-principles:reminder -->
+
+**IMPORTANT MUST ATTENTION** lead with useful guidance and readable priorities; preserve action-changing conditions/numbers and required structures. When writing, updating or auditing Markdown skill/doc content, verify top, heading-linked contents over 200 lines (stricter owner thresholds remain); refresh after edits and report gaps in read-only audits. Remove report bulk; judge semantic value rather than word counts.
+
+<!-- /SYNC:output-quality-principles:reminder -->
+
 ## Closing Reminders
 
 **Goal:** Find real diff defects and converge authorized fixes with complete coverage.
 
-**Main steps:** scope → triage/plan/tasks → connected review, plus `/performance-review` when the diff can affect performance → findings validation → report or fix/fresh re-review → final checks.
+**Main steps:** scope → triage/plan/tasks → connected review, plus domain entity quality when entities change and `/performance-review` when the diff can affect performance → findings validation → report or fix/fresh re-review → final checks.
 
 Preserve exact scope, evidence and applicable gates. Default review-only; fix-loop has three rounds, accepts deferred LOWs and asks about bounded extension for remaining MEDIUM+ or failed checks. Never accept stale pre-fix evidence.

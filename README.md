@@ -2,9 +2,25 @@
 
 > Drop-in `.claude` framework that transforms Claude Code into a project-aware, quality-enforced, hallucination-resistant AI development agent.
 
+## Contents
+
+- [What is this?](#what-is-this)
+- [Architecture](#architecture)
+- [Quick Start](#quick-start)
+- [What's Inside](#whats-inside)
+- [Project Structure](#project-structure)
+- [How It Works](#how-it-works)
+- [Design Principles](#design-principles)
+- [What's Project-Agnostic vs Project-Specific](#whats-project-agnostic-vs-project-specific)
+- [Optional team work tracking](#optional-team-work-tracking)
+- [Optional Dependencies](#optional-dependencies)
+- [Testing](#testing)
+- [Further Reading](#further-reading)
+- [License](#license)
+
 ## What is this?
 
-**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **<!-- COUNT:hooks -->36<!-- /COUNT --> top-level hook files**, **<!-- COUNT:skills -->103<!-- /COUNT --> skills**, **<!-- COUNT:workflows -->17<!-- /COUNT --> workflows**, and **<!-- COUNT:agents -->24<!-- /COUNT --> specialized agents**. It covers the entire software development lifecycle — from initiative capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`.
+**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **<!-- COUNT:hooks -->36<!-- /COUNT --> top-level hook files**, **<!-- COUNT:skills -->104<!-- /COUNT --> skills**, **<!-- COUNT:workflows -->17<!-- /COUNT --> workflows**, and **<!-- COUNT:agents -->25<!-- /COUNT --> specialized agents**. It covers the entire software development lifecycle — from initiative capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`.
 
 **Core insight:** LLMs forget, hallucinate, and drift. Instead of hoping the AI "just gets it right," this framework uses **programmatic guardrails** (hooks) and **prompt-engineered protocols** (skills/workflows) to enforce correctness at every stage.
 
@@ -164,7 +180,7 @@ again after 150K tokens of growth or a compaction, and to every sub-agent; the w
 `workflow-route-inject.cjs` (the gate) and `workflow-catalog-inject.cjs` (the catalog). `CLAUDE.md` and `AGENTS.md` hold project information only. This design prevents
 context drift over long sessions.
 
-### Skills (<!-- COUNT:skills -->103<!-- /COUNT --> definitions)
+### Skills (<!-- COUNT:skills -->104<!-- /COUNT --> definitions)
 
 Markdown-based prompts with YAML frontmatter that guide AI behavior.
 
@@ -224,9 +240,9 @@ Reviews are first-class skills you can run standalone, and several are chained a
 | `/plan --mode=review`             | One-pass, read-only plan validity and execution-risk review              |
 | `/work-item --mode=review`              | Task / story / test-spec / design artifact quality before handoff         |
 
-### Agents (<!-- COUNT:agents -->24<!-- /COUNT --> specialists)
+### Agents (<!-- COUNT:agents -->25<!-- /COUNT --> specialists)
 
-Subagent definitions for parallelized, specialized work. The table below shows 9 of the <!-- COUNT:agents -->24<!-- /COUNT --> — see `.claude/docs/agents/README.md` for the full roster.
+Subagent definitions for parallelized, specialized work. The table below shows 9 of the <!-- COUNT:agents -->25<!-- /COUNT --> — see `.claude/docs/agents/README.md` for the full roster.
 
 | Agent                   | Role                                           |
 | ----------------------- | ---------------------------------------------- |
@@ -247,7 +263,7 @@ easy-claude/
 ├── .agents/                  # Codex skill mirror generated from .claude/skills
 ├── .codex/                   # Codex agents, hooks, and context parity files
 ├── .claude/                  # <-- The framework template (copy this to your project)
-│   ├── agents/               # 24 specialized agent definitions
+│   ├── agents/               # 25 specialized agent definitions
 │   ├── hooks/                # 34 top-level hook files + lib/ utilities
 │   │   ├── lib/              # Shared hook libraries
 │   │   ├── notifications/    # Multi-channel notification system
@@ -283,7 +299,7 @@ The entire framework is **project-agnostic**. All project-specific knowledge liv
 ```
 ┌─────────────────────────────────────┐
 │     Generic Framework (reusable)    │
-│ 36 Hook Files + 103 Skills + 17 Flows │
+│ 36 Hook Files + 104 Skills + 17 Flows │
 └──────────────┬──────────────────────┘
                │
         ┌──────┴──────┐

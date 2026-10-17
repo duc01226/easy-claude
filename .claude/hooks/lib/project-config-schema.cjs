@@ -426,6 +426,7 @@ const SCHEMA = {
             frontendPatternsDoc: { type: 'string', required: false },
             codeReviewDoc: { type: 'string', required: false },
             integrationTestDoc: { type: 'string', required: false },
+            performanceTestDoc: { type: 'string', required: false, describe: 'Optional repo-relative performance-test preference guide. Feeds configured performance file conventions and the capability-based default reference selection; an explicit referenceDocs array remains exact.' },
             e2eTestDoc: { type: 'string', required: false },
             searchPatternKeywords: { type: 'array', required: false }
         }

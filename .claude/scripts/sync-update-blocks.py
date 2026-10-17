@@ -64,7 +64,7 @@ from line_endings import read_text, write_text  # noqa: E402
 # The fallback instruction every PROTOCOL-GUIDES block opens with. Changing it changes every
 # converted skill on the next guide run, so keep it short and stable.
 GUIDE_BLOCK_INTRO = (
-    "> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. "
+    "> **Protocol guides** — Apply each protocol only when its read-when condition holds. "
     "If a protocol's text is not in your context, read its file below before you act on it."
 )
 BASE_TAG_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")

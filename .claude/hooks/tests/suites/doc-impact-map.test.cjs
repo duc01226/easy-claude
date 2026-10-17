@@ -185,6 +185,25 @@ const noWorkTreeEnv = dir => ({ GIT_CEILING_DIRECTORIES: path.dirname(dir), GIT_
 
 const tests = [
     {
+        // Technical contract: selected performance preferences stay fresh after harness/system changes.
+        name: '[doc-impact-map] performance guidance routes system and configured harness changes only when selected',
+        fn: () => {
+            const config = {
+                ...MINIMAL_CONFIG,
+                testing: { filePatterns: { performance: 'checks/load/**/*.scenario' } },
+                referenceDocs: [{ filename: 'performance-test-reference.md', purpose: 'Performance policy' }]
+            };
+            for (const file of ['src/query.cs', 'deploy/Dockerfile', 'checks/load/api/cases.scenario']) {
+                const result = mapWith([file], config);
+                const doc = result.docs.find(item => item.doc.endsWith('/performance-test-reference.md'));
+                assertTrue(!!doc, `${file} must invalidate the selected performance guide`);
+                assertEqual(doc.scanTarget, 'scan --target=performance-tests');
+            }
+            assertTrue(!mapWith(['src/query.cs'], { ...config, referenceDocs: [] }).docs.some(item => item.doc.endsWith('performance-test-reference.md')));
+            assertTrue(!mapWith(['notes/meeting.md'], config).docs.some(item => item.doc.endsWith('performance-test-reference.md')));
+        }
+    },
+    {
         name: '[doc-impact-map] D1 harness edits route to the glob-derived inventory docs',
         fn: () => {
             const result = mapWith(['.claude/skills/example-skill/SKILL.md'], MINIMAL_CONFIG);

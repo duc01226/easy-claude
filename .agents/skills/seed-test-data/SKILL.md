@@ -63,7 +63,7 @@ Before changes or an audit, read `seed-test-data-reference.md` under the resolve
 5. **Restart safety:** loop from `existing_count` to `target_count`, never zero; reuse keyed records/identity after interruption and recover without deleting or resetting persistent data.
 6. **Scoped DI:** use the project's fresh scope per iteration; do not share a DbContext/session across iterations.
 7. **Reachable state:** use valid inputs and plausible relative creation/update/activity timing, rather than one shared instant. An unavoidable direct store-write exception must be labelled and explain why legitimate (legacy/migrated bootstrap, externally owned record, or deliberate corruption-repair fixture); it is not an ordinary domain-seeding path.
-8. **Spec consistency:** seeded scenarios satisfy §5 invariants. Any assumed domain precondition, status/relationship or default belongs in the spec and tests where testable. Property/metamorphic generation and mutation-score gates are N/A for orchestration-only seeders.
+8. **Spec consistency:** seeded scenarios satisfy the selected canonical owner’s contract invariants (strict-default §5 only when no native profile is declared). Resolve config/required-reference roles and case carriers; invalid/unresolved contracts stay BLOCKED. Any assumed domain precondition, status/relationship or default belongs in the spec and tests where testable. Property/metamorphic generation and mutation-score gates are N/A for orchestration-only seeders.
 
 ## Persistent Seed Run Contract
 
@@ -158,7 +158,7 @@ After Generate’s self-audit and fresh review, ask with the native question too
 
 <!-- PROTOCOL-GUIDES:START -->
 
-> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
+> **Protocol guides** — Apply each protocol only when its read-when condition holds. If a protocol's text is not in your context, read its file below before you act on it.
 
 - `evidence-based-reasoning` — Ground every material claim in file:line, config or source evidence, with stated confidence; making any claim, finding or recommendation → .claude/skills/shared/protocols/evidence-based-reasoning.md
 - `measured-capacity-engineering` — Model demand, reduce measured work safely and prove capacity before scaling; planning, building, testing or reviewing hot paths, caches or capacity → .claude/skills/shared/protocols/measured-capacity-engineering.md
@@ -193,7 +193,7 @@ After Generate’s self-audit and fresh review, ask with the native question too
 
 <!-- SYNC:understand-code-first:reminder -->
 
-**IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code/conventions BEFORE any modification or explanation. The code graph is optional advice for high-risk blast radius (a hint that may be stale), never a requirement.
+**IMPORTANT MUST ATTENTION** for code work, read the target and relevant conventions before planning or editing; seek 3+ fitting examples when available and record fewer/none. Do not impose code discovery on work with no code surface. The code graph is optional, stale-able advice for high-risk impact, never a requirement.
 
 <!-- /SYNC:understand-code-first:reminder -->
 

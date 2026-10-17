@@ -162,9 +162,8 @@ Dimension-based reasoning replaces fixed checklists. Each dimension has a `Think
 
 > **Think:** What is cognitive load? Can nesting/conditionals flatten?
 
-- Nesting >3 → refactor (early returns, extract methods)
-- Methods >20 lines → extract
-- Complex conditionals → flatten or Strategy pattern (3+ branching occurrences only)
+- Inspect nesting and method size for obscured intent; use early returns or extraction when they lower cognitive load while preserving behavior. Line/depth counts are clues, never refactor mandates.
+- Simplify complex conditions locally; choose a shared dispatch/pattern only when real variation and ownership justify its indirection.
 
 ### Dimension 5: Data Access and Storage (when applicable)
 
@@ -278,7 +277,7 @@ Used standalone (outside a review workflow), this self-review gate is sufficient
 > 4. **Evaluate pattern fit.** Copying nearby code? Verify preconditions match — same scope, lifetime, base class, constraints.
 > 5. **New artifact = wired artifact.** Created? Prove registered, imported, reachable by all consumers.
 
-> **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. For simple tasks, ask user whether to skip.
+> **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting. Keep task depth proportional to the work.
 
 **Prerequisites:** **MUST ATTENTION READ** before executing:
 
@@ -317,7 +316,7 @@ Rules:
 
 <!-- PROTOCOL-GUIDES:START -->
 
-> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
+> **Protocol guides** — Apply each protocol only when its read-when condition holds. If a protocol's text is not in your context, read its file below before you act on it.
 
 - `complexity-prevention` — Change-cost lens on complexity (Ousterhout); designing or reviewing code → .claude/skills/shared/protocols/complexity-prevention.md
 - `core-engineering-principles` — Core quality gate: easy to change, easy to scale, easy to maintain, judged by future change cost; planning, implementing or reviewing any change → .claude/skills/shared/protocols/core-engineering-principles.md
@@ -396,7 +395,7 @@ Rules:
 **IMPORTANT MUST ATTENTION** run the Self-Recursive Loop (analyze → simplify → verify) until the current round's exit bar is clear (round 1: zero open findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred); do NOT spawn a fresh-context reviewer for this skill's own findings. — why: re-reviewing your own findings in fresh context burns tokens the convergence loop already owns.
 
 - **MANDATORY** Evidence Gate — every finding/recommendation needs `file:line` proof or a traced call chain; confidence >80% to act, 60-80% verify first, <60% DO NOT recommend. NEVER use "obviously"/"I think"/"should be" without proof.
-- **MANDATORY** break work into small todo tasks via `TaskCreate` BEFORE starting (one task per file read); keep exactly one `in_progress`; mark `completed` immediately; add a final review task. On context loss, `TaskList` first — resume, never duplicate.
+- **MANDATORY** break work into small todo tasks via `TaskCreate` BEFORE starting; keep exactly one `in_progress`; mark `completed` immediately; add a final review task. On context loss, `TaskList` first — resume, never duplicate.
 - **MANDATORY** READ `code-review-rules.md` FIRST, then `project-structure-reference.md` — both under the reference-docs root (default `docs/project-reference`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides); search 3+ existing patterns and read the target code BEFORE modification. The code graph is optional advice for high-risk blast radius.
 - **MANDATORY** evaluate pattern FIT before copying nearby code — verify same scope, lifetime, base class, constraints; closest example ≠ matching preconditions. — why: a copied pattern with mismatched preconditions compiles but is wrong.
 - **MANDATORY** reason by the 5 Simplification Dimensions — readability, evidenced DRY/abstraction, responsibility according to documented architecture and actual ownership, complexity reduction, and configured persistence/query bounds when relevant (otherwise N/A with a reason); every technique answers ONE test: does this make the next change cheaper?

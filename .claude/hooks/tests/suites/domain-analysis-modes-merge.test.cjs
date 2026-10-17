@@ -201,7 +201,7 @@ const tests = [
         }
     },
     {
-        name: 'TC-DMM-004 mode-only bodies stay in the reference; the router carries only review decision guidance; delivery names domain-analysis only',
+        name: 'TC-DMM-004 mode-only bodies stay in the reference; the router carries shared review and conditional document guidance; delivery names domain-analysis only',
         skip: SKIP,
         fn: () => {
             const skill = skillText();
@@ -218,7 +218,7 @@ const tests = [
             }
             // A references file keeps full bodies: no guide entry, no retired pointer line, balanced fences
             assert.deepEqual(guideTags(review), [], 'mode-review.md carries no guide entry');
-            assert.deepEqual(guideTags(skill), ['review-decision-autonomy', 'review-policy'], 'shared decision and mode policies are routed at entry; domain-specific protocols stay isolated');
+            assert.deepEqual(guideTags(skill), ['output-quality-principles', 'review-decision-autonomy', 'review-policy'], 'shared document, decision and mode policies are routed at entry; domain-specific protocols stay isolated');
             assert.ok(skill.includes('<!-- SYNC:review-decision-autonomy:reminder -->'), 'the review policy reminder remains discoverable');
             assert.ok(skill.includes('<!-- SYNC:review-policy:reminder -->'), 'the shared modes/rounds reminder remains discoverable');
             const autonomy = fs.readFileSync(path.join(SKILLS, 'shared', 'protocols', 'review-decision-autonomy.md'), 'utf8');
@@ -230,6 +230,7 @@ const tests = [
             assert.ok((review.match(/<!-- SYNC:[a-z-]+:reminder -->/g) || []).length >= 11, 'the :reminder digests moved with the bodies');
             // Protocol delivery for the domain model group names the surviving skill only
             const groups = JSON.parse(read(SKILLS, 'shared', 'protocol-groups.json'));
+            assert.equal(groups.groups['workflow-task'].tags['output-quality-principles'].trigger, 'documentation', 'document depth stays conditional');
             const listed = groups.deliveryTriggers['domain-model'].skills;
             assert.ok(listed.includes('domain-analysis'), 'domain-model group delivers to domain-analysis');
             assert.ok(!listed.includes(REMOVED), 'domain-model group no longer names the removed skill');
