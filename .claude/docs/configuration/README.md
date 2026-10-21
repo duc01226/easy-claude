@@ -93,11 +93,16 @@ In this repository, the SessionStart hook loads `.ck.json` settings but does not
 The optional, closed `.ck` section `{"contextDelivery":{"profile":"compatible"}}`
 selects framework instruction delivery. Values are `compatible` and `concise`.
 Precedence is default → personal `~/.claude/.ck.json` → tracked
-`.claude/.ck.json` → checkout `.claude/.ck.local.json`. An empty section inherits;
+`.claude/.ck.json` (framework-shipped) → team `contextDelivery` in the project config
+(`docs/project-config.json`, or `portability.projectConfigPath`) → checkout
+`.claude/.ck.local.json`. A team default belongs in the project config because a
+framework refresh replaces `.claude/.ck.json`. An empty section inherits;
 a malformed effective declaration reports `CONTEXT_PROFILE_INVALID` without its
 value and falls back to compatible. A settings file that exists but holds no
 readable JSON object counts as an invalid declaration of its layer for this option
-only, and the message names the layer and its file. An explicit higher-precedence valid profile
+only, and the message names the layer and its file. The project config is the exception: when it
+holds no readable JSON object it declares nothing here and stays quiet, because its own loader reports
+it. An explicit higher-precedence valid profile
 recovers. This setting does not change workflow routing, host permissions or
 project configuration validation.
 
@@ -119,7 +124,8 @@ triggers retain existing full delivery; required skills and safe additive overla
 still load independently of workflows.
 
 To evaluate, set `contextDelivery.profile` to `concise` in the ignored checkout
-file, preserving its other preferences. To roll back, set it explicitly to
+file, preserving its other preferences. A team that has run the evaluation on its
+own lanes sets it in the project config instead. To roll back, set it explicitly to
 `compatible` in that file. Removal restores lower-precedence settings. A content
 hash change re-arms delivery; compaction/clear and child scopes keep their existing
 rules. No automatic migration rewrites an adopter's settings.

@@ -490,18 +490,7 @@ Before code changes (MUST ATTENTION):
 
 ## Sub-Agent Routing
 
-Use specialized help when available (never under `--report-only`):
-
-| Detected focus                                                     | Sub-agent                                              |
-| ------------------------------------------------------------------ | ------------------------------------------------------ |
-| DB/query/N+1/memory/backend hot path                               | `performance-optimizer`                                |
-| Auth, PII, tenant isolation, sensitive cache keys                  | `security-auditor` first, then `performance-optimizer` |
-| Cross-service architecture, caching policy, capacity/SLO trade-off | architecture/performance specialist                    |
-| Frontend render/bundle/CWV/network waterfall                       | frontend or performance specialist                     |
-| Runtime/GC pauses, allocation profile, pool + event-loop sizing    | `performance-optimizer` (runtime evidence: GC log, allocation profile, RSS trend, off-CPU profile) |
-| Timeouts/retries/breakers/queue bounds, resilience under load      | `performance-optimizer` with the resilience config in scope; escalate design-level gaps to `architect` |
-
-Sub-agent prompt MUST include target, detected scope, local context evidence, required dimensions, the calibration anchors in play (`references/performance-knowledge.md`), report path, and "return summary only; write full report incrementally."
+Read [references/performance-review-delegation-and-fix-loop.md](references/performance-review-delegation-and-fix-loop.md) when delegating a performance focus area to a specialist (never under `--report-only`); it holds the focus-to-sub-agent table and what every sub-agent prompt must include (target, scope, local evidence, dimensions, calibration anchors, report path, summary-only return).
 
 ---
 
@@ -532,22 +521,7 @@ Sub-agent prompt MUST include target, detected scope, local context evidence, re
 
 **Trigger:** Phase 6 returns CLEAN/validated and the performance report still has one or more findings that must be fixed. Under `--report-only` this phase never runs — the validated report is returned to the caller.
 
-**Protocol:**
-
-1. Create a fresh fix-cycle task list before editing. Do not reuse the review tasks.
-2. Fix only findings that survived `$why-review --validate-findings`; if this skill is running inside a workflow, route implementation through the caller's fix step; standalone, apply it with `$fix --target=review`.
-3. Re-measure or run the verification command named in the finding.
-4. Restart the full `$performance-review` review from Phase 0 over the complete current target, not only the fixed files.
-5. The restarted pass MUST create brand-new review tasks, re-detect scope, rediscover local context, rerun baseline/profiler checks (and any optional graph hint) where applicable, and analyze all dimensions again from the beginning.
-6. Repeat validate → fix → full performance re-review until a complete pass clears the current round's exit bar (round 1: zero open findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred).
-7. If the same validated blocker repeats across 2 full invocations with no progress, stop and ask the user for a decision.
-
-**Non-negotiable rules:**
-
-- Never fix a performance finding before `$why-review --validate-findings` validates it.
-- Never mark performance review clean after a targeted before/after check only; the clean verdict must come from a full Phase 0 restart.
-- Never review only fixed files during the recursive pass.
-- Never reuse old todo/task items for the recursive review pass.
+Read [references/performance-review-delegation-and-fix-loop.md](references/performance-review-delegation-and-fix-loop.md) when Phase 6 leaves validated findings that this run must fix (`--fix-loop`); it holds the seven-step protocol (fresh fix-cycle tasks, fix only validated findings through the caller's fix step or `$fix --target=review`, re-measure, restart the full review from Phase 0 with brand-new tasks, repeat to the round's exit bar, stop and ask after two no-progress invocations) and the four non-negotiable rules.
 
 ---
 

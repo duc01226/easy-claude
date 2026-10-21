@@ -71,3 +71,22 @@ test('end to end with a stand-in host: thresholds decide the exit code', { skip:
   assert.match(lines.at(-1), /hit rate 50%/);
   assert.equal(main(['--cases', 'cases.json', '--runs=1', '--min-hit-rate=0.8'], { cwd: dir, env, log: () => {} }).exitCode, 1);
 });
+
+// Invariant: the chosen model reaches the host, so a frontier and a smaller model can be compared on one case file.
+test('SKILL_EVAL_MODEL is passed to the host as its model flag', { skip: process.platform === 'win32' && 'POSIX shebang stand-in' }, () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sae-'));
+  const bin = path.join(dir, 'fake-host');
+  const argvFile = path.join(dir, 'argv.json');
+  fs.writeFileSync(bin, `#!${process.execPath}\nrequire('fs').writeFileSync(${JSON.stringify(argvFile)}, JSON.stringify(process.argv.slice(2)));\n`);
+  fs.chmodSync(bin, 0o755);
+  fs.writeFileSync(path.join(dir, 'cases.json'), JSON.stringify({ cases: [{ id: 'q', prompt: 'hello', expect: null }] }));
+  try {
+    for (const [host, flag] of [['claude', '--model'], ['codex', '-m']]) {
+      main(['--cases', 'cases.json', `--host=${host}`, '--runs=1'], { cwd: dir, env: { ...process.env, SKILL_EVAL_HOST_BIN: bin, SKILL_EVAL_MODEL: 'small-model' }, log: () => {} });
+      const argv = JSON.parse(fs.readFileSync(argvFile, 'utf8'));
+      assert.equal(argv[argv.indexOf(flag) + 1], 'small-model', `${host} model flag`);
+    }
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});

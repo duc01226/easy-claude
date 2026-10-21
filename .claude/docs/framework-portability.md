@@ -95,9 +95,30 @@ Portable commands require Node only unless tokenization is explicitly requested:
   collected output plus chunk text is limited to 4 MiB and 4,096 chunks; each
   event also has at most 4,096 chunks. Failed, late or unrelated reads cannot fill
   gaps. Malformed ranges or exceeded budgets make observation incomplete.
-  Unknown or incomplete observations block evidence. No isolated host adapter
-  or permission bypass is bundled; the declaration records a prerequisite and
-  does not establish isolation proof by itself. Optional
+  Unknown or incomplete observations block evidence. A reference Claude Code adapter
+  ships at `.claude/scripts/context-evaluation-adapters/claude-code.mjs`: a
+  PostToolUse observer hook records each tool call's changed files, reads carry raw
+  file text, user settings/hooks/MCP servers are excluded and web tools are disabled
+  (`CTX_EVAL_MODEL` picks the model; run the same file per model to compare a frontier
+  and a smaller model). Containment, because the run is an agent with a shell and some
+  cases tempt it to publish: shell commands run in Claude Code's OS sandbox (writes only
+  in the world and the per-user temp directory, no network, no unsandboxed fallback, and
+  the run refuses to start without the sandbox), permission mode `acceptEdits` denies
+  anything that would need approval, the child receives an allowlisted environment
+  (`CTX_EVAL_PASS_ENV` adds a provider's variables) whose model credentials and passed
+  names are unset for sandboxed commands, and the adapter refuses a world that has an
+  ancestor `CLAUDE.md`, `CLAUDE.local.md`, `.claude/CLAUDE.md` or `.git`, so pass
+  `--output` outside any project. macOS runs as is; Linux and WSL2 need the sandbox's
+  optional seccomp filter, which blocks Unix sockets such as a Docker socket or WSL's
+  Windows-launch socket (`npm install -g @anthropic-ai/sandbox-runtime`, then
+  `CTX_EVAL_LINUX_SANDBOX_VERIFIED=1`); native Windows is refused. Reads are not
+  confined, so run it as a user without secrets you would not show the model.
+  The policy text reaches the run through `--append-system-prompt`, the same
+  channel for both profiles but not the production hook channel. It does
+  not make discovery files read-only; the grader still flags any change to them. One
+  host/platform lane is evidence for that lane, never the cross-lane adoption verdict.
+  The adapter declaration records a prerequisite and does not establish isolation
+  proof by itself. Optional
   `saveRedactedTrajectories` requires the adapter to redact its output first; default diagnostics contain identities only.
 - `node .claude/scripts/context-delivery-audit.cjs assess <evidence.json>` checks
   complete paired records, fixture/policy identities, mandatory outcomes,

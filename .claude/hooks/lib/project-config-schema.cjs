@@ -43,6 +43,14 @@ const SKILL_NAME_PATTERN = /^[a-z0-9][a-z0-9-]*$/;
  * 'arrayOf' = array of objects matching a sub-schema
  */
 const SCHEMA = {
+  contextDelivery: {
+    type: "object",
+    required: false,
+    describe: "Team default for the guidance delivery profile (compatible or concise). Kept in the project config because the framework-shipped .claude/.ck.json is replaced on refresh. Order, later wins: ~/.claude/.ck.json, .claude/.ck.json, this file, checkout .claude/.ck.local.json. A malformed value resolves compatible.",
+    properties: {
+      profile: { type: "string", required: false, enumValues: ["compatible", "concise"], describe: "compatible: the full universal bundle; concise: the short universal core and route cue." },
+    },
+  },
   frameworkRuntime: {
     type: "object",
     required: false,

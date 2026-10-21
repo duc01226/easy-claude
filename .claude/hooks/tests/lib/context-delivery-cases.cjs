@@ -189,6 +189,33 @@ function assertRuleDispositions(baseline, rendered, sha256) {
 }
 
 const cases = {
+    // Invariant: a team default lives in the project-owned config, which a framework refresh never replaces;
+    // it outranks the shipped .claude/.ck.json, the checkout still wins, and a malformed value never reduces guidance.
+    async teamProfile() {
+        await fixture(async ({ project, homeDir, set }) => {
+            const load = () => config.loadConfig({ projectRoot: project, homeDir }).contextDelivery;
+            const team = value => { fs.mkdirSync(path.join(project, 'docs'), { recursive: true }); fs.writeFileSync(path.join(project, 'docs', 'project-config.json'), JSON.stringify({ project: { name: 'fixture' }, ...value })); };
+            team({ contextDelivery: { profile: 'concise' } });
+            assert.deepEqual(load(), { profile: 'concise', source: 'team' });
+            fs.writeFileSync(path.join(project, '.claude', '.ck.json'), JSON.stringify({ contextDelivery: { profile: 'compatible' } }));
+            assert.deepEqual(load(), { profile: 'concise', source: 'team' }, 'the team layer outranks the shipped .ck.json');
+            set({ contextDelivery: { profile: 'compatible' } });
+            assert.deepEqual(load(), { profile: 'compatible', source: 'checkout' }, 'the checkout override still wins');
+            set({});
+            team({});
+            assert.deepEqual(load(), { profile: 'compatible', source: 'project' }, 'a project config without the key declares nothing');
+            team({ contextDelivery: { profile: 'future' } });
+            const errors = capturedErrors(() => assert.equal(load().profile, 'compatible'));
+            assert.ok(errors.some(text => text.includes('team layer')), 'the diagnostic names the team layer');
+            // A broken or non-object project config declares nothing and stays quiet (its own loader reports it)
+            const file = path.join(project, 'docs', 'project-config.json');
+            for (const broken of ['{ "project": ', '[]', 'true', '7']) {
+                fs.writeFileSync(file, broken);
+                const quiet = capturedErrors(() => assert.deepEqual(load(), { profile: 'compatible', source: 'project' }, `broken project config ${broken} must not decide the profile`));
+                assert.deepEqual(quiet, [], `broken project config ${broken} wrote a diagnostic`);
+            }
+        });
+    },
     async profile() {
         await fixture(async ({ project, homeDir, set }) => {
             assert.equal(config.loadConfig({ projectRoot: project, homeDir }).contextDelivery.profile, 'compatible');

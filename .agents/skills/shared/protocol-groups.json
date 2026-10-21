@@ -629,5 +629,124 @@
       }
     }
   },
-  "inlineSkills": []
+  "inlineSkills": [],
+  "agentGuides": {
+    "_description": "Agent guides — opt-in, off by default (sync-update-blocks.py --mode=agent-guide). When `enabled` is true, an agent definition carries a trigger-gated protocol (one with a `trigger` in `groups`) that it does not list in `keepInline` as ONE guide line instead of its full body, keeping its `:reminder` digest; at the agent's start the group hooks deliver the full text when the trigger applies (protocol-delivery.cjs reads the agent's PROTOCOL-GUIDES block), and the guide line's path is the fallback. Setting `enabled` back to false and re-running the mode restores every body. Known limit: at an agent's start, keyword triggers see the user's prompts, not the agent's brief, so a protocol the role always needs must stay in `keepInline`; the list below keeps each agent's role-core protocols (the per-agent quality sets of agent_protocol_matrix.py stay the owner of what an agent carries) and the reviewer-template leaf rules (ADR-0004 amendment 2026-09-29). Enable only after the ADR-0004 compliance gate passes on the models you run.",
+    "enabled": false,
+    "keepInline": {
+      "ui-ux-designer": [
+        "ui-system-context",
+        "ui-wireframe",
+        "ui-intent-layer",
+        "ui-ux-design-principles",
+        "design-distinctiveness-gate",
+        "ui-copywriting",
+        "design-review-checklist",
+        "ux-journey-gate",
+        "e2e-visual-design-contract",
+        "graph-assisted-investigation"
+      ],
+      "frontend-developer": [
+        "ui-system-context",
+        "ui-wireframe",
+        "ui-intent-layer",
+        "ui-ux-design-principles",
+        "design-distinctiveness-gate",
+        "ui-copywriting",
+        "design-review-checklist",
+        "ux-journey-gate",
+        "e2e-visual-design-contract"
+      ],
+      "fullstack-developer": [
+        "ui-system-context",
+        "ui-wireframe",
+        "ui-intent-layer",
+        "ui-ux-design-principles",
+        "design-distinctiveness-gate",
+        "ui-copywriting",
+        "design-review-checklist",
+        "ux-journey-gate",
+        "e2e-visual-design-contract"
+      ],
+      "debugger": [
+        "fix-layer-accountability",
+        "end-to-start-debugger-trace",
+        "root-cause-debugging",
+        "test-failure-fault-adjudication",
+        "behavioral-delta-matrix",
+        "preservation-inventory"
+      ],
+      "tester": [
+        "test-failure-fault-adjudication"
+      ],
+      "integration-tester": [
+        "test-failure-fault-adjudication",
+        "behavioral-delta-matrix",
+        "fix-layer-accountability",
+        "graph-assisted-investigation"
+      ],
+      "e2e-runner": [
+        "test-failure-fault-adjudication",
+        "e2e-visual-design-contract"
+      ],
+      "performance-tester": [
+        "measured-capacity-engineering",
+        "test-failure-fault-adjudication"
+      ],
+      "performance-optimizer": [
+        "measured-capacity-engineering",
+        "review-decision-autonomy"
+      ],
+      "database-admin": [
+        "measured-capacity-engineering"
+      ],
+      "ai-engineering-reviewer": [
+        "ai-engineering-gate",
+        "review-decision-autonomy"
+      ],
+      "framework-maintainer": [
+        "shared-protocol-duplication-policy",
+        "output-quality-principles"
+      ],
+      "researcher": [
+        "output-quality-principles"
+      ],
+      "knowledge-worker": [
+        "output-quality-principles"
+      ],
+      "code-reviewer": [
+        "review-decision-autonomy",
+        "end-to-start-debugger-trace",
+        "behavioral-delta-matrix",
+        "fix-layer-accountability",
+        "graph-assisted-investigation",
+        "cross-stack-impact-trace",
+        "test-failure-fault-adjudication",
+        "domain-entity-change-gate"
+      ],
+      "spec-compliance-reviewer": [
+        "review-decision-autonomy",
+        "behavioral-delta-matrix",
+        "fix-layer-accountability",
+        "graph-assisted-investigation"
+      ],
+      "security-auditor": [
+        "review-decision-autonomy"
+      ],
+      "planner": [
+        "behavioral-delta-matrix",
+        "fix-layer-accountability",
+        "graph-assisted-investigation"
+      ],
+      "architect": [
+        "cross-service-check",
+        "measured-capacity-engineering",
+        "fix-layer-accountability",
+        "graph-assisted-investigation"
+      ],
+      "solution-architect": [
+        "fix-layer-accountability"
+      ]
+    }
+  }
 }

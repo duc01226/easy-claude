@@ -960,6 +960,44 @@ const tests = [
         })
     },
     {
+        name: '[protocol-delivery] a converted agent receives the protocols its own guide block declares, gated by their triggers (agent guides, BR-PDL-08)',
+        fn: () => withFixture(fx => {
+            // Given an agent that preloads no skill, carries one protocol as a guide line (UI-gated) and one
+            // as a full body, and a trigger table where only the guided tag is gated
+            fx.projection([
+                { tag: 'design-gated', group: 'design' },
+                { tag: 'design-plain', group: 'design' },
+                { tag: 'design-body', group: 'design' }
+            ]);
+            fx.write('.claude/skills/shared/protocol-groups.json', JSON.stringify({
+                version: 1,
+                deliveryTriggers: { ui: { pattern: '\\bscreen\\b', pathPattern: '\\.tsx\\b', skills: [] } },
+                groups: { design: { tags: {
+                    'design-gated': { summary: 's', when: 'w', trigger: 'ui' },
+                    'design-plain': { summary: 's', when: 'w' },
+                    'design-body': { summary: 's', when: 'w' }
+                } } },
+                inlineSkills: []
+            }));
+            fx.write('.claude/agents/fx-guided.md', [
+                '---', 'name: fx-guided', 'description: converted agent', '---', '',
+                guideBlock(['design-gated', 'design-plain', 'design-body']), '',
+                '<!-- SYNC:design-body -->', 'body kept inline', '<!-- /SYNC:design-body -->', ''
+            ].join('\n'));
+            const start = agentStart('fx-guided');
+            // When it starts with no UI signal in the session
+            const quiet = plan(fx, start, 'design', { triggerContext: () => ({ prompts: '', transcript: '' }) });
+            // Then the ungated guided protocol arrives, the gated one waits for its trigger, the inline body is not repeated
+            assertTags(quiet, ['design-plain'], 'no UI signal');
+            // When the session touched a UI file, or its context cannot be read
+            assertTags(plan(fx, start, 'design', { triggerContext: () => ({ prompts: '', transcript: '{"file_path":"src/List.tsx"}' }) }), ['design-gated', 'design-plain'], 'UI path in transcript');
+            assertTags(plan(fx, start, 'design', { triggerContext: () => ({ unreadable: true }) }), ['design-gated', 'design-plain'], 'unreadable context fails open');
+            // And an agent without a guide block and without skills still receives nothing from the groups
+            fx.write('.claude/agents/fx-bare.md', '---\nname: fx-bare\ndescription: plain\n---\n\nNo guides.\n');
+            assertTags(plan(fx, agentStart('fx-bare'), 'design', { triggerContext: () => ({ unreadable: true }) }), [], 'bare agent');
+        })
+    },
+    {
         name: '[protocol-delivery] load cost: requiring the lib loads no project module (BR-PDL-09)',
         fn: () => {
             // Given a fresh module registry

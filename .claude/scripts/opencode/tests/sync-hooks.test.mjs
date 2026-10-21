@@ -1019,6 +1019,35 @@ test("[TC-PDL-068] generated bridge checks a handler's Read condition before it 
   }
 });
 
+// Invariant: a slower earlier hook still merges first. The configured order, not finish order, decides
+// which hook's updatedInput wins (the later one) and the order of the added context.
+test("generated bridge merges a slow earlier hook before a fast later one (configured order, not finish order)", async () => {
+  const hook = (label, ms) => [
+    "process.stdin.resume();",
+    "process.stdin.on('end', () => setTimeout(() => {",
+    `  process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'PreToolUse', updatedInput: { command: 'echo ${label}' }, additionalContext: '${label}' } }));`,
+    `}, ${ms}));`,
+  ].join("\n");
+  const root = await createProject({ hooks: { PreToolUse: [{ matcher: "Bash", hooks: [
+    { type: "command", command: hookCommand("slow-first.cjs") },
+    { type: "command", command: hookCommand("fast-second.cjs") },
+  ] }] } });
+  try {
+    await fs.writeFile(path.join(root, ".claude", "hooks", "slow-first.cjs"), `${hook("FIRST", 700)}\n`, "utf8");
+    await fs.writeFile(path.join(root, ".claude", "hooks", "fast-second.cjs"), `${hook("SECOND", 20)}\n`, "utf8");
+    const { pluginPath } = await materializeOpencodeHooks({ rootDir: root });
+    const hooks = await (await loadBridge(pluginPath))({ directory: root });
+    const output = { args: { command: "ls" } };
+    await hooks["tool.execute.before"]({ tool: "bash", sessionID: "order", callID: "c1", args: {} }, output);
+    assert.equal(output.args.command, "echo SECOND", "the later configured hook's updatedInput wins");
+    const system = { system: [] };
+    await hooks["experimental.chat.system.transform"]({ sessionID: "order" }, system);
+    assert.deepEqual(system.system, ["FIRST", "SECOND"], "contexts merge in configured order");
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
 test("generated plugin imports only node built-ins (portable)", async () => {
   const root = await createProject();
   try {
@@ -1028,6 +1057,37 @@ test("generated plugin imports only node built-ins (portable)", async () => {
     for (const specifier of imports) {
       assert.ok(specifier.startsWith("node:"), `unexpected non-builtin import: ${specifier}`);
     }
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
+// Invariant: the bridge starts an event's matching hooks together (as Claude Code and Codex do), so their
+// wall time is the slowest hook, not the sum, while the merged outcome keeps the configured hook order.
+test("generated bridge runs an event's matching hooks concurrently and merges their outcomes in configured order", async () => {
+  const slow = (label, ms) => [
+    "process.stdin.resume();",
+    "process.stdin.on('end', () => setTimeout(() => {",
+    `  process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'PreToolUse', additionalContext: '${label}' } }));`,
+    `}, ${ms}));`,
+  ].join("\n");
+  const root = await createProject({ hooks: { PreToolUse: [{ matcher: "Bash", hooks: [
+    { type: "command", command: hookCommand("slow-first.cjs") },
+    { type: "command", command: hookCommand("slow-second.cjs") },
+  ] }] } });
+  try {
+    await fs.writeFile(path.join(root, ".claude", "hooks", "slow-first.cjs"), `${slow("FIRST", 900)}\n`, "utf8");
+    await fs.writeFile(path.join(root, ".claude", "hooks", "slow-second.cjs"), `${slow("SECOND", 900)}\n`, "utf8");
+    const { pluginPath } = await materializeOpencodeHooks({ rootDir: root });
+    const hooks = await (await loadBridge(pluginPath))({ directory: root });
+    const call = { tool: "bash", sessionID: "parallel", callID: "c1", args: {} };
+    const started = Date.now();
+    await hooks["tool.execute.before"](call, { args: { command: "ls" } });
+    const elapsed = Date.now() - started;
+    assert.ok(elapsed < 1700, `two 900 ms hooks took ${elapsed} ms: they ran one after another`);
+    const system = { system: [] };
+    await hooks["experimental.chat.system.transform"]({ sessionID: "parallel" }, system);
+    assert.deepEqual(system.system, ["FIRST", "SECOND"], "outcomes merge in configured order");
   } finally {
     await fs.rm(root, { recursive: true, force: true });
   }

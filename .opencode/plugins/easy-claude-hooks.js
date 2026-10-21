@@ -605,7 +605,7 @@ function matcherMatches(matcher, names) {
 }
 
 // Claude's handler `if` condition, checked in-process so a hook the condition excludes is never
-// spawned (the bridge runs hooks one after another, so every avoided spawn saves a Node start).
+// spawned (each avoided spawn saves a Node start, even with matching hooks running concurrently).
 // Supported form: `Read(<glob>)` — true when the tool is Read and `tool_input.file_path`, with `\`
 // turned into `/`, matches the glob as given or relative to the project root. In the glob `**/`
 // matches any directory prefix (including none), `**` anything, `*` and `?` stay within one path
@@ -737,11 +737,31 @@ function runHook(root, hookPath, payload) {
   });
 }
 
+// Matching hooks of one event start together, at most this many at once, like Claude Code (which caps
+// concurrent hooks) and Codex (which starts every matching hook concurrently). Every matching hook
+// always ran to completion before too, so only the wall time changes: outcomes merge in configured order.
+const HOOK_CONCURRENCY = 8;
+
+/** Run `tasks` (functions returning promises) with at most `limit` in flight; results keep task order. */
+async function runBounded(tasks, limit) {
+  const results = new Array(tasks.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < tasks.length) {
+      const index = next++;
+      results[index] = await tasks[index]();
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, tasks.length) }, worker));
+  return results;
+}
+
 // Run every configured hook for a Claude event whose matcher accepts `names`.
 // Returns the aggregate block/rewrite/context outcome. Never throws.
 async function runEventHooks(root, eventName, { matcher, payload, hookPath } = {}) {
   const groups = Array.isArray(HOOKS[eventName]) ? HOOKS[eventName] : [];
   const outcome = { code: 0, stdout: "", stderr: "", contexts: [], updatedInput: null, blocked: false, denyReason: null, ran: 0 };
+  const selected = [];
   for (const group of groups) {
     if (!group || typeof group !== "object") continue;
     if (matcher && !matcherMatches(group.matcher, matcher)) continue;
@@ -749,40 +769,43 @@ async function runEventHooks(root, eventName, { matcher, payload, hookPath } = {
       if (!hook || hook.type !== "command" || typeof hook.command !== "string") continue;
       if (hookPath && hook.command.replaceAll("\\", "/") !== hookPath) continue;
       if (!hookConditionHolds(hook.if, root, payload)) continue;
-      outcome.ran += 1;
-      const result = await runHook(root, path.resolve(root, hook.command), payload);
-      if (result.stdout) outcome.stdout += result.stdout;
-      if (result.stderr) outcome.stderr += result.stderr;
-      if (result.spawnError || result.timedOut) continue;
-      if (result.code === 2) {
-        outcome.code = 2;
-        outcome.blocked = true;
-        if (result.stderr.trim()) outcome.denyReason = result.stderr.trim();
+      selected.push(hook);
+    }
+  }
+  const results = await runBounded(selected.map((hook) => () => runHook(root, path.resolve(root, hook.command), payload)), HOOK_CONCURRENCY);
+  for (const result of results) {
+    outcome.ran += 1;
+    if (result.stdout) outcome.stdout += result.stdout;
+    if (result.stderr) outcome.stderr += result.stderr;
+    if (result.spawnError || result.timedOut) continue;
+    if (result.code === 2) {
+      outcome.code = 2;
+      outcome.blocked = true;
+      if (result.stderr.trim()) outcome.denyReason = result.stderr.trim();
+    }
+    const parsed = parseJsonOutput(result.stdout);
+    const isHookObject = parsed !== null && typeof parsed === "object" && !Array.isArray(parsed);
+    if (!isHookObject) {
+      // Claude Code adds the plain-text stdout of an exit-0 UserPromptSubmit hook
+      // to the prompt context; only JSON objects are hook-control output.
+      if (eventName === "UserPromptSubmit" && result.code === 0) {
+        const text = typeof result.stdout === "string" ? result.stdout.trim() : "";
+        if (text) outcome.contexts.push(text);
       }
-      const parsed = parseJsonOutput(result.stdout);
-      const isHookObject = parsed !== null && typeof parsed === "object" && !Array.isArray(parsed);
-      if (!isHookObject) {
-        // Claude Code adds the plain-text stdout of an exit-0 UserPromptSubmit hook
-        // to the prompt context; only JSON objects are hook-control output.
-        if (eventName === "UserPromptSubmit" && result.code === 0) {
-          const text = typeof result.stdout === "string" ? result.stdout.trim() : "";
-          if (text) outcome.contexts.push(text);
-        }
-        continue;
-      }
-      const specific = parsed.hookSpecificOutput;
-      if (!specific || typeof specific !== "object") continue;
-      if (specific.permissionDecision === "deny") {
-        outcome.code = 2;
-        outcome.blocked = true;
-        outcome.denyReason = specific.permissionDecisionReason || outcome.denyReason || result.stderr.trim() || "Denied by .claude hook";
-      }
-      if (specific.updatedInput && typeof specific.updatedInput === "object") {
-        outcome.updatedInput = { ...(outcome.updatedInput || {}), ...specific.updatedInput };
-      }
-      if (typeof specific.additionalContext === "string" && specific.additionalContext.trim()) {
-        outcome.contexts.push(specific.additionalContext);
-      }
+      continue;
+    }
+    const specific = parsed.hookSpecificOutput;
+    if (!specific || typeof specific !== "object") continue;
+    if (specific.permissionDecision === "deny") {
+      outcome.code = 2;
+      outcome.blocked = true;
+      outcome.denyReason = specific.permissionDecisionReason || outcome.denyReason || result.stderr.trim() || "Denied by .claude hook";
+    }
+    if (specific.updatedInput && typeof specific.updatedInput === "object") {
+      outcome.updatedInput = { ...(outcome.updatedInput || {}), ...specific.updatedInput };
+    }
+    if (typeof specific.additionalContext === "string" && specific.additionalContext.trim()) {
+      outcome.contexts.push(specific.additionalContext);
     }
   }
   return outcome;

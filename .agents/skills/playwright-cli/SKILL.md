@@ -31,9 +31,7 @@ first; never infer startup, auth, seed data, or secrets.
 - [Targeting elements](#targeting-elements)
 - [Browser Sessions](#browser-sessions)
 - [Installation](#installation)
-- [Example: Form submission](#example-form-submission)
-- [Example: Multi-tab workflow](#example-multi-tab-workflow)
-- [Example: Debugging with DevTools](#example-debugging-with-devtools)
+- [Worked examples](#worked-examples)
 - [Example: Interactive session](#example-interactive-session)
 - [Specific tasks](#specific-tasks)
 - [Closing Reminders](#closing-reminders)
@@ -426,49 +424,9 @@ When local version is available, use `npx playwright cli` in all commands. Other
 npm install -g @playwright/cli@latest
 ```
 
-## Example: Form submission
+## Worked examples
 
-```bash
-playwright-cli open https://example.com/form
-playwright-cli snapshot
-
-playwright-cli fill e1 "user@example.com"
-playwright-cli fill e2 "password123"
-playwright-cli click e3
-playwright-cli snapshot
-playwright-cli close
-```
-
-## Example: Multi-tab workflow
-
-```bash
-playwright-cli open https://example.com
-playwright-cli tab-new https://example.com/other
-playwright-cli tab-list
-playwright-cli tab-select 0
-playwright-cli snapshot
-playwright-cli close
-```
-
-## Example: Debugging with DevTools
-
-```bash
-playwright-cli open https://example.com
-playwright-cli click e4
-playwright-cli fill e7 "test"
-playwright-cli console
-playwright-cli requests
-playwright-cli close
-```
-
-```bash
-playwright-cli open https://example.com
-playwright-cli tracing-start
-playwright-cli click e4
-playwright-cli fill e7 "test"
-playwright-cli tracing-stop
-playwright-cli close
-```
+Read [references/worked-examples.md](references/worked-examples.md) when you want a complete command sequence to adapt for a form submission, a multi-tab flow, or debugging with console, requests and tracing; it holds those three examples.
 
 ## Example: Interactive session
 

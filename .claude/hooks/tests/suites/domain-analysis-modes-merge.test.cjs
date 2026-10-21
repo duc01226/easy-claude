@@ -335,8 +335,9 @@ const tests = [
             const projection = read(SKILLS, 'shared', 'protocols', 'domain-entity-change-gate.md');
             assert.equal(normalizeEol(projection).trim(), normalizeEol(canonicalGate).trim(), 'projection equals canonical');
             for (const rel of ['.claude/agents/backend-developer.md', '.claude/agents/code-reviewer.md', '.claude/agents/planner.md', '.claude/skills/changes-review/SKILL.md']) {
-                assert.ok(carriesCanonicalProtocol(read(REPO_ROOT, ...rel.split('/')), 'domain-entity-change-gate', projection, canonicalGate, rel.startsWith('.claude/skills/')),
-                    `${rel} carries the canonical gate (agents retain full bodies)`);
+                // An agent may carry this trigger-gated gate as a guide line (agent guides; delivery serves the text).
+                assert.ok(carriesCanonicalProtocol(read(REPO_ROOT, ...rel.split('/')), 'domain-entity-change-gate', projection, canonicalGate, true),
+                    `${rel} carries the canonical gate as a body or a published guide line`);
             }
             const tag = 'domain-entity-change-gate';
             const guide = `<!-- PROTOCOL-GUIDES:START -->\n${guideCarrier.guideEntries(read(SKILLS, 'changes-review', 'SKILL.md')).get(tag)}\n<!-- PROTOCOL-GUIDES:END -->`;

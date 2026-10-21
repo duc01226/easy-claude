@@ -1,0 +1,26 @@
+# Project config — §2i–2j testing, E2E and experience verification
+
+> Read when the task configures `testing`, performance-test pointers, `e2eTesting` (including `execution`), `integrationTestVerify` or `experienceVerification`.
+
+### 2i–2j. Testing & E2E
+
+- `testing { frameworks[], filePatterns{}, commands{}, coverageTool, guideDoc, integrationRules[] }` is optional; configure only test lanes, tools, and commands found in manifests/scripts/configuration.
+- Performance testing uses optional `framework.performanceTestDoc` and `testing.filePatterns.performance` for the existing project guide and native test patterns. Only evidenced/requested performance capability selects `performance-test-reference.md`; keep workload/SLO, resource, command and repeat preferences in that guide and numeric budgets in its linked executable owner. Do not infer a runner or capacity from these pointers.
+- `e2eTesting { framework, language, configFile, testsPath, pageObjectsPath?, fixturesPath, runCommands{}, tcCodeFormat?, entryPoints[], execution{ surfaceIds[], auth{}, data{}, browser{}, evidence{}, convergence{} } }` is optional; declare it only when an E2E/browser capability exists or is requested.
+- Set `pageObjectsPath` only when source shows a real POM; it is a search hint, never proof that the project uses one. `tcCodeFormat` records an evidence-backed project convention only; when `specArtifacts` is declared, its identifier and carrier mappings govern native case identity.
+- `e2eTesting.execution` is optional and E2E-specific. Link `surfaceIds[]` to `experienceVerification.surfaces[].id`; keep dependency/start/readiness/log/teardown commands in that surface's `localRun` object so there is one lifecycle owner. `auth` and `localRun.credentialsRef` store references only (`credentialsRef`/`storageStateRef`), never secret values; registration/seed commands must use environment, fixture, or secret-manager references for credentials. `data` records a verified seed/reference strategy; `browser` records the project runner/engine, visibility, optional human-QC action delay, and the shared wait-until policy; `evidence` records a project-relative root, capture kinds, and non-empty redaction reference when sensitive captures are enabled; `convergence` bounds the verify/fix loop. `--describe` is authoritative for exact nested field names and semantics.
+- `integrationTestVerify { guidance, referenceDocs[], runScript, startupScript, quickRunCommand, systemCheckCommand, testProjectPattern, testProjects[] }` is optional and applies only where a project has a managed integration-test verifier.
+- If an execution profile is explicitly declared but lacks a field needed for the requested verification, preserve the known facts and report the exact blocker; do not invent the runner, startup, auth, seed, or evidence behavior.
+
+### 2j. Experience verification
+
+- `experienceVerification` is optional and project-neutral. Configure it when an observable surface is in scope and there is evidence for what can be exercised and inspected: web, mobile, desktop, terminal, API, library, background service, generated output, or another kind.
+- Each `surfaces[]` row records the project runner/tool, entry points, optional full/focused commands, impact triggers, evidence root, baseline root, and relevant states. Configuration is a routing contract, not proof that the environment can run it.
+- Keep `acceptancePolicy` at `manual-acceptance-required` unless the project documents a named owner process. First-run evidence is candidate evidence; never promote a generated screenshot or current output automatically.
+- If no applicable surface exists, omit the section or use its schema-supported disabled form only when a deliberate declaration is useful. If a relevant surface cannot run or be inspected, `/experience-review` records `ENVIRONMENT-BLOCKED`; it is not N/A or PASS.
+
+#### E2E execution discovery order
+
+When `e2eTesting.execution` is absent or partial, preserve every verified fact and discover missing facts in this order: (1) the configured project-config file and the linked `experienceVerification.surfaces[].localRun`; (2) the E2E reference and existing runner config; (3) package/task scripts, compose/Make targets, CI workflows, fixtures/seed scripts, and auth setup docs; (4) a bounded repository scan for the configured framework's entry points. Record each discovered value with `file:line` evidence. A missing startup, readiness, auth, seed, browser, or evidence capability is `ENVIRONMENT-BLOCKED` for execution, not a guessed command or a silent pass. This profile does not turn the framework repository's own E2E N/A state into an adopter default.
+
+For web human-QC, use the project's configured visible browser path when the evidence supports it. Use the configured runner's native waits or an evidenced project helper for readiness/actionability and expected outcomes. Apply post-action pacing only when `e2eTesting.execution.browser.actionDelayMs` documents a project need; it never replaces readiness or a real settle signal. Capture and read configured screenshots, console/request logs, traces, or video, redact sensitive data, and keep accepted baselines human-owned.

@@ -70,45 +70,7 @@ disable-model-invocation: false
 
 ## Usage
 
-### Add a lesson
-
-```
-$learn always use the validation framework fluent API instead of throwing ValidationException
-$learn never call external APIs in command handlers - use Entity Event Handlers
-$learn prefer async/await over .then() chains
-```
-
-### Add a skill-specific lesson (routes to a `$project-skill-protocol` overlay)
-
-```
-$learn when reviewing changes, always check that migration scripts are idempotent
-$learn $plan should always include a rollback step
-```
-
-### Add a project-wide rule or context note (routes to the root `CLAUDE.md` when it qualifies)
-
-```
-$learn in this repo every new module needs an entry in the module registry before any other change
-$learn the term "tenant" always means the billing account here, never a user group
-```
-
-### List lessons
-
-```
-$learn list
-```
-
-### Remove a lesson
-
-```
-$learn remove 3
-```
-
-### Clear all lessons
-
-```
-$learn clear
-```
+Read [references/learn-usage-examples.md](references/learn-usage-examples.md) when the user asks how to use `$learn` or you need an invocation example; it holds example invocations for adding a lesson, a skill-specific lesson, a project-wide rule or context note, and for `list`, `remove <N>` and `clear` (their behaviour is defined under [Behavior](#behavior)).
 
 ## Reference Doc Catalog (READ before routing)
 
@@ -188,24 +150,7 @@ A project overlay (owned by `$project-skill-protocol`) is the carrier that fires
 | T3 | The lesson names a skill, or adds a rule/step/check to what a skill does | "`$plan` should always list rollback steps" |
 | T4 | The lesson is about a kind of task one skill mainly owns, even without naming it | "when writing integration tests, always seed via commands" → `integration-test` |
 
-**Resolve the owning skill (T3/T4):** match the lesson's task kind against skill `Use when …` descriptions in the skills catalog; cite the matching description. One clear owner → `exact` target. A family sharing a name pattern (e.g. every `*-review` skill) → `glob` target. Two or more owners that share no name pattern → one `exact` overlay per owner, listed together in the Carrier Choice question. No owner, or the rule applies across unrelated tasks → the lesson is NOT skill-specific; use the generic Routing Table. — why: a guessed owner puts the rule where it never fires.
-
-When any trigger holds:
-
-1. Identify the target skill (or glob family) by its exact name, with the evidence that matched it.
-2. Treat the lesson as a candidate extension of that skill's project protocol.
-3. **Compare carriers before recommending (BLOCKING).** The overlay is a candidate, not the default. Check it against the same carriers the generic route uses: the [Reference Doc Catalog](#reference-doc-catalog-read-before-routing) and [Routing Table](#routing-table) (resolved under the reference-docs root, default `docs/project-reference`), and `docs/project-config.json` (FACT vs RULE). Recommend the reference doc when its Read Trigger already fires for this kind of task and the rule is not about the skill's own steps (a T4 lesson about integration tests usually belongs in `integration-test-reference.md`); recommend the overlay when the rule changes what the skill itself does. — why: a project-reference doc is read by every agent doing that kind of work, while an overlay reaches only runs of that one skill.
-4. **Carrier Choice question (BLOCKING).** `ask user question tool` with the recommended option FIRST, labelled `(Recommended)`, each option naming its concrete target path:
-    - *Skill overlay for `<skill>` via `$project-skill-protocol`* — an `exact` overlay applies on every run of that skill; a `glob` overlay applies unless an `exact` overlay for the same skill exists, because the most specific tier wins
-    - *Overlay + reference doc* — only when the lesson also carries a project-wide rule beyond the skill; name the doc path
-    - *Reference doc only* — name the path, e.g. `integration-test-reference.md` or `lessons.md` under the reference-docs root
-    - *Project config field* — when the lesson is a machine-readable FACT (see FACT vs RULE)
-    - *Root `CLAUDE.md` project note + `sync-codex`* — only when the lesson also passes the Project Root Context Route candidate test (C1–C5) despite being skill-related; each question holds 2–4 options, so drop the weakest
-
-    State a one-line reason for the recommendation. When the Prevention Depth Assessment applies, ask it as a SECOND question in the same `ask user question tool` call (each question holds 2–4 options), so the user answers once. — why: the user owns where a persistent rule lives; a silent carrier choice is the main way lessons land where no future run reads them.
-5. **MUST ATTENTION** On an overlay choice, call `$project-skill-protocol add ...` for a new overlay or `$project-skill-protocol update <exact-name> ...` only after exact-name resolution identifies an existing overlay (run its `list` first when unsure).
-6. **MUST ATTENTION** Let `$project-skill-protocol` perform its own mode resolution, target/scope resolution, additive-only screen, target-collision and contradiction handling, proposal/user-confirmation gate and two-write contract. Do not write overlay bodies or index rows directly from Learn.
-7. On a *Reference doc only* or *Project config field* pick, continue with Routing Decision Process steps 9–10 (append to the doc, or route the config value through `$project-config`). On *Overlay + reference doc*, do both. Do not save the candidate only to `lessons.md` or another generic prose carrier unless the user picked that option.
+Read [references/learn-skill-specific-route.md](references/learn-skill-specific-route.md) when any trigger T1–T4 holds, before routing; it holds owner resolution for T3/T4 (exact, glob, one overlay per owner, or not skill-specific) and the seven-step procedure: identify the target with evidence, treat the lesson as a candidate, compare carriers (BLOCKING), ask the Carrier Choice question with the recommended option first (BLOCKING), delegate an overlay pick to `$project-skill-protocol add ...` or `update <exact-name> ...`, leave that skill's own gates to it, and continue doc or config picks through Routing Decision Process steps 9–10.
 
 If no trigger holds, continue with the generic Routing Table — the carrier confirmation there still offers the options with a recommendation.
 
@@ -451,22 +396,7 @@ Run these 2 tasks when adding or updating a persistent lesson or protocol. `list
 2. If current + new lesson > 20000 chars → trigger **Budget Trim** before saving
 3. If under budget → save normally
 
-**Budget Trim process:**
-
-1. Display all current lessons with char count each
-2. Evaluate each lesson on two axes:
-    - **Universality** — How often does this apply? (every session vs rare edge case)
-    - **Recurrence risk** — How likely is the AI to repeat this mistake without the reminder?
-3. Score each: **HIGH** (keep as-is), **MEDIUM** (candidate to condense), **LOW** (candidate to remove)
-4. Present to user with `ask user question tool`: "Budget exceeded. Recommend removing/condensing these LOW/MEDIUM items: [list]. Approve?"
-5. On approval: condense MEDIUM items (shorten wording), remove LOW items, then save new lesson
-6. On rejection: ask user which to remove/condense
-
-**Condensing rules:**
-
-- Remove examples, keep the rule: `"Patterns like X break Y syntax"` → just state the rule
-- Merge related lessons into one if they share the same root cause
-- Target: each lesson ≤ 250 chars (one concise sentence + bold title)
+Read [references/learn-budget-trim.md](references/learn-budget-trim.md) when current + new lesson exceeds 20000 characters, or on `$learn trim`; it holds the Budget Trim process (score each lesson on universality and recurrence, propose removals/condensing via `ask user question tool`, act only on approval) and the condensing rules (rule without examples, merge shared root causes, ≤ 250 characters each).
 
 **Does NOT apply to:** Other routing targets (`backend-patterns-reference.md`, `code-review-rules.md`, etc.) — those files have their own size and are injected contextually, not on every prompt.
 

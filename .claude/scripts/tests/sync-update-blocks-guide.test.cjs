@@ -36,6 +36,8 @@ const SCRIPTS_DIR = path.resolve(__dirname, '..');
 const TOOL = path.join(SCRIPTS_DIR, 'sync-update-blocks.py');
 const SYNC_BLOCKS = path.join(SCRIPTS_DIR, 'sync_blocks.py');
 const LINE_ENDINGS = path.join(SCRIPTS_DIR, 'line_endings.py');
+// The agent-guide policy asks the matrix which tags form the code tier (never converted).
+const MATRIX = path.join(SCRIPTS_DIR, 'agent_protocol_matrix.py');
 const PROJECTION = path.join(SCRIPTS_DIR, 'build-protocol-projection.cjs');
 const carrier = require(path.join(SCRIPTS_DIR, 'lib', 'protocol-guide-carrier.cjs'));
 
@@ -152,7 +154,7 @@ function withProject(files, fn, { bodies = BODIES } = {}) {
         write(root, `.claude/skills/${INLINE_SKILL}/SKILL.md`, `---\nname: ${INLINE_SKILL}\n---\n`);
         for (const [rel, text] of Object.entries(files)) write(root, rel, text);
         fs.mkdirSync(path.join(root, '.claude', 'agents'), { recursive: true });
-        for (const src of [TOOL, SYNC_BLOCKS, LINE_ENDINGS]) {
+        for (const src of [TOOL, SYNC_BLOCKS, LINE_ENDINGS, MATRIX]) {
             write(root, `.claude/scripts/${path.basename(src)}`, fs.readFileSync(src, 'utf8'));
         }
         const env = childEnv(root, home);
@@ -635,3 +637,116 @@ test('retired-pointer twins: the Python and JavaScript recognizers agree', () =>
         fs.rmSync(home, { recursive: true, force: true });
     }
 });
+
+// ─── Agent-guide mode (agentGuides in protocol-groups.json) ─────────────────
+
+/** Fixture groups with `beta` and `gamma` trigger-gated and an agentGuides policy. */
+function agentGuideGroups({ enabled = true, keepInline = {} } = {}) {
+    const data = groups();
+    data.groups['evidence-trace'].tags.beta.trigger = 'debug-operation';
+    data.groups['workflow-task'].tags.gamma.trigger = 'protocol-work';
+    data.agentGuides = { enabled, keepInline };
+    return `${JSON.stringify(data, null, 2)}\n`;
+}
+
+// Invariant: an agent sheds only the protocols whose delivery is conditional (trigger-gated), keeps every
+// reminder digest, keeps the protocols its role owns, and a second run changes nothing.
+test('agent-guide mode converts only trigger-gated bodies an agent does not keep inline; reminders stay', () =>
+    withProject({
+        '.claude/skills/shared/protocol-groups.json': agentGuideGroups({ keepInline: { debugger: ['beta'] } }),
+        '.claude/agents/reviewer.md': carrierText('reviewer', ['alpha', 'beta', 'gamma']),
+        '.claude/agents/debugger.md': carrierText('debugger', ['alpha', 'beta']),
+        '.claude/skills/conv/SKILL.md': carrierText('conv', ['alpha', 'beta'])
+    }, ({ root, run, read }) => {
+        const before = lf(read('.claude/agents/reviewer.md'));
+        const skillBefore = read('.claude/skills/conv/SKILL.md');
+        const result = run('--mode=agent-guide');
+        assert.equal(result.code, 0, result.stderr + result.stdout);
+        const reviewer = lf(read('.claude/agents/reviewer.md'));
+        // Then the gated bodies became guide lines and the ungated body stays in full
+        assert.equal(markedBody(reviewer, 'SYNC:beta'), null);
+        assert.equal(markedBody(reviewer, 'SYNC:gamma'), null);
+        assert.ok(markedBody(reviewer, 'SYNC:alpha'), 'an ungated protocol stays a full body');
+        for (const tag of ['beta', 'gamma']) {
+            assert.ok(reviewer.includes(`${guideLineFor(root, tag)}\n`), `${tag} guide line missing`);
+            assert.equal(markedBody(reviewer, `SYNC:${tag}:reminder`), markedBody(before, `SYNC:${tag}:reminder`), `${tag} reminder changed`);
+        }
+        // And the agent that owns the domain keeps that protocol in full
+        const debuggerText = lf(read('.claude/agents/debugger.md'));
+        assert.ok(markedBody(debuggerText, 'SYNC:beta'), 'keepInline body was converted');
+        assert.equal(carrier.guideTags(debuggerText).length, 0);
+        // And skills are never written by this mode
+        assert.ok(read('.claude/skills/conv/SKILL.md').equals(skillBefore), 'agent-guide mode wrote a skill');
+        // And a second run is a byte no-op
+        const converted = read('.claude/agents/reviewer.md');
+        const again = run('--mode=agent-guide');
+        assert.equal(again.code, 0, again.stderr);
+        assert.ok(read('.claude/agents/reviewer.md').equals(converted), 'second run changed the agent');
+        assert.match(again.stdout, /Total agents changed: 0/);
+    }));
+
+test('agent-guide mode leaves full-body agents alone when agentGuides is disabled or absent, and refuses tags', () => {
+    for (const groupsText of [agentGuideGroups({ enabled: false }), `${JSON.stringify(groups(), null, 2)}\n`]) {
+        withProject({
+            '.claude/skills/shared/protocol-groups.json': groupsText,
+            '.claude/agents/reviewer.md': carrierText('reviewer', ['alpha', 'beta'])
+        }, ({ run, read }) => {
+            const original = read('.claude/agents/reviewer.md');
+            const result = run('--mode=agent-guide');
+            assert.equal(result.code, 0, result.stderr);
+            assert.ok(read('.claude/agents/reviewer.md').equals(original), 'a disabled policy converted an agent');
+            assert.match(result.stdout, /policy disabled/);
+            assert.notEqual(run('--mode=agent-guide', '--tags', 'beta').code, 0, 'agent-guide mode accepted explicit tags');
+        });
+    }
+});
+
+// Invariant: the policy is a real off switch. Turning it off (or keeping a tag inline after conversion)
+// puts every full body back, so no agent stays on a guide line the policy no longer asks for.
+test('agent-guide mode restores the full bodies when the policy is disabled or a tag joins keepInline', () =>
+    withProject({
+        '.claude/skills/shared/protocol-groups.json': agentGuideGroups(),
+        '.claude/agents/reviewer.md': carrierText('reviewer', ['alpha', 'beta', 'gamma'])
+    }, ({ root, run, read }) => {
+        const groupsPath = path.join(root, '.claude', 'skills', 'shared', 'protocol-groups.json');
+        const original = lf(read('.claude/agents/reviewer.md'));
+        assert.equal(run('--mode=agent-guide').code, 0);
+        assert.deepEqual(carrier.guideTags(lf(read('.claude/agents/reviewer.md'))).sort(), ['beta', 'gamma']);
+        // When gamma joins keepInline, only gamma comes back as a body
+        fs.writeFileSync(groupsPath, agentGuideGroups({ keepInline: { reviewer: ['gamma'] } }));
+        const partial = run('--mode=agent-guide');
+        assert.equal(partial.code, 0, partial.stderr + partial.stdout);
+        let text = lf(read('.claude/agents/reviewer.md'));
+        assert.equal(markedBody(text, 'SYNC:gamma'), markedBody(original, 'SYNC:gamma'), 'gamma body not restored verbatim');
+        assert.deepEqual(carrier.guideTags(text), ['beta']);
+        // When the policy is disabled, every body is back, no guide block remains, reminders are untouched
+        fs.writeFileSync(groupsPath, agentGuideGroups({ enabled: false }));
+        const off = run('--mode=agent-guide');
+        assert.equal(off.code, 0, off.stderr + off.stdout);
+        text = lf(read('.claude/agents/reviewer.md'));
+        for (const tag of ['alpha', 'beta', 'gamma']) {
+            assert.equal(markedBody(text, `SYNC:${tag}`), markedBody(original, `SYNC:${tag}`), `${tag} body not restored verbatim`);
+            assert.equal(markedBody(text, `SYNC:${tag}:reminder`), markedBody(original, `SYNC:${tag}:reminder`), `${tag} reminder changed`);
+        }
+        assert.ok(!text.includes('PROTOCOL-GUIDES'), 'an empty guide block was left behind');
+        const restored = read('.claude/agents/reviewer.md');
+        assert.equal(run('--mode=agent-guide').code, 0);
+        assert.ok(read('.claude/agents/reviewer.md').equals(restored), 'a second disabled run changed the agent');
+    }));
+
+// Invariant: a code-tier rule (agent_protocol_matrix.CODE_TIER_TAGS) stays a body in every agent even when
+// the group data gives it a trigger, because every code agent must carry it.
+test('agent-guide policy never converts a code-tier tag', () =>
+    withProject({ '.claude/skills/shared/protocol-groups.json': agentGuideGroups() }, ({ root, env }) => {
+        const program = [
+            'import sys',
+            `sys.path.insert(0, ${JSON.stringify(path.join(root, '.claude', 'scripts'))})`,
+            'from sync_blocks import agent_guide_converts',
+            'from agent_protocol_matrix import CODE_TIER_TAGS',
+            'policy = {"enabled": True, "keepInline": {}, "triggerTags": set(CODE_TIER_TAGS) | {"beta"}}',
+            'print(sorted(t for t in CODE_TIER_TAGS if agent_guide_converts(policy, "reviewer", t)), agent_guide_converts(policy, "reviewer", "beta"))'
+        ].join('\n');
+        const result = py(['-c', program], { cwd: root, env });
+        assert.equal(result.code, 0, result.stderr);
+        assert.equal(result.stdout.trim(), '[] True');
+    }));

@@ -14,6 +14,8 @@
 // and need the host's existing authentication; results are stochastic, so use several runs and treat
 // rates, not single answers, as evidence. Set SKILL_EVAL_HOST_BIN to the host executable when it is not
 // on PATH (on Windows, point it at claude.exe / codex.exe).
+// SKILL_EVAL_MODEL selects the model (`--model` on Claude, `-m` on Codex); compare a frontier and a smaller
+// or open-weight model to see whether activation holds across them.
 // PORTABILITY CONTRACT: node: built-ins only.
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -97,14 +99,15 @@ export function readCases(file) {
     return cases;
 }
 
-function hostArgv(host, prompt) {
-    if (host === 'claude') return ['-p', prompt, '--output-format', 'stream-json', '--verbose', '--permission-mode', 'plan', '--max-turns', '3'];
-    return ['exec', '--json', '--sandbox', 'read-only', '--skip-git-repo-check', prompt];
+function hostArgv(host, prompt, model) {
+    const pick = model ? (host === 'claude' ? ['--model', model] : ['-m', model]) : [];
+    if (host === 'claude') return ['-p', prompt, '--output-format', 'stream-json', '--verbose', '--permission-mode', 'plan', '--max-turns', '3', ...pick];
+    return ['exec', '--json', '--sandbox', 'read-only', '--skip-git-repo-check', ...pick, prompt];
 }
 
 export function runOnce({ host, prompt, cwd, timeoutMs, env = process.env }) {
     const bin = env.SKILL_EVAL_HOST_BIN || host;
-    const result = spawnSync(bin, hostArgv(host, prompt), { cwd, env, encoding: 'utf8', timeout: timeoutMs, windowsHide: true, maxBuffer: 64 * 1024 * 1024 });
+    const result = spawnSync(bin, hostArgv(host, prompt, env.SKILL_EVAL_MODEL), { cwd, env, encoding: 'utf8', timeout: timeoutMs, windowsHide: true, maxBuffer: 64 * 1024 * 1024 });
     if (result.error) throw new Error(`${bin}: ${result.error.message}`);
     const started = host === 'claude' ? claudeStartedSkills(result.stdout) : codexStartedSkills(result.stdout);
     return [...started].sort();
