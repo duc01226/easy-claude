@@ -6,7 +6,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const { randomUUID } = require('node:crypto');
-const { MODES, resolveFrameworkMode } = require('../hooks/lib/framework-runtime.cjs');
+const { MODES, resolveFrameworkMode, resolveQuietProjectRules } = require('../hooks/lib/framework-runtime.cjs');
 const { decodeConfigText } = require('./lib/workflow-routing-config.cjs');
 const { resolveMutationProjectRoot } = require('./lib/project-root.cjs');
 const { planNativeSkills, applyNativeSkills, nativeStatus, withNativeLock, assertSettingsPath } = require('./lib/framework-native-skills.cjs');
@@ -70,9 +70,11 @@ function run(args) {
     const nativeApplied = nativePlan ? applyNativeSkills(nativePlan) : undefined;
     const effective = resolveFrameworkMode({ rootDir });
     const nativeSkills = nativeStatus(rootDir);
-    const result = { ...effective, ...(saved ? { saved } : {}), nativeSkills, ...(nativeApplied ? { nativeApplied } : {}) };
+    const projectRules = resolveQuietProjectRules({ rootDir });
+    const result = { ...effective, quietProjectRules: { enabled: projectRules.enabled, source: projectRules.source }, ...(saved ? { saved } : {}), nativeSkills, ...(nativeApplied ? { nativeApplied } : {}) };
     process.stdout.write(args.includes('--json') ? `${JSON.stringify(result, null, 2)}\n` :
         `${saved ? `Saved ${saved.mode ?? 'reset'} in ${saved.file}\n` : ''}Framework mode: ${effective.mode} (${effective.source})\n` +
+        `${effective.mode === 'quiet' ? `Project rules in quiet (overlays, file conventions, auto-trigger policy): ${projectRules.enabled ? 'kept' : 'off'} (${projectRules.source})\n` : ''}` +
         `Native Claude/Codex skills: ${nativeSkills.skillsDisabled ? 'disabled' : 'normal profile'}${nativeSkills.registered ? '' : ' (run apply to register this checkout)'}\n` +
         `${nativeSkills.needsApply ? 'Native settings need reconciliation: run apply.\n' : ''}` +
         `${nativeApplied ? 'Start fresh Claude/Codex sessions to load native settings. User scope covers registered checkouts; run apply once in each new checkout.\n' : ''}`);

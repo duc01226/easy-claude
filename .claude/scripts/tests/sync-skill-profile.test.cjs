@@ -404,3 +404,57 @@ test('[skill-profile] schema: skillProfile keys validate, carry descriptions, an
         assert.match(resolved.warnings.join('\n'), /unknown skill not-a-skill/);
     });
 });
+
+// ─── Personal profile (--personal) ────────────────────────────────────────
+
+const localSettingsPath = root => path.join(root, '.claude', 'settings.local.json');
+const writeJson = (file, value) => { fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, `${JSON.stringify(value)}\n`); };
+function gitIgnoreLocal(root) {
+    spawnSync('git', ['init', '-q'], { cwd: root });
+    fs.writeFileSync(path.join(root, '.claude', '.gitignore'), '*.local.json\n/.ck.local.json\n');
+}
+
+// Invariant: one person can hide skills for themselves without changing the tracked team settings, and the
+// local file carries the team entries too, so the outcome does not depend on how Claude merges the member.
+test('[skill-profile] --personal writes team plus personal entries to the ignored local settings only', () => withProject({ profile: { commandOnly: ['plain-a'] } }, root => {
+    gitIgnoreLocal(root);
+    assert.equal(run(root).status, 0);
+    const teamBytes = readBytes(settingsPath(root));
+    writeJson(path.join(root, 'tmp-home', '.claude', '.ck.json'), { skillProfile: { commandOnly: ['plain-b'] } });
+    writeJson(path.join(root, '.claude', '.ck.local.json'), { skillProfile: { nameOnly: ['plain-b'] } });
+    const result = run(root, '--personal');
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(JSON.parse(fs.readFileSync(localSettingsPath(root), 'utf8')).skillOverrides,
+        { 'plain-a': 'user-invocable-only', 'plain-b': 'name-only' }, 'checkout layer wins over the user layer per skill');
+    assert.deepEqual(readBytes(settingsPath(root)), teamBytes, 'the tracked team settings are untouched');
+    assert.ok(fs.existsSync(path.join(root, '.claude', 'skill-profile.generated.local.json')));
+    assert.equal(run(root, '--personal', '--check').status, 0, 'current after the write');
+    setProfile(root, { commandOnly: ['plain-a'], nameOnly: ['plan'] });
+    const stale = run(root, '--personal', '--check');
+    assert.equal(stale.status, 1, 'a team profile change makes the personal file stale');
+    assert.match(stale.stderr, /--personal/);
+}));
+
+// Invariant: a personal settings file that Git would track never receives generated entries.
+test('[skill-profile] --personal refuses a local settings file that is not git-ignored', () => withProject({ profile: { commandOnly: ['plain-a'] } }, root => {
+    spawnSync('git', ['init', '-q'], { cwd: root });
+    writeJson(path.join(root, '.claude', '.ck.local.json'), { skillProfile: { commandOnly: ['plain-b'] } });
+    const result = run(root, '--personal');
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /not git-ignored/);
+    assert.equal(fs.existsSync(localSettingsPath(root)), false);
+}));
+
+// Invariant: the personal list follows the same called-skill guard as the team list.
+test('[skill-profile] --personal applies the called-skill guard', () => withProject({ profile: {} }, root => {
+    gitIgnoreLocal(root);
+    writeJson(path.join(root, '.claude', '.ck.local.json'), { skillProfile: { commandOnly: ['security-audit'] } });
+    const result = run(root, '--personal');
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /security-audit/);
+    assert.equal(fs.existsSync(localSettingsPath(root)), false);
+}));
+
+test('[skill-profile] unknown options are refused', () => withProject({}, root => {
+    assert.equal(run(root, '--persnal').status, 1);
+}));

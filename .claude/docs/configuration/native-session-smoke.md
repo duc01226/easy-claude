@@ -33,6 +33,17 @@ host versions, mode and fixture paths. An absent invocation in one stochastic mo
 a smoke result; native discovery metadata and regression tests are stronger evidence for the setting.
 Never report an unexecuted Git or live-model scenario as passing. Store logs under `tmp/reports/`.
 
+## Activation evals
+
+A smoke result is one stochastic answer. To measure whether skills start when they should, run
+`node .claude/scripts/skill-activation-eval.mjs --cases <file.json> --host=claude|codex --runs=3`
+(`--min-hit-rate` and `--max-false-rate` turn it into a gate; `--json` for the full report). A case
+names a prompt and the skill it should start, or `null` for none; include near-miss prompts that
+must stay quiet. A skill counts as started when the host called it or the agent read its SKILL.md.
+Copy `.claude/config/skill-activation-evals.example.json` as a starting point and phrase prompts the
+way the project's least technical user would. Runs are headless (Claude plan mode, Codex read-only
+sandbox) and spend model tokens; compare profiles or modes by running the same file under each.
+
 ## Limits
 
 These switches do not remove ordinary project instructions, personal plugins, host-managed rules or

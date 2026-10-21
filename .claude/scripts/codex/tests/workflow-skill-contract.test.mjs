@@ -76,7 +76,9 @@ test('missing todo-first, invocation, conditions, variant calls or skill links f
   const content = updateWorkflowSkillContract(source, renderWorkflowSkillContract(workflowId, manifests(document)));
   for (const mutant of [
     content.replace('**Todo FIRST:**', '**Todo later:**'),
-    content.replace('execute its protocol through the active host', 'only read its instructions'),
+    content.replace('through the active host\'s skill call', 'by name only'),
+    content.replace('read the SKILL.md in full yourself', 'skip the step'),
+    content.replace('re-read the SKILL.md of the step in progress', 'continue from memory'),
     content.replace('skipReason` verbatim', 'skipReason` loosely'),
     content.replace(/^- Mode `audit`:.*\n/m, ''),
     content.replace('../review/SKILL.md', '../inspect/SKILL.md'),

@@ -173,7 +173,7 @@ function handleCommit(cfg) {
   lines.push('Auto-route before or immediately after this commit when behavior changed:');
   lines.push('  1. Update the matching README.{Feature}.md — §3 Acceptance Criteria, §4 Business Rules,');
   lines.push('     and/or §8 Test Specifications — for the behavior you changed, then stage it.');
-  lines.push('  2. Run /spec [mode=amend], /spec [mode=tests], or /docs-manager --mode=update for the touched module.');
+  lines.push('  2. Run /spec [mode=amend], /spec [mode=tests], or /docs-manager --mode=update for the touched module (if the host refuses a skill call, read the SKILL.md of that skill and follow it).');
   lines.push('  3. If the change is doc-neutral, mention that in the final review evidence.');
   return { stderr: `${lines.join('\n')}\n`, decision: 'advisory-warning' };
 }

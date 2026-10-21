@@ -5,7 +5,7 @@ disable-model-invocation: false
 ---
 
 > Codex compatibility note:
-> - Invoke `$skill-name`: load the registered `.agents/skills/<name>/SKILL.md` and execute it with Codex tools; no separate `Skill` tool or Claude mode switch is needed. Author `.claude/**`; mirrors are generated.
+> - Invoke `$skill-name`: load the registered `.agents/skills/<name>/SKILL.md` and execute it with Codex tools; no separate `Skill` tool or Claude mode switch is needed. When a workflow step or another skill names a skill, read that file in full yourself (in parts when output is cut off): a skill whose implicit invocation is off is never loaded for you. Author `.claude/**`; mirrors are generated.
 > - Track steps before execution and keep progress/evidence current. Explicit skill requests execute their protocol. Use the native question tool for required questions.
 > - Map foreign tool names to available host capabilities. A name mismatch needs no approval; an actually unavailable required capability stops with its step/evidence and a user question before adaptation.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -18,7 +18,7 @@ Read [the registry](../../../.claude/workflows.json) → `workflows.workflow-pla
 **Todo FIRST:** before triage, analysis or step execution, create one todo per phase of the selected mode, in order, listing every occurrence of that phase as a line, including conditional/optional ones (a mode that declares no phases gets one todo per occurrence); preserve occurrence IDs, roles and barrier groups. Use native todo tools or an equivalent persistent ledger. Then mark the first todo `in_progress`; close each step line with its run or skip evidence, and complete a phase todo only when every line is closed and its applicable exit gates hold.
 Mode selection and registry loading prepare tracking; any 'first action' below means the first substantive action after this bootstrap.
 
-**Call each step skill:** read its linked SKILL.md and execute its protocol through the active host with the registry args. Reading or naming a skill alone is not execution. Required gates and core/optional flex follow the linked start-workflow Step Execution Protocol; keep this skill's quality gates, loops and evidence requirements.
+**Call each step skill:** start its linked SKILL.md through the active host's skill call with the registry args. When the host refuses that call (a user-only skill) or has no skill call, read the SKILL.md in full yourself (in parts when output is cut off) and follow it with the same args; that is the same execution, not a bypass. Naming a skill alone is not execution. After a context compaction, re-read the SKILL.md of the step in progress before continuing: compaction can drop or truncate a loaded skill. Required gates and core/optional flex follow the linked start-workflow Step Execution Protocol; keep this skill's quality gates, loops and evidence requirements.
 
 **Conditions:** load each occurrence's registry `applicability.when` and `skipReason` verbatim, and record its run/skip evidence through the linked start-workflow protocol. Do not silently omit a todo or turn a conditional skill into an unconditional call; close, in one batch at triage, the todos whose condition is already false there. Declared parallel groups retain their all-return barrier.
 
@@ -64,7 +64,7 @@ Variant step chains (each equals the registry variant of that name; gates and op
 - `idea-to-spec`: $web-research --chain=deep-dive -> $brainstorm -> $spec [mode=discovery] -> $scenario -> $domain-analysis -> $why-review -> $initiative -> $spec [mode=draft] -> $spec [mode=tests] -> $work-item --mode=review --type=spec-tests --fix-loop -> $design-spec -> $work-item --mode=review --type=design -> $spec [mode=clarify] -> $why-review -> $docs-manager --mode=update -> $feature-presentation -> $workflow-end -> $watzup
 - `spec-to-tasks`: $investigate -> $spec [mode=index] -> $domain-analysis -> $why-review -> $spec [mode=clarify] -> $scenario -> $plan -> $work-item --mode=refine -> $work-item --mode=review --type=task --fix-loop -> $work-item --mode=challenge --reuse=task-review -> $work-item --mode=story -> $work-item --mode=dor --reuse=task-review -> $prioritize -> $design-spec -> $work-item --mode=review --type=design -> $work-item --mode=mockup --explore -> $docs-manager --mode=update -> $feature-presentation -> $workflow-end -> $watzup
 
-**Step contract:** steps follow `$start-workflow` → Step Execution Protocol — `gate` steps always run, a step that runs invokes its skill invocation, and every other deviation is logged. NEVER batch-complete validation gates.
+**Step contract:** steps follow `$start-workflow` → Step Execution Protocol — `gate` steps always run, a step that runs is started through the host's skill call, or read in full and followed when the host refuses that call, and every other deviation is logged. NEVER batch-complete validation gates.
 
 Activate the `workflow-planned-work` workflow. Run `$start-workflow workflow-planned-work` with `--mode=<mode>` (mapped from `--from`/`--to` below) and the user's prompt as context. The resolved variant is a complete sequence: execute that manifest and never a hand-swapped list.
 

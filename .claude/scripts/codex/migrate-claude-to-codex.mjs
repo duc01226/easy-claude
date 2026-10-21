@@ -3,6 +3,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createRequire } from 'node:module';
+import fsSync from 'node:fs';
 import { buildSkillReferenceMap, prependCodexCompatibilityNote, rewriteClaudeToolTermsForCodex, rewriteSkillMentionsForCodex } from './compat-rewrite.mjs';
 import { CODEX_IMPLICIT_OFF_RE, parseFrontmatter, parseFrontmatterBoolean, stripQuotes } from '../lib/agent-frontmatter.mjs';
 import { writeFileTransientSafe } from '../lib/write-file-transient-safe.mjs';
@@ -657,6 +658,26 @@ export async function resolveCodexSkillProfile(projectRoot = rootDir) {
     return { declared: true, ...planCodexSkillPolicies(resolved), warnings: resolved.warnings, refusals: resolved.refusals };
 }
 
+/**
+ * Apply the same profile to Claude's `.claude/settings.json` `skillOverrides` (sync-skill-profile.cjs owns
+ * the ownership rules). Running it in this stage keeps both hosts in lockstep: a framework refresh that
+ * replaced settings.json and dropped the project-owned overrides is restored on the next sync instead
+ * of leaving Codex hiding skills that Claude starts on its own. No profile and no ledger → no-op.
+ * @returns {string[]} report lines (warnings, conflicts, summary)
+ */
+export function applyClaudeSkillProfile(projectRoot = rootDir, { declared = true } = {}) {
+    // A bundle copy or Codex-only checkout without Claude settings has nothing to keep in lockstep, and
+    // without a profile or a ledger the sync is a no-op, so its module is not even loaded (as on Codex).
+    if (!fsSync.existsSync(path.join(projectRoot, '.claude', 'settings.json'))) return [];
+    if (!declared && !fsSync.existsSync(path.join(projectRoot, '.claude', 'skill-profile.generated.json'))) return [];
+    const { syncSkillProfile } = require('../sync-skill-profile.cjs');
+    const plan = syncSkillProfile({ rootDir: projectRoot });
+    if (plan.refusals.length > 0) throw skillProfileRefusedError(plan.refusals);
+    const lines = [...plan.conflicts];
+    if (plan.settingsChanged || plan.ledgerChanged) lines.push(`restored Claude skillOverrides (${plan.desired ? plan.desired.size : 0} profile entries)`);
+    return lines;
+}
+
 /** An Error carrying the resolver's refusals; its message is the refusal lines. */
 function skillProfileRefusedError(refusals) {
     const error = new Error(refusals.map(refusal => refusal.message).join('\n'));
@@ -1110,6 +1131,7 @@ async function main() {
         return;
     }
     for (const line of [...skillProfile.warnings, ...skillProfile.notes]) console.log(`[codex-migrate] ${SKILL_PROFILE_PREFIX} ${line}`);
+    for (const line of applyClaudeSkillProfile(rootDir, { declared: skillProfile.declared })) console.log(`[codex-migrate] ${SKILL_PROFILE_PREFIX} ${line}`);
 
     const normalizedClaudeSkills = normalizeSourceSkills ? await sanitizeClaudeSkillSourceManifests() : 0;
     const migratedAgentsCount = await migrateAgents();

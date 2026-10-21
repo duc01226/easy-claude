@@ -1,6 +1,6 @@
 ---
 name: sync-codex
-description: '[Codex] Use when running the full Codex mirror sync and verify pipeline, or when `.claude/**` edits leave `.agents/`, `.codex/` or `AGENTS.md` stale.'
+description: '[Codex] Use once, after the `.claude/**` edits of a change are final and before committing them, to regenerate and verify `.agents/`, `.codex/`, `.opencode/` and `AGENTS.md`; never after each edit.'
 ---
 
 ## Quick Summary

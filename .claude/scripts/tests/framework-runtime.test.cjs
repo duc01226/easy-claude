@@ -164,3 +164,44 @@ test('both schemas reject an invalid runtime mode and configuration help exposes
     const { ckOptions } = require('../ck-config-help.cjs');
     assert.ok(ckOptions().some(option => option.key === 'frameworkRuntime.mode' && option.describe.includes('quiet')));
 });
+
+// Invariant: quiet stays generic-guidance-free, but a project that opts in still delivers its OWN rules
+// (overlays, per-file conventions, auto-trigger policy); the opt-in follows the same layers as the mode.
+test('quietProjectRules keeps only the project-rule hooks in quiet, layered like the mode', t => {
+    const { resolveQuietProjectRules, isHookEnabled, QUIET_PROJECT_RULE_HOOKS } = require('../../hooks/lib/framework-runtime.cjs');
+    const f = fixture(t);
+    const opts = extra => ({ rootDir: f.rootDir, homeDir: f.homeDir, env: {}, ...extra });
+    f.write(f.local, { frameworkRuntime: { mode: 'quiet' } });
+    for (const hook of QUIET_PROJECT_RULE_HOOKS) assert.equal(isHookEnabled(hook, opts()), false, `${hook} off by default in quiet`);
+    f.write(f.team, { project: { name: 'Fixture' }, frameworkRuntime: { quietProjectRules: true } });
+    assert.deepEqual([resolveQuietProjectRules(opts()).enabled, resolveQuietProjectRules(opts()).source], [true, 'project-config']);
+    for (const hook of QUIET_PROJECT_RULE_HOOKS) assert.equal(isHookEnabled(hook, opts()), true, `${hook} kept by the team opt-in`);
+    for (const hook of ['protocol-inject-universal-1.cjs', 'workflow-route-inject.cjs', 'core-principles-inject.cjs']) {
+        assert.equal(isHookEnabled(hook, opts()), false, `${hook} stays quiet`);
+    }
+    f.write(f.local, { frameworkRuntime: { mode: 'quiet', quietProjectRules: false } });
+    assert.equal(resolveQuietProjectRules(opts()).enabled, false, 'a checkout preference beats the team value');
+    assert.equal(resolveQuietProjectRules(opts({ env: { CK_QUIET_PROJECT_RULES: 'true' } })).enabled, true, 'the environment wins last');
+    f.write(f.local, { frameworkRuntime: { mode: 'off', quietProjectRules: true } });
+    for (const hook of QUIET_PROJECT_RULE_HOOKS) assert.equal(isHookEnabled(hook, opts()), false, `${hook} silent in off`);
+});
+
+test('quietProjectRules delivers real hook output in quiet when opted in', t => {
+    const f = fixture(t);
+    f.write(f.local, { frameworkRuntime: { mode: 'quiet' } });
+    const input = JSON.stringify({ session_id: 'qpr', hook_event_name: 'UserPromptSubmit', prompt: 'write tests', cwd: f.rootDir });
+    const hook = path.join(root, 'hooks', 'skill-activation-inject.cjs');
+    const off = f.run(hook, [], input, { CK_SKILL_AUTO_TRIGGER: 'false' });
+    assert.equal(off.stdout, '', 'quiet alone stays silent');
+    const kept = f.run(hook, [], input, { CK_SKILL_AUTO_TRIGGER: 'false', CK_QUIET_PROJECT_RULES: 'true' });
+    assert.match(kept.stdout, /auto-trigger is DISABLED/, kept.stderr);
+});
+
+test('both schemas accept a boolean quietProjectRules and reject other values', () => {
+    const { validateCkConfig } = require('../../hooks/lib/ck-config-schema.cjs');
+    const { validateConfig } = require('../../hooks/lib/project-config-schema.cjs');
+    assert.equal(validateCkConfig({ frameworkRuntime: { mode: 'quiet', quietProjectRules: true } }).valid, true);
+    assert.equal(validateConfig({ project: { name: 'Fixture' }, frameworkRuntime: { quietProjectRules: false } }).valid, true);
+    assert.equal(validateCkConfig({ frameworkRuntime: { quietProjectRules: 'yes' } }).valid, false);
+    assert.equal(validateConfig({ project: { name: 'Fixture' }, frameworkRuntime: { quietProjectRules: 1 } }).valid, false);
+});

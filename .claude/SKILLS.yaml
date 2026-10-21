@@ -1,7 +1,7 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-10-17'
+  last_updated: '2026-10-21'
   total_skills: 104
   total_by_status:
     active: 104
@@ -778,9 +778,9 @@ skills:
       removal_after: null
     - name: sync-codex
       path: sync-codex/SKILL.md
-      description: '[Codex] Use when running the full Codex mirror sync and verify
-        pipeline, or when `.claude/**` edits leave `.agents/`, `.codex/` or `AGENTS.md`
-        stale.'
+      description: '[Codex] Use once, after the `.claude/**` edits of a change are
+        final and before committing them, to regenerate and verify `.agents/`, `.codex/`,
+        `.opencode/` and `AGENTS.md`; never after each edit.'
       category: other
       has_scripts: true
       has_references: false
