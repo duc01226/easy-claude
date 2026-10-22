@@ -15,7 +15,7 @@ Read this index when locating the authoritative document for a project question 
 - Resolve configured roots; regenerate category globs into a normalized unique-path union.
 - Compare broad `docs/**/*.md` results with the category union and expose every remainder.
 - Verify relationships and lookup paths; keep every path real, unique, and traceable to the current tree.
-- Index 556 unique authored Markdown files across 12 categories; `docs/` contains 55 files with 0 uncategorized. Design System is a one-file Project Reference subset counted once.
+- Index 558 unique authored Markdown files across 12 categories; `docs/` contains 56 files with 0 uncategorized. Design System is a one-file Project Reference subset counted once.
 
 ## Contents
 
@@ -45,7 +45,7 @@ Read this index when locating the authoritative document for a project question 
 
 ## Documentation System
 
-556 unique authored markdown files across 12 indexed categories. Last scanned: 2026-10-22.
+558 unique authored markdown files across 12 indexed categories. Last scanned: 2026-10-22.
 
 **Relocatable roots.** Resolve these configurable roots before running their category globs:
 
@@ -69,7 +69,7 @@ The **Reproducible scope** column states each glob relative to its category's ro
 | Release Notes          |              3 | `docs/release/**/*.md` + `docs/release-notes/**/*.md`                                 |
 | Knowledge Reports      |              1 | `docs/knowledge/**/*.md`                                                             |
 | Framework Docs         |             43 | `.claude/docs/**/*.md`                                                                |
-| Skill Markdown         |            455 | `rg --files .claude/skills -g '*.md'`                                                 |
+| Skill Markdown         |            456 | `rg --files .claude/skills -g '*.md'`                                                 |
 
 The unique total is the normalized union returned by `rg --files` for Root-Level Docs, all `docs/**/*.md`, Framework Docs, and Skill Markdown. Design System is nested inside Project Reference, so its count is informative rather than additive. For this inventory, the authored/tracked scope includes generated protocol projections deliberately published as reader-facing documentation; Codex/OpenCode mirrors are excluded. Ignored dependency artifacts such as skill-local `.venv/` files are excluded.
 
@@ -83,12 +83,13 @@ easy-claude/
 ├── CLAUDE.md                                      # Claude project instructions
 ├── README.md                                      # Project overview and adoption entry point
 ├── docs/                                          # 55 markdown files
-│   ├── adr/                                       # 5 architecture decisions
+│   ├── adr/                                       # 6 architecture decisions
 │   │   ├── 0001-skill-lifecycle.md
 │   │   ├── 0002-canonical-count-metrics.md
 │   │   ├── 0003-config-driven-doc-and-spec-roots.md
 │   │   ├── 0004-protocol-delivery-hybrid.md
-│   │   └── 0005-work-tracker-vocabulary-and-migration.md
+│   │   ├── 0005-work-tracker-vocabulary-and-migration.md
+│   │   └── 0007-framework-updates-merge-and-opt-in-switches.md
 │   ├── project-reference/                         # 19 files
 │   │   ├── backend-patterns-reference.md
 │   │   ├── code-review-rules.md
@@ -154,7 +155,7 @@ easy-claude/
 │   ├── hooks/                                     # 3
 │   ├── skills/                                    # 2
 │   └── team-artifacts/templates/                  # 6
-└── .claude/skills/                                # 455 authored/tracked markdown assets
+└── .claude/skills/                                # 456 authored/tracked markdown assets
 ```
 
 Absent whitelist branches: Operations only.
@@ -281,6 +282,7 @@ Read `docs/project-config.json` first for any project question or task — paths
 | Architecture Decisions | asking why an architecture choice or convention exists                                                                                                                             | the ADR root itself                                                                                         |
 | Architecture Decisions | asking why protocols are delivered by hooks with guide-line fallback instead of inline copies                                                                                      | `0004-protocol-delivery-hybrid.md`                                                                          |
 | Architecture Decisions | changing work-tracker terminology, retained identity or legacy-record migration | `0005-work-tracker-vocabulary-and-migration.md` |
+| Architecture Decisions | updating an installed framework, or adding an adopter-specific behavior as an opt-in switch | `0007-framework-updates-merge-and-opt-in-switches.md` |
 | Templates              | writing a new detailed Feature Spec                                                                                                                                                | `detailed-feature-spec-template.md`                                                                         |
 | Release Notes          | checking release history                                                                                                                                                           | `docs/release/`, `docs/release-notes/`                                                                      |
 | Framework Docs         | asking how hooks, skills, agents, workflows, or configuration work                                                                                                                 | `.claude/docs/README.md`                                                                                    |

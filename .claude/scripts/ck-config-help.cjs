@@ -132,6 +132,10 @@ function renderMarkdown(data) {
         out.push(section.body || '(section not found — read the source file)');
     }
     out.push('');
+    out.push('## Feature switches and their effective values');
+    out.push('');
+    out.push('`node .claude/scripts/framework-features.cjs` lists every framework switch with its default, effective value, the layer that set it and who may set it.');
+    out.push('');
     out.push('## Every project-config option');
     out.push('');
     out.push('Team options live in the project config (default `docs/project-config.json`; `portability.projectConfigPath` in `.ck.json` relocates it): routing tiers, code graph, token checkpoint, skill profile, commit trailer, conventions, testing and more. List them from their schema with:');

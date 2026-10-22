@@ -12,6 +12,17 @@ project can take them as-is and have them work, with nothing of this repository 
 hand-edit them — fix the `.claude/**` source and regenerate, or the next sync silently reverts you.
 A leak in a mirror means the leak is in the source.
 
+## Contents
+
+- [What counts as a leak](#what-counts-as-a-leak)
+- [Form (b) — the sanctioned way to state a default](#form-b--the-sanctioned-way-to-state-a-default)
+- [Gates](#gates)
+- [Concise guidance evidence](#concise-guidance-evidence)
+- [Updating an installed framework](#updating-an-installed-framework)
+- [Local artifacts are not leaks](#local-artifacts-are-not-leaks)
+- [Missing dependency recovery](#missing-dependency-recovery)
+
+
 ## What counts as a leak
 
 | Leak | Instead |
@@ -174,6 +185,22 @@ not measure completed audit quality. Earlier v1/v2/v3 have no live evidence to
 migrate. Read-only custom routing retains skill descriptions, registered skill
 loading and rationale-review discovery; see
 the published `concise-workflow-route.md` policy under `.claude/skills/shared/protocols/`.
+
+## Updating an installed framework
+
+`export-claude.mjs` installs a first copy. Every later version is **merged**, never copied, so a project keeps the framework changes it made (its own skills, fixes, settings entries and toggles) and still receives every upstream improvement:
+
+```text
+node .claude/scripts/framework-update.mjs <easy-claude-dir> --dry-run
+node .claude/scripts/framework-update.mjs <easy-claude-dir>
+```
+
+- **Ownership.** A file under `.claude/` in the upstream tree is framework-owned; anything else (project skills, ledgers, `docs/`, `CLAUDE.md`, `docs/project-config.json`) is never read or written. Per-person files (`settings.local.json`, `.ck.local.json`) are never taken.
+- **Merge.** `.claude/framework-lock.json` records the upstream commit and the file hashes the project last took. An unchanged project file takes upstream; a project-only change stays; a change on both sides goes through `git merge-file`, and an overlap keeps conflict markers in the file (exit code 2). A deletion upstream removes only an unchanged file. A file added on both sides, or one with no base text, keeps the project's copy and puts upstream's in `tmp/framework-update/`.
+- **No noise.** `<!-- COUNT:… -->` values never conflict (merged as 0, then recomputed), and `SKILLS.yaml` / `skills_data.yaml` are regenerated from the project's own skills instead of merged. The tool ends with the `/sync-codex` pipeline unless `--no-sync` or a conflict stops it.
+- **Which version.** The default is the upstream `HEAD` commit (`--ref=<rev>` picks another). `--working-tree` takes uncommitted upstream files; the lock then records hashes only. The project's `.claude/` must be committed first, so the update is one reviewable diff.
+- **First run.** A project without a lock passes `--base=<upstream commit it last took>` once. A project synced by hand records where it now stands with `--record-only --ref=<rev>` (no file changes) and merges normally from then on.
+- **Make it a setting, not an edit.** Before changing a framework file for a project, look for a setting (`node .claude/scripts/ck-config-help.cjs`); an edit is kept by the merge but conflicts whenever upstream changes the same lines. A behavior that other projects could use belongs upstream as a setting that is off by default.
 
 ## Local artifacts are not leaks
 

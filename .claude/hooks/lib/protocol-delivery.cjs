@@ -1087,7 +1087,7 @@ function runHook(group, deps = {}) {
             const input = options.input !== undefined ? options.input : readHookInput();
             if (!isRelevantEvent(input)) return finish(''); // BR-PDL-09: no project module loaded
             const rootDir = resolveRoot(input, options);
-            if (!rootDir || !require('./framework-runtime.cjs').isHookEnabled(`protocol-inject-${group}.cjs`, { rootDir })) return finish('');
+            if (!rootDir || !require('./framework-runtime.cjs').isHookEnabled(`protocol-inject-${group}.cjs`, { rootDir, homeDir: options.homeDir, env: options.env })) return finish('');
             deliver(group, input, options, finish);
         } catch {
             finish(''); // BR-PDL-05: the skill's guide entries remain the path

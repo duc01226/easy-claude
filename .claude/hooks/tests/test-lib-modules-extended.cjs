@@ -664,10 +664,12 @@ logSection('describeSchema');
     // one-line note, measured 589 -> 593), then to 650 for the tracker's level and type
     // label keys (eight keys replace two, measured 616 -> 622), then to 680 for the
     // optional `pullRequest.pushedBranchUpdate` field (field + its one-line note,
-    // measured 647 -> 649). This remains a runaway-bloat guard, not a suppression of
-    // schema output.
+    // measured 647 -> 649), then to 710 for the team layer of the five router switches,
+    // `portability.generateClaudeMd` and the opt-in runtime policies (`quietSkills`,
+    // `quietNative`, `autoApplyNative`, `offMode`), measured 658 -> 684. This remains a
+    // runaway-bloat guard, not a suppression of schema output.
     const lineCount = output.split('\n').length;
-    logResult('output under 680 lines', lineCount < 680, `${lineCount} lines`);
+    logResult('output under 710 lines', lineCount < 710, `${lineCount} lines`);
 }
 
 // ════════════════════════════════════════════════════════════════════════════

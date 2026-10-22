@@ -36,6 +36,13 @@ try {
 } catch {
     // Keep the historical default when the portability loader is unavailable.
 }
+// Read the config as every framework reader does: a UTF-8 BOM or UTF-16 file is still valid JSON.
+let decodeConfigText = buffer => buffer.toString('utf8').replace(/^\uFEFF/, '');
+try {
+    ({ decodeConfigText } = require('../../../scripts/lib/workflow-routing-config.cjs'));
+} catch {
+    // A mirror without the shared reader keeps the UTF-8 fallback above.
+}
 const CLAUDE_MD_PATH = path.join(PROJECT_DIR, 'CLAUDE.md');
 const BACKUP_PATH = path.join(PROJECT_DIR, '.claude-md.backup');
 const TEMPLATE_PATH = path.join(__dirname, '..', 'references', 'claude-md-template.md');
@@ -317,7 +324,7 @@ const BUILDER_MAP = {
 function loadConfig() {
     if (!fs.existsSync(CONFIG_PATH)) return {};
     try {
-        return JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
+        return JSON.parse(decodeConfigText(fs.readFileSync(CONFIG_PATH)));
     } catch {
         console.error('[WARN] Failed to parse project-config.json, using empty config');
         return {};
@@ -702,6 +709,24 @@ function main() {
         console.log(`[DETECT] CLAUDE.md: ${fs.existsSync(CLAUDE_MD_PATH) ? 'EXISTS' : 'MISSING'}`);
         console.log(`[DETECT] project-config.json: ${fs.existsSync(CONFIG_PATH) ? 'EXISTS' : 'MISSING'}`);
         process.exit(0);
+    }
+
+    // An unreadable config could hide `generateClaudeMd: false`, so nothing is generated from it.
+    if (fs.existsSync(CONFIG_PATH)) {
+        try { JSON.parse(decodeConfigText(fs.readFileSync(CONFIG_PATH))); }
+        catch (error) {
+            console.error(`[ERROR] ${CONFIG_PATH} is not valid JSON (${error.message}); nothing generated or written.`);
+            process.exitCode = 1;
+            return;
+        }
+    }
+
+    // A project that owns its root (`portability.generateClaudeMd: false`) is never written:
+    // the probe reports it current and every write mode refuses before touching the file.
+    if (loadConfig().portability?.generateClaudeMd === false) {
+        console.log('[OWNED] CLAUDE.md is project-owned (portability.generateClaudeMd: false); nothing generated or written.');
+        process.exitCode = 0;
+        return;
     }
 
     if (args.includes('--check')) {

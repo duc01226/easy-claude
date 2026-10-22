@@ -205,3 +205,43 @@ test('both schemas accept a boolean quietProjectRules and reject other values', 
     assert.equal(validateCkConfig({ frameworkRuntime: { quietProjectRules: 'yes' } }).valid, false);
     assert.equal(validateConfig({ project: { name: 'Fixture' }, frameworkRuntime: { quietProjectRules: 1 } }).valid, false);
 });
+
+// Invariant: the optional runtime policies keep today's behavior until someone turns them on, and
+// the off policy is a team decision that no personal layer can make.
+test('offMode as-quiet is a team-only policy that reads off as quiet; personal layers cannot set it', t => {
+    const { resolveOffMode } = require('../../hooks/lib/framework-runtime.cjs');
+    const f = fixture(t);
+    f.write(f.user, { frameworkRuntime: { mode: 'off' } });
+    assert.equal(f.resolve().mode, 'off', 'off stays off by default');
+    f.write(f.local, { frameworkRuntime: { mode: 'off', offMode: 'as-quiet' } });
+    assert.equal(f.resolve().mode, 'off', 'a personal file cannot set the team policy');
+    f.write(f.team, { project: { name: 'Fixture' }, frameworkRuntime: { offMode: 'as-quiet' } });
+    assert.deepEqual([f.resolve().mode, f.resolve().offReadAsQuiet, resolveOffMode({ rootDir: f.rootDir }).value], ['quiet', true, 'as-quiet']);
+    assert.equal(f.resolve({ env: { CK_FRAMEWORK_MODE: 'off' } }).mode, 'quiet', 'the environment cannot get past it either');
+    f.write(f.team, { project: { name: 'Fixture' }, frameworkRuntime: { offMode: 'never' } });
+    assert.equal(f.resolve().mode, 'off', 'an invalid policy expresses no preference');
+});
+
+test('quietNative and autoApplyNative default off and follow the same layers as the mode', t => {
+    const { resolveQuietNative, resolveAutoApplyNative } = require('../../hooks/lib/framework-runtime.cjs');
+    const f = fixture(t);
+    const opts = extra => ({ rootDir: f.rootDir, homeDir: f.homeDir, env: {}, ...extra });
+    assert.deepEqual([resolveQuietNative(opts()).value, resolveAutoApplyNative(opts()).enabled], ['none', false]);
+    f.write(f.team, { project: { name: 'Fixture' }, frameworkRuntime: { quietNative: 'restrict', autoApplyNative: true } });
+    assert.deepEqual([resolveQuietNative(opts()).source, resolveAutoApplyNative(opts()).source], ['project-config', 'project-config']);
+    f.write(f.local, { frameworkRuntime: { quietNative: 'none', autoApplyNative: false } });
+    assert.deepEqual([resolveQuietNative(opts()).value, resolveAutoApplyNative(opts()).enabled], ['none', false], 'a checkout preference beats the team value');
+    assert.deepEqual([resolveQuietNative(opts({ env: { CK_QUIET_NATIVE: 'restrict' } })).value, resolveAutoApplyNative(opts({ env: { CK_AUTO_APPLY_NATIVE: '1' } })).enabled], ['restrict', true], 'the environment wins last');
+    f.write(f.local, { frameworkRuntime: { quietNative: 'everything' } });
+    assert.equal(resolveQuietNative(opts()).value, 'restrict', 'an invalid value expresses no preference');
+});
+
+test('the session-start native sync is inert without autoApplyNative, before reading any input, in every mode', t => {
+    const f = fixture(t);
+    for (const mode of ['on', 'quiet', 'off']) {
+        f.write(f.local, { frameworkRuntime: { mode } });
+        const result = f.run(path.join(root, 'hooks/framework-native-sync.cjs'), [], 'invalid input must remain unread');
+        assert.equal(result.stdout + result.stderr, '', mode);
+        assert.equal(result.status, 0, mode);
+    }
+});

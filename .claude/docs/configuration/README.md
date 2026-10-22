@@ -359,9 +359,9 @@ Records live in `tmp/prompt-ledger/<session>/` (override `CK_PROMPT_LEDGER_DIR`)
 
 ### Advisory prompt routers
 
-Five accelerators are ON by default and inject a short directive (four on prompts, one after tool results); the universal rules (delivered by the universal hook) still bind without them, so turning one off loses only the reminder. `.claude/.ck.local.json` overrides `.ck.json` per key (local wins), and the switch accepts `false` or the strings `"0"`, `"off"`, `"false"`, `"no"`, `"disabled"`.
+Five accelerators are ON by default and inject a short directive (four on prompts, one after tool results); the universal rules (delivered by the universal hook) still bind without them, so turning one off loses only the reminder. Each setting merges per key across four layers, later wins: the framework-shipped `.claude/.ck.json`, the team's `docs/project-config.json` (a framework update never replaces it, so put a team opt-out there), the person's `~/.claude/.ck.json`, then the checkout's git-ignored `.claude/.ck.local.json`, and the switch accepts `false` or the strings `"0"`, `"off"`, `"false"`, `"no"`, `"disabled"`.
 
-| Hook                            | Injects when                                                                                                                                 | Opt-out (`.claude/.ck.json`)                          | Env opt-out                      |
+| Hook                            | Injects when                                                                                                                                 | Opt-out (any settings layer)                          | Env opt-out                      |
 | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- | -------------------------------- |
 | `commit-skill-route.cjs`        | the prompt asks for a commit — run the `commit` skill, never a raw `git commit` (`review-commit-gate.cjs` still blocks an unreviewed commit) | `{ "commitSkillRoute": { "enabled": false } }`        | `CK_COMMIT_SKILL_ROUTE=0`        |
 | `judgement-integrity-route.cjs` | the prompt asks for a verdict, root cause, evaluation, or gap hunt — the `SYNC:judgement-integrity:reminder` directive; also at a sub-agent start and after a compaction while the latest recorded prompt is one | `{ "judgementIntegrityRoute": { "enabled": false } }` | `CK_JUDGEMENT_INTEGRITY_ROUTE=0` |
@@ -415,6 +415,18 @@ Quiet also inherits native context and tool defaults: the bundle no longer sets 
 **Quiet with the project's own rules.** `frameworkRuntime.quietProjectRules: true` (default `false`; same layers as the mode, then `CK_QUIET_PROJECT_RULES`) keeps three hooks running in `quiet`: `skill-overlay-remind.cjs` (the project's skill overlays), `file-convention-inject.cjs` (its per-file conventions) and `skill-activation-inject.cjs` (the `portability.skillAutoTrigger` policy). Generic guidance, routing and ledgers stay off. Use it when a person wants quiet but the project's hand-written rules must still reach the agent; `framework-mode.cjs show` reports the effective value.
 
 The next hook sees the change without regeneration. **Start fresh Claude/Codex sessions after a native skill change**; existing conversation instructions cannot be withdrawn. The CLI overlays Claude `.claude/settings.local.json` with `skillOverrides: off` and appends a checkout-specific `skills.config` block to the Codex user config (`CODEX_HOME/config.toml`, otherwise `~/.codex/config.toml`). Native `off` includes invocation by name; use this Node CLI to re-enable the framework. Restoring `on`, `quiet` or `reset` restores previous native overrides, leaving the team profile, tracked mirrors and unrelated skills/settings intact. No skills are uninstalled. Project instructions, host tool permissions, repository Git hooks and CI remain separate. OpenCode currently receives the hook switch only; its native skill visibility is not managed by this CLI.
+
+**Optional runtime policies (all off by default).** Each one keeps today's behavior until a project or a person turns it on; `framework-mode.cjs show` reports the effective value and the layer that set it.
+
+| Setting | Values (default first) | Layers | What it does |
+| --- | --- | --- | --- |
+| `frameworkRuntime.quietNative` | `none`, `restrict` | same as the mode, then `CK_QUIET_NATIVE` | `restrict` makes `quiet` also change native visibility: every framework skill becomes `user-invocable-only` (a typed `/name` still starts it) except `frameworkRuntime.quietSkills` (highest layer that sets the list wins) and the skills the commit gate needs (`commit` plus `commit-review`, or `why-review` and `changes-review` under `commit.reviewMode: risk-based`; all three when that preference cannot be read), and each `.claude/agents/*` agent gets a `permissions.deny` rule `Agent(<name>)` (under `risk-based`, `code-reviewer` and `security-auditor` stay allowed because those reviews dispatch them). Codex gets a `skills.config` block disabling the same skills. A refused model skill call is handled by the callers' read-the-`SKILL.md` fallback. |
+| `frameworkRuntime.offMode` | `allowed`, `as-quiet` | tracked project config only | `as-quiet` reads every saved or requested `off` as `quiet`, so a personal setting can quiet the framework but never stop the commit and doc gates. Team policy: personal files cannot set it. |
+| `frameworkRuntime.autoApplyNative` | `false`, `true` | same as the mode, then `CK_AUTO_APPLY_NATIVE` | `true` lets `framework-native-sync.cjs` run `apply` at session start in the main checkout whenever native settings do not match the effective mode (and the `quietNative` policy); the change applies from the next session. Linked worktrees are left alone, because desktop sessions load settings from the main checkout and a worktree's copied settings must not be recorded as the user's own. It runs in every mode, `off` included. |
+
+```json
+{ "frameworkRuntime": { "quietNative": "restrict", "quietSkills": ["investigate", "spec"], "offMode": "as-quiet", "autoApplyNative": true } }
+```
 
 Every mutating CLI command registers its checkout in `~/.claude/framework-runtime-projects.json`. User-scope changes reconcile **registered existing checkouts**, honoring each checkout override. Run `apply` once in a new checkout after generating its mirrors; it registers and reconciles the effective preference without changing it. Direct JSON/environment edits change hooks immediately but need `apply` to reconcile native discovery. Re-run `apply` after adding skills or changing the native Codex home. Global settings cannot discover arbitrary repositories that have never registered. Older framework copies must be updated before they honor the new setting.
 
@@ -543,6 +555,16 @@ The route output can carry project-supplied additional route rules via `portabil
 ```
 
 `workflow-route-inject.cjs` appends the resolved text after the gate in its own marker block (`<!-- CK:WORKFLOW-ROUTE-PROTOCOL -->`), advisory only and never blocking; a protocol never changes the catalog's form. **Keep it to about 3,300 characters or fewer.** The framework never drops or cuts a protocol, but it shares one hook output with the gate, and a host shows one hook output in full only up to 10,000 characters: past that the model gets a short preview, the gate included. With the shipped gate, about 3,300 characters keeps the route output within the 9,500-character cap and about 3,850 takes it past 10,000; the route output then says so on its second line, where the preview still shows it, and names the protocol size that fits. A `path` naming a privacy-sensitive file (`.env`, credentials, secrets, `*.pem`/`*.key`) is refused — the validator rejects it and the runtime treats it as no opinion. The runtime also checks the physically resolved project-relative target, so a public alias cannot expose a private target; aliases to eligible public files remain readable. A file over 20,000 bytes is truncated with a visible marker. It is runtime-only and is never stamped into tracked `CLAUDE.md`/`AGENTS.md`/Codex context.
+
+### Project-owned root context
+
+A project that writes its own `CLAUDE.md` turns generation off in `docs/project-config.json`:
+
+```json
+{ "portability": { "generateClaudeMd": false } }
+```
+
+The generator then writes nothing in any mode or framework runtime mode: `--check` reports the root current, so the `/sync-codex` `claude-md` stage leaves it alone, and `ai-context-refresh`, `learn` and `harness-setup` propose text for the owner instead of editing it. A project config that is not valid JSON stops the generator, because it might hold this switch. The `context` stage still copies `CLAUDE.md` into `AGENTS.md`.
 
 ### Just-in-time path rules
 

@@ -139,8 +139,8 @@ See [integration-test-reference.md](docs/project-reference/integration-test-refe
 
 | Kind        | Count                                       |
 | ----------- | ------------------------------------------- |
-| Skills      | <!-- COUNT:skills -->104<!-- /COUNT -->     |
-| Hooks       | <!-- COUNT:hooks -->36<!-- /COUNT -->       |
+| Skills      | <!-- COUNT:skills -->105<!-- /COUNT -->     |
+| Hooks       | <!-- COUNT:hooks -->37<!-- /COUNT -->       |
 | Agents      | <!-- COUNT:agents -->25<!-- /COUNT -->      |
 | Workflows   | <!-- COUNT:workflows -->17<!-- /COUNT -->   |
 | Shared      | <!-- COUNT:shared -->15<!-- /COUNT -->      |
@@ -151,7 +151,7 @@ See [integration-test-reference.md](docs/project-reference/integration-test-refe
 <!-- SECTION:doc-index -->
 
 ```
-docs/adr/  (5 files)
+docs/adr/  (6 files)
 docs/knowledge/  (1 files)
 docs/project-reference/  (19 files)
 docs/release/  (1 files)

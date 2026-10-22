@@ -10,6 +10,7 @@ const route = require('../../lib/workflow-route-delivery.cjs');
 const delivery = require('../../lib/protocol-delivery.cjs');
 const core = require('../../core-principles-inject.cjs');
 const { childEnv } = require('./hook-runner.cjs');
+const { createEnvSaver } = require('./test-utils.cjs');
 const read = file => { try { return fs.readFileSync(file, 'utf8'); } catch { return null; } };
 const FIXTURES = '.claude/hooks/tests/fixtures/context-delivery';
 const PROTOCOLS = '.claude/skills/shared/protocols';
@@ -268,16 +269,30 @@ const cases = {
             // Every delivery entry reads the personal layer from the home it is given, never from the developer's own.
             fs.rmSync(files.checkout); fs.writeFileSync(files.personal, concise);
             declareSkill(project, 'fixture-principles', PRINCIPLES);
-            for (const [given, isConcise] of [[homeDir, true], [path.join(project, 'no-settings-home'), false]]) {
-                const input = event(project, { session_id: `home-${isConcise}` });
-                const seam = { homeDir: given };
-                assert.equal(universal.loadBundle(project, read, seam).bins.length === 1, isConcise, 'bundle');
-                assert.equal((await universal.runHook(1, { input, projectRoot: project, ...seam, write: accept, now: 100000 })).includes('CK:UNIVERSAL-PROTOCOLS 1/1'), isConcise, 'universal entry');
-                assert.equal(universal.conciseCoreIsPresent(project, input, read, 100000, seam), isConcise, 'core presence');
-                assert.equal(route.buildInjection(project, '', 'ask', 'default', seam).includes('Workflow route cues'), isConcise, 'route builder');
-                assert.equal((await route.run(input, { projectDir: project, env: {}, ...seam, write: accept })).includes('Workflow route cues'), isConcise, 'route entry');
-                const loaded = await delivery.runHook('design', { input: { ...input, hook_event_name: 'PostToolUse', tool_name: 'Skill', tool_input: { skill: 'fixture-principles' } }, projectRoot: project, ...seam, now: 100000, write: accept });
-                assert.equal(loaded === '', isConcise, 'skill-load entry');
+            // The developer's own home switches the framework to quiet, so an entry
+            // that reads it instead of the given home stops delivering and fails here.
+            const developerHome = path.join(project, 'developer-home');
+            fs.mkdirSync(path.join(developerHome, '.claude'), { recursive: true });
+            fs.writeFileSync(path.join(developerHome, '.claude', '.ck.json'), JSON.stringify({ frameworkRuntime: { mode: 'quiet' } }));
+            const environment = createEnvSaver();
+            environment.save(['HOME', 'USERPROFILE', 'CK_FRAMEWORK_MODE']);
+            process.env.HOME = developerHome;
+            process.env.USERPROFILE = developerHome;
+            delete process.env.CK_FRAMEWORK_MODE;
+            try {
+                for (const [given, isConcise] of [[homeDir, true], [path.join(project, 'no-settings-home'), false]]) {
+                    const input = event(project, { session_id: `home-${isConcise}` });
+                    const seam = { homeDir: given };
+                    assert.equal(universal.loadBundle(project, read, seam).bins.length === 1, isConcise, 'bundle');
+                    assert.equal((await universal.runHook(1, { input, projectRoot: project, ...seam, write: accept, now: 100000 })).includes('CK:UNIVERSAL-PROTOCOLS 1/1'), isConcise, 'universal entry');
+                    assert.equal(universal.conciseCoreIsPresent(project, input, read, 100000, seam), isConcise, 'core presence');
+                    assert.equal(route.buildInjection(project, '', 'ask', 'default', seam).includes('Workflow route cues'), isConcise, 'route builder');
+                    assert.equal((await route.run(input, { projectDir: project, env: {}, ...seam, write: accept })).includes('Workflow route cues'), isConcise, 'route entry');
+                    const loaded = await delivery.runHook('design', { input: { ...input, hook_event_name: 'PostToolUse', tool_name: 'Skill', tool_input: { skill: 'fixture-principles' } }, projectRoot: project, ...seam, now: 100000, write: accept });
+                    assert.equal(loaded === '', isConcise, 'skill-load entry');
+                }
+            } finally {
+                environment.restore();
             }
         });
     },
