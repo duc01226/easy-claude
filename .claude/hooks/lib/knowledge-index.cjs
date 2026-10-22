@@ -483,8 +483,10 @@ const isStringList = value => Array.isArray(value) && value.every(item => typeof
 
 /**
  * The shape every consumer of a stored entry relies on: trigger lists of strings (the matcher iterates
- * them), a known review state and source-kind list (labels are derived from them), and a title and
- * description that hold the pack's own prose rule, `proseFault` (BR-KNW-13: the title reaches every pointer).
+ * them) whose prompt phrases hold the pack's own phrase rule (the matcher builds one pattern per phrase, so
+ * one over-long phrase would make the build throw for every pack), a known review state and source-kind
+ * list (labels are derived from them), and a title and description that hold the pack's own prose rule,
+ * `proseFault` (BR-KNW-13: the title reaches every pointer).
  * A generated entry always has it — validation applied the same rule — so a pack that builds clean is served
  * from its index; a hand-edited or merge-damaged entry may not.
  */
@@ -496,7 +498,8 @@ function storedShapeHolds(entry) {
     const triggers = entry.triggers;
     if (triggers === undefined) return true;
     if (!triggers || typeof triggers !== 'object' || Array.isArray(triggers)) return false;
-    return packs.TRIGGER_KEYS.every(key => triggers[key] === undefined || isStringList(triggers[key]));
+    if (!packs.TRIGGER_KEYS.every(key => triggers[key] === undefined || isStringList(triggers[key]))) return false;
+    return (triggers.prompt || []).every(phrase => packs.promptPhraseFault(phrase) === null);
 }
 
 /**

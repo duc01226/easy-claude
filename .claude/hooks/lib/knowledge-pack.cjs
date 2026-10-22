@@ -39,6 +39,20 @@ const PHRASE_WORDS_MAX = 5;
 const NAME_PATTERN = /^[a-z0-9][a-z0-9:_-]*$/i;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
+/**
+ * The rule every prompt phrase holds, in a pack and in a stored index entry: 1–5 words, at most 60 characters.
+ * Returns the fault text, or null when the phrase holds. The matcher builds one pattern per phrase, so the
+ * bound keeps a damaged entry from making that build throw for every pack.
+ */
+function promptPhraseFault(phrase) {
+    if (typeof phrase !== 'string') return 'is not text';
+    const words = phrase.trim().split(/\s+/).filter(Boolean);
+    if (!phrase.trim() || phrase.length > PHRASE_MAX || words.length > PHRASE_WORDS_MAX) {
+        return `must be 1–${PHRASE_WORDS_MAX} words and at most ${PHRASE_MAX} characters`;
+    }
+    return null;
+}
+
 /** A pack identity (BR-KNW-01): 3–64 lowercase letters, digits and single hyphens, starting with a letter. */
 function isValidId(id) {
     return typeof id === 'string' && id.length >= ID_MIN && id.length <= ID_MAX && ID_PATTERN.test(id);
@@ -650,8 +664,8 @@ function validatePack(pack, ctx = {}) {
         for (const key of Object.keys(pack.rawTriggers)) if (!TRIGGER_KEYS.includes(key)) err(`triggers.${key} is not a known trigger (${TRIGGER_KEYS.join(', ')}); there is no file trigger`);
     }
     for (const phrase of pack.triggers.prompt) {
-        const words = phrase.trim().split(/\s+/).filter(Boolean);
-        if (!phrase.trim() || phrase.length > PHRASE_MAX || words.length > PHRASE_WORDS_MAX) err(`prompt phrase "${phrase}" must be 1–${PHRASE_WORDS_MAX} words and at most ${PHRASE_MAX} characters`);
+        const fault = promptPhraseFault(phrase);
+        if (fault) err(`prompt phrase "${phrase}" ${fault}`);
     }
     for (const intent of pack.triggers.intent) if (!INTENTS.includes(intent)) err(`intent "${intent}" is invalid (one of: ${INTENTS.join(', ')})`);
     if (pack.triggers.intent.length && !pack.triggers.prompt.length) warn('intent only narrows prompt phrases; it has no effect without one');
@@ -791,6 +805,7 @@ module.exports = {
     TRIGGER_KEYS,
     ID_PATTERN,
     isValidId,
+    promptPhraseFault,
     TITLE_MAX,
     DESCRIPTION_MAX,
     DIGEST_MAX,

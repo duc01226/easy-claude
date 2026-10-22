@@ -327,7 +327,7 @@ ELSE
 
 ### BR-KNW-08: Never block, never fail loudly [HARD]
 
-**Statement:** Knowledge delivery never blocks or alters a prompt or a tool use. A missing, unreadable or malformed index or pack produces no output for that part; the other packs are still served. A stored index entry that is damaged — a field of the wrong type, a title or description over its limit or holding a flagged line — is not served as written: delivery works from the pack itself. Any failure, and a delivery served from an index that is out of date, is reported only on the diagnostic stream.
+**Statement:** Knowledge delivery never blocks or alters a prompt or a tool use. A missing, unreadable or malformed index or pack produces no output for that part; the other packs are still served. A stored index entry that is damaged — a field of the wrong type, a title or description over its limit or holding a flagged line, a prompt phrase over the pack limit of five words and 60 characters — is not served as written: delivery works from the pack itself. Any failure, and a delivery served from an index that is out of date, is reported only on the diagnostic stream.
 
 ### BR-KNW-09: The three triggers [HARD]
 
@@ -2204,7 +2204,7 @@ Then the valid pack's pointer is shown and the prompt proceeds
 **Edge Cases:**
 
 - Unreadable index → rebuilt in memory from the packs; matching packs are still pointed at and the prompt proceeds
-- A stored index entry with a field of the wrong type, an over-long description or a flagged title → that pack is served from its own file and every other pack is still served
+- A stored index entry with a field of the wrong type, an over-long description, a flagged title or a prompt phrase over the pack limit (five words, 60 characters) → that pack is served from its own file, prompts still deliver every pack, and every other pack is still served
 - A pack file replaced by a link out of the project → never served, even while the stored index still lists it
 
 <!-- machine-only carrier — ignore when reading as BA/QA -->
@@ -2266,7 +2266,7 @@ And the stored index is left as it was
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
 > **Evidence:** `[Source: rule/hooks/knowledge-index]`
-> **CoveredBy:** `.claude/hooks/tests/suites/knowledge-base.test.cjs::TC-KNW-052`, `.claude/hooks/tests/suites/knowledge-route.test.cjs::TC-KNW-052` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/knowledge-base.test.cjs:796` (passed in the 2026-10-21 verify: knowledge suites in the full hook aggregate, Codex and OpenCode families in the mirror sync) · `.claude/hooks/tests/suites/knowledge-route.test.cjs:518` (passed locally on 2026-10-22: knowledge suites, 56 of 56) · `.claude/hooks/tests/suites/knowledge-route.test.cjs:530` (passed locally on 2026-10-22: knowledge suites, 57 of 57)
+> **CoveredBy:** `.claude/hooks/tests/suites/knowledge-base.test.cjs::TC-KNW-052`, `.claude/hooks/tests/suites/knowledge-route.test.cjs::TC-KNW-052` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/knowledge-base.test.cjs:796` (passed in the 2026-10-21 verify: knowledge suites in the full hook aggregate, Codex and OpenCode families in the mirror sync) · `.claude/hooks/tests/suites/knowledge-route.test.cjs:540` (passed locally on 2026-10-22: knowledge suites, 56 of 56) · `.claude/hooks/tests/suites/knowledge-route.test.cjs:552` (passed locally on 2026-10-22: knowledge suites, 57 of 57)
 
 ---
 
