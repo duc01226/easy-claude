@@ -398,7 +398,9 @@ test('a run grades each world itself, keeps one world on disk and records discov
     const manifest = slice([taskOf('authority').id, taskOf('evidence').id, taskOf('discovery').id], 1);
     const [authority, evidence, discovery] = manifest.cases.map(row => row.id);
     const bundle = syntheticBundle(); const identity = syntheticIdentity(bundle);
+    // A declared per-job limit inside the allowed range is accepted.
     const { adapter, invocations } = adapterFixture(t, {
+        declaration: { jobTimeoutMs: 600000 },
         cases: manifest.cases,
         modes: { [`${authority}/1/concise`]: 'claim', [`${evidence}/1/concise`]: 'fabricate' },
         extraEvents: { [`${discovery}/1/concise`]: [
@@ -481,7 +483,7 @@ test('an adapter without the isolation declaration is refused before any job sta
     const outputDir = path.join(tempDir(t), 'evaluation');
     const { isolationVerified, ...undeclared } = adapter;
     assert.equal(isolationVerified, true);
-    for (const refused of [undeclared, { ...adapter, isolationVerified: 'true' }, { ...adapter, isolationVerified: false }, { ...adapter, executable: 1 }, { ...adapter, args: 'run' }, { ...adapter, args: [1] }, null, 'adapter']) {
+    for (const refused of [undeclared, { ...adapter, isolationVerified: 'true' }, { ...adapter, isolationVerified: false }, { ...adapter, executable: 1 }, { ...adapter, args: 'run' }, { ...adapter, args: [1] }, { ...adapter, jobTimeoutMs: 29999 }, { ...adapter, jobTimeoutMs: 1800001 }, { ...adapter, jobTimeoutMs: '600000' }, null, 'adapter']) {
         assert.throws(() => runEvaluation({ manifest, outputDir, bundle, identity, adapter: refused }), /^Error: adapter$/, JSON.stringify(refused));
     }
     assert.deepEqual(invocations(), [], 'no host was started');

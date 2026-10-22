@@ -76,7 +76,9 @@ Portable commands require Node only unless tokenization is explicitly requested:
   `--keep-worlds` is given.
 - `node .claude/scripts/context-delivery-evaluate.cjs --adapter <adapter.json>`
   runs a user-selected, authorized isolated host adapter. JSON declares a literal
-  `executable`, string `args`, and `isolationVerified: true`. Each job arrives on
+  `executable`, string `args`, and `isolationVerified: true`; an optional
+  `jobTimeoutMs` (30,000 to 1,800,000, default 180,000) gives a slower model or
+  host a longer per-job limit. Each job arrives on
   stdin with `cwd`, policy, prompt and source identities. Return actual host
   ordered `toolEvents` (`action`, `command`, `readPaths`, `changedPaths`, `output`,
   `exitCode`), model/settings hash, host and
@@ -114,7 +116,19 @@ Portable commands require Node only unless tokenization is explicitly requested:
   `CTX_EVAL_LINUX_SANDBOX_VERIFIED=1`); native Windows is refused. Reads are not
   confined, so run it as a user without secrets you would not show the model.
   The policy text reaches the run through `--append-system-prompt`, the same
-  channel for both profiles but not the production hook channel. It does
+  channel for both profiles but not the production hook channel.
+  A reference Codex adapter ships beside it (`codex.mjs`) for a hosted model or an
+  open-weight model served locally (`CTX_EVAL_CODEX_OSS=1`, Ollama or LM Studio
+  through `codex --oss`): events come from `codex exec --json` and a world snapshot
+  after each item; Codex's `workspace-write` sandbox runs with network off and the
+  temp directories excluded, a private temporary `CODEX_HOME` holds only a copy of the
+  sign-in file, the policy goes in as developer instructions, and the adapter refuses
+  a world under an ancestor `AGENTS.md`, `CLAUDE.md` or `.git` and on native Windows.
+  A command the sandbox refuses before it starts may not appear as an event.
+  Both adapters share `adapter-common.mjs`: a shell statement that only reads (for
+  example `cat a b` inside `ls; cat a b`) credits its files, an empty host scratch
+  folder such as Claude Code's `.claude/.cc-writes` is removed before grading (a
+  non-empty one stays), and the environment allowlist and ancestor check are one rule. It does
   not make discovery files read-only; the grader still flags any change to them. One
   host/platform lane is evidence for that lane, never the cross-lane adoption verdict.
   The adapter declaration records a prerequisite and does not establish isolation

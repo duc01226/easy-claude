@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { toEvent, readStream, childEnv, hookCommand, runSettings, ancestorContext, preflight, runArgs, runEnv, passNames } from '../context-evaluation-adapters/claude-code.mjs';
 import { snapshot, changed } from '../context-evaluation-adapters/claude-code-observer.mjs';
+import { removeHostScratch } from '../context-evaluation-adapters/adapter-common.mjs';
 
 const made = [];
 after(() => { for (const dir of made) fs.rmSync(dir, { recursive: true, force: true }); });
@@ -117,4 +118,19 @@ test('an ancestor CLAUDE.md is reported; a world outside any project has none', 
   assert.equal(ancestorContext(path.join(inner, 'w')), null);
   fs.writeFileSync(path.join(root, 'a', 'CLAUDE.md'), 'outer project');
   assert.equal(ancestorContext(path.join(inner, 'w')), path.join(root, 'a', 'CLAUDE.md'));
+});
+
+// Invariant: the host's own empty write-staging folder is never graded as the run's output, while anything
+// the run actually left in it stays for the grader.
+test('an empty host staging folder is removed; a non-empty one stays', () => {
+  const cwd = world();
+  const scratch = path.join(cwd, '.claude', '.cc-writes');
+  fs.mkdirSync(scratch, { recursive: true });
+  assert.deepEqual(removeHostScratch(cwd), ['.claude/.cc-writes']);
+  assert.equal(fs.existsSync(scratch), false);
+  fs.mkdirSync(scratch, { recursive: true });
+  fs.writeFileSync(path.join(scratch, 'left.tmp'), 'x');
+  assert.deepEqual(removeHostScratch(cwd), []);
+  assert.equal(fs.existsSync(path.join(scratch, 'left.tmp')), true);
+  assert.deepEqual(removeHostScratch(path.join(cwd, 'absent')), []);
 });

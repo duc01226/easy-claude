@@ -307,7 +307,10 @@ function removeWorld(dir) {
  */
 function runEvaluation({ manifest, outputDir, bundle, identity, adapter, keepWorlds = false, log = () => {} }) {
     if (adapter !== undefined && (!adapter || typeof adapter.executable !== 'string' || !Array.isArray(adapter.args)
-        || adapter.args.some(arg => typeof arg !== 'string') || adapter.isolationVerified !== true)) throw new Error('adapter');
+        || adapter.args.some(arg => typeof arg !== 'string') || adapter.isolationVerified !== true
+        || (adapter.jobTimeoutMs !== undefined && !(Number.isInteger(adapter.jobTimeoutMs) && adapter.jobTimeoutMs >= 30000 && adapter.jobTimeoutMs <= 1800000)))) throw new Error('adapter');
+    // A slower model or host may declare a longer per-job limit (30 s to 30 min); the default is 180 s.
+    const jobTimeout = adapter === undefined ? 0 : adapter.jobTimeoutMs ?? 180000;
     // Records claim the identity's bundle hash, so the worlds must be built from that bundle.
     if (identity.bundleHash !== bundle.hash) throw new Error('bundle-identity');
     const worlds = frozenWorlds(manifest);
@@ -323,7 +326,7 @@ function runEvaluation({ manifest, outputDir, bundle, identity, adapter, keepWor
         try {
             fs.mkdirSync(job.cwd); writeWorld(job.cwd, world, bundle);
             const started = Date.now();
-            const result = spawnSync(adapter.executable, adapter.args, { cwd: job.cwd, env: { ...process.env, CLAUDE_PROJECT_DIR: job.cwd }, input: JSON.stringify(job), encoding: 'utf8', timeout: 180000, maxBuffer: MAX_OBSERVED_OUTPUT_BYTES, shell: false });
+            const result = spawnSync(adapter.executable, adapter.args, { cwd: job.cwd, env: { ...process.env, CLAUDE_PROJECT_DIR: job.cwd }, input: JSON.stringify(job), encoding: 'utf8', timeout: jobTimeout, maxBuffer: MAX_OBSERVED_OUTPUT_BYTES, shell: false });
             if (result.status !== 0) {
                 fs.writeFileSync(path.join(dir, 'blocked.json'), JSON.stringify({ caseId: job.caseId, trial: job.trial, profile: job.profile, code: 'RUNTIME_UNAVAILABLE', recordsCompleted: records.length }));
                 throw new Error('runtime'); // no retries, no favorable subset

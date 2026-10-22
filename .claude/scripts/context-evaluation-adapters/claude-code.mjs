@@ -40,18 +40,15 @@ import os from 'node:os';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
+import { MAX_OUTPUT, shellReadPaths, childEnv, ancestorContext, removeHostScratch } from './adapter-common.mjs';
+
+export { childEnv, ancestorContext };
 
 const require = createRequire(import.meta.url);
 const { isInvokedAsScript } = require('../lib/project-root.cjs');
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const sha256 = text => crypto.createHash('sha256').update(text).digest('hex');
-// Read evidence must carry the file's actual text (the grader matches it), so outputs are raw tool text,
-// bounded well above any fixture file; the evaluator applies its own total evidence limit.
-const MAX_OUTPUT = 1024 * 1024;
-/** Read-only shell readers whose file operands count as reads when the command is a single statement. */
-const SHELL_READERS = new Set(['cat', 'head', 'tail', 'less', 'more', 'sed', 'nl', 'bat']);
-
 /** Map one observed Claude tool call to the evaluator's event shape. Pure. */
 export function toEvent(raw, cwd) {
     const name = raw.tool_name || '';
@@ -75,11 +72,7 @@ export function toEvent(raw, cwd) {
         output = typeof response?.file?.content === 'string' ? response.file.content : typeof response === 'string' ? response : JSON.stringify(response ?? '');
     } else if (name === 'Bash') {
         output = typeof response?.stdout === 'string' ? response.stdout : typeof response === 'string' ? response : JSON.stringify(response ?? '');
-        const command = typeof input.command === 'string' ? input.command.trim() : '';
-        const words = command.split(/\s+/);
-        if (!/[|;&<>`$()]/.test(command) && SHELL_READERS.has(path.basename(words[0] || ''))) {
-            readPaths = words.slice(1).filter(word => !word.startsWith('-')).map(rel).filter(file => file && fs.existsSync(path.join(cwd, file)) && fs.statSync(path.join(cwd, file)).isFile());
-        }
+        readPaths = shellReadPaths(typeof input.command === 'string' ? input.command : '', cwd);
     } else {
         output = typeof response === 'string' ? response : JSON.stringify(response ?? '');
     }
@@ -106,28 +99,6 @@ export function readStream(text) {
     }
     const inputTokens = usage ? (usage.input_tokens || 0) + (usage.cache_creation_input_tokens || 0) + (usage.cache_read_input_tokens || 0) : 0;
     return { model, ok, inputTokens, outputTokens: usage?.output_tokens || 0 };
-}
-
-/** Environment variables the child may inherit; everything else (tokens, cloud keys) is dropped. */
-const ENV_ALLOW = /^(PATH|PATHEXT|HOME|USER|USERNAME|LOGNAME|SHELL|LANG|LC_[A-Z_]+|TERM|TZ|TMPDIR|TEMP|TMP|SYSTEMROOT|WINDIR|COMSPEC|APPDATA|LOCALAPPDATA|USERPROFILE|HOMEDRIVE|HOMEPATH|XDG_[A-Z_]+|HTTPS?_PROXY|NO_PROXY|NODE_EXTRA_CA_CERTS|SSL_CERT_FILE|SSL_CERT_DIR|ANTHROPIC_[A-Z0-9_]+|CLAUDE_CONFIG_DIR|CLAUDE_CODE_[A-Z0-9_]+)$/i;
-
-/** The child's environment: allowlisted names plus `extra` names, then the fixed evaluation variables. Pure. */
-export function childEnv(env, extra = '') {
-    const names = new Set(String(extra).split(',').map(name => name.trim()).filter(Boolean));
-    const out = {};
-    for (const [key, value] of Object.entries(env)) if (ENV_ALLOW.test(key) || names.has(key)) out[key] = value;
-    return out;
-}
-
-/** First CLAUDE.md, CLAUDE.local.md, .claude/CLAUDE.md or .git in a directory strictly above `world`, or null. */
-export function ancestorContext(world) {
-    let dir = path.dirname(path.resolve(world));
-    for (;;) {
-        for (const name of ['CLAUDE.md', 'CLAUDE.local.md', path.join('.claude', 'CLAUDE.md'), '.git']) if (fs.existsSync(path.join(dir, name))) return path.join(dir, name);
-        const parent = path.dirname(dir);
-        if (parent === dir) return null;
-        dir = parent;
-    }
 }
 
 /** The observer hook command. Its two paths are quoted, so they must hold no shell-active character. */
@@ -211,6 +182,9 @@ function main() {
             if (process.env.CTX_EVAL_DEBUG_DIR) fs.writeFileSync(path.join(process.env.CTX_EVAL_DEBUG_DIR, `${path.basename(cwd)}.log`), `${result.error?.message || ''}\nstatus ${result.status} signal ${result.signal}\n${String(result.stderr).slice(-4000)}\n${String(result.stdout).slice(-4000)}`);
             throw new Error(result.error ? result.error.message : `claude run did not complete (status ${result.status})`);
         }
+        // Claude Code stages atomic writes in `.claude/.cc-writes` and leaves the folder behind; it is host
+        // scratch, not the run's output, so an empty one is removed before the grader inspects the world.
+        removeHostScratch(cwd);
         const log = path.join(state, 'events.jsonl');
         const raw = fs.existsSync(log) ? fs.readFileSync(log, 'utf8').split('\n').filter(Boolean).map(line => JSON.parse(line)) : [];
         const toolEvents = raw.map(row => toEvent(row, cwd));
@@ -220,7 +194,7 @@ function main() {
         process.stdout.write(JSON.stringify({
             toolEvents,
             model: stream.model || model,
-            settingsHash: sha256(JSON.stringify({ fixed, version, observer: 'post-tool-use-v2', sandbox: runSettings('', secrets).sandbox })),
+            settingsHash: sha256(JSON.stringify({ fixed, version, observer: 'post-tool-use-v3', sandbox: runSettings('', secrets).sandbox })),
             host: 'claude',
             inputTokens: stream.inputTokens,
             outputTokens: stream.outputTokens
