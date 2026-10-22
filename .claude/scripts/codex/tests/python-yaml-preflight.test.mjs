@@ -167,7 +167,11 @@ test("TC-PYDEP-005: on Windows the install hint is a PowerShell command that kee
     fs.copyFileSync(path.join(root, script), copy);
     // Simulated Windows: the scripts pick the PowerShell rendering from os.name.
     const launcher = [
-      "import os, runpy, sys",
+      // Before 3.12, pathlib reads os.name on import and in Path(): give it the host os first.
+      "import os, pathlib, runpy, sys, types",
+      "pathlib.os = types.SimpleNamespace(**vars(os))",
+      // From 3.13, Path() lives in pathlib._local and reads os.name there: pin it to the host too.
+      "if hasattr(pathlib, '_local'): pathlib._local.os = pathlib.os",
       "os.name = 'nt'",
       "sys.platform = 'win32'",
       `sys.executable = ${JSON.stringify(executable)}`,
@@ -231,7 +235,11 @@ test("TC-PYDEP-007: on an externally managed (PEP 668) interpreter the hint inst
     for (const windows of [false, true]) {
       const executable = windows ? "C:\\Tools & Co\\python.exe" : "/opt/py 3/bin/python3";
       const launcher = [
-        "import os, runpy, sys",
+        // Before 3.12, pathlib reads os.name on import and in Path(): give it the host os first.
+        "import os, pathlib, runpy, sys, types",
+        "pathlib.os = types.SimpleNamespace(**vars(os))",
+      // From 3.13, Path() lives in pathlib._local and reads os.name there: pin it to the host too.
+      "if hasattr(pathlib, '_local'): pathlib._local.os = pathlib.os",
         `os.name = ${windows ? "'nt'" : "'posix'"}`,
         ...(windows ? ["sys.platform = 'win32'"] : []),
         `sys.executable = ${JSON.stringify(executable)}`,

@@ -620,7 +620,10 @@ test("TC-HARNESS-008 current root COPY keeps custom prose, strips retired manage
     return;
   }
   const configRaw = await fs.readFile(path.join(repoRoot, "docs/project-config.json"), "utf8").catch(() => "{}");
-  const f = await fixture(t, JSON.parse(configRaw));
+  const config = JSON.parse(configRaw);
+  // The subject is the generator's update contract, so the copy drops a project's ownership switch.
+  delete config.portability?.generateClaudeMd;
+  const f = await fixture(t, config);
   const custom = "\n\n\n## Synthetic user prose\r\nretain exact λ spacing  \r\n\r\n\r\ncustom tail\r\n";
   const original = Buffer.concat([liveBytes, Buffer.from(custom)]);
   await fs.writeFile(path.join(f.root, "CLAUDE.md"), original);
@@ -644,6 +647,54 @@ test("TC-HARNESS-008 current root COPY keeps custom prose, strips retired manage
   t.diagnostic(JSON.stringify({ liveRootBytes: liveBytes.length, fixtureInputBytes: original.length,
     updatedBytes: Buffer.byteLength(updated), slimBytes: Buffer.byteLength(slim), inputSha256: hash(original), slimSha256: hash(slim),
     overflowReported: /ROOT_OVERFLOW/.test(result.stdout + result.stderr) }));
+});
+
+test("TC-CLG-013 Given portability.generateClaudeMd false, When any generator mode runs, Then the project-owned root is never written", async t => {
+  // Given a project that owns its root, with no generated sections in it.
+  const f = await fixture(t, { project: { name: "Owned" }, portability: { generateClaudeMd: false } });
+  const root = "# Owned\n\nHand-written rules only.\n";
+  await fs.writeFile(path.join(f.root, "CLAUDE.md"), root);
+
+  // When the probe and every write mode run.
+  const check = await runCheck(f);
+  for (const mode of ["init", "update", "smart-merge"]) await f.run(["--mode", mode]);
+
+  // Then the probe reports it current, the root is byte-identical and no backup is made.
+  assert.equal(check.code, 0);
+  assert.match(check.stdout, /project-owned/);
+  assert.equal(await f.read(), root);
+  await assert.rejects(fs.access(path.join(f.root, ".claude-md.backup")));
+});
+
+test("TC-CLG-014 Given an unreadable project config, When any generator mode runs, Then the root is not written", async t => {
+  // Given a hand-written root and a config that does not parse (it might hold generateClaudeMd: false).
+  const f = await fixture(t);
+  await fs.writeFile(path.join(f.root, "docs/project-config.json"), '{ "portability": { "generateClaudeMd": false }, }');
+  const root = "# Owned\n\nHand-written rules only.\n";
+  await fs.writeFile(path.join(f.root, "CLAUDE.md"), root);
+
+  // When the probe and every write mode run.
+  const check = await runCheck(f);
+  for (const mode of ["init", "update"]) await assert.rejects(f.run(["--mode", mode]));
+
+  // Then each run fails, the root is byte-identical and no backup is made.
+  assert.equal(check.code, 1);
+  assert.equal(await f.read(), root);
+  await assert.rejects(fs.access(path.join(f.root, ".claude-md.backup")));
+});
+
+test("TC-CLG-015 Given a project config saved with a UTF-8 BOM or as UTF-16, When the generator runs, Then it reads the ownership switch", async t => {
+  for (const encode of [text => Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from(text)]),
+    text => Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(text, "utf16le")])]) {
+    // Given a Windows-encoded config that makes the root project-owned.
+    const f = await fixture(t);
+    await fs.writeFile(path.join(f.root, "docs/project-config.json"), encode('{ "portability": { "generateClaudeMd": false } }'));
+    await fs.writeFile(path.join(f.root, "CLAUDE.md"), "# Owned\n");
+    // When the probe runs / Then it reports the root owned and current.
+    const check = await runCheck(f);
+    assert.equal(check.code, 0);
+    assert.match(check.stdout, /project-owned/);
+  }
 });
 
 async function copiedGenerator(f, changes = {}) {

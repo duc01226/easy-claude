@@ -153,11 +153,24 @@ function readJsonObject(file) {
     }
 }
 
-/** `<section>` from `.claude/.ck.json` overlaid by `.claude/.ck.local.json` (local wins per key). */
-function loadRouterSettings(projectDir, section) {
+/** The tracked project config (honoring `portability.projectConfigPath`); null when unresolvable. */
+function projectConfigFile(projectDir) {
+    try { return require('../../scripts/lib/workflow-routing-config.cjs').resolveProjectConfigPath(projectDir) || null; } catch { return null; }
+}
+
+/**
+ * `<section>` per key, later wins: the framework-shipped `.claude/.ck.json`, the team's project
+ * config (which a framework update never replaces), the person's `~/.claude/.ck.json`, then the
+ * checkout's `.claude/.ck.local.json`. options.homeDir overrides the home directory (tests).
+ */
+function loadRouterSettings(projectDir, section, options = {}) {
     const merged = {};
-    for (const name of ['.ck.json', '.ck.local.json']) {
-        const config = readJsonObject(path.join(projectDir, '.claude', name));
+    const files = [path.join(projectDir, '.claude', '.ck.json'), projectConfigFile(projectDir),
+        path.join(options.homeDir || require('node:os').homedir(), '.claude', '.ck.json'),
+        path.join(projectDir, '.claude', '.ck.local.json')];
+    for (const file of files) {
+        if (!file) continue;
+        const config = readJsonObject(file);
         const value = config && config[section];
         if (value && typeof value === 'object' && !Array.isArray(value)) Object.assign(merged, value);
     }
@@ -176,7 +189,7 @@ function resolveHookSkillAutoTrigger(deps = {}) {
 /**
  * False when the router is switched off: `.ck.json` `<section>.enabled: false` (or a hand-typed
  * "false"/"0"/"no"/"off") or `<envVar>` set to one of those values. On by default.
- * deps (tests): env, projectDir, rawSettings.
+ * deps (tests): env, projectDir, rawSettings, homeDir.
  */
 function isRouterEnabled(section, envVar, deps = {}) {
     const env = deps.env || process.env;
@@ -188,7 +201,7 @@ function isRouterEnabled(section, envVar, deps = {}) {
             const { resolveProjectRoot } = require('./project-root.cjs');
             projectDir = resolveProjectRoot({ cwd: process.cwd(), scriptPath: __filename, env }).rootDir;
         }
-        settings = loadRouterSettings(projectDir, section);
+        settings = loadRouterSettings(projectDir, section, { homeDir: deps.homeDir });
     }
     const enabled = settings && typeof settings === 'object' ? settings.enabled : undefined;
     return enabled !== false && !isOff(enabled);

@@ -114,7 +114,11 @@ only; it does not select `frameworkRuntime.mode: off`.
 
 Work from the adopting project's root; use that project's copied framework, never an authoring-repo path.
 
-1. For personal settings and common switches, run `node .claude/scripts/ck-config-help.cjs --json`.
+1. For "which features exist, what is on, and how do I change it", run `node .claude/scripts/framework-features.cjs`
+   (`--json` for data): each switch with its default, effective value, the layer that set it, who may set it
+   (team-only switches such as `frameworkRuntime.offMode` and `portability.generateClaudeMd` are never personal)
+   and the exact change. Opt-in switches ship off, so other projects keep their behavior until they choose.
+   For the full list of personal settings, run `node .claude/scripts/ck-config-help.cjs --json`.
    For project options, run `node .claude/skills/project-config/scripts/project-config-help.cjs --search=<term>`
    or `--section=<section>`. Read only the owning documentation relevant to the question.
 2. For commands and general framework help, run `.claude/scripts/ck-help.py` with the available Python
@@ -145,6 +149,11 @@ Work from the adopting project's root; use that project's copied framework, neve
 5. Save, reread, validate, and resolve the effective value again. Report the exact file, saved preference,
    winning value/source, and whether regeneration is needed. Runtime switches need no mirror regeneration.
    Native visibility/profile changes use their documented generator; never edit generated mirrors by hand.
+6. A teammate's preference goes only in their personal layer (`~/.claude/.ck.json`, `.claude/.ck.local.json`
+   or an environment variable), never in a tracked file. A team value goes in the project config, which a
+   framework update never replaces; never in the framework-shipped `.claude/.ck.json` or `.claude/settings.json`,
+   which `framework-update.mjs` merges with upstream. When a needed behavior has no setting, propose it upstream
+   as an opt-in switch instead of editing a framework file in the project.
 
 ## Runtime machinery and context injection
 

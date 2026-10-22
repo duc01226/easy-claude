@@ -6,7 +6,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const { randomUUID } = require('node:crypto');
-const { MODES, resolveFrameworkMode, resolveQuietProjectRules } = require('../hooks/lib/framework-runtime.cjs');
+const { MODES, resolveFrameworkMode, resolveQuietProjectRules, resolveQuietNative, resolveAutoApplyNative, resolveOffMode } = require('../hooks/lib/framework-runtime.cjs');
 const { decodeConfigText } = require('./lib/workflow-routing-config.cjs');
 const { resolveMutationProjectRoot } = require('./lib/project-root.cjs');
 const { planNativeSkills, applyNativeSkills, nativeStatus, withNativeLock, assertSettingsPath } = require('./lib/framework-native-skills.cjs');
@@ -71,11 +71,19 @@ function run(args) {
     const effective = resolveFrameworkMode({ rootDir });
     const nativeSkills = nativeStatus(rootDir);
     const projectRules = resolveQuietProjectRules({ rootDir });
-    const result = { ...effective, quietProjectRules: { enabled: projectRules.enabled, source: projectRules.source }, ...(saved ? { saved } : {}), nativeSkills, ...(nativeApplied ? { nativeApplied } : {}) };
+    const quietNative = resolveQuietNative({ rootDir });
+    const autoApply = resolveAutoApplyNative({ rootDir });
+    const offMode = resolveOffMode({ rootDir });
+    const result = { ...effective, quietProjectRules: { enabled: projectRules.enabled, source: projectRules.source },
+        quietNative: { value: quietNative.value, source: quietNative.source }, autoApplyNative: { enabled: autoApply.enabled, source: autoApply.source },
+        offMode: { value: offMode.value, source: offMode.source }, ...(saved ? { saved } : {}), nativeSkills, ...(nativeApplied ? { nativeApplied } : {}) };
+    const nativeLabel = nativeSkills.skillsDisabled ? 'disabled' : nativeSkills.restricted ? 'quiet profile (framework skills on command only, framework agents denied)' : 'normal profile';
     process.stdout.write(args.includes('--json') ? `${JSON.stringify(result, null, 2)}\n` :
-        `${saved ? `Saved ${saved.mode ?? 'reset'} in ${saved.file}\n` : ''}Framework mode: ${effective.mode} (${effective.source})\n` +
+        `${saved ? `Saved ${saved.mode ?? 'reset'} in ${saved.file}\n` : ''}Framework mode: ${effective.mode} (${effective.source})${effective.offReadAsQuiet ? ' — off is read as quiet (team frameworkRuntime.offMode: as-quiet)' : ''}\n` +
         `${effective.mode === 'quiet' ? `Project rules in quiet (overlays, file conventions, auto-trigger policy): ${projectRules.enabled ? 'kept' : 'off'} (${projectRules.source})\n` : ''}` +
-        `Native Claude/Codex skills: ${nativeSkills.skillsDisabled ? 'disabled' : 'normal profile'}${nativeSkills.registered ? '' : ' (run apply to register this checkout)'}\n` +
+        `${effective.mode === 'quiet' ? `Native restriction in quiet (frameworkRuntime.quietNative): ${quietNative.value} (${quietNative.source})\n` : ''}` +
+        `Native Claude/Codex skills and agents: ${nativeLabel}${nativeSkills.registered ? '' : ' (run apply to register this checkout)'}\n` +
+        `Apply native settings at session start (frameworkRuntime.autoApplyNative): ${autoApply.enabled ? 'on' : 'off'} (${autoApply.source})\n` +
         `${nativeSkills.needsApply ? 'Native settings need reconciliation: run apply.\n' : ''}` +
         `${nativeApplied ? 'Start fresh Claude/Codex sessions to load native settings. User scope covers registered checkouts; run apply once in each new checkout.\n' : ''}`);
     return result;

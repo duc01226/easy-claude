@@ -27,7 +27,8 @@ function fixture(fn) {
 function cleanEnv(override) {
     const env = { ...process.env };
     delete env.CLAUDE_PROJECT_DIR;
-    return { ...env, ...override };
+    // Root guards must execute regardless of the operator's framework mode.
+    return { ...env, CK_FRAMEWORK_MODE: 'on', ...override };
 }
 
 test('mutation root rejects invalid explicit targets while read-only metadata remains available', () => fixture(dir => {

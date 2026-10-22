@@ -100,6 +100,13 @@ node .claude/skills/project-config/scripts/project-config-help.cjs --consumers #
 node .claude/skills/project-config/scripts/project-config-help.cjs --current  # what THIS project already declares
 ```
 
+Framework switches (runtime mode and its quiet policies, route mode, skill auto-trigger, router reminders,
+the project-owned root) and their effective values, defaults and owners come from
+`node .claude/scripts/framework-features.cjs`. Init leaves each opt-in switch at its default unless the
+project asks for it; team values go in the project config, personal ones in a personal layer. A project
+that already has the framework updates it with `node .claude/scripts/framework-update.mjs <easy-claude-dir>`
+(read `.claude/docs/framework-portability.md#updating-an-installed-framework`), never by re-exporting over it.
+
 ### 3. Current state of this project (run before answering "what would init do here?")
 
 ```bash
