@@ -17,6 +17,7 @@ description: '[Documentation] Use when generating, smart-merging or refactoring 
 
 **Workflow:**
 
+0. **Ownership** — when `portability.generateClaudeMd` is `false` in `docs/project-config.json`, the project owns `CLAUDE.md`: do not generate, smart-merge, refactor or edit it, add no markers, and report that; only the Codex mirror sync (step 5) may still run.
 1. **Detect Mode** — init (no root context or `--mode init`), update (`--mode update`), refactor (`--mode refactor`)
 2. **Run Generator** — `node .claude/skills/ai-context-refresh/scripts/generate-claude-md.cjs --mode <mode>`
 3. **AI Fill** — Review output, fill creative sections (project description, golden rules inference)

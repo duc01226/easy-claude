@@ -1,6 +1,6 @@
 # Hooks Reference
 
-> <!-- COUNT:hooks -->37<!-- /COUNT --> top-level `.cjs` hooks and <!-- COUNT:lib-modules -->72<!-- /COUNT --> lib modules for context-aware AI behavior (some hooks register on multiple events; the unified notification router lives under `.claude/hooks/notifications/notify.cjs`)
+> <!-- COUNT:hooks -->38<!-- /COUNT --> top-level `.cjs` hooks and <!-- COUNT:lib-modules -->72<!-- /COUNT --> lib modules for context-aware AI behavior (some hooks register on multiple events; the unified notification router lives under `.claude/hooks/notifications/notify.cjs`)
 
 ## Contents
 
@@ -77,6 +77,7 @@ two events is counted once per event).
 | `session-init.cjs`                       | SessionStart                               | `startup\|resume\|clear\|compact`                        | Initialize session: detect project, write env vars, validate config, cleanup temp files                                                                                                                                                                                                                                    |
 | `session-init-docs.cjs`                  | SessionStart                               | `startup`                                                | Config skeleton + reference doc placeholder creation                                                                                                                                                                                                                                                                       |
 | `graph-session-init.cjs`                 | SessionStart                               | `startup\|resume`                                        | Check Python/tree-sitter/graph.db, then `sync` the graph with git HEAD (skips if config not populated or the code graph is not active — see [Code graph mode](#code-graph-mode)). `resume` included so a session resumed after someone else's commits landed still reconciles                                                                                                                        |
+| `framework-native-sync.cjs` | SessionStart | `startup` | Only when `frameworkRuntime.autoApplyNative` is true: in the main checkout, apply native skill and agent visibility (`framework-mode.cjs apply`) when it does not match the effective mode, effective from the next session; linked worktrees are left alone; reports a change or failure as a user message. Runs in every mode |
 | `session-end.cjs`                        | SessionEnd                                 | _(all reasons)_                                         | Revoke this session's Git leases on actual endings; preserve recovery on resume/other and leases on legacy compact; clean up temp/swap files and stale snapshots                                                                                                                                                                        |
 | `.claude/hooks/notifications/notify.cjs` | SessionEnd, Stop, PreToolUse, Notification | –, `AskUserQuestion`, `AskUserPrompt\|permission_prompt` | Desktop dialog/toast + optional Telegram/Discord/Slack, dispatched concurrently within the 3 s SessionEnd budget; main-session end (skipped on reason `clear`), direct Claude `AskUserQuestion`, and Codex `Stop` questions when the final message ends in `?`; existing turn-complete and input/permission alerts remain. |
 
@@ -99,12 +100,13 @@ one `Hook registration incomplete` block. Every registered file is present in th
 state, so the startup work still runs; a copy that is also missing files reports both
 in the one `Install incomplete` block. Registering neither entry is left alone.
 
-**Upgrade expectation.** A re-export
-(`node .claude/scripts/export-claude.mjs "<project-root>" --force`) replaces
-`.claude/settings.json` with the framework's, so new hook entries arrive with it. A
-project that keeps its own settings file across an upgrade does not gain them: copy
-each new entry from the framework's `.claude/settings.json` under the same event, then
-run `/sync-codex` so the Codex and OpenCode mirrors register it too.
+**Upgrade expectation.** Update an installed framework with
+`node .claude/scripts/framework-update.mjs <easy-claude-dir>`, never by re-exporting over it: it
+merges the framework's `.claude/settings.json` with the project's, so new hook entries arrive and the
+project's own entries stay (see `.claude/docs/framework-portability.md#updating-an-installed-framework`).
+A re-export (`export-claude.mjs --force`) replaces `.claude/settings.json` and every other framework
+file the project changed. After any settings change, run `/sync-codex` so the Codex and OpenCode
+mirrors register it too.
 
 The manager executable and its arguments are NOT configurable. The hook only ever
 runs a fixed, version-matched argv from its own support matrix, so no project
@@ -858,12 +860,12 @@ Doc paths in this file are defaults resolved against the project-reference docs 
 
 ## Testing
 
-The primary runner declares 133 tests. The aggregate runner `run-all-tests.cjs` discovers 2158 tests declared across 126 suite files. Source inventory is not an execution result; read the runner output for observed discovery, outcomes and skips. The aggregate includes eighteen task-tracking suites with 590 declared executors.
+The primary runner declares 133 tests. The aggregate runner `run-all-tests.cjs` discovers 2161 tests declared across 127 suite files. Source inventory is not an execution result; read the runner output for observed discovery, outcomes and skips. The aggregate includes eighteen task-tracking suites with 590 declared executors.
 
 | Test Surface          | Count | File/Location                                                     |
 | --------------------- | ----- | ----------------------------------------------------------------- |
 | Primary hook runner   | 133   | `.claude/hooks/tests/test-all-hooks.cjs`                          |
-| Aggregate runner      | 2158 | `.claude/hooks/tests/run-all-tests.cjs` (all suites, declared)  |
+| Aggregate runner      | 2161 | `.claude/hooks/tests/run-all-tests.cjs` (all suites, declared)  |
 | Standalone test files | TODO  | `tests/test-*.cjs/.js` excluding runner (re-verify before citing) |
 | Lib unit tests        | TODO  | `lib/__tests__/*.test.cjs` (re-verify before citing)              |
 

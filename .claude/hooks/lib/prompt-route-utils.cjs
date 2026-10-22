@@ -174,30 +174,23 @@ function readJsonObject(file) {
     }
 }
 
-/** The project config file (`docs/project-config.json` or `portability.projectConfigPath`), or null. */
+/** The tracked project config (honoring `portability.projectConfigPath`); null when unresolvable. */
 function projectConfigFile(projectDir) {
-    try {
-        return require('../../scripts/lib/workflow-routing-config.cjs').resolveProjectConfigPath(projectDir);
-    } catch {
-        return null;
-    }
+    try { return require('../../scripts/lib/workflow-routing-config.cjs').resolveProjectConfigPath(projectDir) || null; } catch { return null; }
 }
 
 /**
- * `<section>` from the settings layers, later wins per key: `.claude/.ck.json`, then — when
- * `options.teamLayer` — the project config (the team layer: the framework-shipped `.ck.json` is replaced
- * by a framework refresh, the project config is not), then the checkout's `.claude/.ck.local.json`.
- * A router opts into the team layer; without it only the two `.ck` files are read.
+ * `<section>` per key, later wins: the framework-shipped `.claude/.ck.json`, the team's project
+ * config (which a framework update never replaces), the person's `~/.claude/.ck.json`, then the
+ * checkout's `.claude/.ck.local.json`. options.homeDir overrides the home directory (tests).
  */
 function loadRouterSettings(projectDir, section, options = {}) {
     const merged = {};
-    const files = [path.join(projectDir, '.claude', '.ck.json')];
-    if (options.teamLayer) {
-        const team = projectConfigFile(projectDir);
-        if (team) files.push(team);
-    }
-    files.push(path.join(projectDir, '.claude', '.ck.local.json'));
+    const files = [path.join(projectDir, '.claude', '.ck.json'), projectConfigFile(projectDir),
+        path.join(options.homeDir || require('node:os').homedir(), '.claude', '.ck.json'),
+        path.join(projectDir, '.claude', '.ck.local.json')];
     for (const file of files) {
+        if (!file) continue;
         const config = readJsonObject(file);
         const value = config && config[section];
         if (value && typeof value === 'object' && !Array.isArray(value)) Object.assign(merged, value);
@@ -217,7 +210,7 @@ function resolveHookSkillAutoTrigger(deps = {}) {
 /**
  * False when the router is switched off: `.ck.json` `<section>.enabled: false` (or a hand-typed
  * "false"/"0"/"no"/"off") or `<envVar>` set to one of those values. On by default.
- * deps: teamLayer (also read the project config, see loadRouterSettings); tests: env, projectDir, rawSettings.
+ * deps (tests): env, projectDir, rawSettings, homeDir.
  */
 function isRouterEnabled(section, envVar, deps = {}) {
     const env = deps.env || process.env;
@@ -229,7 +222,7 @@ function isRouterEnabled(section, envVar, deps = {}) {
             const { resolveProjectRoot } = require('./project-root.cjs');
             projectDir = resolveProjectRoot({ cwd: process.cwd(), scriptPath: __filename, env }).rootDir;
         }
-        settings = loadRouterSettings(projectDir, section, { teamLayer: deps.teamLayer === true });
+        settings = loadRouterSettings(projectDir, section, { homeDir: deps.homeDir });
     }
     const enabled = settings && typeof settings === 'object' ? settings.enabled : undefined;
     return enabled !== false && !isOff(enabled);

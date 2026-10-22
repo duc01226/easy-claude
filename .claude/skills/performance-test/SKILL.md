@@ -1,6 +1,7 @@
 ---
 name: performance-test
-version: 1.0.0
+metadata:
+  version: '1.0.0'
 description: '[Testing] Use when initializing, writing, reviewing or verifying performance/load/soak/capacity tests. --mode=verify --fix-loop (or --mode=green) diagnoses, fixes and remeasures with performance-review. Static bottleneck audits use performance-review.'
 ---
 

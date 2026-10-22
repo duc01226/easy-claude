@@ -436,7 +436,7 @@ function runHook(number, deps = {}) {
             const input = options.input !== undefined ? options.input : readHookInput();
             if (!isDeliverableEvent(input)) return finish('');
             const rootDir = require('./protocol-delivery.cjs').resolveRoot(input, options);
-            if (!rootDir || !require('./framework-runtime.cjs').isHookEnabled(`protocol-inject-universal-${number}.cjs`, { rootDir })) return finish('');
+            if (!rootDir || !require('./framework-runtime.cjs').isHookEnabled(`protocol-inject-universal-${number}.cjs`, { rootDir, homeDir: options.homeDir, env: options.env })) return finish('');
             deliverBin(number, input, options).then(finish, () => finish(''));
         } catch {
             finish('');

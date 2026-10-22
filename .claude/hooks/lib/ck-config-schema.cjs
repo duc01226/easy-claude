@@ -46,6 +46,9 @@ const CK_SCHEMA = {
     properties: {
       mode: { type: "string", required: false, enum: ["on", "quiet", "off"], describe: "Modes on, quiet, off (default on); later wins: project config, ~/.claude/.ck.json, checkout .claude/.ck.local.json, CK_FRAMEWORK_MODE. Hooks see changes immediately; run framework-mode.cjs apply for native skill changes, then start fresh sessions." },
       quietProjectRules: { type: "boolean", required: false, describe: "With mode quiet, true keeps only the hooks that deliver the project's own rules: skill overlays, per-file conventions and the skill auto-trigger policy. Default false; later wins: project config, ~/.claude/.ck.json, checkout .claude/.ck.local.json, CK_QUIET_PROJECT_RULES." },
+      quietSkills: { type: "array", required: false, itemType: "string", describe: "With frameworkRuntime.quietNative restrict, framework skill names that stay model-invocable in quiet; the highest layer that sets the list wins. commit and the configured commit review skills always stay." },
+      quietNative: { type: "string", required: false, enum: ["none", "restrict"], describe: "What quiet does to native skill and agent visibility. none (default) leaves it; restrict makes framework skills user-invocable-only (except quietSkills and the commit gate reviews) and denies framework agents. Later wins: project config, ~/.claude/.ck.json, checkout .claude/.ck.local.json, CK_QUIET_NATIVE; framework-mode.cjs apply reconciles native settings." },
+      autoApplyNative: { type: "boolean", required: false, describe: "true lets framework-native-sync.cjs run framework-mode.cjs apply at session start in the main checkout when native settings do not match the effective mode. Default false; later wins: project config, ~/.claude/.ck.json, checkout .claude/.ck.local.json, CK_AUTO_APPLY_NATIVE." },
     },
   },
   skillProfile: {

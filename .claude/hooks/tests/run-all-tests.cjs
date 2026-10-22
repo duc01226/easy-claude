@@ -302,6 +302,15 @@ async function main() {
     process.exit(0);
   }
 
+  // A developer's personal framework settings (~/.claude/.ck.json, e.g. quiet mode) and a
+  // CK_FRAMEWORK_MODE override switch hooks off, so a suite that spawns or calls a hook would
+  // pass or fail by whose machine runs it. Every suite gets an empty home of its own instead.
+  const isolatedHome = fs.mkdtempSync(path.join(os.tmpdir(), 'hook-tests-home-'));
+  process.env.HOME = isolatedHome;
+  process.env.USERPROFILE = isolatedHome;
+  delete process.env.CK_FRAMEWORK_MODE;
+  process.on('exit', () => fs.rmSync(isolatedHome, { recursive: true, force: true }));
+
   const start = Date.now();
   const allResults = [];
 

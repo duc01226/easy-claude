@@ -19,7 +19,7 @@ Read this index when a task touches subject knowledge — a domain rule, a regul
 /knowledge-base import <file | research report | web address>   # unreviewed draft that keeps its source
 ```
 
-Packs reach the assistant automatically as a short pointer when a prompt phrase, a starting skill or a starting helper agent matches their triggers (never when a file is opened). Switch automatic delivery off with `knowledgeRoute.enabled: false` in `docs/project-config.json` (the team setting; `.claude/.ck.local.json` overrides it for one checkout) or `CK_KNOWLEDGE_ROUTE=0`. <!-- path-role: user-local -->
+Packs reach the assistant automatically as a short pointer when a prompt phrase, a starting skill or a starting helper agent matches their triggers (never when a file is opened). Switch automatic delivery off with `knowledgeRoute.enabled: false` in `docs/project-config.json` (the team setting; a personal `~/.claude/.ck.json` or the checkout's `.claude/.ck.local.json` overrides it) or `CK_KNOWLEDGE_ROUTE=0`. <!-- path-role: user-local -->
 
 ## Packs
 

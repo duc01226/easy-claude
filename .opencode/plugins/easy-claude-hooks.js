@@ -265,6 +265,15 @@ const HOOKS = {
       "hooks": [
         {
           "type": "command",
+          "command": ".claude/hooks/framework-native-sync.cjs"
+        }
+      ],
+      "matcher": "startup"
+    },
+    {
+      "hooks": [
+        {
+          "type": "command",
           "command": ".claude/hooks/failure-investigation-remind.cjs"
         }
       ],

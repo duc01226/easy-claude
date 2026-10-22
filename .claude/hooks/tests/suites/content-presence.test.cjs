@@ -613,8 +613,11 @@ module.exports = {
                 const { readProjectConfigAt } = require('../../lib/project-config-loader.cjs');
                 const loaded = readProjectConfigAt(PROJECT_DIR);
                 assertTrue(loaded.state !== 'invalid', `Invalid project config: ${loaded.errors.join('; ')}`);
-                if (!claudeMd.includes('| Files | Project reference |')) missing.push('project path-to-reference table');
                 assertTrue(!claudeMd.includes('file-conventions.cjs --lookup'), 'root guidance must work without framework machinery');
+                // A project-owned root (portability.generateClaudeMd: false) carries only what
+                // the project writes; the generated pointer tables are not required there.
+                if (loaded.config?.portability?.generateClaudeMd === false) return;
+                if (!claudeMd.includes('| Files | Project reference |')) missing.push('project path-to-reference table');
                 if (!/Read first/.test(claudeMd)) missing.push('prompt → reference-doc lookup table');
                 // The path→doc pointer rows — each names the reference doc a hook used to inject.
                 for (const doc of [

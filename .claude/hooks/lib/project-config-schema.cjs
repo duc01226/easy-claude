@@ -54,10 +54,57 @@ const SCHEMA = {
   knowledgeRoute: {
     type: "object",
     required: false,
-    describe: "Team settings for the knowledge router (knowledge-route.cjs). Kept in the project config because the framework-shipped .claude/.ck.json is replaced on refresh. Read per key, later wins: .claude/.ck.json, this file, checkout .claude/.ck.local.json; CK_KNOWLEDGE_ROUTE=0 always switches it off.",
+    describe: "Team settings for the knowledge router (knowledge-route.cjs). Kept in the project config because the framework-shipped .claude/.ck.json is replaced on refresh. Read per key, later wins: .claude/.ck.json, this file, ~/.claude/.ck.json, checkout .claude/.ck.local.json; CK_KNOWLEDGE_ROUTE=0 always switches it off.",
     properties: {
       enabled: { type: "boolean", required: false, describe: "false switches every knowledge pointer off (prompt, skill and helper-agent triggers). Default true." },
       promptTriggers: { type: "boolean", required: false, describe: "true turns prompt-phrase triggers on, false off; when unset, the recorded held-out evaluation (.claude/knowledge-base/evaluation.json) decides." },
+    },
+  },
+  // Team layer for the advisory router switches (prompt-route-utils loadRouterSettings): read after the
+  // framework-shipped .claude/.ck.json and before the personal files, so a framework update never resets them.
+  // Advisory UserPromptSubmit routers. On by default; `enabled: false` (or the env switch
+  // CK_COMMIT_SKILL_ROUTE=0 / CK_JUDGEMENT_INTEGRITY_ROUTE=0) switches one off.
+  commitSkillRoute: {
+    type: "object",
+    required: false,
+    properties: {
+      enabled: { type: "boolean", required: false },
+    },
+  },
+  judgementIntegrityRoute: {
+    type: "object",
+    required: false,
+    properties: {
+      enabled: { type: "boolean", required: false },
+    },
+  },
+  // AI-feature router (ai-feature-route.cjs). On by default; `enabled: false` or CK_AI_FEATURE_ROUTE=0 switches it off.
+  aiFeatureRoute: {
+    type: "object",
+    required: false,
+    properties: {
+      enabled: { type: "boolean", required: false },
+    },
+  },
+  // Quality-skill reminder after tool results (quality-skill-remind.cjs). On by default;
+  // `enabled: false` or CK_QUALITY_SKILL_REMINDER=0 switches it off.
+  qualitySkillReminder: {
+    type: "object",
+    required: false,
+    properties: {
+      enabled: { type: "boolean", required: false },
+    },
+  },
+  // Core engineering principles reminder (core-principles-inject.cjs). On by default;
+  // `enabled: false` or CK_CORE_PRINCIPLES_INJECT=0 switches it off.
+  corePrinciplesInject: {
+    type: "object",
+    required: false,
+    properties: {
+      enabled: { type: "boolean", required: false },
+      // Mirrors file-conventions.cjs CLASS_REINJECT_TOKENS_RANGE (parity asserted by the core-principles-inject suite).
+      // The hook accepts only integers in range; any other value falls back to its default.
+      reinjectAfterTokens: { type: "number", required: false, min: 20000, max: 2000000 },
     },
   },
   frameworkRuntime: {
@@ -67,6 +114,10 @@ const SCHEMA = {
     properties: {
       mode: { type: "string", required: false, enumValues: ["on", "quiet", "off"], describe: "Modes on, quiet, off (default on); later wins: project config, ~/.claude/.ck.json, checkout .claude/.ck.local.json, CK_FRAMEWORK_MODE. Hooks see changes immediately; run framework-mode.cjs apply for native skill changes, then start fresh sessions." },
       quietProjectRules: { type: "boolean", required: false, describe: "With mode quiet, true keeps only the hooks that deliver the project's own rules: skill overlays, per-file conventions and the skill auto-trigger policy. Default false; later wins: project config, ~/.claude/.ck.json, checkout .claude/.ck.local.json, CK_QUIET_PROJECT_RULES." },
+      quietSkills: { type: "array", required: false, itemType: "string", describe: "With frameworkRuntime.quietNative restrict, framework skill names that stay model-invocable in quiet; the highest layer that sets the list wins. commit and the configured commit review skills always stay." },
+      quietNative: { type: "string", required: false, enumValues: ["none", "restrict"], describe: "What quiet does to native skill and agent visibility. none (default) leaves it; restrict makes framework skills user-invocable-only (except quietSkills and the commit gate reviews) and denies framework agents. Later wins: project config, ~/.claude/.ck.json, checkout .claude/.ck.local.json, CK_QUIET_NATIVE; framework-mode.cjs apply reconciles native settings." },
+      autoApplyNative: { type: "boolean", required: false, describe: "true lets framework-native-sync.cjs run framework-mode.cjs apply at session start in the main checkout when native settings do not match the effective mode. Default false; later wins: project config, ~/.claude/.ck.json, checkout .claude/.ck.local.json, CK_AUTO_APPLY_NATIVE." },
+      offMode: { type: "string", required: false, enumValues: ["allowed", "as-quiet"], describe: "Team policy, read from the project config only. allowed (default) keeps mode off; as-quiet reads every saved or requested off as quiet, so a personal setting never stops the commit and doc gates." },
     },
   },
     taskTracking: TASK_TRACKING_SCHEMA,
@@ -842,6 +893,9 @@ const SCHEMA = {
             // rule-bearing group ranked within maxClassesPerEdit with a worst-case digest within maxChars;
             // otherwise rules stay inline and the generator warns. Default true.
             inlinePathRules: { type: 'boolean', required: false },
+            // false = the project owns CLAUDE.md: the generator, its sync-codex preflight and the
+            // root-editing skills never write it. Default true.
+            generateClaudeMd: { type: 'boolean', required: false, describe: 'Default true. false = the project owns CLAUDE.md: the generator never writes it (every mode reports or refuses), the sync-codex claude-md stage leaves it alone, and ai-context-refresh, learn and harness-setup propose text instead of editing it.' },
             // Optional custom protocol appended to the runtime workflow-route reminder on
             // UserPromptSubmit. A string is inline markdown; an object carries inline `text`
             // and/or a repo-relative `path` to a markdown file read at runtime. The value here

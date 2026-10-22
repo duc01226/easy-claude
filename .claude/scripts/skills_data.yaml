@@ -16,7 +16,7 @@
   description: '[Code Quality] Use when a workflow step or the user asks for AI code
     or plan review: LLM calls, prompts, agents, RAG, evals and guardrails. --mode={code|plan};
     --report-only is read-only.'
-  has_references: false
+  has_references: true
   has_scripts: false
   name: ai-engineering-review
   path: ai-engineering-review/SKILL.md
@@ -446,7 +446,7 @@
   deprecated_since: null
   description: '[Utilities] Use when teaching Claude a lesson that persists across
     sessions, including an extra rule for one skill or task kind (routes to project-skill-protocol).'
-  has_references: false
+  has_references: true
   has_scripts: false
   name: learn
   path: learn/SKILL.md
@@ -558,6 +558,19 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
+  description: '[Code Quality] Use when asked for a final or full review of a pull
+    request or branch, or to check a branch before marking its PR Ready. Reviews the
+    whole branch against its target, fixes findings in at most two rounds, then lists
+    the Ready checklist. One commit: commit-review.'
+  has_references: false
+  has_scripts: false
+  name: pr-review
+  path: pr-review/SKILL.md
+  removal_after: null
+  status: active
+- category: other
+  deprecated_by: null
+  deprecated_since: null
   description: '[Documentation] Use when creating, revising, auditing or generating
     a presentation: narrative-led self-contained HTML deck with speaker notes and
     edit mode.'
@@ -595,7 +608,7 @@
   deprecated_since: null
   description: '[Code Quality] Use when a workflow step or the user asks for service/API
     readiness: observability, reliability, data integrity and database performance.'
-  has_references: false
+  has_references: true
   has_scripts: false
   name: production-readiness-review
   path: production-readiness-review/SKILL.md
@@ -606,7 +619,7 @@
   deprecated_since: null
   description: '[Utilities] Use when syncing the project-config file (default docs/project-config.json)
     with the current workspace structure. Not reference docs (scan) or CLAUDE.md (ai-context-refresh).'
-  has_references: false
+  has_references: true
   has_scripts: true
   name: project-config
   path: project-config/SKILL.md
@@ -835,8 +848,9 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Codex] Use when running the full Codex mirror sync and verify pipeline,
-    or when `.claude/**` edits leave `.agents/`, `.codex/` or `AGENTS.md` stale.'
+  description: '[Codex] Use once, after the `.claude/**` edits of a change are final
+    and before committing them, to regenerate and verify `.agents/`, `.codex/`, `.opencode/`
+    and `AGENTS.md`; never after each edit.'
   has_references: false
   has_scripts: true
   name: sync-codex

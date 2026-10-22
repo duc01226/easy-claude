@@ -285,6 +285,16 @@
     ],
     "SessionStart": [
       {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/framework-native-sync.cjs",
+            "timeout": 10,
+            "type": "command"
+          }
+        ]
+      },
+      {
         "matcher": "compact|clear",
         "hooks": [
           {

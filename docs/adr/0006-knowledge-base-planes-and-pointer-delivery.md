@@ -77,7 +77,7 @@ Three forces shape the design:
 
 ### 2026-10-22 — Team settings layer for the knowledge router
 
-- **Change:** `knowledgeRoute` (`enabled`, `promptTriggers`) is also read from the project config, between the framework-shipped `.claude/.ck.json` and the checkout's `.claude/.ck.local.json`; later wins, and `CK_KNOWLEDGE_ROUTE=0` overrides all three.
+- **Change:** `knowledgeRoute` (`enabled`, `promptTriggers`) is also read from the project config, after the framework-shipped `.claude/.ck.json` and before the person's `~/.claude/.ck.json` and the checkout's `.claude/.ck.local.json` (the settings layers every router shares); later wins, and `CK_KNOWLEDGE_ROUTE=0` overrides all four.
 - **Why:** a framework refresh replaces `.claude/.ck.json`, which would silently drop a project's kill switch or prompt-trigger opt-in. The project config is project-owned, the same reason the `contextDelivery` team default lives there.
 - **Scope:** the layer is an opt-in of `loadRouterSettings` that only this router takes. The other routers still read the two `.ck` files; moving them is a separate follow-up.
 

@@ -37,8 +37,6 @@ const path = require('path');
 
 const HOOK_NAME = 'knowledge-route';
 const SETTINGS_SECTION = 'knowledgeRoute';
-// The project config is a settings layer for this router (BR-KNW-11): a team switch survives a framework refresh.
-const SETTINGS_LAYERS = Object.freeze({ teamLayer: true });
 const ENV_SWITCH = 'CK_KNOWLEDGE_ROUTE';
 const GROUP_PREFIX = 'knowledge-';
 const DEFAULT_REINJECT_TOKENS = 150000;
@@ -116,7 +114,7 @@ function asFlag(value) {
  * default recorded by the held-out evaluation (`promptTriggersDefault`), else off.
  */
 function promptTriggersOn(projectDir, deps) {
-    const settings = deps.rawSettings !== undefined ? deps.rawSettings : require('./lib/prompt-route-utils.cjs').loadRouterSettings(projectDir, SETTINGS_SECTION, SETTINGS_LAYERS);
+    const settings = deps.rawSettings !== undefined ? deps.rawSettings : require('./lib/prompt-route-utils.cjs').loadRouterSettings(projectDir, SETTINGS_SECTION, { homeDir: deps.homeDir });
     const explicit = isPlainObject(settings) ? asFlag(settings.promptTriggers) : null;
     if (explicit !== null) return explicit;
     try {
@@ -234,7 +232,7 @@ function run(input, deps = {}) {
             const utils = require('./lib/prompt-route-utils.cjs');
             const env = deps.env || process.env;
             const projectDir = projectDirFor(input, deps);
-            if (!utils.isRouterEnabled(SETTINGS_SECTION, ENV_SWITCH, { env, projectDir, rawSettings: deps.rawSettings, ...SETTINGS_LAYERS })) return resolve('');
+            if (!utils.isRouterEnabled(SETTINGS_SECTION, ENV_SWITCH, { env, projectDir, rawSettings: deps.rawSettings, homeDir: deps.homeDir })) return resolve('');
             const indexLib = require('./lib/knowledge-index.cjs');
             const telemetry = require('./lib/knowledge-telemetry.cjs');
             if (kind === 'read') {

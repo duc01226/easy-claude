@@ -12,6 +12,7 @@ const hook = require('../../failure-investigation-remind.cjs');
 const ledger = require('../../lib/convention-ledger.cjs');
 const { BYTES_PER_TOKEN } = require('../../lib/file-conventions.cjs');
 const { validateConfig } = require('../../lib/project-config-schema.cjs');
+const { createEnvSaver } = require('./test-utils.cjs');
 const ROOT = path.resolve(__dirname, '../../../..');
 const HOOK = path.join(ROOT, '.claude/hooks/failure-investigation-remind.cjs');
 const GROUP = 'failure-investigation-remind';
@@ -225,44 +226,56 @@ const cases = {
             const reminderOnly = Object.fromEntries(['PreToolUse', 'SessionStart'].map(event => [event,
                 source.hooks[event].filter(group => group.hooks?.some(entry => entry.command?.endsWith(`/.claude/hooks/${GROUP}.cjs`)))]));
             fs.writeFileSync(path.join(fx.root, '.claude/settings.json'), JSON.stringify({ hooks: reminderOnly }));
-            const { pluginPath } = await materializeOpencodeHooks({ rootDir: fx.root });
-            const { EasyClaudeHooks } = await import(pathToFileURL(pluginPath).href);
-            const bridge = await EasyClaudeHooks({ directory: fx.root });
-            const before = sessionID => bridge['tool.execute.before']({ tool: 'bash', sessionID, callID: 'fixture' }, { args: { command: 'fixture-test' } });
-            const model = async sessionID => {
-                const output = { system: [] };
-                await bridge['experimental.chat.system.transform']({ sessionID }, output);
-                return output.system.filter(text => text.includes('CK:FAILURE-INVESTIGATION-REMINDER'));
-            };
-            const after = async sessionID => {
-                const output = { output: 'fixture-output' };
-                await bridge['tool.execute.after']({ tool: 'bash', sessionID, callID: 'fixture', args: { command: 'fixture-test' } }, output);
-                return output.output;
-            };
-            await before('completed');
-            assert.match(await after('completed'), /^fixture-output\n\n[^]*CK:FAILURE-INVESTIGATION-REMINDER/, 'a completed tool carries the reminder in its output, where it stays in the conversation');
-            assert.deepEqual(await model('completed'), [], 'a reminder delivered with tool output is not repeated in the system prompt');
-            await before('completed');
-            assert.equal(await after('completed'), 'fixture-output', 'actual hook credit keeps later tool output free of the reminder');
-            await before('bridge');
-            assert.deepEqual(await model('other'), [], 'queued context cannot leak across sessions');
-            await bridge['experimental.chat.system.transform']({ sessionID: 'bridge' }, {});
-            assert.equal((await model('bridge')).length, 1, 'retain until a model sink exists, even without a successful after callback');
-            assert.deepEqual(await model('bridge'), [], 'consume pending context once');
-            await before('bridge');
-            assert.deepEqual(await model('bridge'), [], 'actual hook credit suppresses repeated shell events');
-            await bridge.event({ event: { type: 'session.compacted', properties: { sessionID: 'bridge' } } });
-            await before('bridge');
-            assert.equal((await model('bridge')).length, 1, 'compaction re-arms and reaches the model');
-            await bridge.event({ event: { type: 'session.compacted', properties: { sessionID: 'bridge' } } });
-            await before('bridge');
-            await bridge.event({ event: { type: 'session.compacted', properties: { sessionID: 'bridge' } } });
-            assert.deepEqual(await model('bridge'), [], 'compaction discards a reminder still waiting for a model request');
-            await before('bridge');
-            assert.equal((await model('bridge')).length, 1, 'the discarded reminder is re-armed, not lost');
-            await before('deleted');
-            await bridge.event({ event: { type: 'session.deleted', properties: { info: { id: 'deleted' } } } });
-            assert.deepEqual(await model('deleted'), [], 'deleted sessions discard pending context');
+            // The bridge spawns hooks with this process's environment, and their runtime
+            // guard reads personal settings from HOME: give them the fixture's home, as the
+            // direct spawns above do, so a developer's own quiet mode cannot disable them.
+            const environment = createEnvSaver();
+            environment.save(['HOME', 'USERPROFILE', 'CK_FRAMEWORK_MODE']);
+            process.env.HOME = fx.root;
+            process.env.USERPROFILE = fx.root;
+            delete process.env.CK_FRAMEWORK_MODE;
+            try {
+                const { pluginPath } = await materializeOpencodeHooks({ rootDir: fx.root });
+                const { EasyClaudeHooks } = await import(pathToFileURL(pluginPath).href);
+                const bridge = await EasyClaudeHooks({ directory: fx.root });
+                const before = sessionID => bridge['tool.execute.before']({ tool: 'bash', sessionID, callID: 'fixture' }, { args: { command: 'fixture-test' } });
+                const model = async sessionID => {
+                    const output = { system: [] };
+                    await bridge['experimental.chat.system.transform']({ sessionID }, output);
+                    return output.system.filter(text => text.includes('CK:FAILURE-INVESTIGATION-REMINDER'));
+                };
+                const after = async sessionID => {
+                    const output = { output: 'fixture-output' };
+                    await bridge['tool.execute.after']({ tool: 'bash', sessionID, callID: 'fixture', args: { command: 'fixture-test' } }, output);
+                    return output.output;
+                };
+                await before('completed');
+                assert.match(await after('completed'), /^fixture-output\n\n[^]*CK:FAILURE-INVESTIGATION-REMINDER/, 'a completed tool carries the reminder in its output, where it stays in the conversation');
+                assert.deepEqual(await model('completed'), [], 'a reminder delivered with tool output is not repeated in the system prompt');
+                await before('completed');
+                assert.equal(await after('completed'), 'fixture-output', 'actual hook credit keeps later tool output free of the reminder');
+                await before('bridge');
+                assert.deepEqual(await model('other'), [], 'queued context cannot leak across sessions');
+                await bridge['experimental.chat.system.transform']({ sessionID: 'bridge' }, {});
+                assert.equal((await model('bridge')).length, 1, 'retain until a model sink exists, even without a successful after callback');
+                assert.deepEqual(await model('bridge'), [], 'consume pending context once');
+                await before('bridge');
+                assert.deepEqual(await model('bridge'), [], 'actual hook credit suppresses repeated shell events');
+                await bridge.event({ event: { type: 'session.compacted', properties: { sessionID: 'bridge' } } });
+                await before('bridge');
+                assert.equal((await model('bridge')).length, 1, 'compaction re-arms and reaches the model');
+                await bridge.event({ event: { type: 'session.compacted', properties: { sessionID: 'bridge' } } });
+                await before('bridge');
+                await bridge.event({ event: { type: 'session.compacted', properties: { sessionID: 'bridge' } } });
+                assert.deepEqual(await model('bridge'), [], 'compaction discards a reminder still waiting for a model request');
+                await before('bridge');
+                assert.equal((await model('bridge')).length, 1, 'the discarded reminder is re-armed, not lost');
+                await before('deleted');
+                await bridge.event({ event: { type: 'session.deleted', properties: { info: { id: 'deleted' } } } });
+                assert.deepEqual(await model('deleted'), [], 'deleted sessions discard pending context');
+            } finally {
+                environment.restore();
+            }
         });
     }
 };

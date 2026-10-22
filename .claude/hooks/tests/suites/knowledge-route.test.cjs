@@ -82,6 +82,7 @@ function makeProject({ project = [], framework = [] } = {}) {
         cacheFile: path.join(root, 'tmp', 'knowledge-base', 'freshness.json'),
         telemetryFile: path.join(root, 'tmp', 'knowledge-base', 'usage.jsonl'),
         env: {},
+        homeDir: path.join(root, 'home'), // the personal ~/.claude/.ck.json layer, isolated from the real one
         rawSettings: { promptTriggers: true },
         write: (text, done) => {
             outputs.push(text);
@@ -378,7 +379,7 @@ const tests = [
         })
     },
     {
-        name: '[knowledge-route] TC-KNW-036 the project config team layer switches knowledge delivery, survives a replaced .ck.json, and a checkout setting wins',
+        name: '[knowledge-route] TC-KNW-036 the project config team layer switches knowledge delivery, survives a replaced .ck.json, and a personal or checkout setting wins',
         fn: () => withProject({ project: [{ id: 'team-pack', prompt: ['ledger'], skills: ['plan'] }] }, async ({ deps, root }) => {
             const files = deps({ rawSettings: undefined }); // read the settings layers from the fixture's files
             const write = (relative, value) => {
@@ -391,6 +392,9 @@ const tests = [
             assertEqual(await route.run(skillStart('plan', 't1'), files), '', 'a team switch in the project config silences delivery');
             write('.claude/.ck.json', { knowledgeRoute: { enabled: true } });
             assertEqual(await route.run(skillStart('plan', 't2'), files), '', 'the framework-shipped .ck.json cannot turn the team switch back on');
+            write('home/.claude/.ck.json', { knowledgeRoute: { enabled: true } });
+            assertIncludes(await route.run(skillStart('plan', 't3p'), files), 'team-pack', 'a personal ~/.claude/.ck.json setting wins over the team layer');
+            write('home/.claude/.ck.json', null);
             write('.claude/.ck.local.json', { knowledgeRoute: { enabled: true } });
             assertIncludes(await route.run(skillStart('plan', 't3'), files), 'team-pack', 'a checkout .ck.local.json setting wins over the team layer');
             write('.claude/.ck.local.json', null);
@@ -402,11 +406,10 @@ const tests = [
             write('.claude/.ck.local.json', null);
             write('docs/project-config.json', { project: { name: 'fixture' } });
             assertEqual(await route.run(prompt('Change the ledger', 't6'), files), '', 'boundary counter-case: no setting in any layer and no recorded default keeps prompt triggers off');
-            // The team layer is this router's opt-in: a router that does not ask for it reads only the .ck files.
+            // Every router shares the same four layers: another router reads its section from the team layer too.
             const utils = require(path.join(LIB, 'prompt-route-utils.cjs'));
             write('docs/project-config.json', { project: { name: 'fixture' }, otherRoute: { enabled: false } });
-            assertEqual(utils.isRouterEnabled('otherRoute', 'CK_OTHER_ROUTE', { env: {}, projectDir: root }), true, 'another router ignores the project config');
-            assertEqual(utils.isRouterEnabled('otherRoute', 'CK_OTHER_ROUTE', { env: {}, projectDir: root, teamLayer: true }), false, 'the same section is read when a router opts in');
+            assertEqual(utils.isRouterEnabled('otherRoute', 'CK_OTHER_ROUTE', { env: {}, projectDir: root, homeDir: path.join(root, 'home') }), false, 'another router reads the project config team layer');
         })
     },
     {

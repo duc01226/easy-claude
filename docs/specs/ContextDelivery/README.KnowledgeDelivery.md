@@ -349,7 +349,7 @@ There is no file trigger: opening or changing a file never delivers a pack.
 
 **Statement:** Skill and helper-agent triggers are on by default. Prompt triggers are on by default only when the framework's recorded held-out evaluation reached recall of at least 0.90 and false delivery of at most 0.05 for every evaluated subject; otherwise they ship off, and a project may turn them on. The recorded default covers only evaluated phrases: a framework pack carries prompt phrases only for a subject the evaluation measured. A project or machine kill switch silences all automatic delivery and always wins.
 
-The project settings (the kill switch and the prompt-trigger setting) are the team's: they are kept in the project's own configuration, which a framework refresh never replaces. Each setting is read from three places, later winning: the settings file shipped with the framework, the project's configuration, a developer's own checkout settings. The machine switch overrides all three.
+The project settings (the kill switch and the prompt-trigger setting) are the team's: they are kept in the project's own configuration, which a framework refresh never replaces. Each setting is read from four places, later winning: the settings file shipped with the framework, the project's configuration, a developer's personal settings, a developer's own checkout settings. The machine switch overrides all four.
 
 | Kill switch | Held-out evaluation met the bar | Project setting for prompt triggers | Skill / helper-agent triggers | Prompt triggers |
 | ----------- | ------------------------------- | ----------------------------------- | ----------------------------- | --------------- |

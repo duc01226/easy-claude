@@ -20,7 +20,7 @@
 
 ## What is this?
 
-**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **<!-- COUNT:hooks -->37<!-- /COUNT --> top-level hook files**, **<!-- COUNT:skills -->105<!-- /COUNT --> skills**, **<!-- COUNT:workflows -->17<!-- /COUNT --> workflows**, and **<!-- COUNT:agents -->25<!-- /COUNT --> specialized agents**. It covers the entire software development lifecycle — from initiative capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`.
+**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **<!-- COUNT:hooks -->38<!-- /COUNT --> top-level hook files**, **<!-- COUNT:skills -->106<!-- /COUNT --> skills**, **<!-- COUNT:workflows -->17<!-- /COUNT --> workflows**, and **<!-- COUNT:agents -->25<!-- /COUNT --> specialized agents**. It covers the entire software development lifecycle — from initiative capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`.
 
 **Core insight:** LLMs forget, hallucinate, and drift. Instead of hoping the AI "just gets it right," this framework uses **programmatic guardrails** (hooks) and **prompt-engineered protocols** (skills/workflows) to enforce correctness at every stage.
 
@@ -85,6 +85,8 @@ cp -r .agents  /path/to/your-project/.agents    # Codex skill mirror generated f
 `.claude/` is the canonical source. `.codex/` and `.agents/` (plus the root `AGENTS.md`) are **generated mirrors** — never edit them by hand; they are re-synced from `.claude/` by the AI-sync skills below.
 
 > No Codex? Copy only `.claude/`. The mirrors are regenerated on demand by `/sync-codex`.
+>
+> **Updating later?** Never copy over an installed framework: that reverts every framework file your project changed. Merge the newer version instead with `node .claude/scripts/framework-update.mjs /path/to/easy-claude` (dry run first with `--dry-run`); it keeps your project's own changes, skills and settings. See [.claude/docs/framework-portability.md](.claude/docs/framework-portability.md#updating-an-installed-framework).
 
 **2. Run `/project-init` first — always the first command in a new project.**
 
@@ -152,7 +154,7 @@ node .claude/skills/sync-codex/scripts/run-codex-sync.mjs   # standalone Codex s
 
 ## What's Inside
 
-### Hooks (<!-- COUNT:hooks -->37<!-- /COUNT --> top-level `.cjs` files, <!-- COUNT:lib-modules -->72<!-- /COUNT --> lib modules)
+### Hooks (<!-- COUNT:hooks -->38<!-- /COUNT --> top-level `.cjs` files, <!-- COUNT:lib-modules -->72<!-- /COUNT --> lib modules)
 
 Runtime Node.js scripts that fire on Claude Code lifecycle events.
 
@@ -180,7 +182,7 @@ again after 150K tokens of growth or a compaction, and to every sub-agent; the w
 `workflow-route-inject.cjs` (the gate) and `workflow-catalog-inject.cjs` (the catalog). `CLAUDE.md` and `AGENTS.md` hold project information only. This design prevents
 context drift over long sessions.
 
-### Skills (<!-- COUNT:skills -->105<!-- /COUNT --> definitions)
+### Skills (<!-- COUNT:skills -->106<!-- /COUNT --> definitions)
 
 Markdown-based prompts with YAML frontmatter that guide AI behavior.
 
@@ -264,11 +266,11 @@ easy-claude/
 ├── .codex/                   # Codex agents, hooks, and context parity files
 ├── .claude/                  # <-- The framework template (copy this to your project)
 │   ├── agents/               # 25 specialized agent definitions
-│   ├── hooks/                # 37 top-level hook files + lib/ utilities
+│   ├── hooks/                # 38 top-level hook files + lib/ utilities
 │   │   ├── lib/              # Shared hook libraries
 │   │   ├── notifications/    # Multi-channel notification system
 │   │   └── tests/            # Hook test suites
-│   ├── skills/               # 105 skill definitions
+│   ├── skills/               # 106 skill definitions
 │   │   ├── <skill>/          # Each skill directory contains:
 │   │   │   ├── SKILL.md      # Entry point (prompt + frontmatter)
 │   │   │   ├── scripts/      # Optional automation scripts
@@ -300,7 +302,7 @@ The entire framework is **project-agnostic**. All project-specific knowledge liv
 ```
 ┌─────────────────────────────────────┐
 │     Generic Framework (reusable)    │
-│ 37 Hook Files + 105 Skills + 17 Flows │
+│ 38 Hook Files + 106 Skills + 17 Flows │
 └──────────────┬──────────────────────┘
                │
         ┌──────┴──────┐
@@ -369,6 +371,9 @@ Seven principles that make this framework work reliably across any project:
 | `CLAUDE.md`                | **No**    | Generated/merged per project via `/project-init` (`/ai-context-refresh`) |
 | `docs/project-config.json` | **No**    | Generated per project via `/project-init` (`/project-config`)            |
 | `docs/project-reference/`  | **No**    | Generated per project via `/project-init` (`/scan-all`)                  |
+| `.claude/framework-lock.json` | **No** | The upstream version this project last took; written by `framework-update.mjs` |
+
+Behavior one team wants and another does not is a setting, usually off by default, never an edit to a framework file. `node .claude/scripts/framework-features.cjs` lists every switch with its effective value, the layer that set it and who may change it (team settings in `docs/project-config.json`, personal ones in `~/.claude/.ck.json` or `.claude/.ck.local.json`).
 
 ## Optional team work tracking
 

@@ -63,6 +63,9 @@ disable-model-invocation: false
 
 **Help Mode is read-only and terminal.** Run the generator, present its output, answer the question, and STOP. Do NOT create tasks, do NOT scan the repository, and do NOT edit the config file. If the user then asks for a change, re-enter this skill in its normal workflow.
 
+For framework switches with their effective values and owners (team-only versus personal), add
+`node .claude/scripts/framework-features.cjs`; a personal preference never goes in the project config.
+
 Read [references/help-mode.md](references/help-mode.md) when Help Mode triggers; it holds the help-generator commands, the question-to-flag table, what each listing shows, and the presentation rules (show the output verbatim and complete, then add the interpretation).
 
 ---

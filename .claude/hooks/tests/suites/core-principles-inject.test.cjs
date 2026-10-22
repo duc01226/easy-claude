@@ -462,7 +462,7 @@ const tests = [
         fn: () => withFixture(async fx => {
             // Given a project whose projection publishes the principles and a converted skill that declares them
             installProjection(fx);
-            const deliverDesign = () => delivery.runHook('design', { input: skillLoadEvent(fx), projectRoot: fx.project, write: (text, done) => done(true) });
+            const deliverDesign = () => delivery.runHook('design', { input: skillLoadEvent(fx), projectRoot: fx.project, homeDir: fx.root, env: {}, write: (text, done) => done(true) });
             // When the design-group hook serves the skill load first
             const viaSkill = await deliverDesign();
             assert.ok(viaSkill.includes(PROJECTION_MARK), 'the design-group hook delivers the principles on the skill load');
