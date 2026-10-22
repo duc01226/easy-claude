@@ -22,8 +22,18 @@
  * `workflow-review-changes`. `skip` is the recorded override: the `commit`
  * skill's Low-risk decision or the user's explicit request, named in `reason`.
  *
+ * Target `branch` measures a whole pull-request branch: base = the tree of the merge-base of HEAD
+ * and the named base ref, candidate = the working tree (a review before the commit) or, with
+ * `committed: true`, HEAD's tree (the head a pull request publishes). Matching compares trees, so a
+ * review of the working tree matches the committed head exactly when everything reviewed was committed.
+ *
+ * Under `reviewGate.mode: enforce` (project config) a review receipt needs an ATTESTATION: a record
+ * that a review skill of that kind started (written by the review protocol hook) before the reviewed
+ * snapshot was captured. Issuance consumes one attestation; matching ignores review receipts without
+ * one. Skip receipts are unchanged: they stay explicit, recorded overrides.
+ *
  * CLI (args, real clock):
- *   node review-receipt.cjs snapshot [--target=worktree|staged|commit-descriptor]
+ *   node review-receipt.cjs snapshot [--target=worktree|staged|commit-descriptor|branch] [--base=<ref>]
  *   node review-receipt.cjs issue --kind=... --scope=full-changeset --snapshot-json=<json>
  *   node review-receipt.cjs skip [--reason=...]
  *   node review-receipt.cjs check [--target=... --kind=...]
@@ -46,7 +56,11 @@ const DEFAULT_LIFETIME_MS = 2 * 60 * 60 * 1000;
 const MAX_LIFETIME_MS = 4 * 60 * 60 * 1000;
 const RECEIPT_ID_PATTERN = /^[a-f0-9]{32}$/;
 const TREE_PATTERN = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/;
-const REVIEW_TARGETS = Object.freeze(['worktree', 'staged', 'commit-descriptor']);
+const REVIEW_TARGETS = Object.freeze(['worktree', 'staged', 'commit-descriptor', 'branch']);
+// A ref name for the branch target's base: no option-shaped, range or revision-expression input.
+const BASE_REF_PATTERN = /^(?!-)(?!.*\.\.)[A-Za-z0-9._/-]{1,200}$/;
+const ATTESTATION_ID_PATTERN = RECEIPT_ID_PATTERN;
+const ATTESTATION_PREFIX = 'attest.';
 const MAX_RECORD_BYTES = 8192;
 
 const sha256 = value => crypto.createHash('sha256').update(value).digest('hex');
@@ -302,6 +316,27 @@ function descriptorForCapture(repository, storageIdentity, cwd, indexPath, descr
     return { repository, storageIdentity, cwd, indexPath, mode, literalPaths: [...literalPaths], ...(descriptor.amend ? { amend: true } : {}) };
 }
 
+function branchDescriptor(descriptor) {
+    if (!descriptor || typeof descriptor !== 'object' || Array.isArray(descriptor) || typeof descriptor.base !== 'string' || !BASE_REF_PATTERN.test(descriptor.base)) {
+        throw Object.assign(new Error('A branch review needs a base ref name (for example origin/main)'), { code: 'INVALID_BRANCH_BASE' });
+    }
+    if (descriptor.committed !== undefined && typeof descriptor.committed !== 'boolean') {
+        throw Object.assign(new Error('committed must be a boolean'), { code: 'INVALID_DESCRIPTOR' });
+    }
+    return { base: descriptor.base, ...(descriptor.committed ? { committed: true } : {}) };
+}
+
+/** The remote-tracking ref first (what a pull request merges into), then a local branch, then the name as given. */
+function resolveBaseCommit(run, base) {
+    for (const ref of [`refs/remotes/origin/${base}`, `refs/heads/${base}`, base]) {
+        try {
+            const commit = run(['rev-parse', '--verify', '--quiet', `${ref}^{commit}`]).trim();
+            if (/^[a-f0-9]{40,64}$/.test(commit)) return commit;
+        } catch (_) { /* try the next spelling */ }
+    }
+    throw Object.assign(new Error(`Base ref ${base} does not resolve to a commit; fetch it first`), { code: 'BASE_UNRESOLVED' });
+}
+
 function errorSnapshot(target, error, repository = null, cwd = null) {
     return {
         status: 'ERROR', repository, storageIdentity: null, cwd, indexPath: null,
@@ -327,7 +362,7 @@ function captureReviewTarget(options = {}) {
     let result = null;
     const exec = options.exec || execFileSync;
     try {
-        if (!REVIEW_TARGETS.includes(target)) throw Object.assign(new Error('target must be worktree, staged, or commit-descriptor'), { code: 'INVALID_TARGET' });
+        if (!REVIEW_TARGETS.includes(target)) throw Object.assign(new Error('target must be worktree, staged, commit-descriptor or branch'), { code: 'INVALID_TARGET' });
         const sourceRepository = canonicalDirectory(options.repository);
         const sourceCwd = options.descriptor?.cwd || options.cwd || sourceRepository;
         repository = canonicalDirectory(sourceRepository);
@@ -350,9 +385,10 @@ function captureReviewTarget(options = {}) {
         if (fs.existsSync(path.join(objectsPath, 'info', 'alternates'))) {
             throw Object.assign(new Error('Alternate object stores are unsupported'), { code: 'UNSUPPORTED_ALTERNATE_OBJECT_STORE' });
         }
-        const descriptor = target === 'commit-descriptor'
+        let descriptor = target === 'commit-descriptor'
             ? descriptorForCapture(repository, storageIdentity, cwd, actualIndexPath, options.descriptor)
             : null;
+        if (target === 'branch') descriptor = branchDescriptor(options.descriptor);
         indexBefore = fileState(actualIndexPath);
         const sharedIndex = run(['rev-parse', '--shared-index-path']).trim();
         if (sharedIndex) throw Object.assign(new Error('Split indexes are unsupported'), { code: 'UNSUPPORTED_SPLIT_INDEX' });
@@ -384,6 +420,17 @@ function captureReviewTarget(options = {}) {
             }
             baseTree = treeId(run(['hash-object', '-t', 'tree', '--stdin'], { input: '' }), 'empty baseTree');
         }
+        if (target === 'branch') {
+            if (!headCommit) throw Object.assign(new Error('A branch review needs a commit on HEAD'), { code: 'BRANCH_WITHOUT_HEAD' });
+            const baseCommit = resolveBaseCommit(run, descriptor.base);
+            let mergeBase = '';
+            try {
+                mergeBase = run(['merge-base', headCommit, baseCommit]).trim();
+            } catch (_) { /* exit 1: no common ancestor, reported below */ }
+            if (!/^[a-f0-9]{40,64}$/.test(mergeBase)) throw Object.assign(new Error(`No merge-base between HEAD and ${descriptor.base}`), { code: 'NO_MERGE_BASE' });
+            baseTree = treeId(run(['rev-parse', `${mergeBase}^{tree}`]), 'branch baseTree');
+            descriptor = { ...descriptor, mergeBase };
+        }
         if (descriptor?.amend) {
             // An amend replaces HEAD, so the commit it produces is reviewed against HEAD's parent —
             // the same base `git reset --soft HEAD~1 && git commit` would have.
@@ -410,8 +457,11 @@ function captureReviewTarget(options = {}) {
             GIT_ALTERNATE_OBJECT_DIRECTORIES: objectsPath
         };
         const candidateRun = (args, extra = {}) => runGit(exec, repository, args, candidateEnv, extra);
-        const mode = target === 'commit-descriptor' ? descriptor.mode : target;
-        if (mode === 'staged' || mode === 'all') {
+        const mode = target === 'commit-descriptor' ? descriptor.mode
+            : target === 'branch' ? (descriptor.committed ? 'committed' : 'worktree') : target;
+        if (mode === 'committed') {
+            candidateRun(['read-tree', headCommit]);
+        } else if (mode === 'staged' || mode === 'all') {
             if (indexBefore.exists) fs.copyFileSync(actualIndexPath, tempIndex);
             else candidateRun(headCommit ? ['read-tree', headCommit] : ['read-tree', '--empty']);
         } else {
@@ -429,7 +479,8 @@ function captureReviewTarget(options = {}) {
         result = {
             status: candidateTree === baseTree ? 'CLEAN' : 'CHANGED',
             repository, storageIdentity, cwd, indexPath: actualIndexPath,
-            baseTree, candidateTree, fingerprint, target, descriptor
+            baseTree, candidateTree, fingerprint, target, descriptor,
+            capturedAt: clock(options)
         };
     } catch (error) {
         result = errorSnapshot(target, error, repository, cwd);
@@ -468,6 +519,111 @@ function computeChangeFingerprint(repository, exec = execFileSync) {
     return snapshot.status === 'CLEAN' ? null : snapshot.fingerprint;
 }
 
+/** `reviewGate.mode` for the repository's project config; an unreadable policy never relaxes the gate. */
+function reviewGateMode(repository, options = {}) {
+    if (options.reviewGateMode !== undefined) return options.reviewGateMode;
+    let policy;
+    try {
+        policy = require('../../scripts/lib/commit-review-policy.cjs');
+    } catch (_) {
+        return 'off'; // no policy module beside this copy: no team setting can be read, so none applies
+    }
+    if (typeof policy.resolveReviewGateMode !== 'function') return 'off'; // a policy module older than the switch
+    try {
+        return policy.resolveReviewGateMode({ rootDir: repository }).mode;
+    } catch (_) {
+        return 'enforce'; // an unreadable or invalid team setting never relaxes the gate
+    }
+}
+
+/**
+ * Record that a review skill of `kind` started in this repository. Written by the review protocol
+ * hook when the host reports the skill (a Skill call, a typed command, or a read of its SKILL.md);
+ * never by the skill itself. One attestation backs one issued receipt.
+ */
+function recordAttestation(options) {
+    const kind = options.kind;
+    if (!REVIEW_KINDS.includes(kind)) throw new Error(`An attestation kind must be one of ${REVIEW_KINDS.join(', ')}`);
+    const repository = canonicalDirectory(options.repository);
+    const directory = storeDirectory(options, sha256(repository));
+    const record = {
+        schemaVersion: 1,
+        attestationId: crypto.randomBytes(16).toString('hex'),
+        kind,
+        repository,
+        invokedAt: clock(options),
+        source: boundedText(String(options.source || 'skill-start'), 'source', 64)
+    };
+    fs.mkdirSync(directory, { recursive: true, mode: 0o700 });
+    fs.writeFileSync(path.join(directory, `${ATTESTATION_PREFIX}${kind}.${record.attestationId}.json`), JSON.stringify(record), { flag: 'wx', mode: 0o600 });
+    return record;
+}
+
+/**
+ * Hook side of attestation: called by the review protocol hook with its event input. Records one
+ * attestation per review skill the event starts (a Skill call, a typed command, or a read of the
+ * skill's SKILL.md), only when the repository's reviewGate.mode is enforce. A subagent start is not
+ * a review run. `deps` carries the protocol runner's event helpers.
+ */
+function attestReviewStart(input, deps) {
+    if (!input || typeof input !== 'object' || input.hook_event_name === 'SubagentStart') return [];
+    const root = deps.resolveRoot(input);
+    if (!root) return [];
+    const resolved = deps.resolveEvent(input, { root, host: deps.detectHost(input), read: deps.read });
+    const kinds = [...new Set((resolved?.names || []).filter(name => REVIEW_KINDS.includes(name)))];
+    if (!kinds.length) return [];
+    // Filesystem discovery, not a git process: protocol-delivery hooks run without the Git helper some hosts need.
+    const start = typeof input.cwd === 'string' && path.isAbsolute(input.cwd) ? input.cwd : root;
+    const found = require('./git-statement.cjs').findRepository(start);
+    const repository = found ? canonicalDirectory(found) : null;
+    if (!repository || reviewGateMode(repository) !== 'enforce') return [];
+    const source = `${input.hook_event_name || 'event'}:${input.tool_name || input.command_name || 'prompt'}`.replace(/[^\w:./-]/g, '').slice(0, 64) || 'skill-start';
+    return kinds.map(kind => recordAttestation({ repository, kind, source, ...(deps.now ? { now: deps.now } : {}) }));
+}
+
+/** Take the newest unused attestation of `kind` made no later than `notAfter`; claiming removes it. */
+function claimAttestation(ctx, kind, notAfter) {
+    let names;
+    try {
+        names = fs.readdirSync(ctx.directory);
+    } catch (_) {
+        return null;
+    }
+    const prefix = `${ATTESTATION_PREFIX}${kind}.`;
+    const candidates = [];
+    for (const name of names) {
+        if (!name.startsWith(prefix) || !name.endsWith('.json')) continue;
+        const record = readRecord(path.join(ctx.directory, name));
+        if (!record || record.schemaVersion !== 1 || record.kind !== kind || record.repository !== ctx.repository ||
+            !ATTESTATION_ID_PATTERN.test(record.attestationId) || name !== `${prefix}${record.attestationId}.json`) continue;
+        if (!Number.isSafeInteger(record.invokedAt) || ctx.now - record.invokedAt > MAX_LIFETIME_MS) {
+            try { fs.unlinkSync(path.join(ctx.directory, name)); } catch (_) { /* expired: best-effort prune */ }
+            continue;
+        }
+        if (record.invokedAt > notAfter) continue;
+        candidates.push({ name, record });
+    }
+    candidates.sort((a, b) => b.record.invokedAt - a.record.invokedAt);
+    for (const { name, record } of candidates) {
+        const file = path.join(ctx.directory, name);
+        const claimed = `${file}.${crypto.randomBytes(8).toString('hex')}.claimed`;
+        try {
+            fs.renameSync(file, claimed);
+        } catch (_) {
+            continue; // another issuance claimed it first
+        }
+        try { fs.unlinkSync(claimed); } catch (_) { /* a leftover claimed file is inert */ }
+        return { attestationId: record.attestationId, invokedAt: record.invokedAt, source: record.source };
+    }
+    return null;
+}
+
+function attestedRecord(record) {
+    const attestation = record?.attestation;
+    return Boolean(attestation && typeof attestation === 'object' && ATTESTATION_ID_PATTERN.test(attestation.attestationId) &&
+        Number.isSafeInteger(attestation.invokedAt) && attestation.invokedAt <= record.issuedAt);
+}
+
 function issueReceipt(options) {
     const kind = validKind(options.kind);
     if (options.scope !== 'full-changeset') throw new Error("scope must be 'full-changeset'");
@@ -504,6 +660,16 @@ function issueReceipt(options) {
     if (!Number.isSafeInteger(ttlMs) || ttlMs <= 0 || ttlMs > MAX_LIFETIME_MS) {
         throw new Error(`Lifetime must be 1..${MAX_LIFETIME_MS} ms`);
     }
+    let attestation = null;
+    if (REVIEW_KINDS.includes(kind) && reviewGateMode(ctx.repository, options) === 'enforce') {
+        if (!Number.isSafeInteger(snapshot.capturedAt)) {
+            throw new Error('reviewGate.mode is enforce: the pre-review snapshot has no capture time; take a new snapshot');
+        }
+        attestation = claimAttestation(ctx, kind, Math.min(snapshot.capturedAt, ctx.now));
+        if (!attestation) {
+            throw new Error(`reviewGate.mode is enforce: no ${kind} run was attested for ${ctx.repository} before this snapshot. Run /${kind} --fix-loop, which snapshots, reviews and issues the receipt, from a session whose working directory is inside this repository (the attestation is recorded for that repository); a receipt is not minted by hand.`);
+        }
+    }
     return writeRecord(ctx, kind, ctx.fingerprint, {
         schemaVersion: 2,
         receiptId: crypto.randomBytes(16).toString('hex'),
@@ -519,7 +685,8 @@ function issueReceipt(options) {
         fingerprint: ctx.fingerprint,
         issuedAt: ctx.now,
         expiresAt: ctx.now + ttlMs,
-        ...(options.reason === undefined ? {} : { reason: boundedText(String(options.reason), 'reason', 512) })
+        ...(options.reason === undefined ? {} : { reason: boundedText(String(options.reason), 'reason', 512) }),
+        ...(attestation ? { attestation } : {})
     });
 }
 
@@ -541,7 +708,10 @@ function checkReceipt(options) {
         });
         const record = readRecord(receiptPath(ctx, kind, ctx.fingerprint));
         // `validRecord` short-circuits to the null record; normalize to a real boolean.
-        return validRecord(record, ctx, kind) === true;
+        if (validRecord(record, ctx, kind) !== true) return false;
+        // Under enforce, a review receipt counts only when a review skill run backs it.
+        if (REVIEW_KINDS.includes(kind) && reviewGateMode(ctx.repository, options) === 'enforce') return attestedRecord(record);
+        return true;
     } catch (_) {
         return false;
     }
@@ -549,14 +719,35 @@ function checkReceipt(options) {
 
 /** Return the first matching declared review kind or null. */
 function matchReviewReceipt(options) {
+    const repository = options.snapshot?.repository || options.repository;
+    const mode = options.reviewGateMode !== undefined || !repository ? options.reviewGateMode : reviewGateMode(repository);
     for (const kind of REVIEW_KINDS) {
-        if (checkReceipt({ ...options, kind })) return kind;
+        if (checkReceipt({ ...options, kind, ...(mode === undefined ? {} : { reviewGateMode: mode }) })) return kind;
     }
     return null;
 }
 
 function matchSkipReceipt(options) {
     return checkReceipt({ ...options, kind: SKIP_KIND }) ? SKIP_KIND : null;
+}
+
+/** True when the store holds any receipt for the repository: a cheap check before an expensive capture. */
+function hasAnyReceipt(repository, options = {}) {
+    try {
+        const directory = storeDirectory(options, sha256(canonicalDirectory(repository)));
+        const now = clock(options);
+        // Unexpired only: the store keeps expired receipts until `clear`, and they cannot match.
+        return fs.readdirSync(directory).some(name => {
+            if (!name.endsWith('.json') || name.startsWith(ATTESTATION_PREFIX)) return false;
+            try {
+                return now - fs.statSync(path.join(directory, name)).mtimeMs <= MAX_LIFETIME_MS;
+            } catch (_) {
+                return false;
+            }
+        });
+    } catch (_) {
+        return false;
+    }
 }
 
 function clearReceipts(options) {
@@ -589,6 +780,16 @@ function resolveRepository(cwd, exec = execFileSync) {
     }
 }
 
+/** The checked-out branch name, or null on a detached HEAD or any Git error. */
+function currentBranch(repository, exec = execFileSync) {
+    try {
+        if (gitEnvironmentError(process.env)) return null;
+        return runGit(exec, repository, ['symbolic-ref', '--quiet', '--short', 'HEAD'], gitEnvironmentWithoutContext(process.env)).trim() || null;
+    } catch (_) {
+        return null;
+    }
+}
+
 function parseArgs(argv) {
     const options = {};
     for (const arg of argv) {
@@ -610,7 +811,10 @@ function runCli(argv) {
     const repository = resolveRepository(process.cwd());
     if (!repository) throw new Error('Not inside a resolvable Git repository');
     const base = { repository, ...(storeDir ? { storeDir } : {}) };
-    const descriptor = flags['descriptor-json'] === undefined ? undefined : JSON.parse(flags['descriptor-json']);
+    let descriptor = flags['descriptor-json'] === undefined ? undefined : JSON.parse(flags['descriptor-json']);
+    if (flags.target === 'branch' && descriptor === undefined) {
+        descriptor = { base: typeof flags.base === 'string' ? flags.base : '', ...(flags.committed === true ? { committed: true } : {}) };
+    }
     if (command === 'snapshot') {
         return captureReviewTarget({ repository, cwd: process.cwd(), target: flags.target || 'worktree', ...(descriptor ? { descriptor } : {}) });
     }
@@ -642,6 +846,7 @@ function runCli(argv) {
 module.exports = {
     REVIEW_KINDS,
     SKIP_KIND,
+    REVIEW_TARGETS,
     KINDS,
     DEFAULT_LIFETIME_MS,
     MAX_LIFETIME_MS,
@@ -653,7 +858,13 @@ module.exports = {
     checkReceipt,
     matchReviewReceipt,
     matchSkipReceipt,
-    clearReceipts
+    clearReceipts,
+    hasAnyReceipt,
+    recordAttestation,
+    attestReviewStart,
+    reviewGateMode,
+    currentBranch,
+    resolveRepository
 };
 
 if (require.main === module) {

@@ -110,6 +110,322 @@ function loadMutantGate(file, repo, statements) {
     }
 }
 
+const C_WORD = `c${'ommit'}`;
+const C_ARG = C_WORD;
+
+// ---- reviewGate.mode: enforce (whole-branch PR gate and attested review receipts) -------------
+
+/** A repo whose base branch `main` carries the project config, with a feature branch checked out. */
+function makeBranchRepo(dir, mode) {
+    makeRepo(dir);
+    if (mode) {
+        fs.mkdirSync(path.join(dir, 'docs'), { recursive: true });
+        fs.writeFileSync(path.join(dir, 'docs', 'project-config.json'), JSON.stringify({ reviewGate: { mode } }));
+        git(dir, ['add', 'docs/project-config.json']);
+        git(dir, [C_ARG, '-q', '-m', 'config']);
+    }
+    git(dir, ['branch', '-M', 'main']);
+    git(dir, ['switch', '-q', '-c', 'feature']);
+}
+
+function prGate(repo, command) {
+    return gate().evaluate({ tool_name: 'Bash', tool_input: { command, cwd: repo } });
+}
+
+const ENFORCE_TESTS = [
+    {
+        name: 'TC-RGE-001 a branch review of the working tree matches the committed head once everything reviewed is committed',
+        skip: !GIT,
+        fn: async () => fixture(fx => {
+            makeBranchRepo(fx.repoA);
+            const api = receipt();
+            fs.writeFileSync(path.join(fx.repoA, 'feature.txt'), 'feature\n');
+            const reviewed = snapshot(api, fx.repoA, 'branch', { base: 'main' });
+            assert.equal(reviewed.status, 'CHANGED');
+            assert.equal(reviewed.baseTree, git(fx.repoA, ['rev-parse', 'main^{tree}']).trim(), 'base = merge-base tree');
+            assert.ok(Number.isSafeInteger(reviewed.capturedAt), 'a snapshot records when it was taken');
+            git(fx.repoA, ['add', 'feature.txt']);
+            git(fx.repoA, [C_ARG, '-q', '-m', 'feature']);
+            const head = snapshot(api, fx.repoA, 'branch', { base: 'main', committed: true });
+            assert.equal(head.fingerprint, reviewed.fingerprint, 'reviewed working tree = committed head');
+            fs.writeFileSync(path.join(fx.repoA, 'later.txt'), 'not committed\n');
+            assert.equal(snapshot(api, fx.repoA, 'branch', { base: 'main', committed: true }).fingerprint, reviewed.fingerprint,
+                'uncommitted work is not what a pull request publishes');
+            assert.equal(snapshot(api, fx.repoA, 'branch', { base: '--output=x' }).status, 'ERROR', 'an option-shaped base is refused');
+            assert.equal(snapshot(api, fx.repoA, 'branch', { base: 'no-such-branch' }).errorCode, 'BASE_UNRESOLVED');
+        })
+    },
+    {
+        name: 'TC-RGE-002 under enforce a review receipt needs an attestation made before its snapshot, and uses it up',
+        skip: !GIT,
+        fn: async () => fixture(fx => {
+            makeBranchRepo(fx.repoA, 'enforce');
+            const api = receipt();
+            fs.writeFileSync(path.join(fx.repoA, 'feature.txt'), 'feature\n');
+            withStore(fx.store, () => {
+                const first = snapshot(api, fx.repoA, 'worktree');
+                assert.throws(() => issueCandidate(api, fx.store, first, 'why-review'), /no why-review run was attested/, 'a hand-minted review receipt is refused');
+                api.recordAttestation({ repository: fx.repoA, kind: 'why-review', now: first.capturedAt + 1000 });
+                assert.throws(() => issueCandidate(api, fx.store, first, 'why-review'), /no why-review run was attested/, 'an attestation after the snapshot does not count');
+                api.recordAttestation({ repository: fx.repoA, kind: 'changes-review', now: first.capturedAt - 5 });
+                assert.throws(() => issueCandidate(api, fx.store, first, 'why-review'), /attested/, 'another kind does not count');
+                api.recordAttestation({ repository: fx.repoA, kind: 'why-review', now: first.capturedAt - 1 });
+                const issued = issueCandidate(api, fx.store, first, 'why-review');
+                assert.match(issued.attestation.attestationId, /^[a-f0-9]{32}$/);
+                assert.equal(api.matchReviewReceipt({ repository: fx.repoA, snapshot: first }), 'why-review');
+                assert.throws(() => issueCandidate(api, fx.store, first, 'why-review'), /attested/, 'one attestation backs one receipt');
+                assert.ok(issueCandidate(api, fx.store, first, 'skip', { reason: 'user approved skip' }), 'skip receipts need no attestation');
+            });
+        })
+    },
+    {
+        name: 'TC-RGE-003 enforce ignores an unattested review receipt; off keeps the current behaviour',
+        skip: !GIT,
+        fn: async () => fixture(fx => {
+            makeBranchRepo(fx.repoA, 'enforce');
+            const api = receipt();
+            fs.writeFileSync(path.join(fx.repoA, 'file.txt'), 'changed\n');
+            git(fx.repoA, ['add', 'file.txt']);
+            withStore(fx.store, () => {
+                const candidate = snapshot(api, fx.repoA, 'staged');
+                issueCandidate(api, fx.store, candidate, 'changes-review', { reviewGateMode: 'off' });
+                assert.equal(api.matchReviewReceipt({ repository: fx.repoA, snapshot: candidate }), null, 'enforce: unattested receipt does not count');
+                assert.equal(api.matchReviewReceipt({ repository: fx.repoA, snapshot: candidate, reviewGateMode: 'off' }), 'changes-review', 'off: it counts');
+                assert.equal(prGate(fx.repoA, `git ${C_WORD} -m x`).code, 2, 'the commit gate applies the same rule');
+            });
+        })
+    },
+    {
+        name: 'TC-RGE-004 the PR gate refuses gh pr create/ready without a whole-branch receipt and passes a reviewed head',
+        skip: !GIT,
+        fn: async () => fixture(fx => {
+            makeBranchRepo(fx.repoA, 'enforce');
+            const api = receipt();
+            withStore(fx.store, () => {
+                assert.equal(prGate(fx.repoA, 'gh pr create --base main --title "t" --body "b"'), undefined, 'a branch with nothing beyond its base passes');
+                fs.writeFileSync(path.join(fx.repoA, 'feature.txt'), 'feature\n');
+                const reviewed = snapshot(api, fx.repoA, 'branch', { base: 'main' });
+                git(fx.repoA, ['add', 'feature.txt']);
+                git(fx.repoA, [C_ARG, '-q', '-m', 'feature']);
+                const blocked = prGate(fx.repoA, 'gh pr create --base main --title "t" --body "b"');
+                assert.equal(blocked.code, 2, 'no receipt: refused');
+                assert.match(blocked.stderr, /--target=branch --base='main'/);
+                assert.equal(prGate(fx.repoA, 'gh pr ready').code, 2, 'ready is gated too');
+                assert.equal(prGate(fx.repoA, 'gh pr ready --undo'), undefined, 'back to draft publishes nothing');
+                assert.equal(prGate(fx.repoA, 'gh pr create --draft --title t --body b'), undefined, 'a draft asks for no merge; ready is gated');
+                assert.equal(prGate(fx.repoA, 'gh pr view'), undefined, 'reads pass');
+
+                api.recordAttestation({ repository: fx.repoA, kind: 'changes-review', now: reviewed.capturedAt - 1 });
+                issueCandidate(api, fx.store, reviewed, 'changes-review');
+                assert.equal(prGate(fx.repoA, 'gh pr create --base main --title "t" --body "b"'), undefined, 'reviewed branch passes');
+                assert.equal(prGate(fx.repoA, 'gh pr ready feature'), undefined, 'naming the checked-out branch is the same pull request');
+                // With a valid receipt in place, these refusals can only come from their own rules.
+                assert.match(prGate(fx.repoA, 'gh pr create -R other/repo --title t --body b').stderr, /--repo targets a repository/, 'another repository cannot be proven');
+                assert.match(prGate(fx.repoA, 'gh pr ready 42').stderr, /names a pull request other than/, 'another pull request cannot be proven');
+                assert.match(prGate(fx.repoA, 'gh pr create --head elsewhere --title t --body b').stderr, /is not the checked-out branch/, 'another head cannot be proven');
+                assert.match(prGate(fx.repoA, 'env GH_REPO=other/repo gh pr create --title t --body b').stderr, /GH_REPO/, 'GH_REPO cannot be proven either');
+
+                fs.writeFileSync(path.join(fx.repoA, 'feature.txt'), 'changed after review\n');
+                git(fx.repoA, [C_ARG, '-q', '-am', 'after review']);
+                assert.equal(prGate(fx.repoA, 'gh pr ready').code, 2, 'a change after the review re-arms the gate');
+                issueCandidate(api, fx.store, snapshot(api, fx.repoA, 'branch', { base: 'main', committed: true }), 'skip', { reason: 'user approved skip' });
+                assert.equal(prGate(fx.repoA, 'gh pr ready'), undefined, 'a recorded skip passes');
+            });
+        })
+    },
+    {
+        name: 'TC-RGE-005 the PR gate is inert when reviewGate.mode is off or absent',
+        skip: !GIT,
+        fn: async () => fixture(fx => {
+            makeBranchRepo(fx.repoA);
+            fs.writeFileSync(path.join(fx.repoA, 'feature.txt'), 'feature\n');
+            git(fx.repoA, ['add', 'feature.txt']);
+            git(fx.repoA, [C_ARG, '-q', '-m', 'feature']);
+            withStore(fx.store, () => {
+                assert.equal(prGate(fx.repoA, 'gh pr create --base main --title t --body b'), undefined);
+                assert.equal(prGate(fx.repoA, 'gh pr ready'), undefined);
+            });
+        })
+    },
+    {
+        name: 'TC-RGE-006 the review protocol hook attests a review skill start only under enforce, never for a subagent',
+        skip: !GIT,
+        fn: async () => fixture(fx => {
+            makeBranchRepo(fx.repoA, 'enforce');
+            makeBranchRepo(fx.repoB);
+            const api = receipt();
+            const delivery = require(path.resolve(__dirname, '../../lib/protocol-delivery.cjs'));
+            const deps = repo => ({ resolveRoot: () => repo, resolveEvent: delivery.resolveEvent, detectHost: delivery.detectHost, read: delivery.defaultRead });
+            const skillCall = (repo, skill) => ({ hook_event_name: 'PostToolUse', tool_name: 'Skill', tool_input: { skill, args: '--fix-loop' }, cwd: repo });
+            withStore(fx.store, () => {
+                assert.equal(api.attestReviewStart(skillCall(fx.repoA, 'why-review'), deps(fx.repoA)).length, 1, 'a review skill start under enforce is attested');
+                assert.equal(api.attestReviewStart(skillCall(fx.repoA, 'plan'), deps(fx.repoA)).length, 0, 'a non-review skill is not');
+                assert.equal(api.attestReviewStart(skillCall(fx.repoB, 'why-review'), deps(fx.repoB)).length, 0, 'off: nothing is recorded');
+                assert.equal(api.attestReviewStart({ hook_event_name: 'SubagentStart', agent_type: 'code-reviewer', cwd: fx.repoA }, deps(fx.repoA)).length, 0, 'a subagent start is not a review run');
+                const typed = { hook_event_name: 'UserPromptExpansion', command_name: '/changes-review', cwd: fx.repoA };
+                assert.equal(api.attestReviewStart(typed, deps(fx.repoA))[0].kind, 'changes-review', 'a typed command counts');
+            });
+        })
+    },
+    {
+        name: 'TC-RGE-007 a whole-branch review covers the commit of exactly what it reviewed, and nothing more',
+        skip: !GIT,
+        fn: async () => fixture(fx => {
+            makeBranchRepo(fx.repoA, 'enforce');
+            const api = receipt();
+            fs.writeFileSync(path.join(fx.repoA, 'one.txt'), 'first change\n');
+            git(fx.repoA, ['add', 'one.txt']);
+            git(fx.repoA, [C_ARG, '-q', '-m', 'one']);
+            fs.writeFileSync(path.join(fx.repoA, 'two.txt'), 'second change\n');
+            withStore(fx.store, () => {
+                const reviewed = snapshot(api, fx.repoA, 'branch', { base: 'main' });
+                api.recordAttestation({ repository: fx.repoA, kind: 'why-review', now: reviewed.capturedAt - 1 });
+                issueCandidate(api, fx.store, reviewed, 'why-review');
+                git(fx.repoA, ['add', 'two.txt']);
+                assert.equal(prGate(fx.repoA, `git ${C_WORD} -m two`), undefined, 'the reviewed content commits without a second review');
+                fs.writeFileSync(path.join(fx.repoA, 'three.txt'), 'unreviewed\n');
+                git(fx.repoA, ['add', 'three.txt']);
+                assert.equal(prGate(fx.repoA, `git ${C_WORD} -m two`).code, 2, 'content the review never saw re-arms the gate');
+            });
+        })
+    },
+    {
+        name: 'TC-RGE-008 the PR gate reads the command a pull request really runs: directory, wrappers, mentions and branch moves',
+        skip: !GIT,
+        fn: async () => fixture(fx => {
+            makeBranchRepo(fx.repoA, 'enforce');
+            makeBranchRepo(fx.repoB);
+            fs.writeFileSync(path.join(fx.repoA, 'feature.txt'), 'feature\n');
+            git(fx.repoA, ['add', 'feature.txt']);
+            git(fx.repoA, [C_ARG, '-q', '-m', 'feature']);
+            fs.writeFileSync(path.join(fx.repoB, 'feature.txt'), 'feature\n');
+            git(fx.repoB, ['add', 'feature.txt']);
+            git(fx.repoB, [C_ARG, '-q', '-m', 'feature']);
+            withStore(fx.store, () => {
+                // A quoted mention is a search or a message, not a pull request.
+                assert.equal(prGate(fx.repoA, 'rg -n "gh pr create" $(git ls-files .claude)'), undefined);
+                assert.equal(prGate(fx.repoA, 'echo "next: gh pr ready" > $OUT'), undefined);
+                // An interpreter string and an env wrapper still run it.
+                assert.equal(prGate(fx.repoA, 'bash -c "gh pr create --title t --body b"').code, 2);
+                assert.equal(prGate(fx.repoA, 'env FOO=1 gh pr create --title t --body b').code, 2);
+                // The directory a literal cd names decides which repository is checked.
+                assert.equal(prGate(fx.repoB, `cd ${JSON.stringify(fx.repoA)} && gh pr create --title t --body b`).code, 2, 'cd into an enforcing repository is gated');
+                assert.equal(prGate(fx.repoA, `cd ${JSON.stringify(fx.repoB)} && gh pr create --title t --body b`), undefined, 'cd into an off repository passes');
+                assert.match(prGate(fx.repoA, 'cd "$TARGET" && gh pr create --title t --body b').stderr, /directory change this gate cannot follow/);
+                assert.equal(prGate(fx.repoB, 'cd "$TARGET" && gh pr create --title t --body b'), undefined, 'off stays a no-op even when the directory is unknown');
+                // A branch move earlier in the same command would publish a head the gate never saw.
+                assert.match(prGate(fx.repoA, 'git pull --rebase && gh pr create --title t --body b').stderr, /moves the branch/);
+                // An attached short value names the base.
+                assert.match(prGate(fx.repoA, 'gh pr create -Bmain --title t --body b').stderr, /Base: main/);
+            });
+        })
+    },
+    {
+        name: 'TC-RGE-009 the review gate mode reads off for an unreadable config and enforce for an invalid setting, and the catalog shows it',
+        fn: async () => fixture(fx => {
+            const policy = require(path.resolve(__dirname, '../../../scripts/lib/commit-review-policy.cjs'));
+            const features = require(path.resolve(__dirname, '../../../scripts/framework-features.cjs'));
+            fs.mkdirSync(path.join(fx.repoA, 'docs'));
+            const config = path.join(fx.repoA, 'docs', 'project-config.json');
+            assert.equal(policy.resolveReviewGateMode({ rootDir: fx.repoA }).mode, 'off', 'no config: off');
+            fs.writeFileSync(config, '{ not json');
+            assert.equal(policy.resolveReviewGateMode({ rootDir: fx.repoA }).mode, 'off', 'an unparseable file never blocks a team that did not opt in');
+            fs.writeFileSync(config, JSON.stringify({ reviewGate: 'enforce' }));
+            assert.throws(() => policy.resolveReviewGateMode({ rootDir: fx.repoA }), /Invalid reviewGate/);
+            assert.equal(receipt().reviewGateMode(fx.repoA), 'enforce', 'an invalid setting from a team that opted in keeps the gate');
+            fs.writeFileSync(config, JSON.stringify({ reviewGate: { mode: 'enforce' } }));
+            const row = features.catalog({ rootDir: fx.repoA, homeDir: fx.root, env: {} }).find(item => item.key === 'reviewGate.mode');
+            assert.equal(row.value, 'enforce', 'the feature catalog shows the effective mode');
+            assert.equal(row.source, 'project-config');
+        })
+    },
+    {
+        name: 'TC-RGE-010 the review protocol hook itself records the attestation a review receipt then uses',
+        skip: !GIT,
+        fn: async () => {
+            const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'review-gate-hook-')));
+            const store = path.join(root, 'store');
+            const repo = path.join(root, 'repo');
+            fs.mkdirSync(repo);
+            const before = process.env.CK_REVIEW_RECEIPT_STORE;
+            process.env.CK_REVIEW_RECEIPT_STORE = store;
+            try {
+                makeBranchRepo(repo, 'enforce');
+                fs.writeFileSync(path.join(repo, 'feature.txt'), 'feature\n');
+                const delivery = require(path.resolve(__dirname, '../../lib/protocol-delivery.cjs'));
+                const input = { hook_event_name: 'PostToolUse', tool_name: 'Skill', tool_input: { skill: 'why-review', args: '--fix-loop' }, cwd: repo };
+                await delivery.runHook('review', { input, projectRoot: repo });
+                const api = receipt();
+                const candidate = api.captureReviewTarget({ repository: repo, cwd: repo, target: 'worktree' });
+                const issued = api.issueReceipt({ repository: repo, snapshot: candidate, scope: 'full-changeset', kind: 'why-review' });
+                assert.match(issued.attestation.attestationId, /^[a-f0-9]{32}$/, 'the hook run attested the review');
+            } finally {
+                if (before === undefined) delete process.env.CK_REVIEW_RECEIPT_STORE;
+                else process.env.CK_REVIEW_RECEIPT_STORE = before;
+                fs.rmSync(root, { recursive: true, force: true });
+            }
+        }
+    },
+    {
+        name: 'TC-RGE-011 multi-line text, subshells, wrappers, Git global options and drafts are each read the way the shell runs them',
+        skip: !GIT,
+        fn: async () => fixture(fx => {
+            makeBranchRepo(fx.repoA, 'enforce');
+            makeBranchRepo(fx.repoB);
+            fs.writeFileSync(path.join(fx.repoA, 'feature.txt'), 'feature\n');
+            git(fx.repoA, ['add', 'feature.txt']);
+            git(fx.repoA, [C_ARG, '-q', '-m', 'feature']);
+            const outside = path.join(fx.root, 'outside');
+            fs.mkdirSync(outside);
+            withStore(fx.store, () => {
+                // A heredoc body or a multi-line message that mentions gh pr is text, not a pull request.
+                assert.equal(prGate(fx.repoA, "cat > notes.md <<'EOF'\nThen run:\ngh pr create --fill\nEOF"), undefined);
+                assert.equal(prGate(fx.repoA, 'echo "notes:\ngh pr ready later" > "$OUT"'), undefined);
+                // What the shell runs inside a double-quoted string or an unquoted heredoc is still a pull request.
+                assert.equal(prGate(fx.repoA, 'PR_URL="$(gh pr create --title t --body b)"').code, 2, 'a quoted command substitution runs');
+                assert.equal(prGate(fx.repoA, 'echo "Created: $(gh pr create --fill)"').code, 2);
+                assert.equal(prGate(fx.repoA, 'echo `gh pr create --fill`').code, 2, 'a backtick substitution runs');
+                assert.equal(prGate(fx.repoA, 'cat <<EOF\n$(gh pr create --fill)\nEOF').code, 2, 'an unquoted heredoc expands its body');
+                // A counting search is not a shell -c string.
+                assert.equal(prGate(fx.repoA, "grep -c 'gh pr create' $(git ls-files)"), undefined);
+                // A commit message built from a quoted heredoc inside $(…) is text (checked on the blanked text the gate reads).
+                const blanked = gate().blankQuotedText(`git ${C_WORD} -m "$(cat <<'EOF'\nsubject\n\ngh pr ready is now gated\nEOF\n)"`);
+                assert.doesNotMatch(blanked, /gh pr ready/, 'the quoted heredoc body is blanked');
+                // A subshell or an interpreter string that cds into an enforcing repository is gated from anywhere.
+                assert.equal(prGate(fx.repoB, `(cd ${JSON.stringify(fx.repoA)} && gh pr create --title t --body b)`).code, 2);
+                assert.equal(prGate(fx.repoB, `bash -lc 'cd ${fx.repoA} && gh pr create --title t --body b'`).code, 2);
+                assert.equal(prGate(outside, `(cd ${JSON.stringify(fx.repoB)} && gh pr create --title t --body b)`), undefined, 'off stays a no-op');
+                // gh run from outside any repository acts only through --repo or GH_REPO.
+                assert.match(prGate(fx.repoA, `cd ${JSON.stringify(outside)} && gh pr create -R owner/repo --title t --body b`).stderr, /--repo targets a repository/);
+                // Wrappers with their own operands, and Git global options before a branch move.
+                assert.equal(prGate(fx.repoA, 'timeout 60 gh pr ready').code, 2);
+                assert.equal(prGate(fx.repoA, 'env -u FOO gh pr ready').code, 2);
+                assert.match(prGate(fx.repoA, 'git -C . pull --rebase && gh pr ready').stderr, /moves the branch/);
+                // A draft asks for no merge, whatever ran before it.
+                assert.equal(prGate(fx.repoA, 'git pull --rebase && gh pr create --draft --title t --body b'), undefined);
+            });
+        })
+    },
+    {
+        name: 'TC-RGE-012 only an unexpired receipt makes the commit gate try a whole-branch receipt',
+        skip: !GIT,
+        fn: async () => fixture(fx => {
+            makeBranchRepo(fx.repoA);
+            const api = receipt();
+            fs.writeFileSync(path.join(fx.repoA, 'feature.txt'), 'feature\n');
+            withStore(fx.store, () => {
+                assert.equal(api.hasAnyReceipt(fx.repoA), false, 'an empty store has none');
+                const issued = issueCandidate(api, fx.store, snapshot(api, fx.repoA, 'worktree'), 'skip', { reason: 'user approved skip' });
+                assert.equal(api.hasAnyReceipt(fx.repoA), true, 'a fresh receipt counts');
+                const directory = path.join(fx.store, require('node:crypto').createHash('sha256').update(issued.repository).digest('hex'));
+                const old = (Date.now() - api.MAX_LIFETIME_MS - 60000) / 1000;
+                for (const name of fs.readdirSync(directory)) fs.utimesSync(path.join(directory, name), old, old);
+                assert.equal(api.hasAnyReceipt(fx.repoA), false, 'an expired receipt cannot match, so it does not count');
+            });
+        })
+    }
+];
+
 const tests = [
     {
         // The gate's detection used to ask only whether the words `git` and `commit` BOTH appeared
@@ -940,5 +1256,7 @@ const tests = [
         })
     }
 ];
+
+tests.push(...ENFORCE_TESTS);
 
 module.exports = { name: 'review-commit-gate', tests };

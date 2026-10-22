@@ -484,7 +484,7 @@ test('TC-FIT-012: every review receipt issuer binds the pre-review full candidat
     for (const issuer of receiptIssuers) {
         const source = stripSyncBlocks(readSkillContract(issuer.file));
         const ref = fsSync.readFileSync(path.join(root, path.dirname(issuer.file), 'references/fix-loop.md'), 'utf8');
-        const captureAt = ref.indexOf('snapshot --target=<worktree|staged|commit-descriptor>');
+        const captureAt = ref.indexOf('snapshot --target=<worktree|staged|commit-descriptor|branch>');
         const issueAt = ref.indexOf('review-receipt.cjs issue');
         assert.ok(captureAt >= 0 && issueAt > captureAt, 'capture precedes final receipt issuance');
         assert.match(ref, /original pre-review snapshot/);
