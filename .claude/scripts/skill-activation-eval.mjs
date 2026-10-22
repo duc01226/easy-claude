@@ -182,7 +182,7 @@ export function hostArgv(host, prompt, model) {
 export const FRAMEWORK_SWITCHES = Object.freeze([
     'CK_FRAMEWORK_MODE', 'CK_QUIET_PROJECT_RULES', 'CK_WORKFLOW_ROUTE_MODE', 'CK_SKILL_AUTO_TRIGGER', 'CK_COMMIT_REVIEW_MODE',
     'CK_PROMPT_LEDGER', 'CK_KNOWLEDGE_ROUTE', 'CK_QUALITY_SKILL_REMINDER', 'CK_CORE_PRINCIPLES_INJECT', 'CK_AI_FEATURE_ROUTE',
-    'CK_COMMIT_SKILL_ROUTE', 'CK_JUDGEMENT_INTEGRITY_ROUTE'
+    'CK_COMMIT_SKILL_ROUTE', 'CK_JUDGEMENT_INTEGRITY_ROUTE', 'CK_QUIET_NATIVE', 'CK_AUTO_APPLY_NATIVE'
 ]);
 
 /** A switch value as the report records it: trimmed, wrapping quotes removed (`set NAME="quiet"` in cmd.exe keeps

@@ -36,6 +36,10 @@ const QUIET_NATIVE = Object.freeze(['none', 'restrict']);
 // `frameworkRuntime.offMode` (team only): `allowed` (default) keeps `off`; `as-quiet`
 // reads a saved or requested `off` as quiet, so no personal setting stops the gates.
 const OFF_MODES = Object.freeze(['allowed', 'as-quiet']);
+// Environment switches of the per-person runtime options (named so the switch inventory finds them).
+const QUIET_PROJECT_RULES_ENV = 'CK_QUIET_PROJECT_RULES';
+const QUIET_NATIVE_ENV = 'CK_QUIET_NATIVE';
+const AUTO_APPLY_NATIVE_ENV = 'CK_AUTO_APPLY_NATIVE';
 
 function normalizeBoolean(value) {
     if (typeof value === 'boolean') return value;
@@ -123,18 +127,18 @@ function resolveLayered(options, key, normalize, envName, fallback) {
 
 /** `frameworkRuntime.quietProjectRules` (default false); same layers as the mode, env CK_QUIET_PROJECT_RULES. */
 function resolveQuietProjectRules(options = {}) {
-    const { value, source, layers } = resolveLayered(options, 'quietProjectRules', normalizeBoolean, 'CK_QUIET_PROJECT_RULES', false);
+    const { value, source, layers } = resolveLayered(options, 'quietProjectRules', normalizeBoolean, QUIET_PROJECT_RULES_ENV, false);
     return { enabled: value, source, layers: layers.map(({ value: enabled, ...rest }) => ({ ...rest, enabled })) };
 }
 
 /** `frameworkRuntime.quietNative` (default `none`); same layers as the mode, env CK_QUIET_NATIVE. */
 function resolveQuietNative(options = {}) {
-    return resolveLayered(options, 'quietNative', value => normalizeChoice(value, QUIET_NATIVE), 'CK_QUIET_NATIVE', 'none');
+    return resolveLayered(options, 'quietNative', value => normalizeChoice(value, QUIET_NATIVE), QUIET_NATIVE_ENV, 'none');
 }
 
 /** `frameworkRuntime.autoApplyNative` (default false); same layers as the mode, env CK_AUTO_APPLY_NATIVE. */
 function resolveAutoApplyNative(options = {}) {
-    const { value, source, layers } = resolveLayered(options, 'autoApplyNative', normalizeBoolean, 'CK_AUTO_APPLY_NATIVE', false);
+    const { value, source, layers } = resolveLayered(options, 'autoApplyNative', normalizeBoolean, AUTO_APPLY_NATIVE_ENV, false);
     return { enabled: value, source, layers: layers.map(({ value: enabled, ...rest }) => ({ ...rest, enabled })) };
 }
 
