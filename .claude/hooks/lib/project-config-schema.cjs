@@ -51,13 +51,14 @@ const SCHEMA = {
       profile: { type: "string", required: false, enumValues: ["compatible", "concise"], describe: "compatible: the full universal bundle; concise: the short universal core and route cue." },
     },
   },
+  // Team layer for the knowledge router (knowledge-route.cjs); its help text lives in
+  // .claude/scripts/lib/config-option-describes.cjs, like the other router sections below.
   knowledgeRoute: {
     type: "object",
     required: false,
-    describe: "Team settings for the knowledge router (knowledge-route.cjs). Kept in the project config because the framework-shipped .claude/.ck.json is replaced on refresh. Read per key, later wins: .claude/.ck.json, this file, ~/.claude/.ck.json, checkout .claude/.ck.local.json; CK_KNOWLEDGE_ROUTE=0 always switches it off.",
     properties: {
-      enabled: { type: "boolean", required: false, describe: "false switches every knowledge pointer off (prompt, skill and helper-agent triggers). Default true." },
-      promptTriggers: { type: "boolean", required: false, describe: "true turns prompt-phrase triggers on, false off; when unset, the recorded held-out evaluation (.claude/knowledge-base/evaluation.json) decides." },
+      enabled: { type: "boolean", required: false },
+      promptTriggers: { type: "boolean", required: false },
     },
   },
   // Team layer for the advisory router switches (prompt-route-utils loadRouterSettings): read after the

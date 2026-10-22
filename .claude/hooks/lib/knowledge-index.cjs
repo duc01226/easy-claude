@@ -105,7 +105,7 @@ function projectReferenceRoot(projectDir) {
 /** A project-relative POSIX path with no absolute prefix, drive letter or `..` segment, or null. */
 function safeRelative(value) {
     if (typeof value !== 'string' || !value.trim() || value.includes('\0')) return null;
-    const slash = value.trim().replace(/\\/g, '/').replace(/\/+$/, '');
+    const slash = value.trim().replace(/\\/g, '/').replace(/(?<!\/)\/+$/, ''); // the lookbehind passes a long slash run over once
     if (!slash || slash.startsWith('/') || /^[a-z]:/i.test(slash)) return null;
     const parts = slash.split('/');
     if (parts.some(part => !part || part === '.' || part === '..')) return null;
@@ -306,7 +306,7 @@ function spliceBlock(text, block) {
     const start = text.indexOf(BLOCK_START.slice(0, 30));
     const end = text.indexOf(BLOCK_END);
     if (start !== -1 && end !== -1 && end > start) return `${text.slice(0, start)}${block}${text.slice(end + BLOCK_END.length)}`;
-    return `${text.replace(/\s*$/, '')}\n\n${block}\n`;
+    return `${text.trimEnd()}\n\n${block}\n`;
 }
 
 /** The reference document's current text, or the framework template when it does not exist yet. */
@@ -348,7 +348,7 @@ function normalizeReader(text) {
         .split('\n')
         .map(line => {
             const trimmed = line.trim();
-            if (!trimmed.startsWith('|')) return line.replace(/\s+$/, '');
+            if (!trimmed.startsWith('|')) return line.trimEnd();
             return trimmed
                 .split(/(?<!\\)\|/)
                 .map(cell => cell.trim().replace(/\s+/g, ' ').replace(/^:?-{3,}:?$/, '---'))

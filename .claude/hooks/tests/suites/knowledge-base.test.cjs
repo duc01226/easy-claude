@@ -507,7 +507,7 @@ const tests = [
         })
     },
     {
-        name: '[knowledge-base] TC-KNW-014 the flagged-line check and heading parsing stay linear: a negated line or a heading with a long run of one character (whitespace, underscores, code ticks) costs about what an ordinary line of the same length does',
+        name: '[knowledge-base] TC-KNW-014 the flagged-line check and every pack, header and reader-list parse stay linear: a negated line, a heading, a frontmatter key line, the packs-directory value or a reader-list line with a long run of one character (whitespace, slashes, underscores, code ticks) costs about what an ordinary line of the same length does',
         fn: () => {
             const SIZE = 64 * 1024;
             const fill = (head, unit, tail) => head + unit.repeat(Math.ceil((SIZE - head.length - tail.length) / unit.length)) + tail;
@@ -543,6 +543,26 @@ const tests = [
                     assertTrue(elapsed < 20 * baseline + 250, `${what}: a ${SIZE}-character heading with a whitespace run took ${elapsed.toFixed(1)} ms (baseline ${baseline.toFixed(1)} ms): heading parsing must stay linear`);
                 }
             }
+            // The rest of the untrusted text a delivery or a write reads: a frontmatter key line whose whitespace run ends in a line
+            // separator (every placement the frontmatter parser reads), the reference doc's packs-directory value, and a reader-list
+            // or reference-doc line ending in a whitespace run.
+            const keyRun = (head, unit) => `---\n${fill(head, unit, 'x\u2028y\n---\n## Digest\n')}`;
+            for (const [what, parse] of [
+                ['top-level key line', () => packLib.parsePack(keyRun('title:', ' '))],
+                ['map key line', () => packLib.parsePack(keyRun('triggers:\n  skills:', '\u00a0'))],
+                ['list item key line', () => packLib.parsePack(keyRun('sources:\n  - kind:', ' '))],
+                ['nested list key line', () => packLib.parsePack(keyRun('sources:\n  - kind: doc\n    ref:', '\u3000'))],
+                ['packs-directory value', () => indexLib.safeRelative(fill('docs', '/', 'x'))],
+                ['packs-directory value with backslashes', () => indexLib.safeRelative(fill('docs', '\\', 'x'))],
+                ['reader-list line', () => indexLib.normalizeReader(fill('Notes', ' ', 'x'))],
+                ['reference doc without its generated block', () => indexLib.spliceBlock(fill('Notes', '\t', 'x'), 'block')]
+            ]) {
+                const started = process.hrtime.bigint();
+                parse();
+                const elapsed = Number(process.hrtime.bigint() - started) / 1e6;
+                assertTrue(elapsed < 20 * baseline + 250, `${what}: a ${SIZE}-character line with a one-character run took ${elapsed.toFixed(1)} ms (baseline ${baseline.toFixed(1)} ms): it must be read once, not once per split`);
+            }
+            assertTrue(packLib.parsePack(keyRun('title:', ' ')).errors.length > 0, 'a key line holding a line separator is still refused, not read as a value');
         }
     },
     {

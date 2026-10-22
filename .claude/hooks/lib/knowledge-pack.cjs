@@ -138,7 +138,21 @@ function parseValue(raw) {
     return parseScalar(text);
 }
 
-const KEY_LINE = /^([A-Za-z_][A-Za-z0-9_-]*)\s*:(?:\s+(.*))?$/;
+/**
+ * One `key: value` line, or null. `value` is undefined for a bare `key:` and '' for `key:` plus
+ * whitespace only. The value is cut after the key with plain string steps, not one backtracking
+ * pattern: a long whitespace run before a line terminator is then read once, not once per split.
+ */
+function keyLine(text) {
+    const head = /^([A-Za-z_][A-Za-z0-9_-]*)\s*:/.exec(text);
+    if (!head) return null;
+    const rest = text.slice(head[0].length);
+    if (rest === '') return { key: head[1], value: undefined };
+    if (!/^\s/.test(rest)) return null;
+    const value = rest.trimStart();
+    // A value is one line: text that still holds a line terminator is not a key line.
+    return /[\n\r\u2028\u2029]/.test(value) ? null : { key: head[1], value };
+}
 
 function indentOf(line) {
     const match = /^( *)/.exec(line);
@@ -164,12 +178,12 @@ function parseFrontmatterLines(lines) {
     while (i < cleaned.length) {
         const line = cleaned[i];
         if (line.indent !== 0) fail(`Unexpected indentation (frontmatter line ${line.number})`);
-        const match = KEY_LINE.exec(line.text.trim());
+        const match = keyLine(line.text.trim());
         if (!match) fail(`Expected "key: value" (frontmatter line ${line.number})`);
-        const key = match[1];
+        const key = match.key;
         if (Object.prototype.hasOwnProperty.call(result, key)) fail(`Duplicate key "${key}" (frontmatter line ${line.number})`);
-        if (match[2] !== undefined && match[2].trim() !== '') {
-            result[key] = parseValue(match[2]);
+        if (match.value !== undefined && match.value.trim() !== '') {
+            result[key] = parseValue(match.value);
             i += 1;
             continue;
         }
@@ -191,11 +205,11 @@ function parseBlock(block, ownerLine) {
     const map = {};
     for (const line of block) {
         if (line.indent !== base) fail(`Inconsistent indentation (frontmatter line ${line.number})`);
-        const match = KEY_LINE.exec(line.text.trim());
+        const match = keyLine(line.text.trim());
         if (!match) fail(`Expected "key: value" (frontmatter line ${line.number})`);
-        if (Object.prototype.hasOwnProperty.call(map, match[1])) fail(`Duplicate key "${match[1]}" (frontmatter line ${line.number})`);
-        if (match[2] === undefined || match[2].trim() === '') fail(`Nested blocks deeper than one level are not supported (frontmatter line ${ownerLine})`);
-        map[match[1]] = parseValue(match[2]);
+        if (Object.prototype.hasOwnProperty.call(map, match.key)) fail(`Duplicate key "${match.key}" (frontmatter line ${line.number})`);
+        if (match.value === undefined || match.value.trim() === '') fail(`Nested blocks deeper than one level are not supported (frontmatter line ${ownerLine})`);
+        map[match.key] = parseValue(match.value);
     }
     return map;
 }
@@ -207,11 +221,11 @@ function parseList(block, base) {
         const trimmed = line.text.trim();
         if (line.indent === base && (trimmed.startsWith('- ') || trimmed === '-')) {
             const rest = trimmed === '-' ? '' : trimmed.slice(2).trim();
-            const pair = KEY_LINE.exec(rest);
+            const pair = keyLine(rest);
             if (pair && !rest.startsWith('"') && !rest.startsWith("'")) {
                 current = {};
-                if (pair[2] === undefined || pair[2].trim() === '') fail(`Nested blocks deeper than one level are not supported (frontmatter line ${line.number})`);
-                current[pair[1]] = parseValue(pair[2]);
+                if (pair.value === undefined || pair.value.trim() === '') fail(`Nested blocks deeper than one level are not supported (frontmatter line ${line.number})`);
+                current[pair.key] = parseValue(pair.value);
                 items.push(current);
             } else {
                 current = null;
@@ -220,10 +234,10 @@ function parseList(block, base) {
             continue;
         }
         if (line.indent > base && current) {
-            const pair = KEY_LINE.exec(trimmed);
-            if (!pair || pair[2] === undefined || pair[2].trim() === '') fail(`Expected "key: value" inside a list item (frontmatter line ${line.number})`);
-            if (Object.prototype.hasOwnProperty.call(current, pair[1])) fail(`Duplicate key "${pair[1]}" (frontmatter line ${line.number})`);
-            current[pair[1]] = parseValue(pair[2]);
+            const pair = keyLine(trimmed);
+            if (!pair || pair.value === undefined || pair.value.trim() === '') fail(`Expected "key: value" inside a list item (frontmatter line ${line.number})`);
+            if (Object.prototype.hasOwnProperty.call(current, pair.key)) fail(`Duplicate key "${pair.key}" (frontmatter line ${line.number})`);
+            current[pair.key] = parseValue(pair.value);
             continue;
         }
         fail(`Unexpected line in a list (frontmatter line ${line.number})`);
