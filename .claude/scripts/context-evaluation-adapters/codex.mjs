@@ -25,7 +25,8 @@
 // `codex-default`, or `gpt-oss:20b` with --oss), CTX_EVAL_CODEX_OSS=1 (use a local open-weight model through `--oss`; provider from
 // CTX_EVAL_OSS_PROVIDER, default `ollama`), CTX_EVAL_CODEX_BIN (default `codex`), CTX_EVAL_TIMEOUT_MS
 // (default 170000; keep it below the adapter declaration's `jobTimeoutMs`), CTX_EVAL_PASS_ENV,
-// CTX_EVAL_DEBUG_DIR.
+// CTX_EVAL_DEBUG_DIR. A run the host drops before its turn completes (not a timeout) is retried once from the
+// world's starting state; the retry is reported on stderr and never touches a graded outcome.
 // PORTABILITY CONTRACT: node: built-ins only; literal argv, no shell.
 import { spawn, spawnSync } from 'node:child_process';
 import crypto from 'node:crypto';
@@ -83,13 +84,32 @@ export function runArgs(job, { model, oss, provider }) {
         job.prompt];
 }
 
+/** True when a run failed in the host rather than in the model's work: it exited or errored before the turn
+ * completed, and was not stopped by our own time limit (a slow model is a result, not a host fault). Pure. */
+export function isHostFailure(result) {
+    return !result.ok && !result.timedOut;
+}
+
+/** Copy the world aside so a retry can start from exactly the state the first attempt did. */
+export function backupWorld(world) {
+    const copy = fs.mkdtempSync(path.join(os.tmpdir(), 'ctx-eval-world-'));
+    fs.cpSync(world, copy, { recursive: true, preserveTimestamps: true, verbatimSymlinks: true });
+    return copy;
+}
+
+/** Put the world back to the backed-up state: remove everything in it, then copy the backup in. */
+export function restoreWorld(backup, world) {
+    for (const entry of fs.readdirSync(world)) fs.rmSync(path.join(world, entry), { recursive: true, force: true });
+    fs.cpSync(backup, world, { recursive: true, preserveTimestamps: true, verbatimSymlinks: true });
+}
+
 /** Run Codex on one job, snapshotting the world after each completed item. */
 function runJob(bin, args, { cwd, env, timeout }) {
     return new Promise(resolve => {
         const child = spawn(bin, args, { cwd, env, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
-        const events = []; let usage = null; let ok = false; let stderr = '';
+        const events = []; let usage = null; let ok = false; let stderr = ''; let timedOut = false;
         let before = snapshot(cwd);
-        const timer = setTimeout(() => child.kill('SIGTERM'), timeout);
+        const timer = setTimeout(() => { timedOut = true; child.kill('SIGTERM'); }, timeout);
         child.stderr.on('data', chunk => { stderr = (stderr + chunk).slice(-8000); });
         readline.createInterface({ input: child.stdout }).on('line', line => {
             let event;
@@ -102,8 +122,8 @@ function runJob(bin, args, { cwd, env, timeout }) {
             } else if (event.type === 'turn.completed') { usage = event.usage || null; ok = true; }
             else if (event.type === 'turn.failed' || event.type === 'error') ok = false;
         });
-        child.on('error', error => { clearTimeout(timer); resolve({ error, events, usage, ok: false, stderr }); });
-        child.on('close', code => { clearTimeout(timer); resolve({ code, events, usage, ok: ok && code === 0, stderr }); });
+        child.on('error', error => { clearTimeout(timer); resolve({ error, events, usage, ok: false, timedOut, stderr }); });
+        child.on('close', code => { clearTimeout(timer); resolve({ code, events, usage, ok: ok && code === 0, timedOut, stderr }); });
     });
 }
 
@@ -121,7 +141,20 @@ async function main() {
         if (!oss && fs.existsSync(auth)) { fs.copyFileSync(auth, path.join(home, 'auth.json')); fs.chmodSync(path.join(home, 'auth.json'), 0o600); }
         const bin = process.env.CTX_EVAL_CODEX_BIN || 'codex';
         const env = { ...childEnv(process.env, process.env.CTX_EVAL_PASS_ENV), CODEX_HOME: home, GIT_CEILING_DIRECTORIES: path.dirname(cwd) };
-        const result = await runJob(bin, runArgs(job, options), { cwd, env, timeout: Number(process.env.CTX_EVAL_TIMEOUT_MS) || 170000 });
+        // A host failure (the host or its model server dropped the turn) produces no graded outcome, so it is
+        // retried once from the world's starting state; a timeout or a completed turn is never retried.
+        const backup = backupWorld(cwd);
+        let result;
+        try {
+            for (let attempt = 1; ; attempt++) {
+                result = await runJob(bin, runArgs(job, options), { cwd, env, timeout: Number(process.env.CTX_EVAL_TIMEOUT_MS) || 170000 });
+                if (!isHostFailure(result) || attempt >= 2) break;
+                process.stderr.write(`[codex-adapter] host failure (status ${result.code ?? result.error?.code}); retrying once from the starting world\n`);
+                restoreWorld(backup, cwd);
+            }
+        } finally {
+            fs.rmSync(backup, { recursive: true, force: true });
+        }
         if (result.error || !result.ok) {
             if (process.env.CTX_EVAL_DEBUG_DIR) fs.writeFileSync(path.join(process.env.CTX_EVAL_DEBUG_DIR, `${path.basename(cwd)}.log`), `${result.error?.message || ''}\nstatus ${result.code}\n${result.stderr}`);
             throw new Error(result.error ? result.error.message : `codex run did not complete (status ${result.code})`);
