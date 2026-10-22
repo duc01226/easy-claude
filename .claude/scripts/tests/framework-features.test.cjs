@@ -40,4 +40,8 @@ test('a bare project resolves every entry to its default, and an opt-in shows th
     assert.deepEqual([after['frameworkRuntime.quietNative'].value, after['frameworkRuntime.quietNative'].source], ['restrict', 'user-config']);
     assert.deepEqual([after['frameworkRuntime.offMode'].value, after['frameworkRuntime.offMode'].source], ['as-quiet', 'project-config']);
     assert.match(renderMarkdown(rows), /\| `frameworkRuntime.offMode` \|/);
+    // A personal ~/.claude/.ck.json switches the knowledge router off for this person only.
+    fs.writeFileSync(path.join(homeDir, '.claude/.ck.json'), JSON.stringify({ knowledgeRoute: { enabled: false } }));
+    const knowledge = catalog({ rootDir, homeDir, env: {} }).find(r => r.key === 'knowledgeRoute.enabled');
+    assert.deepEqual([knowledge.value, knowledge.source], [false, 'user-config']);
 });
