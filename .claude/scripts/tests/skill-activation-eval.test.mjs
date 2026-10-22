@@ -154,7 +154,8 @@ function sourceFiles(dir) {
 }
 
 // Invariant: the passthrough list keeps step with the hooks — every environment switch any hook, hook library or
-// script library reads (`env.CK_*`, `env['CK_*']`, or a `const ENV_SWITCH` / `*_ENV = 'CK_*'` name) is either in
+// script library reads (`env.CK_*`, `env['CK_*']`, a `const ENV_SWITCH` / `*_ENV = 'CK_*'` name, or the name passed to
+// framework-runtime's `resolveLayered(...)`) is either in
 // FRAMEWORK_SWITCHES or in the commented exclusion set above.
 test('FRAMEWORK_SWITCHES names every environment switch the hooks read', () => {
   const names = new Set();
@@ -163,8 +164,9 @@ test('FRAMEWORK_SWITCHES names every environment switch the hooks read', () => {
     const text = fs.readFileSync(file, 'utf8');
     for (const match of text.matchAll(/env(?:\.|\[['"])(CK_[A-Z0-9_]+)/g)) names.add(match[1]);
     for (const match of text.matchAll(/const (?:ENV_SWITCH|[A-Z0-9_]+_ENV(?:_ID)?) = '(CK_[A-Z0-9_]+)'/g)) names.add(match[1]);
+    for (const match of text.matchAll(/resolveLayered\([^\n]*?'(CK_[A-Z0-9_]+)'/g)) names.add(match[1]);
   }
-  for (const name of ['CK_FRAMEWORK_MODE', 'CK_WORKFLOW_ROUTE_MODE', 'CK_PROMPT_LEDGER', 'CK_KNOWLEDGE_ROUTE', 'CK_SESSION_ID']) {
+  for (const name of ['CK_FRAMEWORK_MODE', 'CK_QUIET_PROJECT_RULES', 'CK_QUIET_NATIVE', 'CK_AUTO_APPLY_NATIVE', 'CK_WORKFLOW_ROUTE_MODE', 'CK_PROMPT_LEDGER', 'CK_KNOWLEDGE_ROUTE', 'CK_SESSION_ID']) {
     assert.ok(names.has(name), `scan reaches ${name} (${[...names].join(',')})`);
   }
   assert.deepEqual([...names].filter(name => !FRAMEWORK_SWITCHES.includes(name) && !NOT_FRAMEWORK_SWITCHES.has(name)).sort(), []);

@@ -46,11 +46,12 @@ with only the Skill, Read, Glob and Grep tools (`--tools`, so the CLI must suppo
 Write, MultiEdit and NotebookEdit are also disallowed as a second guard), project and local settings only
 and no MCP servers; Codex runs in its read-only sandbox. Because the model sees only those tools, rates are
 not comparable with runs made under a wider tool set. Each run gets the adapters' allowlisted environment,
-the framework switches its hooks read (`CK_FRAMEWORK_MODE`, `CK_QUIET_PROJECT_RULES`,
-`CK_WORKFLOW_ROUTE_MODE`, `CK_SKILL_AUTO_TRIGGER`, `CK_COMMIT_REVIEW_MODE`, `CK_PROMPT_LEDGER` and the
-router kill switches `CK_KNOWLEDGE_ROUTE`, `CK_QUALITY_SKILL_REMINDER`, `CK_CORE_PRINCIPLES_INJECT`,
-`CK_AI_FEATURE_ROUTE`, `CK_COMMIT_SKILL_ROUTE`, `CK_JUDGEMENT_INTEGRITY_ROUTE`) and any names in
-`SKILL_EVAL_PASS_ENV`; no other `CK_` variable is passed, because some carry credentials (a remote URL).
+the framework switches its hooks read (`CK_FRAMEWORK_MODE`, `CK_QUIET_PROJECT_RULES`, `CK_QUIET_NATIVE`,
+`CK_AUTO_APPLY_NATIVE`, `CK_WORKFLOW_ROUTE_MODE`, `CK_SKILL_AUTO_TRIGGER`, `CK_COMMIT_REVIEW_MODE`,
+`CK_PROMPT_LEDGER` and the router kill switches `CK_KNOWLEDGE_ROUTE`, `CK_QUALITY_SKILL_REMINDER`,
+`CK_CORE_PRINCIPLES_INJECT`, `CK_AI_FEATURE_ROUTE`, `CK_COMMIT_SKILL_ROUTE`,
+`CK_JUDGEMENT_INTEGRITY_ROUTE`) and any names in `SKILL_EVAL_PASS_ENV`; no other `CK_` variable is passed,
+because some carry credentials (a remote URL).
 Runs spend model tokens. The report's `framework` object records the effective framework mode and its
 source, quiet project rules, the skill auto-trigger policy (`skillAutoTrigger: { enabled, source }`) and
 the workflow route mode (`workflowRouteMode: { mode, source }`), where the source names the layer that
