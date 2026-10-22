@@ -99,7 +99,7 @@ test('count markers and generated catalogs never conflict', t => {
     assert.equal(f.run(`--base=${f.base}`), 0);
     assert.equal(f.read(f.project, '.claude/docs/README.md').replace(/-->\d+</, '-->N<'), 'Skills: <!-- COUNT:skills -->N<!-- /COUNT -->\nintro (project)\nmiddle\nend (upstream)\n', 'both edits kept; the differing counts did not conflict');
     assert.equal(f.read(f.project, '.claude/SKILLS.yaml'), 'generated for the project\n', 'regenerated, never merged');
-    assert.equal(normalizeCounts(Buffer.from('<!-- COUNT:hooks:total -->37<!-- /COUNT -->')).toString(), '<!-- COUNT:hooks:total -->0<!-- /COUNT -->');
+    assert.equal(normalizeCounts(Buffer.from('<!-- COUNT:hooks:total -->37<!-- /COUNT -->'), 'x.md').toString(), '<!-- COUNT:hooks:total -->0<!-- /COUNT -->');
 });
 
 test('a dry run writes nothing; a first run needs --base; an uncommitted project is refused', t => {
@@ -159,4 +159,14 @@ test('record-only marks a hand-made sync as the base, so later project changes a
     assert.equal(f.run(), 0);
     assert.equal(f.read(f.project, '.claude/hooks/a.cjs'), 'one\ntwo (v3)\nthree\n');
     assert.equal(f.read(f.project, '.claude/hooks/b.cjs'), 'alpha (project)\nbeta\ngamma\n');
+});
+
+test('count-marker text inside code is data: a script containing it is taken byte for byte', t => {
+    const f = fixture(t);
+    const code = "const sample = '<!-- COUNT:skills -->12<!-- /COUNT -->';\n";
+    f.write(f.upstream, '.claude/scripts/sample.test.mjs', code);
+    f.commit(f.upstream, 'v2 adds a script with marker text');
+    assert.equal(f.run(`--base=${f.base}`), 0);
+    assert.equal(f.read(f.project, '.claude/scripts/sample.test.mjs'), code);
+    assert.equal(normalizeCounts(Buffer.from(code), '.claude/scripts/sample.test.mjs').toString(), code);
 });

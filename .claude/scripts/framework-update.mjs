@@ -34,8 +34,8 @@
  *   changed on both sides         → `git merge-file`; a conflict keeps markers in the file
  *   both added, or no base text   → keep the project's file; upstream's copy goes to tmp/framework-update/
  * A file upstream never had (project skills, ledgers, project protocols) is never touched.
- * `<!-- COUNT:… -->` values (ADR-0002) never conflict: they are compared and merged as 0 and
- * recomputed afterwards, and the generated catalogs are regenerated instead of merged.
+ * `<!-- COUNT:… -->` values (ADR-0002) in Markdown/HTML docs never conflict: they are compared and merged
+ * as 0 and recomputed afterwards (any other file is compared and written byte for byte), and the generated catalogs are regenerated instead of merged.
  *
  * Exit codes: 0 updated (or nothing to do) · 1 fatal · 2 conflicts left to resolve.
  */
@@ -53,6 +53,9 @@ export const REGENERATED = new Set(['.claude/SKILLS.yaml', '.claude/scripts/skil
 // Never taken from upstream: the lock itself and per-person files.
 const NEVER_TAKEN = new Set([LOCK_PATH, '.claude/settings.local.json', '.claude/.ck.local.json']);
 const COUNT_RE = /<!--\s*COUNT:([a-z][a-z0-9_-]*)(?::([a-z][a-z0-9_-]*))?\s*-->\d+<!--\s*\/COUNT\s*-->/g;
+// Count markers are a documentation device (ADR-0002); a script or test that merely contains the
+// marker text is code, compared and written byte for byte.
+const COUNTED = /\.(md|html?)$/i;
 const USAGE = 'Usage: node .claude/scripts/framework-update.mjs <easy-claude-dir> [--ref=<rev>] [--working-tree] [--base=<rev>] [--dry-run] [--no-sync] [--record-only] [--allow-dirty-project] [--json]';
 
 function git(cwd, args, { input, allowFail = false } = {}) {
@@ -65,14 +68,14 @@ function git(cwd, args, { input, allowFail = false } = {}) {
 const sha256 = buffer => crypto.createHash('sha256').update(buffer).digest('hex');
 const isText = buffer => !buffer.includes(0);
 
-/** Count markers read as 0, so a count that differs only because the inventories differ is no change. */
-export function normalizeCounts(buffer) {
-    if (buffer === null || !isText(buffer)) return buffer;
+/** In a doc, count markers read as 0, so a count that differs only because the inventories differ is no change. */
+export function normalizeCounts(buffer, file = 'doc.md') {
+    if (buffer === null || !COUNTED.test(file) || !isText(buffer)) return buffer;
     const text = buffer.toString('utf8');
     const zeroed = text.replace(COUNT_RE, (_match, kind, filter) => `<!-- COUNT:${kind}${filter ? `:${filter}` : ''} -->0<!-- /COUNT -->`);
     return zeroed === text ? buffer : Buffer.from(zeroed, 'utf8');
 }
-const hasCounts = buffer => buffer !== null && isText(buffer) && new RegExp(COUNT_RE.source).test(buffer.toString('utf8'));
+const hasCounts = (buffer, file) => buffer !== null && COUNTED.test(file) && isText(buffer) && new RegExp(COUNT_RE.source).test(buffer.toString('utf8'));
 const same = (a, b) => (a === null || b === null) ? a === b : a.equals(b);
 
 /** Read many `<rev>:<path>` blobs through one `git cat-file --batch`; a missing object reads as null. */
@@ -145,9 +148,9 @@ export function planUpdate({ project, upstream, ref = 'HEAD', workingTree = fals
         const up = theirs.get(p) ?? null;
         const mine = readProject(project, p);
         if (REGENERATED.has(p)) { actions.push({ path: p, kind: 'skip-regenerated' }); continue; }
-        const [nUp, nMine] = [normalizeCounts(up), normalizeCounts(mine)];
+        const [nUp, nMine] = [normalizeCounts(up, p), normalizeCounts(mine, p)];
         // Base text when the lock names a commit; otherwise only the hash taken last time.
-        const baseText = resolvedBase ? normalizeCounts(baseBlobs.get(p) ?? null) : undefined;
+        const baseText = resolvedBase ? normalizeCounts(baseBlobs.get(p) ?? null, p) : undefined;
         const baseHash = lock?.files?.[p];
         const isBase = buffer => baseText !== undefined ? same(buffer, baseText) : (buffer === null ? baseHash === undefined : sha256(buffer) === baseHash);
         if (same(nMine, nUp)) { actions.push({ path: p, kind: 'same', content: up }); continue; }
@@ -164,7 +167,7 @@ export function planUpdate({ project, upstream, ref = 'HEAD', workingTree = fals
                 : !baseText && baseHash === undefined ? 'added on both sides' : 'no base text to merge' });
     }
     const lockFiles = {};
-    for (const [p, buffer] of theirs) if (!NEVER_TAKEN.has(p)) lockFiles[p] = sha256(normalizeCounts(buffer));
+    for (const [p, buffer] of theirs) if (!NEVER_TAKEN.has(p)) lockFiles[p] = sha256(normalizeCounts(buffer, p));
     const nextLock = { schemaVersion: 1, source: { commit: resolvedRef, ref: workingTree ? null : ref, workingTree: !!workingTree,
         ...(workingTree ? { headCommit: git(upstream, ['rev-parse', 'HEAD']).stdout.toString('utf8').trim() } : {}) }, files: lockFiles };
     return { actions, nextLock, base: resolvedBase, firstLock: !lock };
@@ -207,7 +210,7 @@ export function applyUpdate(project, plan, { sync = true } = {}) {
         run('generate_catalogs.py', ['--skills', '--output', '.claude/SKILLS.yaml']);
         for (const p of written) {
             const content = readProject(project, p);
-            if (hasCounts(content)) run('generate_catalogs.py', ['--inject-counts', p]);
+            if (hasCounts(content, p)) run('generate_catalogs.py', ['--inject-counts', p]);
         }
     }
     const conflicts = plan.actions.filter(a => a.kind === 'conflict' || a.kind === 'conflict-side');
@@ -249,7 +252,7 @@ export function main(argv = process.argv.slice(2), project = path.resolve(path.d
     if (options.recordOnly) {
         const theirs = upstreamFiles(options.upstream, options);
         const files = {};
-        for (const [p, buffer] of theirs) if (!NEVER_TAKEN.has(p)) files[p] = sha256(normalizeCounts(buffer));
+        for (const [p, buffer] of theirs) if (!NEVER_TAKEN.has(p)) files[p] = sha256(normalizeCounts(buffer, p));
         const commit = options.workingTree ? null : git(options.upstream, ['rev-parse', '--verify', `${options.ref}^{commit}`]).stdout.toString('utf8').trim();
         const lock = { schemaVersion: 1, source: { commit, ref: options.workingTree ? null : options.ref, workingTree: options.workingTree,
             ...(options.workingTree ? { headCommit: git(options.upstream, ['rev-parse', 'HEAD']).stdout.toString('utf8').trim() } : {}) }, files };
