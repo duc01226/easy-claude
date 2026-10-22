@@ -411,9 +411,17 @@ const EXPECTED_SKIPPED_GROUPS = new Set([
     // Reviewed 2026-09-25 (protocol delivery). A protocol-entry group keyed only to
     // Claude's Read or Skill tool, neither of which Codex has, so it could never fire
     // there. Codex covers those loads elsewhere: `$skill` on UserPromptSubmit, and the
-    // Read group's entries re-rendered on the shell tool (`Bash`). Scoped to protocol
-    // entries by the renderer; any other hook keeps its verbatim render.
-    'PostToolUse:matcher-names-no-codex-tool'
+    // Read group's entries re-rendered on the shell tool (`Bash`). Scoped by the renderer
+    // to protocol entries and the reviewed codexClaudeToolOnlyHooks rows (2026-10-21:
+    // knowledge-route, spec KNW BR-KNW-20); any other hook keeps its verbatim render.
+    'PostToolUse:matcher-names-no-codex-tool',
+    // Reviewed 2026-10-21 (knowledge delivery). A non-protocol handler on Claude's
+    // UserPromptExpansion that Claude ALSO registers on UserPromptSubmit: on Codex it
+    // already receives the `$skill` prompt there, so re-targeting the group would only
+    // run it twice. The renderer gives this reason only when that registration exists;
+    // any other non-protocol handler there stays `remap-limited-to-protocol-entries`
+    // and still fails.
+    'UserPromptExpansion:already-on-remap-target'
 ]);
 
 // Exported so the guard can be tested on SYNTHETIC reports. Driving it only from

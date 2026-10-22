@@ -45,6 +45,19 @@ const CK_SCHEMA = {
     describe: "Framework on, quiet (no context injection; review checks remain), or off. Use framework-mode.cjs to reconcile Claude/Codex native skills too; personal settings never change tracked projections.",
     properties: {
       mode: { type: "string", required: false, enum: ["on", "quiet", "off"], describe: "Modes on, quiet, off (default on); later wins: project config, ~/.claude/.ck.json, checkout .claude/.ck.local.json, CK_FRAMEWORK_MODE. Hooks see changes immediately; run framework-mode.cjs apply for native skill changes, then start fresh sessions." },
+      quietProjectRules: { type: "boolean", required: false, describe: "With mode quiet, true keeps only the hooks that deliver the project's own rules: skill overlays, per-file conventions and the skill auto-trigger policy. Default false; later wins: project config, ~/.claude/.ck.json, checkout .claude/.ck.local.json, CK_QUIET_PROJECT_RULES." },
+    },
+  },
+  skillProfile: {
+    type: "object",
+    required: false,
+    describe: "Personal skill-visibility profile, the same shape as the team skillProfile in docs/project-config.json. `node .claude/scripts/sync-skill-profile.cjs --personal` writes it into the ignored .claude/settings.local.json skillOverrides; ~/.claude/.ck.json first, then the checkout's .claude/.ck.local.json (later wins per skill), and a personal entry wins over the team entry for the same skill.",
+    properties: {
+      preset: { type: "string", required: false, enum: ["full", "standard", "minimal"], describe: "Starting point (full, standard or minimal), as in the team profile; presets live in .claude/config/skill-profiles.json." },
+      allowHidingCalledSkills: { type: "boolean", required: false, describe: "True lets commandOnly/off hide a skill that a workflow, agent or other skill starts; default false refuses such a profile." },
+      nameOnly: { type: "array", required: false, itemType: "string", describe: "Skill folder names kept out of the model's skill list; still callable by name." },
+      commandOnly: { type: "array", required: false, itemType: "string", describe: "Skill folder names that only a user's typed /name starts." },
+      off: { type: "array", required: false, itemType: "string", describe: "Skill folder names turned off for you: a call by name fails." },
     },
   },
   locale: {
@@ -111,6 +124,17 @@ const CK_SCHEMA = {
     required: false,
     properties: {
       enabled: { type: "boolean", required: false },
+    },
+  },
+  // Knowledge router (knowledge-route.cjs). On by default; `enabled: false` or CK_KNOWLEDGE_ROUTE=0 switches
+  // every trigger off. `promptTriggers` overrides the default recorded by the held-out evaluation
+  // (.claude/knowledge-base/evaluation.json) for prompt-phrase triggers only.
+  knowledgeRoute: {
+    type: "object",
+    required: false,
+    properties: {
+      enabled: { type: "boolean", required: false },
+      promptTriggers: { type: "boolean", required: false },
     },
   },
   // Quality-skill reminder after tool results (quality-skill-remind.cjs). On by default;

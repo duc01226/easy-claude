@@ -409,6 +409,19 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
+  description: '[Utilities] Use when saving, updating, listing, removing, importing
+    or asking about subject knowledge (domain rules, regulations, chosen practices)
+    that the assistant should read at the right moment. list | add | update | delete
+    | review | ask | import | check.'
+  has_references: true
+  has_scripts: true
+  name: knowledge-base
+  path: knowledge-base/SKILL.md
+  removal_after: null
+  status: active
+- category: other
+  deprecated_by: null
+  deprecated_since: null
   description: '[Research] Use when a workflow step or the user asks for knowledge
     artifact review: completeness, citation accuracy, confidence and template compliance.'
   has_references: false
@@ -505,6 +518,18 @@
   has_scripts: false
   name: performance-review
   path: performance-review/SKILL.md
+  removal_after: null
+  status: active
+- category: other
+  deprecated_by: null
+  deprecated_since: null
+  description: '[Testing] Use when initializing, writing, reviewing or verifying performance/load/soak/capacity
+    tests. --mode=verify --fix-loop (or --mode=green) diagnoses, fixes and remeasures
+    with performance-review. Static bottleneck audits use performance-review.'
+  has_references: true
+  has_scripts: false
+  name: performance-test
+  path: performance-test/SKILL.md
   removal_after: null
   status: active
 - category: utilities

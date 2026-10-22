@@ -90,6 +90,8 @@ Use direct repository inspection for focused work. Add research agents or extern
 
 Write `plan.md` under the configured plans root. Use this compact shape; omit a section only with a stated `N/A` reason.
 
+A plans root that `git check-ignore` lists holds working artifacts that other clones never see: a tracked record, spec or doc names a plan by its id or title and never by path. Read [the record reference rules](../task-track/references/integration-guide.md#records-another-skill-authors) when a plan feeds a tracked record.
+
 ### Plan profile — full or light
 
 Choose the profile before writing and state it under the plan title as `Plan profile: full` or `Plan profile: light — {spec-supplied | XS/S}`.

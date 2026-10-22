@@ -364,6 +364,13 @@ const REFERENCE_DOC_CATALOG = [
         templatePath: '.claude/templates/reference-docs/skill-protocols-reference.md'
     },
     {
+        filename: 'knowledge-base-reference.md',
+        purpose:
+            'Index of the knowledge base (project packs first, then framework packs) — written and managed via the /knowledge-base skill; project packs live in the folder its Packs directory line names (default docs/knowledge-base/).',
+        sections: [],
+        templatePath: '.claude/templates/reference-docs/knowledge-base-reference.md'
+    },
+    {
         filename: 'scss-styling-guide.md',
         purpose: 'SCSS/CSS styling guide: BEM methodology, mixins, variables, theming, responsive patterns.',
         sections: ['BEM Methodology', 'SCSS Architecture', 'Mixins & Variables', 'Theming', 'Responsive Patterns']

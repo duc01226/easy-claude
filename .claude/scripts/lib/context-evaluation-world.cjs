@@ -1,5 +1,6 @@
 'use strict';
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const { isDeepStrictEqual } = require('node:util');
@@ -303,11 +304,19 @@ function removeWorld(dir) {
  * just before its job and removed after grading unless `keepWorlds` is set, so a run holds one
  * world on disk at a time. The adapter is a user-selected host runner: argv is literal and
  * stdin/stdout are JSON; it must capture actual tool events and usage under normal host
- * permissions. A job that fails blocks the run: no retries, no favorable subset.
+ * permissions. Each job also carries `jobTimeoutMs` (the adapter is stopped at that limit, so it
+ * budgets its host runs and cleanup inside it) and `scratchDir` (a temporary folder for the
+ * adapter's private files, removed after the job even when the adapter was stopped or killed).
+ * A job that fails blocks the run: the evaluator never retries a job and never keeps a favorable
+ * subset. An adapter may retry a host or transport failure inside one job, from the job's starting
+ * world; it reports `attempts`, and the record keeps it.
  */
 function runEvaluation({ manifest, outputDir, bundle, identity, adapter, keepWorlds = false, log = () => {} }) {
     if (adapter !== undefined && (!adapter || typeof adapter.executable !== 'string' || !Array.isArray(adapter.args)
-        || adapter.args.some(arg => typeof arg !== 'string') || adapter.isolationVerified !== true)) throw new Error('adapter');
+        || adapter.args.some(arg => typeof arg !== 'string') || adapter.isolationVerified !== true
+        || (adapter.jobTimeoutMs !== undefined && !(Number.isInteger(adapter.jobTimeoutMs) && adapter.jobTimeoutMs >= 30000 && adapter.jobTimeoutMs <= 1800000)))) throw new Error('adapter');
+    // A slower model or host may declare a longer per-job limit (30 s to 30 min); the default is 180 s.
+    const jobTimeout = adapter === undefined ? 0 : adapter.jobTimeoutMs ?? 180000;
     // Records claim the identity's bundle hash, so the worlds must be built from that bundle.
     if (identity.bundleHash !== bundle.hash) throw new Error('bundle-identity');
     const worlds = frozenWorlds(manifest);
@@ -320,24 +329,29 @@ function runEvaluation({ manifest, outputDir, bundle, identity, adapter, keepWor
     const records = []; const leftoverWorlds = [];
     for (const job of jobs) {
         const world = worlds.get(job.caseId);
+        let scratch = null;
         try {
             fs.mkdirSync(job.cwd); writeWorld(job.cwd, world, bundle);
             const started = Date.now();
-            const result = spawnSync(adapter.executable, adapter.args, { cwd: job.cwd, env: { ...process.env, CLAUDE_PROJECT_DIR: job.cwd }, input: JSON.stringify(job), encoding: 'utf8', timeout: 180000, maxBuffer: MAX_OBSERVED_OUTPUT_BYTES, shell: false });
+            // Outside the run directory, so the adapter's private files (a copied sign-in file, a world
+            // backup) never sit beside the evidence; removed in `finally` whatever happened to the adapter.
+            scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'ctx-eval-job-'));
+            const result = spawnSync(adapter.executable, adapter.args, { cwd: job.cwd, env: { ...process.env, CLAUDE_PROJECT_DIR: job.cwd }, input: JSON.stringify({ ...job, jobTimeoutMs: jobTimeout, scratchDir: scratch }), encoding: 'utf8', timeout: jobTimeout, maxBuffer: MAX_OBSERVED_OUTPUT_BYTES, shell: false });
             if (result.status !== 0) {
                 fs.writeFileSync(path.join(dir, 'blocked.json'), JSON.stringify({ caseId: job.caseId, trial: job.trial, profile: job.profile, code: 'RUNTIME_UNAVAILABLE', recordsCompleted: records.length }));
-                throw new Error('runtime'); // no retries, no favorable subset
+                throw new Error('runtime'); // the evaluator never retries a job and keeps no favorable subset
             }
             const trajectory = JSON.parse(result.stdout);
             if (!Array.isArray(trajectory.toolEvents) || !trajectory.model || !trajectory.settingsHash) throw new Error('trajectory');
             // The grade comes from the world and the observed events, never from fields the adapter returns.
             const grade = gradeWorld(job.cwd, world, trajectory, bundle);
-            records.push({ ...grade, caseId: job.caseId, trial: job.trial, profile: job.profile, manifestHash: job.manifestHash, worldHash: job.worldHash, policyHash: job.policyHash, sourceHash, bundleHash, trajectoryHash: sha256(result.stdout), model: trajectory.model, settingsHash: trajectory.settingsHash, host: trajectory.host, platform: process.platform, inputTokens: trajectory.inputTokens, outputTokens: trajectory.outputTokens, discoveryCalls: countDiscoveryCalls(trajectory.toolEvents, bundle), toolCalls: trajectory.toolEvents.length, latencyMs: Date.now() - started });
+            records.push({ ...grade, caseId: job.caseId, trial: job.trial, profile: job.profile, manifestHash: job.manifestHash, worldHash: job.worldHash, policyHash: job.policyHash, sourceHash, bundleHash, trajectoryHash: sha256(result.stdout), model: trajectory.model, settingsHash: trajectory.settingsHash, host: trajectory.host, platform: process.platform, attempts: Number.isInteger(trajectory.attempts) && trajectory.attempts >= 1 ? trajectory.attempts : null, inputTokens: trajectory.inputTokens, outputTokens: trajectory.outputTokens, discoveryCalls: countDiscoveryCalls(trajectory.toolEvents, bundle), toolCalls: trajectory.toolEvents.length, latencyMs: Date.now() - started });
             fs.writeFileSync(path.join(dir, 'evidence.json'), JSON.stringify({ records, options: { policyHashes, sourceHash, bundleHash } }, null, 2));
             // Raw trajectories are opt-in and local only, never a default diagnostic.
             if (adapter.saveRedactedTrajectories === true) fs.writeFileSync(path.join(dir, `${job.caseId}-${job.trial}-${job.profile}.json`), result.stdout);
             log(`${job.caseId}/${job.trial}/${job.profile}: ${grade.success ? 'PASS' : 'FAIL'}\n`);
         } finally {
+            if (scratch) removeWorld(scratch);
             if (!keepWorlds && !removeWorld(job.cwd)) leftoverWorlds.push(path.basename(job.cwd));
         }
     }

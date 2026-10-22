@@ -123,6 +123,9 @@ function routeThroughRealRouter(payload, isolatedHome) {
   Object.assign(env, {
     ENABLE_DESKTOP_NOTIFICATIONS: "false",
     CLAUDE_HOOK_TEST_MODE: "1",
+    // Attendance markers inherited from the assistant session running the tests.
+    CLAUDE_CODE_SESSION_ATTENDED: "",
+    CLAUDE_CODE_SESSION_ID: "",
     HOME: isolatedHome,
     USERPROFILE: isolatedHome,
   });
@@ -216,6 +219,26 @@ test("buildHooksConfig compiles supported events and reports the unsupported one
   assert.deepEqual(report.skipped_groups, [
     { event: "SessionEnd", group_index: 0, matcher: "clear", reason: "unsupported-command-shape" },
   ]);
+});
+
+// TC-KNW-045 (third host) — spec KNW BR-KNW-20: the shipped settings give OpenCode the knowledge router on
+// prompts (including `$skill` markers), skill invocation, pack reads and compaction, and nothing on the
+// typed-command or helper-agent start events it does not have.
+test("TC-KNW-045: the third host registers the knowledge router for prompts, skill starts, pack reads and compaction only", async () => {
+  const settingsFile = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "settings.json");
+  const { hooks, report } = buildHooksConfig(JSON.parse(await fs.readFile(settingsFile, "utf8")));
+  const registrations = Object.entries(hooks).flatMap(([event, groups]) => groups.flatMap(group => group.hooks
+    .filter(hook => hook.command === ".claude/hooks/knowledge-route.cjs")
+    .map(hook => `${event}:${group.matcher ?? "*"}${hook.if ? ` if ${hook.if}` : ""}`)));
+  assert.deepEqual(registrations.sort(), [
+    "PostToolUse:Read if Read(**/knowledge-base/*.md)",
+    "PostToolUse:Skill",
+    "SessionStart:compact",
+    "UserPromptSubmit:*",
+  ]);
+  const unsupported = report.skipped_events.map(entry => entry.event);
+  assert.ok(unsupported.includes("SubagentStart"), "no helper-agent start event on the third host");
+  assert.ok(unsupported.includes("UserPromptExpansion"), "no typed-command event on the third host");
 });
 
 test("renderPlugin substitutes the HOOKS placeholder and is deterministic", async () => {
@@ -937,6 +960,40 @@ test("[TC-NT-014] generated bridge marks a child session going idle so only the 
   }
 });
 
+test("[TC-NT-014] generated bridge recognizes a child session announced by a flat session event", async () => {
+  // Given the real generated OpenCode bridge with a Stop hook configured
+  const settings = {
+    hooks: {
+      Stop: [{ hooks: [{ type: "command", command: hookCommand("record-all.cjs") }] }],
+    },
+  };
+  const root = await createProject(settings);
+  try {
+    const { pluginPath } = await materializeOpencodeHooks({ rootDir: root });
+    const factory = await loadBridge(pluginPath);
+    const hooks = await factory({ directory: root });
+
+    // When sessions are announced by the durable event shape, which carries the session fields
+    // flat beside the sessionID instead of nesting them under `info`
+    await hooks.event({ event: { type: "session.created", properties: { sessionID: "main-session", slug: "main" } } });
+    await hooks.event({ event: { type: "session.created", properties: { sessionID: "child-c", parentID: "main-session" } } });
+    for (const sessionID of ["child-c", "main-session"]) {
+      await hooks.event({ event: { type: "session.idle", properties: { sessionID } } });
+    }
+
+    // Then only the child's idle carries the delegated-conversation marker
+    const [child, main] = await readRecordedPayloads(root);
+    assert.equal(child.session_id, "child-c");
+    assert.equal(child.agent_id, "child-c");
+    assert.equal(Object.hasOwn(main, "agent_id"), false, "the main session idle must not look delegated");
+    // And the real notification router alerts for the main session only
+    assert.match(routeThroughRealRouter(child, root), /Skipped: subagent Stop/);
+    assert.doesNotMatch(routeThroughRealRouter(main, root), /Skipped/);
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
 test("[TC-NT-011] generated bridge defers only the question tool precursor so one question alert is raised", async () => {
   // Given the real generated OpenCode bridge with a PreToolUse hook for the question and shell tools
   const settings = {
@@ -1019,6 +1076,35 @@ test("[TC-PDL-068] generated bridge checks a handler's Read condition before it 
   }
 });
 
+// Invariant: a slower earlier hook still merges first. The configured order, not finish order, decides
+// which hook's updatedInput wins (the later one) and the order of the added context.
+test("generated bridge merges a slow earlier hook before a fast later one (configured order, not finish order)", async () => {
+  const hook = (label, ms) => [
+    "process.stdin.resume();",
+    "process.stdin.on('end', () => setTimeout(() => {",
+    `  process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'PreToolUse', updatedInput: { command: 'echo ${label}' }, additionalContext: '${label}' } }));`,
+    `}, ${ms}));`,
+  ].join("\n");
+  const root = await createProject({ hooks: { PreToolUse: [{ matcher: "Bash", hooks: [
+    { type: "command", command: hookCommand("slow-first.cjs") },
+    { type: "command", command: hookCommand("fast-second.cjs") },
+  ] }] } });
+  try {
+    await fs.writeFile(path.join(root, ".claude", "hooks", "slow-first.cjs"), `${hook("FIRST", 700)}\n`, "utf8");
+    await fs.writeFile(path.join(root, ".claude", "hooks", "fast-second.cjs"), `${hook("SECOND", 20)}\n`, "utf8");
+    const { pluginPath } = await materializeOpencodeHooks({ rootDir: root });
+    const hooks = await (await loadBridge(pluginPath))({ directory: root });
+    const output = { args: { command: "ls" } };
+    await hooks["tool.execute.before"]({ tool: "bash", sessionID: "order", callID: "c1", args: {} }, output);
+    assert.equal(output.args.command, "echo SECOND", "the later configured hook's updatedInput wins");
+    const system = { system: [] };
+    await hooks["experimental.chat.system.transform"]({ sessionID: "order" }, system);
+    assert.deepEqual(system.system, ["FIRST", "SECOND"], "contexts merge in configured order");
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
 test("generated plugin imports only node built-ins (portable)", async () => {
   const root = await createProject();
   try {
@@ -1028,6 +1114,45 @@ test("generated plugin imports only node built-ins (portable)", async () => {
     for (const specifier of imports) {
       assert.ok(specifier.startsWith("node:"), `unexpected non-builtin import: ${specifier}`);
     }
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
+// Invariant: the bridge starts an event's matching hooks together (as Claude Code and Codex do), so their
+// wall time is the slowest hook, not the sum, while the merged outcome keeps the configured hook order.
+// Proof by rendezvous, not by wall-clock time: each hook marks its start, then waits (bounded) for the other's
+// mark. Run together, both meet; run one after another, the first finds no mark and reports "alone".
+test("generated bridge runs an event's matching hooks concurrently and merges their outcomes in configured order", async () => {
+  const root = await createProject({ hooks: { PreToolUse: [{ matcher: "Bash", hooks: [
+    { type: "command", command: hookCommand("slow-first.cjs") },
+    { type: "command", command: hookCommand("slow-second.cjs") },
+  ] }] } });
+  const marks = path.join(root, "marks");
+  const rendezvous = (label, other) => [
+    "const fs = require('node:fs');",
+    "const path = require('node:path');",
+    `const marks = ${JSON.stringify(marks)};`,
+    `fs.writeFileSync(path.join(marks, ${JSON.stringify(label)}), '');`,
+    "const until = Date.now() + 10000;",
+    "process.stdin.resume();",
+    "process.stdin.on('end', function wait() {",
+    `  const met = fs.existsSync(path.join(marks, ${JSON.stringify(other)}));`,
+    "  if (!met && Date.now() < until) return void setTimeout(wait, 20);",
+    `  process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'PreToolUse', additionalContext: ${JSON.stringify(label)} + (met ? ' met' : ' alone') } }));`,
+    "});",
+  ].join("\n");
+  try {
+    await fs.mkdir(marks);
+    await fs.writeFile(path.join(root, ".claude", "hooks", "slow-first.cjs"), `${rendezvous("FIRST", "SECOND")}\n`, "utf8");
+    await fs.writeFile(path.join(root, ".claude", "hooks", "slow-second.cjs"), `${rendezvous("SECOND", "FIRST")}\n`, "utf8");
+    const { pluginPath } = await materializeOpencodeHooks({ rootDir: root });
+    const hooks = await (await loadBridge(pluginPath))({ directory: root });
+    const call = { tool: "bash", sessionID: "parallel", callID: "c1", args: {} };
+    await hooks["tool.execute.before"](call, { args: { command: "ls" } });
+    const system = { system: [] };
+    await hooks["experimental.chat.system.transform"]({ sessionID: "parallel" }, system);
+    assert.deepEqual(system.system, ["FIRST met", "SECOND met"], "both hooks ran at once, and outcomes merge in configured order");
   } finally {
     await fs.rm(root, { recursive: true, force: true });
   }

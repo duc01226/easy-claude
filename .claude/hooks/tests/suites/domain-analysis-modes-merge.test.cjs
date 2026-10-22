@@ -334,11 +334,20 @@ const tests = [
             assert.ok(canonicalGate.includes('The running skill IS `/domain-analysis --mode=review`'), 'duplication guard row');
             const projection = read(SKILLS, 'shared', 'protocols', 'domain-entity-change-gate.md');
             assert.equal(normalizeEol(projection).trim(), normalizeEol(canonicalGate).trim(), 'projection equals canonical');
-            for (const rel of ['.claude/agents/backend-developer.md', '.claude/agents/code-reviewer.md', '.claude/agents/planner.md', '.claude/skills/changes-review/SKILL.md']) {
-                assert.ok(carriesCanonicalProtocol(read(REPO_ROOT, ...rel.split('/')), 'domain-entity-change-gate', projection, canonicalGate, rel.startsWith('.claude/skills/')),
-                    `${rel} carries the canonical gate (agents retain full bodies)`);
-            }
             const tag = 'domain-entity-change-gate';
+            // An agent may carry the gate as a guide line only where the agent-guide policy converts it: the policy
+            // is enabled, the tag is trigger-gated, and the agent does not keep it inline. Otherwise agents keep the
+            // full body (same rule as TC-PDL-039).
+            const groupsData = JSON.parse(read(SKILLS, 'shared', 'protocol-groups.json'));
+            const agentPolicy = groupsData.agentGuides && groupsData.agentGuides.enabled === true ? groupsData.agentGuides : null;
+            const triggerGated = Object.values(groupsData.groups || {}).some(group => group && group.tags && group.tags[tag] && group.tags[tag].trigger);
+            const agentMayGuide = agent => Boolean(agentPolicy) && triggerGated && !(((agentPolicy.keepInline || {})[agent]) || []).includes(tag);
+            for (const rel of ['.claude/agents/backend-developer.md', '.claude/agents/code-reviewer.md', '.claude/agents/planner.md', '.claude/skills/changes-review/SKILL.md']) {
+                const agent = (/^\.claude\/agents\/([^/]+)\.md$/.exec(rel) || [])[1];
+                const acceptGuide = agent ? agentMayGuide(agent) : true;
+                assert.ok(carriesCanonicalProtocol(read(REPO_ROOT, ...rel.split('/')), tag, projection, canonicalGate, acceptGuide),
+                    `${rel} carries the canonical gate (${acceptGuide ? 'a body or a published guide line' : 'the full body; the agent-guide policy does not convert it here'})`);
+            }
             const guide = `<!-- PROTOCOL-GUIDES:START -->\n${guideCarrier.guideEntries(read(SKILLS, 'changes-review', 'SKILL.md')).get(tag)}\n<!-- PROTOCOL-GUIDES:END -->`;
             for (const [label, text, published, acceptGuide] of [
                 ['missing published body', guide, null, true],

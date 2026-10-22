@@ -1,0 +1,262 @@
+{
+  "schema": 1,
+  "plane": "framework",
+  "packs": [
+    {
+      "id": "ai-engineering",
+      "title": "AI-engineering best practice and detection signals",
+      "description": "Use when building, planning or reviewing a feature that calls a model — prompts, agents, retrieval, tools, evals, guardrails",
+      "kind": "practice",
+      "review": "unreviewed",
+      "reviewed": "2026-10-21",
+      "labels": [
+        "unreviewed"
+      ],
+      "sourceKinds": [
+        "file"
+      ],
+      "file": ".claude/knowledge-base/ai-engineering.md",
+      "body": ".claude/docs/ai-engineering-knowledge.md",
+      "triggers": {
+        "prompt": [],
+        "intent": [],
+        "skills": [],
+        "agents": []
+      },
+      "clauses": [],
+      "hash": "36c4c6426cbe05ae"
+    },
+    {
+      "id": "architecture",
+      "title": "Architecture laws, trade-offs and anti-patterns",
+      "description": "Use when designing or reviewing structure, boundaries, data, consistency, messaging, scalability or resilience",
+      "kind": "practice",
+      "review": "unreviewed",
+      "reviewed": "2026-10-21",
+      "labels": [
+        "unreviewed"
+      ],
+      "sourceKinds": [
+        "file"
+      ],
+      "file": ".claude/knowledge-base/architecture.md",
+      "body": ".claude/docs/architecture-knowledge.md",
+      "triggers": {
+        "prompt": [],
+        "intent": [],
+        "skills": [
+          "domain-analysis",
+          "scaffold",
+          "tech-stack-research"
+        ],
+        "agents": [
+          "architect",
+          "solution-architect"
+        ]
+      },
+      "clauses": [],
+      "hash": "4e6471ec6fd42af0"
+    },
+    {
+      "id": "design",
+      "title": "Design laws, generated-design tells and the design plan",
+      "description": "Use when designing, mocking up or reviewing a user interface's visual identity, typography, colour, layout or motion",
+      "kind": "practice",
+      "review": "unreviewed",
+      "reviewed": "2026-10-21",
+      "labels": [
+        "unreviewed"
+      ],
+      "sourceKinds": [
+        "file"
+      ],
+      "file": ".claude/knowledge-base/design.md",
+      "body": ".claude/docs/design-knowledge.md",
+      "triggers": {
+        "prompt": [],
+        "intent": [],
+        "skills": [],
+        "agents": []
+      },
+      "clauses": [],
+      "hash": "54137a32c200372b"
+    },
+    {
+      "id": "distributed-systems",
+      "title": "Distributed systems — failure modes and quality gate",
+      "description": "Use when designing, building or reviewing anything that calls another service, retries, queues messages, replicates data or spans a workflow across services",
+      "kind": "practice",
+      "review": "unreviewed",
+      "reviewed": "2026-10-22",
+      "labels": [
+        "unreviewed"
+      ],
+      "sourceKinds": [
+        "team-decision"
+      ],
+      "file": ".claude/knowledge-base/distributed-systems.md",
+      "body": null,
+      "triggers": {
+        "prompt": [],
+        "intent": [],
+        "skills": [
+          "architecture",
+          "production-readiness-review"
+        ],
+        "agents": [
+          "architect",
+          "backend-developer"
+        ]
+      },
+      "clauses": [
+        {
+          "id": "KB-DIST-1",
+          "heading": "KB-DIST-1 Concerns and risks"
+        },
+        {
+          "id": "KB-DIST-3",
+          "heading": "KB-DIST-3 Quality gate: calls and retries"
+        },
+        {
+          "id": "KB-DIST-4",
+          "heading": "KB-DIST-4 Quality gate: failure handling"
+        },
+        {
+          "id": "KB-DIST-5",
+          "heading": "KB-DIST-5 Quality gate: data and consistency"
+        },
+        {
+          "id": "KB-DIST-6",
+          "heading": "KB-DIST-6 Quality gate: workflows and messaging"
+        },
+        {
+          "id": "KB-DIST-7",
+          "heading": "KB-DIST-7 Quality gate: observability"
+        },
+        {
+          "id": "KB-DIST-8",
+          "heading": "KB-DIST-8 Quality gate: architecture justification"
+        }
+      ],
+      "hash": "e344c99a8e9aa89b"
+    },
+    {
+      "id": "microservices-cost",
+      "title": "Microservices vs monolith — the measured cost of distribution",
+      "description": "Use when choosing between a monolith and microservices, splitting a service out, or sizing and scaling services",
+      "kind": "practice",
+      "review": "unreviewed",
+      "reviewed": "2026-10-22",
+      "labels": [
+        "unreviewed"
+      ],
+      "sourceKinds": [
+        "research-report"
+      ],
+      "file": ".claude/knowledge-base/microservices-cost.md",
+      "body": null,
+      "triggers": {
+        "prompt": [],
+        "intent": [],
+        "skills": [
+          "architecture",
+          "tech-stack-research"
+        ],
+        "agents": [
+          "architect",
+          "solution-architect"
+        ]
+      },
+      "clauses": [
+        {
+          "id": "KB-MSC-1",
+          "heading": "KB-MSC-1 Concerns to check"
+        },
+        {
+          "id": "KB-MSC-2",
+          "heading": "KB-MSC-2 Quality gate"
+        },
+        {
+          "id": "KB-MSC-3",
+          "heading": "KB-MSC-3 Best practices"
+        }
+      ],
+      "hash": "b4e6e01f5bcfddce"
+    },
+    {
+      "id": "performance",
+      "title": "Performance calibration constants and domain laws",
+      "description": "Use when judging latency, throughput, caching, database load, memory or capacity against order-of-magnitude anchors",
+      "kind": "practice",
+      "review": "unreviewed",
+      "reviewed": "2026-10-21",
+      "labels": [
+        "unreviewed"
+      ],
+      "sourceKinds": [
+        "file"
+      ],
+      "file": ".claude/knowledge-base/performance.md",
+      "body": ".claude/skills/performance-review/references/performance-knowledge.md",
+      "triggers": {
+        "prompt": [],
+        "intent": [],
+        "skills": [],
+        "agents": []
+      },
+      "clauses": [],
+      "hash": "0dbc3dae7dfa93a5"
+    },
+    {
+      "id": "writing-knowledge-packs",
+      "title": "Writing good knowledge packs",
+      "description": "Use when drafting, importing, updating or reviewing a knowledge pack",
+      "kind": "practice",
+      "review": "unreviewed",
+      "reviewed": "2026-10-21",
+      "labels": [
+        "unreviewed"
+      ],
+      "sourceKinds": [
+        "file"
+      ],
+      "file": ".claude/knowledge-base/writing-knowledge-packs.md",
+      "body": null,
+      "triggers": {
+        "prompt": [],
+        "intent": [],
+        "skills": [
+          "knowledge-base"
+        ],
+        "agents": []
+      },
+      "clauses": [
+        {
+          "id": "KB-PACK-1",
+          "heading": "KB-PACK-1 One subject, many clauses"
+        },
+        {
+          "id": "KB-PACK-2",
+          "heading": "KB-PACK-2 The digest"
+        },
+        {
+          "id": "KB-PACK-3",
+          "heading": "KB-PACK-3 Clauses"
+        },
+        {
+          "id": "KB-PACK-4",
+          "heading": "KB-PACK-4 Triggers"
+        },
+        {
+          "id": "KB-PACK-5",
+          "heading": "KB-PACK-5 Trust"
+        },
+        {
+          "id": "KB-PACK-6",
+          "heading": "KB-PACK-6 Concise for an agent reader"
+        }
+      ],
+      "hash": "cb6f3d66818adf78"
+    }
+  ]
+}

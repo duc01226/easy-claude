@@ -1,6 +1,6 @@
 ---
 name: sync-codex
-description: '[Codex] Use when running the full Codex mirror sync and verify pipeline, or when `.claude/**` edits leave `.agents/`, `.codex/` or `AGENTS.md` stale.'
+description: '[Codex] Use once, after the `.claude/**` edits of a change are final and before committing them, to regenerate and verify `.agents/`, `.codex/`, `.opencode/` and `AGENTS.md`; never after each edit.'
 ---
 
 ## Quick Summary
@@ -126,6 +126,7 @@ Stage 2 maps the project config's `skillProfile` onto each skill mirror's `agent
 | `commandOnly` / `off` | `allow_implicit_invocation: false`; `$name` still runs it | Refused, unless `allowHidingCalledSkills: true`; with the opt-in, `allow_implicit_invocation: false` plus a warning line |
 
 - **No profile, no change.** The resolver loads only when `skillProfile` is declared, so a project without one gets a byte-identical mirror.
+- **Stage 2 also writes tracked Claude source.** When `skillProfile` is declared, or its ledger `.claude/skill-profile.generated.json` exists, stage 2 runs `syncSkillProfile` (`.claude/scripts/sync-skill-profile.cjs`) and writes the `skillOverrides` keys it owns in the tracked `.claude/settings.json`, plus that ledger, so Claude hides the same skills Codex does. It changes them when the profile changed or a framework refresh replaced `settings.json` and dropped the overrides, and then prints `restored Claude skillOverrides (<n> profile entries)`. Review and commit that diff with the change; keys the ledger does not own are never touched, and a checkout without `.claude/settings.json` is skipped.
 - **Refused profile stops everything.** A refusal prints the resolver's message and `skill-profile: nothing was written`, then exits `1` before any mirror, agent or config write — `--no-skills` included. The stage-19 divergence oracle fails the same way.
 - **Fail-closed inputs.** A project config that exists but is not valid JSON fails the sync, because it cannot tell whether the config hides skills; a `.claude/workflows.json` without a `workflows` map fails the resolver.
 - **A skill that ships its own `agents/openai.yaml`** without the policy is kept as it is: the profile is skipped for it with one `conflict:` line.
@@ -140,7 +141,7 @@ continues; if declared but malformed, their direct verifier fails closed:
 | #   | Stage           | Script                                                       | Effect                                                                                              |
 | --- | --------------- | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
 | 1   | claude-md       | `.claude/skills/ai-context-refresh/scripts/generate-claude-md.cjs --check` | Preflight `CLAUDE.md`; init missing or update marker-managed stale; a markerless root is left as written |
-| 2   | migrate         | `.claude/scripts/codex/migrate-claude-to-codex.mjs`          | Refresh registry-derived workflow call blocks via `.claude/scripts/lib/workflow-skill-contract.cjs`, then migrate agents → `.codex/agents/`, mirror skills → `.agents/skills/`, and setup Codex notifications |
+| 2   | migrate         | `.claude/scripts/codex/migrate-claude-to-codex.mjs`          | Refresh registry-derived workflow call blocks via `.claude/scripts/lib/workflow-skill-contract.cjs`, then migrate agents → `.codex/agents/`, mirror skills → `.agents/skills/`, setup Codex notifications, and restore the profile's `skillOverrides` in `.claude/settings.json` ([Skill profile on Codex](#skill-profile-on-codex)) |
 | 3   | hooks           | `.claude/scripts/codex/sync-hooks.mjs`                       | Generate `.codex/hooks.json` + sync report                                                           |
 | 4   | context         | `.claude/scripts/codex/sync-context-workflows.mjs`           | Regenerate the `AGENTS.md` project projection of `CLAUDE.md`; remove the retired `.codex/CODEX_CONTEXT.md`   |
 | 5   | tests           | Runner discovers `.claude/scripts/codex/tests/*.test.{mjs,cjs}` | Run Codex tooling tests; missing or empty discovery fails |

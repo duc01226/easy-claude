@@ -8,6 +8,7 @@ Usage (Windows: `py -3`; macOS/Linux: `python3`):
     sync-update-blocks.py [--dry-run] <tag> [<tag> ...]
     sync-update-blocks.py [--dry-run] --mode=guide --tags <tag>[,<tag> ...]
     sync-update-blocks.py [--dry-run] --mode=strip-root-pointer
+    sync-update-blocks.py [--dry-run] --mode=agent-guide
 
 Default mode (`--mode=sync`) touches ONLY content between the exact requested fence pair:
     <!-- SYNC:tag --> ... <!-- /SYNC:tag -->
@@ -26,6 +27,16 @@ never a `references/*.md` file, and never a skill listed in `inlineSkills` of
 `node .claude/scripts/build-protocol-projection.cjs`). Re-running is a no-op. `--dry-run` writes
 nothing and prints the byte delta per skill. A universal tag (the hook-delivered `universal` group) is
 never converted to a guide line.
+
+Agent-guide mode (`--mode=agent-guide`) applies the opt-in `agentGuides` policy of
+`.claude/skills/shared/protocol-groups.json` (off by default) to `.claude/agents/*.md`, in both
+directions. Enabled: every trigger-gated protocol body (a tag with a `trigger` in `groups`) that the
+agent does not list in `agentGuides.keepInline` becomes ONE guide line in the agent's PROTOCOL-GUIDES
+block; `:reminder` digests stay. Disabled, or for a tag the policy no longer converts: the guide line
+is replaced by the full body again, so turning the policy off is a real rollback. At the agent's start
+the group hooks deliver a guided protocol's full text when its trigger applies (protocol-delivery
+reads the agent's guide block); the line's path is the fallback. It takes no tags, never touches
+skills or `references/*.md`, and re-running is a no-op.
 
 Strip mode (`--mode=strip-root-pointer`) applies the universal-bundle contract of
 `SYNC:shared-protocol-duplication-policy` to every skill SKILL.md (inline skills included) and
@@ -52,9 +63,14 @@ from sync_blocks import (  # noqa: E402  (path set up above so the tool runs fro
     AGENT_FOLDED_TAGS,
     GUIDE_BLOCK_END,
     GUIDE_BLOCK_START,
+    agent_guide_converts,
     format_guide_line,
     guide_entries,
+    guide_tags,
+    load_agent_guide_policy,
+    load_wrapped_sync_block,
     remove_fenced_block,
+    remove_guide_entry,
     strip_universal,
     universal_tags,
 )
@@ -294,6 +310,68 @@ def run_guide_mode(tags, dry_run):
     return 0 if not errors else 1
 
 
+# ─── Agent-guide mode ───────────────────────────────────────────────────────
+
+
+def agent_guide_tags(content, agent, policy):
+    """Tags this agent carries as full bodies that the policy converts to guide lines. Pure."""
+    carried = re.findall(r"<!-- SYNC:([a-z0-9-]+) -->", content)
+    return [t for t in dict.fromkeys(carried) if agent_guide_converts(policy, agent, t)]
+
+
+def restore_agent_bodies(content, agent, policy):
+    """Put back the full body of every guide line the policy no longer converts (the policy is
+    disabled, the tag joined `keepInline`, or it lost its trigger). The body goes where the guide
+    block stands, so it returns to the agent's SYNC region. Pure. Returns (content, restored)."""
+    restored = []
+    for tag in guide_tags(content):
+        if agent_guide_converts(policy, agent, tag) or re.search(rf"<!-- SYNC:{re.escape(tag)} -->", content):
+            continue
+        at = content.index(GUIDE_BLOCK_START)
+        line_start = content.rfind("\n", 0, at) + 1
+        content = content[:line_start] + load_wrapped_sync_block(f"SYNC:{tag}") + "\n" + content[line_start:]
+        content = remove_guide_entry(content, tag)
+        restored.append(tag)
+    return content, restored
+
+
+def run_agent_guide_mode(dry_run):
+    policy = load_agent_guide_policy()
+    rows = load_guide_rows() if policy["enabled"] else {}
+    files = sorted(glob.glob(os.path.join(PROJECT_DIR, ".claude", "agents", "*.md")))
+    state = "enabled" if policy["enabled"] else "disabled (restoring any guide line to its full body)"
+    print(f"Agent-guide mode: {len(files)} agent files; policy {state}; {len(policy['triggerTags'])} trigger-gated tags")
+    changed, errors, total_delta = 0, [], 0
+    for path in files:
+        agent = os.path.splitext(os.path.basename(path))[0]
+        content, newline = read_text(path)
+        new_content, restored = restore_agent_bodies(content, agent, policy)
+        converted = []
+        tags = [t for t in agent_guide_tags(new_content, agent, policy) if t in rows]
+        rel = os.path.relpath(path, PROJECT_DIR).replace(os.sep, "/")
+        if tags:
+            converted_content, converted, errs = convert_to_guides(new_content, tags, rows)
+            if errs:
+                errors.extend((rel, e) for e in errs)
+                continue
+            new_content = converted_content
+        if new_content == content:
+            continue
+        delta = len(new_content.encode("utf-8")) - len(content.encode("utf-8"))
+        total_delta += delta
+        changed += 1
+        parts = ([f"guide: {', '.join(converted)}"] if converted else []) + ([f"restored: {', '.join(restored)}"] if restored else [])
+        print(f"  {rel}: {delta:+d} bytes ({'; '.join(parts) or 'guide lines refreshed'})")
+        if not dry_run:
+            write_text(path, new_content, newline)
+    if errors:
+        print("\nERRORS (file left unchanged):")
+        for rel, err in errors:
+            print(f"  {rel}: {err}")
+    print(f"\nTotal agents changed: {changed}, byte delta {total_delta:+d} (dry-run={dry_run})")
+    return 0 if not errors else 1
+
+
 # ─── Strip mode ─────────────────────────────────────────────────────────────
 
 
@@ -383,15 +461,15 @@ def parse_args(argv):
         description="Propagate canonical SYNC bodies (default) or convert skills to guide lines (--mode=guide).",
     )
     parser.add_argument("--dry-run", action="store_true", help="write nothing; guide mode prints the byte delta per skill")
-    parser.add_argument("--mode", choices=("sync", "guide", "strip-root-pointer"), default="sync")
+    parser.add_argument("--mode", choices=("sync", "guide", "agent-guide", "strip-root-pointer"), default="sync")
     parser.add_argument("--tags", default="", help="comma-separated tags (also accepted as positional arguments)")
     parser.add_argument("tag", nargs="*")
     args = parser.parse_args(argv)
     tags = [t for t in args.tag] + [t.strip() for t in args.tags.split(",") if t.strip()]
     args.tags = list(dict.fromkeys(tags))
-    if args.mode == "strip-root-pointer":
+    if args.mode in ("strip-root-pointer", "agent-guide"):
         if args.tags:
-            parser.error("--mode=strip-root-pointer takes no tags (it strips the universal group)")
+            parser.error(f"--mode={args.mode} takes no tags (its tag set comes from protocol-groups.json)")
     elif not args.tags:
         parser.error("name at least one tag (positional or --tags)")
     return args
@@ -401,6 +479,8 @@ def main(argv):
     args = parse_args(argv[1:])
     if args.mode == "strip-root-pointer":
         return run_strip_mode(args.dry_run)
+    if args.mode == "agent-guide":
+        return run_agent_guide_mode(args.dry_run)
     if args.mode == "guide":
         return run_guide_mode(args.tags, args.dry_run)
     return run_sync_mode(args.tags, args.dry_run)

@@ -57,6 +57,7 @@ Match the question or task to a row and read that doc before answering, planning
 | Writing, fixing, or reviewing integration tests. Holds: Integration test patterns and conventions | `docs/project-reference/integration-test-reference.md` |
 | Planning, writing, running, fixing, or reviewing performance / load / capacity tests. Holds: Project preferences for performance-test setup, workloads, hardware budgets, reusable helpers, commands and evidence | `docs/project-reference/performance-test-reference.md` |
 | Before editing or reviewing code — rules, anti-patterns, checklists. Holds: Code review checklist and rules | `docs/project-reference/code-review-rules.md` |
+| Subject knowledge — a domain rule, regulation or chosen practice the task touches (`/knowledge-base`). Holds: Index of the knowledge base (project packs first, then framework packs) — written and managed via the /knowledge-base skill | `docs/project-reference/knowledge-base-reference.md` |
 | UI design — tokens, components, app-to-doc map. Holds: Design system index: app-to-doc mapping, design tokens overview, component inventory | `docs/project-reference/design-system/README.md` |
 | Writing, running, or reviewing E2E / user-flow tests. Holds: Optional task-track workspace browser tests: isolated public-core fixtures, native waits, portable runner modes and redacted journey evidence | `docs/project-reference/e2e-test-reference.md` |
 | Domain concepts, entities, relationships, data ownership — before planning or design. Holds: Framework conceptual domain — Hook, Skill, Agent, Workflow, Context Group, Module | `docs/project-reference/domain-entities-reference.md` |
@@ -139,24 +140,24 @@ See [integration-test-reference.md](docs/project-reference/integration-test-refe
 
 | Kind        | Count                                       |
 | ----------- | ------------------------------------------- |
-| Skills      | <!-- COUNT:skills -->104<!-- /COUNT -->     |
-| Hooks       | <!-- COUNT:hooks -->36<!-- /COUNT -->       |
+| Skills      | <!-- COUNT:skills -->105<!-- /COUNT -->     |
+| Hooks       | <!-- COUNT:hooks -->37<!-- /COUNT -->       |
 | Agents      | <!-- COUNT:agents -->25<!-- /COUNT -->      |
 | Workflows   | <!-- COUNT:workflows -->17<!-- /COUNT -->   |
 | Shared      | <!-- COUNT:shared -->15<!-- /COUNT -->      |
-| Lib modules | <!-- COUNT:lib-modules -->66<!-- /COUNT --> |
+| Lib modules | <!-- COUNT:lib-modules -->72<!-- /COUNT --> |
 
 ---
 
 <!-- SECTION:doc-index -->
 
 ```
-docs/adr/  (5 files)
+docs/adr/  (6 files)
 docs/knowledge/  (1 files)
-docs/project-reference/  (19 files)
+docs/project-reference/  (20 files)
 docs/release/  (1 files)
 docs/release-notes/  (2 files)
-docs/specs/  (26 files)
+docs/specs/  (27 files)
 docs/templates/  (1 files)
 ```
 

@@ -73,7 +73,7 @@ When the prompt doesn't cleanly match a single catalog workflow — or combining
 
 ### How to build
 
-1. **Valid steps only** — Use only canonical step ids — those appearing in a resolved workflow manifest's `occurrences` (legacy `sequence` entries are normalized by the resolver; variant entries are selected by mode). Each maps to a real `.claude/skills/<step>/SKILL.md` and is invoked with the active host's syntax. No invented step names.
+1. **Valid steps only** — Use only canonical step ids — those appearing in a resolved workflow manifest's `occurrences` (legacy `sequence` entries are normalized by the resolver; variant entries are selected by mode). Each maps to a real `.claude/skills/<step>/SKILL.md` and is invoked with the active host's syntax; when the host refuses that call (a user-only skill), read that SKILL.md in full and follow it with the step's args. No invented step names.
 2. **Logical order** — Investigate → Plan → Implement → Test. Never reverse dependency order.
 3. **Minimal** — Include only steps the prompt needs. No "just in case" additions.
 4. **Keep required gates** — A behavior change keeps its test and review steps; a downgraded route also keeps root-cause investigation for bugs and spec/doc sync when behavior or a public contract changes (`investigate --mode=debug` for a bug, `spec`/`docs-manager --mode=update` per the project's spec-test-code cycle reference). A custom pipeline never drops a quality gate the change still requires.

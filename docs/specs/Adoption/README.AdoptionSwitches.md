@@ -15,7 +15,7 @@ entities:
     ]
 status: draft
 owner: 'Framework maintainers'
-last_updated: '2026-09-25'
+last_updated: '2026-10-22'
 scope_mode: FRAMEWORK-LIBRARY
 large_idea_decomposition: null
 roadmap: null
@@ -39,8 +39,10 @@ roadmap_status: null
 | Type                   | Path                                                                                                                                             | Description                                                                                                      |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
 | Spec Index (derived)   | `docs/specs/Adoption/INDEX.md`                                                                                                                   | Generated navigation catalog for this bucket; refresh through the spec index owner.                              |
-| Continuation part      | `docs/specs/Adoption/README.AdoptionSwitches-Part2.md`                                                                                           | The release-D test cases (TC-ADS-016…033, TC-ADS-040…053), under their original IDs.                             |
-| Project settings       | `docs/project-config.json` (`hooks.codeGraph`, `hooks.tokenBudget`, `commit.fixOriginTrailer`, `portability.workflowActivation`, `skillProfile`) | The team switches this capability reads.                                                                         |
+| Continuation part      | `docs/specs/Adoption/README.AdoptionSwitches-Part2.md`                                                                                           | The release-D test cases (TC-ADS-016…033, TC-ADS-040…053) and the personal profile case TC-ADS-063, under their original IDs. |
+| Project settings       | `docs/project-config.json` (`hooks.codeGraph`, `hooks.tokenBudget`, `commit.fixOriginTrailer`, `portability.workflowActivation`, `skillProfile`, `frameworkRuntime`, `contextDelivery`) | The team switches this capability reads.                                                                         |
+| Personal settings layers | `~/.claude/.ck.json`, `.claude/.ck.local.json`, `.claude/settings.local.json`, `.claude/skill-profile.generated.local.json`, env `CK_FRAMEWORK_MODE`, `CK_QUIET_PROJECT_RULES` | Per-person skill profile, runtime mode and delivery profile layers (BR-ADS-12, BR-ADS-22, BR-ADS-23). |
+| Layer resolution | `.claude/scripts/sync-skill-profile.cjs` (`--personal`), `.claude/hooks/lib/framework-runtime.cjs`, `.claude/hooks/lib/ck-config-loader.cjs` | Owners of the personal profile, the runtime mode with its quiet switch, and the delivery profile layer order. |
 | Primary assistant host | `.claude/settings.json`, skill frontmatter `disable-model-invocation`                                                                            | Skill visibility and command-only marks.                                                                         |
 | Second assistant host  | `.codex/`, `.agents/skills/<name>/agents/openai.yaml`                                                                                            | Generated copy and per-skill implicit-selection policy.                                                          |
 | Third assistant host   | `opencode.json` `permission.skill`, `.opencode/commands/`, `.opencode/skill-permissions.generated.json`                                          | Permission entries, generated commands and the ownership record.                                                 |
@@ -63,7 +65,7 @@ roadmap_status: null
 
 ## 1. Overview
 
-A project that adopts the framework gets a set of project-level switches that decide what the framework does by itself, so adopting it brings no surprise installs, no noise about unused capabilities and no workflow the team did not allow. The code knowledge graph runs only when the project chose it or already built one; a commit trailer used for defect-origin measurement appears only when the project opts in; utility skills run only on explicit command; and the third assistant host enforces the same visibility policy as the other two, without ever taking over a permission the user set. The framework also leaves the conversation-compaction point to each host and each person: it sets no budget of its own, and removing the budget it once set never touches a value a user chose. A later release extends the same switches with a per-project skill profile, a shared graph tooling environment and leaner skill texts; their test cases are reserved in this spec's continuation part so numbering never changes.
+A project that adopts the framework gets a set of project-level switches that decide what the framework does by itself, so adopting it brings no surprise installs, no noise about unused capabilities and no workflow the team did not allow. The code knowledge graph runs only when the project chose it or already built one; a commit trailer used for defect-origin measurement appears only when the project opts in; utility skills run only on explicit command; and the third assistant host enforces the same visibility policy as the other two, without ever taking over a permission the user set. The framework also leaves the conversation-compaction point to each host and each person: it sets no budget of its own, and removing the budget it once set never touches a value a user chose. A later release extends the same switches with a per-project skill profile, a shared graph tooling environment and leaner skill texts; their test cases are reserved in this spec's continuation part so numbering never changes. Each person can keep a personal skill profile and quiet the framework for themselves while still receiving the rules their project wrote, and a team can choose how compactly the framework delivers its guidance, with a working copy still able to override it.
 
 ---
 
@@ -96,6 +98,11 @@ A project that adopts the framework gets a set of project-level switches that de
 | Name-Only Skill                         | A skill listed by name without its description; still callable (release D)                                                               | Shortens the skill list                                                     |
 | Entry Skill                             | One of the skills the minimal preset keeps fully listed: the workflow starter, the commit skill and the project setup skills (release D) | Every other skill becomes name-only under that preset                       |
 | Install Lock                            | A marker that stops two sessions from installing the shared graph tooling at once (release D)                                            | Stale locks are broken safely                                               |
+| Settings Layer | One source of a preference: the built-in default, a person's own settings for every project, the framework-shipped settings, the team project configuration, one working copy's (checkout's) settings, or an environment switch | Each preference states its own layer order |
+| Personal Skill Profile | A skill profile one person keeps for themselves, written only to that working copy's personal settings | Never changes what the team sees |
+| Runtime Mode | How much the framework does by itself: on (default), quiet (no context guidance) or off (nothing runs) | A per-person working preference; a team value is only a default |
+| Project Rules in Quiet | The opt-in that keeps a project's own skill overlays, per-file conventions and auto-trigger policy running in quiet | Default no |
+| Guidance Delivery Profile | How compactly the framework delivers its own guidance: compatible (default) or concise | A team decision a working copy may override |
 
 ---
 
@@ -167,6 +174,7 @@ A project that adopts the framework gets a set of project-level switches that de
 
 - **AC-ADS-12** — **Given** a skill profile **When** the primary host is synced **Then** preset and list entries are written under the ownership record, user entries are untouched, other settings are byte-identical, invalid settings files are never overwritten, and no profile means no change
 - **AC-ADS-13** — **Given** a skill profile **When** the second and third host copies are generated **Then** name-only and command-only take their host equivalents, user permissions are never loosened, a called name-only skill follows the recorded probe result, and no profile means unchanged output
+- **AC-ADS-21** — **Given** a personal skill profile **When** the personal profile sync runs **Then** that working copy's personal settings carry the team and personal entries, the shared team settings are unchanged, a personal file version control would track is refused, the called-skill guard applies, and the personal check reports staleness after a team profile change
 
 ### US-ADS-07: Leaner skill texts, decided by measurement (release D)
 
@@ -202,6 +210,17 @@ A project that adopts the framework gets a set of project-level switches that de
 - **AC-ADS-19** — **Given** the framework's shipped settings for all three hosts **When** they are read or synced into a project **Then** none sets a compaction budget, so each host applies its own default and a budget the user sets for themselves takes effect
 - **AC-ADS-20** — **Given** a project whose host configuration holds a compaction budget **When** the second or third host is synced **Then** a budget equal to the one an earlier framework version wrote is removed, and any other budget is kept with one printed line naming it
 
+### US-ADS-10: My own runtime preferences, the team's delivery decision
+
+**As a** developer in a team that adopted the framework
+**I want** to quiet the framework for myself while my project's own rules still reach the assistant, and my team to decide how compactly guidance is delivered
+**So that** a personal preference never silences the project's rules unless I choose it, and a team decision survives a framework refresh
+
+**Acceptance Criteria:**
+
+- **AC-ADS-22** — **Given** quiet mode **When** the "keep project rules in quiet" switch is on in any layer that wins **Then** only the project's skill overlays, per-file conventions and auto-trigger policy run, generic guidance stays off, and a person's own setting outranks the team's
+- **AC-ADS-23** — **Given** a delivery profile declared by the team **When** the effective profile is resolved **Then** the team value outranks the framework-shipped and personal settings, a working-copy setting outranks the team, and a malformed declaration resolves compatible with a diagnostic naming its layer
+
 ---
 
 ## 4. Business Rules
@@ -231,6 +250,8 @@ A project that adopts the framework gets a set of project-level switches that de
 | BR-ADS-19 | Step-skill description form                               | Quality      | [SOFT]      | D       |
 | BR-ADS-20 | No compaction budget on any host                          | Policy       | [HARD]      | A       |
 | BR-ADS-21 | A retired bundled value is removed only on an exact match | Ownership    | [HARD]      | A       |
+| BR-ADS-22 | Quiet keeps the project's own rules only on opt-in        | Activation   | [HARD]      | A       |
+| BR-ADS-23 | The team chooses the guidance delivery profile            | Precedence   | [HARD]      | A       |
 
 ### BR-ADS-01: Graph mode decides graph activity [HARD]
 
@@ -309,6 +330,8 @@ BR-ADS-09 overrides this table for called skills.
 
 **Statement:** A project may choose a preset (standard or minimal) and lists of command-only, name-only and off skills. The profile generator writes the resulting visibility entries for the primary host under the same ownership rules as BR-ADS-08: user-written entries and owned entries the user changed are untouched and reported. Unknown skill names give a warning, not a failure. No profile and no owned entries means no write at all. Two runs produce identical files and the check passes. The generator runs only on request, never from an automatic step.
 
+A person may also keep a personal profile with the same preset and lists, read from their own settings for every project and from the settings of one working copy (checkout). The checkout layer wins per skill, and a single-value choice such as the preset comes from the checkout when it sets one. The personal run writes the team entries and the personal entries together, personal winning per skill, into that working copy's personal primary-host settings, so the result does not depend on how the host combines the team and personal files. It never changes the shared team settings, and it keeps its own ownership record under the same ownership rules. The called-skill guard (BR-ADS-09) applies to the personal lists; without a personal opt-in, the team opt-in decides. The personal run refuses to write, with the file unchanged, when version control would track the personal settings file. Its check mode reports the personal file stale after the team profile changes and names the personal run as the fix. The second host has no per-person visibility setting; a person there uses the auto-trigger preference instead.
+
 ### BR-ADS-13: Settings writer never loses settings [HARD] (release D)
 
 **Statement:** A missing or invalid primary-host settings file stops the profile generator with the parse problem named and the file unchanged. A write replaces only the profile member (or inserts it when absent); every other text span stays byte-identical and every other setting equal, verified before writing. The write is atomic and leaves no temporary file.
@@ -357,6 +380,27 @@ BR-ADS-09 overrides this table for called skills.
 | Bundled      | Yes                              | Removed, with the unchanged bundled note on the second host |
 | Any other    | No                               | Kept unchanged; one "kept user-set" line                    |
 
+### BR-ADS-22: Quiet keeps the project's own rules only on opt-in [HARD]
+
+**Statement:** The framework runtime mode is on (the default), quiet or off. In quiet, commit review, documentation checks, formatting and notifications still run and no context guidance is delivered. The "keep project rules in quiet" switch (default no) additionally keeps, in quiet only, the three steps that deliver rules the project itself wrote: its skill overlays, its per-file conventions and its skill auto-trigger policy. Generic guidance, routing and prompt records stay off. The switch changes nothing in on, where every step runs, or in off, where none does.
+
+The mode and the switch resolve through the same layers, lowest to highest: the built-in default, the team settings in the project configuration, the person's own settings for every project, the working copy's (checkout's) own settings, then an environment switch. The highest layer that sets a valid value wins; a value the framework does not recognize expresses no preference at that layer, and the configuration check accepts only a true or false value for the switch in a settings file. Both are per-person working preferences, so a team value is only a default that each person's own settings outrank. The guidance delivery profile orders the same layers differently (BR-ADS-23).
+
+| Layer (lowest first)        | Runtime mode and this switch | Guidance delivery profile (BR-ADS-23) |
+| --------------------------- | ---------------------------- | ------------------------------------- |
+| Built-in default            | on / no                      | compatible                            |
+| Person's own settings       | outranks the team            | below the framework-shipped settings  |
+| Framework-shipped settings  | not read                     | outranks the person                   |
+| Team project configuration  | lowest declared layer        | outranks the person and the shipped   |
+| Checkout settings           | outranks person and team     | highest                               |
+| Environment switch          | highest                      | none                                  |
+
+### BR-ADS-23: The team chooses the guidance delivery profile; a checkout may override it [HARD]
+
+**Statement:** The guidance delivery profile is compatible (the default) or concise. It resolves through layers, lowest to highest: the built-in default, the person's own settings for every project, the framework-shipped settings, the team settings in the project configuration, then the working copy's (checkout's) own settings. There is no environment switch. The highest layer that declares a valid profile wins; an empty declaration inherits the layer below. The team value outranks the person's own settings: a team chooses concise after evaluating it on its own work, and its default lives in the project configuration because a framework refresh replaces the framework-shipped settings. A person evaluates or rolls back only in their checkout settings. Only the profile is read from the team settings; every other preference keeps its own owner.
+
+A malformed declaration in any layer, or a settings file that exists but holds no readable settings object, resolves compatible unless a higher layer declares a valid profile; when none does, one diagnostic names the layer and its file, never the declared value, so a broken declaration never opts into reduced guidance. The project configuration is the exception: when it holds no readable settings object it declares nothing for the profile and adds no diagnostic, because its own check reports it.
+
 ---
 
 ## 5. Domain Model
@@ -364,7 +408,7 @@ BR-ADS-09 overrides this table for called skills.
 ### Relationships (overview)
 
 ```
-AdoptingProject   1──1 ProjectSwitches         (graph mode, trailer switch, checkpoint interval, skill profile)
+AdoptingProject   1──1 ProjectSwitches         (graph mode, trailer switch, checkpoint interval, skill profile, runtime preferences, delivery profile)
 AdoptingProject   0──1 CodeGraph               (built on request)
 AdoptingProject   1──N Skill
 Skill             0──N Caller                  (workflow step or agent preload)
@@ -386,6 +430,9 @@ AdoptingProject   0──N CompactionBudget        (user-owned; at most one per 
 | Token checkpoint interval  | number             | No       | 50,000 to 20,000,000  | Spacing of progress notes                  |
 | Skill profile              | SkillProfile       | No       | Release D             | Which skills the assistant sees            |
 | Allow hiding called skills | yes-no             | No       | Default no; release D | Lifts BR-ADS-09 with a warning             |
+| Runtime mode               | enum RuntimeMode   | No       | Default on; per-person layers win (BR-ADS-22) | How much the framework does by itself |
+| Project rules in quiet     | yes-no             | No       | Default no (BR-ADS-22) | Keeps the project's own rules in quiet |
+| Guidance delivery profile  | enum DeliveryProfile | No     | Default compatible; team outranks personal (BR-ADS-23) | How compactly guidance is delivered |
 
 ### Entity: SkillVisibility
 
@@ -420,6 +467,7 @@ AdoptingProject   0──N CompactionBudget        (user-owned; at most one per 
 | Command-only list | list of text           | No       | Unknown names warn | Hidden from self-selection     |
 | Name-only list    | list of text           | No       | —                  | Listed by name only            |
 | Off list          | list of text           | No       | —                  | Not available to the assistant |
+| Scope             | enum team, personal    | Yes      | Personal writes only that working copy's personal settings | Whose view of the skills it changes |
 
 ### Entity: GraphToolingEnvironment (release D)
 
@@ -453,6 +501,21 @@ AdoptingProject   0──N CompactionBudget        (user-owned; at most one per 
 | Name-only    | Listed by name only; still callable (release D)           |
 | Command-only | Not selectable by the assistant; runs on explicit command |
 | Off          | Not available to the assistant (release D)                |
+
+### Enum: RuntimeMode
+
+| Value | Meaning |
+| ----- | ------- |
+| on    | Every framework step runs (default) |
+| quiet | No context guidance; commit review, documentation checks, formatting and notifications still run; project rules only on opt-in (BR-ADS-22) |
+| off   | No framework step runs |
+
+### Enum: DeliveryProfile
+
+| Value      | Meaning |
+| ---------- | ------- |
+| compatible | The full guidance bundle (default; also the result of any malformed declaration) |
+| concise    | One essential core with pointers to deeper guidance (BR-ADS-23) |
 
 ### Domain Events (business occurrences)
 
@@ -537,18 +600,18 @@ AdoptingProject   0──N CompactionBudget        (user-owned; at most one per 
 
 > Business-readable acceptance scenarios. The "user" of this capability is a project maintainer, a developer or the AI assistant; the observable surface is command output, printed lines, the text the assistant receives and the generated settings files (no screen exists, so the UI dimension is stated as not applicable).
 
-> Numbering note: IDs are pre-allocated and never renumbered, and categories group them by behavior rather than by decade. TC-ADS-016…033 and TC-ADS-040…053 are `Planned (release D)`. TC-ADS-034…039 cover the auto-compaction budget rules BR-ADS-20 and BR-ADS-21. TC-ADS-054 and TC-ADS-055 cover the ownership record's project binding and a deleted owned entry (BR-ADS-08). TC-ADS-063 is unallocated.
+> Numbering note: IDs are pre-allocated and never renumbered, and categories group them by behavior rather than by decade. TC-ADS-016…033 and TC-ADS-040…053 are `Planned (release D)`. TC-ADS-034…039 cover the auto-compaction budget rules BR-ADS-20 and BR-ADS-21. TC-ADS-054 and TC-ADS-055 cover the ownership record's project binding and a deleted owned entry (BR-ADS-08). TC-ADS-063 covers the personal skill profile (BR-ADS-12) in the continuation part; TC-ADS-064 and TC-ADS-065 cover the runtime-preference rules BR-ADS-22 and BR-ADS-23.
 
-> Size note: the capability defines 62 cases, over the project's forty-case split rule, so the 32 release-D cases live in the continuation part [README.AdoptionSwitches-Part2.md](README.AdoptionSwitches-Part2.md) under their original IDs. This part holds the 30 release-A cases. The Test Summary below counts both parts.
+> Size note: the capability defines 65 cases, over the project's forty-case split rule, so the 32 release-D cases and the personal profile case TC-ADS-063 live in the continuation part [README.AdoptionSwitches-Part2.md](README.AdoptionSwitches-Part2.md) under their original IDs. This part holds the other 32 cases. The Test Summary below counts both parts.
 
 ### Test Summary
 
 | Priority  | Count  | Automated | Manual |
 | --------- | ------ | --------- | ------ |
 | P0        | 17     | 15        | 2      |
-| P1        | 33     | 32        | 1      |
-| P2        | 12     | 10        | 2      |
-| **Total** | **62** | **57**    | **5**  |
+| P1        | 37     | 36        | 1      |
+| P2        | 11     | 10        | 1      |
+| **Total** | **65** | **61**    | **4**  |
 
 | Category                                                      | TCs                                                                                                        |
 | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
@@ -558,8 +621,9 @@ AdoptingProject   0──N CompactionBudget        (user-owned; at most one per 
 | Third-Host Parity Tests                                       | TC-ADS-011, TC-ADS-012, TC-ADS-013, TC-ADS-054, TC-ADS-055, TC-ADS-058, TC-ADS-059, TC-ADS-060, TC-ADS-061 |
 | Validation Tests                                              | TC-ADS-014                                                                                                 |
 | Compaction Budget Tests                                       | TC-ADS-034, TC-ADS-035, TC-ADS-036, TC-ADS-037, TC-ADS-038, TC-ADS-039                                     |
+| Runtime Preference Tests                                      | TC-ADS-064, TC-ADS-065                                                                                     |
 | Invariant / Property Tests                                    | TC-ADS-015, TC-ADS-062; TC-ADS-018, TC-ADS-053 (release D, continuation part)                              |
-| Skill Profile Tests (release D, continuation part)            | TC-ADS-016, TC-ADS-017, TC-ADS-019, TC-ADS-020, TC-ADS-040, TC-ADS-041, TC-ADS-042                         |
+| Skill Profile Tests (release D, continuation part)            | TC-ADS-016, TC-ADS-017, TC-ADS-019, TC-ADS-020, TC-ADS-040, TC-ADS-041, TC-ADS-042, TC-ADS-063             |
 | Profile on Other Hosts Tests (release D, continuation part)   | TC-ADS-021, TC-ADS-022, TC-ADS-023, TC-ADS-024, TC-ADS-045, TC-ADS-046, TC-ADS-047, TC-ADS-048             |
 | Skill Text Tests (release D, continuation part)               | TC-ADS-025, TC-ADS-026, TC-ADS-027, TC-ADS-032, TC-ADS-033, TC-ADS-050, TC-ADS-043                         |
 | Shared Graph Environment Tests (release D, continuation part) | TC-ADS-028, TC-ADS-029, TC-ADS-030, TC-ADS-031, TC-ADS-044, TC-ADS-049, TC-ADS-051, TC-ADS-052             |
@@ -2055,8 +2119,8 @@ And the other shipped settings are still present
 
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
-> **Evidence:** `[Source: config/claude/shipped-settings]`
-> **Related Behaviors:** `config/claude/shipped-settings` · `test/scripts/compaction-default`
+> **Evidence:** `[Source: constraint/claude/shipped-settings]`
+> **Related Behaviors:** `constraint/claude/shipped-settings` · `test/scripts/compaction-default`
 > **CoveredBy:** `.claude/scripts/codex/tests/compaction-default.test.mjs::TC-ADS-034 the shipped host settings pin no auto-compaction budget` · **Status:** Tested
 
 ---
@@ -2385,6 +2449,145 @@ boundaryCounterCase: 'a 500,000 window with no output size, with a different out
 > **Evidence:** `[Source: operation/scripts/opencode-sync-config]`
 > **Related Behaviors:** `operation/scripts/opencode-sync-config` · `test/scripts/opencode-sync-config`
 > **CoveredBy:** `.claude/scripts/opencode/tests/sync-config.test.mjs::TC-ADS-039 a user-set model limit is preserved and reported once` · **Status:** Tested
+
+---
+
+### Runtime Preference Tests
+
+> Quiet mode with the project's own rules, and the layer order of the guidance delivery profile (BR-ADS-22, BR-ADS-23).
+
+#### TC-ADS-064: Quiet keeps only the project's own rules, and only when opted in [P1]
+
+**Objective:** Prove that in quiet mode the three project-rule steps stay silent by default, run when the switch is on, never bring generic guidance back, follow the layer order of the runtime mode, and stay silent in off.
+
+**Business Intent / Invariant Guarded:** A person who wants a quiet session still receives the rules their project wrote down, only when chosen, and never the generic guidance quiet removes (BR-ADS-22).
+
+**Traces:** AC-ADS-22 / BR-ADS-22
+
+**Preconditions:**
+
+- The working copy's settings set the runtime mode to quiet
+
+**Real-World Reachability:** A developer quiets the framework but the team relies on its skill overlays, per-file conventions or auto-trigger policy reaching the assistant.
+
+**Demo Flow:** Resolve each step with no switch, with the team switch on, with a working-copy switch off, with the environment switch on, and with mode off; then run the auto-trigger policy step in quiet with and without the switch.
+
+```gherkin
+Given quiet mode and no "keep project rules" switch
+When the steps are resolved
+Then the skill-overlay, per-file convention and auto-trigger policy steps are silent
+And when the team settings turn the switch on, those three run while the universal guidance, workflow route and core principle steps stay silent
+And a working-copy "no" beats the team "yes", and the environment switch wins last
+And in off mode the three steps are silent even with the switch on
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                               |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, command output and the generated settings files |
+| **System behavior**     | Only the three project-rule steps change, only in quiet                                                                                                   |
+| **Business data state** | No settings written                                                                                                                                       |
+| **Data shown on UI**    | The auto-trigger policy line appears in quiet only with the switch on                                                                                     |
+
+**Acceptance Criteria:**
+
+- ✅ Three project-rule steps silent in quiet by default
+- ✅ Running with the switch on; generic guidance steps still silent
+- ✅ Working copy beats team; environment wins last; the winning source is reported
+- ✅ Silent in off regardless of the switch
+- ✅ The configuration check accepts a true or false switch value and rejects text or numbers
+- ❌ Generic guidance delivered in quiet
+
+**Test Data:**
+
+```json
+{
+    "workingCopy": { "runtimeMode": "quiet" },
+    "team": { "keepProjectRulesInQuiet": true },
+    "rejected": ["yes", 1]
+}
+```
+
+**Edge Cases:**
+
+- Switch on with mode on → no change (everything runs)
+- A text or number value for the switch in a settings file → rejected by the configuration check
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/hooks/framework-runtime]`
+> **Related Behaviors:** `rule/hooks/framework-runtime` · `test/scripts/framework-runtime`
+> **CoveredBy:** `.claude/scripts/tests/framework-runtime.test.cjs::quietProjectRules keeps only the project-rule hooks in quiet, layered like the mode` · `.claude/scripts/tests/framework-runtime.test.cjs::quietProjectRules delivers real hook output in quiet when opted in` · `.claude/scripts/tests/framework-runtime.test.cjs::both schemas accept a boolean quietProjectRules and reject other values` · **Status:** Implemented — the three tests passed in a targeted run on 2026-10-22; not yet in a release-close full run
+
+---
+
+#### TC-ADS-065: The team's delivery profile outranks the shipped and personal settings, and the checkout still wins [P1]
+
+**Objective:** Prove the layer order of the guidance delivery profile: the team setting outranks the framework-shipped settings, which outrank the person's own settings; the working copy's setting outranks the team; a team configuration without the setting declares nothing; a malformed team value resolves compatible with a diagnostic naming the team layer; and an unreadable project configuration declares nothing and stays quiet.
+
+**Business Intent / Invariant Guarded:** A team's delivery decision survives a framework refresh and outranks personal defaults, a person can still evaluate or roll back in their working copy, and a broken declaration never opts into reduced guidance (BR-ADS-23).
+
+**Traces:** AC-ADS-23 / BR-ADS-23
+
+**Preconditions:**
+
+- A project whose framework-shipped settings and project configuration can be changed by the test
+
+**Real-World Reachability:** A team adopts concise delivery after evaluating it; a later framework refresh replaces the shipped settings.
+
+**Demo Flow:** Set the profile on each layer in turn and read the effective profile and its source.
+
+```gherkin
+Given the team configuration declares concise and the shipped settings declare compatible
+When the effective profile is resolved
+Then it is concise from the team layer
+And a working-copy compatible wins over the team
+And a team configuration without the setting leaves the shipped value in force
+And a team value that is not a known profile resolves compatible with one diagnostic naming the team layer
+And an unreadable or non-object project configuration declares nothing and prints no diagnostic
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                               |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, command output and the generated settings files |
+| **System behavior**     | The highest valid declaration wins in the order person, shipped, team, working copy                                                                       |
+| **Business data state** | No settings written                                                                                                                                       |
+| **Data shown on UI**    | One diagnostic naming the malformed layer and its file, never the value                                                                                   |
+
+**Acceptance Criteria:**
+
+- ✅ Team outranks the shipped settings; the shipped settings outrank the person's own
+- ✅ Working copy outranks the team
+- ✅ Missing team setting declares nothing
+- ✅ Malformed team value → compatible, diagnostic names the team layer
+- ✅ Unreadable project configuration → declares nothing, no diagnostic
+- ❌ A malformed declaration selecting concise
+
+**Test Data:**
+
+```json
+{
+    "team": { "profile": "concise" },
+    "shipped": { "profile": "compatible" },
+    "workingCopy": { "profile": "compatible" },
+    "malformedTeam": { "profile": "future" },
+    "unreadableProjectConfiguration": ["{ \"project\": ", "[]", "true", "7"]
+}
+```
+
+**Edge Cases:**
+
+- An empty working-copy section → inherits the layer below
+- A malformed lower layer with a valid higher declaration → the higher declaration recovers
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/hooks/ck-config-loader]`
+> **Related Behaviors:** `rule/hooks/ck-config-loader` · `rule/hooks/context-delivery` · `test/hooks/context-delivery`
+> **CoveredBy:** `.claude/hooks/tests/suites/context-delivery.test.cjs::Context delivery protects teamProfile` · `.claude/hooks/tests/suites/context-delivery.test.cjs::Context delivery protects profile` (case bodies in `.claude/hooks/tests/lib/context-delivery-cases.cjs` `teamProfile`, `profile`) · **Status:** Implemented — both cases passed in a targeted run on 2026-10-22; not yet in a release-close full run
 
 ---
 

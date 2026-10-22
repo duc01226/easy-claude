@@ -2,7 +2,7 @@
 
 > **Purpose:** the one-page map of the portable `.claude/` framework — what it does, how the parts fit, how to use it day to day, and where each topic's detailed owner doc lives. Read it first when you adopt the framework, change it, or need to explain a hook block, a routing decision or a workflow step.
 >
-> **Framework inventory:** <!-- COUNT:hooks -->36<!-- /COUNT --> top-level hook files · <!-- COUNT:lib-modules -->66<!-- /COUNT --> hook-library modules · <!-- COUNT:skills -->104<!-- /COUNT --> skills · <!-- COUNT:workflows -->17<!-- /COUNT --> workflows · <!-- COUNT:agents -->25<!-- /COUNT --> agents · <!-- COUNT:shared -->15<!-- /COUNT --> shared reference/protocol entries.
+> **Framework inventory:** <!-- COUNT:hooks -->37<!-- /COUNT --> top-level hook files · <!-- COUNT:lib-modules -->72<!-- /COUNT --> hook-library modules · <!-- COUNT:skills -->105<!-- /COUNT --> skills · <!-- COUNT:workflows -->17<!-- /COUNT --> workflows · <!-- COUNT:agents -->25<!-- /COUNT --> agents · <!-- COUNT:shared -->15<!-- /COUNT --> shared reference/protocol entries.
 >
 > **Visual overview:** `.claude/docs/claude-ai-agent-framework-guide.html`. Use this Markdown guide for current inventories and source-owner pointers.
 
@@ -40,7 +40,7 @@
 
 ## 1. What the framework is
 
-A generic LLM is capable but forgetful, confident without evidence, and unaware of your project. This framework wraps Claude Code in **36 top-level hook files**, **104 skills**, **17 registered workflows**, and **25 specialized agents** that make it project-aware, evidence-driven and gated at every quality step — from idea and spec through implementation, testing, review, commit and pull request.
+A generic LLM is capable but forgetful, confident without evidence, and unaware of your project. This framework wraps Claude Code in **37 top-level hook files**, **105 skills**, **17 registered workflows**, and **25 specialized agents** that make it project-aware, evidence-driven and gated at every quality step — from idea and spec through implementation, testing, review, commit and pull request.
 
 | Failure mode of a plain agent        | What counters it                                            | Where it lives                                     |
 | ------------------------------------ | ----------------------------------------------------------- | -------------------------------------------------- |
@@ -243,8 +243,8 @@ Everything else is advisory or silent. `init-prompt-gate` never blocks a prompt:
 | Event                           | Hooks (purpose)                                                                                          |
 | ------------------------------- | -------------------------------------------------------------------------------------------------------- |
 | SessionStart                    | `verify-install` (partial-install check, safe dependency install), `session-init` (session/plan state), `session-init-docs` (reference-doc status), `graph-session-init`, `file-convention-inject` and `prompt-ledger` (re-arm after compaction) |
-| UserPromptSubmit                | `init-prompt-gate`, `graph-prompt-sync`, `workflow-route-inject` (routing gate), `workflow-catalog-inject` (routing catalog), `commit-skill-route`, `judgement-integrity-route`, `ai-feature-route`, `prompt-ledger` |
-| UserPromptExpansion · PostToolUse `Skill`/`Read(SKILL.md)` · SubagentStart | six `protocol-inject-<group>` hooks (review, evidence-trace, workflow-task, spec-test, design, universal) |
+| UserPromptSubmit                | `init-prompt-gate`, `graph-prompt-sync`, `workflow-route-inject` (routing gate), `workflow-catalog-inject` (routing catalog), `commit-skill-route`, `judgement-integrity-route`, `ai-feature-route`, `knowledge-route` (knowledge pointers), `prompt-ledger` |
+| UserPromptExpansion · PostToolUse `Skill`/`Read(SKILL.md)` · SubagentStart | six `protocol-inject-<group>` hooks (review, evidence-trace, workflow-task, spec-test, design, universal); `knowledge-route` points at knowledge packs bound to the starting skill or helper agent |
 | PreToolUse                      | `doc-sync-gate` (spec-drift warning), `review-commit-gate`, notifications on `AskUserQuestion`           |
 | PostToolUse                     | `post-edit-prettier` (formatter), `graph-auto-update`, `file-convention-inject`, `prompt-ledger`, `token-budget-checkpoint` |
 | Stop · Notification · SessionEnd| `notifications/notify.cjs` (turn-complete, question and permission alerts), `session-end` (cleanup)      |
@@ -381,11 +381,11 @@ Codex transforms `/skill` into `$skill`, `Agent` into `spawn_agent` and strips C
 | Runner                                  | Tests  | Covers                                                                 |
 | --------------------------------------- | ------ | ---------------------------------------------------------------------- |
 | `test-all-hooks.cjs` (primary gate)  | **133** | Hook behaviors, bridged suites and the count guard                     |
-| `run-all-tests.cjs` (full aggregate) | **2094** | 124 `tests/suites/*.test.cjs` files; primary gate runs separately |
+| `run-all-tests.cjs` (full aggregate) | **2158** | 126 `tests/suites/*.test.cjs` files; primary gate runs separately |
 | `node --test .claude/scripts/codex/tests` | —      | Mirror generators and verifiers                                        |
 | `run-codex-sync.mjs --verify-only`      | —      | Every read-only gate before a commit                                   |
 
-> Source-declared inventory: `test-all-hooks.cjs` = 133; `run-all-tests.cjs` = 2094 executors across 124 suite files. Both runners fail when these numbers drift from the docs. Counts do not establish runtime results; read the actual runner output for outcomes.
+> Source-declared inventory: `test-all-hooks.cjs` = 133; `run-all-tests.cjs` = 2158 executors across 126 suite files. Both runners fail when these numbers drift from the docs. Counts do not establish runtime results; read the actual runner output for outcomes.
 
 **Portable test contract** — shipped tests must pass in any project layout on Windows, macOS and Linux: build a temp fixture project instead of reading this repository's config or git state; blank inherited feature switches and provider keys; point `HOME`, `USERPROFILE`, `TMPDIR`, `TEMP` and `TMP` at the temp dir; name OS differences explicitly (paths, symlinks, `py -3` vs `python3`); run the full suite twice to prove repeatability.
 
@@ -409,6 +409,7 @@ Codex transforms `/skill` into `$skill`, `Agent` into `spawn_agent` and strips C
 | Skill visibility                | `skillProfile.preset`                             | `full`           |
 | Prompt ledger                   | `.ck.json` `promptLedger.enabled`                 | on               |
 | Commit / judgement / AI-feature routers | `.ck.json` `commitSkillRoute`, `judgementIntegrityRoute`, `aiFeatureRoute` | on |
+| Knowledge pointers              | `.ck.json` `knowledgeRoute.enabled`; prompt phrases `knowledgeRoute.promptTriggers`; env `CK_KNOWLEDGE_ROUTE` | on (prompt phrases follow the recorded evaluation) |
 | Desktop notifications           | env `ENABLE_DESKTOP_NOTIFICATIONS`                | on               |
 | Framework off for one session   | `claude --settings .claude/config/vanilla-settings.json --disable-slash-commands` | — |
 

@@ -30,9 +30,9 @@ git --version
 ```
 .claude/
 |-- settings.json     # Main configuration (hooks, features)
-|-- skills/           # 104 skills (invoked via / prefix, activated by context)
+|-- skills/           # 105 skills (invoked via / prefix, activated by context)
 |-- agents/           # Subagent configurations
-|-- hooks/            # 36 top-level hook files + 66 lib modules
+|-- hooks/            # 37 top-level hook files + 72 lib modules
 |   +-- lib/          # Shared hook libraries
 |-- workflows/        # Development rules and workflows
 +-- scripts/          # Utility scripts
@@ -115,7 +115,7 @@ Searches codebase for relevant files and explains functionality.
 
 ## Step 5: Understanding Hook Events (Optional)
 
-Claude Code intercepts these event types (`SubagentStart` and `UserPromptExpansion` carry only the protocol-delivery handlers — standing agent context is static in the agent `.md` files; `PreCompact` has no live hook — the universal bundle is re-delivered after a compaction and `TaskList` resumes the task state):
+Claude Code intercepts these event types (`UserPromptExpansion` carries the protocol-delivery handlers, the overlay reminder and knowledge pointers for the typed skill; `SubagentStart` carries those plus the prompt-time context a helper agent needs — standing agent context is static in the agent `.md` files; `PreCompact` has no live hook — the universal bundle is re-delivered after a compaction and `TaskList` resumes the task state):
 
 | Event                 | When It Fires            | Example Hook                   |
 | --------------------- | ------------------------ | ------------------------------ |
@@ -173,7 +173,7 @@ For more troubleshooting, see [troubleshooting.md](./troubleshooting.md).
 
 The system that learns from your interactions:
 
-1. **`/learn` skill**: Routes each lesson to its best carrier — `lessons.md` in the project-reference docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path), a matching reference doc, a config field, a skill overlay, or — for a short, broad, project-specific rule — the hand-owned `## Project Rules & Context` section of the root `CLAUDE.md` (user-confirmed, then `sync-codex` refreshes `AGENTS.md`)
+1. **`/learn` skill**: Routes each lesson to its best carrier — `lessons.md` in the project-reference docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path), a matching reference doc, a config field, a skill overlay, or — for a short, broad, project-specific rule — the hand-owned `## Project Rules & Context` section of the root `CLAUDE.md` (user-confirmed, then `sync-codex` refreshes `AGENTS.md`); subject knowledge (a domain rule, regulation or chosen practice) goes to `/knowledge-base add`
 2. **Lessons delivery**: the read-lessons contract arrives with the hook-delivered universal bundle (discovery order: project config, docs index, `lessons.md`), which is re-delivered after a compaction
 
 ### Workflow Detection

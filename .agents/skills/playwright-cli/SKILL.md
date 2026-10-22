@@ -5,7 +5,7 @@ disable-model-invocation: true
 ---
 
 > Codex compatibility note:
-> - Invoke `$skill-name`: load the registered `.agents/skills/<name>/SKILL.md` and execute it with Codex tools; no separate `Skill` tool or Claude mode switch is needed. Author `.claude/**`; mirrors are generated.
+> - Invoke `$skill-name`: load the registered `.agents/skills/<name>/SKILL.md` and execute it with Codex tools; no separate `Skill` tool or Claude mode switch is needed. When a workflow step or another skill names a skill, read that file in full yourself (every line, with no line limit; in parts only when output is cut off): a skill whose implicit invocation is off is never loaded for you. Author `.claude/**`; mirrors are generated.
 > - Track steps before execution and keep progress/evidence current. Explicit skill requests execute their protocol. Use the native question tool for required questions.
 > - Map foreign tool names to available host capabilities. A name mismatch needs no approval; an actually unavailable required capability stops with its step/evidence and a user question before adaptation.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -31,9 +31,7 @@ first; never infer startup, auth, seed data, or secrets.
 - [Targeting elements](#targeting-elements)
 - [Browser Sessions](#browser-sessions)
 - [Installation](#installation)
-- [Example: Form submission](#example-form-submission)
-- [Example: Multi-tab workflow](#example-multi-tab-workflow)
-- [Example: Debugging with DevTools](#example-debugging-with-devtools)
+- [Worked examples](#worked-examples)
 - [Example: Interactive session](#example-interactive-session)
 - [Specific tasks](#specific-tasks)
 - [Closing Reminders](#closing-reminders)
@@ -426,49 +424,9 @@ When local version is available, use `npx playwright cli` in all commands. Other
 npm install -g @playwright/cli@latest
 ```
 
-## Example: Form submission
+## Worked examples
 
-```bash
-playwright-cli open https://example.com/form
-playwright-cli snapshot
-
-playwright-cli fill e1 "user@example.com"
-playwright-cli fill e2 "password123"
-playwright-cli click e3
-playwright-cli snapshot
-playwright-cli close
-```
-
-## Example: Multi-tab workflow
-
-```bash
-playwright-cli open https://example.com
-playwright-cli tab-new https://example.com/other
-playwright-cli tab-list
-playwright-cli tab-select 0
-playwright-cli snapshot
-playwright-cli close
-```
-
-## Example: Debugging with DevTools
-
-```bash
-playwright-cli open https://example.com
-playwright-cli click e4
-playwright-cli fill e7 "test"
-playwright-cli console
-playwright-cli requests
-playwright-cli close
-```
-
-```bash
-playwright-cli open https://example.com
-playwright-cli tracing-start
-playwright-cli click e4
-playwright-cli fill e7 "test"
-playwright-cli tracing-stop
-playwright-cli close
-```
+Read [references/worked-examples.md](references/worked-examples.md) when you want a complete command sequence to adapt for a form submission, a multi-tab flow, or debugging with console, requests and tracing; it holds those three examples.
 
 ## Example: Interactive session
 

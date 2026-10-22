@@ -6,7 +6,7 @@
 - **Spec:** `docs/specs/ContextDelivery/README.ProtocolDelivery.md` (feature code PDL)
 - **Supersedes:** None. This ADR reverses two earlier decisions that were never recorded as ADRs: the no-reference duplication policy (`SYNC:shared-protocol-duplication-policy`, `.claude/skills/shared/sync-inline-versions.md:1336`) and the removal of agent-start context injection (`.claude/hooks/tests/test-all-hooks.cjs:649-654`).
 
-**Current decision:** the decisions and earlier amendments below record their historical state. The [2026-10-04 amendment](#amendment-2026-10-04-review-family-entrypoints-use-guides-with-full-source-fallback) supersedes the four review-family skill exceptions in Decision 3; agents, mode references and fresh reviewer prompts retain their full applicable bodies.
+**Current decision:** the decisions and earlier amendments below record their historical state. The [2026-10-04 amendment](#amendment-2026-10-04-review-family-entrypoints-use-guides-with-full-source-fallback) supersedes the four review-family skill exceptions in Decision 3; agents, mode references and fresh reviewer prompts retain their full applicable bodies (agents unless a project opts into the [2026-10-21 agent guides](#amendment-2026-10-21-opt-in-agent-guides-for-trigger-gated-protocols-piloted-not-adopted)).
 
 ## Context
 
@@ -92,7 +92,7 @@ Reference baselines from the loaded confirmation machine (medians):
 | Codex no-op through the lean launcher, UserPromptSubmit | 437.5 ms |
 | Codex no-op through the lean launcher, PostToolUse      |   581 ms |
 
-Codex starts one event's handlers together. OpenCode runs them one after another, which is why its filter matters most.
+Codex starts one event's handlers together. OpenCode ran them one after another when this was measured, which is why its filter mattered most; since 2026-10-21 the bridge also starts them together (at most eight at once) and merges outcomes in configured order.
 
 Tests assert only the deterministic parts: no project module loaded on an early exit, 0 processes for a non-SKILL read, and no git step on the lean launcher.
 
@@ -158,7 +158,7 @@ Alternatives for the record itself:
 - Group data and inline list: `.claude/skills/shared/protocol-groups.json`. Published text: `.claude/skills/shared/protocols/<tag>.md` plus `index.json`, built by `.claude/scripts/build-protocol-projection.cjs`, with a freshness check in the existing `scripts-tests` sync stage.
 - Delivery lib: `.claude/hooks/lib/protocol-delivery.cjs`. Entry files: `.claude/hooks/protocol-inject-<group>.cjs`. Ledger store: `<project>/tmp/protocol-delivery`.
 - Registration: `.claude/settings.json`. Codex generator: `.claude/scripts/codex/sync-hooks.mjs` (lean launcher, remapped UserPromptExpansion, shell mapping, SubagentStart). OpenCode generator: `.claude/scripts/opencode/sync-hooks.mjs` (bridge `if` check). Codex inline list: `.claude/scripts/codex/migrate-claude-to-codex.mjs`.
-- Guide tooling: `.claude/scripts/sync-update-blocks.py` guide mode. It never touches agents, `inlineSkills` or `references/*.md`.
+- Guide tooling: `.claude/scripts/sync-update-blocks.py` guide mode. It never touches agents, `inlineSkills` or `references/*.md`. The opt-in agent guides use its separate `--mode=agent-guide` (amendment 2026-10-21).
 
 ## Amendment (2026-09-29): leaf reviewer agents carry no review-loop orchestration
 
@@ -169,9 +169,20 @@ Decision 3 ("agents keep full protocol text") is narrowed, not reversed. An agen
 - **Guard:** `review-lanes.test.cjs` (TC-RL-003) plus the matrix's orchestration-leak validation.
 - **Related addition:** the whole-diff correctness lane (`SYNC:whole-diff-correctness`). Its history, comment and instruction lenses and its anchored 0–100 confidence scale are adapted from Anthropic's `code-review` plugin (claude-plugins-official, Apache-2.0), rewritten as intent-level guidance. No host-native reviewer is required, so the lane runs on any harness.
 
+## Amendment (2026-10-21): opt-in agent guides for trigger-gated protocols (piloted, not adopted)
+
+Decision 3 stands: shipped agents keep full protocol text. This amendment adds an **opt-in** policy, `agentGuides` in `protocol-groups.json` (`enabled: false` by default). When a project enables it, an agent carries a **trigger-gated** protocol (one whose group row names a `trigger`) that is neither in the agent's `agentGuides.keepInline` list nor a code-tier rule (`agent_protocol_matrix.CODE_TIER_TAGS`) as one guide line plus its `:reminder` digest. `sync-update-blocks.py --mode=agent-guide` applies the policy in both directions: it converts, and it restores the full body of any guide line the policy no longer converts, so `enabled: false` is a real rollback (every body comes back verbatim; their order within the agent's protocol region can differ from before). At SubagentStart, `protocol-delivery.cjs` reads the starting agent's own PROTOCOL-GUIDES block and delivers those protocols in full when their trigger applies (an unreadable trigger context delivers). `inject_agent_protocol_blocks.py` honours a guide line only while the policy converts that tag.
+
+- **Why it was tried:** agent definitions reach 92–117 KB, mostly synced protocol text that every spawn pays. Enabled with the shipped `keepInline` list, the policy removes 104,531 bytes across 20 agents (about 6% of all agent text) (`code-reviewer` 116,984 → 106,087 bytes).
+- **Why it is not the default:** the review of this change found that agent-start trigger matching cannot see the agent's task. A SubagentStart event carries no prompt, so a keyword trigger is matched against the user's recorded prompts only, and a path trigger against a transcript the new agent does not yet have; the delegation brief is never read. A protocol could therefore be withheld from an agent whose brief needs it, which breaks Decision 6's rule that no check is lost. Further limits: OpenCode does not run these hooks for sub-agents (the guide line is then the only carrier), and one group's protocols can exceed the 9,500-character bin, so some arrive as a path only.
+- **Pilot evidence (Decision 6):** a before/after review of one fixed bug-fix diff with a seeded client–server field rename, by `code-reviewer` from the unconverted and a converted framework, two runs each on one model: all four runs flagged the rename, produced the behavioral delta matrix and flagged the missing regression test. This is too narrow to adopt (one agent, one model, two runs, a rename visible in an adjacent comment, a conversion broader than the final list) and is recorded as inconclusive.
+- **Enable only when:** the compliance gate passes on the models and hosts the project runs, with each agent's role-core protocols in `keepInline`. The shipped list keeps the UI protocols for UI agents, debugging and test-failure adjudication for debugger and test agents, capacity for performance agents and the architect, cross-stack, cross-service and domain-entity gates for the reviewers and architect, the reviewer-template leaf rules for directly dispatchable reviewers, and review decision autonomy for every review-family agent.
+- **Guards:** `protocol-delivery.test.cjs` (TC-PDL-121), `sync-update-blocks-guide.test.cjs` (TC-PDL-122 plus the restore and code-tier cases), `injectors-respect-guides.test.cjs` (the agent injector's policy guard), `sync-carrier-parity.test.cjs` TC-PDL-039 (an agent may guide only what the enabled policy converts). With the policy enabled, `agent-universal-rules`, `review-lanes`, `sync-carrier-parity` and `protocol-delivery` pass (checked on a copy of the framework).
+- **Revisit when** a host reports the sub-agent's task at its start event, or the delivery hook can read the delegation brief.
+
 ## Related
 
-- `docs/specs/ContextDelivery/README.ProtocolDelivery.md`: BR-PDL-01…15 and TC-PDL-001…084.
+- `docs/specs/ContextDelivery/README.ProtocolDelivery.md`: BR-PDL-01…15 and TC-PDL-001…122.
 - `plans/260924-1548-framework-lean-guided-refactor/goal.md`: D-1, SC-2, SC-4, SC-8.
 - `plans/260924-1548-framework-lean-guided-refactor/option-coverage.md`: §6.6 and §6.12.
 - `docs/adr/0003-config-driven-doc-and-spec-roots.md`: sibling precedent for reversing an unrecorded convention on the record.

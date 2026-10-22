@@ -5,7 +5,7 @@ disable-model-invocation: false
 ---
 
 > Codex compatibility note:
-> - Invoke `$skill-name`: load the registered `.agents/skills/<name>/SKILL.md` and execute it with Codex tools; no separate `Skill` tool or Claude mode switch is needed. Author `.claude/**`; mirrors are generated.
+> - Invoke `$skill-name`: load the registered `.agents/skills/<name>/SKILL.md` and execute it with Codex tools; no separate `Skill` tool or Claude mode switch is needed. When a workflow step or another skill names a skill, read that file in full yourself (every line, with no line limit; in parts only when output is cut off): a skill whose implicit invocation is off is never loaded for you. Author `.claude/**`; mirrors are generated.
 > - Track steps before execution and keep progress/evidence current. Explicit skill requests execute their protocol. Use the native question tool for required questions.
 > - Map foreign tool names to available host capabilities. A name mismatch needs no approval; an actually unavailable required capability stops with its step/evidence and a user question before adaptation.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -196,44 +196,9 @@ Use `ask user question tool` to validate the framing:
 - "Who specifically experiences this? How often? What's the cost?"
 - "What evidence do we have this problem actually exists?"
 
-### 1.2 — Root Cause Analysis (for Problem-Solving scenario)
+Read [references/brainstorm-framing-techniques.md](references/brainstorm-framing-techniques.md) when the scenario is Problem-Solving or the problem is systemic; it holds 1.2 Root Cause Analysis (5 Whys and Fishbone).
 
-Apply one of:
-
-**5 Whys:**
-
-```
-Problem: [stated problem]
-Why 1: [first cause]
-Why 2: [cause of cause 1]
-Why 3: [cause of cause 2]
-Why 4: [cause of cause 3]
-Why 5: [root cause] ← Fix HERE, not at Why 1
-```
-
-**Fishbone (Ishikawa) — for systemic problems:**
-Spine = problem statement. Bones = 6 cause categories:
-
-- People, Process, Technology, Data, Environment, Policy
-- For each bone: ask "What in this category could cause the problem?"
-
-### 1.3 — JTBD (Jobs-To-Be-Done) — for New Product & Enhancement
-
-Replace user stories with job stories to expose real motivation:
-
-**User Story (what):** As an operator, I want to see order totals, so that I can make decisions.
-
-**Job Story (why + context):** When I'm clearing a peak-season backlog with limited time, I want to instantly see which orders need action without opening every record, so I can make fast, defensible decisions before the cutoff.
-
-**Job Story Formula:**
-
-```
-When [triggering situation + context],
-I want to [motivation / job to be done],
-so I can [outcome / expected result].
-```
-
-Generate 3–5 job stories covering main user segments. Each story = one opportunity.
+Read [references/brainstorm-framing-techniques.md](references/brainstorm-framing-techniques.md) when the scenario is New Product, Feature Enhancement or Multi-Opportunity Discovery; it holds 1.3 JTBD (job-story formula, 3–5 job stories per segment).
 
 ### 1.4 — HMW (How Might We) Reframing
 
@@ -262,73 +227,7 @@ From the POV statement:
 
 **Goal:** Narrow the problem space to highest-opportunity focus areas before solution ideation.
 
-### 2.1 — Opportunity Solution Tree (OST) — for Enhancement
-
-Teresa Torres' framework: desired outcome → opportunities → solutions → experiments.
-
-```
-Desired Outcome (business metric)
-├── Opportunity 1 (unmet user need / pain / want)
-│   ├── Solution A
-│   └── Solution B
-├── Opportunity 2
-│   ├── Solution C
-│   └── Solution D
-└── Opportunity 3 (deprioritized)
-```
-
-**Step 1:** State ONE desired outcome (lagging metric the team owns — e.g., "Increase manager satisfaction with review process from 3.2 to 4.0 CSAT").
-**Step 2:** Map ALL known opportunities (pains, needs, wants) from research/interviews.
-**Step 3:** For each top opportunity, generate solution directions, not detailed solutions.
-**Step 4:** Pick 1–2 opportunities to develop in Phase 3.
-
-### 2.2 — Lean Canvas — for New Product
-
-One-page business model for greenfield ideas (Ash Maurya):
-
-| Block             | Question                              |
-| ----------------- | ------------------------------------- |
-| Problem           | Top 3 problems being solved           |
-| Customer Segments | Who has this problem? Early adopters? |
-| Unique Value Prop | Single compelling message             |
-| Solution          | Top 3 features (not full spec)        |
-| Channels          | How to reach customers                |
-| Revenue Streams   | How to make money                     |
-| Cost Structure    | Fixed + variable costs                |
-| Key Metrics       | One number that measures success      |
-| Unfair Advantage  | What can't easily be copied?          |
-
-Fill one canvas per major target segment. Time-box to 20 min; speed is the point.
-
-### 2.3 — Blue Ocean ERRC Grid — for Enhancement or New Product
-
-Eliminate-Reduce-Raise-Create grid (Chan Kim & Mauborgne):
-
-| Eliminate                   | Reduce                            |
-| --------------------------- | --------------------------------- |
-| Features users never use    | Features that are over-engineered |
-| **Raise**                   | **Create**                        |
-| Features users want more of | Features no competitor offers     |
-
-**Rule:** Every innovation needs at least ONE Create item and one Eliminate item. Raise-only products are incremental, not differentiated.
-
-### 2.4 — Value Proposition Canvas
-
-Connect customer profile to product value:
-
-**Customer Profile:**
-
-- Jobs (functional, social, emotional)
-- Pains (frustrations, obstacles, risks)
-- Gains (benefits, desires, measures of success)
-
-**Value Map:**
-
-- Products & Services (what you offer)
-- Pain Relievers (how you reduce pains)
-- Gain Creators (how you produce gains)
-
-**Fit = Pain Relievers match Pains and Gain Creators match Gains.**
+Read [references/brainstorm-framing-techniques.md](references/brainstorm-framing-techniques.md) when the route uses Opportunity Solution Tree (Enhancement, Multi-Opportunity Discovery), Lean Canvas (New Product), Blue Ocean ERRC (differentiation needed) or Value Proposition Canvas (product-market fit unclear); it holds 2.1–2.4 with their steps, canvases and fit rules.
 
 **Phase 2 output (selected-route techniques only):** OST with 2 selected opportunities (Enhancement); Lean Canvas (New Product); ERRC grid (New Product or Enhancement); Value Proposition fit assessment.
 
@@ -356,63 +255,7 @@ Apply each lens to the problem/existing product; generate solution directions:
 
 Generate at least 2 ideas per SCAMPER letter: minimum 14 ideas.
 
-### 3.2 — Crazy 8s (Rapid Visual Ideation)
-
-**Time-box: 8 minutes; 8 ideas; no refinement.**
-
-Process:
-
-1. Fold paper into 8 sections (or create 8 boxes mentally).
-2. Sketch one rough idea per box.
-3. Let the timer force quantity over perfection.
-4. Share and build on sketches.
-
-For AI-facilitated sessions:
-
-- AI generates 8 distinct solution directions in 2 minutes.
-- User picks the top 3 to explore.
-- Each direction = 1 sentence + 1 key differentiator.
-
-### 3.3 — Brainwriting 6-3-5
-
-For multi-stakeholder, async-friendly sessions:
-
-- 6 participants, 3 ideas each, 5 rounds.
-- Each round: read previous ideas → add 3 ideas OR build on an existing idea.
-- Result: up to 108 ideas in 30 minutes; works asynchronously in a shared doc.
-
-For AI-facilitated sessions:
-
-- AI plays all 6 roles across 3 rounds.
-- Generate from PO, BA, End User, Dev, Ops, and Business perspectives.
-
-### 3.4 — Impact Mapping
-
-Gojko Adzic's technique: Goal → Actors → Impacts → Deliverables:
-
-```
-GOAL: [business outcome with measurable target]
-├── ACTOR: Who can help/hinder?
-│   ├── IMPACT: How should behavior change?
-│   │   └── DELIVERABLE: What feature produces this impact?
-│   └── IMPACT: What negative behavior to prevent?
-│       └── DELIVERABLE: What reduces this risk?
-└── ACTOR: ...
-```
-
-**Key insight:** Work backward from GOAL. If a deliverable does not trace to an actor behavior change, do not build it.
-
-### 3.5 — Analogical Thinking
-
-Ask: "How does [industry X] solve [similar problem Y]?"
-
-| Analogy Source                | Application to HR                      |
-| ----------------------------- | -------------------------------------- |
-| Spotify Discover Weekly       | Personalized learning recommendations  |
-| Uber surge pricing            | Dynamic bonus pool allocation          |
-| GitHub PR reviews             | Peer skill endorsement with evidence   |
-| Amazon recommendation engine  | Next goal suggestion                   |
-| Netflix "because you watched" | "Colleagues like you also achieved..." |
+Read [references/brainstorm-ideation-evaluation-techniques.md](references/brainstorm-ideation-evaluation-techniques.md) when the route selects Crazy 8s (quantity fast, New Product), Brainwriting 6-3-5 (multi-stakeholder), Impact Mapping (outcome-first, Enhancement) or Analogical Thinking (novel directions); it holds 3.2–3.5 with their AI-facilitated procedures.
 
 **Phase 3 output (selected-route techniques only):** SCAMPER grid with 14+ ideas; Crazy 8s with 8 directions; Impact Map for top 2 goals; 3–5 analogy-inspired ideas; 25–40 total raw ideas.
 
@@ -460,33 +303,7 @@ For each shortlisted idea, classify:
 
 **Strategy:** Must-Be → Performance → Delighter. Never skip Must-Be items for Delighters.
 
-### 4.4 — Effort × Impact 2×2
-
-Use for quick visual triage:
-
-```
-HIGH IMPACT
-    │  Quick Wins ★    │  Major Projects ⚙️
-    │  (do first)      │  (schedule carefully)
-────┼──────────────────┼────────────────────
-    │  Fill-Ins 📋     │  Money Pits ⚠️
-    │  (if time)       │  (avoid or cut)
-LOW IMPACT
-         LOW EFFORT         HIGH EFFORT
-```
-
-Plot each shortlisted idea. Quick Wins = default first picks unless Major Project has strategic necessity.
-
-### 4.5 — MoSCoW for Release Scope
-
-Assign release priority to each shortlisted idea:
-
-| Priority        | Meaning                            | Threshold                              |
-| --------------- | ---------------------------------- | -------------------------------------- |
-| **Must Have**   | MVP is broken without it           | Include if >80% of value depends on it |
-| **Should Have** | Important but MVP works without it | Include if RICE > median               |
-| **Could Have**  | Nice to have, low risk to cut      | Include if effort ≤ 3 EP               |
-| **Won't Have**  | Explicitly out of scope this cycle | Document for future                    |
+Read [references/brainstorm-ideation-evaluation-techniques.md](references/brainstorm-ideation-evaluation-techniques.md) when the route needs visual triage (Effort × Impact 2×2, Enhancement) or release scoping (MoSCoW, New Product MVP scope); it holds 4.4–4.5 with the quadrant rule and MoSCoW thresholds.
 
 **Phase 4 output (selected-route techniques only):** Dot-voted shortlist (10–15 ideas); top-5 RICE table; Kano classification; 2×2 placement; MoSCoW assignment per idea.
 
@@ -589,28 +406,7 @@ Time to validation: [Days/weeks]
 
 > **Select in Phase 0.1 when the input is a raw product vision/problem spanning MULTIPLE distinct opportunities.** This is an additional mode; every other scenario keeps Phase 6's single-recommendation default.
 
-**When to use:** a broad vision, problem statement, or "explore this whole area" brief expects several distinct, independently shippable opportunities, each becoming its own downstream task. This is the mode driven by `workflow-planned-work`'s **MULTI-OPPORTUNITY DISCOVERY MODE**.
-
-**How convergence differs:** the default flow produces ONE opinionated recommendation (Phase 6); this mode does NOT. Use the SAME Phase 4 techniques (RICE / Kano / 2×2) to **RANK and present 3–8 distinct opportunities**, not a single winner. The user then multi-selects opportunities to develop; choosing one would discard downstream tasks.
-
-**Technique flow:** run Phases 1–4 normally (problem framing → opportunity framing → ideation → convergence). In Phase 2, use JTBD / Opportunity Solution Tree to surface the FULL landscape, not one focus; in Phase 4, use RICE / Kano / 2×2 to SCORE and RANK every distinct opportunity instead of collapsing to one recommendation.
-
-**Output contract (must match what `workflow-planned-work` consumes):**
-
-- An **opportunity map of 3–8 distinct, RICE-scored opportunities**, ranked descending by RICE.
-- Documented in **`plans/{plan-dir}/brainstorm-opportunity-map.md`** (plans root default `plans/`; `docsRoots.plans.path` in `docs/project-config.json` overrides).
-- Each opportunity carries: a one-line problem/value framing, RICE components (Reach × Impact × Confidence / Effort) + RICE score, and (where known) a Kano class — so each can seed a downstream task.
-
-```markdown
-# Opportunity Map: [Vision/Problem]
-
-| Rank | Opportunity | Problem/Value (1 line) | Reach | Impact | Confidence | Effort | RICE | Kano |
-| ---- | ----------- | ---------------------- | ----- | ------ | ---------- | ------ | ---- | ---- |
-| 1    | ...         | ...                    | 1000  | 2      | 0.8        | 5      | 320  | Delighter |
-| 2    | ...         | ...                    | ...   | ...    | ...        | ...    | ...  | ...  |
-```
-
-**Multi-select handoff:** present the ranked map with `ask user question tool` and `multiSelect: true`: "Which opportunities should we develop into tasks?". Selected opportunities feed `workflow-planned-work`'s **per-opportunity task loop** (initiative → work-item --mode=refine → task review → challenge → work-item --mode=story → DoR, then cross-task prioritization and the UI block in the main session). Do NOT author tasks, specs, or plans here; the deliverable is only the scored, multi-selected map.
+Read [references/brainstorm-multi-opportunity-mode.md](references/brainstorm-multi-opportunity-mode.md) when Phase 0.1 selects Multi-opportunity discovery; it holds when to use the mode, how convergence differs, the technique flow, the opportunity-map output contract and template (`brainstorm-opportunity-map.md` in the plan directory under the plans root), and the multi-select handoff.
 
 ---
 
@@ -630,25 +426,7 @@ Read `references/brainstorm-skill-technique-routing.md` after Phase 0 scenario s
 
 ## Role-Specific Guidance
 
-### PO Mode (Outcome Focus)
-
-- Lead with desired business outcome → opportunities → experiments.
-- Use OST, Impact Mapping, RICE, and Build-Measure-Learn.
-- Ask: "What behavior change do we need to see in users?"
-- Resist jumping to features before validating the outcome.
-
-### BA Mode (Requirements Focus)
-
-- Lead with stakeholder needs → process gaps → requirements.
-- Use BABOK elicitation (interviews, workshops, document analysis), Fishbone, and JTBD.
-- Ask: "What does the system need to do to enable that behavior?"
-- Resist over-specifying before the PO validates the opportunity.
-
-### Mixed PO + BA Mode
-
-- PO owns problem statement, opportunity framing, prioritization, and hypothesis.
-- BA owns requirements elicitation, acceptance criteria, edge cases, and process mapping.
-- Handoff: after Phase 4's scored shortlist; BA writes acceptance criteria per idea.
+Read [references/brainstorm-role-guidance.md](references/brainstorm-role-guidance.md) when Phase 0.1 sets the role to Product Owner, Business Analyst or both; it holds the PO, BA and mixed PO + BA focus, techniques and handoff split.
 
 ---
 

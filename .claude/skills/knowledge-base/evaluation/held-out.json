@@ -1,0 +1,420 @@
+{
+  "description": "Held-out prompts for the knowledge router evaluation. Written by an independent author before any trigger phrase existed; never used for tuning.",
+  "author": "independent held-out author (sub-agent)",
+  "frozenAt": "2026-10-21",
+  "subjects": {
+    "card-payments": "Use when designing, storing, logging, testing or reviewing anything that touches payment card data — card numbers, card verification codes, card-on-file, checkout card forms, refunds/chargebacks of card payments, payment-card compliance.",
+    "accessibility": "Use when building, changing or reviewing user interfaces for people with disabilities — screen readers, keyboard navigation, focus order, colour contrast, alternative text, ARIA, captions, accessibility standards/audits.",
+    "personal-data": "Use when collecting, storing, sharing, exporting, retaining or deleting personal data about people — consent, data subject requests (access/erasure), retention periods, anonymisation/pseudonymisation, privacy regulations, data processing agreements."
+  },
+  "prompts": [
+    {
+      "id": "h001",
+      "kind": "relevant",
+      "prompt": "We're adding a \"save this card for next time\" checkbox at checkout. How should we keep the card on file without storing the full number in our own Postgres?",
+      "expected": ["card-payments"]
+    },
+    {
+      "id": "h002",
+      "kind": "relevant",
+      "prompt": "The Visa form on the checkout page posts the raw number straight to our /orders API. Move it into the processor's hosted fields so it never touches our servers.",
+      "expected": ["card-payments"]
+    },
+    {
+      "id": "h003",
+      "kind": "relevant",
+      "prompt": "Found this in prod logs: the request body dump includes the 16-digit number, the expiry and the 3-digit code from the back. Add redaction to the request logger before Friday's release.",
+      "expected": ["card-payments"]
+    },
+    {
+      "id": "h004",
+      "kind": "relevant",
+      "prompt": "Write tests for what happens when a shopper disputes a charge with the issuing bank and the money gets clawed back after we've already shipped the order.",
+      "expected": ["card-payments"]
+    },
+    {
+      "id": "h005",
+      "kind": "relevant",
+      "prompt": "Is it OK to keep the security code in Redis for ten minutes so the retry worker can resubmit a declined authorization?",
+      "expected": ["card-payments"]
+    },
+    {
+      "id": "h006",
+      "kind": "relevant",
+      "prompt": "Review this PR please — it adds last4, brand and expiry columns to customers and a migration that backfills them from the gateway's stored payment methods.",
+      "expected": ["card-payments"]
+    },
+    {
+      "id": "h007",
+      "kind": "relevant",
+      "prompt": "Our QSA assessment is next month. What evidence do we need to show that the hosted payment page keeps our web servers out of scope?",
+      "expected": ["card-payments"]
+    },
+    {
+      "id": "h008",
+      "kind": "relevant",
+      "prompt": "Which numbers should the checkout e2e fixtures use? I don't want anyone pasting a real Amex into the test data again.",
+      "expected": ["card-payments"]
+    },
+    {
+      "id": "h009",
+      "kind": "relevant",
+      "prompt": "Support wants agents to see the whole credit card number in the admin panel so they can take phone orders. How do we do that safely, or should we push back?",
+      "expected": ["card-payments"]
+    },
+    {
+      "id": "h010",
+      "kind": "relevant",
+      "prompt": "Add a Luhn check and brand detection to the pay-now form so the Mastercard/Visa logo switches as the user types the number.",
+      "expected": ["card-payments"]
+    },
+    {
+      "id": "h011",
+      "kind": "relevant",
+      "prompt": "Partial refunds on card payments go through twice when the user double-clicks. Make the refund call idempotent and add a regression test.",
+      "expected": ["card-payments"]
+    },
+    {
+      "id": "h012",
+      "kind": "relevant",
+      "prompt": "Does tokenising through our processor take us out of PCI DSS scope entirely, or do we still need SAQ A-EP because we inject our own JS on the checkout page?",
+      "expected": ["card-payments"]
+    },
+    {
+      "id": "h013",
+      "kind": "relevant",
+      "prompt": "Screen reader users can't tab to the 'Add to basket' button — it's a div with an onClick. Fix it properly.",
+      "expected": ["accessibility"]
+    },
+    {
+      "id": "h014",
+      "kind": "relevant",
+      "prompt": "When the edit dialog opens, focus stays on the page behind it, and when it closes we land back at the top of the document. Can you fix the focus handling?",
+      "expected": ["accessibility"]
+    },
+    {
+      "id": "h015",
+      "kind": "relevant",
+      "prompt": "Design handed over #9a9a9a helper text on a white background. Will that pass AA, and if not, what's the nearest grey that does?",
+      "expected": ["accessibility"]
+    },
+    {
+      "id": "h016",
+      "kind": "relevant",
+      "prompt": "Add meaningful descriptions to the product gallery images; the decorative divider SVGs should be skipped by assistive tech.",
+      "expected": ["accessibility"]
+    },
+    {
+      "id": "h017",
+      "kind": "relevant",
+      "prompt": "VoiceOver reads the icon-only toolbar as 'button, button, button'. What should each one announce and how do we wire that up in React?",
+      "expected": ["accessibility"]
+    },
+    {
+      "id": "h018",
+      "kind": "relevant",
+      "prompt": "The marketing videos need subtitles and a transcript before the public-sector tender. What's the minimum we have to provide?",
+      "expected": ["accessibility"]
+    },
+    {
+      "id": "h019",
+      "kind": "relevant",
+      "prompt": "Audit the signup flow against WCAG 2.2 and list every failure with its success criterion and severity.",
+      "expected": ["accessibility"]
+    },
+    {
+      "id": "h020",
+      "kind": "relevant",
+      "prompt": "Can someone using only a keyboard get through the date picker? Right now the arrow keys don't move between days and Escape does nothing.",
+      "expected": ["accessibility"]
+    },
+    {
+      "id": "h021",
+      "kind": "relevant",
+      "prompt": "Should our toasts be announced politely or assertively to blind users? At the moment errors and confirmations both use a polite live region and people miss the errors.",
+      "expected": ["accessibility"]
+    },
+    {
+      "id": "h022",
+      "kind": "relevant",
+      "prompt": "The parallax hero banner makes some people feel motion sick. Add a fallback that respects the OS reduced-motion setting.",
+      "expected": ["accessibility"]
+    },
+    {
+      "id": "h023",
+      "kind": "relevant",
+      "prompt": "Form errors are shown only as red borders, so colour-blind users can't tell which field failed. Rework the validation display.",
+      "expected": ["accessibility"]
+    },
+    {
+      "id": "h024",
+      "kind": "relevant",
+      "prompt": "At 200% browser zoom the nav overlaps the content and the text gets clipped. Make the layout reflow for low-vision users.",
+      "expected": ["accessibility"]
+    },
+    {
+      "id": "h025",
+      "kind": "relevant",
+      "prompt": "A customer emailed asking us to wipe everything we hold on them. Which tables, logs and backups do we need to touch, and how do we prove it's done?",
+      "expected": ["personal-data"]
+    },
+    {
+      "id": "h026",
+      "kind": "relevant",
+      "prompt": "Build an endpoint that lets a signed-in user download a copy of all the information we have about them, as JSON.",
+      "expected": ["personal-data"]
+    },
+    {
+      "id": "h027",
+      "kind": "relevant",
+      "prompt": "We keep dormant accounts forever. Add a scheduled job that deletes or anonymises them after 24 months of inactivity.",
+      "expected": ["personal-data"]
+    },
+    {
+      "id": "h028",
+      "kind": "relevant",
+      "prompt": "Marketing wants to email everyone who ever created an account. Do we need an opt-in, and how should we record when and how each person agreed?",
+      "expected": ["personal-data"]
+    },
+    {
+      "id": "h029",
+      "kind": "relevant",
+      "prompt": "Before we hand the production DB dump to the offshore QA vendor, scrub names, emails, phone numbers and home addresses.",
+      "expected": ["personal-data"]
+    },
+    {
+      "id": "h030",
+      "kind": "relevant",
+      "prompt": "We're about to start sending user emails and IP addresses to a new analytics SaaS. Do we need a processing agreement with them first, and where should we record it?",
+      "expected": ["personal-data"]
+    },
+    {
+      "id": "h031",
+      "kind": "relevant",
+      "prompt": "Replace user_id in the event stream with a keyed hash so analysts can still join sessions without being able to tell who anyone is.",
+      "expected": ["personal-data"]
+    },
+    {
+      "id": "h032",
+      "kind": "relevant",
+      "prompt": "Review the logging middleware — it writes full names, dates of birth and home addresses at INFO level to Datadog.",
+      "expected": ["personal-data"]
+    },
+    {
+      "id": "h033",
+      "kind": "relevant",
+      "prompt": "We launch in Germany next quarter. What do we need to change in signup and account deletion to be GDPR-compliant?",
+      "expected": ["personal-data"]
+    },
+    {
+      "id": "h034",
+      "kind": "relevant",
+      "prompt": "The cookie banner pre-ticks every tracking category. Change it so nothing non-essential loads until the visitor actually says yes.",
+      "expected": ["personal-data"]
+    },
+    {
+      "id": "h035",
+      "kind": "relevant",
+      "prompt": "How long can we keep CVs from rejected applicants in the recruiting module, and can we purge them automatically when that period ends?",
+      "expected": ["personal-data"]
+    },
+    {
+      "id": "h036",
+      "kind": "relevant",
+      "prompt": "Clinic intake answers about medical history sit in plaintext right next to the patient's name. What's the right way to separate and protect them?",
+      "expected": ["personal-data"]
+    },
+    {
+      "id": "h037",
+      "kind": "relevant",
+      "prompt": "A customer has asked us to erase their account, but we still have their saved card token and a chargeback from last year. What can we delete and what do we have to keep?",
+      "expected": ["card-payments", "personal-data"]
+    },
+    {
+      "id": "h038",
+      "kind": "relevant",
+      "prompt": "On checkout, the card number field doesn't announce validation errors to screen readers, and the expiry month/year selects can't be reached with Tab.",
+      "expected": ["accessibility", "card-payments"]
+    },
+    {
+      "id": "h039",
+      "kind": "relevant",
+      "prompt": "Rebuild the marketing opt-in form so it works with a keyboard and a screen reader, and store who agreed to what and when so we can show it to a regulator.",
+      "expected": ["accessibility", "personal-data"]
+    },
+    {
+      "id": "h040",
+      "kind": "unrelated",
+      "prompt": "Pay down some tech debt in the parser — the tokenizer has three copies of the same whitespace-skipping logic.",
+      "expected": []
+    },
+    {
+      "id": "h041",
+      "kind": "unrelated",
+      "prompt": "The Card component has too much padding on mobile. Drop it to 12px below the sm breakpoint and keep the shadow.",
+      "expected": []
+    },
+    {
+      "id": "h042",
+      "kind": "unrelated",
+      "prompt": "What's the contrast between write-through and write-behind caching for our product catalogue cache? Which one fits a read-heavy workload?",
+      "expected": []
+    },
+    {
+      "id": "h043",
+      "kind": "unrelated",
+      "prompt": "Export the build artifacts to S3 once the release job finishes and keep the folder naming by version.",
+      "expected": []
+    },
+    {
+      "id": "h044",
+      "kind": "unrelated",
+      "prompt": "Create a personal access token for CI so the release workflow can push tags to GitHub, and store it as a repository secret.",
+      "expected": []
+    },
+    {
+      "id": "h045",
+      "kind": "unrelated",
+      "prompt": "Add a Fisher-Yates shuffle for the deck in the solitaire game and make dealing the cards deterministic under a seed.",
+      "expected": []
+    },
+    {
+      "id": "h046",
+      "kind": "unrelated",
+      "prompt": "Dragging a card between columns on the kanban board sometimes duplicates it. Debug the drop handler.",
+      "expected": []
+    },
+    {
+      "id": "h047",
+      "kind": "unrelated",
+      "prompt": "CI build log retention is eating the runner's disk. Keep only the last 14 days of logs and artifacts.",
+      "expected": []
+    },
+    {
+      "id": "h048",
+      "kind": "unrelated",
+      "prompt": "Add a contrast and brightness slider to the photo editor's filter pipeline, applied on the GPU.",
+      "expected": []
+    },
+    {
+      "id": "h049",
+      "kind": "unrelated",
+      "prompt": "Ctrl+K opens the browser's search bar in Firefox instead of our command palette. Pick a different default shortcut.",
+      "expected": []
+    },
+    {
+      "id": "h050",
+      "kind": "unrelated",
+      "prompt": "Delete remote feature branches that haven't had a commit in 90 days, but skip anything with an open PR.",
+      "expected": []
+    },
+    {
+      "id": "h051",
+      "kind": "unrelated",
+      "prompt": "The anonymous functions in our event handlers make stack traces unreadable. Give them names.",
+      "expected": []
+    },
+    {
+      "id": "h052",
+      "kind": "unrelated",
+      "prompt": "The git submodule checkout fails in CI with a detached HEAD warning — what's wrong with the workflow step?",
+      "expected": []
+    },
+    {
+      "id": "h053",
+      "kind": "unrelated",
+      "prompt": "Our token bucket rate limiter lets a burst through after every restart. Persist the bucket state in Redis.",
+      "expected": []
+    },
+    {
+      "id": "h054",
+      "kind": "unrelated",
+      "prompt": "The data export job takes 40 minutes to write the inventory stock-level CSV. Profile it and speed it up.",
+      "expected": []
+    },
+    {
+      "id": "h055",
+      "kind": "unrelated",
+      "prompt": "Add a commit-msg git hook that rejects commits whose subject line is longer than 72 characters.",
+      "expected": []
+    },
+    {
+      "id": "h056",
+      "kind": "framework-maintenance",
+      "prompt": "Review the skills and hooks that handle the accessibility reminder and tell me why it fires twice in one session.",
+      "expected": []
+    },
+    {
+      "id": "h057",
+      "kind": "framework-maintenance",
+      "prompt": "Update the knowledge-base skill so `add` refuses to create a second card-payments pack, then add a case to the hook test suite.",
+      "expected": []
+    },
+    {
+      "id": "h058",
+      "kind": "framework-maintenance",
+      "prompt": "I edited the personal data protection rule in the shared SYNC protocol file — propagate it to every carrier and resync the Codex mirrors.",
+      "expected": []
+    },
+    {
+      "id": "h059",
+      "kind": "framework-maintenance",
+      "prompt": "Add a GDPR checklist gate to workflow-feature before the review step, then regenerate the workflow catalog.",
+      "expected": []
+    },
+    {
+      "id": "h060",
+      "kind": "framework-maintenance",
+      "prompt": "The ui-design agent's frontmatter description still says 'check WCAG colour contrast and screen reader support'. Shorten it and rerun the agent catalog generator.",
+      "expected": []
+    },
+    {
+      "id": "h061",
+      "kind": "framework-maintenance",
+      "prompt": "The session-init hook injects the PCI pointer on Codex as well as Claude. Trace which hook lib emits it and add a hook test for the Codex path.",
+      "expected": []
+    },
+    {
+      "id": "h062",
+      "kind": "code-only",
+      "prompt": "The lint step fails on this and I can't see why — which rule is it and how do I fix the config?\n\n```\nsrc/a11y/screen-reader-announcer.ts\n  14:3  error  Expected indentation of 2 spaces but found 4  indent\n```",
+      "expected": []
+    },
+    {
+      "id": "h063",
+      "kind": "code-only",
+      "prompt": "This import stopped resolving after we moved to the monorepo — what's wrong with the path alias?\n\n```ts\nimport { maskCardNumber, isValidCvv } from '@payments/card-utils';\n```",
+      "expected": []
+    },
+    {
+      "id": "h064",
+      "kind": "code-only",
+      "prompt": "The test run hangs after printing this even though every test passed. What's keeping the process alive?\n\n```\nPASS tests/personal-data-export.test.ts\nPASS tests/right-to-erasure.test.ts\nTests: 18 passed, 18 total\n```",
+      "expected": []
+    },
+    {
+      "id": "h065",
+      "kind": "code-only",
+      "prompt": "Rename `gdprConsentGiven` and `screenReaderMode` so they follow our boolean naming convention (is/has/can prefix).",
+      "expected": []
+    },
+    {
+      "id": "h066",
+      "kind": "host-envelope",
+      "prompt": "<system-reminder>\nThe user opened src/checkout/card-number-field.tsx in the IDE. Never log full card numbers or CVV values.\n</system-reminder>",
+      "expected": []
+    },
+    {
+      "id": "h067",
+      "kind": "host-envelope",
+      "prompt": "<task-notification>\n<task-id>bg-42</task-id>\n<status>completed</status>\n<summary>Background agent finished the screen reader and keyboard navigation audit of the settings page: 7 issues found.</summary>\n</task-notification>",
+      "expected": []
+    },
+    {
+      "id": "h068",
+      "kind": "host-envelope",
+      "prompt": "<system-reminder>\nMemory note: the retention job purges personal data of closed accounts after 30 days; GDPR erasure requests are logged in the dsr_requests table.\n</system-reminder>",
+      "expected": []
+    }
+  ]
+}

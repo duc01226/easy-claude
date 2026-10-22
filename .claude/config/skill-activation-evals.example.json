@@ -1,0 +1,35 @@
+{
+  "_description": "Example activation cases for node .claude/scripts/skill-activation-eval.mjs. Copy it, then write prompts the way your least technical user types them. expect = the skill folder that should start, or null when no framework skill should start. Include near-misses that must stay quiet. Each case is a live, read-only headless host run in this project (Claude: plan mode, only the Skill, Read, Glob and Grep tools, project and local settings only; Codex: read-only sandbox); framework mode switches such as CK_FRAMEWORK_MODE reach the run and the report records the effective mode; a run that errors or times out is unmeasured and makes the command exit 2.",
+  "cases": [
+    {
+      "id": "commit-plain",
+      "prompt": "save my changes with a good commit message",
+      "expect": "commit"
+    },
+    {
+      "id": "commit-near-miss",
+      "prompt": "what did the last commit change?",
+      "expect": null
+    },
+    {
+      "id": "pr-plain",
+      "prompt": "open a pull request for this branch",
+      "expect": "pull-request"
+    },
+    {
+      "id": "pr-near-miss",
+      "prompt": "summarise the comments on my pull request",
+      "expect": null
+    },
+    {
+      "id": "question-plain",
+      "prompt": "what does the regular expression ^a+$ match?",
+      "expect": null
+    },
+    {
+      "id": "explain-near-miss",
+      "prompt": "explain what this function returns",
+      "expect": null
+    }
+  ]
+}

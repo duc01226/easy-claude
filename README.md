@@ -20,7 +20,7 @@
 
 ## What is this?
 
-**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **<!-- COUNT:hooks -->36<!-- /COUNT --> top-level hook files**, **<!-- COUNT:skills -->104<!-- /COUNT --> skills**, **<!-- COUNT:workflows -->17<!-- /COUNT --> workflows**, and **<!-- COUNT:agents -->25<!-- /COUNT --> specialized agents**. It covers the entire software development lifecycle — from initiative capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`.
+**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **<!-- COUNT:hooks -->37<!-- /COUNT --> top-level hook files**, **<!-- COUNT:skills -->105<!-- /COUNT --> skills**, **<!-- COUNT:workflows -->17<!-- /COUNT --> workflows**, and **<!-- COUNT:agents -->25<!-- /COUNT --> specialized agents**. It covers the entire software development lifecycle — from initiative capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`.
 
 **Core insight:** LLMs forget, hallucinate, and drift. Instead of hoping the AI "just gets it right," this framework uses **programmatic guardrails** (hooks) and **prompt-engineered protocols** (skills/workflows) to enforce correctness at every stage.
 
@@ -152,7 +152,7 @@ node .claude/skills/sync-codex/scripts/run-codex-sync.mjs   # standalone Codex s
 
 ## What's Inside
 
-### Hooks (<!-- COUNT:hooks -->36<!-- /COUNT --> top-level `.cjs` files, <!-- COUNT:lib-modules -->66<!-- /COUNT --> lib modules)
+### Hooks (<!-- COUNT:hooks -->37<!-- /COUNT --> top-level `.cjs` files, <!-- COUNT:lib-modules -->72<!-- /COUNT --> lib modules)
 
 Runtime Node.js scripts that fire on Claude Code lifecycle events.
 
@@ -180,7 +180,7 @@ again after 150K tokens of growth or a compaction, and to every sub-agent; the w
 `workflow-route-inject.cjs` (the gate) and `workflow-catalog-inject.cjs` (the catalog). `CLAUDE.md` and `AGENTS.md` hold project information only. This design prevents
 context drift over long sessions.
 
-### Skills (<!-- COUNT:skills -->104<!-- /COUNT --> definitions)
+### Skills (<!-- COUNT:skills -->105<!-- /COUNT --> definitions)
 
 Markdown-based prompts with YAML frontmatter that guide AI behavior.
 
@@ -264,11 +264,11 @@ easy-claude/
 ├── .codex/                   # Codex agents, hooks, and context parity files
 ├── .claude/                  # <-- The framework template (copy this to your project)
 │   ├── agents/               # 25 specialized agent definitions
-│   ├── hooks/                # 34 top-level hook files + lib/ utilities
+│   ├── hooks/                # 37 top-level hook files + lib/ utilities
 │   │   ├── lib/              # Shared hook libraries
 │   │   ├── notifications/    # Multi-channel notification system
 │   │   └── tests/            # Hook test suites
-│   ├── skills/               # 104 skill definitions
+│   ├── skills/               # 105 skill definitions
 │   │   ├── <skill>/          # Each skill directory contains:
 │   │   │   ├── SKILL.md      # Entry point (prompt + frontmatter)
 │   │   │   ├── scripts/      # Optional automation scripts
@@ -276,6 +276,7 @@ easy-claude/
 │   │   └── common/           # Shared Python utilities
 │   ├── workflows/            # Workflow definitions & rules
 │   ├── docs/                 # Framework documentation
+│   ├── knowledge-base/       # Framework knowledge packs + generated index.json and README.md
 │   ├── scripts/              # Utility scripts (catalogs, audit, Codex sync)
 │   │   └── codex/            # Codex sync, migration, and verification tooling
 │   ├── config/               # Templates for agents/skills
@@ -299,7 +300,7 @@ The entire framework is **project-agnostic**. All project-specific knowledge liv
 ```
 ┌─────────────────────────────────────┐
 │     Generic Framework (reusable)    │
-│ 36 Hook Files + 104 Skills + 17 Flows │
+│ 37 Hook Files + 105 Skills + 17 Flows │
 └──────────────┬──────────────────────┘
                │
         ┌──────┴──────┐

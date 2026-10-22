@@ -16,7 +16,8 @@
  *   4. it keeps the file's own line endings: LF stays LF on Windows, CRLF stays CRLF on POSIX.
  *
  * "Every skill injector" is discovered, not listed: each `inject_*.py` next to this suite, minus
- * the agent-only injectors (agents keep full protocol text) and one that inserts no protocol tag,
+ * the agent-only injectors (agents keep full protocol text unless the opt-in agent-guide policy is on;
+ * the agent injector's policy guard has its own case at the end) and one that inserts no protocol tag,
  * plus `sync-hooks-to-skills.py`. A new
  * injector joins the loop automatically; if it targets none of FIXTURE_SKILLS, the control run
  * fails and names it.
@@ -42,7 +43,7 @@ const carrier = require(path.join(SCRIPTS_DIR, 'lib', 'protocol-guide-carrier.cj
 
 /** Injectors outside this contract, each with its reason. A stale entry fails the suite. */
 const EXCLUDED = {
-    'inject_agent_protocol_blocks.py': 'agent-only: agents keep full protocol text',
+    'inject_agent_protocol_blocks.py': 'agent-only: its opt-in agent-guide guard is the last case of this suite',
     'inject_agent_skill_connections.py': 'agent-only: agents keep full protocol text'
 };
 /** Skill writers that are not named `inject_*.py`. */
@@ -319,4 +320,39 @@ test('sync-hooks-to-skills leaves bare and guided skills unchanged when skill ti
             assert.deepEqual(project.run('sync-hooks-to-skills.py', input), input);
         }
     } finally { project.cleanup(); }
+});
+
+// Invariant: the agent injector honours an agent's guide line only while the opt-in agent-guide policy
+// converts that tag; otherwise the guide line gives way to the full canonical body, so turning the policy
+// off can never strand an agent on a pointer.
+test('TC-PDL-122 agent injector keeps a guide line only while the agent-guide policy converts the tag', () => {
+    const home = tempDir('ck-agent-guard-');
+    try {
+        const program = [
+            'import json, sys',
+            `sys.path.insert(0, ${JSON.stringify(SCRIPTS_DIR)})`,
+            'from inject_agent_protocol_blocks import inject_tag',
+            'from sync_blocks import format_guide_line, guide_tags, GUIDE_BLOCK_START, GUIDE_BLOCK_END',
+            'tag = "cross-stack-impact-trace"',
+            'line = format_guide_line(tag, "Fixture summary", "when it applies", ".claude/skills/shared/protocols/" + tag + ".md")',
+            'text = "# agent\\n\\nMain.\\n\\n" + GUIDE_BLOCK_START + "\\n\\n> intro\\n\\n" + line + "\\n\\n" + GUIDE_BLOCK_END + "\\n\\n## Closing Reminders\\n\\n- End.\\n"',
+            'kept, kept_status = inject_tag(text, tag, True)',
+            'restored, restored_status = inject_tag(text, tag, False)',
+            'print(json.dumps({"keptBody": ("<!-- SYNC:" + tag + " -->") in kept, "keptGuides": guide_tags(kept), "kept": kept_status["top"], "restored": restored_status["top"], "guides": guide_tags(restored), "body": ("<!-- SYNC:" + tag + " -->") in restored}))'
+        ].join('\n');
+        const c = python();
+        const r = spawnSync(c.command, [...c.baseArgs, '-c', program], { encoding: 'utf8', timeout: 60000, env: childEnv(home, home) });
+        assert.equal(r.status, 0, `python failed: ${r.stderr}`);
+        const out = JSON.parse(r.stdout);
+        // Given the policy converts the tag, then the guide line stays and no body is inserted (its reminder may be)
+        assert.equal(out.keptBody, false, 'a converted tag got a body');
+        assert.deepEqual(out.keptGuides, ['cross-stack-impact-trace']);
+        assert.equal(out.kept, 'guide');
+        // Given the policy does not convert it, then the body is inserted and the guide line removed
+        assert.equal(out.restored, 'inserted');
+        assert.equal(out.body, true, 'the full body was not inserted');
+        assert.deepEqual(out.guides, [], 'the guide line was left beside the body');
+    } finally {
+        fs.rmSync(home, { recursive: true, force: true });
+    }
 });

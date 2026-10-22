@@ -4,7 +4,7 @@ description: '[Project Management] Use when a workflow step or the user asks for
 ---
 
 > Codex compatibility note:
-> - Invoke `$skill-name`: load the registered `.agents/skills/<name>/SKILL.md` and execute it with Codex tools; no separate `Skill` tool or Claude mode switch is needed. Author `.claude/**`; mirrors are generated.
+> - Invoke `$skill-name`: load the registered `.agents/skills/<name>/SKILL.md` and execute it with Codex tools; no separate `Skill` tool or Claude mode switch is needed. When a workflow step or another skill names a skill, read that file in full yourself (every line, with no line limit; in parts only when output is cut off): a skill whose implicit invocation is off is never loaded for you. Author `.claude/**`; mirrors are generated.
 > - Track steps before execution and keep progress/evidence current. Explicit skill requests execute their protocol. Use the native question tool for required questions.
 > - Map foreign tool names to available host capabilities. A name mismatch needs no approval; an actually unavailable required capability stops with its step/evidence and a user question before adaptation.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -389,25 +389,11 @@ Read [references/accessibility-audit.md](references/accessibility-audit.md) when
 
 ## Examples
 
-### Example 1: Simple form spec
-
-**Input:** "Design spec for customer onboarding form"
-
-**Output:** Quick Spec opening with a compact §0a journey (a new customer completes onboarding), then sections 1-4 covering form fields (name, email, company name, plan-tier dropdown), validation rules, submit/cancel actions, and mobile stacking behavior.
-
-### Example 2: Complex dashboard spec
-
-**Input:** "Design spec for order pipeline dashboard with drag-and-drop columns"
-
-**Output:** Full Spec covering Kanban board layout, order cards (component inventory), drag-and-drop interactions, column states (empty, populated, over-limit), filter bar, responsive collapse to list view on mobile, and accessibility for keyboard drag operations.
+Read [references/design-spec-examples-and-related-skills.md](references/design-spec-examples-and-related-skills.md) when deciding between a Quick Spec and a Full Spec for a request; it holds two worked examples (a simple form as a Quick Spec, a drag-and-drop dashboard as a Full Spec).
 
 ## Related Skills
 
-| Skill                   | When to use instead                  |
-| ----------------------- | ------------------------------------ |
-| `ui-design --lane=marketing` | Build marketing/creative UI             |
-| `ui-design --lane=product`   | Build product UI (dashboards, apps)     |
-| `web-design-guidelines`   | Review existing UI for compliance       |
+Read [references/design-spec-examples-and-related-skills.md](references/design-spec-examples-and-related-skills.md) when the request may be building or reviewing UI rather than specifying it; it holds the skills to use instead (`ui-design --lane=marketing`, `ui-design --lane=product`, `web-design-guidelines`).
 
 ## Next Steps
 

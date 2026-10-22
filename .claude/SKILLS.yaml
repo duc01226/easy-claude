@@ -1,10 +1,10 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-10-17'
-  total_skills: 104
+  last_updated: '2026-10-22'
+  total_skills: 105
   total_by_status:
-    active: 104
+    active: 105
     deprecated: 0
     experimental: 0
 categories:
@@ -46,7 +46,7 @@ skills:
         --mode={code|plan}; --report-only is read-only.'
       category: ai-ml
       has_scripts: false
-      has_references: false
+      has_references: true
       status: active
       deprecated_by: null
       deprecated_since: null
@@ -403,6 +403,19 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
+    - name: knowledge-base
+      path: knowledge-base/SKILL.md
+      description: '[Utilities] Use when saving, updating, listing, removing, importing
+        or asking about subject knowledge (domain rules, regulations, chosen practices)
+        that the assistant should read at the right moment. list | add | update |
+        delete | review | ask | import | check.'
+      category: other
+      has_scripts: true
+      has_references: true
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
     - name: knowledge-review
       path: knowledge-review/SKILL.md
       description: '[Research] Use when a workflow step or the user asks for knowledge
@@ -432,7 +445,7 @@ skills:
         sessions, including an extra rule for one skill or task kind (routes to project-skill-protocol).'
       category: other
       has_scripts: false
-      has_references: false
+      has_references: true
       status: active
       deprecated_by: null
       deprecated_since: null
@@ -559,7 +572,7 @@ skills:
         readiness: observability, reliability, data integrity and database performance.'
       category: other
       has_scripts: false
-      has_references: false
+      has_references: true
       status: active
       deprecated_by: null
       deprecated_since: null
@@ -571,7 +584,7 @@ skills:
         docs (scan) or CLAUDE.md (ai-context-refresh).'
       category: other
       has_scripts: true
-      has_references: false
+      has_references: true
       status: active
       deprecated_by: null
       deprecated_since: null
@@ -778,9 +791,9 @@ skills:
       removal_after: null
     - name: sync-codex
       path: sync-codex/SKILL.md
-      description: '[Codex] Use when running the full Codex mirror sync and verify
-        pipeline, or when `.claude/**` edits leave `.agents/`, `.codex/` or `AGENTS.md`
-        stale.'
+      description: '[Codex] Use once, after the `.claude/**` edits of a change are
+        final and before committing them, to regenerate and verify `.agents/`, `.codex/`,
+        `.opencode/` and `AGENTS.md`; never after each edit.'
       category: other
       has_scripts: true
       has_references: false

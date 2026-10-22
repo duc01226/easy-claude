@@ -4,7 +4,7 @@ description: '[Testing] Use when a workflow step or the user asks for integratio
 ---
 
 > Codex compatibility note:
-> - Invoke `$skill-name`: load the registered `.agents/skills/<name>/SKILL.md` and execute it with Codex tools; no separate `Skill` tool or Claude mode switch is needed. Author `.claude/**`; mirrors are generated.
+> - Invoke `$skill-name`: load the registered `.agents/skills/<name>/SKILL.md` and execute it with Codex tools; no separate `Skill` tool or Claude mode switch is needed. When a workflow step or another skill names a skill, read that file in full yourself (every line, with no line limit; in parts only when output is cut off): a skill whose implicit invocation is off is never loaded for you. Author `.claude/**`; mirrors are generated.
 > - Track steps before execution and keep progress/evidence current. Explicit skill requests execute their protocol. Use the native question tool for required questions.
 > - Map foreign tool names to available host capabilities. A name mismatch needs no approval; an actually unavailable required capability stops with its step/evidence and a user question before adaptation.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -82,18 +82,9 @@ Before mode detection, test generation, or any spec/test mutation, read `docs/pr
 - **Native profile:** config or a required project reference explicitly declares a different case contract. A missing optional profile field in config does not erase an explicit contract in a required reference. Use the native owner and the declarations below; do not create Section 8 or a duplicate TC registry.
 - **Unresolved:** config is invalid/incomplete, required references conflict, or owner/identity/carrier/cardinality cannot be resolved. Report `BLOCKED`/`UNKNOWN`; do not infer a profile, fall back to TCs, generate tests from guessed intent, or claim coverage.
 
-A changed root, template, filename, or test directory alone does not select a native case profile. Under a native profile, apply this crosswalk:
+A changed root, template, filename, or test directory alone does not select a native case profile.
 
-| Concern | Native-profile rule |
-| --- | --- |
-| Canonical owner and scope | Resolve the business root and canonical owner from config plus required references; read the owner's declared scenario/requirement contract. |
-| Identity | MUST ATTENTION preserve the full owner-qualified case identity, including each declared variant. NEVER mint TC IDs or convert native IDs. |
-| Test carrier | Use the configured/project-declared test carrier and every matched additive overlay requirement; do not require default `.NET` annotations unless the selected profile declares them. |
-| Cardinality | Follow the profile's declared relation. A native profile may explicitly declare many-to-many: one aggregate executor can cover several listed scenarios, and one scenario may have several variant rows or tests. Do not force 1:1 or infer an undeclared relation. |
-| Coverage proof | For each mapped identity, MUST ATTENTION inspect the actual executor and assertion, and record its observed result when run. An aggregate proves only the listed cases its inspected path/assertions cover; never invent per-variant reporter outcomes. A link, ID, comment, or generated matrix is not execution proof. |
-| Reports and matrices | MUST ATTENTION substitute the native owner, case, variant, carrier, and result fields in every output table. `TC`, Section 8, and default annotation labels below are strict-default examples. |
-| Missing or changed intent | Update only the canonical owner through its declared authoring procedure. Do not auto-create a TC/Section 8 shadow; unresolved intent or unavailable owner procedure is `SPEC-GAP`/`BLOCKED`. |
-| Test result | MUST ATTENTION separate mapped, executed, and passed states. Only the configured runner's observed result proves execution; `UNKNOWN` is never `PASS`. |
+Read [references/integration-test-native-profile.md](references/integration-test-native-profile.md) when the profile resolves to Native; it holds the native-profile crosswalk for owner and scope, identity, test carrier, cardinality, coverage proof, reports and matrices, missing or changed intent, and test result.
 
 The semantic floor is identical in every profile: MUST ATTENTION retain authored expected outcomes, assertions that fail when protected intent breaks, property plus boundary coverage for universal invariants, relevant authorization and preservation cases, real production paths, repeatability, operation authority, and spec/test/code drift adjudication. The strict-default procedures and report examples later in this file are conditional on selecting that profile; adapt their evidence and output fields to a native profile without dropping these gates. Matched project overlays add constraints and cannot waive a shared skill gate.
 
@@ -194,13 +185,7 @@ Before implementation, search codebase for patterns:
 
 ## Native-Profile Task Ordering
 
-When the profile is native, perform the same quality sequence without executing the default-only Section 8/TC instructions below:
-
-1. **FIRST: resolve canonical owner cases.** Read the affected owner and every applicable requirement/scenario, including declared variants. Record the owner-qualified identities and the configured case-to-test carrier. If the owner or required evidence field is missing, conflicting, or cannot be read, stop `BLOCKED`/`UNKNOWN`.
-2. **MIDDLE: implement tests.** Exercise real production paths, use the profile's test carrier plus additive overlay requirements, and author expected outcomes that can fail when the protected intent breaks. For universal invariants, add the required property and boundary cases.
-3. **FINAL: reconcile both directions.** Map each changed behavior to every applicable owner case and each affected owner case/variant to its actual executor and inspected assertion across integration and unit tests. Follow configured cardinality, including many-to-many mappings; an aggregate executor proves only the cases its actual path/assertions cover. Do not invent per-variant runner outcomes.
-4. **Coverage task:** emit one owner/case/variant-to-executor/assertion matrix for the full affected owner scope, with `COVERED`, `GAP`, or `UNKNOWN`; zero `GAP`/`UNKNOWN` results are required for a pass. A mapped case is not an executed or passed case.
-5. **Missing or stale contract:** do not create TC IDs, Section 8, or another registry. Route an actual owner change through its declared authoring procedure; preserve user confirmation and operation authority. If that procedure or intent is unavailable, leave the finding blocked.
+Read [references/integration-test-native-profile.md](references/integration-test-native-profile.md) when the profile resolves to Native, before creating tasks; it holds the Native-Profile Task Ordering (FIRST owner cases, MIDDLE tests, FINAL two-way reconciliation, the zero-GAP/UNKNOWN coverage matrix task, and the missing-contract rule) that replaces the strict ordering below.
 
 ## Mandatory Task Ordering (Strict TC Default Only)
 
@@ -407,70 +392,7 @@ Verify the applicable items below against the native runner and tested contract;
 
 ## Example Files to Study
 
-Search codebase for existing integration test files:
-
-```bash
-find . -name "*IntegrationTests.*" -type f
-find . -name "*IntegrationTestBase.*" -type f
-find . -name "*IntegrationTestFixture.*" -type f
-```
-
-| Pattern                                                            | Shows                        |
-| ------------------------------------------------------------------ | ---------------------------- |
-| `{Service}.IntegrationTests/{Domain}/*CommandIntegrationTests.*`   | Create + update + validation |
-| `{Service}.IntegrationTests/{Domain}/*QueryIntegrationTests.*`     | Query with create-then-query |
-| `{Service}.IntegrationTests/{Domain}/Delete*IntegrationTests.*`    | Delete + cascade             |
-| `{Service}.IntegrationTests/{Service}ServiceIntegrationTestBase.*` | Service base class pattern   |
-
-### How to Use for Each Case
-
-**Case: Generate tests from existing test specs (feature docs Section 8)**
-
-```
-$integration-test CreateOrderCommand
-```
-
-→ Reads Section 8 TCs, generates test file with TC annotations
-
-**Case: Generate tests from git changes (default)**
-
-```
-$integration-test
-```
-
-→ Detects changed command/query files, checks Section 8 for matching TCs, generates tests
-
-**Case: Generate tests after $spec [mode=tests] created new TCs**
-
-```
-$spec [mode=tests] → $integration-test
-```
-
-→ spec [mode=tests] writes TCs to Section 8, then integration-test generates tests from those TCs
-
-**Case: Review existing tests for quality**
-
-```
-$integration-test review Orders
-```
-
-→ Audits test quality, finds flaky patterns, checks best practices
-
-**Case: Diagnose test failures**
-
-```
-$integration-test diagnose OrderCommandIntegrationTests
-```
-
-→ Analyzes failures, determines test bug vs code bug
-
-**Case: Verify test-spec traceability**
-
-```
-$integration-test verify {Service}
-```
-
-→ Checks test code matches specs and feature docs bidirectionally
+Read [references/integration-test-invocation-examples.md](references/integration-test-invocation-examples.md) when Step 2 needs commands to find existing integration test files, base classes and fixtures, or when choosing the invocation for a case; it holds the `find` commands, the pattern-to-example table and the per-case invocation examples.
 
 ---
 
@@ -534,57 +456,11 @@ $integration-test verify {Service}
 
 ## Related Skills
 
-| Skill                        | Relationship                                                                         | When to Call                                                                                               |
-| ---------------------------- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
-| `$spec [mode=tests]`                  | **Producer** — TCs in feature doc Section 8 are the source for test generation       | Must run spec [mode=tests] before integration-test (CREATE or UPDATE mode). TCs must exist before generating tests. |
-| `$work-item --mode=review --type=spec-tests`           | **Upstream reviewer** — validates TC quality before test generation                  | Run before integration-test to ensure TCs have real assertion value                                        |
-| `$spec [mode=sync]` | **Sync** — reconciles §8 TCs ↔ executing test code after tests are linked          | Run after integration-test to update the §8 `CoveredBy:` fields with the covering test links         |
-| `$spec`              | **TC host** — Section 8 of feature doc is where TCs live                             | If feature doc is missing or Section 8 is empty → run $spec first                                  |
-| `$spec [mode=index]`                | **Derived index** — regenerable navigation catalog over the Feature Specs (never a source of truth) | After §8 changes, to refresh the bucket `INDEX.md` TC counts                          |
-| `$integration-test --mode=review` | **Reviewer** — one-pass 8-gate audit, including change coverage and real-world fidelity | Call once after generating integration tests                                                              |
-| `$integration-test --mode=verify` | **Runner** — executes tests and reports pass/fail                                    | Always call after the --mode=review pass clears                                                           |
-| `$docs-manager --mode=update`               | **Orchestrator** — routes to spec [mode=sync] for test traceability              | Run for full doc sync after integration test files updated                                                 |
+Read [references/integration-test-standalone-chain.md](references/integration-test-standalone-chain.md) when deciding which neighbouring skill to call before or after this one; it holds the relationship table for `$spec [mode=tests]`, `$work-item --mode=review --type=spec-tests`, `$spec [mode=sync]`, `$spec`, `$spec [mode=index]`, `--mode=review`, `--mode=verify` and `$docs-manager --mode=update`.
 
 ## Standalone Chain
 
-> **When called outside a workflow**, follow this chain to complete the integration test authoring cycle.
-
-```
-integration-test (you are here)
-  │
-  ├─ PREREQUISITE: TCs must exist in feature doc Section 8
-  │    [REQUIRED] Verify: {Bucket}/README.{Feature}.md in the business spec root
-  │                 (default docs/specs; specRoots.business.path in docs/project-config.json overrides it)
-  │                 Section 8 has TC-{FEATURE}-{NNN} entries
-  │    If empty → run $spec [mode=tests] [CREATE mode] first
-  │
-  ├─ [REQUIRED] → $integration-test --mode=review
-  │     One-pass 8-gate audit: assertion value, data state, repeatability, domain logic, traceability, three-way sync, change coverage, real-world fidelity.
-  │     Never skip — Gate 6 (three-way sync) is the only place where spec/code/test conflicts surface,
-  │     and Gate 7 (change coverage) is the only place where untested changed behavior surfaces.
-  │
-  ├─ [REQUIRED] → $integration-test --mode=verify
-  │     Runs tests and reports pass/fail counts. Never mark complete without real runner output.
-  │
-  ├─ [REQUIRED] → $spec [mode=sync]
-  │     Updates the §8 TCs' CoveredBy: file::method traceability links.
-  │
-  ├─ [RECOMMENDED] → $docs-manager --mode=update
-  │     Updates feature doc evidence fields and version history if test coverage changed materially.
-  │
-  └─ [RECOMMENDED] → $work-item --mode=review --type=spec-tests
-        Re-run if the --mode=review pass (Gate 6) flagged TC issues requiring TC edits.
-
-### Mode-Specific Chains
-
-| Mode | Pre-step | Post-step |
-|------|---------|-----------|
-| from-changes | verify TCs updated (run $spec [mode=tests] UPDATE first) | $integration-test --mode=review → --mode=verify → /sync |
-| from-prompt | confirm TC exists for target feature | $integration-test --mode=review → --mode=verify → /sync |
-| review | N/A (read-only) | report findings → $spec [mode=tests] UPDATE if TCs need fixes |
-| diagnose | run $test to see failures first | fix identified issue → re-run $integration-test --mode=verify |
-| verify-traceability | N/A (read-only) | if orphaned TCs: $spec [mode=tests] UPDATE → $integration-test [from-prompt] |
-```
+Read [references/integration-test-standalone-chain.md](references/integration-test-standalone-chain.md) when this skill is called outside a workflow, before finishing; it holds the standalone chain (Section 8 prerequisite, then the [REQUIRED] `--mode=review` → `--mode=verify` → `$spec [mode=sync]` steps and the recommended follow-ups) and the per-mode pre/post-step table.
 
 > **[IMPORTANT]** todo tracking — break ALL work into small tasks BEFORE starting. NEVER skip task creation.
 

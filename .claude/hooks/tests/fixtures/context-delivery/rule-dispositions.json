@@ -1,10 +1,10 @@
 {
   "version": 5,
-  "policyVersion": "cd40fe8d5c06eb5d8b2349a5f58efc735bacda6a7ade37ee110f1f6b326cfdc7",
+  "policyVersion": "413f8a146150bd3c3a9f22473f2b95926fdfb6ae9c55d8d0fca444739b1469b5",
   "sourceHashes": {
     "universal-1": "766ee6f680ab736b0dc210931818280ad1fdef2163a2c6f99311adee5a8797f3",
     "universal-2": "1338c56f7c77d68d3cc75236b6e549468ff1dcf05e8b0a8e3bb1efb19077676a",
-    "universal-3": "ca1bc16c01457b87eb07c3237074902a744c937d0aa3027114dd6828598fe7f9",
+    "universal-3": "280b17a8816d03120f7a44da97e81081412a5aee842a2e9acbf51444dd0cc531",
     "universal-4": "56d419e6efa428b1dc72633a9a94f4390290fed3e1674a393441bcff7b62af23",
     "route": "46422fdacf61e11928a242baf5170b8d56abe1f5652d1cb524554b971ce3e994",
     "catalog": "b4874fb4389e876f8ce8df0f6ff422c480c94073d786110f48b638c209cff24d",
@@ -720,7 +720,7 @@
       "id": "universal-3:9",
       "source": "universal-3",
       "line": 9,
-      "sha256": "a79ea215039d48c89f47bb03f21810fb8fc42a96a040f7ad350093de96029500",
+      "sha256": "4e1e139fa1e9c43fb81a49583c0d454394b6de23519437cb97e750bdae6188a9",
       "disposition": "merge",
       "destination": ".claude/skills/shared/protocols/concise-agent-core.md",
       "fullSources": [

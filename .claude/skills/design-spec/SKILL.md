@@ -384,25 +384,11 @@ Read [references/accessibility-audit.md](references/accessibility-audit.md) when
 
 ## Examples
 
-### Example 1: Simple form spec
-
-**Input:** "Design spec for customer onboarding form"
-
-**Output:** Quick Spec opening with a compact §0a journey (a new customer completes onboarding), then sections 1-4 covering form fields (name, email, company name, plan-tier dropdown), validation rules, submit/cancel actions, and mobile stacking behavior.
-
-### Example 2: Complex dashboard spec
-
-**Input:** "Design spec for order pipeline dashboard with drag-and-drop columns"
-
-**Output:** Full Spec covering Kanban board layout, order cards (component inventory), drag-and-drop interactions, column states (empty, populated, over-limit), filter bar, responsive collapse to list view on mobile, and accessibility for keyboard drag operations.
+Read [references/design-spec-examples-and-related-skills.md](references/design-spec-examples-and-related-skills.md) when deciding between a Quick Spec and a Full Spec for a request; it holds two worked examples (a simple form as a Quick Spec, a drag-and-drop dashboard as a Full Spec).
 
 ## Related Skills
 
-| Skill                   | When to use instead                  |
-| ----------------------- | ------------------------------------ |
-| `ui-design --lane=marketing` | Build marketing/creative UI             |
-| `ui-design --lane=product`   | Build product UI (dashboards, apps)     |
-| `web-design-guidelines`   | Review existing UI for compliance       |
+Read [references/design-spec-examples-and-related-skills.md](references/design-spec-examples-and-related-skills.md) when the request may be building or reviewing UI rather than specifying it; it holds the skills to use instead (`ui-design --lane=marketing`, `ui-design --lane=product`, `web-design-guidelines`).
 
 ## Next Steps
 

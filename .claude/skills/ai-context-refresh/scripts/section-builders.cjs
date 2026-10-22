@@ -56,10 +56,14 @@ const FIXED_ROUTE_DOCS = new Set([
     ...REFERENCE_DOC_ROWS.map(([, file]) => file)
 ]);
 
+/** The knowledge base's project index (owned by the /knowledge-base skill). */
+const KNOWLEDGE_INDEX_FILENAME = 'knowledge-base-reference.md';
+
 /**
  * When-to-read triggers for the framework-owned reference docs (the SCAN_SKILL_MAP docs in
- * project-reference-registry.cjs plus the custom-prompts and skill-protocols indexes that
- * session-init-helpers.cjs REFERENCE_DOC_CATALOG seeds). The trigger says WHEN to open a doc;
+ * project-reference-registry.cjs plus the custom-prompts, skill-protocols and knowledge-base indexes
+ * that session-init-helpers.cjs REFERENCE_DOC_CATALOG seeds). The knowledge-base index is the hookless
+ * route to subject knowledge (spec KNW BR-KNW-19), so unlike the two skill-managed registries it gets a row. The trigger says WHEN to open a doc;
  * the project's own `referenceDocs[].purpose` says WHAT it holds. A custom doc has no
  * trigger here and is routed by its purpose alone.
  */
@@ -76,7 +80,8 @@ const REFERENCE_DOC_TRIGGERS = Object.freeze({
     'e2e-test-reference.md': 'Writing, running, or reviewing E2E / user-flow tests',
     'seed-test-data-reference.md': 'Seeding or reviewing development/test data',
     'custom-prompts-reference.md': 'A saved project prompt, playbook, or runbook may apply (`/custom-prompt`)',
-    'skill-protocols-reference.md': 'Before running any skill — project overlays layered on it'
+    'skill-protocols-reference.md': 'Before running any skill — project overlays layered on it',
+    [KNOWLEDGE_INDEX_FILENAME]: 'Subject knowledge — a domain rule, regulation or chosen practice the task touches (`/knowledge-base`)'
 });
 
 // A purpose that OPENS with, or parenthesizes, an N/A marker ("N/A — …", "Backend patterns (N/A for …)").
@@ -817,6 +822,11 @@ function buildDiscoveryRows(config, projectDir, referenceRoot, routedPaths) {
         const topic = trigger && summary ? `${trigger}. Holds: ${summary}` : trigger || summary || filename;
         pushRow(bottom, topic, [docPath]);
     }
+
+    // The knowledge index is the hookless route to subject knowledge (spec KNW BR-KNW-19): like the ADR
+    // folder it is routed whenever the project has it, selected in `referenceDocs` or not. A selected or
+    // N/A-declared entry above has already claimed the path, so it is never routed twice or against N/A.
+    pushRow(bottom, REFERENCE_DOC_TRIGGERS[KNOWLEDGE_INDEX_FILENAME], [underRoot(referenceRoot, KNOWLEDGE_INDEX_FILENAME)]);
 
     const adrRoot = adrRootPath(config);
     const adrDir = path.join(projectDir, ...adrRoot.split('/'));

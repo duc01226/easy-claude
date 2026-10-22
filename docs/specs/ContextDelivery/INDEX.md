@@ -1,6 +1,6 @@
 > **DERIVED — regenerate via `$spec [mode=index]`; do NOT hand-edit.** Source of truth: the linked canonical artifacts under the configured root.
 >
-> Regenerated: 2026-10-03
+> Regenerated: 2026-10-21
 
 # ContextDelivery — Bucket Index
 
@@ -8,6 +8,7 @@ Capabilities that decide which project guidance reaches an AI assistant, and whe
 
 | Capability | Feature Code | Status | Spec |
 | --- | --- | --- | --- |
+| Knowledge Delivery | KNW | draft | [README.KnowledgeDelivery.md](README.KnowledgeDelivery.md) |
 | Per-File Convention Injection | PFCI | draft | [README.PerFileConventionInjection.md](README.PerFileConventionInjection.md) |
 | Project Context Intake | PCI | draft | [README.ProjectContextIntake.md](README.ProjectContextIntake.md) |
 | Protocol Delivery | PDL | draft | [README.ProtocolDelivery.md](README.ProtocolDelivery.md) |

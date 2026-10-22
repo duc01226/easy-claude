@@ -216,7 +216,7 @@ Many skills follow the same shared protocols — evidence rules, review rules, t
 **Acceptance Criteria:**
 
 - **AC-PDL-20** — **Given** the canonical source and the group data **When** the published text is built **Then** it is deterministic, every protocol in use has a group, and a stale published text fails the sync verification
-- **AC-PDL-21** — **Given** a canonical edit **When** the carrier tooling runs **Then** every full-text carrier — inline skills, reference files and agents — equals the new text, and guide conversion is repeatable, limited to the protocols named, and never touches agents, inline skills or reference files
+- **AC-PDL-21** — **Given** a canonical edit **When** the carrier tooling runs **Then** every full-text carrier — inline skills, reference files and agents — equals the new text, and skill guide conversion is repeatable, limited to the protocols named, and never touches agents, inline skills or reference files; the opt-in agent guide conversion (off by default) touches only agents' trigger-gated protocols that the agent does not keep inline, and disabling it restores their bodies
 - **AC-PDL-22** — **Given** a converted skill **When** any framework check or skill injector runs **Then** a guide entry with its reminder counts in place of the body, and the check still fails when both are missing
 - **AC-PDL-23** — **Given** the duplication policy text **When** it is read **Then** it states the hybrid rule, and every copy of it equals the canonical text
 - **AC-PDL-24** — **Given** compressed protocols **When** they are published **Then** each keeps every rule it had and stays at or under 9,000 characters, the reviewer injection template excepted
@@ -261,6 +261,7 @@ Many skills follow the same shared protocols — evidence rules, review rules, t
 - **AC-PDL-32** — **Given** an agent of any type starts **When** its start is reported **Then** it receives the core engineering principles and the UI reuse guidance once for that spawn, plus the verdict and AI-feature directives when the session's latest recorded user prompt asks for one; workflow routing, commit and tracking guidance, setup offers and the prompt record stay with the main conversation (BR-PDL-21)
 - **AC-PDL-33** — **Given** the host reports a compaction **When** no prompt follows **Then** the core principles, the UI reuse guidance, the workflow route and catalog, and those two directives (judged on the latest recorded prompt) arrive at once, and the prompt that follows the host's own compaction boundary stays silent (BR-PDL-21)
 - **AC-PDL-34** — **Given** a long run that produces tool results **When** a scope's first tool result arrives, or about 150,000 tokens of growth, a compaction or a changed digest occurred since the last delivery **Then** a short digest routes reviews (a rationale or claim, a focused change or simple pull request, a complex pull request), tests and failure diagnosis to the project's registered skills; otherwise nothing arrives (BR-PDL-22)
+- **AC-PDL-35** — **Given** a project that opted into agent guides (off by default) and an agent definition converted by them (a trigger-gated protocol it neither keeps inline nor needs as a code-tier rule is carried as one guide line plus its reminder) **When** the agent starts **Then** the group hooks deliver that protocol's full text when its trigger applies or the trigger context cannot be read, deliver nothing for it otherwise, never repeat a protocol the agent still carries in full, and the guide line's published path stays the fallback; a second conversion run changes no byte, and disabling the policy (or keeping a tag inline) restores the full body verbatim (BR-PDL-08, BR-PDL-14)
 
 ## 4. Business Rules
 
@@ -350,13 +351,13 @@ IF a section of a skill is used by one mode only — the full review of the reas
 
 ### BR-PDL-08: Agent-start delivery decided per agent [HARD]
 
-Delivery at agent start is registered with no agent-type filter, so every agent type — a named agent, a custom agent or the general-purpose agent — reaches the delivery steps, and each step decides per agent what to deliver. IF an agent that preloads skills starts THEN it receives the protocols of the converted skills it preloads (an inline skill among them contributes nothing). IF Explore or Plan starts, or an agent that preloads no skill starts, THEN the five group steps deliver nothing to it. Every agent type — custom or general-purpose, with or without preloaded skills, whether or not its definition file exists or is trusted — receives the universal bundle at its start, once per spawn (BR-PDL-18). A protocol whose full body the agent's own definition carries between paired fences is not delivered again (a reminder digest never counts as the body); this applies only when the definition's declared name equals the agent type. The same start also carries the prompt-time guidance of BR-PDL-21. The second host mirrors agent start the same way; its agent type is the agent's name in the generated agent file. ADR-0004 records the decision.
+Delivery at agent start is registered with no agent-type filter, so every agent type — a named agent, a custom agent or the general-purpose agent — reaches the delivery steps, and each step decides per agent what to deliver. IF an agent that preloads skills starts THEN it receives the protocols of the converted skills it preloads (an inline skill among them contributes nothing). IF an agent's own definition declares guide entries (the opt-in agent guides, off by default: its trigger-gated protocols outside `agentGuides.keepInline` in the group data) THEN it receives those protocols at its start exactly like a preloaded converted skill's, each gated by its trigger, before its skills' protocols. IF Explore or Plan starts, or an agent that preloads no skill and declares no guide entry starts, THEN the five group steps deliver nothing to it. Every agent type — custom or general-purpose, with or without preloaded skills, whether or not its definition file exists or is trusted — receives the universal bundle at its start, once per spawn (BR-PDL-18). A protocol whose full body the agent's own definition carries between paired fences is not delivered again (a reminder digest never counts as the body); this applies only when the definition's declared name equals the agent type. The same start also carries the prompt-time guidance of BR-PDL-21. The second host mirrors agent start the same way; its agent type is the agent's name in the generated agent file. ADR-0004 records the decision.
 
 `[Source: rule/hooks/protocol-agent-start]`
 
 ### BR-PDL-09: Per-event, per-host cost budget [HARD]
 
-The budget is **per event and per host**: the added wall time of all delivery steps registered on one event, measured through the host's real start path (the primary host's own command, the second host's generated start command, the third host's bridge, which runs matching steps one after another).
+The budget is **per event and per host**: the added wall time of all delivery steps registered on one event, measured through the host's real start path (the primary host's own command, the second host's generated start command, the third host's bridge, which starts matching steps together, at most eight at once, and merges their outcomes in configured order).
 
 - IF a file that is not a skill file is read THEN no delivery step starts, on every host: the primary host filters the read with a handler condition on the skill file name; the third host's bridge checks the same condition before it starts anything; the second host registers no read step.
 - IF no such filter applies (events that are not tool uses, and the second host) THEN each step ends on a non-matching event before it loads any project module.
@@ -396,9 +397,9 @@ The published text — one file per protocol in use plus the protocol index (gro
 
 ### BR-PDL-14: One owner; every carrier and check stays in step [HARD]
 
-- A canonical protocol edit reaches every full-text carrier — inline skills, reference files and agents — through the carrier tooling; guide conversion never changes an agent, an inline skill or a reference file, is limited to the protocols it is asked for, and is repeatable with no further change.
+- A canonical protocol edit reaches every full-text carrier — inline skills, reference files and agents — through the carrier tooling; skill guide conversion never changes an agent, an inline skill or a reference file, is limited to the protocols it is asked for, and is repeatable with no further change; agent guide conversion is opt-in (off by default), changes only agents' trigger-gated protocols outside `agentGuides.keepInline` and the code tier, keeps their reminders, and with the policy disabled restores every guided body.
 - Every framework check and skill injector that looks for a protocol accepts a guide entry with its reminder in place of the body, and still fails when both are missing; the text-presence checks on a converted skill read the pinned rule fragments from the published text.
-- The duplication policy states the hybrid rule — skills keep guides, delivery carries the text, agents and reviewer prompts carry full text, review-family entrypoints keep guides and full-source fallback while fresh reviewer prompts still keep all eleven full bodies verbatim — and every copy of the policy equals the canonical text.
+- The duplication policy states the hybrid rule — skills keep guides, delivery carries the text, agents carry full text except trigger-gated protocols they do not keep inline (a guide line plus reminder, with delivery carrying the text), reviewer prompts carry full text, review-family entrypoints keep guides and full-source fallback while fresh reviewer prompts still keep all eleven full bodies verbatim — and every copy of the policy equals the canonical text.
 - Compressed protocols keep every rule they had (checked rule by rule) and stay at or under 9,000 characters, the reviewer injection template excepted.
 - Pruning a skill's guide list is a conditional follow-up that runs only if delivered protocol text is still a top-three cost after de-duplication; it removes only protocols that no mode of the skill uses, each with a recorded reason.
 
@@ -537,7 +538,7 @@ SecondHostInlineList    1──N Protocol           (decided: none)
 | Type             | text         | Yes      | Lowercase letters, digits, hyphens; built-ins named by the host | Which agent-start delivery applies        |
 | Preloaded skills | list of text | No       | Named in the agent definition                                   | Whose protocols it receives at start      |
 | Receives bundle  | yes-no       | Yes      | Yes for every agent type                                        | Delivered the universal bins at its start |
-| Protocol bodies  | list         | Yes      | Always full text                                                | Agents are never converted                |
+| Protocol bodies  | list         | Yes      | Full text; only with the opt-in agent guides, trigger-gated protocols outside `agentGuides.keepInline` and the code tier become guide line + reminder | Only agent-guide mode converts an agent  |
 
 ### Entity: DeliveryMessage
 
@@ -671,9 +672,9 @@ SecondHostInlineList    1──N Protocol           (decided: none)
 | Priority  | Count   | Automated | Manual |
 | --------- | ------- | --------- | ------ |
 | P0        | 24      | 23        | 1      |
-| P1        | 79      | 77        | 2      |
+| P1        | 81      | 79        | 2      |
 | P2        | 8       | 7         | 1      |
-| **Total** | **111** | **107**   | **4**  |
+| **Total** | **113** | **109**   | **4**  |
 
 | Category                       | TCs                                                                                                                                                                                |
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -691,6 +692,7 @@ SecondHostInlineList    1──N Protocol           (decided: none)
 | UI Reuse Reminder Tests | TC-PDL-115, TC-PDL-116, TC-PDL-117 |
 | Prompt-Time Guidance Tests | TC-PDL-118, TC-PDL-119 |
 | Quality-Skill Reminder Tests | TC-PDL-120 |
+| Agent Guide Tests | TC-PDL-121, TC-PDL-122 |
 | Skill Overlay Reminder Tests   | TC-PDL-100, TC-PDL-101, TC-PDL-102, TC-PDL-103, TC-PDL-104, TC-PDL-105, TC-PDL-106, TC-PDL-107, TC-PDL-108, TC-PDL-109                                                             |
 
 ### Planned Executors
@@ -698,7 +700,7 @@ SecondHostInlineList    1──N Protocol           (decided: none)
 | Executor                                                                                                        | TCs                                                                                                                                                                                |
 | --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `.claude/scripts/tests/build-protocol-projection.test.cjs`                                                      | TC-PDL-001, TC-PDL-002, TC-PDL-003, TC-PDL-004, TC-PDL-005, TC-PDL-006, TC-PDL-007, TC-PDL-008, TC-PDL-047, TC-PDL-049, TC-PDL-055, TC-PDL-080                                     |
-| `.claude/hooks/tests/suites/protocol-delivery.test.cjs`                                                         | TC-PDL-009, TC-PDL-010, TC-PDL-011, TC-PDL-012, TC-PDL-013, TC-PDL-016, TC-PDL-017, TC-PDL-018, TC-PDL-019, TC-PDL-038, TC-PDL-052, TC-PDL-056                                     |
+| `.claude/hooks/tests/suites/protocol-delivery.test.cjs`                                                         | TC-PDL-009, TC-PDL-010, TC-PDL-011, TC-PDL-012, TC-PDL-013, TC-PDL-016, TC-PDL-017, TC-PDL-018, TC-PDL-019, TC-PDL-038, TC-PDL-052, TC-PDL-056, TC-PDL-121                         |
 | `.claude/hooks/tests/suites/protocol-inject-hook.test.cjs`                                                      | TC-PDL-014, TC-PDL-015, TC-PDL-020, TC-PDL-053, TC-PDL-054, TC-PDL-057, TC-PDL-067                                                                                                 |
 | `.claude/hooks/tests/suites/protocol-host-mapping.test.cjs`                                                     | TC-PDL-021, TC-PDL-022, TC-PDL-023, TC-PDL-024, TC-PDL-025, TC-PDL-027, TC-PDL-042, TC-PDL-058, TC-PDL-059, TC-PDL-060, TC-PDL-070                                                 |
 | `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --verify-only`                                       | TC-PDL-026                                                                                                                                                                         |
@@ -711,9 +713,9 @@ SecondHostInlineList    1──N Protocol           (decided: none)
 | `.claude/hooks/tests/suites/ai-feature-route.test.cjs` | TC-PDL-118, TC-PDL-119 |
 | `.claude/hooks/tests/suites/workflow-route-modes.test.cjs` | TC-PDL-119 |
 | `.claude/hooks/tests/suites/quality-skill-remind.test.cjs` | TC-PDL-120 |
-| `.claude/scripts/tests/sync-update-blocks-guide.test.cjs`                                                       | TC-PDL-029, TC-PDL-030, TC-PDL-031, TC-PDL-036, TC-PDL-061, TC-PDL-081                                                                                                             |
+| `.claude/scripts/tests/sync-update-blocks-guide.test.cjs`                                                       | TC-PDL-029, TC-PDL-030, TC-PDL-031, TC-PDL-036, TC-PDL-061, TC-PDL-081, TC-PDL-122                                                                                                 |
 | `.claude/scripts/codex/tests/verify-skill-protocol-compliance.test.mjs`                                         | TC-PDL-032, TC-PDL-033, TC-PDL-065, TC-PDL-083                                                                                                                                     |
-| `.claude/hooks/tests/suites/sync-carrier-parity.test.cjs`                                                       | TC-PDL-034, TC-PDL-035, TC-PDL-037, TC-PDL-039, TC-PDL-040, TC-PDL-050, TC-PDL-062, TC-PDL-065, TC-PDL-082                                                                         |
+| `.claude/hooks/tests/suites/sync-carrier-parity.test.cjs`                                                       | TC-PDL-034, TC-PDL-035, TC-PDL-037, TC-PDL-039, TC-PDL-040, TC-PDL-050, TC-PDL-062, TC-PDL-065, TC-PDL-082, TC-PDL-122                                                             |
 | Manual-QC (live transcript or review evidence)                                                                  | TC-PDL-041, TC-PDL-048, TC-PDL-051, TC-PDL-063                                                                                                                                     |
 | `.claude/hooks/tests/suites/review-mode-sections.test.cjs`                                                      | TC-PDL-043, TC-PDL-044, TC-PDL-045, TC-PDL-046, TC-PDL-064                                                                                                                         |
 | `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --only=tests,scripts-tests,review-validate-coverage` | TC-PDL-045                                                                                                                                                                         |
@@ -726,7 +728,7 @@ SecondHostInlineList    1──N Protocol           (decided: none)
 | `.claude/scripts/codex/tests/round3-prompt-contract.test.mjs`                                                   | TC-PDL-065                                                                                                                                                                         |
 | `.claude/scripts/tests/experience-config.test.cjs`                                                              | TC-PDL-065                                                                                                                                                                         |
 | `.claude/hooks/tests/suites/agent-universal-rules.test.cjs`                                                     | TC-PDL-065                                                                                                                                                                         |
-| `.claude/scripts/tests/injectors-respect-guides.test.cjs`                                                       | TC-PDL-066                                                                                                                                                                         |
+| `.claude/scripts/tests/injectors-respect-guides.test.cjs`                                                       | TC-PDL-066, TC-PDL-122                                                                                                                                                             |
 | `.claude/scripts/opencode/tests/sync-hooks.test.mjs`                                                            | TC-PDL-068                                                                                                                                                                         |
 | `.claude/scripts/codex/tests/verify-sync-divergence.test.mjs`                                                   | TC-PDL-069                                                                                                                                                                         |
 
@@ -741,13 +743,13 @@ SecondHostInlineList    1──N Protocol           (decided: none)
 | BR-PDL-05 | TC-PDL-016, TC-PDL-054, TC-PDL-063                                                                                                                                                                         |
 | BR-PDL-06 | TC-PDL-013, TC-PDL-022, TC-PDL-024, TC-PDL-025, TC-PDL-042                                                                                                                                                 |
 | BR-PDL-07 | TC-PDL-043, TC-PDL-044, TC-PDL-045, TC-PDL-046, TC-PDL-064                                                                                                                                                 |
-| BR-PDL-08 | TC-PDL-011, TC-PDL-012, TC-PDL-060; `protocol-delivery.test.cjs` tests "a sub-agent start does not receive a protocol its agent definition already carries…" and "Tier-0 fallback…"                        |
+| BR-PDL-08 | TC-PDL-011, TC-PDL-012, TC-PDL-060, TC-PDL-121; `protocol-delivery.test.cjs` tests "a sub-agent start does not receive a protocol its agent definition already carries…" and "Tier-0 fallback…"                        |
 | BR-PDL-09 | TC-PDL-057, TC-PDL-058, TC-PDL-067, TC-PDL-068, TC-PDL-070                                                                                                                                                 |
 | BR-PDL-10 | TC-PDL-027, TC-PDL-056                                                                                                                                                                                     |
 | BR-PDL-11 | TC-PDL-018, TC-PDL-039, TC-PDL-041, TC-PDL-064, TC-PDL-080, TC-PDL-081, TC-PDL-083                                                                                                                         |
 | BR-PDL-12 | TC-PDL-039, TC-PDL-081                                                                                                                                                                                     |
 | BR-PDL-13 | TC-PDL-001, TC-PDL-003, TC-PDL-004, TC-PDL-005, TC-PDL-006, TC-PDL-007, TC-PDL-008, TC-PDL-049, TC-PDL-055                                                                                                 |
-| BR-PDL-14 | TC-PDL-048, TC-PDL-050, TC-PDL-051, TC-PDL-052, TC-PDL-061, TC-PDL-062, TC-PDL-065, TC-PDL-066, TC-PDL-082, TC-PDL-084                                                                                     |
+| BR-PDL-14 | TC-PDL-048, TC-PDL-050, TC-PDL-051, TC-PDL-052, TC-PDL-061, TC-PDL-062, TC-PDL-065, TC-PDL-066, TC-PDL-082, TC-PDL-084, TC-PDL-122                                                                         |
 | BR-PDL-15 | TC-PDL-010, TC-PDL-013, TC-PDL-021, TC-PDL-022, TC-PDL-023, TC-PDL-026, TC-PDL-027, TC-PDL-028, TC-PDL-059, TC-PDL-069                                                                                     |
 | BR-PDL-16 | `protocol-delivery.test.cjs` test "a trigger-gated protocol is delivered in full only when its trigger applies…" and "the shipped plan, feature-implement and scaffold skills declare the journey-first UX gate and receive it only for UI work" (named tests carry no TC id)                                                              |
 | BR-PDL-17 | `core-principles-inject.test.cjs::TC-CEP-019` (both directions of the shared record); `codex-launcher.test.cjs::TC-CXL-009` (record location)                                                              |
@@ -3103,7 +3105,7 @@ boundaryCounterCase: 'a skill with no guide block → nothing appended'
 
 **Objective:** Prove the bridge checks the skill-file condition before it starts a step.
 
-**Business Intent / Invariant Guarded:** The bridge runs steps one after another; six unfiltered starts added about three seconds to every read in the confirmation run (BR-PDL-09).
+**Business Intent / Invariant Guarded:** Every avoided start still saves a Node process; when the bridge ran steps one after another, six unfiltered starts added about three seconds to every read in the confirmation run (BR-PDL-09). The bridge now starts matching steps together (bounded), so the filter saves CPU and processes more than wall time.
 
 **Traces:** AC-PDL-16 / BR-PDL-09
 
@@ -3412,7 +3414,7 @@ boundaryCounterCase: 'an empty subset → no change'
 Given the policy sections
 When they are read
 Then no rule says never to reference a protocol by path
-And the hybrid rule is present, including that agents keep full text, reviewer prompts carry bodies inline, and review-family entrypoints keep guides and mandatory full-source fallback, while fresh reviewer prompts still contain all eleven complete bodies verbatim
+And the hybrid rule is present, including that agents keep full role protocols by default and only the opt-in agent-guide policy guides trigger-gated protocols outside keepInline, reviewer prompts carry bodies inline, and review-family entrypoints keep guides and mandatory full-source fallback, while fresh reviewer prompts still contain all eleven complete bodies verbatim
 ```
 
 **Expected Result:**
@@ -3453,7 +3455,7 @@ boundaryCounterCase: 'the old prohibition reintroduced → fails'
 
 **Objective:** Prove propagation updates every full-text carrier and guide mode leaves agents byte-identical.
 
-**Business Intent / Invariant Guarded:** Agents keep full text by decision; a stale or converted agent loses a rule (BR-PDL-14, BR-PDL-11).
+**Business Intent / Invariant Guarded:** Skill guide mode never converts an agent; an agent carries every protocol its role always applies in full, so a stale or wrongly converted agent loses a rule (BR-PDL-14, BR-PDL-11). Agent guides are a separate, opt-in, policy-driven conversion that disabling reverses (TC-PDL-122).
 
 **Traces:** AC-PDL-21 / BR-PDL-14
 
@@ -7062,5 +7064,65 @@ boundaryCounterCase: 'a bare safe name → its body path'
 **Related Behaviors:** BR-PDL-18; US-PDL-12.
 
 **CoveredBy:** `.claude/hooks/tests/suites/quality-skill-remind.test.cjs::TC-QSR-001` through `TC-QSR-009`
+
+**Status:** Implemented — executable coverage named above.
+
+### Agent Guide Tests
+
+> Opt-in agent guides: the conversion tool and agent-start delivery of guided protocols (AC-PDL-35).
+
+#### TC-PDL-121: A converted agent receives its guided protocols at start, gated by their triggers [P1]
+
+**Objective:** An agent that carries a conditional protocol as a guide line still gets its full text when the condition holds.
+
+**Business Intent / Invariant Guarded:** BR-PDL-08; AC-PDL-35 — moving a conditional protocol out of an agent definition never loses it when the work needs it.
+
+**Preconditions:** An agent definition with a guide block (one trigger-gated tag, one ungated tag, one tag also carried as a full body) and no preloaded skills.
+
+**Real-World Reachability:** A parent session spawns a review or development agent after the conversation touched UI files, or with no such signal.
+
+**Demo Flow / GWT:** Given the agent, when it starts with no trigger signal, then only the ungated guided protocol is delivered; when the session touched a matching file or its context is unreadable, then the gated protocol is delivered too; the inline body is never repeated; an agent with no guide block and no skills receives nothing from the groups.
+
+**Expected Result:** Delivery follows the agent's own guide block, trigger gating and the inline de-duplication.
+
+**Acceptance Criteria:** AC-PDL-35.
+
+**Test Data:** Fixture projection, trigger table and agent definitions.
+
+**Edge Cases:** Unreadable trigger context (fails open); agent without guides; tag carried both as guide and body.
+
+**Evidence:** [Source: rule/hooks/protocol-agent-start]
+
+**Related Behaviors:** BR-PDL-08; BR-PDL-16.
+
+**CoveredBy:** `.claude/hooks/tests/suites/protocol-delivery.test.cjs::a converted agent receives the protocols its own guide block declares, gated by their triggers`
+
+**Status:** Implemented — executable coverage named above.
+
+#### TC-PDL-122: Agent guide conversion moves only trigger-gated protocols an agent does not keep inline [P1]
+
+**Objective:** The conversion tool sheds only conditional protocols and keeps every gate an agent's role always applies.
+
+**Business Intent / Invariant Guarded:** BR-PDL-14; AC-PDL-21, AC-PDL-35 — no role protocol and no reminder digest is lost from an agent.
+
+**Preconditions:** Group data with trigger-gated and ungated tags and an `agentGuides` policy; agents carrying full bodies and reminders; a skill carrying full bodies.
+
+**Real-World Reachability:** A framework maintainer runs `sync-update-blocks.py --mode=agent-guide` after a protocol or policy change.
+
+**Demo Flow / GWT:** Given the fixture, when agent-guide mode runs with the policy enabled, then each trigger-gated body outside keepInline becomes the published guide line, ungated and kept-inline bodies stay in full, a code-tier tag never converts, reminders are byte-identical, skills are untouched and a second run changes no byte; when a tag joins keepInline or the policy is disabled, the next run restores that body verbatim and removes an emptied guide block, and a disabled or absent policy leaves a full-body agent unchanged.
+
+**Expected Result:** Exactly the policy's conversion; every other byte preserved.
+
+**Acceptance Criteria:** AC-PDL-21; AC-PDL-35.
+
+**Test Data:** Temp project with the real tool, recognizer and projection builder.
+
+**Edge Cases:** Disabled policy; absent policy; explicit tags refused; keepInline agent; tag added to keepInline after conversion; code-tier tag.
+
+**Evidence:** [Source: operation/scripts/sync-update-blocks]
+
+**Related Behaviors:** BR-PDL-14.
+
+**CoveredBy:** `.claude/scripts/tests/sync-update-blocks-guide.test.cjs::TC-PDL-122 agent-guide mode converts only trigger-gated bodies an agent does not keep inline; reminders stay` · `.claude/scripts/tests/sync-update-blocks-guide.test.cjs::TC-PDL-122 agent-guide mode leaves full-body agents alone when agentGuides is disabled or absent, and refuses tags` · `.claude/scripts/tests/sync-update-blocks-guide.test.cjs::TC-PDL-122 agent-guide mode restores the full bodies when the policy is disabled or a tag joins keepInline` · `.claude/scripts/tests/sync-update-blocks-guide.test.cjs::TC-PDL-122 agent-guide policy never converts a code-tier tag` · `.claude/scripts/tests/injectors-respect-guides.test.cjs::TC-PDL-122 agent injector keeps a guide line only while the agent-guide policy converts the tag` · `.claude/hooks/tests/suites/sync-carrier-parity.test.cjs::TC-PDL-039`
 
 **Status:** Implemented — executable coverage named above.

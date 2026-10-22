@@ -167,8 +167,26 @@
             "timeout": 3
           }
         ]
-      }
-,
+      },
+      {
+        "hooks": [
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/knowledge-route.cjs",
+            "type": "command"
+          }
+        ],
+        "matcher": "Skill"
+      },
+      {
+        "hooks": [
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/knowledge-route.cjs",
+            "if": "Read(**/knowledge-base/*.md)",
+            "type": "command"
+          }
+        ],
+        "matcher": "Read"
+      },
       {
         "matcher": "*",
         "hooks": [
@@ -392,6 +410,10 @@
           {
             "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/workflow-catalog-inject.cjs",
             "type": "command"
+          },
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/knowledge-route.cjs",
+            "type": "command"
           }
         ]
       }
@@ -473,6 +495,10 @@
           {
             "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/ai-feature-route.cjs",
             "type": "command"
+          },
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/knowledge-route.cjs",
+            "type": "command"
           }
         ]
       }
@@ -502,6 +528,14 @@
           },
           {
             "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/skill-overlay-remind.cjs",
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/knowledge-route.cjs",
             "type": "command"
           }
         ]
@@ -588,6 +622,14 @@
         "hooks": [
           {
             "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/ai-feature-route.cjs",
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/knowledge-route.cjs",
             "type": "command"
           }
         ]

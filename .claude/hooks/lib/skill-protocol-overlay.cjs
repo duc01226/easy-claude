@@ -58,39 +58,7 @@ function normalizeProjectRelative(value) {
     return parts.join(path.sep);
 }
 
-function isInside(parent, candidate) {
-    const relative = path.relative(parent, candidate);
-    return relative === '' || (relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative));
-}
-
-/**
- * Lexical and symlink containment for paths that may be read by the overlay accelerator.
- * Missing paths are allowed through so the normal missing-registry/body behavior can report
- * them; an existing path whose real target escapes the project or its declared root is refused.
- */
-function isSafelyContainedOnDisk(projectDir, boundaryAbs, targetAbs) {
-    const projectAbs = path.resolve(projectDir);
-    if (!isInside(projectAbs, boundaryAbs) || !isInside(boundaryAbs, targetAbs)) return false;
-    try {
-        const projectReal = fs.realpathSync.native(projectAbs);
-        let boundaryReal;
-        try {
-            boundaryReal = fs.realpathSync.native(boundaryAbs);
-        } catch (error) {
-            return error && error.code === 'ENOENT';
-        }
-        if (!isInside(projectReal, boundaryReal)) return false;
-        let targetReal;
-        try {
-            targetReal = fs.realpathSync.native(targetAbs);
-        } catch (error) {
-            return error && error.code === 'ENOENT';
-        }
-        return isInside(projectReal, targetReal) && isInside(boundaryReal, targetReal);
-    } catch {
-        return false;
-    }
-}
+const { isInside, isSafelyContainedOnDisk } = require('./path-containment.cjs');
 
 /** Resolve the independent overlay registry beneath the configured project-reference root. */
 function resolveRegistryPath(projectDir, config) {

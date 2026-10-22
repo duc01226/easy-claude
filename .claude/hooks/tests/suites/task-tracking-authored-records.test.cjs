@@ -917,5 +917,19 @@ module.exports = { name: 'Task tracking authored records integration', tests: [
             await f.saved('transition', id, { state, reason: 'The outcome is to change' });
             for (const patch of changes) await f.saved('update', id, patch);
         }
+    }),
+
+    // Invariant: a record cites only what a clean checkout holds. A path Git ignores (`tmp/`, an ignored plans root) passes a
+    // reference check on the machine that made it and breaks on every other clone, so every surface an agent reads before
+    // citing a plan or report must say so, and the record guide must say how to test it and what to cite instead.
+    test('TC-ARS-034', 'the record guide, the plan skill and both universal protocol texts tell an agent a tracked file never cites a path Git ignores', async () => {
+        const guide = read(GUIDE);
+        const rule = (/^- \*\*References\.\*\*[^\n]*$/m.exec(guide) || [''])[0];
+        assert.ok(rule, 'the record guide states a References rule');
+        for (const term of ['git check-ignore', '`tmp/`', '`temp/`', 'plans root', 'by its `id` or title', 'committed home']) assert.ok(rule.includes(term), `References rule names: ${term}`);
+        assert.ok(guide.includes('git check-ignore -- <each cited path>'), 'the Check step tests every cited path');
+        assert.ok(read('skills/plan/SKILL.md').includes(GUIDE_ANCHOR), 'the plan skill points a plan that feeds a record at the record rules');
+        assert.match(read('skills/shared/protocols/artifact-storage.md'), /tracked or shared file[^.]*never cites one as a source, link or evidence/);
+        assert.match(read('skills/shared/protocols/concise-agent-core.md'), /tracked files never cite ignored paths/);
     })
 ] };

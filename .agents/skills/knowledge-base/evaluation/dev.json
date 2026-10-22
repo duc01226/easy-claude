@@ -1,0 +1,32 @@
+{
+  "description": "Development prompts for tuning the evaluation packs' phrases. Written by the trigger author; may be used for tuning; never counted in the held-out figures.",
+  "author": "trigger author",
+  "prompts": [
+    { "id": "d001", "kind": "relevant", "prompt": "Add a checkout form that saves the customer's credit card for next time", "expected": ["card-payments"] },
+    { "id": "d002", "kind": "relevant", "prompt": "Our logs contain full card numbers, mask them", "expected": ["card-payments"] },
+    { "id": "d003", "kind": "relevant", "prompt": "Handle Stripe chargeback webhooks in the billing service", "expected": ["card-payments"] },
+    { "id": "d004", "kind": "relevant", "prompt": "Is it ok to keep the CVV in the session until payment completes?", "expected": ["card-payments"] },
+    { "id": "d005", "kind": "relevant", "prompt": "Review the PCI scope of the new payment form", "expected": ["card-payments"] },
+    { "id": "d006", "kind": "relevant", "prompt": "The modal can't be closed with the keyboard and the screen reader announces nothing", "expected": ["accessibility"] },
+    { "id": "d007", "kind": "relevant", "prompt": "Check the colour contrast of the new buttons against WCAG AA", "expected": ["accessibility"] },
+    { "id": "d008", "kind": "relevant", "prompt": "Add alt text to the product images", "expected": ["accessibility"] },
+    { "id": "d009", "kind": "relevant", "prompt": "Fix the tab order on the signup page", "expected": ["accessibility"] },
+    { "id": "d010", "kind": "relevant", "prompt": "Make the date picker usable for blind users", "expected": ["accessibility"] },
+    { "id": "d011", "kind": "relevant", "prompt": "Implement a right to be forgotten endpoint", "expected": ["personal-data"] },
+    { "id": "d012", "kind": "relevant", "prompt": "How long should we keep support tickets with customer emails? Set a retention period", "expected": ["personal-data"] },
+    { "id": "d013", "kind": "relevant", "prompt": "Anonymize user records before copying production to staging", "expected": ["personal-data"] },
+    { "id": "d014", "kind": "relevant", "prompt": "Add a cookie banner that records consent", "expected": ["personal-data"] },
+    { "id": "d015", "kind": "relevant", "prompt": "We need to answer a GDPR subject access request by Friday", "expected": ["personal-data"] },
+    { "id": "d016", "kind": "unrelated", "prompt": "Pay down tech debt in the payment of invoices module naming", "expected": [] },
+    { "id": "d017", "kind": "unrelated", "prompt": "Fix the card component padding on mobile", "expected": [] },
+    { "id": "d018", "kind": "unrelated", "prompt": "Compare the contrast between the two caching strategies", "expected": [] },
+    { "id": "d019", "kind": "unrelated", "prompt": "Rotate the personal access token used by CI", "expected": [] },
+    { "id": "d020", "kind": "unrelated", "prompt": "Export the build artifacts to the release bucket", "expected": [] },
+    { "id": "d021", "kind": "unrelated", "prompt": "Pan and zoom the map view smoothly", "expected": [] },
+    { "id": "d022", "kind": "unrelated", "prompt": "Make the reports API accessible from the mobile app", "expected": [] },
+    { "id": "d023", "kind": "framework-maintenance", "prompt": "Review the skills and hooks that inject the accessibility reminder", "expected": [] },
+    { "id": "d024", "kind": "framework-maintenance", "prompt": "Update the workflow gate protocol that mentions GDPR", "expected": [] },
+    { "id": "d025", "kind": "code-only", "prompt": "Why does this fail?\n```js\nconst cardNumber = req.body.card_number; // PCI\n```", "expected": [] },
+    { "id": "d026", "kind": "host-envelope", "prompt": "<system-reminder>The user mentioned personal data and consent earlier.</system-reminder>", "expected": [] }
+  ]
+}

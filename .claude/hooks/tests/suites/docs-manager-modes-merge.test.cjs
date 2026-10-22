@@ -21,7 +21,8 @@
  *                occurrence of docs-manager passes a mode the skill supports.
  *   TC-DMM-006 — a gate satisfied by `docs-manager --mode=update` needs that invocation (fixture workflows;
  *                portable) and every live gate naming docs-manager names that mode.
- *   TC-DMM-007 — mode-only protocols live as inline bodies in the mode references, never in SKILL.md.
+ *   TC-DMM-007 — mode-only protocols live as inline bodies in the mode references, never in SKILL.md; SKILL.md
+ *                routes only the document-quality guide both modes share.
  *   TC-DMM-008 — no live source names the removed skills (allow-list: the "formerly" line and the report
  *                filename prefix `tmp/reports/docs-update-…`).
  *   TC-DMM-009 — the description keeps the step-skill form and advertises both modes and both old intents.
@@ -271,8 +272,12 @@ const tests = [
                 const closes = text.match(/<!-- \/SYNC:[a-z-]+(?::reminder)? -->/g) || [];
                 assert.equal(opens.length, closes.length, `${label} fences balanced`);
             }
-            // The dispatcher holds no guide and no pointer line (the universal bundle is hook-delivered)
-            assert.deepEqual(guideTags(skill), [], 'docs-manager/SKILL.md carries no protocol guide');
+            // The dispatcher holds only the guide shared by both modes (document quality) and no pointer line (the universal bundle is hook-delivered)
+            assert.deepEqual(guideTags(skill), ['output-quality-principles'], 'docs-manager/SKILL.md routes only the shared document-quality guide at entry');
+            assert.ok(skill.includes('<!-- SYNC:output-quality-principles:reminder -->'), 'the document-quality reminder remains discoverable');
+            const groups = JSON.parse(read(SKILLS, 'shared', 'protocol-groups.json'));
+            assert.equal(groups.groups['workflow-task'].tags['output-quality-principles'].trigger, 'documentation', 'document depth stays conditional');
+            assert.ok(groups.deliveryTriggers.documentation.skills.includes('docs-manager'), 'the documentation trigger delivers the document-quality protocol to docs-manager');
             assert.equal((skill.match(/Root-carried protocols/g) || []).length, 0, 'no retired pointer line');
             // And the update reminders survive
             const reminders = (modeUpdate().match(/<!-- SYNC:[a-z-]+:reminder -->/g) || []).length;

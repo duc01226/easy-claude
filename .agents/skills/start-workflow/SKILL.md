@@ -4,7 +4,7 @@ description: '[Skill Management] Use when starting a detected workflow, initiali
 ---
 
 > Codex compatibility note:
-> - Invoke `$skill-name`: load the registered `.agents/skills/<name>/SKILL.md` and execute it with Codex tools; no separate `Skill` tool or Claude mode switch is needed. Author `.claude/**`; mirrors are generated.
+> - Invoke `$skill-name`: load the registered `.agents/skills/<name>/SKILL.md` and execute it with Codex tools; no separate `Skill` tool or Claude mode switch is needed. When a workflow step or another skill names a skill, read that file in full yourself (every line, with no line limit; in parts only when output is cut off): a skill whose implicit invocation is off is never loaded for you. Author `.claude/**`; mirrors are generated.
 > - Track steps before execution and keep progress/evidence current. Explicit skill requests execute their protocol. Use the native question tool for required questions.
 > - Map foreign tool names to available host capabilities. A name mismatch needs no approval; an actually unavailable required capability stops with its step/evidence and a user question before adaptation.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -78,7 +78,7 @@ When the prompt doesn't cleanly match a single catalog workflow — or combining
 
 ### How to build
 
-1. **Valid steps only** — Use only canonical step ids — those appearing in a resolved workflow manifest's `occurrences` (legacy `sequence` entries are normalized by the resolver; variant entries are selected by mode). Each maps to a real `.claude/skills/<step>/SKILL.md` and is invoked with the active host's syntax. No invented step names.
+1. **Valid steps only** — Use only canonical step ids — those appearing in a resolved workflow manifest's `occurrences` (legacy `sequence` entries are normalized by the resolver; variant entries are selected by mode). Each maps to a real `.claude/skills/<step>/SKILL.md` and is invoked with the active host's syntax; when the host refuses that call (a user-only skill), read that SKILL.md in full and follow it with the step's args. No invented step names.
 2. **Logical order** — Investigate → Plan → Implement → Test. Never reverse dependency order.
 3. **Minimal** — Include only steps the prompt needs. No "just in case" additions.
 4. **Keep required gates** — A behavior change keeps its test and review steps; a downgraded route also keeps root-cause investigation for bugs and spec/doc sync when behavior or a public contract changes (`investigate --mode=debug` for a bug, `spec`/`docs-manager --mode=update` per the project's spec-test-code cycle reference). A custom pipeline never drops a quality gate the change still requires.

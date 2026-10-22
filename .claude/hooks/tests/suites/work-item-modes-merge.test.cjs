@@ -19,13 +19,14 @@
  *                resolves to the `review --type=task` report, SHA-256 identity, coverage map, consumer-owned
  *                checks never reusable, and every workflow passes `--reuse` only to a consumer mode that
  *                follows a `review --type=task` step.
- *   TC-PBM-004 — mode-only protocols are canonical inline bodies in the mode references; SKILL.md carries
- *                no body and no guide line; fences balance.
+ *   TC-PBM-004 — mode-only protocols are canonical inline bodies in the mode references; the conditional UI
+ *                bodies live in `review-type-design.md`, which `mode-review.md` and SKILL.md route to; SKILL.md
+ *                carries no body and only the shared review decision guides; fences balance.
  *   TC-PBM-005 — the six former skill folders stay deleted; every workflow occurrence of `work-item` names a mode
  *                and only flags that mode owns; outcome gates name the `work-item --mode=review` satisfier.
  *   TC-PBM-006 — the description keeps the step-skill form and names every mode.
  *   TC-PBM-007 — every `references/…` link inside the work-item skill resolves; type and mockup references keep
- *                unique names.
+ *                unique names; the design type names its own section as the ui-intent-layer body owner.
  *   TC-PBM-008 — each workflow skill's step line equals its resolved manifest for the workflows that run work-item.
  *   TC-PBM-009 — no live source names a removed skill (allow-list: the "formerly" lines and the report
  *                filename prefixes).
@@ -54,6 +55,9 @@ const ref = name => read(SKILLS, 'work-item', 'references', name);
 const canonical = () => read(SKILLS, 'shared', 'sync-inline-versions.md');
 
 const MODES = ['refine', 'story', 'mockup', 'challenge', 'review', 'dor'];
+
+// UI protocol bodies owned by references/review-type-design.md; only a UI-bearing review loads them.
+const UI_REVIEW_TAGS = ['design-distinctiveness-gate', 'design-review-checklist', 'ui-intent-layer', 'ui-ux-design-principles', 'ux-journey-gate'];
 
 // The removed skill names, assembled so this file never contains the literal tokens it guards against.
 const REMOVED = ['re' + 'fine', 'st' + 'ory', 'pbi-' + 'mockup', 'pbi-' + 'challenge', 'artifact-' + 'review', 'dor-' + 'gate'];
@@ -275,10 +279,12 @@ const tests = [
                 'mode-story.md': ['estimation-framework', 'sequential-thinking-protocol', 'ui-system-context', 'ui-wireframe'],
                 'mode-mockup.md': ['design-distinctiveness-gate', 'design-review-checklist', 'existing-ui-research', 'ui-copywriting', 'ui-ux-design-principles', 'ux-journey-gate'],
                 'mode-challenge.md': ['ba-team-decision-model', 'estimation-framework', 'refinement-dor-checklist', 'sequential-thinking-protocol', 'ui-system-context'],
-                'mode-review.md': ['core-engineering-principles', 'design-distinctiveness-gate', 'design-review-checklist', 'evidence-based-reasoning', 'goal-contract-satisfaction-loop', 'review-principle-awareness', 'review-protocol-injection', 'severity-rubric', 'task-tracking-external-report', 'trade-off-interrogation-gate', 'ui-intent-layer', 'ui-ux-design-principles', 'understand-code-first', 'ux-journey-gate'],
+                'mode-review.md': ['core-engineering-principles', 'evidence-based-reasoning', 'goal-contract-satisfaction-loop', 'review-principle-awareness', 'review-protocol-injection', 'severity-rubric', 'task-tracking-external-report', 'trade-off-interrogation-gate', 'understand-code-first'],
+                // UI depth is conditional: review-type-design.md owns the UI bodies that UI-bearing reviews read at the review mode's UI gate
+                'review-type-design.md': UI_REVIEW_TAGS,
                 'mode-dor.md': ['estimation-framework']
             };
-            const MIN_REMINDERS = { 'mode-refine.md': 3, 'mode-story.md': 3, 'mode-mockup.md': 5, 'mode-challenge.md': 3, 'mode-review.md': 12, 'mode-dor.md': 1 };
+            const MIN_REMINDERS = { 'mode-refine.md': 3, 'mode-story.md': 3, 'mode-mockup.md': 5, 'mode-challenge.md': 3, 'mode-review.md': 7, 'review-type-design.md': 5, 'mode-dor.md': 1 };
             for (const [file, tags] of Object.entries(expected)) {
                 const text = ref(file);
                 for (const tag of tags) {
@@ -296,6 +302,11 @@ const tests = [
                 assert.equal(opens.length, closes.length, `${file}: fences balanced`);
                 assert.ok((text.match(/<!-- SYNC:[a-z-]+:reminder -->/g) || []).length >= MIN_REMINDERS[file], `${file}: the :reminder digests moved with the bodies`);
             }
+            // A non-UI review loads no UI depth: mode-review.md routes to the UI bodies instead of carrying them
+            const review = ref('mode-review.md');
+            for (const tag of UI_REVIEW_TAGS) assert.ok(!review.includes(`SYNC:${tag}`), `mode-review.md must not carry the conditional ${tag} body or reminder`);
+            assert.ok(review.includes('read only `review-type-design.md` → **Shared UI protocol bodies**'), 'mode-review.md routes UI-bearing reviews to the shared UI bodies');
+            assert.ok(skill.includes('`references/review-type-design.md` → **Shared UI protocol bodies**'), 'work-item/SKILL.md routes UI-bearing reviews to the shared UI bodies');
             assert.deepEqual(guideTags(skill), ['review-decision-autonomy', 'review-policy'], 'shared decision and mode policies are routed at entry; domain-specific protocols stay isolated');
             assert.ok(skill.includes('<!-- SYNC:review-decision-autonomy:reminder -->'), 'the review policy reminder remains discoverable');
             assert.ok(skill.includes('<!-- SYNC:review-policy:reminder -->'), 'the shared modes/rounds reminder remains discoverable');
@@ -378,10 +389,14 @@ const tests = [
                 }
             }
             assert.deepEqual(missing, [], 'every named reference file exists');
-            // The design review type points at where the ui-intent-layer body lives (inline in mode-review.md), never at a SKILL.md guide line that does not exist
-            assert.ok(!ref('review-type-design.md').includes('guide line in `SKILL.md`'), 'review-type-design.md must not point at a SKILL.md guide line');
-            assert.ok(ref('review-type-design.md').includes('`SYNC:ui-intent-layer` (full body inline in `mode-review.md`)'), 'review-type-design.md names mode-review.md as the body owner');
-            assert.ok(ref('mode-review.md').includes('<!-- SYNC:ui-intent-layer -->'), 'mode-review.md carries the ui-intent-layer body');
+            // The design review type points at where the ui-intent-layer body lives (its own Shared UI protocol bodies section), never at a SKILL.md guide line or another file
+            const design = ref('review-type-design.md');
+            assert.ok(!design.includes('guide line in `SKILL.md`'), 'review-type-design.md must not point at a SKILL.md guide line');
+            assert.ok(design.includes('`SYNC:ui-intent-layer` (full body in Shared UI protocol bodies below)'), 'review-type-design.md names its Shared UI protocol bodies section as the body owner');
+            const sharedSection = design.indexOf('\n## Shared UI protocol bodies\n');
+            assert.ok(sharedSection >= 0, 'review-type-design.md has the Shared UI protocol bodies section');
+            assert.ok(design.indexOf('<!-- SYNC:ui-intent-layer -->') > sharedSection, 'the ui-intent-layer body sits in the Shared UI protocol bodies section it is named by');
+            assert.ok(!ref('mode-review.md').includes('<!-- SYNC:ui-intent-layer -->'), 'mode-review.md does not duplicate the ui-intent-layer body');
             // The old type names are not used as bare reference links any more
             for (const stale of ['task', 'story', 'design', 'spec-tests']) {
                 assert.ok(!ref('mode-review.md').includes(`\`references/${stale}.md\``), `mode-review.md must link review-type-${stale}.md, not ${stale}.md`);

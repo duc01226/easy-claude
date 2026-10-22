@@ -6,6 +6,8 @@
  *
  *   node .claude/scripts/sync-skill-profile.cjs           # write
  *   node .claude/scripts/sync-skill-profile.cjs --check   # read-only; non-zero when stale or refused
+ *   node .claude/scripts/sync-skill-profile.cjs --personal [--check]
+ *       # one person's profile → the git-ignored .claude/settings.local.json (team entries + personal ones)
  *
  * Source: the project config's `skillProfile` section (the file `.claude/.ck.json`
  * `portability.projectConfigPath` points at; default docs/project-config.json) plus the presets and
@@ -38,6 +40,15 @@
  *     ignored with one warning line.
  *   - No profile and no owned keys → nothing is read or written.
  *
+ * Personal profile (`--personal`): `skillProfile` in `~/.claude/.ck.json` (every project) and the
+ * checkout's git-ignored `.claude/.ck.local.json` (later wins per skill; scalars from the later layer).
+ * It is written to `.claude/settings.local.json` together with the team entries, personal entries
+ * winning, so the result is the same whether Claude merges `skillOverrides` per skill or replaces the
+ * whole member from the higher settings file. Ownership uses the ignored ledger
+ * `.claude/skill-profile.generated.local.json`. Re-run it after the team profile changes
+ * (`--personal --check` reports a stale file). Codex has no per-person implicit-invocation setting;
+ * a person there uses `portability.skillAutoTrigger` (kept in quiet by `frameworkRuntime.quietProjectRules`).
+ *
  * Runs from `/project-config` guidance and the close phase; never from a hook.
  * PORTABILITY CONTRACT: `node:` built-ins + `.cjs` modules inside `.claude/scripts/lib`.
  */
@@ -48,11 +59,13 @@ const crypto = require('node:crypto');
 const { isDeepStrictEqual } = require('node:util');
 const { isInvokedAsScript, resolveMutationProjectRoot } = require('./lib/project-root.cjs');
 const { resolveAllWorkflowManifests } = require('./lib/workflow-manifest.cjs');
-const { resolveProjectConfigPath } = require('./lib/workflow-routing-config.cjs');
+const { resolveProjectConfigPath, resolveUserConfigPath, resolveLocalOverridePath, decodeConfigText } = require('./lib/workflow-routing-config.cjs');
 
 const PRESETS_RELATIVE = path.join('.claude', 'config', 'skill-profiles.json');
 const SETTINGS_RELATIVE = path.join('.claude', 'settings.json');
 const LEDGER_RELATIVE = path.join('.claude', 'skill-profile.generated.json');
+const LOCAL_SETTINGS_RELATIVE = path.join('.claude', 'settings.local.json');
+const LOCAL_LEDGER_RELATIVE = path.join('.claude', 'skill-profile.generated.local.json');
 const SKILLS_RELATIVE = path.join('.claude', 'skills');
 const AGENTS_RELATIVE = path.join('.claude', 'agents');
 const WORKFLOWS_RELATIVE = path.join('.claude', 'workflows.json');
@@ -72,6 +85,8 @@ const CALLED_LIST_LABEL = 'the calledByOthers list';
 const ENTRY_LIST_LABEL = 'the entrySkills list';
 const LEDGER_DESCRIPTION =
     'Keys this generator owns in .claude/settings.json skillOverrides, with the value it wrote (node .claude/scripts/sync-skill-profile.cjs). Bound to the project named in "project": a ledger from another project is ignored.';
+const LOCAL_LEDGER_DESCRIPTION =
+    'Keys this generator owns in the git-ignored .claude/settings.local.json skillOverrides (team profile plus this person\'s profile), with the value it wrote (node .claude/scripts/sync-skill-profile.cjs --personal).';
 const PREFIX = 'skill-profile:';
 
 const own = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
@@ -541,7 +556,7 @@ function readLedger(text, ledgerPath, project) {
         const recorded = own(document, 'project') ? JSON.stringify(document.project) : 'none recorded';
         return {
             owned: {},
-            ignored: `warning: ignored ${toPosix(LEDGER_RELATIVE)}: it belongs to another project (ledger project: ${recorded}; this project: ${JSON.stringify(project)}); every existing ${MEMBER} entry is treated as the user's`
+            ignored: `warning: ignored ${toPosix(path.join('.claude', path.basename(ledgerPath)))}: it belongs to another project (ledger project: ${recorded}; this project: ${JSON.stringify(project)}); every existing ${MEMBER} entry is treated as the user's`
         };
     }
     const owned = document?.[MEMBER];
@@ -551,36 +566,92 @@ function readLedger(text, ledgerPath, project) {
     return { owned: { ...owned }, ignored: null };
 }
 
-function renderLedger(owned, project) {
+function renderLedger(owned, project, description = LEDGER_DESCRIPTION) {
     const sorted = Object.fromEntries(Object.keys(owned).sort(byCodeUnit).map(name => [name, owned[name]]));
-    return `${JSON.stringify({ description: LEDGER_DESCRIPTION, project, [MEMBER]: sorted }, null, 2)}\n`;
+    return `${JSON.stringify({ description, project, [MEMBER]: sorted }, null, 2)}\n`;
 }
 
 // ─── Plan / write / check ──────────────────────────────────────────────────
+
+/** One person's profile: user layer, then checkout layer (later wins per skill and per scalar). */
+function readPersonalProfile(root, homeDir) {
+    const layers = [];
+    for (const file of [resolveUserConfigPath(homeDir), resolveLocalOverridePath(root)]) {
+        let buffer;
+        try {
+            buffer = fs.readFileSync(file);
+        } catch (error) {
+            if (error.code === 'ENOENT') continue;
+            throw error;
+        }
+        const document = parseJson(decodeConfigText(buffer), 'personal config', file);
+        const profile = document?.skillProfile;
+        if (profile === undefined || profile === null) continue;
+        if (!isPlainObject(profile)) throw new Error(`skillProfile must be an object: ${file}`);
+        layers.push(profile);
+    }
+    if (layers.length === 0) return null;
+    const merged = {};
+    const assigned = new Map();
+    for (const profile of layers) {
+        for (const key of ['preset', 'allowHidingCalledSkills']) if (profile[key] !== undefined) merged[key] = profile[key];
+        for (const list of PROFILE_LISTS) {
+            const names = profile[list] === undefined ? [] : profile[list];
+            if (!Array.isArray(names)) throw new Error(`personal skillProfile.${list} must be an array of skill folder names`);
+            for (const name of names) assigned.set(name, list);
+        }
+    }
+    for (const list of PROFILE_LISTS) merged[list] = [...assigned].filter(([, value]) => value === list).map(([name]) => name);
+    return merged;
+}
+
+/** A personal settings file that Git would track must not receive generated entries. */
+function assertIgnoredByGit(root, file) {
+    const result = require('node:child_process').spawnSync('git', ['check-ignore', '-q', '--', file], { cwd: root, windowsHide: true });
+    if (result.status === 1) throw new Error(`${toPosix(path.relative(root, file))} is not git-ignored; ignore it before writing personal settings`);
+}
 
 /**
  * Compute one sync without writing. Throws on any unreadable or invalid input.
  * @returns {object} plan: refusals, warnings, conflicts, settings/ledger text and change flags
  */
-function planSkillProfile({ rootDir, presetsPath } = {}) {
+function planSkillProfile({ rootDir, presetsPath, personal = false, homeDir } = {}) {
     const root = rootDir;
     const configPath = resolveProjectConfigPath(root);
     const configText = readTextIfExists(configPath);
     const config = configText === null ? null : parseJson(configText, 'project config', configPath);
     const project = typeof config?.project?.name === 'string' && config.project.name.trim() ? config.project.name : null;
     const resolved = resolveProfile(root, config, { presetsPath });
-    const plan = { root, resolved, refusals: resolved.refusals, warnings: [...resolved.warnings], conflicts: [], settingsChanged: false, ledgerChanged: false, settingsPath: path.join(root, SETTINGS_RELATIVE), ledgerPath: path.join(root, LEDGER_RELATIVE) };
+    const plan = { root, personal, resolved, refusals: resolved.refusals, warnings: [...resolved.warnings], conflicts: [], settingsChanged: false, ledgerChanged: false,
+        settingsPath: path.join(root, personal ? LOCAL_SETTINGS_RELATIVE : SETTINGS_RELATIVE), ledgerPath: path.join(root, personal ? LOCAL_LEDGER_RELATIVE : LEDGER_RELATIVE) };
     if (plan.refusals.length > 0) return plan;
+    if (personal) {
+        const profile = readPersonalProfile(root, homeDir);
+        if (profile) {
+            if (profile.allowHidingCalledSkills === undefined && config?.skillProfile?.allowHidingCalledSkills !== undefined) {
+                profile.allowHidingCalledSkills = config.skillProfile.allowHidingCalledSkills;
+            }
+            const mine = resolveProfile(root, { skillProfile: profile }, { presetsPath });
+            plan.refusals = mine.refusals;
+            plan.warnings.push(...mine.warnings.map(line => `personal: ${line}`));
+            if (plan.refusals.length > 0) return plan;
+            plan.resolved = { ...resolved, overrides: { ...resolved.overrides, ...mine.overrides } };
+        } else {
+            plan.resolved = { ...resolved, overrides: {} };
+        }
+    }
 
     const ledgerCurrent = readTextIfExists(plan.ledgerPath);
     const ledger = readLedger(ledgerCurrent, plan.ledgerPath, project);
     if (ledger.ignored) plan.warnings.unshift(ledger.ignored);
-    const desired = claudeOverrides(resolved.overrides);
+    const desired = claudeOverrides(plan.resolved.overrides);
     plan.desired = desired;
     if (desired.size === 0 && Object.keys(ledger.owned).length === 0) return plan;
 
-    const settingsText = readTextIfExists(plan.settingsPath);
+    let settingsText = readTextIfExists(plan.settingsPath);
+    if (settingsText === null && personal) settingsText = '{}\n';
     if (settingsText === null) throw new Error(`settings file is missing: ${plan.settingsPath}`);
+    if (personal) assertIgnoredByGit(root, plan.settingsPath);
     const settings = parseJson(settingsText, 'settings', plan.settingsPath);
     if (!isPlainObject(settings)) throw new Error(`settings is not a JSON object: ${plan.settingsPath}`);
     const current = settings[MEMBER];
@@ -598,11 +669,13 @@ function planSkillProfile({ rootDir, presetsPath } = {}) {
         plan.settingsText = nextText;
         plan.settingsChanged = nextText !== settingsText;
     }
-    const ledgerWanted = ledgerCurrent === null && Object.keys(merge.owned).length === 0 ? null : renderLedger(merge.owned, project);
+    const ledgerWanted = ledgerCurrent === null && Object.keys(merge.owned).length === 0 ? null : renderLedger(merge.owned, project, personal ? LOCAL_LEDGER_DESCRIPTION : LEDGER_DESCRIPTION);
     plan.ledgerCurrent = ledgerCurrent;
     plan.ledgerText = ledgerWanted;
     plan.ledgerChanged = ledgerWanted !== null && ledgerWanted !== ledgerCurrent;
-    plan.ledgerInterimText = plan.settingsChanged ? renderLedger(ownedUnion(ledger.owned, merge.owned), project) : null;
+    // Any write to the personal ledger, including a ledger-only one, must land in a file Git ignores.
+    if (personal && (plan.settingsChanged || plan.ledgerChanged)) assertIgnoredByGit(root, plan.ledgerPath);
+    plan.ledgerInterimText = plan.settingsChanged ? renderLedger(ownedUnion(ledger.owned, merge.owned), project, personal ? LOCAL_LEDGER_DESCRIPTION : LEDGER_DESCRIPTION) : null;
     return plan;
 }
 
@@ -642,9 +715,15 @@ function writePairCrashConsistent(plan, { targetChanged, writeTarget, writeLedge
 
 function main(argv = process.argv.slice(2)) {
     const check = argv.includes('--check');
+    const personal = argv.includes('--personal');
+    const unknown = argv.filter(arg => !['--check', '--personal'].includes(arg));
+    if (unknown.length > 0) {
+        console.error(`${PREFIX} unknown option ${unknown.join(' ')}; usage: node .claude/scripts/sync-skill-profile.cjs [--personal] [--check]`);
+        return 1;
+    }
     try {
         const { rootDir } = resolveMutationProjectRoot({ cwd: process.cwd(), scriptPath: __filename, env: process.env });
-        const plan = check ? planSkillProfile({ rootDir }) : syncSkillProfile({ rootDir });
+        const plan = check ? planSkillProfile({ rootDir, personal }) : syncSkillProfile({ rootDir, personal });
         for (const line of plan.warnings) console.log(`${PREFIX} ${line}`);
         for (const line of plan.conflicts) console.log(`${PREFIX} ${line}`);
         if (plan.refusals.length > 0) {
@@ -657,7 +736,7 @@ function main(argv = process.argv.slice(2)) {
             const stale = [plan.settingsChanged && `${relative(plan.settingsPath)} ${MEMBER} is stale`, plan.ledgerChanged && `${relative(plan.ledgerPath)} is stale`].filter(Boolean);
             for (const reason of stale) console.error(`${PREFIX} ${reason}`);
             if (stale.length > 0) {
-                console.error(`${PREFIX} run: node .claude/scripts/sync-skill-profile.cjs`);
+                console.error(`${PREFIX} run: node .claude/scripts/sync-skill-profile.cjs${personal ? ' --personal' : ''}`);
                 return 1;
             }
             console.log(`${PREFIX} ${MEMBER} is current`);
@@ -676,6 +755,8 @@ function main(argv = process.argv.slice(2)) {
 module.exports = {
     CLAUDE_VALUES,
     LEDGER_RELATIVE,
+    LOCAL_LEDGER_RELATIVE,
+    LOCAL_SETTINGS_RELATIVE,
     PRESETS_RELATIVE,
     PROFILE_LISTS,
     SETTINGS_RELATIVE,
@@ -685,6 +766,7 @@ module.exports = {
     mergeOverrides,
     ownedUnion,
     planSkillProfile,
+    readPersonalProfile,
     resolveProfile,
     scanTopLevelMembers,
     spliceTopLevelMember,

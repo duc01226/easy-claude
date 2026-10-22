@@ -402,8 +402,9 @@ const EXPECTED_RENDERED_GROUPS = [
     // Private UI reminder generation reset preserves sibling universal/full-protocol records.
     ['SessionStart', 'compact|clear', 1],
     // Compaction re-delivery (2026-10-14): core principles, judgement and AI-feature directives (latest
-    // recorded prompt), workflow route and catalog — a long run has no following prompt.
-    ['SessionStart', 'compact', 5],
+    // recorded prompt), workflow route and catalog — a long run has no following prompt. knowledge-route
+    // (2026-10-21) joins it: prompt-phrase knowledge pointers for the latest recorded prompt.
+    ['SessionStart', 'compact', 6],
     ['Stop', null, 1],
     // SubagentStart: Codex supports it and it mirrors — the five group entries and the four universal
     // bins, registered without an agent-type matcher so every agent type (skill preloaders,
@@ -413,8 +414,9 @@ const EXPECTED_RENDERED_GROUPS = [
     ['SubagentStart', null, 9],
     ['SubagentStart', null, 1],
     // Prompt-time context for delegated agents (2026-10-14): core principles, UI reuse reminder, and the
-    // judgement and AI-feature directives classified from the session's latest recorded prompt.
-    ['SubagentStart', null, 4],
+    // judgement and AI-feature directives classified from the session's latest recorded prompt;
+    // knowledge-route (2026-10-21) adds knowledge pointers for the agent's role and preloaded skills.
+    ['SubagentStart', null, 5],
     // The universal bundle: one entry per bin, first on every prompt so its ledger records predate
     // every other prompt hook.
     ['UserPromptSubmit', null, 4],
@@ -431,6 +433,10 @@ const EXPECTED_RENDERED_GROUPS = [
     ['UserPromptSubmit', null, 1],
     // ai-feature-route (2026-09-30): AI-engineering gate reminder and review routing on prompts about AI features.
     ['UserPromptSubmit', null, 1],
+    // knowledge-route (2026-10-21): knowledge pointers for prompt phrases and `$skill` names. Its Claude-only
+    // Skill and pack-Read groups are not mirrored (matcher-names-no-codex-tool) and its UserPromptExpansion
+    // group stays on Claude (already-on-remap-target: this prompt row receives `$skill`): spec KNW BR-KNW-20.
+    ['UserPromptSubmit', null, 1],
     // task-tracking-route (2026-10-06): advisory work-tracking purpose and concern notice on eligible work prompts;
     // silent when tracking is off, unavailable, quoted or unrelated.
     ['UserPromptSubmit', null, 1],
@@ -446,6 +452,63 @@ const EXPECTED_RENDERED_GROUPS = [
     // `remapped-to-user-prompt-submit`).
     ['UserPromptSubmit', null, 6]
 ];
+
+test('TC-KNW-045: Codex registers the knowledge router only where it can fire (prompt, helper agent, compaction)', async () => {
+    const staging = await fs.mkdtemp(path.join(os.tmpdir(), 'hookmirror-knw-'));
+    try {
+        const report = await materializeHookMirror(staging);
+        const rendered = JSON.parse(await fs.readFile(path.join(staging, 'hooks.json'), 'utf8'));
+        const eventsWith = Object.entries(rendered.hooks)
+            .filter(([, groups]) => groups.some(group => group.hooks.some(hook => String(hook.command).includes('knowledge-route.cjs'))))
+            .map(([event]) => event)
+            .sort();
+        assert.deepEqual(eventsWith, ['SessionStart', 'SubagentStart', 'UserPromptSubmit'], 'the knowledge router mirrors on the prompt, helper-agent and compaction events only');
+        const postToolUse = (rendered.hooks.PostToolUse || []).flatMap(group => group.hooks);
+        assert.ok(!postToolUse.some(hook => String(hook.command).includes('knowledge-route.cjs')), 'no Codex handler on Skill or Read, tools Codex never emits');
+        const skips = (report && report.skipped_groups) || [];
+        assert.ok(skips.some(skip => skip.reason === 'matcher-names-no-codex-tool' && skip.matcher === 'Skill' && skip.event === 'PostToolUse'), 'the Claude-only Skill group is reported, not silently dropped');
+        assert.deepEqual(skips.filter(skip => skip.event === 'UserPromptExpansion').map(skip => skip.reason), ['already-on-remap-target'], 'the expansion group is recorded as covered by the prompt registration, never as an unreviewed drop');
+    } finally {
+        await fs.rm(staging, { recursive: true, force: true });
+    }
+});
+
+// TC-KNW-045 (the discriminator) — the reviewed `already-on-remap-target` reason must mean "this handler
+// already runs on Codex's prompt event". Rendered from a fixture, so a renderer that gave the reason to
+// every non-protocol expansion handler (quietly licensing real drops) turns this red.
+test('TC-KNW-045: an expansion-only handler is still an unreviewed drop; one also on the prompt event is covered', async () => {
+    const root = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'hookmirror-remap-')));
+    try {
+        const handler = name => ({ type: 'command', command: `node "$CLAUDE_PROJECT_DIR"/.claude/hooks/${name}.cjs` });
+        // Given a handler on both events, and another on the expansion event only
+        const settings = {
+            hooks: {
+                UserPromptSubmit: [{ hooks: [handler('covered-router')] }],
+                UserPromptExpansion: [{ hooks: [handler('covered-router')] }, { hooks: [handler('expansion-only')] }]
+            }
+        };
+        await fs.mkdir(path.join(root, '.claude'), { recursive: true });
+        await fs.writeFile(path.join(root, '.claude', 'settings.json'), `${JSON.stringify(settings, null, 2)}\n`);
+        const env = { ...process.env, CLAUDE_PROJECT_DIR: root, NODE_OPTIONS: '' };
+        // When the Codex hook mirror renders it
+        await execFileAsync(process.execPath, [syncHooksPath], { cwd: root, env, windowsHide: true, timeout: 60000 });
+        const report = JSON.parse(await fs.readFile(path.join(root, 'tmp', 'hooks.sync.report.json'), 'utf8'));
+        const rendered = JSON.parse(await fs.readFile(path.join(root, '.codex', 'hooks.json'), 'utf8'));
+        // Then the covered handler is recorded as covered and the other as the unreviewed drop
+        const expansion = report.skipped_groups.filter(skip => skip.event === 'UserPromptExpansion');
+        assert.deepEqual(expansion.map(skip => [skip.group_index, skip.reason]), [[0, 'already-on-remap-target'], [1, 'remap-limited-to-protocol-entries']]);
+        // And only the uncovered one fails the gate
+        const problems = unexpectedHookSkips(report).filter(problem => problem.includes('UserPromptExpansion['));
+        assert.equal(problems.length, 1, problems.join('\n'));
+        assert.match(problems[0], /UserPromptExpansion\[1\].*remap-limited-to-protocol-entries/);
+        // And neither is re-targeted: the covered handler runs once on the prompt event, the other nowhere
+        const commands = Object.values(rendered.hooks).flatMap(groups => groups.flatMap(group => group.hooks.map(hook => String(hook.command))));
+        assert.equal(commands.filter(command => command.includes('covered-router.cjs')).length, 1);
+        assert.equal(commands.some(command => command.includes('expansion-only.cjs')), false);
+    } finally {
+        await fs.rm(root, { recursive: true, force: true });
+    }
+});
 
 test('TC-HOOKMIRROR-003: a fresh render produces exactly the expected hook surface', async () => {
     const staging = await fs.mkdtemp(path.join(os.tmpdir(), 'hookmirror-c-'));
@@ -583,15 +646,17 @@ test('TC-HOOKMIRROR-004: the skip guard accepts the reviewed baseline and reject
 
     // The REVIEWED group skips pass. They are the only intended ways a group stops
     // mirroring: a SessionStart group carrying no allowlisted producer, SessionEnd's
-    // matcher, which names nothing Codex emits and so is dropped to let the hook run, and
-    // (2026-09-25) a protocol-entry PostToolUse group keyed only to Read or Skill.
+    // matcher, which names nothing Codex emits and so is dropped to let the hook run,
+    // (2026-09-25) a protocol-entry PostToolUse group keyed only to Read or Skill, and
+    // (2026-10-21) an expansion handler Claude also registers on UserPromptSubmit.
     assert.deepEqual(
         unexpectedHookSkips({
             skipped_events: BASELINE,
             skipped_groups: [
                 { event: 'SessionStart', group_index: 0, matcher: 'startup|resume', reason: 'session-start-not-on-mirror-allowlist' },
                 { event: 'SessionEnd', group_index: 0, matcher: 'clear|exit|compact', reason: 'matcher-unsupported-on-codex-hook-runs-unscoped' },
-                { event: 'PostToolUse', group_index: 5, matcher: 'Skill', reason: 'matcher-names-no-codex-tool' }
+                { event: 'PostToolUse', group_index: 5, matcher: 'Skill', reason: 'matcher-names-no-codex-tool' },
+                { event: 'UserPromptExpansion', group_index: 1, matcher: null, reason: 'already-on-remap-target' }
             ]
         }),
         [],

@@ -537,7 +537,8 @@ module.exports = {
                     [/Hooks deliver applicable full text/, 'hooks deliver applicable full text'],
                     [/when an applicable rule is absent from the current context, read its published file before acting/, 'the applicable guide path is the fallback'],
                     [/Keep role-protocol `:reminder` digests in every carrier/, 'reminder digests stay'],
-                    [/agents retain full role protocols and are never converted to guides/, 'agents keep full text'],
+                    [/agents retain full role protocols by default/, 'agents keep their role protocols in full by default'],
+                    [/Only the opt-in agent-guide policy \(`agentGuides\.enabled` in `protocol-groups\.json`, off by default\) turns a trigger-gated protocol that an agent does not list in `agentGuides\.keepInline` into a guide line plus its reminder; the group hooks then deliver its full text at the agent's start when the trigger applies, and disabling the policy restores the bodies/, 'agent guides: opt-in, only trigger-gated protocols convert, delivery carries the text, off restores'],
                     [/Copy the complete `SYNC:review-protocol-injection` template, with all 11 full protocol bodies, VERBATIM into every fresh reviewer prompt; never substitute guide lines, tags or a read pointer/, 'reviewer prompts carry bodies inline'],
                     [/Mode-only `references\/\*\.md` load first on mode entry and retain their SYNC bodies/, 'SYNC bodies in references/*.md stay inline'],
                 ];
@@ -626,10 +627,14 @@ module.exports = {
             },
         },
         {
-            name: 'TC-PDL-039: converted skills hold no full protocol body; inline skills, references and agents keep canonical full bodies and no guide',
+            name: 'TC-PDL-039: converted skills hold no full protocol body; inline skills and references keep canonical full bodies and no guide; agents guide only trigger-gated protocols outside keepInline',
             fn() {
-                // Given the canonical base tags, the inline skills and every carrier
-                const inline = new Set(JSON.parse(fs.readFileSync(GROUPS_PATH, 'utf8')).inlineSkills || []);
+                // Given the canonical base tags, the inline skills, the agent-guide policy and every carrier
+                const groupsData = JSON.parse(fs.readFileSync(GROUPS_PATH, 'utf8'));
+                const inline = new Set(groupsData.inlineSkills || []);
+                const triggerGated = new Set(Object.values(groupsData.groups || {}).flatMap((g) => Object.entries(g.tags || {}).filter(([, row]) => row && row.trigger).map(([tag]) => tag)));
+                const agentPolicy = groupsData.agentGuides && groupsData.agentGuides.enabled === true ? groupsData.agentGuides : null;
+                const keepInline = (agent) => new Set((agentPolicy && agentPolicy.keepInline && agentPolicy.keepInline[agent]) || []);
                 const baseTags = TAGS.filter((t) => !t.includes(':'));
                 const skillOf = (rel) => (/^\.claude\/skills\/(?:_templates\/)?([^/]+)\/SKILL\.md$/.exec(rel) || [])[1] || null;
                 const leaked = [];
@@ -646,7 +651,12 @@ module.exports = {
                     // When an inline skill, a references/*.md file or an agent is scanned, Then it keeps full
                     // bodies equal to canonical and carries no guide entry
                     const guides = guideTags(c.text);
-                    if (guides.length) fullCarrierProblems.push(`${c.rel}: guide entry for ${guides.join(', ')}`);
+                    const agent = (/^\.claude\/agents\/([^/]+)\.md$/.exec(c.rel) || [])[1] || null;
+                    // An agent may guide a protocol only under agent guides: trigger-gated and not kept inline for it
+                    const allowed = (t) => agent && agentPolicy && triggerGated.has(t) && !keepInline(agent).has(t);
+                    const badGuides = guides.filter((t) => !allowed(t));
+                    if (badGuides.length) fullCarrierProblems.push(`${c.rel}: guide entry for ${badGuides.join(', ')}`);
+                    if (agent) for (const t of keepInline(agent)) if (guides.includes(t)) fullCarrierProblems.push(`${c.rel}: keepInline ${t} converted`);
                     if (skill || c.rel.startsWith('.claude/agents/')) {
                         if (bodies.length === 0) fullCarrierProblems.push(`${c.rel}: no full protocol body left`);
                         else fullCarriers++;

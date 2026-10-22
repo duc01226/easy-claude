@@ -5,7 +5,7 @@ feature_code: 'NT'
 entities: ['AssistantSession', 'Alert', 'Question']
 status: draft
 owner: 'Framework maintainers'
-last_updated: '2026-09-24'
+last_updated: '2026-10-22'
 scope_mode: FRAMEWORK-LIBRARY
 ---
 
@@ -52,6 +52,7 @@ Alerts tell developers when the main assistant conversation ends, when the assis
 | Assistant session      | One conversation in which an assistant works with a developer.                                                                               | Has either a main conversation or a delegated conversation.                                                                                                        |
 | Main conversation      | The developer's primary working conversation with the assistant.                                                                             | Only its end produces a main-session-ended alert.                                                                                                                  |
 | Delegated conversation | A separate conversation in which the assistant handles delegated work.                                                                       | Its end does not end the main conversation.                                                                                                                        |
+| Attended conversation  | A conversation a developer drives from the assistant's own interface.                                                                        | A run another assistant, a script or an automation started, with no developer at its interface, is unattended and raises no alerts.                                |
 | Alert channel          | A place an alert is delivered: the developer's desktop, or a remote chat channel.                                                            | Desktop is on unless the developer turns it off; remote channels are opt-in.                                                                                       |
 | Remote chat channel    | A team or personal chat destination the developer has configured to receive alerts.                                                          | Receives the same alert kinds with the same meaning as the desktop.                                                                                                |
 | Workspace name         | The name of the project folder the conversation runs in.                                                                                     | Every alert names it so the developer knows which conversation to open.                                                                                            |
@@ -95,6 +96,7 @@ Alerts tell developers when the main assistant conversation ends, when the assis
 - **AC-NT-05** — **Given** the second supported assistant, which gives no direct signal when it asks a question **When** its completed response ends in a final question mark, ignoring trailing whitespace **Then** one non-blocking question alert is shown.
 - **AC-NT-06** — **Given** a completed response not classified as a question (neither a direct question signal nor a qualifying final question mark) **When** the turn finishes **Then** no question alert is shown, and the ordinary turn-complete alert remains available.
 - **AC-NT-10** — **Given** the main conversation has work still in progress, or a delegated conversation finishes its own turn **When** that turn finishes **Then** no turn-complete alert is shown; exactly one is shown when a main-conversation turn finishes with no work still in progress.
+- **AC-NT-11** — **Given** a conversation that another assistant, a script or an automation started and that the assistant reports no developer attends **When** it finishes a turn, asks a question or ends **Then** no alert of any kind is shown; a conversation the developer attends, or one whose attendance the assistant does not report, keeps its alerts.
 
 ### US-NT-03: Receive alerts away from the desk, without exposing the conversation
 
@@ -122,6 +124,7 @@ Alerts tell developers when the main assistant conversation ends, when the assis
 | BR-NT-05 | A conversation reset is not a session end | Alert scope          | [HARD]      |
 | BR-NT-06 | One alert per enabled channel             | Alert delivery       | [HARD]      |
 | BR-NT-07 | Alerts never carry reply text             | Alert content        | [HARD]      |
+| BR-NT-08 | Only attended conversations raise alerts  | Alert scope          | [HARD]      |
 
 ### BR-NT-01: Main-conversation ownership [HARD]
 
@@ -208,6 +211,17 @@ IF an alert is delivered on any channel
   → CONTENT never includes the assistant's reply text
 ```
 
+### BR-NT-08: Only attended conversations raise alerts [HARD]
+
+**Statement:** An alert asks a developer to look. A conversation that no developer attends — a run that another assistant, a script or an automation started, with nobody at the assistant's own interface, such as one of many evaluation runs in throwaway workspaces — has nobody to look, and its result returns to whatever started it. Such a conversation raises no alert of any kind: no session-ended, question or turn-complete alert. A conversation counts as unattended only when the assistant reports so for that very conversation; a report about another conversation, such as the one that started it, never decides. When the assistant reports nothing about attendance, the conversation keeps its alerts under BR-NT-01 to BR-NT-07. A thread that an assistant spawns for itself and reports as a conversation of its own — such as the second supported assistant's sub-agent and internal threads — is unattended too: its result returns to the conversation that spawned it, so it raises no alert. Delegated conversations that run inside the main conversation, without a conversation of their own, stay governed by BR-NT-01 and BR-NT-04.
+
+```
+IF the assistant reports that no developer attends this conversation
+  → SHOW no alert of any kind for it
+ELSE IF the assistant reports a developer attends it OR reports nothing about attendance
+  → APPLY BR-NT-01 to BR-NT-07
+```
+
 ---
 
 ## 5. Domain Model
@@ -222,9 +236,10 @@ IF an alert is delivered on any channel
 
 ### Entity: Assistant Session
 
-| Property          | Type | Required | Constraints       | Business Meaning                                           |
-| ----------------- | ---- | -------- | ----------------- | ---------------------------------------------------------- |
-| Conversation kind | enum | Yes      | Main or delegated | Identifies which conversation boundary the alert concerns. |
+| Property          | Type   | Required | Constraints                                                                              | Business Meaning                                           |
+| ----------------- | ------ | -------- | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| Conversation kind | enum   | Yes      | Main or delegated                                                                        | Identifies which conversation boundary the alert concerns. |
+| Attended          | yes-no | Yes      | Yes when a developer drives it from the assistant's own interface; unknown counts as yes | An unattended conversation raises no alerts (BR-NT-08).    |
 
 ### Entity: Alert
 
@@ -250,6 +265,7 @@ IF an alert is delivered on any channel
 | Developer reset the conversation         | The developer clears the main conversation to start afresh.             | No session-ended alert is produced.                                    |
 | Assistant asked the developer a question | The assistant requests information or a decision.                       | The developer receives a question alert and can return to answer.      |
 | Assistant turn completed                 | The assistant finishes a response without ending the main conversation. | The turn-complete alert, once no work is still in progress (BR-NT-04). |
+| Unattended conversation finished         | A run no developer attends finishes a turn, asks or ends.               | No alert of any kind is produced (BR-NT-08).                           |
 
 ---
 
@@ -301,12 +317,13 @@ A delegated conversation ending first causes no main-session-ended alert. A rese
 | Question needs an answer     | A direct question is asked or the fallback rule classifies the response as a question.     | One question alert.                                  | Return to the conversation and answer.    |
 | Ordinary turn completed      | A response finishes without a question classification while the conversation remains open. | The existing turn-complete alert.                    | Continue in the conversation.             |
 | Waiting on work in progress  | A main-conversation turn finishes while work it started is still in progress.              | No turn-complete alert yet.                          | Wait; the alert follows the last turn.    |
+| Unattended run finished      | A run no developer attends finishes a turn, asks a question or ends.                       | No alert of any kind.                                | None; what started it gets the result.    |
 
 ### 6.6 Per-Story Interaction Flow
 
 **US-NT-01 — Main conversation end:** Work in the main conversation → end it → one session-ended alert. Delegated work ending while it stays open, or a reset → no session-ended alert.
 
-**US-NT-02 — Question alert:** Direct question, or (on an assistant without direct question signals) a response ending in `?` ignoring trailing whitespace → one question alert (non-blocking for the fallback) → developer returns and answers. Any other response stays an ordinary turn completion.
+**US-NT-02 — Question alert:** Direct question, or (on an assistant without direct question signals) a response ending in `?` ignoring trailing whitespace → one question alert (non-blocking for the fallback) → developer returns and answers. Any other response stays an ordinary turn completion. A run no developer attends raises none of these alerts (BR-NT-08).
 
 **US-NT-03 — Remote chat channel:** Configure a remote chat channel → each alert arrives there once with the same title and meaning as on the desktop, naming the workspace and never quoting the assistant's reply.
 
@@ -321,6 +338,7 @@ A delegated conversation ending first causes no main-session-ended alert. A rese
 | Developer           | yes  |   no   |   yes   | Receives alerts, turns the desktop channel off or on, chooses which remote chat channels receive alerts, and answers questions. |
 | Main assistant      | yes  |   no   |   no    | May cause a question alert, a turn-complete alert, or a session-ended alert when the main conversation ends.                    |
 | Delegated assistant | yes  |   no   |   no    | Its session end cannot cause a main-session-ended alert.                                                                        |
+| Unattended run      | yes  |   no   |   no    | Raises no alert of any kind; whatever started it receives its result (BR-NT-08).                                                |
 
 ---
 
@@ -333,14 +351,14 @@ A delegated conversation ending first causes no main-session-ended alert. A rese
 | Priority  |  Count | Automated | Manual |
 | --------- | -----: | --------: | -----: |
 | P0        |      0 |         0 |      0 |
-| P1        |     13 |        13 |      0 |
+| P1        |     14 |        14 |      0 |
 | P2        |      0 |         0 |      0 |
-| **Total** | **13** |    **13** |  **0** |
+| **Total** | **14** |    **14** |  **0** |
 
 | Category                              | TCs                                                   |
 | ------------------------------------- | ----------------------------------------------------- |
 | Main Conversation Outcomes            | TC-NT-001, TC-NT-002, TC-NT-003, TC-NT-004            |
-| Question and Turn-Completion Outcomes | TC-NT-011, TC-NT-012, TC-NT-013, TC-NT-014            |
+| Question and Turn-Completion Outcomes | TC-NT-011, TC-NT-012, TC-NT-013, TC-NT-014, TC-NT-015 |
 | Invariant / Property Tests            | TC-NT-071, TC-NT-072, TC-NT-073, TC-NT-074, TC-NT-075 |
 
 ### Main Conversation Outcomes
@@ -834,7 +852,73 @@ And a delegated conversation finishing its own turn never produces a turn-comple
 | Ordinary turn completion    | `operation/hooks/assistant-turn-completion-alert` |
 | Main conversation ownership | `rule/hooks/main-session-only`                    |
 
-**CoveredBy:** `.claude/hooks/tests/suites/notification.test.cjs::[TC-NT-014] a turn-complete alert waits until the main session has no delegated work left`, `.claude/hooks/tests/suites/notification.test.cjs::[TC-NT-014] Stop while background agents still run is skipped by the router`, `.claude/scripts/opencode/tests/sync-hooks.test.mjs::[TC-NT-014] generated bridge marks a child session going idle so only the main session's turn end alerts`, `.claude/scripts/codex/tests/migrate-claude-to-codex.test.mjs::Codex config upsert removes only the retired framework notify command and keeps a project notify`  
+**CoveredBy:** `.claude/hooks/tests/suites/notification.test.cjs::[TC-NT-014] a turn-complete alert waits until the main session has no delegated work left`, `.claude/hooks/tests/suites/notification.test.cjs::[TC-NT-014] Stop while background agents still run is skipped by the router`, `.claude/scripts/opencode/tests/sync-hooks.test.mjs::[TC-NT-014] generated bridge marks a child session going idle so only the main session's turn end alerts`, `.claude/scripts/opencode/tests/sync-hooks.test.mjs::[TC-NT-014] generated bridge recognizes a child session announced by a flat session event`, `.claude/scripts/codex/tests/migrate-claude-to-codex.test.mjs::Codex config upsert removes only the retired framework notify command and keeps a project notify`  
+**Status:** Tested
+
+#### TC-NT-015: A conversation nobody attends raises no alert [P1]
+
+**Objective:** Verify that a run another assistant, a script or an automation started, with no developer at the assistant's own interface, raises no alert of any kind, while the developer's own conversation keeps every alert.
+
+**Business Intent / Invariant Guarded:** A developer whose assistant starts many unattended runs — for example one evaluation run per throwaway workspace — is not interrupted by one blocking alert per run; only the conversation the developer drives asks for attention.
+
+**Proves:** AC-NT-11 / BR-NT-08
+
+**Preconditions:**
+
+- The desktop alert channel is on.
+- A main conversation the developer attends can start other assistant runs that nobody attends.
+
+**Real-World Reachability:** The developer asks the assistant to evaluate a change; the assistant starts six runs of each supported assistant in separate throwaway workspaces and waits for their results. Before this rule, every run that finished showed its own blocking turn-complete alert named after its throwaway workspace.
+
+**Demo Flow:** From the main conversation, ask the assistant to start several unattended assistant runs in throwaway workspaces and wait for them; watch the desktop while they finish; observe no alert from any run and the usual single alert when the main conversation finishes its job.
+
+```gherkin
+Given a main conversation the developer attends
+And it starts several assistant runs that the assistant reports no developer attends
+When each run finishes its turn, asks a question or ends
+Then no alert of any kind appears for that run
+When the main conversation finishes its turn with no work still in progress
+Then exactly one turn-complete alert appears, naming the main workspace
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                            |
+| ----------------------- | -------------------------------------------------------------------------------------- |
+| **UI**                  | No alert from any unattended run; the main conversation's alerts appear as before.     |
+| **System behavior**     | Every alert from a conversation reported unattended is withheld; nothing else changes. |
+| **Business data state** | Not applicable — no business data are created or changed.                              |
+| **Data shown on UI**    | The main conversation's usual titles, messages and workspace name.                     |
+
+**Acceptance Criteria:**
+
+- ✅ No session-ended, question or turn-complete alert from a conversation reported unattended.
+- ✅ The developer's own conversation keeps all its alerts, including when it started the unattended runs.
+- ✅ A conversation whose attendance the assistant does not report keeps its alerts.
+- ❌ An alert per unattended run, or an alert withheld because another conversation was reported unattended.
+
+**Test Data:**
+
+- One attended main conversation; unattended runs of the first and second supported assistants; a run started from an unattended conversation by a different assistant.
+
+**Edge Cases:**
+
+- An unattended run of one assistant starts a run of another assistant that reports nothing about attendance → that run keeps its alerts; the first run's report does not decide for it.
+- The second supported assistant's own spawned threads and runs serving another assistant → no alert.
+- An assistant that reports no attendance at all → unchanged behavior: every rule from BR-NT-01 to BR-NT-07 applies.
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+**Evidence:** `[Source: rule/hooks/unattended-conversation-raises-no-alert]`
+
+**Related Behaviors:**
+
+| Capability                  | Anchor                                            |
+| --------------------------- | ------------------------------------------------- |
+| Ordinary turn completion    | `operation/hooks/assistant-turn-completion-alert` |
+| Main conversation ownership | `rule/hooks/main-session-only`                    |
+
+**CoveredBy:** `.claude/hooks/tests/suites/notification.test.cjs::[TC-NT-015] router skips the turn end of a headless Claude run another agent started`, `.claude/hooks/tests/suites/notification.test.cjs::[TC-NT-015] a Claude session nobody attends raises no alert of any kind, and only that session is judged`, `.claude/hooks/tests/suites/notification.test.cjs::[TC-NT-015] a Codex session withholds alerts only when its transcript proves an exec, mcp, subagent or internal session`  
 **Status:** Tested
 
 ### Invariant / Property Tests

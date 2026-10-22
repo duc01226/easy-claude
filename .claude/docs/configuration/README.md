@@ -93,11 +93,16 @@ In this repository, the SessionStart hook loads `.ck.json` settings but does not
 The optional, closed `.ck` section `{"contextDelivery":{"profile":"compatible"}}`
 selects framework instruction delivery. Values are `compatible` and `concise`.
 Precedence is default → personal `~/.claude/.ck.json` → tracked
-`.claude/.ck.json` → checkout `.claude/.ck.local.json`. An empty section inherits;
+`.claude/.ck.json` (framework-shipped) → team `contextDelivery` in the project config
+(`docs/project-config.json`, or `portability.projectConfigPath`) → checkout
+`.claude/.ck.local.json`. A team default belongs in the project config because a
+framework refresh replaces `.claude/.ck.json`. An empty section inherits;
 a malformed effective declaration reports `CONTEXT_PROFILE_INVALID` without its
 value and falls back to compatible. A settings file that exists but holds no
 readable JSON object counts as an invalid declaration of its layer for this option
-only, and the message names the layer and its file. An explicit higher-precedence valid profile
+only, and the message names the layer and its file. The project config is the exception: when it
+holds no readable JSON object it declares nothing here and stays quiet, because its own loader reports
+it. An explicit higher-precedence valid profile
 recovers. This setting does not change workflow routing, host permissions or
 project configuration validation.
 
@@ -119,7 +124,8 @@ triggers retain existing full delivery; required skills and safe additive overla
 still load independently of workflows.
 
 To evaluate, set `contextDelivery.profile` to `concise` in the ignored checkout
-file, preserving its other preferences. To roll back, set it explicitly to
+file, preserving its other preferences. A team that has run the evaluation on its
+own lanes sets it in the project config instead. To roll back, set it explicitly to
 `compatible` in that file. Removal restores lower-precedence settings. A content
 hash change re-arms delivery; compaction/clear and child scopes keep their existing
 rules. No automatic migration rewrites an adopter's settings.
@@ -353,7 +359,7 @@ Records live in `tmp/prompt-ledger/<session>/` (override `CK_PROMPT_LEDGER_DIR`)
 
 ### Advisory prompt routers
 
-Five accelerators are ON by default and inject a short directive (four on prompts, one after tool results); the universal rules (delivered by the universal hook) still bind without them, so turning one off loses only the reminder. `.claude/.ck.local.json` overrides `.ck.json` per key (local wins), and the switch accepts `false` or the strings `"0"`, `"off"`, `"false"`, `"no"`, `"disabled"`.
+Six accelerators are ON by default and inject a short directive or pointer (five on prompts, skill or helper-agent starts, one after tool results; `knowledge-route.cjs` keeps prompt phrases off unless its recorded evaluation or `knowledgeRoute.promptTriggers` turns them on); the universal rules (delivered by the universal hook) still bind without them, so turning one off loses only the reminder. `.claude/.ck.local.json` overrides `.ck.json` per key (local wins), and the switch accepts `false` or the strings `"0"`, `"off"`, `"false"`, `"no"`, `"disabled"`.
 
 | Hook                            | Injects when                                                                                                                                 | Opt-out (`.claude/.ck.json`)                          | Env opt-out                      |
 | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- | -------------------------------- |
@@ -361,6 +367,7 @@ Five accelerators are ON by default and inject a short directive (four on prompt
 | `judgement-integrity-route.cjs` | the prompt asks for a verdict, root cause, evaluation, or gap hunt — the `SYNC:judgement-integrity:reminder` directive; also at a sub-agent start and after a compaction while the latest recorded prompt is one | `{ "judgementIntegrityRoute": { "enabled": false } }` | `CK_JUDGEMENT_INTEGRITY_ROUTE=0` |
 | `core-principles-inject.cjs`    | first prompt, task step or sub-agent start of a session scope, at once after a compaction, then again after ~`reinjectAfterTokens` (default 150000) of transcript growth — the `SYNC:core-engineering-principles` gate | `{ "corePrinciplesInject": { "enabled": false } }`  | `CK_CORE_PRINCIPLES_INJECT=0`    |
 | `ai-feature-route.cjs`          | the prompt asks to build, plan, change or review an AI feature (an AI technique such as LLM calls, RAG, embeddings, tool/function calling or the Claude API/SDK — not "Claude Code" — AND an action on it) and is not about the framework's own machinery — one short directive (one protocol pointer, the `ai-engineering-review` skill / reviewer sub-agent route) once per session window; questions and framework-meta prompts stay silent; also at a sub-agent start and after a compaction while the latest recorded prompt is one | `{ "aiFeatureRoute": { "enabled": false } }`        | `CK_AI_FEATURE_ROUTE=0`          |
+| `knowledge-route.cjs` | a prompt phrase, a starting skill or a starting helper agent matches a knowledge pack (project packs in the directory named by `knowledge-base-reference.md`, framework packs in `.claude/knowledge-base/`) — one short pointer (at most 3 packs, 700 characters) once per pack per session window; prompt phrases are on only when the held-out evaluation in `.claude/knowledge-base/evaluation.json` passed or `knowledgeRoute.promptTriggers: true`. This router also reads a team layer: `knowledgeRoute` in `docs/project-config.json`, which a framework refresh never replaces (order, later wins: `.claude/.ck.json`, project config, `.claude/.ck.local.json`) — put a team setting there | `{ "knowledgeRoute": { "enabled": false } }` (all triggers) · `{ "knowledgeRoute": { "promptTriggers": true } }` (prompt phrases on) | `CK_KNOWLEDGE_ROUTE=0` |
 | `quality-skill-remind.cjs`      | the first tool result of a scope, then again after ~150K tokens of growth or a compaction — the `SYNC:quality-skill-routing:reminder` digest (reviews → `why-review`, `changes-review` or `workflow-review-changes`; tests → the project's test skills; failures or errors → `investigate --mode=debug`) | `{ "qualitySkillReminder": { "enabled": false } }` | `CK_QUALITY_SKILL_REMINDER=0`    |
 
 In concise delivery, the principles hook checks the shared universal-core record
@@ -405,6 +412,8 @@ node .claude/scripts/framework-mode.cjs reset --scope=checkout
 The exact setting is `frameworkRuntime.mode`. Precedence is default `on` → tracked project config → personal `~/.claude/.ck.json` → ignored `.claude/.ck.local.json` → `CK_FRAMEWORK_MODE`. User scope uses `%USERPROFILE%\.claude\.ck.json` on Windows and the home `.claude/.ck.json` on macOS/Linux. Team scope honors `portability.projectConfigPath`. Each valid higher layer wins; an invalid runtime value expresses no preference, and schema validation rejects invalid saves. The CLI preserves other settings and refuses to overwrite malformed existing files. Reset removes only the selected preference. `show --json` explains every layer and the winning source.
 
 Quiet also inherits native context and tool defaults: the bundle no longer sets Claude `skillListingBudgetFraction` or `CLAUDE_CODE_ENABLE_TODO_TOOLS`, and Codex sync no longer enlarges its project-instruction budget. These are host settings outside the hook switch; removing them prevents the framework from adding that overhead in quiet mode. User-supplied host overrides still apply. The native Claude `workflowKeywordTriggerEnabled: false` opt-out remains, so a keyword does not activate its Workflow tool.
+
+**Quiet with the project's own rules.** `frameworkRuntime.quietProjectRules: true` (default `false`; same layers as the mode, then `CK_QUIET_PROJECT_RULES`) keeps three hooks running in `quiet`: `skill-overlay-remind.cjs` (the project's skill overlays), `file-convention-inject.cjs` (its per-file conventions) and `skill-activation-inject.cjs` (the `portability.skillAutoTrigger` policy). Generic guidance, routing and ledgers stay off. Use it when a person wants quiet but the project's hand-written rules must still reach the agent; `framework-mode.cjs show` reports the effective value.
 
 The next hook sees the change without regeneration. **Start fresh Claude/Codex sessions after a native skill change**; existing conversation instructions cannot be withdrawn. The CLI overlays Claude `.claude/settings.local.json` with `skillOverrides: off` and appends a checkout-specific `skills.config` block to the Codex user config (`CODEX_HOME/config.toml`, otherwise `~/.codex/config.toml`). Native `off` includes invocation by name; use this Node CLI to re-enable the framework. Restoring `on`, `quiet` or `reset` restores previous native overrides, leaving the team profile, tracked mirrors and unrelated skills/settings intact. No skills are uninstalled. Project instructions, host tool permissions, repository Git hooks and CI remain separate. OpenCode currently receives the hook switch only; its native skill visibility is not managed by this CLI.
 
@@ -771,7 +780,7 @@ An explicitly requested workflow also authorizes its required and selected appli
 
 `docs/project-config.json` `skillProfile` sets, for the whole team, which skills the model sees. `preset` picks a base from `.claude/config/skill-profiles.json`: `full` (no overrides), `standard` (skills other skills or hooks start leave the model's list but stay callable by name), or `minimal` (only the entry skills stay listed). The lists `nameOnly`, `commandOnly` (only a user's `/name` starts it) and `off` (skill folder names; one list per skill) apply on top of the preset.
 
-Apply it with `node .claude/scripts/sync-skill-profile.cjs` (`--check` is read-only). The guard refuses, and writes nothing, when `commandOnly` or `off` would hide a called skill — one a workflow step or an agent `skills:` entry starts, or one on the curated `calledByOthers` or `entrySkills` list (the workflow runner and the setup skills that gates and hooks start) — unless `allowHidingCalledSkills: true`. `nameOnly` is allowed for any skill. Read `.claude/config/README.md#skill-profile` when you need the per-host effect (Claude `skillOverrides`, Codex, OpenCode), the ownership ledger, or the fail-closed inputs.
+Apply it with `node .claude/scripts/sync-skill-profile.cjs` (`--check` is read-only). The guard refuses, and writes nothing, when `commandOnly` or `off` would hide a called skill — one a workflow step or an agent `skills:` entry starts, or one on the curated `calledByOthers` or `entrySkills` list (the workflow runner and the setup skills that gates and hooks start) — unless `allowHidingCalledSkills: true`. `nameOnly` is allowed for any skill. A person can hide more for themselves without changing the team: put `skillProfile` lists in `~/.claude/.ck.json` or the checkout's `.claude/.ck.local.json` and run `node .claude/scripts/sync-skill-profile.cjs --personal`; it writes the git-ignored `.claude/settings.local.json` (Claude only; on Codex use `portability.skillAutoTrigger`). The `/sync-codex` migrate stage applies the team profile to Claude and Codex together, so a refresh that replaced `settings.json` is restored on the next sync. Read `.claude/config/README.md#skill-profile` when you need the per-host effect (Claude `skillOverrides`, Codex, OpenCode), the ownership ledger, or the fail-closed inputs.
 
 ---
 
@@ -882,6 +891,7 @@ opencode has no absolute compaction threshold — it compacts relative to the mo
   "commitSkillRoute": { "enabled": false },        // Disable the commit-skill prompt router
   "judgementIntegrityRoute": { "enabled": false }, // Disable the judgement-integrity prompt router
   "aiFeatureRoute": { "enabled": false },          // Disable the AI-feature prompt router
+  "knowledgeRoute": { "enabled": true, "promptTriggers": true }, // Knowledge pointers; prompt phrases on (a team setting belongs in docs/project-config.json)
   "qualitySkillReminder": { "enabled": false }     // Disable the quality-skill reminder after tool results
 }
 
@@ -970,6 +980,7 @@ Set a personal switch as an `env` entry in the git-ignored `.claude/settings.loc
 | `CK_COMMIT_SKILL_ROUTE`                 | `0`: stops the reminder to commit through the `commit` skill, like `commitSkillRoute.enabled: false`                                 |
 | `CK_JUDGEMENT_INTEGRITY_ROUTE`          | `0`: stops the judgement-integrity reminder, like `judgementIntegrityRoute.enabled: false`                                           |
 | `CK_AI_FEATURE_ROUTE`                   | `0`: stops the AI-feature (AI-engineering gate) reminder, like `aiFeatureRoute.enabled: false`                                       |
+| `CK_KNOWLEDGE_ROUTE`                    | `0`: stops every knowledge pointer (prompt, skill and helper-agent triggers), like `knowledgeRoute.enabled: false`                    |
 | `CK_QUALITY_SKILL_REMINDER`             | `0`: stops the quality-skill reminder after tool results, like `qualitySkillReminder.enabled: false`                                 |
 | `DOC_SYNC_OVERRIDE`                     | `1`: silences the doc-sync commit warning (the gate only warns, never blocks); each use is appended to the gate's audit log            |
 | `ENABLE_DESKTOP_NOTIFICATIONS`          | `false`: turns off desktop turn-complete alerts (on by default)                                                                     |

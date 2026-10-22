@@ -2,7 +2,7 @@
 
 Read this guide when discovering, executing or authoring framework skills. **MUST** execute through the active host; **MUST** keep canonical source ownership separate from runtime paths; **MUST** preserve required gates and report an actual missing capability with evidence.
 
-> <!-- COUNT:skills -->104<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->15<!-- /COUNT --> shared reference/protocol entries for context-aware AI assistance (`_templates/template-skill` is a source template, not a runnable skill)
+> <!-- COUNT:skills -->105<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->15<!-- /COUNT --> shared reference/protocol entries for context-aware AI assistance (`_templates/template-skill` is a source template, not a runnable skill)
 
 ## Quick Summary
 
@@ -69,7 +69,7 @@ Read `.claude/scripts/lib/workflow-skill-contract.cjs` when changing workflow re
 
 ## Skill Domains
 
-> Curated highlights — the full catalog has <!-- COUNT:skills -->104<!-- /COUNT --> runnable skills; the tables below list selected skills per domain, not the complete set.
+> Curated highlights — the full catalog has <!-- COUNT:skills -->105<!-- /COUNT --> runnable skills; the tables below list selected skills per domain, not the complete set.
 
 | Domain                                            | Skills | Description                                    |
 | ------------------------------------------------- | ------ | ---------------------------------------------- |
@@ -188,6 +188,7 @@ Read `.claude/skills/shared/workflow-first-gate.md` when selecting discovery dep
 | `code-simplifier` | simplify, refine, clarity                        | Code cleanup                 |
 | `learn`           | remember this, always do, patterns, list learned, rule for a skill, when doing X always | Pattern learning and viewing; skill-specific rules route to `project-skill-protocol` overlays; broad short project rules route to the root `CLAUDE.md` project-rules section (then `sync-codex`) |
 | `framework-config` | framework questions, runtime modes, scoped settings, commit reviews, skill visibility | Show/apply/reset runtime and review preferences; manage the team's explicit-only profile; validate requested scoped changes |
+| `knowledge-base` | remember subject knowledge, domain rule, regulation, chosen practice, what do we know about X, import this document | Project and framework knowledge packs: list / add / update / delete / review / ask / import with a draft-then-confirm gate; packs reach the assistant as pointers when a prompt phrase, skill or helper agent matches (`knowledge-route.cjs`) |
 
 ---
 
@@ -340,7 +341,7 @@ Use `/skill-creator` to create a new skill:
 
 ---
 
-_Source: `.claude/skills/` | <!-- COUNT:skills -->104<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->15<!-- /COUNT --> shared reference/protocol entries (the `_templates/template-skill` source is excluded from runtime discovery)_
+_Source: `.claude/skills/` | <!-- COUNT:skills -->105<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->15<!-- /COUNT --> shared reference/protocol entries (the `_templates/template-skill` source is excluded from runtime discovery)_
 
 ## Closing Reminders
 

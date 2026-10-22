@@ -17,6 +17,8 @@
  *   output form for its event, so a router that also runs at sub-agent start or after a compaction reads
  *   the session's latest recorded user prompt there (neither event carries one) and answers with a
  *   context envelope.
+ * - `countFrameworkCues(text)` — distinct framework-machinery cues (`FRAMEWORK_CUES`), shared by the routers
+ *   that stay silent on prompts about the framework itself.
  * - `isHookEntryPoint(mod)` — re-exported from `hook-runner.cjs`, its owner.
  */
 
@@ -142,6 +144,25 @@ function routerOutput(input, text) {
     return JSON.stringify({ hookSpecificOutput: { hookEventName: event, additionalContext: text.trimEnd() } });
 }
 
+// The framework's own machinery: this repo's artifact vocabulary and the cost of running it. Each entry
+// is one distinct cue; the number of distinct cues decides how meta a prompt is (ai-feature-route.cjs,
+// knowledge-route.cjs).
+const FRAMEWORK_CUES = [
+    /\.claude\b|\bclaude\.md\b|\bagents\.md\b|\bsettings\.json\b|\bproject-config\b|\.codex\b|\.agents\b|\bsync-codex\b|\bsync-inline\b/i,
+    /\bskills?\b/i,
+    /\bsub-?agents?\b|\bagent (?:definitions?|files?)\b|\bagents\//i,
+    /\bhooks?\b/i,
+    /\bworkflows?\b|\bslash commands?\b/i,
+    /\bgates?\b|(?<!context )\bprotocols?\b|\bframeworks?\b|\bfrontmatter\b/i,
+    /\bmirrors?\b/i,
+    /\b(?:waste|wasteful|wasting|wasted)\b/i
+];
+
+/** How many distinct framework-machinery cues the text carries. */
+function countFrameworkCues(text) {
+    return FRAMEWORK_CUES.filter(re => re.test(String(text || ''))).length;
+}
+
 const OFF_VALUES = new Set(['0', 'off', 'false', 'no', 'disabled']);
 
 function readJsonObject(file) {
@@ -153,11 +174,31 @@ function readJsonObject(file) {
     }
 }
 
-/** `<section>` from `.claude/.ck.json` overlaid by `.claude/.ck.local.json` (local wins per key). */
-function loadRouterSettings(projectDir, section) {
+/** The project config file (`docs/project-config.json` or `portability.projectConfigPath`), or null. */
+function projectConfigFile(projectDir) {
+    try {
+        return require('../../scripts/lib/workflow-routing-config.cjs').resolveProjectConfigPath(projectDir);
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * `<section>` from the settings layers, later wins per key: `.claude/.ck.json`, then — when
+ * `options.teamLayer` — the project config (the team layer: the framework-shipped `.ck.json` is replaced
+ * by a framework refresh, the project config is not), then the checkout's `.claude/.ck.local.json`.
+ * A router opts into the team layer; without it only the two `.ck` files are read.
+ */
+function loadRouterSettings(projectDir, section, options = {}) {
     const merged = {};
-    for (const name of ['.ck.json', '.ck.local.json']) {
-        const config = readJsonObject(path.join(projectDir, '.claude', name));
+    const files = [path.join(projectDir, '.claude', '.ck.json')];
+    if (options.teamLayer) {
+        const team = projectConfigFile(projectDir);
+        if (team) files.push(team);
+    }
+    files.push(path.join(projectDir, '.claude', '.ck.local.json'));
+    for (const file of files) {
+        const config = readJsonObject(file);
         const value = config && config[section];
         if (value && typeof value === 'object' && !Array.isArray(value)) Object.assign(merged, value);
     }
@@ -176,7 +217,7 @@ function resolveHookSkillAutoTrigger(deps = {}) {
 /**
  * False when the router is switched off: `.ck.json` `<section>.enabled: false` (or a hand-typed
  * "false"/"0"/"no"/"off") or `<envVar>` set to one of those values. On by default.
- * deps (tests): env, projectDir, rawSettings.
+ * deps: teamLayer (also read the project config, see loadRouterSettings); tests: env, projectDir, rawSettings.
  */
 function isRouterEnabled(section, envVar, deps = {}) {
     const env = deps.env || process.env;
@@ -188,7 +229,7 @@ function isRouterEnabled(section, envVar, deps = {}) {
             const { resolveProjectRoot } = require('./project-root.cjs');
             projectDir = resolveProjectRoot({ cwd: process.cwd(), scriptPath: __filename, env }).rootDir;
         }
-        settings = loadRouterSettings(projectDir, section);
+        settings = loadRouterSettings(projectDir, section, { teamLayer: deps.teamLayer === true });
     }
     const enabled = settings && typeof settings === 'object' ? settings.enabled : undefined;
     return enabled !== false && !isOff(enabled);
@@ -196,6 +237,8 @@ function isRouterEnabled(section, envVar, deps = {}) {
 
 module.exports = {
     isHookEntryPoint,
+    FRAMEWORK_CUES,
+    countFrameworkCues,
     stripCode,
     readUserPrompt,
     isHostEnvelope,

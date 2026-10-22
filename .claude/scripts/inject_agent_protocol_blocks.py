@@ -39,7 +39,15 @@ import re
 import sys
 
 from line_endings import read_text, write_text
-from sync_blocks import SYNC_SOURCE, find_sync_region_start, load_wrapped_sync_block
+from sync_blocks import (
+    SYNC_SOURCE,
+    agent_guide_converts,
+    find_sync_region_start,
+    has_guide_entry,
+    load_agent_guide_policy,
+    load_wrapped_sync_block,
+    remove_guide_entry,
+)
 from agent_protocol_matrix import (
     AGENT_QUALITY_BLOCKS,
     AGENTS_DIR,
@@ -99,8 +107,9 @@ def reconcile_excluded_blocks(text: str, agent: str) -> tuple[str, list[str]]:
     return text, removed
 
 
-def inject_tag(text: str, tag: str) -> tuple[str, dict]:
-    """Inject one quality block: TOP always; reminder iff canonical defines it."""
+def inject_tag(text: str, tag: str, guided: bool = False) -> tuple[str, dict]:
+    """Inject one quality block: TOP always; reminder iff canonical defines it. `guided` is True when
+    the opt-in agent-guide policy carries this tag as a guide line in this agent."""
     full_tag = f"SYNC:{tag}"
     top_block = load_wrapped_sync_block(full_tag)
     top_re = block_re(full_tag)
@@ -114,7 +123,13 @@ def inject_tag(text: str, tag: str) -> tuple[str, dict]:
             status["top"] = "refreshed"
         else:
             status["top"] = "present"
+    elif guided and has_guide_entry(text, tag):
+        # Opt-in agent guides (`sync-update-blocks.py --mode=agent-guide`): the policy carries this
+        # protocol as a guide line that hook delivery serves; inserting the body would undo it.
+        status["top"] = "guide"
     else:
+        # A guide line the policy no longer converts gives way to the full body.
+        text = remove_guide_entry(text, tag)
         insert_at = find_sync_region_start(text)
         head = text[:insert_at].rstrip() + "\n\n"
         tail = "\n" + text[insert_at:].lstrip("\n")
@@ -183,6 +198,7 @@ def main() -> int:
         return 2
 
     targets = resolve_targets(sys.argv[1:])
+    policy = load_agent_guide_policy()
 
     results = []
     total_top_inserts = 0
@@ -200,7 +216,7 @@ def main() -> int:
         text, reconciled = reconcile_excluded_blocks(original, agent)
         per_tag = {}
         for tag in tags:
-            text, st = inject_tag(text, tag)
+            text, st = inject_tag(text, tag, agent_guide_converts(policy, agent, tag))
             per_tag[tag] = st
             if st["top"] == "inserted":
                 total_top_inserts += 1

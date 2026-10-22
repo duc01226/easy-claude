@@ -107,18 +107,8 @@ const GENERIC_SIGNALS = [
 // Cheap prefilter over the raw prompt: any word either list can match. No hit, no further work.
 const PREFILTER = /\b(?:ai|llms?|rag|retrieval|embeddings?|openai|chatgpt|gpt|anthropic|gemini|mistral|cohere|bedrock|vertex|ollama|chat ?bot|copilot|agentic|vector|pgvector|pinecone|weaviate|qdrant|chromadb|milvus|lancedb|jailbreaks?|prompt|semantic|function[- ]calling|guardrails?|hallucinat\w*|tool[- ](?:calling|use)|mcp|model context|model rout\w*|model evals?|fine[- ]?tun\w*|evals?|evaluation|(?:browser|computer)[- ]use|browser agents?|a2a|agent[- ]to[- ]agent)\b|\bclaude(?: agent)? (?:api|sdk)\b|\b(?:api|sdk|integration)\b[^.?!\n]{0,16}\bclaude\b/i;
 
-// The framework's own machinery: this repo's artifact vocabulary and the cost of running it. Each entry
-// is one distinct cue; the number of distinct cues decides how meta a prompt is.
-const FRAMEWORK_CUES = [
-    /\.claude\b|\bclaude\.md\b|\bagents\.md\b|\bsettings\.json\b|\bproject-config\b|\.codex\b|\.agents\b|\bsync-codex\b|\bsync-inline\b/i,
-    /\bskills?\b/i,
-    /\bsub-?agents?\b|\bagent (?:definitions?|files?)\b|\bagents\//i,
-    /\bhooks?\b/i,
-    /\bworkflows?\b|\bslash commands?\b/i,
-    /\bgates?\b|(?<!context )\bprotocols?\b|\bframeworks?\b|\bfrontmatter\b/i,
-    /\bmirrors?\b/i,
-    /\b(?:waste|wasteful|wasting|wasted)\b/i
-];
+// The framework's own machinery: `countFrameworkCues` in `lib/prompt-route-utils.cjs` owns the cue list,
+// shared with the knowledge router (`knowledge-route.cjs`).
 
 // A request to act on the technique (build, plan, integrate, review...), not to learn what it is.
 const ACTION_CUE = /\b(?:add|build|building|create|implement|integrat\w*|design|plan|develop|ship|wire|write|use|using|enable|set ?up|protect|secure|harden|reduce|improve|fix|review|audit|assess|evaluate|critique|inspect|check|migrate|switch|deploy|architect|estimate|refactor|scaffold|prototype|introduce|adopt|connect|call|extend|support|cache|route|test|prevent|mitigate|defend|optimi[sz]e|tune)\b|\bhow (?:do|should|can|would|could) (?:we|i|you)\b/i;
@@ -141,7 +131,7 @@ function detectAiFeature(prompt) {
     const generic = GENERIC_SIGNALS.filter(entry => entry.re.test(text)).map(entry => entry.name);
     if (concrete.length + generic.length === 0) return null;
     if (!ACTION_CUE.test(text)) return null;
-    const cues = FRAMEWORK_CUES.filter(re => re.test(text)).length;
+    const cues = require('./lib/prompt-route-utils.cjs').countFrameworkCues(text);
     if (cues >= 2) return null;
     if (cues === 1 && concrete.length === 0) return null;
     let intent = INTENTS.BUILD;

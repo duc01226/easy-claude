@@ -12,6 +12,8 @@
  *      recognizer (never the path text of a guide line);
  *   3. looks each tag up in the published protocol index (unknown tags are dropped; text comes only
  *      from the projection files the index names);
+ *   (A SubagentStart also reads the starting agent's own PROTOCOL-GUIDES block: an agent converted by
+ *   guide mode declares its conditional protocols there, and they are planned first.)
  *   4. keeps this group's tags, drops explicit full-body skill exceptions, drops tags the ledger view reports
  *      as delivered, drops tags the starting agent already inlines as a full SYNC body, and drops trigger-gated tags
  *      (`trigger` in the group data) unless their trigger applies — the skill's guide line stays the
@@ -581,15 +583,18 @@ function planDeliveryUnsafe(input, group, deps) {
     const isDelivered = typeof deps.isDelivered === 'function' ? deps.isDelivered : () => false;
 
     const resolved = resolveEvent(input, ctx);
-    if (!resolved.names.length) return emptyPlan();
+    // A converted agent declares its conditional protocols in its own guide block (agent guides,
+    // BR-PDL-08); they are delivered at its start like a preloaded skill's, before the skills' tags.
+    const agentTags = resolved.agentText ? declaredTags(resolved.agentText) : null;
+    if (!resolved.names.length && !agentTags) return emptyPlan();
 
     const index = loadIndex(ctx);
     if (!index || !index.groups.includes(group)) return emptyPlan();
 
     const inline = loadInlineSkills(ctx);
     if (!inline) return emptyPlan();
-    const declared = [];
-    let converted = 0;
+    const declared = agentTags ? [...agentTags] : [];
+    let converted = agentTags ? 1 : 0;
     for (const name of resolved.names) {
         // BR-PDL-11: an inline skill keeps its role protocols as full bodies, so no group delivers to it.
         if (inline.has(name)) continue;

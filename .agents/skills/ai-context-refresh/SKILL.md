@@ -4,7 +4,7 @@ description: '[Documentation] Use when generating, smart-merging or refactoring 
 ---
 
 > Codex compatibility note:
-> - Invoke `$skill-name`: load the registered `.agents/skills/<name>/SKILL.md` and execute it with Codex tools; no separate `Skill` tool or Claude mode switch is needed. Author `.claude/**`; mirrors are generated.
+> - Invoke `$skill-name`: load the registered `.agents/skills/<name>/SKILL.md` and execute it with Codex tools; no separate `Skill` tool or Claude mode switch is needed. When a workflow step or another skill names a skill, read that file in full yourself (every line, with no line limit; in parts only when output is cut off): a skill whose implicit invocation is off is never loaded for you. Author `.claude/**`; mirrors are generated.
 > - Track steps before execution and keep progress/evidence current. Explicit skill requests execute their protocol. Use the native question tool for required questions.
 > - Map foreign tool names to available host capabilities. A name mismatch needs no approval; an actually unavailable required capability stops with its step/evidence and a user question before adaptation.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -277,7 +277,7 @@ See `references/section-registry.md` for full mapping. Summary:
 | `integration-testing` | `framework.integrationTestDoc`          | Yes — skip if no doc; doc declared N/A in `referenceDocs` → one-line skip notice |
 | `e2e-testing`         | `framework.e2eTestDoc` / `e2eTesting.guideDoc`, `testing.frameworks[]`, `e2eTesting.framework`, or `e2eTesting.execution` | Yes — skip only when no guide doc AND no E2E evidence/profile; guide declared N/A with no evidence → one-line skip notice |
 | `doc-index`           | Scan `docs/` directory                  | Yes — skip if no docs/    |
-| `doc-lookup`          | `modules[]`, spec rows, `referenceDocs[]` (N/A via `notApplicable: true` or an N/A purpose → named once as a skip), docs index, `lessons.md`, ADRs — project docs that exist; excludes framework navigation | No — always generated; heading `## Doc Lookup — What to Read When`, back-filled onto older roots on `--mode update`, projected first into `AGENTS.md` |
+| `doc-lookup`          | `modules[]`, spec rows, `referenceDocs[]` (N/A via `notApplicable: true` or an N/A purpose → named once as a skip), docs index, `lessons.md`, ADRs, the knowledge index (`knowledge-base-reference.md`, unless declared N/A) — project docs that exist; excludes framework navigation | No — always generated; heading `## Doc Lookup — What to Read When`, back-filled onto older roots on `--mode update`, projected first into `AGENTS.md` |
 
 ## Running Tests
 

@@ -202,7 +202,7 @@ Task({
 
 > There is **no** portable `SubagentStart` contract shared by every host. On Claude, `SubagentStart` carries the five
 > `protocol-inject-<group>.cjs` protocol-delivery handlers, which add the full protocol texts of the skills an agent
-> preloads (`skills:` frontmatter; a body the agent file already inlines is not repeated), and the four `protocol-inject-universal-<n>.cjs` bins, which deliver the universal bundle to every agent type once per spawn. Each agent's context contract — project rules,
+> preloads (`skills:` frontmatter; a body the agent file already inlines is not repeated), and the four `protocol-inject-universal-<n>.cjs` bins, which deliver the universal bundle to every agent type once per spawn, plus the prompt-time context hooks: skill activation, core principles, UI reuse, the verdict and AI-feature directives, and knowledge pointers for the agent's role and preloaded skills (`knowledge-route.cjs`). Each agent's context contract — project rules,
 > reports path, naming, and the development-rules / lessons read contract — is carried
 > in the agent's `.md` system prompt and the shared SYNC blocks it inlines; the universal bundle
 > is the one part no agent file carries, because the `SubagentStart` hook delivers it (a host that runs no hook is unsupported). Each agent's `.md`
@@ -379,7 +379,7 @@ Every agent carries the **same role-specific quality protocol** as its twin skil
 | Injector / idempotent maintenance tool    | `.claude/scripts/inject_agent_protocol_blocks.py`                                                                                                                                                                                                                                                                      |
 | Connection-block injector                 | `.claude/scripts/inject_agent_skill_connections.py`                                                                                                                                                                                                                                                                    |
 | Canonical block bodies                    | `.claude/skills/shared/sync-inline-versions.md`                                                                                                                                                                                                                                                                        |
-| Full agent↔skill evaluation               | [`260616-agent-skill-quality-parity/research/agent-skill-mapping.md`](../../../plans/260616-agent-skill-quality-parity/research/agent-skill-mapping.md) under the plans root — default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path (the link target assumes the default) |
+| Why each agent carries its blocks         | `.claude/scripts/agent_protocol_matrix.py` module header (QUALITY propagates, ORCHESTRATION does not) and the per-family comments in `AGENT_QUALITY_BLOCKS` |
 
 **Tier model** (enforced by `agent_protocol_matrix.py` `validate()` and the `agent-universal-rules` test suite — `TC-UAR-003..007`):
 
@@ -397,7 +397,7 @@ Partition: 19 Code-6 + 2 Readonly-Code-4 + 4 Core-2 = 25 agents (pairwise disjoi
 
 - [agent-patterns.md](./agent-patterns.md) - Detailed agent usage patterns
 - [../skills/README.md](../skills/README.md) - Skills that enhance agent capabilities
-- [../hooks/README.md](../hooks/README.md) - Hook lifecycle (`SubagentStart` runs only the protocol-delivery handlers; standing sub-agent context is static in `agents/*.md`)
+- [../hooks/README.md](../hooks/README.md) - Hook lifecycle (`SubagentStart` runs the protocol-delivery handlers and the prompt-time context hooks, including knowledge pointers for the agent's role; standing sub-agent context is static in `agents/*.md`)
 - [../configuration/README.md](../configuration/README.md) - Agent configuration options
 
 ---

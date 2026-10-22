@@ -11,7 +11,7 @@ const vm = require('vm');
 const { spawn } = require('child_process');
 const { runHook } = require('../lib/hook-runner.cjs');
 const { createTempDir, cleanupTempDir } = require('../lib/test-utils.cjs');
-const { assertTrue, assertFalse, assertEqual, assertContains } = require('../lib/assertions.cjs');
+const { assertTrue, assertFalse, assertEqual, assertContains, assertNotContains } = require('../lib/assertions.cjs');
 
 // ============================================================================
 // Test Configuration
@@ -209,6 +209,9 @@ const providerEnablementTests = [
 // process env, the user-level env file under the home directory, or the workspace env file.
 const PROVIDER_ENV_PREFIX = /^(TELEGRAM|DISCORD|SLACK)_/;
 const PROVIDER_ENV_KEYS = ['DISCORD_WEBHOOK_URL', 'SLACK_WEBHOOK_URL', 'TELEGRAM_BOT_TOKEN', 'TELEGRAM_CHAT_ID'];
+// Claude tells each hook whether a developer attends the session named by the session id.
+const SESSION_ATTENDANCE_ENV_KEYS = ['CLAUDE_CODE_SESSION_ATTENDED', 'CLAUDE_CODE_SESSION_ID'];
+const ATTENDANCE_LIB = path.join(HOOKS_DIR, 'notifications', 'lib', 'conversation-attendance.cjs');
 
 /**
  * Child env for a router run that can reach no real channel: every provider key the
@@ -228,6 +231,8 @@ function isolatedRouterEnv(isolatedDir) {
     for (const key of [...Object.keys(process.env), ...PROVIDER_ENV_KEYS]) {
         if (PROVIDER_ENV_PREFIX.test(key)) env[key] = '';
     }
+    // A test run inside a headless assistant session inherits that session's attendance markers.
+    for (const key of SESSION_ATTENDANCE_ENV_KEYS) env[key] = '';
     return env;
 }
 
@@ -286,6 +291,7 @@ function loadRouterContracts({ providers = {} } = {}) {
             if (dependency === 'fs') return { existsSync: file => Boolean(fakeProviderFor(file)) };
             if (dependency === 'path') return path;
             if (dependency === './lib/env-loader.cjs') return { loadEnv: () => ({}) };
+            if (dependency === './lib/conversation-attendance.cjs') return require(ATTENDANCE_LIB);
             const fakeProvider = fakeProviderFor(dependency);
             if (fakeProvider) return fakeProvider;
             throw new Error(`Unexpected router dependency in contract test: ${dependency}`);
@@ -294,7 +300,7 @@ function loadRouterContracts({ providers = {} } = {}) {
 
     const contracts = isolatedModule.exports;
     // Eligibility is exactly the router's own skip rule: an event alerts only when no skip reason applies.
-    return { ...contracts, isEligible: input => contracts.getSkipReason(input) === null };
+    return { ...contracts, isEligible: (input, hostEnv) => contracts.getSkipReason(input, hostEnv) === null };
 }
 
 // Load a remote provider with its HTTP sender replaced, capturing each outgoing payload (no network).
@@ -490,6 +496,28 @@ const routerExecutionTests = [
         }
     },
     {
+        name: '[TC-NT-015] router skips the turn end of a headless Claude run another agent started',
+        fn: async () => {
+            // Given a print-mode Claude run started from another session: Claude tells its hooks
+            // that nobody attends this session
+            const sessionId = 'headless-child-' + Date.now();
+            const input = { hook_event_name: 'Stop', session_id: sessionId, last_assistant_message: 'Done.', background_tasks: [] };
+            const headlessEnv = { CLAUDE_CODE_SESSION_ID: sessionId, CLAUDE_CODE_SESSION_ATTENDED: '0' };
+            // When the router processes its finished turn
+            const headless = await runRouter(input, { env: headlessEnv });
+            // Then no turn-complete alert is raised, and the log names why
+            assertEqual(headless.code, 0, 'Suppressed Stop should exit cleanly');
+            assertContains(headless.stderr, 'Skipped: unattended Claude session',
+                'A headless child run must not raise a turn-complete alert');
+            // When the same turn end comes from a session the developer attends
+            const attended = await runRouter(input, { env: { ...headlessEnv, CLAUDE_CODE_SESSION_ATTENDED: '1' } });
+            // Then it is not skipped, and not because the router failed
+            assertEqual(attended.code, 0, 'Attended Stop should exit cleanly');
+            assertNotContains(attended.stderr, 'Skipped', 'The main session finishing its job must keep its alert');
+            assertNotContains(attended.stderr, 'Fatal error', 'The attended path must route, not fail');
+        }
+    },
+    {
         name: '[notification] router skips SubagentStop event (not in whitelist)',
         fn: async () => {
             // WHITELIST: Only Stop and idle_prompt are allowed - SubagentStop is blocked
@@ -653,6 +681,93 @@ const routerContractTests = [
             // And a question is never held back by background work: the developer is needed now
             assertTrue(isEligible(normalizeEvent({ hook_event_name: 'PreToolUse', tool_name: 'AskUserQuestion', background_tasks: [agentTask] })),
                 'A direct question must alert even while background work runs');
+        }
+    },
+    {
+        name: '[TC-NT-015] a Claude session nobody attends raises no alert of any kind, and only that session is judged',
+        fn: () => {
+            // Given every alert kind from one Claude session
+            const { isEligible, normalizeEvent } = loadRouterContracts();
+            const sessionId = 'claude-session-1';
+            const alerts = [
+                { hook_event_name: 'Stop', session_id: sessionId, background_tasks: [] },
+                { hook_event_name: 'SessionEnd', session_id: sessionId, reason: 'other' },
+                normalizeEvent({ hook_event_name: 'PreToolUse', tool_name: 'AskUserQuestion', session_id: sessionId }),
+                { hook_event_name: 'Notification', notification_type: 'permission_prompt', session_id: sessionId }
+            ];
+            for (const input of alerts) {
+                const label = input.notification_type || input.hook_event_name;
+                // When Claude reports that nobody attends that session (a print-mode, SDK, background
+                // or nested run) — Then the alert is withheld
+                assertFalse(isEligible(input, { CLAUDE_CODE_SESSION_ID: sessionId, CLAUDE_CODE_SESSION_ATTENDED: '0' }),
+                    `${label} from an unattended session must not alert`);
+                // When Claude reports the developer attends it — Then the alert stays eligible
+                assertTrue(isEligible(input, { CLAUDE_CODE_SESSION_ID: sessionId, CLAUDE_CODE_SESSION_ATTENDED: '1' }),
+                    `${label} from an attended session must alert`);
+                // When the markers describe another session — inherited by a hook of another host
+                // started from a headless Claude terminal — Then this event is not judged by them
+                assertTrue(isEligible(input, { CLAUDE_CODE_SESSION_ID: 'ancestor-session', CLAUDE_CODE_SESSION_ATTENDED: '0' }),
+                    `${label} must not be withheld by another session's attendance`);
+                // When the host reports no attendance at all (older hosts) — Then the alert stays eligible
+                assertTrue(isEligible(input, {}), `${label} without attendance markers must alert`);
+                assertTrue(isEligible(input), `${label} without a host env must alert`);
+            }
+            // And a payload without its own session id is never matched to the markers
+            assertTrue(isEligible({ hook_event_name: 'Stop' }, { CLAUDE_CODE_SESSION_ID: '', CLAUDE_CODE_SESSION_ATTENDED: '0' }),
+                'An unidentified session must not be judged unattended');
+        }
+    },
+    {
+        name: '[TC-NT-015] a Codex session withholds alerts only when its transcript proves an exec, mcp, subagent or internal session',
+        fn: () => {
+            // Given Codex transcripts whose header records how each session was started
+            const { isEligible } = loadRouterContracts();
+            const dir = createTempDir('notify-codex-source-');
+            const transcript = (name, header) => {
+                const file = path.join(dir, name);
+                fs.writeFileSync(file, (typeof header === 'string' ? header : JSON.stringify(header)) +
+                    '\n{"type":"event_msg","payload":{"type":"task_started"}}\n');
+                return file;
+            };
+            const session = (source, extra = {}) => ({ type: 'session_meta', payload: { id: 'thread-1', source, ...extra } });
+            const stopFrom = transcriptPath => ({ hook_event_name: 'Stop', session_id: 'thread-1', turn_id: 'turn-1',
+                last_assistant_message: 'Done.', transcript_path: transcriptPath });
+            try {
+                // When the session is a headless `codex exec` run, Codex serving another agent over MCP,
+                // or a thread Codex spawned itself — including a header longer than one read chunk
+                for (const file of [
+                    transcript('rollout-2026-01-01T00-00-00-exec.jsonl', session('exec')),
+                    transcript('rollout-2026-01-01T00-00-01-mcp.jsonl', session('mcp')),
+                    transcript('rollout-2026-01-01T00-00-02-sub.jsonl',
+                        session({ subagent: { thread_spawn: { parent_thread_id: 'parent-1', depth: 1 } } })),
+                    transcript('rollout-2026-01-01T00-00-03-internal.jsonl', session({ internal: 'memory_consolidation' })),
+                    transcript('rollout-2026-01-01T00-00-04-long.jsonl',
+                        session('exec', { base_instructions: { text: 'x'.repeat(200 * 1024) } }))
+                ]) {
+                    // Then neither its turn end nor its session end alerts
+                    assertFalse(isEligible(stopFrom(file)), `Stop from ${path.basename(file)} must not alert`);
+                    assertFalse(isEligible({ hook_event_name: 'SessionEnd', transcript_path: file }),
+                        `SessionEnd from ${path.basename(file)} must not alert`);
+                }
+                // When the session is the developer's own terminal or app session, an unrecognized
+                // custom client, a header that cannot be read (malformed, or longer than the 1 MiB
+                // read bound), or a file that is not a Codex transcript
+                for (const file of [
+                    transcript('rollout-2026-01-01T00-00-10-oversized.jsonl',
+                        session('exec', { base_instructions: { text: 'x'.repeat(1024 * 1024) } })),
+                    transcript('rollout-2026-01-01T00-00-05-cli.jsonl', session('cli')),
+                    transcript('rollout-2026-01-01T00-00-06-app.jsonl', session('vscode')),
+                    transcript('rollout-2026-01-01T00-00-07-custom.jsonl', session({ custom: 'ide-client' })),
+                    transcript('rollout-2026-01-01T00-00-08-broken.jsonl', '{"type":"session_meta","payload":'),
+                    transcript('claude-transcript.jsonl', session('exec')),
+                    path.join(dir, 'rollout-2026-01-01T00-00-09-missing.jsonl')
+                ]) {
+                    // Then nothing proves the session unattended, so its turn end keeps its alert
+                    assertTrue(isEligible(stopFrom(file)), `Stop from ${path.basename(file)} must alert`);
+                }
+            } finally {
+                cleanupTempDir(dir);
+            }
         }
     },
     {

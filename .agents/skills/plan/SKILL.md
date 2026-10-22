@@ -5,7 +5,7 @@ disable-model-invocation: false
 ---
 
 > Codex compatibility note:
-> - Invoke `$skill-name`: load the registered `.agents/skills/<name>/SKILL.md` and execute it with Codex tools; no separate `Skill` tool or Claude mode switch is needed. Author `.claude/**`; mirrors are generated.
+> - Invoke `$skill-name`: load the registered `.agents/skills/<name>/SKILL.md` and execute it with Codex tools; no separate `Skill` tool or Claude mode switch is needed. When a workflow step or another skill names a skill, read that file in full yourself (every line, with no line limit; in parts only when output is cut off): a skill whose implicit invocation is off is never loaded for you. Author `.claude/**`; mirrors are generated.
 > - Track steps before execution and keep progress/evidence current. Explicit skill requests execute their protocol. Use the native question tool for required questions.
 > - Map foreign tool names to available host capabilities. A name mismatch needs no approval; an actually unavailable required capability stops with its step/evidence and a user question before adaptation.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -94,6 +94,8 @@ Use direct repository inspection for focused work. Add research agents or extern
 ## Plan Artifact Contract
 
 Write `plan.md` under the configured plans root. Use this compact shape; omit a section only with a stated `N/A` reason.
+
+A plans root that `git check-ignore` lists holds working artifacts that other clones never see: a tracked record, spec or doc names a plan by its id or title and never by path. Read [the record reference rules](../task-track/references/integration-guide.md#records-another-skill-authors) when a plan feeds a tracked record.
 
 ### Plan profile — full or light
 

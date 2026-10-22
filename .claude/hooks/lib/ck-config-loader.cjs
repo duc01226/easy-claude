@@ -150,8 +150,30 @@ function loadConfigFromPath(configPath) {
 const LAYER_FILES = {
   personal: "~/.claude/.ck.json",
   project: ".claude/.ck.json",
+  team: "the project config (docs/project-config.json or portability.projectConfigPath)",
   checkout: ".claude/.ck.local.json",
 };
+
+/**
+ * The team layer of the delivery profile: `contextDelivery` from the project-owned config. The
+ * framework-shipped `.claude/.ck.json` is replaced by a framework refresh, so a team default lives in
+ * the project config instead (like `frameworkRuntime` and `skillProfile`). Only `contextDelivery` is
+ * read from it; every other key keeps its own owner. A project config that is not a readable JSON object
+ * declares nothing here (its own loader reports it, so hooks stay quiet on a mid-edit file); an invalid
+ * `contextDelivery` value inside a readable one is a declaration error and resolves `compatible`.
+ */
+function readTeamLayer(projectRoot) {
+  let configPath;
+  try {
+    configPath = require("../../scripts/lib/workflow-routing-config.cjs").resolveProjectConfigPath(projectRoot);
+  } catch {
+    return { config: null, unreadable: false };
+  }
+  const layer = readLayer(configPath);
+  // The project config has its own owner, which reports a broken file; here it simply declares nothing.
+  if (!layer.config || layer.unreadable) return { config: null, unreadable: false };
+  return { config: Object.prototype.hasOwnProperty.call(layer.config, "contextDelivery") ? { contextDelivery: layer.config.contextDelivery } : {}, unreadable: false };
+}
 
 /**
  * The delivery profile from the settings layers, lowest precedence first.
@@ -310,11 +332,14 @@ function loadConfig(options = {}) {
     { source: "checkout", ...readLayer(path.join(projectRoot, ".claude", ".ck.local.json")) },
   ];
   const [globalConfig, localConfig, localOverrideConfig] = layers.map(layer => layer.config);
+  // The delivery profile also reads the team layer (project config), between the shipped defaults and the checkout.
+  const team = { source: "team", ...readTeamLayer(projectRoot) };
+  const deliveryLayers = [layers[0], layers[1], team, layers[2]];
 
   // No config files found - use defaults. An unreadable file still decides the delivery profile.
   if (!globalConfig && !localConfig && !localOverrideConfig) {
     const defaults = getDefaultConfig(includeProject, includeAssertions, includeLocale);
-    if (layers.some(layer => layer.unreadable)) defaults.contextDelivery = resolveContextDelivery(layers);
+    if (deliveryLayers.some(layer => layer.unreadable) || (team.config && Object.keys(team.config).length)) defaults.contextDelivery = resolveContextDelivery(deliveryLayers);
     return defaults;
   }
 
@@ -351,7 +376,7 @@ function loadConfig(options = {}) {
     // Generic portability config (always included)
     result.portability = merged.portability || DEFAULT_CONFIG.portability;
 
-    result.contextDelivery = resolveContextDelivery(layers);
+    result.contextDelivery = resolveContextDelivery(deliveryLayers);
 
     // Validate merged config — emit warnings to stderr, never block
     const validation = validateCkConfig(merged);

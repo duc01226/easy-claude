@@ -224,3 +224,66 @@ def strip_universal(content: str, strip_tags=None):
             content = content[:start] + content[end:]
         removed.append("root-pointer")
     return content, removed, []
+
+
+# ─── Agent guides ───────────────────────────────────────────────────────────
+# `agentGuides` in `.claude/skills/shared/protocol-groups.json` is an opt-in policy (off by default):
+# when enabled, an agent carries a trigger-gated protocol it does not keep inline as ONE guide line
+# instead of its body. `sync-update-blocks.py --mode=agent-guide` applies it in both directions
+# (convert, and restore when a tag is no longer converted), and `inject_agent_protocol_blocks.py` asks
+# `agent_guide_converts` before honouring a guide line. This is the one reader of that policy.
+
+
+def load_agent_guide_policy() -> dict:
+    """{"enabled", "keepInline", "triggerTags"} from protocol-groups.json. Fails closed on a malformed
+    `agentGuides` entry; an absent entry means disabled (agents keep full bodies)."""
+    import json
+
+    try:
+        data = json.loads(GROUPS_FILE.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise SystemExit(f"ERROR: cannot read {GROUPS_FILE}: {exc}")
+    trigger_tags = {
+        tag for group in (data.get("groups") or {}).values() if isinstance(group, dict)
+        for tag, row in (group.get("tags") or {}).items() if isinstance(row, dict) and row.get("trigger")
+    }
+    config = data.get("agentGuides")
+    if config is None:
+        return {"enabled": False, "keepInline": {}, "triggerTags": trigger_tags}
+    keep = config.get("keepInline", {}) if isinstance(config, dict) else None
+    if not isinstance(config, dict) or not isinstance(config.get("enabled"), bool) or not isinstance(keep, dict) or not all(
+        isinstance(k, str) and isinstance(v, list) and all(isinstance(x, str) for x in v) for k, v in keep.items()
+    ):
+        raise SystemExit(f"ERROR: {GROUPS_FILE} agentGuides must be {{enabled: bool, keepInline: {{agent: [tags]}}}}")
+    return {"enabled": config["enabled"], "keepInline": {k: set(v) for k, v in keep.items()}, "triggerTags": trigger_tags}
+
+
+def agent_guide_converts(policy: dict, agent: str, tag: str) -> bool:
+    """True when the policy carries `tag` as a guide line in `agent`: enabled, trigger-gated, not kept
+    inline for that agent, and not a code-tier rule every code agent carries
+    (`agent_protocol_matrix.CODE_TIER_TAGS`, the owner of that tier)."""
+    from agent_protocol_matrix import CODE_TIER_TAGS  # lazy: the matrix module imports this one
+
+    return (
+        bool(policy["enabled"])
+        and tag in policy["triggerTags"]
+        and tag not in CODE_TIER_TAGS
+        and tag not in policy["keepInline"].get(agent, set())
+    )
+
+
+def remove_guide_entry(text: str, tag: str) -> str:
+    """Drop `tag`'s guide line; a PROTOCOL-GUIDES block left with no guide line is removed whole."""
+    for block in _GUIDE_BLOCK_RE.finditer(text):
+        entries = _parse_guide_lines(block.group("body"))
+        line = next((row[1] for row in entries if row[0] == tag), None)
+        if line is None:
+            continue
+        if len(entries) == 1:
+            start, end = block.start(), block.end()
+            while text.startswith("\n", end):
+                end += 1
+            return text[:start] + text[end:]
+        body = block.group("body").replace(line + "\n", "", 1)
+        return text[: block.start("body")] + body + text[block.end("body"):]
+    return text

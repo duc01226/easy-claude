@@ -43,12 +43,30 @@ const SKILL_NAME_PATTERN = /^[a-z0-9][a-z0-9-]*$/;
  * 'arrayOf' = array of objects matching a sub-schema
  */
 const SCHEMA = {
+  contextDelivery: {
+    type: "object",
+    required: false,
+    describe: "Team default for the guidance delivery profile (compatible or concise). Kept in the project config because the framework-shipped .claude/.ck.json is replaced on refresh. Order, later wins: ~/.claude/.ck.json, .claude/.ck.json, this file, checkout .claude/.ck.local.json. A malformed value resolves compatible.",
+    properties: {
+      profile: { type: "string", required: false, enumValues: ["compatible", "concise"], describe: "compatible: the full universal bundle; concise: the short universal core and route cue." },
+    },
+  },
+  knowledgeRoute: {
+    type: "object",
+    required: false,
+    describe: "Team settings for the knowledge router (knowledge-route.cjs). Kept in the project config because the framework-shipped .claude/.ck.json is replaced on refresh. Read per key, later wins: .claude/.ck.json, this file, checkout .claude/.ck.local.json; CK_KNOWLEDGE_ROUTE=0 always switches it off.",
+    properties: {
+      enabled: { type: "boolean", required: false, describe: "false switches every knowledge pointer off (prompt, skill and helper-agent triggers). Default true." },
+      promptTriggers: { type: "boolean", required: false, describe: "true turns prompt-phrase triggers on, false off; when unset, the recorded held-out evaluation (.claude/knowledge-base/evaluation.json) decides." },
+    },
+  },
   frameworkRuntime: {
     type: "object",
     required: false,
     describe: "Framework on, quiet (no context injection; review checks remain), or off. Use framework-mode.cjs to reconcile Claude/Codex native skills too; personal settings never change tracked projections.",
     properties: {
       mode: { type: "string", required: false, enumValues: ["on", "quiet", "off"], describe: "Modes on, quiet, off (default on); later wins: project config, ~/.claude/.ck.json, checkout .claude/.ck.local.json, CK_FRAMEWORK_MODE. Hooks see changes immediately; run framework-mode.cjs apply for native skill changes, then start fresh sessions." },
+      quietProjectRules: { type: "boolean", required: false, describe: "With mode quiet, true keeps only the hooks that deliver the project's own rules: skill overlays, per-file conventions and the skill auto-trigger policy. Default false; later wins: project config, ~/.claude/.ck.json, checkout .claude/.ck.local.json, CK_QUIET_PROJECT_RULES." },
     },
   },
     taskTracking: TASK_TRACKING_SCHEMA,

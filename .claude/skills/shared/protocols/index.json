@@ -127,12 +127,12 @@
       "group": "universal",
       "summary": "Disposable generated output goes under the workspace tmp directory",
       "when": "delivered by the universal hook",
-      "chars": 966,
+      "chars": 1438,
       "file": ".claude/skills/shared/protocols/artifact-storage.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/artifact-storage.md",
-          "chars": 966
+          "chars": 1438
         }
       ]
     },
@@ -239,12 +239,12 @@
       "group": "design",
       "summary": "Consolidated essential working and discovery contract",
       "when": "concise universal delivery",
-      "chars": 8953,
+      "chars": 8950,
       "file": ".claude/skills/shared/protocols/concise-agent-core.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/concise-agent-core.md",
-          "chars": 8953
+          "chars": 8950
         }
       ]
     },
@@ -1167,12 +1167,12 @@
       "group": "workflow-task",
       "summary": "Protocol copies in carriers are intentional: edit the canonical source, then propagate",
       "when": "editing a shared protocol or its carriers",
-      "chars": 2608,
+      "chars": 3054,
       "file": ".claude/skills/shared/protocols/shared-protocol-duplication-policy.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/shared-protocol-duplication-policy.md",
-          "chars": 2608
+          "chars": 3054
         }
       ]
     },

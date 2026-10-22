@@ -76,11 +76,23 @@ Portable commands require Node only unless tokenization is explicitly requested:
   `--keep-worlds` is given.
 - `node .claude/scripts/context-delivery-evaluate.cjs --adapter <adapter.json>`
   runs a user-selected, authorized isolated host adapter. JSON declares a literal
-  `executable`, string `args`, and `isolationVerified: true`. Each job arrives on
-  stdin with `cwd`, policy, prompt and source identities. Return actual host
+  `executable`, string `args`, and `isolationVerified: true`; an optional
+  `jobTimeoutMs` (30,000 to 1,800,000, default 180,000) gives a slower model or
+  host a longer per-job limit. Each job arrives on
+  stdin with `cwd`, policy, prompt and source identities, plus `jobTimeoutMs` (the
+  evaluator stops the adapter at that limit, so the adapter fits its host runs and
+  cleanup inside it) and `scratchDir` (a temporary folder for the adapter's private
+  files, such as a copied sign-in file; the evaluator removes it after the job, even
+  when it had to stop the adapter). Return actual host
   ordered `toolEvents` (`action`, `command`, `readPaths`, `changedPaths`, `output`,
-  `exitCode`), model/settings hash, host and
-  input/output token usage as JSON. The adapter must enforce native permissions,
+  `exitCode`), model/settings hash, host,
+  input/output token usage and `attempts` (host runs the job took) as JSON. A job
+  that fails blocks the run: the evaluator never retries a job and never keeps a
+  favorable subset. An adapter may retry a host or transport failure (the host could
+  not start, crashed, or reported a dropped connection, server error, overload or rate
+  limit) once, from the job's starting world and inside the job's limit; a completed
+  turn, a timeout or a failed turn the model caused is a result and is never retried.
+  Each record keeps the reported `attempts` (`null` when an adapter reports none). The adapter must enforce native permissions,
   prevent ancestor guidance contamination, retain equal settings across profiles,
   make framework discovery files read-only, record filesystem changes around each
   tool event, and use no new provider/spending without authorization. `action` is
@@ -95,9 +107,47 @@ Portable commands require Node only unless tokenization is explicitly requested:
   collected output plus chunk text is limited to 4 MiB and 4,096 chunks; each
   event also has at most 4,096 chunks. Failed, late or unrelated reads cannot fill
   gaps. Malformed ranges or exceeded budgets make observation incomplete.
-  Unknown or incomplete observations block evidence. No isolated host adapter
-  or permission bypass is bundled; the declaration records a prerequisite and
-  does not establish isolation proof by itself. Optional
+  Unknown or incomplete observations block evidence. A reference Claude Code adapter
+  ships at `.claude/scripts/context-evaluation-adapters/claude-code.mjs`: a
+  PostToolUse observer hook records each tool call's changed files, reads carry raw
+  file text, user settings/hooks/MCP servers are excluded and web tools are disabled
+  (`CTX_EVAL_MODEL` picks the model; run the same file per model to compare a frontier
+  and a smaller model). Containment, because the run is an agent with a shell and some
+  cases tempt it to publish: shell commands run in Claude Code's OS sandbox (writes only
+  in the world and the per-user temp directory, no network, no unsandboxed fallback, and
+  the run refuses to start without the sandbox), permission mode `acceptEdits` denies
+  anything that would need approval, the child receives an allowlisted environment
+  (`CTX_EVAL_PASS_ENV` adds a provider's variables) whose model credentials and passed
+  names are unset for sandboxed commands, and the adapter refuses a world that has an
+  ancestor `CLAUDE.md`, `CLAUDE.local.md`, `.claude/CLAUDE.md` or `.git`, so pass
+  `--output` outside any project. macOS runs as is; Linux and WSL2 need the sandbox's
+  optional seccomp filter, which blocks Unix sockets such as a Docker socket or WSL's
+  Windows-launch socket (`npm install -g @anthropic-ai/sandbox-runtime`, then
+  `CTX_EVAL_LINUX_SANDBOX_VERIFIED=1`); native Windows is refused. Reads are not
+  confined, so run it as a user without secrets you would not show the model.
+  The policy text reaches the run through `--append-system-prompt`, the same
+  channel for both profiles but not the production hook channel.
+  A reference Codex adapter ships beside it (`codex.mjs`) for a hosted model or an
+  open-weight model served locally (`CTX_EVAL_CODEX_OSS=1`, Ollama or LM Studio
+  through `codex --oss`): events come from `codex exec --json` and a world snapshot
+  after each item; Codex's `workspace-write` sandbox runs with network off and the
+  temp directories excluded, a private temporary `CODEX_HOME` holds only a copy of the
+  sign-in file, the policy goes in as developer instructions, and the adapter refuses
+  a world under an ancestor `AGENTS.md`, `CLAUDE.md` or `.git` and on native Windows.
+  It is the reference adapter that retries: one retry of a host or transport failure,
+  only when at least 30 s of the job's limit remain, reported as `attempts: 2`; a run
+  past its limit gets SIGTERM and, after a short grace, SIGKILL for its process group,
+  and a SIGTERM or SIGINT to the adapter stops the Codex run and removes the private
+  home and world backup before it exits. The Claude Code adapter never retries.
+  A command the sandbox refuses before it starts may not appear as an event.
+  Both adapters share `adapter-common.mjs`: a shell statement that only reads (for
+  example `cat a b` inside `ls; cat a b`) credits its files, an empty host scratch
+  folder such as Claude Code's `.claude/.cc-writes` is removed before grading (a
+  non-empty one stays), and the environment allowlist and ancestor check are one rule. It does
+  not make discovery files read-only; the grader still flags any change to them. One
+  host/platform lane is evidence for that lane, never the cross-lane adoption verdict.
+  The adapter declaration records a prerequisite and does not establish isolation
+  proof by itself. Optional
   `saveRedactedTrajectories` requires the adapter to redact its output first; default diagnostics contain identities only.
 - `node .claude/scripts/context-delivery-audit.cjs assess <evidence.json>` checks
   complete paired records, fixture/policy identities, mandatory outcomes,

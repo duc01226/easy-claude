@@ -15,7 +15,7 @@ Read this index when locating the authoritative document for a project question 
 - Resolve configured roots; regenerate category globs into a normalized unique-path union.
 - Compare broad `docs/**/*.md` results with the category union and expose every remainder.
 - Verify relationships and lookup paths; keep every path real, unique, and traceable to the current tree.
-- Index 524 unique authored Markdown files across 12 categories; `docs/` contains 55 files with 0 uncategorized. Design System is a one-file Project Reference subset counted once.
+- Index 564 unique authored Markdown files across 12 categories; `docs/` contains 58 files with 0 uncategorized. Design System is a one-file Project Reference subset counted once.
 
 ## Contents
 
@@ -45,7 +45,7 @@ Read this index when locating the authoritative document for a project question 
 
 ## Documentation System
 
-524 unique authored markdown files across 12 indexed categories. Last scanned: 2026-10-17.
+564 unique authored markdown files across 12 indexed categories. Last scanned: 2026-10-22.
 
 **Relocatable roots.** Resolve these configurable roots before running their category globs:
 
@@ -59,17 +59,17 @@ The **Reproducible scope** column states each glob relative to its category's ro
 | Category               | Verified count | Reproducible scope                                                                    |
 | ---------------------- | -------------: | ------------------------------------------------------------------------------------- |
 | Root-Level Docs        |              3 | root-only `*.md`                                                                      |
-| Project Reference      |             19 | `**/*.md` under the project-reference docs root                                       |
+| Project Reference      |             20 | `**/*.md` under the project-reference docs root                                       |
 | Operations             |              0 | direct getting-started/deployment/operations/runbook/setup/install/configuration docs |
 | Design System          |              1 | `design-system/**/*.md` under the project-reference docs root                         |
-| Feature Specs          |             20 | `*/README.*.md` under the business spec root                                          |
+| Feature Specs          |             21 | `*/README.*.md` under the business spec root                                          |
 | Spec Catalogs          |              6 | `*/INDEX.md` under the business spec root                                             |
-| Architecture Decisions |              5 | `**/*.md` under the ADR root                                                          |
+| Architecture Decisions |              6 | `**/*.md` under the ADR root                                                          |
 | Templates              |              1 | `**/*.md` under the templates root                                                    |
 | Release Notes          |              3 | `docs/release/**/*.md` + `docs/release-notes/**/*.md`                                 |
 | Knowledge Reports      |              1 | `docs/knowledge/**/*.md`                                                             |
 | Framework Docs         |             43 | `.claude/docs/**/*.md`                                                                |
-| Skill Markdown         |            423 | `rg --files .claude/skills -g '*.md'`                                                 |
+| Skill Markdown         |            460 | `rg --files .claude/skills -g '*.md'`                                                 |
 
 The unique total is the normalized union returned by `rg --files` for Root-Level Docs, all `docs/**/*.md`, Framework Docs, and Skill Markdown. Design System is nested inside Project Reference, so its count is informative rather than additive. For this inventory, the authored/tracked scope includes generated protocol projections deliberately published as reader-facing documentation; Codex/OpenCode mirrors are excluded. Ignored dependency artifacts such as skill-local `.venv/` files are excluded.
 
@@ -82,14 +82,15 @@ easy-claude/
 ├── AGENTS.md                                      # Codex/agent instructions
 ├── CLAUDE.md                                      # Claude project instructions
 ├── README.md                                      # Project overview and adoption entry point
-├── docs/                                          # 55 markdown files
-│   ├── adr/                                       # 5 architecture decisions
+├── docs/                                          # 58 markdown files
+│   ├── adr/                                       # 6 architecture decisions
 │   │   ├── 0001-skill-lifecycle.md
 │   │   ├── 0002-canonical-count-metrics.md
 │   │   ├── 0003-config-driven-doc-and-spec-roots.md
 │   │   ├── 0004-protocol-delivery-hybrid.md
-│   │   └── 0005-work-tracker-vocabulary-and-migration.md
-│   ├── project-reference/                         # 19 files
+│   │   ├── 0005-work-tracker-vocabulary-and-migration.md
+│   │   └── 0006-knowledge-base-planes-and-pointer-delivery.md
+│   ├── project-reference/                         # 20 files
 │   │   ├── backend-patterns-reference.md
 │   │   ├── code-review-rules.md
 │   │   ├── custom-prompts-reference.md
@@ -100,6 +101,7 @@ easy-claude/
 │   │   ├── frontend-patterns-reference.md
 │   │   ├── performance-test-reference.md
 │   │   ├── integration-test-reference.md
+│   │   ├── knowledge-base-reference.md
 │   │   ├── lessons.md
 │   │   ├── project-structure-reference.md
 │   │   ├── scss-styling-guide.md
@@ -117,8 +119,9 @@ easy-claude/
 │   │   │   ├── README.AdoptionSwitches.md
 │   │   │   ├── README.AdoptionSwitches-Part2.md
 │   │   │   └── README.SkillActivationPolicy.md
-│   │   ├── ContextDelivery/                       # 5 Feature Specs + 1 bucket catalog
+│   │   ├── ContextDelivery/                       # 6 Feature Specs + 1 bucket catalog
 │   │   │   ├── INDEX.md
+│   │   │   ├── README.KnowledgeDelivery.md
 │   │   │   ├── README.PerFileConventionInjection.md
 │   │   │   ├── README.ProjectContextIntake.md
 │   │   │   ├── README.ProtocolDelivery.md
@@ -154,7 +157,7 @@ easy-claude/
 │   ├── hooks/                                     # 3
 │   ├── skills/                                    # 2
 │   └── team-artifacts/templates/                  # 6
-└── .claude/skills/                                # 423 authored/tracked markdown assets
+└── .claude/skills/                                # 460 authored/tracked markdown assets
 ```
 
 Absent whitelist branches: Operations only.
@@ -194,6 +197,7 @@ docs/specs/Adoption/INDEX.md
 └── README.SkillActivationPolicy.md
 
 docs/specs/ContextDelivery/INDEX.md
+├── README.KnowledgeDelivery.md
 ├── README.PerFileConventionInjection.md
 ├── README.ProjectContextIntake.md
 ├── README.ProtocolDelivery.md
@@ -251,6 +255,7 @@ Read `docs/project-config.json` first for any project question or task — paths
 | Project Reference | planning, writing, running, fixing or reviewing performance/load/capacity tests — project preferences, reusable harness, workload/data/hardware/SLO budgets and evidence | `performance-test-reference.md` |
 | Project Reference      | a saved project prompt, playbook, or runbook may apply                                                                                                                             | `custom-prompts-reference.md`                                                                               |
 | Project Reference      | about to run any skill — check project overlays                                                                                                                                    | `skill-protocols-reference.md`                                                                              |
+| Project Reference | a task touches subject knowledge — a domain rule, regulation or chosen practice; lists project and framework knowledge packs | `knowledge-base-reference.md` |
 | Design System          | reusing skill-local visual assets or checking design ownership                                                                                                                     | `design-system/README.md`                                                                                   |
 | Framework Docs         | generating, planning, or reviewing any user-facing surface — journey-first UX process (`UX-1`–`UX-11`), read before `design-knowledge.md`                                          | `.claude/docs/ux-journey-process.md`                                                                        |
 | Skill Markdown         | generating a screenshot demo video for changes, a commit, PR or user journey, covering every relevant E2E case | `.claude/skills/e2e-demo/SKILL.md` |
@@ -258,6 +263,8 @@ Read `docs/project-config.json` first for any project question or task — paths
 | Skill Markdown | converting a wireframe image into a design spec — read after the design-spec entrypoint journey/context gates | `.claude/skills/design-spec/references/wireframe.md` |
 | Skill Markdown | producing an accessibility-audit deliverable — select the platform standard and retain unverified coverage | `.claude/skills/design-spec/references/accessibility-audit.md` |
 | Skill Markdown | changing scan/enhancement quality rules — regression corpus, semantic grading and baseline checks | `.claude/skills/scan/tests/README.md` |
+| Skill Markdown | drafting, importing, updating or asking about a knowledge pack — operations and the pack format | `.claude/skills/knowledge-base/SKILL.md`, `.claude/skills/knowledge-base/references/pack-format.md` |
+| Framework Docs | browsing the framework's own knowledge packs (generated reader list; outside the counted categories) | `.claude/knowledge-base/README.md` |
 | Framework Docs         | reviewing an AI feature or plan — read the section for the touched surface only, never whole unless running the AI review                                                          | `.claude/docs/ai-engineering-review-checklist.md`                                                           |
 | Framework Docs         | needing the rationale or a clause of AI-engineering practice (RAG, tool use, agents, evals, safety, cost) — read by clause                                                         | `.claude/docs/ai-engineering-knowledge.md`                                                                  |
 | Framework Docs         | calibrating the severity of an AI-feature finding — read by section                                                                                                                | `.claude/docs/ai-engineering-calibration.md`                                                                |
@@ -268,6 +275,7 @@ Read `docs/project-config.json` first for any project question or task — paths
 | Feature Specs          | changing the session prompt ledger (SPL)                                                                                                                                           | `ContextDelivery/README.SessionPromptLedger.md`                                                             |
 | Feature Specs          | changing workflow routing, the route payload, or activation tiers (WFR)                                                                                                            | `ContextDelivery/README.WorkflowRouting.md`                                                                 |
 | Feature Specs          | changing how shared protocols reach the assistant: guide lines, delivery hooks, host mapping (PDL)                                                                                 | `ContextDelivery/README.ProtocolDelivery.md`                                                                |
+| Feature Specs | changing knowledge packs, their indexes, triggers, pointer delivery, trust labels or `/knowledge-base` operations (KNW) | `ContextDelivery/README.KnowledgeDelivery.md` |
 | Feature Specs          | changing how a chosen workflow runs: step roles, outcome gates, deviation log, the spec-supplied route, scope guard, usage report, token checkpoint (GWF)                          | `WorkflowExecution/README.GuidedWorkflow.md`                                                                |
 | Feature Specs          | changing adoption switches: code graph, commit trailer, command-only skills, compaction (ADS)                                                                                      | `Adoption/README.AdoptionSwitches.md` (release-D cases in `Adoption/README.AdoptionSwitches-Part2.md`)      |
 | Feature Specs          | changing assistant session notifications (NT)                                                                                                                                      | `Notifications/README.AssistantSessionNotifications.md`                                                     |
@@ -281,6 +289,7 @@ Read `docs/project-config.json` first for any project question or task — paths
 | Architecture Decisions | asking why an architecture choice or convention exists                                                                                                                             | the ADR root itself                                                                                         |
 | Architecture Decisions | asking why protocols are delivered by hooks with guide-line fallback instead of inline copies                                                                                      | `0004-protocol-delivery-hybrid.md`                                                                          |
 | Architecture Decisions | changing work-tracker terminology, retained identity or legacy-record migration | `0005-work-tracker-vocabulary-and-migration.md` |
+| Architecture Decisions | asking why knowledge lives in two planes with generated indexes and is delivered as pointers only | `0006-knowledge-base-planes-and-pointer-delivery.md` |
 | Templates              | writing a new detailed Feature Spec                                                                                                                                                | `detailed-feature-spec-template.md`                                                                         |
 | Release Notes          | checking release history                                                                                                                                                           | `docs/release/`, `docs/release-notes/`                                                                      |
 | Framework Docs         | asking how hooks, skills, agents, workflows, or configuration work                                                                                                                 | `.claude/docs/README.md`                                                                                    |
@@ -308,7 +317,7 @@ Read `docs/project-config.json` first for any project question or task — paths
 
 ### Resolved default paths (tooling index)
 
-With no `docsRoots.projectReference.path` entry in `docs/project-config.json`, the 19 project-reference docs above resolve to: `docs/project-reference/backend-patterns-reference.md`, `docs/project-reference/code-review-rules.md`, `docs/project-reference/custom-prompts-reference.md`, `docs/project-reference/design-system/README.md`, `docs/project-reference/docs-index-reference.md`, `docs/project-reference/domain-entities-reference.md`, `docs/project-reference/e2e-test-reference.md`, `docs/project-reference/feature-spec-reference.md`, `docs/project-reference/frontend-patterns-reference.md`, `docs/project-reference/integration-test-reference.md`, `docs/project-reference/performance-test-reference.md`, `docs/project-reference/lessons.md`, `docs/project-reference/project-structure-reference.md`, `docs/project-reference/scss-styling-guide.md`, `docs/project-reference/seed-test-data-reference.md`, `docs/project-reference/skill-protocols-reference.md`, `docs/project-reference/spec-principles.md`, `docs/project-reference/spec-system-reference.md`, `docs/project-reference/workflow-spec-test-code-cycle-reference.md`. An override moves every one of them; the filenames never change.
+With no `docsRoots.projectReference.path` entry in `docs/project-config.json`, the 20 project-reference docs above resolve to: `docs/project-reference/backend-patterns-reference.md`, `docs/project-reference/code-review-rules.md`, `docs/project-reference/custom-prompts-reference.md`, `docs/project-reference/design-system/README.md`, `docs/project-reference/docs-index-reference.md`, `docs/project-reference/domain-entities-reference.md`, `docs/project-reference/e2e-test-reference.md`, `docs/project-reference/feature-spec-reference.md`, `docs/project-reference/frontend-patterns-reference.md`, `docs/project-reference/integration-test-reference.md`, `docs/project-reference/knowledge-base-reference.md`, `docs/project-reference/performance-test-reference.md`, `docs/project-reference/lessons.md`, `docs/project-reference/project-structure-reference.md`, `docs/project-reference/scss-styling-guide.md`, `docs/project-reference/seed-test-data-reference.md`, `docs/project-reference/skill-protocols-reference.md`, `docs/project-reference/spec-principles.md`, `docs/project-reference/spec-system-reference.md`, `docs/project-reference/workflow-spec-test-code-cycle-reference.md`. An override moves every one of them; the filenames never change.
 
 ## Uncategorized Files
 

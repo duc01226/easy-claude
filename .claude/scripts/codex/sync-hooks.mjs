@@ -77,6 +77,7 @@ const codexSessionStartMirrors = new Map([
     ".claude/hooks/core-principles-inject.cjs",
     ".claude/hooks/judgement-integrity-route.cjs",
     ".claude/hooks/ai-feature-route.cjs",
+    ".claude/hooks/knowledge-route.cjs",
     ".claude/hooks/workflow-route-inject.cjs",
     ".claude/hooks/workflow-catalog-inject.cjs",
   ].map(hookPath => [
@@ -191,17 +192,31 @@ export const PROTOCOL_CONTEXT_LIMIT = 3000;
 // load path. Codex has no UserPromptExpansion; an explicit `$skill` there injects the
 // SKILL.md with no tool call, so UserPromptSubmit is the Codex load path. Only
 // protocol entries are remapped (their early exit reads either event's input); any
-// other handler on the event is reported, never silently re-targeted.
+// other handler on the event is reported, never silently re-targeted. A handler Claude
+// also registers on the target event already receives that Codex input there, so it is
+// reported as `already-on-remap-target` (re-targeting it would only run it twice);
+// every other one is `remap-limited-to-protocol-entries`.
 const codexEventRemaps = new Map([
   ["UserPromptExpansion", { target: "UserPromptSubmit", reason: "remapped-to-user-prompt-submit" }],
 ]);
 
 // Claude tools Codex never emits. A protocol group whose matcher names ONLY these
 // can never fire on Codex, so it is not mirrored (reported as
-// `matcher-names-no-codex-tool`). Scoped to protocol entries: other handlers keep
-// today's verbatim render. Never alias these to a Codex tool — `codexToolAliases`
-// stays mutation-only.
+// `matcher-names-no-codex-tool`). Scoped to protocol entries and the reviewed hooks in
+// `codexClaudeToolOnlyHooks`: other handlers keep today's verbatim render. Never alias
+// these to a Codex tool — `codexToolAliases` stays mutation-only.
 const CODEX_ABSENT_TOOLS = new Set(["Read", "Skill"]);
+
+// Non-protocol hooks whose groups keyed only to CODEX_ABSENT_TOOLS are not mirrored
+// either, because the hook's own host contract says Codex has no such trigger: a
+// rendered handler would register something the host can never fire. One reviewed
+// row per hook; every other handler keeps the verbatim render above.
+const codexClaudeToolOnlyHooks = new Map([
+  [
+    ".claude/hooks/knowledge-route.cjs",
+    "spec KNW BR-KNW-20: Codex has no skill-invocation or file-read event; the hook's UserPromptSubmit row reads `$skill` tokens instead",
+  ],
+]);
 const TOOL_EVENTS = new Set(["PreToolUse", "PostToolUse", "PermissionRequest"]);
 
 // Codex reads a skill file implicitly through its shell (`Get-Content -Raw
@@ -356,6 +371,18 @@ export function normalizeCommand(command, { windows = false } = {}) {
   return normalized;
 }
 
+// Normalized commands of every handler in `groups` (one Claude event's registrations).
+function registeredCommands(groups) {
+  const commands = new Set();
+  for (const group of Array.isArray(groups) ? groups : []) {
+    for (const hook of Array.isArray(group?.hooks) ? group.hooks : []) {
+      const command = normalizeCommand(hook?.command);
+      if (command) commands.add(command);
+    }
+  }
+  return commands;
+}
+
 function pushSkip(report, eventName, groupIndex, reason, matcher) {
   report.skipped_groups.push({
     event: eventName,
@@ -401,7 +428,7 @@ async function main(targetDir = codexDir) {
       "SessionStart hooks are omitted from the generated Codex config by default so startup context is not duplicated; both hosts load the same static files, and an adopter may add a local startup hook as an optional accelerator.",
       "EXCEPTION: SessionStart hooks on the codexSessionStartMirrors allowlist ARE mirrored. They produce a runtime signal that a mirrored non-SessionStart hook consumes, so skipping them would leave the consumer registered and permanently unreachable rather than merely un-accelerated. The report's session_start_mirrors array names each one and the consumer that forces it.",
       "The failure investigation reminder uses a conditional shell PreToolUse hint because local Codex PostToolUse responses do not promise exit status. It uses the no-Git launcher and a mirrored compact/clear reset. Claude's native PostToolUseFailure accelerator is unsupported and explicitly reported as skipped; no tool-output scanning is substituted.",
-      "Protocol delivery entries (.claude/hooks/protocol-inject-<name>.cjs and .claude/hooks/skill-overlay-remind.cjs) map differently, and only they do: UserPromptExpansion groups join UserPromptSubmit (reported as remapped-to-user-prompt-submit); groups keyed only to Read or Skill, tools Codex never emits, are not mirrored (matcher-names-no-codex-tool); the Read group's entries render once more on the Codex shell tool, Bash (codex_only_groups); a SubagentStart agent-type list is anchored because Codex matchers are unanchored regexes; each entry carries additionalContextLimit 3000 and a launcher without the Git step. Project Node launch commands use the POSIX runtime bootstrap and original Windows override; changed definitions need review in Codex /hooks before they run.",
+      "Protocol delivery entries (.claude/hooks/protocol-inject-<name>.cjs and .claude/hooks/skill-overlay-remind.cjs) map differently, and only they do: UserPromptExpansion groups join UserPromptSubmit (reported as remapped-to-user-prompt-submit), while another handler there stays on Claude — reported as already-on-remap-target when Claude also registers it on UserPromptSubmit, else as remap-limited-to-protocol-entries; groups keyed only to Read or Skill, tools Codex never emits, are not mirrored (matcher-names-no-codex-tool), nor are such groups of the reviewed hooks in codexClaudeToolOnlyHooks (knowledge-route.cjs); the Read group's protocol entries render once more on the Codex shell tool, Bash (codex_only_groups); a SubagentStart agent-type list is anchored because Codex matchers are unanchored regexes; each entry carries additionalContextLimit 3000 and a launcher without the Git step. Project Node launch commands use the POSIX runtime bootstrap and original Windows override; changed definitions need review in Codex /hooks before they run.",
     ],
     session_start_mirrors: [...codexSessionStartMirrors].map(([hook, reason]) => ({
       hook,
@@ -459,6 +486,7 @@ async function main(targetDir = codexDir) {
     }
 
     const mappedGroups = [];
+    const onRemapTarget = remap ? registeredCommands(claudeHooks[remap.target]) : null;
 
     for (let i = 0; i < groups.length; i += 1) {
       const group = groups[i] ?? {};
@@ -471,12 +499,14 @@ async function main(targetDir = codexDir) {
       const mappedHooks = [];
       const shellReadHooks = [];
       let droppedNonProtocolOnRemap = false;
-      let droppedProtocolNoCodexTool = false;
+      let coveredOnRemapTarget = false;
+      let droppedNoCodexTool = false;
       for (const hook of hooks) {
         if (mirrorOnly && !sessionStartMirrorReason(hook?.command)) continue;
         const isProtocol = isProtocolHookPath(projectHookPath(hook?.command));
         if (remap && !isProtocol) {
-          droppedNonProtocolOnRemap = true;
+          if (onRemapTarget.has(normalizeCommand(hook?.command))) coveredOnRemapTarget = true;
+          else droppedNonProtocolOnRemap = true;
           continue;
         }
         const command = normalizeCommand(hook?.command);
@@ -493,9 +523,9 @@ async function main(targetDir = codexDir) {
           mappedHook.timeout = hook.timeout;
         }
         if (isProtocol) mappedHook.additionalContextLimit = PROTOCOL_CONTEXT_LIMIT;
-        if (isProtocol && noCodexTool) {
-          droppedProtocolNoCodexTool = true;
-          if (shellRead) shellReadHooks.push(mappedHook);
+        if (noCodexTool && (isProtocol || codexClaudeToolOnlyHooks.has(projectHookPath(hook?.command)))) {
+          droppedNoCodexTool = true;
+          if (isProtocol && shellRead) shellReadHooks.push(mappedHook);
           continue;
         }
         mappedHooks.push(mappedHook);
@@ -505,7 +535,10 @@ async function main(targetDir = codexDir) {
         // Recorded and unreviewed: only protocol entries may change event on Codex.
         pushSkip(report, eventName, i, "remap-limited-to-protocol-entries", matcher);
       }
-      if (droppedProtocolNoCodexTool) {
+      if (coveredOnRemapTarget) {
+        pushSkip(report, eventName, i, "already-on-remap-target", matcher);
+      }
+      if (droppedNoCodexTool) {
         pushSkip(report, eventName, i, "matcher-names-no-codex-tool", matcher);
       }
 
@@ -519,7 +552,7 @@ async function main(targetDir = codexDir) {
           pushSkip(report, eventName, i, "matcher-unsupported-on-codex-hook-runs-unscoped", matcher);
         }
         mappedGroups.push(mappedGroup);
-      } else if (!droppedNonProtocolOnRemap && !droppedProtocolNoCodexTool) {
+      } else if (!droppedNonProtocolOnRemap && !coveredOnRemapTarget && !droppedNoCodexTool) {
         pushSkip(
           report,
           eventName,

@@ -7,7 +7,7 @@ entities: ['SkillProfile', 'SkillVisibility', 'HostPermissionEntry', 'GraphTooli
 status: draft
 provisional: true
 owner: 'Framework maintainers'
-last_updated: '2026-09-24'
+last_updated: '2026-10-22'
 scope_mode: FRAMEWORK-LIBRARY
 large_idea_decomposition: null
 roadmap: null
@@ -18,9 +18,9 @@ roadmap_status: null
 
 # Adoption Switches — Feature Spec, Part 2 (release D test cases)
 
-> **DRAFT — provisional spec.** The skill-profile cases (TC-ADS-016…024, 040…042, 045…048) and the shared graph tooling cases (TC-ADS-028…031, 044, 049, 051…053) have landed: they carry `Implemented` with the test location (passed during implementation, not yet in the release-close full test run) and a `[Source:]` anchor. The emphasis anchor lock (TC-ADS-025) and the step-skill description cases (TC-ADS-032, 033, 050) also carry `Implemented`, but their tests were written and never executed. The built-in name guard (TC-ADS-027) carries `Implemented` and its test passed twice on 2026-09-29. The emphasis comparison cases (TC-ADS-026, 043) are `Planned — deferred to after commit`. Every other case here stays `Planned (release D)` with `Evidence: TBD`. After the close run, reconcile with `/spec [mode=update]`, flip the implemented cases to `Tested`, and clear the provisional flag once no case is left planned.
+> **DRAFT — provisional spec.** The skill-profile cases (TC-ADS-016…024, 040…042, 045…048, 063) and the shared graph tooling cases (TC-ADS-028…031, 044, 049, 051…053) have landed: they carry `Implemented` with the test location (passed during implementation, not yet in the release-close full test run) and a `[Source:]` anchor. The emphasis anchor lock (TC-ADS-025) and the step-skill description cases (TC-ADS-032, 033, 050) also carry `Implemented`, but their tests were written and never executed. The built-in name guard (TC-ADS-027) carries `Implemented` and its test passed twice on 2026-09-29. The emphasis comparison cases (TC-ADS-026, 043) are `Planned — deferred to after commit`. Every other case here stays `Planned (release D)` with `Evidence: TBD`. After the close run, reconcile with `/spec [mode=update]`, flip the implemented cases to `Tested`, and clear the provisional flag once no case is left planned.
 
-> **Continuation part.** Sections 1–7, the rule catalog, the test summary and the release-A cases live in the parent spec. This part holds only the release-D Section 8 cases, split out under the project's forty-case rule; their IDs are unchanged.
+> **Continuation part.** Sections 1–7, the rule catalog, the test summary and the release-A cases live in the parent spec. This part holds only the release-D Section 8 cases and the personal skill profile case TC-ADS-063, split out under the project's forty-case rule; their IDs are unchanged.
 
 **See also:** [README.AdoptionSwitches.md](README.AdoptionSwitches.md) — parent spec (sections 1–7, release-A cases, test summary).
 
@@ -585,6 +585,76 @@ And with the opt-in the value is written and a warning names the skill
 > **Evidence:** `[Source: operation/scripts/sync-skill-profile]`
 > **Related Behaviors:** `operation/scripts/sync-skill-profile` · `rule/scripts/called-skills` · `test/scripts/sync-skill-profile`
 > **CoveredBy:** `.claude/scripts/tests/sync-skill-profile.test.cjs::TC-ADS-042` · **Status:** Implemented — evidence: `.claude/scripts/tests/sync-skill-profile.test.cjs:276` (passed in P31; not re-run at the final gate); entry-skill edge `.claude/scripts/tests/sync-skill-profile.test.cjs:296` (passed in the round-1 review fix; not re-run at the final gate)
+
+---
+
+#### TC-ADS-063: A personal skill profile reaches only that person's settings [P1]
+
+**Objective:** Prove that the personal profile run writes the team entries plus the person's own entries into the working copy's personal settings, leaves the shared team settings byte-identical, refuses when version control would track the personal file, applies the called-skill guard, and reports the personal file stale after the team profile changes.
+
+**Business Intent / Invariant Guarded:** One person can trim the skills they see without changing what the rest of the team sees (BR-ADS-12), and a personal list can no more hide a called skill than a team list can (BR-ADS-09).
+
+**Traces:** AC-ADS-21 / BR-ADS-12 / BR-ADS-09
+
+**Preconditions:**
+
+- The team profile makes one skill command-only, and the team settings were synced
+- The person's own settings make a second skill command-only; the working copy's settings make the same skill name-only
+- Version control ignores the personal settings file
+
+**Real-World Reachability:** A developer who never uses a group of skills hides them for themselves in a shared project.
+
+**Demo Flow:** Run the personal sync, its check, a team profile change and the check again; then repeat with a tracked personal file and with a called skill in a personal hide list.
+
+```gherkin
+Given a synced team profile and a personal profile on two layers
+When the personal sync runs
+Then the personal settings carry the team entry and the personal entry, the working copy's choice winning
+And the shared team settings are byte-identical
+And the personal check passes
+And after the team profile changes the personal check fails and names the personal run
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                               |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, command output and the generated settings files |
+| **System behavior**     | Writes only the personal settings and its own ownership record, or refuses                                                                                |
+| **Business data state** | Team settings unchanged; personal settings hold team and personal entries                                                                                 |
+| **Data shown on UI**    | Refusal line naming the tracked file or the called skill; stale line naming the personal run                                                              |
+
+**Acceptance Criteria:**
+
+- ✅ Team and personal entries in the personal settings, the working copy winning per skill
+- ✅ Team settings byte-identical
+- ✅ Check current after the write, stale after a team profile change
+- ✅ Refused, with no personal file written, when version control would track it
+- ✅ A called skill in a personal hide list refused without the opt-in
+- ❌ A personal entry in the shared team settings
+
+**Test Data:**
+
+```json
+{
+    "team": { "commandOnly": ["plain-a"] },
+    "personalEveryProject": { "commandOnly": ["plain-b"] },
+    "personalWorkingCopy": { "nameOnly": ["plain-b"] },
+    "expectedPersonalEntries": { "plain-a": "command-only", "plain-b": "name-only" }
+}
+```
+
+**Edge Cases:**
+
+- Personal settings file not ignored by version control → refused, nothing written
+- A called skill in a personal command-only list → refused, naming the skill
+- No personal opt-in → the team's opt-in decides the called-skill guard
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: operation/scripts/sync-skill-profile]`
+> **Related Behaviors:** `operation/scripts/sync-skill-profile` · `rule/scripts/called-skills` · `test/scripts/sync-skill-profile`
+> **CoveredBy:** `.claude/scripts/tests/sync-skill-profile.test.cjs::[skill-profile] --personal writes team plus personal entries to the ignored local settings only` · `.claude/scripts/tests/sync-skill-profile.test.cjs::[skill-profile] --personal refuses a local settings file that is not git-ignored` · `.claude/scripts/tests/sync-skill-profile.test.cjs::[skill-profile] --personal applies the called-skill guard` · **Status:** Implemented — the three tests passed in a targeted run on 2026-10-22; not yet in a release-close full run
 
 ---
 

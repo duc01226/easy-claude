@@ -16,6 +16,24 @@ const QUIET_HOOKS = new Set([
     'notifications/notify.cjs'
 ]);
 
+// Opt-in for quiet: keep the hooks that deliver the PROJECT's own rules (its skill overlays, its
+// per-file conventions and the skill auto-trigger policy) while generic guidance stays off. Each is
+// small and project-authored, so a quiet session still sees the rules the project wrote down.
+const QUIET_PROJECT_RULE_HOOKS = new Set([
+    'skill-overlay-remind.cjs',
+    'file-convention-inject.cjs',
+    'skill-activation-inject.cjs'
+]);
+
+function normalizeBoolean(value) {
+    if (typeof value === 'boolean') return value;
+    if (typeof value !== 'string') return undefined;
+    const text = value.trim().toLowerCase();
+    if (['1', 'true', 'on', 'yes'].includes(text)) return true;
+    if (['0', 'false', 'off', 'no'].includes(text)) return false;
+    return undefined;
+}
+
 function normalizeMode(value) {
     if (typeof value !== 'string') return undefined;
     const mode = value.trim().replace(/^(["'])(.*)\1$/, '$2').toLowerCase();
@@ -49,10 +67,30 @@ function resolveFrameworkMode(options = {}) {
     return { mode: winner.mode, source: winner.source, configPath, userPath, localPath, layers };
 }
 
+/** `frameworkRuntime.quietProjectRules` (default false); same layers as the mode, env CK_QUIET_PROJECT_RULES. */
+function resolveQuietProjectRules(options = {}) {
+    const rootDir = options.rootDir || process.cwd();
+    const env = options.env || process.env;
+    const configReader = options.readConfig || readConfig;
+    const layers = [{ source: 'default', enabled: false }];
+    const add = (source, file) => layers.push({ source, file, enabled: normalizeBoolean(file && configReader(file)?.frameworkRuntime?.quietProjectRules) });
+    add('project-config', routing.resolveProjectConfigPath(rootDir));
+    if (options.scope !== 'team') {
+        add('user-config', routing.resolveUserConfigPath(options.homeDir));
+        add('local-override', routing.resolveLocalOverridePath(rootDir));
+        layers.push({ source: 'environment', enabled: normalizeBoolean(env.CK_QUIET_PROJECT_RULES) });
+    }
+    const winner = layers.filter(layer => layer.enabled !== undefined).at(-1);
+    return { enabled: winner.enabled, source: winner.source, layers };
+}
+
 function isHookEnabled(hook, options = {}) {
     const { mode } = resolveFrameworkMode(options);
     const name = hook.replace(/\\/g, '/').replace(/^.*\.claude\/hooks\//, '');
-    return mode === 'on' || (mode === 'quiet' && QUIET_HOOKS.has(name));
+    if (mode === 'on') return true;
+    if (mode !== 'quiet') return false;
+    if (QUIET_HOOKS.has(name)) return true;
+    return QUIET_PROJECT_RULE_HOOKS.has(name) && resolveQuietProjectRules(options).enabled;
 }
 
 // Guard only actual entrypoints: importing a hook for tests or explicit tooling
@@ -63,4 +101,4 @@ function skipHook(mod) {
     return !isHookEnabled(path.relative(path.join(rootDir, '.claude', 'hooks'), mod.filename), { rootDir });
 }
 
-module.exports = { MODES, QUIET_HOOKS, normalizeMode, resolveFrameworkMode, isHookEnabled, skipHook };
+module.exports = { MODES, QUIET_HOOKS, QUIET_PROJECT_RULE_HOOKS, normalizeMode, resolveFrameworkMode, resolveQuietProjectRules, isHookEnabled, skipHook };

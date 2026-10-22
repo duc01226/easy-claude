@@ -5,7 +5,7 @@ disable-model-invocation: false
 ---
 
 > Codex compatibility note:
-> - Invoke `$skill-name`: load the registered `.agents/skills/<name>/SKILL.md` and execute it with Codex tools; no separate `Skill` tool or Claude mode switch is needed. Author `.claude/**`; mirrors are generated.
+> - Invoke `$skill-name`: load the registered `.agents/skills/<name>/SKILL.md` and execute it with Codex tools; no separate `Skill` tool or Claude mode switch is needed. When a workflow step or another skill names a skill, read that file in full yourself (every line, with no line limit; in parts only when output is cut off): a skill whose implicit invocation is off is never loaded for you. Author `.claude/**`; mirrors are generated.
 > - Track steps before execution and keep progress/evidence current. Explicit skill requests execute their protocol. Use the native question tool for required questions.
 > - Map foreign tool names to available host capabilities. A name mismatch needs no approval; an actually unavailable required capability stops with its step/evidence and a user question before adaptation.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -218,40 +218,7 @@ rg -n "(sk_live_|ghp_|github_pat_|AKIA[0-9A-Z]{16}|xox[baprs]-|-----BEGIN (RSA |
 
 ### D3 — Dependency & Supply-Chain Security (npm / NuGet / pip)
 
-> Modern reality: malicious packages execute AT INSTALL TIME via lifecycle scripts with your full user privileges (`~/.ssh`, `~/.aws`, every env var). Self-propagating npm worms (Shai-Hulud, 2025) steal publish tokens and republish themselves. "It's on npm/GitHub" is NOT trust.
-
-**Install-time execution audit:**
-
-- [ ] List every dependency with lifecycle scripts (`preinstall`, `install`, `postinstall`, `prepare`):
-
-```bash
-# npm — inspect before/after install
-npm pkg get scripts                                  # current package
-grep -rl --include=package.json -E '"(pre|post)?install"|"prepare"' node_modules | head -50
-```
-
-- [ ] **Red flag combo:** dependency that is BOTH new to the lockfile AND has an install script → manual review before merge
-- [ ] Non-script execution vectors: `binding.gyp` in JS-only packages (node-gyp runs attacker code), `.targets`/`.props` in NuGet, `setup.py` arbitrary code in pip
-- [ ] Recommend hardening: `ignore-scripts=true` in `.npmrc` (+ explicit allowlist), release cooldown (`minimum-release-age=7` on npm ≥11.10 — most attacks live in the first days after publish)
-
-**Lockfile & version integrity:**
-
-- [ ] Lockfile committed; CI uses `npm ci` (never bare `npm install`)
-- [ ] Lockfile diff review: `resolved` URLs must point to the official registry — off-registry URLs = finding
-- [ ] Versions pinned; no `*` / overly-wide ranges on security-sensitive packages
-- [ ] After any disclosed incident: check lockfile for known-compromised versions
-
-**Vulnerability & reputation scan:**
-
-```bash
-npm audit --omit=dev                                  # known CVEs
-dotnet list package --vulnerable --include-transitive # NuGet CVEs
-pip-audit                                             # python, if present
-```
-
-- [ ] Typosquatting: new dependency names one edit away from popular packages (`lodahs`, `plain-crypto-js`)
-- [ ] Compromise signals: maintainer published many packages within seconds, `latest` dist-tag jumped majors abruptly, package repo link dead or code mismatch with GitHub source
-- [ ] Outdated packages with known exploits prioritized by reachability (is the vulnerable API actually called? — grep/read the callers; an optional graph `callers_of` may add hints)
+**[BLOCKING]** Read [references/security-audit-skill-supply-chain.md](references/security-audit-skill-supply-chain.md) when D3 is in scope (`deps`, `vet`, `full`, or `changes` with a manifest/lockfile change), in full before auditing this domain; it holds the install-time execution audit (lifecycle scripts, new-plus-script red flag, non-script vectors, hardening), lockfile and version integrity, and the vulnerability, typosquatting, compromise-signal and reachability checks with their commands.
 
 ### D4 — Third-Party Repository / Package Vetting (BEFORE INSTALL — MANDATORY GATE)
 
@@ -284,32 +251,15 @@ pip-audit                                             # python, if present
 
 ### D8 — Infrastructure & Configuration
 
-- [ ] Local-only infrastructure endpoints bind to loopback unless intentionally public; configured data stores, brokers, caches, search services, and admin UIs exposed to the internet are Critical
-- [ ] Default/dev credentials (`guest/guest`, `postgres/postgres`, `sa/...`) NEVER in staging/prod; flag any non-dev config carrying them
-- [ ] TLS everywhere external; HSTS; no mixed content
-- [ ] CORS: explicit origins, no wildcard+credentials
-- [ ] Docker: no `privileged`, no docker.sock mounts, no secrets in ENV/image layers (`docker history`), pinned base images
-- [ ] Backups exist, are tested, and are NOT writable/deletable with the same credentials the app uses (ransomware resilience)
-- [ ] Error pages generic; server version headers minimized
+**[BLOCKING]** Read [references/security-audit-skill-infrastructure.md](references/security-audit-skill-infrastructure.md) when D8 is in scope (`full`), in full before auditing this domain; it holds the exposure, default-credential, TLS/HSTS, CORS, container, backup-isolation and error-page checks.
 
 ### D9 — CI/CD & Build Pipeline
 
-- [ ] No script injection: workflow files never interpolate untrusted input (PR titles, branch names, issue bodies) into `run:` shell lines
-- [ ] `pull_request_target` / elevated-permission triggers never check out and execute PR code
-- [ ] Third-party actions/plugins pinned by commit SHA, not floating tags
-- [ ] Secrets scoped per-job/environment minimum; not exposed to PR builds from forks; never echoed to logs
-- [ ] Build artifacts: integrity verified between build and deploy; deploy creds not reachable from build steps that run third-party code
-- [ ] Branch protection on default branches; force-push restricted
+**[BLOCKING]** Read [references/security-audit-skill-cicd.md](references/security-audit-skill-cicd.md) when D9 is in scope (`full`, or `changes` with CI/workflow files changed), in full before auditing this domain; it holds the script-injection, elevated-trigger, action pinning, secret scoping, artifact integrity and branch-protection checks.
 
 ### D10 — AI / LLM & Agent Workflow Security
 
-- [ ] Prompt injection: untrusted content (cloned repos, web pages, user docs, tool outputs) is treated as data — agent instructions never sourced from it
-- [ ] MCP servers / agent tools: provenance known, configs reviewed; a malicious MCP server = arbitrary tool execution
-- [ ] Agent credentials least-privilege: an agent that only reads code must not hold deploy/prod-DB credentials
-- [ ] AI-generated code reviewed before execution — especially shell commands, install commands, and anything touching credentials
-- [ ] Agent-run install commands go through the D4 vetting gate first — automation does NOT bypass vetting
-- [ ] LLM outputs never piped to shell/eval unsanitized
-- [ ] **AI surface?** Only if the audit scope contains a model call, prompt, agent, tool/MCP, retrieval or eval (see `node .claude/scripts/ai-signal-scan.cjs`): read `.claude/skills/shared/protocols/ai-engineering-gate.md`, apply its security clauses and route depth to `$ai-engineering-review`; otherwise skip this line.
+**[BLOCKING]** Read [references/security-audit-skill-ai-agent.md](references/security-audit-skill-ai-agent.md) when D10 is in scope (`full` audits only), in full before auditing this domain; it holds the prompt-injection, MCP/tool provenance, least-privilege agent credential, AI-generated-code review, install-vetting and output-to-shell checks plus the AI-surface route to the AI engineering gate, which applies only when the audit target contains a model call, prompt, agent, tool/MCP, retrieval or eval.
 
 ---
 
@@ -346,21 +296,7 @@ Every finding: `[severity] [confidence %] [file:line OR command+output] [finding
 
 ## Graph Intelligence — Security-Specific Queries (optional advice)
 
-> For high-risk shared contracts, many callers or cross-module/service/public flows, `.code-graph/graph.db` may add callers, dependents and impacted tests. It can lag uncommitted/unindexed paths: verify every hint with grep/read. Skip low-risk/local changes; absence never blocks. These queries extend **Graph-Assisted Investigation** below:
-
-- **Trace data flow to sensitive functions:** `python .claude/scripts/code_graph query callers_of <function> --json`
-- **What does this function call?** `python .claude/scripts/code_graph query callees_of <function> --json`
-- **Batch analysis:** `python .claude/scripts/code_graph batch-query file1 file2 --json`
-- **Vulnerable-dependency reachability:** `callers_of` on the vulnerable API to prove (or rule out) exploitability
-
-### Graph-Trace for Data Flow Analysis
-
-Optionally, when a graph DB exists, `trace` can hint at data flow paths for security review (confirm every path by reading the code):
-
-- `python .claude/scripts/code_graph trace <entry-point> --direction downstream --json` — trace data flow from input to all consumers (find where untrusted data travels)
-- `python .claude/scripts/code_graph trace <sensitive-file> --direction upstream --json` — find all entry points that reach sensitive code
-- **Blast-radius / exploitability reachability:** `python .claude/scripts/code_graph trace <vulnerable-file> --direction downstream --json` (or `$graph-code --mode=blast-radius`) — size the exploitability fan-out of a finding: which callers, consumers, and trust boundaries a vulnerable function reaches. A finding with a large reachable blast-radius is higher severity; one with no reachable untrusted entry point may be unexploitable.
-- Trace reveals cross-service MESSAGE_BUS flows where data crosses trust boundaries
+Read [references/security-audit-skill-graph-queries.md](references/security-audit-skill-graph-queries.md) when the change is high-risk (shared contract, many callers, cross-module/service/public flow) and `.code-graph/graph.db` exists; it holds the security-specific `callers_of` / `callees_of` / batch queries, vulnerable-dependency reachability and the upstream/downstream data-flow traces. Low-risk or local changes skip it; absence never blocks.
 
 ---
 
@@ -392,22 +328,7 @@ Optionally, when a graph DB exists, `trace` can hint at data flow paths for secu
 
 **Trigger:** Phase 1 returns CLEAN/validated and the security report still has one or more findings that must be fixed. Under `--report-only` this phase never runs — the validated report is returned to the caller.
 
-**Protocol:**
-
-1. Create a fresh fix-cycle task list before editing. Do not reuse the review tasks.
-2. Fix only findings that survived `$why-review --validate-findings`; if this skill is running inside a workflow, hand the validated report to the caller's fix step (standalone: `$fix --target=review`).
-3. Run targeted verification for the changed security-sensitive paths.
-4. Restart the full `$security-audit` from Scope over the complete current target, not only the fixed files.
-5. The restarted pass MUST create brand-new review tasks, reload local security context, rerun caller traces (grep/read, plus any optional graph hint) where applicable, and analyze the full target from the beginning.
-6. Repeat validate → fix → full security re-review until a complete pass clears the current round's exit bar (round 1: zero open findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred).
-7. If the same validated blocker repeats across 2 full invocations with no progress, stop and ask the user for a decision.
-
-**Non-negotiable rules:**
-
-- Never fix a security finding before `$why-review --validate-findings` validates it.
-- Never mark security review clean after a targeted fix check only; the clean verdict must come from a full restart.
-- Never review only fixed files during the recursive pass.
-- Never reuse old todo/task items for the recursive review pass.
+Read [references/security-audit-skill-fix-loop.md](references/security-audit-skill-fix-loop.md) when Phase 1 leaves validated findings that this run must fix (standalone `--fix-loop`); it holds the seven-step protocol (fresh fix-cycle tasks, fix only validated findings through the caller's fix step or `$fix --target=review`, targeted verification, restart the full audit from Scope with brand-new tasks, repeat to the round's exit bar, stop and ask after two no-progress invocations) and the four non-negotiable rules.
 
 ---
 

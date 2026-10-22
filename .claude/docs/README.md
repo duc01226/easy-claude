@@ -7,11 +7,11 @@
 | Goal                           | Document                                                                                                                           |
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
 | **New to Claude Code?**        | [quick-start.md](./quick-start.md) - 5-minute onboarding                                                                           |
-| **Need a skill?**              | [skills/README.md](./skills/README.md) - <!-- COUNT:skills -->104<!-- /COUNT --> skills catalog                                                                        |
+| **Need a skill?**              | [skills/README.md](./skills/README.md) - <!-- COUNT:skills -->105<!-- /COUNT --> skills catalog                                                                        |
 | **Building a feature?**        | [skills/README.md](./skills/README.md) + project-reference root patterns                                                           |
 | **Verifying user experience?** | [configuration/experience-verification.md](./configuration/experience-verification.md) - portable evidence and acceptance contract |
 | **Reviewing the framework?**   | [framework-review-guide.md](./framework-review-guide.md) - how to measure, intended designs, known limits; read before any audit against vendor guidance |
-| **Understanding hooks?**       | [hooks/README.md](./hooks/README.md) - <!-- COUNT:hooks -->36<!-- /COUNT --> top-level hook files deep-dive                                                           |
+| **Understanding hooks?**       | [hooks/README.md](./hooks/README.md) - <!-- COUNT:hooks -->37<!-- /COUNT --> top-level hook files deep-dive                                                           |
 | **Understanding workflows?**   | `.claude/workflows.json` canonical catalog plus opt-in prompt injection - <!-- COUNT:workflows -->17<!-- /COUNT --> workflows                                             |
 | **Switch machinery off/on?** | [Runtime modes](./configuration/README.md#framework-runtime-mode) — global and checkout settings |
 | **Configuring Claude?**        | [configuration/README.md](./configuration/README.md)                                                                               |
@@ -35,7 +35,7 @@ Project-owned branches below sit at their DEFAULT roots; `docs/project-config.js
 |   |-- README.md             Skills overview + full catalog
 |   +-- (patterns)           → docs/project-reference/
 |
-|-- hooks/                    36 top-level hook files, 66 lib modules
+|-- hooks/                    37 top-level hook files, 72 lib modules
 |   |-- README.md             Hooks overview, lessons system, session lifecycle
 |   +-- extending-hooks.md    How to create custom hooks
 |
@@ -54,6 +54,9 @@ Project-owned branches below sit at their DEFAULT roots; `docs/project-config.js
 |   |-- settings-reference.md settings.json reference
 |   |-- output-styles.md      Custom output styles
 |   +-- experience-verification.md  Observable-surface evidence and acceptance
+|
+|-- ../knowledge-base/        Framework knowledge packs; its generated README.md lists them
+|                             (owner: .claude/skills/knowledge-base/SKILL.md)
 |
 +-- troubleshooting.md        Consolidated troubleshooting guide
 ```
@@ -104,7 +107,7 @@ Project-owned branches below sit at their DEFAULT roots; `docs/project-config.js
 | Manual tracker maintenance and shell discovery | [manual-operations.md](../skills/task-track/references/manual-operations.md) — exact requests, placing a record in context, catalogue, authority and recovery |
 | Exact concerns and saved producer checkpoints | [integration-guide.md](../skills/task-track/references/integration-guide.md) — original declarers, current verification and pre-publication self-check |
 | How team collaboration works                | [team-collaboration-guide.md](./team-collaboration-guide.md)                                                    |
-| How to update code review rules             | [hooks/README.md#code-review-rules](./hooks/README.md#code-review-rules)                                        |
+| How to update code review rules             | [configuration/README.md#code-review-configuration](./configuration/README.md#code-review-configuration)        |
 
 ## Document Sizes (for context planning)
 
@@ -164,14 +167,14 @@ Unprefixed filenames resolve inside the project-reference docs root — default 
 
 | Category               | Count |
 | ---------------------- | ----- |
-| Skills                 | <!-- COUNT:skills -->104<!-- /COUNT --> |
-| Hook files (top-level) | <!-- COUNT:hooks -->36<!-- /COUNT --> |
-| Lib Modules            | <!-- COUNT:lib-modules -->66<!-- /COUNT --> |
+| Skills                 | <!-- COUNT:skills -->105<!-- /COUNT --> |
+| Hook files (top-level) | <!-- COUNT:hooks -->37<!-- /COUNT --> |
+| Lib Modules            | <!-- COUNT:lib-modules -->72<!-- /COUNT --> |
 | Hook Events            | 10     |
 | Agents                 | <!-- COUNT:agents -->25<!-- /COUNT --> |
 | Workflows              | <!-- COUNT:workflows -->17<!-- /COUNT --> |
 | Hook Tests             | 133   |
-| Hook Test Files        | 124 suites + 9 top-level test files |
+| Hook Test Files        | 126 suites + 9 top-level test files |
 | Framework Markdown Files | 43 (`.claude/docs/**/*.md`) |
 
 ---

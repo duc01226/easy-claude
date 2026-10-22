@@ -10,6 +10,7 @@
 const fs = require('fs');
 const path = require('path');
 const { loadEnv } = require('./lib/env-loader.cjs');
+const { getUnattendedReason } = require('./lib/conversation-attendance.cjs');
 
 // Provider prefixes to check for enablement
 const PROVIDER_PREFIXES = ['TELEGRAM', 'DISCORD', 'SLACK'];
@@ -117,9 +118,10 @@ function hasPendingWakeup(input) {
  * Single owner of every suppression rule, so the router's skip log and its
  * eligibility check can never disagree.
  * @param {Object} input - Event data
+ * @param {Object} [hostEnv] - Environment the host started the hook with
  * @returns {string|null} Skip reason, or null when the event may alert
  */
-function getSkipReason(input) {
+function getSkipReason(input, hostEnv = {}) {
     // OpenCode's question tool also passes through tool.execute.before. Its
     // question.asked event is the authoritative point where the prompt is
     // waiting for the user, so suppress that earlier precursor to avoid a
@@ -168,7 +170,14 @@ function getSkipReason(input) {
         }
     }
 
-    return EVENT_WHITELIST.includes(eventType) ? null : `${eventType} not in whitelist`;
+    if (!EVENT_WHITELIST.includes(eventType)) {
+        return `${eventType} not in whitelist`;
+    }
+
+    // A conversation nobody attends — a headless run another agent or script
+    // started — has no developer to alert; its parent receives the result.
+    // Checked last because it may read the host transcript header.
+    return getUnattendedReason(input, hostEnv);
 }
 
 /**
@@ -334,7 +343,7 @@ async function main() {
         const env = loadEnv(cwd);
 
         // Eligibility check: whitelist plus the event-specific suppression rules
-        const skipReason = getSkipReason(input);
+        const skipReason = getSkipReason(input, process.env);
         if (skipReason) {
             console.error(`[notify] Skipped: ${skipReason}`);
             process.exit(0);
