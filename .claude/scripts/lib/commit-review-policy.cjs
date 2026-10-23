@@ -51,6 +51,33 @@ function resolveCommitReviewMode(options = {}) {
     return { mode: winner.mode, source: winner.source, layers };
 }
 
+const GATE_MODES = Object.freeze(['off', 'enforce']);
+
+/**
+ * `reviewGate.mode`, a team policy read from the project config only: a personal layer can neither
+ * relax nor enable it. `enforce` makes `gh pr create` / `gh pr ready` need a whole-branch receipt and
+ * makes a review receipt count only when a review skill run was attested before its snapshot.
+ * A config file that cannot be read or parsed reads as off: a team that never opted in is never
+ * blocked by an unrelated mistake. A readable `reviewGate` entry that is not a valid object or mode
+ * throws; callers that gate read that as enforce, so a team that opted in with a typo keeps the gate.
+ */
+function resolveReviewGateMode(options = {}) {
+    const rootDir = options.rootDir || process.cwd();
+    const file = routing.resolveProjectConfigPath(rootDir);
+    let config;
+    try {
+        config = JSON.parse(routing.decodeConfigText(fs.readFileSync(file)));
+    } catch (error) {
+        return { mode: 'off', source: error.code === 'ENOENT' ? 'default' : 'unreadable-project-config' };
+    }
+    const gate = config && typeof config === 'object' && !Array.isArray(config) ? config.reviewGate : undefined;
+    if (gate === undefined) return { mode: 'off', source: 'default' };
+    if (!gate || typeof gate !== 'object' || Array.isArray(gate)) throw new Error(`Invalid reviewGate in ${file}; expected an object such as { "mode": "enforce" }`);
+    if (gate.mode === undefined) return { mode: 'off', source: 'default' };
+    if (!GATE_MODES.includes(gate.mode)) throw new Error(`Invalid reviewGate.mode in ${file}; expected ${GATE_MODES.join(' or ')}`);
+    return { mode: gate.mode, source: 'project-config' };
+}
+
 function selectReview(risk, mode) {
     if (!RISKS.includes(risk)) throw new Error(`Expected risk: ${RISKS.join(', ')}`);
     if (!MODES.includes(mode)) throw new Error(`Expected review mode: ${MODES.join(', ')}`);
@@ -87,5 +114,5 @@ function main(argv = process.argv.slice(2)) {
     }
 }
 
-module.exports = { MODES, RISKS, resolveCommitReviewMode, selectReview, decideReview, main };
+module.exports = { MODES, RISKS, GATE_MODES, resolveCommitReviewMode, resolveReviewGateMode, selectReview, decideReview, main };
 if (require.main === module) process.exitCode = main();

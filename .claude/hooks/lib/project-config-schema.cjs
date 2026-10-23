@@ -1113,6 +1113,21 @@ const SCHEMA = {
             }
         }
     },
+    // Optional team review gate. Off by default: enforce is a team decision because it refuses
+    // pull requests and unattested review receipts for everyone working in the checkout.
+    reviewGate: {
+        type: 'object',
+        required: false,
+        describe: 'Optional team review gate. Read from the project config only; no personal layer or environment variable changes it.',
+        properties: {
+            mode: {
+                type: 'string',
+                required: false,
+                enumValues: ['off', 'enforce'],
+                describe: 'Default "off". "enforce": (1) gh pr create (except a draft) and gh pr ready are refused unless the committed branch head has a whole-branch receipt (review or recorded skip) against its merge-base with the PR base; (2) a review receipt, for commits and pull requests alike, counts only when the review protocol hook attested that a review skill of that kind started before the reviewed snapshot, so a receipt cannot be minted by hand. Skip receipts stay explicit, recorded overrides. An unparseable project config counts as off; an invalid reviewGate value counts as enforce. A bounded speedbump against forgetting, not a security boundary.'
+            }
+        }
+    },
     // Optional team skill profile. `node .claude/scripts/sync-skill-profile.cjs` resolves it and
     // writes only the keys it owns into `.claude/settings.json` `skillOverrides`; a developer's own
     // choices stay in git-ignored `.claude/settings.local.json`. Omitted = no overrides.

@@ -39,6 +39,8 @@ node .claude/hooks/lib/review-receipt.cjs snapshot --target=commit-descriptor --
 node .claude/hooks/lib/review-receipt.cjs issue --kind=skip --scope=full-changeset --snapshot-json='<returned snapshot JSON>' --reason='auto: low risk — <signal>'
 ```
 
+Under `reviewGate.mode: enforce` the pull request itself is gated too. The review snapshots the working tree with `--target=branch --base=<base-ref>` before the commit; the gate then checks the committed head, which matches once everything reviewed is committed. A skip recorded after the commit snapshots `--target=branch --base=<base-ref> --committed`. Only the review skill issues a review receipt.
+
 A clean candidate needs no receipt. A changed candidate requires a matching review or eligible skip; re-check after issuing it. A skip records skipped work, never a passed review. Automatic skips are Low-risk only; an explicit user skip is recorded as such. Never skip after a failed/non-converged review or to evade a required project check.
 
 ## Stop and refresh boundaries

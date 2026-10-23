@@ -1072,6 +1072,20 @@ function recordCompaction(input, deps = {}) {
  *   `readFile`, `host`)
  * @returns {Promise<string>} the text written, or '' when nothing was delivered
  */
+function attestReviewStart(input, options) {
+    try {
+        require('./review-receipt.cjs').attestReviewStart(input, {
+            resolveRoot: value => resolveRoot(value, options),
+            resolveEvent,
+            detectHost,
+            read: defaultRead,
+            ...(options.now ? { now: options.now } : {})
+        });
+    } catch {
+        // An attestation failure leaves the receipt unattested; under enforce the gate then asks for a real run.
+    }
+}
+
 function runHook(group, deps = {}) {
     process.exitCode = 0;
     const options = isPlainObject(deps) ? deps : {};
@@ -1086,6 +1100,9 @@ function runHook(group, deps = {}) {
         try {
             const input = options.input !== undefined ? options.input : readHookInput();
             if (!isRelevantEvent(input)) return finish(''); // BR-PDL-09: no project module loaded
+            // Attested review receipts (reviewGate.mode: enforce): a review skill starting is recorded
+            // before delivery, whatever the delivery decides. Best effort; never blocks the skill.
+            if (group === 'review') attestReviewStart(input, options);
             const rootDir = resolveRoot(input, options);
             if (!rootDir || !require('./framework-runtime.cjs').isHookEnabled(`protocol-inject-${group}.cjs`, { rootDir, homeDir: options.homeDir, env: options.env })) return finish('');
             deliver(group, input, options, finish);

@@ -466,6 +466,20 @@ waive tests, mint receipts or change native permissions. Shipped permissions hav
 ask rules, including force-push patterns. An explicit operation request remains required; no follow-up
 confirmation or unsolicited offer to commit/push is part of the framework flow.
 
+
+### Review gate (`reviewGate.mode`)
+
+`reviewGate.mode` is a team policy, read from the project config only (no personal layer or environment variable changes it). Default `off` changes nothing. `enforce` adds two checks to `review-commit-gate.cjs`:
+
+- **Pull requests.** `gh pr create` and `gh pr ready` are refused unless the committed branch head has a whole-branch receipt (a review, or a recorded skip) against its merge-base with the pull request's base (`--base`, else `pullRequest.targetBranch`, else `main`). A draft (`gh pr create --draft`), `gh pr ready --undo` and reads pass, because `gh pr ready` is gated when the draft asks for merge; `--repo`, another `--head` or another pull request number are refused because this checkout cannot prove them. Reviews snapshot the branch with `review-receipt.cjs snapshot --target=branch --base=<base-ref>`; the `pull-request` skill does this.
+- **Attested review receipts.** A review receipt, for commits and pull requests alike, counts only when the review protocol hook recorded that a review skill of that kind started (a Skill call, a typed `/name`, or a read of its `SKILL.md`) before the reviewed snapshot. Issuance consumes the attestation, so one run backs one receipt, and a receipt minted by hand is refused. Skip receipts stay the explicit, recorded override.
+
+Both are a bounded speedbump against forgetting, not a security boundary: the store is an ordinary directory. A project config that cannot be read or parsed counts as `off`, so a team that never opted in is never blocked by an unrelated mistake; a readable `reviewGate` entry with an invalid value (for example `"enforced"`) counts as `enforce`, so a team that opted in keeps the gate. The gate follows a literal `cd` before `gh pr` to the repository it names, refuses `GH_REPO` and a branch-moving Git step earlier in the same command, and treats a quoted mention of `gh pr create` as text, not a pull request.
+
+```json
+{ "reviewGate": { "mode": "enforce" } }
+```
+
 ### Hook-only delivery: host requirements
 
 The universal rules (`protocol-inject-universal-<n>.cjs` bins), the workflow route (`workflow-route-inject.cjs` for the gate, `workflow-catalog-inject.cjs` for the catalog) and the skill-overlay reminder (`skill-overlay-remind.cjs`) are delivered only by hooks; `CLAUDE.md` and `AGENTS.md` hold project information only and no static fallback exists.
