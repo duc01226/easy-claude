@@ -38,6 +38,9 @@
  *   node review-receipt.cjs skip [--reason=...]
  *   node review-receipt.cjs check [--target=... --kind=...]
  *   node review-receipt.cjs clear
+ *   node review-receipt.cjs publish-status --pr=<n> [--base=<ref>] [--repository=owner/repo]
+ * `publish-status` (reviewGate.status.enabled) posts a success commit status on the pull request's
+ * head from a matching whole-branch review receipt or an explicit committed review bypass.
  * The CLI resolves the repository from the current working directory and the
  * store from CK_REVIEW_RECEIPT_STORE (default os.tmpdir()/ck/review-receipts).
  */
@@ -790,6 +793,174 @@ function currentBranch(repository, exec = execFileSync) {
     }
 }
 
+// ---- Review status (reviewGate.status) ---------------------------------------------------------
+// A CI-visible record that the review policy ran: a commit status on the pull request's head that
+// branch protection can require. Published by a command, never by a hook, so it works on hosts
+// whose hooks are untrusted or stale. GitHub keeps statuses per commit: any new commit needs a
+// fresh review or a fresh bypass before it can carry the status.
+
+const STATUS_DESCRIPTION_MAX = 140;
+const GITHUB_REPOSITORY_PATTERN = /^[A-Za-z0-9_.-]{1,100}\/[A-Za-z0-9_.-]{1,100}$/;
+const PR_NUMBER_PATTERN = /^[1-9]\d{0,9}$/;
+const COMMIT_PATTERN = TREE_PATTERN;
+const BYPASS_KEYS = Object.freeze(['Review-Bypass', 'Review-Bypass-Reason', 'Review-Bypass-PR', 'Review-Bypass-Parent']);
+const BYPASS_REASON_MIN = 10;
+const BYPASS_REASON_MAX = 500;
+
+/** GitHub caps a status description; longer text is cut with a visible ellipsis. */
+function statusDescription(text) {
+    return text.length <= STATUS_DESCRIPTION_MAX ? text : `${text.slice(0, STATUS_DESCRIPTION_MAX - 3)}...`;
+}
+
+function reviewStatusPolicy(repository, options) {
+    if (options.reviewStatus !== undefined) return options.reviewStatus;
+    return require('../../scripts/lib/commit-review-policy.cjs').resolveReviewStatus({ rootDir: repository });
+}
+
+/** Trailers of the commit's final trailer block, as Git reads them; a marker in the body is not one. */
+function commitTrailers(run, commit) {
+    return run(['log', '-1', '--format=%(trailers:only,unfold)', commit]).split('\n')
+        .map(line => /^([A-Za-z0-9-]+):[ \t]*(.*)$/.exec(line))
+        .filter(Boolean)
+        .map(match => ({ key: match[1], value: match[2].trim() }));
+}
+
+/**
+ * An explicit review bypass on `head`: null when it carries no Review-Bypass trailer, else
+ * `{ valid, reason }`. A valid bypass is the latest commit of the pull request, names that pull
+ * request and its real single parent, leaves the parent's tree unchanged, and carries each of the
+ * four trailers exactly once with a 10-500 character reason.
+ */
+function reviewBypass(run, head, pr) {
+    const invalid = reason => ({ valid: false, reason });
+    const trailers = commitTrailers(run, head).filter(item => /^review-bypass(?:-|$)/i.test(item.key));
+    if (trailers.length === 0) {
+        // Git reads trailers only from the final paragraph; a line after them (an attribution) hides them all.
+        if (/^review-bypass(?:-[a-z]+)?:/im.test(run(['log', '-1', '--format=%B', head]))) {
+            return invalid('its Review-Bypass lines are not in the message\'s final trailer block; put them last, with any attribution line above them');
+        }
+        return null;
+    }
+    const unknown = trailers.find(item => !BYPASS_KEYS.some(key => key.toLowerCase() === item.key.toLowerCase()));
+    if (unknown) return invalid(`unknown trailer ${unknown.key}`);
+    const values = {};
+    for (const key of BYPASS_KEYS) {
+        const found = trailers.filter(item => item.key.toLowerCase() === key.toLowerCase());
+        if (found.length !== 1) return invalid(`it needs exactly one ${key} trailer (found ${found.length})`);
+        values[key] = found[0].value;
+    }
+    if (values['Review-Bypass'] !== 'true') return invalid('Review-Bypass must be true');
+    const reason = values['Review-Bypass-Reason'];
+    if (reason.length < BYPASS_REASON_MIN || reason.length > BYPASS_REASON_MAX || /[\x00-\x1f\x7f]/.test(reason)) {
+        return invalid(`Review-Bypass-Reason must be ${BYPASS_REASON_MIN}-${BYPASS_REASON_MAX} printable characters (got ${reason.length})`);
+    }
+    if (values['Review-Bypass-PR'] !== pr) return invalid(`Review-Bypass-PR is ${values['Review-Bypass-PR'] || '(empty)'}, not pull request ${pr}`);
+    const parents = run(['rev-list', '--parents', '-n', '1', head]).trim().split(/\s+/).slice(1);
+    if (parents.length !== 1) return invalid('a review bypass is a commit with exactly one parent');
+    if (values['Review-Bypass-Parent'] !== parents[0]) {
+        return invalid(`Review-Bypass-Parent ${values['Review-Bypass-Parent'] || '(empty)'} is not the commit's parent ${parents[0]} (use the full SHA)`);
+    }
+    if (run(['rev-parse', `${head}^{tree}`]).trim() !== run(['rev-parse', `${parents[0]}^{tree}`]).trim()) {
+        return invalid('the bypass commit changes files; it must be an empty commit on top of the branch (git commit --allow-empty)');
+    }
+    return { valid: true, reason };
+}
+
+function noReceiptMessage({ pr, head, base, snapshot, attested }) {
+    const measured = snapshot.status === 'CHANGED'
+        ? `branch tree ${snapshot.candidateTree} against its merge-base with ${base}`
+        : `the branch has no change against its merge-base with ${base}`;
+    return `no ${attested ? 'attested ' : ''}review receipt matches pull request #${pr} at ${head} (${measured}). ` +
+        `Review the whole branch from this checkout: the pull-request skill's review step, or /changes-review --fix-loop ` +
+        `over the branch (snapshot --target=branch --base=${base}); commit everything it reviewed, push, and publish again ` +
+        `while the receipt is live (${DEFAULT_LIFETIME_MS / 3600000} hours by default). To skip the review on purpose, make the ` +
+        `branch's last commit an empty one whose message ends with the trailers Review-Bypass: true, Review-Bypass-Reason: <${BYPASS_REASON_MIN}-${BYPASS_REASON_MAX} characters>, ` +
+        `Review-Bypass-PR: ${pr} and Review-Bypass-Parent: ${head}, push it, and publish again.`;
+}
+
+/**
+ * Post the `reviewGate.status` commit status on a pull request's head when the review policy ran:
+ * a matching whole-branch review receipt (any kind but skip) for exactly the committed head
+ * against its merge-base with the pull request's base, or an explicit committed review bypass.
+ * Refusals return `{ status: 'REFUSED', reason }`; nothing is posted. `gh` and `exec` are
+ * injectable so tests never reach GitHub.
+ */
+function publishReviewStatus(options = {}) {
+    const exec = options.exec || execFileSync;
+    const gh = options.gh || (args => execFileSync('gh', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true }));
+    const ghText = (args, what) => {
+        try {
+            const out = gh(args);
+            return Buffer.isBuffer(out) ? out.toString('utf8') : String(out ?? '');
+        } catch (error) {
+            const detail = String(error?.stderr || error?.message || 'gh failed').trim().slice(0, 300);
+            throw new Error(`${what} failed (gh ${args.slice(0, 2).join(' ')} ...): ${detail}`);
+        }
+    };
+    const refuse = reason => ({ status: 'REFUSED', valid: false, reason });
+    const repository = canonicalDirectory(options.repository);
+    const policy = reviewStatusPolicy(repository, options);
+    if (!policy.enabled) return refuse('reviewGate.status.enabled is not true in the project config; nothing was published');
+    const pr = typeof options.pr === 'number' ? String(options.pr) : options.pr;
+    if (typeof pr !== 'string' || !PR_NUMBER_PATTERN.test(pr)) return refuse('--pr=<pull request number> is required');
+    const unsafeVariable = gitEnvironmentError(process.env);
+    if (unsafeVariable) return refuse(`unsupported ambient Git context: ${unsafeVariable}`);
+    const run = args => runGit(exec, repository, args, gitEnvironmentWithoutContext(process.env));
+
+    const slug = options.githubRepository === undefined
+        ? ghText(['repo', 'view', '--json', 'nameWithOwner', '--jq', '.nameWithOwner'], 'Resolving the GitHub repository').trim()
+        : options.githubRepository;
+    if (typeof slug !== 'string' || !GITHUB_REPOSITORY_PATTERN.test(slug)) return refuse('--repository must be owner/name');
+    let pull;
+    try {
+        pull = JSON.parse(ghText(['api', `repos/${slug}/pulls/${pr}`], `Reading pull request #${pr}`));
+    } catch (error) {
+        if (error instanceof SyntaxError) return refuse(`GitHub returned no readable pull request #${pr} for ${slug}`);
+        throw error;
+    }
+    const head = pull?.head?.sha;
+    const baseRef = pull?.base?.ref;
+    if (pull?.state !== 'open') return refuse(`pull request #${pr} in ${slug} is not open`);
+    if (typeof head !== 'string' || !COMMIT_PATTERN.test(head) || typeof baseRef !== 'string' || !BASE_REF_PATTERN.test(baseRef)) {
+        return refuse(`GitHub returned no usable head or base for pull request #${pr}`);
+    }
+    const localHead = run(['rev-parse', '--verify', 'HEAD']).trim();
+    if (head !== localHead) {
+        return refuse(`pull request #${pr} head is ${head} but this checkout's committed HEAD is ${localHead}; check out the pull request branch, push or pull so both match, and publish again`);
+    }
+    const base = options.base === undefined ? baseRef : options.base;
+    // Another base would measure another diff (the branch itself measures none), so only spellings of the PR's base count.
+    if (typeof base !== 'string' || !BASE_REF_PATTERN.test(base) || !(base === baseRef || base.endsWith(`/${baseRef}`))) {
+        return refuse(`--base must name the pull request's base branch ${baseRef} (for example ${baseRef} or origin/${baseRef})`);
+    }
+
+    const snapshot = captureReviewTarget({ repository, cwd: repository, target: 'branch', descriptor: { base, committed: true }, exec,
+        ...(options.now === undefined ? {} : { now: options.now }) });
+    if (snapshot.status === 'ERROR') return refuse(`the branch snapshot failed (${snapshot.errorCode}): ${snapshot.errorMessage}`);
+    if (run(['rev-parse', '--verify', 'HEAD']).trim() !== localHead) return refuse('HEAD moved while the branch was measured; publish again');
+    // Off by default because a host may run without trusted hooks; enforce never accepts what its own gate would refuse.
+    const attested = policy.requireAttestation === true || reviewGateMode(repository, options) === 'enforce';
+    const kind = snapshot.status === 'CHANGED'
+        ? matchReviewReceipt({ repository, snapshot, reviewGateMode: attested ? 'enforce' : 'off',
+            ...(options.storeDir === undefined ? {} : { storeDir: options.storeDir }),
+            ...(options.now === undefined ? {} : { now: options.now }) })
+        : null;
+    let description;
+    if (kind) {
+        description = `reviewed: ${kind}; tree=${snapshot.candidateTree}`;
+    } else {
+        const bypass = reviewBypass(run, localHead, pr);
+        if (!bypass) return refuse(noReceiptMessage({ pr, head: localHead, base, snapshot, attested }));
+        if (!bypass.valid) return refuse(`the review bypass on ${localHead} is invalid: ${bypass.reason}`);
+        description = `skipped review: ${bypass.reason}`;
+    }
+    description = statusDescription(description);
+    ghText(['api', '--method', 'POST', `repos/${slug}/statuses/${localHead}`,
+        '-f', 'state=success', '-f', `context=${policy.context}`, '-f', `description=${description}`], 'Posting the review status');
+    return { status: 'PUBLISHED', valid: true, state: 'success', context: policy.context, description,
+        sha: localHead, pr: Number(pr), repository: slug, base, via: kind ? 'review' : 'bypass', kind };
+}
+
 function parseArgs(argv) {
     const options = {};
     for (const arg of argv) {
@@ -802,9 +973,9 @@ function parseArgs(argv) {
 
 function runCli(argv) {
     const command = argv[0];
-    const allowed = new Set(['snapshot', 'issue', 'skip', 'check', 'clear']);
+    const allowed = new Set(['snapshot', 'issue', 'skip', 'check', 'clear', 'publish-status']);
     if (!allowed.has(command)) {
-        throw new Error('Use snapshot|issue|skip|check|clear with explicit options');
+        throw new Error('Use snapshot|issue|skip|check|clear|publish-status with explicit options');
     }
     const flags = parseArgs(argv.slice(1));
     const storeDir = process.env.CK_REVIEW_RECEIPT_STORE || undefined;
@@ -830,6 +1001,11 @@ function runCli(argv) {
     }
     if (command === 'clear') {
         return { removed: clearReceipts(base) };
+    }
+    if (command === 'publish-status') {
+        return publishReviewStatus({ ...base, pr: flags.pr,
+            ...(flags.base === undefined ? {} : { base: flags.base }),
+            ...(flags.repository === undefined ? {} : { githubRepository: flags.repository }) });
     }
     // check the requested review target; CLEAN needs no receipt, ERROR is never clean.
     const snapshot = captureReviewTarget({ repository, cwd: process.cwd(), target: flags.target || 'worktree', ...(descriptor ? { descriptor } : {}) });
@@ -863,6 +1039,7 @@ module.exports = {
     recordAttestation,
     attestReviewStart,
     reviewGateMode,
+    publishReviewStatus,
     currentBranch,
     resolveRepository
 };
@@ -871,6 +1048,7 @@ if (require.main === module) {
     try {
         const result = runCli(process.argv.slice(2));
         process.stdout.write(`${JSON.stringify(result)}\n`);
+        if (result?.status === 'REFUSED') process.stderr.write(`Review status refused: ${result.reason}\n`);
         process.exitCode = result?.status === 'ERROR' ? 2 : (result && result.valid === false ? 1 : 0);
     } catch (error) {
         process.stderr.write(`Review receipt failed: ${error.message}\n`);

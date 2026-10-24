@@ -41,6 +41,8 @@ node .claude/hooks/lib/review-receipt.cjs issue --kind=skip --scope=full-changes
 
 Under `reviewGate.mode: enforce` the pull request itself is gated too. The review snapshots the working tree with `--target=branch --base=<base-ref>` before the commit; the gate then checks the committed head, which matches once everything reviewed is committed. A skip recorded after the commit snapshots `--target=branch --base=<base-ref> --committed`. Only the review skill issues a review receipt.
 
+Under `reviewGate.status.enabled` the review snapshots the branch the same way, because `publish-status` posts the CI status only from a whole-branch review receipt or a committed review bypass. A skip receipt never publishes it: a Low-risk branch is reviewed instead, and only a user's explicit skip becomes a review bypass commit.
+
 A clean candidate needs no receipt. A changed candidate requires a matching review or eligible skip; re-check after issuing it. A skip records skipped work, never a passed review. Automatic skips are Low-risk only; an explicit user skip is recorded as such. Never skip after a failed/non-converged review or to evade a required project check.
 
 ## Stop and refresh boundaries

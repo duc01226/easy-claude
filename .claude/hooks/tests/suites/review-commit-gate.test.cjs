@@ -1396,6 +1396,307 @@ const tests = [
     }
 ];
 
-tests.push(...ENFORCE_TESTS);
+// ---- reviewGate.status: the "Review validation" commit status (publish-status) ---------------
+
+const STATUS_ON = Object.freeze({ enabled: true, context: 'Review validation', requireAttestation: false });
+const BYPASS_REASON = 'CI configuration only, reviewed in the platform repo';
+
+/** main carries the base (and an optional project config); `feature` adds one reviewed commit. */
+function makeStatusRepo(dir, config) {
+    makeRepo(dir);
+    if (config) {
+        fs.mkdirSync(path.join(dir, 'docs'), { recursive: true });
+        fs.writeFileSync(path.join(dir, 'docs', 'project-config.json'), JSON.stringify(config));
+        git(dir, ['add', 'docs/project-config.json']);
+        git(dir, [C_ARG, '-q', '-m', 'config']);
+    }
+    git(dir, ['branch', '-M', 'main']);
+    git(dir, ['switch', '-q', '-c', 'feature']);
+    fs.writeFileSync(path.join(dir, 'feature.txt'), 'feature\n');
+    git(dir, ['add', 'feature.txt']);
+    git(dir, [C_ARG, '-q', '-m', 'feature']);
+}
+
+const headOf = dir => git(dir, ['rev-parse', 'HEAD']).trim();
+
+/** A stand-in for gh: records every argv and answers like GitHub for one pull request. */
+function fakeGh(pull) {
+    const calls = [];
+    const gh = args => {
+        calls.push(args);
+        if (args[0] === 'repo') return 'acme/widgets\n';
+        if (args[0] === 'api' && args[1] !== '--method') return JSON.stringify({ state: 'open', base: { ref: 'main' }, ...pull });
+        return '{}';
+    };
+    return { gh, calls, posts: () => calls.filter(args => args[1] === '--method') };
+}
+
+function publishStatus(api, fx, extra = {}) {
+    const fake = extra.fake || fakeGh({ head: { sha: headOf(fx.repoA) } });
+    const { fake: _ignored, ...rest } = extra;
+    const result = api.publishReviewStatus({ repository: fx.repoA, storeDir: fx.store, pr: 7, gh: fake.gh,
+        reviewStatus: STATUS_ON, reviewGateMode: 'off', ...rest });
+    return { result, fake };
+}
+
+/** Issue a receipt of `kind` over the committed head's whole-branch snapshot. */
+function receiptForHead(api, fx, kind = 'changes-review', extra = {}) {
+    const head = snapshot(api, fx.repoA, 'branch', { base: 'main', committed: true });
+    return issueCandidate(api, fx.store, head, kind, { reviewGateMode: 'off', ...extra });
+}
+
+function commitBypass(dir, { reason = BYPASS_REASON, pr = '7', parent, lines, changeFile = false, after } = {}) {
+    const parentSha = parent ?? headOf(dir);
+    if (changeFile) {
+        fs.writeFileSync(path.join(dir, 'feature.txt'), 'changed under a bypass\n');
+        git(dir, ['add', 'feature.txt']);
+    }
+    const trailers = lines || ['Review-Bypass: true', `Review-Bypass-Reason: ${reason}`, `Review-Bypass-PR: ${pr}`, `Review-Bypass-Parent: ${parentSha}`];
+    git(dir, [C_ARG, '-q', ...(changeFile ? [] : ['--allow-empty']), '-m', 'chore: skip review', '-m', trailers.join('\n'), ...(after ? ['-m', after] : [])]);
+}
+
+const STATUS_TESTS = [
+    {
+        name: 'TC-RGE-016 publish-status posts success on the PR head when a whole-branch review receipt matches it, with the exact gh argv',
+        skip: !GIT,
+        fn: async () => fixture(fx => {
+            makeStatusRepo(fx.repoA, { reviewGate: { status: { enabled: true, context: 'Review policy' } } });
+            const api = receipt();
+            receiptForHead(api, fx, 'workflow-review-changes');
+            const sha = headOf(fx.repoA);
+            const tree = git(fx.repoA, ['rev-parse', 'HEAD^{tree}']).trim();
+            const fake = fakeGh({ head: { sha } });
+            // No policy override: the project config on the branch turns the status on and names it.
+            const result = api.publishReviewStatus({ repository: fx.repoA, storeDir: fx.store, pr: '7', gh: fake.gh });
+            assert.equal(result.status, 'PUBLISHED', result.reason);
+            assert.equal(result.via, 'review');
+            assert.equal(result.description, `reviewed: workflow-review-changes; tree=${tree}`);
+            assert.deepEqual(fake.calls, [
+                ['repo', 'view', '--json', 'nameWithOwner', '--jq', '.nameWithOwner'],
+                ['api', 'repos/acme/widgets/pulls/7'],
+                ['api', '--method', 'POST', `repos/acme/widgets/statuses/${sha}`, '-f', 'state=success', '-f', 'context=Review policy',
+                    '-f', `description=reviewed: workflow-review-changes; tree=${tree}`]
+            ], 'gh resolves the repository, reads the PR, then posts one status on the head SHA');
+
+            const named = publishStatus(api, fx, { githubRepository: 'acme/other' });
+            assert.equal(named.result.status, 'PUBLISHED');
+            assert.equal(named.fake.calls[0][1], 'repos/acme/other/pulls/7', '--repository skips the lookup');
+            // A new commit needs its own status; an empty commit leaves the reviewed tree, so the receipt still matches it.
+            git(fx.repoA, [C_ARG, '-q', '--allow-empty', '-m', 'ci: retrigger']);
+            assert.equal(publishStatus(api, fx).result.status, 'PUBLISHED', 'same tree on a new SHA: the receipt matches again');
+            assert.equal(publishStatus(api, fx, { githubRepository: 'not a slug' }).result.status, 'REFUSED');
+        })
+    },
+    {
+        name: 'TC-RGE-017 publish-status is off by default and refuses without calling gh',
+        skip: !GIT,
+        fn: async () => fixture(fx => {
+            makeStatusRepo(fx.repoA);
+            const api = receipt();
+            receiptForHead(api, fx);
+            const fake = fakeGh({ head: { sha: headOf(fx.repoA) } });
+            const result = api.publishReviewStatus({ repository: fx.repoA, storeDir: fx.store, pr: 7, gh: fake.gh });
+            assert.equal(result.status, 'REFUSED');
+            assert.match(result.reason, /reviewGate\.status\.enabled/);
+            assert.deepEqual(fake.calls, [], 'nothing is read or posted while the status is off');
+            assert.match(publishStatus(api, fx, { pr: 'abc' }).result.reason, /--pr=/, 'a pull request number is required');
+        })
+    },
+    {
+        name: 'TC-RGE-018 with no matching review receipt it refuses and says how to review or bypass; a skip receipt does not count',
+        skip: !GIT,
+        fn: async () => fixture(fx => {
+            makeStatusRepo(fx.repoA);
+            const api = receipt();
+            receiptForHead(api, fx, 'skip', { reason: 'user approved skip' });
+            const { result, fake } = publishStatus(api, fx);
+            assert.equal(result.status, 'REFUSED', 'a recorded skip is not a review');
+            assert.match(result.reason, /no review receipt matches pull request #7/);
+            assert.match(result.reason, /\/changes-review --fix-loop/);
+            assert.match(result.reason, /--target=branch --base=main/);
+            assert.match(result.reason, new RegExp(`Review-Bypass-Parent: ${headOf(fx.repoA)}`));
+            assert.deepEqual(fake.posts(), [], 'nothing is posted');
+            // A receipt for the working tree before a later change does not cover the changed head.
+            receiptForHead(api, fx);
+            fs.writeFileSync(path.join(fx.repoA, 'feature.txt'), 'changed after the review\n');
+            git(fx.repoA, [C_ARG, '-q', '-am', 'after review']);
+            assert.equal(publishStatus(api, fx).result.status, 'REFUSED', 'a commit after the review needs a fresh review');
+        })
+    },
+    {
+        name: 'TC-RGE-019 a PR head other than the local committed HEAD, a closed PR or another base is refused',
+        skip: !GIT,
+        fn: async () => fixture(fx => {
+            makeStatusRepo(fx.repoA);
+            const api = receipt();
+            receiptForHead(api, fx);
+            const parent = git(fx.repoA, ['rev-parse', 'HEAD~1']).trim();
+            const stale = publishStatus(api, fx, { fake: fakeGh({ head: { sha: parent } }) });
+            assert.equal(stale.result.status, 'REFUSED');
+            assert.match(stale.result.reason, /head is [a-f0-9]{40} but this checkout's committed HEAD is/);
+            assert.deepEqual(stale.fake.posts(), []);
+            const closed = publishStatus(api, fx, { fake: fakeGh({ head: { sha: headOf(fx.repoA) }, state: 'closed' }) });
+            assert.match(closed.result.reason, /is not open/);
+            const otherBase = publishStatus(api, fx, { base: 'feature' });
+            assert.match(otherBase.result.reason, /--base must name the pull request's base branch main/, 'the branch itself would measure no diff');
+            assert.equal(publishStatus(api, fx, { base: 'main' }).result.status, 'PUBLISHED', 'the PR base by name is fine');
+            const broken = () => api.publishReviewStatus({ repository: fx.repoA, storeDir: fx.store, pr: 7, reviewStatus: STATUS_ON,
+                reviewGateMode: 'off', gh: () => { throw Object.assign(new Error('exit 1'), { stderr: 'HTTP 404: Not Found' }); } });
+            assert.throws(broken, /Resolving the GitHub repository failed .*HTTP 404/, 'a gh failure is reported, never read as success');
+        })
+    },
+    {
+        name: 'TC-RGE-020 a committed review bypass publishes only when its trailers are exact: PR, parent, unchanged tree, reason, final block',
+        skip: !GIT,
+        fn: async () => fixture(fx => {
+            const api = receipt();
+            const attempt = (setup, label) => {
+                fs.rmSync(fx.repoA, { recursive: true, force: true });
+                fs.mkdirSync(fx.repoA);
+                makeStatusRepo(fx.repoA);
+                setup();
+                return publishStatus(api, fx).result;
+            };
+            const valid = attempt(() => commitBypass(fx.repoA), 'valid');
+            assert.equal(valid.status, 'PUBLISHED', valid.reason);
+            assert.equal(valid.via, 'bypass');
+            assert.equal(valid.description, `skipped review: ${BYPASS_REASON}`);
+            const refusals = [
+                [() => commitBypass(fx.repoA, { pr: '8' }), /Review-Bypass-PR is 8, not pull request 7/, 'another pull request'],
+                [() => commitBypass(fx.repoA, { parent: git(fx.repoA, ['rev-parse', 'HEAD~1']).trim() }), /is not the commit's parent/, 'a parent that is not the real one'],
+                [() => commitBypass(fx.repoA, { parent: headOf(fx.repoA).slice(0, 12) }), /use the full SHA/, 'an abbreviated parent'],
+                [() => commitBypass(fx.repoA, { changeFile: true }), /changes files/, 'a bypass that changes the tree'],
+                [() => commitBypass(fx.repoA, { reason: 'too short' }), /10-500 printable characters \(got 9\)/, 'a short reason'],
+                [() => commitBypass(fx.repoA, { reason: 'r'.repeat(501) }), /got 501/, 'a reason over 500 characters'],
+                [() => commitBypass(fx.repoA, { lines: ['Review-Bypass: true', `Review-Bypass-Reason: ${BYPASS_REASON}`, 'Review-Bypass-PR: 7',
+                    `Review-Bypass-Parent: ${headOf(fx.repoA)}`, 'Review-Bypass-PR: 7'] }), /exactly one Review-Bypass-PR trailer \(found 2\)/, 'a repeated trailer'],
+                [() => commitBypass(fx.repoA, { lines: ['Review-Bypass: yes', `Review-Bypass-Reason: ${BYPASS_REASON}`, 'Review-Bypass-PR: 7',
+                    `Review-Bypass-Parent: ${headOf(fx.repoA)}`] }), /must be true/, 'a marker that is not true'],
+                [() => commitBypass(fx.repoA, { after: 'Generated with an assistant.' }), /not in the message's final trailer block/, 'trailers followed by an attribution paragraph'],
+                [() => { commitBypass(fx.repoA); git(fx.repoA, [C_ARG, '-q', '--allow-empty', '-m', 'later work']); }, /no review receipt matches/, 'a bypass that is not the latest commit']
+            ];
+            for (const [setup, pattern, label] of refusals) {
+                const result = attempt(setup, label);
+                assert.equal(result.status, 'REFUSED', `${label}: refused`);
+                assert.match(result.reason, pattern, label);
+            }
+        })
+    },
+    {
+        name: 'TC-RGE-021 attestation is required only when requireAttestation is set or reviewGate.mode is enforce',
+        skip: !GIT,
+        fn: async () => fixture(fx => {
+            makeStatusRepo(fx.repoA);
+            const api = receipt();
+            const head = snapshot(api, fx.repoA, 'branch', { base: 'main', committed: true });
+            issueCandidate(api, fx.store, head, 'changes-review', { reviewGateMode: 'off' });
+            const attested = { ...STATUS_ON, requireAttestation: true };
+            assert.equal(publishStatus(api, fx).result.status, 'PUBLISHED', 'default: hooks are not needed, an unattested receipt counts');
+            const refused = publishStatus(api, fx, { reviewStatus: attested }).result;
+            assert.match(refused.reason, /no attested review receipt matches/, 'requireAttestation: an unattested receipt does not count');
+            assert.equal(publishStatus(api, fx, { reviewGateMode: 'enforce' }).result.status, 'REFUSED',
+                'enforce never accepts a receipt its own gate would refuse');
+            withStore(fx.store, () => {
+                const fresh = snapshot(api, fx.repoA, 'branch', { base: 'main', committed: true });
+                api.recordAttestation({ repository: fx.repoA, kind: 'changes-review', now: fresh.capturedAt - 1 });
+                issueCandidate(api, fx.store, fresh, 'changes-review', { reviewGateMode: 'enforce' });
+            });
+            assert.equal(publishStatus(api, fx, { reviewStatus: attested }).result.status, 'PUBLISHED', 'an attested receipt counts');
+        })
+    },
+    {
+        name: 'TC-RGE-022 the status description never exceeds 140 characters',
+        skip: !GIT,
+        fn: async () => fixture(fx => {
+            makeStatusRepo(fx.repoA);
+            const api = receipt();
+            commitBypass(fx.repoA, { reason: `${'long reason '.repeat(41)}end`.trim() });
+            const { result, fake } = publishStatus(api, fx);
+            assert.equal(result.status, 'PUBLISHED', result.reason);
+            assert.equal(result.description.length, 140);
+            assert.match(result.description, /^skipped review: long reason .*\.\.\.$/);
+            assert.equal(fake.posts()[0].at(-1), `description=${result.description}`, 'the capped text is what gh posts');
+        })
+    },
+    {
+        name: 'TC-RGE-023 reviewGate.status reads from the project config only, rejects invalid values, and shows in the schema, catalog and CLI',
+        skip: !GIT,
+        fn: async () => fixture(fx => {
+            const policy = require(path.resolve(__dirname, '../../../scripts/lib/commit-review-policy.cjs'));
+            const features = require(path.resolve(__dirname, '../../../scripts/framework-features.cjs'));
+            const { SCHEMA } = require(path.resolve(__dirname, '../../lib/project-config-schema.cjs'));
+            assert.deepEqual(Object.keys(SCHEMA.reviewGate.properties.status.properties), ['enabled', 'context', 'requireAttestation']);
+            fs.mkdirSync(path.join(fx.repoB, 'docs'));
+            const config = path.join(fx.repoB, 'docs', 'project-config.json');
+            const read = () => policy.resolveReviewStatus({ rootDir: fx.repoB });
+            assert.deepEqual(read(), { enabled: false, context: 'Review validation', requireAttestation: false, source: 'default' });
+            fs.writeFileSync(config, '{ not json');
+            assert.equal(read().enabled, false, 'an unreadable config publishes nothing');
+            for (const bad of [{ status: true }, { status: { enabled: 'yes' } }, { status: { requireAttestation: 1 } }, { status: { context: '' } },
+                { status: { context: 'x'.repeat(101) } }, { status: { context: ' padded' } }]) {
+                fs.writeFileSync(config, JSON.stringify({ reviewGate: bad }));
+                assert.throws(read, /Invalid reviewGate/, JSON.stringify(bad));
+            }
+            fs.writeFileSync(config, JSON.stringify({ reviewGate: { status: { enabled: true, requireAttestation: true } } }));
+            assert.deepEqual(read(), { enabled: true, context: 'Review validation', requireAttestation: true, source: 'project-config' });
+            assert.equal(policy.resolveReviewGateMode({ rootDir: fx.repoB }).mode, 'off', 'a status alone does not turn the hook gate on');
+            const row = features.catalog({ rootDir: fx.repoB, homeDir: fx.root, env: {} }).find(item => item.key === 'reviewGate.status');
+            assert.deepEqual([row.value, row.source], ['on (Review validation, attested)', 'project-config']);
+
+            makeStatusRepo(fx.repoA);
+            const cli = args => spawnSync(process.execPath, [LIB, ...args], { cwd: fx.repoA, encoding: 'utf8', windowsHide: true,
+                env: { ...process.env, CK_REVIEW_RECEIPT_STORE: fx.store } });
+            const off = cli(['publish-status', '--pr=7']);
+            assert.equal(off.status, 1, 'a refusal exits 1');
+            assert.match(off.stderr, /Review status refused: reviewGate\.status\.enabled/);
+            assert.equal(JSON.parse(off.stdout).status, 'REFUSED');
+        })
+    },
+    {
+        name: 'TC-RGE-024 isolated source mutants of the status rules are killed: head match, bypass PR, parent, tree, trailer block, attestation, cap',
+        skip: !GIT,
+        fn: async () => fixture(fx => {
+            const source = fs.readFileSync(LIB, 'utf8');
+            const mutants = [
+                ['head match', 'if (head !== localHead) {', 'if (false) {',
+                    () => ({ fake: fakeGh({ head: { sha: git(fx.repoA, ['rev-parse', 'HEAD~1']).trim() } }) }), api => receiptForHead(api, fx)],
+                ['bypass PR', "if (values['Review-Bypass-PR'] !== pr)", 'if (false)', () => ({}), () => commitBypass(fx.repoA, { pr: '8' })],
+                ['bypass parent', "if (values['Review-Bypass-Parent'] !== parents[0]) {", 'if (false) {', () => ({}),
+                    () => commitBypass(fx.repoA, { parent: git(fx.repoA, ['rev-parse', 'HEAD~1']).trim() })],
+                ['unchanged tree', "if (run(['rev-parse', `${head}^{tree}`]).trim() !== run(['rev-parse', `${parents[0]}^{tree}`]).trim()) {", 'if (false) {',
+                    () => ({}), () => commitBypass(fx.repoA, { changeFile: true })],
+                ['trailer block', "'--format=%(trailers:only,unfold)'", "'--format=%B'", () => ({}),
+                    () => commitBypass(fx.repoA, { after: 'Generated with an assistant.' })],
+                ['attestation', 'const attested = policy.requireAttestation === true ||', 'const attested = false &&',
+                    () => ({ reviewStatus: { ...STATUS_ON, requireAttestation: true } }), api => receiptForHead(api, fx)],
+                ['description cap', 'return text.length <= STATUS_DESCRIPTION_MAX ?', 'return true ?', () => ({}),
+                    () => commitBypass(fx.repoA, { reason: 'r'.repeat(300) })]
+            ];
+            const tempDir = path.join(fx.root, 'mutants');
+            fs.mkdirSync(tempDir);
+            for (const [label, from, to, extra, setup] of mutants) {
+                assert.equal(source.split(from).length, 2, `${label}: the mutated rule occurs exactly once`);
+                const file = path.join(tempDir, `mutant-${label.replace(/\W+/g, '-')}.cjs`);
+                fs.writeFileSync(file, source.replace(from, () => to));
+                delete require.cache[file];
+                const mutant = require(file);
+                const verdict = api => {
+                    fs.rmSync(fx.repoA, { recursive: true, force: true });
+                    fs.rmSync(fx.store, { recursive: true, force: true });
+                    fs.mkdirSync(fx.repoA);
+                    fs.mkdirSync(fx.store);
+                    makeStatusRepo(fx.repoA);
+                    setup(api);
+                    const { result } = publishStatus(api, fx, extra());
+                    return label === 'description cap' ? result.description.length <= 140 : result.status === 'REFUSED';
+                };
+                assert.equal(verdict(receipt()), true, `${label}: the real rule holds`);
+                assert.equal(verdict(mutant), false, `${label}: the test fails against the mutant`);
+            }
+        })
+    }
+];
+
+tests.push(...ENFORCE_TESTS, ...STATUS_TESTS);
 
 module.exports = { name: 'review-commit-gate', tests };

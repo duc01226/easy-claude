@@ -78,6 +78,40 @@ function resolveReviewGateMode(options = {}) {
     return { mode: gate.mode, source: 'project-config' };
 }
 
+const DEFAULT_STATUS_CONTEXT = 'Review validation';
+
+/**
+ * `reviewGate.status`, the commit status `review-receipt.cjs publish-status` posts on a pull
+ * request's head for branch protection to require. A team policy read from the project config only,
+ * off by default. Unreadable config reads as off (nothing is published); a readable but invalid
+ * entry throws, so the publisher refuses rather than guess the team's settings.
+ */
+function resolveReviewStatus(options = {}) {
+    const rootDir = options.rootDir || process.cwd();
+    const file = routing.resolveProjectConfigPath(rootDir);
+    const off = source => ({ enabled: false, context: DEFAULT_STATUS_CONTEXT, requireAttestation: false, source });
+    let config;
+    try {
+        config = JSON.parse(routing.decodeConfigText(fs.readFileSync(file)));
+    } catch (error) {
+        return off(error.code === 'ENOENT' ? 'default' : 'unreadable-project-config');
+    }
+    const gate = config && typeof config === 'object' && !Array.isArray(config) ? config.reviewGate : undefined;
+    if (gate === undefined) return off('default');
+    if (!gate || typeof gate !== 'object' || Array.isArray(gate)) throw new Error(`Invalid reviewGate in ${file}; expected an object`);
+    const status = gate.status;
+    if (status === undefined) return off('default');
+    if (!status || typeof status !== 'object' || Array.isArray(status)) throw new Error(`Invalid reviewGate.status in ${file}; expected an object such as { "enabled": true }`);
+    for (const key of ['enabled', 'requireAttestation']) {
+        if (status[key] !== undefined && typeof status[key] !== 'boolean') throw new Error(`Invalid reviewGate.status.${key} in ${file}; expected true or false`);
+    }
+    const context = status.context === undefined ? DEFAULT_STATUS_CONTEXT : status.context;
+    if (typeof context !== 'string' || context.length === 0 || context.length > 100 || context.trim() !== context || /[\x00-\x1f\x7f]/.test(context)) {
+        throw new Error(`Invalid reviewGate.status.context in ${file}; expected 1-100 printable characters`);
+    }
+    return { enabled: status.enabled === true, context, requireAttestation: status.requireAttestation === true, source: 'project-config' };
+}
+
 function selectReview(risk, mode) {
     if (!RISKS.includes(risk)) throw new Error(`Expected risk: ${RISKS.join(', ')}`);
     if (!MODES.includes(mode)) throw new Error(`Expected review mode: ${MODES.join(', ')}`);
@@ -114,5 +148,5 @@ function main(argv = process.argv.slice(2)) {
     }
 }
 
-module.exports = { MODES, RISKS, GATE_MODES, resolveCommitReviewMode, resolveReviewGateMode, selectReview, decideReview, main };
+module.exports = { MODES, RISKS, GATE_MODES, DEFAULT_STATUS_CONTEXT, resolveCommitReviewMode, resolveReviewGateMode, resolveReviewStatus, selectReview, decideReview, main };
 if (require.main === module) process.exitCode = main();
