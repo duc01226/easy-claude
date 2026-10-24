@@ -474,6 +474,16 @@ confirmation or unsolicited offer to commit/push is part of the framework flow.
 - **Pull requests.** `gh pr create` and `gh pr ready` are refused unless the committed branch head has a whole-branch receipt (a review, or a recorded skip) against its merge-base with the pull request's base (`--base`, else `pullRequest.targetBranch`, else `main`). A draft (`gh pr create --draft`), `gh pr ready --undo` and reads pass, because `gh pr ready` is gated when the draft asks for merge; `--repo`, another `--head` or another pull request number are refused because this checkout cannot prove them. Reviews snapshot the branch with `review-receipt.cjs snapshot --target=branch --base=<base-ref>`; the `pull-request` skill does this.
 - **Attested review receipts.** A review receipt, for commits and pull requests alike, counts only when the review protocol hook recorded that a review skill of that kind started (a Skill call, a typed `/name`, or a read of its `SKILL.md`) before the reviewed snapshot. Issuance consumes the attestation, so one run backs one receipt, and a receipt minted by hand is refused. Skip receipts stay the explicit, recorded override.
 
+**Which hosts attest, and how.** The review protocol hook (`protocol-inject-review.cjs`) records the attestation on every supported host, before it decides any delivery:
+
+| Host | Review start that is attested |
+| --- | --- |
+| Claude Code | the Skill tool, a typed `/name` (`UserPromptExpansion`), or a Read of `.claude/skills/<name>/SKILL.md` |
+| Codex | a typed `$name` (`UserPromptSubmit`), or a shell command that reads `.claude/skills/<name>/SKILL.md` or `.agents/skills/<name>/SKILL.md`. Codex reports shell commands and unified exec, including the nested calls of its code-mode `exec` tool, as PostToolUse `Bash`; the hook reads `tool_input.command` or `cmd`, as text or an argument list |
+| OpenCode (bridge) | the `skill` tool, or a `read` of `.claude/skills/<name>/SKILL.md` (registered as `Read(**/SKILL.md)`); a shell read is not a registered load path on this host |
+
+A sub-agent start, a non-review skill, and a `SKILL.md` outside the skill folders record nothing. If a review ran but its receipt is refused for want of an attestation, the hook did not run. On Codex, project hooks run only once they are trusted: open `/hooks` in that checkout and trust the framework hooks. A new checkout path or a changed hook asks again, and until then Codex skips them without a message. In any host, check that the session runs the hooks of a checkout that has the attestation code, not an older main checkout.
+
 Both are a bounded speedbump against forgetting, not a security boundary: the store is an ordinary directory. A project config that cannot be read or parsed counts as `off`, so a team that never opted in is never blocked by an unrelated mistake; a readable `reviewGate` entry with an invalid value (for example `"enforced"`) counts as `enforce`, so a team that opted in keeps the gate. The gate follows a literal `cd` before `gh pr` to the repository it names, refuses `GH_REPO` and a branch-moving Git step earlier in the same command, and treats a quoted mention of `gh pr create` as text, not a pull request.
 
 ```json
