@@ -56,10 +56,12 @@ function guideTags(text) {
 }
 
 const LIVE_SOURCE_ROOTS = ['.claude', 'docs/specs', 'docs/project-reference', 'README.md'];
-// Generated catalogs are rebuilt from the skill folders; history stays in ADRs and release notes.
+// Generated catalogs are rebuilt from the skill folders, and framework-update's lock only lists
+// framework file paths with their hashes; history stays in ADRs and release notes.
 const SCAN_EXCLUDED = new Set([
     '.claude/SKILLS.yaml',
     '.claude/scripts/skills_data.yaml',
+    '.claude/framework-lock.json',
     '.claude/hooks/tests/suites/e2e-test-modes-merge.test.cjs'
 ]);
 const SCAN_EXCLUDED_DIRS = new Set(['node_modules', '.git', '.code-graph', 'tmp', 'temp', 'plans']);

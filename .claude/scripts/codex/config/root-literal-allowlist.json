@@ -25,6 +25,9 @@
     ".claude/.todo-state.json": {
       "reason": "permanent — generated runtime state, not authored prose"
     },
+    ".claude/framework-lock.json": {
+      "reason": "permanent — machine-written ledger from framework-update.mjs: upstream commit plus a hash per framework file path; its keys are .claude/** paths that merely contain root names, not prose or hardcoded roots"
+    },
     ".claude/hooks/config/doc-sync-gate.json": {
       "reason": "permanent — per-project hook config; the advisory gate never blocks and .md already fast-exits by extension"
     },
