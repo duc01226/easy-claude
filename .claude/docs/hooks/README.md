@@ -531,7 +531,7 @@ SESSION START (13 hooks)                        DURING SESSION
 | `git-operation-lease.cjs`   | Short-lived session/project/repository/operation bookkeeping with replay-safe issue/revoke/check lifecycle. **Scoped speedbump, not a security boundary:** the store is an ordinary directory that is not tamper-proof (`git-operation-lease.cjs:14`) and `issueLease` performs no issuer-authority check, so any process able to write the store can mint one. It raises the cost of an accidental push; it does not stop a determined one, and it is never a substitute for the user's explicit request. |
 | `path-boundary-policy.cjs`  | Pure command/path role classification helper; library module, not a registered hook                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | `project-root.cjs`          | Resolve and validate the consuming project root across cwd/script/env launch shapes                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| `review-receipt.cjs`        | Snapshots, issues, verifies, skips, and clears short-lived review receipts bound to the exact repository, base tree, and candidate tree                                                                                                                                                                                                                                                                                                                                                                    |
+| `review-receipt.cjs`        | Snapshots, issues, verifies, skips, and clears short-lived review receipts bound to the exact repository, base tree, and candidate tree; `publish-status` posts the `reviewGate.status` commit status on a pull request head from a matching whole-branch review receipt or a committed review bypass |
 | `sensitive-path-policy.cjs` | Pure sensitive-path classification shared by sensitive-path consumers                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 
 ### Context / Prompt Support
@@ -860,12 +860,12 @@ Doc paths in this file are defaults resolved against the project-reference docs 
 
 ## Testing
 
-The primary runner declares 133 tests. The aggregate runner `run-all-tests.cjs` discovers 2177 tests declared across 127 suite files. Source inventory is not an execution result; read the runner output for observed discovery, outcomes and skips. The aggregate includes eighteen task-tracking suites with 590 declared executors.
+The primary runner declares 133 tests. The aggregate runner `run-all-tests.cjs` discovers 2186 tests declared across 127 suite files. Source inventory is not an execution result; read the runner output for observed discovery, outcomes and skips. The aggregate includes eighteen task-tracking suites with 590 declared executors.
 
 | Test Surface          | Count | File/Location                                                     |
 | --------------------- | ----- | ----------------------------------------------------------------- |
 | Primary hook runner   | 133   | `.claude/hooks/tests/test-all-hooks.cjs`                          |
-| Aggregate runner      | 2177 | `.claude/hooks/tests/run-all-tests.cjs` (all suites, declared)  |
+| Aggregate runner      | 2186 | `.claude/hooks/tests/run-all-tests.cjs` (all suites, declared)  |
 | Standalone test files | TODO  | `tests/test-*.cjs/.js` excluding runner (re-verify before citing) |
 | Lib unit tests        | TODO  | `lib/__tests__/*.test.cjs` (re-verify before citing)              |
 

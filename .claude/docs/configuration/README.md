@@ -490,6 +490,43 @@ Both are a bounded speedbump against forgetting, not a security boundary: the st
 { "reviewGate": { "mode": "enforce" } }
 ```
 
+### Review status (`reviewGate.status`)
+
+`reviewGate.status` makes the review policy visible to CI: a command posts a commit status on the pull request's head, and the main branch's protection rules can require it. No hook has to run, so it works on hosts whose hooks are untrusted (Codex) or read from an older checkout. It is a team policy, read from the project config only, and off by default; it is independent of `reviewGate.mode`.
+
+```json
+{ "reviewGate": { "status": { "enabled": true, "context": "Review validation", "requireAttestation": false } } }
+```
+
+| Key | Default | Meaning |
+| --- | --- | --- |
+| `enabled` | `false` | `true` lets `publish-status` post the status; `false` makes it refuse and post nothing |
+| `context` | `"Review validation"` | the status name branch protection requires (1-100 printable characters) |
+| `requireAttestation` | `false` | `true` counts only a review receipt whose review skill start was attested, which needs the review protocol hook to run; `reviewGate.mode: enforce` implies it |
+
+Publish from the checkout where the review ran, after pushing:
+
+```bash
+node .claude/hooks/lib/review-receipt.cjs publish-status --pr=<number> [--base=<ref>] [--repository=<owner/name>]
+```
+
+It reads the pull request with `gh`, refuses unless the pull request is open and its head is this checkout's committed `HEAD`, measures the committed head against its merge-base with the pull request's base (`--base` may only spell that base, such as `origin/main`), and then:
+
+- **Reviewed.** A whole-branch review receipt of any review kind (not `skip`) for exactly that snapshot posts `state=success` with the description `reviewed: <kind>; tree=<tree>`. The review must have snapshotted the branch (`snapshot --target=branch --base=<base-ref>`, as the `pull-request` skill does) and the receipt must still be live (2 hours by default).
+- **Bypassed.** With no matching receipt, an explicit review bypass on the branch's last commit posts `state=success` with `skipped review: <reason>`. The bypass is an empty commit (its tree equals its parent's; it can be the same empty commit a project uses to skip CI) whose final trailer block carries each of these exactly once:
+
+  ```text
+  Review-Bypass: true
+  Review-Bypass-Reason: <10-500 characters>
+  Review-Bypass-PR: <pull request number>
+  Review-Bypass-Parent: <full SHA of the commit's parent>
+  ```
+
+  A bypass for another pull request, a wrong or abbreviated parent, a changed tree, a reason outside 10-500 characters, a repeated trailer, a marker in the message body or on an earlier commit is refused.
+- **Neither.** It refuses, posts nothing and says how to review the branch or commit a bypass. A `skip` receipt never counts: the bypass is the only recorded skip CI sees.
+
+Descriptions are cut to 140 characters. GitHub keeps statuses per commit, so every new commit on the branch needs the status published again. A receipt still matches a new commit whose tree is unchanged (an empty commit); any other change needs a fresh review or a fresh bypass.
+
 ### Hook-only delivery: host requirements
 
 The universal rules (`protocol-inject-universal-<n>.cjs` bins), the workflow route (`workflow-route-inject.cjs` for the gate, `workflow-catalog-inject.cjs` for the catalog) and the skill-overlay reminder (`skill-overlay-remind.cjs`) are delivered only by hooks; `CLAUDE.md` and `AGENTS.md` hold project information only and no static fallback exists.

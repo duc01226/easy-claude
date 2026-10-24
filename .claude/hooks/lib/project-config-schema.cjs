@@ -1125,6 +1125,18 @@ const SCHEMA = {
                 required: false,
                 enumValues: ['off', 'enforce'],
                 describe: 'Default "off". "enforce": (1) gh pr create (except a draft) and gh pr ready are refused unless the committed branch head has a whole-branch receipt (review or recorded skip) against its merge-base with the PR base; (2) a review receipt, for commits and pull requests alike, counts only when the review protocol hook attested that a review skill of that kind started before the reviewed snapshot, so a receipt cannot be minted by hand. Skip receipts stay explicit, recorded overrides. An unparseable project config counts as off; an invalid reviewGate value counts as enforce. A bounded speedbump against forgetting, not a security boundary.'
+            },
+            // The CI-visible half of the gate: a command posts a commit status that branch
+            // protection can require, so no hook has to run on the developer's host.
+            status: {
+                type: 'object',
+                required: false,
+                describe: 'Optional "Review validation" commit status. `node .claude/hooks/lib/review-receipt.cjs publish-status --pr=<n>` posts state=success on the pull request head when a whole-branch review receipt (not a skip) matches the committed head against its merge-base with the PR base, or when the last commit is an explicit review bypass (Review-Bypass trailers). Require the context in branch protection. Statuses are per commit: every new commit needs a fresh review or bypass.',
+                properties: {
+                    enabled: { type: 'boolean', required: false, describe: 'Default false. true = publish-status may post the status; false = it refuses and posts nothing.' },
+                    context: { type: 'string', required: false, describe: 'Default "Review validation". The status name branch protection requires (1-100 printable characters).' },
+                    requireAttestation: { type: 'boolean', required: false, describe: 'Default false. true = only a review receipt backed by an attested review skill start counts (needs the review protocol hook to run). reviewGate.mode "enforce" implies it.' }
+                }
             }
         }
     },
