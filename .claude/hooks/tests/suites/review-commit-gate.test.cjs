@@ -1572,7 +1572,7 @@ const STATUS_TESTS = [
                     `Review-Bypass-Parent: ${headOf(fx.repoA)}`, 'Review-Bypass-PR: 7'] }), /exactly one Review-Bypass-PR trailer \(found 2\)/, 'a repeated trailer'],
                 [() => commitBypass(fx.repoA, { lines: ['Review-Bypass: yes', `Review-Bypass-Reason: ${BYPASS_REASON}`, 'Review-Bypass-PR: 7',
                     `Review-Bypass-Parent: ${headOf(fx.repoA)}`] }), /must be true/, 'a marker that is not true'],
-                [() => commitBypass(fx.repoA, { after: 'More notes after the trailers.' }), /no review receipt matches/, 'trailers buried in the body'],
+                [() => commitBypass(fx.repoA, { after: 'Generated with an assistant.' }), /not in the message's final trailer block/, 'trailers followed by an attribution paragraph'],
                 [() => { commitBypass(fx.repoA); git(fx.repoA, [C_ARG, '-q', '--allow-empty', '-m', 'later work']); }, /no review receipt matches/, 'a bypass that is not the latest commit']
             ];
             for (const [setup, pattern, label] of refusals) {
@@ -1666,7 +1666,7 @@ const STATUS_TESTS = [
                 ['unchanged tree', "if (run(['rev-parse', `${head}^{tree}`]).trim() !== run(['rev-parse', `${parents[0]}^{tree}`]).trim()) {", 'if (false) {',
                     () => ({}), () => commitBypass(fx.repoA, { changeFile: true })],
                 ['trailer block', "'--format=%(trailers:only,unfold)'", "'--format=%B'", () => ({}),
-                    () => commitBypass(fx.repoA, { after: 'More notes after the trailers.' })],
+                    () => commitBypass(fx.repoA, { after: 'Generated with an assistant.' })],
                 ['attestation', 'const attested = policy.requireAttestation === true ||', 'const attested = false &&',
                     () => ({ reviewStatus: { ...STATUS_ON, requireAttestation: true } }), api => receiptForHead(api, fx)],
                 ['description cap', 'return text.length <= STATUS_DESCRIPTION_MAX ?', 'return true ?', () => ({}),

@@ -832,9 +832,15 @@ function commitTrailers(run, commit) {
  * four trailers exactly once with a 10-500 character reason.
  */
 function reviewBypass(run, head, pr) {
-    const trailers = commitTrailers(run, head).filter(item => /^review-bypass(?:-|$)/i.test(item.key));
-    if (trailers.length === 0) return null;
     const invalid = reason => ({ valid: false, reason });
+    const trailers = commitTrailers(run, head).filter(item => /^review-bypass(?:-|$)/i.test(item.key));
+    if (trailers.length === 0) {
+        // Git reads trailers only from the final paragraph; a line after them (an attribution) hides them all.
+        if (/^review-bypass(?:-[a-z]+)?:/im.test(run(['log', '-1', '--format=%B', head]))) {
+            return invalid('its Review-Bypass lines are not in the message\'s final trailer block; put them last, with any attribution line above them');
+        }
+        return null;
+    }
     const unknown = trailers.find(item => !BYPASS_KEYS.some(key => key.toLowerCase() === item.key.toLowerCase()));
     if (unknown) return invalid(`unknown trailer ${unknown.key}`);
     const values = {};
@@ -868,7 +874,7 @@ function noReceiptMessage({ pr, head, base, snapshot, attested }) {
         `Review the whole branch from this checkout: the pull-request skill's review step, or /changes-review --fix-loop ` +
         `over the branch (snapshot --target=branch --base=${base}); commit everything it reviewed, push, and publish again ` +
         `while the receipt is live (${DEFAULT_LIFETIME_MS / 3600000} hours by default). To skip the review on purpose, make the ` +
-        `branch's last commit an empty one with the trailers Review-Bypass: true, Review-Bypass-Reason: <${BYPASS_REASON_MIN}-${BYPASS_REASON_MAX} characters>, ` +
+        `branch's last commit an empty one whose message ends with the trailers Review-Bypass: true, Review-Bypass-Reason: <${BYPASS_REASON_MIN}-${BYPASS_REASON_MAX} characters>, ` +
         `Review-Bypass-PR: ${pr} and Review-Bypass-Parent: ${head}, push it, and publish again.`;
 }
 

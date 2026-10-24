@@ -513,7 +513,7 @@ node .claude/hooks/lib/review-receipt.cjs publish-status --pr=<number> [--base=<
 It reads the pull request with `gh`, refuses unless the pull request is open and its head is this checkout's committed `HEAD`, measures the committed head against its merge-base with the pull request's base (`--base` may only spell that base, such as `origin/main`), and then:
 
 - **Reviewed.** A whole-branch review receipt of any review kind (not `skip`) for exactly that snapshot posts `state=success` with the description `reviewed: <kind>; tree=<tree>`. The review must have snapshotted the branch (`snapshot --target=branch --base=<base-ref>`, as the `pull-request` skill does) and the receipt must still be live (2 hours by default).
-- **Bypassed.** With no matching receipt, an explicit review bypass on the branch's last commit posts `state=success` with `skipped review: <reason>`. The bypass is an empty commit (its tree equals its parent's; it can be the same empty commit a project uses to skip CI) whose final trailer block carries each of these exactly once:
+- **Bypassed.** With no matching receipt, an explicit review bypass on the branch's last commit posts `state=success` with `skipped review: <reason>`. The bypass is an empty commit (its tree equals its parent's; it can be the same empty commit a project uses to skip CI) whose final paragraph is this trailer block, each trailer exactly once (put any attribution line above it: Git reads trailers only from the last paragraph):
 
   ```text
   Review-Bypass: true
@@ -522,10 +522,12 @@ It reads the pull request with `gh`, refuses unless the pull request is open and
   Review-Bypass-Parent: <full SHA of the commit's parent>
   ```
 
-  A bypass for another pull request, a wrong or abbreviated parent, a changed tree, a reason outside 10-500 characters, a repeated trailer, a marker in the message body or on an earlier commit is refused.
+  A bypass for another pull request, a wrong or abbreviated parent, a changed tree, a reason outside 10-500 characters, a repeated trailer, trailers that are not the final paragraph or a bypass on an earlier commit is refused.
 - **Neither.** It refuses, posts nothing and says how to review the branch or commit a bypass. A `skip` receipt never counts: the bypass is the only recorded skip CI sees.
 
 Descriptions are cut to 140 characters. GitHub keeps statuses per commit, so every new commit on the branch needs the status published again. A receipt still matches a new commit whose tree is unchanged (an empty commit); any other change needs a fresh review or a fresh bypass.
+
+Like the hook gate, the status is evidence that the review policy ran, not a security boundary: anyone whose token can write commit statuses can post the same context with `gh api`, and the receipt store is an ordinary local directory. Branch protection that requires it stops a forgotten review, not a deliberate bypass.
 
 ### Hook-only delivery: host requirements
 
