@@ -423,8 +423,147 @@ const ENFORCE_TESTS = [
                 assert.equal(api.hasAnyReceipt(fx.repoA), false, 'an expired receipt cannot match, so it does not count');
             });
         })
+    },
+    {
+        // Codex reports unified exec (`exec_command`, also the nested calls of its code-mode `exec`
+        // tool) as PostToolUse `Bash` with the command in `tool_input.command`; a typed `$name`
+        // arrives as UserPromptSubmit. Those shapes must attest. The `cmd` field, an argv-array
+        // command and the `exec_command` tool name are the shapes the sibling shell hooks already
+        // read (`ui-reuse-remind.cjs`, `failure-investigation-remind.cjs`); they must attest too.
+        name: 'TC-RGE-013 a review skill started on Codex is attested: shell read of its SKILL.md or a typed $name',
+        skip: !GIT,
+        fn: async () => asyncFixture(async fx => {
+            makeBranchRepo(fx.repoA, 'enforce');
+            addReviewSkills(fx.repoA);
+            const codex = (toolInput, toolName = 'Bash') => ({ hook_event_name: 'PostToolUse', tool_name: toolName, tool_input: toolInput, turn_id: 't1', session_id: 's1', cwd: fx.repoA });
+            const cases = [
+                ['changes-review', codex({ command: "sed -n '1,200p' .agents/skills/changes-review/SKILL.md" }), 'documented shell shape, relative path'],
+                ['why-review', codex({ command: `cat ${path.join(fx.repoA, '.agents', 'skills', 'why-review', 'SKILL.md')}` }), 'absolute path'],
+                ['commit-review', codex({ command: 'cat .claude/skills/commit-review/SKILL.md' }), 'the canonical skill copy'],
+                ['workflow-review-changes', { hook_event_name: 'UserPromptSubmit', prompt: '$workflow-review-changes --fix-loop', turn_id: 't1', session_id: 's1', cwd: fx.repoA }, 'typed $name'],
+                ['changes-review', codex({ cmd: 'cat .agents/skills/changes-review/SKILL.md' }), 'cmd field'],
+                ['why-review', codex({ command: ['/bin/zsh', '-lc', "sed -n '1,80p' .agents/skills/why-review/SKILL.md"] }), 'argv-array command'],
+                ['commit-review', codex({ cmd: 'cat .agents/skills/commit-review/SKILL.md' }, 'exec_command'), 'exec_command tool name']
+            ];
+            await withStoreAsync(fx.store, async () => {
+                for (const [kind, input, label] of cases) {
+                    assert.deepEqual(await startedReviews(fx.store, input), [kind], `${label}: one ${kind} attestation`);
+                }
+            });
+        })
+    },
+    {
+        // The OpenCode bridge maps its `skill` tool to Skill with the name in `name`, and its `read`
+        // tool to Read with `filePath` copied into `file_path` (registered as `Read(**/SKILL.md)`).
+        name: 'TC-RGE-014 a review skill started through the OpenCode bridge is attested: skill tool or SKILL.md read',
+        skip: !GIT,
+        fn: async () => asyncFixture(async fx => {
+            makeBranchRepo(fx.repoA, 'enforce');
+            addReviewSkills(fx.repoA);
+            const skillFile = path.join(fx.repoA, '.claude', 'skills', 'why-review', 'SKILL.md');
+            await withStoreAsync(fx.store, async () => {
+                assert.deepEqual(await startedReviews(fx.store, { hook_event_name: 'PostToolUse', tool_name: 'Skill', tool_input: { name: 'changes-review' }, session_id: 'o1', cwd: fx.repoA }),
+                    ['changes-review'], 'skill tool, name field');
+                assert.deepEqual(await startedReviews(fx.store, { hook_event_name: 'PostToolUse', tool_name: 'Read', tool_input: { filePath: skillFile, file_path: skillFile, path: skillFile }, session_id: 'o1', cwd: fx.repoA }),
+                    ['why-review'], 'read of the SKILL.md');
+            });
+        })
+    },
+    {
+        name: 'TC-RGE-015 nothing else attests, and a refused receipt names the host causes of a missing attestation',
+        skip: !GIT,
+        fn: async () => asyncFixture(async fx => {
+            makeBranchRepo(fx.repoA, 'enforce');
+            makeBranchRepo(fx.repoB);
+            addReviewSkills(fx.repoA);
+            addReviewSkills(fx.repoB);
+            const shell = (command, cwd = fx.repoA) => ({ hook_event_name: 'PostToolUse', tool_name: 'Bash', tool_input: { command }, turn_id: 't1', session_id: 's1', cwd });
+            const outside = path.join(fx.root, 'elsewhere', 'skills', 'changes-review');
+            fs.mkdirSync(outside, { recursive: true });
+            fs.writeFileSync(path.join(outside, 'SKILL.md'), '---\nname: changes-review\n---\n');
+            const none = [
+                [shell('cat .agents/skills/plan/SKILL.md'), 'a non-review skill'],
+                [shell(`cat ${path.join(outside, 'SKILL.md')}`), 'a SKILL.md outside the skill folders'],
+                [shell('grep -n changes-review docs/SKILL.md.txt'), 'a command that only mentions a skill file'],
+                [{ ...shell(''), tool_input: { command: ['cat', 7, null] } }, 'an argv array holding no path'],
+                [{ ...shell(''), tool_input: { cmd: { path: '.agents/skills/changes-review/SKILL.md' } } }, 'a non-text cmd'],
+                [shell('cat .agents/skills/changes-review/SKILL.md', fx.repoB), 'reviewGate off'],
+                [{ hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command: 'cat .agents/skills/changes-review/SKILL.md' }, turn_id: 't1', cwd: fx.repoA }, 'before the read ran'],
+                [{ hook_event_name: 'SubagentStart', agent_type: 'code-reviewer', cwd: fx.repoA }, 'a subagent start']
+            ];
+            const api = receipt();
+            fs.writeFileSync(path.join(fx.repoA, 'feature.txt'), 'feature\n');
+            await withStoreAsync(fx.store, async () => {
+                for (const [input, label] of none) assert.deepEqual(await startedReviews(fx.store, input), [], `${label}: nothing recorded`);
+                const refused = (() => {
+                    try {
+                        issueCandidate(api, fx.store, snapshot(api, fx.repoA, 'worktree'), 'changes-review');
+                    } catch (error) {
+                        return error.message;
+                    }
+                    return null;
+                })();
+                assert.match(refused || '', /no changes-review run was attested/, 'no attestation: the receipt is refused');
+                assert.match(refused, /Codex[^.]*\/hooks/, 'the refusal names Codex hook trust');
+                assert.match(refused, /older checkout/, 'the refusal names a stale checkout');
+            });
+        })
     }
 ];
+
+/** fixture() for an async body: the temporary root outlives the awaited test. */
+async function asyncFixture(fn) {
+    const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'review-gate-test-')));
+    try {
+        for (const dir of ['repo-a', 'repo-b', 'store']) fs.mkdirSync(path.join(root, dir));
+        return await fn({ root, repoA: path.join(root, 'repo-a'), repoB: path.join(root, 'repo-b'), store: path.join(root, 'store') });
+    } finally {
+        fs.rmSync(root, { recursive: true, force: true });
+    }
+}
+
+async function withStoreAsync(store, fn) {
+    const before = process.env.CK_REVIEW_RECEIPT_STORE;
+    process.env.CK_REVIEW_RECEIPT_STORE = store;
+    try {
+        return await fn();
+    } finally {
+        if (before === undefined) delete process.env.CK_REVIEW_RECEIPT_STORE;
+        else process.env.CK_REVIEW_RECEIPT_STORE = before;
+    }
+}
+
+/** A project folder with review and non-review skills in the canonical and the Codex skill copies. */
+function addReviewSkills(repo) {
+    for (const root of [['.claude', 'skills'], ['.agents', 'skills']]) {
+        for (const name of ['changes-review', 'why-review', 'commit-review', 'workflow-review-changes', 'plan']) {
+            const dir = path.join(repo, ...root, name);
+            fs.mkdirSync(dir, { recursive: true });
+            fs.writeFileSync(path.join(dir, 'SKILL.md'), `---\nname: ${name}\n---\n`);
+        }
+    }
+}
+
+/**
+ * Run the review protocol hook entry (`runHook('review')`, what protocol-inject-review.cjs runs on
+ * every host) on one event and return the kinds it attested. Delivery output and its diagnostics
+ * are discarded: this measures the attestation only.
+ */
+async function startedReviews(store, input) {
+    const delivery = require(path.resolve(__dirname, '../../lib/protocol-delivery.cjs'));
+    const kinds = () => fs.readdirSync(store).flatMap(dir => fs.readdirSync(path.join(store, dir)))
+        .filter(name => name.startsWith('attest.')).sort();
+    const before = new Set(kinds());
+    const stderrWrite = process.stderr.write;
+    process.stderr.write = () => true;
+    try {
+        await delivery.runHook('review', { input, projectRoot: input.cwd, write: (_text, done) => done && done() });
+    } finally {
+        process.stderr.write = stderrWrite;
+        process.exitCode = 0;
+    }
+    return kinds().filter(name => !before.has(name)).map(name => name.split('.')[1]);
+}
 
 const tests = [
     {

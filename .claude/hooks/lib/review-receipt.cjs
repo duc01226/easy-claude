@@ -667,7 +667,7 @@ function issueReceipt(options) {
         }
         attestation = claimAttestation(ctx, kind, Math.min(snapshot.capturedAt, ctx.now));
         if (!attestation) {
-            throw new Error(`reviewGate.mode is enforce: no ${kind} run was attested for ${ctx.repository} before this snapshot. Run /${kind} --fix-loop, which snapshots, reviews and issues the receipt, from a session whose working directory is inside this repository (the attestation is recorded for that repository); a receipt is not minted by hand.`);
+            throw new Error(`reviewGate.mode is enforce: no ${kind} run was attested for ${ctx.repository} before this snapshot. Run /${kind} --fix-loop, which snapshots, reviews and issues the receipt, from a session whose working directory is inside this repository (the attestation is recorded for that repository); a receipt is not minted by hand. If the review did run, its review protocol hook did not: Codex runs project hooks only after they are trusted (review them in /hooks; a new checkout path or a changed hook asks again), and a session can run hooks from an older checkout that predates attestation.`);
         }
     }
     return writeRecord(ctx, kind, ctx.fingerprint, {

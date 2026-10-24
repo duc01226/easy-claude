@@ -372,6 +372,7 @@ The budget is **per event and per host**: the added wall time of all delivery st
 - Files are read only inside the skill folder, the agent folder and, for second-host events, the second host's skill copy; a skill file outside them (for example under a dependency or temporary folder) delivers nothing.
 - Protocol text comes only from protocols listed in the protocol index; an unknown protocol name is dropped, and the path text written in a guide entry is never read or repeated.
 - The loaded skill's name is taken from the field each host uses for it (the primary host and the third host name it in different fields; delivery accepts either).
+- A shell load's command is taken from `command`, else `cmd` (the second host's unified-exec argument name), as text or an argument list whose text items are joined; any other value is no command and opens no file.
 
 `[Source: rule/hooks/protocol-input-trust]`
 

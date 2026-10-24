@@ -56,6 +56,10 @@ const SEG = Object.freeze({
 const INDEX_REL = '.claude/skills/shared/protocols/index.json';
 const GROUPS_REL = '.claude/skills/shared/protocol-groups.json';
 const SKILL_FILE = 'SKILL.md';
+/** Shell tool names a host reports: Codex documents unified exec as `Bash`; `exec_command` is its native name. */
+const SHELL_TOOLS = new Set(['Bash', 'exec_command']);
+/** Upper bound on the shell command text scanned for skill paths. */
+const SHELL_COMMAND_MAX = 20000;
 
 // ── small helpers ───────────────────────────────────────────────────────────
 
@@ -133,6 +137,18 @@ function commandTokens(command) {
     return tokens;
 }
 
+/**
+ * The command text of a shell tool event, or null. Reads `command`, else `cmd` (the unified-exec
+ * argument name), each a string or an argv array whose string items are joined by spaces.
+ */
+function shellCommand(input) {
+    if (!isPlainObject(input) || !SHELL_TOOLS.has(input.tool_name) || !isPlainObject(input.tool_input)) return null;
+    const { command, cmd } = input.tool_input;
+    const value = command !== undefined ? command : cmd;
+    const text = Array.isArray(value) ? value.filter(item => typeof item === 'string').join(' ') : value;
+    return typeof text === 'string' && text.length > 0 ? text.slice(0, SHELL_COMMAND_MAX) : null;
+}
+
 function pushName(names, name) {
     if (isSafeName(name) && !names.includes(name) && names.length < MAX_NAMES) names.push(name);
 }
@@ -146,7 +162,7 @@ function pushName(names, name) {
 function detectHost(input) {
     if (!isPlainObject(input)) return 'claude';
     if (input.hook_event_name === 'UserPromptSubmit') return 'codex';
-    if (input.hook_event_name === 'PostToolUse' && input.tool_name === 'Bash') return 'codex';
+    if (input.hook_event_name === 'PostToolUse' && SHELL_TOOLS.has(input.tool_name)) return 'codex';
     return nonBlank(input.turn_id) ? 'codex' : 'claude';
 }
 
@@ -227,9 +243,10 @@ function resolveEvent(input, ctx) {
             pushName(result.names, typeof toolInput.skill === 'string' ? toolInput.skill : toolInput.name);
         } else if (input.tool_name === 'Read') {
             pushName(result.names, skillNameFromPath(toolInput.file_path, ctx.root, base, skillRootsFor(ctx.host)));
-        } else if (input.tool_name === 'Bash' && typeof toolInput.command === 'string') {
-            if (!/skill\.md/i.test(toolInput.command)) return result;
-            for (const token of commandTokens(toolInput.command)) {
+        } else {
+            const command = shellCommand(input);
+            if (command === null || !SKILL_FILE_NAME.test(command)) return result;
+            for (const token of commandTokens(command)) {
                 pushName(result.names, skillNameFromPath(token, ctx.root, base, skillRootsFor(ctx.host)));
             }
         }
@@ -745,7 +762,10 @@ function isRelevantEvent(input) {
         case 'PostToolUse':
             if (input.tool_name === 'Skill') return nonBlank(toolInput.skill) || nonBlank(toolInput.name);
             if (input.tool_name === 'Read') return nonBlank(toolInput.file_path) && SKILL_FILE_PATH.test(toolInput.file_path.trim());
-            if (input.tool_name === 'Bash') return typeof toolInput.command === 'string' && SKILL_FILE_NAME.test(toolInput.command);
+            if (SHELL_TOOLS.has(input.tool_name)) {
+                const command = shellCommand(input);
+                return command !== null && SKILL_FILE_NAME.test(command);
+            }
             return false;
         case 'UserPromptExpansion':
             return nonBlank(input.command_name);
