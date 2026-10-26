@@ -14,7 +14,7 @@ const hook = require(HOOK_PATH);
 const { extractSyncBody } = require(path.join(PROJECT_DIR, '.claude', 'scripts', 'lib', 'extract-sync-block.cjs'));
 
 const event = prompt => ({ hook_event_name: 'UserPromptSubmit', session_id: 's1', prompt });
-const { PROBLEM_PRESUMED, CONFIRMATION_SOUGHT, EVALUATION } = hook.LEANS;
+const { PROBLEM_PRESUMED, CONFIRMATION_SOUGHT, EVALUATION, ADVICE } = hook.LEANS;
 // Opt-out checks read an explicit environment so a developer's own CK_* switch never leaks into a test.
 const CLEAN_ENV = Object.freeze({});
 // In-process evaluation with no switch and no settings: a developer's CK_JUDGEMENT_INTEGRITY_ROUTE=0 or real
@@ -55,6 +55,10 @@ const LEANING = [
     ['implement the cache; is this approach sound?', EVALUATION],
     ['can you review the fix for any gaps?', PROBLEM_PRESUMED],
     ['Run the tests. Does the plan have any gaps?', PROBLEM_PRESUMED],
+    // A pasted bullet plan or a "Follow up:" opener is not a build request: the gap hunt still routes.
+    ['Review my plan:\n- add caching\n- migrate DB\nAny gaps?', PROBLEM_PRESUMED],
+    ['Follow up: any gaps in this?', PROBLEM_PRESUMED],
+    ['Follow-ups: any risks with the migration?', PROBLEM_PRESUMED],
     ['my theory is the lock leaks — does it hold?', CONFIRMATION_SOUGHT],
     // A stated belief or a confirm/verify ask routes when the prompt asks a question.
     ['can you confirm that the cache is the cause?', CONFIRMATION_SOUGHT],
@@ -91,7 +95,94 @@ const NON_JUDGEMENT = [
     'verify that the build passes',
     'confirm that you pushed',
     'write a critique section for the doc',
-    'add a judge step to the pipeline'
+    'add a judge step to the pipeline',
+    // A non-breaking space after a full stop still opens a new sentence: this is a fix request, not a gap hunt.
+    'Done.\u00a0Fix any errors in the parser'
+];
+// Intent: an advice or solution ask is routed, so the recommendation weighs a real alternative and can end with the offer.
+const ADVICE_ASKS = [
+    'what is the best way to cache tokens?',
+    'how would you structure the retry logic?',
+    'recommend an approach for multi-tenant auth',
+    'what architecture fits a small team?',
+    'Can you suggest a design for the importer?',
+    'propose a plan for migrating the settings',
+    'What do you recommend for caching?',
+    'I want your advice on the schema',
+    // An imperative after a polite or connective opener or a list marker is still an ask.
+    'Please, recommend a library for dates',
+    'ok so recommend a queue?',
+    '- recommend a pattern for retries',
+    'what solution fits a small team',
+    'What approach do you recommend for retries?',
+    // A decision ask names what to choose, not what is already in use.
+    'What approach do I take for retries?',
+    'What approach is best for caching tokens?',
+    'what design is better for the importer?',
+    'which approach is best?',
+    'What design has the fewest moving parts?',
+    'What approach does this problem need?',
+    'What approaches are there for caching?',
+    'Which approach is less risky?',
+    'What would you do here?',
+    'any suggestions for the schema?',
+    'Which approach to use for retries?',
+    'What approach is the simplest?',
+    "What's the right way to version the plugin API?",
+    'advise me on the schema',
+    'I would like your recommendation on the logger',
+    'What would you do about the flaky test',
+    'Which solution is the best fit here?',
+    // A build request that also asks a question still asks for advice.
+    'Run the tests. What is the best way to speed them up?'
+];
+// Intent: build work that only names a recommendation, a stated plan, a factual lookup and an explicit grill call
+// stay silent — each would otherwise inject the ~2 KB directive on an everyday prompt.
+const ADVICE_BUILD_WORK = [
+    'I suggest we move the cache to the service layer',
+    'I propose we split the module',
+    'how could I run the hook tests?',
+    'what tool runs the tests?',
+    'what library does the parser use?',
+    'what design does the router use?',
+    'implement the suggested fix',
+    'apply what you recommend in the plan',
+    'follow the suggested steps',
+    'add the recommended index',
+    // Build work that names the best way, and lookups of a choice already made.
+    'Implement the cache using the best approach',
+    'Write the best practice section of the guide',
+    'What strategy do we use for caching?',
+    'What design patterns does the router use?',
+    'What architecture has the project chosen?',
+    'what approach did you use in the last fix?',
+    'What approach are you using?',
+    // A lookup of what is in use names no decision marker, whatever its verb.
+    'What approach does the importer take?',
+    'What architecture is this project based on?',
+    'Explain which strategy the scheduler uses for retries',
+    'Document which architecture each service follows',
+    // A word ending in "est" is not a verdict, an open choice inside a clause is not an ask, and build work that applies
+    // suggestions asks nothing.
+    'Which strategy is the request handler using?',
+    'What design is the test harness built on?',
+    'Explain how the router decides which strategy to use',
+    'Apply any suggestions from the PR review',
+    // A go-ahead that names the assistant's suggestion, a verdict word used as a name, and build work that names a choice.
+    'Go with your suggestion and ship it',
+    'Please implement your recommendation from earlier',
+    'Which design is the fast path using?',
+    'What approach is the clean build based on?',
+    'Write a section on which approach should be used for retries',
+    'Try your suggestion and run the tests',
+    'Thanks for your advice, I will add the index',
+    'Which strategy are most of the hooks using?',
+    'What design is safe mode built on?',
+    'Which design has the most tests?',
+    'What approach is the best-effort sender using?',
+    // An explicit grill call on an ask that would otherwise route: the exemption is what keeps these silent.
+    '/grill what is the best way to cache tokens?',
+    '$grill should we use a queue or a cron job?'
 ];
 
 module.exports = {
@@ -112,6 +203,45 @@ module.exports = {
                 for (const prompt of NON_JUDGEMENT) {
                     assertTrue(!hook.isJudgementRequest(prompt), `expected no route: ${JSON.stringify(prompt)}`);
                 }
+            }
+        },
+        {
+            name: '[judgement-integrity-route] TC-JIR-012 (TC-RVQ-010) advice asks route with the advice lean; build work, stated plans, lookups and an explicit grill call stay silent',
+            fn: () => {
+                for (const prompt of ADVICE_ASKS) {
+                    const leans = hook.detectLeans(prompt);
+                    assertTrue(leans.includes(ADVICE), `expected ${ADVICE} for ${JSON.stringify(prompt)}, got ${JSON.stringify(leans)}`);
+                }
+                for (const prompt of ADVICE_BUILD_WORK) {
+                    assertTrue(!hook.isJudgementRequest(prompt), `expected no route: ${JSON.stringify(prompt)}`);
+                }
+                // The advice lean names its own guidance: the assumed constraints are named and a real alternative
+                // is weighed before recommending.
+                const text = hook.evaluate(event(ADVICE_ASKS[0]), ISOLATED);
+                assertContains(text, 'Verdict or advice ask (lean: advice)');
+                assertContains(text, 'name the constraints you assumed');
+                // The sentence and item openers never cross a line break, so a flood of blank or affirmation lines stays linear.
+                const started = Date.now();
+                hook.detectLeans(`${'\r\n'.repeat(100000)}any gaps?`);
+                require(path.join(PROJECT_DIR, '.claude', 'hooks', 'lib', 'prompt-route-utils.cjs')).isBuildRequest('yes,\n'.repeat(40000));
+                assertTrue(Date.now() - started < 1500, `openers stay linear on line floods (${Date.now() - started} ms)`);
+                assertContains(text, 'weigh at least one real alternative');
+            }
+        },
+        {
+            name: '[judgement-integrity-route] TC-JIR-013 a consequential answer ends with one grill / why-review / skip question, never in workflows, sub-agents or trivial answers',
+            fn: () => {
+                const canonical = extractSyncBody(fs.readFileSync(SYNC_PATH, 'utf8'), hook.SYNC_TAG);
+                // Given an advice ask, the directive carries the closing-offer rule from the canonical reminder
+                const text = hook.evaluate(event('recommend an approach for multi-tenant auth'), ISOLATED);
+                assertContains(text, canonical.trim());
+                // Then the offer is one question with three options, including skip
+                assertContains(text, "ask ONE question with the host's question tool: grill it (`/grill`");
+                assertContains(text, 'review it (`/why-review`');
+                assertContains(text, '· skip.');
+                // And it never fires where it would interrupt or cannot be answered
+                assertContains(text, 'Never after a lookup or trivial answer, inside a running workflow or a skill that owns its closing step, from a sub-agent or headless run');
+                assertContains(text, 'again after a skip, or on a turn the mid-session plan question covers (it replaces this offer)');
             }
         },
         {

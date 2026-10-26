@@ -44,7 +44,7 @@ When you describe the first task of a session, Claude automatically:
 
 Each person sets how this works: route mode `ask` (default), `auto` (the same question, recommending the full workflow first) or `off` (nothing starts without an explicit request). See [Workflow route mode](configuration/README.md#workflow-route-mode-per-person); change it with `/framework-config --mode=workflow`.
 
-Mid-session (follow-ups, corrections, new asks), Claude does the work directly, with the best-fit skill, or with a lean chain of at most 3 skills instead of auto-activating a workflow. An explicit workflow request — `/start-workflow <id>`, `/workflow-*`, or asking in words — always runs.
+Mid-session (follow-ups, corrections, new asks), Claude does the work directly, with the best-fit skill, or with a lean chain of at most 3 skills instead of auto-activating a workflow. A non-trivial new request for work that no approved plan covers first gets one question: plan first, run directly, or grill first. An explicit workflow request — `/start-workflow <id>`, `/workflow-*`, or asking in words — always runs.
 
 You never need to memorize workflow names — just describe your intent.
 

@@ -440,7 +440,7 @@ An explicit commit/push request is the operation's authorization: run required c
 ### Commit review selection
 
 `commit.reviewMode` selects the review for requested commits. Default `lightweight` automatically runs
-`commit-review --fix-loop` at every risk tier, with at most two rounds. `risk-based` restores Low skip /
+`commit-review --fix-loop` at every risk tier, with at most three rounds. `risk-based` restores Low skip /
 Medium why-review / High changes-review. The lightweight skill reviews the exact commit in five instructions, validates findings inline and loads only its short receipt guide for fix-loop execution. It does not routinely load why-review, delegate reviewers or create a separate review workflow. Required project/specialist checks and exact-candidate receipts
 still apply. PR whole-branch reviews and CI repairs remain risk-based; a nested commit reuses matching
 PR evidence rather than running a second review.
@@ -835,7 +835,7 @@ Restricted mode distinguishes **selection** from **execution**:
 - An operation-specific hook/protocol may require a named skill for an operation already active.
   Once an authorized skill/workflow starts, its required dependencies remain eligible. Optional
   suggestions, generic discovery guidance and self-starting a preloaded agent do not qualify.
-- `commit` is a five-line coordinator; `pull-request` owns [its whole-branch policy](../../skills/pull-request/references/check-policy.md): they never ask whether to run tests or review. Tests are skipped only when the affected tests already passed in the session for unchanged content or the change is really small; otherwise scoped tests run and failures are fixed until all pass. Commits default to lightweight `commit-review` at every risk tier through `commit.reviewMode`. In configured `risk-based` mode, and for PR whole-branch scope, low risk skips review, medium risk runs `why-review`, and high risk runs `changes-review`. Reviews are fix loops of at most two rounds. Findings still open at that cap stop the operation uncommitted with a report. Changed content needs fresh evidence, not an old Skip. An explicit instruction about tests or review overrides the automatic choice, and the selected review
+- `commit` is a five-line coordinator; `pull-request` owns [its whole-branch policy](../../skills/pull-request/references/check-policy.md): they never ask whether to run tests or review. Tests are skipped only when the affected tests already passed in the session for unchanged content or the change is really small; otherwise scoped tests run and failures are fixed until all pass. Commits default to lightweight `commit-review` at every risk tier through `commit.reviewMode`. In configured `risk-based` mode, and for PR whole-branch scope, low risk skips review, medium risk runs `why-review`, and high risk runs `changes-review`. Reviews are fix loops of at most three rounds. Findings still open at that cap stop the operation uncommitted with a report. Changed content needs fresh evidence, not an old Skip. An explicit instruction about tests or review overrides the automatic choice, and the selected review
   can run its required reviewers, findings validation and fix loop as written.
   The auto-trigger preference does not decide tests/review, approve Skip, or grant Git authority; the skill decision policy owns those decisions.
 - The competing automatic workflow catalog is suppressed. Existing workflow-route restrictions and

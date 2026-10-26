@@ -19,6 +19,7 @@ const readSkill = name => fs.readFileSync(path.join(SKILLS_DIR, name, 'SKILL.md'
 
 const plan = () => readSkill('plan');
 const review = () => fs.readFileSync(path.join(SKILLS_DIR, 'plan', 'references', 'mode-review.md'), 'utf8').replace(/\r\n/g, '\n');
+const dimensions = () => fs.readFileSync(path.join(SKILLS_DIR, 'shared', 'review-dimensions.md'), 'utf8').replace(/\r\n/g, '\n');
 const workflow = () => readSkill('workflow-implement-spec');
 
 const tests = [
@@ -35,7 +36,9 @@ const tests = [
         fn: () => {
             const text = review();
             assert.match(text, /If a supplied spec baseline exists, review against that baseline and separate proposed additions/);
-            assert.match(text, /Is the outcome governed by a clear owner\/spec, with non-goals and no silent expansion/);
+            // The scope check is a plan-only check of the dimension list, which plan review reads in full first
+            assert.match(text, /\*\*\[BLOCKING\]\*\* Read `\.claude\/skills\/shared\/review-dimensions\.md` in full/);
+            assert.match(dimensions(), /Is the outcome governed by a clear owner\/spec, with non-goals and no silent expansion/);
             assert.doesNotMatch(text, /git hash-object|git cat-file|baseline unrecoverable/);
         }
     },

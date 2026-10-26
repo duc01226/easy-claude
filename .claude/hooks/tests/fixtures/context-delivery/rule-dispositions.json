@@ -1,13 +1,13 @@
 {
   "version": 5,
-  "policyVersion": "413f8a146150bd3c3a9f22473f2b95926fdfb6ae9c55d8d0fca444739b1469b5",
+  "policyVersion": "9388513f2845e7e166b2e04569d75efb2dacfab48713958298e4d2facf3e1bf3",
   "sourceHashes": {
     "universal-1": "766ee6f680ab736b0dc210931818280ad1fdef2163a2c6f99311adee5a8797f3",
     "universal-2": "1338c56f7c77d68d3cc75236b6e549468ff1dcf05e8b0a8e3bb1efb19077676a",
     "universal-3": "280b17a8816d03120f7a44da97e81081412a5aee842a2e9acbf51444dd0cc531",
     "universal-4": "56d419e6efa428b1dc72633a9a94f4390290fed3e1674a393441bcff7b62af23",
     "route": "46422fdacf61e11928a242baf5170b8d56abe1f5652d1cb524554b971ce3e994",
-    "catalog": "b4874fb4389e876f8ce8df0f6ff422c480c94073d786110f48b638c209cff24d",
+    "catalog": "654269324d307ae1327398df6e199a1a515d9e5aeb83f9c8a3f115251853d26f",
     "core": "f129dc46a1bb06a26cc3c342b9a0e35fe4f7a5bc44cfb57f32f12e8cb99ba3b8"
   },
   "unit": "Every nonblank line of the seven frozen compatible payloads: `id` is `<payload>:<line>` and `sha256` hashes its text. `policyVersion` is the sha256 of the concise core and route texts the dispositions were reviewed against.",
@@ -1470,33 +1470,28 @@
       "id": "catalog:14",
       "source": "catalog",
       "line": 14,
+      "sha256": "2dec5c2fae6670710f9d72a0fdfd278d01b7a04bba541c9e7744c075f3e92770",
+      "disposition": "merge",
+      "destination": ".claude/skills/shared/protocols/concise-workflow-route.md",
+      "fullSources": [],
+      "anchors": [
+        "Plan or not"
+      ]
+    },
+    {
+      "id": "catalog:16",
+      "source": "catalog",
+      "line": 16,
       "sha256": "ede380102929136cd2ae506b914819d52ec89cbc9d4c0e6cc64eb3e35a5f9b60",
       "disposition": "defer",
       "destination": ".claude/scripts/workflow-catalog.cjs",
       "readWhen": "before choosing a workflow"
     },
     {
-      "id": "catalog:16",
-      "source": "catalog",
-      "line": 16,
-      "sha256": "59e1361e47ab8a67458db2e642d89551f40cfe09b43157e7c560caf227fac1cc",
-      "disposition": "defer",
-      "destination": ".claude/scripts/workflow-catalog.cjs",
-      "readWhen": "before choosing a workflow"
-    },
-    {
-      "id": "catalog:17",
-      "source": "catalog",
-      "line": 17,
-      "sha256": "f1a346b3c63ca7ac887076df3f598cbd2f85f0c97e31d43fb3803be524f20102",
-      "disposition": "remove-wrapper",
-      "destination": null
-    },
-    {
       "id": "catalog:18",
       "source": "catalog",
       "line": 18,
-      "sha256": "fa8e018fa335a0c1c123d527ece70da111ad2f6b58878febb8c3490c192615f2",
+      "sha256": "59e1361e47ab8a67458db2e642d89551f40cfe09b43157e7c560caf227fac1cc",
       "disposition": "defer",
       "destination": ".claude/scripts/workflow-catalog.cjs",
       "readWhen": "before choosing a workflow"
@@ -1505,16 +1500,15 @@
       "id": "catalog:19",
       "source": "catalog",
       "line": 19,
-      "sha256": "2d6b9a474b510823fb2bfdb50ca44c38ba480fa060faf90bcf9edd2c20a3d0f1",
-      "disposition": "defer",
-      "destination": ".claude/scripts/workflow-catalog.cjs",
-      "readWhen": "before choosing a workflow"
+      "sha256": "f1a346b3c63ca7ac887076df3f598cbd2f85f0c97e31d43fb3803be524f20102",
+      "disposition": "remove-wrapper",
+      "destination": null
     },
     {
       "id": "catalog:20",
       "source": "catalog",
       "line": 20,
-      "sha256": "64e0089ecce206658b7eaf87ebc3f06b631e988e21e3336fd99fdbd1650b84b7",
+      "sha256": "fa8e018fa335a0c1c123d527ece70da111ad2f6b58878febb8c3490c192615f2",
       "disposition": "defer",
       "destination": ".claude/scripts/workflow-catalog.cjs",
       "readWhen": "before choosing a workflow"
@@ -1523,7 +1517,7 @@
       "id": "catalog:21",
       "source": "catalog",
       "line": 21,
-      "sha256": "436b658463ee3d3e5b0fb3493d41e2934a32696f4badb928e2786aa090811791",
+      "sha256": "2d6b9a474b510823fb2bfdb50ca44c38ba480fa060faf90bcf9edd2c20a3d0f1",
       "disposition": "defer",
       "destination": ".claude/scripts/workflow-catalog.cjs",
       "readWhen": "before choosing a workflow"
@@ -1532,7 +1526,7 @@
       "id": "catalog:22",
       "source": "catalog",
       "line": 22,
-      "sha256": "40f8d05f106e40b9570f7fdd092baf93e0bb3cefbb63b8bb1e894c56dd4d5189",
+      "sha256": "64e0089ecce206658b7eaf87ebc3f06b631e988e21e3336fd99fdbd1650b84b7",
       "disposition": "defer",
       "destination": ".claude/scripts/workflow-catalog.cjs",
       "readWhen": "before choosing a workflow"
@@ -1541,7 +1535,7 @@
       "id": "catalog:23",
       "source": "catalog",
       "line": 23,
-      "sha256": "59f11b37b6bb934a9463394c6072a6125f982c4dac069854ab7c3a5b26da07cb",
+      "sha256": "436b658463ee3d3e5b0fb3493d41e2934a32696f4badb928e2786aa090811791",
       "disposition": "defer",
       "destination": ".claude/scripts/workflow-catalog.cjs",
       "readWhen": "before choosing a workflow"
@@ -1550,7 +1544,7 @@
       "id": "catalog:24",
       "source": "catalog",
       "line": 24,
-      "sha256": "b8ecc5c20c6f28e7b28d4ae8e30d5693aa1ead081d567e0493a24412edb61198",
+      "sha256": "40f8d05f106e40b9570f7fdd092baf93e0bb3cefbb63b8bb1e894c56dd4d5189",
       "disposition": "defer",
       "destination": ".claude/scripts/workflow-catalog.cjs",
       "readWhen": "before choosing a workflow"
@@ -1559,7 +1553,7 @@
       "id": "catalog:25",
       "source": "catalog",
       "line": 25,
-      "sha256": "b587a1638bfeb002c4b03c2413231991935b814743291849d4460cf8fd71cc8e",
+      "sha256": "59f11b37b6bb934a9463394c6072a6125f982c4dac069854ab7c3a5b26da07cb",
       "disposition": "defer",
       "destination": ".claude/scripts/workflow-catalog.cjs",
       "readWhen": "before choosing a workflow"
@@ -1568,7 +1562,7 @@
       "id": "catalog:26",
       "source": "catalog",
       "line": 26,
-      "sha256": "9e2061186c7b5a5e401161e80b226602027f726ffa3760f09bf8320993b289dd",
+      "sha256": "b8ecc5c20c6f28e7b28d4ae8e30d5693aa1ead081d567e0493a24412edb61198",
       "disposition": "defer",
       "destination": ".claude/scripts/workflow-catalog.cjs",
       "readWhen": "before choosing a workflow"
@@ -1577,7 +1571,7 @@
       "id": "catalog:27",
       "source": "catalog",
       "line": 27,
-      "sha256": "60f68e6c171f0bf08caea67658870edc2755807a2dc93af2051d06aa38f7161b",
+      "sha256": "b587a1638bfeb002c4b03c2413231991935b814743291849d4460cf8fd71cc8e",
       "disposition": "defer",
       "destination": ".claude/scripts/workflow-catalog.cjs",
       "readWhen": "before choosing a workflow"
@@ -1586,7 +1580,7 @@
       "id": "catalog:28",
       "source": "catalog",
       "line": 28,
-      "sha256": "55baec0b7be9552d2235c8bb0f0bddf6b7e09a7cd31f388a38122595cc5ee5ac",
+      "sha256": "9e2061186c7b5a5e401161e80b226602027f726ffa3760f09bf8320993b289dd",
       "disposition": "defer",
       "destination": ".claude/scripts/workflow-catalog.cjs",
       "readWhen": "before choosing a workflow"
@@ -1595,7 +1589,7 @@
       "id": "catalog:29",
       "source": "catalog",
       "line": 29,
-      "sha256": "7c3f05a40a90b1d9046392ed8a9e8e17ecbcb5ac68b6762dfb3480c0e479bc23",
+      "sha256": "60f68e6c171f0bf08caea67658870edc2755807a2dc93af2051d06aa38f7161b",
       "disposition": "defer",
       "destination": ".claude/scripts/workflow-catalog.cjs",
       "readWhen": "before choosing a workflow"
@@ -1604,7 +1598,7 @@
       "id": "catalog:30",
       "source": "catalog",
       "line": 30,
-      "sha256": "cc2fffb39063055107d2beb3e8c7ddbc506d417396c6829de3ff42c6d9e43ee3",
+      "sha256": "55baec0b7be9552d2235c8bb0f0bddf6b7e09a7cd31f388a38122595cc5ee5ac",
       "disposition": "defer",
       "destination": ".claude/scripts/workflow-catalog.cjs",
       "readWhen": "before choosing a workflow"
@@ -1613,7 +1607,7 @@
       "id": "catalog:31",
       "source": "catalog",
       "line": 31,
-      "sha256": "4a83f173f06389df7564df0cea909dce63be1cb890bc29ce034e0ff0a89d8ac6",
+      "sha256": "7c3f05a40a90b1d9046392ed8a9e8e17ecbcb5ac68b6762dfb3480c0e479bc23",
       "disposition": "defer",
       "destination": ".claude/scripts/workflow-catalog.cjs",
       "readWhen": "before choosing a workflow"
@@ -1622,7 +1616,7 @@
       "id": "catalog:32",
       "source": "catalog",
       "line": 32,
-      "sha256": "f558e4b1a6a66818f39a59a170e5b83b01ff1a842e813ad23c114bfdbbfbcc77",
+      "sha256": "cc2fffb39063055107d2beb3e8c7ddbc506d417396c6829de3ff42c6d9e43ee3",
       "disposition": "defer",
       "destination": ".claude/scripts/workflow-catalog.cjs",
       "readWhen": "before choosing a workflow"
@@ -1631,7 +1625,7 @@
       "id": "catalog:33",
       "source": "catalog",
       "line": 33,
-      "sha256": "09ebe0e84a94826875bc78c38464e42f761c7fe56020cfbea25f13cddbe429ac",
+      "sha256": "4a83f173f06389df7564df0cea909dce63be1cb890bc29ce034e0ff0a89d8ac6",
       "disposition": "defer",
       "destination": ".claude/scripts/workflow-catalog.cjs",
       "readWhen": "before choosing a workflow"
@@ -1640,7 +1634,16 @@
       "id": "catalog:34",
       "source": "catalog",
       "line": 34,
-      "sha256": "2e14e1a5f10349a34e182d49eef68c5e73e6c85452d92bba174af766640f332f",
+      "sha256": "f558e4b1a6a66818f39a59a170e5b83b01ff1a842e813ad23c114bfdbbfbcc77",
+      "disposition": "defer",
+      "destination": ".claude/scripts/workflow-catalog.cjs",
+      "readWhen": "before choosing a workflow"
+    },
+    {
+      "id": "catalog:35",
+      "source": "catalog",
+      "line": 35,
+      "sha256": "09ebe0e84a94826875bc78c38464e42f761c7fe56020cfbea25f13cddbe429ac",
       "disposition": "defer",
       "destination": ".claude/scripts/workflow-catalog.cjs",
       "readWhen": "before choosing a workflow"
@@ -1649,15 +1652,24 @@
       "id": "catalog:36",
       "source": "catalog",
       "line": 36,
+      "sha256": "2e14e1a5f10349a34e182d49eef68c5e73e6c85452d92bba174af766640f332f",
+      "disposition": "defer",
+      "destination": ".claude/scripts/workflow-catalog.cjs",
+      "readWhen": "before choosing a workflow"
+    },
+    {
+      "id": "catalog:38",
+      "source": "catalog",
+      "line": 38,
       "sha256": "f47cc7a05448538ad527bdfe3b93a05cdbe0c47d24142fc4a132fc8d7d2d8608",
       "disposition": "defer",
       "destination": ".claude/scripts/workflow-catalog.cjs",
       "readWhen": "before choosing a workflow"
     },
     {
-      "id": "catalog:37",
+      "id": "catalog:39",
       "source": "catalog",
-      "line": 37,
+      "line": 39,
       "sha256": "c74a1f4fa5a259258fff8854da0229c298345eec5e2d24fff90885e8fec06592",
       "disposition": "remove-wrapper",
       "destination": null

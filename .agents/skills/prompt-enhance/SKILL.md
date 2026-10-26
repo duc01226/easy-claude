@@ -144,8 +144,9 @@ Read `.claude/skills/skill-creator/references/schema-reference.md` when changing
 **Risk-profile gate (blocking):** Enhancement preserves the target skill's job,
 input/output, mutation authority, delegation boundary, and terminal states.
 Classify the target as `content`, `analysis`, `conversion`, `implementation`,
-`orchestration`, or `security/authority` before applying the checklist. Fresh
-agent review, specialist routing, inline sub-agent protocols, and recursive
+`orchestration`, or `security/authority` before applying the checklist. A
+fresh-eyes re-review (re-read the saved target; a sub-agent for it is the
+reviewer's call), specialist routing, inline sub-agent protocols, and recursive
 loops are mandatory only for `implementation`, `orchestration`, or
 `security/authority` targets (or when the target already owns an equivalent
 gate). For `content`, `analysis`, and `conversion` skills, record those rows as
@@ -162,7 +163,7 @@ After caveman compression, evaluate skill against each principle, add missing st
 | Detect Before Act            | Phase 0 / classification step present?   | Add artifact-type detection before Phase 1             |
 | Derive, Don't Enumerate      | Are choices flexible while dependent gates stay ordered? | Use decision criteria for variable work; preserve required sequences and progress checklists |
 | Evidence Gates               | Every claim requires `file:line`?        | Add evidence requirement to all review steps           |
-| Fresh Eyes Protocol          | Required by risk profile and target contract? | Add Round 2 fresh sub-agent protocol only when required; otherwise record N/A |
+| Fresh Eyes Protocol          | Required by risk profile and target contract? | Add a Round 2 fresh-eyes re-review (re-read from disk; a sub-agent is the reviewer's call) only when required; otherwise record N/A |
 | Specialize by Type           | Required by risk profile and target contract? | Add specialist routing only when required; otherwise record N/A |
 | Embed Protocols Verbatim     | A sub-agent prompt is actually emitted? | Inline the needed protocol body at that call site; do not add delegation to a non-delegating target |
 | Search-Based Discovery       | Any hardcoded paths/formats/IDs?         | Replace with search instructions                       |
@@ -385,7 +386,7 @@ For each `.claude/` protocol reference:
 > 2. **Derive, Don't Enumerate** — Teach decision criteria for variable analysis: understand role → read conventions → derive concerns → execute with evidence. Preserve ordered gates and progress checklists when they protect dependencies or completion conditions; one skill may mix flexible analysis and strict execution.
 >    Test: Can this skill run on a Python/Go project without modification? If not → it's enumerating, not teaching.
 > 3. **Evidence Gates** — Every claim, finding, recommendation requires `file:line` proof or traced call chain. Confidence thresholds: >80% act freely, 60-80% verify first, <60% DO NOT recommend. "Insufficient evidence" is valid output. Speculation is forbidden output.
-> 4. **Fresh Eyes Protocol** — For implementation, orchestration, and security/authority targets, Round 1 is in the main session and Round 2 uses a fresh sub-agent (zero memory of Round 1); the main agent reads the report but NEVER filters or overrides findings. Max 3 review rounds; use a fresh sub-agent for any further round, then escalate to the user if blockers remain. For content, analysis, and conversion targets, apply only when the target contract explicitly requires an independent review; otherwise record N/A and preserve the target's simpler terminal state.
+> 4. **Fresh Eyes Protocol** — For implementation, orchestration, and security/authority targets, Round 1 is in the main session and Round 2 is a fresh-eyes re-review of the saved target, re-read from disk; a fresh sub-agent (zero memory of Round 1) is the reviewer's call when the risk justifies its cost, and when one is used the main agent reads its report but NEVER filters or overrides findings. Max 3 review rounds under the shared `review-policy`, then escalate to the user if blockers remain. For content, analysis, and conversion targets, apply only when the target contract explicitly requires an independent review; otherwise record N/A and preserve the target's simpler terminal state.
 >    Why: main agent rationalizes its own mistakes. Zero-memory sub-agent catches what main agent dismissed.
 > 5. **Specialize by Type** — When the risk profile requires delegation, route to specialized sub-agents based on detected artifact type:
 >
@@ -404,7 +405,7 @@ For each `.claude/` protocol reference:
 > 8. **Dimensions > Checklists** — Structure variable review/analysis as named thinking dimensions: (1) state the dimension's role, (2) derive what could go wrong, (3) apply with evidence. Retain execution checklists for dependencies and exit conditions; mark completion only after checks pass.
 >    **Serial attention:** When applying a dimension-based framework, NEVER scan all dimensions simultaneously. One focused pass per dimension. AI misses violations when attention is split across concurrent concerns. Pattern: identify applicable dimensions → sequential focused passes → aggregate.
 >    **Ownership gate:** repetition prompts investigation, never automatic extraction or a severity quota. Share behavior only when consumers, invariants and reasons to change align and indirection lowers future change cost. Group evidenced violations when they share one cause; name the consequence.
-> 9. **Recursive Quality Loop** — For targets whose contract includes review/fix convergence, use Fix → Re-review; each round uses a NEW fresh sub-agent and stops at 2 rounds with escalation. For other targets, do not invent a loop: preserve their declared terminal state and record this principle as N/A.
+> 9. **Recursive Quality Loop** — For targets whose contract includes review/fix convergence, use Fix → Re-review under the shared `review-policy` loop (default three rounds; a further round needs the user's explicit, bounded extension); a fresh sub-agent for a round is the reviewer's call. For other targets, do not invent a loop: preserve their declared terminal state and record this principle as N/A.
 > 10. **Anti-Rationalization Anchors** — Explicitly name and embed the evasion patterns AI uses to skip steps in the skill's closing reminders:
 >
 >     | Evasion               | Rebuttal                                                   |

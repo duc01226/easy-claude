@@ -2,7 +2,7 @@
 
 Read this guide when discovering, executing or authoring framework skills. **MUST** execute through the active host; **MUST** keep canonical source ownership separate from runtime paths; **MUST** preserve required gates and report an actual missing capability with evidence.
 
-> <!-- COUNT:skills -->107<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->15<!-- /COUNT --> shared reference/protocol entries for context-aware AI assistance (`_templates/template-skill` is a source template, not a runnable skill)
+> <!-- COUNT:skills -->107<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->16<!-- /COUNT --> shared reference/protocol entries for context-aware AI assistance (`_templates/template-skill` is a source template, not a runnable skill)
 
 ## Quick Summary
 
@@ -87,7 +87,7 @@ Read `.claude/scripts/lib/workflow-skill-contract.cjs` when changing workflow re
 | [Document Processing](#document-processing)       | 3      | PDF, DOCX, Markdown conversions, HTML export   |
 | [Utility](#utility)                               | 2      | Skill creation, framework updates              |
 
-**Additional:** Shared reference/protocol entries (<!-- COUNT:shared -->15<!-- /COUNT -->: files plus the generated `protocols/` projection) -- see [Shared Protocols](#shared-protocols-sync-bodies-and-guides)
+**Additional:** Shared reference/protocol entries (<!-- COUNT:shared -->16<!-- /COUNT -->: files plus the generated `protocols/` projection) -- see [Shared Protocols](#shared-protocols-sync-bodies-and-guides)
 
 ---
 
@@ -126,7 +126,7 @@ See `frontend-patterns-reference.md` in the project-reference docs root for proj
 | `e2e-test`                | E2E, Playwright, browser test                                         | End-to-end test authoring and maintenance                                                                                                        |
 | `e2e-demo`                | E2E demo video, screenshots, commit demo, PR demo                      | Screenshot storyboards exported to MP4/GIF with every relevant case mapped to results and timestamps                                              |
 | `experience-review`       | user experience, acceptance, baseline                                 | Exercise and inspect applicable observable output; preserve expectations until explicit acceptance                                               |
-| `performance-test` | performance/load/soak/capacity tests, performance harness, green performance tests | Write/init author only with automatic static review (default two rounds); review is static; run only on explicit verify/green request. `performance-tester` shares its gates; green combines bounded fixes with performance-review. |
+| `performance-test` | performance/load/soak/capacity tests, performance harness, green performance tests | Write/init author only with automatic static review (default three rounds); review is static; run only on explicit verify/green request. `performance-tester` shares its gates; green combines bounded fixes with performance-review. |
 | `spec [mode=tests]`       | test specification, QA spec, test strategy, TC-IDs, test cases        | Unified test case writer — generates TC-{FEATURE}-{NNN} specs from tasks and feature docs                                                         |
 | `spec [mode=sync]`        | sync test specs, update dashboard, reverse sync, sync to feature docs | Dashboard sync mode — syncs TCs from feature docs Section 8 to the business spec root (sync mode retires when dashboards are removed in Phase 7) |
 | `integration-test --mode=review` | integration test review, assertion quality, test gate review, TC gate | Review-only or --fix-loop through eight quality gates covering intended, observable, repeatable and source/spec-aligned behavior                                  |
@@ -149,7 +149,7 @@ See `frontend-patterns-reference.md` in the project-reference docs root for proj
 | Skill                         | Triggers                                                | Description                                          |
 | ----------------------------- | ------------------------------------------------------- | ---------------------------------------------------- |
 | `commit` | commit, stage, save changes | Five-line coordinator: requested scope, applicable checks, configured review, exact-candidate receipt and commit; push only when requested. |
-| `commit-review` | lightweight review of an exact pending commit | Five-line review with inline finding validation; optional two-round fix loop and drift-safe receipt. `commit.reviewMode: lightweight` selects it; risk-based and PR reviews retain their existing choices. |
+| `commit-review` | lightweight review of an exact pending commit | Five-line review with inline finding validation; optional three-round fix loop and drift-safe receipt. `commit.reviewMode: lightweight` selects it; risk-based and PR reviews retain their existing choices. |
 | `pull-request`                | create PR, open PR, finish PR, ready to merge, mark ready | Take the branch to a ready-to-merge PR: branch at the latest `pullRequest.targetBranch` (default `main`) — new branch when already merged, rebase when unpushed and behind; a pushed branch is updated only when GitHub reports it conflicting or behind (by merge, or by a rebase with an explicit lease when `pullRequest.pushedBranchUpdate` is `rebase`), keep the project's work tracking in step with the PR as its root instructions say (never a gate), decide local tests and the whole-branch review by risk without asking (the `commit` skill's decision policy; an explicit user instruction overrides it), run the gates, commit, push, create or ready the PR, automatically check routine CI repairs until green — in the main session; [work tracking step](../../skills/pull-request/SKILL.md#step-33--work-tracking) |
 | `code-quality-review`                 | review, feedback, PR review                             | Code review                                          |
 | `why-review`                  | why, design rationale, plan validation, alternatives    | Validate design rationale in plan files              |
@@ -171,8 +171,8 @@ See `frontend-patterns-reference.md` in the project-reference docs root for proj
 
 | Skill         | Triggers                           | Description                                                           |
 | ------------- | ---------------------------------- | --------------------------------------------------------------------- |
-| `plan`        | plan, strategy, approach, research, review plan, analyze plan, validate plan, execute plan | Concise implementation planning with a task-derived Quality Gates & Concerns Checklist; `--mode=review` reviews intent, necessity, trade-offs and proof, with optional --fix-loop; `--mode=validate` briefs the user on the plan, then asks every material decision as a decision card in rounds (a standalone plan runs it automatically after saving); `--mode=execute` code and test an existing plan |
-| `grill`       | grill me, stress-test, challenge my plan, interview me | Interview the user about a plan, design, decision or idea until no material decision is silently assumed; writes a Decision Record and hands off |
+| `plan`        | plan, strategy, approach, research, review plan, analyze plan, validate plan, execute plan | Concise implementation planning with a task-derived Quality Gates & Concerns Checklist; `--mode=review` reviews intent, necessity, trade-offs and proof, with optional --fix-loop; `--mode=validate` briefs the user on the plan, then asks every material decision as a decision card in rounds (a standalone plan runs it automatically after saving, then asks one closing question: execute, deeper review or stop); `--mode=execute` code and test an existing plan |
+| `grill`       | grill me, stress-test, challenge my plan, interview me | Interview the user about a plan, design, decision or idea (an earlier answer of the assistant included) until no material decision is silently assumed; writes a Decision Record and hands off. Offered, with `why-review` and skip, after a consequential answer (`SYNC:judgement-integrity`) |
 | `wayfinder`   | dependent unresolved decisions spanning sessions, unclear route   | Chart a map of decision tickets under the plans root, resolve one ticket per session, hand off to the spec workflows; eligible for conditional automatic selection |
 | `feature`     | implement, add, create, build      | Feature development                                                   |
 | `investigate` | how does, explain, trace           | Code exploration                                                      |
@@ -342,7 +342,7 @@ Use `/skill-creator` to create a new skill:
 
 ---
 
-_Source: `.claude/skills/` | <!-- COUNT:skills -->107<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->15<!-- /COUNT --> shared reference/protocol entries (the `_templates/template-skill` source is excluded from runtime discovery)_
+_Source: `.claude/skills/` | <!-- COUNT:skills -->107<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->16<!-- /COUNT --> shared reference/protocol entries (the `_templates/template-skill` source is excluded from runtime discovery)_
 
 ## Closing Reminders
 

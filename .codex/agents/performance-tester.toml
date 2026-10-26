@@ -23,7 +23,7 @@ Connected contracts:
 
 **Goal:** Deliver reusable, realistic performance tests whose workload, data, resource and evidence gates protect the project's intended capacity without claiming unmeasured results.
 
-**Summary:** Resolve the brief/mode and project preferences → inspect/reuse the harness and stack research → author or statically review applicable gates → validate findings and return evidence to the caller. Write/update never runs tests; the caller owns the two-round post-write review and explicit verification decision.
+**Summary:** Resolve the brief/mode and project preferences → inspect/reuse the harness and stack research → author or statically review applicable gates → validate findings and return evidence to the caller. Write/update never runs tests; the caller owns the three-round post-write review and explicit verification decision.
 
 **Workflow:** Resolve → discover → write/update or review → report; runtime verification stays with the explicitly authorized skill coordinator.
 
@@ -56,7 +56,7 @@ Read `references/quality-gates.md` before writing or reviewing, `references/harn
 2. **Discover** actual stack, intended workload/SLO, growth, limits, runner, reusable helpers, query/search inventory and telemetry. For first init return research inputs to the caller's researcher step; consume its accepted official-source comparison before installing/writing the harness. Do not bypass first-init research or spawn another agent.
 3. **Write/update** only when authorized: author reusable lifecycle/clients/fixtures/profiles/collectors/evaluator and realistic scenarios. Keep budgets in one executable owner, use bounded data generation and update local conventions. Install/pin only within the brief's setup scope without test/service lifecycle side effects. Author success/failure validation cases; leave execution NOT RUN.
 4. **Review** applicable gates serially against source, expected behavior and actual executor/assertions. Trace success, error, cancellation and missing/stale evidence paths. Assess the applicable large-data/user targets, effective resource proof, setup-through-drain OOM/memory coverage, query/index/search-plan completeness, generator validity, correctness, recovery and nonzero gate failure. Static review checks implementation and coverage, never pretends runtime evidence exists. Supply findings to the caller for merged validation and repairs; do not create another loop.
-5. **Return** artifacts and report with precise source evidence, all gate coverage, current fingerprint, findings and limitations. The caller accepts the return, owns the default maximum two-round authoring review/fix loop, and dispatches a fresh read-only reviewer when required; unresolved blockers at the cap remain open. Write/update handoff is PENDING static acceptance until that caller gate finishes.
+5. **Return** artifacts and report with precise source evidence, all gate coverage, current fingerprint, findings and limitations. The caller accepts the return, owns the default maximum three-round authoring review/fix loop, and dispatches a fresh read-only reviewer when required; unresolved blockers at the cap remain open. Write/update handoff is PENDING static acceptance until that caller gate finishes.
 
 ## Key Rules
 
@@ -539,7 +539,7 @@ Write incremental evidence under the caller's project-root `tmp/reports/` path. 
 
 **IMPORTANT MUST ATTENTION Goal:** Deliver reusable, realistic performance tests that protect intended capacity without claiming unmeasured results.
 
-Resolve scope/mode/preferences → inspect/reuse and consume first-init research → write/update or statically review the shared gates → return evidence and caller duties. Author only assigned files; review leaves write only reports. No test execution, services, seeding, nested agents, product fixes or user questions. The caller owns two-round post-write static convergence and explicit verify/green authorization.
+Resolve scope/mode/preferences → inspect/reuse and consume first-init research → write/update or statically review the shared gates → return evidence and caller duties. Author only assigned files; review leaves write only reports. No test execution, services, seeding, nested agents, product fixes or user questions. The caller owns three-round post-write static convergence and explicit verify/green authorization.
 
 | Evasion | Required action |
 | --- | --- |

@@ -41,14 +41,14 @@ function assertReportClosure(text) {
     assert.match(text, /validated findings/);
 }
 function assertDurableBudget(text) {
-    assert.match(local(text), /Default maximum two rounds/i);
-    assert.match(local(text), /At two rounds,[\s\S]*?require the host question tool/);
+    assert.match(local(text), /Default maximum three rounds/i);
+    assert.match(local(text), /At three rounds,[\s\S]*?require the host question tool/);
     assert.match(text, /completed-round evidence/);
     assert.match(text, /remaining MEDIUM|Remaining MEDIUM/);
     assert.match(local(text), /Wait for an explicit answer before further fixes or review rounds/);
     assert.doesNotMatch(text, /conversation context only|starts fresh at round 0/);
 }
-test('R2-14/15: report handoff and workflow two-round cap survive newline dialects', () => {
+test('R2-14/15: report handoff and workflow three-round cap survive newline dialects', () => {
     for (const text of [why, why.replace(/\r?\n/g, '\r\n')]) assertReportClosure(text);
     for (const text of [workflow, workflow.replace(/\r?\n/g, '\r\n')]) assertDurableBudget(text);
 });

@@ -41,7 +41,7 @@ Apply this branch when `spec` profile resolution selects a native contract from 
 | `draft` | Draft intent in the native owner format; mark provisional only as that profile specifies. Unknown product decisions remain explicit questions, not invented cases. |
 | `init` | Create the owner using the configured local template/section roles and existing identifier rules; do not import the default eight-section/TC template. |
 | `update` | Patch only impacted native intent/contract/case carriers; preserve identifiers, lineage, variants, and unrelated case data. |
-| `audit` | Read-only report against native owners and carriers; unresolved selection or unsupported data is reported as `UNKNOWN`, not clean. |
+| `audit` | Read-only report against native owners and carriers; unresolved selection or unsupported data is reported as `UNKNOWN`, not clean. Stale owners also get the meaning-level drift pass over their native intent/contract rules, read-only, reporting `N rules checked, M divergent`. |
 | `amend` | Apply the local lifecycle and native case ownership after root-cause and behavior-scope adjudication; preserve healthy behavior and do not manufacture a TC. |
 
 ## Strict Default Feature-Spec Procedure
@@ -592,6 +592,18 @@ Audit is read-only for existing docs. Use the root already resolved by `SKILL.md
     | Section 5 (Domain Model)   | ⚠️ STALE   | EntityX (changed 2026-04-18)    | Re-extract entities |
     | Section 6 (Interaction Surface) | ⚠️ STALE | ViewY (changed 2026-04-18)  | Refresh §6.2–6.5 (view/nav/state/click-path) |
     | Section 4 (Business Rules) | ✅ Current | —                               | —                   |
+    ```
+
+5. **Meaning-level drift pass (stale sections only).** For each module or section step 3 flagged stale, open one todo and check every business rule and invariant it states (§4 rules, §5 invariants) against the code that should enforce it, closing the todo with tool evidence (a search you ran, a `file:line`). Record each rule `PASS`, `MISSING` (no enforcement found) or `VIOLATED` (the code does the opposite). The audit report lists only the divergent rules with their evidence and ends each section with `N rules checked, M divergent`. A module with no change since `last_updated` is not checked (`0 rules checked`). The pass edits no spec; each divergence is adjudicated afterwards by its owner per the drift gates (CODE-WRONG / SPEC-STALE / AMBIGUOUS). `workflow-code-to-spec` audit reaches this pass through its `/spec [mode=audit]` step.
+
+    ```markdown
+    ## Meaning-level drift — {FeatureName}
+
+    | Rule      | Status      | Evidence                                   |
+    | --------- | ----------- | ------------------------------------------ |
+    | BR-{FC}-03 | ❌ VIOLATED | delete path allows removing a sold product |
+
+    12 rules checked, 1 divergent
     ```
 
 ---

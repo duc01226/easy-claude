@@ -235,9 +235,11 @@ function redactSecrets(text) {
 }
 
 // Host-generated wrappers a host may submit on the prompt channel: task notifications, system
-// reminders, command echoes, cross-session messages. They are NOT user input (BR-SPL-13).
-const HOST_TAGS = 'system-reminder|task-notification|cross-session-message|command-message|command-name|command-args|local-command-stdout|local-command-stderr|user-prompt-submit-hook|function_results|new-session-message';
-const HOST_BLOCK_RE = new RegExp(`<(${HOST_TAGS})>[\\s\\S]*?</\\1>`, 'gi');
+// reminders, command echoes, cross-session messages, sub-agent hand-backs (`<agent-message from="…">`).
+// They are NOT user input (BR-SPL-13). A wrapper may carry attributes.
+const HOST_TAGS = 'system-reminder|task-notification|cross-session-message|agent-message|command-message|command-name|command-args|local-command-stdout|local-command-stderr|user-prompt-submit-hook|function_results|new-session-message';
+// The attribute run is bounded so an unclosed opener cannot make the scan quadratic.
+const HOST_BLOCK_RE = new RegExp(`<(${HOST_TAGS})\\b[^<>]{0,512}>[\\s\\S]*?</\\1>`, 'gi');
 const HOST_OPEN_RE = new RegExp(`^<(?:${HOST_TAGS})\\b`, 'i');
 
 /** Prompt text with host-generated wrapper blocks removed (their content is not user input). */

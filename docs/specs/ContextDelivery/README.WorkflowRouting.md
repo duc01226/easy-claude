@@ -5,7 +5,7 @@ feature_code: 'WFR'
 entities: ['Workflow', 'ActivationPolicy', 'RoutingGuidance', 'RootInstructionFile', 'RouteMode']
 status: draft
 owner: 'Framework maintainers'
-last_updated: '2026-10-14'
+last_updated: '2026-10-26'
 scope_mode: FRAMEWORK-LIBRARY
 large_idea_decomposition: null
 roadmap: null
@@ -78,6 +78,7 @@ Before each prompt the assistant receives short routing guidance in two messages
 | Personal File         | A person's own untracked settings: the every-project file in the home directory, or the checkout file                                                         | A valid value there wins over the team value                                                                                              |
 | Prompt Directive      | A first line of a prompt that sets the mode for the session: "workflow-mode: auto"                                                                            | Wins over every other source; never fires on prose                                                                                        |
 | Hook-less Host        | A host that delivers no guidance: no hook support, hooks disabled or not trusted                                                                              | Unsupported: it receives no route and no universal protocol                                                                               |
+| Follow-up Work        | A next step inside work already under way: the next iteration of a change being built, or a correction or small adjustment to a result just delivered. A go-ahead that starts the work a discussion settled ("yes, do it") is not follow-up work | Gets no mid-session plan question |
 
 ---
 
@@ -98,6 +99,7 @@ Before each prompt the assistant receives short routing guidance in two messages
 - **AC-WFR-24** — **Given** the state the route message reports **When** a prompt is received **Then** the catalog message follows it: none is sent when routing is off or automatic skill selection is disabled; otherwise it is delivered once and again only when it may have left the assistant's context — its own content changed, the conversation was compacted, or the conversation record grew by the re-arm distance or shrank (BR-WFR-09); a first-line mode directive is recorded and acknowledged once, by the route message, and the catalog message follows the directive's mode in that same prompt
 - **AC-WFR-25** — **Given** a project route protocol long enough to take the route message past the 10,000 characters a host shows in full **When** the route message is sent **Then** it still holds the complete gate and the complete protocol, and its second line states the message size, that the host may show only a preview, where to read the gate and the protocol in full, and the protocol size that brings the message back within 9,500 characters; a route message of 10,000 characters or fewer carries no such line
 - **AC-WFR-26** — **Given** a catalog form that lists when to use each workflow, in ask or auto, or the concise route cue **When** it is delivered **Then** it carries one line that maps failing, changing-and-unspecified, specified-but-unbuilt, unchanged and plan-only work to the bug-fix, feature, implement-spec, refactor, and planned-work or greenfield workflows, says that size alone never makes a task a workflow, and names only workflows that exist in the registry
+- **AC-WFR-29** — **Given** any catalog form that lists when to use each workflow, in ask or auto, or the concise route **When** it is delivered **Then** it carries one line saying when a route plans first — several modules or files, a public contract, data, security or a one-way choice — and when a clear change in one module goes straight to build, test and review; a catalog workflow keeps its own plan step
 
 ### US-WFR-02: The routing gate is carried once, by the guidance only
 
@@ -124,7 +126,7 @@ Before each prompt the assistant receives short routing guidance in two messages
 - **AC-WFR-08** — **Given** a default or override that is not auto, confirm or manual **When** the configuration is validated **Then** an error names the setting and the allowed tiers
 - **AC-WFR-09** — **Given** project tier settings **When** the catalog is rendered **Then** every row shows the effective tier
 - **AC-WFR-10** — **Given** a valid value in a personal source **When** the route mode or a tier is resolved **Then** it wins over the team value
-- **AC-WFR-11** — **Given** any tier **When** the user explicitly asks for a workflow **Then** it runs with no question, in every mode; **When** the assistant decides by itself, on the first task of a session in mode ask, to start a catalog workflow **Then** it asks the workflow question before starting it, and **When** its route is direct, one skill or a custom route (a downgrade of a matched workflow included) **Then** it asks nothing (AC-WFR-14 describes auto and off); every routing surface says both
+- **AC-WFR-11** — **Given** any tier **When** the user explicitly asks for a workflow **Then** it runs with no question, in every mode; **When** the assistant decides by itself, on the first task of a session in mode ask, to start a catalog workflow **Then** it asks the workflow question before starting it, and **When** its route is direct, one skill or a custom route (a downgrade of a matched workflow included) **Then** it asks no workflow question (AC-WFR-14 describes auto and off; the mid-session plan question of AC-WFR-28 is separate); every routing surface says both
 
 ### US-WFR-04: Each person chooses how workflows start
 
@@ -164,6 +166,8 @@ Before each prompt the assistant receives short routing guidance in two messages
 
 - **AC-WFR-21** — **Given** unresolved material choices and no existing owner of the needed interview **When** the route is assessed **Then** choices that fit one conversation select an interview, while dependent choices whose route remains unclear across sessions select a decision map; size alone never selects a map, saved plans and specifications keep their validators, and clear work keeps its ordinary route
 - **AC-WFR-22** — **Given** a linked decision record or resolved map ticket **When** a later interview uses it **Then** only confirmed decisions with unchanged scope and premises are reused and cited; open, changed, conflicting or unconfirmed decisions remain for the user, every hosting gate remains binding, and discovery never grants building authority
+- **AC-WFR-27** — **Given** a decision interview has recorded its decisions **When** it hands off **Then** it may offer, never require, one short stress pass on the recorded decisions from four angles (need and reuse, cost and scale, migration and rollback, day-to-day running); an accepted pass runs inline, appends its findings to the same record, keeps the record where the interview keeps it, and still plans, specifies and builds nothing
+- **AC-WFR-28** — **Given** a session past its first prompt, with no approved plan and no running workflow **When** the developer asks for non-trivial work (a behavior or contract change, several modules, real risk or open choices) **Then** the assistant asks one question before editing — plan first, run directly, or grill first when choices are still open — and never asks it on the first prompt or the first task after a mode directive, for trivial, follow-up or correction work, after "just do it" or a named skill, inside a running workflow, in a run with no user to answer, with routing off or restricted skill selection, or twice for one request; the rule arrives as a one-line reminder on that prompt (a go-ahead such as "yes, do it" or a task list included), except on a prompt that delivers the route
 
 ---
 
@@ -189,6 +193,8 @@ Before each prompt the assistant receives short routing guidance in two messages
 | BR-WFR-14 | Additional route guidance excludes private file names and final targets                                                                     | Privacy      | [HARD]      |
 | BR-WFR-15 | Decision discovery matches uncertainty and preserves prior confirmed choices                                                                | Activation   | [HARD]      |
 | BR-WFR-16 | The catalog picks a workflow by what happens to observable behavior                                                                         | Activation   | [HARD]      |
+| BR-WFR-17 | Mid-session work offers planning once, never on top of the workflow question | Activation | [HARD] |
+| BR-WFR-18 | The catalog says when a route plans first and when it builds directly | Activation | [HARD] |
 
 ### BR-WFR-01: Two guidance messages within the size cap [HARD]
 
@@ -256,7 +262,7 @@ When a guidance message cannot be built from a shipped source, it is never silen
 
 ### BR-WFR-06: Explicit requests run every tier; a self-matched workflow never starts before the user answers [HARD]
 
-**Statement:** A workflow the user asks for explicitly — by command on any host or in words — runs in every mode and whatever its effective tier, with no question. A workflow the assistant decides by itself to start acts by the mode. In ask (the default) and in auto it never starts until the user answers the workflow question, whatever its tier: one question offering the full workflow with its step count, a slimmer custom route listing its steps with every required quality gate kept, or direct execution, the recommended option first with a one-line reason. In ask the effective tier decides which option is recommended; in auto the full workflow is recommended first for an auto-tier or confirm-tier workflow, and a manual-tier workflow is never recommended first. In off nothing the assistant chooses starts unasked (BR-WFR-08). A workflow that a skill step, a named skill or a running parent workflow requires is part of that run, not self-matched, and follows neither rule (BR-WFR-13). In ask and auto, the workflow question applies on the first task of a session only; mid-session the assistant neither starts a workflow nor asks to. A route that is not the start of a catalog workflow (a direct answer, one skill, or a focused custom route — including one chosen after downgrading a matched workflow because it fits poorly) asks nothing, in every mode, and the assistant declares the route and acts.
+**Statement:** A workflow the user asks for explicitly — by command on any host or in words — runs in every mode and whatever its effective tier, with no question. A workflow the assistant decides by itself to start acts by the mode. In ask (the default) and in auto it never starts until the user answers the workflow question, whatever its tier: one question offering the full workflow with its step count, a slimmer custom route listing its steps with every required quality gate kept, or direct execution, the recommended option first with a one-line reason. In ask the effective tier decides which option is recommended; in auto the full workflow is recommended first for an auto-tier or confirm-tier workflow, and a manual-tier workflow is never recommended first. In off nothing the assistant chooses starts unasked (BR-WFR-08). A workflow that a skill step, a named skill or a running parent workflow requires is part of that run, not self-matched, and follows neither rule (BR-WFR-13). In ask and auto, the workflow question applies on the first task of a session only; mid-session the assistant neither starts a workflow nor asks to. A route that is not the start of a catalog workflow (a direct answer, one skill, or a focused custom route — including one chosen after downgrading a matched workflow because it fits poorly) asks no workflow question, in every mode, and the assistant declares the route and acts; mid-session non-trivial work not yet planned still gets the one plan question of BR-WFR-17 first.
 
 | Request                                                                       | Mode      | Tier    | Assistant                                                        |
 | ----------------------------------------------------------------------------- | --------- | ------- | ---------------------------------------------------------------- |
@@ -267,8 +273,8 @@ When a guidance message cannot be built from a shipped source, it is never silen
 | Self-matched, first task of a session                                         | auto      | confirm | asks the workflow question, the full workflow recommended first  |
 | Self-matched, first task of a session                                         | auto      | manual  | asks the workflow question; the full workflow is never first     |
 | Self-matched, first task of a session                                         | off       | any     | starts nothing; works directly                                   |
-| Self-matched, mid-session                                                     | ask, auto | any     | no workflow, no question; works directly                         |
-| No workflow matched, or route downgraded to direct, one skill or custom route | any       | —       | no question; declares the route and acts                         |
+| Self-matched, mid-session                                                     | ask, auto | any     | no workflow, no workflow question; works directly (the plan question of BR-WFR-17 may come first) |
+| No workflow matched, or route downgraded to direct, one skill or custom route | any       | —       | no workflow question; declares the route and acts (mid-session non-trivial work not yet planned gets the plan question of BR-WFR-17 first) |
 
 ### BR-WFR-07: Only known tiers are accepted [HARD]
 
@@ -334,6 +340,8 @@ When a guidance message cannot be built from a shipped source, it is never silen
 
 Confirmed choices from linked decision records or resolved map tickets are reused only while their scope and premises remain unchanged, with their source cited in the next interview record. Open, changed, conflicting and unconfirmed choices remain for the user. Reuse never waives a hosting gate or changes its budget; any unused minimum is reported rather than filled with repeated questions. Destination and ticket interview records remain linked from the map.
 
+After recording its decisions, a free-form decision interview may offer one short stress pass on them from four angles: need and reuse, cost and scale, migration and rollback, and day-to-day running. The offer is never required. An accepted pass runs in the same conversation, appends its findings to the same decision record, and does not move that record or start any planning, specifying or building.
+
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
 > **Evidence:** `[Source: operation/hooks/workflow-route-inject]` · `[Source: constraint/skills/decision-interview]`
@@ -341,6 +349,31 @@ Confirmed choices from linked decision records or resolved map tickets are reuse
 ### BR-WFR-16: The catalog picks a workflow by what happens to observable behavior [HARD]
 
 **Statement:** Every catalog form that tells the assistant when to use each workflow, in ask and in auto, and the concise route cue carry one line that chooses a workflow by what happens to observable behavior. Behavior that worked or met its spec and now fails goes to the bug-fix workflow. Behavior that changes and is not yet in a canonical spec goes to the feature workflow, or the big-feature workflow when the change is large or ambiguous. Behavior specified in a canonical spec but not yet built goes to the implement-spec workflow. Behavior that stays the same goes to the refactor workflow, and a local tidy-up stays direct. Work to be planned and not built — an idea, or specs to turn into tasks — goes to the planned-work workflow, and a new product from scratch to the greenfield workflow. Size alone never makes a task a workflow: a focused change in one module stays a custom route. Every workflow the line names exists in the registry. The line informs the route only: the workflow question still decides whether a workflow starts (BR-WFR-06). The pointer form, which lists only names and tiers so a large catalog still fits, does not carry it.
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: operation/scripts/workflow-skills-catalog]` · `[Source: constraint/skills/concise-workflow-route]`
+
+### BR-WFR-17: Mid-session work offers planning once, never on top of the workflow question [HARD]
+
+**Statement:** After a session's first prompt, a request for non-trivial work that no approved plan or running workflow covers gets one question before any edit: plan first, run directly, or grill first when material choices are still open. The rule travels as a one-line reminder added to each mid-session request for work, the moment it applies; the concise route carries it as one bullet. The routing gate itself stays unchanged, because with a project route protocol of the documented size it has no room left under the route message cap. The first prompt never gets the reminder, since the workflow question owns it; nor does the first task after a mode directive, which the workflow question owns too: the reminder's own text tells the assistant to skip it, because no hook records whether that task has arrived. The question is never asked for trivial, follow-up or correction work, after "just do it" or a named skill, inside a running workflow, in a run with no user to answer, with routing off, or twice for one request. A go-ahead after a discussion ("yes, do it", "sounds good, implement it") and a task list are requests for work; a "Follow up:" question and content the host submits (a sub-agent hand-back, a task notification) are not. No reminder is added when automatic skill selection is restricted, since its own single skill-choice rule governs, or on a prompt that delivers the route (the first prompt, or the first prompt after a compaction re-delivers it), which carries the gate instead. No hook can see which session runs a workflow, so inside one the reminder still arrives and its own text tells the assistant to skip. On a turn where the answer-review offer (the deeper-check offer of Review Quality, BR-RVQ-10) would also apply, only this question is asked.
+
+```
+IF prompt is past the first AND asks for work AND no plan or workflow covers it AND the work is non-trivial
+  → ASK once: plan first · run directly · grill first (open choices only)
+IF first prompt OR route re-delivered OR question OR host content OR named skill OR routing off OR skill selection restricted
+  → no reminder, no question
+IF a running workflow covers the request
+  → the reminder still arrives and itself says to skip; no question
+```
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: operation/hooks/workflow-route-inject]` · `[Source: constraint/skills/concise-workflow-route]`
+
+### BR-WFR-18: The catalog says when a route plans first and when it builds directly [HARD]
+
+**Statement:** Every catalog form that tells the assistant when to use each workflow, in ask and in auto, and the concise route carry one line beside the behavior line: a change touching several modules or files, a public contract, data, security or a one-way choice includes a plan before building (the plan reviews itself, deeper when it is risky); a clear change in one module goes straight to build, test and review. A catalog workflow's own plan step decides inside that workflow. The routing gate stays unchanged.
 
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
@@ -431,7 +464,7 @@ Session           0──1 SessionMode         (set by a prompt directive)
 
 | Value | Meaning                                                                                                                           |
 | ----- | --------------------------------------------------------------------------------------------------------------------------------- |
-| ask   | Default. A catalog workflow the assistant routes to asks the workflow question first; direct, skill and custom routes ask nothing |
+| ask   | Default. A catalog workflow the assistant routes to asks the workflow question first; direct, skill and custom routes ask no workflow question (mid-session, the plan question of BR-WFR-17 is separate) |
 | auto  | Like ask, but the workflow question recommends the full workflow first (never for a manual tier)                                  |
 | off   | Only the state notice is delivered; nothing starts without an explicit request                                                    |
 
@@ -439,7 +472,7 @@ Session           0──1 SessionMode         (set by a prompt directive)
 
 | Occurrence                         | When it happens                                       | Who/what reacts (business outcome)                                                        |
 | ---------------------------------- | ----------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| Prompt received                    | The user submits a prompt                             | The mode is resolved; the route message and the catalog message, or the off notice, are built and each is added once per conversation |
+| Prompt received                    | The user submits a prompt                             | The mode is resolved; the route message and the catalog message, or the off notice, are built and each is added once per conversation; a later request for work gets the one-line plan reminder instead, on every such prompt |
 | Root instruction files regenerated | A maintainer regenerates them                         | They hold project information only                                                        |
 | Tier settings changed              | A maintainer sets a default or an override            | The next catalog shows the new effective tiers                                            |
 | Mode changed                       | A person edits a personal source or sends a directive | The next prompt delivers the route for the new mode                                       |
@@ -466,7 +499,7 @@ Session           0──1 SessionMode         (set by a prompt directive)
 | Step | Actor     | Action                                 | System Response                                                                           | Next |
 | ---- | --------- | -------------------------------------- | ----------------------------------------------------------------------------------------- | ---- |
 | 1    | Assistant | Reads the guidance and picks a route   | —                                                                                         | 2    |
-| 2    | Assistant | Route matches no workflow              | Proceeds without asking                                                                   | end  |
+| 2    | Assistant | Route matches no workflow              | Proceeds without asking; mid-session non-trivial work not yet planned gets the one plan question first (BR-WFR-17) | end  |
 | 3    | Assistant | Route is to start a workflow, mode ask | Asks the workflow question, recommendation by tier                                        | 4    |
 | 4    | User      | Picks full, slimmer or direct          | The assistant follows the answer without re-asking                                        | end  |
 | 5    | User      | Asks for a workflow explicitly         | It runs whatever its tier and mode (BR-WFR-06)                                            | end  |
@@ -500,17 +533,17 @@ Session           0──1 SessionMode         (set by a prompt directive)
 | Priority  | Count  | Automated | Manual |
 | --------- | ------ | --------- | ------ |
 | P0        | 2      | 2         | 0      |
-| P1        | 25     | 25        | 0      |
+| P1        | 28     | 28        | 0      |
 | P2        | 1      | 1         | 0      |
-| **Total** | **28** | **28**    | **0**  |
+| **Total** | **31** | **31**    | **0**  |
 
 | Category                    | TCs                                                                    |
 | --------------------------- | ---------------------------------------------------------------------- |
-| Core Routing Guidance Tests | TC-WFR-001, TC-WFR-002, TC-WFR-003, TC-WFR-004, TC-WFR-005, TC-WFR-013, TC-WFR-024, TC-WFR-026, TC-WFR-028 |
+| Core Routing Guidance Tests | TC-WFR-001, TC-WFR-002, TC-WFR-003, TC-WFR-004, TC-WFR-005, TC-WFR-013, TC-WFR-024, TC-WFR-026, TC-WFR-028, TC-WFR-031 |
 | Activation Tier Tests       | TC-WFR-006, TC-WFR-007, TC-WFR-009, TC-WFR-011, TC-WFR-012             |
 | Validation Tests            | TC-WFR-008                                                             |
 | Invariant / Property Tests  | TC-WFR-010, TC-WFR-022                                                             |
-| Route Mode Tests            | TC-WFR-014, TC-WFR-015, TC-WFR-016, TC-WFR-017, TC-WFR-018, TC-WFR-019, TC-WFR-020, TC-WFR-021, TC-WFR-023, TC-WFR-025, TC-WFR-027 |
+| Route Mode Tests            | TC-WFR-014, TC-WFR-015, TC-WFR-016, TC-WFR-017, TC-WFR-018, TC-WFR-019, TC-WFR-020, TC-WFR-021, TC-WFR-023, TC-WFR-025, TC-WFR-027, TC-WFR-029, TC-WFR-030 |
 
 ### Core Routing Guidance Tests
 
@@ -1137,6 +1170,53 @@ And every workflow the line names exists in the registry
 
 ---
 
+#### TC-WFR-031: The catalog says when a route plans first and when it builds directly [P1]
+
+**Objective:** Prove that a custom route chosen from the catalog includes a plan for complex or risky work and skips it for a clear local change.
+
+**Business Intent / Invariant Guarded:** BR-WFR-18 / AC-WFR-29 — for every catalog form in ask and auto and the concise route, exactly one plan line with both directions and the workflow exemption.
+
+**Preconditions:** A project with the framework workflows.
+
+**Real-World Reachability:** Every first prompt of a session: the assistant reads the catalog before it picks a route, including a custom route that is not a catalog workflow.
+
+**Demo Flow:** Render the catalog in each form and mode, and read the concise route; find the plan line after the behavior line.
+
+```gherkin
+Given each catalog form that lists when to use each workflow, in ask and in auto
+When the plan line is read
+Then a change touching several modules or files, a public contract, data, security or a one-way choice includes a plan before building
+And a clear change in one module goes straight to build, test and review
+And a catalog workflow's own plan step decides inside that workflow
+And the concise route carries the same rule
+```
+
+**Expected Result:**
+
+| Dimension | Expectation |
+| --- | --- |
+| **UI** | Not applicable — the observable surface is the routing guidance |
+| **System behavior** | One plan line in every catalog form and in the concise route |
+| **Business data state** | Not applicable — no data changes |
+| **Data shown on UI** | The plan line beside the behavior line |
+
+**Acceptance Criteria:**
+
+- ✅ Exactly one plan line, after the behavior line, in each form and mode, and in the concise route.
+- ❌ A form without the line, or a line that lets size alone decide, fails the case.
+
+**Test Data:** The catalog in compact and full form, in ask and auto, and the concise route text.
+
+**Edge Cases:** Inside a catalog workflow, its own plan step decides; the line governs custom routes only.
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: operation/scripts/workflow-skills-catalog]` · `[Source: constraint/skills/concise-workflow-route]`
+> **Related Behaviors:** `operation/scripts/workflow-skills-catalog` · `constraint/skills/concise-workflow-route`
+> **CoveredBy:** `.claude/scripts/codex/tests/workflow-skills-catalog.test.mjs::TC-WFR-031 the catalog and the concise route say when a route plans first and when it builds directly` · **Status:** Tested
+
+---
+
 ### Activation Tier Tests
 
 #### TC-WFR-006: A project default tier only tightens [P1]
@@ -1402,7 +1482,7 @@ Then every catalog row shows manual
 
 #### TC-WFR-012: Every routing surface says an explicit request runs any tier and a self-matched workflow asks first [P1]
 
-**Objective:** Prove that the routing gate in the guidance, the tier legend and the workflow start guidance all state that an explicit user request runs a workflow of any tier, and that in mode ask a workflow the assistant decides to start, of any tier, waits for the workflow question while a direct, single-skill or custom-simple route asks nothing.
+**Objective:** Prove that the routing gate in the guidance, the tier legend and the workflow start guidance all state that an explicit user request runs a workflow of any tier, and that in mode ask a workflow the assistant decides to start, of any tier, waits for the workflow question while a direct, single-skill or custom-simple route asks no workflow question.
 
 **Business Intent / Invariant Guarded:** The user decides every workflow start: the assistant never starts one it matched by itself without asking, and an explicit request always runs (BR-WFR-06).
 
@@ -1918,6 +1998,110 @@ And open or changed choices still require the user and hosting gates remain bind
 > **Evidence:** `[Source: operation/hooks/workflow-route-inject]` · `[Source: constraint/skills/decision-interview]`
 > **Related Behaviors:** `operation/hooks/workflow-route-inject` · `constraint/skills/decision-interview`
 > **CoveredBy:** `.claude/hooks/tests/suites/workflow-route-modes.test.cjs::[workflow-route-modes] TC-WFR-023 decision discovery routes by uncertainty and preserves artifact owners and authority`, `.claude/hooks/tests/suites/decision-interview.test.cjs::TC-DIV-001 the canonical protocol states its seven rules and is registered with a summary and a read-when line`, `.claude/hooks/tests/suites/decision-interview.test.cjs::TC-DIV-004 grill interviews and records only: facts are looked up, decisions are asked, nothing is planned or built`, `.claude/hooks/tests/suites/decision-interview.test.cjs::TC-DIV-005 wayfinder plans and never builds, resolves one claimed ticket per session and keeps its map as files` · **Status:** Tested
+
+---
+
+#### TC-WFR-029: A decision interview may offer a short stress pass and still only records [P1]
+
+**Objective:** Let a free-form decision interview test its recorded decisions cheaply without turning into planning.
+
+**Business Intent / Invariant Guarded:** BR-WFR-15 / AC-WFR-27 — the stress pass is optional, inline and record-only.
+
+**Preconditions:** A free-form decision interview has played back and recorded its decisions.
+
+**Real-World Reachability:** A developer runs the decision interview on a loose plan or idea, answers its rounds and confirms the playback; the hand-off follows at once.
+
+**Demo Flow:** Run the decision interview on a small design question, confirm the playback, accept the stress-pass offer, then open the decision record.
+
+```gherkin
+Given the decision record is written
+When the interview hands off
+Then it may offer one short stress pass from four angles: need and reuse, cost and scale, migration and rollback, day-to-day running
+And the offer is never required
+And an accepted pass runs inline and appends its findings to the same record
+And the record stays where the interview keeps it
+And no planning, specifying or building starts
+```
+
+**Expected Result:**
+
+| Dimension | Expectation |
+| --- | --- |
+| **UI** | Not applicable — the observable surface is interview guidance |
+| **System behavior** | The offer is optional; an accepted pass appends to the record |
+| **Business data state** | Only the decision record gains findings |
+| **Data shown on UI** | The stress findings inside the decision record |
+
+**Acceptance Criteria:**
+
+- ✅ The offer is stated as optional, with its four angles.
+- ✅ An accepted pass appends to the same record and keeps its location.
+- ❌ An interview that requires the pass, moves the record, or starts planning, specifying or building fails the case.
+
+**Test Data:** The interview guidance for the free-form decision interview.
+
+**Edge Cases:** A caller running the interview as one of its steps owns what follows and receives the record without a stress offer; a context with no user channel cannot accept the offer.
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: constraint/skills/decision-interview]`
+> **Related Behaviors:** `constraint/skills/decision-interview`
+> **CoveredBy:** `.claude/hooks/tests/suites/decision-interview.test.cjs::TC-DIV-006 (TC-WFR-029) grill may offer one inline stress pass on its recorded decisions and still only records` · **Status:** Tested
+
+---
+
+#### TC-WFR-030: Mid-session work offers planning once, never on top of the workflow question [P1]
+
+**Objective:** Prove that a request for work after a discussion is offered a plan first, without stacking on the workflow question, a named skill or a running workflow.
+
+**Business Intent / Invariant Guarded:** BR-WFR-17 / AC-WFR-28 — for every mid-session request for work, including a go-ahead or a task list, the reminder and the rule are present; for every first prompt, question, host content, named skill, off mode or restricted skill selection, neither is added; work a running workflow covers and the first task after a mode directive are skipped by the rule's own text.
+
+**Preconditions:** A project with the framework route hooks; a session whose first prompt already delivered the routing gate.
+
+**Real-World Reachability:** A developer asks the assistant several questions, then says "ok do it" or asks for an implementation in the same session, minutes or hours later.
+
+**Demo Flow:** In one session, ask for work, then ask a why-question, then say "ok do it"; read what the routing hook adds to each prompt.
+
+```gherkin
+Given the first prompt of a session asks for work
+Then the routing gate arrives unchanged and no reminder is added
+When later prompts are questions or remarks
+Then nothing is added
+When the developer then asks for the work
+Then a one-line reminder states the rule: when to ask, plan first, run directly or grill first when choices are open, the exemptions, and one question per turn
+And each later request for work carries it again
+And a go-ahead ("yes, do it", "sounds good, implement it", "approved, proceed") and a task list get it too
+And a "Follow up:" question and a sub-agent hand-back get no reminder
+And a prompt that names a skill, routing off, or restricted skill selection gets no reminder
+And the reminder itself tells the assistant to skip work a running workflow covers
+And the concise route carries the same rule
+```
+
+**Expected Result:**
+
+| Dimension | Expectation |
+| --- | --- |
+| **UI** | Not applicable — the observable surface is the routing guidance |
+| **System behavior** | The reminder appears only on mid-session requests for work outside a workflow |
+| **Business data state** | Not applicable — no data changes |
+| **Data shown on UI** | The one-line reminder with the three choices |
+
+**Acceptance Criteria:**
+
+- ✅ The first prompt carries the unchanged gate and no reminder; a later request for work carries the reminder with the whole rule.
+- ✅ Questions, host content, named skills, off mode and restricted skill selection get nothing added; the reminder names the running-workflow exemption.
+- ✅ The common go-ahead forms and a task list are requests for work.
+- ❌ A reminder on the first prompt or on a question, or one that omits an exemption, fails the case.
+
+**Test Data:** "add a retry to the fetcher", "why does the cache miss?", "ok do it", "implement the retry with exponential backoff", "/plan add retries to the fetcher", "/fix please fix the flaky login test", "yes, do it", "sounds good, implement it", "approved, proceed", a two-item task list, "Follow up: why did the build fail?", a sub-agent hand-back, off mode, and restricted skill selection.
+
+**Edge Cases:** A remark ("and one more thing") is not a request for work; a skill call ("/plan …") has chosen its route already.
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: operation/hooks/workflow-route-inject]` · `[Source: constraint/skills/concise-workflow-route]`
+> **Related Behaviors:** `operation/hooks/workflow-route-inject` · `constraint/skills/concise-workflow-route`
+> **CoveredBy:** `.claude/hooks/tests/suites/workflow-route-modes.test.cjs::[workflow-route-modes] TC-WFR-030 mid-session, a request for work gets the plan-offer cue; the first prompt, questions, skill calls and off mode do not`, `.claude/hooks/tests/suites/workflow-route-modes.test.cjs::[workflow-route-modes] TC-WFR-030 the concise route carries the mid-session plan offer with the same exemptions` · **Status:** Tested
 
 ---
 

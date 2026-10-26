@@ -572,8 +572,8 @@
   deprecated_since: null
   description: '[Code Quality] Use when asked for a final or full review of a pull
     request or branch, or to check a branch before marking its PR Ready. Reviews the
-    whole branch against its target, fixes findings in at most two rounds, then lists
-    the Ready checklist. One commit: commit-review.'
+    whole branch against its target, fixes findings in at most three rounds, then
+    lists the Ready checklist. One commit: commit-review.'
   has_references: false
   has_scripts: false
   name: pr-review

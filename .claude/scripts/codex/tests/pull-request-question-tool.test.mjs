@@ -31,7 +31,7 @@ test('PR test and review gates decide automatically and never display a test/rev
     assert.match(tests, /resolve every failure at its owning layer until all pass/);
     assert.match(tests, /that is a \*\*Blocker\*\*, not a skip/);
     const review = section(text, '### Step 4', '### Step 5');
-    assert.match(review, /\*\*Low\*\* → automatic skip; \*\*Medium\*\* → `[/$]why-review --fix-loop`; \*\*High\*\* → `[/$]changes-review --fix-loop`, each at most two review rounds over the whole scope/);
+    assert.match(review, /\*\*Low\*\* → automatic skip; \*\*Medium\*\* → `[/$]why-review --fix-loop`; \*\*High\*\* → `[/$]changes-review --fix-loop`, each at most three review rounds over the whole scope/);
     assert.match(review, /a skip is never minted for a Medium or High branch/);
     assert.match(review, /A failed review is not a skip: never mint one to get past it/);
     const contract = section(text, '## User Choice Contract', '## Related');
@@ -80,7 +80,7 @@ test('concise commit retains project inputs and configured review without boiler
     assert.doesNotMatch(text.replaceAll('project configuration and ', ''), projectInputs, 'project configuration is required');
     assert.doesNotMatch(text.replaceAll(' and matching skill overlays', ''), projectInputs, 'matching skill overlays are required');
     assert.match(text, /commit-review-policy\.cjs --operation=commit/);
-    assert.match(text, /default `[/$]commit-review --fix-loop`, at most two rounds/);
+    assert.match(text, /default `[/$]commit-review --fix-loop`, at most three rounds/);
     assert.match(text, /current matching review evidence/);
     assert.doesNotMatch(text, /Estimate:|Reviewers:|PROTOCOL-GUIDES|Closing Reminders/);
   }

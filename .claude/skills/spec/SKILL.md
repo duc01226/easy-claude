@@ -90,7 +90,7 @@ This gate is product-level and does not relax applicable intent-quality rules in
 | `draft`  | Author a provisional artifact from an idea/requirement/prompt — **no code yet**; evidence and provisional fields follow the selected profile | `references/author.md` |
 | `init`   | No canonical owner exists under the configured business root; author the selected profile's artifact from source | `references/author.md` |
 | `update` | Docs exist + code changed — section-impact-mapped updates                                                                                       | `references/author.md` |
-| `audit`  | `--audit` flag or user asks — staleness report per section (never mutates docs)                                                                 | [references/author.md](references/author.md#mode-audit-staleness-detection) |
+| `audit`  | `--audit` flag or user asks — staleness report per section plus a bounded meaning-level drift pass over stale sections (never mutates docs)                                                                 | [references/author.md](references/author.md#mode-audit-staleness-detection) |
 | `amend`  | `[mode=amend]` from the bugfix workflow — minimal owner-scoped intent/contract/scenario touch under the selected profile | `references/author.md` |
 | `tests`  | Generate or update canonical test scenarios under the selected profile (strict default: Section 8 TCs) | `references/tests.md`  |
 | `sync`   | Reconcile canonical owner/cases ↔ executing test code using the selected profile (forward/reverse/harvest/orphan/staleness) | `references/sync.md`   |

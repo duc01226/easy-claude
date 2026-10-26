@@ -2,7 +2,7 @@
 
 Read on first initialization or when changing runner, orchestration, shared helpers or evidence collection. Reuse a fitting existing harness; migrate only with measured benefit and a retained extension path.
 
-**Authoring boundary:** write/init research, install/pin dependencies and author the owners/cases below, then perform the skill's static review (default two rounds maximum). Do not start the system, seed data or execute tests. The lifecycle and foundation acceptance below describe what the authored command must do **when the user explicitly requests verification**. Mark all runtime evidence NOT RUN until then.
+**Authoring boundary:** write/init research, install/pin dependencies and author the owners/cases below, then perform the skill's static review (default three rounds maximum). Do not start the system, seed data or execute tests. The lifecycle and foundation acceptance below describe what the authored command must do **when the user explicitly requests verification**. Mark all runtime evidence NOT RUN until then.
 
 ## Research before installation
 

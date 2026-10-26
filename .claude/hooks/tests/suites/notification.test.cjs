@@ -1442,6 +1442,71 @@ const settingsTests = [
 ];
 
 // ============================================================================
+// Codex question and permission alerts (TC-NT-076, TC-NT-077)
+// ============================================================================
+
+const notifyHandlersFor = (settings, event) => (settings.hooks[event] || [])
+    .filter(group => (group.hooks || []).some(hook => /notifications[\\/]notify\.cjs/.test(hook.command || '')));
+
+const codexAlertTests = [
+    {
+        // Intent: Codex asks through request_user_input (Plan mode, root thread), not AskUserQuestion, so its
+        // question must raise the same alert Claude's question raises, including one asked in a delegated thread.
+        name: '[TC-NT-076] a Codex question tool raises the question alert, as Claude AskUserQuestion does',
+        fn: () => {
+            const { normalizeEvent, getSkipReason, getEventType } = loadRouterContracts();
+            for (const tool of ['request_user_input', 'request_user_input_async', 'AskUserQuestion']) {
+                // Given a PreToolUse for a question tool from the main conversation
+                const event = normalizeEvent({ hook_event_name: 'PreToolUse', tool_name: tool, turn_id: 'turn-1', tool_input: { questions: [] } });
+                // Then it is the question alert and stays eligible
+                assertEqual(getEventType(event), 'AskUserQuestion', `${tool} must raise the question alert`);
+                assertEqual(getSkipReason(event), null, `${tool} from the main conversation must alert`);
+            }
+            // And a question raised inside a delegated conversation still waits on the user, so it alerts too:
+            // only completions and endings of delegated conversations are suppressed
+            const delegated = normalizeEvent({ hook_event_name: 'PreToolUse', tool_name: 'request_user_input', turn_id: 'turn-2', agent_id: 'a1' });
+            assertEqual(getSkipReason(delegated), null, 'a question the user must answer alerts wherever it is raised');
+            // And an ordinary tool stays out of the question route
+            assertEqual(getEventType(normalizeEvent({ hook_event_name: 'PreToolUse', tool_name: 'Bash', turn_id: 'turn-3' })), 'PreToolUse');
+            // And the registration listens for every question tool name
+            const settings = JSON.parse(fs.readFileSync(path.join(HOOKS_DIR, '..', 'settings.json'), 'utf8'));
+            const matchers = notifyHandlersFor(settings, 'PreToolUse').map(group => group.matcher || '');
+            assertTrue(matchers.some(m => m.split('|').includes('AskUserQuestion') && m.split('|').includes('request_user_input') && m.split('|').includes('request_user_input_async')),
+                `PreToolUse notify matcher must name every question tool, got ${JSON.stringify(matchers)}`);
+        }
+    },
+    {
+        // Intent: Codex has no Notification event; its PermissionRequest (always with turn_id) is the approval
+        // prompt. Claude's PermissionRequest has no turn_id and already alerts through Notification permission_prompt,
+        // so it must not alert twice.
+        name: '[TC-NT-077] a Codex permission request raises the permission alert once; Claude\'s does not duplicate it',
+        fn: () => {
+            const { normalizeEvent, getSkipReason, getEventType } = loadRouterContracts();
+            // Given a Codex PermissionRequest from the main conversation
+            const codex = normalizeEvent({ hook_event_name: 'PermissionRequest', turn_id: 'turn-1', tool_name: 'Bash', tool_input: { command: 'rm -rf build', description: null } });
+            // Then it is the permission alert and stays eligible
+            assertEqual(getEventType(codex), 'permission_prompt');
+            assertEqual(getSkipReason(codex), null, 'a Codex approval prompt must alert');
+            // And Claude's PermissionRequest (no turn_id) is left to its Notification permission_prompt
+            const claude = normalizeEvent({ hook_event_name: 'PermissionRequest', tool_name: 'Bash', session_id: 's1' });
+            assertEqual(getEventType(claude), 'PermissionRequest');
+            assertTrue(getSkipReason(claude) !== null, 'Claude PermissionRequest must not raise a second alert');
+            // And Claude's PermissionRequest for its own question tool stays silent: the PreToolUse question alert
+            // already covers that question, so it must not become a second question alert
+            const claudeQuestion = normalizeEvent({ hook_event_name: 'PermissionRequest', tool_name: 'AskUserQuestion', session_id: 's1' });
+            assertEqual(getEventType(claudeQuestion), 'PermissionRequest', 'a PermissionRequest is never rewritten into the question alert');
+            assertTrue(getSkipReason(claudeQuestion) !== null, 'Claude PermissionRequest for AskUserQuestion must not alert a second time');
+            // And an approval inside a delegated conversation still waits on the user, so it alerts too
+            assertEqual(getSkipReason(normalizeEvent({ hook_event_name: 'PermissionRequest', turn_id: 'turn-2', agent_id: 'a1', tool_name: 'Bash' })), null,
+                'an approval the user must give alerts wherever it is requested');
+            // And the router is registered on PermissionRequest, so the Codex mirror carries it
+            const settings = JSON.parse(fs.readFileSync(path.join(HOOKS_DIR, '..', 'settings.json'), 'utf8'));
+            assertEqual(notifyHandlersFor(settings, 'PermissionRequest').length, 1, 'notify.cjs must be registered once on PermissionRequest');
+        }
+    }
+];
+
+// ============================================================================
 // Router Wiring Tests (notify.cjs owns all notification events; notify-waiting.js retired)
 // ============================================================================
 
@@ -1460,7 +1525,7 @@ const routerWiringTests = [
         fn: () => {
             const settingsPath = path.join(HOOKS_DIR, '..', 'settings.json');
             const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
-            const entry = (settings.hooks?.PreToolUse || []).find(h => h.matcher === 'AskUserQuestion');
+            const entry = (settings.hooks?.PreToolUse || []).find(h => (h.matcher || '').split('|').includes('AskUserQuestion'));
             assertTrue(!!entry, 'PreToolUse AskUserQuestion matcher must exist');
             assertTrue((entry.hooks || []).some(h => (h.command || '').includes('notifications/notify.cjs')), 'AskUserQuestion should route to notify.cjs');
         }
@@ -1499,6 +1564,7 @@ module.exports = {
         ...remotePayloadTests,
         ...desktopBehaviorTests,
         ...settingsTests,
+        ...codexAlertTests,
         ...routerWiringTests
     ]
 };

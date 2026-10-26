@@ -12,7 +12,7 @@ Relevant future experiments may target hook latency, large source graphs, large 
 
 No project performance command is configured. Use `performance-test --mode=init` through the active host to research and implement a reusable harness before claiming one exists. `node .claude/hooks/tests/run-all-tests.cjs` verifies functional framework contracts; it does not verify performance budgets.
 
-Write/init author the setup and tests, then auto static review/fix with a default two-round ceiling. They do not start services, seed data or execute even smoke/foundation tests. Record authored commands as runtime NOT RUN. Only an explicit run/verify/green request authorizes execution; an optional question-tool offer after authoring waits for an affirmative answer.
+Write/init author the setup and tests, then auto static review/fix with a default three-round ceiling. They do not start services, seed data or execute even smoke/foundation tests. Record authored commands as runtime NOT RUN. Only an explicit run/verify/green request authorizes execution; an optional question-tool offer after authoring waits for an affirmative answer.
 
 Use platform-neutral Node entrypoints where they fit the actual harness. Python tooling uses `python3` on macOS/Linux and `py -3` on Windows. Verify any container/VM prerequisite and effective limits separately; no application container topology is declared in the project config.
 

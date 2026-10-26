@@ -117,7 +117,8 @@ function selectReview(risk, mode) {
     if (!MODES.includes(mode)) throw new Error(`Expected review mode: ${MODES.join(', ')}`);
     const skill = mode === 'lightweight' ? 'commit-review' : risk === 'medium' ? 'why-review'
         : risk === 'high' ? 'changes-review' : null;
-    return { action: skill ? 'review' : 'skip', skill, maxRounds: skill ? 2 : 0 };
+    // The round cap has one owner: the shared review-policy helper.
+    return { action: skill ? 'review' : 'skip', skill, maxRounds: skill ? require('./review-policy.cjs').MAX_ROUNDS : 0 };
 }
 
 function decideReview(options = {}) {

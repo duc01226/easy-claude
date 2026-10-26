@@ -36,6 +36,16 @@
  *     parallel-phase marks; the tiers-only index and the pointer-only form omit them
  *     (`start-workflow <id>` loads a workflow's phases), so the wf-cycle W5 runtime-payload check
  *     applies barrier-mark parity only to the two marked forms.
+ * Mid-session plan offer: when the route output stays silent because the gate is already in the
+ * conversation (never on a session's first prompt) and the prompt asks for work to be done, the route output
+ * writes the one-line `[PLAN-OFFER]` rule instead, unless the prompt names a skill or command, routing is
+ * off, a route-mode directive leads the prompt, or automatic skill selection is restricted (its own skill-choice
+ * rule governs). A prompt that delivers the route (the first prompt, or a re-delivery after compaction) carries
+ * the gate, not the cue. A running workflow is judged by the agent from the rule's own text: no hook store records which session
+ * runs a workflow (`start-workflow` records runs per checkout, without a session id). The cue is the rule's carrier on this route (the gate stays unchanged: with a
+ * project protocol of the documented size it has no room left under the cap); the concise route carries the
+ * same rule as one bullet. The cue arrives exactly when the rule applies, per prompt and unrecorded, about
+ * 170 tokens.
  * Each output keeps its own session record, so either is delivered again without the other. A part
  * name this module does not know writes nothing: an entry that names one is silent, never a second
  * copy of the route output.
@@ -69,6 +79,15 @@ const PROTOCOL_END = '<!-- /CK:WORKFLOW-ROUTE-PROTOCOL -->';
 const OFF_START = '<!-- CK:RUNTIME-WORKFLOW-ROUTE-OFF -->';
 const OFF_END = '<!-- /CK:RUNTIME-WORKFLOW-ROUTE-OFF -->';
 const GATE_MARKER = '<!-- CK:WORKFLOW-GATE -->';
+const PLAN_OFFER_START = '<!-- CK:PLAN-OFFER -->';
+const PLAN_OFFER_END = '<!-- /CK:PLAN-OFFER -->';
+const PLAN_OFFER_CUE = [
+    PLAN_OFFER_START,
+    '**[PLAN-OFFER]** Mid-session request for work: if it is non-trivial (behavior or contract change, several modules, real risk, or open choices) and no approved plan or running workflow covers it, ask ONE question before editing: plan first (`/plan`: it reviews itself, validates, then offers to execute) · run directly · grill first (only when choices are still open). Skip the first task after a mode directive (the workflow question owns it), trivial, follow-up or correction work, "just do it", a named skill, a request already asked about, or a run with no user to answer. This replaces the answer-review offer on this turn.',
+    PLAN_OFFER_END
+].join('\n');
+// A prompt that names a skill or command ("/plan …", "$fix …") has chosen its route already.
+const EXPLICIT_INVOCATION_RE = /^\s*[/$][\w:-]+/;
 const GATE_END_MARKER = '<!-- /CK:WORKFLOW-GATE -->';
 const GATE_FILE_SEGMENTS = Object.freeze(['.claude', 'skills', 'shared', 'workflow-first-gate.md']);
 const GATE_BLOCK_RE = /<!-- CK:WORKFLOW-GATE -->[\s\S]*?<!-- \/CK:WORKFLOW-GATE -->/;
@@ -366,6 +385,21 @@ function applyDirective(routing, directive, context) {
 }
 
 /**
+ * The plan-offer cue for a prompt the route stayed silent on, or '' when it does not apply: not a prompt
+ * event, not user text (a host envelope), not a request for work, or an explicit skill or command call.
+ */
+function planOfferCue(input) {
+    try {
+        if (input.hook_event_name && input.hook_event_name !== 'UserPromptSubmit') return '';
+        const utils = require('./prompt-route-utils.cjs');
+        const text = utils.readUserPrompt(input.prompt);
+        return text === null || EXPLICIT_INVOCATION_RE.test(text) || !utils.isBuildRequest(text) ? '' : PLAN_OFFER_CUE;
+    } catch {
+        return '';
+    }
+}
+
+/**
  * Resolve to the text written, or an empty string when nothing is written. `deps.part` selects the
  * output: `route` (when omitted) or `catalog`; any other value writes nothing. `deps.homeDir` is the home
  * of the personal settings layer and `deps.config` an already resolved `.ck` configuration (tests supply
@@ -461,6 +495,9 @@ function run(input, deps = {}) {
             }).then(written => {
                 // The block is already in the conversation, so nothing was written: the directive still gets its reply line.
                 if (written === '' && ack) return new Promise(done => write(`${ack}\n`, ok => done(ok ? `${ack}\n` : '')));
+                // Mid-session (the gate is already delivered): a request for work gets the plan-offer cue.
+                const cue = written === '' && !directive && mode !== 'off' && skillPolicy?.enabled !== false ? planOfferCue(input) : '';
+                if (cue) return new Promise(done => write(output(`${cue}\n`), ok => done(ok ? cue : '')));
                 return written;
             }).then(finish, () => finish(''));
         } catch {
@@ -516,6 +553,10 @@ module.exports = {
     OFF_END,
     GATE_MARKER,
     GATE_END_MARKER,
+    PLAN_OFFER_START,
+    PLAN_OFFER_END,
+    PLAN_OFFER_CUE,
+    planOfferCue,
     HOST_OUTPUT_LIMIT,
     PAYLOAD_CAP,
     buildInjection,

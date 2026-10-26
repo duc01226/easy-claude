@@ -685,13 +685,14 @@ const tests = [
             assert.match(message, /Lightweight mode never selects an automatic skip/);
             assert.match(message, /Do not ask the user: classify the actual candidate risk[\s\S]{0,40}higher on a tie/,
                 'hook must point to the skill rule and the tie-break');
-            assert.match(message, /at most 2 review rounds\. MEDIUM\+ findings still open at the cap: stop and report, no commit, no skip/);
+            // The cap matches the shared review policy (scripts/lib/review-policy.cjs MAX_ROUNDS).
+            assert.match(message, new RegExp(`at most ${require('../../../scripts/lib/review-policy.cjs').MAX_ROUNDS} review rounds\\. MEDIUM\\+ findings still open at the cap: stop and report, no commit, no skip`));
             assert.match(message, /\/workflow-review-changes --fix-loop also issues a valid receipt when the user asks for the full workflow/);
 
             // The coordinator delegates selection; executable policy tests own tier behavior.
             const commitSkill = fs.readFileSync(path.resolve(__dirname, '../../../skills/commit/SKILL.md'), 'utf8');
             assert.match(commitSkill, /commit-review-policy\.cjs --operation=commit/);
-            assert.match(commitSkill, /at most two rounds/);
+            assert.match(commitSkill, /at most three rounds/);
             // Then: the skill decides without a test/review question
             assert.doesNotMatch(commitSkill, /\(Recommended\)|Skip stays user-only|Ask initially/i,
                 'the commit skill must not restore the test/review question');

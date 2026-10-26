@@ -18,14 +18,21 @@ const PROVIDER_PREFIXES = ['TELEGRAM', 'DISCORD', 'SLACK'];
 // Whitelist: only these events trigger notifications (everything else is skipped)
 // SessionEnd = main session ended, Stop = turn complete, AskUserQuestion = user input needed
 const EVENT_WHITELIST = ['SessionEnd', 'Stop', 'idle_prompt', 'AskUserPrompt', 'AskUserQuestion', 'permission_prompt'];
+// Tools that ask the user a question: Claude's AskUserQuestion; Codex's request_user_input and its async form.
+const QUESTION_TOOLS = ['AskUserQuestion', 'request_user_input', 'request_user_input_async'];
 
 /**
  * Normalize hook input so every provider resolves one canonical event identity.
- * A PreToolUse for the AskUserQuestion tool arrives as hook_event_name='PreToolUse'
- * with tool_name='AskUserQuestion'. Rewrite it to a first-class 'AskUserQuestion'
+ * A PreToolUse for a question tool arrives as hook_event_name='PreToolUse' with the
+ * tool's name: Claude's AskUserQuestion, or Codex's request_user_input (Plan mode,
+ * root thread only) and its async form. Rewrite it to a first-class 'AskUserQuestion'
  * event so the whitelist and all providers (which key off hook_event_name /
- * notification_type) treat it uniformly. Codex Stop messages ending in '?'
- * are tagged as inferred questions so desktop delivery stays nonblocking.
+ * notification_type) treat it uniformly. Codex has no Notification event: its
+ * PermissionRequest, which always carries turn_id, is the approval prompt and maps to
+ * 'permission_prompt'. Claude's PermissionRequest carries no turn_id and is left
+ * alone, because its Notification 'permission_prompt' already alerts. Codex Stop
+ * messages ending in '?' are tagged as inferred questions so desktop delivery stays
+ * nonblocking.
  * Mutates and returns input.
  * @param {Object} input - Event data
  * @returns {Object} Normalized input
@@ -35,12 +42,18 @@ function normalizeEvent(input) {
         return input;
     }
 
-    if (input.tool_name === 'AskUserQuestion' && !input.notification_type) {
+    // Only a tool-use event becomes the question alert. A PermissionRequest names the tool it gates (Claude runs
+    // one for AskUserQuestion too), and it is decided by the turn_id rule below alone, so one question alerts once.
+    if (QUESTION_TOOLS.includes(input.tool_name) && !input.notification_type && input.hook_event_name !== 'PermissionRequest') {
         input.hook_event_name = 'AskUserQuestion';
     }
 
-    // Codex has no dedicated question hook. Its Stop payload includes the
-    // completed assistant message, so use a narrow final-question-mark
+    if (input.hook_event_name === 'PermissionRequest' && typeof input.turn_id === 'string' && !input.notification_type) {
+        input.notification_type = 'permission_prompt';
+    }
+
+    // Outside Plan mode Codex asks in plain text and ends the turn. Its Stop payload
+    // includes the completed assistant message, so use a narrow final-question-mark
     // heuristic and leave ordinary turn completions on the Stop path.
     if (
         input.hook_event_name === 'Stop' &&
