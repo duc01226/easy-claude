@@ -1,6 +1,6 @@
 # ADR-0008: Projects Update the Framework Themselves, from the Upstream Repository
 
-- **Status:** Accepted
+- **Status:** Accepted (amended 2026-10-26 — the sync keeps mirror entries it did not generate; see [Amendment](#amendment-2026-10-26-the-sync-keeps-mirror-entries-it-did-not-generate))
 - **Date:** 2026-10-26
 - **Builds on:** [ADR-0007](0007-framework-updates-merge-and-opt-in-switches.md), which made updates a
   three-way merge. This record decides how a project gets the upstream and runs that merge.
@@ -78,4 +78,18 @@ Option 8.
 - The merge engine can improve without every project first updating its local copy.
 - Updating needs Git and either network access to the upstream or a local checkout.
 - The sync's wholesale rebuild of `.agents/skills/` is unchanged; the update guards it, but a plain
-  `/sync-codex` run still deletes a mirror-only skill.
+  `/sync-codex` run still deletes a mirror-only skill. (Closed by the amendment below.)
+
+## Amendment (2026-10-26): the sync keeps mirror entries it did not generate
+
+The sync now records the top-level `.agents/skills/` entries it writes in the mirror's marker,
+`.agents/skills/.codex-mirror.json` (`generatedEntries`). Each run replaces the entries it generates,
+removes the recorded ones whose `.claude/skills/` source is gone, and leaves every other entry as it is,
+printing one `kept` line per entry. It builds the mirror in a temporary folder first, so its rewrites
+never touch a kept skill. The divergence gate compares the marker and does not compare kept entries.
+
+A marker an older sync wrote records no names, so on the first run the sync cannot tell a stale mirror
+of a retired framework skill from a project's own skill, and keeps both. The update knows the framework's
+skill names, so it now removes the mirror of a framework skill the project no longer has (Decision 5
+keeps the rest: it still lists mirror-only skills and skips the sync so the user decides where each
+belongs). A plain sync after that first run removes such mirrors itself.

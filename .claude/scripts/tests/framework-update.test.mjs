@@ -202,14 +202,14 @@ test('a Windows checkout with CRLF line endings is not a project change', t => {
     assert.equal(normalizeContent(Buffer.from('a\r\nb\r\n'), 'x.cjs').toString(), 'a\nb\n');
 });
 
-test('project-only files are listed and untouched, and a Codex-only skill in .agents/skills stops the sync that would delete it', t => {
+test('project-only files are listed and untouched, and a Codex-only skill in .agents/skills stops the sync until the user decides where it belongs', t => {
     const f = fixture(t);
     f.write(f.project, '.claude/skills/own/SKILL.md', 'project skill\n');
     f.write(f.project, '.claude/hooks/own-hook.cjs', 'project hook\n');
     f.write(f.project, '.agents/skills/own/SKILL.md', 'mirror of the project skill\n');
     f.write(f.project, '.agents/skills/codex-only/SKILL.md', 'written for Codex only\n');
     f.write(f.project, '.agents/skills/.codex-mirror.json', '{}\n');
-    // A stand-in for the mirror sync that records that it ran (the real one deletes unknown mirror skills).
+    // A stand-in for the mirror sync that records that it ran.
     f.write(f.project, '.claude/skills/sync-codex/scripts/run-codex-sync.mjs', "import fs from 'node:fs';\nfs.writeFileSync('sync-ran', 'yes');\n");
     f.commit(f.project, 'project additions');
     f.write(f.upstream, '.claude/hooks/a.cjs', 'one\ntwo (v2)\nthree\n');
@@ -220,12 +220,41 @@ test('project-only files are listed and untouched, and a Codex-only skill in .ag
     // Sync stays enabled here: the mirror-only skill must stop it before it runs.
     assert.equal(main([f.upstream, `--base=${f.base}`], f.project), 2);
     assert.equal(f.read(f.project, '.agents/skills/codex-only/SKILL.md'), 'written for Codex only\n');
+    assert.equal(f.read(f.project, '.agents/skills/own/SKILL.md'), 'mirror of the project skill\n', 'a project skill mirror is not the update\'s to remove');
     assert.equal(f.read(f.project, '.claude/hooks/a.cjs'), 'one\ntwo (v2)\nthree\n', 'the merge itself still ran');
-    assert.equal(f.read(f.project, 'sync-ran'), null, 'the sync that would delete the mirror-only skill never started');
+    assert.equal(f.read(f.project, 'sync-ran'), null, 'the sync waits until the user decides where the mirror-only skill belongs');
     fs.rmSync(path.join(f.project, '.agents/skills/codex-only'), { recursive: true });
     f.commit(f.project, 'take v2; the Codex-only skill is let go');
     assert.equal(main([f.upstream], f.project), 0);
     assert.equal(f.read(f.project, 'sync-ran'), 'yes', 'with nothing at risk the sync runs (the stand-in works)');
+});
+
+// Intent: a project whose mirror an older sync wrote has a marker that records no names, so the new sync
+// keeps every entry it cannot attribute. The update knows which names are the framework's, so it removes
+// the mirror of a framework skill the project no longer has, and nothing of the project's.
+test('the update removes the mirror of a framework skill upstream retired, and keeps every mirror the project owns', t => {
+    const f = fixture(t);
+    for (const root of [f.upstream, f.project]) {
+        f.write(root, '.claude/skills/retired-skill/SKILL.md', 'framework skill\n');
+        f.write(root, '.claude/skills/edited-skill/SKILL.md', 'framework skill\n');
+    }
+    const base = f.commit(f.upstream, 'v1 with skills');
+    f.write(f.project, '.claude/skills/edited-skill/SKILL.md', 'framework skill, edited by the project\n');
+    f.write(f.project, '.agents/skills/retired-skill/SKILL.md', 'mirror of the retired skill\n');
+    f.write(f.project, '.agents/skills/edited-skill/SKILL.md', 'mirror of the edited skill\n');
+    f.write(f.project, '.agents/skills/codex-only/SKILL.md', 'written for Codex only\n');
+    f.write(f.project, '.agents/skills/.codex-mirror.json', '{"managedBy":"codex-sync","source":".claude/skills"}\n');
+    f.commit(f.project, 'install v1, edit a skill, add a Codex-only skill');
+    fs.rmSync(path.join(f.upstream, '.claude/skills'), { recursive: true });
+    f.commit(f.upstream, 'v2 retires both skills');
+
+    // The edited skill stays in the project (a conflict to settle), so 2; the Codex-only skill also waits for a decision.
+    assert.equal(f.run(`--base=${base}`), 2);
+    assert.equal(f.read(f.project, '.claude/skills/retired-skill/SKILL.md'), null, 'the unchanged framework skill is deleted');
+    assert.equal(f.read(f.project, '.agents/skills/retired-skill/SKILL.md'), null, 'and so is its mirror');
+    assert.equal(f.read(f.project, '.agents/skills/edited-skill/SKILL.md'), 'mirror of the edited skill\n', 'a skill the project kept keeps its mirror');
+    assert.equal(f.read(f.project, '.agents/skills/codex-only/SKILL.md'), 'written for Codex only\n', 'the project\'s Codex-only skill stays');
+    assert.ok(fs.existsSync(path.join(f.project, '.agents/skills/.codex-mirror.json')), 'the sync marker stays');
 });
 
 test('--project updates another folder from a blobless bare clone, fetching file contents in batches', t => {

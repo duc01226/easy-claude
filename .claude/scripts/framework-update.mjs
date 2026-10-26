@@ -50,8 +50,10 @@
  * Text is compared with CRLF read as LF, so a Windows checkout does not look changed everywhere.
  * `<!-- COUNT:… -->` values (ADR-0002) in Markdown/HTML docs never conflict: they are compared and merged
  * as 0 and recomputed afterwards (any other file is compared and written byte for byte), and the generated catalogs are regenerated instead of merged.
- * The sync at the end rebuilds `.agents/skills/` from `.claude/skills/`; an entry there with no source
- * (a Codex-only skill the project added) would be deleted, so the tool lists it and skips the sync.
+ * The sync at the end regenerates `.agents/skills/` from `.claude/skills/` and keeps any entry it did not
+ * generate. The tool removes the mirror of a framework skill the project no longer has (a sync from before
+ * the mirror recorded its own entries would keep it), and lists any other entry with no source (a
+ * Codex-only skill the project added) and skips the sync, so the user decides where it belongs first.
  *
  * Exit codes: 0 updated (or nothing to do) · 1 fatal · 2 something left to resolve (conflicts or
  * mirror-only skills).
@@ -247,17 +249,37 @@ function buildLock(upstream, theirs, { ref, workingTree, sourceUrl, previous }) 
 
 const readLock = project => fs.existsSync(path.join(project, LOCK_PATH)) ? JSON.parse(fs.readFileSync(path.join(project, LOCK_PATH), 'utf8')) : null;
 
+/** Top-level `.claude/skills/` entry names among framework paths. */
+const frameworkSkillNames = frameworkPaths => [...new Set([...frameworkPaths]
+    .filter(p => p.startsWith(`${SCOPE}/skills/`)).map(p => p.split('/')[2]))].sort();
+
 /**
- * `.agents/skills/` entries the closing sync would delete: neither a project skill source nor a name
- * the framework ships, had at the base, or listed in the lock.
+ * `.agents/skills/` entries that are the project's own: neither a project skill source nor a name the
+ * framework ships, had at the base, or listed in the lock. The sync keeps them but mirrors them to no
+ * other host, so the user decides where each belongs.
  */
 function mirrorOnlySkills(project, frameworkPaths) {
     const mirror = path.join(project, MIRROR_SKILLS);
     if (!fs.existsSync(mirror)) return [];
     const sources = path.join(project, SCOPE, 'skills');
-    const known = new Set(fs.existsSync(sources) ? fs.readdirSync(sources) : []);
-    for (const p of frameworkPaths) if (p.startsWith(`${SCOPE}/skills/`)) known.add(p.split('/')[2]);
+    const known = new Set([...(fs.existsSync(sources) ? fs.readdirSync(sources) : []), ...frameworkSkillNames(frameworkPaths)]);
     return fs.readdirSync(mirror).filter(name => !known.has(name) && !MIRROR_OWN.has(name)).sort().map(name => `${MIRROR_SKILLS}/${name}`);
+}
+
+/**
+ * `.agents/skills/` entries mirroring a framework skill the project no longer has after the merge (upstream
+ * retired it, or the project removed it). A sync from before the mirror recorded its own entries cannot tell
+ * them from the project's Codex-only skills and keeps both, so the update removes these itself.
+ */
+function retiredFrameworkMirrors(project, frameworkSkills) {
+    const mirror = path.join(project, MIRROR_SKILLS);
+    if (!fs.existsSync(mirror)) return [];
+    // Never through a link that leads out of the project: Git cannot see or restore what lies behind it.
+    const [root, real] = [fs.realpathSync(project), fs.realpathSync(mirror)];
+    if (real !== root && !real.startsWith(root + path.sep)) return [];
+    const framework = new Set(frameworkSkills);
+    return fs.readdirSync(mirror).filter(name => framework.has(name) && !MIRROR_OWN.has(name)
+        && !fs.existsSync(path.join(project, SCOPE, 'skills', name))).sort();
 }
 
 /**
@@ -310,7 +332,8 @@ export function planUpdate({ project, upstream, ref = 'HEAD', workingTree = fals
     const projectOnly = projectFiles(project).filter(p => !frameworkPaths.has(p) && !NEVER_TAKEN.has(p)).sort();
     const nextLock = buildLock(upstream, theirs, { ref: resolvedRef, workingTree, sourceUrl, previous: lock });
     if (!workingTree) nextLock.source.ref = ref;
-    return { actions, nextLock, base: resolvedBase, baseDetection, firstLock: !lock, projectOnly, mirrorOnly: mirrorOnlySkills(project, frameworkPaths), warnings };
+    return { actions, nextLock, base: resolvedBase, baseDetection, firstLock: !lock, projectOnly,
+        mirrorOnly: mirrorOnlySkills(project, frameworkPaths), frameworkSkills: frameworkSkillNames(frameworkPaths), warnings };
 }
 
 function python() {
@@ -399,8 +422,11 @@ export function applyUpdate(project, plan, { sync = true } = {}) {
             fs.writeFileSync(side, action.content);
         }
     }
+    const removedMirrors = retiredFrameworkMirrors(project, plan.frameworkSkills);
+    for (const name of removedMirrors) fs.rmSync(path.join(project, MIRROR_SKILLS, name), { recursive: true, force: true });
     fs.writeFileSync(path.join(project, LOCK_PATH), `${JSON.stringify(plan.nextLock, null, 2)}\n`);
     const followUps = regenerate(project);
+    if (removedMirrors.length) followUps.push(`Removed the mirror of ${removedMirrors.length} framework skill(s) the project no longer has: ${removedMirrors.map(name => `${MIRROR_SKILLS}/${name}`).join(', ')}.`);
     const conflicts = plan.actions.filter(a => a.kind === 'conflict' || a.kind === 'conflict-side');
     const blocked = conflicts.length || plan.mirrorOnly.length;
     if (sync && !blocked) {
@@ -408,10 +434,10 @@ export function applyUpdate(project, plan, { sync = true } = {}) {
             { cwd: project, stdio: 'inherit', windowsHide: true });
         followUps.push(result.status === 0 ? 'sync-codex passed.' : `sync-codex failed (exit ${result.status}); fix it before committing.`);
     } else if (blocked) {
-        if (plan.mirrorOnly.length) followUps.push(`Sync skipped: it would delete ${plan.mirrorOnly.join(', ')}. Move each into .claude/skills/ (or remove it on purpose) first.`);
+        if (plan.mirrorOnly.length) followUps.push(`Sync skipped so you can decide where ${plan.mirrorOnly.join(', ')} belong(s): move each into .claude/skills/ to mirror it to every host, or keep it Codex-only (the sync leaves it in place).`);
         followUps.push(`${conflicts.length ? 'Resolve the conflicts, then run' : 'Then run'}: node .claude/skills/sync-codex/scripts/run-codex-sync.mjs`);
     }
-    return { written, followUps };
+    return { written, followUps, removedMirrors: removedMirrors.map(name => `${MIRROR_SKILLS}/${name}`) };
 }
 
 function parseArgs(argv) {
@@ -497,7 +523,7 @@ export function main(argv = process.argv.slice(2), defaultProject = path.resolve
             `project-only files left as they are: ${summary.projectOnly.length}\n` +
             summary.warnings.map(line => `WARNING ${line}\n`).join('') +
             summary.conflicts.map(c => `CONFLICT ${c.path} (${describe(c)})\n`).join('') +
-            summary.mirrorOnly.map(p => `MIRROR-ONLY ${p} (no .claude/skills source; the sync would delete it)\n`).join('') +
+            summary.mirrorOnly.map(p => `MIRROR-ONLY ${p} (no .claude/skills source; the sync keeps it but mirrors it to no other host)\n`).join('') +
             result.followUps.map(line => `${line}\n`).join(''));
     }
     return (summary.conflicts.length || summary.mirrorOnly.length) ? 2 : 0;

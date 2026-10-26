@@ -3,7 +3,8 @@
 // Codex sync-divergence oracle gate.
 //
 // Guards FOUR committed-mirror surfaces against a fresh regeneration:
-//   (1) the .agents/skills mirror (materializeSkillMirror),
+//   (1) the .agents/skills mirror (materializeSkillMirror) and its .codex-mirror.json marker; an
+//       entry the sync did not generate (a Codex-only skill) is the project's and is not compared,
 //   (2) the CONTEXT mirror — AGENTS.md, the project-information projection of CLAUDE.md
 //       (runContextSync); a leftover .codex/CODEX_CONTEXT.md is reported as an orphan,
 //   (3) the .codex/agents TOML mirror (materializeAgentMirror) — the ENTIRE Codex sub-agent
@@ -68,6 +69,10 @@ async function loadSyncModules() {
     sync = {
         materializeSkillMirror: migrate.materializeSkillMirror,
         isLocalInstallArtifact: migrate.isLocalInstallArtifact,
+        buildSkillMirrorSentinel: migrate.buildSkillMirrorSentinel,
+        readRecordedSkillEntries: migrate.readRecordedSkillEntries,
+        classifySkillMirrorEntries: migrate.classifySkillMirrorEntries,
+        skillMirrorSentinel: migrate.SKILL_MIRROR_SENTINEL,
         materializeAgentMirror: migrate.materializeAgentMirror,
         claudeSkillsDir: migrate.claudeSkillsDir,
         agentsSkillsDir: migrate.agentsSkillsDir,
@@ -90,9 +95,9 @@ const rootResolution = resolveProjectRoot({
     env: process.env,
 });
 
-// Files present in the committed mirror but NOT produced by materializeSkillMirror.
-// The sentinel is written separately by the writer (writeAgentsSkillsMirrorSentinel);
-// excluding it keeps the staging-vs-committed comparison apples-to-apples.
+// readTreeFiles' default exclusion. The skills check passes its own: it writes the expected sentinel
+// into staging with the writer's buildSkillMirrorSentinel and compares it like any other file, because
+// the names it records decide what the next sync removes.
 const EXCLUDED_BASENAMES = new Set(['.codex-mirror.json']);
 const MAX_REPORTED_DIFFS = 50;
 
@@ -265,7 +270,10 @@ function reportSkillsResult(diffs, fenceProblems) {
 }
 
 async function checkSkillsMirror() {
-    const { materializeSkillMirror, isLocalInstallArtifact, claudeSkillsDir, agentsSkillsDir } = await loadSyncModules();
+    const {
+        materializeSkillMirror, isLocalInstallArtifact, buildSkillMirrorSentinel, readRecordedSkillEntries,
+        classifySkillMirrorEntries, skillMirrorSentinel, claudeSkillsDir, agentsSkillsDir
+    } = await loadSyncModules();
     if (!(await pathExists(claudeSkillsDir))) {
         return { skip: 'no .claude/skills source to mirror' };
     }
@@ -281,13 +289,26 @@ async function checkSkillsMirror() {
     const staging = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-sync-check-'));
     try {
         await materializeSkillMirror(staging, skillReferenceMap);
-        const expected = await readTreeFiles(staging);
+        const generated = await fs.readdir(staging);
+        await fs.writeFile(path.join(staging, skillMirrorSentinel), buildSkillMirrorSentinel(generated), 'utf8');
+        // An entry the sync neither generates nor recorded generating (a Codex-only skill, another
+        // tool's install) is the project's, and the sync leaves it alone: not divergence. A recorded
+        // entry with no source left is still the sync's, so it is reported as a stale extra.
+        const { unmanaged } = classifySkillMirrorEntries(await fs.readdir(agentsSkillsDir), {
+            generated,
+            recorded: await readRecordedSkillEntries(agentsSkillsDir)
+        });
+        const unmanagedNames = new Set(unmanaged);
+        const expected = await readTreeFiles(staging, { exclude: new Set() });
         // A local npm/pip install inside the mirror is git-ignored (.agents/.gitignore), so it is
         // not divergence; the writer never produces those paths either.
-        const actual = await readTreeFiles(agentsSkillsDir, { skip: isLocalInstallArtifact });
+        const actual = await readTreeFiles(agentsSkillsDir, {
+            exclude: new Set(),
+            skip: rel => isLocalInstallArtifact(rel) || unmanagedNames.has(rel.split(/[\\/]/)[0])
+        });
         // Validate the committed mirror's fence structure too. Equality cannot vouch for
         // structure: a symmetric malformed fence passes the diff but fails here.
-        return { diffs: diffTrees(expected, actual), fenceProblems: findFenceImbalances(actual), count: expected.size };
+        return { diffs: diffTrees(expected, actual), fenceProblems: findFenceImbalances(actual), count: expected.size, unmanaged };
     } finally {
         await fs.rm(staging, { recursive: true, force: true });
     }
@@ -469,6 +490,9 @@ async function main() {
         markFailed();
     } else {
         console.log(`[codex-verify-sync-divergence] skills: PASS (${skills.count} mirror file(s) in sync)`);
+    }
+    for (const name of skills.unmanaged ?? []) {
+        console.log(`[codex-verify-sync-divergence] skills: not compared, the sync did not generate it: .agents/skills/${name}`);
     }
 
     const agents = await checkAgentMirror();

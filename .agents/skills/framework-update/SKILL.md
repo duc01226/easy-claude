@@ -74,7 +74,7 @@ The script keeps a blobless clone in `tmp/framework-update/upstream.git` (commit
 | `settings.local.json`, `.ck.local.json` | each person | Never taken from upstream. |
 | `SKILLS.yaml`, `skills_data.yaml`, `<!-- COUNT -->` values | generated | Regenerated from the project's own skill set, never merged. |
 | `.agents/`, `.codex/`, `.opencode/`, `AGENTS.md`, `opencode.json` skill permissions | generated mirrors | Rebuilt from the merged `.claude/` by the closing sync (`$sync-codex`, which hands off to the OpenCode sync when `.opencode/` exists): upstream's new mirror files arrive, retired ones go, and the project's own skills, agents and hooks are mirrored too. |
-| `.agents/skills/<name>` with no `.claude/skills/<name>` source | project, at risk | The sync would delete it, so the engine lists it as `mirrorOnly` and skips the sync. |
+| `.agents/skills/<name>` with no `.claude/skills/<name>` source | project | The sync keeps it and prints one `kept` line, but it reaches no other host. The engine lists it as `mirrorOnly` and skips the sync, so the user decides first where it belongs. The mirror of a framework skill the project no longer has (upstream retired it) is the framework's: the engine removes it. |
 | `docs/`, `CLAUDE.md`, `docs/project-config.json`, everything outside the four folders | project | Never touched. |
 
 ## Procedure
@@ -98,7 +98,7 @@ Run `--dry-run --json` (plus any `--ref` / `--upstream` the user gave) and read:
 
 Ask once, in one question, only about what needs the user:
 
-- **Mirror-only skills** (`mirrorOnly`): recommend moving each into `.claude/skills/<name>/`, where it becomes canonical and is mirrored to every host; check the name is free and its `SKILL.md` frontmatter has `name` and `description`. The alternatives are keeping it out of the sync (mirrors stay stale until it is moved) or letting the sync delete it. Carry out the answer after step 4: the engine refuses to run on uncommitted changes.
+- **Mirror-only skills** (`mirrorOnly`): recommend moving each into `.claude/skills/<name>/`, where it becomes canonical and is mirrored to every host; check the name is free and its `SKILL.md` frontmatter has `name` and `description`. The alternative is keeping it Codex-only in `.agents/skills/` (right for a skill another tool installed there): the sync leaves it in place. Carry out the answer after step 4: the engine refuses to run on uncommitted changes.
 - **A doubtful base** (step 2).
 
 Proceed without asking when nothing needs a decision: the tree is clean and everything is undoable through Git.
@@ -117,7 +117,7 @@ Read `references/merge-guide.md` before touching a conflict. It covers marker co
 - Every changed JSON file parses: `node -e "JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'))" <file>`.
 - Every hook command in `.claude/settings.json` names a file that exists.
 - After moving or renaming any skill (mirror-only skills, a name clash), rebuild the catalogs and counts: `node .claude/scripts/framework-update.mjs --regenerate`.
-- Run the sync if the engine skipped it: `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs`. It rebuilds `.agents/`, `.codex/` and `.opencode/`, and its `verify-sync-divergence` and `verify-opencode-*` stages prove they match the merged `.claude/`. Exception: when the user chose to keep a mirror-only skill in `.agents/skills/`, the sync would delete it; do not run it, and tell the user the three mirror folders stay on the old version until that skill is moved into `.claude/skills/`. A sync failure is a finding: compare it with a run on the commit before the update before calling it new.
+- Run the sync if the engine skipped it: `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs`. It rebuilds `.agents/`, `.codex/` and `.opencode/`, and its `verify-sync-divergence` and `verify-opencode-*` stages prove they match the merged `.claude/`. A mirror-only skill the user kept in `.agents/skills/` stays as it is, with one `kept .agents/skills/<name>` line. A sync failure is a finding: compare it with a run on the commit before the update before calling it new.
 - A stale root `CLAUDE.md` reported by the sync → offer `$ai-context-refresh`. New framework switches → `node .claude/scripts/framework-features.cjs` lists them with their defaults.
 - Report: from and to versions, counts, how many project-only files stayed untouched, each conflict and how it was settled, what still needs the user, and verification results. Show `git status --short` totals, not the full list.
 
