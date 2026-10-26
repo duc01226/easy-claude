@@ -15,7 +15,7 @@ Read this index when locating the authoritative document for a project question 
 - Resolve configured roots; regenerate category globs into a normalized unique-path union.
 - Compare broad `docs/**/*.md` results with the category union and expose every remainder.
 - Verify relationships and lookup paths; keep every path real, unique, and traceable to the current tree.
-- Index 566 unique authored Markdown files across 12 categories; `docs/` contains 59 files with 0 uncategorized. Design System is a one-file Project Reference subset counted once.
+- Index 567 unique authored Markdown files across 13 categories; `docs/` contains 60 files with 0 uncategorized. Design System is a one-file Project Reference subset counted once.
 
 ## Contents
 
@@ -45,7 +45,7 @@ Read this index when locating the authoritative document for a project question 
 
 ## Documentation System
 
-566 unique authored markdown files across 12 indexed categories. Last scanned: 2026-10-22.
+567 unique authored markdown files across 13 indexed categories. Last scanned: 2026-10-22.
 
 **Relocatable roots.** Resolve these configurable roots before running their category globs:
 
@@ -68,6 +68,7 @@ The **Reproducible scope** column states each glob relative to its category's ro
 | Templates              |              1 | `**/*.md` under the templates root                                                    |
 | Release Notes          |              3 | `docs/release/**/*.md` + `docs/release-notes/**/*.md`                                 |
 | Knowledge Reports      |              1 | `docs/knowledge/**/*.md`                                                             |
+| Knowledge Packs        |              1 | `*.md` in the packs directory named by `knowledge-base-reference.md` (default `docs/knowledge-base/`) |
 | Framework Docs         |             43 | `.claude/docs/**/*.md`                                                                |
 | Skill Markdown         |            461 | `rg --files .claude/skills -g '*.md'`                                                 |
 
@@ -150,6 +151,8 @@ easy-claude/
 │   │       └── README.GuidedWorkflow.md
 │   ├── knowledge/research/                        # 1 project research report
 │   │   └── ai-agent-skills-best-and-bad-practices.md
+│   ├── knowledge-base/                            # 1 project knowledge pack + generated index.json
+│   │   └── incremental-scaling.md
 │   └── templates/                                 # 1 Feature Spec template
 ├── .claude/docs/                                  # 43 framework docs
 │   ├── 24 direct framework guides
@@ -323,7 +326,7 @@ With no `docsRoots.projectReference.path` entry in `docs/project-config.json`, t
 
 ## Uncategorized Files
 
-None. A fresh broad `docs/**/*.md` scan returned 55 paths; the normalized union of Project Reference, Operations, Design System, Feature Specs, Spec Catalogs, Architecture Decisions, Templates, Release Notes, and Knowledge Reports covered all 55.
+None. A fresh broad `docs/**/*.md` scan returned 60 paths; the normalized union of Project Reference, Operations, Design System, Feature Specs, Spec Catalogs, Architecture Decisions, Templates, Release Notes, Knowledge Reports and Knowledge Packs covered all 60.
 
 ### Source-adjacent guides outside the published total
 

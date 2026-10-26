@@ -1,0 +1,83 @@
+{
+  "schema": 1,
+  "plane": "project",
+  "packs": [
+    {
+      "id": "incremental-scaling",
+      "title": "Scaling a system step by step — fix the measured bottleneck",
+      "description": "Use when planning how a system grows under load — vertical vs horizontal scaling, stateless tiers, replicas, caching, queues, splitting services or scaling database writes",
+      "kind": "practice",
+      "review": "unreviewed",
+      "reviewed": "2026-10-26",
+      "labels": [
+        "unreviewed"
+      ],
+      "sourceKinds": [
+        "file"
+      ],
+      "file": "docs/knowledge-base/incremental-scaling.md",
+      "body": null,
+      "triggers": {
+        "prompt": [
+          "scale out",
+          "scale up",
+          "horizontal scaling",
+          "vertical scaling",
+          "read replica",
+          "database sharding",
+          "scalable system",
+          "scaling roadmap"
+        ],
+        "intent": [],
+        "skills": [
+          "architecture",
+          "performance-review",
+          "production-readiness-review"
+        ],
+        "agents": [
+          "solution-architect",
+          "performance-optimizer"
+        ]
+      },
+      "clauses": [
+        {
+          "id": "KB-SCALE-1",
+          "heading": "KB-SCALE-1 Starting point"
+        },
+        {
+          "id": "KB-SCALE-2",
+          "heading": "KB-SCALE-2 Scale up first"
+        },
+        {
+          "id": "KB-SCALE-3",
+          "heading": "KB-SCALE-3 Managed services and redundancy"
+        },
+        {
+          "id": "KB-SCALE-4",
+          "heading": "KB-SCALE-4 Stateless compute"
+        },
+        {
+          "id": "KB-SCALE-5",
+          "heading": "KB-SCALE-5 Offload by load type"
+        },
+        {
+          "id": "KB-SCALE-6",
+          "heading": "KB-SCALE-6 Observability, autoscaling, automation"
+        },
+        {
+          "id": "KB-SCALE-7",
+          "heading": "KB-SCALE-7 Queues and services"
+        },
+        {
+          "id": "KB-SCALE-8",
+          "heading": "KB-SCALE-8 Database writes as the bottleneck"
+        },
+        {
+          "id": "KB-SCALE-9",
+          "heading": "KB-SCALE-9 Reading scaling roadmaps"
+        }
+      ],
+      "hash": "fbac750f2e8ffa66"
+    }
+  ]
+}
