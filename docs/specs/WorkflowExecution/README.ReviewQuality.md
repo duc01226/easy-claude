@@ -183,7 +183,7 @@ The decomposition lives in the frontmatter block `large_idea_decomposition`: fou
 
 **Acceptance Criteria:**
 
-- **AC-RVQ-10** — **Given** a question that asks for the best way, an approach, a design or a recommendation **When** the assistant answers **Then** it self-reviews the answer as it does a verdict: the constraints it assumed are named and at least one real alternative is weighed with the same evidence bar; build work that merely names a recommendation, and an explicit call of either deeper check, get no such review prompt
+- **AC-RVQ-10** — **Given** a question that asks for the best way, an approach, a design or a recommendation **When** the assistant answers **Then** it self-reviews the answer as it does a verdict: the constraints it assumed are named and at least one real alternative is weighed with the same evidence bar; build work that merely names a recommendation, a stated plan, a factual lookup, and an explicit call of either deeper check get no such review prompt
 - **AC-RVQ-11** — **Given** a consequential answer outside a running workflow, in the main conversation **When** the answer ends **Then** the assistant asks one question with three options: test it by decision interview, review it adversarially, or skip; the interview is listed first when the answer rests on the user's preferences or constraints, the review first when it rests on evidence
 - **AC-RVQ-12** — **Given** a lookup, a trivial answer, a routine edit, a running workflow, a skill that closes with its own question or next step, a helper agent, a user who already asked for either check on this answer, or a subject the user already skipped **When** the answer ends **Then** no offer is asked
 - **AC-RVQ-13** — **Given** the decision interview, an ideation session or a standalone rationale review **When** its result leaves choices that rest on the user **Then** it points to the decision interview: the interview accepts an earlier answer as its subject and names the rationale review as its complement, ideation offers it on the recommended option, and a standalone rationale review may offer it with the material trade-offs; none offers it as a workflow step or helper agent
@@ -251,7 +251,7 @@ IF a second list of review dimensions exists
 
 ### BR-RVQ-09: Advice questions get the answer self-review [HARD]
 
-**Statement:** A question asking for the best way, an approach, a design or a recommendation gets the same anti-bias self-review as a verdict question, and the answer names the constraints it assumed and weighs at least one real alternative. Build work that only names a recommendation, and an explicit call of the decision interview or the rationale review, are not advice questions.
+**Statement:** A question asking for the best way, an approach, a design or a recommendation gets the same anti-bias self-review as a verdict question, and the answer names the constraints it assumed and weighs at least one real alternative. Build work that only names a recommendation, a stated plan ("I suggest we …"), a factual lookup, and an explicit call of the decision interview or the rationale review are not advice questions.
 
 ### BR-RVQ-10: A consequential answer offers a deeper check [HARD]
 
@@ -785,6 +785,7 @@ Given a question asking for the best way, an approach, a design or a recommendat
 When the question arrives
 Then the answer self-review applies, naming assumed constraints and weighing a real alternative
 And a request to implement, apply or follow a recommendation gets no review prompt
+And a stated plan ("I suggest we …") or a factual lookup ("what tool runs the tests?") gets no review prompt
 And an explicit call of the decision interview or the rationale review gets no review prompt
 ```
 
@@ -802,7 +803,7 @@ And an explicit call of the decision interview or the rationale review gets no r
 - ✅ Each advice phrasing in the test set is recognized as advice.
 - ❌ A build request that names a recommendation being prompted fails the case.
 
-**Test Data:** Six advice phrasings and six build or explicit-call phrasings.
+**Test Data:** Eleven advice phrasings, and twelve build, stated-plan, lookup or explicit-call phrasings.
 
 **Edge Cases (boundary counter-case):** "Apply what you recommend in the plan" is build work and gets no prompt.
 

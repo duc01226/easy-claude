@@ -102,24 +102,30 @@ const EVALUATION_PATTERNS = [
     strong(/\b(?:what do you think|thoughts on|your (?:opinion|take|view) on|how (?:good|solid|robust) is)\b/i)
 ];
 
-// Advice / solution ask: "what's the best way to", "how would you", "recommend an approach", "what strategy".
-// The bare verbs are weak: "implement the suggested fix" or "apply what you recommend" is build work.
+// The start of a sentence an imperative can open: the prompt start or a sentence end, an optional list marker,
+// then any polite or connective prefixes ("please,", "ok so"). One owner for both the build-request and the advice ask.
+const SENTENCE_START = '(?:^|[.!?;\\n]\\s*)(?:[-*(]\\s*)?(?:(?:please|pls|ok(?:ay)?|now|then|so|and)[,\\s]+)*';
+
+// Advice / solution ask: "what's the best way to", "how would you", "recommend an approach", "what strategy fits".
+// Only an ask routes. A stated plan ("I suggest we move the cache") is an instruction, and a lookup
+// ("what tool runs the tests?", "how could I see the logs?", "what design does the router use?") asks for a fact.
 const ADVICE_PATTERNS = [
     strong(/\b(?:best|right|recommended|cleanest|simplest|safest|smartest) (?:way|approach|option|practice|strategy|design|solution|pattern|tool|library|structure)\b/i),
-    strong(/\bhow (?:would|could) (?:you|i|we)\b/i),
-    strong(/\bwhat (?:approach|strategy|design|architecture|solution|pattern|tool|library|option)s?\b/i),
-    weak(/\b(?:recommend|advise|suggest|propose)\b/i)
+    strong(/\bhow would you\b/i),
+    strong(/\bwhat (?:approach|strategy|architecture|design|solution)s?\b(?!\s+(?:does|did|is|are|was|were)\b)/i),
+    // Sentence-initial imperative, a "can you" request, "what do you recommend" or "your advice" — never "I suggest we …".
+    strong(new RegExp(`${SENTENCE_START}(?:recommend|suggest|propose|advise)\\b|\\b(?:can|could|would|will) you (?:please )?(?:recommend|suggest|propose|advise)\\b|\\bwhat (?:do|would) you (?:recommend|suggest|propose|advise)\\b|\\byour (?:recommendation|advice|suggestion)\\b`, 'i'))
 ];
 
 // An explicit review or grill invocation already carries its own adversarial protocol.
 const EXPLICIT_REVIEW_INVOCATION = /^\s*[/$](?:[\w-]+:)?(?:why-review|grill)\b/i;
 // "Implement / add / create ..." with no question is a build request, not a verdict request.
-const QUESTION_OR_VERDICT_CUE = /\?|\b(?:check|evaluate|assess|judge|review|confirm|verify|validate|audit|critique|am i|is it|is this|is the|is anything|is there|are there|does it|what do you think|thoughts on|should|which|why|what(?:'s| is)? wrong|any \w+|recommend|advise|suggest|propose|best (?:way|approach|option|practice)|how would you|what (?:approach|strategy|design|architecture))\b/i;
+const QUESTION_OR_VERDICT_CUE = /\?|\b(?:check|evaluate|assess|judge|review|confirm|verify|validate|audit|critique|am i|is it|is this|is the|is anything|is there|are there|does it|what do you think|thoughts on|should|which|why|what(?:'s| is)? wrong|any \w+|recommend|advise|suggest|propose|your (?:recommendation|advice|suggestion)|best (?:way|approach|option|practice)|how would you|what (?:approach|strategy|design|architecture))\b/i;
 // A fix/build request — sentence-initial imperative ("Run the tests and fix any errors") or a polite ask
 // ("can you fix it?", "please implement …"). Its fault nouns describe work to do, not a verdict to give.
 const ACTION_VERBS = '(?:fix|implement|add|create|build|run|resolve|make|update|refactor|write|remove|delete|rename|debug|repair|patch|install|set\\s+up|migrate|clean\\s+up|handle|change|move|convert|upgrade|generate|apply|follow)';
 const ACTION_REQUEST = new RegExp(
-    `(?:^|[.!?;\\n]\\s*)(?:(?:please|pls|ok(?:ay)?|now|then|so|and)[,\\s]+)*${ACTION_VERBS}\\b|\\b(?:can|could|would|will) you (?:please )?(?:help (?:me )?)?${ACTION_VERBS}\\b|\\b(?:please|help me) ${ACTION_VERBS}\\b`,
+    `${SENTENCE_START}${ACTION_VERBS}\\b|\\b(?:can|could|would|will) you (?:please )?(?:help (?:me )?)?${ACTION_VERBS}\\b|\\b(?:please|help me) ${ACTION_VERBS}\\b`,
     'i'
 );
 

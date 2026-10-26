@@ -100,10 +100,23 @@ const ADVICE_ASKS = [
     'recommend an approach for multi-tenant auth',
     'what architecture fits a small team?',
     'Can you suggest a design for the importer?',
-    'propose a plan for migrating the settings'
+    'propose a plan for migrating the settings',
+    'What do you recommend for caching?',
+    'I want your advice on the schema',
+    // An imperative after a polite or connective opener or a list marker is still an ask.
+    'Please, recommend a library for dates',
+    'ok so recommend a queue?',
+    '- recommend a pattern for retries'
 ];
-// Intent: build work that only names a recommendation, and an explicit grill call, stay silent.
+// Intent: build work that only names a recommendation, a stated plan, a factual lookup and an explicit grill call
+// stay silent — each would otherwise inject the ~2 KB directive on an everyday prompt.
 const ADVICE_BUILD_WORK = [
+    'I suggest we move the cache to the service layer',
+    'I propose we split the module',
+    'how could I run the hook tests?',
+    'what tool runs the tests?',
+    'what library does the parser use?',
+    'what design does the router use?',
     'implement the suggested fix',
     'apply what you recommend in the plan',
     'follow the suggested steps',
@@ -133,7 +146,7 @@ module.exports = {
             }
         },
         {
-            name: '[judgement-integrity-route] TC-JIR-012 advice asks route with the advice lean; build work naming a recommendation and an explicit grill call stay silent',
+            name: '[judgement-integrity-route] TC-JIR-012 advice asks route with the advice lean; build work, stated plans, lookups and an explicit grill call stay silent',
             fn: () => {
                 for (const prompt of ADVICE_ASKS) {
                     const leans = hook.detectLeans(prompt);
