@@ -519,11 +519,15 @@ test('TC-HOOKMIRROR-003: a fresh render produces exactly the expected hook surfa
         const actual = Object.entries(rendered.hooks)
             .flatMap(([event, groups]) => groups.map(group => [event, group.matcher ?? null, group.hooks.length]));
 
-        assert.deepEqual(
-            actual,
-            EXPECTED_RENDERED_GROUPS,
-            'the Codex hook surface changed — a Codex session now runs a different hook set than this table records'
-        );
+        // The table records this repository's own hook surface. An adopting project registers hooks of
+        // its own, which framework updates keep, so there only the portable properties below apply.
+        if (isFrameworkRepo(repoRoot)) {
+            assert.deepEqual(
+                actual,
+                EXPECTED_RENDERED_GROUPS,
+                'the Codex hook surface changed — a Codex session now runs a different hook set than this table records'
+            );
+        }
 
         // Every matcher the source configures still has to survive. The table above
         // would also catch this, but only as an opaque array diff; this names the

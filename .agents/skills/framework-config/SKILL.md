@@ -157,8 +157,9 @@ Work from the adopting project's root; use that project's copied framework, neve
 6. A teammate's preference goes only in their personal layer (`~/.claude/.ck.json`, `.claude/.ck.local.json`
    or an environment variable), never in a tracked file. A team value goes in the project config, which a
    framework update never replaces; never in the framework-shipped `.claude/.ck.json` or `.claude/settings.json`,
-   which `framework-update.mjs` merges with upstream. When a needed behavior has no setting, propose it upstream
-   as an opt-in switch instead of editing a framework file in the project.
+   which `$framework-update` merges with upstream. When a needed behavior has no setting, propose it upstream
+   as an opt-in switch instead of editing a framework file in the project. A request to update or upgrade the
+   framework itself belongs to `$framework-update`.
 
 ## Runtime machinery and context injection
 

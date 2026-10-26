@@ -2,7 +2,7 @@
 
 Read this guide when discovering, executing or authoring framework skills. **MUST** execute through the active host; **MUST** keep canonical source ownership separate from runtime paths; **MUST** preserve required gates and report an actual missing capability with evidence.
 
-> <!-- COUNT:skills -->106<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->15<!-- /COUNT --> shared reference/protocol entries for context-aware AI assistance (`_templates/template-skill` is a source template, not a runnable skill)
+> <!-- COUNT:skills -->107<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->15<!-- /COUNT --> shared reference/protocol entries for context-aware AI assistance (`_templates/template-skill` is a source template, not a runnable skill)
 
 ## Quick Summary
 
@@ -69,7 +69,7 @@ Read `.claude/scripts/lib/workflow-skill-contract.cjs` when changing workflow re
 
 ## Skill Domains
 
-> Curated highlights — the full catalog has <!-- COUNT:skills -->106<!-- /COUNT --> runnable skills; the tables below list selected skills per domain, not the complete set.
+> Curated highlights — the full catalog has <!-- COUNT:skills -->107<!-- /COUNT --> runnable skills; the tables below list selected skills per domain, not the complete set.
 
 | Domain                                            | Skills | Description                                    |
 | ------------------------------------------------- | ------ | ---------------------------------------------- |
@@ -85,7 +85,7 @@ Read `.claude/scripts/lib/workflow-skill-contract.cjs` when changing workflow re
 | [Team Collaboration](#team-collaboration)         | 6      | Test specs, UX design specs, planned-work shaping   |
 | [Web/Frameworks](#webframeworks)                  | 2      | Package updates, markdown                      |
 | [Document Processing](#document-processing)       | 3      | PDF, DOCX, Markdown conversions, HTML export   |
-| [Utility](#utility)                               | 1      | Skill creation                                 |
+| [Utility](#utility)                               | 2      | Skill creation, framework updates              |
 
 **Additional:** Shared reference/protocol entries (<!-- COUNT:shared -->15<!-- /COUNT -->: files plus the generated `protocols/` projection) -- see [Shared Protocols](#shared-protocols-sync-bodies-and-guides)
 
@@ -228,6 +228,7 @@ Read `.claude/skills/shared/workflow-first-gate.md` when selecting discovery dep
 | Skill           | Triggers                | Description       |
 | --------------- | ----------------------- | ----------------- |
 | `skill-creator` | create skill, new skill | Create new skills |
+| `framework-update` | update or upgrade the skills framework to the latest version | Merge the upstream easy-claude version into the project, keeping its own skills, hooks, agents, settings and edits |
 
 ---
 
@@ -341,7 +342,7 @@ Use `/skill-creator` to create a new skill:
 
 ---
 
-_Source: `.claude/skills/` | <!-- COUNT:skills -->106<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->15<!-- /COUNT --> shared reference/protocol entries (the `_templates/template-skill` source is excluded from runtime discovery)_
+_Source: `.claude/skills/` | <!-- COUNT:skills -->107<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->15<!-- /COUNT --> shared reference/protocol entries (the `_templates/template-skill` source is excluded from runtime discovery)_
 
 ## Closing Reminders
 

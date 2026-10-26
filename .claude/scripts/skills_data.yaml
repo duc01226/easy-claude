@@ -306,6 +306,18 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
+  description: '[Utilities] Use only when the user asks to update or upgrade the .claude/.codex/.agents/.opencode
+    skills framework to the latest easy-claude version. Merges upstream main into
+    the project and keeps its own skills, hooks, agents, settings and edits.'
+  has_references: true
+  has_scripts: true
+  name: framework-update
+  path: framework-update/SKILL.md
+  removal_after: null
+  status: active
+- category: other
+  deprecated_by: null
+  deprecated_since: null
   description: '[Git] Use when resolving git merge, cherry-pick, rebase or stash-apply
     conflicts, with backup and analysis.'
   has_references: false

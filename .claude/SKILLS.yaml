@@ -1,10 +1,10 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-10-22'
-  total_skills: 106
+  last_updated: '2026-10-26'
+  total_skills: 107
   total_by_status:
-    active: 106
+    active: 107
     deprecated: 0
     experimental: 0
 categories:
@@ -306,6 +306,19 @@ skills:
       category: other
       has_scripts: false
       has_references: false
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
+    - name: framework-update
+      path: framework-update/SKILL.md
+      description: '[Utilities] Use only when the user asks to update or upgrade the
+        .claude/.codex/.agents/.opencode skills framework to the latest easy-claude
+        version. Merges upstream main into the project and keeps its own skills, hooks,
+        agents, settings and edits.'
+      category: other
+      has_scripts: true
+      has_references: true
       status: active
       deprecated_by: null
       deprecated_since: null

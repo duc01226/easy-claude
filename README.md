@@ -20,7 +20,7 @@
 
 ## What is this?
 
-**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **<!-- COUNT:hooks -->38<!-- /COUNT --> top-level hook files**, **<!-- COUNT:skills -->106<!-- /COUNT --> skills**, **<!-- COUNT:workflows -->17<!-- /COUNT --> workflows**, and **<!-- COUNT:agents -->25<!-- /COUNT --> specialized agents**. It covers the entire software development lifecycle — from initiative capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`.
+**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **<!-- COUNT:hooks -->38<!-- /COUNT --> top-level hook files**, **<!-- COUNT:skills -->107<!-- /COUNT --> skills**, **<!-- COUNT:workflows -->17<!-- /COUNT --> workflows**, and **<!-- COUNT:agents -->25<!-- /COUNT --> specialized agents**. It covers the entire software development lifecycle — from initiative capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`.
 
 **Core insight:** LLMs forget, hallucinate, and drift. Instead of hoping the AI "just gets it right," this framework uses **programmatic guardrails** (hooks) and **prompt-engineered protocols** (skills/workflows) to enforce correctness at every stage.
 
@@ -86,7 +86,7 @@ cp -r .agents  /path/to/your-project/.agents    # Codex skill mirror generated f
 
 > No Codex? Copy only `.claude/`. The mirrors are regenerated on demand by `/sync-codex`.
 >
-> **Updating later?** Never copy over an installed framework: that reverts every framework file your project changed. Merge the newer version instead with `node .claude/scripts/framework-update.mjs /path/to/easy-claude` (dry run first with `--dry-run`); it keeps your project's own changes, skills and settings. See [.claude/docs/framework-portability.md](.claude/docs/framework-portability.md#updating-an-installed-framework).
+> **Updating later?** Ask the agent to "update the skills framework to the latest version" (or run `/framework-update`, `$framework-update` on Codex). It downloads the `main` branch of this repository and merges it into your project, keeping your own skills, hooks, agents, settings and edits to framework files, then regenerates the Codex and OpenCode mirrors. Never copy over an installed framework: that reverts every framework file your project changed. Without an agent: `node .claude/skills/framework-update/scripts/update-from-upstream.mjs --dry-run`, then the same without `--dry-run`. A project that does not have the skill yet updates once from a clone of this repository with `node <easy-claude>/.claude/skills/framework-update/scripts/update-from-upstream.mjs --project=/path/to/your-project`. See [.claude/docs/framework-portability.md](.claude/docs/framework-portability.md#updating-an-installed-framework).
 
 **2. Run `/project-init` first — always the first command in a new project.**
 
@@ -182,7 +182,7 @@ again after 150K tokens of growth or a compaction, and to every sub-agent; the w
 `workflow-route-inject.cjs` (the gate) and `workflow-catalog-inject.cjs` (the catalog). `CLAUDE.md` and `AGENTS.md` hold project information only. This design prevents
 context drift over long sessions.
 
-### Skills (<!-- COUNT:skills -->106<!-- /COUNT --> definitions)
+### Skills (<!-- COUNT:skills -->107<!-- /COUNT --> definitions)
 
 Markdown-based prompts with YAML frontmatter that guide AI behavior.
 
@@ -302,7 +302,7 @@ The entire framework is **project-agnostic**. All project-specific knowledge liv
 ```
 ┌─────────────────────────────────────┐
 │     Generic Framework (reusable)    │
-│ 38 Hook Files + 106 Skills + 17 Flows │
+│ 38 Hook Files + 107 Skills + 17 Flows │
 └──────────────┬──────────────────────┘
                │
         ┌──────┴──────┐
