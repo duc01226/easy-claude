@@ -594,6 +594,18 @@ Audit is read-only for existing docs. Use the root already resolved by `SKILL.md
     | Section 4 (Business Rules) | ✅ Current | —                               | —                   |
     ```
 
+5. **Meaning-level drift pass (stale sections only).** For each module or section step 3 flagged stale, open one todo and check every business rule and invariant it states (§4 rules, §5 invariants) against the code that should enforce it, closing the todo with tool evidence (a search you ran, a `file:line`). Record each rule `PASS`, `MISSING` (no enforcement found) or `VIOLATED` (the code does the opposite). The audit report lists only the divergent rules with their evidence and ends each section with `N rules checked, M divergent`. A module with no change since `last_updated` is not checked (`0 rules checked`). The pass edits no spec; each divergence is adjudicated afterwards by its owner per the drift gates (CODE-WRONG / SPEC-STALE / AMBIGUOUS). `workflow-code-to-spec` audit reaches this pass through its `$spec [mode=audit]` step.
+
+    ```markdown
+    ## Meaning-level drift — {FeatureName}
+
+    | Rule      | Status      | Evidence                                   |
+    | --------- | ----------- | ------------------------------------------ |
+    | BR-{FC}-03 | ❌ VIOLATED | delete path allows removing a sold product |
+
+    12 rules checked, 1 divergent
+    ```
+
 ---
 
 ## Phase 1: Module Detection & Context Gathering

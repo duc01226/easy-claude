@@ -7,10 +7,11 @@ if ((require.main === module || !require.main) && require('./lib/framework-runti
  * Judgement-integrity router for UserPromptSubmit.
  *
  * When the user's prompt asks for a verdict — confirm a theory, judge or evaluate
- * something, name a root cause, or hunt for gaps/issues — inject the anti-confirmation-
+ * something, name a root cause, hunt for gaps/issues, or recommend an approach or solution — inject the anti-confirmation-
  * bias answer-review directive, naming the lean the prompt carries: a gap hunt presumes
  * problems exist, a stated theory presumes it is right, an evaluation presumes the named
- * option is the one to weigh. The directive body is the canonical
+ * option is the one to weigh, an advice ask presumes the first workable answer is the best one.
+ * The reminder also carries the closing offer (grill / why-review / skip) for a consequential answer. The directive body is the canonical
  * `SYNC:judgement-integrity:reminder` from `.claude/skills/shared/sync-inline-versions.md`,
  * so the hook and the protocol text never drift.
  *
@@ -51,7 +52,8 @@ const ENV_SWITCH = 'CK_JUDGEMENT_INTEGRITY_ROUTE';
 const LEANS = Object.freeze({
     PROBLEM_PRESUMED: 'problem-presumed',
     CONFIRMATION_SOUGHT: 'confirmation-sought',
-    EVALUATION: 'evaluation'
+    EVALUATION: 'evaluation',
+    ADVICE: 'advice'
 });
 
 const FAULT_NOUNS =
@@ -100,13 +102,22 @@ const EVALUATION_PATTERNS = [
     strong(/\b(?:what do you think|thoughts on|your (?:opinion|take|view) on|how (?:good|solid|robust) is)\b/i)
 ];
 
-// An explicit review-skill invocation already carries its own adversarial protocol.
-const EXPLICIT_REVIEW_INVOCATION = /^\s*[/$](?:[\w-]+:)?why-review\b/i;
+// Advice / solution ask: "what's the best way to", "how would you", "recommend an approach", "what strategy".
+// The bare verbs are weak: "implement the suggested fix" or "apply what you recommend" is build work.
+const ADVICE_PATTERNS = [
+    strong(/\b(?:best|right|recommended|cleanest|simplest|safest|smartest) (?:way|approach|option|practice|strategy|design|solution|pattern|tool|library|structure)\b/i),
+    strong(/\bhow (?:would|could) (?:you|i|we)\b/i),
+    strong(/\bwhat (?:approach|strategy|design|architecture|solution|pattern|tool|library|option)s?\b/i),
+    weak(/\b(?:recommend|advise|suggest|propose)\b/i)
+];
+
+// An explicit review or grill invocation already carries its own adversarial protocol.
+const EXPLICIT_REVIEW_INVOCATION = /^\s*[/$](?:[\w-]+:)?(?:why-review|grill)\b/i;
 // "Implement / add / create ..." with no question is a build request, not a verdict request.
-const QUESTION_OR_VERDICT_CUE = /\?|\b(?:check|evaluate|assess|judge|review|confirm|verify|validate|audit|critique|am i|is it|is this|is the|is anything|is there|are there|does it|what do you think|thoughts on|should|which|why|what(?:'s| is)? wrong|any \w+)\b/i;
+const QUESTION_OR_VERDICT_CUE = /\?|\b(?:check|evaluate|assess|judge|review|confirm|verify|validate|audit|critique|am i|is it|is this|is the|is anything|is there|are there|does it|what do you think|thoughts on|should|which|why|what(?:'s| is)? wrong|any \w+|recommend|advise|suggest|propose|best (?:way|approach|option|practice)|how would you|what (?:approach|strategy|design|architecture))\b/i;
 // A fix/build request — sentence-initial imperative ("Run the tests and fix any errors") or a polite ask
 // ("can you fix it?", "please implement …"). Its fault nouns describe work to do, not a verdict to give.
-const ACTION_VERBS = '(?:fix|implement|add|create|build|run|resolve|make|update|refactor|write|remove|delete|rename|debug|repair|patch|install|set\\s+up|migrate|clean\\s+up|handle|change|move|convert|upgrade|generate)';
+const ACTION_VERBS = '(?:fix|implement|add|create|build|run|resolve|make|update|refactor|write|remove|delete|rename|debug|repair|patch|install|set\\s+up|migrate|clean\\s+up|handle|change|move|convert|upgrade|generate|apply|follow)';
 const ACTION_REQUEST = new RegExp(
     `(?:^|[.!?;\\n]\\s*)(?:(?:please|pls|ok(?:ay)?|now|then|so|and)[,\\s]+)*${ACTION_VERBS}\\b|\\b(?:can|could|would|will) you (?:please )?(?:help (?:me )?)?${ACTION_VERBS}\\b|\\b(?:please|help me) ${ACTION_VERBS}\\b`,
     'i'
@@ -126,6 +137,7 @@ function detectLeans(prompt) {
     if (hits(PROBLEM_PATTERNS)) leans.push(LEANS.PROBLEM_PRESUMED);
     if (hits(CONFIRMATION_PATTERNS)) leans.push(LEANS.CONFIRMATION_SOUGHT);
     if (hits(EVALUATION_PATTERNS)) leans.push(LEANS.EVALUATION);
+    if (hits(ADVICE_PATTERNS)) leans.push(LEANS.ADVICE);
     return leans;
 }
 
@@ -139,7 +151,9 @@ const LEAN_GUIDANCE = {
     [LEANS.CONFIRMATION_SOUGHT]:
         "User's theory/expected answer = hypothesis: hunt hardest for refuting evidence; say plainly if it fails.",
     [LEANS.EVALUATION]:
-        'Verdict: weigh option/cause user did NOT name with same evidence bar as named one.'
+        'Verdict: weigh option/cause user did NOT name with same evidence bar as named one.',
+    [LEANS.ADVICE]:
+        'Advice: name the constraints you assumed; weigh at least one real alternative with the same evidence bar before recommending.'
 };
 
 function loadCanonicalReminder() {

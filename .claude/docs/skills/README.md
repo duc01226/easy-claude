@@ -2,7 +2,7 @@
 
 Read this guide when discovering, executing or authoring framework skills. **MUST** execute through the active host; **MUST** keep canonical source ownership separate from runtime paths; **MUST** preserve required gates and report an actual missing capability with evidence.
 
-> <!-- COUNT:skills -->106<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->15<!-- /COUNT --> shared reference/protocol entries for context-aware AI assistance (`_templates/template-skill` is a source template, not a runnable skill)
+> <!-- COUNT:skills -->106<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->16<!-- /COUNT --> shared reference/protocol entries for context-aware AI assistance (`_templates/template-skill` is a source template, not a runnable skill)
 
 ## Quick Summary
 
@@ -87,7 +87,7 @@ Read `.claude/scripts/lib/workflow-skill-contract.cjs` when changing workflow re
 | [Document Processing](#document-processing)       | 3      | PDF, DOCX, Markdown conversions, HTML export   |
 | [Utility](#utility)                               | 1      | Skill creation                                 |
 
-**Additional:** Shared reference/protocol entries (<!-- COUNT:shared -->15<!-- /COUNT -->: files plus the generated `protocols/` projection) -- see [Shared Protocols](#shared-protocols-sync-bodies-and-guides)
+**Additional:** Shared reference/protocol entries (<!-- COUNT:shared -->16<!-- /COUNT -->: files plus the generated `protocols/` projection) -- see [Shared Protocols](#shared-protocols-sync-bodies-and-guides)
 
 ---
 
@@ -172,7 +172,7 @@ See `frontend-patterns-reference.md` in the project-reference docs root for proj
 | Skill         | Triggers                           | Description                                                           |
 | ------------- | ---------------------------------- | --------------------------------------------------------------------- |
 | `plan`        | plan, strategy, approach, research, review plan, analyze plan, validate plan, execute plan | Concise implementation planning with a task-derived Quality Gates & Concerns Checklist; `--mode=review` reviews intent, necessity, trade-offs and proof, with optional --fix-loop; `--mode=validate` briefs the user on the plan, then asks every material decision as a decision card in rounds (a standalone plan runs it automatically after saving); `--mode=execute` code and test an existing plan |
-| `grill`       | grill me, stress-test, challenge my plan, interview me | Interview the user about a plan, design, decision or idea until no material decision is silently assumed; writes a Decision Record and hands off |
+| `grill`       | grill me, stress-test, challenge my plan, interview me | Interview the user about a plan, design, decision or idea (an earlier answer of the assistant included) until no material decision is silently assumed; writes a Decision Record and hands off. Offered, with `why-review` and skip, after a consequential answer (`SYNC:judgement-integrity`) |
 | `wayfinder`   | dependent unresolved decisions spanning sessions, unclear route   | Chart a map of decision tickets under the plans root, resolve one ticket per session, hand off to the spec workflows; eligible for conditional automatic selection |
 | `feature`     | implement, add, create, build      | Feature development                                                   |
 | `investigate` | how does, explain, trace           | Code exploration                                                      |
@@ -341,7 +341,7 @@ Use `/skill-creator` to create a new skill:
 
 ---
 
-_Source: `.claude/skills/` | <!-- COUNT:skills -->106<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->15<!-- /COUNT --> shared reference/protocol entries (the `_templates/template-skill` source is excluded from runtime discovery)_
+_Source: `.claude/skills/` | <!-- COUNT:skills -->106<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->16<!-- /COUNT --> shared reference/protocol entries (the `_templates/template-skill` source is excluded from runtime discovery)_
 
 ## Closing Reminders
 

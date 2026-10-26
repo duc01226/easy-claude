@@ -418,6 +418,8 @@ Use the naming pattern from the injected `## Naming` section.
 
 Read `references/brainstorm-skill-report.md` before writing the session report; retain all context, framing, scoring, hypothesis, decision and next-step fields. Multi-opportunity mode also preserves its scored-map contract above.
 
+**Stress-test offer:** when run standalone with a user present, after the report ask one question with the host's question tool: grill the recommended option (`$grill` with the report path, an interview that tests it against the user's own constraints) or skip. A workflow step or a sub-agent run makes no offer; the steps that follow own the next move.
+
 ---
 
 ## Technique Quick Reference

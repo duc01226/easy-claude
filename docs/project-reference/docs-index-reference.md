@@ -15,7 +15,7 @@ Read this index when locating the authoritative document for a project question 
 - Resolve configured roots; regenerate category globs into a normalized unique-path union.
 - Compare broad `docs/**/*.md` results with the category union and expose every remainder.
 - Verify relationships and lookup paths; keep every path real, unique, and traceable to the current tree.
-- Index 566 unique authored Markdown files across 12 categories; `docs/` contains 59 files with 0 uncategorized. Design System is a one-file Project Reference subset counted once.
+- Index 568 unique authored Markdown files across 12 categories; `docs/` contains 60 files with 0 uncategorized. Design System is a one-file Project Reference subset counted once.
 
 ## Contents
 
@@ -45,7 +45,7 @@ Read this index when locating the authoritative document for a project question 
 
 ## Documentation System
 
-566 unique authored markdown files across 12 indexed categories. Last scanned: 2026-10-22.
+568 unique authored markdown files across 12 indexed categories. Last scanned: 2026-10-22.
 
 **Relocatable roots.** Resolve these configurable roots before running their category globs:
 
@@ -62,14 +62,14 @@ The **Reproducible scope** column states each glob relative to its category's ro
 | Project Reference      |             20 | `**/*.md` under the project-reference docs root                                       |
 | Operations             |              0 | direct getting-started/deployment/operations/runbook/setup/install/configuration docs |
 | Design System          |              1 | `design-system/**/*.md` under the project-reference docs root                         |
-| Feature Specs          |             21 | `*/README.*.md` under the business spec root                                          |
+| Feature Specs          |             22 | `*/README.*.md` under the business spec root                                          |
 | Spec Catalogs          |              6 | `*/INDEX.md` under the business spec root                                             |
 | Architecture Decisions |              7 | `**/*.md` under the ADR root                                                          |
 | Templates              |              1 | `**/*.md` under the templates root                                                    |
 | Release Notes          |              3 | `docs/release/**/*.md` + `docs/release-notes/**/*.md`                                 |
 | Knowledge Reports      |              1 | `docs/knowledge/**/*.md`                                                             |
 | Framework Docs         |             43 | `.claude/docs/**/*.md`                                                                |
-| Skill Markdown         |            461 | `rg --files .claude/skills -g '*.md'`                                                 |
+| Skill Markdown         |            462 | `rg --files .claude/skills -g '*.md'`                                                 |
 
 The unique total is the normalized union returned by `rg --files` for Root-Level Docs, all `docs/**/*.md`, Framework Docs, and Skill Markdown. Design System is nested inside Project Reference, so its count is informative rather than additive. For this inventory, the authored/tracked scope includes generated protocol projections deliberately published as reader-facing documentation; Codex/OpenCode mirrors are excluded. Ignored dependency artifacts such as skill-local `.venv/` files are excluded.
 
@@ -158,7 +158,7 @@ easy-claude/
 │   ├── hooks/                                     # 3
 │   ├── skills/                                    # 2
 │   └── team-artifacts/templates/                  # 6
-└── .claude/skills/                                # 461 authored/tracked markdown assets
+└── .claude/skills/                                # 462 authored/tracked markdown assets
 ```
 
 Absent whitelist branches: Operations only.
@@ -223,7 +223,8 @@ docs/specs/WorkTracking/INDEX.md
 └── README.TaskTracking-Part9.md
 
 docs/specs/WorkflowExecution/INDEX.md
-└── README.GuidedWorkflow.md
+├── README.GuidedWorkflow.md
+└── README.ReviewQuality.md
 ```
 
 Read `.claude/skills/task-track/references/manual-operations.md` when maintaining exact selected work through supported requests or shell operations. The WorkTracking continuations declare the governing main specification as their source and parent; Part5 covers local identity and attribution, Part6 covers scoped delivery and navigation, Part7 covers supported earlier-vocabulary compatibility and explicit migration outcomes, Part8 covers report forms, and Part9 covers current area placement, record-owned affiliations, kind-owned values, initiative decisions, due facts and unsupported first-vocabulary refusal. The WorkTracking catalog is derived navigation over those canonical owners.
@@ -262,6 +263,7 @@ Read `docs/project-config.json` first for any project question or task — paths
 | Skill Markdown         | generating a screenshot demo video for changes, a commit, PR or user journey, covering every relevant E2E case | `.claude/skills/e2e-demo/SKILL.md` |
 | Skill Markdown         | planning, building, changing or reviewing an AI feature (model calls, prompts, agents, tools, retrieval, evals) — only when the change has an AI surface; read this ONE file first | `.claude/skills/shared/protocols/ai-engineering-gate.md` (planning: `ai-feature-framing-gate.md` beside it) |
 | Skill Markdown | converting a wireframe image into a design spec — read after the design-spec entrypoint journey/context gates | `.claude/skills/design-spec/references/wireframe.md` |
+| Skill Markdown | judging a plan, rationale or other artifact in a review — the shared review dimensions, one evidence-closed todo per dimension | `.claude/skills/shared/review-dimensions.md` |
 | Skill Markdown | producing an accessibility-audit deliverable — select the platform standard and retain unverified coverage | `.claude/skills/design-spec/references/accessibility-audit.md` |
 | Skill Markdown | changing scan/enhancement quality rules — regression corpus, semantic grading and baseline checks | `.claude/skills/scan/tests/README.md` |
 | Skill Markdown | drafting, importing, updating or asking about a knowledge pack — operations and the pack format | `.claude/skills/knowledge-base/SKILL.md`, `.claude/skills/knowledge-base/references/pack-format.md` |

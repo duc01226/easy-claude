@@ -699,14 +699,14 @@
     {
       "tag": "judgement-integrity",
       "group": "evidence-trace",
-      "summary": "Anti-confirmation-bias gate for answers that confirm, refute, judge or hunt for gaps",
-      "when": "answering with a verdict, an evaluation or a root cause",
-      "chars": 4549,
+      "summary": "Anti-confirmation-bias gate for answers that confirm, refute, judge, hunt for gaps or recommend",
+      "when": "answering with a verdict, an evaluation, a root cause or a recommendation",
+      "chars": 5890,
       "file": ".claude/skills/shared/protocols/judgement-integrity.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/judgement-integrity.md",
-          "chars": 4549
+          "chars": 5890
         }
       ]
     },
@@ -995,12 +995,12 @@
       "group": "review",
       "summary": "Review-only or a three-round fix loop with explicit extension and fresh post-fix evidence",
       "when": "deciding round eligibility, blocking findings or review state",
-      "chars": 4579,
+      "chars": 4642,
       "file": ".claude/skills/shared/protocols/review-policy.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/review-policy.md",
-          "chars": 4579
+          "chars": 4642
         }
       ]
     },

@@ -17,6 +17,8 @@
  *                caps a pass and continues only on the user's go-ahead, initiative keeps a hard cap
  *                and records the categories it left unasked; the shared reminder names the budget owner.
  *   TC-DIV-004 — `grill` interviews and records only: it never plans, specifies or implements.
+ *   TC-DIV-006 — `grill` may offer, never require, one inline stress pass on the recorded decisions; the
+ *                findings join the same record and nothing is planned or built.
  *   TC-DIV-005 — `wayfinder` plans and never builds, resolves one claimed ticket per session, keeps
  *                its map as files under the relocatable plans root and writes no tracker record.
  *
@@ -286,6 +288,24 @@ const tests = [
             for (const name of ['grill', 'domain-analysis', 'ui-design', 'web-research', 'investigate', 'task-track', 'spec', 'workflow-feature', 'workflow-big-feature']) {
                 assert.ok(fs.existsSync(path.join(SKILLS, name, 'SKILL.md')), `skill ${name} exists`);
             }
+        }
+    },
+    {
+        name: 'TC-DIV-006 grill may offer one inline stress pass on its recorded decisions and still only records',
+        skip: SKIP,
+        fn: () => {
+            const text = read(SKILLS, 'grill', 'SKILL.md');
+            const phase5 = text.slice(text.indexOf('## Phase 5: Confirm and Hand Off'), text.indexOf('## Called by Another Skill'));
+            // The offer follows the closing question, is optional and names its four angles
+            assert.match(phase5, /Ask one closing question[^\n]*\n\nThen offer, never require, one short stress pass on the recorded decisions from four angles: need and reuse, cost and scale, migration and rollback, day-to-day running\./);
+            // An accepted pass runs inline and appends to the same record, which keeps its location
+            assert.match(phase5, /run it inline in this conversation, one todo per angle closed with evidence, and append the findings to the same Decision Record under `## Stress Pass`/);
+            assert.match(phase5, /The record stays where Phase 4 wrote it, and nothing is planned, specified or built\./);
+            assert.match(text, /tmp\/reports\/grill-\{YYMMDD-HHmm\}-\{slug\}\.md/);
+            // Boundary: a calling skill gets the closing question only, with no stress offer
+            assert.match(phase5, /A caller that runs this skill as one of its steps gets no offer\./);
+            assert.match(text, /skip the fit table, run Phases 0 to 4 and the closing question of Phase 5/);
+            assert.doesNotMatch(phase5, /\b(must|always) (run|offer) (the|a) stress pass/i);
         }
     }
 ];

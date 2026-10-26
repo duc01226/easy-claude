@@ -92,6 +92,7 @@ Any check incomplete → adversarial review NOT complete. Go back.
 | Cannot be evidenced (worth-it verdict = UNCLEAR) | gain or cost unquantifiable from available evidence                                |
 
 - **MATERIAL → STOP and confirm via `ask user question tool`** BEFORE the verdict stands: state the trade-off, both options, what each sacrifices, your recommendation. NEVER resolve a material trade-off silently on the user's behalf, and NEVER bury it as a Low-severity note.
+- **Standalone review, material trade-offs left to the user:** that question may also offer `$grill` with the report path, to settle them by an interview against the user's own constraints. A workflow step, report-only leaf or sub-agent never offers it.
 - **NOT material → record it inline** in the Trade-Off Assessment table with a one-line justification and proceed; no escalation needed.
 - In `validate-findings` terminal mode: **assess and record, do NOT escalate** — that mode asks nothing (see Next Steps exemption); flag the unescalated material trade-off in the verdict so the CALLER escalates it.
 
@@ -138,18 +139,7 @@ State which route reference you read, or why none applies, beside the recorded t
 
 ### Rationale / Artifact Review Dimensions
 
-Run one focused pass per applicable dimension; do NOT scan all dimensions simultaneously.
-
-| Dimension          | Think                                                                                     |
-| ------------------ | ----------------------------------------------------------------------------------------- |
-| Target fit         | Did we resolve what user asked, with evidence and confidence?                              |
-| Goal alignment     | Does the rationale serve the saved Goal Contract's purpose and success criteria — or drift past them? |
-| Rationale depth    | Are alternatives real, causal, symmetric, assumption-aware?                                |
-| Trade-off honesty  | What does this SACRIFICE, is it worth it, and is the trade-off material enough to confirm with the user? An unpriced benefit is a rationale gap. |
-| Behavioral risk    | What breaks in happy, error, edge, and rollback paths?                                     |
-| Cross-boundary impact | Does a changed contract break a consumer on the other client↔server tier (BE↔FE), or a loosely-coupled/external service or event consumer? (tier seam + service/event) |
-| Test/spec/doc sync | Does evidence prove tests/specs/docs protect the intended invariant and avoid stale claims? |
-| Future change cost | Does recommendation reduce coupling, hidden state, duplication, unclear intent?            |
+**[BLOCKING]** Read `.claude/skills/shared/review-dimensions.md` in full before the first review pass. It owns the dimensions, the one-todo-per-applicable-dimension rule and the tool evidence each todo closes with; work one focused pass per dimension, never all at once.
 
 ## Validation Checklist
 
@@ -160,6 +150,8 @@ For code-change reviews, use Code-Change Review Path instead of forcing plan che
 > **Rule:** Presence alone is NOT a pass. A section that exists but contains weak, asymmetric, or unverified reasoning FAILS quality depth.
 
 ### Required Sections (in plan.md or phase files)
+
+> **A `$plan` plan** maps these rows onto its own sections: Problem Statement → §1 Outcome and boundaries, Alternatives Considered and Design Rationale → §2 Important technical decisions (one meaningful alternative per decision), Risk Assessment → §7 Risks, Ownership → §3 Areas and owners. A plan from another source keeps the rows as written. The Output Format checklist is unchanged.
 
 | #   | Section                     | Presence Check                                    | Quality Depth Check (adversarial)                                                                                                                                                  |
 | --- | --------------------------- | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

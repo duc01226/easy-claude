@@ -36,13 +36,11 @@ If a supplied spec baseline exists, review against that baseline and separate pr
 
 **[BLOCKING]** Read `references/plan-quality-checklist.md` in full before the core review; its Review duty owns the defect classes and severities.
 
-Challenge the reasoning, not section length or presentation:
+Challenge the reasoning, not section length or presentation. **[BLOCKING]** Read `.claude/skills/shared/review-dimensions.md` in full and work its dimensions as todos, scaled by the plan profile:
 
-1. **Purpose:** What outcome does this serve? Does every phase advance it without expanding scope? Is the outcome governed by a clear owner/spec, with non-goals and no silent expansion? Does the `Not yet specified` list hold only items that cannot yet be stated as a precise question, and no product-intent, public-contract or irreversible decision parked there?
-2. **Necessity:** Why is each important change needed? Could reuse, a smaller change, or doing nothing satisfy the same intent?
-3. **Choice and cost:** Steel-man the strongest alternative. What does the chosen approach sacrifice, who pays, and is the gain worth it? Hand unresolved material trade-offs to the caller/user before PASS.
-4. **Assumptions:** Stress-test the top 2–3 assumptions and one plausible failure. Does the plan bound discovery and name how uncertainty is settled?
-5. **Proof:** Will acceptance evidence demonstrate the intended outcome and preserved invariants? Apply the loaded checklist owner's Review duty and required gates within this pass.
+- **Light profile:** Goal alignment, Future change cost, Decision readiness, Test/spec/doc sync.
+- **Full profile, or no profile declared:** every applicable dimension, Outsider read included in any session.
+- **Plan-only checks (every profile):** Is the outcome governed by a clear owner/spec, with non-goals and no silent expansion? Is discovery bounded, with a named way to settle each uncertainty? Does the `Not yet specified` list hold only items that cannot yet be stated as a precise question, and no product-intent, public-contract or irreversible decision parked there? Hand unresolved material trade-offs to the caller/user before PASS, and apply the loaded checklist owner's Review duty and required gates within this pass.
 
 | Execution check | Question |
 | --- | --- |

@@ -144,7 +144,7 @@ See [integration-test-reference.md](docs/project-reference/integration-test-refe
 | Hooks       | <!-- COUNT:hooks -->38<!-- /COUNT -->       |
 | Agents      | <!-- COUNT:agents -->25<!-- /COUNT -->      |
 | Workflows   | <!-- COUNT:workflows -->17<!-- /COUNT -->   |
-| Shared      | <!-- COUNT:shared -->15<!-- /COUNT -->      |
+| Shared      | <!-- COUNT:shared -->16<!-- /COUNT -->      |
 | Lib modules | <!-- COUNT:lib-modules -->72<!-- /COUNT --> |
 
 ---
@@ -157,7 +157,7 @@ docs/knowledge/  (1 files)
 docs/project-reference/  (20 files)
 docs/release/  (1 files)
 docs/release-notes/  (2 files)
-docs/specs/  (27 files)
+docs/specs/  (28 files)
 docs/templates/  (1 files)
 ```
 

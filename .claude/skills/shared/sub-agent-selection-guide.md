@@ -70,14 +70,14 @@
 | Round    | Purpose                                     | Agent                                                 | Memory                 |
 | -------- | ------------------------------------------- | ----------------------------------------------------- | ---------------------- |
 | Round 1  | Proactive analysis or main-session analysis | Domain-specific agent (e.g., `performance-optimizer`) | —                      |
-| Round 2  | Challenge / fresh eyes                      | NEW fresh domain-specific agent                       | ZERO memory of Round 1 |
-| Round 2  | Post-fix re-verification                    | NEW fresh domain-specific agent                       | ZERO memory            |
+| Round 2  | Challenge / fresh eyes                      | Fresh pass; a NEW domain-specific agent when the round uses one | A sub-agent: ZERO memory of Round 1; inline: re-read from disk |
+| Round 2  | Post-fix re-verification                    | Fresh pass; a NEW domain-specific agent when the round uses one | A sub-agent: ZERO memory; inline: re-read from disk |
 | Max      | 2 rounds                                    | Then escalate to user via `ask user question tool`           | —                      |
 
 **Key rules:**
 
-- NEVER reuse a sub-agent across rounds — every round spawns a NEW `Agent` call
-- Clean Round 1 ENDS the review. When issues found, fix → fresh sub-agent re-review (main agent rationalizes its own work; fresh eyes catch dismissed findings).
+- When a round uses a sub-agent, never reuse one from an earlier round — start a NEW `Agent` call
+- Clean Round 1 ENDS the review. When issues found, fix → fresh re-review of the settled target: re-read it from disk; a sub-agent is your call when the risk justifies its cost (a main agent rationalizes its own work; fresh eyes catch dismissed findings).
 - Main agent READS sub-agent reports — NEVER filters or overrides findings
 
 ---

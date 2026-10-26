@@ -14,7 +14,7 @@ const hook = require(HOOK_PATH);
 const { extractSyncBody } = require(path.join(PROJECT_DIR, '.claude', 'scripts', 'lib', 'extract-sync-block.cjs'));
 
 const event = prompt => ({ hook_event_name: 'UserPromptSubmit', session_id: 's1', prompt });
-const { PROBLEM_PRESUMED, CONFIRMATION_SOUGHT, EVALUATION } = hook.LEANS;
+const { PROBLEM_PRESUMED, CONFIRMATION_SOUGHT, EVALUATION, ADVICE } = hook.LEANS;
 // Opt-out checks read an explicit environment so a developer's own CK_* switch never leaks into a test.
 const CLEAN_ENV = Object.freeze({});
 // In-process evaluation with no switch and no settings: a developer's CK_JUDGEMENT_INTEGRITY_ROUTE=0 or real
@@ -93,6 +93,24 @@ const NON_JUDGEMENT = [
     'write a critique section for the doc',
     'add a judge step to the pipeline'
 ];
+// Intent: an advice or solution ask is routed, so the recommendation weighs a real alternative and can end with the offer.
+const ADVICE_ASKS = [
+    'what is the best way to cache tokens?',
+    'how would you structure the retry logic?',
+    'recommend an approach for multi-tenant auth',
+    'what architecture fits a small team?',
+    'Can you suggest a design for the importer?',
+    'propose a plan for migrating the settings'
+];
+// Intent: build work that only names a recommendation, and an explicit grill call, stay silent.
+const ADVICE_BUILD_WORK = [
+    'implement the suggested fix',
+    'apply what you recommend in the plan',
+    'follow the suggested steps',
+    'add the recommended index',
+    '/grill my plan',
+    '$grill the caching decision'
+];
 
 module.exports = {
     name: 'judgement-integrity-route',
@@ -112,6 +130,38 @@ module.exports = {
                 for (const prompt of NON_JUDGEMENT) {
                     assertTrue(!hook.isJudgementRequest(prompt), `expected no route: ${JSON.stringify(prompt)}`);
                 }
+            }
+        },
+        {
+            name: '[judgement-integrity-route] TC-JIR-012 advice asks route with the advice lean; build work naming a recommendation and an explicit grill call stay silent',
+            fn: () => {
+                for (const prompt of ADVICE_ASKS) {
+                    const leans = hook.detectLeans(prompt);
+                    assertTrue(leans.includes(ADVICE), `expected ${ADVICE} for ${JSON.stringify(prompt)}, got ${JSON.stringify(leans)}`);
+                }
+                for (const prompt of ADVICE_BUILD_WORK) {
+                    assertTrue(!hook.isJudgementRequest(prompt), `expected no route: ${JSON.stringify(prompt)}`);
+                }
+                // The advice lean names its own guidance: a real alternative is weighed before recommending.
+                const text = hook.evaluate(event(ADVICE_ASKS[0]), ISOLATED);
+                assertContains(text, 'lean: advice');
+                assertContains(text, 'weigh at least one real alternative');
+            }
+        },
+        {
+            name: '[judgement-integrity-route] TC-JIR-013 a consequential answer ends with one grill / why-review / skip question, never in workflows, sub-agents or trivial answers',
+            fn: () => {
+                const canonical = extractSyncBody(fs.readFileSync(SYNC_PATH, 'utf8'), hook.SYNC_TAG);
+                // Given an advice ask, the directive carries the closing-offer rule from the canonical reminder
+                const text = hook.evaluate(event('recommend an approach for multi-tenant auth'), ISOLATED);
+                assertContains(text, canonical.trim());
+                // Then the offer is one question with three options, including skip
+                assertContains(text, "ask ONE question with the host's question tool: grill it (`/grill`");
+                assertContains(text, 'review it (`/why-review`');
+                assertContains(text, '· skip.');
+                // And it never fires where it would interrupt or cannot be answered
+                assertContains(text, 'Never after a lookup or trivial answer, inside a running workflow or a skill that owns its closing step, from a sub-agent or headless run');
+                assertContains(text, 'or again after a skip');
             }
         },
         {

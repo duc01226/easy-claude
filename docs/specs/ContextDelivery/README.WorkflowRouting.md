@@ -5,7 +5,7 @@ feature_code: 'WFR'
 entities: ['Workflow', 'ActivationPolicy', 'RoutingGuidance', 'RootInstructionFile', 'RouteMode']
 status: draft
 owner: 'Framework maintainers'
-last_updated: '2026-10-14'
+last_updated: '2026-10-26'
 scope_mode: FRAMEWORK-LIBRARY
 large_idea_decomposition: null
 roadmap: null
@@ -164,6 +164,7 @@ Before each prompt the assistant receives short routing guidance in two messages
 
 - **AC-WFR-21** — **Given** unresolved material choices and no existing owner of the needed interview **When** the route is assessed **Then** choices that fit one conversation select an interview, while dependent choices whose route remains unclear across sessions select a decision map; size alone never selects a map, saved plans and specifications keep their validators, and clear work keeps its ordinary route
 - **AC-WFR-22** — **Given** a linked decision record or resolved map ticket **When** a later interview uses it **Then** only confirmed decisions with unchanged scope and premises are reused and cited; open, changed, conflicting or unconfirmed decisions remain for the user, every hosting gate remains binding, and discovery never grants building authority
+- **AC-WFR-27** — **Given** a decision interview has recorded its decisions **When** it hands off **Then** it may offer, never require, one short stress pass on the recorded decisions from four angles (need and reuse, cost and scale, migration and rollback, day-to-day running); an accepted pass runs inline, appends its findings to the same record, keeps the record where the interview keeps it, and still plans, specifies and builds nothing
 
 ---
 
@@ -334,6 +335,8 @@ When a guidance message cannot be built from a shipped source, it is never silen
 
 Confirmed choices from linked decision records or resolved map tickets are reused only while their scope and premises remain unchanged, with their source cited in the next interview record. Open, changed, conflicting and unconfirmed choices remain for the user. Reuse never waives a hosting gate or changes its budget; any unused minimum is reported rather than filled with repeated questions. Destination and ticket interview records remain linked from the map.
 
+After recording its decisions, a free-form decision interview may offer one short stress pass on them from four angles: need and reuse, cost and scale, migration and rollback, and day-to-day running. The offer is never required. An accepted pass runs in the same conversation, appends its findings to the same decision record, and does not move that record or start any planning, specifying or building.
+
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
 > **Evidence:** `[Source: operation/hooks/workflow-route-inject]` · `[Source: constraint/skills/decision-interview]`
@@ -500,9 +503,9 @@ Session           0──1 SessionMode         (set by a prompt directive)
 | Priority  | Count  | Automated | Manual |
 | --------- | ------ | --------- | ------ |
 | P0        | 2      | 2         | 0      |
-| P1        | 25     | 25        | 0      |
+| P1        | 26     | 26        | 0      |
 | P2        | 1      | 1         | 0      |
-| **Total** | **28** | **28**    | **0**  |
+| **Total** | **29** | **29**    | **0**  |
 
 | Category                    | TCs                                                                    |
 | --------------------------- | ---------------------------------------------------------------------- |
@@ -1918,6 +1921,51 @@ And open or changed choices still require the user and hosting gates remain bind
 > **Evidence:** `[Source: operation/hooks/workflow-route-inject]` · `[Source: constraint/skills/decision-interview]`
 > **Related Behaviors:** `operation/hooks/workflow-route-inject` · `constraint/skills/decision-interview`
 > **CoveredBy:** `.claude/hooks/tests/suites/workflow-route-modes.test.cjs::[workflow-route-modes] TC-WFR-023 decision discovery routes by uncertainty and preserves artifact owners and authority`, `.claude/hooks/tests/suites/decision-interview.test.cjs::TC-DIV-001 the canonical protocol states its seven rules and is registered with a summary and a read-when line`, `.claude/hooks/tests/suites/decision-interview.test.cjs::TC-DIV-004 grill interviews and records only: facts are looked up, decisions are asked, nothing is planned or built`, `.claude/hooks/tests/suites/decision-interview.test.cjs::TC-DIV-005 wayfinder plans and never builds, resolves one claimed ticket per session and keeps its map as files` · **Status:** Tested
+
+---
+
+#### TC-WFR-029: A decision interview may offer a short stress pass and still only records [P1]
+
+**Objective:** Let a free-form decision interview test its recorded decisions cheaply without turning into planning.
+
+**Business Intent / Invariant Guarded:** BR-WFR-15 / AC-WFR-27 — the stress pass is optional, inline and record-only.
+
+**Preconditions:** A free-form decision interview has played back and recorded its decisions.
+
+```gherkin
+Given the decision record is written
+When the interview hands off
+Then it may offer one short stress pass from four angles: need and reuse, cost and scale, migration and rollback, day-to-day running
+And the offer is never required
+And an accepted pass runs inline and appends its findings to the same record
+And the record stays where the interview keeps it
+And no planning, specifying or building starts
+```
+
+**Expected Result:**
+
+| Dimension | Expectation |
+| --- | --- |
+| **UI** | Not applicable — the observable surface is interview guidance |
+| **System behavior** | The offer is optional; an accepted pass appends to the record |
+| **Business data state** | Only the decision record gains findings |
+| **Data shown on UI** | The stress findings inside the decision record |
+
+**Acceptance Criteria:**
+
+- The offer is stated as optional, with its four angles.
+- An accepted pass appends to the same record and keeps its location.
+- The interview still never plans, specifies or builds.
+
+**Test Data:** The interview guidance for the free-form decision interview.
+
+**Edge Cases:** A caller running the interview as one of its steps owns what follows and receives the record without a stress offer; a context with no user channel cannot accept the offer.
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: constraint/skills/decision-interview]`
+> **Related Behaviors:** `constraint/skills/decision-interview`
+> **CoveredBy:** `.claude/hooks/tests/suites/decision-interview.test.cjs::TC-DIV-006 grill may offer one inline stress pass on its recorded decisions and still only records`
 
 ---
 

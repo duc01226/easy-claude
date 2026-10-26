@@ -194,8 +194,8 @@
           "trigger": "graph-work"
         },
         "judgement-integrity": {
-          "summary": "Anti-confirmation-bias gate for answers that confirm, refute, judge or hunt for gaps",
-          "when": "answering with a verdict, an evaluation or a root cause"
+          "summary": "Anti-confirmation-bias gate for answers that confirm, refute, judge, hunt for gaps or recommend",
+          "when": "answering with a verdict, an evaluation, a root cause or a recommendation"
         },
         "knowledge-graph-template": {
           "summary": "Per-file analysis record: type, pattern, symbols, dependencies and evidence",

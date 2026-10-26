@@ -190,7 +190,7 @@ Persist the plan path and a short summary, then run the [Self-Review Pass](#self
 
 ## Self-Review Pass
 
-After saving, plan creation reviews its own plan once, before the validation interview: run one `$why-review --review-only` pass on the saved plan (it validates its own findings and edits nothing), then plan creation, the plan's author, fixes the validated findings in `plan.md` and its phase files. The loop runs one round: one review pass and one fix pass, with no second review round; the validation interview that follows checks the fixed plan with the user.
+After saving, plan creation reviews its own plan once, before the validation interview: run one `$why-review --review-only` pass on the saved plan (it validates its own findings and edits nothing), then plan creation, the plan's author, fixes the validated findings in `plan.md` and its phase files. That pass works the shared review dimensions as todos, scaled by the plan profile (`references/mode-review.md` → Simplified Why-Review Pass), and records each dimension's verdict under `## Self-Review`. The loop runs one round: one review pass and one fix pass, with no second review round; the validation interview that follows checks the fixed plan with the user.
 
 Skip it when:
 
