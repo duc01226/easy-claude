@@ -418,7 +418,7 @@ Use the naming pattern from the injected `## Naming` section.
 
 Read `references/brainstorm-skill-report.md` before writing the session report; retain all context, framing, scoring, hypothesis, decision and next-step fields. Multi-opportunity mode also preserves its scored-map contract above.
 
-**Stress-test offer:** when run standalone with a user present, after the report ask one question with the host's question tool: grill the recommended option (`$grill` with the report path, an interview that tests it against the user's own constraints) or skip. A workflow step or a sub-agent run makes no offer; the steps that follow own the next move.
+**Stress-test offer:** when run standalone with a user present, the next-steps question below lists grill the recommended option (`$grill` with the report path, an interview that tests it against the user's own constraints) as one of its options, so the session still ends with one question. Discovery mode has no single recommended option and lists no grill option. A workflow step or a sub-agent run makes no offer; the steps that follow own the next move.
 
 ---
 
@@ -481,6 +481,7 @@ After the session, use `ask user question tool` to present next steps:
 
 | Next Step              | When                                                        | Skill/Workflow          |
 | ---------------------- | ----------------------------------------------------------- | ----------------------- |
+| `$grill <report-path>` | Stress-test the recommended option against your own constraints first (standalone only) | `grill` skill |
 | `$initiative`                | Capture top idea as an initiative                        | `initiative` skill            |
 | `$work-item --mode=refine`  | Turn the top idea into an actionable task with AC                         | `work-item` skill             |
 | `$web-research`        | Need deeper market/competitor research first                | `web-research` skill    |

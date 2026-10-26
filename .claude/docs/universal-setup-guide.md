@@ -96,7 +96,7 @@ The framework is ready. Use workflows:
 - `/plan` — Create implementation plans
 - `/code-quality-review` — Review code changes
 
-The workflow router injects the catalog; on the first task of a session, when the prompt matches a workflow, the model asks you one question before starting it — the full workflow, a slimmer custom route, or direct execution, recommended option first. Mid-session it never starts a workflow or asks to — it works directly or with a lean chain of skills unless you call a workflow skill or ask for one in words, which always runs.
+The workflow router injects the catalog; on the first task of a session, when the prompt matches a workflow, the model asks you one question before starting it — the full workflow, a slimmer custom route, or direct execution, recommended option first. Mid-session it never starts a workflow or asks to — it works directly or with a lean chain of skills unless you call a workflow skill or ask for one in words, which always runs. A non-trivial new request for work that no approved plan covers first gets one question: plan first, run directly, or grill first.
 
 ## What's Project-Agnostic vs Project-Specific
 

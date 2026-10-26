@@ -43,7 +43,7 @@ Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs
 
 **Workflow:** Activate `$start-workflow workflow-review-changes`; resolve the registry and selected occurrences, create their todo tasks, and execute the dependencies below.
 
-**Key Rules:** Default maximum three rounds; stop earlier when current evidence clears the bar. LOW-only at the cap is acceptable with disclosure; MEDIUM/HIGH/CRITICAL, unresolved required evidence or failed required checks need an explicit extension decision before round 3. Review-only is available through `--review-only` or `--report-only`; both select mode `review-only`. Keep one fixing owner and preserve all applicable checks.
+**Key Rules:** Default maximum three rounds; stop earlier when current evidence clears the bar. LOW-only at the cap is acceptable with disclosure; MEDIUM/HIGH/CRITICAL, unresolved required evidence or failed required checks need an explicit extension decision before any round beyond the third. Review-only is available through `--review-only` or `--report-only`; both select mode `review-only`. Keep one fixing owner and preserve all applicable checks.
 
 **Workflow budget:** The coordinator enforces the shared `review-policy` three-round default through its eligibility helper; a round beyond it needs the user's explicit, bounded extension. All child lenses, repair re-reviews and resumed or nested invocations share the coordinator's spent budget; they never start a separate loop or reset it.
 

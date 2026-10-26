@@ -20,7 +20,7 @@ disable-model-invocation: false
 
 **Goal:** Produce a concise, evidence-backed implementation plan that fixes direction and proof while leaving code-level discovery and mechanics to the executing agent.
 
-**Summary:** Select the mode first: create a plan, review once, interview for validation, execute, or add CI/CRO intake. For creation: resolve evidence → settle decisions → derive gates → write → self-check → one `$why-review` fix pass → validate with the user (standalone, or in a workflow that lists no validate step) → hand back.
+**Summary:** Select the mode first: create a plan, review once, interview for validation, execute, or add CI/CRO intake. For creation: resolve evidence → settle decisions → derive gates → write → self-check → `$why-review` self-review (one round; up to three for a high-risk full-profile plan) → validate with the user (standalone, or in a workflow that lists no validate step) → hand back (a standalone run ends with the one Standalone Close question).
 
 - **Creation is planning only:** decide direction, ownership, dependencies, risks, bounded discovery and proof; leave code and edit mechanics to execution.
 - Derive the task-specific `## Quality Gates & Concerns Checklist` before phases: verification, evidence, owner and how open concerns will be settled.
@@ -30,7 +30,7 @@ disable-model-invocation: false
 - Domain work plans owned entity decisions and proof before writing; load its scope-specific depth only when applicable.
 - Write tests with implementation; schedule suites after all implementation and static review, never per phase.
 
-**Workflow:** Resolve context → inspect governing evidence and representative patterns → settle material decisions → derive the quality-gates checklist → write the lean plan → self-check scope, discovery, checklist, and verify-last order → one `$why-review` fix pass on the plan → run the validation interview and apply its answers (standalone, or in a workflow that lists no validate step) → hand back.
+**Workflow:** Resolve context → inspect governing evidence and representative patterns → settle material decisions → derive the quality-gates checklist → write the lean plan → self-check scope, discovery, checklist, and verify-last order → `$why-review` self-review of the plan (one round; up to three for a high-risk full-profile plan) → run the validation interview and apply its answers (standalone, or in a workflow that lists no validate step) → hand back (a standalone run ends with the one Standalone Close question).
 
 **Key Rules:**
 
@@ -191,7 +191,7 @@ Persist the plan path and a short summary, then run the [Self-Review Pass](#self
 
 ## Self-Review Pass
 
-After saving, plan creation reviews its own plan before the validation interview: in each round, run one `$why-review --review-only` pass on the saved plan (it validates its own findings and edits nothing), then plan creation, the plan's author, fixes the validated findings in `plan.md` and its phase files. That pass works the shared review dimensions as todos, scaled by the plan profile (`references/mode-review.md` → Simplified Why-Review Pass), and records each dimension's verdict under `## Self-Review`. Its depth follows the plan's risk. A full-profile plan with a one-way, cross-module, public-contract, data or security decision runs the pass as a fix loop: review, fix, then freshly review the fixed plan, up to three rounds, stopping when a fresh pass finds no MEDIUM or higher finding. For every other plan the loop runs one round: one review pass and one fix pass, with no second review round; the validation interview that follows checks the fixed plan with the user.
+After saving, plan creation reviews its own plan before the validation interview: in each round, run one `$why-review --review-only` pass on the saved plan (it validates its own findings and edits nothing), then plan creation, the plan's author, fixes the validated findings in `plan.md` and its phase files. That pass works the shared review dimensions as todos, scaled by the plan profile as `.claude/skills/shared/review-dimensions.md` states (the `$why-review` pass reads that file, so plan creation loads no mode file for it), and records each dimension's verdict under `## Self-Review`. Its depth follows the plan's risk. A full-profile plan with a one-way, cross-module, public-contract, data or security decision runs the pass as a fix loop: review, fix, then freshly review the fixed plan, up to three rounds, stopping when a fresh pass finds no MEDIUM or higher finding. For every other plan the loop runs one round: one review pass and one fix pass, with no second review round; the validation interview that follows checks the fixed plan with the user.
 
 Skip it when:
 
@@ -220,7 +220,7 @@ When no exit applies:
 
 ## Standalone Close
 
-A standalone plan creation ends with one question through the host's question tool, after the validation chain ran or took one of its exits: **execute now** (`$plan --mode=execute <plan-path>`) · **deeper review first** (`$plan --mode=review --fix-loop <plan-path>`, up to three rounds) · **stop here**. Recommend execute when the self-review left no open finding and validation passed; recommend the deeper review when a finding stayed open, validation was skipped, or the plan is full-profile with a one-way or cross-module decision. Act only on the answer. Ask nothing when a workflow owns this run, when another skill runs plan creation as one of its steps, or when this context cannot reach the user (a sub-agent or a headless run); there the hand-back names the same three next steps.
+A standalone plan creation ends with one question through the host's question tool, after the validation chain ran or took one of its exits: **execute now** (`$plan --mode=execute <plan-path>`) · **deeper review first** (`$plan --mode=review --fix-loop <plan-path>`, up to three rounds) · **stop here**. Recommend execute when the self-review left no open finding and validation passed; recommend the deeper review when a finding stayed open, validation was skipped, or the plan is full-profile with a one-way or cross-module decision whose self-review ran one round or none (a converged three-round loop already gave it that depth); when both recommendations fit, recommend the deeper review. Act only on the answer. Ask nothing when a workflow owns this run, when another skill runs plan creation as one of its steps, or when this context cannot reach the user (a sub-agent or a headless run); there the hand-back names the same three next steps.
 
 <!-- PROTOCOL-GUIDES:START -->
 
@@ -266,7 +266,7 @@ A standalone plan creation ends with one question through the host's question to
 
 **IMPORTANT MUST ATTENTION Goal:** Produce a concise, evidence-backed implementation plan that fixes direction and proof while leaving code-level discovery and mechanics to the executing agent.
 
-**MUST ATTENTION Main steps:** select mode → read its reference when selected; creation resolves evidence → settles decisions → derives gates → writes → self-checks → one `$why-review` fix pass → validates with the user (standalone, or in a workflow with no validate step) → hands back. Review follows the selected review-only/fix-loop mode; validation interviews; execution follows its flags; CI/CRO add intake.
+**MUST ATTENTION Main steps:** select mode → read its reference when selected; creation resolves evidence → settles decisions → derives gates → writes → self-checks → `$why-review` self-review (one round; up to three for a high-risk full-profile plan) → validates with the user (standalone, or in a workflow with no validate step) → hands back (a standalone run ends with the one Standalone Close question). Review follows the selected review-only/fix-loop mode; validation interviews; execution follows its flags; CI/CRO add intake.
 
 - **MUST ATTENTION** record outcome/non-goals, important decisions, affected owners/areas, bounded discovery, risks, and final quality gates.
 - **MUST ATTENTION** choose the plan profile first: full by default and for M+ work; light for a spec-supplied run (`spec_baseline`, traced phases, checklist, `Proposed additions — owner approval required`) or an XS/S run (files, steps and rollback inline) — no scope-brief or scenario files; every Plan Gate field, approvals included, stays.

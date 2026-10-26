@@ -187,6 +187,8 @@ const tests = [
                 '<task-notification>\n<task-id>af03aa8d44c9b23fe</task-id>\nBackground agent finished.\n</task-notification>',
                 '<system-reminder>Codebase instructions …</system-reminder>',
                 '<cross-session-message>peer session says hi</cross-session-message>',
+                // A sub-agent hand-back carries attributes and the report's own words ("fix", "best approach").
+                '<agent-message from="a1b2c3">\n[Subagent hand-back] Fix: implement the best approach.\n</agent-message>',
                 '<task-notification>truncated notice with no closing tag'
             ];
             for (const payload of hostPayloads) {
@@ -200,6 +202,8 @@ const tests = [
             assert.equal(ledger.entries[0].text, 'Add export', 'wrapper content stripped from a real prompt');
             assert.match(out, /^Session prompt ledger: P1 pinned as the original goal «Add export»/);
             assert.ok(!out.includes('system-reminder') && !out.includes('task-notification'));
+            // A wrapper with attributes is stripped from a real prompt too.
+            assert.equal(store.stripHostBlocks('Add export <system-reminder id="r1">project rules</system-reminder>'), 'Add export');
 
             // Edge: merely mentioning the word is recorded normally.
             await hook.run(prompt(fx, 'add a reminder banner', { session_id: 'mention' }), deps(fx));

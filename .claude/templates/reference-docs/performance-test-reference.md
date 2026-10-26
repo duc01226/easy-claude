@@ -8,7 +8,7 @@ Read before planning, writing, reviewing, running or fixing performance tests. T
 Name the system/surfaces and initialized or missing capabilities. Keep excluded surfaces and unknowns explicit. A template or tool dependency does not prove a working harness.
 
 ## Commands and Prerequisites
-Record the one-command local entry and its authored/runtime-verified status, profiles/filters, pinned setup owner, supported Windows/macOS/Linux behavior, target-safety checks, startup/readiness and owned cleanup. State which command is diagnostic, acceptance, endurance or capacity. Write/init stop after static review (default maximum two rounds); executing tests requires an explicit user request, which may already include write+verify. Missing commands stay unknown, never invented.
+Record the one-command local entry and its authored/runtime-verified status, profiles/filters, pinned setup owner, supported Windows/macOS/Linux behavior, target-safety checks, startup/readiness and owned cleanup. State which command is diagnostic, acceptance, endurance or capacity. Write/init stop after static review (default maximum three rounds); executing tests requires an explicit user request, which may already include write+verify. Missing commands stay unknown, never invented.
 
 ## Harness and Reuse
 Link runner/config owners, clients/auth helpers, scenario conventions, seed/fixture builders, collectors and evaluator/report schema. Record first-init stack research and the chosen tools with current official sources. Explain how the next case reuses the foundation.

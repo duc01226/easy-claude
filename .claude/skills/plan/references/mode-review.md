@@ -36,11 +36,9 @@ If a supplied spec baseline exists, review against that baseline and separate pr
 
 **[BLOCKING]** Read `references/plan-quality-checklist.md` in full before the core review; its Review duty owns the defect classes and severities.
 
-Challenge the reasoning, not section length or presentation. **[BLOCKING]** Read `.claude/skills/shared/review-dimensions.md` in full and work its dimensions as todos, scaled by the plan profile:
+Challenge the reasoning, not section length or presentation. **[BLOCKING]** Read `.claude/skills/shared/review-dimensions.md` in full and work its dimensions as todos, scaled by the plan profile as its "A plan's profile picks the set" rule states:
 
-- **Light profile:** Goal alignment, Future change cost, Decision readiness, Test/spec/doc sync.
-- **Full profile, or no profile declared:** every applicable dimension, Outsider read included in any session.
-- **Plan-only checks (every profile):** Is the outcome governed by a clear owner/spec, with non-goals and no silent expansion? Is discovery bounded, with a named way to settle each uncertainty? Does the `Not yet specified` list hold only items that cannot yet be stated as a precise question, and no product-intent, public-contract or irreversible decision parked there? Hand unresolved material trade-offs to the caller/user before PASS, and apply the loaded checklist owner's Review duty and required gates within this pass.
+- **Plan-only checks (every profile):** the three the same rule names (owner and non-goals, bounded discovery, the `Not yet specified` list). Hand unresolved material trade-offs to the caller/user before PASS, and apply the loaded checklist owner's Review duty and required gates within this pass.
 
 | Execution check | Question |
 | --- | --- |

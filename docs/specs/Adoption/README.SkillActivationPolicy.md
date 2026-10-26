@@ -5,7 +5,7 @@ feature_code: SAP
 entities: [SkillActivationPolicy, AuthorizationScope]
 status: implemented
 owner: Framework maintainers
-last_updated: '2026-10-08'
+last_updated: '2026-10-26'
 scope_mode: FRAMEWORK-LIBRARY
 ---
 

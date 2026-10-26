@@ -5,7 +5,7 @@ feature_code: 'NT'
 entities: ['AssistantSession', 'Alert', 'Question']
 status: draft
 owner: 'Framework maintainers'
-last_updated: '2026-10-22'
+last_updated: '2026-10-26'
 scope_mode: FRAMEWORK-LIBRARY
 ---
 
@@ -15,7 +15,7 @@ scope_mode: FRAMEWORK-LIBRARY
 | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
 | Spec Index (derived)      | `docs/specs/Notifications/INDEX.md`                                                                                                                                         | Generated navigation catalog for this bucket; refresh through the spec index owner.                   |
 | Claude Code hook settings | `.claude/settings.json`                                                                                                                                                     | First supported assistant (gives direct question signals): session-end and direct question alerts.    |
-| Codex hook configuration  | `.codex/hooks.json`                                                                                                                                                         | Second supported assistant (gives no direct question signal): session-end and turn-completion alerts. |
+| Codex hook configuration  | `.codex/hooks.json`                                                                                                                                                         | Second supported assistant (a direct question signal only through its planning-mode question tool; otherwise it asks in plain text): session-end, question, approval and turn-completion alerts. |
 | OpenCode hook bridge      | `.claude/scripts/opencode/templates/easy-claude-hooks.js.tmpl`                                                                                                              | Third supported assistant (gives direct question signals): session-end and question hook events.      |
 | Remote chat channel setup | `.claude/hooks/notifications/docs/discord-hook-setup.md`, `.claude/hooks/notifications/docs/slack-hook-setup.md`, `.claude/hooks/notifications/docs/telegram-hook-setup.md` | How a developer configures an optional remote chat channel.                                           |
 | Hook behavior guide       | `.claude/docs/hooks/README.md`                                                                                                                                              | Framework hook behavior and user-facing guidance.                                                     |
@@ -60,9 +60,9 @@ Alerts tell developers when the main assistant conversation ends, when the assis
 | Question alert         | An attention-seeking alert that says the assistant has a question and asks the developer to answer it.                                       | Names the workspace; the question itself is read in the conversation.                                                                                              |
 | Turn-complete alert    | The alert that says the assistant has finished its turn and the conversation is still open.                                                  | Never mentions a session ending or a question.                                                                                                                     |
 | Reply text             | What the assistant wrote in its response.                                                                                                    | Never included in any alert on any channel.                                                                                                                        |
-| Supported assistants   | Three assistants, listed first, second, and third in Related Documentation.                                                                  | The first and third give direct question signals; the second gives none.                                                                                           |
-| Final question mark    | A question mark that is the last non-whitespace character of the assistant's completed response.                                             | Used only on assistants that give no direct signal when they ask a question.                                                                                       |
-| Direct question signal | The assistant's own indication that it is asking the developer a question.                                                                   | Some supported assistants give it; others give none.                                                                                                               |
+| Supported assistants   | Three assistants, listed first, second, and third in Related Documentation.                                                                  | The first and third give direct question signals; the second gives one only through its question tool, in its planning mode, and otherwise asks in plain text.                                                                                           |
+| Final question mark    | A question mark that is the last non-whitespace character of the assistant's completed response.                                             | Used only when an assistant asks in plain text, without a direct signal (the second assistant outside its planning mode).                                                                                       |
+| Direct question signal | The assistant's own indication that it is asking the developer a question.                                                                   | The first and third assistants give it; the second gives it only through its planning-mode question tool.                                                                                                               |
 | Conversation reset     | The developer clears the main conversation to start afresh in the same workspace.                                                            | Not treated as a finished session.                                                                                                                                 |
 | Work still in progress | Delegated work the main conversation handed off and that reports back when it ends, not yet finished, or a one-time resumption it scheduled. | Each one wakes the main conversation again when it finishes, so the job is not done yet. A background command or service that may run indefinitely does not count. |
 | Blocking alert         | An alert that stays until the developer acknowledges it.                                                                                     | A non-blocking alert appears and goes away on its own.                                                                                                             |
@@ -226,7 +226,7 @@ ELSE IF the assistant reports a developer attends it OR reports nothing about at
 
 ### BR-NT-09: Every assistant alerts on its question tool and on approval requests [HARD]
 
-**Statement:** Each supported assistant names its question tool differently, and the alert follows the tool, not the name: a call to any assistant's own question tool is a direct question signal under BR-NT-02. Each assistant also signals an approval request differently: one raises a waiting-for-approval notice, another raises an approval-request event, and the alert follows whichever the assistant sends. Exactly one permission alert is raised per request, so an assistant that sends both signals alerts once, through its notice. A question or approval inside delegated work still waits on the developer, so it alerts like one in the main conversation; only completions and endings of delegated work are suppressed (BR-NT-01, BR-NT-04).
+**Statement:** Each supported assistant names its question tool differently, and the alert follows the tool, not the name: a call to any assistant's own question tool is a direct question signal under BR-NT-02. Each assistant also signals an approval request differently: one raises a waiting-for-approval notice, another raises an approval-request event, and the alert follows whichever the assistant sends. Exactly one permission alert is raised per request, so an assistant that sends both signals alerts once, through its notice. An approval-request event that names the assistant's own question tool is not a second question alert: the question already alerted through its question tool. A question or approval inside delegated work still waits on the developer, so it alerts like one in the main conversation; only completions and endings of delegated work are suppressed (BR-NT-01, BR-NT-04).
 
 ---
 
@@ -251,7 +251,7 @@ ELSE IF the assistant reports a developer attends it OR reports nothing about at
 
 | Property   | Type | Required | Constraints                                               | Business Meaning                                           |
 | ---------- | ---- | -------- | --------------------------------------------------------- | ---------------------------------------------------------- |
-| Alert kind | enum | Yes      | Session ended, question, or turn complete                 | Tells the developer what action or status needs attention. |
+| Alert kind | enum | Yes      | Session ended, question, permission, or turn complete     | Tells the developer what action or status needs attention. |
 | Channel    | enum | Yes      | Desktop or a configured remote chat channel               | Where the developer receives the alert.                    |
 | Message    | text | Yes      | Must make the alert kind clear; never contains reply text | Summarizes why the developer is being notified.            |
 | Workspace  | text | Yes      | The workspace name                                        | Tells the developer which conversation to open.            |
@@ -270,6 +270,7 @@ ELSE IF the assistant reports a developer attends it OR reports nothing about at
 | Delegated conversation ended             | Delegated work finishes while the main conversation may continue.       | No main-session-ended alert is produced.                               |
 | Developer reset the conversation         | The developer clears the main conversation to start afresh.             | No session-ended alert is produced.                                    |
 | Assistant asked the developer a question | The assistant requests information or a decision.                       | The developer receives a question alert and can return to answer.      |
+| Assistant asked for approval             | The assistant is about to run an action that needs the developer's approval. | The developer receives one permission alert (BR-NT-09).          |
 | Assistant turn completed                 | The assistant finishes a response without ending the main conversation. | The turn-complete alert, once no work is still in progress (BR-NT-04). |
 | Unattended conversation finished         | A run no developer attends finishes a turn, asks or ends.               | No alert of any kind is produced (BR-NT-08).                           |
 
@@ -329,7 +330,7 @@ A delegated conversation ending first causes no main-session-ended alert. A rese
 
 **US-NT-01 — Main conversation end:** Work in the main conversation → end it → one session-ended alert. Delegated work ending while it stays open, or a reset → no session-ended alert.
 
-**US-NT-02 — Question alert:** Direct question, or (on an assistant without direct question signals) a response ending in `?` ignoring trailing whitespace → one question alert (non-blocking for the fallback) → developer returns and answers. Any other response stays an ordinary turn completion. A run no developer attends raises none of these alerts (BR-NT-08).
+**US-NT-02 — Question alert:** Direct question, or (when an assistant asks in plain text, without a direct signal) a response ending in `?` ignoring trailing whitespace → one question alert (non-blocking for the fallback) → developer returns and answers. Any other response stays an ordinary turn completion. A run no developer attends raises none of these alerts (BR-NT-08).
 
 **US-NT-03 — Remote chat channel:** Configure a remote chat channel → each alert arrives there once with the same title and meaning as on the desktop, naming the workspace and never quoting the assistant's reply.
 
@@ -672,7 +673,7 @@ And the developer can return to the question and answer it
 
 #### TC-NT-012: A final question mark triggers the question alert [P1]
 
-**Objective:** Verify the text-based fallback on the second supported assistant, which gives no direct signal when it asks a question.
+**Objective:** Verify the text-based fallback on the second supported assistant when it asks in plain text, without a direct signal.
 
 **Business Intent / Invariant Guarded:** On such an assistant, a clearly punctuated final question receives a non-blocking attention alert while ordinary completion remains distinguishable.
 
@@ -681,7 +682,7 @@ And the developer can return to the question and answer it
 **Preconditions:**
 
 - The desktop alert channel is on.
-- A main conversation with the second supported assistant (no direct question signals) is active.
+- A main conversation with the second supported assistant, outside its planning mode (no direct question signal), is active.
 - The assistant's completed response ends with a question mark followed only by whitespace.
 
 **Real-World Reachability:** During a normal task the assistant ends a response with a clear question; the developer observes the alert immediately.
@@ -689,7 +690,7 @@ And the developer can return to the question and answer it
 **Demo Flow:** With the second supported assistant, ask it to finish its reply with exactly “Should I continue?”; when the turn ends, observe one non-blocking question alert and no turn-complete alert.
 
 ```gherkin
-Given the second supported assistant, which gives no direct signal when it asks a question
+Given the second supported assistant asking in plain text, which gives no direct signal
 And its completed response's last non-whitespace character is a question mark
 When the response finishes
 Then exactly one non-blocking question alert appears
@@ -997,6 +998,7 @@ Then one permission alert is raised
 And the same request inside delegated work also alerts
 Given the first assistant raises its approval-request event
 Then no alert is raised for that event, because its waiting-for-approval notice already alerts
+And its approval-request event for its own question tool raises no second question alert
 ```
 
 **Expected Result:**
@@ -1010,10 +1012,10 @@ Then no alert is raised for that event, because its waiting-for-approval notice 
 
 **Acceptance Criteria:**
 
-- ✅ The second assistant's approval request alerts once; the first assistant's approval event adds no second alert.
+- ✅ The second assistant's approval request alerts once; the first assistant's approval event adds no second alert, including the one it raises for its own question tool.
 - ❌ No alert for the second assistant's approval request, or two alerts for one request, fails the case.
 
-**Test Data:** An approval-request event from each assistant, and one from delegated work.
+**Test Data:** An approval-request event from each assistant, one from delegated work, and the first assistant's approval-request event for its own question tool.
 
 **Edge Cases:** An action that needs no approval raises no approval event and no alert.
 
@@ -1025,6 +1027,7 @@ Then no alert is raised for that event, because its waiting-for-approval notice 
 
 | Capability | Anchor |
 | --- | --- |
+| Approval alerts | `rule/hooks/permission-alerts` |
 | Direct question alerts | `rule/hooks/question-alerts` |
 
 **CoveredBy:** `.claude/hooks/tests/suites/notification.test.cjs::[TC-NT-077] a Codex permission request raises the permission alert once; Claude's does not duplicate it`
@@ -1117,7 +1120,7 @@ boundaryCounterCase: 'a delegated conversation ends while the main conversation 
 **Demo Flow:** Exercise a direct question, a response ending in `?` on an assistant without direct question signals, and a response ending in a period; compare the alerts.
 
 ```gherkin
-Given one assistant that gives direct question signals and one that gives none
+Given one assistant that gives direct question signals and one asking in plain text, without one
 When the first presents a direct question
 Then one question alert appears
 When the second completes a response ending with a question mark after trailing whitespace is removed

@@ -92,7 +92,7 @@ Any check incomplete → adversarial review NOT complete. Go back.
 | Cannot be evidenced (worth-it verdict = UNCLEAR) | gain or cost unquantifiable from available evidence                                |
 
 - **MATERIAL → STOP and confirm via `ask user question tool`** BEFORE the verdict stands: state the trade-off, both options, what each sacrifices, your recommendation. NEVER resolve a material trade-off silently on the user's behalf, and NEVER bury it as a Low-severity note.
-- **Standalone review, material trade-offs left to the user:** that question may also offer `/grill` with the report path, to settle them by an interview against the user's own constraints. A workflow step, report-only leaf or sub-agent never offers it.
+- **Standalone review, material trade-offs left to the user:** the completed report lists them and offers `/grill` with the report path, to settle them by an interview against the user's own constraints. The offer is a pointer in the report, not a question, so the review still returns its report and asks nothing more. Standalone means the user called the review directly, in either review mode. A review run by a workflow step, another skill or a sub-agent never offers it.
 - **NOT material → record it inline** in the Trade-Off Assessment table with a one-line justification and proceed; no escalation needed.
 - In `validate-findings` terminal mode: **assess and record, do NOT escalate** — that mode asks nothing (see Next Steps exemption); flag the unescalated material trade-off in the verdict so the CALLER escalates it.
 

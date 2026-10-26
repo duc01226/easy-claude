@@ -1271,12 +1271,20 @@ module.exports = {
                 // And the cue carries the whole rule: when to ask, the three choices, the exemptions and one question per turn
                 assertContains(go.out, 'if it is non-trivial (behavior or contract change, several modules, real risk, or open choices) and no approved plan or running workflow covers it');
                 assertContains(go.out, 'ask ONE question before editing: plan first (`/plan`: it reviews itself, validates, then offers to execute) · run directly · grill first (only when choices are still open)');
-                assertContains(go.out, 'Skip trivial, follow-up or correction work, "just do it", a named skill, or a request already asked about.');
+                assertContains(go.out, 'Skip the first task after a mode directive (the workflow question owns it), trivial, follow-up or correction work, "just do it", a named skill, a request already asked about, or a run with no user to answer.');
                 assertContains(go.out, 'This replaces the answer-review offer on this turn.');
                 assertNotContains(go.out, ROUTE_START, 'the gate is not re-delivered');
                 assertTrue(go.out.length < 700, `the cue stays one short line (${go.out.length} chars)`);
                 // And each later request for work gets it again: the cue is per prompt and unrecorded
                 assertContains(p.run(session, 'implement the retry with exponential backoff').out, CUE);
+                // And the common go-ahead forms after a discussion, and a task list, are requests for work too
+                for (const goAhead of ['yes, do it', 'sounds good, implement it', 'approved, proceed', '- add a retry\n- update the tests']) {
+                    assertContains(p.run(session, goAhead).out, CUE, `a go-ahead gets the cue: ${JSON.stringify(goAhead)}`);
+                }
+                // But a "Follow up:" question and a sub-agent hand-back are not requests for work
+                assertEqual(p.run(session, 'Follow up: why did the build fail?').out, '', 'a follow-up question gets no cue');
+                assertEqual(p.run(session, '<agent-message from="a1">\nFix the retry.\n</agent-message>').out, '',
+                    'a sub-agent hand-back is host content, not a request for work');
                 // But a prompt that names a skill or command has already chosen its route
                 assertEqual(p.run(session, '/plan add retries to the fetcher').out, '', 'an explicit skill call gets no cue');
                 assertEqual(p.run(session, '/fix please fix the flaky login test').out, '', 'a skill call whose text also asks for work gets no cue');
@@ -1288,6 +1296,11 @@ module.exports = {
                 const offSession = newSession();
                 p.run(offSession, 'hello', off);
                 assertNotContains(p.run(offSession, 'implement the retry', off).out, CUE, 'off mode gets no cue');
+                // And restricted automatic skill selection gets no cue: its own single skill-choice rule governs
+                const restricted = { CK_SKILL_AUTO_TRIGGER: 'off' };
+                const restrictedSession = newSession();
+                p.run(restrictedSession, 'hello', restricted);
+                assertNotContains(p.run(restrictedSession, 'implement the retry', restricted).out, CUE, 'restricted skill selection gets no cue');
             })
         },
         {
@@ -1297,7 +1310,7 @@ module.exports = {
             fn: () => {
                 const concise = fs.readFileSync(path.join(CLAUDE_DIR, 'skills', 'shared', 'protocols', 'concise-workflow-route.md'), 'utf8');
                 assertContains(concise, 'Mid-session, a non-trivial request for work that no approved plan or running workflow covers gets ONE question before editing: plan first (`/plan`) · run directly · grill first (only when choices are still open).');
-                assertContains(concise, 'Never on the first prompt, for trivial or follow-up work, after "just do it" or a named skill, inside a running workflow, or twice for one request. It replaces the answer-review offer on the same turn.');
+                assertContains(concise, 'Never on the first prompt or the first task after a mode directive (the workflow question owns both), for trivial, follow-up or correction work, after "just do it" or a named skill, inside a running workflow, in a run with no user to answer, or twice for one request. It replaces the answer-review offer on the same turn.');
             }
         }
     ]

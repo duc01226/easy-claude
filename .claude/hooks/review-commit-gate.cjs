@@ -304,7 +304,7 @@ function blockMessage(repository, snapshot, descriptor, reason) {
     '  2. /why-review --fix-loop      # risk-based mode or PR scope: medium risk',
     '  3. /changes-review --fix-loop  # risk-based mode or PR scope: high risk; explicit review requests also apply',
     '',
-    'Each fix-loop runs at most 2 review rounds. MEDIUM+ findings still open at the cap: stop and report, no commit, no skip.',
+    'Each fix-loop runs at most 3 review rounds. MEDIUM+ findings still open at the cap: stop and report, no commit, no skip.',
     '/workflow-review-changes --fix-loop also issues a valid receipt when the user asks for the full workflow.',
     '',
     'Use the supported default staged, -a/--all, or exact literal -- <files> mode. Unsupported',

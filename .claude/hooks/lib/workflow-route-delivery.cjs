@@ -38,12 +38,14 @@
  *     applies barrier-mark parity only to the two marked forms.
  * Mid-session plan offer: when the route output stays silent because the gate is already in the
  * conversation (never on a session's first prompt) and the prompt asks for work to be done, the route output
- * writes the one-line `[PLAN-OFFER]` rule instead, unless the prompt names a skill or command or routing is
- * off. A running workflow is judged by the agent from the rule's own text: no hook store records which session
+ * writes the one-line `[PLAN-OFFER]` rule instead, unless the prompt names a skill or command, routing is
+ * off, a route-mode directive leads the prompt, or automatic skill selection is restricted (its own skill-choice
+ * rule governs). A prompt that delivers the route (the first prompt, or a re-delivery after compaction) carries
+ * the gate, not the cue. A running workflow is judged by the agent from the rule's own text: no hook store records which session
  * runs a workflow (`start-workflow` records runs per checkout, without a session id). The cue is the rule's carrier on this route (the gate stays unchanged: with a
  * project protocol of the documented size it has no room left under the cap); the concise route carries the
  * same rule as one bullet. The cue arrives exactly when the rule applies, per prompt and unrecorded, about
- * 130 tokens.
+ * 170 tokens.
  * Each output keeps its own session record, so either is delivered again without the other. A part
  * name this module does not know writes nothing: an entry that names one is silent, never a second
  * copy of the route output.
@@ -81,7 +83,7 @@ const PLAN_OFFER_START = '<!-- CK:PLAN-OFFER -->';
 const PLAN_OFFER_END = '<!-- /CK:PLAN-OFFER -->';
 const PLAN_OFFER_CUE = [
     PLAN_OFFER_START,
-    '**[PLAN-OFFER]** Mid-session request for work: if it is non-trivial (behavior or contract change, several modules, real risk, or open choices) and no approved plan or running workflow covers it, ask ONE question before editing: plan first (`/plan`: it reviews itself, validates, then offers to execute) · run directly · grill first (only when choices are still open). Skip trivial, follow-up or correction work, "just do it", a named skill, or a request already asked about. This replaces the answer-review offer on this turn.',
+    '**[PLAN-OFFER]** Mid-session request for work: if it is non-trivial (behavior or contract change, several modules, real risk, or open choices) and no approved plan or running workflow covers it, ask ONE question before editing: plan first (`/plan`: it reviews itself, validates, then offers to execute) · run directly · grill first (only when choices are still open). Skip the first task after a mode directive (the workflow question owns it), trivial, follow-up or correction work, "just do it", a named skill, a request already asked about, or a run with no user to answer. This replaces the answer-review offer on this turn.',
     PLAN_OFFER_END
 ].join('\n');
 // A prompt that names a skill or command ("/plan …", "$fix …") has chosen its route already.

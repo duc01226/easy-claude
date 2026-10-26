@@ -253,12 +253,12 @@
       "group": "design",
       "summary": "Compact routing authority and catalog retrieval cues",
       "when": "concise route delivery",
-      "chars": 4492,
+      "chars": 4612,
       "file": ".claude/skills/shared/protocols/concise-workflow-route.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/concise-workflow-route.md",
-          "chars": 4492
+          "chars": 4612
         }
       ]
     },
@@ -701,12 +701,12 @@
       "group": "evidence-trace",
       "summary": "Anti-confirmation-bias gate for answers that confirm, refute, judge, hunt for gaps or recommend",
       "when": "answering with a verdict, an evaluation, a root cause or a recommendation",
-      "chars": 5890,
+      "chars": 5972,
       "file": ".claude/skills/shared/protocols/judgement-integrity.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/judgement-integrity.md",
-          "chars": 5890
+          "chars": 5972
         }
       ]
     },

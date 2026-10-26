@@ -51,7 +51,7 @@
 | E2E test generation delegating to `code-reviewer` | Switch to `e2e-runner`                                  |
 | Integration test audit spawning `code-reviewer`   | Switch to `integration-tester`                          |
 | AI-feature plan or diff (model calls, prompts, agents, RAG, tools) reviewed by `code-reviewer` | Switch to `ai-engineering-reviewer` |
-| Performance Round 1 running in main context only  | Spawn `performance-optimizer` as Round 1 proactive lead |
+| Performance round delegated to `code-reviewer`    | Use `performance-optimizer` when the round uses a sub-agent |
 
 ---
 
@@ -69,9 +69,8 @@
 
 | Round    | Purpose                                     | Agent                                                 | Memory                 |
 | -------- | ------------------------------------------- | ----------------------------------------------------- | ---------------------- |
-| Round 1  | Proactive analysis or main-session analysis | Domain-specific agent (e.g., `performance-optimizer`) | —                      |
-| Round 2  | Challenge / fresh eyes                      | Fresh pass; a NEW domain-specific agent when the round uses one | A sub-agent: ZERO memory of Round 1; inline: re-read from disk |
-| Round 2  | Post-fix re-verification                    | Fresh pass; a NEW domain-specific agent when the round uses one | A sub-agent: ZERO memory; inline: re-read from disk |
+| Round 1  | Proactive analysis or main-session analysis | Main session, or a domain-specific agent (e.g., `performance-optimizer`) when the round uses one | —                      |
+| Rounds 2–3 | Post-fix re-verification with fresh eyes  | Fresh pass; a NEW domain-specific agent when the round uses one | A sub-agent: ZERO memory; inline: re-read from disk |
 | Max      | 3 rounds                                    | Then escalate to user via `ask user question tool`           | —                      |
 
 **Key rules:**

@@ -228,26 +228,43 @@ function isRouterEnabled(section, envVar, deps = {}) {
     return enabled !== false && !isOff(enabled);
 }
 
-// The start of a sentence an imperative can open: the prompt start or a sentence end, an optional list marker,
-// then any polite or connective prefixes ("please,", "ok so").
-const SENTENCE_START = '(?:^|[.!?;\\n]\\s*)(?:[-*(]\\s*)?(?:(?:please|pls|ok(?:ay)?|now|then|so|and)[,\\s]+)*';
-const ACTION_VERBS = '(?:fix|implement|add|create|build|run|resolve|make|update|refactor|write|remove|delete|rename|debug|repair|patch|install|set\\s+up|migrate|clean\\s+up|handle|change|move|convert|upgrade|generate|apply|follow)';
-// A fix/build request: a sentence-initial imperative ("Run the tests and fix any errors") or a polite ask
-// ("can you fix it?", "please implement …").
-const ACTION_REQUEST = new RegExp(
-    `${SENTENCE_START}${ACTION_VERBS}\\b|\\b(?:can|could|would|will) you (?:please )?(?:help (?:me )?)?${ACTION_VERBS}\\b|\\b(?:please|help me) ${ACTION_VERBS}\\b`,
+// Where a sentence-initial imperative can open: the prompt start or a sentence end, then any polite or connective
+// prefixes ("please,", "ok so"). Three openers serve callers with opposite needs:
+// - SENTENCE_START decides whether a prompt is a build request before the verdict router drops its weak patterns,
+//   so it stays strict: a bulleted plan followed by "any gaps?" is still a verdict ask.
+// - ITEM_START also accepts a list marker, so "- recommend a pattern" is still an advice ask.
+// - WORK_START also accepts a list marker and an affirmation ("yes, do it", "sounds good, implement it"), so the
+//   plan offer catches the go-ahead that turns a discussion into work.
+const SENTENCE_END = '(?:^|[.!?;\\r\\n][^\\S\\r\\n]*)';
+const LIST_MARKER = '(?:[-*(][^\\S\\r\\n]*)?';
+const CONNECTIVES = 'please|pls|ok(?:ay)?|now|then|so|and';
+const AFFIRMATIONS = 'yes|yeah|yep|sure|great|perfect|alright|sounds good|lgtm|approved|cool';
+const prefixes = words => `(?:(?:${words})(?:,|[^\\S\\r\\n])+)*`;
+const SENTENCE_START = `${SENTENCE_END}${prefixes(CONNECTIVES)}`;
+const ITEM_START = `${SENTENCE_END}${LIST_MARKER}${prefixes(CONNECTIVES)}`;
+const WORK_START = `${SENTENCE_END}${LIST_MARKER}${prefixes(`${AFFIRMATIONS}|${CONNECTIVES}`)}`;
+// "follow" only as an instruction ("follow the steps"), never "Follow up:", "follow-up" or "Follow-ups:".
+const ACTION_VERBS = '(?:fix|implement|add|create|build|run|resolve|make|update|refactor|write|remove|delete|rename|debug|repair|patch|install|set\\s+up|migrate|clean\\s+up|handle|change|move|convert|upgrade|generate|apply|follow(?![\\s-]*ups?\\b))';
+const workRequest = start => new RegExp(
+    `${start}${ACTION_VERBS}\\b|\\b(?:can|could|would|will) you (?:please )?(?:help (?:me )?)?${ACTION_VERBS}\\b|\\b(?:please|help me) ${ACTION_VERBS}\\b`,
     'i'
 );
-// The go-ahead that turns a discussion into work: "ok do it", "go ahead", "let's build it", "proceed".
-const GO_AHEAD = new RegExp(`${SENTENCE_START}(?:do it|do that|do this|go ahead|proceed|let'?s (?:do|build|implement|start|go)|start (?:implementing|building|the work|on it))\\b`, 'i');
+// A fix/build request: a sentence-initial imperative ("Run the tests and fix any errors") or a polite ask
+// ("can you fix it?", "please implement …").
+const ACTION_REQUEST = workRequest(SENTENCE_START);
+// The same request written as a list item or after an affirmation, for the plan offer only.
+const WORK_REQUEST = workRequest(WORK_START);
+// The go-ahead that turns a discussion into work: "ok do it", "yes, go ahead", "let's build it", "proceed".
+const GO_AHEAD = new RegExp(`${WORK_START}(?:do it|do that|do this|go ahead|proceed|let'?s (?:do|build|implement|start|go)|start (?:implementing|building|the work|on it))\\b`, 'i');
 
 /** True when the user-authored prompt text asks for work to be done, not a question or a verdict. */
 function isBuildRequest(text) {
-    return typeof text === 'string' && (ACTION_REQUEST.test(text) || GO_AHEAD.test(text));
+    return typeof text === 'string' && (WORK_REQUEST.test(text) || GO_AHEAD.test(text));
 }
 
 module.exports = {
     SENTENCE_START,
+    ITEM_START,
     ACTION_REQUEST,
     isBuildRequest,
     isHookEntryPoint,

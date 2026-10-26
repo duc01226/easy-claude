@@ -66,7 +66,7 @@ disable-model-invocation: false
 | An artifact whose rationale needs review, without interviewing the user | `$why-review` |
 | An effort too big for one session, route unclear | `$wayfinder` |
 
-This skill and `$why-review` are complements: this one puts the choices to the user by interview, `$why-review` has the agent critique the rationale without asking. When another row fits better, say so in one line and let the user choose; an explicit request for this skill always runs, and so does a call from another skill.
+This skill and `$why-review` are complements: this one puts the choices to the user by interview, `$why-review` has the agent critique the rationale without interviewing the user. When another row fits better, say so in one line and let the user choose; an explicit request for this skill always runs, and so does a call from another skill.
 
 ## Phase 0: Frame the Subject and Gather Facts
 
@@ -124,7 +124,7 @@ Play the answers back, then write the Decision Record to `tmp/reports/grill-{YYM
 
 Ask one closing question: does the playback match what the user meant. Correct the record when it does not.
 
-Then offer, never require, one short stress pass on the recorded decisions from four angles: need and reuse, cost and scale, migration and rollback, day-to-day running. If the user accepts, run it inline in this conversation, one todo per angle closed with evidence, and append the findings to the same Decision Record under `## Stress Pass`. The record stays where Phase 4 wrote it, and nothing is planned, specified or built. A caller that runs this skill as one of its steps gets no offer.
+Then, once the playback is confirmed, offer as a separate question, never require, one short stress pass on the recorded decisions from four angles: need and reuse, cost and scale, migration and rollback, day-to-day running. If the user accepts, run it inline in this conversation, one todo per angle closed with evidence, and append the findings to the same Decision Record under `## Stress Pass`. The record stays where Phase 4 wrote it, and nothing is planned, specified or built. A caller that runs this skill as one of its steps gets no offer.
 
 Then name the next step that fits, in one line, without starting it: `$plan` for an implementation plan, `$spec` for a Feature Spec, `$initiative` for a product idea, `$wayfinder` when the effort turned out too big for one session. Give the Decision Record path with it, so the next skill starts from the record. Do not act on the decisions until the user asks.
 
@@ -138,7 +138,7 @@ A sub-agent or headless run cannot interview. Return the briefing and the open d
 
 ## Output
 
-Report the subject, rounds and questions, the decisions with chosen options, unconfirmed assumptions, what is still open, the Decision Record path and the suggested next step.
+Report the subject, rounds and questions, the decisions with chosen options, unconfirmed assumptions, what is still open, any Stress Pass findings, the Decision Record path and the suggested next step.
 
 <!-- PROTOCOL-GUIDES:START -->
 

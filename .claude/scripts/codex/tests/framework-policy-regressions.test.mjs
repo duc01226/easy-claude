@@ -350,8 +350,10 @@ test("mutating workflow closures refresh domain-entity references before docs-ma
 test("plan creation never runs --mode=review and reviews its own plan with why-review, deeper only for a risky plan", async () => {
   const plan = await read(".claude/skills/plan/SKILL.md");
   assert.match(plan, /Plan creation never runs `--mode=review` or `--mode=execute`/);
-  // Business intent: a generated plan gets one independent rationale review and one fix pass before the user validates it
+  // Business intent: a generated plan gets an independent rationale review and its fixes before the user validates it:
+  // one round, or a fix loop of up to three rounds for a high-risk full-profile plan
   assert.match(plan, /## Self-Review Pass[\s\S]*run one `\/why-review --review-only` pass on the saved plan \(it validates its own findings and edits nothing\)[\s\S]*one review pass and one fix pass, with no second review round/);
+  assert.match(plan, /A full-profile plan with a one-way, cross-module, public-contract, data or security decision runs the pass as a fix loop[^\n]*up to three rounds/);
   assert.match(plan, /A workflow owns this run and lists its own `\/plan --mode=review` step\*\* — that step reviews the plan/);
   assert.match(plan, /Standalone invocation:\*{0,2}[\s\S]*then end with the one \[Standalone Close\]\(#standalone-close\) question \(execute · deeper review · stop\): the plan was already reviewed, so a deeper `\/plan --mode=review` is offered there and never called automatically/);
   assert.match(plan, /Workflow invocation:\*{0,2}[\s\S]*Do not ask about review, execution, or other next steps/);
@@ -361,7 +363,7 @@ test("plan creation never runs --mode=review and reviews its own plan with why-r
 test("not-yet-specified work stays apart from non-goals in the plan and the large-idea decomposition", async () => {
   const [plan, contract, execute, review] = await Promise.all([
     read(".claude/skills/plan/SKILL.md"), read(".claude/skills/shared/product-roadmap-contract.md"),
-    read(".claude/skills/plan/references/mode-execute.md"), read(".claude/skills/plan/references/mode-review.md"),
+    read(".claude/skills/plan/references/mode-execute.md"), read(".claude/skills/shared/review-dimensions.md"),
   ]);
   // The plan lists what cannot yet be asked precisely, by one test, and never files it under non-goals
   assert.match(plan, /\*\*Not yet specified:\*\*[^\n]*cannot yet state as a precise question[^\n]*what it waits on and who settles it/);

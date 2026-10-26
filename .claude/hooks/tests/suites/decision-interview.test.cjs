@@ -291,13 +291,13 @@ const tests = [
         }
     },
     {
-        name: 'TC-DIV-006 grill may offer one inline stress pass on its recorded decisions and still only records',
+        name: 'TC-DIV-006 (TC-WFR-029) grill may offer one inline stress pass on its recorded decisions and still only records',
         skip: SKIP,
         fn: () => {
             const text = read(SKILLS, 'grill', 'SKILL.md');
             const phase5 = text.slice(text.indexOf('## Phase 5: Confirm and Hand Off'), text.indexOf('## Called by Another Skill'));
-            // The offer follows the closing question, is optional and names its four angles
-            assert.match(phase5, /Ask one closing question[^\n]*\n\nThen offer, never require, one short stress pass on the recorded decisions from four angles: need and reuse, cost and scale, migration and rollback, day-to-day running\./);
+            // The offer follows the confirmed playback as its own question, is optional and names its four angles
+            assert.match(phase5, /Ask one closing question[^\n]*\n\nThen, once the playback is confirmed, offer as a separate question, never require, one short stress pass on the recorded decisions from four angles: need and reuse, cost and scale, migration and rollback, day-to-day running\./);
             // An accepted pass runs inline and appends to the same record, which keeps its location
             assert.match(phase5, /run it inline in this conversation, one todo per angle closed with evidence, and append the findings to the same Decision Record under `## Stress Pass`/);
             assert.match(phase5, /The record stays where Phase 4 wrote it, and nothing is planned, specified or built\./);

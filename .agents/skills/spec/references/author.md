@@ -41,7 +41,7 @@ Apply this branch when `spec` profile resolution selects a native contract from 
 | `draft` | Draft intent in the native owner format; mark provisional only as that profile specifies. Unknown product decisions remain explicit questions, not invented cases. |
 | `init` | Create the owner using the configured local template/section roles and existing identifier rules; do not import the default eight-section/TC template. |
 | `update` | Patch only impacted native intent/contract/case carriers; preserve identifiers, lineage, variants, and unrelated case data. |
-| `audit` | Read-only report against native owners and carriers; unresolved selection or unsupported data is reported as `UNKNOWN`, not clean. |
+| `audit` | Read-only report against native owners and carriers; unresolved selection or unsupported data is reported as `UNKNOWN`, not clean. Stale owners also get the meaning-level drift pass over their native intent/contract rules, read-only, reporting `N rules checked, M divergent`. |
 | `amend` | Apply the local lifecycle and native case ownership after root-cause and behavior-scope adjudication; preserve healthy behavior and do not manufacture a TC. |
 
 ## Strict Default Feature-Spec Procedure

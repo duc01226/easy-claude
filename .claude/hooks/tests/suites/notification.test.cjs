@@ -1451,7 +1451,7 @@ const notifyHandlersFor = (settings, event) => (settings.hooks[event] || [])
 const codexAlertTests = [
     {
         // Intent: Codex asks through request_user_input (Plan mode, root thread), not AskUserQuestion, so its
-        // question must raise the same alert Claude's question raises, and a delegated thread must stay silent.
+        // question must raise the same alert Claude's question raises, including one asked in a delegated thread.
         name: '[TC-NT-076] a Codex question tool raises the question alert, as Claude AskUserQuestion does',
         fn: () => {
             const { normalizeEvent, getSkipReason, getEventType } = loadRouterContracts();
@@ -1491,6 +1491,11 @@ const codexAlertTests = [
             const claude = normalizeEvent({ hook_event_name: 'PermissionRequest', tool_name: 'Bash', session_id: 's1' });
             assertEqual(getEventType(claude), 'PermissionRequest');
             assertTrue(getSkipReason(claude) !== null, 'Claude PermissionRequest must not raise a second alert');
+            // And Claude's PermissionRequest for its own question tool stays silent: the PreToolUse question alert
+            // already covers that question, so it must not become a second question alert
+            const claudeQuestion = normalizeEvent({ hook_event_name: 'PermissionRequest', tool_name: 'AskUserQuestion', session_id: 's1' });
+            assertEqual(getEventType(claudeQuestion), 'PermissionRequest', 'a PermissionRequest is never rewritten into the question alert');
+            assertTrue(getSkipReason(claudeQuestion) !== null, 'Claude PermissionRequest for AskUserQuestion must not alert a second time');
             // And an approval inside a delegated conversation still waits on the user, so it alerts too
             assertEqual(getSkipReason(normalizeEvent({ hook_event_name: 'PermissionRequest', turn_id: 'turn-2', agent_id: 'a1', tool_name: 'Bash' })), null,
                 'an approval the user must give alerts wherever it is requested');

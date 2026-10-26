@@ -5,7 +5,7 @@ feature_code: 'SPL'
 entities: ['PromptEntry', 'SessionRecord', 'LedgerDigest', 'DeliveryRecord', 'RecordingSettings']
 status: draft
 owner: 'Framework maintainers'
-last_updated: '2026-09-16'
+last_updated: '2026-10-26'
 scope_mode: FRAMEWORK-LIBRARY
 large_idea_decomposition: null
 roadmap: null
@@ -103,7 +103,7 @@ In long working sessions an AI assistant loses track of what the user originally
 - **AC-SPL-16** — **Given** any digest **When** it is shown **Then** the original request is first, the verification line with the version tag is last, and the size limit holds
 - **AC-SPL-17** — **Given** a host clear report **When** the next prompt is submitted **Then** it becomes the new original request
 - **AC-SPL-20** — **Given** records this capability created, untouched for seven days **When** a new session records its first prompt **Then** they are removed, while anything the capability did not create is left untouched however old it is
-- **AC-SPL-21** — **Given** a payload the host generated (a background task notification, a system reminder, a command echo) **When** it arrives on the prompt channel **Then** it is not recorded and never becomes the pinned request
+- **AC-SPL-21** — **Given** a payload the host generated (a background task notification, a system reminder, a command echo, a sub-agent hand-back) **When** it arrives on the prompt channel **Then** it is not recorded and never becomes the pinned request
 - **AC-SPL-22** — **Given** the record was created while the conversation was already long **When** any reminder is shown **Then** it says the first entry is only the first recorded prompt and the original request may be earlier
 
 ### US-SPL-04: Same discipline without the session record
@@ -178,7 +178,7 @@ In long working sessions an AI assistant loses track of what the user originally
 
 ### BR-SPL-13: Only genuine user input is recorded [HARD]
 
-**Statement:** Content the host generates and submits on the prompt channel — background task notifications, system reminders, command echoes, cross-session messages — is not user input: it is removed from the recorded text, and a payload that carries nothing else is not recorded at all. Such content can therefore never be shown as the user's request.
+**Statement:** Content the host generates and submits on the prompt channel — background task notifications, system reminders, command echoes, cross-session messages, sub-agent hand-backs — is not user input: it is removed from the recorded text, including a wrapper that carries attributes, and a payload that carries nothing else is not recorded at all. Such content can therefore never be shown as the user's request.
 
 ---
 
@@ -487,6 +487,8 @@ And that entry is the pinned request
 **Edge Cases:**
 
 - Truncated wrapper with no closing tag → still ignored
+- A sub-agent hand-back, whose wrapper carries attributes and whose report quotes requests for work → not recorded
+- A system reminder with attributes attached to a real prompt → stripped; the user's words stay
 - Prompt that merely mentions the word "reminder" → recorded normally
 
 <!-- machine-only carrier — ignore when reading as BA/QA -->

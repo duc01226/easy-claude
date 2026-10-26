@@ -63,10 +63,13 @@ const FAULT_NOUNS =
 // fix/build requests: "fix any errors", "I have an issue", "why does it crash", "write a critique section")
 // — counted only when the prompt is not an action request (see ACTION_REQUEST) — or asked (a stated belief
 // or check that is a verdict ask only when the prompt asks a question: "I think X, right?" asks,
-// "I think we should add a retry" and "verify that the build passes" instruct).
-const strong = re => ({ re, weak: false, asked: false });
-const weak = re => ({ re, weak: true, asked: false });
-const asked = re => ({ re, weak: false, asked: true });
+// "I think we should add a retry" and "verify that the build passes" instruct). A weakUnlessAsked pattern is
+// dropped by an action request only when the prompt asks no question: "implement the cache the best way" is build
+// work, "Run the tests. What's the best way to speed them up?" still asks.
+const strong = re => ({ re, weak: false, asked: false, keptWhenAsked: false });
+const weak = re => ({ re, weak: true, asked: false, keptWhenAsked: false });
+const asked = re => ({ re, weak: false, asked: true, keptWhenAsked: false });
+const weakUnlessAsked = re => ({ re, weak: true, asked: false, keptWhenAsked: true });
 
 // Gap hunt: "any gaps?", "does it have issues", "find bugs in", "what's wrong with", "anything missing".
 const PROBLEM_PATTERNS = [
@@ -102,24 +105,49 @@ const EVALUATION_PATTERNS = [
     strong(/\b(?:what do you think|thoughts on|your (?:opinion|take|view) on|how (?:good|solid|robust) is)\b/i)
 ];
 
-// The sentence-start and build-request grammar has one owner, shared with the workflow route's plan offer.
-const { SENTENCE_START, ACTION_REQUEST } = require('./lib/prompt-route-utils.cjs');
+// The sentence-start and build-request grammar has one owner (prompt-route-utils.cjs), shared with the workflow
+// route's plan offer; this router uses its strict build-request opener and its list-item opener for advice asks.
+const { ITEM_START, ACTION_REQUEST } = require('./lib/prompt-route-utils.cjs');
+
+// An approach or design question asks for advice only when a decision marker follows the noun: a modal ("what approach
+// should we take"), a fit ("what architecture fits"), a verdict word ("what design is best", "which approach is less
+// risky"), a first- or second-person choice ("what approach do I take", "what design do you recommend"), a need ("what
+// strategy does this problem need"), or a survey ("what approaches are there").
+// Without one it is a lookup of what is already in use: "what approach does the importer take", "what design is the
+// notifier based on", "which strategy the scheduler uses". Positive markers keep a new verb from turning a lookup into an ask.
+const VERDICT_WORDS = String.raw`(?:best|better|worse|right|ideal|recommended|preferred|good|wise|sensible|reasonable|appropriate|suitable|viable|safe|simple|clean|cheap|fast|easy|robust|best|worst|simplest|cleanest|safest|cheapest|fastest|easiest|wisest|smartest|quickest|leanest|lightest|smallest|clearest|strongest|less\s+\w+|more\s+\w+|most\s+\w+|least\s+\w+|easier|harder|faster|slower|cheaper|safer|simpler|cleaner|smarter)`;
+// A verdict word counts only where it closes the clause or comes before a choice word or a preposition ("is best for",
+// "is less risky?", "is the best fit"); "which strategy are most of the hooks using?" and "what design is safe mode built
+// on?" name what is in use.
+const VERDICT_CLOSE = String.raw`(?=\s*(?:[?.!,;:]|$)|\s+(?:ones?|options?|choices?|ways?|approach(?:es)?|designs?|strateg(?:y|ies)|solutions?|pick|bet|fit|here|now|for|to|than|enough|overall|suited|placed|in|with|when|if|given)\b)`;
+const DECISION_ASK = new RegExp(String.raw`\b(?:what|which) (?:approach(?:es)?|strateg(?:y|ies)|architectures?|designs?|solutions?)\b(?:\s+[\w-]+){0,2}?\s+(?:should|would|could|ought|might|fits?|suits?|works?\s+(?:best|better|well|for)|makes?\s+(?:[\w-]+\s+){0,2}?(?:sense|easier|simpler|safer|faster|cheaper)|(?:is|are|seems?)\s+(?:(?!the\b)[\w-]+\s+)?(?!the\b)${VERDICT_WORDS}${VERDICT_CLOSE}|(?:is|are|seems?)\s+(?:[\w-]+\s+)?the\s+${VERDICT_WORDS}${VERDICT_CLOSE}|(?:is|are)\s+there\b|has\s+the\s+(?:fewest|least|best)|do\s+(?:you|i|we)\s+(?:recommend|suggest|propose|prefer|advise|take|pick|choose|go\s+with)|do\s+i\s+(?:use|follow)|do\s+you\s+think|(?:does|do)\s+(?:[\w-]+\s+){1,3}?(?:need|require|call\s+for|deserve|warrant))\b`, 'i');
 
 // Advice / solution ask: "what's the best way to", "how would you", "recommend an approach", "what strategy fits".
-// Only an ask routes. A stated plan ("I suggest we move the cache") is an instruction, and a lookup
-// ("what tool runs the tests?", "how could I see the logs?", "what design does the router use?") asks for a fact.
+// Only an ask routes. A stated plan ("I suggest we move the cache") is an instruction, build work that names a
+// recommendation ("implement the cache using the best approach") is a build request, and a lookup ("what tool runs
+// the tests?", "how could I see the logs?", "what strategy do we use?", "what approach did you use?") asks for a fact.
+// "What approach do you recommend?" and "what approach do I take?" still ask.
 const ADVICE_PATTERNS = [
-    strong(/\b(?:best|right|recommended|cleanest|simplest|safest|smartest) (?:way|approach|option|practice|strategy|design|solution|pattern|tool|library|structure)\b/i),
-    strong(/\bhow would you\b/i),
-    strong(/\bwhat (?:approach|strategy|architecture|design|solution)s?\b(?!\s+(?:does|did|is|are|was|were)\b)/i),
-    // Sentence-initial imperative, a "can you" request, "what do you recommend" or "your advice" — never "I suggest we …".
-    strong(new RegExp(`${SENTENCE_START}(?:recommend|suggest|propose|advise)\\b|\\b(?:can|could|would|will) you (?:please )?(?:recommend|suggest|propose|advise)\\b|\\bwhat (?:do|would) you (?:recommend|suggest|propose|advise)\\b|\\byour (?:recommendation|advice|suggestion)\\b`, 'i'))
+    weakUnlessAsked(/\b(?:best|right|recommended|cleanest|simplest|safest|smartest) (?:way|approach|option|practice|strategy|design|solution|pattern|tool|library|structure)\b/i),
+    strong(/\b(?:how|what) would you\b/i),
+    asked(/\bany (?:suggestions|recommendations|advice)\b/i),
+    // An approach or design question asks for advice only when a decision marker follows the noun (DECISION_ASK).
+    weakUnlessAsked(DECISION_ASK),
+    // An open choice asked as its own sentence ("Which approach to use for retries?"), never inside a clause
+    // ("explain how the router decides which strategy to use").
+    weakUnlessAsked(new RegExp(`${ITEM_START}(?:what|which) (?:approach(?:es)?|strateg(?:y|ies)|architectures?|designs?|solutions?)\\s+to\\s+(?:use|take|pick|choose|adopt|follow)\\b`, 'i')),
+    // Sentence- or item-initial imperative, a "can you" request, "what do you recommend" or "your advice" — never "I suggest we …".
+    strong(new RegExp(`${ITEM_START}(?:recommend|suggest|propose|advise)\\b|\\b(?:can|could|would|will) you (?:please )?(?:recommend|suggest|propose|advise)\\b|\\bwhat (?:do|would) you (?:recommend|suggest|propose|advise)\\b`, 'i')),
+    // "your advice" asks as a question, or after "I'd like" / "want" / "need": "try your suggestion and run the tests" is a
+    // go-ahead, and so is "go with your suggestion" even with a question mark later.
+    strong(/\b(?:'d like|would like|want|need|get|hear|seek|give me|share)\s+your (?:recommendation|advice|suggestion)s?\b/i),
+    asked(/(?<!\b(?:with|implement|apply|follow|use|take|accept|adopt|keep|per|on|do)\s+)\byour (?:recommendation|advice|suggestion)s?\b/i)
 ];
 
 // An explicit review or grill invocation already carries its own adversarial protocol.
 const EXPLICIT_REVIEW_INVOCATION = /^\s*[/$](?:[\w-]+:)?(?:why-review|grill)\b/i;
 // "Implement / add / create ..." with no question is a build request, not a verdict request.
-const QUESTION_OR_VERDICT_CUE = /\?|\b(?:check|evaluate|assess|judge|review|confirm|verify|validate|audit|critique|am i|is it|is this|is the|is anything|is there|are there|does it|what do you think|thoughts on|should|which|why|what(?:'s| is)? wrong|any \w+|recommend|advise|suggest|propose|your (?:recommendation|advice|suggestion)|best (?:way|approach|option|practice)|how would you|what (?:approach|strategy|architecture|design|solution))\b/i;
+const QUESTION_OR_VERDICT_CUE = /\?|\b(?:check|evaluate|assess|judge|review|confirm|verify|validate|audit|critique|am i|is it|is this|is the|is anything|is there|are there|does it|what do you think|thoughts on|should|which|why|what(?:'s| is)? wrong|any \w+|recommend|advise|suggest|propose|your (?:recommendation|advice|suggestion)|best (?:way|approach|option|practice)|how would you|what would you|what (?:approach|strategy|architecture|design|solution))\b/i;
 // A fix/build request (ACTION_REQUEST, shared): its fault nouns describe work to do, not a verdict to give.
 
 /** Return the list of leans the prompt carries; empty when it does not ask for a verdict. */
@@ -131,7 +159,7 @@ function detectLeans(prompt) {
     if (!QUESTION_OR_VERDICT_CUE.test(text)) return [];
     const isAction = ACTION_REQUEST.test(text);
     const isQuestion = text.includes('?');
-    const hits = patterns => patterns.some(p => (!isAction || !p.weak) && (isQuestion || !p.asked) && p.re.test(text));
+    const hits = patterns => patterns.some(p => (!isAction || !p.weak || (p.keptWhenAsked && isQuestion)) && (isQuestion || !p.asked) && p.re.test(text));
     const leans = [];
     if (hits(PROBLEM_PATTERNS)) leans.push(LEANS.PROBLEM_PRESUMED);
     if (hits(CONFIRMATION_PATTERNS)) leans.push(LEANS.CONFIRMATION_SOUGHT);

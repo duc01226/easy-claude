@@ -685,7 +685,8 @@ const tests = [
             assert.match(message, /Lightweight mode never selects an automatic skip/);
             assert.match(message, /Do not ask the user: classify the actual candidate risk[\s\S]{0,40}higher on a tie/,
                 'hook must point to the skill rule and the tie-break');
-            assert.match(message, /at most 2 review rounds\. MEDIUM\+ findings still open at the cap: stop and report, no commit, no skip/);
+            // The cap matches the shared review policy (scripts/lib/review-policy.cjs MAX_ROUNDS).
+            assert.match(message, new RegExp(`at most ${require('../../../scripts/lib/review-policy.cjs').MAX_ROUNDS} review rounds\\. MEDIUM\\+ findings still open at the cap: stop and report, no commit, no skip`));
             assert.match(message, /\/workflow-review-changes --fix-loop also issues a valid receipt when the user asks for the full workflow/);
 
             // The coordinator delegates selection; executable policy tests own tier behavior.

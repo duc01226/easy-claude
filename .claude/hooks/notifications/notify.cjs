@@ -42,7 +42,9 @@ function normalizeEvent(input) {
         return input;
     }
 
-    if (QUESTION_TOOLS.includes(input.tool_name) && !input.notification_type) {
+    // Only a tool-use event becomes the question alert. A PermissionRequest names the tool it gates (Claude runs
+    // one for AskUserQuestion too), and it is decided by the turn_id rule below alone, so one question alerts once.
+    if (QUESTION_TOOLS.includes(input.tool_name) && !input.notification_type && input.hook_event_name !== 'PermissionRequest') {
         input.hook_event_name = 'AskUserQuestion';
     }
 

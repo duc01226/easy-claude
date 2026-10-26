@@ -18,6 +18,7 @@
  *   TC-RVQ-008 — a rationale review maps its required sections onto a /plan plan's sections.
  *   TC-RVQ-009 — a consequential answer is offered grill / why-review / skip in one question, and the
  *                grill, brainstorm and rationale-review skills point to the interview where it fits.
+ *   TC-RVQ-010 — advice asks get the answer self-review: judgement-integrity-route.test.cjs, TC-JIR-012.
  *   TC-RVQ-011 — a standalone plan creation ends with one question: execute, deeper review or stop;
  *                workflows, calling skills and headless runs ask nothing.
  *
@@ -88,8 +89,9 @@ const tests = [
             // Both reviews point to it with a read-before-review instruction
             assert.match(fullMode(), /\*\*\[BLOCKING\]\*\* Read `\.claude\/skills\/shared\/review-dimensions\.md` in full before the first review pass/);
             assert.match(planReview(), /\*\*\[BLOCKING\]\*\* Read `\.claude\/skills\/shared\/review-dimensions\.md` in full and work its dimensions as todos/);
-            // Boundary: naming a dimension in prose is not a copy of the list
-            assert.match(planReview(), /Goal alignment, Future change cost, Decision readiness, Test\/spec\/doc sync/);
+            // Boundary: the plan review names the profile rule of the owner instead of copying the light set
+            assert.match(planReview(), /scaled by the plan profile as its "A plan's profile picks the set" rule states/);
+            assert.doesNotMatch(planReview(), /Goal alignment, Future change cost, Decision readiness/, 'the light set has one owner');
         }
     },
     {
@@ -108,7 +110,7 @@ const tests = [
             }
             assert.equal(new Set(names).size, names.length, 'no dimension appears twice');
             assert.match(text, /\| Future change cost \|[^\n]*smallest change at the root cause[^\n]*searched for \(cite the search and 3 siblings\)/);
-            assert.match(text, /\| Outsider read \|[^\n]*relies on but does not define or link[^\n]*added to the artifact or linked/);
+            assert.match(text, /\| Outsider read \|[^\n]*relies on but does not define or link[^\n]*Each item is a finding; its fix adds the item to the artifact or links it/);
             assert.match(text, /\| Decision readiness \|[^\n]*settled or explicitly blocked[^\n]*Local mechanics stay with the builder/);
         }
     },
@@ -117,17 +119,24 @@ const tests = [
         skip: SKIP,
         fn: () => {
             const text = planReview();
-            assert.match(text, /\*\*Light profile:\*\* Goal alignment, Future change cost, Decision readiness, Test\/spec\/doc sync\./);
-            assert.match(text, /\*\*Full profile, or no profile declared:\*\* every applicable dimension, Outsider read included in any session\./);
-            assert.match(text, /\*\*Plan-only checks \(every profile\):\*\* Is the outcome governed by a clear owner\/spec, with non-goals and no silent expansion\?/);
-            assert.match(text, /Is discovery bounded, with a named way to settle each uncertainty\?/);
-            assert.match(text, /Does the `Not yet specified` list hold only items that cannot yet be stated as a precise question, and no product-intent, public-contract or irreversible decision parked there\?/);
+            // The profile split has one owner, the dimension list both plan review and plan creation's review read
+            assert.match(owner(), /\*\*A plan's profile picks the set\.\*\* For a `\/plan` plan, the light profile works Goal alignment, Future change cost, Decision readiness and Test\/spec\/doc sync; a full profile, or no profile declared, works every applicable dimension, Outsider read included in any session\./);
+            assert.match(owner(), /Any other artifact works every applicable dimension\./);
+            // The three plan-only checks live in the owner too, so plan creation's own review reaches them
+            assert.match(owner(), /Every plan profile also runs three plan-only checks: Is the outcome governed by a clear owner\/spec, with non-goals and no silent expansion\?/);
+            assert.match(text, /\*\*Plan-only checks \(every profile\):\*\* the three the same rule names/);
+            assert.match(owner(), /Is discovery bounded, with a named way to settle each uncertainty\?/);
+            assert.match(owner(), /Does the `Not yet specified` list hold only items that cannot yet be stated as a precise question, and no product-intent, public-contract or irreversible decision parked there\?/);
             // Plan creation's Self-Review Pass works the same dimensions, scaled by the plan profile
-            assert.match(read(SKILLS, 'plan', 'SKILL.md'), /That pass works the shared review dimensions as todos, scaled by the plan profile \(`references\/mode-review\.md` → Simplified Why-Review Pass\), and records each dimension's verdict under `## Self-Review`/);
+            assert.match(read(SKILLS, 'plan', 'SKILL.md'), /That pass works the shared review dimensions as todos, scaled by the plan profile as `\.claude\/skills\/shared\/review-dimensions\.md` states \(the `\/why-review` pass reads that file, so plan creation loads no mode file for it\), and records each dimension's verdict under `## Self-Review`/);
+            // And the high-attention summary lines name the same risk-scaled self-review and the standalone close
+            assert.equal((read(SKILLS, 'plan', 'SKILL.md').match(/`\/why-review` self-review[^\n]*\(one round; up to three for a high-risk full-profile plan\)[^\n]*a standalone run ends with the one Standalone Close question/g) || []).length, 3, 'Summary, Workflow and Main steps lines name the risk-scaled self-review and the close');
+            assert.doesNotMatch(read(SKILLS, 'plan', 'SKILL.md'), /one `\/why-review` fix pass/);
             // And its depth follows the plan's risk: a high-risk full plan gets a fix loop, every other plan one round
             assert.match(read(SKILLS, 'plan', 'SKILL.md'), /A full-profile plan with a one-way, cross-module, public-contract, data or security decision runs the pass as a fix loop: review, fix, then freshly review the fixed plan, up to three rounds, stopping when a fresh pass finds no MEDIUM or higher finding\. For every other plan the loop runs one round/);
             // Boundary: outsider read is never limited to the session that drafted the plan
             assert.doesNotMatch(text, /Outsider read[^\n]*only (when|in) (this|the) session/i);
+            assert.doesNotMatch(owner(), /Outsider read[^\n]*only (when|in) (this|the) session/i);
         }
     },
     {
@@ -154,6 +163,9 @@ const tests = [
                 assert.doesNotMatch(text, /fully restart with a fresh zero-memory/, `${rel} forces a fresh zero-memory reviewer`);
                 assert.doesNotMatch(text, /fix → fresh sub-agent re-review/, `${rel} forces a sub-agent re-review`);
                 assert.doesNotMatch(text, /run the review as a fresh sub-agent built as in/, `${rel} forces a fresh sub-agent task review`);
+                assert.doesNotMatch(text, /each round uses a NEW fresh sub-agent/, `${rel} forces a new sub-agent every round`);
+                assert.doesNotMatch(text, /Spawn `performance-optimizer` as Round 1/, `${rel} forces a Round 1 sub-agent`);
+                assert.doesNotMatch(text, /Round 2 uses a fresh sub-agent/, `${rel} forces a Round 2 sub-agent`);
             }
             const guide = read(SKILLS, 'shared', 'sub-agent-selection-guide.md');
             assert.match(guide, /When a round uses a sub-agent, never reuse one from an earlier round/);
@@ -223,19 +235,23 @@ const tests = [
             assert.match(rule, /7\. \*\*Offer a deeper check on a consequential answer\.\*\*/);
             assert.match(rule, /close it with ONE question through the host's question tool, with three options: \*\*grill it\*\* \(`\/grill`/);
             assert.match(rule, /\*\*skip\*\* \(keep the answer as it is\)/);
+            assert.match(rule, /Put grill first when the answer rests on the user's preferences or constraints, and why-review first when it rests on evidence and reasoning\./);
+            assert.match(rule, /or on a turn where the mid-session plan question applies, which replaces this offer\./);
             assert.match(rule, /Never ask after a lookup, a trivial answer or a routine edit; inside a running workflow, or at the end of a skill whose procedure owns its closing question or next step, since those cover it; from a sub-agent or headless run/);
             // Grill takes an earlier answer as its subject and names why-review as its complement
             const grill = read(SKILLS, 'grill', 'SKILL.md');
             assert.match(grill, /\| An answer, advice or plan you gave earlier in this conversation \| this skill: that answer is the subject, and the user decides each choice it made \|/);
-            assert.match(grill, /this one puts the choices to the user by interview, `\/why-review` has the agent critique the rationale without asking/);
+            assert.match(grill, /this one puts the choices to the user by interview, `\/why-review` has the agent critique the rationale without interviewing the user/);
             assert.match(grill, /every assumption it made about the user's constraints; each assumption is a decision to ask/);
             // Brainstorm and a standalone rationale review offer the interview; workflow steps and sub-agents never do
             const brainstorm = read(SKILLS, 'brainstorm', 'SKILL.md');
-            assert.match(brainstorm, /\*\*Stress-test offer:\*\* when run standalone with a user present, after the report ask one question with the host's question tool: grill the recommended option/);
+            assert.match(brainstorm, /\*\*Stress-test offer:\*\* when run standalone with a user present, the next-steps question below lists grill the recommended option[^\n]*so the session still ends with one question\. Discovery mode has no single recommended option and lists no grill option\./);
+            assert.match(brainstorm, /^\| `\/grill <report-path>` \| Stress-test the recommended option/m);
             assert.match(brainstorm, /A workflow step or a sub-agent run makes no offer/);
             const review = fullMode();
-            assert.match(review, /\*\*Standalone review, material trade-offs left to the user:\*\* that question may also offer `\/grill` with the report path/);
-            assert.match(review, /A workflow step, report-only leaf or sub-agent never offers it\./);
+            assert.match(review, /\*\*Standalone review, material trade-offs left to the user:\*\* the completed report lists them and offers `\/grill` with the report path/);
+            assert.match(review, /The offer is a pointer in the report, not a question, so the review still returns its report and asks nothing more\./);
+            assert.match(review, /A review run by a workflow step, another skill or a sub-agent never offers it\./);
         }
     },
     {
@@ -248,7 +264,7 @@ const tests = [
             // One question with three options, after the validation chain ran or exited
             assert.match(close, /ends with one question through the host's question tool, after the validation chain ran or took one of its exits: \*\*execute now\*\* \(`\/plan --mode=execute <plan-path>`\) · \*\*deeper review first\*\* \(`\/plan --mode=review --fix-loop <plan-path>`, up to three rounds\) · \*\*stop here\*\*/);
             // A reasoned recommendation, and only the answer starts the next run
-            assert.match(close, /Recommend execute when the self-review left no open finding and validation passed; recommend the deeper review when a finding stayed open/);
+            assert.match(close, /Recommend execute when the self-review left no open finding and validation passed; recommend the deeper review when a finding stayed open, validation was skipped, or the plan is full-profile with a one-way or cross-module decision whose self-review ran one round or none/);
             assert.match(close, /Act only on the answer\./);
             // Boundary: workflows, calling skills and contexts that cannot ask never get the question
             assert.match(close, /Ask nothing when a workflow owns this run, when another skill runs plan creation as one of its steps, or when this context cannot reach the user/);

@@ -145,9 +145,10 @@ easy-claude/
 │   │   │   ├── README.TaskTracking-Part7.md
 │   │   │   ├── README.TaskTracking-Part8.md
 │   │   │   └── README.TaskTracking-Part9.md
-│   │   └── WorkflowExecution/                     # 1 Feature Spec + 1 bucket catalog
+│   │   └── WorkflowExecution/                     # 2 Feature Specs + 1 bucket catalog
 │   │       ├── INDEX.md
-│   │       └── README.GuidedWorkflow.md
+│   │       ├── README.GuidedWorkflow.md
+│   │       └── README.ReviewQuality.md
 │   ├── knowledge/research/                        # 1 project research report
 │   │   └── ai-agent-skills-best-and-bad-practices.md
 │   └── templates/                                 # 1 Feature Spec template
@@ -279,6 +280,7 @@ Read `docs/project-config.json` first for any project question or task — paths
 | Feature Specs          | changing workflow routing, the route payload, or activation tiers (WFR)                                                                                                            | `ContextDelivery/README.WorkflowRouting.md`                                                                 |
 | Feature Specs          | changing how shared protocols reach the assistant: guide lines, delivery hooks, host mapping (PDL)                                                                                 | `ContextDelivery/README.ProtocolDelivery.md`                                                                |
 | Feature Specs | changing knowledge packs, their indexes, triggers, pointer delivery, trust labels or `/knowledge-base` operations (KNW) | `ContextDelivery/README.KnowledgeDelivery.md` |
+| Feature Specs | changing how reviews and audits judge an artifact: the shared review dimensions, plan review scaling, helper-agent choice, proportionate fixes, meaning-level spec drift, the deeper-check offer after an answer, the standalone plan close (RVQ) | `WorkflowExecution/README.ReviewQuality.md` |
 | Feature Specs          | changing how a chosen workflow runs: step roles, outcome gates, deviation log, the spec-supplied route, scope guard, usage report, token checkpoint (GWF)                          | `WorkflowExecution/README.GuidedWorkflow.md`                                                                |
 | Feature Specs          | changing adoption switches: code graph, commit trailer, command-only skills, compaction (ADS)                                                                                      | `Adoption/README.AdoptionSwitches.md` (release-D cases in `Adoption/README.AdoptionSwitches-Part2.md`)      |
 | Feature Specs          | changing assistant session notifications (NT)                                                                                                                                      | `Notifications/README.AssistantSessionNotifications.md`                                                     |
