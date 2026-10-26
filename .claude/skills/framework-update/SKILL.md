@@ -14,14 +14,14 @@ description: '[Utilities] Use only when the user asks to update or upgrade the .
 1. **Preflight** — clean framework folders, Node 18+, Git, network (or a local upstream checkout).
 2. **Dry run** — `--dry-run --json`; read the base, counts, conflicts, mirror-only skills and project-only files.
 3. **Decide** — ask the user only about mirror-only skills, a doubtful base or a dirty tree.
-4. **Apply** — the same command without `--dry-run`, pinned to the base the dry run used.
+4. **Apply** — the same command without `--dry-run`, pinned to the upstream commit and base the dry run showed.
 5. **Resolve** — read `references/merge-guide.md` and settle every conflict, keeping both sides' intent.
 6. **Verify and report** — no markers, JSON parses, the sync passes; report what changed and what stayed.
 
 **Key Rules:**
 
 - MUST ATTENTION run only on the user's explicit request; never start it on your own or as a step of other work.
-- MUST ATTENTION never delete, overwrite or "clean up" a project-owned file (a path upstream never shipped). The engine never touches them; neither do you.
+- MUST ATTENTION never delete, overwrite or "clean up" a project-owned file (a path upstream never shipped). The engine never merges, moves or deletes them, only recomputes their `<!-- COUNT -->` values; you change one only with the user's agreement (for example renaming a skill whose name upstream now also uses).
 - MUST ATTENTION never copy upstream files over the project, and never hand-edit `.agents/`, `.codex/`, `.opencode/` or `AGENTS.md`: they are regenerated from `.claude/`.
 - MUST ATTENTION the update is finished only when the closing sync has passed: until then `.codex/`, `.agents/` and `.opencode/` still hold the old version.
 - Commit or push only when the user asks. The update and `.claude/framework-lock.json` belong in the same commit.
