@@ -17,6 +17,8 @@ Honor explicit skill/workflow requests. Otherwise choose direct work, a suitable
 
 Judge by observable behavior: it worked or met its spec and now fails → bug; it changes and is not yet specified → feature; specified but not yet built → implement-spec; it stays the same → refactor; planning only, nothing built (an idea, or specs to turn into tasks) → planned work; a new product → greenfield. Size alone never makes a task a workflow.
 
+Plan or not: a change touching several modules or files, a public contract, data, security or a one-way choice includes `plan` before building (it reviews itself, deeper when the plan is risky); a clear change in one module goes straight to build, test and review. Inside a catalog workflow, its own plan step decides.
+
 Resolve custom steps from the current host's registered skill descriptions; if unavailable, read `.claude/docs/skills/README.md`. Read the selected `SKILL.md` before calling it. Comparison and a brief self-check are reasoning steps, not invented skills; formal rationale audits use `why-review`. Declare `Route: custom-simple [steps] — because <scope/risk>` (or the selected skill/workflow/direct). Mid-session, keep optional chains to three skills; required quality gates do not count toward that cap.
 
 - In ask mode, starting a self-selected catalog workflow on the first task requires one question: full workflow, slimmer gate-preserving route, or direct work. Direct, skill and custom routes ask no workflow question. Wait for the answer.

@@ -98,6 +98,7 @@ Before each prompt the assistant receives short routing guidance in two messages
 - **AC-WFR-24** — **Given** the state the route message reports **When** a prompt is received **Then** the catalog message follows it: none is sent when routing is off or automatic skill selection is disabled; otherwise it is delivered once and again only when it may have left the assistant's context — its own content changed, the conversation was compacted, or the conversation record grew by the re-arm distance or shrank (BR-WFR-09); a first-line mode directive is recorded and acknowledged once, by the route message, and the catalog message follows the directive's mode in that same prompt
 - **AC-WFR-25** — **Given** a project route protocol long enough to take the route message past the 10,000 characters a host shows in full **When** the route message is sent **Then** it still holds the complete gate and the complete protocol, and its second line states the message size, that the host may show only a preview, where to read the gate and the protocol in full, and the protocol size that brings the message back within 9,500 characters; a route message of 10,000 characters or fewer carries no such line
 - **AC-WFR-26** — **Given** a catalog form that lists when to use each workflow, in ask or auto, or the concise route cue **When** it is delivered **Then** it carries one line that maps failing, changing-and-unspecified, specified-but-unbuilt, unchanged and plan-only work to the bug-fix, feature, implement-spec, refactor, and planned-work or greenfield workflows, says that size alone never makes a task a workflow, and names only workflows that exist in the registry
+- **AC-WFR-29** — **Given** any catalog form that lists when to use each workflow, in ask or auto, or the concise route **When** it is delivered **Then** it carries one line saying when a route plans first — several modules or files, a public contract, data, security or a one-way choice — and when a clear change in one module goes straight to build, test and review; a catalog workflow keeps its own plan step
 
 ### US-WFR-02: The routing gate is carried once, by the guidance only
 
@@ -192,6 +193,7 @@ Before each prompt the assistant receives short routing guidance in two messages
 | BR-WFR-15 | Decision discovery matches uncertainty and preserves prior confirmed choices                                                                | Activation   | [HARD]      |
 | BR-WFR-16 | The catalog picks a workflow by what happens to observable behavior                                                                         | Activation   | [HARD]      |
 | BR-WFR-17 | Mid-session work offers planning once, never on top of the workflow question | Activation | [HARD] |
+| BR-WFR-18 | The catalog says when a route plans first and when it builds directly | Activation | [HARD] |
 
 ### BR-WFR-01: Two guidance messages within the size cap [HARD]
 
@@ -346,6 +348,14 @@ After recording its decisions, a free-form decision interview may offer one shor
 ### BR-WFR-16: The catalog picks a workflow by what happens to observable behavior [HARD]
 
 **Statement:** Every catalog form that tells the assistant when to use each workflow, in ask and in auto, and the concise route cue carry one line that chooses a workflow by what happens to observable behavior. Behavior that worked or met its spec and now fails goes to the bug-fix workflow. Behavior that changes and is not yet in a canonical spec goes to the feature workflow, or the big-feature workflow when the change is large or ambiguous. Behavior specified in a canonical spec but not yet built goes to the implement-spec workflow. Behavior that stays the same goes to the refactor workflow, and a local tidy-up stays direct. Work to be planned and not built — an idea, or specs to turn into tasks — goes to the planned-work workflow, and a new product from scratch to the greenfield workflow. Size alone never makes a task a workflow: a focused change in one module stays a custom route. Every workflow the line names exists in the registry. The line informs the route only: the workflow question still decides whether a workflow starts (BR-WFR-06). The pointer form, which lists only names and tiers so a large catalog still fits, does not carry it.
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: operation/scripts/workflow-skills-catalog]` · `[Source: constraint/skills/concise-workflow-route]`
+
+### BR-WFR-18: The catalog says when a route plans first and when it builds directly [HARD]
+
+**Statement:** Every catalog form that tells the assistant when to use each workflow, in ask and in auto, and the concise route carry one line beside the behavior line: a change touching several modules or files, a public contract, data, security or a one-way choice includes a plan before building (the plan reviews itself, deeper when it is risky); a clear change in one module goes straight to build, test and review. A catalog workflow's own plan step decides inside that workflow. The routing gate stays unchanged.
 
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
@@ -522,13 +532,13 @@ Session           0──1 SessionMode         (set by a prompt directive)
 | Priority  | Count  | Automated | Manual |
 | --------- | ------ | --------- | ------ |
 | P0        | 2      | 2         | 0      |
-| P1        | 27     | 27        | 0      |
+| P1        | 28     | 28        | 0      |
 | P2        | 1      | 1         | 0      |
-| **Total** | **30** | **30**    | **0**  |
+| **Total** | **31** | **31**    | **0**  |
 
 | Category                    | TCs                                                                    |
 | --------------------------- | ---------------------------------------------------------------------- |
-| Core Routing Guidance Tests | TC-WFR-001, TC-WFR-002, TC-WFR-003, TC-WFR-004, TC-WFR-005, TC-WFR-013, TC-WFR-024, TC-WFR-026, TC-WFR-028 |
+| Core Routing Guidance Tests | TC-WFR-001, TC-WFR-002, TC-WFR-003, TC-WFR-004, TC-WFR-005, TC-WFR-013, TC-WFR-024, TC-WFR-026, TC-WFR-028, TC-WFR-031 |
 | Activation Tier Tests       | TC-WFR-006, TC-WFR-007, TC-WFR-009, TC-WFR-011, TC-WFR-012             |
 | Validation Tests            | TC-WFR-008                                                             |
 | Invariant / Property Tests  | TC-WFR-010, TC-WFR-022                                                             |
@@ -1156,6 +1166,53 @@ And every workflow the line names exists in the registry
 > **Evidence:** `[Source: operation/scripts/workflow-skills-catalog]` · `[Source: constraint/skills/concise-workflow-route]`
 > **Related Behaviors:** `operation/scripts/workflow-skills-catalog` · `test/scripts/workflow-skills-catalog`
 > **CoveredBy:** `.claude/scripts/codex/tests/workflow-skills-catalog.test.mjs::TC-WFR-028 the catalog and the concise route pick a workflow by observable behavior and name only registered workflows` · **Status:** Tested
+
+---
+
+#### TC-WFR-031: The catalog says when a route plans first and when it builds directly [P1]
+
+**Objective:** Prove that a custom route chosen from the catalog includes a plan for complex or risky work and skips it for a clear local change.
+
+**Business Intent / Invariant Guarded:** BR-WFR-18 / AC-WFR-29 — for every catalog form in ask and auto and the concise route, exactly one plan line with both directions and the workflow exemption.
+
+**Preconditions:** A project with the framework workflows.
+
+**Real-World Reachability:** Every first prompt of a session: the assistant reads the catalog before it picks a route, including a custom route that is not a catalog workflow.
+
+**Demo Flow:** Render the catalog in each form and mode, and read the concise route; find the plan line after the behavior line.
+
+```gherkin
+Given each catalog form that lists when to use each workflow, in ask and in auto
+When the plan line is read
+Then a change touching several modules or files, a public contract, data, security or a one-way choice includes a plan before building
+And a clear change in one module goes straight to build, test and review
+And a catalog workflow's own plan step decides inside that workflow
+And the concise route carries the same rule
+```
+
+**Expected Result:**
+
+| Dimension | Expectation |
+| --- | --- |
+| **UI** | Not applicable — the observable surface is the routing guidance |
+| **System behavior** | One plan line in every catalog form and in the concise route |
+| **Business data state** | Not applicable — no data changes |
+| **Data shown on UI** | The plan line beside the behavior line |
+
+**Acceptance Criteria:**
+
+- ✅ Exactly one plan line, after the behavior line, in each form and mode, and in the concise route.
+- ❌ A form without the line, or a line that lets size alone decide, fails the case.
+
+**Test Data:** The catalog in compact and full form, in ask and auto, and the concise route text.
+
+**Edge Cases:** Inside a catalog workflow, its own plan step decides; the line governs custom routes only.
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: operation/scripts/workflow-skills-catalog]` · `[Source: constraint/skills/concise-workflow-route]`
+> **Related Behaviors:** `operation/scripts/workflow-skills-catalog` · `constraint/skills/concise-workflow-route`
+> **CoveredBy:** `.claude/scripts/codex/tests/workflow-skills-catalog.test.mjs::TC-WFR-031 the catalog and the concise route say when a route plans first and when it builds directly` · **Status:** Tested
 
 ---
 

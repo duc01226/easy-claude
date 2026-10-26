@@ -347,13 +347,13 @@ test("mutating workflow closures refresh domain-entity references before docs-ma
   }
 });
 
-test("plan creation never runs --mode=review and reviews its own plan once with why-review", async () => {
+test("plan creation never runs --mode=review and reviews its own plan with why-review, deeper only for a risky plan", async () => {
   const plan = await read(".claude/skills/plan/SKILL.md");
   assert.match(plan, /Plan creation never runs `--mode=review` or `--mode=execute`/);
   // Business intent: a generated plan gets one independent rationale review and one fix pass before the user validates it
   assert.match(plan, /## Self-Review Pass[\s\S]*run one `\/why-review --review-only` pass on the saved plan \(it validates its own findings and edits nothing\)[\s\S]*one review pass and one fix pass, with no second review round/);
   assert.match(plan, /A workflow owns this run and lists its own `\/plan --mode=review` step\*\* — that step reviews the plan/);
-  assert.match(plan, /Standalone invocation:\*{0,2}[\s\S]*finish without a further review question: the plan was reviewed/);
+  assert.match(plan, /Standalone invocation:\*{0,2}[\s\S]*then end with the one \[Standalone Close\]\(#standalone-close\) question \(execute · deeper review · stop\): the plan was already reviewed, so a deeper `\/plan --mode=review` is offered there and never called automatically/);
   assert.match(plan, /Workflow invocation:\*{0,2}[\s\S]*Do not ask about review, execution, or other next steps/);
   assert.doesNotMatch(plan, /run `--mode=review` automatically|then run `\/plan --mode=review`/i);
 });

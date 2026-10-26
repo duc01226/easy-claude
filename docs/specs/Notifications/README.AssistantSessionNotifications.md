@@ -93,10 +93,11 @@ Alerts tell developers when the main assistant conversation ends, when the assis
 **Acceptance Criteria:**
 
 - **AC-NT-04** — **Given** the assistant directly asks the developer a question **When** the question is presented **Then** one question alert is shown that says the assistant has a question and names the workspace.
-- **AC-NT-05** — **Given** the second supported assistant, which gives no direct signal when it asks a question **When** its completed response ends in a final question mark, ignoring trailing whitespace **Then** one non-blocking question alert is shown.
+- **AC-NT-05** — **Given** the second supported assistant asking in plain text, which gives no direct signal (its question tool, available in its planning mode, is a direct signal under AC-NT-04) **When** its completed response ends in a final question mark, ignoring trailing whitespace **Then** one non-blocking question alert is shown.
 - **AC-NT-06** — **Given** a completed response not classified as a question (neither a direct question signal nor a qualifying final question mark) **When** the turn finishes **Then** no question alert is shown, and the ordinary turn-complete alert remains available.
 - **AC-NT-10** — **Given** the main conversation has work still in progress, or a delegated conversation finishes its own turn **When** that turn finishes **Then** no turn-complete alert is shown; exactly one is shown when a main-conversation turn finishes with no work still in progress.
 - **AC-NT-11** — **Given** a conversation that another assistant, a script or an automation started and that the assistant reports no developer attends **When** it finishes a turn, asks a question or ends **Then** no alert of any kind is shown; a conversation the developer attends, or one whose attendance the assistant does not report, keeps its alerts.
+- **AC-NT-12** — **Given** any supported assistant is about to ask the developer to approve an action **When** the approval is requested **Then** one permission alert is shown that asks the developer to check and answer; an assistant that already signals the request through its own waiting-for-approval notice does not get a second alert for the same request.
 
 ### US-NT-03: Receive alerts away from the desk, without exposing the conversation
 
@@ -125,6 +126,7 @@ Alerts tell developers when the main assistant conversation ends, when the assis
 | BR-NT-06 | One alert per enabled channel             | Alert delivery       | [HARD]      |
 | BR-NT-07 | Alerts never carry reply text             | Alert content        | [HARD]      |
 | BR-NT-08 | Only attended conversations raise alerts  | Alert scope          | [HARD]      |
+| BR-NT-09 | Every assistant alerts on its question tool and on approval requests | User response | [HARD] |
 
 ### BR-NT-01: Main-conversation ownership [HARD]
 
@@ -144,7 +146,7 @@ ELSE IF a delegated conversation ends OR only an assistant turn finishes OR the 
 
 ### BR-NT-03: Final question-mark fallback [HARD]
 
-**Statement:** Applies only on assistants that give no direct question signal. There, a completed response is a question only if its last non-whitespace character is `?`; any other ending is not, even when it implies a request. Fallback question alerts are non-blocking because the classification is inferred from text; direct question alerts may block. On assistants that give direct question signals, a response ending in `?` without a direct signal stays an ordinary turn completion.
+**Statement:** Applies only to a response with no direct question signal: an assistant without a question tool, or one asking in plain text outside the mode where its question tool is available (BR-NT-09). There, a completed response is a question only if its last non-whitespace character is `?`; any other ending is not, even when it implies a request. Fallback question alerts are non-blocking because the classification is inferred from text; direct question alerts may block. On assistants that give direct question signals, a response ending in `?` without a direct signal stays an ordinary turn completion.
 
 | Assistant gives direct question signals | Direct question signal | Last non-whitespace character         | Classification             |
 | --------------------------------------- | ---------------------- | ------------------------------------- | -------------------------- |
@@ -221,6 +223,10 @@ IF the assistant reports that no developer attends this conversation
 ELSE IF the assistant reports a developer attends it OR reports nothing about attendance
   → APPLY BR-NT-01 to BR-NT-07
 ```
+
+### BR-NT-09: Every assistant alerts on its question tool and on approval requests [HARD]
+
+**Statement:** Each supported assistant names its question tool differently, and the alert follows the tool, not the name: a call to any assistant's own question tool is a direct question signal under BR-NT-02. Each assistant also signals an approval request differently: one raises a waiting-for-approval notice, another raises an approval-request event, and the alert follows whichever the assistant sends. Exactly one permission alert is raised per request, so an assistant that sends both signals alerts once, through its notice. A question or approval inside delegated work still waits on the developer, so it alerts like one in the main conversation; only completions and endings of delegated work are suppressed (BR-NT-01, BR-NT-04).
 
 ---
 
@@ -351,14 +357,14 @@ A delegated conversation ending first causes no main-session-ended alert. A rese
 | Priority  |  Count | Automated | Manual |
 | --------- | -----: | --------: | -----: |
 | P0        |      0 |         0 |      0 |
-| P1        |     14 |        14 |      0 |
+| P1        |     16 |        16 |      0 |
 | P2        |      0 |         0 |      0 |
-| **Total** | **14** |    **14** |  **0** |
+| **Total** | **16** |    **16** |  **0** |
 
 | Category                              | TCs                                                   |
 | ------------------------------------- | ----------------------------------------------------- |
 | Main Conversation Outcomes            | TC-NT-001, TC-NT-002, TC-NT-003, TC-NT-004            |
-| Question and Turn-Completion Outcomes | TC-NT-011, TC-NT-012, TC-NT-013, TC-NT-014, TC-NT-015 |
+| Question and Turn-Completion Outcomes | TC-NT-011, TC-NT-012, TC-NT-013, TC-NT-014, TC-NT-015, TC-NT-076, TC-NT-077 |
 | Invariant / Property Tests            | TC-NT-071, TC-NT-072, TC-NT-073, TC-NT-074, TC-NT-075 |
 
 ### Main Conversation Outcomes
@@ -919,6 +925,109 @@ Then exactly one turn-complete alert appears, naming the main workspace
 | Main conversation ownership | `rule/hooks/main-session-only`                    |
 
 **CoveredBy:** `.claude/hooks/tests/suites/notification.test.cjs::[TC-NT-015] router skips the turn end of a headless Claude run another agent started`, `.claude/hooks/tests/suites/notification.test.cjs::[TC-NT-015] a Claude session nobody attends raises no alert of any kind, and only that session is judged`, `.claude/hooks/tests/suites/notification.test.cjs::[TC-NT-015] a Codex session withholds alerts only when its transcript proves an exec, mcp, subagent or internal session`  
+**Status:** Tested
+
+#### TC-NT-076: A question asked through an assistant's question tool raises the question alert [P1]
+
+**Objective:** Prove that the second assistant's question tool raises the same question alert as the first assistant's.
+
+**Business Intent / Invariant Guarded:** BR-NT-02, BR-NT-09 / AC-NT-04 — for every supported question tool, a call raises one question alert; an ordinary tool raises none.
+
+**Preconditions:** Desktop alerts are on; the second assistant is in its planning mode, where its question tool is available.
+
+**Real-World Reachability:** A developer asks the second assistant to plan a change; it asks a clarifying question through its question tool and waits.
+
+**Demo Flow:** Start a planning conversation in the second assistant, let it ask a clarifying question, and watch for the question alert.
+
+```gherkin
+Given a call to either assistant's question tool
+When the call is about to be shown to the developer
+Then one question alert is raised
+And the same question raised inside delegated work also alerts
+And a call to an ordinary tool raises no question alert
+```
+
+**Expected Result:**
+
+| Dimension | Expectation |
+| --- | --- |
+| **UI** | One question alert naming the workspace |
+| **System behavior** | Each question tool name maps to the question alert |
+| **Business data state** | Not applicable — no data changes |
+| **Data shown on UI** | The question alert's title and message, never the question text |
+
+**Acceptance Criteria:**
+
+- ✅ Every supported question tool raises the question alert, from the main conversation or delegated work.
+- ❌ A question tool call with no alert, or an ordinary tool call that raises one, fails the case.
+
+**Test Data:** Question tool calls of both assistants, including the background form of the second assistant's tool; one ordinary tool call; one call from delegated work.
+
+**Edge Cases:** Outside its planning mode the second assistant asks in plain text; that path stays under BR-NT-03.
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+**Evidence:** `[Source: rule/hooks/question-alerts]`
+
+**Related Behaviors:**
+
+| Capability | Anchor |
+| --- | --- |
+| Direct question alerts | `rule/hooks/question-alerts` |
+
+**CoveredBy:** `.claude/hooks/tests/suites/notification.test.cjs::[TC-NT-076] a Codex question tool raises the question alert, as Claude AskUserQuestion does`
+**Status:** Tested
+
+#### TC-NT-077: An approval request raises exactly one permission alert on every assistant [P1]
+
+**Objective:** Prove that the second assistant's approval request raises a permission alert, and that the first assistant still alerts only once.
+
+**Business Intent / Invariant Guarded:** BR-NT-09 / AC-NT-12 — for every approval request, exactly one permission alert, whichever signal the assistant sends.
+
+**Preconditions:** Desktop alerts are on.
+
+**Real-World Reachability:** The assistant is about to run a command that needs the developer's approval and waits for an answer.
+
+**Demo Flow:** Ask the second assistant to run a command that needs approval and watch for one permission alert; repeat in the first assistant and check that only one alert appears.
+
+```gherkin
+Given the second assistant is about to ask for an approval
+When it raises its approval-request event
+Then one permission alert is raised
+And the same request inside delegated work also alerts
+Given the first assistant raises its approval-request event
+Then no alert is raised for that event, because its waiting-for-approval notice already alerts
+```
+
+**Expected Result:**
+
+| Dimension | Expectation |
+| --- | --- |
+| **UI** | One permission alert per approval request |
+| **System behavior** | The second assistant's approval event maps to the permission alert; the first assistant's is left to its notice |
+| **Business data state** | Not applicable — no data changes |
+| **Data shown on UI** | The permission alert's title and message |
+
+**Acceptance Criteria:**
+
+- ✅ The second assistant's approval request alerts once; the first assistant's approval event adds no second alert.
+- ❌ No alert for the second assistant's approval request, or two alerts for one request, fails the case.
+
+**Test Data:** An approval-request event from each assistant, and one from delegated work.
+
+**Edge Cases:** An action that needs no approval raises no approval event and no alert.
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+**Evidence:** `[Source: rule/hooks/permission-alerts]`
+
+**Related Behaviors:**
+
+| Capability | Anchor |
+| --- | --- |
+| Direct question alerts | `rule/hooks/question-alerts` |
+
+**CoveredBy:** `.claude/hooks/tests/suites/notification.test.cjs::[TC-NT-077] a Codex permission request raises the permission alert once; Claude's does not duplicate it`
 **Status:** Tested
 
 ### Invariant / Property Tests

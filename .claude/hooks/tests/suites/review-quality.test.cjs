@@ -124,6 +124,8 @@ const tests = [
             assert.match(text, /Does the `Not yet specified` list hold only items that cannot yet be stated as a precise question, and no product-intent, public-contract or irreversible decision parked there\?/);
             // Plan creation's Self-Review Pass works the same dimensions, scaled by the plan profile
             assert.match(read(SKILLS, 'plan', 'SKILL.md'), /That pass works the shared review dimensions as todos, scaled by the plan profile \(`references\/mode-review\.md` → Simplified Why-Review Pass\), and records each dimension's verdict under `## Self-Review`/);
+            // And its depth follows the plan's risk: a high-risk full plan gets a fix loop, every other plan one round
+            assert.match(read(SKILLS, 'plan', 'SKILL.md'), /A full-profile plan with a one-way, cross-module, public-contract, data or security decision runs the pass as a fix loop: review, fix, then freshly review the fixed plan, up to three rounds, stopping when a fresh pass finds no MEDIUM or higher finding\. For every other plan the loop runs one round/);
             // Boundary: outsider read is never limited to the session that drafted the plan
             assert.doesNotMatch(text, /Outsider read[^\n]*only (when|in) (this|the) session/i);
         }

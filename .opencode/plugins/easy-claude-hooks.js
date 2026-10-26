@@ -34,6 +34,16 @@ const HOOKS = {
       "matcher": "AskUserPrompt|permission_prompt"
     }
   ],
+  "PermissionRequest": [
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": ".claude/hooks/notifications/notify.cjs"
+        }
+      ]
+    }
+  ],
   "PostToolUse": [
     {
       "hooks": [
@@ -208,7 +218,7 @@ const HOOKS = {
           "command": ".claude/hooks/notifications/notify.cjs"
         }
       ],
-      "matcher": "AskUserQuestion"
+      "matcher": "AskUserQuestion|request_user_input|request_user_input_async"
     },
     {
       "hooks": [

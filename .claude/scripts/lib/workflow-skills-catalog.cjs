@@ -38,6 +38,10 @@ function activationLegend(mode) {
 // recommend feature, bugfix, refactor, implement-spec, planned-work or greenfield from the catalog it reads anyway.
 const ROUTING_DISCRIMINATOR =
   "**Judge by observable behavior:** it worked or met its spec and now fails → `workflow-bugfix`; it changes and is not yet in a canonical spec → `workflow-feature` (`workflow-big-feature` when large or ambiguous); it is specified but not yet built → `workflow-implement-spec`; it stays the same → `workflow-refactor` (a local tidy-up stays direct); planning only, nothing built (an idea, or specs to turn into tasks) → `workflow-planned-work`; a new product from scratch → `workflow-greenfield-init`. Size alone never makes a task a workflow: a focused change in one module stays custom-simple.";
+// Whether a route includes a plan, judged by reach and risk (P23): complex or risky work plans first, a clear local change
+// builds directly. Rendered beside the behavior line in every form that lists when to use each workflow.
+const PLAN_DISCRIMINATOR =
+  "**Plan or not:** a change touching several modules or files, a public contract, data, security or a one-way choice includes `plan` before building (it reviews itself, deeper when the plan is risky); a clear change in one module goes straight to build, test and review. Inside a catalog workflow, its own plan step decides.";
 // The barrier legend carries the advancement rule (wf-cycle W5 reads it); every form renders it.
 const BARRIER_LEGEND =
   "`[a ∥ b]` = one parallel phase (all-return barrier): start every member together and advance only after ALL return; `*` marks a conditional member.";
@@ -347,6 +351,8 @@ function renderWorkflowsSection(entries, rootDir, config, opts = {}) {
     activationLegend(opts.mode),
     "",
     ROUTING_DISCRIMINATOR,
+    "",
+    PLAN_DISCRIMINATOR,
     "",
     ...(compact
       ? [COMPACT_STEPS_NOTE, "", "| Workflow | Activation | When to use | Parallel phases |"]

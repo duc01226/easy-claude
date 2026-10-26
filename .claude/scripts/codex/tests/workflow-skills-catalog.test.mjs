@@ -845,6 +845,30 @@ test("TC-WSC-014 activation tiers: runtime ignores an unknown tier and both vali
   assert.ok(validateConfig({ project: { name: "fixture" }, portability: { workflowActivation: { default: "confirm", overrides: { "workflow-feature": "auto" } } } }).valid);
 });
 
+// TC-WFR-031 (BR-WFR-18): the catalog and the concise route say when a route includes a plan, so a complex or risky
+// change plans before building and a clear local change builds directly, without a workflow deciding it.
+test("TC-WFR-031 the catalog and the concise route say when a route plans first and when it builds directly", () => {
+  for (const mode of ["ask", "auto"]) {
+    for (const compact of [true, false]) {
+      const out = buildWorkflowSkillsCatalog({ rootDir: repoRoot, sections: ["workflows"], compact, mode });
+      const where = `${compact ? "compact" : "full"} / ${mode}`;
+      // Given each catalog form, exactly one plan line follows the behavior line
+      const lines = out.split("\n");
+      const at = lines.findIndex((line) => line.startsWith("**Plan or not:**"));
+      assert.equal(lines.filter((line) => line.startsWith("**Plan or not:**")).length, 1, `${where}: exactly one plan line`);
+      assert.ok(at > lines.findIndex((line) => line.startsWith("**Judge by observable behavior:**")), `${where}: the plan line follows the behavior line`);
+      // Then complex or risky work plans first and a clear local change builds directly
+      assert.match(lines[at], /several modules or files, a public contract, data, security or a one-way choice includes `plan` before building/, where);
+      assert.match(lines[at], /a clear change in one module goes straight to build, test and review/, where);
+      // And a catalog workflow keeps its own plan step
+      assert.match(lines[at], /Inside a catalog workflow, its own plan step decides\./, where);
+    }
+  }
+  // And the concise route carries the same rule
+  const route = normalizeEol(fs.readFileSync(path.join(repoRoot, ".claude", "skills", "shared", "protocols", "concise-workflow-route.md"), "utf8"));
+  assert.match(route, /^Plan or not: a change touching several modules or files, a public contract, data, security or a one-way choice includes `plan` before building/m);
+});
+
 // TC-WFR-028 (BR-WFR-16): the catalog and the concise route tell a bug, a feature, already-specified work,
 // a behavior-preserving restructure and not-yet-built work apart by observable behavior, so size alone never
 // picks a workflow. A renamed or removed workflow must update the line in the same change.

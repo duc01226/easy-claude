@@ -220,7 +220,7 @@ IF a second list of review dimensions exists
 
 ### BR-RVQ-03: Plan review scales with the plan profile [HARD]
 
-**Statement:** A light plan's review runs goal alignment, future change cost, decision readiness and test, specification and documentation sync. A full plan's review runs every applicable dimension, outsider read included in any session. A plan that declares no profile is reviewed as full. Both also check bounded discovery and that the not-yet-specified list parks no product, contract or irreversible decision.
+**Statement:** A light plan's review runs goal alignment, future change cost, decision readiness and test, specification and documentation sync. A full plan's review runs every applicable dimension, outsider read included in any session. A plan that declares no profile is reviewed as full. Plan creation's own review pass is one round, except for a full-profile plan with a one-way, cross-module, public-contract, data or security decision: that pass becomes a fix loop of up to three rounds. Both also check bounded discovery and that the not-yet-specified list parks no product, contract or irreversible decision.
 
 | Plan profile | Dimensions run                                                             | Plan-only checks                             |
 | ------------ | -------------------------------------------------------------------------- | -------------------------------------------- |
@@ -508,6 +508,7 @@ When the plan declares no profile
 Then it is reviewed as full
 And every profile also checks bounded discovery and the not-yet-specified list
 And plan creation's own review pass applies the same profile scaling and records each dimension's verdict
+And a high-risk full-profile plan gets a fix loop of up to three rounds; every other plan gets one round
 ```
 
 **Expected Result:**

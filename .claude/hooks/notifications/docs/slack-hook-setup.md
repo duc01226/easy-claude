@@ -58,10 +58,10 @@ The router forwards only these events (`EVENT_WHITELIST` in `notify.cjs`); every
 | ----------------- | ----------------------------------------------------------------------------------------------------------------- |
 | SessionEnd        | Main session ended — not sent for a subagent's end, a conversation reset (`/clear`), or a session of unknown kind |
 | Stop              | Turn completed — on Codex, a final reply ending in `?` is sent as an `AskUserQuestion` alert                      |
-| AskUserQuestion   | AI agent asked a question                                                                                         |
+| AskUserQuestion   | AI agent asked a question (Claude `AskUserQuestion`; Codex `request_user_input` in Plan mode)                      |
 | AskUserPrompt     | AI agent needs user input                                                                                         |
 | idle_prompt       | AI agent is waiting for input                                                                                     |
-| permission_prompt | AI agent needs tool permission                                                                                    |
+| permission_prompt | AI agent needs tool permission (Claude notification; Codex `PermissionRequest`)                                   |
 
 ## Troubleshooting
 

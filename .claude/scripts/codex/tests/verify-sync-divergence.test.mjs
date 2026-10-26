@@ -336,6 +336,7 @@ test('TC-HOOKMIRROR-002: hooks.json materializes deterministically; the report d
 // Matchers with no Claude mutation tool (`Bash`, `TodoWrite|…|update_plan`, `mcp__*`)
 // are untouched, as are matchers naming only read tools.
 const EXPECTED_RENDERED_GROUPS = [
+    ['PermissionRequest', null, 1],
     ['PostToolUse', 'Edit|Write|MultiEdit|apply_patch', 1],
     ['PostToolUse', 'Edit|Write|MultiEdit|apply_patch', 1],
     // file-convention-inject (2026-09-16): per-file convention reminder. Its SessionStart
@@ -366,7 +367,7 @@ const EXPECTED_RENDERED_GROUPS = [
     ['PostToolUse', null, 1],
     // Conditional diagnostic reminder before shell commands; native failure events remain unsupported.
     ['PreToolUse', 'Bash|exec_command', 1],
-    ['PreToolUse', 'AskUserQuestion', 1],
+    ['PreToolUse', 'AskUserQuestion|request_user_input|request_user_input_async', 1],
     // The Bash PreToolUse chain, in settings.json order: doc-sync-gate,
     // review-commit-gate (2026-09-19, the review-before-commit receipt gate).
     ['PreToolUse', 'Bash', 2],
