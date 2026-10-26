@@ -159,7 +159,9 @@ const tests = [
             assert.match(read(SKILLS, 'work-item', 'references', 'mode-review.md'), /fully re-review the settled artifact, re-read from disk; when you choose a sub-agent for it, use a fresh `general-purpose` reviewer/);
             assert.match(owner(), /\*\*Fresh context is your call, never required\.\*\*[^\n]*A helper started for a round is never one reused from an earlier round/);
             // The optional outsider-read probe is not a review round, so the review-round prompt template does not bind it
-            assert.match(owner(), /This probe is a comprehension check, not a review round: it returns the terms it could not resolve and no findings or verdict/);
+            assert.match(owner(), /This probe is a comprehension check, not a review round: it returns the unresolved terms and contradictions it found and no findings or verdict/);
+            // The probe is briefed with its reader and a cap, so repository vocabulary does not drown the real gaps
+            assert.match(owner(), /Tell it who the reader is \(someone with the repository open\) and ask for at most 10 items, most misleading first: what neither the page nor a file it names resolves, and statements on the page that contradict each other/);
             // Boundary: the prompt template for a reviewer that does choose a helper agent remains
             assert.ok(fs.existsSync(path.join(SKILLS, 'shared', 'protocols', 'review-protocol-injection.md')), 'the helper prompt template remains');
         }

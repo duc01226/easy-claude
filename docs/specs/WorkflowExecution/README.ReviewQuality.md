@@ -47,17 +47,13 @@ large_idea_decomposition:
     risks_evidence:
         - risk: Self-review cannot see its own unwritten assumptions, so outsider read finds little in the session that wrote the artifact
           evidence_needed: side-by-side review of two saved plans, old and new review
-          status: open — side-by-side check deferred to after merge by user decision (2026-10-26)
+          status: partly confirmed (side-by-side check, 2026-10-26) — the writing session found 6 of 10 real outsider-read gaps and missed a contradiction it had created; a fresh small-model read found it but listed 52 items (19% real) when not told who the reader is. Plan review itself — new guidance found 7 issues on the full plan vs 5 for the old, at equal cost, two of which the build later had to fix; on the light plan both found the same 2 MEDIUMs and the old found 2 more LOWs. Mitigated — the fresh read is now briefed with its reader and a 10-item cap (BR-RVQ-05)
           owner: Framework maintainers
         - risk: Moving the dimension list out of the rationale review hides it from a reviewer who never opens it
           evidence_needed: guidance points to the list with a read-before-review instruction; tests assert the pointer
           status: mitigated — TC-RVQ-001 asserts both read-before-review pointers
           owner: Framework maintainers
     deferred_work_owner:
-        - item: Side-by-side check of old vs new plan review on two saved plans (settles risk 1)
-          owner: Framework maintainers
-          follow_up_artifact: post-merge follow-up recorded in the pull request
-          target_slice: RVQ-S1
         - item: Reword the remaining "fresh helper agent" phrasing across other review skills
           owner: Framework maintainers
           follow_up_artifact: a later change
@@ -235,7 +231,7 @@ IF a second list of review dimensions exists
 
 ### BR-RVQ-05: A helper agent is the reviewer's choice [HARD]
 
-**Statement:** No review rule requires a helper agent. A fresh view means re-reading the saved artifact; the reviewer decides whether a helper agent is worth its cost. A helper agent started for a round is never one reused from an earlier round. A short fresh read for outsider read is a comprehension check, not a review round: it returns only the terms it could not resolve, so it carries none of the review-round briefing.
+**Statement:** No review rule requires a helper agent. A fresh view means re-reading the saved artifact; the reviewer decides whether a helper agent is worth its cost. A helper agent started for a round is never one reused from an earlier round. A short fresh read for outsider read is a comprehension check, not a review round: it is told who the reader is (someone with the repository open) and returns at most 10 items, most misleading first — what neither the page nor a file it names resolves, and statements on the page that contradict each other — so it carries none of the review-round briefing.
 
 ### BR-RVQ-06: Fixes are proportionate [HARD]
 
@@ -595,6 +591,7 @@ And the reviewer chooses whether to start a helper agent
 And a helper agent started for a round is never reused from an earlier round
 And no sentence requires a new helper agent for every round or every re-review
 And a short fresh read for outsider read is a comprehension check, so it carries no review-round briefing
+And that read is told who the reader is and returns at most 10 items: unresolved terms and contradictions on the page
 ```
 
 **Expected Result:**
