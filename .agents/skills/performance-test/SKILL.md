@@ -13,12 +13,12 @@ description: '[Testing] Use when initializing, writing, reviewing or verifying p
 
 **Goal:** Build reusable, project-native performance tests and prove useful capacity under explicit data, workload and hardware limits.
 
-**Summary:** Discover the project contract → research/bootstrap if needed → author realistic scenarios → static review/fix (two rounds maximum by default) → return AUTHORED. Only an explicit verification request continues to measurement/report analysis or the bounded green loop. Keep project preferences and honest evidence limits.
+**Summary:** Discover the project contract → research/bootstrap if needed → author realistic scenarios → static review/fix (three rounds maximum by default) → return AUTHORED. Only an explicit verification request continues to measurement/report analysis or the bounded green loop. Keep project preferences and honest evidence limits.
 
 **Key Rules:**
 
 - Define the workload/SLO and enforce the resource envelope before measuring; a user count alone proves no capacity.
-- Write/init author only: no test execution, service startup, data seeding or smoke/load run. Automatically review/fix the authored artifacts statically, capped at two review rounds by default; offer verification through the host question tool afterward.
+- Write/init author only: no test execution, service startup, data seeding or smoke/load run. Automatically review/fix the authored artifacts statically, capped at three review rounds by default; offer verification through the host question tool afterward.
 - Acceptance uses at least 100k rows per growable table and a 1,000-concurrent-user profile where applicable; smaller smoke runs prove only wiring.
 - Green requires correctness, valid offered load, bounded memory/no observed OOM, query/search access-path evidence and recovery. Missing required evidence blocks PASS; preserve targets during repairs.
 
@@ -41,8 +41,8 @@ description: '[Testing] Use when initializing, writing, reviewing or verifying p
 
 | Invocation | Outcome | Required reference |
 | --- | --- | --- |
-| No flag / `--mode=write <scope>` | Write or extend tests; bootstrap missing foundation; auto static review/fix, default maximum two rounds; stop AUTHORED without running tests | Read [harness.md](references/harness.md) for first setup or harness changes, and [quality-gates.md](references/quality-gates.md) before authoring |
-| `--mode=init` | Research, install/pin tools and author a reusable harness plus one representative scenario; same two-round static review; runtime validation deferred | Read [harness.md](references/harness.md) and [quality-gates.md](references/quality-gates.md) |
+| No flag / `--mode=write <scope>` | Write or extend tests; bootstrap missing foundation; auto static review/fix, default maximum three rounds; stop AUTHORED without running tests | Read [harness.md](references/harness.md) for first setup or harness changes, and [quality-gates.md](references/quality-gates.md) before authoring |
+| `--mode=init` | Research, install/pin tools and author a reusable harness plus one representative scenario; same three-round static review; runtime validation deferred | Read [harness.md](references/harness.md) and [quality-gates.md](references/quality-gates.md) |
 | `--mode=review [--review-only|--fix-loop] <scope>` | Default read-only quality report; optional shared review/fix/re-review loop for the selected test/harness only, without load execution | Read [quality-gates.md](references/quality-gates.md); apply the carried review-policy |
 | `--mode=verify <scope>` | Run the full selected performance contract and analyze evidence; no product/test fixes | Read [quality-gates.md](references/quality-gates.md) and [verification.md](references/verification.md) |
 | `--mode=verify --fix-loop` / `--mode=green` | Same verification with one bounded fixing owner, performance-review and fresh proof after repairs | Read [quality-gates.md](references/quality-gates.md) and [verification.md](references/verification.md) |
@@ -92,7 +92,7 @@ Statically inspect whether the harness and authored validation cases detect a de
 
 For production bottleneck analysis use `$performance-review --report-only --loop-owner=caller` with the complete selected system paths and observed reports. The caller owns merged findings, repairs, round limits and runtime proof. A static review cannot substitute for a load run, and a clean load run cannot substitute for access-path/memory review.
 
-**Automatic post-write review:** write/init own a static fix loop with a default ceiling of **two review rounds**, including every reviewer pass. Review the entire authored test/harness scope, validate findings before repairs, fix authorized test/setup issues, and freshly review the settled scope; never repair product bottlenecks or execute tests here. The author performs round 1. Use a fresh read-only `performance-tester` for round 2 when an independent pass or post-fix review is required; it runs `--mode=review --report-only --loop-owner=caller` and returns findings without another loop or delegation. Give exact scope, contract and report path; embed the complete shared reviewer template at dispatch. If that role is unavailable use `performance-optimizer` for test concerns or `code-reviewer` for general correctness; disclose unavailable independence. At the cap retain open blockers, report NEEDS_WORK, and ask before a bounded extension. A fix after the last pass cannot count as reviewed. Explicit standalone review/fix-loop keeps the shared review-policy default; the two-round cap belongs to post-authoring review.
+**Automatic post-write review:** write/init own a static fix loop with a default ceiling of **three review rounds**, including every reviewer pass. Review the entire authored test/harness scope, validate findings before repairs, fix authorized test/setup issues, and freshly review the settled scope; never repair product bottlenecks or execute tests here. The author performs round 1. Use a fresh read-only `performance-tester` for a later round when an independent pass or post-fix review is required; it runs `--mode=review --report-only --loop-owner=caller` and returns findings without another loop or delegation. Give exact scope, contract and report path; embed the complete shared reviewer template at dispatch. If that role is unavailable use `performance-optimizer` for test concerns or `code-reviewer` for general correctness; disclose unavailable independence. At the cap retain open blockers, report NEEDS_WORK, and ask before a bounded extension. A fix after the last pass cannot count as reviewed. Explicit standalone review/fix-loop keeps the shared review-policy default; the three-round cap belongs to post-authoring review.
 
 `performance-tester` also handles delegated write/update work under this skill; one author owns the post-write loop. Read-only/caller-owned occurrences return to their coordinator without spawning, fixing or asking. Green repairs receive a fresh static review before runtime proof under the caller's remaining budget.
 
@@ -136,7 +136,7 @@ At the end of `performance-review` or `production-readiness-review`, when the re
 
 **Goal:** Build reusable, project-native performance tests and prove useful capacity under explicit data, workload and hardware limits.
 
-Define demand/SLO and hardware limits. Discover → research/init → author → static review/fix (default two rounds) → AUTHORED/runtime NOT RUN → optional question-tool offer. Only explicit verify/green authorization continues to measure/read evidence → bounded diagnose/fix/performance-review/retest when requested → report. Keep one fixing owner and unchanged targets. Review mode defaults read-only and static; never run tests from write/init/review. Prove applicable 100k-table/1,000-user profiles, query/search paths, bounded memory/no observed OOM and recovery only with runtime evidence.
+Define demand/SLO and hardware limits. Discover → research/init → author → static review/fix (default three rounds) → AUTHORED/runtime NOT RUN → optional question-tool offer. Only explicit verify/green authorization continues to measure/read evidence → bounded diagnose/fix/performance-review/retest when requested → report. Keep one fixing owner and unchanged targets. Review mode defaults read-only and static; never run tests from write/init/review. Prove applicable 100k-table/1,000-user profiles, query/search paths, bounded memory/no observed OOM and recovery only with runtime evidence.
 
 | Evasion | Required action |
 | --- | --- |

@@ -102,9 +102,8 @@ const EVALUATION_PATTERNS = [
     strong(/\b(?:what do you think|thoughts on|your (?:opinion|take|view) on|how (?:good|solid|robust) is)\b/i)
 ];
 
-// The start of a sentence an imperative can open: the prompt start or a sentence end, an optional list marker,
-// then any polite or connective prefixes ("please,", "ok so"). One owner for both the build-request and the advice ask.
-const SENTENCE_START = '(?:^|[.!?;\\n]\\s*)(?:[-*(]\\s*)?(?:(?:please|pls|ok(?:ay)?|now|then|so|and)[,\\s]+)*';
+// The sentence-start and build-request grammar has one owner, shared with the workflow route's plan offer.
+const { SENTENCE_START, ACTION_REQUEST } = require('./lib/prompt-route-utils.cjs');
 
 // Advice / solution ask: "what's the best way to", "how would you", "recommend an approach", "what strategy fits".
 // Only an ask routes. A stated plan ("I suggest we move the cache") is an instruction, and a lookup
@@ -121,13 +120,7 @@ const ADVICE_PATTERNS = [
 const EXPLICIT_REVIEW_INVOCATION = /^\s*[/$](?:[\w-]+:)?(?:why-review|grill)\b/i;
 // "Implement / add / create ..." with no question is a build request, not a verdict request.
 const QUESTION_OR_VERDICT_CUE = /\?|\b(?:check|evaluate|assess|judge|review|confirm|verify|validate|audit|critique|am i|is it|is this|is the|is anything|is there|are there|does it|what do you think|thoughts on|should|which|why|what(?:'s| is)? wrong|any \w+|recommend|advise|suggest|propose|your (?:recommendation|advice|suggestion)|best (?:way|approach|option|practice)|how would you|what (?:approach|strategy|architecture|design|solution))\b/i;
-// A fix/build request — sentence-initial imperative ("Run the tests and fix any errors") or a polite ask
-// ("can you fix it?", "please implement …"). Its fault nouns describe work to do, not a verdict to give.
-const ACTION_VERBS = '(?:fix|implement|add|create|build|run|resolve|make|update|refactor|write|remove|delete|rename|debug|repair|patch|install|set\\s+up|migrate|clean\\s+up|handle|change|move|convert|upgrade|generate|apply|follow)';
-const ACTION_REQUEST = new RegExp(
-    `${SENTENCE_START}${ACTION_VERBS}\\b|\\b(?:can|could|would|will) you (?:please )?(?:help (?:me )?)?${ACTION_VERBS}\\b|\\b(?:please|help me) ${ACTION_VERBS}\\b`,
-    'i'
-);
+// A fix/build request (ACTION_REQUEST, shared): its fault nouns describe work to do, not a verdict to give.
 
 /** Return the list of leans the prompt carries; empty when it does not ask for a verdict. */
 function detectLeans(prompt) {

@@ -133,7 +133,7 @@ module.exports = {
                 assert.match(context, /resolve commit.reviewMode through .claude\/scripts\/lib\/commit-review-policy.cjs/);
                 assert.match(context, /default lightweight selects commit-review at every commit risk tier/);
                 assert.match(context, /Configured risk-based mode and PR whole-branch scope use Low skip \/ Medium why-review \/ High changes-review/);
-                assert.match(context, /Each review has at most two rounds/);
+                assert.match(context, /Each review has at most three rounds/);
                 assert.match(context, /Selected test\/review skills and their required nested calls remain eligible/);
                 assert.match(context, /explicitly requested workflow authorizes its required skill steps/);
                 assert.match(context, /todo\/task plan and executed later or after resume/);

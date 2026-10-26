@@ -18,6 +18,8 @@
  *   TC-RVQ-008 — a rationale review maps its required sections onto a /plan plan's sections.
  *   TC-RVQ-009 — a consequential answer is offered grill / why-review / skip in one question, and the
  *                grill, brainstorm and rationale-review skills point to the interview where it fits.
+ *   TC-RVQ-011 — a standalone plan creation ends with one question: execute, deeper review or stop;
+ *                workflows, calling skills and headless runs ask nothing.
  *
  * Portability: every row asserts this framework repository's own skills and is skipped in any
  * other project (framework-repo signal). Paths use node:path; text is read with LF line endings.
@@ -232,6 +234,24 @@ const tests = [
             const review = fullMode();
             assert.match(review, /\*\*Standalone review, material trade-offs left to the user:\*\* that question may also offer `\/grill` with the report path/);
             assert.match(review, /A workflow step, report-only leaf or sub-agent never offers it\./);
+        }
+    },
+    {
+        name: 'TC-RVQ-011 a standalone plan ends with one question: execute, deeper review or stop',
+        skip: SKIP,
+        fn: () => {
+            const plan = read(SKILLS, 'plan', 'SKILL.md');
+            const close = plan.slice(plan.indexOf('\n## Standalone Close\n'), plan.indexOf('\n<!-- PROTOCOL-GUIDES:START -->'));
+            assert.ok(close.length > 40, 'the plan skill holds a Standalone Close section');
+            // One question with three options, after the validation chain ran or exited
+            assert.match(close, /ends with one question through the host's question tool, after the validation chain ran or took one of its exits: \*\*execute now\*\* \(`\/plan --mode=execute <plan-path>`\) · \*\*deeper review first\*\* \(`\/plan --mode=review --fix-loop <plan-path>`, up to three rounds\) · \*\*stop here\*\*/);
+            // A reasoned recommendation, and only the answer starts the next run
+            assert.match(close, /Recommend execute when the self-review left no open finding and validation passed; recommend the deeper review when a finding stayed open/);
+            assert.match(close, /Act only on the answer\./);
+            // Boundary: workflows, calling skills and contexts that cannot ask never get the question
+            assert.match(close, /Ask nothing when a workflow owns this run, when another skill runs plan creation as one of its steps, or when this context cannot reach the user/);
+            // And plan creation still never runs review or execute on its own
+            assert.match(plan, /plan creation never chains into them; the Standalone Close question offers them, and the user's answer starts one/);
         }
     }
 ];

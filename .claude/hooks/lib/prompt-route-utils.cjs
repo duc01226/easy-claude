@@ -228,7 +228,28 @@ function isRouterEnabled(section, envVar, deps = {}) {
     return enabled !== false && !isOff(enabled);
 }
 
+// The start of a sentence an imperative can open: the prompt start or a sentence end, an optional list marker,
+// then any polite or connective prefixes ("please,", "ok so").
+const SENTENCE_START = '(?:^|[.!?;\\n]\\s*)(?:[-*(]\\s*)?(?:(?:please|pls|ok(?:ay)?|now|then|so|and)[,\\s]+)*';
+const ACTION_VERBS = '(?:fix|implement|add|create|build|run|resolve|make|update|refactor|write|remove|delete|rename|debug|repair|patch|install|set\\s+up|migrate|clean\\s+up|handle|change|move|convert|upgrade|generate|apply|follow)';
+// A fix/build request: a sentence-initial imperative ("Run the tests and fix any errors") or a polite ask
+// ("can you fix it?", "please implement …").
+const ACTION_REQUEST = new RegExp(
+    `${SENTENCE_START}${ACTION_VERBS}\\b|\\b(?:can|could|would|will) you (?:please )?(?:help (?:me )?)?${ACTION_VERBS}\\b|\\b(?:please|help me) ${ACTION_VERBS}\\b`,
+    'i'
+);
+// The go-ahead that turns a discussion into work: "ok do it", "go ahead", "let's build it", "proceed".
+const GO_AHEAD = new RegExp(`${SENTENCE_START}(?:do it|do that|do this|go ahead|proceed|let'?s (?:do|build|implement|start|go)|start (?:implementing|building|the work|on it))\\b`, 'i');
+
+/** True when the user-authored prompt text asks for work to be done, not a question or a verdict. */
+function isBuildRequest(text) {
+    return typeof text === 'string' && (ACTION_REQUEST.test(text) || GO_AHEAD.test(text));
+}
+
 module.exports = {
+    SENTENCE_START,
+    ACTION_REQUEST,
+    isBuildRequest,
     isHookEntryPoint,
     FRAMEWORK_CUES,
     countFrameworkCues,

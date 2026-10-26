@@ -447,7 +447,7 @@ const tests = [
             assert.match(exits, /- \*\*A workflow owns this run and lists its own `\/plan --mode=validate` step\*\* — that step decides/);
             // A workflow with no validate step runs the chain inside its plan step, so the answers are applied there, and closes without the review question
             assert.match(exits, /When the workflow lists no validate step, run this chain inside the workflow too, so the answers are applied in this same step/);
-            assert.match(chain, /3\. \*\*Close\*\* — return the plan path and summary with the review and validation results; ask no further question, standalone or inside a workflow/);
+            assert.match(chain, /3\. \*\*Close\*\* — return the plan path and summary with the review and validation results; ask no further question here\. A standalone run then asks the one question in \[Standalone Close\]\(#standalone-close\)/);
             // Inside a workflow the interview asks only open material decisions; with none open the plan records it and returns
             assert.match(exits, /Inside a workflow the interview asks only the material decisions the plan leaves open that the run's decision log does not already hold; an unapproved Plan Gate \(`Human approval: REQUIRED`\) counts as one, and its question is the plan approval\. With none open, write `Validation: not needed — no open material decision`/);
             // And no setting or decline skips the Plan Gate approval inside a workflow
@@ -485,7 +485,7 @@ const tests = [
             }
             // And the intake modes and the planner agent state the same hand-off
             for (const mode of ['mode-ci.md', 'mode-cro.md']) {
-                assert.match(read(SKILLS, 'plan', 'references', mode), /standalone follows the Standalone Validation Chain in `plan\/SKILL\.md`, setting and exits included, after its Self-Review Pass, and asks no further review question/);
+                assert.match(read(SKILLS, 'plan', 'references', mode), /standalone follows the Standalone Validation Chain in `plan\/SKILL\.md`, setting and exits included, after its Self-Review Pass, and ends with the one Standalone Close question \(execute · deeper review · stop\)/);
             }
             const planner = read(REPO_ROOT, '.claude', 'agents', 'planner.md');
             const owed = planner.split('\n').filter(l => /standalone (invocation )?follows the Standalone Validation Chain in `plan\/SKILL\.md`, setting and exits included/i.test(l));

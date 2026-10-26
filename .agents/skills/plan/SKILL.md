@@ -26,7 +26,7 @@ disable-model-invocation: false
 - Derive the task-specific `## Quality Gates & Concerns Checklist` before phases: verification, evidence, owner and how open concerns will be settled.
 - Keep one `plan.md`; separate phase files only for independent execution, context isolation or disjoint ownership.
 - **Profile:** full by default and for M+ work; a spec-supplied or XS/S run uses the light profile — `spec_baseline` or inline files/steps/rollback, the checklist, no scope-brief or scenario files ([Plan profile](#plan-profile--full-or-light)).
-- Plan creation never runs `--mode=review` or `--mode=execute`. After saving, it reviews its own plan once with `$why-review` and fixes the validated findings ([Self-Review Pass](#self-review-pass); skipped when the request declines it or the workflow lists its own `$plan --mode=review` step), then runs the validation interview ([Standalone Validation Chain](#standalone-validation-chain); automatic unless the `plan.validation.mode` setting says `prompt` or `off`), and asks no further review question; a workflow returns to its parent without next-step prompts, and without the interview when the workflow lists its own `$plan --mode=validate` step (a workflow with no such step runs the chain inside this step).
+- Plan creation never runs `--mode=review` or `--mode=execute`. After saving, it reviews its own plan once with `$why-review` and fixes the validated findings ([Self-Review Pass](#self-review-pass); skipped when the request declines it or the workflow lists its own `$plan --mode=review` step), then runs the validation interview ([Standalone Validation Chain](#standalone-validation-chain); automatic unless the `plan.validation.mode` setting says `prompt` or `off`), and a standalone run ends with one next-step question — execute, deeper review or stop ([Standalone Close](#standalone-close)) — whose answer starts that separate invocation; a workflow returns to its parent without next-step prompts, and without the interview when the workflow lists its own `$plan --mode=validate` step (a workflow with no such step runs the chain inside this step).
 - Domain work plans owned entity decisions and proof before writing; load its scope-specific depth only when applicable.
 - Write tests with implementation; schedule suites after all implementation and static review, never per phase.
 
@@ -50,6 +50,7 @@ disable-model-invocation: false
 - [Self-Check Before Handoff](#self-check-before-handoff)
 - [Self-Review Pass](#self-review-pass)
 - [Standalone Validation Chain](#standalone-validation-chain)
+- [Standalone Close](#standalone-close)
 - [Closing Reminders](#closing-reminders)
 
 ## Invocation Context
@@ -76,7 +77,7 @@ Detect the mode from the invocation arguments before any other work; do not load
 - **[BLOCKING]** When `--mode=validate`, read `references/mode-validate.md` in full FIRST; it replaces plan creation for the invocation (interview via `ask user question tool`, annotate `plan.md` only). Workflow invocation and standalone both run the interview.
 - **[BLOCKING]** When `--mode=execute`, read `references/mode-execute.md` in full FIRST; it replaces plan creation for the invocation and owns the `--approval`, `--tests` and `--parallel` flags (no flag is set by default: no flags = the full spine, run sequentially). Workflow invocation runs Steps 0–2, the Checklist Walk (parent-owned rows carried as `PENDING-PARENT`) and Step 6 only; standalone runs the full spine.
 - **[BLOCKING]** When `--mode=ci`, read `references/mode-ci.md` in full FIRST; when `--mode=cro`, read `references/mode-cro.md` in full FIRST. Both add domain intake only; they do not add review or change the plan-creation contract.
-- `--mode=review` and `--mode=execute` are separate invocations over an existing plan; plan creation never chains into them. `--mode=validate` is the one mode a standalone plan creation chains into after saving; a workflow invocation reaches it as its own workflow step, or through the chain inside the plan step when the workflow lists no validate step.
+- `--mode=review` and `--mode=execute` are separate invocations over an existing plan; plan creation never chains into them; the Standalone Close question offers them, and the user's answer starts one. `--mode=validate` is the one mode a standalone plan creation chains into after saving; a workflow invocation reaches it as its own workflow step, or through the chain inside the plan step when the workflow lists no validate step.
 
 ## Evidence and Discovery
 
@@ -215,7 +216,11 @@ When no exit applies:
 
 1. **[BLOCKING]** Read `references/mode-validate.md` in full and run its interview on the plan just saved, passing that plan path; skip its closing next-step prompt.
 2. **Apply the answers.** The interview only annotates; plan creation authored the plan, so it edits `plan.md` and any phase file for each action item the answers created, ticks that item in the `## Validation Summary`, lists every edit under `### Applied Changes` there (section → what changed) and shows that list in the conversation. When an applied answer creates a new material decision, ask it as a further round through the same reference before closing, and repeat until applying answers creates no new one; never settle it yourself. Then re-check the Self-Check Before Handoff bullets once; do not start this chain again. An answer that leaves product intent open, a preservation invariant unsure or the Plan Gate unapproved keeps the plan `BLOCKED`: report it, never settle it by assumption.
-3. **Close** — return the plan path and summary with the review and validation results; ask no further question, standalone or inside a workflow.
+3. **Close** — return the plan path and summary with the review and validation results; ask no further question here. A standalone run then asks the one question in [Standalone Close](#standalone-close).
+
+## Standalone Close
+
+A standalone plan creation ends with one question through the host's question tool, after the validation chain ran or took one of its exits: **execute now** (`$plan --mode=execute <plan-path>`) · **deeper review first** (`$plan --mode=review --fix-loop <plan-path>`, up to three rounds) · **stop here**. Recommend execute when the self-review left no open finding and validation passed; recommend the deeper review when a finding stayed open, validation was skipped, or the plan is full-profile with a one-way or cross-module decision. Act only on the answer. Ask nothing when a workflow owns this run, when another skill runs plan creation as one of its steps, or when this context cannot reach the user (a sub-agent or a headless run); there the hand-back names the same three next steps.
 
 <!-- PROTOCOL-GUIDES:START -->
 

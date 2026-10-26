@@ -20,6 +20,9 @@
  * - A prompt directive applies at once, persists for the session, re-delivers even after the catalog was
  *   delivered, and never fires on prose (BR-WFR-11).
  * - A personal setting never reaches tracked output and is never written to a tracked file (BR-WFR-05).
+ * - Mid-session, a request for work gets the one-line plan-offer cue; the first prompt, questions, explicit
+ *   skill calls and off mode do not; the cue itself tells the agent to skip work a running workflow covers
+ *   (BR-WFR-17, TC-WFR-030).
  *
  * Portable Test Contract: fixture projects and homes are temp dirs; inherited CK_* switches and debug keys
  * are blanked; HOME, USERPROFILE, TMPDIR, TEMP and TMP point at the fixture.
@@ -103,6 +106,7 @@ function makeProject() {
     const project = {
         root,
         home,
+        tmp,
         userFile: path.join(home, '.claude', '.ck.json'),
         localFile: path.join(root, '.claude', '.ck.local.json'),
         teamFile: path.join(root, 'docs', 'project-config.json'),
@@ -1242,6 +1246,59 @@ module.exports = {
                     fs.unlinkSync(linkedRoot);
                 }
             })
+        },
+        {
+            // Intent: after a discussion, a request for work gets one reminder to offer planning first, and the
+            // reminder never stacks on the workflow question, a skill call or off mode; it names the running-workflow exemption.
+            name: '[workflow-route-modes] TC-WFR-030 mid-session, a request for work gets the plan-offer cue; the first prompt, questions, skill calls and off mode do not',
+            fn: () => withProject(p => {
+                const CUE = '<!-- CK:PLAN-OFFER -->';
+                const session = newSession();
+                // Given the first prompt of a session asks for work
+                const first = p.run(session, 'add a retry to the fetcher');
+                // Then it carries the gate and no plan offer: the first prompt belongs to the workflow question
+                assertEqual(first.code, 0, first.err);
+                assertContains(first.out, ASK_QUESTION);
+                assertNotContains(first.out, CUE, 'the first prompt carries the gate, not the cue');
+                assertNotContains(first.out, 'PLAN-OFFER', 'the gate itself carries no plan offer: its size budget stays unchanged');
+                // When later prompts are questions, the route stays silent
+                assertEqual(p.run(session, 'why does the cache miss?').out, '', 'a question gets no cue');
+                assertEqual(p.run(session, 'and one more thing').out, '', 'a remark gets no cue');
+                // When the user then asks for the work, the cue arrives on its own, without the gate
+                const go = p.run(session, 'ok do it');
+                assertEqual(go.code, 0, go.err);
+                assertContains(go.out, CUE);
+                // And the cue carries the whole rule: when to ask, the three choices, the exemptions and one question per turn
+                assertContains(go.out, 'if it is non-trivial (behavior or contract change, several modules, real risk, or open choices) and no approved plan or running workflow covers it');
+                assertContains(go.out, 'ask ONE question before editing: plan first (`/plan`: it reviews itself, validates, then offers to execute) · run directly · grill first (only when choices are still open)');
+                assertContains(go.out, 'Skip trivial, follow-up or correction work, "just do it", a named skill, or a request already asked about.');
+                assertContains(go.out, 'This replaces the answer-review offer on this turn.');
+                assertNotContains(go.out, ROUTE_START, 'the gate is not re-delivered');
+                assertTrue(go.out.length < 700, `the cue stays one short line (${go.out.length} chars)`);
+                // And each later request for work gets it again: the cue is per prompt and unrecorded
+                assertContains(p.run(session, 'implement the retry with exponential backoff').out, CUE);
+                // But a prompt that names a skill or command has already chosen its route
+                assertEqual(p.run(session, '/plan add retries to the fetcher').out, '', 'an explicit skill call gets no cue');
+                assertEqual(p.run(session, '/fix please fix the flaky login test').out, '', 'a skill call whose text also asks for work gets no cue');
+                // And work a running workflow covers is skipped by the agent from the cue's own text: no hook store says
+                // which session runs a workflow, so the hook does not claim a silence it cannot check
+                assertContains(go.out, 'no approved plan or running workflow covers it');
+                // And off mode delivers no cue at all
+                const off = { CK_WORKFLOW_ROUTE_MODE: 'off' };
+                const offSession = newSession();
+                p.run(offSession, 'hello', off);
+                assertNotContains(p.run(offSession, 'implement the retry', off).out, CUE, 'off mode gets no cue');
+            })
+        },
+        {
+            // Intent: the concise route a lean profile delivers carries the same plan-offer rule, so no profile loses it.
+            name: '[workflow-route-modes] TC-WFR-030 the concise route carries the mid-session plan offer with the same exemptions',
+            skip: FRAMEWORK_REPO_SKIP,
+            fn: () => {
+                const concise = fs.readFileSync(path.join(CLAUDE_DIR, 'skills', 'shared', 'protocols', 'concise-workflow-route.md'), 'utf8');
+                assertContains(concise, 'Mid-session, a non-trivial request for work that no approved plan or running workflow covers gets ONE question before editing: plan first (`/plan`) · run directly · grill first (only when choices are still open).');
+                assertContains(concise, 'Never on the first prompt, for trivial or follow-up work, after "just do it" or a named skill, inside a running workflow, or twice for one request. It replaces the answer-review offer on the same turn.');
+            }
         }
     ]
 };

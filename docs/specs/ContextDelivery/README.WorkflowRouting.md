@@ -165,6 +165,7 @@ Before each prompt the assistant receives short routing guidance in two messages
 - **AC-WFR-21** — **Given** unresolved material choices and no existing owner of the needed interview **When** the route is assessed **Then** choices that fit one conversation select an interview, while dependent choices whose route remains unclear across sessions select a decision map; size alone never selects a map, saved plans and specifications keep their validators, and clear work keeps its ordinary route
 - **AC-WFR-22** — **Given** a linked decision record or resolved map ticket **When** a later interview uses it **Then** only confirmed decisions with unchanged scope and premises are reused and cited; open, changed, conflicting or unconfirmed decisions remain for the user, every hosting gate remains binding, and discovery never grants building authority
 - **AC-WFR-27** — **Given** a decision interview has recorded its decisions **When** it hands off **Then** it may offer, never require, one short stress pass on the recorded decisions from four angles (need and reuse, cost and scale, migration and rollback, day-to-day running); an accepted pass runs inline, appends its findings to the same record, keeps the record where the interview keeps it, and still plans, specifies and builds nothing
+- **AC-WFR-28** — **Given** a session past its first prompt, with no approved plan and no running workflow **When** the developer asks for non-trivial work (a behavior or contract change, several modules, real risk or open choices) **Then** the assistant asks one question before editing — plan first, run directly, or grill first when choices are still open — and never asks it on the first prompt, for trivial or follow-up work, after "just do it" or a named skill, inside a running workflow, or twice for one request; the rule arrives as a one-line reminder on that prompt
 
 ---
 
@@ -190,6 +191,7 @@ Before each prompt the assistant receives short routing guidance in two messages
 | BR-WFR-14 | Additional route guidance excludes private file names and final targets                                                                     | Privacy      | [HARD]      |
 | BR-WFR-15 | Decision discovery matches uncertainty and preserves prior confirmed choices                                                                | Activation   | [HARD]      |
 | BR-WFR-16 | The catalog picks a workflow by what happens to observable behavior                                                                         | Activation   | [HARD]      |
+| BR-WFR-17 | Mid-session work offers planning once, never on top of the workflow question | Activation | [HARD] |
 
 ### BR-WFR-01: Two guidance messages within the size cap [HARD]
 
@@ -349,6 +351,23 @@ After recording its decisions, a free-form decision interview may offer one shor
 
 > **Evidence:** `[Source: operation/scripts/workflow-skills-catalog]` · `[Source: constraint/skills/concise-workflow-route]`
 
+### BR-WFR-17: Mid-session work offers planning once, never on top of the workflow question [HARD]
+
+**Statement:** After a session's first prompt, a request for non-trivial work that no approved plan or running workflow covers gets one question before any edit: plan first, run directly, or grill first when material choices are still open. The rule travels as a one-line reminder added to each mid-session request for work, the moment it applies; the concise route carries it as one bullet. The routing gate itself stays unchanged, because with a project route protocol of the documented size it has no room left under the route message cap. The first prompt never gets the reminder, since the workflow question owns it. The question is never asked for trivial or follow-up work, after "just do it" or a named skill, inside a running workflow, with routing off, or twice for one request. No hook can see which session runs a workflow, so inside one the reminder still arrives and its own text tells the assistant to skip. On a turn where the answer-review offer would also apply, only this question is asked.
+
+```
+IF prompt is past the first AND asks for work AND no plan or workflow covers it AND the work is non-trivial
+  → ASK once: plan first · run directly · grill first (open choices only)
+IF first prompt OR question OR named skill OR routing off
+  → no reminder, no question
+IF a running workflow covers the request
+  → the reminder still arrives and itself says to skip; no question
+```
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: operation/hooks/workflow-route-inject]` · `[Source: constraint/skills/concise-workflow-route]`
+
 ---
 
 ## 5. Domain Model
@@ -503,9 +522,9 @@ Session           0──1 SessionMode         (set by a prompt directive)
 | Priority  | Count  | Automated | Manual |
 | --------- | ------ | --------- | ------ |
 | P0        | 2      | 2         | 0      |
-| P1        | 26     | 26        | 0      |
+| P1        | 27     | 27        | 0      |
 | P2        | 1      | 1         | 0      |
-| **Total** | **29** | **29**    | **0**  |
+| **Total** | **30** | **30**    | **0**  |
 
 | Category                    | TCs                                                                    |
 | --------------------------- | ---------------------------------------------------------------------- |
@@ -513,7 +532,7 @@ Session           0──1 SessionMode         (set by a prompt directive)
 | Activation Tier Tests       | TC-WFR-006, TC-WFR-007, TC-WFR-009, TC-WFR-011, TC-WFR-012             |
 | Validation Tests            | TC-WFR-008                                                             |
 | Invariant / Property Tests  | TC-WFR-010, TC-WFR-022                                                             |
-| Route Mode Tests            | TC-WFR-014, TC-WFR-015, TC-WFR-016, TC-WFR-017, TC-WFR-018, TC-WFR-019, TC-WFR-020, TC-WFR-021, TC-WFR-023, TC-WFR-025, TC-WFR-027 |
+| Route Mode Tests            | TC-WFR-014, TC-WFR-015, TC-WFR-016, TC-WFR-017, TC-WFR-018, TC-WFR-019, TC-WFR-020, TC-WFR-021, TC-WFR-023, TC-WFR-025, TC-WFR-027, TC-WFR-029, TC-WFR-030 |
 
 ### Core Routing Guidance Tests
 
@@ -1970,6 +1989,58 @@ And no planning, specifying or building starts
 > **Evidence:** `[Source: constraint/skills/decision-interview]`
 > **Related Behaviors:** `constraint/skills/decision-interview`
 > **CoveredBy:** `.claude/hooks/tests/suites/decision-interview.test.cjs::TC-DIV-006 grill may offer one inline stress pass on its recorded decisions and still only records` · **Status:** Tested
+
+---
+
+#### TC-WFR-030: Mid-session work offers planning once, never on top of the workflow question [P1]
+
+**Objective:** Prove that a request for work after a discussion is offered a plan first, without stacking on the workflow question, a named skill or a running workflow.
+
+**Business Intent / Invariant Guarded:** BR-WFR-17 / AC-WFR-28 — for every mid-session request for work, the reminder and the rule are present; for every first prompt, question, named skill or off mode, neither is added; work a running workflow covers is skipped by the rule's own text.
+
+**Preconditions:** A project with the framework route hooks; a session whose first prompt already delivered the routing gate.
+
+**Real-World Reachability:** A developer asks the assistant several questions, then says "ok do it" or asks for an implementation in the same session, minutes or hours later.
+
+**Demo Flow:** In one session, ask for work, then ask a why-question, then say "ok do it"; read what the routing hook adds to each prompt.
+
+```gherkin
+Given the first prompt of a session asks for work
+Then the routing gate arrives unchanged and no reminder is added
+When later prompts are questions or remarks
+Then nothing is added
+When the developer then asks for the work
+Then a one-line reminder states the rule: when to ask, plan first, run directly or grill first when choices are open, the exemptions, and one question per turn
+And each later request for work carries it again
+And a prompt that names a skill, or routing off, gets no reminder
+And the reminder itself tells the assistant to skip work a running workflow covers
+And the concise route carries the same rule
+```
+
+**Expected Result:**
+
+| Dimension | Expectation |
+| --- | --- |
+| **UI** | Not applicable — the observable surface is the routing guidance |
+| **System behavior** | The reminder appears only on mid-session requests for work outside a workflow |
+| **Business data state** | Not applicable — no data changes |
+| **Data shown on UI** | The one-line reminder with the three choices |
+
+**Acceptance Criteria:**
+
+- ✅ The first prompt carries the unchanged gate and no reminder; a later request for work carries the reminder with the whole rule.
+- ✅ Questions, named skills and off mode get nothing added; the reminder names the running-workflow exemption.
+- ❌ A reminder on the first prompt or on a question, or one that omits an exemption, fails the case.
+
+**Test Data:** "add a retry to the fetcher", "why does the cache miss?", "ok do it", "implement the retry with exponential backoff", "/plan add retries to the fetcher", "/fix please fix the flaky login test", and off mode.
+
+**Edge Cases:** A remark ("and one more thing") is not a request for work; a skill call ("/plan …") has chosen its route already.
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: operation/hooks/workflow-route-inject]` · `[Source: constraint/skills/concise-workflow-route]`
+> **Related Behaviors:** `operation/hooks/workflow-route-inject` · `constraint/skills/concise-workflow-route`
+> **CoveredBy:** `.claude/hooks/tests/suites/workflow-route-modes.test.cjs::[workflow-route-modes] TC-WFR-030 mid-session, a request for work gets the plan-offer cue; the first prompt, questions, skill calls and off mode do not`, `.claude/hooks/tests/suites/workflow-route-modes.test.cjs::[workflow-route-modes] TC-WFR-030 the concise route carries the mid-session plan offer with the same exemptions` · **Status:** Tested
 
 ---
 

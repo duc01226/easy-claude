@@ -194,7 +194,7 @@ Native settings require fresh Claude/Codex sessions; already delivered context c
 | “Set framework runtime to on / quiet / off” | `frameworkRuntime.mode: "on" / "quiet" / "off"` | Use the runtime CLI to reconcile hooks and native discovery at the requested scope; default on |
 | “Don't automatically start heavy skills” | `portability.skillAutoTrigger: false` | Ask once to run a suitable matched skill or skip and execute directly; named requests, required calls and authorized workflow steps remain allowed |
 | “Restore automatic skills” | `portability.skillAutoTrigger: true`, or reset if requested | Later valid preference wins; default true |
-| “Use lightweight commit reviews” | `commit.reviewMode: "lightweight"` | Default: automatically run `commit-review --fix-loop` at every commit risk tier, at most two rounds; no review-choice question |
+| “Use lightweight commit reviews” | `commit.reviewMode: "lightweight"` | Default: automatically run `commit-review --fix-loop` at every commit risk tier, at most three rounds; no review-choice question |
 | “Choose commit reviews by risk” | `commit.reviewMode: "risk-based"` | Low skip / Medium why-review / High changes-review; PR whole-branch reviews always retain this policy |
 | “Workflows should ask / recommend the full workflow first / only run explicitly” | `portability.workflowRouteMode: "ask" / "auto" / "off"` | Separate workflow routing preference; `ask` and `auto` both ask before a self-selected workflow starts |
 | “Make these skills explicit-only for the team” | `skillProfile.commandOnly` in project config | Merge only the requested skill names and regenerate native host projections; profile guards still apply |

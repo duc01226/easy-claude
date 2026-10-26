@@ -25,7 +25,7 @@ to get a green result. Missing authentication, trust or host capabilities is an 
 | Explicit manual-only skill request | Native loader runs the named canary and returns its marker. |
 | `off` via the CLI | Framework skills disappear from Claude's native command/catalog list; Codex `skills/list` reports the framework paths disabled. Built-ins and unrelated skills retain their policy. |
 | Restore `quiet` / `on` | Previous manual-only entries and callable review/configuration dependencies return. |
-| Requested commit review selection | The real policy helper selects `commit-review`, at most two rounds, for default low and high risk. `risk-based` restores tier selection; PR selection stays independent. |
+| Requested commit review selection | The real policy helper selects `commit-review`, at most three rounds, for default low and high risk. `risk-based` restores tier selection; PR selection stays independent. |
 | Commit/push prompting | Inspect actual tool/permission events in a disposable local-only Git fixture. A policy-helper result alone does not prove absence of a native approval dialog. |
 
 Capture native command lists or loader metadata and JSON tool events, alongside the exact installed

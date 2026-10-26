@@ -37,7 +37,7 @@ test('requested commits select a real lightweight review at every risk tier by d
         const result = policy.decideReview({ ...f, risk });
         assert.equal(result.skill, 'commit-review');
         assert.equal(result.action, 'review');
-        assert.equal(result.maxRounds, 2);
+        assert.equal(result.maxRounds, 3);
         assert.equal(result.source, 'default');
     }
 });

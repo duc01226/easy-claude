@@ -1,7 +1,7 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-10-22'
+  last_updated: '2026-10-26'
   total_skills: 106
   total_by_status:
     active: 106
@@ -535,7 +535,7 @@ skills:
       path: pr-review/SKILL.md
       description: '[Code Quality] Use when asked for a final or full review of a
         pull request or branch, or to check a branch before marking its PR Ready.
-        Reviews the whole branch against its target, fixes findings in at most two
+        Reviews the whole branch against its target, fixes findings in at most three
         rounds, then lists the Ready checklist. One commit: commit-review.'
       category: other
       has_scripts: false

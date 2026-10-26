@@ -72,7 +72,7 @@
 | Round 1  | Proactive analysis or main-session analysis | Domain-specific agent (e.g., `performance-optimizer`) | —                      |
 | Round 2  | Challenge / fresh eyes                      | Fresh pass; a NEW domain-specific agent when the round uses one | A sub-agent: ZERO memory of Round 1; inline: re-read from disk |
 | Round 2  | Post-fix re-verification                    | Fresh pass; a NEW domain-specific agent when the round uses one | A sub-agent: ZERO memory; inline: re-read from disk |
-| Max      | 2 rounds                                    | Then escalate to user via `ask user question tool`           | —                      |
+| Max      | 3 rounds                                    | Then escalate to user via `ask user question tool`           | —                      |
 
 **Key rules:**
 

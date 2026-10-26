@@ -28,7 +28,7 @@ Old evidence never covers new content: a run from before the last edit to the co
 
 ## Decide review
 
-Run `node .claude/scripts/lib/commit-review-policy.cjs --operation=pull-request --risk=<actual-tier>`. PR scope remains risk-based regardless of `commit.reviewMode`: Low → automatic skip; Medium → `/why-review --fix-loop`; High → `/changes-review --fix-loop`. Each review has at most two rounds. Reuse evidence only when the whole-branch scope and final candidate match; a commit-only review does not cover a PR.
+Run `node .claude/scripts/lib/commit-review-policy.cjs --operation=pull-request --risk=<actual-tier>`. PR scope remains risk-based regardless of `commit.reviewMode`: Low → automatic skip; Medium → `/why-review --fix-loop`; High → `/changes-review --fix-loop`. Each review has at most three rounds. Reuse evidence only when the whole-branch scope and final candidate match; a commit-only review does not cover a PR.
 
 Pass the exact commit descriptor to the selected review if a commit is needed. Use staged mode for a plain commit, all mode for `-a`, literal-paths for explicit paths; add `"amend":true` only for an authorized amendment, which reviews against HEAD's parent. The review skill issues its receipt on convergence. Check that receipt with `node .claude/hooks/lib/review-receipt.cjs check --target=commit-descriptor --descriptor-json='<exact descriptor>'` before committing. `ERROR` is a blocker, never `CLEAN`.
 
@@ -47,4 +47,4 @@ A clean candidate needs no receipt. A changed candidate requires a matching revi
 
 ## Stop and refresh boundaries
 
-Unavailable required checks, unresolved failures, ambiguous intent or MEDIUM+ findings after two review rounds block publication. Leave the pending candidate uncommitted and report the evidence. Changed content invalidates affected tests and review evidence; reclassify and refresh them before proceeding. Neither review evidence nor a skip waives CI, spec/test reconciliation, project gates or Git authority.
+Unavailable required checks, unresolved failures, ambiguous intent or MEDIUM+ findings after three review rounds block publication. Leave the pending candidate uncommitted and report the evidence. Changed content invalidates affected tests and review evidence; reclassify and refresh them before proceeding. Neither review evidence nor a skip waives CI, spec/test reconciliation, project gates or Git authority.

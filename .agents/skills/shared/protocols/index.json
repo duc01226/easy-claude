@@ -253,12 +253,12 @@
       "group": "design",
       "summary": "Compact routing authority and catalog retrieval cues",
       "when": "concise route delivery",
-      "chars": 3755,
+      "chars": 4172,
       "file": ".claude/skills/shared/protocols/concise-workflow-route.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/concise-workflow-route.md",
-          "chars": 3755
+          "chars": 4172
         }
       ]
     },

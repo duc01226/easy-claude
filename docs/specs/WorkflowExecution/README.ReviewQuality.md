@@ -23,7 +23,7 @@ large_idea_decomposition:
           owning_artifact: Workflow Routing spec, US-WFR-06
         - id: RVQ-S4
           outcome: After a consequential answer the assistant offers a deeper check, and advice questions get the same self-review as verdict questions
-          releasable_when: TC-RVQ-009 and TC-RVQ-010 pass
+          releasable_when: TC-RVQ-009, TC-RVQ-010 and TC-RVQ-011 pass
           owning_artifact: this spec, US-RVQ-06
     dependencies_order:
         - before: RVQ-S1
@@ -183,6 +183,7 @@ The decomposition lives in the frontmatter block `large_idea_decomposition`: fou
 - **AC-RVQ-11** — **Given** a consequential answer outside a running workflow, in the main conversation **When** the answer ends **Then** the assistant asks one question with three options: test it by decision interview, review it adversarially, or skip; the interview is listed first when the answer rests on the user's preferences or constraints, the review first when it rests on evidence
 - **AC-RVQ-12** — **Given** a lookup, a trivial answer, a routine edit, a running workflow, a skill that closes with its own question or next step, a helper agent, a user who already asked for either check on this answer, or a subject the user already skipped **When** the answer ends **Then** no offer is asked
 - **AC-RVQ-13** — **Given** the decision interview, an ideation session or a standalone rationale review **When** its result leaves choices that rest on the user **Then** it points to the decision interview: the interview accepts an earlier answer as its subject and names the rationale review as its complement, ideation offers it on the recommended option, and a standalone rationale review may offer it with the material trade-offs; none offers it as a workflow step or helper agent
+- **AC-RVQ-14** — **Given** a plan created standalone, with a user present **When** its self-review and validation chain end (or the chain exits) **Then** the assistant asks one question — execute now, deeper review first (up to three rounds), or stop — recommends one with its reason, and acts only on the answer; inside a workflow, when another skill runs plan creation, or when no user can be reached, no question is asked and the hand-back names the same three next steps
 
 ---
 
@@ -202,6 +203,7 @@ The decomposition lives in the frontmatter block `large_idea_decomposition`: fou
 | BR-RVQ-08 | Plan targets map required sections           | Review conduct | [HARD]      |
 | BR-RVQ-09 | Advice questions get the answer self-review  | Answer review  | [HARD]      |
 | BR-RVQ-10 | A consequential answer offers a deeper check | Answer review  | [HARD]      |
+| BR-RVQ-11 | A standalone plan ends with one next-step question | Answer review | [HARD] |
 
 ### BR-RVQ-01: One owner for review dimensions [HARD]
 
@@ -259,6 +261,10 @@ IF the answer is consequential AND no exemption holds
 IF an exemption holds
   → no offer
 ```
+
+### BR-RVQ-11: A standalone plan ends with one next-step question [HARD]
+
+**Statement:** A plan created standalone reviews itself once and is validated with the user; it then ends with one question: execute now, deeper review first, or stop. The recommendation follows the plan's state: execute when no finding stayed open and validation passed, a deeper review when a finding stayed open, validation was skipped, or a full-profile plan carries a one-way or cross-module decision. Plan creation never starts execution or a review on its own; the answer starts it. A workflow, a calling skill or a context with no user gets no question.
 
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
@@ -384,9 +390,9 @@ This capability enforces no permission boundary of its own. Anyone may ask for a
 | Priority  | Count | Automated | Manual |
 | --------- | ----- | --------- | ------ |
 | P0        | 3      | 3         | 0      |
-| P1        | 6      | 6         | 0      |
+| P1        | 7      | 7         | 0      |
 | P2        | 1      | 1         | 0      |
-| **Total** | **10** | **10**    | **0**  |
+| **Total** | **11** | **11**    | **0**  |
 
 Every rule in §4 is `[HARD]`, so each case below states its property over a whole input domain and pairs it with a boundary counter-case.
 
@@ -838,5 +844,52 @@ And an explicit call of the decision interview or the rationale review gets no r
 > **Evidence:** `[Source: constraint/skills/judgement-integrity]`
 > **Related Behaviors:** `constraint/skills/judgement-integrity`
 > **CoveredBy:** `.claude/hooks/tests/suites/judgement-integrity-route.test.cjs::TC-JIR-012` · **Status:** Tested
+
+---
+
+### TC-RVQ-011: A standalone plan ends with one next-step question [P1]
+
+**Objective:** Make the deeper review and execution reachable at the moment a plan is ready, without starting either unasked.
+
+**Business Intent / Invariant Guarded:** BR-RVQ-11 / AC-RVQ-14 — for every standalone plan with a user present, exactly one closing question with three options; for every workflow, calling skill or unreachable user, none.
+
+**Preconditions:** The planning procedure's guidance.
+
+**Real-World Reachability:** A developer asks for a plan directly, answers the validation interview, and decides what happens next in the same session.
+
+**Demo Flow:** Ask for a plan standalone, answer the validation interview, and see the closing question; pick deeper review and see the plan review start.
+
+```gherkin
+Given a plan created standalone with a user present
+When its self-review and validation chain end, or the chain exits
+Then one question offers: execute now, deeper review first, or stop
+And one option is recommended with its reason
+And only the answer starts execution or review
+And a workflow, a calling skill or a context with no user gets no question
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                    |
+| ----------------------- | -------------------------------------------------------------- |
+| **UI**                  | One closing question with three options                        |
+| **System behavior**     | The picked next step starts as its own run; stop ends the run  |
+| **Business data state** | Not applicable — no data changes                               |
+| **Data shown on UI**    | The three options, the recommended one first                   |
+
+**Acceptance Criteria:**
+
+- ✅ The closing question, its three options, its recommendation rule and its exemptions are stated.
+- ❌ Plan creation starting execution or a review without an answer, or asking inside a workflow, fails the case.
+
+**Test Data:** The planning procedure's guidance.
+
+**Edge Cases (boundary counter-case):** The validation chain exits (setting off or declined): the closing question is still asked, with a deeper review recommended.
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: constraint/skills/plan]`
+> **Related Behaviors:** `constraint/skills/plan`
+> **CoveredBy:** `.claude/hooks/tests/suites/review-quality.test.cjs::TC-RVQ-011` · **Status:** Tested
 
 ---

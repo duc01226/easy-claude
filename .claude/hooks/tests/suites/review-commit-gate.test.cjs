@@ -691,7 +691,7 @@ const tests = [
             // The coordinator delegates selection; executable policy tests own tier behavior.
             const commitSkill = fs.readFileSync(path.resolve(__dirname, '../../../skills/commit/SKILL.md'), 'utf8');
             assert.match(commitSkill, /commit-review-policy\.cjs --operation=commit/);
-            assert.match(commitSkill, /at most two rounds/);
+            assert.match(commitSkill, /at most three rounds/);
             // Then: the skill decides without a test/review question
             assert.doesNotMatch(commitSkill, /\(Recommended\)|Skip stays user-only|Ask initially/i,
                 'the commit skill must not restore the test/review question');

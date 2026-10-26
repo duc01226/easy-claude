@@ -59,7 +59,7 @@ to run, so restricting automatic work does not bypass checks or create interrupt
   without a human test/review question. Tests are skipped only when the affected tests already passed in
   the session for unchanged content or the change is really small; otherwise scoped tests run and failures
   are fixed until all pass. Review is skipped only for a low-risk candidate; medium and high risk receive
-  the proportionate review for at most two review rounds. The selected review's required chain remains
+  the proportionate review for at most three review rounds. The selected review's required chain remains
   eligible. An explicit human instruction about tests or review overrides the automatic choice. Selection
   preferences never substitute for current evidence or approve a skip.
 - **AC-SAP-06:** Optional unrelated procedures and attempts to obtain authorization by self-starting an agent
@@ -101,7 +101,7 @@ Commit and pull-request procedures own the risk-based test/review decision and n
   whether to run tests or review. Tests are skipped only when the affected tests already passed in the
   session for unchanged content or the change is really small; otherwise scoped tests run and failures are
   fixed until all pass. Review follows the candidate's risk: low risk records an automatic skip with its
-  reason, medium risk runs the rationale review and high risk runs the change review, each for at most two
+  reason, medium risk runs the rationale review and high risk runs the change review, each for at most three
   review rounds. Any higher-risk signal outranks size, and unclear risk takes the higher tier. Material
   findings still open at that cap, a check that cannot pass and ambiguous intent stop the operation before
   the commit and are reported; a failed review never becomes a skip. An explicit human instruction about
@@ -422,7 +422,7 @@ Given an active publication task
 When repeated commit or pull-request requests, recovery or delegated starts receive guidance
 Then tests and review are decided from the candidate's risk without a human test/review question
 And tests are skipped only when already passed in the session or the change is really small
-And review is skipped only for low risk and otherwise runs for at most two review rounds
+And review is skipped only for low risk and otherwise runs for at most three review rounds
 And findings still open at that cap or a check that cannot pass stop the operation with a report
 And pending questions and explicit human constraints remain binding
 And changed content requires current evidence rather than a transferred skip

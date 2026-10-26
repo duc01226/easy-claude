@@ -117,7 +117,7 @@ function selectReview(risk, mode) {
     if (!MODES.includes(mode)) throw new Error(`Expected review mode: ${MODES.join(', ')}`);
     const skill = mode === 'lightweight' ? 'commit-review' : risk === 'medium' ? 'why-review'
         : risk === 'high' ? 'changes-review' : null;
-    return { action: skill ? 'review' : 'skip', skill, maxRounds: skill ? 2 : 0 };
+    return { action: skill ? 'review' : 'skip', skill, maxRounds: skill ? 3 : 0 };
 }
 
 function decideReview(options = {}) {
