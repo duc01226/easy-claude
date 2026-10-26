@@ -1,6 +1,6 @@
 # ADR-0008: Projects Update the Framework Themselves, from the Upstream Repository
 
-- **Status:** Accepted (amended 2026-10-26 — the sync keeps mirror entries it did not generate; see [Amendment](#amendment-2026-10-26-the-sync-keeps-mirror-entries-it-did-not-generate))
+- **Status:** Accepted (amended 2026-10-26 — the sync keeps mirror entries it did not generate, see [Amendment](#amendment-2026-10-26-the-sync-keeps-mirror-entries-it-did-not-generate); then only a mirror clash stops the update's sync, see [Amendment](#amendment-2026-10-26-only-a-mirror-clash-stops-the-updates-sync))
 - **Date:** 2026-10-26
 - **Builds on:** [ADR-0007](0007-framework-updates-merge-and-opt-in-switches.md), which made updates a
   three-way merge. This record decides how a project gets the upstream and runs that merge.
@@ -93,3 +93,23 @@ of a retired framework skill from a project's own skill, and keeps both. The upd
 skill names, so it now removes the mirror of a framework skill the project no longer has (Decision 5
 keeps the rest: it still lists mirror-only skills and skips the sync so the user decides where each
 belongs). A plain sync after that first run removes such mirrors itself.
+
+## Amendment (2026-10-26): only a mirror clash stops the update's sync
+
+This supersedes Decision 5's "the engine skips the sync". Once the sync kept mirror-only skills, skipping
+it protected nothing, and a project that keeps a skill another tool installed in `.agents/skills/` would
+have had a skipped sync and exit code 2 on every update. The dry run still lists mirror-only skills, so
+the user still decides where each belongs; the closing sync runs.
+
+What the sync cannot keep is a Codex-only skill whose name a framework skill new in this update also uses:
+the new skill's mirror takes that name. The engine lists such an entry as a mirror clash (`mirrorClashes`;
+new means neither the base nor the lock had the skill, and the project has no `.claude/skills/` source of
+that name), skips the sync and exits 2, so the user renames the project's skill or lets upstream's take the
+name. A project skill of the same name in `.claude/skills/` is a merge of two skills, settled there.
+
+Outside an update the sync guards the same case itself. When a `.claude/skills/` source takes the name of
+an entry the marker shows it did not generate (or the folder has no marker at all), it copies that entry to
+`tmp/codex-sync/replaced/<name>` before replacing it and prints a `replaced` line. A marker from an older
+sync records no names, so in that one case the sync cannot tell and copies nothing. For the same reason
+the sync no longer refuses an existing `.agents/skills/` folder without a marker in a skills-only project:
+it adopts the folder and deletes nothing in it.

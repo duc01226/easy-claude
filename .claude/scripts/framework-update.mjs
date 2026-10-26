@@ -52,11 +52,12 @@
  * as 0 and recomputed afterwards (any other file is compared and written byte for byte), and the generated catalogs are regenerated instead of merged.
  * The sync at the end regenerates `.agents/skills/` from `.claude/skills/` and keeps any entry it did not
  * generate. The tool removes the mirror of a framework skill the project no longer has (a sync from before
- * the mirror recorded its own entries would keep it), and lists any other entry with no source (a
- * Codex-only skill the project added) and skips the sync, so the user decides where it belongs first.
+ * the mirror recorded its own entries would keep it) and lists any other entry with no source (a Codex-only
+ * skill) as mirror-only. It skips the sync only for a mirror clash: a Codex-only skill whose name a
+ * framework skill new in this update also uses, which the new skill's mirror would replace.
  *
  * Exit codes: 0 updated (or nothing to do) · 1 fatal · 2 something left to resolve (conflicts or
- * mirror-only skills).
+ * mirror clashes).
  */
 import { spawnSync } from 'node:child_process';
 import crypto from 'node:crypto';
@@ -255,8 +256,8 @@ const frameworkSkillNames = frameworkPaths => [...new Set([...frameworkPaths]
 
 /**
  * `.agents/skills/` entries that are the project's own: neither a project skill source nor a name the
- * framework ships, had at the base, or listed in the lock. The sync keeps them but mirrors them to no
- * other host, so the user decides where each belongs.
+ * framework ships, had at the base, or listed in the lock. The sync keeps them, but no other host gets
+ * them, so the user decides where each belongs.
  */
 function mirrorOnlySkills(project, frameworkPaths) {
     const mirror = path.join(project, MIRROR_SKILLS);
@@ -264,6 +265,20 @@ function mirrorOnlySkills(project, frameworkPaths) {
     const sources = path.join(project, SCOPE, 'skills');
     const known = new Set([...(fs.existsSync(sources) ? fs.readdirSync(sources) : []), ...frameworkSkillNames(frameworkPaths)]);
     return fs.readdirSync(mirror).filter(name => !known.has(name) && !MIRROR_OWN.has(name)).sort().map(name => `${MIRROR_SKILLS}/${name}`);
+}
+
+/**
+ * Codex-only `.agents/skills/` entries whose name a framework skill new in this update (`addedSkills`) also
+ * uses: the closing sync would replace each with that skill's mirror. A project that also has a
+ * `.claude/skills/` source of that name is not listed; the two skills meet in `.claude/`, where the merge
+ * settles them.
+ */
+function mirrorClashes(project, addedSkills) {
+    const mirror = path.join(project, MIRROR_SKILLS);
+    if (!fs.existsSync(mirror)) return [];
+    const added = new Set(addedSkills);
+    return fs.readdirSync(mirror).filter(name => added.has(name) && !fs.existsSync(path.join(project, SCOPE, 'skills', name)))
+        .sort().map(name => `${MIRROR_SKILLS}/${name}`);
 }
 
 /**
@@ -332,8 +347,12 @@ export function planUpdate({ project, upstream, ref = 'HEAD', workingTree = fals
     const projectOnly = projectFiles(project).filter(p => !frameworkPaths.has(p) && !NEVER_TAKEN.has(p)).sort();
     const nextLock = buildLock(upstream, theirs, { ref: resolvedRef, workingTree, sourceUrl, previous: lock });
     if (!workingTree) nextLock.source.ref = ref;
+    // A skill is new in this update when neither the base nor the lock had it.
+    const previousSkills = new Set(frameworkSkillNames([...basePaths, ...Object.keys(lock?.files || {})]));
+    const addedSkills = frameworkSkillNames(theirs.keys()).filter(name => !previousSkills.has(name));
     return { actions, nextLock, base: resolvedBase, baseDetection, firstLock: !lock, projectOnly,
-        mirrorOnly: mirrorOnlySkills(project, frameworkPaths), frameworkSkills: frameworkSkillNames(frameworkPaths), warnings };
+        mirrorOnly: mirrorOnlySkills(project, frameworkPaths), mirrorClashes: mirrorClashes(project, addedSkills),
+        frameworkSkills: frameworkSkillNames(frameworkPaths), warnings };
 }
 
 function python() {
@@ -428,13 +447,15 @@ export function applyUpdate(project, plan, { sync = true } = {}) {
     const followUps = regenerate(project);
     if (removedMirrors.length) followUps.push(`Removed the mirror of ${removedMirrors.length} framework skill(s) the project no longer has: ${removedMirrors.map(name => `${MIRROR_SKILLS}/${name}`).join(', ')}.`);
     const conflicts = plan.actions.filter(a => a.kind === 'conflict' || a.kind === 'conflict-side');
-    const blocked = conflicts.length || plan.mirrorOnly.length;
+    const blocked = conflicts.length || plan.mirrorClashes.length;
     if (sync && !blocked) {
         const result = spawnSync(process.execPath, [path.join(project, '.claude/skills/sync-codex/scripts/run-codex-sync.mjs')],
             { cwd: project, stdio: 'inherit', windowsHide: true });
         followUps.push(result.status === 0 ? 'sync-codex passed.' : `sync-codex failed (exit ${result.status}); fix it before committing.`);
     } else if (blocked) {
-        if (plan.mirrorOnly.length) followUps.push(`Sync skipped so you can decide where ${plan.mirrorOnly.join(', ')} belong(s): move each into .claude/skills/ to mirror it to every host, or keep it Codex-only (the sync leaves it in place).`);
+        for (const entry of plan.mirrorClashes) {
+            followUps.push(`Sync skipped: upstream now ships ${SCOPE}/skills/${path.basename(entry)}, whose mirror would replace the Codex-only ${entry}. Rename that skill (its folder and the name in its SKILL.md), or remove it to take upstream's.`);
+        }
         followUps.push(`${conflicts.length ? 'Resolve the conflicts, then run' : 'Then run'}: node .claude/skills/sync-codex/scripts/run-codex-sync.mjs`);
     }
     return { written, followUps, removedMirrors: removedMirrors.map(name => `${MIRROR_SKILLS}/${name}`) };
@@ -509,7 +530,7 @@ export function main(argv = process.argv.slice(2), defaultProject = path.resolve
         regenerated: count('skip-regenerated'),
         conflicts: plan.actions.filter(a => a.kind === 'conflict' || a.kind === 'conflict-side')
             .map(a => ({ path: a.path, kind: a.kind, ...(a.reason ? { reason: a.reason } : {}), ...(a.conflicts ? { hunks: a.conflicts } : {}) })),
-        mirrorOnly: plan.mirrorOnly, projectOnly: plan.projectOnly, warnings: plan.warnings };
+        mirrorOnly: plan.mirrorOnly, mirrorClashes: plan.mirrorClashes, projectOnly: plan.projectOnly, warnings: plan.warnings };
     let result = { written: [], followUps: [] };
     if (!options.dryRun) result = applyUpdate(project, plan, { sync: options.sync });
     if (options.json) process.stdout.write(`${JSON.stringify({ ...summary, dryRun: options.dryRun, ...result }, null, 2)}\n`);
@@ -523,10 +544,11 @@ export function main(argv = process.argv.slice(2), defaultProject = path.resolve
             `project-only files left as they are: ${summary.projectOnly.length}\n` +
             summary.warnings.map(line => `WARNING ${line}\n`).join('') +
             summary.conflicts.map(c => `CONFLICT ${c.path} (${describe(c)})\n`).join('') +
-            summary.mirrorOnly.map(p => `MIRROR-ONLY ${p} (no .claude/skills source; the sync keeps it but mirrors it to no other host)\n`).join('') +
+            summary.mirrorOnly.map(p => `MIRROR-ONLY ${p} (no .claude/skills source; the sync keeps it, but no other host gets it)\n`).join('') +
+            summary.mirrorClashes.map(p => `MIRROR-CLASH ${p} (upstream now ships a skill of this name; its mirror would replace this Codex-only skill)\n`).join('') +
             result.followUps.map(line => `${line}\n`).join(''));
     }
-    return (summary.conflicts.length || summary.mirrorOnly.length) ? 2 : 0;
+    return (summary.conflicts.length || summary.mirrorClashes.length) ? 2 : 0;
 }
 
 if (process.argv[1] && fs.realpathSync(process.argv[1]) === fs.realpathSync(url.fileURLToPath(import.meta.url))) {

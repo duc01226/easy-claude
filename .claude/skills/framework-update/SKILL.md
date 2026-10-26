@@ -12,8 +12,8 @@ description: '[Utilities] Use only when the user asks to update or upgrade the .
 **Workflow:**
 
 1. **Preflight** — clean framework folders, Node 18+, Git, network (or a local upstream checkout).
-2. **Dry run** — `--dry-run --json`; read the base, counts, conflicts, mirror-only skills and project-only files.
-3. **Decide** — ask the user only about mirror-only skills, a doubtful base or a dirty tree.
+2. **Dry run** — `--dry-run --json`; read the base, counts, conflicts, mirror-only skills, mirror clashes and project-only files.
+3. **Decide** — ask the user only about mirror-only skills, mirror clashes, a doubtful base or a dirty tree.
 4. **Apply** — the same command without `--dry-run`, pinned to the upstream commit and base the dry run showed.
 5. **Resolve** — read `references/merge-guide.md` and settle every conflict, keeping both sides' intent.
 6. **Verify and report** — no markers, JSON parses, the sync passes; report what changed and what stayed.
@@ -57,7 +57,7 @@ node .claude/skills/framework-update/scripts/update-from-upstream.mjs --base=<co
 | `--project=<folder>` | updating another project from an easy-claude checkout |
 | `--engine=local` | the upstream version's engine cannot run (the default `upstream` runs the newest merge rules) |
 
-The script keeps a blobless clone in `tmp/framework-update/upstream.git` (commits and folder listings only; file contents download in batches), so later runs only fetch what is new. Exit code: `0` done · `1` fatal · `2` something left to resolve.
+The script keeps a blobless clone in `tmp/framework-update/upstream.git` (commits and folder listings only; file contents download in batches), so later runs only fetch what is new. Exit code: `0` done · `1` fatal · `2` something left to resolve (a conflict or a mirror clash).
 
 ## What is whose
 
@@ -68,7 +68,7 @@ The script keeps a blobless clone in `tmp/framework-update/upstream.git` (commit
 | `settings.local.json`, `.ck.local.json` | each person | Never taken from upstream. |
 | `SKILLS.yaml`, `skills_data.yaml`, `<!-- COUNT -->` values | generated | Regenerated from the project's own skill set, never merged. |
 | `.agents/`, `.codex/`, `.opencode/`, `AGENTS.md`, `opencode.json` skill permissions | generated mirrors | Rebuilt from the merged `.claude/` by the closing sync (`/sync-codex`, which hands off to the OpenCode sync when `.opencode/` exists): upstream's new mirror files arrive, retired ones go, and the project's own skills, agents and hooks are mirrored too. |
-| `.agents/skills/<name>` with no `.claude/skills/<name>` source | project | The sync keeps it and prints one `kept` line, but it reaches no other host. The engine lists it as `mirrorOnly` and skips the sync, so the user decides first where it belongs. The mirror of a framework skill the project no longer has (upstream retired it) is the framework's: the engine removes it. |
+| `.agents/skills/<name>` with no `.claude/skills/<name>` source | project | The sync keeps it and prints one `kept` line, but it reaches no other host; the engine lists it as `mirrorOnly` and still runs the sync. When a framework skill new in this update takes its name, the new skill's mirror would replace it: the engine lists it as a mirror clash (`mirrorClashes`) and skips the sync. The mirror of a framework skill the project no longer has (upstream retired it) is the framework's: the engine removes it. |
 | `docs/`, `CLAUDE.md`, `docs/project-config.json`, everything outside the four folders | project | Never touched. |
 
 ## Procedure
@@ -86,20 +86,21 @@ Run `--dry-run --json` (plus any `--ref` / `--upstream` the user gave) and read:
 - `upstream.commit` against the lock's `source.commit`: equal means the project is already current. Say so and stop.
 - `upstream.url`: when it is not `https://github.com/duc01226/easy-claude.git` (a fork or mirror the lock remembers from an earlier `--upstream`), name it to the user; its code is what will be merged.
 - `baseDetection` (projects without a lock): `matched` of `projectFiles` files match `commit`. Show its date and subject with `git -C tmp/framework-update/upstream.git log -1 --format="%h %cs %s" <commit>`. Below about 80% matched, the project was likely copied from a fork or another project, or heavily edited: ask the user to confirm the commit or name the version they copied.
-- `taken`, `deleted`, `merged`, `kept`, `conflicts`, `mirrorOnly`, `projectOnly`.
+- `taken`, `deleted`, `merged`, `kept`, `conflicts`, `mirrorOnly`, `mirrorClashes`, `projectOnly`.
 
 ### 3. Decide
 
 Ask once, in one question, only about what needs the user:
 
 - **Mirror-only skills** (`mirrorOnly`): recommend moving each into `.claude/skills/<name>/`, where it becomes canonical and is mirrored to every host; check the name is free and its `SKILL.md` frontmatter has `name` and `description`. The alternative is keeping it Codex-only in `.agents/skills/` (right for a skill another tool installed there): the sync leaves it in place. Carry out the answer after step 4: the engine refuses to run on uncommitted changes.
+- **Mirror clashes** (`mirrorClashes`): a Codex-only skill whose name a framework skill new in this update also uses. Recommend renaming the project's skill (its folder and the `name` in its `SKILL.md`, then every reference: `git grep -n <old-name>`), so both stay. The alternative is letting upstream's skill take the name: remove the project's skill, then run the sync. Carry out the answer after step 4, before the sync.
 - **A doubtful base** (step 2).
 
 Proceed without asking when nothing needs a decision: the tree is clean and everything is undoable through Git.
 
 ### 4. Apply
 
-Run the command without `--dry-run`, pinned to what the dry run showed: `--ref=<upstream.commit>`, and on a first update `--base=<baseDetection.commit>`. A newer `main` pushed in between is then not taken unseen. The engine writes the merge, the lock and regenerated catalogs and counts, then runs the mirror sync when no conflict or mirror-only skill blocks it. Then move the mirror-only skills the user chose to keep (`git mv .agents/skills/<name> .claude/skills/<name>`).
+Run the command without `--dry-run`, pinned to what the dry run showed: `--ref=<upstream.commit>`, and on a first update `--base=<baseDetection.commit>`. A newer `main` pushed in between is then not taken unseen. The engine writes the merge, the lock and regenerated catalogs and counts, then runs the mirror sync unless a conflict or a mirror clash stops it. Then carry out step 3's answers: move each mirror-only skill the user chose to move (`git mv .agents/skills/<name> .claude/skills/<name>`), and rename or remove each clashing one.
 
 ### 5. Resolve conflicts
 
@@ -111,7 +112,7 @@ Read `references/merge-guide.md` before touching a conflict. It covers marker co
 - Every changed JSON file parses: `node -e "JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'))" <file>`.
 - Every hook command in `.claude/settings.json` names a file that exists.
 - After moving or renaming any skill (mirror-only skills, a name clash), rebuild the catalogs and counts: `node .claude/scripts/framework-update.mjs --regenerate`.
-- Run the sync if the engine skipped it: `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs`. It rebuilds `.agents/`, `.codex/` and `.opencode/`, and its `verify-sync-divergence` and `verify-opencode-*` stages prove they match the merged `.claude/`. A mirror-only skill the user kept in `.agents/skills/` stays as it is, with one `kept .agents/skills/<name>` line. A sync failure is a finding: compare it with a run on the commit before the update before calling it new.
+- Run the sync if the engine skipped it, and again after moving or renaming a skill: `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs`. It rebuilds `.agents/`, `.codex/` and `.opencode/`, and its `verify-sync-divergence` and `verify-opencode-*` stages prove they match the merged `.claude/`. A mirror-only skill the user kept in `.agents/skills/` stays as it is, with one `kept .agents/skills/<name>` line. A sync failure is a finding: compare it with a run on the commit before the update before calling it new.
 - A stale root `CLAUDE.md` reported by the sync → offer `/ai-context-refresh`. New framework switches → `node .claude/scripts/framework-features.cjs` lists them with their defaults.
 - Report: from and to versions, counts, how many project-only files stayed untouched, each conflict and how it was settled, what still needs the user, and verification results. Show `git status --short` totals, not the full list.
 

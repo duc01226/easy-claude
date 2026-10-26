@@ -186,8 +186,8 @@ const hooksRunner = path.join(rootDir, ".claude", "hooks", "tests", "run-all-tes
 const stages = [
     { id: "claude-md", label: "ensure-claude-md", mutate: true, run: runClaudeMdPreflight },
     // `notices`: stdout lines a passing stage still shows without --verbose — here the one-line report
-    // for each value or skill the sync left as the project had it.
-    { id: "migrate",  label: "migrate",          cmd: "node", mutate: true, notices: /^\[codex-migrate\] kept /, args: [path.join(sourceScriptsDir, "migrate-claude-to-codex.mjs"), ...migrateFlags] },
+    // for each value or skill the sync left as the project had it, or replaced after saving a copy.
+    { id: "migrate",  label: "migrate",          cmd: "node", mutate: true, notices: /^\[codex-migrate\] (kept|replaced) /, args: [path.join(sourceScriptsDir, "migrate-claude-to-codex.mjs"), ...migrateFlags] },
     { id: "hooks",    label: "sync-hooks",       cmd: "node", mutate: true, args: [path.join(sourceScriptsDir, "sync-hooks.mjs")] },
     { id: "context",  label: "sync-context",     cmd: "node", mutate: true, args: [path.join(sourceScriptsDir, "sync-context-workflows.mjs")] },
     { id: "tests",    label: "test-codex",       test: true, cmd: testNodeCommand, argsAsync: async () => ["--test", ...await listTestFiles(codexTestsDir)] },

@@ -942,10 +942,6 @@ async function normalizeTextLineEndingsUnderDir(dirPath) {
     return normalized;
 }
 
-async function isManagedAgentsSkillsMirror(dirPath) {
-    return pathExists(path.join(dirPath, SKILL_MIRROR_SENTINEL));
-}
-
 /** The marker text for a mirror whose top-level entries `generated` the sync wrote. */
 export function buildSkillMirrorSentinel(generated) {
     const generatedEntries = [...new Set(generated)].sort();
@@ -953,38 +949,64 @@ export function buildSkillMirrorSentinel(generated) {
 }
 
 /**
- * The top-level entries the marker in `mirrorDir` records as written by the last sync. A missing or
- * unreadable marker, or one from a sync that did not record names yet, records none.
+ * The top-level entries the marker in `mirrorDir` records as written by the last sync: `[]` when there is
+ * no marker (no sync has written the folder), and `null` when a marker records no names (one from an older
+ * sync, or one that cannot be read), so its entries cannot be told apart.
  */
 export async function readRecordedSkillEntries(mirrorDir) {
+    let text;
+    try {
+        text = await fs.readFile(path.join(mirrorDir, SKILL_MIRROR_SENTINEL), 'utf8');
+    } catch (error) {
+        return error.code === 'ENOENT' ? [] : null;
+    }
     let marker;
     try {
-        marker = JSON.parse(await fs.readFile(path.join(mirrorDir, SKILL_MIRROR_SENTINEL), 'utf8'));
+        marker = JSON.parse(text);
     } catch {
-        return [];
+        return null;
     }
-    const names = Array.isArray(marker?.generatedEntries) ? marker.generatedEntries : [];
-    return names.filter(name => typeof name === 'string');
+    return Array.isArray(marker?.generatedEntries) ? marker.generatedEntries.filter(name => typeof name === 'string') : null;
 }
 
 /**
  * Sorts the top-level entries of an existing mirror. `managed`: the sync writes them now (`generated`)
  * or recorded writing them last time (`recorded`), so it replaces or removes them. `unmanaged`: someone
  * else put them there (a Codex-only skill, another tool's install), so they stay and are reported.
- * The marker, OS metadata and local install artifacts are neither: they stay and go unreported.
+ * `displaced`: managed entries the sync writes now but did not write before, so someone else's skill
+ * holds a name a `.claude/skills` source has taken; known only when `recorded` is not null.
+ * The marker, OS metadata and local install artifacts are none of these: they stay and go unreported.
  * Only names in `present` (a listing of the mirror folder) can come out managed, so a recorded name
  * that is a path, as a hand-edited marker could hold, never reaches anything outside the folder.
  */
 export function classifySkillMirrorEntries(present, { generated, recorded }) {
-    const owned = new Set([...generated, ...recorded]);
+    const generatedNames = new Set(generated);
+    const recordedNames = recorded === null ? null : new Set(recorded);
+    const owned = new Set([...generated, ...(recorded ?? [])]);
     const managed = [];
     const unmanaged = [];
+    const displaced = [];
     for (const name of present) {
         if (name === SKILL_MIRROR_SENTINEL) continue;
-        if (owned.has(name)) managed.push(name);
-        else if (!isOsMetadataFileName(name) && !isLocalInstallArtifact(name)) unmanaged.push(name);
+        if (owned.has(name)) {
+            managed.push(name);
+            if (recordedNames && generatedNames.has(name) && !recordedNames.has(name)) displaced.push(name);
+        } else if (!isOsMetadataFileName(name) && !isLocalInstallArtifact(name)) {
+            unmanaged.push(name);
+        }
     }
-    return { managed: managed.sort(), unmanaged: unmanaged.sort() };
+    return { managed: managed.sort(), unmanaged: unmanaged.sort(), displaced: displaced.sort() };
+}
+
+// A skill the sync did not write is never simply deleted: before a `.claude/skills` source's mirror takes
+// its name, it is copied to the project's tmp/ (kept out of Git), under a free name. Returns the copy.
+async function preserveDisplacedSkillEntry(name) {
+    const parent = path.join(rootDir, 'tmp', 'codex-sync', 'replaced');
+    let target = path.join(parent, name);
+    for (let suffix = 2; await pathExists(target); suffix += 1) target = path.join(parent, `${name}-${suffix}`);
+    await ensureDir(parent);
+    await fs.cp(path.join(agentsSkillsDir, name), target, { recursive: true });
+    return target;
 }
 
 // Single source of truth for materializing the Codex sub-agent mirror into `targetDir`.
@@ -1093,19 +1115,9 @@ async function setupSkills(skillProfile) {
     );
 
     await ensureDir(path.dirname(agentsSkillsDir));
+    // An existing folder the sync did not create (a skills-only project that installed Codex skills with
+    // another tool) is adopted: the sync adds its own entries beside what is there and deletes none of it.
     const targetExists = await pathExists(agentsSkillsDir);
-    if (targetExists) {
-        // Sentinel guard: only write into .agents/skills/ for a full Claude Code project
-        // or for a generated mirror from a previous portable skills-only sync.
-        const canReplaceExistingMirror = (await pathExists(claudeAgentsDir)) || (await isManagedAgentsSkillsMirror(agentsSkillsDir));
-        if (!canReplaceExistingMirror) {
-            throw new Error(
-                `Refusing to remove ${agentsSkillsDir}: ${claudeAgentsDir} not found in cwd ${rootDir}. ` +
-                    `Run codex-migrate from a Claude Code project containing both .claude/skills/ and .claude/agents/, ` +
-                    `or remove the unmanaged .agents/skills directory explicitly before running portable skills sync.`
-            );
-        }
-    }
 
     // Build the mirror in a folder of its own first. The transforms rewrite every skill under the folder
     // they are given, and a skill the sync did not generate must reach Codex exactly as its author left it.
@@ -1120,7 +1132,9 @@ async function setupSkills(skillProfile) {
         const recorded = targetExists ? await readRecordedSkillEntries(agentsSkillsDir) : [];
         // Remove only what this sync owns: entries it writes now and entries it recorded writing last
         // time (a skill since removed from .claude/skills). Anything else stays where its owner put it.
-        const { managed, unmanaged } = classifySkillMirrorEntries(present, { generated, recorded });
+        const { managed, unmanaged, displaced } = classifySkillMirrorEntries(present, { generated, recorded });
+        const preserved = [];
+        for (const name of displaced) preserved.push([name, await preserveDisplacedSkillEntry(name)]);
         for (const name of managed) await fs.rm(path.join(agentsSkillsDir, name), { recursive: true, force: true });
         await ensureDir(agentsSkillsDir);
         for (const name of generated) {
@@ -1134,9 +1148,16 @@ async function setupSkills(skillProfile) {
                     `(move it into .claude/skills/ to mirror it to every host, or delete it if it is a leftover)`
             );
         }
+        for (const [name, copy] of preserved) {
+            console.log(
+                `[codex-migrate] replaced .agents/skills/${name}: the sync had not generated it, and .claude/skills/${name} ` +
+                    `now has that name (the old copy is in ${path.relative(rootDir, copy).replaceAll('\\', '/')})`
+            );
+        }
         const modeLabel = copySkills ? 'copied' : 'mirrored';
         const kept = unmanaged.length > 0 ? `; kept ${unmanaged.length} entr${unmanaged.length === 1 ? 'y' : 'ies'} it did not generate` : '';
-        return `${modeLabel} + sanitized + rewritten ${sanitizedCount} skill manifest(s)${kept}`;
+        const replaced = preserved.length > 0 ? `; replaced ${preserved.length} it had not generated` : '';
+        return `${modeLabel} + sanitized + rewritten ${sanitizedCount} skill manifest(s)${kept}${replaced}`;
     } finally {
         await fs.rm(staging, { recursive: true, force: true });
     }
