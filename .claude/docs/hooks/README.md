@@ -101,8 +101,8 @@ one `Hook registration incomplete` block. Every registered file is present in th
 state, so the startup work still runs; a copy that is also missing files reports both
 in the one `Install incomplete` block. Registering neither entry is left alone.
 
-**Upgrade expectation.** Update an installed framework with
-`node .claude/scripts/framework-update.mjs <easy-claude-dir>`, never by re-exporting over it: it
+**Upgrade expectation.** Update an installed framework with `/framework-update`
+(`node .claude/skills/framework-update/scripts/update-from-upstream.mjs`), never by re-exporting over it: it
 merges the framework's `.claude/settings.json` with the project's, so new hook entries arrive and the
 project's own entries stay (see `.claude/docs/framework-portability.md#updating-an-installed-framework`).
 A re-export (`export-claude.mjs --force`) replaces `.claude/settings.json` and every other framework

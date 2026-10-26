@@ -185,7 +185,9 @@ const claudeTestsDir = path.join(rootDir, ".claude", "scripts", "tests");
 const hooksRunner = path.join(rootDir, ".claude", "hooks", "tests", "run-all-tests.cjs");
 const stages = [
     { id: "claude-md", label: "ensure-claude-md", mutate: true, run: runClaudeMdPreflight },
-    { id: "migrate",  label: "migrate",          cmd: "node", mutate: true, args: [path.join(sourceScriptsDir, "migrate-claude-to-codex.mjs"), ...migrateFlags] },
+    // `notices`: stdout lines a passing stage still shows without --verbose — here the one-line report
+    // for each value or skill the sync left as the project had it, or replaced after saving a copy.
+    { id: "migrate",  label: "migrate",          cmd: "node", mutate: true, notices: /^\[codex-migrate\] (kept|replaced) /, args: [path.join(sourceScriptsDir, "migrate-claude-to-codex.mjs"), ...migrateFlags] },
     { id: "hooks",    label: "sync-hooks",       cmd: "node", mutate: true, args: [path.join(sourceScriptsDir, "sync-hooks.mjs")] },
     { id: "context",  label: "sync-context",     cmd: "node", mutate: true, args: [path.join(sourceScriptsDir, "sync-context-workflows.mjs")] },
     { id: "tests",    label: "test-codex",       test: true, cmd: testNodeCommand, argsAsync: async () => ["--test", ...await listTestFiles(codexTestsDir)] },
@@ -358,6 +360,9 @@ async function runStage(stage, index, total) {
             const ms = Date.now() - startedAt;
             if (code === 0) {
                 process.stdout.write(verbose ? `${label} ✓ pass (${ms}ms)\n` : ` ✓ pass (${ms}ms)\n`);
+                if (!verbose && stage.notices) {
+                    for (const line of stdoutBuf.split(/\r?\n/)) if (stage.notices.test(line)) process.stdout.write(`  ${line}\n`);
+                }
                 resolve({ stage: stage.id, code, ms });
             } else {
                 process.stdout.write(verbose ? `${label} ✗ FAIL exit=${code} (${ms}ms)\n` : ` ✗ FAIL exit=${code} (${ms}ms)\n`);

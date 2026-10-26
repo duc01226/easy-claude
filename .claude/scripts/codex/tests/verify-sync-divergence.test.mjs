@@ -156,6 +156,53 @@ test('TC-SKILLFIX-025: OS metadata files in either tree are not divergence; a re
     }
 });
 
+// TC-SKILLFIX-026 — `.agents/skills/` may also hold a skill the project wrote for Codex only, or one
+// another tool installed. The sync keeps such an entry, so the gate must not call it drift; an entry
+// the sync recorded generating whose source is gone is still the sync's and must still fail.
+test('TC-SKILLFIX-026: the gate accepts an entry the sync did not generate and still flags a stale generated one', async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'sync-div-unmanaged-'));
+    const migratePath = path.resolve(thisDir, '..', 'migrate-claude-to-codex.mjs');
+    // A clean machine: the root follows cwd, not an inherited CLAUDE_PROJECT_DIR.
+    const env = { ...process.env, HOME: root, USERPROFILE: root, TMPDIR: root, TEMP: root, TMP: root };
+    for (const key of Object.keys(env)) if (/^(CK_|CLAUDE_PROJECT_DIR$|CODEX_HOME$|NODE_TEST_CONTEXT$)/i.test(key)) delete env[key];
+    const write = async (rel, text) => {
+        await fs.mkdir(path.dirname(path.join(root, rel)), { recursive: true });
+        await fs.writeFile(path.join(root, rel), text, 'utf8');
+    };
+    const gate = () => execFileAsync(process.execPath, [gatePath], { cwd: root, env });
+    try {
+        // Given two project skills synced into the mirror, beside a Codex-only skill
+        for (const name of ['alpha', 'beta']) {
+            await write(`.claude/skills/${name}/SKILL.md`, ['---', `name: ${name}`, `description: ${name}`, '---', '', `# ${name}`, ''].join('\n'));
+        }
+        await fs.mkdir(path.join(root, '.claude', 'agents'), { recursive: true });
+        await write('.agents/skills/codex-only/SKILL.md', '# Codex only\nUse /alpha.\n');
+        await execFileAsync(process.execPath, [migratePath], { cwd: root, env });
+
+        // When the gate checks the mirror, Then it passes and names the entry it did not compare
+        const clean = await gate();
+        assert.match(clean.stdout, /skills: PASS/);
+        assert.match(clean.stdout, /skills: not compared, the sync did not generate it: \.agents\/skills\/codex-only$/m);
+
+        // And the project's later edits to that entry are not drift either
+        await write('.agents/skills/codex-only/SKILL.md', '# Codex only, edited\n');
+        await write('.agents/skills/codex-only/references/new.md', 'added later\n');
+        assert.match((await gate()).stdout, /skills: PASS/);
+
+        // When a synced skill loses its source and nobody re-syncs, Then its leftover mirror still fails the gate
+        await fs.rm(path.join(root, '.claude', 'skills', 'beta'), { recursive: true });
+        await assert.rejects(gate(), error => {
+            assert.equal(error.code, 1);
+            assert.match(error.stderr, /- \[extra-in-mirror\] \.agents\/skills\/beta\/SKILL\.md/);
+            assert.match(error.stderr, /- \[content\] \.agents\/skills\/\.codex-mirror\.json/, 'the marker still records the removed skill');
+            assert.doesNotMatch(error.stderr, /codex-only/, 'the Codex-only skill is never reported as drift');
+            return true;
+        });
+    } finally {
+        await fs.rm(root, { recursive: true, force: true });
+    }
+});
+
 // ── CONTEXT-mirror idempotency (folded into this gate) ─────────────────────────────────────────────
 // checkContextMirror() compares a fresh render of AGENTS.md (keyed by repo-relative path) against the
 // committed copy using the SAME diffTrees. The retired .codex/CODEX_CONTEXT.md is never rendered, so a
@@ -520,11 +567,15 @@ test('TC-HOOKMIRROR-003: a fresh render produces exactly the expected hook surfa
         const actual = Object.entries(rendered.hooks)
             .flatMap(([event, groups]) => groups.map(group => [event, group.matcher ?? null, group.hooks.length]));
 
-        assert.deepEqual(
-            actual,
-            EXPECTED_RENDERED_GROUPS,
-            'the Codex hook surface changed — a Codex session now runs a different hook set than this table records'
-        );
+        // The table records this repository's own hook surface. An adopting project registers hooks of
+        // its own, which framework updates keep, so there only the portable properties below apply.
+        if (isFrameworkRepo(repoRoot)) {
+            assert.deepEqual(
+                actual,
+                EXPECTED_RENDERED_GROUPS,
+                'the Codex hook surface changed — a Codex session now runs a different hook set than this table records'
+            );
+        }
 
         // Every matcher the source configures still has to survive. The table above
         // would also catch this, but only as an opaque array diff; this names the

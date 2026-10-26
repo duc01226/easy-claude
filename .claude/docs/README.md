@@ -7,7 +7,7 @@
 | Goal                           | Document                                                                                                                           |
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
 | **New to Claude Code?**        | [quick-start.md](./quick-start.md) - 5-minute onboarding                                                                           |
-| **Need a skill?**              | [skills/README.md](./skills/README.md) - <!-- COUNT:skills -->106<!-- /COUNT --> skills catalog                                                                        |
+| **Need a skill?**              | [skills/README.md](./skills/README.md) - <!-- COUNT:skills -->107<!-- /COUNT --> skills catalog                                                                        |
 | **Building a feature?**        | [skills/README.md](./skills/README.md) + project-reference root patterns                                                           |
 | **Verifying user experience?** | [configuration/experience-verification.md](./configuration/experience-verification.md) - portable evidence and acceptance contract |
 | **Reviewing the framework?**   | [framework-review-guide.md](./framework-review-guide.md) - how to measure, intended designs, known limits; read before any audit against vendor guidance |
@@ -167,7 +167,7 @@ Unprefixed filenames resolve inside the project-reference docs root — default 
 
 | Category               | Count |
 | ---------------------- | ----- |
-| Skills                 | <!-- COUNT:skills -->106<!-- /COUNT --> |
+| Skills                 | <!-- COUNT:skills -->107<!-- /COUNT --> |
 | Hook files (top-level) | <!-- COUNT:hooks -->38<!-- /COUNT --> |
 | Lib Modules            | <!-- COUNT:lib-modules -->72<!-- /COUNT --> |
 | Hook Events            | 10     |

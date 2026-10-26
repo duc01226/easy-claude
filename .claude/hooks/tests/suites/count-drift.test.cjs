@@ -256,6 +256,10 @@ const tests = [
     },
     {
         name: '[count-drift] manual inventory docs match filesystem truth',
+        // These hand-kept numbers describe the framework's own inventory. An adopting project adds
+        // skills, hooks and workflows of its own, which framework updates keep, so only the
+        // recomputable count markers above apply there.
+        skip: IS_FRAMEWORK_REPO ? false : 'the framework repository\'s own inventory; an adopting project adds its own skills, hooks and workflows',
         fn: () => {
             const skillCount = countDirectSkillFiles();
             const hookCount = countTopLevelHooks();

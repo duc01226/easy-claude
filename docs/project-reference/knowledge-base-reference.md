@@ -29,6 +29,7 @@ Framework packs are always listed in `.claude/knowledge-base/README.md`, even be
 
 | Pack | Plane | Title | Use when | Labels | Read |
 | --- | --- | --- | --- | --- | --- |
+| `incremental-scaling` | project | Scaling a system step by step — fix the measured bottleneck | Use when planning how a system grows under load — vertical vs horizontal scaling, stateless tiers, replicas, caching, queues, splitting services or scaling database writes | unreviewed | `docs/knowledge-base/incremental-scaling.md` |
 | `ai-engineering` | framework | AI-engineering best practice and detection signals | Use when building, planning or reviewing a feature that calls a model — prompts, agents, retrieval, tools, evals, guardrails | unreviewed | `.claude/knowledge-base/ai-engineering.md` |
 | `architecture` | framework | Architecture laws, trade-offs and anti-patterns | Use when designing or reviewing structure, boundaries, data, consistency, messaging, scalability or resilience | unreviewed | `.claude/knowledge-base/architecture.md` |
 | `design` | framework | Design laws, generated-design tells and the design plan | Use when designing, mocking up or reviewing a user interface's visual identity, typography, colour, layout or motion | unreviewed | `.claude/knowledge-base/design.md` |

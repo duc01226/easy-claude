@@ -43,6 +43,7 @@ Also upserts the TUI notification and status-line keys into `.codex/config.toml`
   optional stages emit an explicit `SKIP (not configured)` when the adopter has not declared their contract
 - NEVER edit `.agents/skills/sync-codex/**` (auto-mirror) — edit `.claude/skills/sync-codex/**` source instead
 - `.claude` is the source for skills/workflows/hooks; generated acceptance targets are `.agents/skills/**`, `.codex/agents/*.toml`, `.codex/hooks.json`, and `AGENTS.md`
+- Stage 2 owns only the `.agents/skills/` entries it generates, recorded in `.agents/skills/.codex-mirror.json`: it replaces those and removes the ones whose source is gone. Any other entry (a skill written for Codex only, or installed by another tool) stays as it is, with one `kept .agents/skills/<name>` line shown even without `--verbose`; stage 19 does not compare it. When a `.claude/skills/<name>` source takes the name of such an entry, stage 2 first copies it to `tmp/codex-sync/replaced/<name>` and prints a `replaced` line. An existing `.agents/skills/` folder without the marker (a skills-only project whose folder another tool made) is adopted the same way, never refused
 - Stage 1 may mutate `CLAUDE.md`; stages 2-4 mutate `.agents/skills/`, `.codex/`, `AGENTS.md`; stages 5-19 are read-only (tooling tests,
   optional tech-spec freshness and feature-registry validation, 3 hook-suite gates, the other Codex
   verifiers, and the cross-surface divergence oracle)
@@ -158,7 +159,7 @@ continues; if declared but malformed, their direct verifier fails closed:
 | 16  | review-validate-coverage | `.claude/scripts/codex/verify-review-validate-coverage.mjs` | Verify every review-family skill carries the `/why-review --validate-findings` route; graders never embed the fix-loop (Self-Review Convergence Loop sensor) |
 | 17  | sync-adoption-parity | `.claude/scripts/codex/verify-sync-adoption-parity.mjs` | Verify SYNC tag ↔ carrier adoption parity: declared carriers carry both main + `:reminder` blocks, no undeclared skill carries a matrix tag, every injected body byte-matches canonical |
 | 18  | provenance-markers | `.claude/scripts/codex/verify-provenance-markers.mjs`     | Verify provenance-marker discipline in `architecture-knowledge.md`: declared tags only · `— VERIFY` only on a declared tag · §3/§8/§9/§10 each carry a default-basis banner · no banner enumerates row-level exceptions · a `[model-knowledge]` marker carries `— VERIFY`. Fail-soft when the catalog is absent |
-| 19  | sync-divergence | `.claude/scripts/codex/verify-sync-divergence.mjs`           | Byte-equality oracle over FOUR mirrors: `.agents/skills`, `.codex/agents/*.toml`, the context mirror (`AGENTS.md`; a leftover `.codex/CODEX_CONTEXT.md` is an orphan), and `.codex/hooks.json` — each re-materialized by the REAL writer into a temp dir, then diffed |
+| 19  | sync-divergence | `.claude/scripts/codex/verify-sync-divergence.mjs`           | Byte-equality oracle over FOUR mirrors: `.agents/skills` (with its marker; entries the sync did not generate are not compared), `.codex/agents/*.toml`, the context mirror (`AGENTS.md`; a leftover `.codex/CODEX_CONTEXT.md` is an orphan), and `.codex/hooks.json` — each re-materialized by the REAL writer into a temp dir, then diffed |
 
 ## Usage
 

@@ -488,64 +488,204 @@ test('invalid later workflow aborts migration without publishing earlier valid c
 });
 
 
-test('migrate refuses unmanaged .agents skills in skills-only project', async () => {
-    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-sync-unmanaged-agents-'));
+// Business intent: `.agents/skills/` also holds skills the project wrote for Codex only, or that another
+// tool installed there. The sync owns only the entries it generates, so it must leave every other entry
+// exactly as its owner wrote it, and say so once per entry, on every run.
+async function withSkillMirrorFixture(prefix, body, { skillsOnly = false } = {}) {
+    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), prefix));
+    const source = (...parts) => path.join(tempRoot, '.claude', 'skills', ...parts);
+    const mirror = (...parts) => path.join(tempRoot, '.agents', 'skills', ...parts);
+    const write = async (file, text) => {
+        await fs.mkdir(path.dirname(file), { recursive: true });
+        await fs.writeFile(file, text, 'utf8');
+    };
+    const addSkill = name => write(source(name, 'SKILL.md'), ['---', `name: ${name}`, `description: ${name} skill`, '---', '', `# ${name}`, ''].join('\n'));
+    const sync = async () => (await execFileAsync(process.execPath, [migrateScript], { cwd: tempRoot, env: cleanMachineEnv(tempRoot) })).stdout;
+    const keptLines = stdout => stdout.split(/\r?\n/).filter(line => line.startsWith('[codex-migrate] kept .agents/skills/'));
+    const replacedLines = stdout => stdout.split(/\r?\n/).filter(line => line.startsWith('[codex-migrate] replaced .agents/skills/'));
+    const recorded = async () => JSON.parse(await fs.readFile(mirror('.codex-mirror.json'), 'utf8')).generatedEntries;
+    const savedCopy = (...parts) => path.join(tempRoot, 'tmp', 'codex-sync', 'replaced', ...parts);
     try {
-        await fs.mkdir(path.join(tempRoot, '.claude', 'skills', 'sample-skill'), { recursive: true });
-        await fs.mkdir(path.join(tempRoot, '.agents', 'skills', 'foreign-skill'), { recursive: true });
-        await fs.writeFile(
-            path.join(tempRoot, '.claude', 'skills', 'sample-skill', 'SKILL.md'),
-            ['---', 'name: sample-skill', 'description: Sample skill', '---', '', '# Sample Skill', ''].join('\n'),
-            'utf8'
-        );
-        await fs.writeFile(
-            path.join(tempRoot, '.agents', 'skills', 'foreign-skill', 'SKILL.md'),
-            ['---', 'name: foreign-skill', 'description: Foreign skill', '---', '', '# Foreign Skill', ''].join('\n'),
-            'utf8'
-        );
-
-        await assert.rejects(
-            execFileAsync(process.execPath, [migrateScript], { cwd: tempRoot }),
-            /Refusing to remove .*\.agents.*skills/
-        );
+        // A full Claude Code project has agents; a skills-only project has none.
+        if (!skillsOnly) await fs.mkdir(path.join(tempRoot, '.claude', 'agents'), { recursive: true });
+        await body({ tempRoot, source, mirror, write, addSkill, sync, keptLines, replacedLines, recorded, savedCopy });
     } finally {
         await fs.rm(tempRoot, { recursive: true, force: true });
     }
+}
+
+test('the sync keeps a skill it did not generate in .agents/skills byte for byte and reports it once per run', async () => {
+    await withSkillMirrorFixture('codex-sync-keeps-unmanaged-', async ({ source, mirror, write, addSkill, sync, keptLines, recorded }) => {
+        // Given a project skill and, beside its mirror, a Codex-only skill and a file another tool wrote.
+        // Their text is what the sync's transforms rewrite (CRLF, a version key, a /skill mention).
+        await addSkill('sample-skill');
+        const codexOnly = '---\r\nname: codex-only\r\nversion: 1.2.0\r\ndescription: Written for Codex\r\n---\r\n\r\nRun /sample-skill first.\r\n';
+        const reference = 'See /sample-skill and the Skill tool.\r\n';
+        await write(mirror('codex-only', 'SKILL.md'), codexOnly);
+        await write(mirror('codex-only', 'references', 'guide.md'), reference);
+        await write(mirror('installed-by-tool.md'), 'tool record\n');
+        await fs.writeFile(mirror('.DS_Store'), Buffer.from([0, 0, 0, 1]));
+
+        for (const run of ['first', 'second']) {
+            // When the Codex mirror is generated
+            const stdout = await sync();
+            // Then those entries are untouched, each reported in one line, and not recorded as the sync's
+            assert.equal(await fs.readFile(mirror('codex-only', 'SKILL.md'), 'utf8'), codexOnly, `${run} sync: the Codex-only manifest is not rewritten`);
+            assert.equal(await fs.readFile(mirror('codex-only', 'references', 'guide.md'), 'utf8'), reference, `${run} sync: its references are not rewritten`);
+            assert.equal(await fs.readFile(mirror('installed-by-tool.md'), 'utf8'), 'tool record\n', `${run} sync: a tool's file stays`);
+            assert.deepEqual(keptLines(stdout).map(line => line.split(':')[0]), [
+                '[codex-migrate] kept .agents/skills/codex-only',
+                '[codex-migrate] kept .agents/skills/installed-by-tool.md'
+            ], `${run} sync: one line per kept entry, and none for OS metadata`);
+            assert.match(stdout, /skills setup: mirrored \+ sanitized \+ rewritten 1 skill manifest\(s\); kept 2 entries it did not generate/);
+            assert.deepEqual(await recorded(), ['sample-skill'], `${run} sync: the marker records only what the sync generated`);
+            assert.equal(await pathExists(mirror('sample-skill', 'SKILL.md')), true, `${run} sync: the project skill is mirrored`);
+        }
+        assert.equal(await pathExists(source('codex-only')), false, 'the sync never copies a kept entry back into the source');
+    });
 });
 
-test('migrate refuses unmanaged .agents skills even when marker text exists', async () => {
-    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-sync-unmanaged-marker-'));
-    try {
-        await fs.mkdir(path.join(tempRoot, '.claude', 'skills', 'sample-skill'), { recursive: true });
-        await fs.mkdir(path.join(tempRoot, '.agents', 'skills', 'foreign-skill'), { recursive: true });
-        await fs.writeFile(
-            path.join(tempRoot, '.claude', 'skills', 'sample-skill', 'SKILL.md'),
-            ['---', 'name: sample-skill', 'description: Sample skill', '---', '', '# Sample Skill', ''].join('\n'),
-            'utf8'
-        );
-        await fs.writeFile(
-            path.join(tempRoot, '.agents', 'skills', 'foreign-skill', 'SKILL.md'),
-            [
-                '---',
-                'name: foreign-skill',
-                'description: Foreign skill',
-                '---',
-                '',
-                '> Codex compatibility note:',
-                '',
-                '# Foreign Skill',
-                ''
-            ].join('\n'),
-            'utf8'
-        );
+test('a skill removed from .claude/skills has its mirror removed by the next sync, and only that one', async () => {
+    await withSkillMirrorFixture('codex-sync-removed-source-', async ({ source, mirror, write, addSkill, sync, keptLines, recorded }) => {
+        // Given two project skills mirrored by an earlier sync, and a Codex-only skill beside them
+        await addSkill('kept-skill');
+        await addSkill('dropped-skill');
+        await write(mirror('codex-only', 'SKILL.md'), '# Codex only\n');
+        await sync();
+        assert.deepEqual(await recorded(), ['dropped-skill', 'kept-skill']);
+        // When one source skill is removed and the sync runs again
+        await fs.rm(source('dropped-skill'), { recursive: true });
+        const stdout = await sync();
+        // Then its mirror is gone, the other two stay, and the marker no longer records it
+        assert.equal(await pathExists(mirror('dropped-skill')), false, 'the mirror of a removed skill is removed');
+        assert.equal(await pathExists(mirror('kept-skill', 'SKILL.md')), true);
+        assert.equal(await fs.readFile(mirror('codex-only', 'SKILL.md'), 'utf8'), '# Codex only\n');
+        assert.deepEqual(await recorded(), ['kept-skill']);
+        assert.deepEqual(keptLines(stdout).map(line => line.split(':')[0]), ['[codex-migrate] kept .agents/skills/codex-only'],
+            'the removed skill is not reported as kept');
+    });
+});
 
-        await assert.rejects(
-            execFileAsync(process.execPath, [migrateScript], { cwd: tempRoot }),
-            /Refusing to remove .*\.agents.*skills/
-        );
-    } finally {
-        await fs.rm(tempRoot, { recursive: true, force: true });
-    }
+test('a marker from before names were recorded: entries with a source are replaced, every other entry stays', async () => {
+    await withSkillMirrorFixture('codex-sync-legacy-marker-', async ({ mirror, write, addSkill, sync, keptLines, replacedLines, recorded, savedCopy }) => {
+        // Given a mirror an older sync wrote: its marker records no names
+        await addSkill('sample-skill');
+        await write(mirror('sample-skill', 'SKILL.md'), '# stale mirror\n');
+        await write(mirror('sample-skill', 'retired-reference.md'), 'gone from the source\n');
+        await write(mirror('unknown-entry', 'SKILL.md'), '# who wrote this?\n');
+        await write(mirror('.codex-mirror.json'), `${JSON.stringify({ managedBy: 'codex-sync', source: '.claude/skills' }, null, 2)}\n`);
+        // When the new sync runs
+        const stdout = await sync();
+        // Then the entry with a source is regenerated whole, and the one it cannot attribute stays and is reported
+        assert.doesNotMatch(await fs.readFile(mirror('sample-skill', 'SKILL.md'), 'utf8'), /stale mirror/);
+        assert.equal(await pathExists(mirror('sample-skill', 'retired-reference.md')), false, 'a generated entry is replaced, not merged');
+        assert.equal(await fs.readFile(mirror('unknown-entry', 'SKILL.md'), 'utf8'), '# who wrote this?\n');
+        assert.deepEqual(keptLines(stdout).map(line => line.split(':')[0]), ['[codex-migrate] kept .agents/skills/unknown-entry']);
+        assert.deepEqual(await recorded(), ['sample-skill'], 'the marker is upgraded to record names');
+        // Such a marker cannot tell its own stale mirror from someone else's skill, so nothing is copied aside
+        assert.deepEqual(replacedLines(stdout), []);
+        assert.equal(await pathExists(savedCopy()), false);
+    });
+});
+
+// Business intent: a skill the sync did not write is never simply deleted. When a `.claude/skills` source
+// takes its name, the sync saves a copy before its mirror replaces it, and says where.
+test('a skill the sync did not write is copied to tmp/ before a source of the same name replaces it', async () => {
+    await withSkillMirrorFixture('codex-sync-displaced-', async ({ source, mirror, write, addSkill, sync, keptLines, replacedLines, recorded, savedCopy }) => {
+        // Given a mirror the sync wrote, and beside it a Codex-only skill
+        await addSkill('sample-skill');
+        await sync();
+        await write(mirror('codex-only', 'SKILL.md'), '# Written for Codex\n');
+        await write(mirror('codex-only', 'references', 'notes.md'), 'notes\n');
+        // When a source skill of the same name appears and the sync runs
+        await addSkill('codex-only');
+        const stdout = await sync();
+        // Then the old skill is copied to tmp/ whole, reported in one line, and the mirror now follows the source
+        assert.equal(await fs.readFile(savedCopy('codex-only', 'SKILL.md'), 'utf8'), '# Written for Codex\n');
+        assert.equal(await fs.readFile(savedCopy('codex-only', 'references', 'notes.md'), 'utf8'), 'notes\n');
+        assert.deepEqual(replacedLines(stdout), [
+            '[codex-migrate] replaced .agents/skills/codex-only: the sync had not generated it, and .claude/skills/codex-only now has that name (the old copy is in tmp/codex-sync/replaced/codex-only)'
+        ]);
+        assert.deepEqual(keptLines(stdout), []);
+        assert.match(await fs.readFile(mirror('codex-only', 'SKILL.md'), 'utf8'), /^# codex-only$/m);
+        assert.equal(await pathExists(mirror('codex-only', 'references')), false, 'nothing of the old skill is left in the mirror');
+        assert.deepEqual(await recorded(), ['codex-only', 'sample-skill']);
+
+        // When the sync runs again, Then its own entry is not copied again
+        assert.deepEqual(replacedLines(await sync()), []);
+
+        // Given another hand-made skill under a name a source takes later, When it is replaced too,
+        // Then the earlier copy is not overwritten: the new one gets a free name
+        await fs.rm(source('codex-only'), { recursive: true });
+        await sync();
+        await write(mirror('codex-only', 'SKILL.md'), '# Written for Codex, again\n');
+        await addSkill('codex-only');
+        assert.match(replacedLines(await sync())[0], /the old copy is in tmp\/codex-sync\/replaced\/codex-only-2\)$/);
+        assert.equal(await fs.readFile(savedCopy('codex-only', 'SKILL.md'), 'utf8'), '# Written for Codex\n');
+        assert.equal(await fs.readFile(savedCopy('codex-only-2', 'SKILL.md'), 'utf8'), '# Written for Codex, again\n');
+    });
+});
+
+// Business intent: a skills-only project (no .claude/agents) may already have a `.agents/skills/` folder
+// another tool made. The sync adopts it instead of refusing: it adds its mirror and deletes nothing.
+test('a skills-only project adopts an existing .agents/skills folder and keeps every skill in it', async () => {
+    await withSkillMirrorFixture('codex-sync-adopt-folder-', async ({ mirror, write, addSkill, sync, keptLines, replacedLines, recorded, savedCopy }) => {
+        // Given a skills-only project and a folder with no sync marker: one unrelated skill and one whose
+        // name a source skill uses (its text even carries the Codex note a generated mirror has)
+        await addSkill('sample-skill');
+        await write(mirror('foreign-skill', 'SKILL.md'), '---\nname: foreign-skill\ndescription: Foreign skill\n---\n\n# Foreign Skill\n');
+        await write(mirror('sample-skill', 'SKILL.md'), '> Codex compatibility note:\n\n# Installed by another tool\n');
+        // When the sync runs
+        const stdout = await sync();
+        // Then the unrelated skill stays, the same-named one is copied aside before the mirror replaces it
+        assert.equal(await fs.readFile(mirror('foreign-skill', 'SKILL.md'), 'utf8'), '---\nname: foreign-skill\ndescription: Foreign skill\n---\n\n# Foreign Skill\n');
+        assert.deepEqual(keptLines(stdout).map(line => line.split(':')[0]), ['[codex-migrate] kept .agents/skills/foreign-skill']);
+        assert.equal(replacedLines(stdout).length, 1);
+        assert.equal(await fs.readFile(savedCopy('sample-skill', 'SKILL.md'), 'utf8'), '> Codex compatibility note:\n\n# Installed by another tool\n');
+        assert.match(await fs.readFile(mirror('sample-skill', 'SKILL.md'), 'utf8'), /^# sample-skill$/m);
+        assert.deepEqual(await recorded(), ['sample-skill']);
+    }, { skillsOnly: true });
+});
+
+test('a hand-edited marker can never make the sync remove anything outside .agents/skills', async () => {
+    await withSkillMirrorFixture('codex-sync-marker-paths-', async ({ tempRoot, mirror, write, addSkill, sync }) => {
+        // Given a marker whose recorded names point outside the mirror, or deeper into it
+        await addSkill('sample-skill');
+        await write(path.join(tempRoot, '.agents', 'outside', 'keep.txt'), 'outside the mirror\n');
+        await write(mirror('nested', 'inner', 'keep.txt'), 'nested entry\n');
+        await write(mirror('.codex-mirror.json'), `${JSON.stringify({
+            managedBy: 'codex-sync',
+            source: '.claude/skills',
+            generatedEntries: ['../outside', '..', '.', '', 'nested/inner', 'nested\\inner', 42, null, '.codex-mirror.json']
+        })}\n`);
+        // When the sync runs
+        await sync();
+        // Then nothing those names point at is removed, and the marker itself is rewritten
+        assert.equal(await fs.readFile(path.join(tempRoot, '.agents', 'outside', 'keep.txt'), 'utf8'), 'outside the mirror\n');
+        assert.equal(await fs.readFile(mirror('nested', 'inner', 'keep.txt'), 'utf8'), 'nested entry\n');
+        assert.equal(await pathExists(mirror('sample-skill', 'SKILL.md')), true);
+        assert.match(await fs.readFile(mirror('.codex-mirror.json'), 'utf8'), /"generatedEntries": \[\n {4}"sample-skill"\n {2}\]/);
+    });
+});
+
+// Business intent: the documented entrypoint is the runner, which hides a passing stage's output unless
+// --verbose. A kept entry must still be reported there, or the user never learns the sync left it.
+test('the sync runner shows each kept or replaced .agents/skills entry without --verbose', async () => {
+    await withWorkflowRunnerFixture(async ({ tempRoot, run }) => {
+        // Given a Codex-only skill in the mirror folder, and another tool's skill under a source skill's name
+        const codexOnly = path.join(tempRoot, '.agents', 'skills', 'codex-only', 'SKILL.md');
+        await fs.mkdir(path.dirname(codexOnly), { recursive: true });
+        await fs.writeFile(codexOnly, '# Codex only\n', 'utf8');
+        await fs.mkdir(path.join(tempRoot, '.agents', 'skills', 'sample-skill'), { recursive: true });
+        await fs.writeFile(path.join(tempRoot, '.agents', 'skills', 'sample-skill', 'SKILL.md'), '# Installed by another tool\n', 'utf8');
+        // When the runner's migrate stage passes
+        const { stdout } = await run(['--only=migrate']);
+        // Then both report lines reach the user, and the Codex-only skill is untouched
+        assert.match(stdout, /^ {2}\[codex-migrate\] kept \.agents\/skills\/codex-only: the sync did not generate it/m);
+        assert.match(stdout, /^ {2}\[codex-migrate\] replaced \.agents\/skills\/sample-skill: the sync had not generated it/m);
+        assert.doesNotMatch(stdout, /\[codex-migrate\] migrated /, 'other stage output stays hidden');
+        assert.equal(await fs.readFile(codexOnly, 'utf8'), '# Codex only\n');
+    });
 });
 
 // Business intent: the skill mirror carries only what the source tree tracks. `.claude/.gitignore`
@@ -830,12 +970,12 @@ test('TC-ADS-009 command-only utility skills mirror to Codex with implicit invoc
         assert.ok(graphFrontmatter, 'graph-code: source SKILL.md has YAML frontmatter');
         await fs.mkdir(path.join(tempRoot, '.claude', 'skills', 'graph-code'), { recursive: true });
         await fs.writeFile(path.join(tempRoot, '.claude', 'skills', 'graph-code', 'SKILL.md'), `${graphFrontmatter[0]}\n\n# Graph code\n`, 'utf8');
-        // A previous generated mirror is a real upgrade state: the retired alias must be pruned.
+        // A previous generated mirror is a real upgrade state: the retired alias it recorded must be pruned.
         const retiredMirror = path.join(tempRoot, '.agents', 'skills', 'graph' + '-export');
         await fs.mkdir(retiredMirror, { recursive: true });
         await fs.writeFile(path.join(retiredMirror, 'SKILL.md'), '# Previous export alias\n', 'utf8');
         await fs.writeFile(path.join(tempRoot, '.agents', 'skills', '.codex-mirror.json'),
-            `${JSON.stringify({ managedBy: 'codex-sync', source: '.claude/skills' })}\n`, 'utf8');
+            `${JSON.stringify({ managedBy: 'codex-sync', source: '.claude/skills', generatedEntries: ['graph' + '-export'] })}\n`, 'utf8');
 
         // When the Codex mirror is generated
         await execFileAsync(process.execPath, [migrateScript], { cwd: tempRoot, env });

@@ -2,6 +2,8 @@
 
 - **Status:** Accepted
 - **Date:** 2026-10-22
+- **Extended by:** [ADR-0008](0008-self-update-from-upstream.md) — how a project fetches the upstream and runs
+  this merge itself.
 - **Supersedes:** None. It replaces the undocumented practice of re-exporting `.claude/` over an
   installed copy (`export-claude.mjs --force`) to upgrade.
 
