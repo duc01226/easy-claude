@@ -106,7 +106,8 @@ const ADVICE_ASKS = [
     // An imperative after a polite or connective opener or a list marker is still an ask.
     'Please, recommend a library for dates',
     'ok so recommend a queue?',
-    '- recommend a pattern for retries'
+    '- recommend a pattern for retries',
+    'what solution fits a small team'
 ];
 // Intent: build work that only names a recommendation, a stated plan, a factual lookup and an explicit grill call
 // stay silent — each would otherwise inject the ~2 KB directive on an everyday prompt.
@@ -157,7 +158,7 @@ module.exports = {
                 }
                 // The advice lean names its own guidance: a real alternative is weighed before recommending.
                 const text = hook.evaluate(event(ADVICE_ASKS[0]), ISOLATED);
-                assertContains(text, 'lean: advice');
+                assertContains(text, 'Verdict or advice ask (lean: advice)');
                 assertContains(text, 'weigh at least one real alternative');
             }
         },

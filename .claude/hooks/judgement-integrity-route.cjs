@@ -120,7 +120,7 @@ const ADVICE_PATTERNS = [
 // An explicit review or grill invocation already carries its own adversarial protocol.
 const EXPLICIT_REVIEW_INVOCATION = /^\s*[/$](?:[\w-]+:)?(?:why-review|grill)\b/i;
 // "Implement / add / create ..." with no question is a build request, not a verdict request.
-const QUESTION_OR_VERDICT_CUE = /\?|\b(?:check|evaluate|assess|judge|review|confirm|verify|validate|audit|critique|am i|is it|is this|is the|is anything|is there|are there|does it|what do you think|thoughts on|should|which|why|what(?:'s| is)? wrong|any \w+|recommend|advise|suggest|propose|your (?:recommendation|advice|suggestion)|best (?:way|approach|option|practice)|how would you|what (?:approach|strategy|design|architecture))\b/i;
+const QUESTION_OR_VERDICT_CUE = /\?|\b(?:check|evaluate|assess|judge|review|confirm|verify|validate|audit|critique|am i|is it|is this|is the|is anything|is there|are there|does it|what do you think|thoughts on|should|which|why|what(?:'s| is)? wrong|any \w+|recommend|advise|suggest|propose|your (?:recommendation|advice|suggestion)|best (?:way|approach|option|practice)|how would you|what (?:approach|strategy|architecture|design|solution))\b/i;
 // A fix/build request — sentence-initial imperative ("Run the tests and fix any errors") or a polite ask
 // ("can you fix it?", "please implement …"). Its fault nouns describe work to do, not a verdict to give.
 const ACTION_VERBS = '(?:fix|implement|add|create|build|run|resolve|make|update|refactor|write|remove|delete|rename|debug|repair|patch|install|set\\s+up|migrate|clean\\s+up|handle|change|move|convert|upgrade|generate|apply|follow)';
@@ -180,11 +180,11 @@ function buildDirective(leans, reminder = loadCanonicalReminder(), allowSkillRou
         '- **MANDATORY** Name premise, test it AND its opposite with one evidence bar, why-review draft before replying; never invent findings, never manufacture disagreement; end with `Bias check:` line (`SYNC:judgement-integrity`).';
     return [
         MARKER_START,
-        `**[JUDGEMENT-INTEGRITY]** Verdict ask (lean: ${leans.join(', ')}). Apply \`SYNC:judgement-integrity\` against confirmation bias:`,
+        `**[JUDGEMENT-INTEGRITY]** Verdict or advice ask (lean: ${leans.join(', ')}). Apply \`SYNC:judgement-integrity\` against confirmation bias:`,
         ...leans.map(lean => `- ${LEAN_GUIDANCE[lean]}`),
         body,
         allowSkillRouting
-            ? 'Default = INLINE self-check (steps above; why-review the draft mentally) — no skill call: skill is heavy, everyday answers stay inline. Escalate to `why-review --validate-findings` only for formal review/audit/gap-hunt deliverable or MEDIUM+/consequential issue the inline pass cannot settle: Claude Code → Skill tool `why-review`; Codex → `$why-review` (`.agents/skills/why-review/SKILL.md`); OpenCode → `.claude/skills/why-review/SKILL.md`. Not a verdict ask → ignore.'
+            ? 'Default = INLINE self-check (steps above; why-review the draft mentally) — no skill call: skill is heavy, everyday answers stay inline. Escalate to `why-review --validate-findings` only for formal review/audit/gap-hunt deliverable or MEDIUM+/consequential issue the inline pass cannot settle: Claude Code → Skill tool `why-review`; Codex → `$why-review` (`.agents/skills/why-review/SKILL.md`); OpenCode → `.claude/skills/why-review/SKILL.md`. Not a verdict or advice ask → ignore.'
             : 'Skill auto-trigger is disabled: keep this verdict self-check INLINE. This prompt classifier does not authorize a heavy review skill. Named user requests and required calls in an already authorized operation still follow the skill activation policy.',
         MARKER_END
     ].join('\n');

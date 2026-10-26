@@ -1932,6 +1932,10 @@ And open or changed choices still require the user and hosting gates remain bind
 
 **Preconditions:** A free-form decision interview has played back and recorded its decisions.
 
+**Real-World Reachability:** A developer runs the decision interview on a loose plan or idea, answers its rounds and confirms the playback; the hand-off follows at once.
+
+**Demo Flow:** Run the decision interview on a small design question, confirm the playback, accept the stress-pass offer, then open the decision record.
+
 ```gherkin
 Given the decision record is written
 When the interview hands off
@@ -1953,9 +1957,9 @@ And no planning, specifying or building starts
 
 **Acceptance Criteria:**
 
-- The offer is stated as optional, with its four angles.
-- An accepted pass appends to the same record and keeps its location.
-- The interview still never plans, specifies or builds.
+- ✅ The offer is stated as optional, with its four angles.
+- ✅ An accepted pass appends to the same record and keeps its location.
+- ❌ An interview that requires the pass, moves the record, or starts planning, specifying or building fails the case.
 
 **Test Data:** The interview guidance for the free-form decision interview.
 
@@ -1965,7 +1969,7 @@ And no planning, specifying or building starts
 
 > **Evidence:** `[Source: constraint/skills/decision-interview]`
 > **Related Behaviors:** `constraint/skills/decision-interview`
-> **CoveredBy:** `.claude/hooks/tests/suites/decision-interview.test.cjs::TC-DIV-006 grill may offer one inline stress pass on its recorded decisions and still only records`
+> **CoveredBy:** `.claude/hooks/tests/suites/decision-interview.test.cjs::TC-DIV-006 grill may offer one inline stress pass on its recorded decisions and still only records` · **Status:** Tested
 
 ---
 

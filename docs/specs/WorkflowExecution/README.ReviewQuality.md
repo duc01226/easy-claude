@@ -402,6 +402,8 @@ Every rule in §4 is `[HARD]`, so each case below states its property over a who
 
 **Preconditions:** The framework's review guidance as shipped.
 
+**Real-World Reachability:** Every rationale or plan review a developer asks for: the reviewer opens its guidance before the first pass.
+
 **Demo Flow:** A maintainer opens the rationale review and the plan review guidance and follows each to its dimensions.
 
 ```gherkin
@@ -432,6 +434,7 @@ And no guidance holds its own dimension table or a parallel angle list
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
 > **Evidence:** `[Source: constraint/skills/review-dimensions]`
+> **Related Behaviors:** `constraint/skills/review-dimensions`
 > **CoveredBy:** `.claude/hooks/tests/suites/review-quality.test.cjs::TC-RVQ-001` · **Status:** Tested
 
 ### TC-RVQ-002: Every dimension check closes with tool evidence [P0]
@@ -441,6 +444,8 @@ And no guidance holds its own dimension table or a parallel angle list
 **Business Intent / Invariant Guarded:** BR-RVQ-02 / AC-RVQ-02, AC-RVQ-03 — for every applicable dimension, the check closes only with evidence.
 
 **Preconditions:** The dimension list.
+
+**Real-World Reachability:** Every review run: the reviewer builds its checks from the list before it judges anything.
 
 **Demo Flow:** A developer asks for a review and reads the review report.
 
@@ -476,6 +481,7 @@ And its change-cost dimension asks about necessity, the smallest change and a se
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
 > **Evidence:** `[Source: constraint/skills/review-dimensions]`
+> **Related Behaviors:** `constraint/skills/review-dimensions`
 > **CoveredBy:** `.claude/hooks/tests/suites/review-quality.test.cjs::TC-RVQ-002` · **Status:** Tested
 
 ### TC-RVQ-003: Plan review scales with the plan profile [P1]
@@ -485,6 +491,8 @@ And its change-cost dimension asks about necessity, the smallest change and a se
 **Business Intent / Invariant Guarded:** BR-RVQ-03 / AC-RVQ-04 — for every plan profile, the review runs exactly its stated dimension set plus the plan-only checks.
 
 **Preconditions:** The plan review guidance.
+
+**Real-World Reachability:** A developer asks for a plan review after the planning procedure saved a plan, with a declared profile or none.
 
 **Demo Flow:** A developer runs a plan review on a light plan and on a full plan.
 
@@ -521,6 +529,7 @@ And plan creation's own review pass applies the same profile scaling and records
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
 > **Evidence:** `[Source: constraint/skills/plan-mode-review]`
+> **Related Behaviors:** `constraint/skills/plan-mode-review`
 > **CoveredBy:** `.claude/hooks/tests/suites/review-quality.test.cjs::TC-RVQ-003` · **Status:** Tested
 
 ### TC-RVQ-004: Validation and execution load no review text [P1]
@@ -530,6 +539,8 @@ And plan creation's own review pass applies the same profile scaling and records
 **Business Intent / Invariant Guarded:** BR-RVQ-04 / AC-RVQ-05 — for every guidance plan validation or execution loads, no dimension text loads.
 
 **Preconditions:** The plan's validation and execution guidance and the gate checklist they read.
+
+**Real-World Reachability:** A developer validates or executes a saved plan; only that mode's guidance loads.
 
 **Demo Flow:** A maintainer inspects what a validation or an execution reads.
 
@@ -561,6 +572,7 @@ And no pointer that loads the dimension list
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
 > **Evidence:** `[Source: constraint/skills/plan-mode-review]`
+> **Related Behaviors:** `constraint/skills/plan-mode-review`
 > **CoveredBy:** `.claude/hooks/tests/suites/review-quality.test.cjs::TC-RVQ-004` · **Status:** Tested
 
 ### TC-RVQ-005: No review rule forces a helper agent [P0]
@@ -570,6 +582,8 @@ And no pointer that loads the dimension list
 **Business Intent / Invariant Guarded:** BR-RVQ-05 / AC-RVQ-07 — for every review rule in scope, a helper agent is optional.
 
 **Preconditions:** The task review, artifact review and round-structure guidance.
+
+**Real-World Reachability:** Any review or re-review in any review skill, at the moment the reviewer decides how to get a fresh view.
 
 **Demo Flow:** A maintainer reads the review rules that used to require a fresh helper agent.
 
@@ -604,6 +618,7 @@ And a short fresh read for outsider read is a comprehension check, so it carries
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
 > **Evidence:** `[Source: constraint/skills/sub-agent-selection]`
+> **Related Behaviors:** `constraint/skills/sub-agent-selection`
 > **CoveredBy:** `.claude/hooks/tests/suites/review-quality.test.cjs::TC-RVQ-005` · **Status:** Tested
 
 ### TC-RVQ-006: Fixes are proportionate, and every copy matches the owner [P1]
@@ -613,6 +628,8 @@ And a short fresh read for outsider read is a comprehension check, so it carries
 **Business Intent / Invariant Guarded:** BR-RVQ-06 / AC-RVQ-08 — for every copy of the review-round rule, fixes are smallest and proportionate.
 
 **Preconditions:** The review-round rule's owner and its published copy.
+
+**Real-World Reachability:** Any fix round of any review loop, after its findings are validated and before the fix is made.
 
 **Demo Flow:** A maintainer reads the round rule in its owner and in its published copy.
 
@@ -644,6 +661,7 @@ And every published copy is identical to its single owner
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
 > **Evidence:** `[Source: constraint/skills/review-policy]`
+> **Related Behaviors:** `constraint/skills/review-policy`
 > **CoveredBy:** `.claude/hooks/tests/suites/review-quality.test.cjs::TC-RVQ-006` · **Status:** Tested
 
 ### TC-RVQ-007: Specification audit reports meaning-level drift, bounded and read-only [P1]
@@ -653,6 +671,8 @@ And every published copy is identical to its single owner
 **Business Intent / Invariant Guarded:** BR-RVQ-07 / AC-RVQ-09 — for every stale module, every stated rule is checked once and reported; nothing is edited.
 
 **Preconditions:** The specification audit guidance and the code-to-specification audit route.
+
+**Real-World Reachability:** A maintainer runs the specification audit after code changed since the specification's last update.
 
 **Demo Flow:** A maintainer runs a specification audit after code changed and reads the audit report.
 
@@ -687,6 +707,7 @@ And the code-to-specification audit reaches this pass through the specification 
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
 > **Evidence:** `[Source: operation/skills/spec-audit]`
+> **Related Behaviors:** `operation/skills/spec-audit`
 > **CoveredBy:** `.claude/hooks/tests/suites/review-quality.test.cjs::TC-RVQ-007` · **Status:** Tested
 
 ### TC-RVQ-008: A plan target maps the rationale review's required sections [P2]
@@ -696,6 +717,8 @@ And the code-to-specification audit reaches this pass through the specification 
 **Business Intent / Invariant Guarded:** BR-RVQ-08 / AC-RVQ-06 — for a plan from the planning procedure, every required section maps to a plan section.
 
 **Preconditions:** The rationale review guidance.
+
+**Real-World Reachability:** A developer asks for a rationale review of a plan the planning procedure wrote.
 
 **Demo Flow:** A developer asks for a rationale review of a saved plan.
 
@@ -727,6 +750,7 @@ And the review output checklist keeps all its rows
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
 > **Evidence:** `[Source: constraint/skills/why-review-full-mode]`
+> **Related Behaviors:** `constraint/skills/why-review-full-mode`
 > **CoveredBy:** `.claude/hooks/tests/suites/review-quality.test.cjs::TC-RVQ-008` · **Status:** Tested
 
 ### TC-RVQ-009: A consequential answer offers a deeper check, once and only where it can be answered [P1]
@@ -736,6 +760,8 @@ And the review output checklist keeps all its rows
 **Business Intent / Invariant Guarded:** BR-RVQ-10 / AC-RVQ-11, AC-RVQ-12, AC-RVQ-13 — for every consequential answer outside the exemptions, exactly one offer with three options; for every exemption, none.
 
 **Preconditions:** The answer self-review rule and the guidance of the decision interview, ideation and rationale review.
+
+**Real-World Reachability:** A developer asks for advice in the main conversation, outside any workflow, and is about to act on the answer.
 
 **Demo Flow:** A developer asks how to structure multi-tenant access, receives a recommendation, and is asked whether to test it by interview, review it, or skip.
 
@@ -768,6 +794,7 @@ And ideation and a standalone rationale review point to the interview where choi
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
 > **Evidence:** `[Source: constraint/skills/judgement-integrity]`
+> **Related Behaviors:** `constraint/skills/judgement-integrity`
 > **CoveredBy:** `.claude/hooks/tests/suites/review-quality.test.cjs::TC-RVQ-009`; `.claude/hooks/tests/suites/judgement-integrity-route.test.cjs::TC-JIR-013` · **Status:** Tested
 
 ### TC-RVQ-010: Advice questions get the answer self-review; build work does not [P1]
@@ -777,6 +804,8 @@ And ideation and a standalone rationale review point to the interview where choi
 **Business Intent / Invariant Guarded:** BR-RVQ-09 / AC-RVQ-10 — for every advice question the self-review applies; for every build request that only names a recommendation, it does not.
 
 **Preconditions:** The answer self-review prompt check.
+
+**Real-World Reachability:** Every user prompt in a session; advice asks, build requests, stated plans and lookups arrive in any order.
 
 **Demo Flow:** A developer asks for the best way to cache tokens, then later asks to implement the suggested fix.
 
@@ -803,13 +832,14 @@ And an explicit call of the decision interview or the rationale review gets no r
 - ✅ Each advice phrasing in the test set is recognized as advice.
 - ❌ A build request that names a recommendation being prompted fails the case.
 
-**Test Data:** Eleven advice phrasings, and twelve build, stated-plan, lookup or explicit-call phrasings.
+**Test Data:** Twelve advice phrasings, and twelve build, stated-plan, lookup or explicit-call phrasings.
 
 **Edge Cases (boundary counter-case):** "Apply what you recommend in the plan" is build work and gets no prompt.
 
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
 > **Evidence:** `[Source: constraint/skills/judgement-integrity]`
+> **Related Behaviors:** `constraint/skills/judgement-integrity`
 > **CoveredBy:** `.claude/hooks/tests/suites/judgement-integrity-route.test.cjs::TC-JIR-012` · **Status:** Tested
 
 ---
