@@ -5,7 +5,7 @@ feature_code: RVQ
 entities: [ReviewDimension, DimensionCheck, PlanProfile, FixRound, DriftCheck]
 status: active
 owner: Framework maintainers
-last_updated: '2026-10-26'
+last_updated: '2026-10-27'
 scope_mode: FRAMEWORK-LIBRARY
 large_idea_decomposition:
     outcome_slices:
@@ -22,8 +22,8 @@ large_idea_decomposition:
           releasable_when: TC-WFR-029 passes
           owning_artifact: Workflow Routing spec, US-WFR-06
         - id: RVQ-S4
-          outcome: After a consequential answer the assistant offers a deeper check, advice questions get the same self-review as verdict questions, and a standalone plan ends with one next-step question
-          releasable_when: TC-RVQ-009, TC-RVQ-010 and TC-RVQ-011 pass
+          outcome: After a consequential answer the assistant offers a deeper check in the form each person chose, advice questions get the same self-review as verdict questions, and a standalone plan ends with one next-step question
+          releasable_when: TC-RVQ-009, TC-RVQ-010, TC-RVQ-011 and TC-RVQ-012 pass
           owning_artifact: this spec, US-RVQ-06
     dependencies_order:
         - before: RVQ-S1
@@ -110,7 +110,8 @@ The decomposition lives in the frontmatter block `large_idea_decomposition`: fou
 | Fix round           | One pass of validated fixes followed by a fresh review of the settled artifact                                            | Bounded by the shared round limit                     |
 | Meaning-level drift | A business rule a specification states that the system no longer enforces, or enforces differently                        | Reported by the specification audit                   |
 | Consequential answer | A recommendation, plan, design, solution or verdict the user will act on, with a material trade-off or an irreversible, cross-module, security, data or cost consequence | Decides whether a deeper check is offered |
-| Deeper-check offer  | One question after a consequential answer: test it by decision interview, review it adversarially, or skip              | Asked once per subject                                |
+| Deeper-check offer  | The close of a consequential answer that names the one or two checks that fit best (by default the decision interview and the adversarial review), in the form the decision-support mode sets | Once per subject                                |
+| Decision-support mode | A person's preference for how a deeper check is offered: ask (the default; one question with skip), suggest (one closing line, no question), auto (the adversarial review runs on the draft before the reply; the interview is still asked about) or off (no offer) | Also sets the form of the mid-session plan question; a team sets a default, a person overrides it |
 | Advice question     | A question asking for the best way, an approach, a design or a recommendation                                             | Gets the same self-review as a verdict question       |
 | Decision interview | An interview that puts each choice an answer, plan or idea made to the user, one decision at a time, and records the answers | One option of the deeper-check offer |
 | Rationale review | An adversarial review of the reasoning behind a decision, plan or claim; it interviews no one and asks the user only to confirm a material trade-off | The other option of the deeper-check offer |
@@ -187,9 +188,12 @@ The decomposition lives in the frontmatter block `large_idea_decomposition`: fou
 **Acceptance Criteria:**
 
 - **AC-RVQ-10** — **Given** a question that asks for the best way, an approach, a design or a recommendation **When** the assistant answers **Then** it self-reviews the answer as it does a verdict: the constraints it assumed are named and at least one real alternative is weighed with the same evidence bar; build work that merely names a recommendation or asks for the work done the best way (unless the prompt also asks a question), a stated plan, a factual lookup (including what approach or design is already in use), and an explicit call of either deeper check get no such review prompt
-- **AC-RVQ-11** — **Given** a consequential answer outside a running workflow, in the main conversation **When** the answer ends **Then** the assistant asks one question with three options: test it by decision interview, review it adversarially, or skip; the interview is listed first when the answer rests on the user's preferences or constraints, the review first when it rests on evidence
+- **AC-RVQ-11** — **Given** a consequential answer outside a running workflow, in the main conversation, in the default ask mode **When** the answer ends **Then** the assistant asks one question offering the one or two checks that fit best, plus skip — by default test it by decision interview or review it adversarially; the interview is listed first when the answer rests on the user's preferences or constraints, the review first when it rests on evidence
 - **AC-RVQ-12** — **Given** a lookup, a trivial answer, a routine edit, a running workflow, a skill that closes with its own question or next step, a helper agent or headless run, a user who already asked for either check on this answer, a subject the user already skipped, or a turn on which the mid-session plan question applies (it replaces the offer) **When** the answer ends **Then** no offer is asked
 - **AC-RVQ-13** — **Given** the decision interview, an ideation session or a standalone rationale review **When** its result leaves choices that rest on the user **Then** it points to the decision interview: the interview accepts an earlier answer as its subject and names the rationale review as its complement, ideation lists it on the recommended option as one option of its single closing next-step question (multi-opportunity discovery has no recommended option and lists none), and a standalone rationale review names it in its completed report with the material trade-offs, asking nothing more; none offers it as a workflow step or helper agent
+- **AC-RVQ-15** — **Given** a consequential answer to any request — a question, an investigation, a design, a fix, or work in which the assistant chose an approach by itself **When** the answer ends **Then** the offer follows from the answer, never from how the request was worded; the assistant learns the rule and the active mode once per session, and again after the conversation is condensed, never in a helper agent
+- **AC-RVQ-16** — **Given** each decision-support mode **When** a consequential answer ends **Then** ask asks one question; suggest closes with one line naming the checks and asks nothing; auto runs the adversarial review on the draft before replying, folds its validated findings in, and asks about the decision interview only when choices that only the user can make remain; off makes no offer while the self-review stays; auto reads as ask while automatic skill selection is restricted, and a team default yields to a person's own choice
+- **AC-RVQ-17** — **Given** the first offer in a session **When** it names its checks **Then** each check gets one short clause on what it does, who does the work and its rough cost, plus how to change the mode; later offers stay one line; a saved plan may be offered its validation interview, decisions spanning sessions a decision map, and an irreversible high-stakes choice an adversarial advisor council, never more than two checks at once
 - **AC-RVQ-14** — **Given** a plan created standalone, with a user present **When** its self-review and validation chain end (or the chain exits) **Then** the assistant asks one question — execute now, deeper review first (up to three rounds), or stop — recommends one with its reason, and acts only on the answer; inside a workflow, when another skill runs plan creation, or when no user can be reached, no question is asked and the hand-back names the same three next steps
 
 ---
@@ -211,6 +215,7 @@ The decomposition lives in the frontmatter block `large_idea_decomposition`: fou
 | BR-RVQ-09 | Advice questions get the answer self-review  | Answer review  | [HARD]      |
 | BR-RVQ-10 | A consequential answer offers a deeper check | Answer review  | [HARD]      |
 | BR-RVQ-11 | A standalone plan ends with one next-step question | Answer review | [HARD] |
+| BR-RVQ-12 | Each person chooses how a deeper check is offered | Answer review | [HARD] |
 
 ### BR-RVQ-01: One owner for review dimensions [HARD]
 
@@ -260,11 +265,11 @@ IF a second list of review dimensions exists
 
 ### BR-RVQ-10: A consequential answer offers a deeper check [HARD]
 
-**Statement:** After a consequential answer, the assistant asks one question with three options: test it by decision interview, review it adversarially, or skip. It never asks after a lookup, a trivial answer or a routine edit, inside a running workflow, at the end of a skill that already closes with its own question or next step, from a helper agent or headless run, when the user already asked for either check on that answer, or again on a subject the user skipped. On a turn where the mid-session plan question applies (Workflow Routing, BR-WFR-17), that question replaces this offer. The decision interview, an ideation session and a standalone rationale review point to the interview where their result leaves choices to the user: ideation lists it as one option of its single closing next-step question, and a standalone rationale review names it in its completed report without asking; none does so as a workflow step or helper agent.
+**Statement:** After a consequential answer, the assistant offers a deeper check: in the default ask mode, one question offering the one or two checks that fit best plus skip — by default test it by decision interview or review it adversarially; a saved plan may be offered its validation interview, decisions spanning sessions a decision map, and an irreversible high-stakes choice an adversarial advisor council. An answer is consequential when it adopts or recommends a choice the user will act on and at least one holds: an alternative was rejected, the choice is hard to undo, it touches a public contract, data, security or cost, it spans modules, or it rests on assumptions about the user's constraints that could not be checked. The answer decides, never the wording of the request: an investigation, a design or a fix that ends in such a choice counts as advice does. It never asks after a lookup, a trivial answer or a routine edit, inside a running workflow, at the end of a skill that already closes with its own question or next step, from a helper agent or headless run, when the user already asked for either check on that answer, or again on a subject the user skipped. On a turn where the mid-session plan question applies (Workflow Routing, BR-WFR-17), that question replaces this offer. The decision interview, an ideation session and a standalone rationale review point to the interview where their result leaves choices to the user: ideation lists it as one option of its single closing next-step question, and a standalone rationale review names it in its completed report without asking; none does so as a workflow step or helper agent.
 
 ```
 IF the answer is consequential AND no exemption holds
-  → ASK once: interview · review · skip
+  → close it in the active decision-support mode (default ask: ONE question · the 1–2 fitting checks · skip)
 IF an exemption holds
   → no offer
 ```
@@ -273,9 +278,22 @@ IF an exemption holds
 
 **Statement:** A plan created standalone reviews itself (one round, or up to three for a high-risk full-profile plan) and is validated with the user; it then ends with one question: execute now, deeper review first, or stop. The recommendation follows the plan's state: execute when no finding stayed open and validation passed, a deeper review when a finding stayed open, validation was skipped, or a full-profile plan carries a one-way or cross-module decision and its self-review ran one round or none; when both fit, the deeper review is recommended. Plan creation never starts execution or a review on its own; the answer starts it. A workflow, a calling skill or a context with no user gets no question.
 
+### BR-RVQ-12: Each person chooses how a deeper check is offered [HARD]
+
+**Statement:** A person's decision-support mode sets how a deeper check is offered and how the mid-session plan question is put (Workflow Routing, BR-WFR-17). The modes are ask (the default), suggest, auto and off. Ask asks one question; suggest closes with one line naming the checks and asks nothing; auto runs the adversarial review on the draft before the reply, folds its validated findings in, and asks about the decision interview only when choices that only the user can make remain, because an interview needs the user and never starts on its own; off makes no offer and drops the plan question, while the answer self-review stays. Auto reads as ask while automatic skill selection is restricted, because it would start a review nobody named. A team sets a default and each person's own choice overrides it; an unknown value expresses no preference. The rule and the active mode reach the assistant once per session and again after the conversation is condensed, never in a helper agent, which has no user to answer. The first offer in a session gives each named check one short clause (what it does, who does the work, its rough cost) and says how to change the mode; later offers stay one line.
+
+```
+mode = default ask ← team default ← personal choice ← this checkout ← environment   (an unknown value is skipped)
+IF mode = auto AND automatic skill selection is restricted → act as ask
+ask     → ONE question · fitting checks · skip
+suggest → ONE closing line naming the fitting checks; nothing runs
+auto    → adversarial review of the draft first; ask about the interview only when user-only choices remain
+off     → no offer, no plan question; the self-review stays
+```
+
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
-> **Evidence:** `[Source: constraint/skills/review-dimensions]` · `[Source: constraint/skills/review-policy]` · `[Source: operation/skills/spec-audit]` · `[Source: constraint/skills/judgement-integrity]`
+> **Evidence:** `[Source: constraint/skills/review-dimensions]` · `[Source: constraint/skills/review-policy]` · `[Source: operation/skills/spec-audit]` · `[Source: constraint/skills/judgement-integrity]` · `[Source: operation/hooks/judgement-integrity-route]` · `[Source: operation/scripts/workflow-routing-config]`
 
 ---
 
@@ -374,8 +392,8 @@ No user interface: this capability changes how the assistant reviews and audits,
 | Step | Actor     | Action                                                        | System Response                                             | Next |
 | ---- | --------- | ------------------------------------------------------------- | ----------------------------------------------------------- | ---- |
 | 1    | Developer | Asks for advice, a plan, a design or a verdict                 | The assistant self-reviews its draft answer                 | 2    |
-| 2    | Assistant | Sends the answer; checks whether it is consequential and exempt | Consequential and not exempt: one question with three options | 3    |
-| 3    | Developer | Picks interview, review or skip                                | The picked check runs; skip leaves the answer as it is     | —    |
+| 2    | Assistant | Sends the answer; judges whether the answer itself is consequential and exempt, whatever the request's wording | Consequential and not exempt: the close the decision-support mode sets — one question (ask, the default), one line (suggest), a reviewed answer (auto) or nothing (off) | 3    |
+| 3    | Developer | Picks a check or skip, or types a named check later            | The picked check runs; skip leaves the answer as it is     | —    |
 
 ### Flow: Close a standalone plan
 
@@ -831,7 +849,7 @@ boundaryCounterCase: 'a plan from another source → keeps the generic required 
 
 **Objective:** Make the decision interview and the rationale review reachable at the moment they help, without interrupting other work.
 
-**Business Intent / Invariant Guarded:** BR-RVQ-10 / AC-RVQ-11, AC-RVQ-12, AC-RVQ-13 — for every consequential answer outside the exemptions, exactly one offer with three options; for every exemption, none.
+**Business Intent / Invariant Guarded:** BR-RVQ-10 / AC-RVQ-11, AC-RVQ-12, AC-RVQ-13 — for every consequential answer outside the exemptions, in the default ask mode, exactly one question offering the fitting checks and skip; for every exemption, none.
 
 **Preconditions:** The answer self-review rule and the guidance of the decision interview, ideation and rationale review.
 
@@ -840,9 +858,9 @@ boundaryCounterCase: 'a plan from another source → keeps the generic required 
 **Demo Flow:** A developer asks how to structure multi-tenant access, receives a recommendation, and is asked whether to test it by interview, review it, or skip.
 
 ```gherkin
-Given a consequential answer in the main conversation, outside a running workflow
+Given a consequential answer in the main conversation, outside a running workflow, in the default ask mode
 When the answer ends
-Then one question offers: test it by decision interview, review it adversarially, or skip
+Then one question offers the one or two checks that fit best, by default: test it by decision interview, review it adversarially, or skip
 And the decision interview accepts an earlier answer as its subject and names the rationale review as its complement
 And the interview is listed first when the answer rests on the user's constraints, the review first when it rests on evidence
 And ideation lists the interview as one option of its single closing question, and a standalone rationale review names it in its report without asking
@@ -982,6 +1000,65 @@ boundaryCounterCase: 'the validation chain exits (setting off or declined) → t
 > **Related Behaviors:** `constraint/skills/plan`
 > **CoveredBy:** `.claude/hooks/tests/suites/review-quality.test.cjs::TC-RVQ-011` · **Status:** Tested
 
+#### TC-RVQ-012: Each person's decision-support mode sets the form of the offer [P1]
+
+**Objective:** Let each person trade the cost of a deeper check against its rigor, and make the offer follow the answer rather than the wording of the request.
+
+**Business Intent / Invariant Guarded:** BR-RVQ-12, BR-RVQ-10 / AC-RVQ-15, AC-RVQ-16, AC-RVQ-17 — for every mode the offer and the mid-session plan question take that mode's form; the rule reaches the assistant once per session whatever the request's wording, and never a helper agent.
+
+**Preconditions:** A session in the main conversation; the team default and the person's own choice may each name a mode.
+
+**Real-World Reachability:** A developer who finds the question intrusive sets suggest for themselves; another who wants every consequential answer reviewed sets auto; the team default stays ask.
+
+**Demo Flow:** Start a session with the default and ask the assistant to investigate and fix a slow page; the session's first reply already carries the ask rule, and the answer that picks a caching approach ends with one question. Set suggest for yourself, start again, and the same answer ends with one line naming the checks instead.
+
+```gherkin
+Given a new session whose first request is to investigate, design or fix, not a question for advice
+When the request arrives
+Then the assistant receives the decision-support rule for the active mode, once for the session
+And it receives it again after the conversation is condensed, and never in a helper agent
+Given the ask mode, the default
+Then a consequential answer ends with one question offering the fitting checks and skip
+Given the suggest mode
+Then a consequential answer ends with one line naming the checks, and the mid-session plan question becomes one line before the work
+Given the auto mode
+Then the adversarial review runs on the draft first, and only the decision interview is asked about
+And with automatic skill selection restricted, auto acts as ask
+Given the off mode
+Then no offer is made and no mid-session plan question is asked
+And a team default yields to the person's own choice, and an unknown value is ignored
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                 |
+| ----------------------- | --------------------------------------------------------------------------- |
+| **UI**                  | One question, one closing line, a reviewed answer, or nothing, per the mode |
+| **System behavior**     | The rule arrives once per session and after condensing; never in a helper agent |
+| **Business data state** | Not applicable — only the person's own preference is read                    |
+| **Data shown on UI**    | The active mode and how to change it, on the first offer of a session        |
+
+**Acceptance Criteria:**
+
+- ✅ Each mode yields its own close and plan-question form; the rule arrives once per session for a request of any wording; the person's choice wins over the team default.
+- ❌ A question asked in suggest or off mode, a review started by auto while automatic skill selection is restricted, or the rule reaching a helper agent fails the case.
+
+**Test Data:** Requests to investigate, design and advise; each of the four modes set at the team, personal, checkout and environment layers; an unknown mode value; automatic skill selection on and restricted.
+
+```yaml
+inputDomain: 'any session: each of ask, suggest, auto, off or an unknown value at any layer; automatic skill selection on or restricted; a first request of any wording; a condensed conversation; a helper-agent start'
+invariant: 'for ALL sessions the rule for exactly the effective mode reaches the main conversation once per session window and never a helper agent, and the offer and the plan question take that mode''s form'
+boundaryCounterCase: 'auto with automatic skill selection restricted → the ask form, never a review started unasked'
+```
+
+**Edge Cases (boundary counter-case):** Auto while automatic skill selection is restricted acts as ask: the review that nobody named never starts on its own.
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: operation/hooks/judgement-integrity-route]` · `[Source: operation/scripts/workflow-routing-config]` · `[Source: operation/hooks/workflow-route-inject]`
+> **Related Behaviors:** `constraint/skills/judgement-integrity`
+> **CoveredBy:** `.claude/hooks/tests/suites/judgement-integrity-route.test.cjs::TC-JIR-014`; `.claude/hooks/tests/suites/judgement-integrity-route.test.cjs::TC-JIR-015`; `.claude/hooks/tests/suites/workflow-route-modes.test.cjs::TC-WFR-032` · **Status:** Tested
+
 ### Invariant / Property Tests
 
 Every rule in §4 is `[HARD]`. Each case above carries its property block under its Test Data; this index names the case that guards each rule.
@@ -999,5 +1076,6 @@ Every rule in §4 is `[HARD]`. Each case above carries its property block under 
 | BR-RVQ-09 | TC-RVQ-010 |
 | BR-RVQ-10 | TC-RVQ-009 |
 | BR-RVQ-11 | TC-RVQ-011 |
+| BR-RVQ-12 | TC-RVQ-012 |
 
 ---

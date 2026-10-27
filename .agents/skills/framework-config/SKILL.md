@@ -200,12 +200,14 @@ Native settings require fresh Claude/Codex sessions; already delivered context c
 | “Set framework runtime to on / quiet / off” | `frameworkRuntime.mode: "on" / "quiet" / "off"` | Use the runtime CLI to reconcile hooks and native discovery at the requested scope; default on |
 | “Don't automatically start heavy skills” | `portability.skillAutoTrigger: false` | Ask once to run a suitable matched skill or skip and execute directly; named requests, required calls and authorized workflow steps remain allowed |
 | “Restore automatic skills” | `portability.skillAutoTrigger: true`, or reset if requested | Later valid preference wins; default true |
+| “Stop asking me to grill or review answers” / “just suggest them” / “always review your answers” | `portability.decisionSupportMode: "off" / "suggest" / "auto"` | Default `ask`: one question offering `$grill`, `$why-review` (or plan validate, wayfinder, llm-council) plus skip after a consequential answer, and the mid-session plan question; `suggest` = one line, no question; `auto` = why-review the draft first (read as `ask` while skill auto-trigger is off); `off` = no offer and no plan question |
 | “Use lightweight commit reviews” | `commit.reviewMode: "lightweight"` | Default: automatically run `commit-review --fix-loop` at every commit risk tier, at most three rounds; no review-choice question |
 | “Choose commit reviews by risk” | `commit.reviewMode: "risk-based"` | Low skip / Medium why-review / High changes-review; PR whole-branch reviews always retain this policy |
 | “Workflows should ask / recommend the full workflow first / only run explicitly” | `portability.workflowRouteMode: "ask" / "auto" / "off"` | Separate workflow routing preference; `ask` and `auto` both ask before a self-selected workflow starts |
 | “Make these skills explicit-only for the team” | `skillProfile.commandOnly` in project config | Merge only the requested skill names and regenerate native host projections; profile guards still apply |
 
 Skill-auto-trigger precedence: default → team → user → checkout → `CK_SKILL_AUTO_TRIGGER`.
+Decision-support precedence: default ask → team → user → checkout → `CK_DECISION_SUPPORT_MODE`; report the effective value with `node .claude/scripts/framework-features.cjs`.
 Commit review precedence: default lightweight → team → user → checkout → `CK_COMMIT_REVIEW_MODE`.
 After showing, setting or resetting `commit.reviewMode`, run `node .claude/scripts/lib/commit-review-policy.cjs`
 from the requested checkout root and report its winning mode/source. Tests, exact-candidate review

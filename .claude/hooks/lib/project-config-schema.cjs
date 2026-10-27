@@ -26,6 +26,8 @@ const { TASK_TRACKING_SCHEMA, validateTaskTracking } = require('./task-tracking-
 const WORKFLOW_ACTIVATION_TIERS = ['auto', 'confirm', 'manual'];
 /** Workflow route modes (ask = default). Lockstep with ROUTE_MODES in .claude/scripts/lib/workflow-routing-config.cjs. */
 const WORKFLOW_ROUTE_MODES = ['ask', 'auto', 'off'];
+/** Decision-support modes (ask = default). Lockstep with DECISION_SUPPORT_MODES in .claude/scripts/lib/workflow-routing-config.cjs. */
+const DECISION_SUPPORT_MODES = ['ask', 'suggest', 'auto', 'off'];
 /** hooks.tokenBudget.checkpointTokens inclusive range (non-cached tokens per advisory checkpoint). */
 const TOKEN_BUDGET_CHECKPOINT_RANGE = [50000, 20000000];
 /** skillProfile.preset values; the preset data lives in .claude/config/skill-profiles.json. */
@@ -882,6 +884,13 @@ const SCHEMA = {
                 required: false,
                 enumValues: WORKFLOW_ROUTE_MODES,
                 describe: 'Team default for the workflow route mode: ask (default; the workflow question is asked only when the route is to start a catalog workflow; direct and custom-simple routes ask nothing) | auto (the same question, recommending the full workflow first) | off (no workflow is started without an explicit request). A person overrides it in ~/.claude/.ck.json, .claude/.ck.local.json or env CK_WORKFLOW_ROUTE_MODE.'
+            },
+            // The team default for the per-person decision-support mode: ask (default) | suggest | auto | off.
+            decisionSupportMode: {
+                type: 'string',
+                required: false,
+                enumValues: DECISION_SUPPORT_MODES,
+                describe: 'Decision-support mode for the assistant\'s own consequential answers (a recommendation, design, plan, verdict or chosen approach the user will act on) and for the mid-session plan question: ask (default; one question offering a fitting deeper check such as /grill or /why-review, or a plan before non-trivial work) | suggest (one closing line naming those skills, no question; nothing runs unless typed) | auto (runs why-review report-only on the draft before replying, then asks about /grill when choices stay open; read as ask while skillAutoTrigger is false) | off (no offer; the inline self-check stays). Layers, later wins: team project config, ~/.claude/.ck.json, .claude/.ck.local.json, env CK_DECISION_SUPPORT_MODE; invalid values express no opinion.'
             },
             skillAutoTrigger: {
                 type: 'boolean',
@@ -2324,6 +2333,7 @@ module.exports = {
     describeSchema,
     WORKFLOW_ACTIVATION_TIERS,
     WORKFLOW_ROUTE_MODES,
+    DECISION_SUPPORT_MODES,
     TOKEN_BUDGET_CHECKPOINT_RANGE,
     SKILL_PROFILE_PRESETS,
     SKILL_PROFILE_LISTS

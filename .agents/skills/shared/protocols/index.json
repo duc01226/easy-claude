@@ -701,12 +701,12 @@
       "group": "evidence-trace",
       "summary": "Anti-confirmation-bias gate for answers that confirm, refute, judge, hunt for gaps or recommend",
       "when": "answering with a verdict, an evaluation, a root cause or a recommendation",
-      "chars": 5972,
+      "chars": 7807,
       "file": ".claude/skills/shared/protocols/judgement-integrity.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/judgement-integrity.md",
-          "chars": 5972
+          "chars": 7807
         }
       ]
     },

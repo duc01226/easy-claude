@@ -17,6 +17,8 @@
  *   output form for its event, so a router that also runs at sub-agent start or after a compaction reads
  *   the session's latest recorded user prompt there (neither event carries one) and answers with a
  *   context envelope.
+ * - `resolveHookSkillAutoTrigger(deps)` / `resolveHookDecisionSupportMode(deps)` — the runtime skill auto-trigger
+ *   flag and the decision-support mode, resolved by `workflow-routing-config.cjs` from the hook's project root.
  * - `countFrameworkCues(text)` — distinct framework-machinery cues (`FRAMEWORK_CUES`), shared by the routers
  *   that stay silent on prompts about the framework itself.
  * - `isHookEntryPoint(mod)` — re-exported from `hook-runner.cjs`, its owner.
@@ -208,6 +210,20 @@ function resolveHookSkillAutoTrigger(deps = {}) {
 }
 
 /**
+ * Effective decision-support mode for a hook (`ask` | `suggest` | `auto` | `off`), with the same explicit
+ * fixture/root seams as routers. Returns { mode, effectiveMode, source }; `effectiveMode` is what the hook acts on.
+ * deps (tests): env, projectDir, homeDir, skillAutoTrigger.
+ */
+function resolveHookDecisionSupportMode(deps = {}) {
+    const env = deps.env || process.env;
+    const projectDir = deps.projectDir || require('./project-root.cjs').resolveProjectRoot({ cwd: process.cwd(), scriptPath: __filename, env }).rootDir;
+    return require('../../scripts/lib/workflow-routing-config.cjs').resolveDecisionSupportMode({
+        rootDir: projectDir, env, homeDir: deps.homeDir,
+        ...(typeof deps.skillAutoTrigger === 'boolean' ? { skillAutoTrigger: deps.skillAutoTrigger } : {})
+    });
+}
+
+/**
  * False when the router is switched off: `.ck.json` `<section>.enabled: false` (or a hand-typed
  * "false"/"0"/"no"/"off") or `<envVar>` set to one of those values. On by default.
  * deps (tests): env, projectDir, rawSettings, homeDir.
@@ -278,5 +294,6 @@ module.exports = {
     routerOutput,
     loadRouterSettings,
     resolveHookSkillAutoTrigger,
+    resolveHookDecisionSupportMode,
     isRouterEnabled
 };

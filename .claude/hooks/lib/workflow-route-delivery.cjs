@@ -39,8 +39,9 @@
  * Mid-session plan offer: when the route output stays silent because the gate is already in the
  * conversation (never on a session's first prompt) and the prompt asks for work to be done, the route output
  * writes the one-line `[PLAN-OFFER]` rule instead, unless the prompt names a skill or command, routing is
- * off, a route-mode directive leads the prompt, or automatic skill selection is restricted (its own skill-choice
- * rule governs). A prompt that delivers the route (the first prompt, or a re-delivery after compaction) carries
+ * off, a route-mode directive leads the prompt, automatic skill selection is restricted (its own skill-choice
+ * rule governs), or the decision-support mode (`portability.decisionSupportMode`) is `off`. Its `suggest` mode
+ * writes the no-question form (`PLAN_OFFER_SUGGEST_CUE`); `ask` and `auto` write the question. A prompt that delivers the route (the first prompt, or a re-delivery after compaction) carries
  * the gate, not the cue. A running workflow is judged by the agent from the rule's own text: no hook store records which session
  * runs a workflow (`start-workflow` records runs per checkout, without a session id). The cue is the rule's carrier on this route (the gate stays unchanged: with a
  * project protocol of the documented size it has no room left under the cap); the concise route carries the
@@ -84,6 +85,12 @@ const PLAN_OFFER_END = '<!-- /CK:PLAN-OFFER -->';
 const PLAN_OFFER_CUE = [
     PLAN_OFFER_START,
     '**[PLAN-OFFER]** Mid-session request for work: if it is non-trivial (behavior or contract change, several modules, real risk, or open choices) and no approved plan or running workflow covers it, ask ONE question before editing: plan first (`/plan`: it reviews itself, validates, then offers to execute) · run directly · grill first (only when choices are still open). Skip the first task after a mode directive (the workflow question owns it), trivial, follow-up or correction work, "just do it", a named skill, a request already asked about, or a run with no user to answer. This replaces the answer-review offer on this turn.',
+    PLAN_OFFER_END
+].join('\n');
+// The decision-support `suggest` form of the same rule: one line, no question, then the work proceeds.
+const PLAN_OFFER_SUGGEST_CUE = [
+    PLAN_OFFER_START,
+    '**[PLAN-OFFER]** Mid-session request for work (decision support `suggest`): if it is non-trivial (behavior or contract change, several modules, real risk, or open choices) and no approved plan or running workflow covers it, ask nothing: open your reply with ONE line naming `/plan` (it reviews itself, validates, then offers to execute), plus `/grill` when choices are still open, as what the user can run instead, then proceed. Skip the first task after a mode directive (the workflow question owns it), trivial, follow-up or correction work, "just do it", a named skill, a request already asked about, or a run with no user to answer. This replaces the answer-review offer on this turn.',
     PLAN_OFFER_END
 ].join('\n');
 // A prompt that names a skill or command ("/plan …", "$fix …") has chosen its route already.
@@ -386,14 +393,17 @@ function applyDirective(routing, directive, context) {
 
 /**
  * The plan-offer cue for a prompt the route stayed silent on, or '' when it does not apply: not a prompt
- * event, not user text (a host envelope), not a request for work, or an explicit skill or command call.
+ * event, not user text (a host envelope), not a request for work, an explicit skill or command call, or
+ * decision support `off`. `decisionMode` picks the form: `suggest` writes the one-line form, any other the question.
  */
-function planOfferCue(input) {
+function planOfferCue(input, decisionMode = 'ask') {
+    if (decisionMode === 'off') return '';
+    const cueText = decisionMode === 'suggest' ? PLAN_OFFER_SUGGEST_CUE : PLAN_OFFER_CUE;
     try {
         if (input.hook_event_name && input.hook_event_name !== 'UserPromptSubmit') return '';
         const utils = require('./prompt-route-utils.cjs');
         const text = utils.readUserPrompt(input.prompt);
-        return text === null || EXPLICIT_INVOCATION_RE.test(text) || !utils.isBuildRequest(text) ? '' : PLAN_OFFER_CUE;
+        return text === null || EXPLICIT_INVOCATION_RE.test(text) || !utils.isBuildRequest(text) ? '' : cueText;
     } catch {
         return '';
     }
@@ -496,7 +506,10 @@ function run(input, deps = {}) {
                 // The block is already in the conversation, so nothing was written: the directive still gets its reply line.
                 if (written === '' && ack) return new Promise(done => write(`${ack}\n`, ok => done(ok ? `${ack}\n` : '')));
                 // Mid-session (the gate is already delivered): a request for work gets the plan-offer cue.
-                const cue = written === '' && !directive && mode !== 'off' && skillPolicy?.enabled !== false ? planOfferCue(input) : '';
+                const decision = written === '' && typeof routing.resolveDecisionSupportMode === 'function'
+                    ? routing.resolveDecisionSupportMode({ ...routeOptions, ...(skillPolicy ? { skillAutoTrigger: skillPolicy.enabled !== false } : {}) })
+                    : null;
+                const cue = written === '' && !directive && mode !== 'off' && skillPolicy?.enabled !== false ? planOfferCue(input, decision?.effectiveMode) : '';
                 if (cue) return new Promise(done => write(output(`${cue}\n`), ok => done(ok ? cue : '')));
                 return written;
             }).then(finish, () => finish(''));
@@ -556,6 +569,7 @@ module.exports = {
     PLAN_OFFER_START,
     PLAN_OFFER_END,
     PLAN_OFFER_CUE,
+    PLAN_OFFER_SUGGEST_CUE,
     planOfferCue,
     HOST_OUTPUT_LIMIT,
     PAYLOAD_CAP,

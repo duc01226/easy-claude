@@ -176,13 +176,13 @@ export function hostArgv(host, prompt, model) {
 
 /** Framework switches the host's hooks read from the environment, passed by name so a run measures the mode the
  * operator chose: the framework mode, quiet project rules, quiet native policy and native auto-apply
- * (`framework-runtime.cjs`), the workflow route mode and skill auto-trigger preference
+ * (`framework-runtime.cjs`), the workflow route mode, decision-support mode and skill auto-trigger preference
  * (`workflow-routing-config.cjs`), the commit review mode
  * (`commit-review-policy.cjs`), the prompt ledger switch (`prompt-ledger-store.cjs`) and each prompt router's
  * `ENV_SWITCH` kill switch. Every one is a mode word or a boolean. Never a `CK_` prefix: other CK_ names, such as
  * CK_GIT_URL, can carry a credential-bearing URL. */
 export const FRAMEWORK_SWITCHES = Object.freeze([
-    'CK_FRAMEWORK_MODE', 'CK_QUIET_PROJECT_RULES', 'CK_QUIET_NATIVE', 'CK_AUTO_APPLY_NATIVE', 'CK_WORKFLOW_ROUTE_MODE',
+    'CK_FRAMEWORK_MODE', 'CK_QUIET_PROJECT_RULES', 'CK_QUIET_NATIVE', 'CK_AUTO_APPLY_NATIVE', 'CK_WORKFLOW_ROUTE_MODE', 'CK_DECISION_SUPPORT_MODE',
     'CK_SKILL_AUTO_TRIGGER', 'CK_COMMIT_REVIEW_MODE', 'CK_PROMPT_LEDGER', 'CK_KNOWLEDGE_ROUTE', 'CK_QUALITY_SKILL_REMINDER',
     'CK_CORE_PRINCIPLES_INJECT', 'CK_AI_FEATURE_ROUTE', 'CK_COMMIT_SKILL_ROUTE', 'CK_JUDGEMENT_INTEGRITY_ROUTE'
 ]);

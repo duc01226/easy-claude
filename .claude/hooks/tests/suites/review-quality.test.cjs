@@ -233,7 +233,16 @@ const tests = [
             // The answer-review rule owns the offer: one question, three options, and where it never fires
             const rule = read(SKILLS, 'shared', 'protocols', 'judgement-integrity.md');
             assert.match(rule, /7\. \*\*Offer a deeper check on a consequential answer\.\*\*/);
-            assert.match(rule, /close it with ONE question through the host's question tool, with three options: \*\*grill it\*\* \(`\/grill`/);
+            assert.match(rule, /`ask` — close it with ONE question through the host's question tool \(a plain-text question when the host has none\), offering the one or two checks that fit best, plus \*\*skip\*\*/);
+            assert.match(rule, /\*\*grill it\*\* \(`\/grill`: an interview that tests the answer against the user's own constraints/);
+            assert.match(rule, /\*\*review it\*\* \(`\/why-review`: an adversarial review of its rationale, no interview\)/);
+            // The answer decides, never the prompt's wording; each mode has its own close (TC-RVQ-012)
+            assert.match(rule, /The answer decides this, never the prompt's wording/);
+            assert.match(rule, /`suggest` — close it with ONE line naming the one or two checks that fit best; ask nothing, run nothing/);
+            assert.match(rule, /`auto` — before replying, run `why-review` report-only on the draft/);
+            assert.match(rule, /`auto` reads as `ask` while skill auto-trigger is off\./);
+            assert.match(rule, /`off` — no offer; steps 1–6 still apply\./);
+            assert.match(rule, /The same mode sets the mid-session plan question: `ask` and `auto` ask it, `suggest` turns it into one line before the work starts, `off` drops it\./);
             assert.match(rule, /\*\*skip\*\* \(keep the answer as it is\)/);
             assert.match(rule, /Put grill first when the answer rests on the user's preferences or constraints, and why-review first when it rests on evidence and reasoning\./);
             assert.match(rule, /or on a turn where the mid-session plan question applies, which replaces this offer\./);

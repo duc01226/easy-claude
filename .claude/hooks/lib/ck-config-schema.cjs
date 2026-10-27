@@ -25,6 +25,10 @@ const WORKFLOW_ACTIVATION_TIERS = ["auto", "confirm", "manual"];
 // in .claude/scripts/lib/workflow-routing-config.cjs (asserted by the workflow-routing-switch suite).
 const WORKFLOW_ROUTE_MODES = ["ask", "auto", "off"];
 
+// Decision-support modes. Lockstep with DECISION_SUPPORT_MODES in project-config-schema.cjs and
+// .claude/scripts/lib/workflow-routing-config.cjs (asserted by the judgement-integrity-route suite).
+const DECISION_SUPPORT_MODES = ["ask", "suggest", "auto", "off"];
+
 const CK_SCHEMA = {
   contextDelivery: {
     type: "object", required: false, closed: true,
@@ -174,6 +178,8 @@ const CK_SCHEMA = {
       // the personal ~/.claude/.ck.json, git-ignored .claude/.ck.local.json and env CK_WORKFLOW_ROUTE_MODE;
       // the later layer wins (owner: .claude/scripts/lib/workflow-routing-config.cjs).
       workflowRouteMode: { type: "string", required: false, enum: WORKFLOW_ROUTE_MODES },
+      // Per-person decision-support mode (ask | suggest | auto | off); owner: workflow-routing-config.cjs.
+      decisionSupportMode: { type: "string", required: false, enum: DECISION_SUPPORT_MODES, describe: "Decision-support mode for the assistant's own consequential answers (a recommendation, design, plan, verdict or chosen approach the user will act on) and for the mid-session plan question: ask (default; one question offering a fitting deeper check such as /grill or /why-review, or a plan before non-trivial work) | suggest (one closing line naming those skills, no question; nothing runs unless typed) | auto (runs why-review report-only on the draft before replying, then asks about /grill when choices stay open; read as ask while skillAutoTrigger is false) | off (no offer; the inline self-check stays). Layers, later wins: team project config, ~/.claude/.ck.json, .claude/.ck.local.json, env CK_DECISION_SUPPORT_MODE; invalid values express no opinion." },
       skillAutoTrigger: { type: "boolean", required: false, describe: "Personal framework skill auto-trigger preference (default true). False asks whether to run a suitable matched skill or skip it and execute directly; no match proceeds directly. Named requests and required calls/steps of authorized operations remain allowed, except commit, pull-request and lightweight framework-config help which keep normal triggers. User, checkout-local and CK_SKILL_AUTO_TRIGGER overrides apply at runtime; native skill permissions remain unchanged." },
       // Optional custom protocol appended to the runtime workflow-route reminder. A string is
       // inline markdown; an object carries inline `text` and/or a repo-relative `path`. The
@@ -424,7 +430,7 @@ function formatCkValidationResult(result) {
   return lines.join("\n");
 }
 
-module.exports = { CK_SCHEMA, WORKFLOW_ACTIVATION_TIERS, WORKFLOW_ROUTE_MODES, validateCkConfig, formatCkValidationResult };
+module.exports = { CK_SCHEMA, WORKFLOW_ACTIVATION_TIERS, WORKFLOW_ROUTE_MODES, DECISION_SUPPORT_MODES, validateCkConfig, formatCkValidationResult };
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CLI ENTRY POINT
