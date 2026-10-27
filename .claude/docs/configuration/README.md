@@ -364,7 +364,7 @@ Six accelerators are ON by default and inject a short directive or pointer (five
 | Hook                            | Injects when                                                                                                                                 | Opt-out (`.claude/.ck.json`)                          | Env opt-out                      |
 | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- | -------------------------------- |
 | `commit-skill-route.cjs`        | the prompt asks for a commit — run the `commit` skill, never a raw `git commit` (`review-commit-gate.cjs` still blocks an unreviewed commit) | `{ "commitSkillRoute": { "enabled": false } }`        | `CK_COMMIT_SKILL_ROUTE=0`        |
-| `judgement-integrity-route.cjs` | the prompt asks for a verdict, root cause, evaluation, or gap hunt — the `SYNC:judgement-integrity:reminder` directive; also at a sub-agent start and after a compaction while the latest recorded prompt is one | `{ "judgementIntegrityRoute": { "enabled": false } }` | `CK_JUDGEMENT_INTEGRITY_ROUTE=0` |
+| `judgement-integrity-route.cjs` | the prompt asks for a verdict, root cause, evaluation, or gap hunt — the `SYNC:judgement-integrity:reminder` directive; also at a sub-agent start and after a compaction while the latest recorded prompt is one. Once per session window it also sends the decision-support rule for `portability.decisionSupportMode` | `{ "judgementIntegrityRoute": { "enabled": false } }` | `CK_JUDGEMENT_INTEGRITY_ROUTE=0` |
 | `core-principles-inject.cjs`    | first prompt, task step or sub-agent start of a session scope, at once after a compaction, then again after ~`reinjectAfterTokens` (default 150000) of transcript growth — the `SYNC:core-engineering-principles` gate | `{ "corePrinciplesInject": { "enabled": false } }`  | `CK_CORE_PRINCIPLES_INJECT=0`    |
 | `ai-feature-route.cjs`          | the prompt asks to build, plan, change or review an AI feature (an AI technique such as LLM calls, RAG, embeddings, tool/function calling or the Claude API/SDK — not "Claude Code" — AND an action on it) and is not about the framework's own machinery — one short directive (one protocol pointer, the `ai-engineering-review` skill / reviewer sub-agent route) once per session window; questions and framework-meta prompts stay silent; also at a sub-agent start and after a compaction while the latest recorded prompt is one | `{ "aiFeatureRoute": { "enabled": false } }`        | `CK_AI_FEATURE_ROUTE=0`          |
 | `knowledge-route.cjs` | a prompt phrase, a starting skill or a starting helper agent matches a knowledge pack (project packs in the directory named by `knowledge-base-reference.md`, framework packs in `.claude/knowledge-base/`) — one short pointer (at most 3 packs, 700 characters) once per pack per session window; prompt phrases are on only when the held-out evaluation in `.claude/knowledge-base/evaluation.json` passed or `knowledgeRoute.promptTriggers: true`. This router also reads a team layer: `knowledgeRoute` in `docs/project-config.json`, which a framework refresh never replaces (order, later wins: `.claude/.ck.json`, project config, `.claude/.ck.local.json`) — put a team setting there | `{ "knowledgeRoute": { "enabled": false } }` (all triggers) · `{ "knowledgeRoute": { "promptTriggers": true } }` (prompt phrases on) | `CK_KNOWLEDGE_ROUTE=0` |
@@ -804,6 +804,37 @@ preference or “for the team” for the project default. Existing JSON is merge
 removes only the selected layer’s key. This helper remains eligible when heavy auto-trigger is off and
 in the minimal visibility preset, unless you explicitly impose a native permission override.
 
+### Decision support (runtime, per developer)
+
+`portability.decisionSupportMode` sets how the assistant offers a deeper check on its **own** consequential
+answers, and how it offers a plan before non-trivial work later in a session. An answer is consequential when
+it adopts or recommends a choice you will act on (a recommendation, design, plan, verdict, or an approach it
+chose while working) and an alternative was rejected, the choice is hard to undo, it touches a public contract,
+data, security or cost, it spans modules, or it rests on assumptions about your constraints. The answer decides,
+not how you worded the request: "investigate and fix" counts as much as "what's the best way".
+
+| Mode | After a consequential answer | Mid-session plan question | Cost |
+| --- | --- | --- | --- |
+| `ask` (default) | One question offering the one or two checks that fit (`/grill`, `/why-review`, `/plan --mode=validate`, `/wayfinder`, `/llm-council`) plus skip | Asked | One question; a check runs only if you pick it |
+| `suggest` | One closing line naming those checks; nothing runs unless you type one | One line before the work, no question | About one line per offer |
+| `auto` | `why-review` runs report-only on the draft before the reply; you are asked about `/grill` only when choices that only you can make remain | Asked | A review per consequential answer |
+| `off` | No offer; the inline self-check stays | Not asked | None |
+
+```json
+{ "portability": { "decisionSupportMode": "suggest" } }
+```
+
+Layers, later valid value wins: default `ask` → team project config → `~/.claude/.ck.json` →
+git-ignored `.claude/.ck.local.json` → `CK_DECISION_SUPPORT_MODE`. An unknown value expresses no opinion.
+`auto` reads as `ask` while `portability.skillAutoTrigger` is `false`, because it would start a review
+nobody named. `node .claude/scripts/framework-features.cjs` shows the effective mode and the layer that set it.
+
+`judgement-integrity-route.cjs` delivers the rule for the active mode once per session window: on the first
+prompt of any wording, again after a compaction or about 150K tokens of growth, and again when the mode changes.
+It never reaches a sub-agent. The first offer in a session explains each named check in one clause and says
+how to change the mode; later offers are one line. The plan-question form is applied by the route hook's
+`[PLAN-OFFER]` cue. `judgementIntegrityRoute.enabled: false` or `quiet` runtime mode silences both.
+
 ### Skill auto-trigger (runtime, per developer)
 
 Set `portability.skillAutoTrigger: false` to ask before starting a suitable matched framework skill: run
@@ -1064,6 +1095,7 @@ Set a personal switch as an `env` entry in the git-ignored `.claude/settings.loc
 | `CK_PROMPT_LEDGER_DIR`                  | Directory for prompt-ledger records instead of `<project>/tmp/prompt-ledger`                                                         |
 | `CK_COMMIT_SKILL_ROUTE`                 | `0`: stops the reminder to commit through the `commit` skill, like `commitSkillRoute.enabled: false`                                 |
 | `CK_JUDGEMENT_INTEGRITY_ROUTE`          | `0`: stops the judgement-integrity reminder, like `judgementIntegrityRoute.enabled: false`                                           |
+| `CK_DECISION_SUPPORT_MODE`              | `ask`, `suggest`, `auto` or `off`: the decision-support mode for this shell or host, like `portability.decisionSupportMode` (see [Decision support](#decision-support-runtime-per-developer)) |
 | `CK_AI_FEATURE_ROUTE`                   | `0`: stops the AI-feature (AI-engineering gate) reminder, like `aiFeatureRoute.enabled: false`                                       |
 | `CK_KNOWLEDGE_ROUTE`                    | `0`: stops every knowledge pointer (prompt, skill and helper-agent triggers), like `knowledgeRoute.enabled: false`                    |
 | `CK_QUALITY_SKILL_REMINDER`             | `0`: stops the quality-skill reminder after tool results, like `qualitySkillReminder.enabled: false`                                 |

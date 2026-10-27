@@ -26,6 +26,15 @@ if ((require.main === module || !require.main) && require('./lib/framework-runti
  * the user asked for, and a compaction mid-turn drops the directive the turn was answering. Those
  * events answer with the JSON context envelope (`routerOutput`); no prompt ledger keeps them silent.
  *
+ * Decision support: once per session window, on the first user prompt (and again after a compaction or
+ * about DEFAULT_REINJECT_TOKENS of transcript growth), the hook also writes the decision-support rule for the
+ * active `portability.decisionSupportMode` (ask | suggest | auto | off; owner `workflow-routing-config.cjs`).
+ * The rule is the trigger the prompt classifier cannot be: it tells the assistant to judge its OWN answer, so a
+ * request to investigate, design or fix that ends in a consequential choice gets the closing offer too. It goes
+ * through `deliverWithCompaction` of the convention ledger, never to a sub-agent (no user channel), and its hash
+ * carries the mode, so a mode change re-arms it. A per-prompt directive also names the active mode. Unlike the
+ * directive, this check runs on every user prompt: a few small settings reads and one ledger record lookup.
+ *
  * Mirrored to Codex and OpenCode by the hook sync generators, which is why the directive
  * names the skill host-neutrally. Advisory plaintext on a prompt; always exit 0.
  *
@@ -48,6 +57,10 @@ const MARKER_END = '<!-- /CK:JUDGEMENT-INTEGRITY -->';
 const SYNC_TAG = 'judgement-integrity:reminder';
 const SETTINGS_SECTION = 'judgementIntegrityRoute';
 const ENV_SWITCH = 'CK_JUDGEMENT_INTEGRITY_ROUTE';
+const DS_MARKER_START = '<!-- CK:DECISION-SUPPORT -->';
+const DS_MARKER_END = '<!-- /CK:DECISION-SUPPORT -->';
+const DS_RECORD_GROUP = 'decision-support';
+const DEFAULT_REINJECT_TOKENS = 150000;
 
 const LEANS = Object.freeze({
     PROBLEM_PRESUMED: 'problem-presumed',
@@ -195,7 +208,46 @@ function loadCanonicalReminder() {
     }
 }
 
-function buildDirective(leans, reminder = loadCanonicalReminder(), allowSkillRouting = true) {
+// The checks a closing offer can name, best fit first, at most two per offer.
+const DS_CHECKS = '`/grill` (interview: the user decides the open choices) · `/why-review` (you attack your own reasoning, no interview) · `/plan --mode=validate` (a saved plan) · `/wayfinder` (decisions span sessions) · `/llm-council` (irreversible, high stakes)';
+const DS_CLOSE = {
+    ask: 'Close such an answer with ONE question via the host question tool (plain text when it has none): the 1–2 fitting checks + skip.',
+    suggest: 'Close such an answer with ONE line naming the 1–2 fitting checks; ask nothing, run nothing (the user types a check to start it).',
+    auto: 'Before replying with such an answer, run `why-review` report-only on the draft (Claude Code: Skill tool; Codex: `$why-review`; OpenCode: read `.claude/skills/why-review/SKILL.md`) and fold in its validated findings; then, if choices only the user can make remain, ask ONE question: `/grill` · skip.'
+};
+const DS_PLAN = {
+    ask: 'The mid-session plan question stays one question.',
+    suggest: 'The mid-session plan question becomes one line before the work starts, no question.',
+    auto: 'The mid-session plan question stays one question.'
+};
+
+/**
+ * The once-per-session decision-support rule for a mode (`ask` | `suggest` | `auto` | `off`), or '' for an
+ * unknown mode. `requested` (optional) is the configured mode when it differs from the effective one.
+ */
+function buildDecisionSupportRule(mode, requested) {
+    const switchHint = 'change: `portability.decisionSupportMode` ask|suggest|auto|off via /framework-config, or CK_DECISION_SUPPORT_MODE';
+    if (mode === 'off') {
+        return [
+            DS_MARKER_START,
+            `**[DECISION-SUPPORT]** Mode \`off\` (${switchHint}). Do not ask about or suggest \`/grill\`, \`/why-review\` or a plan on your own answers, and ask no mid-session plan question, unless the user asks. The inline self-check stays.`,
+            DS_MARKER_END
+        ].join('\n');
+    }
+    if (!DS_CLOSE[mode]) return '';
+    const capped = requested && requested !== mode ? ` (configured \`${requested}\`, read as \`${mode}\` while skill auto-trigger is off)` : '';
+    return [
+        DS_MARKER_START,
+        `**[DECISION-SUPPORT]** Mode \`${mode}\`${capped} (${switchHint}). Judge YOUR answer, not the prompt's wording: a question, an investigation, a design, a fix or work you just did all count.`,
+        "- Consequential = the answer adopts or recommends a choice the user will act on AND one holds: an alternative was rejected · hard to undo · contract, data, security or cost · cross-module · rests on unchecked assumptions about the user's constraints.",
+        `- ${DS_CLOSE[mode]} ${DS_PLAN[mode]}`,
+        `- Checks, best fit first: ${DS_CHECKS}. First offer this session: one short clause per check (what it does, who does the work, rough cost) and how to change the mode; later offers one line.`,
+        '- Exempt: lookups, trivial answers, routine edits, a running workflow, a skill that owns its closing step, sub-agents and headless runs, a check the user already called, a subject already skipped, a turn the plan question covers.',
+        DS_MARKER_END
+    ].join('\n');
+}
+
+function buildDirective(leans, reminder = loadCanonicalReminder(), allowSkillRouting = true, decisionSupportMode) {
     const body =
         reminder ||
         '- **MANDATORY** Name premise, test it AND its opposite with one evidence bar, why-review draft before replying; never invent findings, never manufacture disagreement; end with `Bias check:` line (`SYNC:judgement-integrity`).';
@@ -207,6 +259,9 @@ function buildDirective(leans, reminder = loadCanonicalReminder(), allowSkillRou
         allowSkillRouting
             ? 'Default = INLINE self-check (steps above; why-review the draft mentally) — no skill call: skill is heavy, everyday answers stay inline. Escalate to `why-review --validate-findings` only for formal review/audit/gap-hunt deliverable or MEDIUM+/consequential issue the inline pass cannot settle: Claude Code → Skill tool `why-review`; Codex → `$why-review` (`.agents/skills/why-review/SKILL.md`); OpenCode → `.claude/skills/why-review/SKILL.md`. Not a verdict or advice ask → ignore.'
             : 'Skill auto-trigger is disabled: keep this verdict self-check INLINE. This prompt classifier does not authorize a heavy review skill. Named user requests and required calls in an already authorized operation still follow the skill activation policy.',
+        ...(decisionSupportMode ? [decisionSupportMode === 'off'
+            ? 'Active decision-support mode: `off` — make no grill / why-review offer; the inline self-check above still applies.'
+            : `Active decision-support mode: \`${decisionSupportMode}\` — close a consequential answer in that form.`] : []),
         MARKER_END
     ].join('\n');
 }
@@ -222,12 +277,97 @@ function evaluate(input, deps = {}) {
         if (leans.length === 0) return '';
         // Checked only on a match, so most prompts never pay for the settings read.
         if (!isRouterEnabled(SETTINGS_SECTION, ENV_SWITCH, deps)) return '';
-        const { resolveHookSkillAutoTrigger } = require('./lib/prompt-route-utils.cjs');
-        return `${buildDirective(leans, undefined, resolveHookSkillAutoTrigger(deps).enabled)}\n`;
+        const { resolveHookSkillAutoTrigger, resolveHookDecisionSupportMode } = require('./lib/prompt-route-utils.cjs');
+        const skillAutoTrigger = resolveHookSkillAutoTrigger(deps).enabled;
+        const { effectiveMode } = resolveHookDecisionSupportMode({ ...deps, skillAutoTrigger });
+        return `${buildDirective(leans, undefined, skillAutoTrigger, effectiveMode)}\n`;
     } catch (error) {
         debugError(HOOK_NAME, error); // fail open: stay silent, diagnose under CK_DEBUG
         return '';
     }
+}
+
+/**
+ * The decision-support rule this event may deliver, or null — never at a sub-agent start (no user channel), never
+ * for host content, never without a session id (it could not be de-duplicated) or with the router switched off.
+ * Returns { text, hash } so the caller records one delivery per mode.
+ * deps (tests): env, projectDir, rawSettings, homeDir, skillAutoTrigger.
+ */
+function decisionSupportRule(input, deps = {}) {
+    try {
+        if (!input || typeof input !== 'object' || Array.isArray(input)) return null;
+        const event = input.hook_event_name;
+        const ledger = require('./lib/convention-ledger.cjs');
+        const isPrompt = !event || event === 'UserPromptSubmit';
+        if (!isPrompt && !(event === 'SessionStart' && ledger.isCompactionStart(input))) return null;
+        if (typeof input.session_id !== 'string' || input.session_id.trim() === '') return null;
+        if (isPrompt && readUserPrompt(input.prompt) === null) return null; // host envelope, not user input
+        if (!isRouterEnabled(SETTINGS_SECTION, ENV_SWITCH, deps)) return null;
+        const { resolveHookSkillAutoTrigger, resolveHookDecisionSupportMode } = require('./lib/prompt-route-utils.cjs');
+        const skillAutoTrigger = typeof deps.skillAutoTrigger === 'boolean' ? deps.skillAutoTrigger : resolveHookSkillAutoTrigger(deps).enabled;
+        const resolved = resolveHookDecisionSupportMode({ ...deps, skillAutoTrigger });
+        const text = buildDecisionSupportRule(resolved.effectiveMode, resolved.mode);
+        if (!text) return null;
+        const hash = require('crypto').createHash('sha256').update(`${HOOK_NAME}:${text}`, 'utf8').digest('hex');
+        return { text, hash };
+    } catch (error) {
+        debugError(HOOK_NAME, error); // fail open: the per-prompt directive still carries the rule's mode
+        return null;
+    }
+}
+
+/** Ledger settings: a byte window only, as the other once-per-window routers use. */
+function ledgerSettings(ledger) {
+    const { BYTES_PER_TOKEN } = require('./lib/file-conventions.cjs');
+    return {
+        reinjectAfterBytes: DEFAULT_REINJECT_TOKENS * BYTES_PER_TOKEN,
+        reinjectAfterMinutes: null,
+        blindReinjectAfterMinutes: null,
+        compactionMarkers: [ledger.CODEX_COMPACTION_MARKER]
+    };
+}
+
+function defaultWrite(text, done) {
+    try {
+        process.stdout.write(text, err => done(!err));
+    } catch {
+        done(false);
+    }
+}
+
+/**
+ * Resolve to the text written: the per-prompt directive (when the prompt asks for a verdict) plus, at most once
+ * per session window, the decision-support rule — one output in the event's form (plain text on a prompt, one
+ * context envelope after a compaction).
+ * deps (tests): env, now, projectDir, rawSettings, homeDir, skillAutoTrigger, ledger, storeRoot, write.
+ */
+function run(input, deps = {}) {
+    return new Promise(resolve => {
+        const write = deps.write || defaultWrite;
+        const writeText = text => (text ? write(routerOutput(input, text), ok => resolve(ok === false ? '' : text)) : resolve(''));
+        let directive = '';
+        try {
+            directive = evaluate(input, deps);
+            const rule = decisionSupportRule(input, deps);
+            if (!rule) return writeText(directive);
+            const env = deps.env || process.env;
+            const ledger = deps.ledger || require('./lib/convention-ledger.cjs');
+            const combined = `${directive}${rule.text}\n`;
+            ledger.deliverWithCompaction({
+                root: deps.storeRoot || ledger.storeRoot(env),
+                input: ledger.agentStartInput(input),
+                group: DS_RECORD_GROUP,
+                hash: rule.hash,
+                payload: routerOutput(input, combined),
+                settings: ledgerSettings(ledger),
+                now: typeof deps.now === 'number' ? deps.now : Date.now(),
+                write
+            }).then(written => (written ? resolve(combined) : writeText(directive)), () => writeText(directive));
+        } catch (error) {
+            debugError(HOOK_NAME, error); // fail open: an advisory hook never blocks a prompt
+            writeText(directive);
+        }
+    });
 }
 
 module.exports = {
@@ -240,8 +380,14 @@ module.exports = {
     LEANS,
     detectLeans,
     isJudgementRequest,
+    DS_MARKER_START,
+    DS_MARKER_END,
+    DS_RECORD_GROUP,
+    buildDecisionSupportRule,
+    decisionSupportRule,
     buildDirective,
-    evaluate
+    evaluate,
+    run
 };
 
 if (isHookEntryPoint(module)) {
@@ -249,8 +395,7 @@ if (isHookEntryPoint(module)) {
     try {
         const { parseStdinSync } = require('./lib/stdin-parser.cjs');
         const input = parseStdinSync({ defaultValue: null, throwOnError: true, context: HOOK_NAME });
-        const text = evaluate(input);
-        if (text) process.stdout.write(routerOutput(input, text));
+        if (input) run(input).then(() => { process.exitCode = 0; }, () => { process.exitCode = 0; });
     } catch (error) {
         debugError(HOOK_NAME, error); // fail open: an advisory hook never blocks a prompt
     }

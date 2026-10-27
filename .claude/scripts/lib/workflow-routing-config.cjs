@@ -49,6 +49,11 @@ const LOCAL_OVERRIDE_PATH = path.join('.claude', '.ck.local.json');
 const USER_CONFIG_RELATIVE_PATH = path.join('.claude', '.ck.json');
 // Route modes: what a workflow the model matched on its own does (see the header).
 const ROUTE_MODES = Object.freeze(['ask', 'auto', 'off']);
+// Decision-support modes: how the assistant offers a deeper check (grill, why-review, …) on its own consequential
+// answers and how it offers a plan before mid-session work. Lockstep with DECISION_SUPPORT_MODES in
+// ck-config-schema.cjs and project-config-schema.cjs.
+const DECISION_SUPPORT_MODES = Object.freeze(['ask', 'suggest', 'auto', 'off']);
+const DEFAULT_DECISION_SUPPORT_MODE = 'ask';
 const DEFAULT_ROUTE_MODE = 'ask';
 const ROUTE_MODE_ENV = 'CK_WORKFLOW_ROUTE_MODE';
 // Environment spellings of `off` shared with the other CK_* feature switches; the config key takes the three mode names only.
@@ -376,6 +381,48 @@ function resolveSkillAutoTrigger(options = {}) {
     return { enabled, source, teamEnabled, configPath, localPath, userPath };
 }
 
+/** A decision-support mode name, or undefined for anything else (an invalid value expresses no opinion). */
+function normalizeDecisionSupportMode(value) {
+    if (typeof value !== 'string') return undefined;
+    const name = value.trim().replace(/^(["'])(.*)\1$/, '$2').trim().toLowerCase();
+    return DECISION_SUPPORT_MODES.includes(name) ? name : undefined;
+}
+
+/**
+ * Effective decision-support mode: `ask` (default) | `suggest` | `auto` | `off`.
+ * Precedence, later wins (a missing, unreadable or invalid value expresses no opinion): framework default →
+ * team project config → personal ~/.claude/.ck.json → git-ignored .claude/.ck.local.json → env
+ * CK_DECISION_SUPPORT_MODE, each at `portability.decisionSupportMode`. `effectiveMode` caps `auto` at `ask`
+ * while skill auto-trigger is off, because `auto` starts a review skill nobody named.
+ * options.skillAutoTrigger (tests) overrides the resolved skill auto-trigger flag.
+ */
+function resolveDecisionSupportMode(options = {}) {
+    const rootDir = options.rootDir || process.cwd();
+    const env = options.env || process.env;
+    const configPath = options.configPath || resolveProjectConfigPath(rootDir);
+    const userPath = options.userPath !== undefined ? options.userPath : resolveUserConfigPath(options.homeDir);
+    const localPath = options.localPath || resolveLocalOverridePath(rootDir);
+    let mode = DEFAULT_DECISION_SUPPORT_MODE;
+    let source = SOURCE_DEFAULT;
+    const apply = (value, layer) => {
+        const name = normalizeDecisionSupportMode(value);
+        if (!name) return;
+        mode = name;
+        source = layer;
+    };
+    apply(readJson(configPath)?.portability?.decisionSupportMode, SOURCE_PROJECT_CONFIG);
+    if (options.scope !== SCOPE_TEAM) {
+        apply(userPath ? readJson(userPath)?.portability?.decisionSupportMode : undefined, SOURCE_USER_CONFIG);
+        apply(readJson(localPath)?.portability?.decisionSupportMode, SOURCE_LOCAL_OVERRIDE);
+        apply(env.CK_DECISION_SUPPORT_MODE, SOURCE_ENVIRONMENT);
+    }
+    const skillAutoTrigger = typeof options.skillAutoTrigger === 'boolean'
+        ? options.skillAutoTrigger
+        : resolveSkillAutoTrigger({ ...options, rootDir, env, configPath, userPath, localPath }).enabled;
+    const effectiveMode = mode === 'auto' && !skillAutoTrigger ? 'ask' : mode;
+    return { mode, effectiveMode, source, configPath, localPath, userPath };
+}
+
 /**
  * Normalize a declared `workflowRouteProtocol` value into `{ text?, path? }`.
  * A bare string is inline text; an object may carry `text` and/or `path`. Blank,
@@ -685,6 +732,10 @@ module.exports = {
     resolveWorkflowAutoDetect,
     resolveWorkflowRouteMode,
     resolveSkillAutoTrigger,
+    DECISION_SUPPORT_MODES,
+    DEFAULT_DECISION_SUPPORT_MODE,
+    normalizeDecisionSupportMode,
+    resolveDecisionSupportMode,
     resolveWorkflowRouteProtocol,
     writeWorkflowRouteMode
 };

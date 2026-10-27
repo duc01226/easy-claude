@@ -65,7 +65,7 @@ const ASK_TIER = 'The tier (workflow `activation`) only orders the recommendatio
 // The catalog's tier legend, in each mode's own words.
 const ASK_LEGEND = 'before you start a catalog workflow, in every tier';
 const AUTO_LEGEND = '**Activation (mode auto):**';
-const SWITCHES = { CK_SKILL_AUTO_TRIGGER: undefined, CK_WORKFLOW_ROUTE_MODE: undefined, CK_SESSION_ID: undefined, CK_DEBUG: undefined, CLAUDE_HOOK_DEBUG: undefined, NODE_OPTIONS: undefined };
+const SWITCHES = { CK_SKILL_AUTO_TRIGGER: undefined, CK_DECISION_SUPPORT_MODE: undefined, CK_WORKFLOW_ROUTE_MODE: undefined, CK_SESSION_ID: undefined, CK_DEBUG: undefined, CLAUDE_HOOK_DEBUG: undefined, NODE_OPTIONS: undefined };
 
 /**
  * A fixture project holding the real hook tree, the routing libraries, the workflow registry, the gate
@@ -1312,6 +1312,41 @@ module.exports = {
                 assertContains(concise, 'Mid-session, a non-trivial request for work that no approved plan or running workflow covers gets ONE question before editing: plan first (`/plan`) · run directly · grill first (only when choices are still open).');
                 assertContains(concise, 'Never on the first prompt or the first task after a mode directive (the workflow question owns both), for trivial, follow-up or correction work, after "just do it" or a named skill, inside a running workflow, in a run with no user to answer, or twice for one request. It replaces the answer-review offer on the same turn.');
             }
+        },
+        {
+            // Intent: a person who chose a lighter or no offer is not asked the plan question; the default keeps it.
+            name: '[workflow-route-modes] TC-WFR-032 the decision-support mode sets the form of the mid-session plan offer',
+            fn: () => withProject(p => {
+                const CUE = '<!-- CK:PLAN-OFFER -->';
+                const QUESTION = 'ask ONE question before editing: plan first';
+                const cueFor = extra => {
+                    const session = newSession();
+                    p.run(session, 'hello', extra);
+                    return p.run(session, 'implement the retry with exponential backoff', extra).out;
+                };
+                // Given the default and auto / Then the question form
+                for (const extra of [{}, { CK_DECISION_SUPPORT_MODE: 'ask' }, { CK_DECISION_SUPPORT_MODE: 'auto' }]) {
+                    const out = cueFor(extra);
+                    assertContains(out, CUE);
+                    assertContains(out, QUESTION, `question form for ${JSON.stringify(extra)}`);
+                }
+                // Given suggest / Then the one-line form: nothing is asked and the work proceeds
+                const suggest = cueFor({ CK_DECISION_SUPPORT_MODE: 'suggest' });
+                assertContains(suggest, CUE);
+                assertContains(suggest, '(decision support `suggest`)');
+                assertContains(suggest, 'ask nothing: open your reply with ONE line naming `/plan`');
+                assertContains(suggest, 'then proceed.');
+                assertContains(suggest, 'This replaces the answer-review offer on this turn.');
+                assertNotContains(suggest, QUESTION, 'suggest asks no question');
+                assertTrue(suggest.length < 800, `the suggest cue stays one short line (${suggest.length} chars)`);
+                // Given off / Then no cue at all
+                assertNotContains(cueFor({ CK_DECISION_SUPPORT_MODE: 'off' }), CUE, 'off adds no plan offer');
+                // And a person's checkout choice wins over the team default
+                p.write(p.teamFile, { project: { name: 'fixture' }, portability: { decisionSupportMode: 'off' } });
+                assertNotContains(cueFor({}), CUE, 'a team off reaches the cue');
+                p.write(p.localFile, { portability: { decisionSupportMode: 'suggest' } });
+                assertContains(cueFor({}), '(decision support `suggest`)', 'the checkout choice beats the team default');
+            })
         }
     ]
 };

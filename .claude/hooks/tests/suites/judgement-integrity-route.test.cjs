@@ -238,10 +238,130 @@ module.exports = {
                 // Then the offer is one question with three options, including skip
                 assertContains(text, "ask ONE question with the host's question tool: grill it (`/grill`");
                 assertContains(text, 'review it (`/why-review`');
-                assertContains(text, '· skip.');
+                assertContains(text, '· skip, naming instead `/plan --mode=validate`, `/wayfinder` or `/llm-council` where one fits better (at most two checks)');
+                // And the offer follows the answer and the active mode, not the prompt's wording
+                assertContains(text, "judged by the answer and never by the prompt's wording");
+                assertContains(text, 'close it per the active decision-support mode (`portability.decisionSupportMode`, default `ask`)');
+                assertContains(text, '`suggest` → one closing line naming the checks, no question; `auto` → why-review the draft report-only before replying');
+                assertContains(text, 'Active decision-support mode: `');
                 // And it never fires where it would interrupt or cannot be answered
                 assertContains(text, 'Never after a lookup or trivial answer, inside a running workflow or a skill that owns its closing step, from a sub-agent or headless run');
                 assertContains(text, 'again after a skip, or on a turn the mid-session plan question covers (it replaces this offer)');
+            }
+        },
+        {
+            name: '[judgement-integrity-route] TC-JIR-014 (TC-RVQ-012) the decision-support rule reaches the main conversation once per session window, in the active mode, for a prompt of any wording',
+            fn: async () => {
+                const project = makeSettingsProject({});
+                const home = fs.mkdtempSync(path.join(os.tmpdir(), 'jir-ds-home-'));
+                const store = fs.mkdtempSync(path.join(os.tmpdir(), 'jir-ds-store-'));
+                let counter = 0;
+                const session = () => `ds-${process.pid}-${++counter}`;
+                const deliver = async (input, env = {}, extra = {}) => {
+                    const writes = [];
+                    const text = await hook.run(input, {
+                        env, projectDir: project, homeDir: home, storeRoot: store, now: Date.now(),
+                        write: (chunk, done) => { writes.push(chunk); done(true); }, ...extra
+                    });
+                    return { text, out: writes.join('') };
+                };
+                const prompt = (id, text) => ({ hook_event_name: 'UserPromptSubmit', session_id: id, prompt: text });
+                try {
+                    // Given a first prompt that asks for work, not advice (the prompt classifier finds no lean)
+                    assertTrue(hook.detectLeans('investigate why login is slow and fix it').length === 0, 'precondition: no lean');
+                    const s1 = session();
+                    const first = await deliver(prompt(s1, 'investigate why login is slow and fix it'));
+                    // Then the default ask rule arrives: judge the answer, not the wording; one question; the checks
+                    assertContains(first.out, hook.DS_MARKER_START);
+                    assertContains(first.out, 'Mode `ask`');
+                    assertContains(first.out, "Judge YOUR answer, not the prompt's wording");
+                    assertContains(first.out, 'Close such an answer with ONE question via the host question tool (plain text when it has none): the 1–2 fitting checks + skip.');
+                    for (const check of ['`/grill`', '`/why-review`', '`/plan --mode=validate`', '`/wayfinder`', '`/llm-council`']) assertContains(first.out, check);
+                    assertContains(first.out, 'First offer this session: one short clause per check');
+                    assertContains(first.out, 'CK_DECISION_SUPPORT_MODE');
+                    assertTrue(!first.out.includes(hook.MARKER_START), 'no verdict directive on a work request');
+                    // When the next prompt asks for advice / Then only the per-prompt directive arrives, naming the mode
+                    const second = await deliver(prompt(s1, "what's the best way to cache the catalog?"));
+                    assertContains(second.out, hook.MARKER_START);
+                    assertContains(second.out, 'Active decision-support mode: `ask`');
+                    assertTrue(!second.out.includes(hook.DS_MARKER_START), 'the rule is delivered once per session window');
+                    // When the conversation is condensed / Then the rule arrives again, as the context envelope
+                    const compacted = await deliver({ hook_event_name: 'SessionStart', session_id: s1, source: 'compact' });
+                    const envelope = JSON.parse(compacted.out);
+                    assertTrue(envelope.hookSpecificOutput.hookEventName === 'SessionStart', 'compaction answers with the envelope');
+                    assertContains(envelope.hookSpecificOutput.additionalContext, hook.DS_MARKER_START);
+                    // When the person switches the mode mid-session / Then the changed rule re-arms at once
+                    const switched = await deliver(prompt(s1, 'ok'), { CK_DECISION_SUPPORT_MODE: 'suggest' });
+                    assertContains(switched.out, 'Mode `suggest`');
+                    assertContains(switched.out, 'ask nothing, run nothing');
+                    assertContains(switched.out, 'The mid-session plan question becomes one line before the work starts, no question.');
+                    // And a sub-agent start never gets the rule: it has no user to answer
+                    const agent = await deliver({ hook_event_name: 'SubagentStart', session_id: session(), agent_id: 'a1', agent_type: 'general-purpose' });
+                    assertTrue(agent.out === '', 'a sub-agent start gets no decision-support rule');
+                    // And host content and a prompt without a session id get nothing
+                    assertTrue((await deliver(prompt(session(), '<task-notification>\ndone\n</task-notification>'))).out === '', 'host content is not a user prompt');
+                    assertTrue((await deliver({ hook_event_name: 'UserPromptSubmit', prompt: 'hello' })).out === '', 'no session id, no rule');
+                    // Each mode writes its own form
+                    const auto = await deliver(prompt(session(), 'hello'), { CK_DECISION_SUPPORT_MODE: 'auto', CK_SKILL_AUTO_TRIGGER: 'true' });
+                    assertContains(auto.out, 'Mode `auto`');
+                    assertContains(auto.out, 'run `why-review` report-only on the draft');
+                    assertContains(auto.out, '`$why-review`');
+                    assertContains(auto.out, 'ask ONE question: `/grill` · skip.');
+                    // And auto reads as ask while skill auto-trigger is off: it would start a review nobody named
+                    const capped = await deliver(prompt(session(), 'hello'), { CK_DECISION_SUPPORT_MODE: 'auto', CK_SKILL_AUTO_TRIGGER: 'off' });
+                    assertContains(capped.out, 'Mode `ask` (configured `auto`, read as `ask` while skill auto-trigger is off)');
+                    assertTrue(!capped.out.includes('report-only on the draft'), 'a capped auto starts no review');
+                    const off = await deliver(prompt(session(), 'hello'), { CK_DECISION_SUPPORT_MODE: 'off' });
+                    assertContains(off.out, 'Mode `off`');
+                    assertContains(off.out, 'and ask no mid-session plan question, unless the user asks');
+                    // And the router opt-out silences the rule too
+                    const optedOut = await deliver(prompt(session(), 'hello'), { CK_JUDGEMENT_INTEGRITY_ROUTE: '0' });
+                    assertTrue(optedOut.out === '', 'the router switch silences the rule');
+                } finally {
+                    for (const dir of [project, home, store]) fs.rmSync(dir, { recursive: true, force: true });
+                }
+            }
+        },
+        {
+            name: '[judgement-integrity-route] TC-JIR-015 (TC-RVQ-012) decision-support mode layers: default ask, team, personal, checkout, environment; unknown values are skipped',
+            fn: () => {
+                const routing = require(path.join(PROJECT_DIR, '.claude', 'scripts', 'lib', 'workflow-routing-config.cjs'));
+                const project = makeSettingsProject({});
+                const home = fs.mkdtempSync(path.join(os.tmpdir(), 'jir-ds-layers-'));
+                const writeJson = (file, value) => { fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, JSON.stringify(value)); };
+                const mode = value => ({ portability: { decisionSupportMode: value } });
+                const resolve = (env = {}) => routing.resolveDecisionSupportMode({ rootDir: project, homeDir: home, env, skillAutoTrigger: true });
+                try {
+                    // Given nothing set / Then ask, from the default
+                    assertTrue(resolve().mode === 'ask' && resolve().source === routing.SOURCE_DEFAULT, 'default ask');
+                    // When each later layer sets a value / Then the later valid layer wins
+                    writeJson(path.join(project, 'docs', 'project-config.json'), { project: { name: 'fixture' }, ...mode('off') });
+                    assertTrue(resolve().mode === 'off' && resolve().source === routing.SOURCE_PROJECT_CONFIG, 'team default');
+                    writeJson(path.join(home, '.claude', '.ck.json'), mode('suggest'));
+                    assertTrue(resolve().mode === 'suggest' && resolve().source === routing.SOURCE_USER_CONFIG, 'personal beats team');
+                    writeJson(path.join(project, '.claude', '.ck.local.json'), mode('auto'));
+                    assertTrue(resolve().mode === 'auto' && resolve().source === routing.SOURCE_LOCAL_OVERRIDE, 'checkout beats personal');
+                    assertTrue(resolve({ CK_DECISION_SUPPORT_MODE: ' ASK ' }).mode === 'ask', 'environment beats checkout, case and space tolerant');
+                    // And an unknown value at any layer expresses no opinion
+                    writeJson(path.join(project, '.claude', '.ck.local.json'), mode('sometimes'));
+                    assertTrue(resolve({ CK_DECISION_SUPPORT_MODE: 'loud' }).mode === 'suggest', 'unknown values fall through to the next layer down');
+                    // And the team scope reads the team layer only
+                    assertTrue(routing.resolveDecisionSupportMode({ rootDir: project, homeDir: home, env: {}, scope: routing.SCOPE_TEAM, skillAutoTrigger: true }).mode === 'off', 'team scope');
+                    // And auto is acted on as ask while skill auto-trigger is off
+                    writeJson(path.join(project, '.claude', '.ck.local.json'), mode('auto'));
+                    const capped = routing.resolveDecisionSupportMode({ rootDir: project, homeDir: home, env: {}, skillAutoTrigger: false });
+                    assertTrue(capped.mode === 'auto' && capped.effectiveMode === 'ask', 'auto capped to ask');
+                    // And the schemas accept exactly the resolver's modes, in lockstep
+                    const ck = require(path.join(PROJECT_DIR, '.claude', 'hooks', 'lib', 'ck-config-schema.cjs'));
+                    const team = require(path.join(PROJECT_DIR, '.claude', 'hooks', 'lib', 'project-config-schema.cjs'));
+                    assertTrue(JSON.stringify(ck.DECISION_SUPPORT_MODES) === JSON.stringify([...routing.DECISION_SUPPORT_MODES]), 'ck schema lockstep');
+                    assertTrue(JSON.stringify(team.DECISION_SUPPORT_MODES) === JSON.stringify([...routing.DECISION_SUPPORT_MODES]), 'project schema lockstep');
+                    assertTrue(routing.DEFAULT_DECISION_SUPPORT_MODE === 'ask', 'the framework default is ask');
+                    assertTrue(ck.validateCkConfig(mode('suggest')).errors.length === 0, 'a valid mode validates');
+                    assertTrue(ck.validateCkConfig(mode('loud')).errors.length === 1, 'an unknown mode is a schema error');
+                } finally {
+                    for (const dir of [project, home]) fs.rmSync(dir, { recursive: true, force: true });
+                }
             }
         },
         {
@@ -443,10 +563,16 @@ module.exports = {
                         env
                     });
                     assertContains(out, hook.MARKER_START);
-                    // When stdin is empty, non-JSON, malformed, nonobject or code-only / Then both channels stay silent and exit 0
-                    for (const input of ['', 'not json', '{"secret":"SYNTHETIC-SECRET",', 'null', '[]', JSON.stringify(event('``any gaps?``')), JSON.stringify(event('~~~text\nany gaps?\n~~~'))]) {
+                    // When stdin is empty, non-JSON, malformed or nonobject / Then both channels stay silent and exit 0
+                    for (const input of ['', 'not json', '{"secret":"SYNTHETIC-SECRET",', 'null', '[]']) {
                         const silent = run(input);
-                        assertTrue(silent.status === 0 && silent.stdout === '' && silent.stderr === '', `irrelevant/malformed/code input stays silent: ${JSON.stringify(input)}; stderr=${silent.stderr}`);
+                        assertTrue(silent.status === 0 && silent.stdout === '' && silent.stderr === '', `malformed input stays silent: ${JSON.stringify(input)}; stderr=${silent.stderr}`);
+                    }
+                    // When the prompt is code only / Then no verdict directive: quoted code is not a verdict ask
+                    // (the once-per-session decision-support rule may still arrive: it does not depend on the wording)
+                    for (const input of [JSON.stringify(event('``any gaps?``')), JSON.stringify(event('~~~text\nany gaps?\n~~~'))]) {
+                        const codeOnly = run(input);
+                        assertTrue(codeOnly.status === 0 && !codeOnly.stdout.includes(hook.MARKER_START) && codeOnly.stderr === '', `code input gets no verdict directive: ${JSON.stringify(input)}; stderr=${codeOnly.stderr}`);
                     }
                     // When malformed JSON arrives in debug mode / Then the sanitized diagnostic uses stderr only
                     const diagnosed = run('{"secret":"SYNTHETIC-SECRET",', '1');

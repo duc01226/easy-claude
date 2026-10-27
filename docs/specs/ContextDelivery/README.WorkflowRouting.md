@@ -5,7 +5,7 @@ feature_code: 'WFR'
 entities: ['Workflow', 'ActivationPolicy', 'RoutingGuidance', 'RootInstructionFile', 'RouteMode']
 status: draft
 owner: 'Framework maintainers'
-last_updated: '2026-10-26'
+last_updated: '2026-10-27'
 scope_mode: FRAMEWORK-LIBRARY
 large_idea_decomposition: null
 roadmap: null
@@ -27,7 +27,7 @@ roadmap_status: null
 | Spec Index (derived) | `docs/specs/ContextDelivery/INDEX.md`                                                                                                                                                                                                                                                                                                                                                          | Generated navigation catalog for this bucket; refresh through the spec index owner.    |
 | Routing gate text    | `.claude/skills/shared/workflow-first-gate.md`                                                                                                                                                                                                                                                                                                                                                 | The routing gate the guidance delivers per mode; root files carry no route pointer. |
 | Workflow registry    | `.claude/workflows.json`                                                                                                                                                                                                                                                                                                                                                                       | Workflow names, framework activation tiers, steps and parallel phases.                 |
-| Project settings     | `docs/project-config.json` (`portability.workflowRouteMode`, `portability.workflowActivation`), `~/.claude/.ck.json`, `.claude/.ck.local.json`, environment `CK_WORKFLOW_ROUTE_MODE`, `.claude/scripts/lib/workflow-routing-config.cjs`, `.claude/scripts/workflow-mode.cjs`, `.claude/skills/workflow-mode/SKILL.md`                                                                          | Team default, the personal sources, the resolver and the mode command.                 |
+| Project settings     | `docs/project-config.json` (`portability.workflowRouteMode`, `portability.workflowActivation`, `portability.decisionSupportMode` for the plan-question form), `~/.claude/.ck.json`, `.claude/.ck.local.json`, environment `CK_WORKFLOW_ROUTE_MODE` and `CK_DECISION_SUPPORT_MODE`, `.claude/scripts/lib/workflow-routing-config.cjs`, `.claude/scripts/workflow-mode.cjs`, `.claude/skills/workflow-mode/SKILL.md`                                                                          | Team default, the personal sources, the resolver and the mode command.                 |
 | Test suites          | `.claude/hooks/tests/suites/workflow-routing-switch.test.cjs`, `.claude/hooks/tests/suites/workflow-route-modes.test.cjs`, `.claude/scripts/codex/tests/workflow-skills-catalog.test.mjs`, `.claude/hooks/tests/suites/project-config-refactor-keys.test.cjs`, `.claude/hooks/tests/suites/content-presence.test.cjs`, `.claude/scripts/codex/tests/verify-workflow-cycle-compliance.test.mjs` | Executors for Section 8.                                                               |
 
 ## Sections
@@ -168,6 +168,7 @@ Before each prompt the assistant receives short routing guidance in two messages
 - **AC-WFR-22** — **Given** a linked decision record or resolved map ticket **When** a later interview uses it **Then** only confirmed decisions with unchanged scope and premises are reused and cited; open, changed, conflicting or unconfirmed decisions remain for the user, every hosting gate remains binding, and discovery never grants building authority
 - **AC-WFR-27** — **Given** a decision interview has recorded its decisions **When** it hands off **Then** it may offer, never require, one short stress pass on the recorded decisions from four angles (need and reuse, cost and scale, migration and rollback, day-to-day running); an accepted pass runs inline, appends its findings to the same record, keeps the record where the interview keeps it, and still plans, specifies and builds nothing
 - **AC-WFR-28** — **Given** a session past its first prompt, with no approved plan and no running workflow **When** the developer asks for non-trivial work (a behavior or contract change, several modules, real risk or open choices) **Then** the assistant asks one question before editing — plan first, run directly, or grill first when choices are still open — and never asks it on the first prompt or the first task after a mode directive, for trivial, follow-up or correction work, after "just do it" or a named skill, inside a running workflow, in a run with no user to answer, with routing off or restricted skill selection, or twice for one request; the rule arrives as a one-line reminder on that prompt (a go-ahead such as "yes, do it" or a task list included), except on a prompt that delivers the route
+- **AC-WFR-30** — **Given** a session past its first prompt and a request for non-trivial work **When** the person's decision-support mode is ask (the default) or auto **Then** the plan question is asked; **When** it is suggest **Then** nothing is asked and the reply opens with one line naming planning, and the interview when choices are open, before the work proceeds; **When** it is off **Then** no reminder is added
 
 ---
 
@@ -356,7 +357,7 @@ After recording its decisions, a free-form decision interview may offer one shor
 
 ### BR-WFR-17: Mid-session work offers planning once, never on top of the workflow question [HARD]
 
-**Statement:** After a session's first prompt, a request for non-trivial work that no approved plan or running workflow covers gets one question before any edit: plan first, run directly, or grill first when material choices are still open. The rule travels as a one-line reminder added to each mid-session request for work, the moment it applies; the concise route carries it as one bullet. The routing gate itself stays unchanged, because with a project route protocol of the documented size it has no room left under the route message cap. The first prompt never gets the reminder, since the workflow question owns it; nor does the first task after a mode directive, which the workflow question owns too: the reminder's own text tells the assistant to skip it, because no hook records whether that task has arrived. The question is never asked for trivial, follow-up or correction work, after "just do it" or a named skill, inside a running workflow, in a run with no user to answer, with routing off, or twice for one request. A go-ahead after a discussion ("yes, do it", "sounds good, implement it") and a task list are requests for work; a "Follow up:" question and content the host submits (a sub-agent hand-back, a task notification) are not. No reminder is added when automatic skill selection is restricted, since its own single skill-choice rule governs, or on a prompt that delivers the route (the first prompt, or the first prompt after a compaction re-delivers it), which carries the gate instead. No hook can see which session runs a workflow, so inside one the reminder still arrives and its own text tells the assistant to skip. On a turn where the answer-review offer (the deeper-check offer of Review Quality, BR-RVQ-10) would also apply, only this question is asked.
+**Statement:** After a session's first prompt, a request for non-trivial work that no approved plan or running workflow covers gets one question before any edit: plan first, run directly, or grill first when material choices are still open. The rule travels as a one-line reminder added to each mid-session request for work, the moment it applies; the concise route carries it as one bullet. The routing gate itself stays unchanged, because with a project route protocol of the documented size it has no room left under the route message cap. The first prompt never gets the reminder, since the workflow question owns it; nor does the first task after a mode directive, which the workflow question owns too: the reminder's own text tells the assistant to skip it, because no hook records whether that task has arrived. The question is never asked for trivial, follow-up or correction work, after "just do it" or a named skill, inside a running workflow, in a run with no user to answer, with routing off, or twice for one request. A go-ahead after a discussion ("yes, do it", "sounds good, implement it") and a task list are requests for work; a "Follow up:" question and content the host submits (a sub-agent hand-back, a task notification) are not. No reminder is added when automatic skill selection is restricted, since its own single skill-choice rule governs, or on a prompt that delivers the route (the first prompt, or the first prompt after a compaction re-delivers it), which carries the gate instead. No hook can see which session runs a workflow, so inside one the reminder still arrives and its own text tells the assistant to skip. On a turn where the answer-review offer (the deeper-check offer of Review Quality, BR-RVQ-10) would also apply, only this question is asked. A person's decision-support mode (Review Quality, BR-RVQ-12) sets the form: ask, the default, and auto ask the question; suggest asks nothing, and the reminder instead tells the assistant to open its reply with one line naming planning (and the interview when choices are still open) and then proceed; off adds no reminder.
 
 ```
 IF prompt is past the first AND asks for work AND no plan or workflow covers it AND the work is non-trivial
@@ -365,6 +366,8 @@ IF first prompt OR route re-delivered OR question OR host content OR named skill
   → no reminder, no question
 IF a running workflow covers the request
   → the reminder still arrives and itself says to skip; no question
+IF decision-support mode = suggest → the reminder's one-line form: name planning, ask nothing, proceed
+IF decision-support mode = off     → no reminder
 ```
 
 <!-- machine-only carrier — ignore when reading as BA/QA -->
@@ -543,7 +546,7 @@ Session           0──1 SessionMode         (set by a prompt directive)
 | Activation Tier Tests       | TC-WFR-006, TC-WFR-007, TC-WFR-009, TC-WFR-011, TC-WFR-012             |
 | Validation Tests            | TC-WFR-008                                                             |
 | Invariant / Property Tests  | TC-WFR-010, TC-WFR-022                                                             |
-| Route Mode Tests            | TC-WFR-014, TC-WFR-015, TC-WFR-016, TC-WFR-017, TC-WFR-018, TC-WFR-019, TC-WFR-020, TC-WFR-021, TC-WFR-023, TC-WFR-025, TC-WFR-027, TC-WFR-029, TC-WFR-030 |
+| Route Mode Tests            | TC-WFR-014, TC-WFR-015, TC-WFR-016, TC-WFR-017, TC-WFR-018, TC-WFR-019, TC-WFR-020, TC-WFR-021, TC-WFR-023, TC-WFR-025, TC-WFR-027, TC-WFR-029, TC-WFR-030, TC-WFR-032 |
 
 ### Core Routing Guidance Tests
 
@@ -2102,6 +2105,55 @@ And the concise route carries the same rule
 > **Evidence:** `[Source: operation/hooks/workflow-route-inject]` · `[Source: constraint/skills/concise-workflow-route]`
 > **Related Behaviors:** `operation/hooks/workflow-route-inject` · `constraint/skills/concise-workflow-route`
 > **CoveredBy:** `.claude/hooks/tests/suites/workflow-route-modes.test.cjs::[workflow-route-modes] TC-WFR-030 mid-session, a request for work gets the plan-offer cue; the first prompt, questions, skill calls and off mode do not`, `.claude/hooks/tests/suites/workflow-route-modes.test.cjs::[workflow-route-modes] TC-WFR-030 the concise route carries the mid-session plan offer with the same exemptions` · **Status:** Tested
+
+---
+
+#### TC-WFR-032: The decision-support mode sets the form of the mid-session plan question [P1]
+
+**Objective:** Prove that a person who chose a lighter or no offer is not asked the plan question, while the default keeps it.
+
+**Business Intent / Invariant Guarded:** BR-WFR-17, BR-RVQ-12 / AC-WFR-30 — for every mid-session request for work the reminder takes the form of the effective decision-support mode: the question in ask and auto, one line in suggest, nothing in off.
+
+**Preconditions:** A project with the framework route hooks; a session whose first prompt already delivered the routing gate.
+
+**Real-World Reachability:** A developer who set suggest for themselves asks for an implementation mid-session and wants the work to start, with the planning option named once.
+
+**Demo Flow:** Set each mode in turn, open a session, ask a question, then ask for work; read what the routing hook adds to the request.
+
+```gherkin
+Given a session past its first prompt and a request for non-trivial work
+When the decision-support mode is ask, the default, or auto
+Then the reminder asks the one plan question
+When the mode is suggest
+Then the reminder asks nothing: one line names planning, and the interview when choices are open, then the work proceeds
+When the mode is off
+Then no reminder is added
+And the person's own choice wins over the team default
+```
+
+**Expected Result:**
+
+| Dimension | Expectation |
+| --- | --- |
+| **UI** | Not applicable — the observable surface is the routing guidance |
+| **System behavior** | The reminder's form follows the effective decision-support mode |
+| **Business data state** | Not applicable — only the person's own preference is read |
+| **Data shown on UI** | The question, the one-line form, or nothing |
+
+**Acceptance Criteria:**
+
+- ✅ Ask and auto add the question; suggest adds the one-line form with no question; off adds nothing.
+- ❌ A question in suggest mode, or any reminder in off mode, fails the case.
+
+**Test Data:** "hello" then "implement the retry", once per mode, with the mode set by the environment and by the person's checkout file over a team default.
+
+**Edge Cases:** Off still keeps every other route rule; only the plan question is dropped.
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: operation/hooks/workflow-route-inject]` · `[Source: operation/scripts/workflow-routing-config]`
+> **Related Behaviors:** `operation/hooks/workflow-route-inject`
+> **CoveredBy:** `.claude/hooks/tests/suites/workflow-route-modes.test.cjs::[workflow-route-modes] TC-WFR-032 the decision-support mode sets the form of the mid-session plan offer` · **Status:** Tested
 
 ---
 
