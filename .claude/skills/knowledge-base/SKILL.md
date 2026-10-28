@@ -44,6 +44,7 @@ description: '[Utilities] Use when saving, updating, listing, removing, importin
 | Framework packs | `.claude/knowledge-base/` (reader list `README.md`, machine index `index.json`) |
 | Pack format (fields, digest, clauses, triggers) | `references/pack-format.md` — read before drafting a pack |
 | Drafts (disposable) | `tmp/knowledge-base/drafts/` |
+| Pack and Markdown totals in the docs index | when they are `<!-- COUNT:markdown:… -->` markers, the sync's `counts` stage refreshes them after an `add` or `delete`; the docs index lists packs through `knowledge-base-reference.md`, never file by file |
 
 ## Modes
 

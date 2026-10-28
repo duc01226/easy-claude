@@ -52,6 +52,8 @@ Before writing, inspect repository-owned tests, sensors, and validators that con
 
 ### Content Rules / exceptions
 - Any emitted count MUST be verified via a glob over its stated scope; never estimate or copy it from stale content.
+- Keep every `<!-- COUNT:kind:filter -->N<!-- /COUNT -->` marker the index already carries, with its kind and filter unchanged; only its number may be refreshed. The sync's `counts` stage fills these markers, so dropping one turns that count back into a hand-typed figure that drifts with each new file (kinds and filters: `count_kind` in `.claude/scripts/generate_catalogs.py`).
+- List knowledge packs through the generated knowledge index (`knowledge-base-reference.md`), not file by file: the knowledge-base tool regenerates that index on every pack change, and a second hand list goes stale.
 - Discover documents dynamically within configured and repository-evidenced sources. Preserve local template, profile, and check contracts, but never hardcode a different project's roots, categories, application names, or spec format into the reusable scan procedure.
 - Distinguish project-authored, framework-owned, generated, and external documentation when the evidence supports those owners. Never imply that an external or generated source was scanned when it was not.
 

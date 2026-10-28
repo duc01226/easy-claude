@@ -151,7 +151,9 @@ function loadCatalogCaller(preparePythonYaml, spawnSync) {
     fs: { existsSync: () => false },
     child_process: { spawnSync },
     '../lib/python-command.cjs': { resolvePythonCommand: () => ({ command: 'python3', baseArgs: [] }), preparePythonYaml },
-    '../lib/framework-repo-guard.cjs': { isFrameworkRepo: () => false }
+    '../lib/framework-repo-guard.cjs': { isFrameworkRepo: () => false },
+    // The empty adopter project lists no count-bearing documents.
+    '../../../scripts/lib/count-marker-files.cjs': { countMarkerFiles: () => [] }
   };
   vm.runInNewContext(source, { module, __dirname, process: { env: {} }, require(name) {
     if (!(name in dependencies)) throw new Error(`Unexpected caller dependency: ${name}`);

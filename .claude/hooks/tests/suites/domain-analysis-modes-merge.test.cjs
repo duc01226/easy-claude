@@ -37,6 +37,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const { isFrameworkRepo } = require('../lib/framework-repo-guard.cjs');
+const { liveSourceFiles } = require('../lib/live-source-files.cjs');
 const { resolveAllWorkflowManifests } = require('../../../scripts/lib/workflow-manifest.cjs');
 const { extractSyncBody, normalizeEol } = require('../../../scripts/lib/extract-sync-block.cjs');
 const guideCarrier = require('../../../scripts/lib/protocol-guide-carrier.cjs');
@@ -91,19 +92,9 @@ const SCAN_EXCLUDED = new Set([
 const SCAN_EXCLUDED_DIRS = new Set(['node_modules', '.git', '.code-graph', 'tmp', 'temp', 'plans', '__pycache__']);
 const SCAN_EXTENSIONS = new Set(['.md', '.cjs', '.mjs', '.js', '.py', '.json', '.yaml', '.yml', '.html', '.toml']);
 
-function* walk(rel) {
-    const abs = path.join(REPO_ROOT, ...rel.split('/'));
-    if (!fs.existsSync(abs)) return;
-    const stat = fs.statSync(abs);
-    if (stat.isFile()) {
-        if (SCAN_EXTENSIONS.has(path.extname(abs))) yield rel;
-        return;
-    }
-    for (const entry of fs.readdirSync(abs, { withFileTypes: true })) {
-        if (entry.isDirectory() && SCAN_EXCLUDED_DIRS.has(entry.name)) continue;
-        yield* walk(`${rel}/${entry.name}`);
-    }
-}
+// Live sources as git lists them inside this checkout, so an ignored folder (another session's
+// worktree under .claude/worktrees/) never counts; outside a work tree the folder walk applies.
+const walk = rel => liveSourceFiles(REPO_ROOT, rel, { extensions: SCAN_EXTENSIONS, excludedDirs: SCAN_EXCLUDED_DIRS });
 
 /** A line that names the removed skill but is an allowed mention. */
 function allowedMention(rel, line) {

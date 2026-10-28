@@ -154,7 +154,7 @@ See [integration-test-reference.md](docs/project-reference/integration-test-refe
 ```
 docs/adr/  (8 files)
 docs/knowledge/  (1 files)
-docs/knowledge-base/  (1 files)
+docs/knowledge-base/  (2 files)
 docs/project-reference/  (20 files)
 docs/release/  (1 files)
 docs/release-notes/  (2 files)

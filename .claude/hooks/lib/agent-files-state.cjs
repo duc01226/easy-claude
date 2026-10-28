@@ -36,7 +36,7 @@ const DISMISS_TTL_MS = 24 * 60 * 60 * 1000; // 1 day — matches the other init 
  * routes only the user can start (`ask the user to run …`).
  * `updateArgs` is the update argument for THAT file's runner, and must stay per-file:
  * `--mode update` is a flag of generate-claude-md.cjs only. The full run-codex-sync.mjs route
- * performs its own 19-stage CLAUDE.md preflight, while the ai-context-refresh completion handoff
+ * performs its own CLAUDE.md preflight (stage 1), while the ai-context-refresh completion handoff
  * uses `--skip=claude-md` after source authoring so the root is not processed twice.
  */
 const AGENT_FILES = [

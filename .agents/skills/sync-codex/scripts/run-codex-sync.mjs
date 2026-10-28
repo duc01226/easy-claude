@@ -190,6 +190,9 @@ const stages = [
     { id: "migrate",  label: "migrate",          cmd: "node", mutate: true, notices: /^\[codex-migrate\] (kept|replaced) /, args: [path.join(sourceScriptsDir, "migrate-claude-to-codex.mjs"), ...migrateFlags] },
     { id: "hooks",    label: "sync-hooks",       cmd: "node", mutate: true, args: [path.join(sourceScriptsDir, "sync-hooks.mjs")] },
     { id: "context",  label: "sync-context",     cmd: "node", mutate: true, args: [path.join(sourceScriptsDir, "sync-context-workflows.mjs")] },
+    // Fills the COUNT markers of the listed documents before any gate reads them, so a new skill, hook or
+    // Markdown file never fails `hooks-count-drift` on a figure nobody retyped (ADR-0002).
+    { id: "counts",   label: "inject-count-markers", cmd: "node", mutate: true, args: [path.join(sourceScriptsDir, "inject-count-markers.mjs")] },
     { id: "tests",    label: "test-codex",       test: true, cmd: testNodeCommand, argsAsync: async () => ["--test", ...await listTestFiles(codexTestsDir)] },
     // General .claude tooling unit tests (*.test.mjs and *.test.cjs).
     // Listed via readdir so the stage works without shell glob expansion (PowerShell does not expand
@@ -275,7 +278,7 @@ function validateStageSelectors() {
 // Same fail-fast reasoning one level up, for the FLAG rather than the stage id. An
 // unrecognized flag used to be ignored, which silently degraded to "no filter" — so a
 // plausible-looking `--help`, or the `--mode update` an advisory elsewhere suggested, ran
-// all 19 stages INCLUDING the four mutating ones (CLAUDE.md preflight, migrate, sync-hooks, sync-context)
+// all 20 stages INCLUDING the five mutating ones (CLAUDE.md preflight, migrate, sync-hooks, sync-context, counts)
 // instead of doing the narrow thing the reader asked for. A runner that can rewrite the
 // tree must never treat "I did not understand you" as "run everything".
 const KNOWN_FLAGS = ["--verbose", "-v", "--copy-skills", "--verify-only", "--list-stages"];
@@ -397,8 +400,8 @@ async function pathExists(target) {
 
 // POST-RUN HANDOFF (deliberately NOT a stage): when the consuming project has a
 // project-local `.opencode/` directory, sync the opencode hooks surface too. The Codex
-// roster is a pinned 19-stage contract and the opencode pipeline owns its own roster and
-// verify gates, so this is a handoff rather than a 20th stage. Under `--verify-only` the
+// roster is a pinned 20-stage contract and the opencode pipeline owns its own roster and
+// verify gates, so this is a handoff rather than a 21st stage. Under `--verify-only` the
 // handoff is read-only too, preserving the "no mutation" contract of that mode.
 async function syncOpencodeIfPresent() {
     const opencodeDir = path.join(rootDir, ".opencode");

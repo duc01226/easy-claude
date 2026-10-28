@@ -11,6 +11,7 @@ import io
 import json
 import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 from datetime import datetime
@@ -296,13 +297,89 @@ COUNT_MARKER_RE = re.compile(
 )
 
 
+# `markdown` kind (ADR-0002 amendment, 2026-10-28): authored Markdown as git lists it — tracked plus
+# untracked-not-ignored, still on disk — so ignored output, build folders and other worktrees never
+# count. Each filter is a scope a docs index reports; `knowledge-packs` is asked of the knowledge base.
+MARKDOWN_SCOPES = {
+    'authored': lambda rel: '/' not in rel or rel.startswith(('docs/', '.claude/docs/', '.claude/skills/')),
+    'skills': lambda rel: rel.startswith('.claude/skills/'),
+    'docs': lambda rel: rel.startswith('docs/'),
+}
+_git_markdown_cache = None
+
+
+def _git(args, timeout):
+    try:
+        return subprocess.run(['git', *args], cwd=REPO_ROOT, capture_output=True, timeout=timeout)
+    except (OSError, subprocess.TimeoutExpired) as error:
+        raise ValueError(f"COUNT:markdown needs git to list the project's files: {error}") from error
+
+
+def _git_markdown_paths():
+    """Authored Markdown paths (forward slashes, project-relative), read once per run."""
+    global _git_markdown_cache
+    if _git_markdown_cache is None:
+        # An empty prefix means REPO_ROOT is the top of its own work tree. A copy inside another
+        # checkout (an export under an ignored folder) would otherwise be answered by that checkout.
+        prefix = _git(['rev-parse', '--show-prefix'], 10)
+        if prefix.returncode != 0 or prefix.stdout.strip():
+            raise ValueError(
+                f"COUNT:markdown needs {REPO_ROOT} to be the root of a git work tree: git lists the "
+                f"authored files (tracked plus untracked-not-ignored). Remove the marker or run inside the project's checkout."
+            )
+        listed = _git(['ls-files', '--cached', '--others', '--exclude-standard', '-z'], 30)
+        if listed.returncode != 0:
+            raise ValueError(f"COUNT:markdown: git ls-files failed: {listed.stderr.decode('utf-8', 'replace').strip()}")
+        names = listed.stdout.decode('utf-8', 'surrogateescape').split('\0')
+        _git_markdown_cache = sorted({
+            name for name in names
+            if name and name.lower().endswith('.md') and (REPO_ROOT / name).exists()
+        })
+    return _git_markdown_cache
+
+
+def _project_knowledge_packs():
+    """Pack files of the project plane, resolved by the knowledge base's own packs-folder rule."""
+    library = REPO_ROOT / '.claude' / 'hooks' / 'lib' / 'knowledge-index.cjs'
+    if not library.is_file():
+        raise ValueError(f"COUNT:markdown:knowledge-packs needs {library}; remove the marker in a project without the knowledge base.")
+    script = (
+        "const k=require(process.argv[1]);const p=k.resolvePlanes(process.argv[2]).project;"
+        "process.stdout.write(String(p.contained===false?0:k.listPackFiles(p.dir).length));"
+    )
+    try:
+        result = subprocess.run(['node', '-e', script, str(library), str(REPO_ROOT)],
+                                capture_output=True, text=True, timeout=30)
+    except (OSError, subprocess.TimeoutExpired) as error:
+        raise ValueError(f"COUNT:markdown:knowledge-packs needs Node.js on PATH: {error}") from error
+    value = result.stdout.strip()
+    if result.returncode != 0 or not value.isdigit():
+        raise ValueError(f"COUNT:markdown:knowledge-packs could not read the packs folder: {result.stderr.strip() or value}")
+    return int(value)
+
+
+def _count_markdown(filter_name):
+    if filter_name == 'knowledge-packs':
+        return _project_knowledge_packs()
+    in_scope = MARKDOWN_SCOPES.get(filter_name)
+    if in_scope is None:
+        raise ValueError(
+            f"Kind 'markdown' needs a filter: {', '.join(MARKDOWN_SCOPES)} or knowledge-packs; got '{filter_name}'"
+        )
+    return sum(1 for rel in _git_markdown_paths() if in_scope(rel))
+
+
 def count_kind(kind, filter_name='total'):
     """Return the canonical count for a (kind, filter) pair per ADR-0002.
 
-    Kinds: skills, hooks, agents, workflows, shared, lib-modules.
+    Kinds: skills, hooks, agents, workflows, shared, lib-modules, markdown.
     Filters: active|deprecated|experimental|total (only `skills` honors the
-    status split; all other kinds support `total` only).
+    status split); `markdown` requires authored|skills|docs|knowledge-packs;
+    all other kinds support `total` only.
     """
+    if kind == 'markdown':
+        return _count_markdown(filter_name)
+
     if kind == 'skills':
         skills = load_skills()
         if filter_name == 'total':

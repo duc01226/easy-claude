@@ -1,6 +1,6 @@
 # ADR-0002: Canonical Count Metrics for Harness Inventory
 
-- **Status:** Accepted
+- **Status:** Accepted (amended 2026-10-28 — `markdown` kind; the sync fills listed documents)
 - **Date:** 2026-05-14
 - **Plan:** `plans/260514-1407-harness-quality-refactor/phase-04-docgen-tooling.md`
 - **Supersedes:** None
@@ -25,6 +25,7 @@ Scout blocker #3 (`scout-01-...md:126`): "`.claude/skills/shared/` has 3 entries
 | `workflows`   | `.claude/workflows.json` keys | Top-level workflow IDs in `workflows.json`                           | `total` only                                       |
 | `shared`      | `.claude/skills/shared/*`     | Direct children (files + dirs at depth 1) of `shared/`               | `total` only — **Metric A**                        |
 | `lib-modules` | `.claude/hooks/lib/*.cjs`     | Direct `.cjs` files in `.claude/hooks/lib/`                          | `total` only                                       |
+| `markdown`    | git-listed `*.md` on disk     | Tracked plus untracked-not-ignored Markdown, per scope (see [Amendments](#amendments)) | `authored` / `skills` / `docs` / `knowledge-packs` (required) |
 
 ### Shared modules — Metric A (the disputed one)
 
@@ -110,6 +111,15 @@ This is sourced from `scan_skills.py` outputs (the same data that powers `SKILLS
 - For `hooks` / `agents` / `lib-modules`, the counter uses Python `glob` against the table's globs.
 - For `workflows`, the counter loads `.claude/workflows.json` and counts top-level keys.
 - For `shared`, the counter uses `os.listdir('.claude/skills/shared/')` filtered by file/dir existence (Metric A).
+
+## Amendments
+
+### 2026-10-28 — `markdown` kind, and the sync fills the listed documents
+
+- **Change:** a `markdown` kind counts authored Markdown from git's own file list (`git ls-files --cached --others --exclude-standard`, kept only when the file is on disk), so ignored output, build folders and other worktrees never count. Its filter is required: `authored` (root-level files, `docs/**`, `.claude/docs/**`, `.claude/skills/**`), `skills` (`.claude/skills/**`), `docs` (`docs/**`), and `knowledge-packs` (the project plane's pack files, asked of `.claude/hooks/lib/knowledge-index.cjs` so the packs-folder rule keeps one owner). The counter refuses unless the project is the root of its own git work tree.
+- **Who fills the markers:** sync stage 5 `counts` (`.claude/scripts/codex/inject-count-markers.mjs`) runs `--inject-counts` on every document listed in `.claude/scripts/lib/count-marker-files.cjs` before any gate reads them; the count-drift suite checks the same list. Unlisted files are never rewritten, so the example markers in this record stay as written.
+- **Why:** the docs index typed its Markdown totals by hand, so every new skill reference, spec or knowledge pack failed the count-drift gate until someone retyped them, and nothing filled count markers in this repository between framework updates.
+- **Trade-off:** the `markdown` kind needs git, and `knowledge-packs` needs Node.js; a marker of that kind fails loudly where either is missing instead of guessing from a directory walk.
 
 ## Related
 
