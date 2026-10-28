@@ -6,6 +6,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { currentEngine } = require('./chromium-engine.cjs');
 
 function errorMessage(error) {
   return error && typeof error.message === 'string' && error.message ? error.message : String(error);
@@ -20,9 +21,13 @@ function errorsBlock(pageErrors, allowErrors) {
   return pageErrors.length > 0 && allowErrors !== true;
 }
 
+// Every report names the browser engine that rendered it (chromium-engine.cjs), so a degraded
+// fallback engine is visible in the evidence, never silent.
 function writeReport(outputDir, report) {
   const reportPath = path.join(outputDir, 'report.json');
-  fs.writeFileSync(reportPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
+  const engine = currentEngine();
+  const body = engine && !Object.prototype.hasOwnProperty.call(report, 'engine') ? { ...report, engine } : report;
+  fs.writeFileSync(reportPath, `${JSON.stringify(body, null, 2)}\n`, 'utf8');
   return reportPath;
 }
 

@@ -263,11 +263,21 @@ async function createNavigator(page, selector = DEFAULT_SLIDE_SELECTOR, options 
     return boxOf(index);
   }
 
+  // The item's data-state name (the mock-up state a slide shows), or null when it has none, so a
+  // report can label a capture by state without renaming its -sNN file.
+  async function stateOf(index) {
+    return timedEvaluate(page, ({ css, i }) => {
+      const element = document.querySelectorAll(css)[i];
+      return element ? element.getAttribute('data-state') : null;
+    }, { css: selector, i: index }, timeoutMs, `data-state of item ${index + 1}`);
+  }
+
   return {
     count,
     get strategy() { return strategy; },
     get fallback() { return fallback; },
     goTo,
+    stateOf,
   };
 }
 

@@ -533,6 +533,11 @@
           "when": "generating, specifying, planning, mocking up or reviewing a user-facing surface",
           "trigger": "ui"
         },
+        "visual-option-discovery": {
+          "summary": "Research top styles and layouts, build options that each pair a different style with a different layout, and the owner picks or mixes",
+          "when": "choosing the look, feel or layout of a new brand, product, page, flow or deck",
+          "trigger": "ui"
+        },
         "concise-agent-core": {
           "summary": "Consolidated essential working and discovery contract",
           "when": "concise universal delivery"
@@ -643,6 +648,7 @@
         "ui-copywriting",
         "design-review-checklist",
         "ux-journey-gate",
+        "visual-option-discovery",
         "e2e-visual-design-contract",
         "graph-assisted-investigation"
       ],

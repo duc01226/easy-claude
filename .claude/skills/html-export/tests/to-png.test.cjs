@@ -192,7 +192,7 @@ test('TC-HTMLX-202 viewport list, capture names and the target contract', () => 
   assert.equal(toPng.captureName('deck', '390x844', 0), 'deck@390x844-s01.png');
   assert.equal(toPng.captureName('deck', '390x844', 11), 'deck@390x844-s12.png');
   assert.equal(toPng.captureName('page', '800x600', null, { fullPage: true }), 'page@800x600-full.png');
-  assert.deepEqual(toPng.flags, { 'full-page': 'bool' });
+  assert.deepEqual(toPng.flags, { 'full-page': 'bool', mobile: 'bool' });
   assert.equal(toPng.preflight({}), null);
 });
 
@@ -342,6 +342,9 @@ test('TC-HTMLX-012 known-good at the two default viewports writes two PNGs and e
     assert.deepEqual(report.errors, []);
     assert.deepEqual(report.blank, []);
     assert.equal(report.strategy, null);
+    // And: The report names the browser that rendered it, so a fallback engine is never silent.
+    assert.equal(typeof report.engine.name, 'string', JSON.stringify(report.engine));
+    assert.equal(typeof report.engine.degraded, 'boolean');
     for (const file of report.files) {
       assert.ok(file.evidence.textLen > 0 && file.evidence.svg > 0, JSON.stringify(file.evidence));
     }
@@ -841,5 +844,49 @@ test('TC-HTMLX-215 the png spawn helper names the child output when the child is
     assert.match(error.message, /reached-step-capture/);
     assert.match(error.message, /last-stderr-line/);
     return true;
+  });
+});
+
+// The pixel width a PNG header declares (IHDR width, bytes 16-19, big-endian).
+function pngWidth(file) {
+  return fs.readFileSync(file).readUInt32BE(16);
+}
+
+test('TC-HTMLX-219 --slides records each item\'s data-state name in files[], keeping the -sNN file names', async (t) => {
+  await withBrowserEnv(t, async (testEnv) => {
+    // Given: A three-screen prototype whose screens are named a, b and c.
+    const deck = writeFile(testEnv.root, 'states.html', protoDeckHtml(''));
+    const out = path.join(testEnv.root, 'out');
+    // When: Every screen is captured.
+    const run = runExport(testEnv, [deck, '--slides=[data-state]', '--viewport=800x600', '--out', out]);
+    // Then: Each capture is labelled by its state, and the files keep their positional names.
+    assert.equal(run.status, 0, describeRun(run));
+    const report = readReport(out);
+    assert.deepEqual(report.files.map((file) => [path.basename(file.path), file.state]), [
+      ['states@800x600-s01.png', 'a'],
+      ['states@800x600-s02.png', 'b'],
+      ['states@800x600-s03.png', 'c'],
+    ]);
+  });
+});
+
+test('TC-HTMLX-220 --mobile renders only viewports narrower than 768 px as a phone at scale 2', async (t) => {
+  // Given: The shared phone rule, as a pure function.
+  const { mobileProfile } = require('../scripts/lib/browser.cjs');
+  assert.deepEqual(mobileProfile({ width: 390, height: 844 }), { isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+  assert.deepEqual(mobileProfile({ width: 390, height: 844 }, { scale: 3 }).deviceScaleFactor, 3, 'an explicit --scale wins');
+  assert.deepEqual(mobileProfile({ width: 768, height: 1024 }), {}, '768 px and wider stay desktop');
+  await withBrowserEnv(t, async (testEnv) => {
+    // When: The known-good page is captured at both default viewports, with and without --mobile.
+    const plain = path.join(testEnv.root, 'plain');
+    const mobile = path.join(testEnv.root, 'mobile');
+    const plainRun = runExport(testEnv, [KNOWN_GOOD, '--out', plain]);
+    const mobileRun = runExport(testEnv, [KNOWN_GOOD, '--mobile', '--out', mobile]);
+    // Then: Only the phone capture under --mobile doubles its pixel width; desktop is unchanged.
+    assert.equal(plainRun.status, 0, describeRun(plainRun));
+    assert.equal(mobileRun.status, 0, describeRun(mobileRun));
+    assert.equal(pngWidth(path.join(plain, 'known-good@390x844.png')), 390);
+    assert.equal(pngWidth(path.join(mobile, 'known-good@390x844.png')), 780);
+    assert.equal(pngWidth(path.join(mobile, 'known-good@1440x900.png')), 1440);
   });
 });

@@ -13,13 +13,15 @@
  *     - apply()       copies `env` onto process.env for in-process browser tests (keys missing from
  *                     `env` are deleted); restore() puts the previous process.env values back
  *     - cleanup()     restore() plus removal of root; safe to call more than once
- *   resolveBrowsersPath(baseEnv, platform, cwd) -> string
+ *   resolveBrowsersPath(baseEnv, platform, cwd) -> string   re-exported from scripts/lib/browsers-path.cjs
  *     The original PLAYWRIGHT_BROWSERS_PATH when set ('0' and absolute values unchanged, a relative
  *     value resolved against cwd), else Playwright's per-OS default computed from the ORIGINAL env,
  *     BEFORE HOME/USERPROFILE are redirected:
  *       Windows  %LOCALAPPDATA%\ms-playwright (fallback <home>\AppData\Local\ms-playwright)
  *       macOS    ~/Library/Caches/ms-playwright
  *       Linux    $XDG_CACHE_HOME/ms-playwright (fallback ~/.cache/ms-playwright)
+ *   launchRealChromium(options) -> Promise<browser>   the real skill-local Chromium launched through
+ *     chromium-engine.cjs (the same engine choice as the exporter); options merge into chromium.launch.
  *   hasBrowser() -> Promise<boolean>   true when the skill-local Playwright can launch headless
  *                                      Chromium (browser.cjs probeChromium); memoized. browserStatus() gives { available, reason }.
  *   skipWithoutBrowser(t) -> Promise<boolean>  when Chromium is unavailable, prints
@@ -37,7 +39,9 @@
  *     A case then overwrites or adds only the files it changes.
  *   allowlistEnv(root, { projectRoot } = {}) -> env   OS essentials only (CHILD_ENV_ALLOWLIST), with
  *     HOME/USERPROFILE/TMPDIR/TEMP/TMP at root and CLAUDE_PROJECT_DIR only when projectRoot is given.
- *   writeFakePlaywright(skillRoot, { version = '1.63.0', launchError, launchErrorName, recordLaunchesTo } = {})
+ *   writeFakePlaywright(skillRoot, { version = '1.63.0', launchError, launchErrorName, recordLaunchesTo, failOnly } = {})
+ *     (failOnly: 'default' throws launchError only for a launch without executablePath or channel;
+ *     chromiumRevision also writes a playwright-core browsers.json naming that headless-shell revision)
  *     a skill-local playwright package.json plus a chromium.launch() that succeeds (or throws
  *     launchError, named launchErrorName when given: 'TimeoutError' is the class Playwright
  *     rejects a launch with when the browser does not start within its timeout). With recordLaunchesTo, every launch appends its options as one JSON line to
@@ -57,6 +61,9 @@ const assert = require('node:assert/strict');
 // browser.cjs loads Playwright only inside its functions, so requiring it needs no dependency.
 const { probeChromium } = require('../scripts/lib/browser.cjs');
 const { firstLine } = require('../scripts/lib/result.cjs');
+// The production owner of the per-OS browser cache rule; the tests reuse it, never a copy.
+const { resolveBrowsersPath } = require('../scripts/lib/browsers-path.cjs');
+const { launchChromium } = require('../scripts/lib/chromium-engine.cjs');
 
 const SKILL_ROOT = path.resolve(__dirname, '..');
 const PLAYWRIGHT_ROOT = path.join(SKILL_ROOT, 'node_modules', 'playwright');
@@ -81,43 +88,11 @@ function sameKey(left, right, platform) {
   return platform === 'win32' ? left.toUpperCase() === right.toUpperCase() : left === right;
 }
 
-function readKey(env, name, platform) {
-  const key = Object.keys(env).find((candidate) => sameKey(candidate, name, platform));
-  return key === undefined ? undefined : env[key];
-}
-
 function setKey(env, name, value, platform) {
   for (const key of Object.keys(env)) {
     if (sameKey(key, name, platform)) delete env[key];
   }
   if (value !== undefined) env[name] = value;
-}
-
-function homeFrom(env, platform) {
-  const pathApi = platform === 'win32' ? path.win32 : path.posix;
-  const home = platform === 'win32'
-    ? readKey(env, 'USERPROFILE', platform) || readKey(env, 'HOME', platform)
-    : readKey(env, 'HOME', platform);
-  return home ? pathApi.resolve(home) : os.homedir();
-}
-
-function resolveBrowsersPath(baseEnv = process.env, platform = process.platform, cwd = process.cwd()) {
-  const pathApi = platform === 'win32' ? path.win32 : path.posix;
-  const explicit = readKey(baseEnv, 'PLAYWRIGHT_BROWSERS_PATH', platform);
-  if (explicit !== undefined && explicit !== '') {
-    if (explicit === '0' || pathApi.isAbsolute(explicit)) return explicit;
-    return pathApi.resolve(cwd, explicit);
-  }
-  if (platform === 'win32') {
-    const localAppData = readKey(baseEnv, 'LOCALAPPDATA', platform)
-      || pathApi.join(homeFrom(baseEnv, platform), 'AppData', 'Local');
-    return pathApi.join(localAppData, 'ms-playwright');
-  }
-  if (platform === 'darwin') {
-    return pathApi.join(homeFrom(baseEnv, platform), 'Library', 'Caches', 'ms-playwright');
-  }
-  const cacheHome = readKey(baseEnv, 'XDG_CACHE_HOME', platform) || pathApi.join(homeFrom(baseEnv, platform), '.cache');
-  return pathApi.join(cacheHome, 'ms-playwright');
 }
 
 function makeTestEnv(options = {}) {
@@ -213,17 +188,29 @@ function allowlistEnv(root, { projectRoot } = {}) {
 }
 
 function writeFakePlaywright(skillRoot, {
-  version = '1.63.0', launchError = null, launchErrorName = null, recordLaunchesTo = null,
+  version = '1.63.0', launchError = null, launchErrorName = null, recordLaunchesTo = null, failOnly = null,
+  chromiumRevision = null,
 } = {}) {
   const packageRoot = path.join(skillRoot, 'node_modules', 'playwright');
   fs.mkdirSync(packageRoot, { recursive: true });
+  if (chromiumRevision) {
+    // The manifest the real playwright-core ships, so the exit-3 text can name the wanted revision.
+    const corePackage = path.join(skillRoot, 'node_modules', 'playwright-core');
+    fs.mkdirSync(corePackage, { recursive: true });
+    fs.writeFileSync(path.join(corePackage, 'browsers.json'), JSON.stringify({
+      browsers: [{ name: 'chromium-headless-shell', revision: String(chromiumRevision) }],
+    }), 'utf8');
+  }
   fs.writeFileSync(path.join(packageRoot, 'package.json'), JSON.stringify({ name: 'playwright', version }), 'utf8');
   const record = recordLaunchesTo
     ? `require('node:fs').appendFileSync(${JSON.stringify(recordLaunchesTo)}, JSON.stringify(options || {}) + '\\n');`
     : '';
   const errorName = launchErrorName ? ` error.name = ${JSON.stringify(launchErrorName)};` : '';
+  // failOnly: 'default' fails only the launch with no executablePath and no channel (Playwright's own
+  // revision is missing, an installed browser still starts); any other value fails every launch.
+  const failing = failOnly === 'default' ? 'options && !options.executablePath && !options.channel' : 'true';
   const launchBody = launchError
-    ? `const error = new Error(${JSON.stringify(launchError)});${errorName} throw error;`
+    ? `if (${failing}) { const error = new Error(${JSON.stringify(launchError)});${errorName} throw error; } return { close: async function close() {} };`
     : 'return { close: async function close() {} };';
   fs.writeFileSync(
     path.join(packageRoot, 'index.js'),
@@ -248,6 +235,14 @@ function assertSetupHints(stderr) {
   const text = String(stderr).replace(/\r\n/g, '\n');
   assert.ok(text.includes(SETUP_HINT_LINES.join('\n')), `stderr must carry the exact setup block, got:\n${text}`);
   assert.doesNotMatch(text, /--prefix/, 'the setup hint must never use npm/npx --prefix');
+}
+
+// A real Chromium launched through the product's one engine owner (chromium-engine.cjs), so a test
+// that needs its own browser uses the same engine the exporter would (an override, Playwright's
+// revision or the reported fallback), never a bare chromium.launch that only works on one cache.
+function launchRealChromium(options = {}) {
+  const playwright = require(PLAYWRIGHT_ROOT);
+  return launchChromium(playwright, (engineOptions) => playwright.chromium.launch({ headless: true, ...options, ...engineOptions }));
 }
 
 let browserProbe = null;
@@ -324,6 +319,7 @@ module.exports = {
   assertSetupHints,
   hasBrowser,
   browserStatus,
+  launchRealChromium,
   skipWithoutBrowser,
   withBrowserEnv,
 };

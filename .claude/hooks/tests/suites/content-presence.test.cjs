@@ -2807,6 +2807,25 @@ module.exports = {
                 else if (!/#RRGGBB/.test(tokens) || !/Type family/.test(tokens)) defects.push('direction-approved.md Design Plan tokens section lost its hex-colour or type-family table');
                 // And run-notes.md carries the Journey fixes (UX-8) table the deck builder marks
                 if (!runNotes.includes('\n## Journey fixes (UX-8)\n')) defects.push('run-notes.md template has no "## Journey fixes (UX-8)" section');
+                // And option-board.md records both shortlists, the style x layout options, and the owner's verbatim pick or mix
+                const board = templateOf('option-board.md') || '';
+                for (const phrase of ['## Style shortlist', '## Layout shortlist', '## Options', "Owner's reply (verbatim)", 'Feel turned into a pin', '## Mix rounds', '## Broaden rounds']) {
+                    if (!board.includes(phrase)) defects.push(`option-board.md template lacks "${phrase}"`);
+                }
+                // And the procedure composes options that each pair a different style with a different layout, keeps the
+                // two separable, and builds a mix ("style of B, layout of A") as one new draft that is shown and confirmed
+                const discovery = pdReadText('ui-design', 'references', 'explore', 'option-discovery.md');
+                for (const [phrase, defect] of [
+                    ['no style family and no layout archetype is used twice', 'option discovery no longer forbids repeating a style or a layout across the options'],
+                    ['keeps its style in one place and its layout in another', 'option discovery no longer keeps each draft\'s style separable from its layout'],
+                    ['**A mix or a swap** builds ONE new draft', 'option discovery no longer builds a mix as one new draft'],
+                    ['There is no confirm question', 'option discovery asks before building the options'],
+                ]) {
+                    if (!discovery.includes(phrase)) defects.push(defect);
+                }
+                // And explore Step 1 keeps a brief's adjectives as a feel to explore, while Step 3 runs the option board
+                if (!/The brief describes a feel/.test(explore)) defects.push('design explore Step 1 lost the feel-versus-pin row');
+                if (!sectionBetween(explore, '## Step 3', '\n## ').includes('references/explore/option-discovery.md')) defects.push('design explore Step 3 no longer runs the option board');
                 // And both deck builders read the tokens from that section when they adopt a picked direction
                 if (!plan.includes('## Design Plan tokens')) defects.push('presentation-builder Step 4 does not name the "## Design Plan tokens" section');
                 if (!fpDesign.includes('## Design Plan tokens')) defects.push('feature-presentation Step 3 does not name the "## Design Plan tokens" section');

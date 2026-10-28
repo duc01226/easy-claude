@@ -37,7 +37,7 @@
 - **Business rules become interaction (§7).** Prevent errors with constraints, defaults and conditional visibility before you catch them with messages; state machines decide which actions appear.
 - **Validate by walking (§9):** a cognitive walkthrough of every main journey on the produced design, plus a traceability matrix, BEFORE handing off.
 - **Measure interaction cost and wayfinding (§12):** per main journey count steps, clicks, view changes, fields, decisions and waits against a baseline; every view answers where am I, where can I go, and how do I get back. The primary tier sits in the first viewport; there is no "3-click rule".
-- **Close with the UI/UX Gate Report (§13):** one row per gate — `UX-*`, `UI-*`, `DD-*`, `CL-*`, UI copy — each `PASS` / `FAIL → fixed` / `N/A` with evidence; an unresolved `FAIL` blocks hand-off.
+- **Close with the UI/UX Gate Report (§13):** one row per gate — `UX-*`, `UI-*`, `DD-*`, `VO-*` (when option discovery ran), `CL-*`, UI copy — each `PASS` / `FAIL → fixed` / `N/A` with evidence; an unresolved `FAIL` blocks hand-off.
 - **Depth scales with scope (§10)** — a one-component tweak gets a three-line journey note; a new flow gets the full report. Never zero for a new or reshaped view.
 
 ---
@@ -355,6 +355,7 @@ Every design output closes with this table, in the response or the artifact. It 
 | UX-10 Navigation & wayfinding | {views} | … | {where-am-I / back-path per view} |
 | UI-1.1–UI-9.4 usability & a11y floor | {applicable clauses} | … | {measured contrast, targets, states} |
 | DD-1–DD-8 identity | {design plan} | … | {generic-test revision} |
+| VO-1–VO-9 option discovery | {when it ran, else N/A (reason)} | … | {`option-board.md`: board path, options, verbatim pick} |
 | CL-1–CL-6 review checklist | {full sweep or CL-5 triage} | … | {findings by P0–P3} |
 | UI copy (`SYNC:ui-copywriting`) | {strings} | … | … |
 ```

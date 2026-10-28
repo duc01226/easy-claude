@@ -4,16 +4,17 @@
 Design Intelligence Search - BM25 search engine for UI/UX design guidance
 Usage: python search.py "<query>" [--domain <domain>] [--stack <stack>] [--max-results 3]
 
-Domains: style, prompt, color, chart, landing, product, ux, typography
-Stacks: html-tailwind, react, nextjs
+Domains: style, prompt, color, chart, landing, product, ux, typography, family, layout
+Stacks: html-tailwind, react, nextjs, vue, svelte, swiftui, react-native, flutter
 """
 
 import argparse
 import sys
 from pathlib import Path
 
-# Add shared scripts to path for win_compat
-sys.path.insert(0, str(Path.home() / '.claude' / 'scripts'))
+# The framework's shared scripts folder (.claude/scripts) of THIS checkout, resolved from this file,
+# never the user's home directory.
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / 'scripts'))
 try:
     from win_compat import ensure_utf8_stdout
     ensure_utf8_stdout()
@@ -85,7 +86,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Design Intelligence Search")
     parser.add_argument("query", help="Search query")
     parser.add_argument("--domain", "-d", choices=list(CSV_CONFIG.keys()), help="Search domain")
-    parser.add_argument("--stack", "-s", choices=AVAILABLE_STACKS, help="Stack-specific search (html-tailwind, react, nextjs)")
+    parser.add_argument("--stack", "-s", choices=AVAILABLE_STACKS, help="Stack-specific search (" + ", ".join(AVAILABLE_STACKS) + ")")
     parser.add_argument("--max-results", "-n", type=int, default=MAX_RESULTS, help="Max results (default: 3)")
     parser.add_argument("--json", action="store_true", help="Output as JSON")
 

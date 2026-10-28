@@ -15,7 +15,7 @@ Read this index when locating the authoritative document for a project question 
 - Resolve configured roots; regenerate category globs into a normalized unique-path union.
 - Compare broad `docs/**/*.md` results with the category union and expose every remainder.
 - Verify relationships and lookup paths; keep every path real, unique, and traceable to the current tree.
-- Index 572 unique authored Markdown files across 13 categories; `docs/` contains 62 files with 0 uncategorized. Design System is a one-file Project Reference subset counted once.
+- Index 576 unique authored Markdown files across 13 categories; `docs/` contains 62 files with 0 uncategorized. Design System is a one-file Project Reference subset counted once.
 
 ## Contents
 
@@ -45,7 +45,7 @@ Read this index when locating the authoritative document for a project question 
 
 ## Documentation System
 
-572 unique authored markdown files across 13 indexed categories. Last scanned: 2026-10-22.
+576 unique authored markdown files across 13 indexed categories. Last scanned: 2026-10-22.
 
 **Relocatable roots.** Resolve these configurable roots before running their category globs:
 
@@ -70,7 +70,7 @@ The **Reproducible scope** column states each glob relative to its category's ro
 | Knowledge Reports      |              1 | `docs/knowledge/**/*.md`                                                             |
 | Knowledge Packs        |              1 | `*.md` in the packs directory named by `knowledge-base-reference.md` (default `docs/knowledge-base/`) |
 | Framework Docs         |             43 | `.claude/docs/**/*.md`                                                                |
-| Skill Markdown         |            464 | `rg --files .claude/skills -g '*.md'`                                                 |
+| Skill Markdown         |            468 | `rg --files .claude/skills -g '*.md'`                                                 |
 
 The unique total is the normalized union returned by `rg --files` for Root-Level Docs, all `docs/**/*.md`, Framework Docs, and Skill Markdown. Design System is nested inside Project Reference, so its count is informative rather than additive. For this inventory, the authored/tracked scope includes generated protocol projections deliberately published as reader-facing documentation; Codex/OpenCode mirrors are excluded. Ignored dependency artifacts such as skill-local `.venv/` files are excluded.
 
@@ -163,7 +163,7 @@ easy-claude/
 │   ├── hooks/                                     # 3
 │   ├── skills/                                    # 2
 │   └── team-artifacts/templates/                  # 6
-└── .claude/skills/                                # 464 authored/tracked markdown assets
+└── .claude/skills/                                # 468 authored/tracked markdown assets
 ```
 
 Absent whitelist branches: Operations only.
@@ -268,6 +268,8 @@ Read `docs/project-config.json` first for any project question or task — paths
 | Skill Markdown         | generating a screenshot demo video for changes, a commit, PR or user journey, covering every relevant E2E case | `.claude/skills/e2e-demo/SKILL.md` |
 | Skill Markdown         | planning, building, changing or reviewing an AI feature (model calls, prompts, agents, tools, retrieval, evals) — only when the change has an AI surface; read this ONE file first | `.claude/skills/shared/protocols/ai-engineering-gate.md` (planning: `ai-feature-framing-gate.md` beside it) |
 | Skill Markdown | converting a wireframe image into a design spec — read after the design-spec entrypoint journey/context gates | `.claude/skills/design-spec/references/wireframe.md` |
+| Skill Markdown | offering an owner design options — research top styles and layouts, build options that each pair a different style with a different layout, then pick or mix | `.claude/skills/ui-design/references/explore/option-discovery.md` |
+| Skill Markdown | screenshotting public websites for an option board — targets file, manifest, safety rules | `.claude/skills/html-export/references/live-site-capture.md` |
 | Skill Markdown | judging a plan, rationale or other artifact in a review — the shared review dimensions, one evidence-closed todo per dimension | `.claude/skills/shared/review-dimensions.md` |
 | Skill Markdown | producing an accessibility-audit deliverable — select the platform standard and retain unverified coverage | `.claude/skills/design-spec/references/accessibility-audit.md` |
 | Skill Markdown | changing scan/enhancement quality rules — regression corpus, semantic grading and baseline checks | `.claude/skills/scan/tests/README.md` |

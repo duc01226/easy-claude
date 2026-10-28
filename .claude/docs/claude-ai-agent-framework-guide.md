@@ -306,7 +306,7 @@ Any task that creates or reshapes a user-facing screen runs three rule sets in o
 | `DD-1`–`DD-8` | Is it this product's interface, not a generic template        | `.claude/docs/design-knowledge.md`    |
 | `CL-1`–`CL-6` | How to review: context, evidence, P0–P4 severity, sweep       | `.claude/docs/design-review-checklist.md` |
 
-Precedence: the brief's visual direction → the project's design system and ADRs → these clauses; genuine conflicts go to the user. **Explore mode** (`/work-item --mode=mockup --explore`, `/ui-design --mode=explore`) first asks how many drafts (3, 2, 1 or skip), opens them in the browser, recommends one with evidence and builds the full mockup only in the direction the user picks; with nobody to ask it builds one draft and records the automatic choice.
+Precedence: the brief's visual direction (a pin or the owner's pick; adjectives are a feel to explore) → the project's design system and ADRs → these clauses; genuine conflicts go to the user. **Explore mode** (`/work-item --mode=mockup --explore`, `/ui-design --mode=explore`) first asks how to explore (option research then 3 drafts, 3 drafts, 1 draft or skip); with research it studies the top styles and layouts and makes each draft a different style with a different layout, so the owner can pick one or mix them; it opens the drafts in the browser, recommends one with evidence and builds the full mockup only in the direction the user picks; with nobody to ask it builds one draft and records the automatic choice.
 
 ---
 

@@ -104,17 +104,17 @@ Extract design systems systematically from high-quality references:
 
 ## Integration with Other Tools
 
-### With `aesthetic` Skill
-Use `aesthetic` for overall design system guidance and quality evaluation framework. Then use available image generation and analysis tools for assets that follow those guidelines.
+### With `ui-design`
+Use `/ui-design` (its design knowledge and `--mode=review`) for design-system guidance and the quality bar, then use the available image generation and analysis tools for assets that follow those guidelines.
 
 ### With Browser Automation
-Use browser automation to capture full-screen screenshots from inspiration websites for design extraction. Capture at actual viewport size, not full-page scrolls.
+Capture inspiration websites with `node .claude/skills/html-export/scripts/capture-sites.cjs` (desktop 1440x900 and phone 390x844, consent never accepted, sources and dates recorded) instead of an improvised script. Capture at the actual viewport size, not full-page scrolls.
 
-### With `shadcn-tailwind` Skill
-Generate and analyze assets first, then implement using shadcn/ui + Tailwind with colors/styles that complement the generated imagery.
+### With the Project's Component Library
+Generate and analyze assets first, then implement them with the project's own components and tokens, in colours and styles that complement the generated imagery.
 
-### With `web-frameworks` Skill
-Optimize generated assets for Next.js App Router: image optimization, responsive images, lazy loading.
+### With the Project's Frontend Framework
+Optimize generated assets for the project's framework: image optimization, responsive images, lazy loading.
 
 ### With Media Processing Tools
 Post-process generated assets: resize, compress, add filters, create compositions using FFmpeg/ImageMagick.
@@ -132,35 +132,9 @@ Post-process generated assets: resize, compress, add filters, create composition
 
 ## Quick Commands
 
-**Generate asset**:
-```bash
-python scripts/gemini_batch_process.py \
-  --task generate \
-  --prompt "[design-driven prompt]" \
-  --output docs/assets/[name] \
-  --model imagen-4.0-generate-001 \
-  --aspect-ratio 16:9
-```
-
-**Analyze asset**:
-```bash
-python scripts/gemini_batch_process.py \
-  --files docs/assets/[image].png \
-  --task analyze \
-  --prompt "[evaluation criteria]" \
-  --output docs/assets/analysis.md \
-  --model gemini-2.5-flash
-```
-
-**Extract design guidelines**:
-```bash
-python scripts/gemini_batch_process.py \
-  --files docs/inspiration/[reference].png \
-  --task analyze \
-  --prompt "[extraction criteria from design-extraction.md]" \
-  --output docs/design-guidelines/extracted.md \
-  --model gemini-2.5-flash
-```
+- **Generate an asset:** use the image-generation tool the host provides, with a design-driven prompt; save the result under `tmp/` until it is approved.
+- **Analyze an asset:** open the image with the assistant's own vision and check it against the evaluation criteria in `visual-analysis-overview.md`.
+- **Extract design guidelines:** capture the references with `node .claude/skills/html-export/scripts/capture-sites.cjs`, then apply the prompts in `extraction-prompts.md`.
 
 ## Remember
 

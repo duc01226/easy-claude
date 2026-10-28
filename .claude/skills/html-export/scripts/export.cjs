@@ -390,7 +390,9 @@ async function sharedPreflight(options = {}, runtime = {}) {
 
   const budgetMs = launchBudget(options.timeout);
   try {
-    await probeChromium({ budgetMs });
+    // The probe picks the browser engine (chromium-engine.cjs) from this run's env; every page
+    // session in this process then reuses it.
+    await probeChromium({ budgetMs, env: options.env, untrusted: options.untrusted === true });
   } catch (error) {
     if (error && error.launchTimedOut === true) {
       throw new ToolFaultError(

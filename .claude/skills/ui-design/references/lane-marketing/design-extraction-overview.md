@@ -20,45 +20,9 @@ Reverse-engineer design principles from existing images or videos to establish d
 
 ## Quick Workflows
 
-### Single Image Analysis
-```bash
-python scripts/gemini_batch_process.py \
-  --files docs/inspiration/reference-design.png \
-  --task analyze \
-  --prompt "[see extraction-prompts.md for detailed prompt]" \
-  --output docs/design-guidelines/extracted-design-system.md \
-  --model gemini-2.5-flash
-```
-
-### Multi-Screen System Extraction
-```bash
-python scripts/gemini_batch_process.py \
-  --files docs/inspiration/home.png docs/inspiration/about.png \
-  --task analyze \
-  --prompt "[see extraction-prompts.md for multi-screen prompt]" \
-  --output docs/design-guidelines/complete-design-system.md \
-  --model gemini-2.5-flash
-```
-
-### Video Motion Analysis
-```bash
-python scripts/gemini_batch_process.py \
-  --files docs/inspiration/interaction-demo.mp4 \
-  --task analyze \
-  --prompt "[see extraction-prompts.md for motion prompt]" \
-  --output docs/design-guidelines/motion-system.md \
-  --model gemini-2.5-flash
-```
-
-### Competitive Analysis
-```bash
-python scripts/gemini_batch_process.py \
-  --files competitor-a.png competitor-b.png competitor-c.png \
-  --task analyze \
-  --prompt "[see extraction-prompts.md for competitive prompt]" \
-  --output docs/design-guidelines/competitive-analysis.md \
-  --model gemini-2.5-flash
-```
+1. **Capture the references.** Live sites: `node .claude/skills/html-export/scripts/capture-sites.cjs --input=<targets.json> --out=tmp/design/<run>/references` writes desktop (1440x900) and phone (390x844) captures plus a manifest with each source and access date; read `.claude/skills/html-export/references/live-site-capture.md` first. Images or videos the user supplies are used as given.
+2. **Analyze with the assistant's own vision.** Open each capture (for a video, its key frames) and apply the matching prompt from `extraction-prompts.md`: single image, multi-screen system, motion, or competitive analysis.
+3. **Write the result** to the design-guidelines document the user asked for, citing each source with its access date. Patterns only: never copy a reference's assets, code or text.
 
 ## Detailed References
 

@@ -12,10 +12,10 @@ Guidelines for capturing and analyzing design references effectively.
 ## Capture Quality Guidelines
 
 ### Screenshot Requirements
-- High-resolution (minimum 1920px wide for desktop)
+- Desktop at 1440 px wide and phone at 390 px wide, the same sizes explore renders at
 - Accurate color reproduction (disable browser extensions that alter colors)
 - Actual viewport size, not full-page scrolls
-- Device-specific resolutions (desktop 1920x1080, mobile 390x844)
+- Device-specific resolutions (desktop 1440x900, phone 390x844); capture live sites with `node .claude/skills/html-export/scripts/capture-sites.cjs` (`.claude/skills/html-export/references/live-site-capture.md`)
 - Multiple states: default, hover, active, responsive breakpoints
 
 ### Multiple Examples

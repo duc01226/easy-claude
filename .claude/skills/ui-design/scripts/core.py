@@ -54,6 +54,18 @@ CSV_CONFIG = {
         "file": "typography.csv",
         "search_cols": ["Font Pairing Name", "Category", "Mood/Style Keywords", "Best For", "Heading Font", "Body Font"],
         "output_cols": ["Font Pairing Name", "Category", "Heading Font", "Body Font", "Mood/Style Keywords", "Best For", "Google Fonts URL", "CSS Import", "Tailwind Config", "Notes"]
+    },
+    # Option discovery (references/explore/option-discovery.md): style families for the style path,
+    # layout archetypes per page type for the layout path.
+    "family": {
+        "file": "style-families.csv",
+        "search_cols": ["name", "oneLine", "feelKeywords", "bestFor", "typicalSkeleton"],
+        "output_cols": ["id", "name", "oneLine", "feelKeywords", "divergenceAxes", "typicalSkeleton", "motion", "bestFor", "avoidFor", "mobileSpeedRisk", "tellRisk", "showcaseQueries", "showcaseSources", "styleRows"]
+    },
+    "layout": {
+        "file": "layout-archetypes.csv",
+        "search_cols": ["pageType", "archetype", "structure", "whenItWins"],
+        "output_cols": ["id", "pageType", "archetype", "structure", "whenItWins", "cost", "mobileBehavior", "a11yNotes", "examplePatternSources"]
     }
 }
 
@@ -184,7 +196,9 @@ def detect_domain(query):
         "prompt": ["prompt", "css", "implementation", "variable", "checklist", "tailwind"],
         "style": ["style", "design", "ui", "minimalism", "glassmorphism", "neumorphism", "brutalism", "dark mode", "flat", "aurora"],
         "ux": ["ux", "usability", "accessibility", "wcag", "touch", "scroll", "animation", "keyboard", "navigation", "mobile"],
-        "typography": ["font", "typography", "heading", "serif", "sans"]
+        "typography": ["font", "typography", "heading", "serif", "sans"],
+        "family": ["family", "families", "moodboard", "vibe", "aesthetic"],
+        "layout": ["layout", "archetype", "wizard", "inbox", "settings", "checkout", "split view", "list-detail"]
     }
 
     scores = {domain: sum(1 for kw in keywords if kw in query_lower) for domain, keywords in domain_keywords.items()}

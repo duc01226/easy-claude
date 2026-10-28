@@ -15,6 +15,8 @@ Tags propagated (each with its `:reminder` sibling):
         the build spine carry it while they do not carry the 40 UI-* clauses.
   - SYNC:ux-journey-gate                -> 6 skills that generate, plan or review a surface
         against its user journeys (see the UX_JOURNEY comment for the exclusions)
+  - SYNC:visual-option-discovery        -> ui-design, the skill that chooses a look or layout
+        direction (see the VISUAL_OPTION_DISCOVERY comment for the other carriers)
   - SYNC:ui-copywriting                 -> 7 skills that author or review interface STRINGS
         (strict subset of design-distinctiveness-gate; see the UI_COPYWRITING comment for the exclusions)
   - SYNC:design-review-checklist        -> 15 skills that review, author, plan or build a
@@ -136,6 +138,17 @@ UX_JOURNEY = [
     # design/author role — the Journey Report is the first deliverable
     "ui-design", "design-spec",
     # review role — walkthrough + traceability against the journeys (ui-design --mode=review is covered by the ui-design carrier above)
+]
+
+# The VO-1..VO-9 visual option discovery gate: research styles and layouts, build drafts that each
+# pair a different style with a different layout, and let the owner pick or mix. It binds where a direction is CHOSEN, which is
+# ui-design --mode=explore (it owns references/explore/option-discovery.md). `work-item --mode=mockup`
+# carries the body inline in work-item/references/mode-mockup.md (so work-item is not a target), and
+# workflow-spec-to-mockup holds a guide line plus reminder by hand. Deliberately NARROWER than
+# UX_JOURNEY: design-spec specifies views from a chosen direction, and review or build skills never
+# choose one. Every body is self-gating on "a look, feel or layout to choose".
+VISUAL_OPTION_DISCOVERY = [
+    "ui-design",
 ]
 
 # The 40-clause UI/UX Design Principles. NOT an ALL_REVIEW_SKILLS tag — its carriers are the
@@ -294,6 +307,7 @@ MATRIX = [
     ("SYNC:goal-contract-satisfaction-loop", GOAL_CONTRACT),
     ("SYNC:trade-off-interrogation-gate", TRADE_OFF),
     ("SYNC:ux-journey-gate", UX_JOURNEY),
+    ("SYNC:visual-option-discovery", VISUAL_OPTION_DISCOVERY),
     ("SYNC:ui-ux-design-principles", UI_DESIGN_PRINCIPLES),
     ("SYNC:design-distinctiveness-gate", DESIGN_DISTINCTIVENESS),
     ("SYNC:ui-copywriting", UI_COPYWRITING),

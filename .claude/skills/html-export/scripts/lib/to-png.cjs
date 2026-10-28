@@ -5,7 +5,7 @@
  * a file listing — the page threw no errors, and no capture is blank.
  *
  * Target contract (see ../export.cjs):
- *   flags                 { 'full-page': 'bool' }
+ *   flags                 { 'full-page': 'bool', mobile: 'bool' }
  *   validate(options)     sync; throws for usage errors: no input, a missing or non-.html input,
  *                         duplicate input names, --page, or --full-page together with --slides.
  *                         Generic flag formats and ranges (--viewport, --scale, --timeout, --slides)
@@ -38,7 +38,9 @@
  *      error: the run stops, report.json gets exitCode 2 and usageError, and the exit is 2.
  *   3. <out>/report.json: { ok, exitCode, files[], errors[], blank[], failures[], strategy,
  *      navigation[], blocked[], fullPage, selfCheck } (+ usageError on exit 2, fatal on an
- *      unexpected tool defect). files[] entries carry fullPage: true|false.
+ *      unexpected tool defect). files[] entries carry fullPage: true|false and state (the slide's
+ *      data-state name, or null).
+ *   --mobile renders each viewport narrower than 768 px as a touch phone (browser.cjs mobileProfile).
  *   4. exitCodeFor(report): exit 4 when the page is at fault anywhere: a failures[] entry with
  *      pageFault true, a blank[] entry, or errors[] without --allow-errors (--allow-errors never
  *      excuses a blank capture or a failure). This holds even when nothing was captured, so one
@@ -81,7 +83,7 @@ const MIN_PNG_BYTES = 100;
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 const SELF_CHECK_FIXTURE = path.resolve(__dirname, '..', '..', 'tests', 'fixtures', 'known-good.html');
 
-const flags = Object.freeze({ 'full-page': 'bool' });
+const flags = Object.freeze({ 'full-page': 'bool', mobile: 'bool' });
 
 function count(value) {
   const number = Number(value);
@@ -296,6 +298,7 @@ async function renderViewport(file, name, viewport, options, outputDir, report) 
       scale: options.scale,
       timeoutMs: options.timeout,
       offline: Boolean(options.offline),
+      mobile: Boolean(options.mobile),
     });
   } catch (error) {
     recordFailure(report, { ...where, slide: null, step: 'open' }, error);
@@ -311,8 +314,8 @@ async function renderViewport(file, name, viewport, options, outputDir, report) 
 
   // Error index boundaries, so each error names the step it arose in ('load' or 'sNN').
   const marks = [{ at: 'load', from: 0 }];
-  const record = (result, outFile, slide, fullPage) => {
-    const entry = { ...where, slide, fullPage, path: outFile, bytes: result.bytes, evidence: result.evidence };
+  const record = (result, outFile, slide, fullPage, state = null) => {
+    const entry = { ...where, slide, state, fullPage, path: outFile, bytes: result.bytes, evidence: result.evidence };
     report.files.push(entry);
     const reason = blankReason(result, fullPage);
     if (reason) report.blank.push({ ...entry, reason });
@@ -356,8 +359,9 @@ async function renderViewport(file, name, viewport, options, outputDir, report) 
           marks.push({ at: `s${String(index + 1).padStart(2, '0')}`, from: session.errors.length });
           await attempt(index + 1, 'slide', async () => {
             await navigator.goTo(index);
+            const state = await navigator.stateOf(index);
             const outFile = path.join(outputDir, captureName(name, viewport.label, index));
-            record(await capture(session, outFile, { selector, index }, callTimeoutMs), outFile, index + 1, false);
+            record(await capture(session, outFile, { selector, index }, callTimeoutMs), outFile, index + 1, false, state);
           });
         }
         navigation.strategy = navigator.strategy;

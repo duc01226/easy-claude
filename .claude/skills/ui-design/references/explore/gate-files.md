@@ -12,6 +12,7 @@
 
 - [`run-notes.md`](#run-notesmd)
 - [`brand-spec.md`](#brand-specmd)
+- [`option-board.md`](#option-boardmd)
 - [`direction-approved.md`](#direction-approvedmd)
 
 ## `run-notes.md`
@@ -84,6 +85,55 @@ Written by `references/explore/brand-asset-protocol.md` when the brief names a r
 - <each gap stated plainly — including every asset that failed verification (file, reason) and the missing marks when scope is NOT CONFIRMED; drafts must not fill a gap with a guess>
 ```
 
+## `option-board.md`
+
+Written by `references/explore/option-discovery.md`: D0–D4 before the drafts (or D0 alone when it is skipped), D6–D7 after them. Its options seed the drafts at step 6.
+
+```markdown
+# Option board — <subject>
+
+- Run: tmp/design/<run>/
+- What varies: <style and layout | layout only (style adopted from <source>) | skipped — <reason>>
+- Why: <axis authority from step 1 · `--explore=styles|layouts` · owner opt-out>
+- Target feel (from the brief, explored, not pinned): <adjectives and moods>
+- Research board: <tmp/design/<run>/board.html | NOT VERIFIABLE — no captures: <reason>>
+- Compare page: <tmp/design/<run>/compare.html>
+
+## Style shortlist
+| # | Style family | Why it is here | Outside the brief's adjectives? | Tell risk |
+|---|---|---|---|---|
+| 1 | <name> | <one line> | <yes | no — the literal-brief place> | <T1–T5 | none> |
+
+## Layout shortlist
+| # | Key view | Layout archetype | Why it is here (journey fit) |
+|---|---|---|---|
+| 9 | <view> | <archetype | baseline — current screen> | <UX-4 / UX-9 / UX-10 reason> |
+
+## Options
+| Option | Style family | Layout archetype | Why this pairing fits | Accessibility (`VO-6`) · reuse and forks (`VO-2`) | Draft |
+|---|---|---|---|---|---|
+| A | <#, name> | <#, name> | <one line> | <a11y note> · <components reused; a forked pattern and why, or none> | direction-a.html |
+| B | <a different family> | <a different archetype> | <…> | <…> | direction-b.html |
+| C | <…> | <…> | <…> | <…> | direction-c.html |
+
+## Pick or mix
+- Selection: <USER | AUTO-SELECTED — <reason: no question tool | nothing could be shown>>
+- Owner's reply (verbatim): "<exact words>"
+- Recommendation + evidence: <option · subject fit · UX-4/UX-9/UX-10 reasons>
+- Result: <option letter | mix: style of <X> + layout of <Y> → direction-<next>.html | swap: <option> in <board #> → direction-<next>.html>
+- Feel turned into a pin: <axis → value, owner's words | none>
+
+## Mix rounds
+| Round | Owner asked (verbatim) | New draft | Result |
+|---|---|---|---|
+| <1 | 2> | "<exact words>" | <direction-x.html> | <kept | adjusted | back to <option>> |
+
+## Broaden rounds
+| Round | Asked for | Families and archetypes added | New options |
+|---|---|---|---|
+| <1 | 2> | <"more" | "none fit"> | <names> | <letters> |
+```
+
 ## `direction-approved.md`
 
 Written at step 10 of `references/explore/workflow.md`, or at step 1 when explore is exempted. Exactly one of `## Pick` and `## Exemption` is filled; `## Design Plan tokens` is always filled.
@@ -97,7 +147,7 @@ Written at step 10 of `references/explore/workflow.md`, or at step 1 when explor
 ## Axes
 | Axis | Status | Source |
 |---|---|---|
-| Colour | <ADOPTED | FREE> | <brief · doc path · user reference · "explored"> |
+| Colour | <ADOPTED | FREE> | <brief · doc path · user reference · owner pick (feel turned into a pin, option-board.md) · "explored"> |
 | Type | <ADOPTED | FREE> | <…> |
 | Layout | <ADOPTED | FREE> | <…> |
 
@@ -108,12 +158,12 @@ Written at step 10 of `references/explore/workflow.md`, or at step 1 when explor
 - Selection: <USER | USER — 1 option | AUTO-SELECTED — <reason: no question tool (1 draft) | browser unavailable and no PNG shown | question tool errored>>
 - User's reply (verbatim): "<exact words>" (USER — 1 option or AUTO-SELECTED: N/A)
 - Recommendation + evidence: <draft · UX-4/UX-9/UX-10 and design-system-fit reasons · trade-offs of the other drafts (N/A for 1 draft)>
-- Chosen: <a | b | c | mix>  ("none fit" is recorded here, then explore repeats from new seeds)
-- Mix detail: <which parts come from which draft | N/A>
-- Seed of the chosen draft: <style row · reference URL · persona traits>
+- Chosen: <a | b | c | the mix or swap draft>  ("none fit" is recorded here, then explore repeats from new seeds)
+- Mix detail: <style from <draft or board family> · layout from <draft or board archetype> · other parts named by the owner | N/A>
+- Combination of the chosen draft: <style family + layout archetype (option-board.md) · or, without option discovery: style row · reference URL · persona traits>
 
 ## Exemption (fill when explore was skipped)
-- Reason: <brief states a direction | design system pins all three axes | user opted out>
+- Reason: <brief pins all three axes | design system pins all three axes for this surface | user opted out>
 - Evidence (verbatim quote or doc path + section): "<…>"
 
 ## Design Plan tokens

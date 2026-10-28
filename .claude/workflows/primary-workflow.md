@@ -115,7 +115,7 @@
 | ----------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | `workflow-planned-work`  | Turn an idea or product opportunity into planned work that is ready to plan.                                         |
 | `workflow-planned-work` (`idea-to-spec`) | Turn an idea into one provisional feature specification.                                                          |
-| `workflow-spec-to-mockup` | Turn canonical specs into a reviewed, journey-first interactive mockup (the user chooses 3 / 2 / 1 directions or skips). |
+| `workflow-spec-to-mockup` | Turn canonical specs into a reviewed, journey-first interactive mockup (the user chooses option research then 3 directions, 3 or 1 directions, or skips; with research each direction pairs a different style with a different layout). |
 | `workflow-code-to-spec` | Create or update capability documentation from existing code.                                                     |
 | `workflow-planned-work` (`spec-to-tasks`)  | Build dependency-aware planned work from existing feature specifications.                                            |
 | `workflow-feature-spec` | Create or maintain business feature documentation.                                                                |

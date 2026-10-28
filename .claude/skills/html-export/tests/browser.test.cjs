@@ -29,6 +29,7 @@ const {
 const { sleep } = require('../scripts/lib/result.cjs');
 const {
   PLAYWRIGHT_ROOT,
+  launchRealChromium,
   makeTestEnv,
   resolveBrowsersPath,
   skipWithoutBrowser,
@@ -1007,7 +1008,7 @@ test('TC-HTMLX-069 a browser setup call that never finishes is a bounded tool fa
     // Given: A browser launched before the test (so the launch bound is not what is measured) whose
     // newContext() never settles.
     const file = writeFixture(testEnv.root, 'setup.html', CLOCK_PROBE_HTML);
-    const real = await require(PLAYWRIGHT_ROOT).chromium.launch({ headless: true, timeout: 60_000 });
+    const real = await launchRealChromium({ timeout: 60_000 });
     try {
       real.newContext = () => new Promise(() => {});
       // When: openPage runs with a 1500 ms setup budget.
@@ -1029,7 +1030,7 @@ test('TC-HTMLX-069 a browser setup call that never finishes is a bounded tool fa
     // created before openPage (so on a loaded machine only the close is measured against the short
     // budget, never the launch or setup).
     const { abandonedBrowserCount, closeBrowser } = require('../scripts/lib/browser.cjs');
-    const ready = await require(PLAYWRIGHT_ROOT).chromium.launch({ headless: true, timeout: 60_000 });
+    const ready = await launchRealChromium({ timeout: 60_000 });
     // Kept before any other setup, so the finally below always closes the real Chromium, even when
     // newContext, newPage or openPage fails on a loaded machine.
     const realClose = ready.close.bind(ready);
@@ -1066,8 +1067,10 @@ test('TC-HTMLX-069 the CLI exits on its own after a browser close timed out, ins
       "'use strict';",
       `const { closeBrowser, loadPlaywright } = require(${JSON.stringify(path.join(__dirname, '..', 'scripts', 'lib', 'browser.cjs'))});`,
       `const { exitProcess } = require(${JSON.stringify(path.join(__dirname, '..', 'scripts', 'export.cjs'))});`,
+      `const { launchChromium } = require(${JSON.stringify(path.join(__dirname, '..', 'scripts', 'lib', 'chromium-engine.cjs'))});`,
       '(async () => {',
-      '  const browser = await loadPlaywright().chromium.launch({ headless: true, timeout: 50000 });',
+      '  const playwright = loadPlaywright();',
+      '  const browser = await launchChromium(playwright, (engine) => playwright.chromium.launch({ headless: true, timeout: 50000, ...engine }));',
       '  browser.close = () => new Promise(() => {});',
       '  await closeBrowser(browser, 2000);',
       "  console.log('closed-returned');",

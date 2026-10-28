@@ -470,6 +470,10 @@ AGENT_QUALITY_BLOCKS = {
         # is where a brief turns into a surface, so it must report the main user journeys and
         # read the project's design authority BEFORE it generates anything.
         "ux-journey-gate",
+        # Taste is judged by seeing (twin: ui-design --mode=explore / work-item --mode=mockup): this
+        # agent proposes look and layout directions, so it shows real options as pictures and the
+        # owner picks or mixes among options that each pair a different style with a different layout.
+        "visual-option-discovery",
     ],
     "code-simplifier": [
         "core-engineering-principles",

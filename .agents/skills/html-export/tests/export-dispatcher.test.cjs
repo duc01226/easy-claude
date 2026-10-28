@@ -737,6 +737,188 @@ test('TC-HTMLX-103 a Chromium executable that is not installed stays a missing d
   assert.doesNotMatch(result.stderr, /timed out/);
 }));
 
+// The Playwright message for a browser revision that was never downloaded.
+const MISSING_REVISION = 'browserType.launch: Executable doesn\'t exist at /cache/chromium_headless_shell-1248/chrome-headless-shell';
+
+// A Playwright browser cache inside the fixture: each entry is [folder, complete]. A complete
+// headless-shell folder gets an executable file the resolver can find.
+function writeBrowserCache(fixture, entries) {
+  const cache = path.join(fixture.root, 'ms-playwright');
+  const executable = process.platform === 'win32' ? 'chrome-headless-shell.exe' : 'chrome-headless-shell';
+  for (const [folder, complete] of entries) {
+    const dir = path.join(cache, folder);
+    fs.mkdirSync(path.join(dir, 'chrome-headless-shell-test'), { recursive: true });
+    if (!complete) continue;
+    fs.writeFileSync(path.join(dir, 'INSTALLATION_COMPLETE'), '');
+    fs.writeFileSync(path.join(dir, 'chrome-headless-shell-test', executable), '');
+  }
+  return { cache, executableIn: (folder) => path.join(cache, folder, 'chrome-headless-shell-test', executable) };
+}
+
+function readLaunches(file) {
+  return fs.existsSync(file) ? fs.readFileSync(file, 'utf8').trim().split('\n').map((line) => JSON.parse(line)) : [];
+}
+
+test('TC-HTMLX-157 a missing Playwright revision falls back to the newest cached Chromium, reported as degraded', () => withFixture((fixture) => {
+  // Given: Playwright's own revision is missing, and the cache holds two complete older revisions.
+  writeTarget(fixture, 'png');
+  const launches = path.join(fixture.root, 'launches.jsonl');
+  writePlaywright(fixture, { launchError: MISSING_REVISION, failOnly: 'default', recordLaunchesTo: launches });
+  const cache = writeBrowserCache(fixture, [['chromium_headless_shell-1234', true], ['chromium_headless_shell-1243', true]]);
+  // When: The dispatcher runs its dependency probe.
+  const result = runDispatcher(fixture, ['--to=png', 'scene.html'], undefined, { PLAYWRIGHT_BROWSERS_PATH: cache.cache });
+  // Then: The run goes on with the newest cached revision, a degraded warning names it, and the
+  // second launch carried that executable (the first was Playwright's own revision).
+  assert.equal(result.status, 0, result.all);
+  assert.match(result.stderr, /Warning: html-export is rendering with cached chromium_headless_shell-1243 \(degraded\)/);
+  const recorded = readLaunches(launches);
+  assert.equal(recorded.length, 2, JSON.stringify(recorded));
+  assert.equal(recorded[0].executablePath, undefined);
+  assert.equal(recorded[1].executablePath, cache.executableIn('chromium_headless_shell-1243'));
+  assert.equal(recorded[1].headless, true, 'the engine adds its executable without dropping the caller options');
+}));
+
+test('TC-HTMLX-158 with no usable cached revision the fallback tries the system Chrome channel; an incomplete folder is never used', () => withFixture((fixture) => {
+  // Given: Playwright's own revision is missing and the only cached folder never finished installing.
+  writeTarget(fixture, 'png');
+  const launches = path.join(fixture.root, 'launches.jsonl');
+  writePlaywright(fixture, { launchError: MISSING_REVISION, failOnly: 'default', recordLaunchesTo: launches });
+  const cache = writeBrowserCache(fixture, [['chromium_headless_shell-1243', false]]);
+  // When: The dispatcher runs its dependency probe.
+  const result = runDispatcher(fixture, ['--to=png', 'scene.html'], undefined, { PLAYWRIGHT_BROWSERS_PATH: cache.cache });
+  // Then: The second launch asked for the installed Chrome, and the warning says so.
+  assert.equal(result.status, 0, result.all);
+  assert.match(result.stderr, /rendering with channel chrome \(degraded\)/);
+  const recorded = readLaunches(launches);
+  assert.deepEqual(recorded.map((options) => options.channel || options.executablePath || 'default'), ['default', 'chrome']);
+}));
+
+test('TC-HTMLX-159 when nothing launches, or HTML_EXPORT_FALLBACK=0, exit 3 names the wanted and the cached revisions', () => withFixture((fixture) => {
+  // Given: Every launch fails as a missing executable; Playwright wants 1248; the cache has 1243 (incomplete).
+  writeTarget(fixture, 'png');
+  const launches = path.join(fixture.root, 'launches.jsonl');
+  writePlaywright(fixture, { launchError: MISSING_REVISION, recordLaunchesTo: launches, chromiumRevision: 1248 });
+  const cache = writeBrowserCache(fixture, [['chromium_headless_shell-1243', false]]);
+  const env = { PLAYWRIGHT_BROWSERS_PATH: cache.cache };
+  // When: The dispatcher probes with the fallback on, then with it off.
+  const tried = runDispatcher(fixture, ['--to=png', 'scene.html'], undefined, env);
+  const triedLaunches = readLaunches(launches).length;
+  fs.rmSync(launches, { force: true });
+  const off = runDispatcher(fixture, ['--to=png', 'scene.html'], undefined, { ...env, HTML_EXPORT_FALLBACK: '0' });
+  // Then: Both exit 3 with the cause, the revision line, the override hint and the setup block.
+  for (const result of [tried, off]) {
+    assert.equal(result.status, 3, result.all);
+    assert.match(result.stderr, /Chromium launch probe failed: browserType\.launch: Executable doesn't exist/);
+    assert.match(result.stderr, /expects Chromium revision 1248; the browser cache at .+ holds revisions 1243\./);
+    assert.match(result.stderr, /set HTML_EXPORT_CHROMIUM=<absolute path> or HTML_EXPORT_CHANNEL=chrome\|msedge/);
+    assertSetupHints(result.stderr);
+  }
+  // And: With the fallback on it tried both system channels; with it off it launched once and said why.
+  assert.equal(triedLaunches, 3);
+  assert.match(tried.stderr, /Fallbacks tried: channel chrome \(.+\); channel msedge \(.+\)\./);
+  assert.equal(readLaunches(launches).length, 1);
+  assert.match(off.stderr, /HTML_EXPORT_FALLBACK=0 turned off the fallback/);
+}));
+
+test('TC-HTMLX-161 the engine one launch picked is reused by later launches in the process, warned once, never retried', async () => {
+  // Given: A cache with one complete headless shell, and a Playwright whose own revision is missing.
+  const { launchChromium, currentEngine } = require('../scripts/lib/chromium-engine.cjs');
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'html-export-engine-'));
+  try {
+    const cache = writeBrowserCache({ root }, [['chromium_headless_shell-1243', true]]);
+    const env = { PLAYWRIGHT_BROWSERS_PATH: cache.cache };
+    const playwright = {};
+    const calls = [];
+    const warnings = [];
+    const launch = async (options) => {
+      calls.push(options);
+      if (!options.executablePath && !options.channel) throw new Error(MISSING_REVISION);
+      return { close: async () => {} };
+    };
+    // When: The probe launches, then a page session launches again in the same process.
+    await launchChromium(playwright, launch, { env, warn: (message) => warnings.push(message) });
+    await launchChromium(playwright, launch, { env, warn: (message) => warnings.push(message) });
+    // Then: The second launch went straight to the remembered engine: no retry of the missing
+    // revision, no second warning, and the engine is still reported as degraded.
+    assert.deepEqual(calls.map((options) => options.executablePath || 'default'), [
+      'default',
+      cache.executableIn('chromium_headless_shell-1243'),
+      cache.executableIn('chromium_headless_shell-1243'),
+    ]);
+    assert.equal(warnings.length, 1);
+    assert.deepEqual([currentEngine().name, currentEngine().degraded], ['cached chromium_headless_shell-1243', true]);
+  } finally {
+    removeTree(root);
+  }
+});
+
+test('TC-HTMLX-162 an untrusted launch (live pages) never uses an older cached Chromium and never reuses one remembered', async () => {
+  // Given: A cache with a complete older headless shell, and a Playwright whose own revision is missing.
+  const { launchChromium, currentEngine } = require('../scripts/lib/chromium-engine.cjs');
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'html-export-untrusted-'));
+  try {
+    const cache = writeBrowserCache({ root }, [['chromium_headless_shell-1243', true]]);
+    const env = { PLAYWRIGHT_BROWSERS_PATH: cache.cache };
+    const playwright = {};
+    const calls = [];
+    const launch = async (options) => {
+      calls.push(options);
+      if (!options.executablePath && !options.channel) throw new Error(MISSING_REVISION);
+      return { close: async () => {} };
+    };
+    // When: An ordinary export picks the cached build first, then a live-page capture launches.
+    await launchChromium(playwright, launch, { env, warn: () => {} });
+    await launchChromium(playwright, launch, { env, warn: () => {}, untrusted: true });
+    // Then: The untrusted launch skipped the remembered cached build and took the installed Chrome.
+    assert.deepEqual(calls.map((options) => options.channel || (options.executablePath ? 'cached' : 'default')), [
+      'default', 'cached', 'default', 'chrome',
+    ]);
+    assert.deepEqual([currentEngine().name, currentEngine().degraded], ['channel chrome', true]);
+    // And: With no system browser either, it fails naming the rule, never falling back to the cache.
+    const refusing = async (options) => {
+      if (options.executablePath) return { close: async () => {} };
+      throw new Error(options.channel ? `browserType.launch: Chromium distribution '${options.channel}' is not found at /x` : MISSING_REVISION);
+    };
+    await assert.rejects(launchChromium({}, refusing, { env, warn: () => {}, untrusted: true }), /Untrusted live pages run only on Playwright's own Chromium, the installed Chrome or Edge/);
+  } finally {
+    removeTree(root);
+  }
+});
+
+test('TC-HTMLX-160 HTML_EXPORT_CHROMIUM and HTML_EXPORT_CHANNEL pick the browser explicitly; an invalid value is exit 3 naming the rule', () => withFixture((fixture) => {
+  // Given: A passing fake Playwright that records each launch, and an existing executable file.
+  writeTarget(fixture, 'png');
+  const launches = path.join(fixture.root, 'launches.jsonl');
+  writePlaywright(fixture, { recordLaunchesTo: launches });
+  const executable = path.join(fixture.root, 'my-chrome');
+  fs.writeFileSync(executable, '');
+  // When: Each override is set on its own.
+  const byPath = runDispatcher(fixture, ['--to=png', 'scene.html'], undefined, { HTML_EXPORT_CHROMIUM: executable });
+  const byChannel = runDispatcher(fixture, ['--to=png', 'scene.html'], undefined, { HTML_EXPORT_CHANNEL: 'msedge' });
+  // Then: Each launch carried exactly that choice, with no degraded warning.
+  for (const result of [byPath, byChannel]) {
+    assert.equal(result.status, 0, result.all);
+    assert.doesNotMatch(result.stderr, /degraded/);
+  }
+  assert.deepEqual(readLaunches(launches).map((options) => [options.executablePath, options.channel]), [
+    [executable, undefined],
+    [undefined, 'msedge'],
+  ]);
+  // And: A relative path, a missing file, an unknown channel or both at once never launch.
+  fs.rmSync(launches, { force: true });
+  for (const [env, rule] of [
+    [{ HTML_EXPORT_CHROMIUM: 'my-chrome' }, /HTML_EXPORT_CHROMIUM must be an absolute path to an existing browser executable; got "my-chrome"/],
+    [{ HTML_EXPORT_CHROMIUM: path.join(fixture.root, 'absent') }, /HTML_EXPORT_CHROMIUM must be an absolute path/],
+    [{ HTML_EXPORT_CHANNEL: 'firefox' }, /HTML_EXPORT_CHANNEL must be chrome or msedge; got "firefox"/],
+    [{ HTML_EXPORT_CHROMIUM: executable, HTML_EXPORT_CHANNEL: 'chrome' }, /set only one of HTML_EXPORT_CHROMIUM and HTML_EXPORT_CHANNEL/],
+  ]) {
+    const result = runDispatcher(fixture, ['--to=png', 'scene.html'], undefined, env);
+    assert.equal(result.status, 3, result.all);
+    assert.match(result.stderr, rule);
+  }
+  assert.deepEqual(readLaunches(launches), []);
+}));
+
 test('TC-HTMLX-104 HTML_EXPORT_DEBUG=1 adds the stack to an unexpected error; without it stderr keeps one line', () => withFixture((fixture) => {
   // Given: A target whose run throws an unexpected error, and a passing fake Playwright probe.
   writeTarget(fixture, 'png', { runError: 'target run exploded' });

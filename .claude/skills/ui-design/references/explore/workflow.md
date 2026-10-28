@@ -1,13 +1,14 @@
 # Explore Mode Workflow
 
-> **Purpose:** `/ui-design --mode=explore` turns one text brief into N divergent drafts (N = the Step 0 count: 1, 2 or 3; different on every FREE axis), opens them and asks the user to pick one by looking at the drafts (or records the auto-selection when the user cannot be asked), records that choice, and then continues as `--mode=good` from the chosen draft (a Slide deliverable hands off to a deck builder instead, step 10).
+> **Purpose:** `/ui-design --mode=explore` turns one text brief into N divergent drafts (N = the Step 0 count: 1 or 3, or a count the calling workflow already chose; different on every FREE axis; with option discovery, each pairs a different researched style with a different layout), opens them and asks the user to pick one by looking at the drafts (or records the auto-selection when the user cannot be asked), records that choice, and then continues as `--mode=good` from the chosen draft (a Slide deliverable hands off to a deck builder instead, step 10).
 >
 > **Critical rules (read first):**
 >
-> 1. **Authority first.** A direction stated in the brief or pinned by the project design system is ADOPTED, never re-explored. Explore only diverges on FREE axes.
+> 1. **Authority first, feel versus pin.** Explicit tokens, named fonts, the project design system, existing UI or a stated "must use" are ADOPTED, never re-explored. Adjectives and moods in a brief ("warm", "elegant") are the target feel to explore, not a pin (`VO-1`). Explore only diverges on FREE axes.
 > 2. **Seeds are divergence seeds, not taste.** Each draft translates its seed into the subject's own world (`DD-1`) and passes the `DD-3` generic test, or it is replaced.
 > 3. **The user picks from drafts, never from text.** After presenting the N drafts, open them and ask with `ask user question tool`, recommended draft first; never pick for the user while they can be asked (no question tool → ONE draft, auto-selected; drafts unshowable or the question tool errors → AUTO-SELECT the recommended draft, step 9); "continue" is not a pick.
-> 4. **Journeys are shared, never explored.** The Journey Report (`UX-1`) and the design-authority read (`UX-2`) are produced ONCE, before any seed, and bind all N drafts: every draft serves the same main journeys and information priority; drafts diverge on visual axes and layout skeleton only.
+> 4. **Research, then style × layout options.** For a new brand, product, page or flow, offer option discovery (`references/explore/option-discovery.md`): research the top style families and the best layout archetypes, build 3 drafts that each pair a different style with a different layout, and let the owner pick one or mix them ("style of B, layout of A") (`SYNC:visual-option-discovery`).
+> 5. **Journeys are shared, never explored.** The Journey Report (`UX-1`) and the design-authority read (`UX-2`) are produced ONCE, before any seed, and bind all N drafts: every draft serves the same main journeys and information priority; drafts diverge on visual axes and layout skeleton only.
 
 Read this file when `--mode=explore` is selected. Create ONE task per step below.
 
@@ -16,7 +17,7 @@ Read this file when `--mode=explore` is selected. Create ONE task per step below
 - [Step 0 — Draft count (before any analysis)](#step-0--draft-count-before-any-analysis)
 - [Step 1 — Resolve authority per axis](#step-1--resolve-authority-per-axis)
 - [Step 2 — Fact check](#step-2--fact-check)
-- [Step 3 — User references and brand assets](#step-3--user-references-and-brand-assets)
+- [Step 3 — Option research, references and brand assets](#step-3--option-research-references-and-brand-assets)
 - [Step 4 — Content imagery](#step-4--content-imagery)
 - [Step 5 — Form questions, canvas and Design Plan skeleton](#step-5--form-questions-canvas-and-design-plan-skeleton)
 - [Step 6 — Pick N divergence seeds (the first N of the table)](#step-6--pick-n-divergence-seeds-the-first-n-of-the-table)
@@ -28,7 +29,7 @@ Read this file when `--mode=explore` is selected. Create ONE task per step below
 
 ## Step 0 — Draft count (before any analysis)
 
-Called from `work-item --mode=mockup` → reuse its Step 0 answer; do not ask again. Otherwise, first action: **question tool available** → ask with `ask user question tool` "How many direction drafts for <surface>?" — `3 options` · `2 options` · `1 option` · `Skip explore`, one marked `(Recommended)` from the request text only (a new page or multi-view flow → 3; a single component or dialog → 1–2). `Skip explore` → the opt-out exemption in step 1, run `--mode=good`. **No question tool** → N = 1 in the recommended direction, auto-selected (`Selection: AUTO-SELECTED — no question tool (1 draft)`). With N = 1, steps 6–8 run with one seed and one draft, step 9 opens it without a question, and step 10 records the `Selection:` line (`USER — 1 option` or `AUTO-SELECTED`). A step-1 exemption (all axes pinned) supersedes the count. All run artifacts live under `tmp/design/<run>/`, where `<run>` is `YYMMDD-HHmm-<brief-slug>` — they are disposable run output, not project docs. Gate-file templates: `references/explore/gate-files.md`. Brand procedure: `references/explore/brand-asset-protocol.md`.
+Called from `work-item --mode=mockup` → reuse its Step 0 answer; do not ask again. Otherwise, first action: **question tool available** → ask with `ask user question tool` "How should we explore <surface>?" — `Option board → 3 drafts` · `3 drafts` · `1 draft` · `Skip explore`, one marked `(Recommended)` from the request text only (a new brand, product, page or multi-view flow → `Option board → 3 drafts`; a single component or dialog → `1 draft`). `Option board → 3 drafts` runs `references/explore/option-discovery.md`: research at step 3, then 3 drafts that each pair a different style with a different layout, and the owner picks or mixes at step 9; `--explore=styles` (style and layout vary) or `--explore=layouts` (layout only) from the caller selects it and sets what varies. `Skip explore` → the opt-out exemption in step 1, run `--mode=good`. Up to 3 design-inputs questions (`references/explore/briefs.md` §5) may ride in this same call when their answers would change the recommendation, so the call holds at most 4 questions. **No question tool** → N = 1 in the recommended direction, auto-selected (`Selection: AUTO-SELECTED — no question tool (1 draft)`). With N = 1, steps 6–8 run with one seed and one draft, step 9 opens it without a question, and step 10 records the `Selection:` line (`USER — 1 option` or `AUTO-SELECTED`). A step-1 exemption (all axes pinned) supersedes the count. All run artifacts live under `tmp/design/<run>/`, where `<run>` is `YYMMDD-HHmm-<brief-slug>` — they are disposable run output, not project docs. Gate-file templates: `references/explore/gate-files.md`. Brand procedure: `references/explore/brand-asset-protocol.md`.
 
 ## Step 1 — Resolve authority per axis
 
@@ -38,8 +39,11 @@ Resolve the project authority exactly as the design skill's research contract do
 
 | Situation | Action |
 | --- | --- |
-| The brief states a visual direction | Record `ADOPTED — brief`, write the exemption in `direction-approved.md`, skip explore, run `--mode=good`. |
-| The project design system pins ALL three axes | Record `ADOPTED — <doc path>` per axis, write the exemption, skip explore, run `--mode=good`. |
+| The brief pins an axis: explicit tokens or hex values, named fonts, or a stated "must use" | Record `ADOPTED — brief` for that axis. When the brief pins all three, write the exemption in `direction-approved.md`, skip explore, run `--mode=good`. |
+| The brief describes a feel: adjectives or moods ("warm", "elegant", "calm" without a must) | Keep the axis `FREE` and record the words as the **target feel** in the Design Plan skeleton (`VO-1`). The research gives the literal-brief family one place; the owner's pick may turn the feel into a pin. |
+| The project design system or existing UI pins colour and type, and the surface is a new page or a multi-view flow | Record `ADOPTED — <doc path>` for colour and type. Layout stays `FREE` within the project's own components unless the system fixes this page's layout: the options vary layout only (`references/explore/option-discovery.md` D0). |
+| The owner asks for a new look of an existing product (a rebrand) | Record colour and type `FREE — rebrand` with the owner's words: the design system's look is not adopted for this run, while its components, content and journeys stay the baseline. Pins the owner states still hold. A caller's `--explore=styles` alone frees no pin: where colour and type are pinned, ask the owner once whether this is a rebrand (no question tool → keep them ADOPTED and vary layout only). |
+| The project design system pins ALL three axes for this surface (or it is one component or dialog with every axis pinned) | Record `ADOPTED — <doc path>` per axis, write the exemption, skip explore, run `--mode=good`. |
 | Some axes pinned, some free | Record the pinned axes as `ADOPTED — <doc path>`; the N drafts SHARE the pinned axes and diverge ONLY on the free ones. |
 | Nothing pinned | All three axes are `FREE`. |
 | The user explicitly opts out of exploring | Record the opt-out verbatim as the exemption, run `--mode=good`. |
@@ -50,9 +54,11 @@ A genuine conflict between the brief and the project design system goes to the u
 
 Before asking the user anything, web-verify every named product, version, device, standard or spec the brief relies on. Cite the source URL for each fact. A fact you could not verify is stated as unverified and never used as a design input. Record the facts in `tmp/design/<run>/product-facts.md` when there is at least one. A verified fact that changes an actor, job, journey step or business rule updates `journey-report.md` before any seed is picked — the drafts inherit one corrected report, never one per draft.
 
-## Step 3 — User references and brand assets
+## Step 3 — Option research, references and brand assets
 
-Ask the user ONE optional question: do they have reference designs they like or dislike (a URL, screenshot or file)? When the brief names a real brand, send this in the same message as the brand protocol's step-1 questions, so the user answers once.
+**With option discovery** (Step 0 `Option board → N drafts`, or `--explore=styles|layouts`): run `references/explore/option-discovery.md` D0–D4 now: set what varies, shortlist and capture the top style families and layout archetypes, assemble the research board, and compose the N style × layout combinations. It asks no question here and replaces the reference question below; the combinations become the step-6 seeds. A liked reference the owner already named joins the research as an example, and a disliked one becomes a constraint every draft avoids. Brand assets (below) still apply.
+
+**Without the board:** ask the user ONE optional question: do they have reference designs they like or dislike (a URL, screenshot or file)? When the brief names a real brand, send this in the same message as the brand protocol's step-1 questions, so the user answers once.
 
 - **A liked reference** becomes seed (b) in step 6, replacing the web-found reference. When the user says to follow it for a specific axis ("use this palette"), that axis becomes `ADOPTED — user reference <url or path>` instead.
 - **A disliked reference** is a constraint every draft avoids; name what to avoid in each brief.
@@ -89,7 +95,8 @@ Fix the **deliverable type and its pixel canvas**. Every draft is built for this
 
 | Deliverable | Canvas (`--viewport` in step 8) |
 | --- | --- |
-| Web page or app screen | `1440x900,390x844` (desktop and phone) |
+| Web page or web-app screen | `1440x900,390x844` (desktop and phone) |
+| Native mobile app screen | `390x844` (phone); add `820x1180` when the app supports tablets |
 | Slide | `1920x1080`; a draft holds one representative slide, or two marked `data-export-slide` |
 | Social post | `1080x1350`, or the platform size the brief names |
 | Poster or print piece | The print size in CSS pixels at 96 per inch, for example A3 portrait `1123x1587` |
@@ -98,6 +105,8 @@ Fix the **deliverable type and its pixel canvas**. Every draft is built for this
 Then write the `DD-3` Design Plan skeleton: subject · audience · job (`DD-1`, taken from the Journey Report), the main journeys and the information-priority tiers per view (`UX-3`/`UX-4`), the deliverable and canvas, the ADOPTED axes with their sources, and the FREE axes left open for the drafts. The skeleton is shared by all N drafts: they diverge on visual axes and layout skeleton, never on the journeys they serve or the priority tier of any content.
 
 ## Step 6 — Pick N divergence seeds (the first N of the table)
+
+**With option discovery,** the seeds are the step-3 combinations (`references/explore/option-discovery.md` D4): draft a, b and c each get one style family and one layout archetype, none repeated. The table below is the fallback when option discovery did not run.
 
 | Seed | How to get it |
 | --- | --- |
@@ -115,10 +124,15 @@ Spawn N `ui-ux-designer` sub-agents in ONE message. Each brief is self-contained
 - the `journey-report.md` path and the rule, verbatim: "Serve the same main journeys and information-priority tiers as the other drafts; diverge only on visual axes and layout skeleton.";
 - its ONE seed from step 6, plus the `brand-spec.md`, `product-facts.md` and `run-notes.md` paths when they exist, the shared imagery set from step 4, and any disliked reference to avoid;
 - the gates: `DD-1`–`DD-8`, `UI-1.1`–`UI-9.4`, `CL-1`–`CL-6`, with the paths `.claude/docs/design-knowledge.md` and `.claude/docs/design-review-checklist.md`, plus the resolved project design-system doc paths;
-- **when layout is FREE:** a layout skeleton that is STRUCTURALLY different from the other drafts (for example: single focal column vs. asymmetric split vs. modular grid — a different reading order, not a recoloured copy). **When layout is ADOPTED:** the pinned layout, unchanged, and the instruction to diverge on the free axes only;
+- **when layout is FREE:** a layout skeleton that is STRUCTURALLY different from the other drafts (for example: single focal column vs. asymmetric split vs. modular grid — a different reading order, not a recoloured copy); with option discovery, that is the draft's assigned layout archetype. **When layout is ADOPTED:** the pinned layout, unchanged, and the instruction to diverge on the free axes only;
+- **with option discovery:** its combination (style family and layout archetype, each with its research captures) and the separability rule: style in CSS custom properties and one style block, layout in each view's structure, and the note records the Design Plan tokens and the per-view layout skeleton as two sections, so a mix can take the style of one draft and the layout of another;
 - the grounding rule, verbatim: "Translate the seed into this subject. If the draft would fit another product unchanged, revise it.";
 - the asset rule, verbatim: "Place brand and imagery files only as `<img src>` with a path relative to the draft (for example `brand/logo.svg`), never as inline SVG markup, `<object>`, `<iframe>` or `<embed>`. Load no remote script, frame or media; a remote web font through a CSS `<link>` or `@font-face` is the only remote resource allowed.";
 - the output path `tmp/design/<run>/direction-{a|b|c}.html` (one self-contained HTML file) and a short note stating the Design Plan it built and what the generic test made it revise.
+
+With option discovery, add the direction-drafter brief (`references/explore/briefs.md` §3), filled, to the items above; it never replaces them.
+
+**Optional host design canvas (off by default).** When the host offers a native design canvas and the owner asks for it, the drafts may be built there instead of as HTML files. Each draft still gets a PNG at the step-5 canvas, or its canvas link in `direction-approved.md`, so step 9 can show all N side by side. HTML drafts stay the portable default.
 
 **No sub-agent capability →** build the N drafts serially yourself. Draft b states what it deliberately avoided from a; draft c states what it avoided from a and b — this keeps the drafts from converging.
 
@@ -130,7 +144,7 @@ Wait until all N drafts exist. Then render each one at the step-5 canvas, into i
 node .claude/skills/html-export/scripts/export.cjs --to=png --viewport=<canvas> --out=tmp/design/<run>/renders/direction-a/ tmp/design/<run>/direction-a.html
 ```
 
-Repeat for each other draft (`direction-b`, `direction-c`). Add `--slides` for a slide draft that marks two slides.
+Repeat for each other draft (`direction-b`, `direction-c`). Add `--slides` for a slide draft that marks two slides, or for a multi-view draft whose key views are each marked `data-export-slide` with `data-state="<view name>"` (the bare `--slides` matches `data-export-slide`, and `report.json` names each capture by its `state`), so every key view is captured. With option discovery, then build the compare page, the options in columns and the same key screens in rows (`references/explore/option-discovery.md` D5).
 
 **Why no `--offline`.** html-export's Trust rule (`.claude/skills/html-export/SKILL.md` `## Trust`) requires `--offline` for anything fetched or untrusted. The drafts are HTML this run produced; the fetched brand and imagery files enter them only as verified images through `<img src>`, where an SVG runs no script and loads nothing, and the asset rule allows no remote script, frame or media. Only the drafts' web fonts need the network, and rendering without `--offline` keeps them, so the evidence shows the real type. A draft that breaks the asset rule is not yet a project-produced page: fix it, or render it with `--offline` (its web fonts then fall back to system fonts; say so beside the PNG).
 
@@ -149,7 +163,7 @@ Critique each rendered draft against `DD-8` and remove one accessory, then re-re
 
 ## Step 9 — Present, open, recommend and ASK
 
-Show the N drafts side by side — PNGs when rendered, otherwise the HTML paths marked `NOT VERIFIABLE` — each with a short summary: its seed, its layout skeleton (or the free axes it varied when layout is ADOPTED), what makes it THIS subject's interface, and how it serves the primary journey (where each step happens and where the primary action sits). **Open every draft in the user's default browser** — run `node .claude/scripts/open-report.cjs tmp/design/<run>/direction-<x>.html` once per draft; it opens nothing in CI or headless sessions and always prints the path. Then, with 2–3 drafts, **ask with `ask user question tool`**: one option per draft, each labelled with its one-line summary and PNG/HTML path; put YOUR RECOMMENDED draft FIRST, labelled `(Recommended)`, with the evidence for it — which draft best serves the primary journey (Primary tier in the first viewport `UX-4`, lowest interaction cost `UX-9`, clearest wayfinding `UX-10`) and fits the subject (`DD-1`). The question's free-text answer covers a mix or "none fit". A recommendation is NOT a pick: only the user's answer is recorded.
+Show the N drafts side by side — PNGs when rendered, otherwise the HTML paths marked `NOT VERIFIABLE` — each with a short summary: its seed, its layout skeleton (or the free axes it varied when layout is ADOPTED), what makes it THIS subject's interface, and how it serves the primary journey (where each step happens and where the primary action sits). **Open every draft in the user's default browser** — run `node .claude/scripts/open-report.cjs tmp/design/<run>/direction-<x>.html` once per draft; it opens nothing in CI or headless sessions and always prints the path. Then, with 2–3 drafts, **ask with `ask user question tool`**: one option per draft, each labelled with its one-line summary and PNG/HTML path; put YOUR RECOMMENDED draft FIRST, labelled `(Recommended)`, with the evidence for it — which draft best serves the primary journey (Primary tier in the first viewport `UX-4`, lowest interaction cost `UX-9`, clearest wayfinding `UX-10`) and fits the subject (`DD-1`). The question's free-text answer covers a mix or "none fit". With option discovery, show the compare page and the research board, label each option with its style and layout, add a `Mix or swap` option, and follow `references/explore/option-discovery.md` D6: a mix ("style of B, layout of A") or a swap from the research board is built as one new draft, rendered beside the others and confirmed. A recommendation is NOT a pick: only the user's answer is recorded.
 
 - Never pick for the user while they can be asked; the recommendation is advice with evidence.
 - **Fallback: auto-select when the user cannot be asked.** With no question tool at all, Step 0 already set ONE draft in the recommended direction, auto-selected. This fallback covers the later cases: the drafts cannot be shown (the browser open fails or is skipped, for example in CI, headless or no-display runs, AND no rendered PNG can be shown in the conversation) OR `ask user question tool` errors after the drafts exist. Do NOT block. AUTO-SELECT your recommended draft: the one that best serves the main journeys (Primary tier in the first viewport `UX-4`, lowest interaction cost `UX-9`, clearest wayfinding `UX-10`) AND best fits the project's design system and existing UI (`UX-2`). Record it in `direction-approved.md` as `Selection: AUTO-SELECTED — <fallback reason>`, with the evidence and the trade-offs of the drafts not chosen. Carry that note into the plan's UI Layout or the run report, continue working, and name it in the final hand-off so the user can re-pick later.
@@ -157,7 +171,7 @@ Show the N drafts side by side — PNGs when rendered, otherwise the HTML paths 
 
 ## Step 10 — Record the pick and continue
 
-Write `tmp/design/<run>/direction-approved.md` from the template in `references/explore/gate-files.md`, quoting the user's reply verbatim — or, on the 1-option, no-question-tool or fallback paths, the recorded `Selection: USER — 1 option` / `Selection: AUTO-SELECTED — <reason>` line (never ask again on those paths). While the user can be asked, "continue", "looks good" or silence is NOT a pick — ask again. A mix ("a's layout with c's type") is a valid pick; record it verbatim and name the parts taken from each draft. "None fit" → record it, pick N new seeds (step 6) and repeat from step 7. Fill its `## Design Plan tokens` section from the chosen draft's Design Plan (its step-7 note and HTML; for a mix, each part from the draft it was taken from): named colour hex values, type families with roles and scale, the layout concept, and each web font the draft loads with the packaging rule below — the next step reads the tokens from this file, never from a sub-agent note.
+Write `tmp/design/<run>/direction-approved.md` from the template in `references/explore/gate-files.md`, quoting the user's reply verbatim — or, on the 1-option, no-question-tool or fallback paths, the recorded `Selection: USER — 1 option` / `Selection: AUTO-SELECTED — <reason>` line (never ask again on those paths). While the user can be asked, "continue", "looks good" or silence is NOT a pick — ask again. A mix ("a's layout with c's type") is a valid pick; record it verbatim, name the parts taken from each draft, and build it as one new draft before recording the pick (option discovery D6; without option discovery, the same: build, show, confirm). "None fit" → record it; with option discovery, broaden per its D7; otherwise pick N new seeds (step 6) and repeat from step 7. Fill its `## Design Plan tokens` section from the chosen draft's Design Plan (its step-7 note and HTML; for a mix, each part from the draft it was taken from): named colour hex values, type families with roles and scale, the layout concept, and each web font the draft loads with the packaging rule below — the next step reads the tokens from this file, never from a sub-agent note.
 
 Before continuing, **walk the main journeys (`UX-8`)** on the chosen draft: a cognitive walkthrough per journey plus the traceability matrix (`.claude/docs/ux-journey-process.md` §9). Record every unserved step and orphan element in the `## Journey fixes (UX-8)` table of `run-notes.md` as a fix the next step must make.
 
@@ -169,7 +183,8 @@ Then continue by the deliverable type fixed in step 5:
 ## Closing Reminders
 
 - **MUST** present the Journey Report (`UX-1`) and read the design authority (`UX-2`) ONCE before any seed; every draft serves the same main journeys and priority tiers, and the chosen draft is walked (`UX-8`) before `good` or, for a Slide deliverable, before the deck-builder hand-off with `run-notes.md` — why: drafts that differ on the journey cannot be compared on design.
-- **MUST** resolve authority per axis before any seed; adopted axes are never re-explored, and a pinned layout is shared by all N drafts — why: a house style or stated direction is an intentional identity.
+- **MUST** resolve authority per axis before any seed; adopted axes are never re-explored, and a pinned layout is shared by all N drafts; brief adjectives are a feel to explore, not a pin — why: a house style or stated direction is an intentional identity, while a mood word is a target.
+- **MUST** offer option discovery for a new brand, product, page or flow: research the top styles and layouts, build 3 drafts that each pair a different style with a different layout, and let the owner pick or mix (`references/explore/option-discovery.md`) — why: owners judge taste by seeing real options in their own content, and separable style and layout let them combine the parts they like.
 - **MUST** fix the deliverable canvas and one shared imagery set before fan-out, and render every draft at that canvas into its own `--out` folder — why: drafts built for different sizes or with different pictures cannot be compared.
 - **MUST** verify every fetched image (SVG: no active content) and have drafts place it only through `<img src>`, loading no remote script, frame or media — why: that is what keeps a draft project-produced, so html-export may render it without `--offline`.
 - **MUST** open the N drafts and ask (recommended first) while the user can be asked — no question tool → ONE auto-selected draft; drafts unshowable or the question tool errors → AUTO-SELECT the recommended draft with its reason — and record the verbatim pick or the `Selection:` line in `direction-approved.md`; never install render dependencies — why: the pick is the user's decision, and installs are the user's opt-in.

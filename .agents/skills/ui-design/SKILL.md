@@ -10,7 +10,7 @@ disable-model-invocation: false
 > - Map foreign tool names to available host capabilities. A name mismatch needs no approval; an actually unavailable required capability stops with its step/evidence and a user question before adaptation.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
 > - Preserve protocol order unless the user approves a deviation. Workflows use `$start-workflow`: gates stay fixed; other steps may flex with logged reasons and evidence.
-> **[BLOCKING] Mode routing — detect FIRST.** An explicit mode wins; omitted `--mode` defaults to `fast`. `--mode=review` runs standalone or in a workflow: read `references/mode-review.md` in full and follow it instead of the design spine, search, lanes and design branches below.
+> **[BLOCKING] Mode routing — detect FIRST.** An explicit mode wins; omitted `--mode` defaults to `fast`, except that a request to see or choose between design options routes to `explore`. `--mode=review` runs standalone or in a workflow: read `references/mode-review.md` in full and follow it instead of the design spine, search, lanes and design branches below.
 
 ## Quick Summary
 
@@ -20,7 +20,7 @@ disable-model-invocation: false
 
 **Summary:**
 
-- **Route:** parse `--mode={fast|good|explore|describe|screenshot|video|review}` and `--lane={product|marketing}`; default to `fast` × `product`. `review` replaces the design spine with `references/mode-review.md` (`--lane` does not apply).
+- **Route:** parse `--mode={fast|good|explore|describe|screenshot|video|review}` and `--lane={product|marketing}`; default to `fast` × `product`, except that a request to see or choose between design options with no explicit mode routes to `explore`. `review` replaces the design spine with `references/mode-review.md` (`--lane` does not apply).
 - **Spine (BLOCKING order, every design mode — not `review`):** Journey Report (`UX-1`) → design authority read — principles, design system, existing UI (`UX-2`) → design-intelligence search (candidates only) → ingest visual evidence when applicable → low-fi structure walked against the journeys (`UX-7`) → design with `ui-ux-designer` (`DD-3` plan + `UI-*`/`DD-*`) → implement unless `describe` → validate by walking the journeys + traceability (`UX-8`) → report and seek approval.
 - **Quality floor:** apply project tokens/components plus `UI-*`/`DD-*`/`CL-*`; design states, interaction feedback, declared scales, measured contrast, touch targets, responsive reflow, and subject-grounded copy before the happy path.
 - **Ownership:** the design modes author the visual direction and implementation contract; `--mode=review` owns source findings and review evidence; the local index supplies candidates only.
@@ -33,7 +33,7 @@ disable-model-invocation: false
 | `/ui-review` | `$ui-design --mode=review [scope] [--report-only]` — read `references/mode-review.md` when selected |
 | `frontend-design`, `interface-design` | `$ui-design --lane=marketing`, `$ui-design --lane=product` — read the selected `references/lane-{marketing,product}/lane-guide.md` |
 
-**Mode dispatch:** `--mode={fast|good|explore|describe|screenshot|video|review}` — default `fast` when omitted.
+**Mode dispatch:** `--mode={fast|good|explore|describe|screenshot|video|review}` — default `fast` when omitted (a request to see or choose between design options → `explore`).
 **Lane dispatch:** `--lane={product|marketing}` — default `product` when omitted. Lane (the design tradition) is orthogonal to mode (the input carrier); any mode combines with any lane.
 
 | Lane                  | Use for                                                                 | Full body |
@@ -45,7 +45,7 @@ disable-model-invocation: false
 | --------------------- | --------------------------- | ----------------------------------------------------------- |
 | `fast` (default)      | text brief                  | quick prototype implementation                              |
 | `good`                | text brief                  | immersive, researched, higher-quality implementation        |
-| `explore`             | text brief                  | 1–3 divergent drafts (count asked first) → user picks one → continues as `good` (Slide → deck builder) |
+| `explore`             | text brief                  | Research of top styles and layouts (offered first for a new brand, product, page or flow) → 1–3 divergent drafts, each a different style with a different layout → user picks one or mixes → continues as `good` (Slide → deck builder) |
 | `describe`            | screenshot / video          | super-detailed written description + implementation plan (NO code) |
 | `screenshot`          | screenshot                  | design recreated from the image as functional code          |
 | `video`               | video                       | design + interactions recreated from the video as functional code |
@@ -90,6 +90,7 @@ disable-model-invocation: false
 `$ui-design --mode={fast|good|explore|describe|screenshot|video|review} --lane={product|marketing} <brief | screenshot | video | review scope>`
 
 - When `--mode` is omitted, default to `--mode=fast`.
+- A request to see or choose between design options, with no explicit mode, goes to `--mode=explore`.
 - An explicit `--mode` always wins; `--mode=review` is never inferred from the brief and is never the default.
 - When `--lane` is omitted, default to `--lane=product` (the dominant task/app use). Pick `marketing` for landing pages, campaigns, and distinctive creative pieces.
 - `--mode` (input carrier) and `--lane` (design tradition) are orthogonal — e.g. `--mode=screenshot --lane=product` recreates a dashboard screenshot in the product-UI craft tradition.
@@ -106,7 +107,7 @@ Do NOT inline the lane bodies here — read the matching `lane-guide.md` when th
 
 1. **In-skill design-intelligence search/data** — Query `scripts/search.py` after the Journey Report (`UX-1`) and the design-authority/existing-UI read (`UX-2`); results are candidate input, not project authority.
 2. **In-skill lane references** — `references/lane-{product|marketing}/lane-guide.md` (+ their reference files) own implementation, screenshot/video analysis, and design replication for the selected lane.
-3. **In-skill explore references** — `references/explore/workflow.md` (+ `gate-files.md`, `brand-asset-protocol.md`) own the `--mode=explore` flow; read them only when that mode is selected.
+3. **In-skill explore references** — `references/explore/workflow.md` (+ `option-discovery.md`, `briefs.md`, `gate-files.md`, `brand-asset-protocol.md`) own the `--mode=explore` flow; read them only when that mode is selected. The option board shortlists from `data/style-families.csv` and `data/layout-archetypes.csv` (read the whole small family catalog; `search.py --domain family|layout` ranks rows that match the brief), assembles with `scripts/build-board.cjs`, and checks typefaces with `scripts/check-font-subsets.cjs`.
 4. **In-skill review reference** — `references/mode-review.md` owns `--mode=review`; read it only when that mode is selected.
 
 ## Shared First Step (ALL design modes)
@@ -202,13 +203,13 @@ Same spine as `fast`, raised to a higher quality bar (iterate on details):
 - **ALWAYS REMEMBER you have the skills of a top-tier UI/UX Designer who won many awards on Dribbble, Behance, Awwwards, Mobbin, TheFWA.**
 - Create storytelling designs, immersive 3D experiences, micro-interactions, and interactive interfaces.
 
-### `--mode=explore` — 1–3 drafts, user picks, then `good`
+### `--mode=explore` — research, 1–3 style × layout drafts, user picks or mixes, then `good`
 
-Opt-in. Use when the visual direction is genuinely open and the user wants to choose it by looking. **Read `references/explore/workflow.md` first and follow its steps (Step 0 draft count, then 1–10), one task each.** First action: its Step 0 asks 3 / 2 / 1 drafts or skip (no question tool → ONE auto-selected draft). A picked Slide direction goes to a deck builder, not `good` (item 8).
+Opt-in. Use when the visual direction is genuinely open and the user wants to choose it by looking, when the owner asks to see design options (route such a request here from `fast` or `good`), or for a rebrand ("a new look for <existing product>": the design system's look is then free for the run) or a layout-only change ("keep the look, new layout"). **Read `references/explore/workflow.md` first and follow its steps (Step 0 draft count, then 1–10), one task each.** First action: its Step 0 asks `Option board → 3 drafts` / `3 drafts` / `1 draft` / skip (no question tool → ONE auto-selected draft). `--explore=styles` or `--explore=layouts` from a caller forces the board and its path (`styles` never frees a pinned colour or type on its own: explore Step 1 asks the owner). A picked Slide direction goes to a deck builder, not `good` (item 8).
 
-1. **Journey Report (`UX-1`) + design authority (`UX-2`)** — Steps 0 and 0b above, produced ONCE before any seed and shared by all N drafts; confirm an inferred primary actor/job/outcome first (no question tool → record it `INFERRED — unconfirmed` and continue). The design-authority read also resolves **authority per axis** (colour · type · layout). A direction stated in the brief, or a project design system pinning all three axes → record it as `ADOPTED`, log the exemption, and run `--mode=good` instead. Partial pins → the drafts share the pinned axes and diverge only on the free ones.
-2. **Ground before diverging** — fact-check named products/specs, ask once for reference designs the user likes or dislikes, run `references/explore/brand-asset-protocol.md` when a real brand is named, gather ONE shared content-imagery set (licensed, sources recorded) or labelled placeholders, answer the five form questions, fix the deliverable type and pixel canvas, write the `DD-3` Design Plan skeleton.
-3. **N seeds (take the first N)** — a random style row from `node .claude/skills/ui-design/scripts/pick-style.cjs` (after changing the picker, run its tests: `node .claude/skills/ui-design/tests/pick-style.test.cjs`), the user's liked reference or a web-verified real-world reference, a studio persona described by traits only. Seeds are divergence seeds, never taste: each draft translates its seed into THIS subject (`DD-1`) and passes the `DD-3` generic test, or it is revised.
+1. **Journey Report (`UX-1`) + design authority (`UX-2`)** — Steps 0 and 0b above, produced ONCE before any seed and shared by all N drafts; confirm an inferred primary actor/job/outcome first (no question tool → record it `INFERRED — unconfirmed` and continue). The design-authority read also resolves **authority per axis** (colour · type · layout). Explicit tokens, named fonts or a stated "must use" in the brief pin an axis; adjectives and moods are a target feel to explore, not a pin (`VO-1`). A brief or project design system pinning all three axes → record it as `ADOPTED`, log the exemption, and run `--mode=good` instead; a design system pinning colour and type on a new page or flow → the option board's layout path. Partial pins → the drafts share the pinned axes and diverge only on the free ones.
+2. **Ground before diverging** — fact-check named products/specs; with option discovery, run `references/explore/option-discovery.md` (research the top style families and layout archetypes at desktop and phone size, one numbered research board, and 3 combinations each pairing a different style with a different layout, recorded in `option-board.md`; no question before the drafts), otherwise ask once for reference designs the user likes or dislikes; run `references/explore/brand-asset-protocol.md` when a real brand is named, gather ONE shared content-imagery set (licensed, sources recorded) or labelled placeholders, answer the five form questions, fix the deliverable type and pixel canvas, write the `DD-3` Design Plan skeleton.
+3. **N seeds (take the first N)** — with option discovery, its combinations (one style family and one layout archetype per draft, none repeated); otherwise a random style row from `node .claude/skills/ui-design/scripts/pick-style.cjs` (after changing a script or catalog, run its test in `.claude/skills/ui-design/tests/`, for example `node .claude/skills/ui-design/tests/pick-style.test.cjs`), the user's liked reference or a web-verified real-world reference, a studio persona described by traits only. Seeds are divergence seeds, never taste: each draft translates its seed into THIS subject (`DD-1`) and passes the `DD-3` generic test, or it is revised.
 4. **Fan out** — N `ui-ux-designer` sub-agents in ONE message → `tmp/design/<run>/direction-{a,b,c}.html`; layout FREE → structurally different layout skeletons, layout ADOPTED → the pinned layout is shared and drafts diverge on the free axes only. Every draft serves the SAME main journeys and information-priority tiers (`UX-3`/`UX-4`) — drafts diverge on visual axes and layout skeleton, never on the journeys or the priority tier of content. No sub-agents → build serially; each later draft names what it avoided from the earlier ones.
 5. **Render after all return** — per draft, `node .claude/skills/html-export/scripts/export.cjs --to=png --viewport=<canvas> --out=tmp/design/<run>/renders/<draft>/ <file>`; handle exits 0/4/3/1-2 per workflow step 8, re-render after the `DD-8` edit. NEVER run install commands.
 6. **Present side by side, open every draft in the default browser, and ASK** — each draft with how it serves the primary journey; open each with `node .claude/scripts/open-report.cjs tmp/design/<run>/direction-<x>.html`, then, with 2–3 drafts, `ask user question tool` with one option per draft and your evidence-backed `(Recommended)` draft first (explore step 9); one draft → no question (`Selection: USER — 1 option`, or `AUTO-SELECTED — no question tool (1 draft)` set at Step 0); drafts cannot be shown or the question tool errors → AUTO-SELECT the recommended draft; record why either way (explore step 9 fallback). Never pick for the user while they can be asked; never offer a text-only style choice; "continue" is not a pick.
@@ -276,7 +277,7 @@ Treat `$ARGUMENTS` as the video to recreate exactly. Same as `--mode=screenshot`
 
 > **[IMPORTANT]** Use todo tracking to break ALL work into small tasks BEFORE starting. This prevents context loss from long files. Keep task depth proportional to the work.
 
-Think hard to plan & start working on these tasks follow the Orchestration Protocol, Core Responsibilities, Subagents Team and Development Rules. Parse `--mode` from the input (default `fast`; an explicit mode wins) and route to the matching branch above:
+Think hard to plan & start working on these tasks follow the Orchestration Protocol, Core Responsibilities, Subagents Team and Development Rules. Parse `--mode` from the input (default `fast`, or `explore` for a request to see or choose between design options; an explicit mode wins) and route to the matching branch above:
 <tasks>$ARGUMENTS</tasks>
 
 <!-- PROTOCOL-GUIDES:START -->
@@ -291,6 +292,7 @@ Think hard to plan & start working on these tasks follow the Orchestration Proto
 - `ui-copywriting` — User-visible strings are design content; writing or reviewing UI text → .claude/skills/shared/protocols/ui-copywriting.md
 - `ui-ux-design-principles` — Forty usability and accessibility clauses, UI-1.1 to UI-9.4; designing, building or reviewing a user-facing interface → .claude/skills/shared/protocols/ui-ux-design-principles.md
 - `ux-journey-gate` — Journey-first UX gate UX-1 to UX-11: report journeys, read the design authority, generate, then check every UI/UX gate; generating, specifying, planning, mocking up or reviewing a user-facing surface → .claude/skills/shared/protocols/ux-journey-gate.md
+- `visual-option-discovery` — Research top styles and layouts, build options that each pair a different style with a different layout, and the owner picks or mixes; choosing the look, feel or layout of a new brand, product, page, flow or deck → .claude/skills/shared/protocols/visual-option-discovery.md
 
 <!-- PROTOCOL-GUIDES:END -->
 
@@ -330,6 +332,12 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 **MUST ATTENTION** Decide supported review choices and recommendations, record the rationale, and finish without routine user questions. Keep round-limit extension, indispensable facts and actual action authority; preserve source coverage, validation, tests, read-only boundaries and budgets. Review decisions do not accept open risks or make a failed gate pass.
 
 <!-- /SYNC:review-decision-autonomy:reminder -->
+
+<!-- SYNC:visual-option-discovery:reminder -->
+
+- **MUST ATTENTION** taste is judged by seeing: after the Journey Report and the design-authority read, research top style families AND the best layout archetypes, then build N options (default 3) as real drafts, each a different style paired with a different layout (`VO-*`, `.claude/skills/ui-design/references/explore/option-discovery.md`). Brief adjectives are a feel to explore, not a pin, and a real pin still wins (`VO-1`) · a design system adopts style, so only layout varies (`VO-2`) · at least half the families outside the brief's adjectives, divergent by family and archetype, tell risk shown (`VO-3`) · no style or layout used twice, style kept separable from layout so the owner can mix (`VO-4`) · same screens side by side at desktop and phone, labelled style and layout, the research board as evidence (`VO-5`) · phone, speed, accessibility and script support per option (`VO-6`) · one pick question after the drafts, recommended first; a mix ("style of B, layout of A") or a swap becomes one new draft, shown and confirmed; recorded verbatim; silence is not a pick (`VO-7`) · at most two mix and two broaden rounds (`VO-8`) · shared capture tools, one folder per worker, source and date recorded, patterns only, never published, no consent, bot-check, sign-in, form or download (`VO-9`). Runs only in explore and only in the main session; skip only with nothing to choose, every axis pinned, the research declined at the scope gate, or no question tool, and record which.
+
+<!-- /SYNC:visual-option-discovery:reminder -->
 
 ## Closing Reminders
 

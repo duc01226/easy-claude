@@ -28,7 +28,7 @@ Read this before you use a `--to=png` run as evidence that a page renders. To an
 | `0` | Every step ran, every capture has visible content and the page raised no errors (or `--allow-errors` was given and only errors occurred) | Use as evidence, within the scope below |
 | `1` | Tool fault only, never the page: the browser could not launch or did not start in time (a dependency-check launch that timed out is this, not exit `3`; its message says `timed out`), a file could not be written, `--self-check` failed ("verifier broken"), or an unexpected exception (`HTML_EXPORT_DEBUG=1` prints its stack). Every logged failure has `pageFault: false`, and there is no page error or blank capture | Quote stderr and mark the render `NOT VERIFIABLE`. It is not a design defect and not a pass |
 | `2` | Usage error: a missing input or one whose extension is not `.html` / `.htm` (checked before anything renders), two inputs with the same name, bad `--viewport` (malformed, or one size listed twice), `--timeout` or `--scale` not above 0, `--timeout` above 2147483647, `--page` given, `--full-page` with `--slides`, or a `--slides` selector the browser cannot parse (found once the first page is open; the run stops and `report.json` gets `usageError`) | Fix the command |
-| `3` | Node.js older than 20, Playwright (1.55.1 or newer) missing, or Chromium not installed or failing to launch for any reason other than a timeout (for example a missing system library) | Mark `NOT VERIFIABLE` and point to the setup commands. Never run install commands yourself |
+| `3` | Node.js older than 20, Playwright (1.55.1 or newer) missing, or Chromium not installed or failing to launch for any reason other than a timeout (for example a missing system library) after the browser fallback; the message names the revision Playwright wants and the revisions cached | Mark `NOT VERIFIABLE` and point to the setup commands. Never run install commands yourself |
 | `4` | At least one page error (console error or uncaught exception), blank capture, or page-caused failure in `failures[]` (`pageFault: true`), even when nothing was captured | Fix the page and run again. `report.json` names each failure |
 | other | Interrupted (for example `130` after Ctrl+C); `report.json` may be missing | Treat like `1`: re-run, and mark the render `NOT VERIFIABLE` until a run exits with a verdict |
 
@@ -67,13 +67,14 @@ Exit `0` does **not** prove:
 | `ok`, `exitCode` | The verdict and the exit code the run returned |
 | `target`, `inputs`, `viewports`, `slides`, `allowErrors`, `offline` | The run's settings: absolute input paths, viewport labels, the slide selector (or `null`) and the two switches |
 | `fullPage` | `true` when `--full-page` was given |
-| `files[]` | One entry per PNG: `input`, `viewport`, `slide` (1-based, or `null`), `fullPage` (`true` for a `-full.png`), `path`, `bytes`, `evidence` |
+| `files[]` | One entry per PNG: `input`, `viewport`, `slide` (1-based, or `null`), `state` (the slide item's `data-state` name, or `null`), `fullPage` (`true` for a `-full.png`), `path`, `bytes`, `evidence` |
 | `errors[]` | Page errors: `input`, `viewport`, `type` (`console` or `pageerror`), `text`, `location` when known, and `at` (`load` or the slide step such as `s03` during which it happened) |
 | `blank[]` | Blank captures, each with the `files[]` fields plus a `reason` |
 | `failures[]` | Steps that could not run: `input`, `viewport`, `slide` (or `null`), `step` (`open`, `capture`, `capture-full-page`, `navigate`, `slide` or `close`), `message`, and `pageFault` (`true` when the page caused it, `false` for a tool fault) |
 | `strategy` | With `--slides`: the navigation strategy used (`proto`, `keys` or `stacked`), or `mixed` when it differed across inputs or viewports. `null` without `--slides` |
 | `navigation[]` | Per input and viewport: `input`, `viewport`, `selector`, `count`, `strategy`, and `fallback` (`{ from, atIndex, reason }`, `from` being `proto` or `keys`) when navigation had to switch to stacked |
 | `blocked[]` | What `--offline` refused, per `input` and `viewport`: `url` (a request or a WebSocket) and `message`, the abort text Chromium logged for that request or WebSocket, or `null` when it logged none. `null` does not mean the entry is a WebSocket |
+| `engine` | The browser that rendered: `name`, `degraded` (`true` when Playwright's own revision was missing and an installed fallback rendered instead) and its `executablePath` or `channel` when set. Evidence from a degraded engine is valid, but say which engine rendered it |
 | `selfCheck` | `null`, or the known-good result when `--self-check` was given |
 | `usageError` | Present only on exit `2`: the `--slides` selector the browser could not parse, and why |
 | `fatal` | Present only when the tool itself hit an unexpected defect (exit `1`); page-level problems are in `failures[]` |

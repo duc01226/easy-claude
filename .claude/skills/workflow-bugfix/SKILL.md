@@ -21,7 +21,7 @@ Explicit step-skill calls by mode (registry order; roles and conditions remain o
 
 - Mode `default`: [`/investigate --mode=debug`](../investigate/SKILL.md) (gate) → [`/spec [mode=amend]`](../spec/SKILL.md) (optional; conditional) → [`/work-item --mode=mockup --explore`](../work-item/SKILL.md) (optional; conditional) → [`/plan`](../plan/SKILL.md) (optional; conditional) → [`/spec [mode=tests]`](../spec/SKILL.md) (optional; conditional) → [`/work-item --mode=review --type=spec-tests`](../work-item/SKILL.md) (optional; conditional) → [`/integration-test`](../integration-test/SKILL.md) (gate) → [`/fix`](../fix/SKILL.md) (core) → [`/spec [mode=sync]`](../spec/SKILL.md) (optional; conditional) → [`/workflow-review-changes --tests=defer`](../workflow-review-changes/SKILL.md) (gate) → [`/integration-test --mode=verify`](../integration-test/SKILL.md) (gate) → [`/workflow-e2e --source=context`](../workflow-e2e/SKILL.md) (optional; conditional) → [`/demo-guide`](../demo-guide/SKILL.md) (optional; conditional) → [`/workflow-end`](../workflow-end/SKILL.md) (gate) → [`/watzup`](../watzup/SKILL.md) (optional; conditional)
   Phase todos: Discover (1; exit root-cause-traced) → Specify (2) → Plan (3) → Build (3; exit spec-synced) → Review (1; exit review-converged) → Verify (3; exit tests-pass) → Close (2; exit run-closed)
-<!-- workflow-mode:default fingerprint:90e61d1135f1f9baaed4b0f6bc586cfc905ee2a7f98ac59a3836cfbeab38cbcf -->
+<!-- workflow-mode:default fingerprint:c0255178243fbec644a71cf847ffa868784a8b5434476293c88623515c4378ae -->
 
 Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs --write` after registry edits; [`/sync-codex`](../sync-codex/SKILL.md) refreshes it before mirroring.
 <!-- WORKFLOW-CALLS:END -->

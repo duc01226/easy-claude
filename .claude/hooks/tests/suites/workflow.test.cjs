@@ -1073,6 +1073,8 @@ const annotatedRegistryTests = [
             assertTrue(foundationOrder.every((index, position) => index >= 0 && (position === 0 || index > foundationOrder[position - 1])), `the foundation change review must follow the foundation and precede the final test: ${foundationOrder.join(', ')}`);
             assertDeepEqual(greenfield.outcomeGates.map(gate => gate.id).sort(), ['plan-approved', 'review-converged', 'run-closed', 'tests-pass']);
             assertTrue(greenfield.preActions.injectContext.includes('/workflow-implement-spec'), 'greenfield names its hand-off');
+            // And a UI product's mock-up step runs option discovery: researched style x layout options the owner picks or mixes
+            assertDeepEqual(greenfield.sequence.find(step => step.id === 'greenfield-mockup').args, '--mode=mockup --explore');
             // And implement-spec's greenfield-slice mode owns the first slice's build tail, with its near-end E2E a gate
             assertTrue(greenfield.preActions.injectContext.includes('/workflow-implement-spec --mode=greenfield-slice'), 'greenfield names the exact hand-off mode');
             const implement = config.workflows['workflow-implement-spec'].variants['greenfield-slice'].sequence;

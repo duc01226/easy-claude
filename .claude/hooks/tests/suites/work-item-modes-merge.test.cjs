@@ -182,6 +182,14 @@ const tests = [
             assert.ok(mockup.includes('### Step 0: Mockup Scope Gate (`--explore` only; FIRST, before ANY reading or analysis)'), 'Step 0 scope gate');
             assert.match(mockup, /\| `--source=<path>` \|/);
             assert.match(mockup, /\| `--explore`\s+\|/);
+            // mockup: option discovery — the forced-path flag, the board offered first at Step 0, and the explore
+            // reference keeping brief adjectives as a feel to explore while it runs the board
+            assert.match(mockup, /\| `--explore=styles\\\|layouts` \|/);
+            assert.ok(mockup.includes('`Option board → 3 drafts`'), 'Step 0 offers the option board');
+            const directions = ref('mockup-explore-directions.md');
+            assert.match(directions, /The brief describes a feel \(adjectives, moods\)/);
+            assert.ok(directions.includes('option-discovery.md'), 'explore directions run option discovery');
+            assert.match(directions, /each draft one style family and one layout archetype, none repeated/);
             assert.match(mockup, /No wireframe, design plan, token table, direction draft or HTML before this report exists/);
             assert.match(mockup, /Design authority read:/);
             assert.ok(mockup.includes('`Mockup: SKIPPED by user (Step 0)`'), 'skip record kept');
@@ -277,7 +285,7 @@ const tests = [
             const expected = {
                 'mode-refine.md': ['estimation-framework', 'sequential-thinking-protocol', 'ui-system-context', 'ui-wireframe'],
                 'mode-story.md': ['estimation-framework', 'sequential-thinking-protocol', 'ui-system-context', 'ui-wireframe'],
-                'mode-mockup.md': ['design-distinctiveness-gate', 'design-review-checklist', 'existing-ui-research', 'ui-copywriting', 'ui-ux-design-principles', 'ux-journey-gate'],
+                'mode-mockup.md': ['design-distinctiveness-gate', 'design-review-checklist', 'existing-ui-research', 'ui-copywriting', 'ui-ux-design-principles', 'ux-journey-gate', 'visual-option-discovery'],
                 'mode-challenge.md': ['ba-team-decision-model', 'estimation-framework', 'refinement-dor-checklist', 'sequential-thinking-protocol', 'ui-system-context'],
                 'mode-review.md': ['core-engineering-principles', 'evidence-based-reasoning', 'goal-contract-satisfaction-loop', 'review-principle-awareness', 'review-protocol-injection', 'severity-rubric', 'task-tracking-external-report', 'trade-off-interrogation-gate', 'understand-code-first'],
                 // UI depth is conditional: review-type-design.md owns the UI bodies that UI-bearing reviews read at the review mode's UI gate

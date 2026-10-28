@@ -397,7 +397,7 @@ Rejecting: [default 1] → [alternative], [default 2] → [alternative], [defaul
 
 Direction: [approach that connects to the above]"
 
-[Ask: "Does that direction feel right?"]
+[Ask with the direction rendered, never a text-only "Does that direction feel right?". When the owner wants to choose between directions for a new brand, product, page or flow, recommend `--mode=explore`, where the main session runs option discovery (`references/explore/option-discovery.md`); this lane does not run it.]
 ```
 
 ## If Project Has system.md

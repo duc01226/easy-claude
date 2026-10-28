@@ -27,6 +27,9 @@
  *                       the channels the context emulation and the route never see: speculation-
  *                       rules prefetch/prerender and WebTransport. Those attempts fail silently
  *                       and are NOT listed in `blocked`. Local file: subresources still load.
+ *     - mobile          when true, a viewport narrower than MOBILE_MAX_WIDTH (768) gets
+ *                       mobileProfile(): isMobile, hasTouch and scale 2 unless `scale` was given
+ *     - env             environment for the browser engine choice (default process.env)
  *     - beforeNavigate  async (page) => void, awaited after listeners attach and BEFORE goto,
  *                       so a hook such as page.clock.install() takes effect before page scripts run;
  *                       bounded by setupTimeoutMs (a hook that does not finish is a tool fault)
@@ -60,7 +63,12 @@
  *     { timedOut: true }. A close that fails (rather than hangs) still rejects.
  *   hasAbandonedBrowser() -> boolean   true once any close timed out in this process.
  *   abandonedBrowserCount() -> number   how many closes timed out in this process (tests assert a delta).
- *   probeChromium({ budgetMs = DEFAULT_TIMEOUT_MS, playwright = loadPlaywright() }) -> Promise<void>
+ *   Every launch (session and probe) goes through chromium-engine.cjs launchChromium, which picks
+ *     the engine (HTML_EXPORT_CHROMIUM, HTML_EXPORT_CHANNEL, Playwright's own revision, then a
+ *     reported fallback) once per process; openPage and probeChromium accept `env` for that choice
+ *     (default process.env).
+ *   probeChromium({ budgetMs = DEFAULT_TIMEOUT_MS, playwright = loadPlaywright(), env, untrusted }) -> Promise<void>
+ *     (untrusted: the live-page policy of chromium-engine.cjs, no older cached Chromium)
  *     The dispatcher's dependency probe: launches headless Chromium bounded by budgetMs (a launch
  *     that finishes after the deadline is closed, like openPage's) and closes it through
  *     closeBrowser; a failed close only warns on stderr. Rejects with the launch error, whose
@@ -112,11 +120,15 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const { errorMessage, sleep } = require('./result.cjs');
+const { launchChromium } = require('./chromium-engine.cjs');
 
 const SKILL_ROOT = path.resolve(__dirname, '..', '..');
 const PLAYWRIGHT_ROOT = path.join(SKILL_ROOT, 'node_modules', 'playwright');
 const DEFAULT_VIEWPORT = Object.freeze({ width: 1440, height: 900 });
 const DEFAULT_TIMEOUT_MS = 30_000;
+// Below this width a viewport is a phone or small tablet: the mobile profile applies there only.
+const MOBILE_MAX_WIDTH = 768;
+const MOBILE_SCALE = 2;
 const READY_POLL_MS = 25;
 // How long a page with an abandoned (timed-out) call may take to answer before it counts as busy.
 const PING_MS = 1000;
@@ -159,6 +171,14 @@ function splitOfflineErrors(errors, blocked) {
     else pageErrors.push(entry);
   }
   return { pageErrors, offlineAborts };
+}
+
+// The one phone rule, shared by openPage({ mobile }) and capture-sites.cjs: a viewport narrower
+// than MOBILE_MAX_WIDTH renders as a touch phone (the page's <meta viewport> applies, hover media
+// queries report none) at scale 2 unless the caller chose a scale. Wider viewports get nothing.
+function mobileProfile(size, { scale } = {}) {
+  if (!size || size.width >= MOBILE_MAX_WIDTH) return {};
+  return { isMobile: true, hasTouch: true, deviceScaleFactor: scale === undefined ? MOBILE_SCALE : scale };
 }
 
 function loadPlaywright() {
@@ -485,11 +505,13 @@ async function openPage(options = {}) {
   try {
     const playwright = loadPlaywright();
     // Launch args are per browser, and each session launches its own, so they reach offline sessions only.
-    browser = await boundedSetupCall(() => playwright.chromium.launch({
+    // chromium-engine.cjs adds the engine's executablePath or channel; it never drops these options.
+    browser = await boundedSetupCall(() => launchChromium(playwright, (engineOptions) => playwright.chromium.launch({
       headless: true,
       timeout: setupTimeoutMs,
       ...(offline ? { args: [...OFFLINE_LAUNCH_ARGS] } : {}),
-    }), setupTimeoutMs, 'chromium.launch', closeLateLaunch(setupTimeoutMs));
+      ...engineOptions,
+    }), { env: options.env }), setupTimeoutMs, 'chromium.launch', closeLateLaunch(setupTimeoutMs));
   } catch (error) {
     throw attachSessionOutput(classifyFault(error, false), errors, blocked);
   }
@@ -506,6 +528,7 @@ async function openPage(options = {}) {
     const context = await boundedSetupCall(() => browser.newContext({
       viewport: size,
       deviceScaleFactor: scale,
+      ...(options.mobile ? mobileProfile(size, { scale: options.scale }) : {}),
       reducedMotion: 'reduce',
       // A route never sees WebSocket handshakes, so offline mode takes the whole context offline
       // and blocks service workers; the route below still records every request it aborts.
@@ -571,7 +594,11 @@ async function probeChromium(options = {}) {
   let browser;
   try {
     browser = await boundedSetupCall(
-      () => playwright.chromium.launch({ headless: true, timeout: budgetMs }),
+      () => launchChromium(
+        playwright,
+        (engineOptions) => playwright.chromium.launch({ headless: true, timeout: budgetMs, ...engineOptions }),
+        { env: options.env, untrusted: options.untrusted === true },
+      ),
       budgetMs,
       'Chromium launch probe',
       closeLateLaunch(budgetMs),
@@ -618,6 +645,7 @@ module.exports = {
   PLAYWRIGHT_ROOT,
   OFFLINE_LAUNCH_ARGS,
   launchBudget,
+  boundedSetupCall,
   closeBrowser,
   hasAbandonedBrowser,
   abandonedBrowserCount,
@@ -635,6 +663,8 @@ module.exports = {
   parseSize,
   parseViewport,
   parseViewportList,
+  mobileProfile,
+  MOBILE_MAX_WIDTH,
   openPage,
   isOfflineAbortError,
   splitOfflineErrors,

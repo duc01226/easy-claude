@@ -33,6 +33,7 @@ disable-model-invocation: false
 - [Trust](#trust)
 - [Usage](#usage)
 - [Producer selectors](#producer-selectors)
+- [Live-site capture](#live-site-capture)
 - [Exit codes](#exit-codes)
 - [Calling from other skills](#calling-from-other-skills)
 - [What exit 0 proves](#what-exit-0-proves)
@@ -64,10 +65,15 @@ Install from inside the skill folder, never with `npm install --prefix`: run fro
 
 ffmpeg and ffprobe are looked up only in the absolute directories on `PATH`, never in the current directory.
 
+**Which browser renders.** By default the skill's own Playwright revision. When that revision was never downloaded (a newer Playwright than the cached browsers), the exporter falls back to the newest complete Chromium already in Playwright's browser cache, then the installed Chrome, then Edge. It warns on stderr, and every `report.json` names the engine in `engine` (`name`, `degraded`, and `executablePath` or `channel`), so a fallback render is never silent. It never downloads or installs a browser. When nothing launches, exit `3` names the revision Playwright wants and the revisions the cache holds.
+
 | Environment variable  | Effect                                                                                                                                                                  |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `HTML_EXPORT_FFMPEG`  | Pins the ffmpeg build instead of the `PATH` lookup. Must be an **absolute** path; on Windows it must also name a `.exe` or `.com` file (never a `.bat` / `.cmd` wrapper). Otherwise exit `3` |
 | `HTML_EXPORT_FFPROBE` | The same for ffprobe, with the same rules                                                                                                                              |
+| `HTML_EXPORT_CHROMIUM` | Renders with this browser executable instead of Playwright's own revision. Must be an **absolute** path to an existing file; it cannot be combined with `HTML_EXPORT_CHANNEL`. Otherwise exit `3` |
+| `HTML_EXPORT_CHANNEL` | Renders with the installed `chrome` or `msedge` instead of Playwright's own revision. Any other value is exit `3` |
+| `HTML_EXPORT_FALLBACK=0` | Turns the fallback to another installed browser off: a missing Playwright revision is exit `3` |
 | `HTML_EXPORT_DEBUG=1` | Prints the stack trace of an unexpected error to stderr. Set it when an exit `1` names an unexpected error, and quote the stack                                         |
 
 **Removing the skill.** Deleting the skill folder removes Playwright, pdf-lib and every other npm dependency. Chromium stays in Playwright's per-user browser cache (or under `PLAYWRIGHT_BROWSERS_PATH` when that is set); to remove it too, first run `npx playwright uninstall` from inside the skill folder — it removes only the browsers no other Playwright installation still uses — then delete the folder. Regenerate the mirrors afterwards.
@@ -110,7 +116,10 @@ The dispatcher checks every flag and input before any dependency or target runs,
 
 ### `--to=png` — render evidence
 
-Target flag: `--full-page` (opt-in). Inputs: one or more `.html` / `.htm` files; `--self-check` may run with no input to check only the verifier.
+Target flags: `--full-page` and `--mobile` (both opt-in). Inputs: one or more `.html` / `.htm` files; `--self-check` may run with no input to check only the verifier.
+
+- `--mobile` renders every viewport narrower than 768 px as a touch phone (the page's `<meta name="viewport">` applies, hover media queries report none) at scale 2 unless `--scale` is given; wider viewports are unchanged.
+- With `--slides`, each `report.json` `files[]` entry carries `state`, the item's `data-state` name (or `null`), so a capture can be labelled by state; file names stay `-s<NN>`.
 
 - Default viewports `1440x900,390x844`. Each capture is **viewport-only**; `--full-page` adds `<name>@<WxH>-full.png` with the whole scrollable document and its own blank check. `--full-page` with `--slides` exits `2`.
 - Writes `<name>@<WxH>.png`, or with `--slides` one `<name>@<WxH>-s<NN>.png` per item, plus `report.json`.
@@ -146,6 +155,10 @@ Target flags: `--fps=<1-60>` (default 30 for mp4, 15 for gif), `--duration=<seco
 
 Any other page can mark its items with `data-export-slide`. feature-presentation slides carry both `slide` and `deck__slide` with a `data-slide-id`, so its existing `section.deck__slide` selector and the default selector find the same slides.
 
+## Live-site capture
+
+`scripts/capture-sites.cjs` screenshots **public web pages** at desktop and phone size for an option board (a moodboard of style families, or a layout board of real products), and writes a `capture-manifest.json` with each capture's status, source and access time. It is the only part of this skill that opens remote pages, so the [Trust](#trust) rule for local HTML does not cover it. Its own rules are enforced in code: a fresh context per page, no clicks or typing, consent banners hidden but never accepted, bot checks and sign-in pages recorded as `blocked` and never worked around, downloads and pop-ups refused, a page that leaves its site while loading not captured, no navigation after load, Chromium's OS sandbox always on, and only Playwright's own Chromium, the installed Chrome or Edge, or an explicit override as the browser (never an older cached Chromium). Use captures as patterns only, keep them under `tmp/`, and never publish them. Read [`references/live-site-capture.md`](references/live-site-capture.md) for the command, the targets file and the manifest.
+
 ## Exit codes
 
 | Exit | Meaning                                                                                                                                                                               |
@@ -153,7 +166,7 @@ Any other page can mark its items with `data-export-slide`. feature-presentation
 | `0`  | Export succeeded and the target's checks passed                                                                                                                                       |
 | `1`  | Tool fault, and the page did nothing wrong: the browser did not launch or start in time — including a dependency-check launch that timed out (the message says `timed out`: a busy or broken machine, not a missing browser) — a write error, a pdf merge failure, an unexpected exception (set `HTML_EXPORT_DEBUG=1` for its stack), png `verifier broken`, an ffmpeg failure (a failed GIF pass keeps the MP4 when that name is free). A page fault, blank png capture or unaccepted page error in the same run makes it `4` |
 | `2`  | Usage error: missing or unknown `--to`, unknown or rejected flag, bad input or value, an input or pdf `--order` entry that is not an `.html` / `.htm` file (a positional pdf input may also be a folder), `--timeout` above 2147483647; a png or pdf `--slides` selector the browser cannot parse; pdf slides selector matching nothing; video with no duration; `--keep-frames` on a foreign `frames/` |
-| `3`  | Dependency missing: Node older than 20, Playwright older than 1.55.1 or absent, Chromium not installed or failing to launch for any reason other than a timeout (for example a missing system library), pdf-lib for a merge, ffmpeg with libx264, or an `HTML_EXPORT_FFMPEG` / `HTML_EXPORT_FFPROBE` that is relative or, on Windows, not a `.exe` / `.com` file |
+| `3`  | Dependency missing: Node older than 20, Playwright older than 1.55.1 or absent, Chromium not installed or failing to launch for any reason other than a timeout (for example a missing system library) after the browser fallback, an invalid `HTML_EXPORT_CHROMIUM` / `HTML_EXPORT_CHANNEL`, pdf-lib for a merge, ffmpeg with libx264, or an `HTML_EXPORT_FFMPEG` / `HTML_EXPORT_FFPROBE` that is relative or, on Windows, not a `.exe` / `.com` file |
 | `4`  | The page is wrong, even when nothing was produced: page errors (unless `--allow-errors`), a blank png capture, or a page-caused failure (`pageFault: true`) — never loads, never ready, fonts time out, navigation error, an in-page hang, a `__seek` that throws or times out, a page that breaks the video recorder's setup or animation pinning |
 | other | Interrupted, for example `130` after Ctrl+C: no verdict and possibly no `report.json`. A video run can leave `<out>/.video-work-*` folders; the recorder removes them on a best-effort basis, and any that remain are safe to delete |
 
@@ -182,6 +195,7 @@ It does **not** prove the page looks right, that interaction works, anything bel
 
 - [`references/verification.md`](references/verification.md) — png evidence, `report.json` fields, failure signatures, offline rule, self-check, known limits
 - [`references/deck-export.md`](references/deck-export.md) — pdf print vs slides mode, page size, per-producer commands, ordering, merge, pdf `report.json`
+- [`references/live-site-capture.md`](references/live-site-capture.md) — `scripts/capture-sites.cjs`: targets file, manifest, safety rules, exit codes
 - [`references/animation-recording.md`](references/animation-recording.md) — the recording contract: time rule, `window.__ready` / `__seek` / `__duration` / `__recording`, `data-export-hide`, `frames.json`
 - Tests: `node .claude/skills/html-export/tests/run-tests.cjs` (browser cases report `ENVIRONMENT-BLOCKED` when Chromium or ffmpeg is absent)
 

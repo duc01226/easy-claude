@@ -365,12 +365,12 @@
       "group": "design",
       "summary": "Design identity gate DD-1 to DD-8: subject, design plan, generic test, restraint",
       "when": "designing, implementing or reviewing a visual surface",
-      "chars": 7194,
+      "chars": 7459,
       "file": ".claude/skills/shared/protocols/design-distinctiveness-gate.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/design-distinctiveness-gate.md",
-          "chars": 7194
+          "chars": 7459
         }
       ]
     },
@@ -1517,12 +1517,12 @@
       "group": "design",
       "summary": "Journey-first UX gate UX-1 to UX-11: report journeys, read the design authority, generate, then check every UI/UX gate",
       "when": "generating, specifying, planning, mocking up or reviewing a user-facing surface",
-      "chars": 5599,
+      "chars": 5643,
       "file": ".claude/skills/shared/protocols/ux-journey-gate.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/ux-journey-gate.md",
-          "chars": 5599
+          "chars": 5643
         }
       ]
     },
@@ -1537,6 +1537,20 @@
         {
           "file": ".claude/skills/shared/protocols/verify-last-order.md",
           "chars": 2846
+        }
+      ]
+    },
+    {
+      "tag": "visual-option-discovery",
+      "group": "design",
+      "summary": "Research top styles and layouts, build options that each pair a different style with a different layout, and the owner picks or mixes",
+      "when": "choosing the look, feel or layout of a new brand, product, page, flow or deck",
+      "chars": 6707,
+      "file": ".claude/skills/shared/protocols/visual-option-discovery.md",
+      "parts": [
+        {
+          "file": ".claude/skills/shared/protocols/visual-option-discovery.md",
+          "chars": 6707
         }
       ]
     },
