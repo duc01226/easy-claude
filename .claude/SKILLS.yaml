@@ -1,10 +1,10 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-10-26'
-  total_skills: 107
+  last_updated: '2026-10-27'
+  total_skills: 108
   total_by_status:
-    active: 107
+    active: 108
     deprecated: 0
     experimental: 0
 categories:
@@ -292,6 +292,18 @@ skills:
         scopes the issue.'
       category: other
       has_scripts: false
+      has_references: true
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
+    - name: framework-benchmark
+      path: framework-benchmark/SKILL.md
+      description: '[Quality] Use when benchmarking framework skills, hooks, workflows
+        and project setup against raw implementation on matched greenfield or existing-project
+        tasks, with independent quality review and time/token/cost reports.'
+      category: other
+      has_scripts: true
       has_references: true
       status: active
       deprecated_by: null

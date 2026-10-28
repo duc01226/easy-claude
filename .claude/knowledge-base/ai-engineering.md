@@ -18,5 +18,6 @@ body: .claude/docs/ai-engineering-knowledge.md
 - Bound steps, time, tokens, cost, retries, fan-out and retrieved chunks.
 - Ship a prompt, model, retrieval or tool change only with an eval delta against a baseline.
 - Irreversible or high-impact actions need a code-enforced human gate or an undo; authorization lives in code with the end user's identity.
+- Retrieval does not make answers true: query structured facts directly and keep small corpora in the prompt; where RAG fits, gate evidence before generation, abstain when it cannot answer, check claims against sources, and measure hallucination instead of promising zero (§J `K-J13`–`K-J16`).
 
 Read §0 of the referred document first, then only the section for the AI surface at hand.

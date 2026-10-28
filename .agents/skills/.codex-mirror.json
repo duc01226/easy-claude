@@ -35,6 +35,7 @@
     "feature-implement",
     "feature-presentation",
     "fix",
+    "framework-benchmark",
     "framework-config",
     "framework-update",
     "git-conflict-resolve",

@@ -1,0 +1,16 @@
+{
+  "backend": "docker",
+  "schemaVersion": 1,
+  "image": "REPLACE_WITH_PREPROVISIONED_IMAGE@sha256:REPLACE_WITH_64_HEX_DIGEST",
+  "model": "REPLACE_WITH_PINNED_PROVIDER_MODEL_ID",
+  "judgeModel": "REPLACE_WITH_PINNED_PROVIDER_JUDGE_ID",
+  "claudeVersion": "REPLACE_WITH_EXACT_INSTALLED_CLI_VERSION",
+  "repeats": 3,
+  "seed": 42,
+  "timeoutMs": 1800000,
+  "maxTurns": 100,
+  "budgetUsd": 2,
+  "judgeBudgetUsd": 0.5,
+  "memoryMb": 2048,
+  "cpus": 2
+}

@@ -20,7 +20,7 @@
 
 ## What is this?
 
-**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **<!-- COUNT:hooks -->38<!-- /COUNT --> top-level hook files**, **<!-- COUNT:skills -->107<!-- /COUNT --> skills**, **<!-- COUNT:workflows -->17<!-- /COUNT --> workflows**, and **<!-- COUNT:agents -->25<!-- /COUNT --> specialized agents**. It covers the entire software development lifecycle — from initiative capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`.
+**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **<!-- COUNT:hooks -->38<!-- /COUNT --> top-level hook files**, **<!-- COUNT:skills -->108<!-- /COUNT --> skills**, **<!-- COUNT:workflows -->17<!-- /COUNT --> workflows**, and **<!-- COUNT:agents -->25<!-- /COUNT --> specialized agents**. It covers the entire software development lifecycle — from initiative capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`.
 
 **Core insight:** LLMs forget, hallucinate, and drift. Instead of hoping the AI "just gets it right," this framework uses **programmatic guardrails** (hooks) and **prompt-engineered protocols** (skills/workflows) to enforce correctness at every stage.
 
@@ -182,7 +182,7 @@ again after 150K tokens of growth or a compaction, and to every sub-agent; the w
 `workflow-route-inject.cjs` (the gate) and `workflow-catalog-inject.cjs` (the catalog). `CLAUDE.md` and `AGENTS.md` hold project information only. This design prevents
 context drift over long sessions.
 
-### Skills (<!-- COUNT:skills -->107<!-- /COUNT --> definitions)
+### Skills (<!-- COUNT:skills -->108<!-- /COUNT --> definitions)
 
 Markdown-based prompts with YAML frontmatter that guide AI behavior.
 
@@ -242,6 +242,8 @@ Reviews are first-class skills you can run standalone, and several are chained a
 | `/plan --mode=review`             | One-pass, read-only plan validity and execution-risk review              |
 | `/work-item --mode=review`              | Task / story / test-spec / design artifact quality before handoff         |
 
+Run [`/framework-benchmark`](.claude/skills/framework-benchmark/SKILL.md) to compare raw implementation with the complete framework on greenfield, brownfield bootstrap or configured consumer tasks. It uses an installed logged-in Claude Code or Codex CLI by default, with Docker optional, and reports independent checks/review, time, tokens, available cost and cleanup outcomes; `compare` combines several runs into one task-level verdict. See [running an experiment](.claude/skills/framework-benchmark/references/running.md) for account/runtime selection and the native trusted-code boundary; subscription charges remain unknown when the CLI does not report them.
+
 ### Agents (<!-- COUNT:agents -->25<!-- /COUNT --> specialists)
 
 Subagent definitions for parallelized, specialized work. The table below shows 9 of the <!-- COUNT:agents -->25<!-- /COUNT --> — see `.claude/docs/agents/README.md` for the full roster.
@@ -270,7 +272,7 @@ easy-claude/
 │   │   ├── lib/              # Shared hook libraries
 │   │   ├── notifications/    # Multi-channel notification system
 │   │   └── tests/            # Hook test suites
-│   ├── skills/               # 106 skill definitions
+│   ├── skills/               # Skill definitions (see catalog)
 │   │   ├── <skill>/          # Each skill directory contains:
 │   │   │   ├── SKILL.md      # Entry point (prompt + frontmatter)
 │   │   │   ├── scripts/      # Optional automation scripts
@@ -302,7 +304,7 @@ The entire framework is **project-agnostic**. All project-specific knowledge liv
 ```
 ┌─────────────────────────────────────┐
 │     Generic Framework (reusable)    │
-│ 38 Hook Files + 107 Skills + 17 Flows │
+│ Hooks + Skills + Workflows + Agents  │
 └──────────────┬──────────────────────┘
                │
         ┌──────┴──────┐

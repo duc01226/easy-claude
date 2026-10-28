@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "wagtail-7-2-1",
+  "repository": "https://github.com/wagtail/wagtail.git",
+  "commit": "ea118e70f73a8e16c52433cece793f04661e51f8",
+  "licenseFiles": ["LICENSE", "wagtail/contrib/redirects/tmp_storages.py"],
+  "toolchain": "Example corpus: provision a verified Python 3.12 interpreter as python on PATH, the pinned source's runtime/testing dependencies and Django>=5.2,<5.3, with SQLite/JSON1. Use the same resolved dependency freeze for both arms; no virtual environment belongs in the source archive. Browser/client/build/search/other-database suites require separate qualification.",
+  "baseline": [
+    "python", "-B", "runtests.py",
+    "wagtail.contrib.redirects.tests",
+    "wagtail.documents.tests.test_bulk_actions",
+    "wagtail.images.tests.test_bulk_actions",
+    "wagtail.admin.tests.pages.test_bulk_actions",
+    "wagtail.tests.permission_policies.test_collection_permission_policies",
+    "--noinput", "--verbosity", "2"
+  ],
+  "notes": "Pinned public example, not an upstream bug claim, endorsement or full-CI qualification. Keep all root and embedded third-party notices. Inspect the chosen task's actual source/tests and baseline discovery. Root upstream AGENTS.md is neutralized equally in raw and configured application inputs; ordinary upstream docs stay common. Source/toolchain/license facts: pinned pyproject.toml, .github/workflows/test.yml, LICENSE and https://docs.wagtail.org/en/v7.2.1/contributing/developing.html. Fetch makes no inference call; configure makes one separately accounted generic context-preparation attempt. Select and seal a future task without copying task briefs, expected answers or holdout preparation into setup inputs."
+}

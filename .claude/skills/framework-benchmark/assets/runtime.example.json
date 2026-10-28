@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "backend": "host",
+  "host": "codex",
+  "cliVersion": "REPLACE_WITH_EXACT_INSTALLED_CLI_VERSION",
+  "model": "REPLACE_WITH_EXACT_NATIVE_MODEL",
+  "judgeModel": "REPLACE_WITH_EXACT_NATIVE_JUDGE_MODEL",
+  "repeats": 1,
+  "seed": 42,
+  "timeoutMs": 1800000,
+  "maxTurns": 200
+}

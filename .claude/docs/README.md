@@ -7,9 +7,10 @@
 | Goal                           | Document                                                                                                                           |
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
 | **New to Claude Code?**        | [quick-start.md](./quick-start.md) - 5-minute onboarding                                                                           |
-| **Need a skill?**              | [skills/README.md](./skills/README.md) - <!-- COUNT:skills -->107<!-- /COUNT --> skills catalog                                                                        |
+| **Need a skill?**              | [skills/README.md](./skills/README.md) - <!-- COUNT:skills -->108<!-- /COUNT --> skills catalog                                                                        |
 | **Building a feature?**        | [skills/README.md](./skills/README.md) + project-reference root patterns                                                           |
 | **Verifying user experience?** | [configuration/experience-verification.md](./configuration/experience-verification.md) - portable evidence and acceptance contract |
+| **Benchmarking the framework?** | Read [framework-benchmark](../skills/framework-benchmark/SKILL.md) when comparing full setup/workflows with raw implementation on matched tasks. |
 | **Reviewing the framework?**   | [framework-review-guide.md](./framework-review-guide.md) - how to measure, intended designs, known limits; read before any audit against vendor guidance |
 | **Understanding hooks?**       | [hooks/README.md](./hooks/README.md) - <!-- COUNT:hooks -->38<!-- /COUNT --> top-level hook files deep-dive                                                           |
 | **Understanding workflows?**   | `.claude/workflows.json` canonical catalog plus opt-in prompt injection - <!-- COUNT:workflows -->17<!-- /COUNT --> workflows                                             |
@@ -167,7 +168,7 @@ Unprefixed filenames resolve inside the project-reference docs root — default 
 
 | Category               | Count |
 | ---------------------- | ----- |
-| Skills                 | <!-- COUNT:skills -->107<!-- /COUNT --> |
+| Skills                 | <!-- COUNT:skills -->108<!-- /COUNT --> |
 | Hook files (top-level) | <!-- COUNT:hooks -->38<!-- /COUNT --> |
 | Lib Modules            | <!-- COUNT:lib-modules -->72<!-- /COUNT --> |
 | Hook Events            | 10     |

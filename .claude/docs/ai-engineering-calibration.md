@@ -2,7 +2,7 @@
 
 > **Role:** calibration set for `ai-engineering-review-checklist.md` (check IDs, P0–P4 map, escalation rules), `SYNC:ai-engineering-gate` (`AE-*`) and `SYNC:ai-feature-framing-gate` (`AF-*`). Each case states the situation, the evidence a reviewer must gather, the findings a correct review produces (check ID and severity), what is NOT a finding, and what would change the verdict. Use it to calibrate severity before a review, and as the fixture set for evaluating review output.
 >
-> **Id spaces.** Cases are `CAL-1`–`CAL-14`. A bare `A1`–`N10` (for example `B6`, `C7`) is always a CHECK id from `ai-engineering-review-checklist.md`, which owns severity; `K-<letter><n>` rows belong to the knowledge catalog and are rationale pointers only. Cite a case as `CAL-<n>`, never `C<n>`.
+> **Id spaces.** Cases are `CAL-1`–`CAL-15`. A bare `A1`–`N10` (for example `B6`, `C7`) is always a CHECK id from `ai-engineering-review-checklist.md`, which owns severity; `K-<letter><n>` rows belong to the knowledge catalog and are rationale pointers only. Cite a case as `CAL-<n>`, never `C<n>`.
 >
 > **Both directions matter.** Half of these cases are false positives or de-escalations. A review that flags every model-ID literal and every missing test is as wrong as one that misses an unescaped `innerHTML`. Read the case nearest your finding before you file it; read `.claude/docs/ai-engineering-review-checklist.md` §0.3 when a severity needs escalating or de-escalating.
 >
@@ -344,6 +344,31 @@ def send_receipt(order_id, email):
 **What would change the verdict.** A refund limit and approval rule enforced in the executor, an eval plan with a date, and an owner bring A down to P2 plan gaps. Adding tools or external data to B raises it to A's treatment for the new phases.
 
 **Fix shape.** Add the missing `AF-*` items per phase — autonomy level, approval and limits in code, eval and baseline with owner and date, failure modes and fallbacks, data-flow and trifecta analysis, kill switch, budget, owner — before implementation starts.
+
+---
+
+## CAL-15 — RAG with citations but no evidence gate: labelled internal search versus binding customer answers
+
+**Situation A.** An internal docs helper shows the top five chunks with their links and a summary labelled "AI summary — check the linked pages"; nothing acts on it.
+
+**Situation B.** A customer assistant answers refund and warranty questions from a policy corpus. `search(query, k=8)` results go straight into the prompt, which says "answer only from the documents, otherwise say you don't know"; code checks that each cited chunk id was retrieved; release notes call it "hallucination-free".
+
+**Evidence to gather.** Who relies on the answer and whether it binds the company · code between retrieval and the model call (score, threshold, evaluator, skip branch) · what the citation check proves (id membership or support) · unanswerable, out-of-corpus and near-miss eval rows · accuracy claims shown to users.
+
+**Expected findings.**
+
+| ID | Severity | Why |
+| --- | --- | --- |
+| `J10` | P1 (B) | No code-enforced gate; abstention is only a prompt instruction, and a model given insufficient context tends to answer anyway. |
+| `J11` | P1 (B) | The check proves the chunk was retrieved, not that it supports the claim; binding policy answers need a support check or human review. |
+| `J13` | P1 (B) | "Hallucination-free" reaches customers with no measured rate; no eval case expects an abstention. |
+| `J10` | P3 (A) | Below the advisory default (P2): every chunk is shown with its link and nothing acts on the summary. Record as a note. |
+
+**NOT a finding.** In A, no claim-level check: the reader sees the sources and nothing binds. In both, RAG itself over a large, changing docs corpus (`J12` holds).
+
+**What would change the verdict.** A measured gate with a tested skip branch plus a claim-support check bring B to a P2 eval gap; dropping "hallucination-free" and reporting rates closes `J13`. Sending A's summary to customers, or acting on it, gives it B's treatment.
+
+**Fix shape.** Rerank and threshold in code, with the threshold set from the eval; check sufficiency and abstain or escalate when it fails; check each claim against its source; add unanswerable and near-miss eval rows; report wrong-answer and abstention rates; state limits instead of accuracy promises.
 
 ---
 

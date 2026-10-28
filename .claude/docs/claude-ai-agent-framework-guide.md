@@ -2,7 +2,7 @@
 
 > **Purpose:** the one-page map of the portable `.claude/` framework — what it does, how the parts fit, how to use it day to day, and where each topic's detailed owner doc lives. Read it first when you adopt the framework, change it, or need to explain a hook block, a routing decision or a workflow step.
 >
-> **Framework inventory:** <!-- COUNT:hooks -->38<!-- /COUNT --> top-level hook files · <!-- COUNT:lib-modules -->72<!-- /COUNT --> hook-library modules · <!-- COUNT:skills -->107<!-- /COUNT --> skills · <!-- COUNT:workflows -->17<!-- /COUNT --> workflows · <!-- COUNT:agents -->25<!-- /COUNT --> agents · <!-- COUNT:shared -->16<!-- /COUNT --> shared reference/protocol entries.
+> **Framework inventory:** <!-- COUNT:hooks -->38<!-- /COUNT --> top-level hook files · <!-- COUNT:lib-modules -->72<!-- /COUNT --> hook-library modules · <!-- COUNT:skills -->108<!-- /COUNT --> skills · <!-- COUNT:workflows -->17<!-- /COUNT --> workflows · <!-- COUNT:agents -->25<!-- /COUNT --> agents · <!-- COUNT:shared -->16<!-- /COUNT --> shared reference/protocol entries.
 >
 > **Visual overview:** `.claude/docs/claude-ai-agent-framework-guide.html`. Use this Markdown guide for current inventories and source-owner pointers.
 
@@ -40,7 +40,7 @@
 
 ## 1. What the framework is
 
-A generic LLM is capable but forgetful, confident without evidence, and unaware of your project. This framework wraps Claude Code in **38 top-level hook files**, **107 skills**, **17 registered workflows**, and **25 specialized agents** that make it project-aware, evidence-driven and gated at every quality step — from idea and spec through implementation, testing, review, commit and pull request.
+A generic LLM is capable but forgetful, confident without evidence, and unaware of your project. This framework wraps Claude Code in **38 top-level hook files**, **<!-- COUNT:skills -->108<!-- /COUNT --> skills**, **17 registered workflows**, and **25 specialized agents** that make it project-aware, evidence-driven and gated at every quality step — from idea and spec through implementation, testing, review, commit and pull request.
 
 | Failure mode of a plain agent        | What counters it                                            | Where it lives                                     |
 | ------------------------------------ | ----------------------------------------------------------- | -------------------------------------------------- |

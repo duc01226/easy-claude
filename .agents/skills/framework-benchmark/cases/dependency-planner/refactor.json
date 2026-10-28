@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "id": "dependency-planner-refactor",
+  "kind": "refactor",
+  "projectMode": "brownfield-bootstrap",
+  "fixture": "refactor-fixture",
+  "checksDir": "checks",
+  "prompt": "Refactor the existing dependency planner to reduce the future cost of changing validation and topological selection while preserving every public observable behavior. Keep createPlanner(tasks=[]) and formatOrder(ids) and the add/remove/plan/snapshot contracts. All errors retain their code, invalid operations remain atomic, snapshots and inputs remain isolated, ordering stays deterministic, and transitive target selection remains correct. Add tests that characterize preserved behavior and invalid/boundary cases; document the chosen structure and tradeoffs. Use the smallest useful structural changes, with no new runtime dependency. Do not ask questions; decide reversible details and finish the refactor and checks autonomously. Deliver a new planner.test.cjs file executable with Node built-in node --test, and README.md containing usage (or refactor structure) and tradeoffs. Independent checks verify their presence and passing nonempty tests; the separate quality review judges their meaning and coverage.",
+  "treatment": "Use the installed workflow-refactor skill and its applicable gates for this behavior-preserving refactor. The user authorizes autonomous reversible decisions and implementation. Do not publish or commit.",
+  "expectedSkills": [
+    "workflow-refactor"
+  ],
+  "checks": [
+    {
+      "id": "planner-preservation",
+      "kind": "acceptance",
+      "baseline": "pass",
+      "argv": [
+        "node",
+        "/checks/acceptance.cjs"
+      ],
+      "timeoutMs": 30000
+    },
+    {
+      "id": "format-regression",
+      "kind": "regression",
+      "baseline": "pass",
+      "argv": [
+        "node",
+        "/checks/regression.cjs"
+      ],
+      "timeoutMs": 10000
+    },
+    {
+      "id": "public-delivery",
+      "kind": "acceptance",
+      "baseline": "fail",
+      "argv": [
+        "node",
+        "/checks/delivery.cjs"
+      ],
+      "timeoutMs": 20000
+    }
+  ]
+}

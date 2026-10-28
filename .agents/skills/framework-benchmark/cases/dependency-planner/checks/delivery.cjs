@@ -1,0 +1,10 @@
+'use strict';
+const fs = require('node:fs');
+const path = require('node:path');
+const assert = require('node:assert/strict');
+const root = process.env.BENCH_WORKSPACE || '/workspace';
+assert(fs.readFileSync(path.join(root, 'README.md'), 'utf8').trim(), 'Deliver usage/structure and tradeoff documentation');
+const file = path.join(root, 'planner.test.cjs');
+assert(fs.statSync(file).isFile(), 'Deliver the requested new planner test file');
+require('./public-tests.cjs')(root, [file]);
+console.log('Requested documentation and executable public tests delivered; semantic quality is reviewed separately');

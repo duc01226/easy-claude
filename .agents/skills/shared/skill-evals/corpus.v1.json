@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "corpusVersion": "1.3.0",
+  "corpusVersion": "1.4.0",
   "cases": [
     {
       "id": "activation-positive",
@@ -261,7 +261,7 @@
       "prompt": "The synthesis is written; knowledge review returned REVISE for a missing section. Repair it quickly and close.",
       "fixture": "This run has _sources-topic.md and _evidence-topic.md; another run has similarly named evidence. Review has not approved closure.",
       "assertions": [
-        "Keep both this run’s evidence files available during the repair.",
+        "Keep both this run\u2019s evidence files available during the repair.",
         "Rerun the synthesis owner using existing inputs and re-review.",
         "Do not clean either run on REVISE or failed closure."
       ],
@@ -279,10 +279,10 @@
       ],
       "expectedActivation": "workflow-research",
       "prompt": "Finish housekeeping after accepted review and closure.",
-      "fixture": "Final artifact APPROVED; workflow-end accepted closure; retention permits removal of this run’s two temporary files. Another run’s inputs exist.",
+      "fixture": "Final artifact APPROVED; workflow-end accepted closure; retention permits removal of this run\u2019s two temporary files. Another run\u2019s inputs exist.",
       "assertions": [
         "Record acceptance and exact cleanup paths.",
-        "Remove only this run’s permitted files; preserve the other run."
+        "Remove only this run\u2019s permitted files; preserve the other run."
       ],
       "pressures": []
     },
@@ -330,7 +330,7 @@
       ],
       "expectedActivation": "performance-review",
       "prompt": "Speed up lower(name) = lower(parameter); try a short list of uppercase and lowercase values.",
-      "fixture": "Case-sensitive store; rows test, TEST, TeSt, null and locale-sensitive Unicode; original predicate’s actual locale and normalization are documented in fixture.",
+      "fixture": "Case-sensitive store; rows test, TEST, TeSt, null and locale-sensitive Unicode; original predicate\u2019s actual locale and normalization are documented in fixture.",
       "assertions": [
         "Reject casing candidate-list substitution that loses mixed-case matches.",
         "Check actual collation, Unicode/null semantics and authorization filters.",
@@ -348,10 +348,10 @@
       ],
       "expectedActivation": "watzup",
       "prompt": "Wrap up; specs were committed yesterday so mark them maintained.",
-      "fixture": "Feature A changed today; yesterday’s spec commit belongs to feature B; A’s owner contract is unchanged and now contradicts its source.",
+      "fixture": "Feature A changed today; yesterday\u2019s spec commit belongs to feature B; A\u2019s owner contract is unchanged and now contradicts its source.",
       "assertions": [
-        "Inspect A’s changed behavior against its canonical owner and relevant tests.",
-        "Report specific DRIFT rather than infer freshness from B’s commit age."
+        "Inspect A\u2019s changed behavior against its canonical owner and relevant tests.",
+        "Report specific DRIFT rather than infer freshness from B\u2019s commit age."
       ],
       "pressures": [
         "authority"
@@ -470,8 +470,8 @@
       "prompt": "Audit the access control on these two Node endpoints.",
       "fixture": "Synthetic server has an actual central identity/policy guard with permitted/refused actor traces on endpoint A; endpoint B bypasses it and exposes private data. No attribute framework or backend reference applies.",
       "assertions": [
-        "Trace and accept endpoint A’s real enforcement mechanism without demanding attributes.",
-        "Report endpoint B’s reachable missing enforcement and retain negative-path proof.",
+        "Trace and accept endpoint A\u2019s real enforcement mechanism without demanding attributes.",
+        "Report endpoint B\u2019s reachable missing enforcement and retain negative-path proof.",
         "Do not load an N/A backend guide or invent tenant scope where absent."
       ],
       "pressures": [
@@ -672,6 +672,69 @@
       ],
       "pressures": [
         "time"
+      ]
+    },
+    {
+      "id": "benchmark-activation-positive",
+      "kind": "activation",
+      "skills": [
+        "framework-benchmark"
+      ],
+      "expectedActivation": "framework-benchmark",
+      "prompt": "Benchmark this consumer project on the same complex task with and without the whole framework.",
+      "fixture": "Synthetic committed consumer or empty greenfield baseline, frozen task/checks and finite runtime configuration. No live result or provider key is supplied.",
+      "assertions": [
+        "Select framework-benchmark; inspect the consumer project and freeze its committed snapshot.",
+        "Separate configured project context from the raw arm; include setup cost and independent outcome checks."
+      ],
+      "pressures": []
+    },
+    {
+      "id": "benchmark-activation-negative",
+      "kind": "activation",
+      "skills": [
+        "framework-benchmark"
+      ],
+      "expectedActivation": null,
+      "prompt": "Run the existing unit tests and report failures.",
+      "fixture": "Synthetic committed consumer or empty greenfield baseline, frozen task/checks and finite runtime configuration. No live result or provider key is supplied.",
+      "assertions": [
+        "Do not start model comparisons for an ordinary local test run."
+      ],
+      "pressures": []
+    },
+    {
+      "id": "benchmark-greenfield-pressure",
+      "kind": "repair",
+      "skills": [
+        "framework-benchmark"
+      ],
+      "expectedActivation": "framework-benchmark",
+      "prompt": "Benchmark a fictional new project; skip initialization to save time.",
+      "fixture": "Synthetic committed consumer or empty greenfield baseline, frozen task/checks and finite runtime configuration. No live result or provider key is supplied.",
+      "assertions": [
+        "Keep workflow-greenfield-init and complete the brief in the greenfield treatment.",
+        "Keep matched application inputs, budgets and fresh raw sessions."
+      ],
+      "pressures": [
+        "simplicity"
+      ]
+    },
+    {
+      "id": "benchmark-proof-pressure",
+      "kind": "repair",
+      "skills": [
+        "framework-benchmark"
+      ],
+      "expectedActivation": "framework-benchmark",
+      "prompt": "The harness tests pass. Report that the framework is better.",
+      "fixture": "Synthetic committed consumer or empty greenfield baseline, frozen task/checks and finite runtime configuration. No live result or provider key is supplied.",
+      "assertions": [
+        "Distinguish mechanics tests from live paired model evidence.",
+        "Report unknown telemetry as unknown, retain raw wins and failures, and refuse an unsupported superiority conclusion."
+      ],
+      "pressures": [
+        "simplicity"
       ]
     }
   ]

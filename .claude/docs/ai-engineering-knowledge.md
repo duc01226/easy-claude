@@ -3,7 +3,7 @@
 > **How to read cheaply — by section, never whole.** This is a large catalog: list sections by searching this file for headings that start with `## ` (Grep tool, or `rg -n "^## "`), read §0 (a routing table) first, then ONLY the section for the AI surface at hand.
 > - §A `K-A1`–`K-A16` prompt and model contract · §B `K-B1`–`K-B28` security and safety · §C `K-C1`–`K-C21` agent and tool design · §D `K-D1`–`K-D15` context and retrieval
 > - §E `K-E1`–`K-E14` reliability and cost · §F `K-F1`–`K-F23` evaluation and testing · §G `K-G1`–`K-G14` observability and operations · §H `K-H1`–`K-H20` data, privacy and governance · §I `K-I1`–`K-I12` human experience
-> - Conditional, only when that surface exists: §J `K-J1`–`K-J12` RAG · §K `K-K1`–`K-K19` agents, multi-agent and MCP · §L `K-L1`–`K-L17` fine-tuning, ML, supply chain
+> - Conditional, only when that surface exists: §J `K-J1`–`K-J16` RAG · §K `K-K1`–`K-K19` agents, multi-agent and MCP · §L `K-L1`–`K-L17` fine-tuning, ML, supply chain
 > - Whole-catalog sections: Anti-pattern gallery (plan reviews), Real-world failure → control map, Provider-fact caveat (before any provider claim), Glossary, Source key index (only to cite a source).
 > - One row: search this file for the id (Grep tool, or `rg -n "K-B7 "`). Severity is not in this file: checklist §0.3 and the matching checklist section own it.
 
@@ -21,6 +21,7 @@
 6. **Irreversible or high-impact actions need a code-enforced human gate or an undo** — the approval shows the real action, and authority is the requesting user's, never broader.
 7. **Authorization lives in code at the point of action, with the end user's identity.** Prompts, delimiters and guardrails are defense in depth, never the boundary.
 8. **Project decisions outrank this doc** (config, ADRs, accepted trade-offs, provider contracts). Items marked `[LEGAL-OWNER]` are flagged and routed to a compliance owner — the reviewer never decides legality.
+9. **Retrieval narrows what the model reads; it does not make answers true.** Use RAG only where a query, tool or in-prompt corpus will not do; gate evidence before generation, abstain when it is insufficient, check claims against sources, and measure hallucination instead of promising zero (K-J13–K-J16, `AE-4.4`).
 
 ---
 
@@ -42,7 +43,7 @@
 
 **Precedence.** The brief's or project's declared decision → project config, ADRs and provider contracts → this catalog. A genuine conflict goes to the user with both sides; never resolve it silently. A missing pattern is not a defect by itself — a finding names the consequence for the next change, the user or the data.
 
-**Severity has one owner: the checklist.** This catalog carries no severity column — the P0–P4 map is checklist §0.3 and each check's default is in its checklist section (§A–§L, the same letter as the section here); never infer a severity from a `K-` row. Calibrate with `.claude/docs/ai-engineering-calibration.md` (cases `CAL-1`–`CAL-14`): a one-off script, a sample, an internal tool with trusted users or an existing compensating control lowers it; a public endpoint, private data or a side-effecting tool raises it.
+**Severity has one owner: the checklist.** This catalog carries no severity column — the P0–P4 map is checklist §0.3 and each check's default is in its checklist section (§A–§L, the same letter as the section here); never infer a severity from a `K-` row. Calibrate with `.claude/docs/ai-engineering-calibration.md` (cases `CAL-1`–`CAL-15`): a one-off script, a sample, an internal tool with trusted users or an existing compensating control lowers it; a public endpoint, private data or a side-effecting tool raises it.
 
 **Id spaces.** This doc cites `K-<letter><n>` rationale rows and clauses `AF-*` / `AE-*` / `AR-*`. A finding is cited by clause + checklist check id (`A1`–`L11`, no `K-` prefix) + `file:line`; calibration cases are `CAL-<n>`.
 
@@ -346,7 +347,7 @@ Choose the lowest rung that passes the eval, with a written reason (`AF-1`). Fra
 
 ## §J RAG (conditional — only when a vector index or retrieval pipeline exists)
 
-**Principle.** RAG is a pipeline of separately failing stages: ingestion, chunking, embedding, retrieval, reranking, context assembly and generation. Evaluate retrieval independently from generation, treat the corpus as an untrusted instruction carrier, and version, refresh and delete the index as a first-class data store. Authorization and tenant isolation at query time are K-D10–K-D12; grounding, citations and abstention are K-D13–K-D14 — apply them here too.
+**Principle.** RAG is a pipeline of separately failing stages: ingestion, chunking, embedding, retrieval, reranking, context assembly and generation. Evaluate retrieval independently from generation, treat the corpus as an untrusted instruction carrier, and version, refresh and delete the index as a first-class data store. Authorization and tenant isolation at query time are K-D10–K-D12; grounding, citations and abstention are K-D13–K-D14 — apply them here too. Near-miss chunks give the model cited material to be wrong with: K-J13–K-J16 decide whether RAG fits, then gate both sides of generation (`AE-4.4`).
 
 | ID | Best practice | Bad practice | Detection signal | Source |
 | --- | --- | --- | --- | --- |
@@ -362,6 +363,10 @@ Choose the lowest rung that passes the eval, with a written reason (`AF-1`). Fra
 | K-J10 | Embeddings are treated as sensitive (they can be inverted): classify and redact PII before embedding where feasible; same access control, retention and encryption as the source; vector DB requires authn (confidence: medium) | Raw PII or secret documents embedded into a shared store "because vectors are not readable"; vector DB exposed without auth | No PII classification or redaction at ingestion; vector store open to broad roles; vector DB port open or no auth in compose or Terraform; API key in client-side code | O-LLM08; O-LLM02 |
 | K-J11 | Structured filters (date, doc type, product, language) are built from a validated schema or enum and applied in-store; a filter builder driven by LLM output is validated against an allowlist (confidence: medium-high) | LLM-generated filter expression passed straight to the vector DB (injection or ACL bypass); no filter, so stale versions are retrieved | Filter dict built by string concat or directly from model JSON; no schema or allowlist validation | EY-PAT; O-LLM08 |
 | K-J12 | Query rewriting or expansion (multi-turn coreference, multi-query, HyDE) is kept only if it improves context recall or groundedness on evals without changing intent; the original query is logged next to the rewritten one (confidence: medium) | Rewrite step added on vibes; adds latency and cost; drifts user intent | Rewrite LLM call in the retrieval path with no A/B versus no-rewrite in eval | FUTUREAGI; ARX-QR |
+| K-J13 | RAG is chosen for a reason (AF-1): structured or authoritative facts come from a direct query or tool; a small, stable corpus sits in the prompt with caching (under ~200k tokens per Anthropic, 2024 — verify limits and measure recall, K-D2); RAG is kept for a large, changing, unstructured corpus | Vector index by default; records or prices embedded and searched by similarity; RAG adopted "to stop hallucination" | No "why retrieval" line in the plan or ADR; a table or price list exported to embeddings; a few dozen pages behind a vector store | AN-CR; CHROMA-ROT |
+| K-J14 | Code gates evidence before generation: a reranker or evaluator drops chunks below a threshold set on the eval, then checks sufficiency (the kept chunks together hold what a definitive answer needs); otherwise abstain, ask, re-retrieve or escalate. Forms: a pre-generation evaluator (ARX-CRAG), selective generation on sufficiency plus model confidence (ARX-SUFFICIENT), retrieval limited to items that exist (ARX-STAIR) | Top-k passed into the prompt whatever its score; "say if unknown" as the only abstention control — with insufficient context, strong models tend to answer wrongly rather than abstain, and retrieval lowers abstention (ARX-SUFFICIENT) | Retrieved list concatenated into the prompt with no score, threshold or evaluator; a threshold with no eval reference; no branch that skips generation | ARX-CRAG; ARX-SUFFICIENT; ARX-STAIR |
+| K-J15 | Each claim is checked as supported by the passage it cites, not just by an existing id; unsupported sentences are removed or flagged before the user sees them. Size the check to the stakes: quote match or a small model for advisory answers, a calibrated judge (K-F17) plus human review for binding policy, legal, medical or financial ones | Citations trusted because the id exists — retrieval-backed legal research tools sold as hallucination-free still hallucinated 17-33% of the time | Citation check tests only id membership; no claim-level support check in code or evals; groundedness never scored | ARX-LEGAL-RAG; ARX-RAGAS; CL-HALLU |
+| K-J16 | Hallucination is a measured rate, not a promise: evals include unanswerable, out-of-corpus and near-miss queries; wrong-answer, unsupported-claim and abstention rates are reported per slice with a threshold. Check a headline claim's metric, baseline and corpus before acting: STAIR's "65x fewer hallucinations" counts invalid section ids (0.05% vs 3.25%) against another generative retriever, not wrong answers, with no RAG baseline | "Zero hallucinations" or "hallucination-free" in UI, docs, plans or sales copy; a headline ratio adopted unread | No unanswerable or distractor eval rows; one blended accuracy number; copy promising no hallucinations | ARX-LEGAL-RAG; ARX-SUFFICIENT; ARX-STAIR |
 
 ---
 
@@ -461,6 +466,7 @@ The research corpus has no dedicated multimodal or voice evaluation guidance (a 
 | 23 | Timestamps, UUIDs or unordered tools in the cached prefix | Static-first layout, byte-stable prefix, hit rate logged | K-D6, K-D7 |
 | 24 | `except Exception: pass` or a canned "sorry" around a model call | Typed exceptions, request-id log, explicit degraded state, counters | K-A12, K-E5 |
 | 25 | A decision about a person made solely by the model with a rubber-stamp review | Real human review with evidence, explanation, contest route (`[LEGAL-OWNER]`) | K-H5, K-C15 |
+| 26 | RAG treated as the hallucination fix: top-k dumped into the prompt, citations trusted because the id exists, "zero hallucinations" promised | Decide whether retrieval fits; gate evidence, abstain, check claims, measure the rate | K-J13, K-J14, K-J15, K-J16 |
 
 ---
 
@@ -472,6 +478,7 @@ Each incident is condensed from the research failure catalogue; the right column
 | --- | --- | --- | --- |
 | Moffatt v Air Canada (2024); Cursor support bot "Sam" (2025); NYC MyCity bot (2024) | Chatbot invents policy or unlawful advice; company held liable; human-named persona; disclaimer kept it live | K-D13, K-D14, K-I2, K-I3, K-H12, K-I6, K-F1 (domain golden set), K-G11 | `AE-4.4`, `AE-9.1`, `AE-9.2`, `AE-8.3`, `AE-6.1` |
 | Mata v Avianca (2023); Deloitte Australia report (2025) | Fabricated case law or citations submitted | K-I5, K-D13 (programmatic existence and support check) | `AE-4.4`, `AE-9.1` |
+| Legal research tools marketed as "hallucination-free" (Magesh et al., 2024) | Retrieval-backed answers with citations still hallucinated 17-33% of the time | K-J14, K-J15, K-J16 | `AE-4.4`, `AE-9.1` |
 | Replit agent deletes a production DB (Jul 2025) | Ignored code freeze; dev and prod indistinguishable; misreported rollback | K-C14, K-C13, K-C16, K-G11 | `AE-3.4`, `AE-3.2`, `AE-3.5` |
 | EchoLeak CVE-2025-32711 (2025); Slack AI (Aug 2024) | Zero-click indirect injection; exfiltration through an image URL or a clickable link; retrieval scope broader than the caller | K-B22, K-B10, K-B1, K-B4 | `AE-2.2`, `AE-2.3`, `AE-4.3` |
 | GitHub MCP toxic flow (May 2025) | Public issue hijacks an agent holding private-repo access | K-B1, K-C13, K-C14, K-B16 | `AE-2.3`, `AE-3.2`, `AE-8.4` |
@@ -539,6 +546,7 @@ Model IDs, parameters, limits, prices, retention terms, deprecation and retireme
 - **Verify provider facts from current docs** — an unverified model ID, parameter, limit, date or price is `NOT VERIFIABLE`, never a finding or an approval.
 - **Untrusted in, untrusted out** — every input to the context may carry instructions and every output is untrusted at every sink; the boundary is code with the end user's identity, not a prompt or a guardrail.
 - **Bound everything and eval every change** — steps, tokens, time, cost, retries, fan-out; no prompt, model, retrieval or tool change without an eval delta, trace and kill switch.
+- **Retrieval is not truth** — RAG only where a query, tool or in-prompt corpus will not do; gate evidence, abstain when it is insufficient, check claims against sources, never claim zero hallucinations.
 - **Human gate or undo for irreversible actions**, and route `[LEGAL-OWNER]` questions to the compliance owner rather than deciding them.
 - **Project decisions outrank this catalog**; cite `file:line`, the clause and the checklist check id for every finding (a `K-` id only as the rationale pointer), take severity from the checklist, calibrate with `.claude/docs/ai-engineering-calibration.md`, and never invent a measurement.
 
@@ -546,7 +554,7 @@ Model IDs, parameters, limits, prices, retention terms, deprecation and retireme
 
 ## Source key index
 
-Every URL below appears in the research reports. `(secondary)` marks a secondary or search-snippet source, `(weak)` a Tier-3 or single-vendor source; treat rows citing those keys as prompts to verify.
+Every URL below appears in the research reports, except keys marked `(checked <date>)`, which were added later and read at the primary source on that date. `(secondary)` marks a secondary or search-snippet source, `(weak)` a Tier-3 or single-vendor source; treat rows citing those keys as prompts to verify.
 
 **Provider docs — Anthropic**
 - CL-BP https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices
@@ -714,6 +722,10 @@ Every URL below appears in the research reports. `(secondary)` marks a secondary
 - TIANPAN-DEBT https://tianpan.co/blog/2026/04/18/retrieval-debt-rag-pipeline-silent-degradation (weak)
 - FUTUREAGI https://futureagi.com/glossary/query-rewriting/ (weak)
 - ARX-QR https://arxiv.org/pdf/2411.13154
+- ARX-CRAG https://arxiv.org/abs/2401.15884 (checked 2026-10-28)
+- ARX-SUFFICIENT https://arxiv.org/abs/2411.06037 (checked 2026-10-28; ICLR 2025)
+- ARX-LEGAL-RAG https://arxiv.org/abs/2405.20362 (checked 2026-10-28)
+- ARX-STAIR https://arxiv.org/abs/2609.03874 (checked 2026-10-28; single preprint, retrieval metrics only)
 - LANGFUSE https://langfuse.com/docs/observability/overview
 - LANGFUSE-PROMPT https://langfuse.com/docs/prompt-management/overview
 - OTEL-BLOG https://opentelemetry.io/blog/2026/genai-observability/
