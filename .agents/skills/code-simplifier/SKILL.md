@@ -50,7 +50,7 @@ description: '[Code Quality] Use when a workflow step or the user asks for code 
 
 **Key Rules:**
 
-- **AI surface?** Only if the code holds a model call, prompt, agent, tool/MCP, retrieval or eval (see `node .claude/scripts/ai-signal-scan.cjs`): read `.claude/skills/shared/protocols/ai-engineering-gate.md`; never simplify away a timeout, retry bound, step or cost cap, output validation or approval gate; otherwise skip this line.
+- **AI surface?** Only if the code holds a model call, prompt, agent, tool/MCP, retrieval or eval (see `node .claude/scripts/ai-signal-scan.cjs`): read `.claude/skills/shared/protocols/ai-engineering-gate.md`; never simplify away a timeout, retry bound, step or cost cap, output validation, approval gate or retrieval evidence check; otherwise skip this line.
 - Preserve all existing functionality — no behavior changes
 - Apply conventions supported by `docs/project-config.json`, its referenced project docs, and relevant existing code; treat an explicit N/A or absent stack as a signal to verify the target, not as a missing pattern to invent
 - Easy to Change is the primary simplification goal for source files; DRY, SOLID, abstraction, and patterns are valid only when they lower future edit sites or cognitive load

@@ -219,6 +219,8 @@ test('TC-DOCROOT-037: scan scope covers CLAUDE.md and project-reference, and exc
         // Fixture trees that legitimately hardcode the DEFAULT to prove the default still works.
         writeFixture(root, '.claude/hooks/tests/docs/project-config.json', bare);
         writeFixture(root, '.claude/skills/fixture/tests/case.md', bare);
+        writeFixture(root, '.claude/scripts/tests/default-root.test.cjs', bare);
+        writeFixture(root, '.claude/scripts/codex/tests/default-root.test.mjs', bare);
         writeAllowlist(root, {});
 
         const clean = invoke(root);
@@ -228,13 +230,17 @@ test('TC-DOCROOT-037: scan scope covers CLAUDE.md and project-reference, and exc
         // Both non-`.claude` scan roots must be reachable.
         writeFixture(root, 'CLAUDE.md', bare);
         writeFixture(root, 'docs/project-reference/spec-system-reference.md', bare);
+        writeFixture(root, '.claude/scripts/runtime.cjs', bare);
+        writeFixture(root, '.claude/scripts/test-support/runtime.cjs', bare);
 
         const dirty = invoke(root, ['--json']);
         assert.equal(dirty.status, 1, dirty.output);
         const report = JSON.parse(dirty.stdout);
         assert.equal(report.perFile['CLAUDE.md'], 1);
         assert.equal(report.perFile['docs/project-reference/spec-system-reference.md'], 1);
-        assert.equal(Object.keys(report.perFile).length, 2, JSON.stringify(report.perFile));
+        assert.equal(report.perFile['.claude/scripts/runtime.cjs'], 1);
+        assert.equal(report.perFile['.claude/scripts/test-support/runtime.cjs'], 1);
+        assert.equal(Object.keys(report.perFile).length, 4, JSON.stringify(report.perFile));
     } finally {
         cleanup(root);
     }

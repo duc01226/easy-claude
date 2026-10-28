@@ -2,6 +2,8 @@
 
 > Read before reviewing, auditing or scoring this framework's skills, hooks or root instructions against Anthropic, OpenAI or Agent Skills guidance. It states how to measure, which designs are intended and which limits are known and already decided, so a review spends its effort on new findings and reports no false ones.
 
+Read [framework-benchmark](../skills/framework-benchmark/SKILL.md) when a review needs paired whole-task outcome, resource and independent quality evidence, including greenfield initialization or brownfield project setup. It defaults to a logged-in native Claude Code or Codex CLI with optional Docker; [running an experiment](../skills/framework-benchmark/references/running.md) owns runtime selection, trust boundaries and cleanup. This runner complements the narrow skill corpus; its presence, mechanical checks or a login probe imply no live effectiveness result.
+
 ## Contents
 
 - [Measure what a session loads](#measure-what-a-session-loads)

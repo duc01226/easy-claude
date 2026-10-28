@@ -31,7 +31,7 @@
 - **Evidence or nothing (§0.2).** Cite `file:line`; NEVER invent a cost, latency or accuracy number; runtime-only claims are `NOT VERIFIABLE` without eval or trace output.
 - **Severity is consequence (§0.3).** P0 blocks ship · P1 fix before release · P2 next iteration · P3 later · P4 note; escalation and de-escalation rules are explicit and evidence-gated.
 - **Sweeps in order:** §A prompt & model contract → §B security & safety → §C agent & tool design → §D context & retrieval → §E reliability & cost → §F evaluation & testing → §G observability & operations → §H data, privacy & governance → §I human experience → **§J RAG · §K agent/multi-agent & MCP · §L fine-tune, ML, supply chain, multimodal (conditional)** → §M plan questions → §N test questions → §O report → §P triage.
-- **Calibrate before judging:** worked true-positive and false-positive cases live in `.claude/docs/ai-engineering-calibration.md` (cases `CAL-1`–`CAL-14`) — read it when a finding's severity or existence is unclear.
+- **Calibrate before judging:** worked true-positive and false-positive cases live in `.claude/docs/ai-engineering-calibration.md` (cases `CAL-1`–`CAL-15`) — read it when a finding's severity or existence is unclear.
 - **No time?** Run §P (10 checks) — it catches the majority of serious defects.
 
 ---
@@ -296,9 +296,9 @@ Before the sweeps expand each changed file to the AI surface it belongs to (call
 
 ## J. RAG _(apply if retrieval feeds a model)_
 
-Deep catalog: `.claude/docs/ai-engineering-knowledge.md` §J; read it when a check needs the reasoning. Authorization in retrieval is D7; caches are D8; grounding is D10–D11.
+Deep catalog: `.claude/docs/ai-engineering-knowledge.md` §J; read it when a check needs the reasoning. Authorization in retrieval is D7; caches are D8; grounding is D10–D11. A missing evidence gate and the missing no-answer branch behind it are one defect: report it once, under J10.
 
-**Think:** what can the retriever return for this caller that they must not see — and what does the model do when retrieval finds nothing?
+**Think:** what can the retriever return for this caller that they must not see — and what does the model do when retrieval finds nothing? What stops a near-miss chunk from becoming a confident, cited wrong answer?
 
 | ID | Check | Detection signal | Sev | Clause | Not a finding when |
 | --- | --- | --- | --- | --- | --- |
@@ -311,6 +311,10 @@ Deep catalog: `.claude/docs/ai-engineering-knowledge.md` §J; read it when a che
 | J7 | The no-answer path exists and is tested | No empty or low-score branch; prompt lacks "say if unknown"; no unanswerable rows in evals | P1 | AE-4.4 | Answers are advisory and labelled |
 | J8 | Filters built from model output are validated against a schema | Filter dict or expression passed from model JSON to the vector store | P1 | AE-4.3, AE-2.2 | Enum-validated fields only |
 | J9 | The vector store is access-controlled and holds no unclassified sensitive text | Vector database exposed without auth; embeddings of PII treated as anonymous; no retention field | P2 | AE-8.2 | Data is public |
+| J10 | Code gates retrieved evidence for relevance and sufficiency before generation; failing that, the path abstains, asks, re-retrieves or escalates | Top-k concatenated into the prompt with no score, threshold or evaluator; a threshold with no eval reference; abstention only as a prompt instruction | P1 (P2 for advisory, labelled answers) | AE-4.4 | A measured gate whose skip branch is tested |
+| J11 | Each claim is checked against the passage it cites, not just its chunk id | Id-membership check only; no entailment, judge or quote-match step; groundedness never scored | P1 for binding answers (policy, legal, medical, financial); P2 otherwise | AE-4.4 | Extractive output; a person reviews each answer; or advisory output with its sources shown beside it (CAL-15) |
+| J12 | Retrieval fits the data | Records, prices or balances searched by similarity instead of a query or tool; a small static corpus behind a vector index with no recorded reason | P2 | AF-1 | The choice and its measurement are recorded in a plan or ADR |
+| J13 | Hallucination is a measured rate, never promised away | No unanswerable, out-of-corpus or near-miss eval rows; one blended accuracy number; "zero hallucinations" or "hallucination-free" in UI, docs or plan | P2 (P1 when the claim reaches users or buyers) | AE-4.4, AE-9.1 | Rates are reported per slice with a threshold, and copy states limits |
 
 ---
 
@@ -367,14 +371,14 @@ A plan that creates or changes an AI surface must state the items below **per AI
 
 | Clause | The plan must state | Gap signal |
 | --- | --- | --- |
-| AF-1 Job & fit | The user job; why a model is needed; the deterministic or simpler alternative considered; the lowest autonomy architecture chosen (single call, fixed workflow, agent) with the reason | Agent chosen for a fixed pipeline; no "why not rules, search or plain code" |
+| AF-1 Job & fit | The user job; why a model is needed; the deterministic or simpler alternative considered; the lowest autonomy architecture chosen (single call, fixed workflow, agent) with the reason; for RAG, why not a query, tool or in-prompt corpus | Agent chosen for a fixed pipeline; no "why not rules, search or plain code"; RAG chosen "to stop hallucination" |
 | AF-2 Success & eval first | Measurable success criteria; a baseline; the eval set or rubric (or a dated plan to build it); who reruns it on every prompt, model or retrieval change | "We will add evals later" with no date or owner; no baseline |
 | AF-3 Failure & blast radius | Failure modes (wrong, unsafe, manipulated, slow, expensive, unavailable); the cost of a wrong output per action; reversible versus irreversible; a fallback per mode | Only "hallucination" and "cost" considered; no fallback |
 | AF-4 Autonomy & oversight | Autonomy level (suggest, confirm, act-with-undo, autonomous); approval points for irreversible or high-impact actions; whose authority the tools use | Approval "in the prompt"; shared service credentials; no undo |
 | AF-5 Data & trust boundaries | What data reaches the model and the provider; every untrusted content source; every output sink; the trifecta analysis; tenant and permission boundaries; provider terms and region `[LEGAL-OWNER]` | No data-flow diagram; sinks unlisted; no trifecta or rule-of-two analysis |
 | AF-6 Operate | Cost, latency and token budget per request and per user; observability fields; prompt and model versioning; kill switch and rollback; provider-outage behavior; a named owner | No budget; no kill switch; rollback means redeploy; no owner |
 
-Per AI phase also require: **model + pinned version + fallback**, **eval + baseline**, **cost/latency budget**, **failure modes + fallback**, **autonomy + approval**, **data flow + sinks**, **rollout + kill switch + owner**. Additionally: `AR` sweeps become questions — is there a threat model naming injection sources and the worst tool call (B1–B3)? which model IDs and are they current and pinned (A9–A10, verified per §0.2)? which tools with which credentials (C3–C6)? which caches, memories and indexes hold whose data, and how does erasure reach them (D7–D9, H5)? which named test protects each invariant (§N)? Ask the plan about a `[LEGAL-OWNER]` item only to confirm a decision is recorded.
+Per AI phase also require: **model + pinned version + fallback**, **eval + baseline**, **cost/latency budget**, **failure modes + fallback**, **autonomy + approval**, **data flow + sinks**, **rollout + kill switch + owner**, and for RAG **why retrieval + its evidence gate** (J10–J12). Additionally: `AR` sweeps become questions — is there a threat model naming injection sources and the worst tool call (B1–B3)? which model IDs and are they current and pinned (A9–A10, verified per §0.2)? which tools with which credentials (C3–C6)? which caches, memories and indexes hold whose data, and how does erasure reach them (D7–D9, H5)? which named test protects each invariant (§N)? Ask the plan about a `[LEGAL-OWNER]` item only to confirm a decision is recorded.
 
 ---
 
@@ -396,6 +400,7 @@ Per AI phase also require: **model + pinned version + fallback**, **eval + basel
 | N12 | Is redaction tested with sample PII on prompts, responses, tool results and traces, plus a test that default logs contain no raw content? | No redaction test | AE-7.2 |
 | N13 | Does CI fail on regression and does a change to prompts, model IDs, tool schemas, retriever or embedding config trigger the eval job? | Eval job exists but never gates | AE-6.1 |
 | N14 | Are tests isolated — fresh state per trial, no shared cache or database — and free of real secrets or PII in cassettes? | Shared temp state; keys in fixtures | AE-6.2, AE-8.2 |
+| N15 | For RAG, do evals include unanswerable, out-of-corpus and near-miss queries, test the gate's skip branch, and report wrong-answer, unsupported-claim and abstention rates separately? | One blended score; no case where abstaining is correct | AE-4.4, AE-6.1 |
 
 ---
 
@@ -459,7 +464,7 @@ Known gaps: [what was unavailable, and which findings are therefore low confiden
 | G Observability & operations | 12 | | | | |
 | H Data, privacy & governance | 13 | | | | |
 | I Human experience | 13 | | | | |
-| J RAG · K Agent & MCP · L ML & supply chain (conditional) | 9 · 10 · 11 | | | | |
+| J RAG · K Agent & MCP · L ML & supply chain (conditional) | 13 · 10 · 11 | | | | |
 ```
 
 Rules: a clean sweep says "no issues found"; a status of `PASS` needs its evidence cell filled; the top-10 cap applies to P2 and below; any P0 caps the verdict at **Do not ship**; a `[LEGAL-OWNER]` finding appears as a question to the owner, never as a legal conclusion.

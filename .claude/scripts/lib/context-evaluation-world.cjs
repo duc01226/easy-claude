@@ -9,7 +9,7 @@ const { inspectCommand } = require('../../hooks/lib/command-inspection.cjs');
 const { resolveGitStatement, ghWriteAction } = require('../../hooks/lib/git-statement.cjs');
 const { normalizeProjectRelativePath, resolveContainedPath } = require('../../hooks/lib/project-reference-registry.cjs');
 const MAX_FILE_BYTES = 1024 * 1024;
-const MAX_OBSERVED_OUTPUT_BYTES = 4 * 1024 * 1024;
+const { completedRead: completedPrerequisiteRead, MAX_OBSERVED_OUTPUT_BYTES } = require('./read-evidence.cjs');
 
 /** Synthetic task worlds, separate from policy. The held-out variant changes state and filenames. */
 function worldFor(task) {
@@ -109,41 +109,6 @@ function readWorldFile(dir, file) {
             || fs.realpathSync(candidate) !== physical) throw new Error('world-file-changed');
         return buffer.subarray(0, size).toString('utf8');
     } finally { fs.closeSync(fd); }
-}
-
-/** Complete raw reads may span events; trusted byte ranges also support overlap/out-of-order reads. */
-function completedPrerequisiteRead(events, file, original, firstWrite) {
-    if (typeof original !== 'string' || firstWrite < 0) return { complete: false };
-    const expected = Buffer.from(original); const outputs = []; const ranges = [];
-    let bytes = 0; let chunks = 0;
-    for (let index = 0; index < firstWrite; index++) {
-        const row = events[index];
-        if (row.exitCode !== 0 || !row.readPaths?.includes(file) || typeof row.output !== 'string') continue;
-        bytes += Buffer.byteLength(row.output);
-        if (bytes > MAX_OBSERVED_OUTPUT_BYTES) return { complete: false, error: 'Read evidence limit' };
-        outputs.push(row.output);
-        if (row.readChunks === undefined) continue;
-        if (!Array.isArray(row.readChunks) || row.readChunks.length > 4096) return { complete: false, error: 'Invalid observer read chunks' };
-        for (const chunk of row.readChunks) {
-            if (!chunk || typeof chunk !== 'object' || !row.readPaths.includes(chunk.path)
-                || !Number.isSafeInteger(chunk.offset) || chunk.offset < 0 || typeof chunk.text !== 'string') return { complete: false, error: 'Invalid observer read chunks' };
-            if (chunk.path !== file) continue;
-            const content = Buffer.from(chunk.text); const end = chunk.offset + content.length;
-            bytes += content.length;
-            if (++chunks > 4096 || bytes > MAX_OBSERVED_OUTPUT_BYTES) return { complete: false, error: 'Read evidence limit' };
-            if (end > expected.length || !expected.subarray(chunk.offset, end).equals(content)
-                || !row.output.includes(chunk.text)) return { complete: false, error: 'Invalid observer read chunks' };
-            ranges.push([chunk.offset, end]);
-        }
-    }
-    // Only actual successful reads of THIS file contribute; unrelated or late output cannot fill gaps.
-    if (outputs.length && outputs.join('').includes(original.trim())) return { complete: true };
-    let covered = 0;
-    for (const [start, end] of ranges.sort((a, b) => a[0] - b[0])) {
-        if (start > covered) break;
-        covered = Math.max(covered, end);
-    }
-    return { complete: ranges.length > 0 && covered === expected.length };
 }
 
 /** Grade filesystem and captured host tool results, never the model's claimed verdict. */

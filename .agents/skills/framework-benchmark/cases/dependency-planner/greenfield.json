@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "id": "dependency-planner-greenfield",
+  "kind": "greenfield",
+  "projectMode": "greenfield",
+  "checksDir": "checks",
+  "prompt": "Build a complete new dependency-planning Node project from this brief, including package.json with nonempty name/version and a scripts.test command using node --test, 1–200 executable .test.cjs/.test.js/.test.mjs files using Node built-in tests, README.md with API and CLI usage, and a public CLI. Provide planner.cjs exporting formatOrder(ids), which joins string IDs with \" -> \" and throws TypeError on non-array/non-string elements, and createPlanner. There is no existing application. createPlanner(tasks=[]) returns add(task), remove(id), plan(targetIds?), snapshot(). A task is {id, requires?: string[]}; IDs match /^[A-Za-z][A-Za-z0-9_-]{0,63}$/. Validate all initial tasks together, allowing forward references. Reject malformed tasks/IDs/requirements with error.code INVALID_TASK, repeated IDs or requirements with DUPLICATE_TASK, unknown IDs/dependencies/targets with UNKNOWN_TASK, self/cyclic dependencies with CYCLE, and removal of an in-use task with IN_USE. Rejected operations leave state unchanged. add accepts one task and may depend only on existing tasks. remove rejects unknown IDs. plan() returns all IDs in a deterministic topological order, choosing the lexicographically smallest ready ID at each step. plan(targetIds) returns only the targets and their transitive prerequisites in that same order; [] returns []. snapshot() returns tasks sorted by ID, each with sorted requires. Do not mutate caller inputs; returned values cannot mutate planner state. Support at least 1000 tasks without recursion overflow. Add meaningful public tests for behavior, invalid input, atomicity, boundaries and regressions. Choose a maintainable solution appropriate to this project, document usage and tradeoffs. Also provide bin/plan.cjs: read one JSON object from stdin with tasks and optional targets, print exactly the JSON order array to stdout; malformed JSON/request errors emit INVALID_INPUT on stderr and exit nonzero, while planner domain failures emit their error.code on stderr and exit nonzero. Do not ask questions; decide routine details and finish implementation and checks autonomously.",
+  "treatment": "Use workflow-greenfield-init to initialize and scaffold the project, then continue the implementation needed to finish the complete brief. Include the framework project configuration and reference docs, tests, review and verification. Decide reversible details autonomously; do not publish or commit.",
+  "expectedSkills": [
+    "workflow-greenfield-init"
+  ],
+  "checks": [
+    {
+      "id": "new-project-acceptance",
+      "kind": "acceptance",
+      "baseline": "fail",
+      "argv": [
+        "node",
+        "/checks/greenfield.cjs"
+      ],
+      "timeoutMs": 30000
+    },
+    {
+      "id": "format-regression",
+      "kind": "regression",
+      "baseline": "pass",
+      "argv": [
+        "node",
+        "/checks/greenfield-regression.cjs"
+      ],
+      "timeoutMs": 10000
+    }
+  ]
+}
