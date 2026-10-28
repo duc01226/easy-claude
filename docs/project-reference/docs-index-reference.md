@@ -15,7 +15,7 @@ Read this index when locating the authoritative document for a project question 
 - Resolve configured roots; regenerate category globs into a normalized unique-path union.
 - Compare broad `docs/**/*.md` results with the category union and expose every remainder.
 - Verify relationships and lookup paths; keep every path real, unique, and traceable to the current tree.
-- Index 576 unique authored Markdown files across 13 categories; `docs/` contains 62 files with 0 uncategorized. Design System is a one-file Project Reference subset counted once.
+- Index <!-- COUNT:markdown:authored -->577<!-- /COUNT --> unique authored Markdown files across 13 categories; `docs/` contains <!-- COUNT:markdown:docs -->63<!-- /COUNT --> files with 0 uncategorized. Design System is a one-file Project Reference subset counted once.
 
 ## Contents
 
@@ -45,7 +45,7 @@ Read this index when locating the authoritative document for a project question 
 
 ## Documentation System
 
-576 unique authored markdown files across 13 indexed categories. Last scanned: 2026-10-22.
+<!-- COUNT:markdown:authored -->577<!-- /COUNT --> unique authored markdown files across 13 indexed categories. Last scanned: 2026-10-22.
 
 **Relocatable roots.** Resolve these configurable roots before running their category globs:
 
@@ -68,9 +68,9 @@ The **Reproducible scope** column states each glob relative to its category's ro
 | Templates              |              1 | `**/*.md` under the templates root                                                    |
 | Release Notes          |              3 | `docs/release/**/*.md` + `docs/release-notes/**/*.md`                                 |
 | Knowledge Reports      |              1 | `docs/knowledge/**/*.md`                                                             |
-| Knowledge Packs        |              1 | `*.md` in the packs directory named by `knowledge-base-reference.md` (default `docs/knowledge-base/`) |
+| Knowledge Packs        | <!-- COUNT:markdown:knowledge-packs -->2<!-- /COUNT --> | `*.md` in the packs directory named by `knowledge-base-reference.md` (default `docs/knowledge-base/`) |
 | Framework Docs         |             43 | `.claude/docs/**/*.md`                                                                |
-| Skill Markdown         |            468 | `rg --files .claude/skills -g '*.md'`                                                 |
+| Skill Markdown         | <!-- COUNT:markdown:skills -->468<!-- /COUNT --> | `rg --files .claude/skills -g '*.md'`                                                 |
 
 The unique total is the normalized union returned by `rg --files` for Root-Level Docs, all `docs/**/*.md`, Framework Docs, and Skill Markdown. Design System is nested inside Project Reference, so its count is informative rather than additive. For this inventory, the authored/tracked scope includes generated protocol projections deliberately published as reader-facing documentation; Codex/OpenCode mirrors are excluded. Ignored dependency artifacts such as skill-local `.venv/` files are excluded.
 
@@ -83,7 +83,7 @@ easy-claude/
 ├── AGENTS.md                                      # Codex/agent instructions
 ├── CLAUDE.md                                      # Claude project instructions
 ├── README.md                                      # Project overview and adoption entry point
-├── docs/                                          # 61 markdown files
+├── docs/                                          # <!-- COUNT:markdown:docs -->63<!-- /COUNT --> markdown files
 │   ├── adr/                                       # 8 architecture decisions
 │   │   ├── 0001-skill-lifecycle.md
 │   │   ├── 0002-canonical-count-metrics.md
@@ -153,8 +153,7 @@ easy-claude/
 │   │       └── README.ReviewQuality.md
 │   ├── knowledge/research/                        # 1 project research report
 │   │   └── ai-agent-skills-best-and-bad-practices.md
-│   ├── knowledge-base/                            # 1 project knowledge pack + generated index.json
-│   │   └── incremental-scaling.md
+│   ├── knowledge-base/                            # project knowledge packs + generated index.json; each pack is listed in knowledge-base-reference.md
 │   └── templates/                                 # 1 Feature Spec template
 ├── .claude/docs/                                  # 43 framework docs
 │   ├── 24 direct framework guides
@@ -163,7 +162,7 @@ easy-claude/
 │   ├── hooks/                                     # 3
 │   ├── skills/                                    # 2
 │   └── team-artifacts/templates/                  # 6
-└── .claude/skills/                                # 468 authored/tracked markdown assets
+└── .claude/skills/                                # <!-- COUNT:markdown:skills -->468<!-- /COUNT --> authored/tracked markdown assets
 ```
 
 Absent whitelist branches: Operations only.

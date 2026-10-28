@@ -77,7 +77,66 @@
           "heading": "KB-SCALE-9 Reading scaling roadmaps"
         }
       ],
-      "hash": "fbac750f2e8ffa66"
+      "hash": "25571934de2bfeeb"
+    },
+    {
+      "id": "single-server-capacity",
+      "title": "Single-server capacity — memory and GC cap concurrency before CPU",
+      "description": "Use when sizing how many concurrent users one server holds, load or capacity testing it, or diagnosing throughput that stops growing with more cores",
+      "kind": "practice",
+      "review": "unreviewed",
+      "reviewed": "2026-10-28",
+      "labels": [
+        "unreviewed"
+      ],
+      "sourceKinds": [
+        "file"
+      ],
+      "file": "docs/knowledge-base/single-server-capacity.md",
+      "body": null,
+      "triggers": {
+        "prompt": [
+          "concurrent users",
+          "connection pool",
+          "garbage collection",
+          "memory pressure",
+          "virtual threads",
+          "capacity test"
+        ],
+        "intent": [],
+        "skills": [
+          "performance-review",
+          "performance-test",
+          "production-readiness-review"
+        ],
+        "agents": [
+          "performance-optimizer",
+          "performance-tester"
+        ]
+      },
+      "clauses": [
+        {
+          "id": "KB-CAP-1",
+          "heading": "KB-CAP-1 Capacity test method"
+        },
+        {
+          "id": "KB-CAP-2",
+          "heading": "KB-CAP-2 Measured results (one benchmark, standard configurations, users held)"
+        },
+        {
+          "id": "KB-CAP-3",
+          "heading": "KB-CAP-3 Memory pressure and GC"
+        },
+        {
+          "id": "KB-CAP-4",
+          "heading": "KB-CAP-4 Middleware and per-connection overhead"
+        },
+        {
+          "id": "KB-CAP-5",
+          "heading": "KB-CAP-5 Database placement"
+        }
+      ],
+      "hash": "cfe6a2c981065643"
     }
   ]
 }

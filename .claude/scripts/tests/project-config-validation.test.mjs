@@ -19,8 +19,8 @@ const { resolveSpecArtifactProfile, matchesSpecArtifactIdentifier, SpecArtifactP
 //
 // This suite lives under the existing `scripts-tests` stage of `npm run verify:all`
 // (`run-codex-sync.mjs` stage `scripts-tests` expands `.claude/scripts/tests/*.test.{mjs,cjs}`),
-// rather than as a 20th pipeline stage: `verifier-pipeline-wiring.test.mjs:22` pins the roster at
-// 19 stages and `:38` pins the matching prose in the MIRRORED `sync-codex/SKILL.md`, so a new
+// rather than as a new pipeline stage: `verifier-pipeline-wiring.test.mjs` pins the roster's stage
+// count and the matching prose in the MIRRORED `sync-codex/SKILL.md`, so a new
 // stage would turn `codex:verify:sync-divergence` red until the user re-runs `/sync-codex`.
 //
 // Granular surface: `npm run codex:verify:project-config`.

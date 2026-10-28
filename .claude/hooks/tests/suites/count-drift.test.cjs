@@ -19,23 +19,15 @@ const REPO_ROOT = path.resolve(__dirname, '..', '..', '..', '..');
 const SCRIPT = path.join(REPO_ROOT, '.claude', 'scripts', 'generate_catalogs.py');
 
 // Files whose `<!-- COUNT:kind -->` marker regions are checked against filesystem
-// truth. Adding a file here is how a hand-typed inventory figure stops drifting:
-// the guard previously asserted only 6 regexes, so 14 hand-typed counts sat in
-// files it never opened (team-collaboration-guide.md claimed 164 skills against
-// a real 167) while the suite reported 8/8 green.
+// truth. The list has one owner, shared with the sync's `counts` stage that fills the
+// markers, so adding a count-bearing doc is one edit. The guard previously asserted
+// only 6 regexes, so 14 hand-typed counts sat in files it never opened
+// (team-collaboration-guide.md claimed 164 skills against a real 167) while the suite
+// reported 8/8 green.
 // A listed file that is absent is skipped, and `--check-counts` passes a file that
 // carries no markers, so an adopter's own root README (no markers) never fails here.
-const PILOT_FILES = [
-    'CLAUDE.md',
-    'README.md',
-    'docs/project-reference/project-structure-reference.md',
-    '.claude/docs/README.md',
-    '.claude/docs/claude-ai-agent-framework-guide.md',
-    '.claude/docs/hooks/README.md',
-    '.claude/docs/skills/README.md',
-    '.claude/docs/team-collaboration-guide.md',
-    '.claude/docs/universal-setup-guide.md'
-];
+const { countMarkerFiles } = require('../../../scripts/lib/count-marker-files.cjs');
+const PILOT_FILES = countMarkerFiles(REPO_ROOT);
 
 let pythonCommand = null;
 let readinessError;
@@ -60,11 +52,11 @@ function formatPythonCommand() {
     return [python.command, ...python.baseArgs].join(' ');
 }
 
-function runPython(args, label) {
+function runPython(args, label, { cwd = REPO_ROOT, env = process.env } = {}) {
     const python = resolvePythonCommand();
     const result = spawnSync(python.command, [...python.baseArgs, ...args], {
-        cwd: REPO_ROOT,
-        env: { ...process.env, PYTHONPATH: [yamlModulePath, process.env.PYTHONPATH].filter(Boolean).join(path.delimiter) },
+        cwd,
+        env: { ...env, PYTHONPATH: [yamlModulePath, env.PYTHONPATH].filter(Boolean).join(path.delimiter) },
         encoding: 'utf8',
         timeout: 30000
     });
@@ -215,8 +207,62 @@ function listProjectReferenceDocs() {
     return out.sort();
 }
 
+/**
+ * A throwaway project for the `markdown` count kind: the catalog tool plus the hook libraries it asks
+ * for the knowledge-pack count, and Markdown files placed to separate every counted scope from what
+ * must not count. Git runs with no system or user config, so a developer's global excludesFile cannot
+ * hide fixture files. `withGit: false` leaves the folder outside any work tree.
+ */
+function makeMarkdownFixture({ withGit = true } = {}) {
+    const os = require('os');
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'count-markdown-'));
+    const project = path.join(root, 'project');
+    const write = (rel, text = '# fixture\n') => {
+        const file = path.join(project, ...rel.split('/'));
+        fs.mkdirSync(path.dirname(file), { recursive: true });
+        fs.writeFileSync(file, text);
+    };
+    write('.claude/scripts/generate_catalogs.py', fs.readFileSync(SCRIPT, 'utf8'));
+    fs.cpSync(path.join(REPO_ROOT, '.claude', 'hooks', 'lib'), path.join(project, '.claude', 'hooks', 'lib'), { recursive: true });
+    write('.gitignore', '/tmp/\n');
+    write('README.md');                                // root-level: counted
+    write('docs/guide.md');                            // docs: counted
+    write('docs/knowledge-base/alpha.md');             // docs and a project pack
+    write('docs/knowledge-base/beta.md');              // docs and a project pack
+    write('docs/knowledge-base/README.md');            // docs, but never a pack
+    write('docs/gone.md');                             // tracked, then deleted below: not on disk
+    write('.claude/docs/overview.md');                 // framework docs: counted
+    write('.claude/skills/demo/SKILL.md');             // skill Markdown: counted
+    write('.claude/skills/demo/references/notes.md');  // skill Markdown: counted
+    write('tools/notes.md');                           // outside every counted scope
+    write('tmp/scratch.md');                           // ignored by git
+    const env = {
+        ...process.env,
+        HOME: root, USERPROFILE: root, TMPDIR: root, TEMP: root, TMP: root,
+        GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: path.join(root, 'no-gitconfig'),
+        CLAUDE_PROJECT_DIR: project
+    };
+    if (withGit) {
+        const git = args => {
+            const result = spawnSync('git', args, { cwd: project, env, encoding: 'utf8', timeout: 10000 });
+            if (result.status !== 0) throw new Error(`git ${args.join(' ')} failed: ${result.stderr || result.error}`);
+        };
+        git(['init', '-q']);
+        git(['add', '-A']);
+        git(['-c', 'user.email=fixture@example.invalid', '-c', 'user.name=fixture', '-c', 'commit.gpgsign=false', 'commit', '-q', '-m', 'fixture']);
+    }
+    fs.rmSync(path.join(project, 'docs', 'gone.md'));
+    write('CHANGELOG.md');                             // untracked, not ignored: counted
+    return { root, project, env, script: path.join(project, '.claude', 'scripts', 'generate_catalogs.py') };
+}
+
+/** The text a reader sees: COUNT marker comments removed, their values kept. */
+function renderCountMarkers(text) {
+    return text.replace(/<!--\s*(?:COUNT:[a-z0-9_:-]+|\/COUNT)\s*-->/g, '');
+}
+
 function assertMatches(file, text, pattern, description) {
-    const renderedText = text.replace(/<!--\s*(?:COUNT:[a-z0-9-]+|\/COUNT)\s*-->/g, '');
+    const renderedText = renderCountMarkers(text);
     if (!pattern.test(renderedText)) {
         throw new Error(`${file} is missing current ${description} count matching ${pattern}`);
     }
@@ -465,14 +511,23 @@ const tests = [
                 new RegExp(`\\.claude/skills/\\s*# ${skillCount} authored/tracked markdown assets`),
                 'Skill Markdown tree'
             );
-            const totals = [...docsIndex.matchAll(/(?:Index\s+)?(\d+) unique authored [Mm]arkdown files/g)]
+            const totals = [...renderCountMarkers(docsIndex).matchAll(/(?:Index\s+)?(\d+) unique authored [Mm]arkdown files/g)]
                 .map((match) => Number(match[1]));
 
             // Then both prose totals must agree with the same source of truth.
             if (totals.length !== 2 || totals.some((count) => count !== totalCount)) {
                 throw new Error(
                     `docs-index-reference.md authored Markdown totals are ${JSON.stringify(totals)} but the normalized filesystem union has ${totalCount}.\n` +
-                    'Fix: regenerate via `scan --target=docs-index`.'
+                    'Fix: run the sync (its `counts` stage fills the markers) or regenerate via `scan --target=docs-index`.'
+                );
+            }
+            // And every one of those numbers is a COUNT marker, so adding any authored Markdown file
+            // updates them at the next sync instead of failing it until someone retypes them.
+            const markers = kind => (docsIndex.match(new RegExp(`<!--\\s*COUNT:markdown:${kind}\\s*-->\\d+<!--\\s*/COUNT\\s*-->`, 'g')) || []).length;
+            if (markers('authored') !== 2 || markers('skills') !== 2) {
+                throw new Error(
+                    `docs-index-reference.md must carry both authored totals and both Skill Markdown figures as COUNT:markdown markers; ` +
+                    `found authored=${markers('authored')}, skills=${markers('skills')} (expected 2 each).`
                 );
             }
         }
@@ -499,6 +554,77 @@ const tests = [
                 }
             } finally {
                 fs.rmSync(dir, { recursive: true, force: true });
+            }
+        }
+    },
+    {
+        // Intent: a docs total is filled from git's own file list (tracked plus untracked-not-ignored, still
+        // on disk) in the scopes a docs index reports, and the pack count comes from the knowledge base's
+        // own packs-folder rule, so a new pack or reference file never needs a hand edit.
+        name: '[count-drift] markdown count kind counts authored Markdown per scope and the project knowledge packs',
+        fn: () => {
+            // Given a git project whose files separate each counted scope from ignored, deleted and out-of-scope files.
+            const fx = makeMarkdownFixture();
+            try {
+                const file = path.join(fx.root, 'counts.md');
+                const render = (a, s, d, k) =>
+                    `authored <!-- COUNT:markdown:authored -->${a}<!-- /COUNT -->\n` +
+                    `skills <!-- COUNT:markdown:skills -->${s}<!-- /COUNT -->\n` +
+                    `docs <!-- COUNT:markdown:docs -->${d}<!-- /COUNT -->\n` +
+                    `packs <!-- COUNT:markdown:knowledge-packs -->${k}<!-- /COUNT -->\n`;
+                fs.writeFileSync(file, render(0, 0, 0, 0));
+
+                // When the markers are injected, then checked.
+                const injected = runPython([fx.script, '--inject-counts', file], '--inject-counts fixture', { cwd: fx.project, env: fx.env });
+                const checked = runPython([fx.script, '--check-counts', file], '--check-counts fixture', { cwd: fx.project, env: fx.env });
+
+                // Then: README.md + CHANGELOG.md + 4 under docs/ + 1 framework doc + 2 skill files = 9 authored;
+                // docs/ holds guide, alpha, beta and its README = 4; the packs folder holds 2 packs (README excluded).
+                if (injected.status !== 0) throw new Error(`--inject-counts exited ${injected.status}: ${(injected.stderr || '').trim()}`);
+                const actual = fs.readFileSync(file, 'utf8');
+                const expected = render(9, 2, 4, 2);
+                if (actual !== expected) throw new Error(`markdown counts are wrong.\nexpected: ${JSON.stringify(expected)}\nactual:   ${JSON.stringify(actual)}`);
+                if (checked.status !== 0) throw new Error(`--check-counts reported drift right after injection: ${(checked.stderr || '').trim()}`);
+            } finally {
+                fs.rmSync(fx.root, { recursive: true, force: true });
+            }
+        }
+    },
+    {
+        // Intent: without git there is no authoritative file list, so the tool refuses rather than guessing
+        // from a directory walk (which would count ignored and build output) and leaves the file as it was.
+        name: '[count-drift] markdown count kind refuses outside a git work tree and leaves the file unchanged',
+        fn: () => {
+            const fx = makeMarkdownFixture({ withGit: false });
+            try {
+                const file = path.join(fx.root, 'counts.md');
+                const before = 'total <!-- COUNT:markdown:authored -->0<!-- /COUNT -->\n';
+                fs.writeFileSync(file, before);
+                const result = runPython([fx.script, '--inject-counts', file], '--inject-counts no-git fixture', { cwd: fx.project, env: fx.env });
+                if (result.status === 0) throw new Error('--inject-counts must fail when git cannot list the project files');
+                if (!/git/i.test(result.stderr || '')) throw new Error(`the failure must name git as the missing file list; stderr: ${(result.stderr || '').trim()}`);
+                if (fs.readFileSync(file, 'utf8') !== before) throw new Error('a refused injection must not rewrite the file');
+            } finally {
+                fs.rmSync(fx.root, { recursive: true, force: true });
+            }
+        }
+    },
+    {
+        // Intent: a mistyped marker fails loudly. Filled with 0 instead, it would agree with every
+        // later check of the same marker and the wrong figure would never be caught.
+        name: '[count-drift] markdown count kind refuses an unknown filter and leaves the file unchanged',
+        fn: () => {
+            const fx = makeMarkdownFixture();
+            try {
+                const file = path.join(fx.root, 'counts.md');
+                const before = 'typo <!-- COUNT:markdown:authord -->7<!-- /COUNT -->\n';
+                fs.writeFileSync(file, before);
+                const result = runPython([fx.script, '--inject-counts', file], '--inject-counts unknown filter', { cwd: fx.project, env: fx.env });
+                if (result.status === 0) throw new Error('--inject-counts must fail on an unknown markdown filter');
+                if (!/needs a filter/.test(result.stderr || '')) throw new Error(`the failure must name the accepted filters; stderr: ${(result.stderr || '').trim()}`);
+                if (fs.readFileSync(file, 'utf8') !== before) throw new Error('a refused injection must not rewrite the file');
+            } finally {
+                fs.rmSync(fx.root, { recursive: true, force: true });
             }
         }
     },

@@ -8,6 +8,8 @@ reviewed: 2026-10-26
 sources:
   - kind: file
     ref: "Pasted post 'When Backend Load Grows: How to Decompose and Scale a System from 1 to 10 Million Users' (Architecture Corner), summarizing AWS re:Invent 2019 ARC211-R by Brian Farnhill and Hong Pham"
+  - kind: file
+    ref: "Pasted post 'How many of 1,000,000 users can a 16-core server handle?' summarizing Arjay McCandless's open-source Social Media API benchmark"
 triggers:
   prompt: [scale out, scale up, horizontal scaling, vertical scaling, read replica, database sharding, scalable system, scaling roadmap]
   skills: [architecture, performance-review, production-readiness-review]
@@ -26,11 +28,14 @@ triggers:
 ## KB-SCALE-1 Starting point
 
 - Day one: application and database on separate instances.
+- The split has a measured cost: network I/O, driver and connection-pool overhead lowered one server's capacity for 5 of 6 stacks; tuning won back only part of it (pack `single-server-capacity` KB-CAP-5).
 - Default to a relational database (mature, rich tooling, decades of proven scaling patterns); pick SQL vs NoSQL by access patterns and data model.
 
 ## KB-SCALE-2 Scale up first
 
 No architecture or code change, but a hardware ceiling, diminishing returns and still a single point of failure.
+
+More cores help only a CPU-bound process; in one benchmark at hundreds of thousands of connections, memory pressure and GC capped one server before CPU (pack `single-server-capacity`).
 
 ## KB-SCALE-3 Managed services and redundancy
 

@@ -174,7 +174,7 @@ Unprefixed filenames resolve inside the project-reference docs root — default 
 | Agents                 | <!-- COUNT:agents -->25<!-- /COUNT --> |
 | Workflows              | <!-- COUNT:workflows -->17<!-- /COUNT --> |
 | Hook Tests             | 133   |
-| Hook Test Files        | 128 suites + 9 top-level test files |
+| Hook Test Files        | 129 suites + 9 top-level test files |
 | Framework Markdown Files | 43 (`.claude/docs/**/*.md`) |
 
 ---

@@ -3,7 +3,7 @@
 // TC-DOCROOT-038 is also this phase's BUILD GATE. The runner's `tests` stage executes
 // `node --test` over this directory and that stage is inside `npm run verify:all`, so asserting a
 // green verifier run against the REAL repository here makes the residue check build-gating without
-// adding a pipeline stage — the 19-stage roster and the mirrored sync-codex skill doc stay untouched.
+// adding a pipeline stage — the stage roster and the mirrored sync-codex skill doc stay untouched.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';

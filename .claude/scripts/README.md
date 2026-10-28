@@ -165,7 +165,8 @@ python .claude/scripts/generate_catalogs.py --skills --output .claude/SKILLS.yam
 # Verify committed catalog matches regeneration
 python .claude/scripts/generate_catalogs.py --skills --check .claude/SKILLS.yaml
 
-# Refresh/check marker-region inventory counts
+# Refresh/check marker-region inventory counts (the sync's `counts` stage refreshes every document
+# listed in .claude/scripts/lib/count-marker-files.cjs; run this for one file by hand)
 python .claude/scripts/generate_catalogs.py --inject-counts CLAUDE.md
 python .claude/scripts/generate_catalogs.py --check-counts CLAUDE.md
 

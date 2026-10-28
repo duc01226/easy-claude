@@ -27,7 +27,7 @@ description: '[Codex] Use once, after the `.claude/**` edits of a change are fin
 
 **Summary:**
 
-- Run the 19-stage orchestrator in order; stage 1 reconciles `CLAUDE.md`, stages 2-4 generate the Codex mirrors, and stages 5-19 run tests and read-only release gates.
+- Run the 20-stage orchestrator in order; stage 1 reconciles `CLAUDE.md`, stages 2-4 generate the Codex mirrors, stage 5 fills the COUNT markers of the listed docs, and stages 6-20 run tests and read-only release gates.
 - Keep `.claude` canonical and source-owned; never hand-edit `.agents`, `.codex`, or `AGENTS.md`, and expect Claude slash invocations to become Codex dollar invocations only in generated mirrors.
 - Keep `AGENTS.md` discoverable under Codex's read budget: it is the project-information projection of `CLAUDE.md` (Doc Lookup and project rules first; universal rules arrive by hook, never through this file); fix a discovery defect in `CLAUDE.md`, its template, or the projection script, then re-sync.
 - If a stage fails, rerun that stage with `--only=<stage> --verbose`, then rerun the full pipeline and inspect the generated diff before handoff.
@@ -45,12 +45,12 @@ Also upserts the TUI notification and status-line keys into `.codex/config.toml`
 
 **Key Rules:**
 
-- MUST evaluate all 19 stages in order — configured stages fail fast on the first non-zero exit;
+- MUST evaluate all 20 stages in order — configured stages fail fast on the first non-zero exit;
   optional stages emit an explicit `SKIP (not configured)` when the adopter has not declared their contract
 - NEVER edit `.agents/skills/sync-codex/**` (auto-mirror) — edit `.claude/skills/sync-codex/**` source instead
 - `.claude` is the source for skills/workflows/hooks; generated acceptance targets are `.agents/skills/**`, `.codex/agents/*.toml`, `.codex/hooks.json`, and `AGENTS.md`
-- Stage 2 owns only the `.agents/skills/` entries it generates, recorded in `.agents/skills/.codex-mirror.json`: it replaces those and removes the ones whose source is gone. Any other entry (a skill written for Codex only, or installed by another tool) stays as it is, with one `kept .agents/skills/<name>` line shown even without `--verbose`; stage 19 does not compare it. When a `.claude/skills/<name>` source takes the name of such an entry, stage 2 first copies it to `tmp/codex-sync/replaced/<name>` and prints a `replaced` line. An existing `.agents/skills/` folder without the marker (a skills-only project whose folder another tool made) is adopted the same way, never refused
-- Stage 1 may mutate `CLAUDE.md`; stages 2-4 mutate `.agents/skills/`, `.codex/`, `AGENTS.md`; stages 5-19 are read-only (tooling tests,
+- Stage 2 owns only the `.agents/skills/` entries it generates, recorded in `.agents/skills/.codex-mirror.json`: it replaces those and removes the ones whose source is gone. Any other entry (a skill written for Codex only, or installed by another tool) stays as it is, with one `kept .agents/skills/<name>` line shown even without `--verbose`; stage 20 does not compare it. When a `.claude/skills/<name>` source takes the name of such an entry, stage 2 first copies it to `tmp/codex-sync/replaced/<name>` and prints a `replaced` line. An existing `.agents/skills/` folder without the marker (a skills-only project whose folder another tool made) is adopted the same way, never refused
+- Stage 1 may mutate `CLAUDE.md`; stages 2-4 mutate `.agents/skills/`, `.codex/`, `AGENTS.md`; stage 5 rewrites only the `<!-- COUNT:… -->` values of the documents listed in `.claude/scripts/lib/count-marker-files.cjs`; stages 6-20 are read-only (tooling tests,
   optional tech-spec freshness and feature-registry validation, 3 hook-suite gates, the other Codex
   verifiers, and the cross-surface divergence oracle)
 - Stage 2 upserts `[tui].status_line` to show model+reasoning, current directory, project root, context used, five-hour limit, and weekly limit by default
@@ -62,7 +62,7 @@ Also upserts the TUI notification and status-line keys into `.codex/config.toml`
 - Test stages set `CK_FRAMEWORK_MODE=on` only in their child processes so verification still exercises hooks when chat mode is `quiet` or `off`; saved preferences remain unchanged.
 - No npm dependency — pure `node` + spawned subprocesses
 - Idempotent — safe to re-run; second run produces only timestamp diffs
-- **opencode handoff:** when the project has a local `.opencode/` directory, the runner hands off to `$sync-opencode` after all 19 stages pass (its `--verify-only` form under `--verify-only`). The handoff is an integration step, NOT a 20th stage — the 19-stage roster stays fixed
+- **opencode handoff:** when the project has a local `.opencode/` directory, the runner hands off to `$sync-opencode` after all 20 stages pass (its `--verify-only` form under `--verify-only`). The handoff is an integration step, NOT a 21st stage — the 20-stage roster stays fixed
 
 ## Contents
 
@@ -82,7 +82,7 @@ opencode has no shell-command hooks, so its hook surface is a generated JS bridg
 `$sync-opencode` also reconciles the framework's recommended opencode defaults
 (`.opencode/opencode.recommended.json`) into the project-root `opencode.json`. Because a project
 running opencode expects both surfaces to track the framework, a full `$sync-codex` run
-automatically hands off to the opencode pipeline once the 19 Codex stages pass:
+automatically hands off to the opencode pipeline once the 20 Codex stages pass:
 
 ```bash
 # Runs automatically at the end of a full codex sync when .opencode/ exists:
@@ -134,14 +134,14 @@ Stage 2 maps the project config's `skillProfile` onto each skill mirror's `agent
 
 - **No profile, no change.** The resolver loads only when `skillProfile` is declared, so a project without one gets a byte-identical mirror.
 - **Stage 2 also writes tracked Claude source.** When `skillProfile` is declared, or its ledger `.claude/skill-profile.generated.json` exists, stage 2 runs `syncSkillProfile` (`.claude/scripts/sync-skill-profile.cjs`) and writes the `skillOverrides` keys it owns in the tracked `.claude/settings.json`, plus that ledger, so Claude hides the same skills Codex does. It changes them when the profile changed or a framework refresh replaced `settings.json` and dropped the overrides, and then prints `restored Claude skillOverrides (<n> profile entries)`. Review and commit that diff with the change; keys the ledger does not own are never touched, and a checkout without `.claude/settings.json` is skipped.
-- **Refused profile stops everything.** A refusal prints the resolver's message and `skill-profile: nothing was written`, then exits `1` before any mirror, agent or config write — `--no-skills` included. The stage-19 divergence oracle fails the same way.
+- **Refused profile stops everything.** A refusal prints the resolver's message and `skill-profile: nothing was written`, then exits `1` before any mirror, agent or config write — `--no-skills` included. The stage-20 divergence oracle fails the same way.
 - **Fail-closed inputs.** A project config that exists but is not valid JSON fails the sync, because it cannot tell whether the config hides skills; a `.claude/workflows.json` without a `workflows` map fails the resolver.
 - **A skill that ships its own `agents/openai.yaml`** without the policy is kept as it is: the profile is skipped for it with one `conflict:` line.
 
 ## Stages
 
-19 stages, sequential — the complete sync + verify pipeline, owned entirely by this runner.
-Stage 1 reconciles `CLAUDE.md`; stages 2-4 mutate mirrors; 5-19 verify (read-only) and are exactly what `--verify-only` selects, derived from each stage's own `mutate` marker rather than any transcribed list. Tech-spec freshness and feature-registry are optional
+20 stages, sequential — the complete sync + verify pipeline, owned entirely by this runner.
+Stage 1 reconciles `CLAUDE.md`; stages 2-4 mutate mirrors; stage 5 fills count markers; 6-20 verify (read-only) and are exactly what `--verify-only` selects, derived from each stage's own `mutate` marker rather than any transcribed list. Tech-spec freshness and feature-registry are optional
 capabilities: if their configuration contract is absent, the runner records an explicit skip and
 continues; if declared but malformed, their direct verifier fails closed:
 
@@ -151,21 +151,22 @@ continues; if declared but malformed, their direct verifier fails closed:
 | 2   | migrate         | `.claude/scripts/codex/migrate-claude-to-codex.mjs`          | Refresh registry-derived workflow call blocks via `.claude/scripts/lib/workflow-skill-contract.cjs`, then migrate agents → `.codex/agents/`, mirror skills → `.agents/skills/`, setup Codex notifications, and restore the profile's `skillOverrides` in `.claude/settings.json` ([Skill profile on Codex](#skill-profile-on-codex)) |
 | 3   | hooks           | `.claude/scripts/codex/sync-hooks.mjs`                       | Generate `.codex/hooks.json` + sync report                                                           |
 | 4   | context         | `.claude/scripts/codex/sync-context-workflows.mjs`           | Regenerate the `AGENTS.md` project projection of `CLAUDE.md`; remove the retired `.codex/CODEX_CONTEXT.md`   |
-| 5   | tests           | Runner discovers `.claude/scripts/codex/tests/*.test.{mjs,cjs}` | Run Codex tooling tests; missing or empty discovery fails |
-| 6   | scripts-tests   | Runner discovers `.claude/scripts/tests/*.test.{mjs,cjs}` | Run repo-script tests, including review and experience policies; missing or empty discovery fails |
-| 7   | tech-spec-freshness | `.claude/skills/tech-spec/scripts/generate-tech-specs.mjs --check` | Verify configured derived technical views; explicit skip when `techSpecScan` is absent |
-| 8   | feature-registry | `.claude/scripts/codex/verify-feature-registry.mjs --configured-roots` | Verify configured canonical TC/BR identity, continuation parts, split limits, links, ranges, summaries, and coverage; explicit skip when `specSystem.featureRegistryRoots` is absent |
-| 9   | hooks-count-drift | `.claude/hooks/tests/run-all-tests.cjs --filter=count-drift` | Verify the `<!-- COUNT:… -->` inventory markers have not drifted from the real skill/hook/agent/workflow counts |
-| 10  | hooks-parity    | `.claude/hooks/tests/run-all-tests.cjs --filter=parity`       | Verify hook parity across the Claude/Codex/Copilot surfaces                                          |
-| 11  | hooks-doc-sync  | `.claude/hooks/tests/run-all-tests.cjs --filter=doc-sync-gate` | Verify hook documentation stays in sync with the wired hook set                                     |
-| 12  | wf-cycle        | `.claude/scripts/codex/verify-workflow-cycle-compliance.mjs` | Verify workflow sequences, all-mode linked skill calls, todo-first bootstrap, roles/conditions and registry reverse pointers |
-| 13  | sk-proto        | `.claude/scripts/codex/verify-skill-protocol-compliance.mjs` | Verify skill strict-execution-contract                                                               |
-| 14  | residue         | `.claude/scripts/codex/verify-no-project-residue.mjs`        | Verify no project residue in generated and generic source artifacts                                  |
-| 15  | sdd             | `.claude/scripts/codex/verify-sdd-semantic-compliance.mjs`   | Verify AI-SDD semantic contract coverage                                                             |
-| 16  | review-validate-coverage | `.claude/scripts/codex/verify-review-validate-coverage.mjs` | Verify every review-family skill carries the `$why-review --validate-findings` route; graders never embed the fix-loop (Self-Review Convergence Loop sensor) |
-| 17  | sync-adoption-parity | `.claude/scripts/codex/verify-sync-adoption-parity.mjs` | Verify SYNC tag ↔ carrier adoption parity: declared carriers carry both main + `:reminder` blocks, no undeclared skill carries a matrix tag, every injected body byte-matches canonical |
-| 18  | provenance-markers | `.claude/scripts/codex/verify-provenance-markers.mjs`     | Verify provenance-marker discipline in `architecture-knowledge.md`: declared tags only · `— VERIFY` only on a declared tag · §3/§8/§9/§10 each carry a default-basis banner · no banner enumerates row-level exceptions · a `[model-knowledge]` marker carries `— VERIFY`. Fail-soft when the catalog is absent |
-| 19  | sync-divergence | `.claude/scripts/codex/verify-sync-divergence.mjs`           | Byte-equality oracle over FOUR mirrors: `.agents/skills` (with its marker; entries the sync did not generate are not compared), `.codex/agents/*.toml`, the context mirror (`AGENTS.md`; a leftover `.codex/CODEX_CONTEXT.md` is an orphan), and `.codex/hooks.json` — each re-materialized by the REAL writer into a temp dir, then diffed |
+| 5   | counts          | `.claude/scripts/codex/inject-count-markers.mjs`             | Fill the `<!-- COUNT:… -->` markers (ADR-0002) of the documents listed in `.claude/scripts/lib/count-marker-files.cjs` through `generate_catalogs.py --inject-counts`, before any gate reads them; unlisted files (decision records quoting examples) are never touched |
+| 6   | tests           | Runner discovers `.claude/scripts/codex/tests/*.test.{mjs,cjs}` | Run Codex tooling tests; missing or empty discovery fails |
+| 7   | scripts-tests   | Runner discovers `.claude/scripts/tests/*.test.{mjs,cjs}` | Run repo-script tests, including review and experience policies; missing or empty discovery fails |
+| 8   | tech-spec-freshness | `.claude/skills/tech-spec/scripts/generate-tech-specs.mjs --check` | Verify configured derived technical views; explicit skip when `techSpecScan` is absent |
+| 9   | feature-registry | `.claude/scripts/codex/verify-feature-registry.mjs --configured-roots` | Verify configured canonical TC/BR identity, continuation parts, split limits, links, ranges, summaries, and coverage; explicit skip when `specSystem.featureRegistryRoots` is absent |
+| 10  | hooks-count-drift | `.claude/hooks/tests/run-all-tests.cjs --filter=count-drift` | Verify the `<!-- COUNT:… -->` inventory markers have not drifted from the real skill/hook/agent/workflow counts |
+| 11  | hooks-parity    | `.claude/hooks/tests/run-all-tests.cjs --filter=parity`       | Verify hook parity across the Claude/Codex/Copilot surfaces                                          |
+| 12  | hooks-doc-sync  | `.claude/hooks/tests/run-all-tests.cjs --filter=doc-sync-gate` | Verify hook documentation stays in sync with the wired hook set                                     |
+| 13  | wf-cycle        | `.claude/scripts/codex/verify-workflow-cycle-compliance.mjs` | Verify workflow sequences, all-mode linked skill calls, todo-first bootstrap, roles/conditions and registry reverse pointers |
+| 14  | sk-proto        | `.claude/scripts/codex/verify-skill-protocol-compliance.mjs` | Verify skill strict-execution-contract                                                               |
+| 15  | residue         | `.claude/scripts/codex/verify-no-project-residue.mjs`        | Verify no project residue in generated and generic source artifacts                                  |
+| 16  | sdd             | `.claude/scripts/codex/verify-sdd-semantic-compliance.mjs`   | Verify AI-SDD semantic contract coverage                                                             |
+| 17  | review-validate-coverage | `.claude/scripts/codex/verify-review-validate-coverage.mjs` | Verify every review-family skill carries the `$why-review --validate-findings` route; graders never embed the fix-loop (Self-Review Convergence Loop sensor) |
+| 18  | sync-adoption-parity | `.claude/scripts/codex/verify-sync-adoption-parity.mjs` | Verify SYNC tag ↔ carrier adoption parity: declared carriers carry both main + `:reminder` blocks, no undeclared skill carries a matrix tag, every injected body byte-matches canonical |
+| 19  | provenance-markers | `.claude/scripts/codex/verify-provenance-markers.mjs`     | Verify provenance-marker discipline in `architecture-knowledge.md`: declared tags only · `— VERIFY` only on a declared tag · §3/§8/§9/§10 each carry a default-basis banner · no banner enumerates row-level exceptions · a `[model-knowledge]` marker carries `— VERIFY`. Fail-soft when the catalog is absent |
+| 20  | sync-divergence | `.claude/scripts/codex/verify-sync-divergence.mjs`           | Byte-equality oracle over FOUR mirrors: `.agents/skills` (with its marker; entries the sync did not generate are not compared), `.codex/agents/*.toml`, the context mirror (`AGENTS.md`; a leftover `.codex/CODEX_CONTEXT.md` is an orphan), and `.codex/hooks.json` — each re-materialized by the REAL writer into a temp dir, then diffed |
 
 ## Usage
 
@@ -214,14 +215,14 @@ node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --skip=migrate,hooks
 **MUST ATTENTION** keep learned-lessons content out of `.agents/skills/**`; skills may point to `lessons.md` in the project-reference docs root (default `docs/project-reference/`; path from `docsRoots.projectReference.path` in `docs/project-config.json`) but must not embed its entries
 **MUST ATTENTION** orchestrator fails fast — re-run single failing stage with `--only=<id> --verbose` to debug
 **MUST ATTENTION** working directory auto-resolves to repo root from script path — do not pass `--cwd`
-**MUST ATTENTION** stage 1 may reconcile `CLAUDE.md`, stages 2-4 mutate mirrors; stages 5-19 verify only — use `--only=` for non-destructive validation
+**MUST ATTENTION** stage 1 may reconcile `CLAUDE.md`, stages 2-4 mutate mirrors, stage 5 fills count markers; stages 6-20 verify only — use `--only=` for non-destructive validation
 
 **Anti-Rationalization:**
 
 | Evasion                                 | Rebuttal                                                                 |
 | --------------------------------------- | ------------------------------------------------------------------------ |
 | "Just edit the .agents mirror directly" | Next sync overwrites it. Always edit `.claude/skills/sync-codex/` source |
-| "Skip a stage to save time"             | Read-only gates (5-19) catch drift; skipping = silent regression risk    |
+| "Skip a stage to save time"             | Read-only gates (6-20) catch drift; skipping = silent regression risk    |
 | "Sync looks idempotent, skip verify"    | Timestamp diffs are normal; structural diffs = bug. Always run verifiers |
 
 > **[FAILS FAST]** First non-zero stage exit aborts chain. Re-run failing stage manually to debug.

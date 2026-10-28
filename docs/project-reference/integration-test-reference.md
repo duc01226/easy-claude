@@ -65,6 +65,8 @@ for (const { result } of results) {
 
 Source: `.claude/hooks/tests/suites/integration.test.cjs:55-64`. This is a concurrent readiness smoke check: exit/timeout assertions prove the children completed, not that every shared-state corruption invariant is protected. For a behavioral case, assert the state/output owned by the specific hook contract, as the launcher suite does (`.claude/hooks/tests/suites/codex-launcher.test.cjs`, `launcherTests`).
 
+A test that asserts something about every live source (a removed name appears nowhere, a portability rule holds) lists files with `liveSourceFiles` (`.claude/hooks/tests/lib/live-source-files.cjs`), never its own directory walk. Inside the project's own git work tree it reads git's listing (tracked plus untracked-not-ignored), so an ignored folder such as another session's worktree under `.claude/worktrees/` never fails the scan; outside a work tree it walks the folder. Callers pass their extensions, excluded folder names and symlink rule.
+
 `waitFor(condition, timeout, interval)` returns `true` on success and `false` on timeout (`.claude/hooks/tests/lib/test-utils.cjs:199-207`). No suite call site is currently verified; if adopted, assert its returned boolean rather than treating elapsed time as success.
 
 ## Configuration

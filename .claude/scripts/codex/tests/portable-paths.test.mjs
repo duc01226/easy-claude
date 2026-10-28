@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { liveSourceFiles } from '../../../hooks/tests/lib/live-source-files.cjs';
 
 const thisDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(thisDir, '..', '..', '..', '..');
@@ -18,25 +19,6 @@ async function pathExists(targetPath) {
         return true;
     } catch {
         return false;
-    }
-}
-
-async function* walk(targetPath) {
-    const stat = await fs.lstat(targetPath).catch(err => {
-        if (err.code === 'ENOENT') return null;
-        throw err;
-    });
-    if (!stat) return;
-    if (stat.isSymbolicLink()) return;
-    if (stat.isFile()) {
-        yield targetPath;
-        return;
-    }
-    if (!stat.isDirectory()) return;
-
-    for (const entry of await fs.readdir(targetPath, { withFileTypes: true })) {
-        if (entry.isDirectory() && ignoredDirs.has(entry.name)) continue;
-        yield* walk(path.join(targetPath, entry.name));
     }
 }
 
@@ -73,9 +55,10 @@ test('Codex portable files do not reference root scripts folder', async () => {
         const absoluteTarget = path.join(repoRoot, scanTarget);
         if (!(await pathExists(absoluteTarget))) continue;
 
-        for await (const filePath of walk(absoluteTarget)) {
-            const relativePath = path.relative(repoRoot, filePath).replaceAll('\\', '/');
-            const text = await fs.readFile(filePath, 'utf8').catch(() => null);
+        // Live sources as git lists them inside this checkout, so an ignored folder (another session's
+        // worktree under .claude/worktrees/) never counts; outside a work tree the folder walk applies.
+        for (const relativePath of liveSourceFiles(repoRoot, scanTarget, { excludedDirs: ignoredDirs, skipSymlinks: true })) {
+            const text = await fs.readFile(path.join(repoRoot, ...relativePath.split('/')), 'utf8').catch(() => null);
             if (text === null) continue;
             failures.push(...collectForbiddenReferences(relativePath, text));
         }

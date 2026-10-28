@@ -366,7 +366,7 @@ The framework copies into any project and runs under Claude Code, Codex and Open
 | Surface                                   | Status    | Produced by                                  |
 | ----------------------------------------- | --------- | -------------------------------------------- |
 | `.claude/**`, `CLAUDE.md` outside markers | Source    | hand-edited                                  |
-| `.agents/skills/**`, `.codex/**`, `AGENTS.md` | Generated | `/sync-codex` (`run-codex-sync.mjs`, 19 stages) |
+| `.agents/skills/**`, `.codex/**`, `AGENTS.md` | Generated | `/sync-codex` (`run-codex-sync.mjs`, 20 stages) |
 | `.opencode/**`, `opencode.json` skill policy | Generated | `/sync-opencode`                           |
 | `.claude/skills/shared/protocols/`        | Generated | `build-protocol-projection.cjs`              |
 
@@ -381,11 +381,11 @@ Codex transforms `/skill` into `$skill`, `Agent` into `spawn_agent` and strips C
 | Runner                                  | Tests  | Covers                                                                 |
 | --------------------------------------- | ------ | ---------------------------------------------------------------------- |
 | `test-all-hooks.cjs` (primary gate)  | **133** | Hook behaviors, bridged suites and the count guard                     |
-| `run-all-tests.cjs` (full aggregate) | **2206** | 128 `tests/suites/*.test.cjs` files; primary gate runs separately |
+| `run-all-tests.cjs` (full aggregate) | **2214** | 129 `tests/suites/*.test.cjs` files; primary gate runs separately |
 | `node --test .claude/scripts/codex/tests` | —      | Mirror generators and verifiers                                        |
 | `run-codex-sync.mjs --verify-only`      | —      | Every read-only gate before a commit                                   |
 
-> Source-declared inventory: `test-all-hooks.cjs` = 133; `run-all-tests.cjs` = 2206 executors across 128 suite files. Both runners fail when these numbers drift from the docs. Counts do not establish runtime results; read the actual runner output for outcomes.
+> Source-declared inventory: `test-all-hooks.cjs` = 133; `run-all-tests.cjs` = 2214 executors across 129 suite files. Both runners fail when these numbers drift from the docs. Counts do not establish runtime results; read the actual runner output for outcomes.
 
 **Portable test contract** — shipped tests must pass in any project layout on Windows, macOS and Linux: build a temp fixture project instead of reading this repository's config or git state; blank inherited feature switches and provider keys; point `HOME`, `USERPROFILE`, `TMPDIR`, `TEMP` and `TMP` at the temp dir; name OS differences explicitly (paths, symlinks, `py -3` vs `python3`); run the full suite twice to prove repeatability.
 

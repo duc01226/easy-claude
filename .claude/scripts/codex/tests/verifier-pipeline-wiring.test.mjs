@@ -13,15 +13,18 @@ function runnerStageIds(source) {
     return [...source.matchAll(/\bid:\s*["']([\w-]+)["']/g)].map(match => match[1]);
 }
 
-test('TC-PIPE-WIRE-001: CLAUDE preflight precedes freshness and registry gates in the 19-stage runner', () => {
+test('TC-PIPE-WIRE-001: CLAUDE preflight precedes freshness and registry gates in the 20-stage runner', () => {
     // Given the runner source defines the canonical sync stage roster.
     const runner = read('.claude/skills/sync-codex/scripts/run-codex-sync.mjs');
     const ids = runnerStageIds(runner);
 
     // When the roster order is inspected.
-    assert.equal(ids.length, 19, `source docs and runner contract require 19 stages, got ${ids.length}`);
-    assert.deepEqual(ids.slice(0, 5), ['claude-md', 'migrate', 'hooks', 'context', 'tests']);
-    assert.deepEqual(ids.slice(4, 8), ['tests', 'scripts-tests', 'tech-spec-freshness', 'feature-registry']);
+    assert.equal(ids.length, 20, `source docs and runner contract require 20 stages, got ${ids.length}`);
+    assert.deepEqual(ids.slice(0, 6), ['claude-md', 'migrate', 'hooks', 'context', 'counts', 'tests']);
+    assert.deepEqual(ids.slice(5, 9), ['tests', 'scripts-tests', 'tech-spec-freshness', 'feature-registry']);
+    // The count markers are filled by a mutating stage before any gate reads them (count-drift).
+    assert.ok(ids.indexOf('counts') < ids.indexOf('hooks-count-drift'), 'counts must run before hooks-count-drift');
+    assert.match(runner, /id:\s*["']counts["'][^\n]*mutate:\s*true[^\n]*inject-count-markers\.mjs/);
     assert.match(runner, /generate-tech-specs\.mjs[\s\S]*id:\s*["']tech-spec-freshness["'][\s\S]*["']--check["']/);
     assert.match(runner, /id:\s*["']feature-registry["'][^\n]*verify-feature-registry\.mjs/);
     // Then CLAUDE.md reconciliation is before mirror generation and the later release gates.
@@ -36,11 +39,12 @@ test('TC-PIPE-WIRE-002: source skill docs expose the read-only commands and the 
     assert.match(techSpec, /generate-tech-specs\.mjs --check/);
     assert.doesNotMatch(techSpec, /npm run /,
         'the skill must document the in-framework path, never a host npm script it cannot rely on');
-    assert.match(syncCodex, /19 stages, sequential/);
+    assert.match(syncCodex, /20 stages, sequential/);
     assert.match(syncCodex, /\| 1\s+\| claude-md/);
-    assert.match(syncCodex, /\| 7\s+\| tech-spec-freshness/);
-    assert.match(syncCodex, /\| 8\s+\| feature-registry/);
-    // Then the docs describe the same 19-stage order as the executable runner.
+    assert.match(syncCodex, /\| 5\s+\| counts/);
+    assert.match(syncCodex, /\| 8\s+\| tech-spec-freshness/);
+    assert.match(syncCodex, /\| 9\s+\| feature-registry/);
+    // Then the docs describe the same 20-stage order as the executable runner.
 });
 
 // TC-PIPE-WIRE-003 — both release gates carry their exact flags INSIDE the runner, not in a host
