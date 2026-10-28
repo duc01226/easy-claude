@@ -2,7 +2,7 @@
 >
 > **Precedence:** accepted product/AI decisions and ADRs → project config and reference docs (declared provider, policy, risk tier) → these clauses. A genuine conflict is SURFACED with both sides, NEVER resolved silently. Provider facts (models, limits, prices, deprecations) change: verify against current provider docs, never memory.
 >
-> - `AF-1` **Job & fit.** Name the user job and why a model is needed. A deterministic alternative (rules, search, template, plain code) was considered. The lowest-autonomy architecture that works (single call → fixed workflow → agent) is chosen, with a reason.
+> - `AF-1` **Job & fit.** Name the user job and why a model is needed. A deterministic alternative (rules, search, template, plain code) was considered. The lowest-autonomy architecture that works (single call → fixed workflow → agent) is chosen, with a reason. RAG is chosen the same way, never as a default hallucination fix: query structured facts directly, keep a small stable corpus in the prompt, and reserve RAG for a large, changing, unstructured corpus (`AE-4.4`).
 > - `AF-2` **Success & eval first.** Measurable success criteria, a baseline, and an eval set or rubric (or a dated plan to build one) exist BEFORE the build. Every prompt, model or retrieval change is proven by an eval delta.
 > - `AF-3` **Failure & blast radius.** Enumerate failure modes: wrong, unsafe, manipulated, slow, expensive, unavailable. State the cost of a wrong output per action, reversible vs irreversible, and a fallback per mode.
 > - `AF-4` **Autonomy & oversight.** Choose the level explicitly: suggest / confirm / act-with-undo / autonomous. Irreversible or high-impact actions need human approval. Authority is the requesting user's, never broader.

@@ -15,19 +15,22 @@
 > - `AE-2.2` Model output is untrusted input to every sink — HTML/markdown render (images and links exfiltrate), SQL, shell, file path, URL fetch, code execution, deserialization, API arguments. Encode, validate or sandbox it like user input.
 > - `AE-2.3` The lethal trifecta is broken: no agent path combines private-data access, untrusted content and an outbound channel (network, email, links, markdown images, side-effecting tool) without removing a leg or adding a hard approval gate.
 > - `AE-2.4` No credentials, keys, customer data or secrets in prompts, few-shot examples, tool descriptions or logs. The system prompt is not a secret. Data sent to providers is minimized.
-> - `AE-2.5` Guardrails and moderation are defense-in-depth, never the only boundary. Code enforces authorization at tool execution with the end user's identity — not an instruction to the model.>
+> - `AE-2.5` Guardrails and moderation are defense-in-depth, never the only boundary. Code enforces authorization at tool execution with the end user's identity — not an instruction to the model.
+>
 > **3.0 Agent & tool design**
 >
 > - `AE-3.1` Every loop is bounded: max steps/turns, wall-clock, token and cost budget, repeated-call/stuck detection, explicit termination. No unbounded model loop.
-> - `AE-3.2` Tools follow least privilege: explicit allowlist, scoped credentials, read/write split, code-validated arguments. No generic shell/SQL/HTTP/file tool without a sandbox and allowlist.> - `AE-3.3` Tool contracts are model-usable: clear names and descriptions, typed schemas, actionable errors, bounded or paginated results, idempotency keys on side-effecting calls.
+> - `AE-3.2` Tools follow least privilege: explicit allowlist, scoped credentials, read/write split, code-validated arguments. No generic shell/SQL/HTTP/file tool without a sandbox and allowlist.
+> - `AE-3.3` Tool contracts are model-usable: clear names and descriptions, typed schemas, actionable errors, bounded or paginated results, idempotency keys on side-effecting calls.
 > - `AE-3.4` Irreversible or high-impact actions (delete, pay, send, publish, deploy, permission change) need human confirmation or are reversible (dry-run, undo). The approval UI shows the real action, not the model's summary.
-> - `AE-3.5` Delegation is explicit: sub-agent handoff contracts, scoped context and authority, results checked independently rather than by the agent's self-report, no unsynchronized shared mutable state.>
+> - `AE-3.5` Delegation is explicit: sub-agent handoff contracts, scoped context and authority, results checked independently rather than by the agent's self-report, no unsynchronized shared mutable state.
+>
 > **4.0 Context & retrieval**
 >
 > - `AE-4.1` Context is budgeted: tokens counted, truncation/compaction policy defined, no dumping whole documents, rows or history. Large tool output is summarized or paginated.
 > - `AE-4.2` Layout supports caching: stable prefix (system, tools, reference docs) first, volatile content last. No timestamps, UUIDs or per-user data inside the cached prefix.
 > - `AE-4.3` Retrieval enforces authorization and tenancy in the retrieval layer at query time, never by model post-filtering. The index is versioned with its embedding model, with a reindex path and freshness policy.
-> - `AE-4.4` Answers from retrieved content are grounded: checkable citations or source IDs, an explicit "insufficient context" path, retrieval quality (recall) measured apart from generation quality.
+> - `AE-4.4` Retrieval-backed answers are gated: code drops chunks under a measured relevance bar and abstains ("insufficient context") when the rest cannot answer; each claim cites a source checked to support it; recall is measured apart from generation; hallucination is measured, never "zero".
 >
 > **5.0 Reliability & cost**
 >
@@ -46,7 +49,8 @@
 > **7.0 Observability & operations**
 >
 > - `AE-7.1` Every model and tool call is traceable: request ID, model + version, prompt version, token counts, latency, cost, stop reason, retrieved doc IDs, tool calls — correlated to the user request.
-> - `AE-7.2` Traces and logs are PII-safe: redacted, hashed or sampled prompts and outputs, defined retention, no secrets.> - `AE-7.3` Prompts, models, retrieval configs and tool sets are versioned and rolled out gradually behind a flag, with a kill switch and rollback. Every behavior change is attributable to a version.
+> - `AE-7.2` Traces and logs are PII-safe: redacted, hashed or sampled prompts and outputs, defined retention, no secrets.
+> - `AE-7.3` Prompts, models, retrieval configs and tool sets are versioned and rolled out gradually behind a flag, with a kill switch and rollback. Every behavior change is attributable to a version.
 > - `AE-7.4` Production quality is monitored: format-failure, refusal, latency, cost and user-feedback signals with drift alerts. Feedback flows back into the eval set.
 >
 > **8.0 Data, privacy & governance**
@@ -54,7 +58,8 @@
 > - `AE-8.1` Data flow to model providers is documented and lawful: what personal or confidential data leaves the boundary, provider retention/training terms, region. Minimize; a compliance owner decides legal questions.
 > - `AE-8.2` Stored AI artifacts (embeddings, fine-tunes, caches, memory, logs) follow retention and deletion rules. Erasure reaches vector stores and caches; tenants are isolated.
 > - `AE-8.3` Users are told they interact with AI or receive AI-generated content where required or expected. Significant automated decisions have human review and an explanation; the risk tier is recorded.
-> - `AE-8.4` The model/data/tool supply chain is controlled: pinned versions or hashes, safe formats (no pickle, no `trust_remote_code`), vetted MCP servers and plugins, licences checked.>
+> - `AE-8.4` The model/data/tool supply chain is controlled: pinned versions or hashes, safe formats (no pickle, no `trust_remote_code`), vetted MCP servers and plugins, licences checked.
+>
 > **9.0 Human experience**
 >
 > - `AE-9.1` The interface sets expectations and shows uncertainty and sources: AI output labelled, citations shown, limits stated. No over-claiming or deceptive anthropomorphism.

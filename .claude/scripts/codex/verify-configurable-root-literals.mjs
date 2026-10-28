@@ -142,8 +142,8 @@ export const NESTED_CHECKOUT_DIRS = ['.claude/worktrees'];
 /** `.claude/skills/<name>/tests/**` — same fixture rationale, expressed positionally. */
 const SKILL_TESTS_PATTERN = /^\.claude\/skills\/[^/]+\/tests\//;
 
-// `.claude/scripts/<pkg>/tests/` — the same fixture rationale for script-level test suites.
-const SCRIPT_TESTS_PATTERN = /^\.claude\/scripts\/.*\/tests\//;
+// Direct and nested script test directories share the same fixture rationale.
+const SCRIPT_TESTS_PATTERN = /^\.claude\/scripts\/(?:.*\/)?tests\//;
 
 const ignoredParts = new Set(['node_modules', '.git', '.venv', '__pycache__', 'tmp', 'temp']);
 const ignoredExtensions = new Set(['.pyc', '.pyo', '.exe', '.dll', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.ico', '.zip', '.db']);

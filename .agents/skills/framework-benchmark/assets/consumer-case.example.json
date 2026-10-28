@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "replace-with-consumer-task",
+  "kind": "feature",
+  "projectMode": "brownfield-configured",
+  "ref": "HEAD",
+  "checksDir": "checks",
+  "prompt": "REPLACE with a complex, project-grounded task and observable acceptance criteria. Include all necessary behavior and boundary decisions, without exposing the holdout check implementation.",
+  "treatment": "Use the installed feature-implement skill and applicable review/verification gates. Decide routine details autonomously; do not publish or commit.",
+  "expectedSkills": ["feature-implement"],
+  "checks": [
+    {"id": "acceptance", "kind": "acceptance", "baseline": "fail", "argv": ["node", "/checks/acceptance.cjs"], "timeoutMs": 60000},
+    {"id": "regression", "kind": "regression", "baseline": "pass", "argv": ["node", "/checks/regression.cjs"], "timeoutMs": 60000}
+  ]
+}

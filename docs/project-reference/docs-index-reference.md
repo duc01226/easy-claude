@@ -15,7 +15,7 @@ Read this index when locating the authoritative document for a project question 
 - Resolve configured roots; regenerate category globs into a normalized unique-path union.
 - Compare broad `docs/**/*.md` results with the category union and expose every remainder.
 - Verify relationships and lookup paths; keep every path real, unique, and traceable to the current tree.
-- Index <!-- COUNT:markdown:authored -->577<!-- /COUNT --> unique authored Markdown files across 13 categories; `docs/` contains <!-- COUNT:markdown:docs -->63<!-- /COUNT --> files with 0 uncategorized. Design System is a one-file Project Reference subset counted once.
+- Index <!-- COUNT:markdown:authored -->583<!-- /COUNT --> unique authored Markdown files across 13 categories; `docs/` contains <!-- COUNT:markdown:docs -->64<!-- /COUNT --> files with 0 uncategorized. Design System is a one-file Project Reference subset counted once.
 
 ## Contents
 
@@ -45,7 +45,7 @@ Read this index when locating the authoritative document for a project question 
 
 ## Documentation System
 
-<!-- COUNT:markdown:authored -->577<!-- /COUNT --> unique authored markdown files across 13 indexed categories. Last scanned: 2026-10-22.
+<!-- COUNT:markdown:authored -->583<!-- /COUNT --> unique authored markdown files across 13 indexed categories. Last scanned: 2026-10-22. Benchmark inventory/navigation impact verified: 2026-10-27.
 
 **Relocatable roots.** Resolve these configurable roots before running their category globs:
 
@@ -62,15 +62,15 @@ The **Reproducible scope** column states each glob relative to its category's ro
 | Project Reference      |             20 | `**/*.md` under the project-reference docs root                                       |
 | Operations             |              0 | direct getting-started/deployment/operations/runbook/setup/install/configuration docs |
 | Design System          |              1 | `design-system/**/*.md` under the project-reference docs root                         |
-| Feature Specs          |             22 | `*/README.*.md` under the business spec root                                          |
+| Feature Specs          |             23 | `*/README.*.md` under the business spec root                                          |
 | Spec Catalogs          |              6 | `*/INDEX.md` under the business spec root                                             |
-| Architecture Decisions |              7 | `**/*.md` under the ADR root                                                          |
+| Architecture Decisions |              8 | `**/*.md` under the ADR root                                                          |
 | Templates              |              1 | `**/*.md` under the templates root                                                    |
 | Release Notes          |              3 | `docs/release/**/*.md` + `docs/release-notes/**/*.md`                                 |
 | Knowledge Reports      |              1 | `docs/knowledge/**/*.md`                                                             |
 | Knowledge Packs        | <!-- COUNT:markdown:knowledge-packs -->2<!-- /COUNT --> | `*.md` in the packs directory named by `knowledge-base-reference.md` (default `docs/knowledge-base/`) |
 | Framework Docs         |             43 | `.claude/docs/**/*.md`                                                                |
-| Skill Markdown         | <!-- COUNT:markdown:skills -->468<!-- /COUNT --> | `rg --files .claude/skills -g '*.md'`                                                 |
+| Skill Markdown         | <!-- COUNT:markdown:skills -->473<!-- /COUNT --> | `rg --files .claude/skills -g '*.md'`                                                 |
 
 The unique total is the normalized union returned by `rg --files` for Root-Level Docs, all `docs/**/*.md`, Framework Docs, and Skill Markdown. Design System is nested inside Project Reference, so its count is informative rather than additive. For this inventory, the authored/tracked scope includes generated protocol projections deliberately published as reader-facing documentation; Codex/OpenCode mirrors are excluded. Ignored dependency artifacts such as skill-local `.venv/` files are excluded.
 
@@ -83,7 +83,7 @@ easy-claude/
 ├── AGENTS.md                                      # Codex/agent instructions
 ├── CLAUDE.md                                      # Claude project instructions
 ├── README.md                                      # Project overview and adoption entry point
-├── docs/                                          # <!-- COUNT:markdown:docs -->63<!-- /COUNT --> markdown files
+├── docs/                                          # <!-- COUNT:markdown:docs -->64<!-- /COUNT --> markdown files
 │   ├── adr/                                       # 8 architecture decisions
 │   │   ├── 0001-skill-lifecycle.md
 │   │   ├── 0002-canonical-count-metrics.md
@@ -147,8 +147,9 @@ easy-claude/
 │   │   │   ├── README.TaskTracking-Part7.md
 │   │   │   ├── README.TaskTracking-Part8.md
 │   │   │   └── README.TaskTracking-Part9.md
-│   │   └── WorkflowExecution/                     # 2 Feature Specs + 1 bucket catalog
+│   │   └── WorkflowExecution/                     # 3 Feature Specs + 1 bucket catalog
 │   │       ├── INDEX.md
+│   │       ├── README.FrameworkBenchmark.md
 │   │       ├── README.GuidedWorkflow.md
 │   │       └── README.ReviewQuality.md
 │   ├── knowledge/research/                        # 1 project research report
@@ -156,13 +157,13 @@ easy-claude/
 │   ├── knowledge-base/                            # project knowledge packs + generated index.json; each pack is listed in knowledge-base-reference.md
 │   └── templates/                                 # 1 Feature Spec template
 ├── .claude/docs/                                  # 43 framework docs
-│   ├── 24 direct framework guides
+│   ├── 25 direct Markdown files (includes README.md)
 │   ├── agents/                                    # 2
-│   ├── configuration/                             # 4
+│   ├── configuration/                             # 5
 │   ├── hooks/                                     # 3
 │   ├── skills/                                    # 2
 │   └── team-artifacts/templates/                  # 6
-└── .claude/skills/                                # <!-- COUNT:markdown:skills -->468<!-- /COUNT --> authored/tracked markdown assets
+└── .claude/skills/                                # <!-- COUNT:markdown:skills -->473<!-- /COUNT --> authored/tracked markdown assets
 ```
 
 Absent whitelist branches: Operations only.
@@ -227,6 +228,7 @@ docs/specs/WorkTracking/INDEX.md
 └── README.TaskTracking-Part9.md
 
 docs/specs/WorkflowExecution/INDEX.md
+├── README.FrameworkBenchmark.md
 ├── README.GuidedWorkflow.md
 └── README.ReviewQuality.md
 ```
@@ -285,6 +287,8 @@ Read `docs/project-config.json` first for any project question or task — paths
 | Feature Specs          | changing workflow routing, the route payload, or activation tiers (WFR)                                                                                                            | `ContextDelivery/README.WorkflowRouting.md`                                                                 |
 | Feature Specs          | changing how shared protocols reach the assistant: guide lines, delivery hooks, host mapping (PDL)                                                                                 | `ContextDelivery/README.ProtocolDelivery.md`                                                                |
 | Feature Specs | changing knowledge packs, their indexes, triggers, pointer delivery, trust labels or `/knowledge-base` operations (KNW) | `ContextDelivery/README.KnowledgeDelivery.md` |
+| Feature Specs | changing paired framework benchmarks, complete setup treatments, independent checks/review or truthful resource reports (FBM) | `WorkflowExecution/README.FrameworkBenchmark.md` |
+| Skill Markdown | running or authoring raw-versus-framework experiments, qualifying complex tasks and reusable public templates, or validating independent assessors | `.claude/skills/framework-benchmark/SKILL.md` |
 | Feature Specs | changing how reviews and audits judge an artifact: the shared review dimensions, plan review scaling, helper-agent choice, proportionate fixes, meaning-level spec drift, the deeper-check offer after an answer, the standalone plan close (RVQ) | `WorkflowExecution/README.ReviewQuality.md` |
 | Feature Specs          | changing how a chosen workflow runs: step roles, outcome gates, deviation log, the spec-supplied route, scope guard, usage report, token checkpoint (GWF)                          | `WorkflowExecution/README.GuidedWorkflow.md`                                                                |
 | Feature Specs          | changing adoption switches: code graph, commit trailer, command-only skills, compaction (ADS)                                                                                      | `Adoption/README.AdoptionSwitches.md` (release-D cases in `Adoption/README.AdoptionSwitches-Part2.md`)      |
@@ -333,7 +337,7 @@ With no `docsRoots.projectReference.path` entry in `docs/project-config.json`, t
 
 ## Uncategorized Files
 
-None. A fresh broad `docs/**/*.md` scan returned 61 paths; the normalized union of Project Reference, Operations, Design System, Feature Specs, Spec Catalogs, Architecture Decisions, Templates, Release Notes, Knowledge Reports and Knowledge Packs covered all 61.
+None. A fresh broad `docs/**/*.md` scan returned 63 paths; the normalized union of Project Reference, Operations, Design System, Feature Specs, Spec Catalogs, Architecture Decisions, Templates, Release Notes, Knowledge Reports and Knowledge Packs covered all 63.
 
 ### Source-adjacent guides outside the published total
 

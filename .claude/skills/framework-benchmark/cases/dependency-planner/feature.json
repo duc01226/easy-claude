@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "id": "dependency-planner-feature",
+  "kind": "feature",
+  "projectMode": "brownfield-bootstrap",
+  "fixture": "feature-fixture",
+  "checksDir": "checks",
+  "prompt": "Implement createPlanner in planner.cjs. Preserve formatOrder and existing public tests. createPlanner(tasks=[]) returns add(task), remove(id), plan(targetIds?), snapshot(). A task is {id, requires?: string[]}; IDs match /^[A-Za-z][A-Za-z0-9_-]{0,63}$/. Validate all initial tasks together, allowing forward references. Reject malformed tasks/IDs/requirements with error.code INVALID_TASK, repeated IDs or requirements with DUPLICATE_TASK, unknown IDs/dependencies/targets with UNKNOWN_TASK, self/cyclic dependencies with CYCLE, and removal of an in-use task with IN_USE. Rejected operations leave state unchanged. add accepts one task and may depend only on existing tasks. remove rejects unknown IDs. plan() returns all IDs in a deterministic topological order, choosing the lexicographically smallest ready ID at each step. plan(targetIds) returns only the targets and their transitive prerequisites in that same order; [] returns []. snapshot() returns tasks sorted by ID, each with sorted requires. Do not mutate caller inputs; returned values cannot mutate planner state. Support at least 1000 tasks without recursion overflow. Add meaningful public tests for behavior, invalid input, atomicity, boundaries and regressions. Choose a maintainable solution appropriate to this project, document usage and tradeoffs. Do not ask questions; decide routine details and finish implementation and checks autonomously. Deliver a new planner.test.cjs file executable with Node built-in node --test, and README.md containing usage (or refactor structure) and tradeoffs. Independent checks verify their presence and passing nonempty tests; the separate quality review judges their meaning and coverage.",
+  "treatment": "Use the installed feature-implement skill to deliver the task, including its applicable planning, review and verification gates. The user has authorized autonomous reversible choices and implementation; do not ask routine questions. Do not publish or commit.",
+  "expectedSkills": [
+    "feature-implement"
+  ],
+  "checks": [
+    {
+      "id": "planner-acceptance",
+      "kind": "acceptance",
+      "baseline": "fail",
+      "argv": [
+        "node",
+        "/checks/acceptance.cjs"
+      ],
+      "timeoutMs": 30000
+    },
+    {
+      "id": "format-regression",
+      "kind": "regression",
+      "baseline": "pass",
+      "argv": [
+        "node",
+        "/checks/regression.cjs"
+      ],
+      "timeoutMs": 10000
+    },
+    {
+      "id": "public-delivery",
+      "kind": "acceptance",
+      "baseline": "fail",
+      "argv": [
+        "node",
+        "/checks/delivery.cjs"
+      ],
+      "timeoutMs": 20000
+    }
+  ]
+}
