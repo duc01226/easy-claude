@@ -234,6 +234,8 @@ const managedProtocolDigestAliases = new Map([
     ['UI System Context', 'SYNC:ui-system-context'],
     ['End-to-Start Debugger Trace', 'SYNC:end-to-start-debugger-trace'],
     ['Fix-Layer Accountability', 'SYNC:fix-layer-accountability'],
+    ['UI Action & Density', 'SYNC:ui-action-density-gate'],
+    ['Prototype Design System', 'SYNC:prototype-design-system'],
 ]);
 const protocolDigestLinePattern = /^\s*-\s+\*\*([^:*]+):\*\*/;
 

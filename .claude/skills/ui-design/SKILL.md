@@ -17,7 +17,7 @@ disable-model-invocation: false
 
 - **Route:** parse `--mode={fast|good|explore|describe|screenshot|video|review}` and `--lane={product|marketing}`; default to `fast` × `product`, except that a request to see or choose between design options with no explicit mode routes to `explore`. `review` replaces the design spine with `references/mode-review.md` (`--lane` does not apply).
 - **Spine (BLOCKING order, every design mode — not `review`):** Journey Report (`UX-1`) → design authority read — principles, design system, existing UI (`UX-2`) → design-intelligence search (candidates only) → ingest visual evidence when applicable → low-fi structure walked against the journeys (`UX-7`) → design with `ui-ux-designer` (`DD-3` plan + `UI-*`/`DD-*`) → implement unless `describe` → validate by walking the journeys + traceability (`UX-8`) → report and seek approval.
-- **Quality floor:** apply project tokens/components plus `UI-*`/`DD-*`/`CL-*`; design states, interaction feedback, declared scales, measured contrast, touch targets, responsive reflow, and subject-grounded copy before the happy path.
+- **Quality floor:** apply project tokens/components plus `UI-*`/`AD-*`/`DD-*`/`CL-*`; design states, interaction feedback, declared scales, measured contrast, touch targets, responsive reflow, and subject-grounded copy before the happy path.
 - **Ownership:** the design modes author the visual direction and implementation contract; `--mode=review` owns source findings and review evidence; the local index supplies candidates only.
 
 **Command routing:** Use `/ui-design` with these values; the old commands do not resolve.
@@ -56,7 +56,7 @@ disable-model-invocation: false
 6. **Design** — Use `ui-ux-designer` subagent to layer the `DD-3` Design Plan and visual design (or, for `describe`, an implementation plan) on the validated structure, applying `UI-*`/`DD-*` and the selected lane's craft body.
 7. **Implement** — Build as code following the selected lane guide: `references/lane-product/lane-guide.md` (product UIs) or `references/lane-marketing/lane-guide.md` (marketing/creative). Skipped in `describe` mode.
 8. **Validate (`UX-8`)** — Cognitive walkthrough of every main journey on the produced design plus a traceability matrix (journey step → view → element → information tier → rule → states); fix every unserved step and orphan element before hand-off. Measure interaction cost per main journey (`UX-9`) and check wayfinding on every view (`UX-10`) (catalog §12).
-9. **Report** — Close with the **UI/UX Gate Report** (`UX-11`, catalog §13): one row per gate (`UX-*`, applicable `UI-*`, `DD-*`, `CL-*` with at least the `CL-5` triage, UI copy), each `PASS` / `FAIL → fixed` / `N/A` with evidence; an unresolved `FAIL` blocks hand-off. Present to user for approval with the Journey Report, walkthrough result, matrix and Gate Report; update `./docs/design-guidelines.md` if needed.
+9. **Report** — Close with the **UI/UX Gate Report** (`UX-11`, catalog §13): one row per gate (`UX-*`, applicable `UI-*`, `AD-*`, `DD-*`, `CL-*` with at least the `CL-5` triage, UI copy), each `PASS` / `FAIL → fixed` / `N/A` with evidence; an unresolved `FAIL` blocks hand-off. Present to user for approval with the Journey Report, walkthrough result, matrix and Gate Report; update `./docs/design-guidelines.md` if needed.
 
 **Key Rules:**
 
@@ -76,6 +76,8 @@ disable-model-invocation: false
 - [Design Intelligence Research Contract](#design-intelligence-research-contract)
 - [UX Journey Contract (all design modes)](#ux-journey-contract-all-design-modes)
 - [Design Principles Contract (all design modes)](#design-principles-contract-all-design-modes)
+- [Action & Attention Contract (all design modes)](#action--attention-contract-all-design-modes)
+- [Design-System Page Contract (prototype-producing modes)](#design-system-page-contract-prototype-producing-modes)
 - [Mode Branches](#mode-branches)
 - [Notes (all design modes)](#notes-all-design-modes)
 - [Closing Reminders](#closing-reminders)
@@ -130,7 +132,7 @@ The local index is a research aid owned by this skill. It supplies structured ca
 1. **Frame the query.** Derive the product type, audience and job-to-be-done from the Journey Report (`UX-1`: frame, actors, job statements, main journeys), then add industry, desired style, platform, implementation stack, and constraints before searching.
 2. **Search deliberately.** Query `product`, `style`, `typography`, and `color` first; add `landing`, `chart`, `ux`, `prompt`, and the relevant `--stack` query when the surface needs them. Use specific domain terms and more than one query when the brief has multiple concerns.
 3. **Resolve and record authority.** Read `docs/project-config.json` and resolve `designSystem.canonicalDoc`, `tokenFiles`, and `appMappings[]` when present. Reconcile candidates against the accepted brief, existing-UI inventory, shared `UI-*`/`DD-*`/`CL-*` contracts, and the selected lane. Record why important candidates were selected or rejected; never invent tokens, components, breakpoints, or stack defaults when the project has not declared them.
-4. **Keep implementation quality explicit.** Use the project's icon system or one consistent accessible SVG set; do not use emoji as UI icons; verify official brand marks. Define stable hover, focus, active, disabled, and loading feedback without layout shift, using the project's cursor and motion conventions.
+4. **Keep implementation quality explicit.** Use the project's icon system or one consistent accessible SVG set; do not use emoji as UI icons; give each view ONE filled primary commit and render every other action by the `AD-1` table (icon-only named and tooltipped, icon + label, link, row target, overflow) in uniform groups; verify official brand marks. Define stable hover, focus, active, disabled, and loading feedback without layout shift, using the project's cursor and motion conventions.
 5. **Design state coverage before the happy path.** Specify `Default`, `Loading`, `Disabled`, `Error`, `Empty`, and `Success` where applicable. Errors need human-readable recovery, empty states need a meaningful next action, in-flight actions must prevent duplicate submission, and successful actions need acknowledgment.
 6. **Design for reachable reflow.** Use the project's content breakpoints. If none are declared, smoke-check 320, 768, 1024, and 1440 widths: rows reflow, grids collapse, non-reflow content has an intentional reachable scroll fallback, and nothing is clipped or unreachable. Surface any large refactor or new breakpoint as an explicit decision.
 
@@ -166,18 +168,36 @@ The 40 UI/UX Design Principles (`UI-1.1`–`UI-9.4`) carried as the `SYNC:ui-ux-
 
 **Reporting modes (`describe`, and the analysis pass of `screenshot` / `video`) — REPORT against the clauses:** the super-detailed description MUST name which clauses the OBSERVED design SATISFIES and which it VIOLATES, cited by ID — e.g. type-scale drift (`UI-2.5`), contrast failure with the measured ratio (`UI-3.1`), undersized touch targets (`UI-8.1`), missing empty/loading/error states (`UI-1.5`), a removed focus ring (`UI-5.5`). A violation is RECORDED, never silently reproduced: `describe` carries it into the implementation plan as a correction; `screenshot` / `video` then apply the five generative obligations above so the recreation FIXES the violation rather than inheriting it — flag any correction that changes the visual match and confirm it with the user before shipping it.
 
+## Action & Attention Contract (all design modes)
+
+The action & attention gate (`AD-1`–`AD-6`, `SYNC:ui-action-density-gate`; measurable checks `B16`, `C14`–`C20` in `.claude/docs/design-review-checklist.md`) binds every mode; `--mode=review` runs it as Phase 3D of its reference. Project design-system docs and the platform's guidelines outrank it. When its text is not in context, read `.claude/skills/shared/protocols/ui-action-density-gate.md` first.
+
+**Generative modes (`fast`, `good`, `explore`) — BUILD to it:** each view has at most ONE filled text button, for its main commit, with a fixed min-width; every other action takes its `AD-1` form; button groups share height, style and width; a list row is one target with at most one inline icon action; every icon-only control has a name, a tooltip on hover and focus, a full-size hit target and 3:1 contrast; a row carries a title plus one short meta line; one tile size and title baseline per collection-grid row, actions aligned to their content edge (`AD-6`). Record the `AD-5` counts in the UI/UX Gate Report.
+
+**Reporting and recreation modes (`describe`, `screenshot`, `video`) — REPORT, then correct:** name every observed violation by its check ID (`C14`–`C20`, `B16`). `describe` carries each one into the plan as a correction; `screenshot`/`video` fix it in the recreation and confirm with the user any fix that changes the visual match.
+
+## Design-System Page Contract (prototype-producing modes)
+
+The prototype design-system page (`PD-1`–`PD-6`, `SYNC:prototype-design-system`) binds every mode that emits a working design. When its text is not in context, read `.claude/skills/shared/protocols/prototype-design-system.md` first.
+
+- **`fast`, `good`, `screenshot`, `video` producing a prototype or mock-up (the default pure HTML/CSS/JS):** build the design from one catalog of tokens and reusable controls, each control defined once and reused in every view (`PD-3`), and save the design-system page beside the design, in the design's medium (HTML by default: `<design file name>-design-system.html`): the tokens plus a live catalog of every reusable control and component with its variants, states, plain contract, the views that use it, and its owner (existing source path, or `new — build once`) (`PD-2`). Brownfield entries come from the project's own design system and components, found from repository evidence (`PD-4`). Link the page in the report.
+- **Production code in the project's stack:** no page beside the source; add or update the shared components and the project's living catalog (when it keeps one) instead, each control built once (`PD-1`, `PD-5`).
+- **`describe`:** no page; the implementation plan lists the same catalog (each entry with its owner) and orders the shared components before the pages (`PD-5`).
+- **`explore`:** drafts get no page (`PD-6`); the build after the pick ships one.
+- **`review`:** a control implemented twice, or a catalog control re-styled locally, is checklist `M10`.
+
 ## Mode Branches
 
 ### `--mode=review` — UI review (read-only; replaces the design spine)
 
-**[BLOCKING] When `--mode=review`, read `references/mode-review.md` in full FIRST** and follow it as the whole invocation: Phase 0 load UI rules → scope and surfaces → blast radius → surface composition → surface UX pass → six UI categories plus the UI/UX principles and design-distinctiveness passes → report → why-review validation → validated fix loop (none under `--report-only`). It carries its own protocols inline; do not run the design-spine steps, the design-intelligence search or a lane for it. Workflow invocation (`--mode=review --report-only`) and standalone both run it.
+**[BLOCKING] When `--mode=review`, read `references/mode-review.md` in full FIRST** and follow it as the whole invocation: Phase 0 load UI rules → scope and surfaces → blast radius → surface composition → surface UX pass → six UI categories plus the UI/UX principles and design-distinctiveness passes and the action-density pass → report → why-review validation → validated fix loop (none under `--report-only`). It carries its own protocols inline; do not run the design-spine steps, the design-intelligence search or a lane for it. Workflow invocation (`--mode=review --report-only`) and standalone both run it.
 
 ### `--mode=fast` (default) — quick design
 
 1. **Journey Report (`UX-1`) + design authority (`UX-2`)** — Steps 0 and 0b above; present the report and confirm an inferred primary actor/job/outcome before continuing (no question tool → record it `INFERRED — unconfirmed` and continue).
 2. Run the shared design-intelligence searches above.
 3. Use `ui-ux-designer` subagent to start the design process — brief it with the Journey Report and the `Design authority read:` paths; low-fi structure walked against the journeys first (`UX-7`).
-4. If the user doesn't specify, create the design in pure HTML/CSS/JS.
+4. If the user doesn't specify, create the design in pure HTML/CSS/JS, with its design-system page (Design-System Page Contract).
 5. **Walk the main journeys (`UX-8`)** on the built design with the traceability matrix; fix every unserved step and orphan element.
 6. Report back with a brief summary of the changes, the walkthrough result and the UI/UX Gate Report (`UX-11`); ask the user to review and approve.
 7. On approval, update `./docs/design-guidelines.md` if needed.
@@ -190,7 +210,7 @@ Same spine as `fast`, raised to a higher quality bar (iterate on details):
 2. Run comprehensive design-intelligence searches across the applicable domains.
 3. Use `researcher` subagent to research design style, trends, fonts, colors, borders, spacing, elements' positions, etc.
 4. Use `ui-ux-designer` subagent to implement the design step by step based on the Journey Report, the design authority and the research — low-fi structure walked against the journeys first (`UX-7`).
-5. If the user doesn't specify, create the design in pure HTML/CSS/JS.
+5. If the user doesn't specify, create the design in pure HTML/CSS/JS, with its design-system page (Design-System Page Contract).
 6. **Walk the main journeys (`UX-8`)** on the built design with the traceability matrix; fix every unserved step and orphan element.
 7. Report back with a summary, the walkthrough result and the UI/UX Gate Report (`UX-11`); ask the user to review and approve.
 8. On approval, update `./docs/design-guidelines.md` if needed.
@@ -235,7 +255,7 @@ Treat `$ARGUMENTS` as the screenshot to recreate exactly.
     - **IMPORTANT:** Predict the font name (Google Fonts) and font size — don't just use Inter or Poppins.
 3. Use `ui-ux-designer` subagent to create a design plan following the progressive-disclosure structure (as in `describe`) so the final result matches the screenshot. Keep every research markdown report concise (≤150 lines).
 4. Implement the plan step by step.
-5. If the user doesn't specify, create the design in pure HTML/CSS/JS.
+5. If the user doesn't specify, create the design in pure HTML/CSS/JS, with its design-system page (Design-System Page Contract).
 6. **Walk the main journeys (`UX-8`)** on the recreation with the traceability matrix; fix every violation the walk exposes and confirm with the user any fix that changes the visual match.
 7. Report back with a summary, the walkthrough result and the UI/UX Gate Report (`UX-11`); ask the user to review and approve.
 8. On approval, update `./docs/design-guidelines.md` if needed.
@@ -252,7 +272,7 @@ Treat `$ARGUMENTS` as the video to recreate exactly. Same as `--mode=screenshot`
     - **IMPORTANT:** Predict the font name (Google Fonts) and font size — don't just use Inter or Poppins.
 3. Use `ui-ux-designer` subagent to create a design plan following the progressive-disclosure structure so the final result matches the video. Keep every research markdown report concise (≤150 lines).
 4. Implement the plan step by step.
-5. If the user doesn't specify, create the design in pure HTML/CSS/JS.
+5. If the user doesn't specify, create the design in pure HTML/CSS/JS, with its design-system page (Design-System Page Contract).
 6. **Walk the main journeys (`UX-8`)** on the recreation with the traceability matrix; fix every violation the walk exposes and confirm with the user any fix that changes the visual match.
 7. Report back with a summary, the walkthrough result and the UI/UX Gate Report (`UX-11`); ask the user to review and approve.
 8. On approval, update `./docs/design-guidelines.md` if needed.
@@ -282,8 +302,10 @@ Think hard to plan & start working on these tasks follow the Orchestration Proto
 - `design-distinctiveness-gate` — Design identity gate DD-1 to DD-8: subject, design plan, generic test, restraint; designing, implementing or reviewing a visual surface → .claude/skills/shared/protocols/design-distinctiveness-gate.md
 - `design-review-checklist` — Executable front-end design review protocol CL-1 to CL-6; reviewing, planning or building front-end work → .claude/skills/shared/protocols/design-review-checklist.md
 - `existing-ui-research` — Study the existing UI before designing or specifying a screen; designing or specifying a new or updated screen → .claude/skills/shared/protocols/existing-ui-research.md
+- `prototype-design-system` — Prototype design-system page PD-1 to PD-6: tokens and a live catalog of reusable controls beside every mock-up, each control built once and planned before the pages; generating a mock-up or prototype, or planning or building one → .claude/skills/shared/protocols/prototype-design-system.md
 - `review-decision-autonomy` — Choose supported review decisions and ask before extending the round budget; running any review or audit skill or mode → .claude/skills/shared/protocols/review-decision-autonomy.md
 - `review-policy` — Review-only or a three-round fix loop with explicit extension and fresh post-fix evidence; deciding round eligibility, blocking findings or review state → .claude/skills/shared/protocols/review-policy.md
+- `ui-action-density-gate` — Action and attention gate AD-1 to AD-6: one primary text button, lighter forms for other actions, uniform groups, named icons, a copy budget, regular aligned grids; designing, mocking up, building or reviewing a user-facing surface with actions or text → .claude/skills/shared/protocols/ui-action-density-gate.md
 - `ui-copywriting` — User-visible strings are design content; writing or reviewing UI text → .claude/skills/shared/protocols/ui-copywriting.md
 - `ui-ux-design-principles` — Forty usability and accessibility clauses, UI-1.1 to UI-9.4; designing, building or reviewing a user-facing interface → .claude/skills/shared/protocols/ui-ux-design-principles.md
 - `ux-journey-gate` — Journey-first UX gate UX-1 to UX-11: report journeys, read the design authority, generate, then check every UI/UX gate; generating, specifying, planning, mocking up or reviewing a user-facing surface → .claude/skills/shared/protocols/ux-journey-gate.md
@@ -311,16 +333,18 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 
 <!-- SYNC:design-review-checklist:reminder -->
 
-- **MUST ATTENTION** when the change/plan/artifact has an applicable user-facing UI surface, READ `.claude/docs/design-review-checklist.md` and run it: `CL-1` establish context first (platform · user · task · metric · constraints · scope · artifacts — state missing context and its confidence impact) · `CL-2` evidence or nothing, cite a location per finding, NEVER invent a measurement (unmeasurable → `NOT VERIFIABLE`), tag `MEASURED`/`OBSERVED`/`HEURISTIC` · `CL-3` rank `P0`–`P4`, cap at top 10 by severity, NEVER pad, concrete fix on every `P0`/`P1` · `CL-4` sweep §A–§N plus §R over whole surfaces (changed files → affected views, composition reconstructed, render or `ENVIRONMENT-BLOCKED`), including surface load B12–B15, container fit E9–E11, §H by usage, Field Necessity Matrix for input, applying only relevant platform/product sections and the WCAG 2.2 AA web baseline plus any stricter applicable legal/project requirement, or the documented standard for other platforms · `CL-5` short on time → use the §P prompts · `CL-6` report in the §O shape · for source code, assess component ownership, base abstractions, reuse, and duplication using the project's documented taxonomy or observed boundaries. Project design-system docs and ADRs OUTRANK the checklist; report a defect ONCE across `UI-*`/`DD-*`/`CL-*`. For a plan, bind only applicable sections and states to acceptance criteria, and name each UI view's primary task, container, information priority, and creation-vs-deferred inputs; a plan review flags a UI phase that omits them. Skip when the work has no user-facing UI surface, and state why.
+- **MUST ATTENTION** when the change/plan/artifact has an applicable user-facing UI surface, READ `.claude/docs/design-review-checklist.md` and run it: `CL-1` establish context first (platform · user · task · metric · constraints · scope · artifacts — state missing context and its confidence impact) · `CL-2` evidence or nothing, cite a location per finding, NEVER invent a measurement (unmeasurable → `NOT VERIFIABLE`), tag `MEASURED`/`OBSERVED`/`HEURISTIC` · `CL-3` rank `P0`–`P4`, cap at top 10 by severity, NEVER pad, concrete fix on every `P0`/`P1` · `CL-4` sweep §A–§N plus §R over whole surfaces (changed files → affected views, composition reconstructed, render or `ENVIRONMENT-BLOCKED`), including surface load B12–B16, action forms C14–C20, container fit E9–E11, §H by usage, Field Necessity Matrix for input, applying only relevant platform/product sections and the WCAG 2.2 AA web baseline plus any stricter applicable legal/project requirement, or the documented standard for other platforms · `CL-5` short on time → use the §P prompts · `CL-6` report in the §O shape · for source code, assess component ownership, base abstractions, reuse, and duplication using the project's documented taxonomy or observed boundaries. Project design-system docs and ADRs OUTRANK the checklist; report a defect ONCE across `UI-*`/`AD-*`/`DD-*`/`CL-*`. For a plan, bind only applicable sections and states to acceptance criteria, and name each UI view's primary task, container, information priority, and creation-vs-deferred inputs; a plan review flags a UI phase that omits them. Skip when the work has no user-facing UI surface, and state why.
 
 <!-- /SYNC:design-review-checklist:reminder -->
 
 
+
 <!-- SYNC:ux-journey-gate:reminder -->
 
-- **MUST ATTENTION** journey-first, BLOCKING order: REPORT the main user journeys (`UX-1`, evidence-tagged; confirm an inferred actor/job/outcome, or with no question tool record it `INFERRED — unconfirmed` and continue) → READ project design principles, design system, existing UI (`UX-2`) → generate → CHECK all gates. Checks: views = journey steps (`UX-3`) · important information first — one focal point, one primary action = next step, first viewport holds the primary tier (`UX-4`) · rules become prevention, states, recovery (`UX-5`) · the user's mental model (`UX-6`) · low-fi first (`UX-7`) · walkthrough + traceability, no unserved step or orphan (`UX-8`) · interaction cost per journey measured — steps, clicks, view changes, fields, decisions — every click confident, not a 3-click rule (`UX-9`) · wayfinding: where am I, where can I go, how do I get back, no dead ends (`UX-10`) · close with the **UI/UX Gate Report** covering `UX-*`, `UI-*`, `DD-*`, `CL-*` and UI copy — an unresolved `FAIL` blocks hand-off (`UX-11`). Catalog: `.claude/docs/ux-journey-process.md`. Skip ONLY with no user-facing surface, stated.
+- **MUST ATTENTION** journey-first, BLOCKING order: REPORT the main user journeys (`UX-1`, evidence-tagged; confirm an inferred actor/job/outcome, or with no question tool record it `INFERRED — unconfirmed` and continue) → READ project design principles, design system, existing UI (`UX-2`) → generate → CHECK all gates. Checks: views = journey steps (`UX-3`) · important information first — one focal point, one primary action = next step, first viewport holds the primary tier (`UX-4`) · rules become prevention, states, recovery (`UX-5`) · the user's mental model (`UX-6`) · low-fi first (`UX-7`) · walkthrough + traceability, no unserved step or orphan (`UX-8`) · interaction cost per journey measured — steps, clicks, view changes, fields, decisions — every click confident, not a 3-click rule (`UX-9`) · wayfinding: where am I, where can I go, how do I get back, no dead ends (`UX-10`) · close with the **UI/UX Gate Report** covering `UX-*`, `UI-*`, `AD-*`, `DD-*`, `CL-*` and UI copy — an unresolved `FAIL` blocks hand-off (`UX-11`). Catalog: `.claude/docs/ux-journey-process.md`. Skip ONLY with no user-facing surface, stated.
 
 <!-- /SYNC:ux-journey-gate:reminder -->
+
 
 <!-- SYNC:review-decision-autonomy:reminder -->
 
@@ -334,13 +358,25 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 
 <!-- /SYNC:visual-option-discovery:reminder -->
 
+<!-- SYNC:ui-action-density-gate:reminder -->
+
+- **MUST ATTENTION** actions and attention (`AD-1`–`AD-6`): at most ONE filled text button per view, dialog, screenful or independent region, for the commit of its main task (parallel options may each carry it), with a fixed min-width; every other action takes the lightest form that keeps its meaning — a same-size quieter button, an icon-only button (named and tooltipped, only for universally understood icons), icon + short label, a text link, the whole row as target, or an overflow menu; destructive actions are never a bare icon (`AD-1`) · text-button groups share height, style, alignment and width, no filled/outlined mix in a repeated list (a footer, action bar or hero may add same-size quieter buttons), no filled or boxed button per row, by default one inline icon action per row (`AD-2`) · one icon family; every icon-only control has an accessible name, a tooltip on hover AND focus, the selected standard's minimum target and ≥ 3:1 contrast (`AD-3`) · one focal point; a row = title + by default one short meta line; no paragraph walls (`AD-4`) · measure per view and report the `AD` row of the UI/UX Gate Report; a finding resting only on an undeclared default caps at P3 (`AD-5`) · tiles in one collection grid share one size and baseline, the grid fills its width, actions align to their content edge (`AD-6`). Checks: checklist `B16`, `C14`–`C20`. Platform guidelines and the project design system outrank; report a defect once. Skip ONLY with no user-facing actions or text, stated.
+
+<!-- /SYNC:ui-action-density-gate:reminder -->
+
+<!-- SYNC:prototype-design-system:reminder -->
+
+- **MUST ATTENTION** every mock-up or prototype ships a self-contained design-system page beside it, in its medium (HTML mock-up: `<name>-design-system.html`), linking to the project's living component catalog when one exists (`PD-1`): the tokens plus a live catalog of every reusable control and component (buttons, inputs, tables, grids, lists, cards, icons, states), each with its variants, states, a plain contract, the views that use it and its owner, an existing source path or `new — build once` (`PD-2`) · the prototype defines each recurring control once and reuses it in every view (`PD-3`) · brownfield entries are extracted from the project's own design system and components, found from repository evidence (`PD-4`) · a plan builds the shared components in a phase before the screens, and a control implemented twice is a finding (`M10`, `PD-5`) · a one-component change lists only the touched entries; explore drafts and decks get none (`PD-6`). Skip ONLY when no user-facing prototype is generated or implemented, stated.
+
+<!-- /SYNC:prototype-design-system:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Create (or describe) a UI design using design-intelligence databases and subagents, dispatched by `--mode` (input carrier) × `--lane` (design lane); `--mode=review` reviews existing UI through `references/mode-review.md`.
 
 **IMPORTANT MUST ATTENTION** route `--mode={fast|good|explore|describe|screenshot|video}` × `--lane={product|marketing}` (`--mode=review` → read `references/mode-review.md` in full first and follow it instead) → Journey Report (`UX-1`) → design authority/existing UI (`UX-2`) → query local design intelligence → ingest visual evidence when applicable → low-fi walked against journeys (`UX-7`) → design → implement unless `describe` → walk journeys + traceability (`UX-8`) → report and seek approval; project authority outranks candidates, `--mode=review` owns source review evidence.
 
-**IMPORTANT MUST ATTENTION** journey-first order is BLOCKING in EVERY design mode: (1) present the Journey Report (`UX-1`) and confirm an inferred primary actor/job/outcome (no question tool → record it `INFERRED — unconfirmed` and continue) → (2) read and record the project's design principles, design system and existing UI, or `N/A` with the paths checked (`UX-2`) → (3) only then search, sketch, design or build; walk every main journey (`UX-8`), measure interaction cost and wayfinding (`UX-9`, `UX-10`) and close with the UI/UX Gate Report covering `UX-*`/`UI-*`/`DD-*`/`CL-*`/copy (`UX-11`) before reporting — why: a screen designed before its journey is known answers the brief's layout, not the user's job.
+**IMPORTANT MUST ATTENTION** journey-first order is BLOCKING in EVERY design mode: (1) present the Journey Report (`UX-1`) and confirm an inferred primary actor/job/outcome (no question tool → record it `INFERRED — unconfirmed` and continue) → (2) read and record the project's design principles, design system and existing UI, or `N/A` with the paths checked (`UX-2`) → (3) only then search, sketch, design or build; walk every main journey (`UX-8`), measure interaction cost and wayfinding (`UX-9`, `UX-10`) and close with the UI/UX Gate Report covering `UX-*`/`UI-*`/`AD-*`/`DD-*`/`CL-*`/copy (`UX-11`) before reporting — why: a screen designed before its journey is known answers the brief's layout, not the user's job.
 
 **MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 

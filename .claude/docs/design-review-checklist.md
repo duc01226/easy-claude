@@ -4,9 +4,9 @@
 >
 > **Consumed by:** `web-design-guidelines` · `work-item --mode=review` · `test-ui` · `changes-review` · `ui-design` · `design-spec` · `work-item --mode=mockup` · `feature-presentation` · `presentation-builder` · `plan` · `scaffold` · `feature-implement` · `fix`, plus the `ui-ux-designer`, `frontend-developer` and `fullstack-developer` agents. This list is the drift-guard's scope — a skill belongs here only when it carries the canonical block or generated protocol guide, so the list stays greppable and the sweep stays truthful. NEVER add an aspirational consumer.
 >
-> **Drift-guard:** this file is AUTHORITATIVE for the check IDs (`A1`…`Q`), the severity rubric, and the report format. Related but SEPARATE single-sources — NEVER duplicate them here: the 40 usability clauses `UI-1.1`–`UI-9.4` in `SYNC:ui-ux-design-principles`; the visual-identity clauses `DD-1`–`DD-8` in `SYNC:design-distinctiveness-gate` + `.claude/docs/design-knowledge.md`; the tech-agnostic spec layer in `SYNC:ui-intent-layer`; project tokens/components in `design-system/` under the project-reference docs root — default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path. On any change here, grep `design-review-checklist` and update every consuming carrier.
+> **Drift-guard:** this file is AUTHORITATIVE for the check IDs (`A1`…`Q`), the severity rubric, and the report format. Related but SEPARATE single-sources — NEVER duplicate them here: the 40 usability clauses `UI-1.1`–`UI-9.4` in `SYNC:ui-ux-design-principles`; the visual-identity clauses `DD-1`–`DD-8` in `SYNC:design-distinctiveness-gate` + `.claude/docs/design-knowledge.md`; the action & attention clauses `AD-1`–`AD-6` in `SYNC:ui-action-density-gate` (full text: `.claude/skills/shared/protocols/ui-action-density-gate.md`, read it when a `B16` or `C14`–`C20` check defers to an `AD` clause; this file owns their measurable checks `B16`, `C14`–`C20`); the tech-agnostic spec layer in `SYNC:ui-intent-layer`; project tokens/components in `design-system/` under the project-reference docs root — default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path. On any change here, grep `design-review-checklist` and update every consuming carrier.
 >
-> **Relationship to the other two UI rule sets — three questions, no overlap.** `UI-1.1`–`UI-9.4` ask _"does this meet the usability/accessibility floor?"_ `DD-1`–`DD-8` ask _"is this THIS product's interface, or any generator's?"_ This checklist asks _"did the review actually LOOK at everything, with evidence, and rank it?"_ — it is the **procedure and evidence contract** for a review, not a third set of taste rules. Where a check here restates a `UI-*` clause, report it ONCE under whichever ID the consuming skill already uses; NEVER emit two findings for one defect.
+> **Relationship to the other three UI rule sets — four questions, no overlap.** `UI-1.1`–`UI-9.4` ask _"does this meet the usability/accessibility floor?"_ `DD-1`–`DD-8` ask _"is this THIS product's interface, or any generator's?"_ `AD-1`–`AD-6` ask _"does every action and every string earn the user's attention?"_ and are measured here by `B16` and `C14`–`C20`. This checklist asks _"did the review actually LOOK at everything, with evidence, and rank it?"_ — it is the **procedure and evidence contract** for a review, not another set of taste rules. Where a check here restates a `UI-*` clause, report it ONCE under whichever ID the consuming skill already uses; NEVER emit two findings for one defect.
 >
 > **MUST ATTENTION** apply this checklist ONLY when the change, plan, or artifact carries a user-facing front-end surface. A back-end-only diff, a doc edit, or a config change is `N/A` — state that once and move on. NEVER run a UI review on a non-UI change to manufacture coverage.
 >
@@ -137,6 +137,7 @@ A file is not a screen. Before running the section sweep on source code:
 | B13 | **Progressive disclosure** — secondary, rare, or expert detail is revealed on demand, not shown by default | Every optional section expanded by default; the primary path is buried beneath it | P2      |
 | B14 | **One job per view** — a view serves one primary task; alternate entry modes are separate, clearly chosen paths | Upload, paste, pick-existing, and manual entry all presented at once in one view | P2      |
 | B15 | **Complexity budget respected** — counts of inputs per step, sections per view, and equal-weight actions per view stay within the project's declared budget, or the excess is justified by the primary user's expertise | Budget declared at 12 inputs per step; the step shows 31 with no stated reason | P2      |
+| B16 | **Copy budget** — a list row shows a title plus, by default, one short meta line (one rendered line at the widest tested viewport, clamped at narrower ones; `uiReview.complexityBudget.rowMetaChars` when declared, else the `AD-4` default); cards show only the fields their decision needs; rows, cards, table cells and dashboard tiles hold no paragraph text (`blockCopyChars`); longer detail sits behind progressive disclosure. A finding against an undeclared default — the character count, the one-meta-line default (a preview list such as an inbox may set two) or a wrap only at a narrower viewport — → P3; slide decks are N/A (their own text-density rules apply) | Every row of an action list carries a two-line description beside its buttons | P2 |
 
 ---
 
@@ -153,10 +154,17 @@ A file is not a screen. Before running the section sweep on source code:
 | C7  | Color is systematic and semantic — success/warning/error/info are consistent                      | Red used both for errors and for a brand accent                          | P2      |
 | C8  | White space is used deliberately; no wall-to-wall density without reason                          | Zero breathing room around dense content blocks                          | P3      |
 | C9  | Elevation/shadow/layering communicates real hierarchy, not decoration                             | Random shadow depths with no z-order logic                               | P3      |
-| C10 | Iconography is consistent in style, weight, grid, and metaphor                                    | Mixed outline and filled icons in one toolbar                            | P3      |
+| C10 | Iconography is consistent in style, weight, grid, and metaphor — one icon family, and a visible label wherever the meaning is neither universal nor standard in the domain of an expert tool (`AD-3`) | Mixed outline and filled icons in one toolbar                            | P3      |
 | C11 | Imagery is purposeful, optimized, and consistent in treatment                                     | Generic stock photos with mismatched crops and color                     | P3      |
 | C12 | Gestalt principles are respected — grouping, similarity, closure, common region read correctly    | Card boundaries imply grouping that contradicts the actual relationships | P2      |
 | C13 | Brand expression is present but never at the cost of clarity                                      | Custom styling makes a button unrecognizable as a button                 | P2      |
+| C14 | **One primary commit per view** — at most one filled text button per view, dialog or screenful — on a multi-panel expert screen, per independent region; it commits the main task and keeps a fixed min-width; other actions use the lighter forms of the `AD-1` table; boxed text buttons stay within `textButtonsPerView` when declared (an undeclared default overrun → P3); parallel options that each end in the same commit (pricing plans) may each carry it, in one style and width; the same commit repeated in one screenful (header and hero) counts once | Two filled buttons in one dialog; "View" and "Open" drawn as boxed buttons beside the primary | P2 |
+| C15 | **Uniform action groups** — buttons in one toolbar, row, column or footer share height, style and alignment; text-button widths differ by no more than `buttonGroupWidthSpread` (else the `AD-2` default); no filled/outlined mix in a repeated list, row or column — a footer, action bar or hero may hold the primary plus same-size quieter buttons (secondary or dismiss) within the budget, or follow the platform's dialog button set; a spread over an undeclared default → P3 | A filled "Process 3 items" beside outlined "View" and "Open", three different widths | P3 |
+| C16 | **List-row actions** — a row is one target (whole row or card, trailing chevron or icon) with, by default, one inline icon action (plus expert accelerators the design plan names, `UX-6`; more inline icon actions against that default → P3); further actions go to an overflow menu or the detail view; never a filled or boxed button repeated per row | A filled "Open" button on each of 20 rows | P2 |
+| C17 | **Icon-only controls** — each has an accessible name (`I5`), a tooltip shown on hover AND keyboard focus where those exist (touch-only: universal icons only, the rest labelled), ≥3:1 contrast (`I1`), and a hit target of at least the selected standard's minimum (e.g. WCAG 2.5.8: 24×24 CSS px or its spacing exception; below it, report with `G1`/`I14` at their severity) and, on touch, the platform's recommended size (e.g. 44 pt / 48 dp / about 44 CSS px), where a control between the two ranks P3; a destructive or irreversible action is never a bare icon without confirm or undo (report with `A11`/`D9` at their severity) | A toolbar of unlabeled icons with no tooltips; a trash icon that deletes on click | P2 |
+| C18 | **Regular grids** — tiles in one collection grid (items of one kind; a dashboard of different widgets, a bento layout, or a feed, thread, chat or board whose items vary in height is exempt) share one size and aspect ratio (media of another orientation sits inside the tile, letterboxed, with an orientation badge); per grid row at each tested breakpoint, tile-height and title-baseline variance is 0; titles clamp to a fixed number of lines; masonry only when the design plan names it (`AD-6`) | Tall and wide cards mixed in one grid; titles and status dots at different heights | P2 |
+| C19 | **Alignment and width** — a page's actions align to the content edge they act on (e.g. within 1 px); every page of the product uses the same page-shell content width and gutters (a reading column inside may be narrower); a grid fills its content width with no empty band wider than one column at the tested widths (e.g. 1280/1440/1920 on the web) (`AD-6`) | The page's primary action floats mid-header; the grid stops at two thirds of the width | P3 |
+| C20 | **Placeholder variety** — placeholder art differs by content type, never one repeated image across content types in a view; meta never restates position, order or layout (`AD-4`, `AD-6`) | Every thumbnail shows the same stock figure; each card says "position N" | P3 |
 
 ---
 
@@ -221,7 +229,7 @@ A file is not a screen. Before running the section sweep on source code:
 
 | ID  | Check                                                                                      | Failure signal                                              | Default |
 | --- | ------------------------------------------------------------------------------------------ | ----------------------------------------------------------- | ------- |
-| G1  | Touch targets and spacing meet the target OS, accessibility standard, and project guidance | Adjacent targets are difficult to operate                   | P1      |
+| G1  | Touch targets and spacing meet the target OS, accessibility standard, and project guidance (a target above the standard's minimum but below a platform's recommended size is `C17` at P3) | Adjacent targets are difficult to operate                   | P1      |
 | G2  | Primary actions sit within the natural thumb arc; destructive actions do not               | Main CTA in the top-left corner                             | P2      |
 | G3  | One-handed use is possible for core tasks                                                  | Reaching the send button requires two hands                 | P2      |
 | G4  | Safe areas respected — notch, dynamic island, home indicator, rounded corners              | Content hidden behind the gesture bar                       | P1      |
@@ -352,6 +360,7 @@ Resolve the applicable law, project policy, and platform accessibility standard 
 | M7  | Existing components and abstractions are reused or composed when they fit; a meaningful deviation names its constraint                          | P2      |
 | M8  | Shared behavior has an appropriate owner; duplication is consolidated when doing so reduces real maintenance cost                               | P2      |
 | M9  | Tests cover reusable behavior and surface composition according to the project's test organization and capabilities                             | P2      |
+| M10 | New or changed work implements no control twice: shared controls and components come from one catalog entry or shared component, and a screen adds a variant instead of overriding one's look; a legacy duplicate outside the change is `M8` (`PD-5`, `SYNC:prototype-design-system`) | P2      |
 
 ---
 
@@ -460,7 +469,8 @@ Task effort trace (steps · inputs · decisions on the primary path) · Field Ne
 | Section      | Checked | Passed | Failed | Not verifiable |
 | ------------ | ------- | ------ | ------ | -------------- |
 | A Heuristics | 12      |        |        |                |
-| B Cognitive  | 15      |        |        |                |
+| B Cognitive  | 16      |        |        |                |
+| C Visual     | 20      |        |        |                |
 | E IA & fit   | 11      |        |        |                |
 | R Forms      | 10      |        |        |                |
 | ...          |         |        |        |                |
@@ -475,7 +485,7 @@ When a full review isn't possible, run only these. They catch the majority of se
 1. Can the intended user complete the primary task — without wading through information, inputs, or entry modes the task does not need, in a container that fits it? _(A, E, B12, E9, R1)_
 2. Does each action give timely feedback against the product/platform expectation, or show progress? _(A1, B6, D6)_
 3. Do the relevant empty, loading, error, and recovery states offer a forward path? _(D2, D13)_
-4. Is the primary action obvious and reachable using supported inputs? _(B7, C1, G2)_
+4. Is there at most one obvious primary action (the view's commit, when it has one), with every other action in a lighter form and no ragged button group, reachable using supported inputs? _(B7, C1, C14–C16, G2)_
 5. Does text and focus meet the governing accessibility standard? _(I1, I4)_
 6. Can the flow be completed with supported input and assistive-technology modes? _(I3, H1)_
 7. Do interactive targets meet applicable platform and accessibility guidance? _(G1)_
@@ -522,7 +532,7 @@ Any P0 caps the overall grade at **Fail**, regardless of score. Report the score
 
 **IMPORTANT MUST ATTENTION** propose a concrete fix for every P0 and P1 — a diagnosis without a remedy is half a review.
 
-**IMPORTANT MUST ATTENTION** report a defect ONCE — where a check here restates a `UI-*` or `DD-*` clause, use whichever ID the consuming skill already uses; NEVER emit two findings for one defect.
+**IMPORTANT MUST ATTENTION** report a defect ONCE — where a check here restates a `UI-*`, `AD-*` or `DD-*` clause, use whichever ID the consuming skill already uses; NEVER emit two findings for one defect.
 
 **Anti-Rationalization:**
 

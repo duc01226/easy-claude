@@ -180,7 +180,7 @@ For ANY visual input, extract design context FIRST, then generate the spec.
 - **Template:** `.claude/docs/team-artifacts/templates/design-spec-template.md` (framework-owned path — NOT the configurable team-artifacts root in `docs/project-config.json`)
 - **Naming:** `{YYMMDD}-ux-{type}-{slug}.md` (general artifact-path pattern: `{YYMMDD}-{role}-{type}-{slug}.md`)
 - **Context:** DESIGN SPEC — include component states, design tokens, accessibility requirements.
-- **Quality checklist:** `- [ ]` Journey Report (§0a, `UX-1`) precedes every other section, claims `SOURCED`/`INFERRED` · `- [ ]` `Design authority read:` recorded or `N/A` (`UX-2`) · `- [ ]` Every view hosts a journey step; information priority (`UX-4` tiers) + container recorded per view · `- [ ]` §8 traceability matrix: no unserved step, no orphan element (`UX-8`) · `- [ ]` Interaction cost per journey + wayfinding per view (`UX-9`, `UX-10`) · `- [ ]` §9 UI/UX Gate Report complete, no open `FAIL` (`UX-11`) ·  `- [ ]` All states documented · `- [ ]` Design tokens specified · `- [ ]` Accessibility notes included · `- [ ]` Responsive breakpoints defined
+- **Quality checklist:** `- [ ]` Journey Report (§0a, `UX-1`) precedes every other section, claims `SOURCED`/`INFERRED` · `- [ ]` `Design authority read:` recorded or `N/A` (`UX-2`) · `- [ ]` Every view hosts a journey step; information priority (`UX-4` tiers) + container recorded per view · `- [ ]` §8 traceability matrix: no unserved step, no orphan element (`UX-8`) · `- [ ]` Interaction cost per journey + wayfinding per view (`UX-9`, `UX-10`) · `- [ ]` §9 UI/UX Gate Report complete, no open `FAIL` (`UX-11`) · `- [ ]` Action forms per view + `AD-5` counts recorded (`AD-1`–`AD-6`) ·  `- [ ]` All states documented · `- [ ]` Design tokens specified · `- [ ]` Accessibility notes included · `- [ ]` Responsive breakpoints defined
 
 ## Mode: wireframe (image → spec)
 
@@ -250,12 +250,17 @@ Read [references/wireframe.md](references/wireframe.md) in full when `--mode=wir
 **Inputs at creation vs deferred:** {the smallest set that makes a valid, useful record; everything else and where it is enriched later}
 **Complexity budget:** {counts per view/step} vs `uiReview.complexityBudget` when the project declares one; otherwise the counts plus the reasoning for the primary user.
 
+**Action forms (`AD-1`–`AD-2`):** {per view: the ONE filled primary commit · every other action → icon-only / icon + label / link / row target / overflow, and why · button groups with their shared min-width}
+**Collection grids (`AD-6`):** {per grid: tile size and aspect ratio · title line clamp · the content edge its actions align to}
+
 ## 2. Component Inventory
 
-| Component | Type     | Source           | Notes                       |
-| --------- | -------- | ---------------- | --------------------------- |
-| UserCard  | New      | Feature-specific | Displays user avatar + name |
-| DataTable | Existing | shared library   | Reuse with custom columns   |
+| Component | Type     | Owner (source path or `new — build once`) | Used in | Notes                       |
+| --------- | -------- | ----------------------------------------- | ------- | --------------------------- |
+| UserCard  | New      | new — build once                          | {views} | Displays user avatar + name |
+| DataTable | Existing | {shared library path}                     | {views} | Reuse with custom columns   |
+
+Each reusable component here becomes an entry of the mock-up's design-system page (`PD-2`).
 
 ## 3. Layout
 
@@ -285,6 +290,7 @@ Every token traces to a §0 Design Plan decision. Names evoke this product's wor
 
 - Keyboard navigation order
 - ARIA labels for interactive elements
+- Icon-only controls: accessible name + tooltip on hover and focus, full-size hit target, 3:1 icon contrast (`AD-3`)
 - Color contrast compliance notes
 
 ## 7. Open Questions
@@ -313,6 +319,7 @@ Every token traces to a §0 Design Plan decision. Names evoke this product's wor
 | ---- | ------ | -------- |
 | UX-1–UX-10 journey-first | PASS / FAIL → fixed / N/A | {section refs} |
 | UI-1.1–UI-9.4 floor (applicable) | … | {measured values} |
+| AD-1–AD-6 actions & attention | … | {§1b action forms · counts per view} |
 | DD-1–DD-8 identity | … | {§0 generic test} |
 | CL-1–CL-6 checklist (CL-5 triage minimum) | … | {findings} |
 | UI copy | … | … |
@@ -327,7 +334,7 @@ The spec is where the 40 UI/UX Design Principles (`UI-1.1`–`UI-9.4`, the `SYNC
 | **§0a User Journeys** | Written FIRST, before §0 and every other section (`UX-1`): frame, actors + job statements, main journeys ranked by the catalog §5 score, a step table per journey (intent · decision · information needed · business rule · response · failure → recovery), derived requirements, assumptions. Every claim `SOURCED (<location>)` or `INFERRED`; an inferred primary actor, main job or success outcome is confirmed with the user (no question tool → recorded `INFERRED — unconfirmed (no question tool)`). The spec header records `Design authority read:` or `N/A` (`UX-2`). Depth follows Quick/Full (catalog §10), never zero. |
 | **§0 Design Plan** | The identity layer the 40 clauses do not cover (`SYNC:design-distinctiveness-gate`): name the subject/audience/job (`DD-1`), give all four plan parts a WHY traced to that subject (`DD-2`), and record the **Generic test** result — what you revised, or which axes the brief/design system already pinned (`DD-3`). A downstream implementer who receives no design plan supplies their own defaults, so an unstated direction is a templated build. |
 | **§1 Overview** | Name the ONE focal point of the screen (`UI-1.1`), and name the surface(s) in scope (web / mobile / both) so the mobile clauses (`UI-8.1`–`UI-8.4`) are either binding or explicitly skipped. |
-| **§1b Information Priority & Container** | Seed from the governing spec's View Inventory priority/container record when one exists (`SYNC:ui-intent-layer`); never repartition it silently. Every view names the §0a journey steps it hosts and every main-journey step lands on a view (`UX-3`); `now` items carry the `UX-4` tier (Primary / Secondary / On demand) from the need-at-the-decision × frequency × cost-of-missing score, with ONE primary action matching the journey's next step. Every view names its primary task and a container that fits it — a long or multi-section entry task is a full view or stepped flow, not a dialog (checklist `E9`). Every input is justified at THIS step or deferred (`UI-7.1`, checklist `§R1`–`R2`); creation asks only for the smallest valid record. Alternate entry modes are a first explicit choice, not stacked in one view (`B14`). A spec whose `now` set exceeds the task FAILS this gate. |
+| **§1b Information Priority & Container** | Seed from the governing spec's View Inventory priority/container record when one exists (`SYNC:ui-intent-layer`); never repartition it silently. Every view names the §0a journey steps it hosts and every main-journey step lands on a view (`UX-3`); `now` items carry the `UX-4` tier (Primary / Secondary / On demand) from the need-at-the-decision × frequency × cost-of-missing score, with ONE primary action matching the journey's next step. Every view names its primary task and a container that fits it — a long or multi-section entry task is a full view or stepped flow, not a dialog (checklist `E9`). Every input is justified at THIS step or deferred (`UI-7.1`, checklist `§R1`–`R2`); creation asks only for the smallest valid record. Alternate entry modes are a first explicit choice, not stacked in one view (`B14`). A spec whose `now` set exceeds the task FAILS this gate. Every view also names its ONE filled primary and each other action's `AD-1` form; rows state their one meta line (`AD-4`). |
 | **§3 Layout** | Group by proximity and shared alignment edges; add a border or container only where it encodes a real boundary (`UI-1.3`, `UI-1.4`); justify each breakpoint by where the CONTENT stops working, not by a device name (`UI-4.4`). |
 | **§4 Design Tokens** | Adopt the project’s type scale, readable sizes, measures, line spacing, families/weights and spacing/grid tokens (`UI-2.1`–`UI-2.5`, `UI-4.1`). Otherwise choose purposeful, consistent values for the target platform and record why; example values are not universal fail thresholds. Container-owned spacing and clear group relationships remain required (`UI-4.2`–`UI-4.3`). |
 | **§4 Design Tokens (colour)** | Record the selected accessibility standard and its source, applicable contrast targets and measured values (`UI-3.1`); unavailable measurements stay `NOT VERIFIABLE`. Use the WCAG 2.2 AA web baseline plus stricter applicable requirements; non-web uses its documented standard. One accent with one job (`UI-3.2`); when dark mode applies, specify lifted surfaces and softened white text rather than inversion (`UI-3.4`). |
@@ -335,7 +342,7 @@ The spec is where the 40 UI/UX Design Principles (`UI-1.1`–`UI-9.4`, the `SYNC
 | **§6 Accessibility** | Preserve perceivable focus for supported focus navigation (`UI-5.5`); never convey meaning by colour alone (`UI-3.3`). On touch/mobile surfaces, meet the selected platform/accessibility target-size and spacing requirements; place actions where reachable, provide required alternatives to gesture-only actions, and respect safe areas and keyboards (`UI-8.1`–`UI-8.4`). Record applicable constraints and evidence; unsupported capabilities are N/A. |
 | **§7 Open Questions** | Every clause deliberately deviated from, with the project doc or user decision that authorises it — an undocumented deviation is a spec defect, not a style choice. |
 | **§8 Journey Traceability** | One row per §0a journey step: view → element → information tier → rule → states → walkthrough result from the four cognitive-walkthrough questions (`UX-8`). An unserved step or an orphan element FAILS this gate until fixed or justified; Quick Spec walks only the journeys §0a covers. Also carries the interaction-cost table (`UX-9`) and per-view wayfinding check (`UX-10`). |
-| **§9 UI/UX Gate Report** | One row per gate family — `UX-*`, applicable `UI-*`, `DD-*`, `CL-*` (at least the `CL-5` triage), UI copy — with result and evidence (`UX-11`). A gate missing from the table counts as not checked; an unresolved `FAIL` blocks `Approved`. |
+| **§9 UI/UX Gate Report** | One row per gate family — `UX-*`, applicable `UI-*`, `AD-*`, `DD-*`, `CL-*` (at least the `CL-5` triage), UI copy — with result and evidence (`UX-11`). A gate missing from the table counts as not checked; an unresolved `FAIL` blocks `Approved`. |
 
 Keep every clause obligation written in observable UX language so it survives the M1-M5/M7 gate below — state the visible outcome, never a CSS property or framework prop.
 
@@ -410,7 +417,9 @@ Standalone (no parent workflow): after the spec is written, suggest `$ui-design 
 - `design-distinctiveness-gate` — Design identity gate DD-1 to DD-8: subject, design plan, generic test, restraint; designing, implementing or reviewing a visual surface → .claude/skills/shared/protocols/design-distinctiveness-gate.md
 - `design-review-checklist` — Executable front-end design review protocol CL-1 to CL-6; reviewing, planning or building front-end work → .claude/skills/shared/protocols/design-review-checklist.md
 - `existing-ui-research` — Study the existing UI before designing or specifying a screen; designing or specifying a new or updated screen → .claude/skills/shared/protocols/existing-ui-research.md
+- `prototype-design-system` — Prototype design-system page PD-1 to PD-6: tokens and a live catalog of reusable controls beside every mock-up, each control built once and planned before the pages; generating a mock-up or prototype, or planning or building one → .claude/skills/shared/protocols/prototype-design-system.md
 - `review-decision-autonomy` — Choose supported review decisions and ask before extending the round budget; running any review or audit skill or mode → .claude/skills/shared/protocols/review-decision-autonomy.md
+- `ui-action-density-gate` — Action and attention gate AD-1 to AD-6: one primary text button, lighter forms for other actions, uniform groups, named icons, a copy budget, regular aligned grids; designing, mocking up, building or reviewing a user-facing surface with actions or text → .claude/skills/shared/protocols/ui-action-density-gate.md
 - `ui-copywriting` — User-visible strings are design content; writing or reviewing UI text → .claude/skills/shared/protocols/ui-copywriting.md
 - `ui-intent-layer` — Tech-agnostic UI intent layer in every UI-bearing spec; writing a spec for a feature with a user interface → .claude/skills/shared/protocols/ui-intent-layer.md
 - `ui-system-context` — Resolve the project's UI conventions before a UI change; changing a user-interface surface → .claude/skills/shared/protocols/ui-system-context.md
@@ -469,21 +478,35 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 
 <!-- SYNC:design-review-checklist:reminder -->
 
-- **MUST ATTENTION** when the change/plan/artifact has an applicable user-facing UI surface, READ `.claude/docs/design-review-checklist.md` and run it: `CL-1` establish context first (platform · user · task · metric · constraints · scope · artifacts — state missing context and its confidence impact) · `CL-2` evidence or nothing, cite a location per finding, NEVER invent a measurement (unmeasurable → `NOT VERIFIABLE`), tag `MEASURED`/`OBSERVED`/`HEURISTIC` · `CL-3` rank `P0`–`P4`, cap at top 10 by severity, NEVER pad, concrete fix on every `P0`/`P1` · `CL-4` sweep §A–§N plus §R over whole surfaces (changed files → affected views, composition reconstructed, render or `ENVIRONMENT-BLOCKED`), including surface load B12–B15, container fit E9–E11, §H by usage, Field Necessity Matrix for input, applying only relevant platform/product sections and the WCAG 2.2 AA web baseline plus any stricter applicable legal/project requirement, or the documented standard for other platforms · `CL-5` short on time → use the §P prompts · `CL-6` report in the §O shape · for source code, assess component ownership, base abstractions, reuse, and duplication using the project's documented taxonomy or observed boundaries. Project design-system docs and ADRs OUTRANK the checklist; report a defect ONCE across `UI-*`/`DD-*`/`CL-*`. For a plan, bind only applicable sections and states to acceptance criteria, and name each UI view's primary task, container, information priority, and creation-vs-deferred inputs; a plan review flags a UI phase that omits them. Skip when the work has no user-facing UI surface, and state why.
+- **MUST ATTENTION** when the change/plan/artifact has an applicable user-facing UI surface, READ `.claude/docs/design-review-checklist.md` and run it: `CL-1` establish context first (platform · user · task · metric · constraints · scope · artifacts — state missing context and its confidence impact) · `CL-2` evidence or nothing, cite a location per finding, NEVER invent a measurement (unmeasurable → `NOT VERIFIABLE`), tag `MEASURED`/`OBSERVED`/`HEURISTIC` · `CL-3` rank `P0`–`P4`, cap at top 10 by severity, NEVER pad, concrete fix on every `P0`/`P1` · `CL-4` sweep §A–§N plus §R over whole surfaces (changed files → affected views, composition reconstructed, render or `ENVIRONMENT-BLOCKED`), including surface load B12–B16, action forms C14–C20, container fit E9–E11, §H by usage, Field Necessity Matrix for input, applying only relevant platform/product sections and the WCAG 2.2 AA web baseline plus any stricter applicable legal/project requirement, or the documented standard for other platforms · `CL-5` short on time → use the §P prompts · `CL-6` report in the §O shape · for source code, assess component ownership, base abstractions, reuse, and duplication using the project's documented taxonomy or observed boundaries. Project design-system docs and ADRs OUTRANK the checklist; report a defect ONCE across `UI-*`/`AD-*`/`DD-*`/`CL-*`. For a plan, bind only applicable sections and states to acceptance criteria, and name each UI view's primary task, container, information priority, and creation-vs-deferred inputs; a plan review flags a UI phase that omits them. Skip when the work has no user-facing UI surface, and state why.
 
 <!-- /SYNC:design-review-checklist:reminder -->
 
+
 <!-- SYNC:ux-journey-gate:reminder -->
 
-- **MUST ATTENTION** journey-first, BLOCKING order: REPORT the main user journeys (`UX-1`, evidence-tagged; confirm an inferred actor/job/outcome, or with no question tool record it `INFERRED — unconfirmed` and continue) → READ project design principles, design system, existing UI (`UX-2`) → generate → CHECK all gates. Checks: views = journey steps (`UX-3`) · important information first — one focal point, one primary action = next step, first viewport holds the primary tier (`UX-4`) · rules become prevention, states, recovery (`UX-5`) · the user's mental model (`UX-6`) · low-fi first (`UX-7`) · walkthrough + traceability, no unserved step or orphan (`UX-8`) · interaction cost per journey measured — steps, clicks, view changes, fields, decisions — every click confident, not a 3-click rule (`UX-9`) · wayfinding: where am I, where can I go, how do I get back, no dead ends (`UX-10`) · close with the **UI/UX Gate Report** covering `UX-*`, `UI-*`, `DD-*`, `CL-*` and UI copy — an unresolved `FAIL` blocks hand-off (`UX-11`). Catalog: `.claude/docs/ux-journey-process.md`. Skip ONLY with no user-facing surface, stated.
+- **MUST ATTENTION** journey-first, BLOCKING order: REPORT the main user journeys (`UX-1`, evidence-tagged; confirm an inferred actor/job/outcome, or with no question tool record it `INFERRED — unconfirmed` and continue) → READ project design principles, design system, existing UI (`UX-2`) → generate → CHECK all gates. Checks: views = journey steps (`UX-3`) · important information first — one focal point, one primary action = next step, first viewport holds the primary tier (`UX-4`) · rules become prevention, states, recovery (`UX-5`) · the user's mental model (`UX-6`) · low-fi first (`UX-7`) · walkthrough + traceability, no unserved step or orphan (`UX-8`) · interaction cost per journey measured — steps, clicks, view changes, fields, decisions — every click confident, not a 3-click rule (`UX-9`) · wayfinding: where am I, where can I go, how do I get back, no dead ends (`UX-10`) · close with the **UI/UX Gate Report** covering `UX-*`, `UI-*`, `AD-*`, `DD-*`, `CL-*` and UI copy — an unresolved `FAIL` blocks hand-off (`UX-11`). Catalog: `.claude/docs/ux-journey-process.md`. Skip ONLY with no user-facing surface, stated.
 
 <!-- /SYNC:ux-journey-gate:reminder -->
+
 
 <!-- SYNC:review-decision-autonomy:reminder -->
 
 **MUST ATTENTION** Decide supported review choices and recommendations, record the rationale, and finish without routine user questions. Keep round-limit extension, indispensable facts and actual action authority; preserve source coverage, validation, tests, read-only boundaries and budgets. Review decisions do not accept open risks or make a failed gate pass.
 
 <!-- /SYNC:review-decision-autonomy:reminder -->
+
+<!-- SYNC:ui-action-density-gate:reminder -->
+
+- **MUST ATTENTION** actions and attention (`AD-1`–`AD-6`): at most ONE filled text button per view, dialog, screenful or independent region, for the commit of its main task (parallel options may each carry it), with a fixed min-width; every other action takes the lightest form that keeps its meaning — a same-size quieter button, an icon-only button (named and tooltipped, only for universally understood icons), icon + short label, a text link, the whole row as target, or an overflow menu; destructive actions are never a bare icon (`AD-1`) · text-button groups share height, style, alignment and width, no filled/outlined mix in a repeated list (a footer, action bar or hero may add same-size quieter buttons), no filled or boxed button per row, by default one inline icon action per row (`AD-2`) · one icon family; every icon-only control has an accessible name, a tooltip on hover AND focus, the selected standard's minimum target and ≥ 3:1 contrast (`AD-3`) · one focal point; a row = title + by default one short meta line; no paragraph walls (`AD-4`) · measure per view and report the `AD` row of the UI/UX Gate Report; a finding resting only on an undeclared default caps at P3 (`AD-5`) · tiles in one collection grid share one size and baseline, the grid fills its width, actions align to their content edge (`AD-6`). Checks: checklist `B16`, `C14`–`C20`. Platform guidelines and the project design system outrank; report a defect once. Skip ONLY with no user-facing actions or text, stated.
+
+<!-- /SYNC:ui-action-density-gate:reminder -->
+
+<!-- SYNC:prototype-design-system:reminder -->
+
+- **MUST ATTENTION** every mock-up or prototype ships a self-contained design-system page beside it, in its medium (HTML mock-up: `<name>-design-system.html`), linking to the project's living component catalog when one exists (`PD-1`): the tokens plus a live catalog of every reusable control and component (buttons, inputs, tables, grids, lists, cards, icons, states), each with its variants, states, a plain contract, the views that use it and its owner, an existing source path or `new — build once` (`PD-2`) · the prototype defines each recurring control once and reuses it in every view (`PD-3`) · brownfield entries are extracted from the project's own design system and components, found from repository evidence (`PD-4`) · a plan builds the shared components in a phase before the screens, and a control implemented twice is a finding (`M10`, `PD-5`) · a one-component change lists only the touched entries; explore drafts and decks get none (`PD-6`). Skip ONLY when no user-facing prototype is generated or implemented, stated.
+
+<!-- /SYNC:prototype-design-system:reminder -->
 
 ## Closing Reminders
 

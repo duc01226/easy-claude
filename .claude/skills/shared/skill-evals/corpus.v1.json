@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "corpusVersion": "1.2.0",
+  "corpusVersion": "1.3.0",
   "cases": [
     {
       "id": "activation-positive",
@@ -635,6 +635,43 @@
       ],
       "pressures": [
         "simplicity"
+      ]
+    },
+    {
+      "id": "repair-ui-action-hierarchy",
+      "kind": "repair",
+      "skills": [
+        "ui-design"
+      ],
+      "expectedActivation": "ui-design",
+      "prompt": "Build the review queue screen: each group of pending records can be processed, viewed or opened.",
+      "fixture": "A synthetic product with no design-system rule on buttons; the brief lists three actions per group.",
+      "assertions": [
+        "One filled text button per view commits the main task.",
+        "View/open actions are a row target, link or named icon, not boxed buttons per row.",
+        "Each row shows a title and at most one short meta line.",
+        "Every icon-only control has an accessible name and a hover/focus tooltip."
+      ],
+      "pressures": [
+        "time"
+      ]
+    },
+    {
+      "id": "repair-mockup-action-density",
+      "kind": "repair",
+      "skills": [
+        "work-item"
+      ],
+      "expectedActivation": "work-item",
+      "prompt": "Generate the mock-up for this task.",
+      "fixture": "A task with a list view whose rows each offer view, open and process actions; no design-system button rule.",
+      "assertions": [
+        "The Step 8 report records the AD-5 counts per view.",
+        "The generated HTML has one filled primary per view.",
+        "The demo chrome is marked data-audit-ignore."
+      ],
+      "pressures": [
+        "time"
       ]
     }
   ]

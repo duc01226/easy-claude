@@ -22,6 +22,8 @@ Are proportions doing work? A 280px sidebar next to full-width content says "nav
 
 Is there a clear focal point? Every screen has one thing the user came here to do. That thing should dominate — through size, position, contrast, or the space around it. When everything competes equally, nothing wins and the interface feels like a parking lot.
 
+Count the actions too. One filled button is the focal action; a row of boxed buttons whose widths follow their labels is the action-level parking lot (`AD-1`, `AD-2`).
+
 ---
 
 ## See the Craft

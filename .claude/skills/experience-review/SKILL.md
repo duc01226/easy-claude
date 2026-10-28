@@ -70,7 +70,7 @@ Read the captured logs and actual responses, transcripts, persisted outcomes or 
 
 ### 4. Inspect and judge
 
-Persist observations before judgments, linked to evidence. Judge against intent as `PASS`, `FAIL`, `PARTIAL` or `NOT-VERIFIABLE`; confidence is metadata, never approval. Do not infer interaction, accessibility, timing or data correctness from an image alone.
+Persist observations before judgments, linked to evidence. Judge against intent as `PASS`, `FAIL`, `PARTIAL` or `NOT-VERIFIABLE`; confidence is metadata, never approval. Do not infer interaction, accessibility, timing or data correctness from an image alone. For a user-facing UI with actions or dense text, measure the `AD-5` counts on the live DOM (filled buttons, group widths, row actions, meta lines, icon-only names and focus tooltips) — accessible names and focus tooltips cannot be judged from a screenshot; classify through the checklist §0.3 map (the check's P-level first, then BLOCKING or ADVISORY; a finding resting only on an undeclared default caps at P3).
 
 Classify findings:
 

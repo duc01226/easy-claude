@@ -666,10 +666,11 @@ logSection('describeSchema');
     // optional `pullRequest.pushedBranchUpdate` field (field + its one-line note,
     // measured 647 -> 649), then to 710 for the team layer of the five router switches,
     // `portability.generateClaudeMd` and the opt-in runtime policies (`quietSkills`,
-    // `quietNative`, `autoApplyNative`, `offMode`), measured 658 -> 684. This remains a
+    // `quietNative`, `autoApplyNative`, `offMode`), measured 658 -> 684, then to 740 for the four
+    // `uiReview.complexityBudget` action-density keys (one line each, measured 707 -> 711). This remains a
     // runaway-bloat guard, not a suppression of schema output.
     const lineCount = output.split('\n').length;
-    logResult('output under 710 lines', lineCount < 710, `${lineCount} lines`);
+    logResult('output under 740 lines', lineCount < 740, `${lineCount} lines`);
 }
 
 // ════════════════════════════════════════════════════════════════════════════

@@ -15,7 +15,7 @@
 
 **Goal:** Validate in-scope user interfaces for content fit, adaptation to supported view sizes and input methods, layout sizing, platform-appropriate layering and styling, accessibility, and async feedback. Apply CSS-specific checks only to CSS-based surfaces and the project's own conventions; skip when the project or change has no UI.
 
-**Summary:** Load project UI rules → resolve scope and affected surfaces → trace consumers → reconstruct composition/render evidence → walk task, forms and journeys → review six categories, nine UI dimensions and four DD passes → report → validate findings → fix and fully re-review to the round bar. `--report-only` stops after validation with no fixes, fan-out or questions; absent UI is skipped.
+**Summary:** Load project UI rules → resolve scope and affected surfaces → trace consumers → reconstruct composition/render evidence → walk task, forms and journeys → review six categories, nine UI dimensions, four DD passes and one action-density pass → report → validate findings → fix and fully re-review to the round bar. `--report-only` stops after validation with no fixes, fan-out or questions; absent UI is skipped.
 
 **Default scope:** All uncommitted UI changes (staged + unstaged) matching the project's configured UI/frontend paths and file-extension patterns. Override: specify files, directories, surfaces, or the full UI codebase.
 
@@ -36,7 +36,7 @@
 3. **Phase 2: Blast Radius** — assess by grep/read; an optional graph trace can hint at upstream edges for the surface map
 4. **Phase 2B: Surface Composition** — Per surface: component tree, style-origin map (own · ancestor layout & stacking context · global/theme/reset · scoping mode), render + computed values + automated a11y scan when runnable, else `ENVIRONMENT-BLOCKED`
 5. **Phase 2C: Surface UX Pass** — Per surface: task effort trace, Field Necessity Matrix, container fit, complexity budget (checklist B12–B15, E9–E11, §R, K10), then the journey walkthrough + traceability check (`UX-8`)
-6. **Phases 3–3C: Focused Review Passes** — Check each file in its surface context against six categories, then nine UI/UX dimensions and four design-distinctiveness passes
+6. **Phases 3–3D: Focused Review Passes** — Check each file in its surface context against six categories, then nine UI/UX dimensions, four design-distinctiveness passes and one action-density pass
 7. **Phase 4: Finalize** — Generate the index report plus one report per surface / per shared component with findings, PASS/BLOCKED/WARN verdicts
 8. **Phases 5–6: Validate → Fix → Full UI Re-Review** — validate findings first (Phase 5 still runs under review-only); standalone fix-loop repairs validated blocking findings, then freshly reviews the full UI target after every applied fix, including LOW repairs. Use authorized specialists when the review plan warrants them. Round 1 blocks on every open validated severity; Round 2 blocks only CRITICAL/HIGH/MEDIUM, LOW-only is recorded as deferred, and binary accessibility/security gates always block. Review-only and caller-owned leaves return findings without repairs.
 
@@ -66,6 +66,7 @@
 - [Phase 3: UI Category Review](#phase-3-ui-category-review)
 - [Phase 3B: UI/UX Design Principles Pass (9 dimensions)](#phase-3b-uiux-design-principles-pass-9-dimensions)
 - [Phase 3C: Design Distinctiveness Pass (`DD-1`–`DD-8`)](#phase-3c-design-distinctiveness-pass-dd-1dd-8)
+- [Phase 3D: Action & Density Pass (`AD-1`–`AD-6`)](#phase-3d-action--density-pass-ad-1ad-6)
 - [Phase 4: Finalize — UI Compliance Report](#phase-4-finalize--ui-compliance-report)
 - [Systematic Review Strategy (never under `--report-only`)](#systematic-review-strategy-never-under---report-only)
 - [Phase 5: Why-Review Findings Validation Gate (MANDATORY when findings exist)](#phase-5-why-review-findings-validation-gate-mandatory-when-findings-exist)
@@ -196,7 +197,7 @@ For each surface, append to its surface report:
 1. **Task effort trace** — the primary task's path: `steps → inputs → decisions`, from entry to observable outcome. Mark each step or input that serves the system rather than the user's task.
 2. **Field Necessity Matrix** (surfaces with input) — one row per input: needed at THIS step? (why) · who consumes it and when · required/optional · default or derivable? · group · verdict (keep · defer · derive · default · drop). Every §R finding cites a row.
 3. **Container fit** — the container used (full view · dialog · side panel · stepped flow · inline) vs. the one the task calls for (§E9); nesting, reachability of primary actions, and dismiss-with-unsaved-input behavior (§E10–E11).
-4. **Complexity budget** — count inputs per step, sections per view, and equal-weight actions per view. Compare with `uiReview.complexityBudget` in the project config when declared (§B15). When no budget is declared, do not invent a threshold: judge the counts against the task trace and the primary user's expertise (§B12, §H3) and tag the finding `HEURISTIC`.
+4. **Complexity budget** — count inputs per step, sections per view, and equal-weight actions per view (the action-form counts run in Phase 3D). Compare with `uiReview.complexityBudget` in the project config when declared (§B15). When no budget is declared, do not invent a threshold: judge the counts against the task trace and the primary user's expertise (§B12, §H3) and tag the finding `HEURISTIC`.
 5. **Entry modes and honesty** — alternate entry modes competing in one view (§B14); visible controls that do not work or development-status copy (§K10).
 6. **Governing intent** — when a Feature Spec or design-spec records the view's information priority (`now / later / not here`) and container role (`SYNC:ui-intent-layer`), the surface is judged against it; a surface showing `later`/`not here` items by default is a finding, and a missing priority record for a new or reshaped view is recorded as a gap.
 7. **Journey walkthrough (`UX-8`)** — take the main journeys from the Phase 0 journey source. For each main journey this surface hosts, step through it on the rendered (or reconstructed) surface as the named actor and answer, per step: (1) will the user know this step is needed? (2) will they notice the correct action is available? (3) will they link that action to their goal — label, icon and placement in their vocabulary? (4) after acting, will they see progress — feedback, state change, obvious next step? Record each "no" with the step, surface, element (`file:line`) and fix. Check that the ONE primary action matches the journey's next step (`UX-4`).
@@ -441,6 +442,22 @@ Phase 3B asked **"is this usable, accessible, and consistent?"** — a floor wit
 
 ---
 
+## Phase 3D: Action & Density Pass (`AD-1`–`AD-6`)
+
+The 6 clauses of `SYNC:ui-action-density-gate` (carried by `ui-design/SKILL.md`: guide line, hook delivery, fallback `.claude/skills/shared/protocols/ui-action-density-gate.md`) bind this mode in the **REVIEW** role; the measurable checks are checklist `B16` and `C14`–`C20`. Run ONE focused pass per surface after Phase 3C; when the gate's text is not in context, read `.claude/skills/shared/protocols/ui-action-density-gate.md` first.
+
+**Think:** What is the ONE action this view exists to commit, and is it the only filled button? Which actions are boxed text where an icon, a link or the row itself would carry the meaning? Which group would look ragged if its labels were shorter? Which strings does the user not need for the decision in front of them?
+
+**Measure per surface** (append to the surface report): filled text buttons · boxed text buttons vs `uiReview.complexityBudget.textButtonsPerView` · width spread per button group vs `buttonGroupWidthSpread` · inline actions per list row · meta lines and characters per row vs `rowMetaChars` · text blocks in rows/cards/tiles vs `blockCopyChars` · icon-only controls missing a name, a hover/focus tooltip, target size or 3:1 contrast · tile-height and title-baseline spread per grid row · the primary action's offset from its content edge · an empty band wider than one column · one image repeated across tiles (`AD-6`, `C18`–`C20`). Measure on the rendered surface when it renders locally (for example its html-export render), otherwise from the composed result of Phase 2B, and mark render-only values `NOT VERIFIABLE`; check tooltips on both hover and keyboard focus.
+
+**Every finding:** checklist ID (`C14`–`C20`, `B16`) + `AD-<clause>` + `file:line` + severity via the checklist §0.3 map. An undeclared budget makes the limit `HEURISTIC`: such a finding ranks no higher than P3; the structural rules (at most one filled primary, no filled or boxed button repeated per row, named icons, no bare destructive icon, one tile size per collection grid) keep their checklist severity. An unnamed icon is ONE finding carrying `C17` + `I5`; a bare irreversible icon is ONE finding carrying `C17` + `A11`/`D9`.
+
+**Duplicated controls (`M10`):** when source code or a prototype's design-system page is in scope, a control implemented twice, or a catalog control re-styled locally, is `M10` (`SYNC:prototype-design-system` `PD-5`).
+
+**Precedence and skip:** a documented house pattern (for example text buttons in table rows, written in the project's design system) is not a finding; a new surface departing from it is `M5`. Skip only when the scope renders no actions or text — state why.
+
+---
+
 ## Phase 4: Finalize — UI Compliance Report
 
 Update report with final sections:
@@ -513,6 +530,7 @@ Update report with final sections:
 - UI Architecture (joint w/ `architecture --mode=review`): {PASS/WARN/BLOCKED/N/A}
 - Surface load & forms (B12–B15, §R): {PASS/WARN/BLOCKED/N/A}
 - Container fit (E9–E11): {PASS/WARN/BLOCKED/N/A}
+- Actions & attention (C14–C20, B16): {PASS/WARN/BLOCKED/N/A}
 - Composition fidelity (tree + style origins + render): {COMPLETE / PARTIAL — ENVIRONMENT-BLOCKED reason}
 
 ### UI/UX Gate Report (`UX-11`)
@@ -521,6 +539,7 @@ Update report with final sections:
 | ---- | ------ | -------- |
 | UX-1–UX-10 journeys, priority, interaction cost, wayfinding | PASS / FAIL / N/A | {journey source, walkthrough, counts} |
 | UI-1.1–UI-9.4 floor (applicable) | … | {measured values} |
+| AD-1–AD-6 actions & attention | … | {Phase 3D counts per surface} |
 | DD-1–DD-8 identity | … | … |
 | CL-1–CL-6 checklist | … | {sections swept} |
 | UI copy | … | … |

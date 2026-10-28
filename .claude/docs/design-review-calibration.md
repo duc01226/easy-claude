@@ -86,6 +86,29 @@
 
 ---
 
+## C7 — The ragged action column
+
+**Situation.** An operations list groups pending records. One group row shows three boxed text buttons of different widths — a filled "Process 3 items" and two outlined "View" and "Open" — each beside a two-line description of what it does. Every group repeats the pattern.
+
+**Evidence to gather.** The view's main task and its one commit action (Journey Report, `UX-4`) · per row: the buttons, their computed widths and styles, the descriptions and their rendered line counts · whether the project's design system documents text buttons in rows · whether "Process" acts on a selection (`H14`).
+
+**Expected findings.**
+
+| ID            | Severity | Why                                                                                                                                                                    |
+| ------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `C16` + `C14` | P2       | Boxed text buttons — one filled — repeat on every row; "View" and "Open" navigate, so the row is their target. One finding carrying both IDs, clustered across groups. |
+| `C15`         | P3       | Filled and outlined buttons of three label-driven widths in one group.                                                                                                 |
+| `B16`         | P2       | A two-line description per action; the row holds more text than its decision needs.                                                                                    |
+| `H14`         | P1       | (Only if "Process 3 items" acts on selected records it does not name) the bulk action's scope is unclear.                                                              |
+
+**Systemic clustering.** One finding naming the shared row owner, never one per row.
+
+**NOT a finding.** A dialog footer with a filled "Save" and a same-size "Cancel". Icon-only row actions that carry names and tooltips. A project whose design system documents text buttons in table rows (precedence) — a NEW surface departing from it is `M5`.
+
+**Fix shape.** The row (or its title) opens the record, with a trailing chevron; "View" becomes one named, tooltipped icon action if it differs from "Open". The bulk "Process 3 items" moves to the view's single filled primary in a toolbar or selection bar that names its count. Each description shrinks to one meta line, with the rest on disclosure.
+
+---
+
 ## How to use this file in a review
 
 1. Before the sweep, skim the cases whose situation resembles the surface under review.

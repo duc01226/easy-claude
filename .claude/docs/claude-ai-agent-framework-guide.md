@@ -297,16 +297,19 @@ Why hybrid: a rule already in context beats a rule the model must go read, but r
 
 ## 11. Design and UX gates
 
-Any task that creates or reshapes a user-facing screen runs three rule sets in order, plus a review procedure:
+Any task that creates or reshapes a user-facing screen runs four rule sets in order, plus a review procedure:
 
 | Set          | Question it answers                                           | Owner doc                             |
 | ------------ | ------------------------------------------------------------- | ------------------------------------- |
 | `UX-1`–`UX-11` | Whose job, which journeys, what each decision needs — a journey report first | `.claude/docs/ux-journey-process.md` |
 | `UI-1.1`–`UI-9.4` | Usability and accessibility floor (pass/fail)             | `SYNC:ui-ux-design-principles`        |
+| `AD-1`–`AD-6` | One primary text button, lighter forms for the rest, a copy budget | `SYNC:ui-action-density-gate` |
 | `DD-1`–`DD-8` | Is it this product's interface, not a generic template        | `.claude/docs/design-knowledge.md`    |
 | `CL-1`–`CL-6` | How to review: context, evidence, P0–P4 severity, sweep       | `.claude/docs/design-review-checklist.md` |
 
 Precedence: the brief's visual direction (a pin or the owner's pick; adjectives are a feel to explore) → the project's design system and ADRs → these clauses; genuine conflicts go to the user. **Explore mode** (`/work-item --mode=mockup --explore`, `/ui-design --mode=explore`) first asks how to explore (option research then 3 drafts, 3 drafts, 1 draft or skip); with research it studies the top styles and layouts and makes each draft a different style with a different layout, so the owner can pick one or mix them; it opens the drafts in the browser, recommends one with evidence and builds the full mockup only in the direction the user picks; with nobody to ask it builds one draft and records the automatic choice.
+
+**Design-system page** (`PD-1`–`PD-6`, `SYNC:prototype-design-system`): every mock-up or prototype ships `<name>-design-system.html` beside it — the tokens plus a live catalog of every reusable control and component (button, table, grid, list, card, icon and more), each defined once, with its states, contract and owner. In an existing project the catalog is extracted from the project's own design system and components; the implementation plan builds those shared components in a phase before the pages, and a control implemented twice is checklist `M10`.
 
 ---
 
@@ -381,11 +384,11 @@ Codex transforms `/skill` into `$skill`, `Agent` into `spawn_agent` and strips C
 | Runner                                  | Tests  | Covers                                                                 |
 | --------------------------------------- | ------ | ---------------------------------------------------------------------- |
 | `test-all-hooks.cjs` (primary gate)  | **133** | Hook behaviors, bridged suites and the count guard                     |
-| `run-all-tests.cjs` (full aggregate) | **2214** | 129 `tests/suites/*.test.cjs` files; primary gate runs separately |
+| `run-all-tests.cjs` (full aggregate) | **2219** | 129 `tests/suites/*.test.cjs` files; primary gate runs separately |
 | `node --test .claude/scripts/codex/tests` | —      | Mirror generators and verifiers                                        |
 | `run-codex-sync.mjs --verify-only`      | —      | Every read-only gate before a commit                                   |
 
-> Source-declared inventory: `test-all-hooks.cjs` = 133; `run-all-tests.cjs` = 2214 executors across 129 suite files. Both runners fail when these numbers drift from the docs. Counts do not establish runtime results; read the actual runner output for outcomes.
+> Source-declared inventory: `test-all-hooks.cjs` = 133; `run-all-tests.cjs` = 2219 executors across 129 suite files. Both runners fail when these numbers drift from the docs. Counts do not establish runtime results; read the actual runner output for outcomes.
 
 **Portable test contract** — shipped tests must pass in any project layout on Windows, macOS and Linux: build a temp fixture project instead of reading this repository's config or git state; blank inherited feature switches and provider keys; point `HOME`, `USERPROFILE`, `TMPDIR`, `TEMP` and `TMP` at the temp dir; name OS differences explicitly (paths, symlinks, `py -3` vs `python3`); run the full suite twice to prove repeatability.
 

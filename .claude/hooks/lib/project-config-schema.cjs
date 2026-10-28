@@ -213,7 +213,11 @@ const SCHEMA = {
                     inputsPerStep: { type: 'number', required: false, describe: 'Maximum inputs shown in one step of an entry flow.' },
                     sectionsPerView: { type: 'number', required: false, describe: 'Maximum headed content or input sections in one view.' },
                     primaryActionsPerView: { type: 'number', required: false, describe: 'Maximum equal-weight actions competing in one view.' },
-                    dialogInputs: { type: 'number', required: false, describe: 'Maximum inputs in a dialog before the task belongs in a full view or stepped flow (checklist E9).' }
+                    dialogInputs: { type: 'number', required: false, describe: 'Maximum inputs in a dialog before the task belongs in a full view or stepped flow (checklist E9).' },
+                    textButtonsPerView: { type: 'number', required: false, describe: 'Maximum boxed text buttons (filled + outlined) in one view, dialog or screenful, excluding navigation, tabs, menus and form fields (checklist C14).' },
+                    buttonGroupWidthSpread: { type: 'number', required: false, describe: 'Maximum width spread (max - min) / max among the text buttons of one group, 0-1 (checklist C15).' },
+                    rowMetaChars: { type: 'number', required: false, describe: "Maximum characters in a list row's one meta line (checklist B16)." },
+                    blockCopyChars: { type: 'number', required: false, describe: 'Maximum characters in one text block inside a row, card, table cell or dashboard tile before it moves behind disclosure (checklist B16).' }
                 }
             },
             representativeSurfaces: { type: 'array', required: false, describe: 'Pages/views reviewed when a global style, theme, token, or shared primitive changes (checklist 0.5). Use route or view names the project recognizes.' }

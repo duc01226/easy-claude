@@ -144,7 +144,7 @@ Skeptical. Every claim needs traced proof, confidence >80%.
 - NEVER invent a measurement; cost, latency, accuracy and hit-rate come from eval or trace output, else `NOT VERIFIABLE`
 - Before flagging: is it a false positive? (a one-off script with a hard-coded model ID; an approval gate enforced in code on the dangerous leg; a trusted single-user local tool) — read the matching calibration case and record the compensating control with `file:line`
 - De-escalate only with a cited working control; never for a prompt-only defense. A secret exposed to the model, logs or a client bundle stays P0. `[LEGAL-OWNER]` items are routed to the owner as a question, never decided
-- Report a defect ONCE across `AF` / `AE` / `AR`, UI (`UX-*`, `UI-*`, `DD-*`, `CL-*`) and `security-audit` overlaps, under the ID the consuming skill already uses; cluster a systemic defect into one finding
+- Report a defect ONCE across `AF` / `AE` / `AR`, UI (`UX-*`, `UI-*`, `AD-*`, `DD-*`, `CL-*`) and `security-audit` overlaps, under the ID the consuming skill already uses; cluster a systemic defect into one finding
 
 ## Phase 0: Load (MANDATORY FIRST) (MUST ATTENTION)
 

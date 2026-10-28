@@ -393,12 +393,12 @@
       "group": "design",
       "summary": "Executable front-end design review protocol CL-1 to CL-6",
       "when": "reviewing, planning or building front-end work",
-      "chars": 7070,
+      "chars": 7349,
       "file": ".claude/skills/shared/protocols/design-review-checklist.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/design-review-checklist.md",
-          "chars": 7070
+          "chars": 7349
         }
       ]
     },
@@ -889,6 +889,20 @@
         {
           "file": ".claude/skills/shared/protocols/prompt-enhancement-transforms-base.md",
           "chars": 2532
+        }
+      ]
+    },
+    {
+      "tag": "prototype-design-system",
+      "group": "design",
+      "summary": "Prototype design-system page PD-1 to PD-6: tokens and a live catalog of reusable controls beside every mock-up, each control built once and planned before the pages",
+      "when": "generating a mock-up or prototype, or planning or building one",
+      "chars": 4234,
+      "file": ".claude/skills/shared/protocols/prototype-design-system.md",
+      "parts": [
+        {
+          "file": ".claude/skills/shared/protocols/prototype-design-system.md",
+          "chars": 4234
         }
       ]
     },
@@ -1401,6 +1415,20 @@
       ]
     },
     {
+      "tag": "ui-action-density-gate",
+      "group": "design",
+      "summary": "Action and attention gate AD-1 to AD-6: one primary text button, lighter forms for other actions, uniform groups, named icons, a copy budget, regular aligned grids",
+      "when": "designing, mocking up, building or reviewing a user-facing surface with actions or text",
+      "chars": 8071,
+      "file": ".claude/skills/shared/protocols/ui-action-density-gate.md",
+      "parts": [
+        {
+          "file": ".claude/skills/shared/protocols/ui-action-density-gate.md",
+          "chars": 8071
+        }
+      ]
+    },
+    {
       "tag": "ui-copywriting",
       "group": "design",
       "summary": "User-visible strings are design content",
@@ -1517,12 +1545,12 @@
       "group": "design",
       "summary": "Journey-first UX gate UX-1 to UX-11: report journeys, read the design authority, generate, then check every UI/UX gate",
       "when": "generating, specifying, planning, mocking up or reviewing a user-facing surface",
-      "chars": 5643,
+      "chars": 5681,
       "file": ".claude/skills/shared/protocols/ux-journey-gate.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/ux-journey-gate.md",
-          "chars": 5643
+          "chars": 5681
         }
       ]
     },

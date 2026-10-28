@@ -157,7 +157,7 @@ const tests = [
                 const text = await deliver(fx, gateConfig(), input);
                 // Then the gate is delivered, compact, and names the rule sets and the docs to read
                 assert.ok(gateDelivered(text), `${rel}: gate delivered`);
-                for (const needle of ['UX-1', 'UX-11', 'SYNC:ux-journey-gate', JOURNEY, 'UI-1.1', 'UI-9.4', 'SYNC:ui-ux-design-principles', 'DD-1', 'DD-8', 'CL-1', 'CL-6', '§0.5', 'B12', 'E9', '§R', 'I15', 'K10',
+                for (const needle of ['UX-1', 'UX-11', 'SYNC:ux-journey-gate', JOURNEY, 'UI-1.1', 'UI-9.4', 'SYNC:ui-ux-design-principles', 'AD-1', 'AD-6', 'SYNC:ui-action-density-gate', 'C14', 'B16', 'DD-1', 'DD-8', 'CL-1', 'CL-6', '§0.5', 'B12', 'E9', '§R', 'I15', 'K10',
                     CHECKLIST, KNOWLEDGE, '.claude/docs/design-review-calibration.md', 'sync-inline-versions.md']) {
                     assert.ok(text.includes(needle), `${rel}: digest names ${needle}`);
                 }
@@ -419,6 +419,23 @@ const tests = [
             for (const skill of conventions.UI_UX_GATE.evidenceSkills) {
                 const body = fs.readFileSync(path.join(skillsDir, skill, 'SKILL.md'), 'utf8');
                 assert.ok(body.includes('SYNC:ux-journey-gate'), `evidence skill ${skill} must carry SYNC:ux-journey-gate`);
+                // The digest also names the action & attention gate, so the skill that stands in for it carries it too
+                assert.ok(body.includes('SYNC:ui-action-density-gate'), `evidence skill ${skill} must carry SYNC:ui-action-density-gate`);
+            }
+        }
+    },
+    {
+        // INTENT: the action budgets a project declares (checklist C14, C15, B16) are validated like the
+        // other complexity budgets: numbers pass, and a string never silently becomes a limit.
+        name: 'TC-UIG-015 uiReview.complexityBudget accepts the action budgets as numbers and refuses a string',
+        fn: () => {
+            const base = { project: { name: 'p' } };
+            const baseline = schema.validateConfig(base).errors;
+            const errorsFor = budget => schema.validateConfig({ ...base, uiReview: { complexityBudget: budget } }).errors.filter(e => !baseline.includes(e));
+            const keys = ['textButtonsPerView', 'buttonGroupWidthSpread', 'rowMetaChars', 'blockCopyChars'];
+            assert.deepEqual(errorsFor({ textButtonsPerView: 3, buttonGroupWidthSpread: 0.2, rowMetaChars: 80, blockCopyChars: 160 }), []);
+            for (const key of keys) {
+                assert.ok(errorsFor({ [key]: 'wide' }).some(e => e.includes(`complexityBudget.${key}`)), `${key}: a string is refused`);
             }
         }
     }

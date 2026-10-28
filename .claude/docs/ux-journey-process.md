@@ -6,16 +6,17 @@
 >
 > **Drift-guard:** the `UX-*` clause text is single-sourced in `SYNC:ux-journey-gate` (`.claude/skills/shared/sync-inline-versions.md`); this file is the deep catalog behind it. On any change here, grep `ux-journey-process.md` and `SYNC:ux-journey-gate` and update every consumer.
 >
-> **Where this sits among the design rule sets — four questions, asked in this order:**
+> **Where this sits among the design rule sets — five questions, asked in this order:**
 >
 > | Order | Rule set | The question | Home |
 > | --- | --- | --- | --- |
 > | 1 | `UX-1`–`UX-11` | _Does this interface exist to move THESE users through THEIR journeys, with the right information at each decision?_ | this file + `SYNC:ux-journey-gate` |
 > | 2 | `UI-1.1`–`UI-9.4` | _Is it usable, accessible and consistent?_ (a measurable floor) | `SYNC:ui-ux-design-principles` |
-> | 3 | `DD-1`–`DD-8` | _Is it THIS product's interface, or any generator's?_ (identity) | `.claude/docs/design-knowledge.md` |
-> | 4 | `CL-1`–`CL-6` | _Did the review actually look, with evidence, and rank it?_ (review procedure) | `.claude/docs/design-review-checklist.md` |
+> | 3 | `AD-1`–`AD-6` | _Does every action take its lightest form, and does every string earn the user's attention?_ | `SYNC:ui-action-density-gate` (checks: checklist `B16`, `C14`–`C20`) |
+> | 4 | `DD-1`–`DD-8` | _Is it THIS product's interface, or any generator's?_ (identity) | `.claude/docs/design-knowledge.md` |
+> | 5 | `CL-1`–`CL-6` | _Did the review actually look, with evidence, and rank it?_ (review procedure) | `.claude/docs/design-review-checklist.md` |
 >
-> `UX-*` runs FIRST because the other three judge a surface whose purpose it defines: a screen can be accessible (`UI-*`), distinctive (`DD-*`) and well reviewed (`CL-*`) and still ask the user for the wrong thing at the wrong step. Report a defect ONCE, under whichever ID the consuming skill already uses.
+> `UX-*` runs FIRST because the other four judge a surface whose purpose it defines: a screen can be accessible (`UI-*`), focused (`AD-*`), distinctive (`DD-*`) and well reviewed (`CL-*`) and still ask the user for the wrong thing at the wrong step. Report a defect ONCE, under whichever ID the consuming skill already uses.
 >
 > **Precedence:** accepted product decisions and the project's own specs, design principles, design system and ADRs → the brief → this catalog. A house convention is intentional; surface a genuine conflict to the user with both sides, NEVER resolve it silently.
 >
@@ -37,7 +38,7 @@
 - **Business rules become interaction (§7).** Prevent errors with constraints, defaults and conditional visibility before you catch them with messages; state machines decide which actions appear.
 - **Validate by walking (§9):** a cognitive walkthrough of every main journey on the produced design, plus a traceability matrix, BEFORE handing off.
 - **Measure interaction cost and wayfinding (§12):** per main journey count steps, clicks, view changes, fields, decisions and waits against a baseline; every view answers where am I, where can I go, and how do I get back. The primary tier sits in the first viewport; there is no "3-click rule".
-- **Close with the UI/UX Gate Report (§13):** one row per gate — `UX-*`, `UI-*`, `DD-*`, `VO-*` (when option discovery ran), `CL-*`, UI copy — each `PASS` / `FAIL → fixed` / `N/A` with evidence; an unresolved `FAIL` blocks hand-off.
+- **Close with the UI/UX Gate Report (§13):** one row per gate — `UX-*`, `UI-*`, `AD-*`, `DD-*`, `VO-*` (when option discovery ran), `CL-*`, UI copy — each `PASS` / `FAIL → fixed` / `N/A` with evidence; an unresolved `FAIL` blocks hand-off.
 - **Depth scales with scope (§10)** — a one-component tweak gets a three-line journey note; a new flow gets the full report. Never zero for a new or reshaped view.
 
 ---
@@ -111,7 +112,7 @@ Apply §7 per rule and per step. For every view, list the states the journey can
 
 ### S9 Validate and hand off
 
-Run §9: a cognitive walkthrough per main journey and the traceability matrix. Then run §12: the interaction-cost table per journey and the wayfinding checklist per view. Then write the §13 UI/UX Gate Report, covering `UX-*`, applicable `UI-*`, `DD-*`, a `CL-5` triage (or the full `CL-*` sweep for a review deliverable) and UI copy. Hand off with the Journey Report, the traceability matrix, the interaction-cost table, the Gate Report, the states per view, the open questions, and the success metric, so the implementer builds the journey and not only the picture.
+Run §9: a cognitive walkthrough per main journey and the traceability matrix. Then run §12: the interaction-cost table per journey and the wayfinding checklist per view. Then write the §13 UI/UX Gate Report, covering `UX-*`, applicable `UI-*`, `AD-*`, `DD-*`, a `CL-5` triage (or the full `CL-*` sweep for a review deliverable) and UI copy. Hand off with the Journey Report, the traceability matrix, the interaction-cost table, the Gate Report, the states per view, the open questions, and the success metric, so the implementer builds the journey and not only the picture.
 
 ---
 
@@ -199,9 +200,9 @@ Work per view, at each decision point from S4.
 
    | Tier | Rule | Treatment |
    | --- | --- | --- |
-   | **Primary** | Needed now, for the main journey's current decision | The view's single focal point (`UI-1.1`), top of the reading order, strongest signal (`UI-1.2`); ONE primary action matching the journey's next step |
-   | **Secondary** | Supports the decision, or is used often | Visible and subdued; grouped by proximity near what it supports |
-   | **On demand** | Needed occasionally, by experts, or for edge cases | Progressive disclosure — expanders, details panels, hover or secondary views; always reachable, never in the way |
+   | **Primary** | Needed now, for the main journey's current decision | The view's single focal point (`UI-1.1`), top of the reading order, strongest signal (`UI-1.2`); ONE primary action matching the journey's next step — when it commits, the view's one filled text button (`AD-1`); a read-only view may have none |
+   | **Secondary** | Supports the decision, or is used often | Visible and subdued; grouped by proximity near what it supports; its actions are icon + label, text links or same-size quieter buttons |
+   | **On demand** | Needed occasionally, by experts, or for edge cases | Progressive disclosure — expanders, details panels, hover or secondary views; always reachable, never in the way; its actions are named, tooltipped icons or an overflow menu |
    | **Not here** | Belongs to another step or view | Moved to its owning view (record where), or deferred to a later step (`now / later / not here` in `SYNC:ui-intent-layer`) |
 
 4. **Check the result:** the primary tier fits the view's first read; the primary action is one clear verb that matches the user's intent; nothing high-cost-of-missing sits in "on demand"; creation asks only for the smallest valid record (checklist `R1`–`R2`).
@@ -298,6 +299,7 @@ Two defects the matrix exposes: an **unserved step** (a step with no view or ele
 | Tech-agnostic view inventory, navigation map, per-story flows in specs | `SYNC:ui-intent-layer` | this file (referenced only) |
 | Existing-UI inventory and connected flows | `SYNC:existing-ui-research` | — |
 | 40 usability clauses `UI-1.1`–`UI-9.4` | `SYNC:ui-ux-design-principles` | this file (referenced only) |
+| Action form, icon discipline, copy budget `AD-1`–`AD-6` | `SYNC:ui-action-density-gate` + checklist `B16`, `C14`–`C20` | this file |
 | Visual identity, design plan, tell catalog | `.claude/docs/design-knowledge.md` + `SYNC:design-distinctiveness-gate` | this file |
 | Review procedure and check catalog | `.claude/docs/design-review-checklist.md` + `SYNC:design-review-checklist` | this file |
 | Project tokens, components, principles | the project's design-system docs under the project-reference root | this file (NEVER names project-specific values) |
@@ -319,7 +321,7 @@ Two defects the matrix exposes: an **unserved step** (a step with no view or ele
 
 Compare against the existing flow, or the spec's per-story flow when nothing exists yet. A journey whose cost RISES needs a stated reason. Frequent journeys get the shortest path; rare and admin paths may sit deeper, if they stay reachable and labelled.
 
-**Important information display.** Users give most attention to the first screenful: about 57% of viewing time above the fold and 74% within the first two screenfuls `[published: Nielsen Norman Group, "Scrolling and Attention", 2018]`. They scan rather than read, in F-shaped or layer-cake patterns across headings and the first words of lines `[published: Nielsen Norman Group, "Text Scanning Patterns: Eyetracking Evidence"]`. So the §6 primary tier belongs in the first viewport, and labels, headings and table columns front-load the distinguishing word. Answers come first and detail after (inverted pyramid).
+**Important information display.** Users give most attention to the first screenful: about 57% of viewing time above the fold and 74% within the first two screenfuls `[published: Nielsen Norman Group, "Scrolling and Attention", 2018]`. They scan rather than read, in F-shaped or layer-cake patterns across headings and the first words of lines `[published: Nielsen Norman Group, "Text Scanning Patterns: Eyetracking Evidence"]`. So the §6 primary tier belongs in the first viewport, and labels, headings and table columns front-load the distinguishing word. Answers come first and detail after (inverted pyramid). Rows and cards carry a title plus one short meta line; everything longer moves behind disclosure (`AD-4`, checklist `B16`).
 
 **Wayfinding checklist (every view):**
 
@@ -354,6 +356,7 @@ Every design output closes with this table, in the response or the artifact. It 
 | UX-9 Interaction cost | {journeys} | … | {steps · clicks · view changes · fields · decisions vs baseline} |
 | UX-10 Navigation & wayfinding | {views} | … | {where-am-I / back-path per view} |
 | UI-1.1–UI-9.4 usability & a11y floor | {applicable clauses} | … | {measured contrast, targets, states} |
+| AD-1–AD-6 actions & attention | {views} | … | {filled/view · text buttons/view vs budget · max group spread · inline actions/row · meta lines/chars per row · icon-only named+tooltip n/n · grid tile/baseline spread · action edge offset} |
 | DD-1–DD-8 identity | {design plan} | … | {generic-test revision} |
 | VO-1–VO-9 option discovery | {when it ran, else N/A (reason)} | … | {`option-board.md`: board path, options, verbatim pick} |
 | CL-1–CL-6 review checklist | {full sweep or CL-5 triage} | … | {findings by P0–P3} |
@@ -374,7 +377,7 @@ Result values: `PASS` · `FAIL → fixed` (name the fix) · `FAIL — open` (blo
 
 **IMPORTANT MUST ATTENTION** compute information priority per decision point (§6) and let the visual hierarchy implement it; turn business rules into prevention, not error messages (§7).
 
-**IMPORTANT MUST ATTENTION** measure interaction cost per main journey and check wayfinding on every view (§12), then close every design output with the UI/UX Gate Report covering `UX-*`, `UI-*`, `DD-*`, `CL-*` and UI copy (§13). An unlisted gate was not checked, and an unresolved `FAIL` blocks hand-off.
+**IMPORTANT MUST ATTENTION** measure interaction cost per main journey and check wayfinding on every view (§12), then close every design output with the UI/UX Gate Report covering `UX-*`, `UI-*`, `AD-*`, `DD-*`, `CL-*` and UI copy (§13). An unlisted gate was not checked, and an unresolved `FAIL` blocks hand-off.
 
 **IMPORTANT MUST ATTENTION** walk every main journey through the produced design (§9) and fix every unserved step and orphan element before hand-off. Scale depth to scope (§10), but never to zero for a new or reshaped view.
 

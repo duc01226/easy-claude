@@ -294,16 +294,17 @@ const UI_UX_GATE = Object.freeze({
     on: TRIGGER_BOTH,
     referenceDocs: Object.freeze(['.claude/docs/ux-journey-process.md', '.claude/docs/design-review-checklist.md', '.claude/docs/design-knowledge.md', '.claude/docs/design-review-calibration.md']),
     rules: Object.freeze([
-        'UI/UX gate: have UX-*, UI-*, DD-* and CL-* in context BEFORE editing this surface; read the docs above unless already loaded',
+        'UI/UX gate: have UX-*, UI-*, AD-*, DD-* and CL-* in context BEFORE editing this surface; read the docs above unless already loaded',
         'UX-1–UX-11 journey-first (ux-journey-process.md, SYNC:ux-journey-gate): report the main user journeys (actors, jobs, ranked journeys, derived requirements) before designing, walk them on the result, close with the UI/UX Gate Report',
         'UI-1.1–UI-9.4 usability/a11y floor (pass/fail): SYNC:ui-ux-design-principles in .claude/skills/shared/sync-inline-versions.md',
+        'AD-1–AD-6 actions (SYNC:ui-action-density-gate): at most one filled button per view; others icon (named, tooltip), link or row target; uniform groups; row = title + 1 meta line; one tile size per collection grid',
         'DD-1–DD-8 identity (design-knowledge.md): name subject/audience/job, write the Design Plan, pass the generic test',
-        'CL-1–CL-6 (checklist): §0.5 surface scope, B12–B15 load, E9–E11 container fit, §R forms, I15 dialog focus, K10 dead controls',
+        'CL-1–CL-6 (checklist): §0.5 scope, B12–B16 load, C14–C20 actions, E9–E11 containers, §R forms, I15 dialog focus, K10 dead controls',
         'Calibrate severity with design-review-calibration.md; brief > project design system/ADRs > these rules; no visual change = say skip'
     ]),
     reinjectAfterTokens: 150000,
     evidenceDocs: Object.freeze(['.claude/docs/ux-journey-process.md', '.claude/docs/design-review-checklist.md', '.claude/docs/design-knowledge.md']),
-    // Only skills that carry the WHOLE gate (UX + UI + DD + CL) may stand in for the digest: a skill
+    // Only skills that carry the WHOLE gate (UX + UI + AD + DD + CL) may stand in for the digest: a skill
     // that lacks the journey-first rule would suppress it for the window.
     evidenceSkills: Object.freeze(['ui-design', 'design-spec'])
 });

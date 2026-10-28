@@ -91,8 +91,9 @@ Rows marked **(gate)** are registry `gate` steps or outcome gates; the other row
 | **Direction selected** | N rendered drafts (the §0 count) of the primary journey's key views under `tmp/design/<run>/`, sharing journeys, views and priority tiers, and in `tmp/design/<run>/direction-approved.md` one of: the user's verbatim pick (`Selection: USER`) · `Selection: USER — 1 option` · `Selection: AUTO-SELECTED — <reason>` (no question tool, drafts unshowable, or the question tool errored) · the recorded exemption when the brief or design system pins every axis; or `Mockup: SKIPPED by user` in the run report. Never pick while the user can be asked; "continue", "looks good" or silence is NOT a pick. |
 | **Design spec matches the pick** | When the pick differs from the design spec's §0, §3 or §4, the mockup step's Step 8 updated them in place (re-reviewed when §3 changed) and its Step 7 fidelity check confirms they match the mock app; the run report lists the change. |
 | **Releasable multi-view mock app** | One self-contained mockup per spec with every required view, navigation edge, component and state (empty, loading and error first) and a connected full-flow demo of each main journey (`.claude/skills/shared/releasable-task-contract.md`); one static or disconnected screen fails. |
+| **Design-system page** (`PD-1`–`PD-6`) | The mockup step's Step 5b page beside the final mockup: tokens and every reusable control with variants, states, contract, views and owner; no control defined twice (`M10`) |
 | **Render evidence** | The mockup step's Step 7 render (`html-export --to=png`, required in this review-gated workflow) over the final mockup's journey views, passed to the UI review: exit 0 = per-view render evidence only · exit 4 = fix the mockup and re-render · exit 3 = `NOT VERIFIABLE` plus a setup pointer, never an install · exit 1/2 or any other code = tool failure, `NOT VERIFIABLE`. Only files the run's `report.json` `files[]` names count. |
-| **Journeys walked** (`UX-8`, gate) | `/ui-design --mode=review` walkthrough log and traceability matrix with no unserved step and no orphan element, plus the `UI-*` / `DD-*` / `CL-*` findings validated, fixed in the mockup and re-reviewed; the UI/UX Gate Report has no unresolved `FAIL`. |
+| **Journeys walked** (`UX-8`, gate) | `/ui-design --mode=review` walkthrough log and traceability matrix with no unserved step and no orphan element, plus the `UI-*` / `AD-*` / `DD-*` / `CL-*` findings validated, fixed in the mockup and re-reviewed; the UI/UX Gate Report has no unresolved `FAIL`. |
 | **Spec linked** | The spec's companion-artifact frontmatter (`design_spec:` / `mockup:` in the portable fallback) points at the design spec and the final mockup — `design-spec` sets `design_spec:` and the mockup step sets `mockup:` (or the profile's native link, `N/A` with the reason when the profile declares none); frontmatter only, spec body untouched. |
 | **Run closed** (`run-closed`, gate) | `/workflow-end` checked every outcome gate (top-level runs only). |
 
@@ -103,7 +104,7 @@ Rows marked **(gate)** are registry `gate` steps or outcome gates; the other row
 | `/design-spec` | always — the tech-agnostic UI spec seeded from the spec's UI intent layer; its Journey Report and design-authority read are the journey-first evidence every later step reuses | `UX-1`, `UX-2`, `design_spec:` link |
 | `/work-item --mode=review --type=design` | always (gate) — before any visual direction is drawn, so drafts inherit reviewed journeys and priority | review-converged gate |
 | `/work-item --mode=mockup --explore` | unless §0 recorded `Mockup: SKIPPED by user`; pass `--source=<spec path>` and the design-spec path as context. It reuses the §0 answer and owns the drafts, the user's recorded pick, the full mock app build, the Step 7 per-view render evidence (`html-export --to=png`; add `--slides='[data-state]'` to capture every screen state) that `ui-design --mode=review` inspects, and the spec's `mockup:` link | direction pick + mock app + render evidence + spec linked |
-| `/ui-design --mode=review` | always (gate) — scope = the final mockup file | `UX-8` walkthrough + `UI-*`/`DD-*`/`CL-*` |
+| `/ui-design --mode=review` | always (gate) — scope = the final mockup file | `UX-8` walkthrough + `UI-*`/`AD-*`/`DD-*`/`CL-*` |
 | `/workflow-end` → `/watzup` | `/workflow-end` always, last (prints the recap); `/watzup` only when its registry condition holds | run-closed gate + handoff |
 
 ## 5. Orchestration Freedom
@@ -125,8 +126,10 @@ Keep the explore pick and every user confirmation in the main session, never par
 
 - `design-distinctiveness-gate` — Design identity gate DD-1 to DD-8: subject, design plan, generic test, restraint; designing, implementing or reviewing a visual surface → .claude/skills/shared/protocols/design-distinctiveness-gate.md
 - `incremental-persistence` — Persist results per file or section while the work proceeds; a sub-agent or heavy step processes more than three files → .claude/skills/shared/protocols/incremental-persistence.md
+- `prototype-design-system` — Prototype design-system page PD-1 to PD-6: tokens and a live catalog of reusable controls beside every mock-up, each control built once and planned before the pages; generating a mock-up or prototype, or planning or building one → .claude/skills/shared/protocols/prototype-design-system.md
 - `session-goal-ledger` — Keep the original goal and every user prompt of the session; running a long or multi-prompt session → .claude/skills/shared/protocols/session-goal-ledger.md
 - `subagent-return-contract` — Sub-agents return a structured envelope and a report path, never an inline report; spawning a sub-agent → .claude/skills/shared/protocols/subagent-return-contract.md
+- `ui-action-density-gate` — Action and attention gate AD-1 to AD-6: one primary text button, lighter forms for other actions, uniform groups, named icons, a copy budget, regular aligned grids; designing, mocking up, building or reviewing a user-facing surface with actions or text → .claude/skills/shared/protocols/ui-action-density-gate.md
 - `ui-intent-layer` — Tech-agnostic UI intent layer in every UI-bearing spec; writing a spec for a feature with a user interface → .claude/skills/shared/protocols/ui-intent-layer.md
 - `ui-ux-design-principles` — Forty usability and accessibility clauses, UI-1.1 to UI-9.4; designing, building or reviewing a user-facing interface → .claude/skills/shared/protocols/ui-ux-design-principles.md
 - `ux-journey-gate` — Journey-first UX gate UX-1 to UX-11: report journeys, read the design authority, generate, then check every UI/UX gate; generating, specifying, planning, mocking up or reviewing a user-facing surface → .claude/skills/shared/protocols/ux-journey-gate.md
@@ -134,7 +137,6 @@ Keep the explore pick and every user confirmation in the main session, never par
 - `workflow-registry-binding` — Read the workflow registry entry and the workflow skill together, since they must agree; executing or editing a workflow → .claude/skills/shared/protocols/workflow-registry-binding.md
 
 <!-- PROTOCOL-GUIDES:END -->
-
 
 <!-- SYNC:ui-intent-layer:reminder -->
 
@@ -144,7 +146,7 @@ Keep the explore pick and every user confirmation in the main session, never par
 
 <!-- SYNC:ux-journey-gate:reminder -->
 
-- **MUST ATTENTION** journey-first, BLOCKING order: REPORT the main user journeys (`UX-1`, evidence-tagged; confirm an inferred actor/job/outcome, or with no question tool record it `INFERRED — unconfirmed` and continue) → READ project design principles, design system, existing UI (`UX-2`) → generate → CHECK all gates. Checks: views = journey steps (`UX-3`) · important information first — one focal point, one primary action = next step, first viewport holds the primary tier (`UX-4`) · rules become prevention, states, recovery (`UX-5`) · the user's mental model (`UX-6`) · low-fi first (`UX-7`) · walkthrough + traceability, no unserved step or orphan (`UX-8`) · interaction cost per journey measured — steps, clicks, view changes, fields, decisions — every click confident, not a 3-click rule (`UX-9`) · wayfinding: where am I, where can I go, how do I get back, no dead ends (`UX-10`) · close with the **UI/UX Gate Report** covering `UX-*`, `UI-*`, `DD-*`, `CL-*` and UI copy — an unresolved `FAIL` blocks hand-off (`UX-11`). Catalog: `.claude/docs/ux-journey-process.md`. Skip ONLY with no user-facing surface, stated.
+- **MUST ATTENTION** journey-first, BLOCKING order: REPORT the main user journeys (`UX-1`, evidence-tagged; confirm an inferred actor/job/outcome, or with no question tool record it `INFERRED — unconfirmed` and continue) → READ project design principles, design system, existing UI (`UX-2`) → generate → CHECK all gates. Checks: views = journey steps (`UX-3`) · important information first — one focal point, one primary action = next step, first viewport holds the primary tier (`UX-4`) · rules become prevention, states, recovery (`UX-5`) · the user's mental model (`UX-6`) · low-fi first (`UX-7`) · walkthrough + traceability, no unserved step or orphan (`UX-8`) · interaction cost per journey measured — steps, clicks, view changes, fields, decisions — every click confident, not a 3-click rule (`UX-9`) · wayfinding: where am I, where can I go, how do I get back, no dead ends (`UX-10`) · close with the **UI/UX Gate Report** covering `UX-*`, `UI-*`, `AD-*`, `DD-*`, `CL-*` and UI copy — an unresolved `FAIL` blocks hand-off (`UX-11`). Catalog: `.claude/docs/ux-journey-process.md`. Skip ONLY with no user-facing surface, stated.
 
 <!-- /SYNC:ux-journey-gate:reminder -->
 
@@ -172,6 +174,18 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 - **MANDATORY** Session goal ledger per the `Task Planning Rules`: pin `Original goal:`, keep `User prompts this session: P1…Pn`, and map the result to every prompt before claiming done; full text: `.claude/skills/shared/protocols/session-goal-ledger.md`.
 
 <!-- /SYNC:session-goal-ledger:reminder -->
+
+<!-- SYNC:ui-action-density-gate:reminder -->
+
+- **MUST ATTENTION** actions and attention (`AD-1`–`AD-6`): at most ONE filled text button per view, dialog, screenful or independent region, for the commit of its main task (parallel options may each carry it), with a fixed min-width; every other action takes the lightest form that keeps its meaning — a same-size quieter button, an icon-only button (named and tooltipped, only for universally understood icons), icon + short label, a text link, the whole row as target, or an overflow menu; destructive actions are never a bare icon (`AD-1`) · text-button groups share height, style, alignment and width, no filled/outlined mix in a repeated list (a footer, action bar or hero may add same-size quieter buttons), no filled or boxed button per row, by default one inline icon action per row (`AD-2`) · one icon family; every icon-only control has an accessible name, a tooltip on hover AND focus, the selected standard's minimum target and ≥ 3:1 contrast (`AD-3`) · one focal point; a row = title + by default one short meta line; no paragraph walls (`AD-4`) · measure per view and report the `AD` row of the UI/UX Gate Report; a finding resting only on an undeclared default caps at P3 (`AD-5`) · tiles in one collection grid share one size and baseline, the grid fills its width, actions align to their content edge (`AD-6`). Checks: checklist `B16`, `C14`–`C20`. Platform guidelines and the project design system outrank; report a defect once. Skip ONLY with no user-facing actions or text, stated.
+
+<!-- /SYNC:ui-action-density-gate:reminder -->
+
+<!-- SYNC:prototype-design-system:reminder -->
+
+- **MUST ATTENTION** every mock-up or prototype ships a self-contained design-system page beside it, in its medium (HTML mock-up: `<name>-design-system.html`), linking to the project's living component catalog when one exists (`PD-1`): the tokens plus a live catalog of every reusable control and component (buttons, inputs, tables, grids, lists, cards, icons, states), each with its variants, states, a plain contract, the views that use it and its owner, an existing source path or `new — build once` (`PD-2`) · the prototype defines each recurring control once and reuses it in every view (`PD-3`) · brownfield entries are extracted from the project's own design system and components, found from repository evidence (`PD-4`) · a plan builds the shared components in a phase before the screens, and a control implemented twice is a finding (`M10`, `PD-5`) · a one-component change lists only the touched entries; explore drafts and decks get none (`PD-6`). Skip ONLY when no user-facing prototype is generated or implemented, stated.
+
+<!-- /SYNC:prototype-design-system:reminder -->
 
 ## Closing Reminders
 

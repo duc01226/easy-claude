@@ -53,6 +53,8 @@ template_version: '2.1'
 
 **Complexity budget:** {inputs per step · sections per view · equal-weight actions per view} vs the project budget (`uiReview.complexityBudget` in the project config) when declared — otherwise state the counts and the reasoning for the primary user.
 
+**Action forms and grids (`AD-1`, `AD-2`, `AD-6`):** {per screen: the ONE filled primary commit · each other action → icon-only / icon + label / link / row target / overflow · button groups and their shared min-width · collection grids: tile size and aspect ratio, title line clamp, the content edge actions align to}
+
 ---
 
 ## 3. Component Specifications
@@ -85,6 +87,8 @@ template_version: '2.1'
 | Text | `--color-text-primary` | #1A1A1A |
 | Border | `--border-radius-md` | 8px |
 | Spacing | `--spacing-md` | 16px |
+
+**Owner:** {existing source path | new — build once} · used in: {screens} — this component is an entry of the mock-up's design-system page (`PD-2`)
 
 **Accessibility:**
 
@@ -149,6 +153,8 @@ template_version: '2.1'
 - [ ] Accessibility requirements noted
 - [ ] Animation specs defined
 - [ ] Asset exports prepared
+- [ ] Action forms and attention counts recorded (`AD-1`–`AD-6`)
+- [ ] Every reusable component lists its owner and the screens that use it (feeds the design-system page, `PD-2`)
 - [ ] Dev review completed
 
 ---

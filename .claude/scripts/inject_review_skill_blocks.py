@@ -21,10 +21,12 @@ Tags propagated (each with its `:reminder` sibling):
         (strict subset of design-distinctiveness-gate; see the UI_COPYWRITING comment for the exclusions)
   - SYNC:design-review-checklist        -> 15 skills that review, author, plan or build a
         front-end surface. The executable review PROCEDURE (CL-1..CL-6) routing to the
-        ~130-check catalog in .claude/docs/design-review-checklist.md. Superset of
+        ~180-check catalog in .claude/docs/design-review-checklist.md. Superset of
         design-distinctiveness-gate by changes-review -- see the
         DESIGN_REVIEW_CHECKLIST comment for why this grade-anything skill carries a
         procedure but not the taste clauses. Every body is self-gating on "has a UI surface".
+  - SYNC:ui-action-density-gate       -> 8 skills that author, mock up, build or review a surface's actions and text
+  - SYNC:prototype-design-system      -> 7 skills that generate a mock-up, plan or build from one (design-system page, controls built once)
   - SYNC:e2e-visual-design-contract    -> the E2E/visual-review skill carriers
         (design authority + component/reuse + runtime/source ownership + baseline gates).
   - SYNC:ai-feature-framing-gate        -> ai-engineering-review ONLY
@@ -224,6 +226,47 @@ DESIGN_REVIEW_CHECKLIST = [
     "feature-implement", "fix",
 ]
 
+# The AD-1..AD-6 action & attention gate (measurable checks: design-review-checklist B16, C14-C20).
+# Binds the skills that AUTHOR, MOCK UP, BUILD or REVIEW the actions and visible text of a
+# surface. NARROWER than DESIGN_REVIEW_CHECKLIST: changes-review reaches the same checks through
+# the checklist it already runs. Presentation skills are excluded: a deck has few actions, and
+# its text density is owned by the deck skills' own slide rules — a block that is mostly
+# inapplicable trains the reader to skim it (same reasoning as UI_COPYWRITING). The two
+# work-item modes and plan --mode=execute carry the body inline in their mode references.
+# Every body is self-gating on "has user-facing actions or text".
+UI_ACTION_DENSITY = [
+    # design/author role
+    "ui-design", "design-spec",
+    # review role
+    "web-design-guidelines",
+    # workflow carriers that already hold the UI gate guides
+    "workflow-spec-to-mockup", "workflow-planned-work",
+    # foundation role — the golden-path frontend example sets the action pattern later features copy
+    "scaffold",
+    # build role
+    "feature-implement", "fix",
+]
+
+# The PD-1..PD-6 prototype design-system page (checklist M10). Binds the skills that GENERATE a
+# mock-up or prototype (each ships a design-system page of tokens and reusable controls beside it)
+# and the skills that BUILD from one (shared components first, never a control implemented twice).
+# work-item --mode=mockup carries the body inline in its mode reference; plan carries the guide so
+# plan creation orders shared components before the screens (PD-5). Review-only and deck skills are
+# excluded: reviewers reach the duplicated-control check through checklist M10, and a deck is not
+# a UI prototype. Every body is self-gating on "generates or implements a user-facing prototype".
+PROTOTYPE_DESIGN_SYSTEM = [
+    # design/author role
+    "ui-design", "design-spec",
+    # workflow carrier that drives the mock-up step
+    "workflow-spec-to-mockup",
+    # foundation role — the golden-path frontend example sets where shared components live
+    "scaffold",
+    # plan role — the plan orders shared components before the screens that use them
+    "plan",
+    # build role (fix follows the bugfix workflow's mock-up step)
+    "feature-implement", "fix",
+]
+
 # The E2E visual-design handoff. It is deliberately a separate bridge from the
 # full UI/DD/CL populations: E2E skills need the same design authority, tier/reuse,
 # runtime-vs-source ownership, and baseline gates, but most E2E invocations are
@@ -312,6 +355,8 @@ MATRIX = [
     ("SYNC:design-distinctiveness-gate", DESIGN_DISTINCTIVENESS),
     ("SYNC:ui-copywriting", UI_COPYWRITING),
     ("SYNC:design-review-checklist", DESIGN_REVIEW_CHECKLIST),
+    ("SYNC:ui-action-density-gate", UI_ACTION_DENSITY),
+    ("SYNC:prototype-design-system", PROTOTYPE_DESIGN_SYSTEM),
     ("SYNC:e2e-visual-design-contract", E2E_VISUAL_DESIGN),
     ("SYNC:test-architecture-execution-contract", TEST_ARCHITECTURE_CONTRACT),
     ("SYNC:ai-feature-framing-gate", AI_FEATURE_FRAMING),

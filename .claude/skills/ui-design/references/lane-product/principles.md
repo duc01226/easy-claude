@@ -212,7 +212,7 @@ Numbers, IDs, codes, timestamps belong in monospace. Use `tabular-nums` for colu
 
 ## Iconography
 
-Icons clarify, not decorate — if removing an icon loses no meaning, remove it. Choose a consistent icon set and stick with it throughout the product.
+Icons clarify, not decorate — if removing an icon loses no meaning, remove it. Choose a consistent icon set and stick with it throughout the product. Every icon-only control carries an accessible name and a tooltip on hover and focus, and has a full-size hit target (`AD-3`).
 
 Give standalone icons presence with subtle background containers. Icons next to text should align optically, not mathematically.
 

@@ -41,7 +41,7 @@ Step 2 can override the count: when authority pins every axis, explore is skippe
 Sub-agents inherit nothing from this conversation, so write the inputs every draft needs to disk first:
 
 - `tmp/design/<run>/journey-report.md` — the Step 2a Journey Report, verbatim.
-- `tmp/design/<run>/run-notes.md` (template: gate-files `run-notes.md`) — plus a **Key views** section: the primary journey (`J1`, the top-ranked main journey) and the 2–4 views from the Step 2b inventory that host its steps, each with its hosted steps, container, information-priority tiers (Primary · Secondary · On demand · Not here) and ONE primary action (`UX-4`), the rule → interaction treatments on those steps (`UX-5`), the states each view must show (empty/loading/error first, `UI-1.5`), and the realistic domain sample data from Step 3c.
+- `tmp/design/<run>/run-notes.md` (template: gate-files `run-notes.md`) — plus a **Key views** section: the primary journey (`J1`, the top-ranked main journey) and the 2–4 views from the Step 2b inventory that host its steps, each with its hosted steps, container, information-priority tiers (Primary · Secondary · On demand · Not here) and ONE primary action (`UX-4`), with every other action's `AD-1` form, the rule → interaction treatments on those steps (`UX-5`), the states each view must show (empty/loading/error first, `UI-1.5`), and the realistic domain sample data from Step 3c.
 - The low-fi structure (`UX-7`): an ASCII sketch of each key view and the J1 path across them, walked once on the sketch before any draft exists. A step the sketch cannot serve is fixed in the plan now, not in N drafts later.
 
 Key views only — not the whole app. The drafts compare directions; the full surface is built once, in Step 4, in the chosen direction.
@@ -80,17 +80,17 @@ Spawn N `ui-ux-designer` sub-agents in ONE message (all-return barrier). Each br
 
 - the paths `tmp/design/<run>/journey-report.md` and `run-notes.md`, the Design Plan skeleton, the canvas, and every ADOPTED axis with its source;
 - its ONE seed, plus `brand-spec.md` / `product-facts.md` paths and the shared imagery set when they exist, and any disliked reference to avoid; with option discovery the seed is the draft's combination (its style family and layout archetype with their research captures), and the brief follows the direction-drafter template (`.claude/skills/ui-design/references/explore/briefs.md` §3), filled, including its rule to keep style separable from layout;
-- the **same-journey rule**, verbatim: "Build ONLY the key views listed in run-notes.md for journey J1. Keep every view's hosted steps, information-priority tiers, single primary action, rule treatments, states and sample data exactly as listed. Diverge only on the FREE axes and the layout skeleton.";
+- the **same-journey rule**, verbatim: "Build ONLY the key views listed in run-notes.md for journey J1. Keep every view's hosted steps, information-priority tiers, single primary action, action forms, rule treatments, states and sample data exactly as listed. Diverge only on the FREE axes and the layout skeleton.";
 - **when layout is FREE:** a layout skeleton STRUCTURALLY different from the other drafts (a different reading order, not a recoloured copy) that still keeps each view's Primary tier as its single focal point. **When layout is ADOPTED:** the pinned layout, unchanged;
 - the grounding rule and the asset rule from explore step 7, verbatim;
-- the gates: `UX-1`–`UX-11`, `DD-1`–`DD-8`, `UI-1.1`–`UI-9.4`, `CL-1`–`CL-6`, with `.claude/docs/ux-journey-process.md`, `.claude/docs/design-knowledge.md`, `.claude/docs/design-review-checklist.md` and the resolved project design-system doc paths;
+- the gates: `UX-1`–`UX-11`, `DD-1`–`DD-8`, `UI-1.1`–`UI-9.4`, `AD-1`–`AD-6`, `CL-1`–`CL-6`, with `.claude/docs/ux-journey-process.md`, `.claude/skills/shared/protocols/ui-action-density-gate.md`, `.claude/docs/design-knowledge.md`, `.claude/docs/design-review-checklist.md` and the resolved project design-system doc paths;
 - the output: ONE self-contained HTML file `tmp/design/<run>/direction-{a|b|c}.html` with each key view as an element marked `data-export-slide` and named by `data-state="<view name>"` (in J1 step order; simple click-through between them is welcome, full demo controls are not needed), plus a short note: the Design Plan built, what the generic test (`DD-3`) made it revise, and how the direction serves each J1 step.
 
 **No sub-agent capability →** build the N drafts serially; draft b states what it avoided from a, draft c what it avoided from a and b.
 
 ## Step 6 — All-return barrier, then render
 
-Wait until all N drafts exist. Before rendering, check each draft kept the same-journey rule (same views, same Primary tier and primary action per view); a draft that drifted is sent back, not rendered. Render each into its own folder at the Step 3 canvas:
+Wait until all N drafts exist. Before rendering, check each draft kept the same-journey rule (same views, same Primary tier, primary action and action forms per view; no ragged button group); a draft that drifted is sent back, not rendered. Render each into its own folder at the Step 3 canvas:
 
 ```bash
 node .claude/skills/html-export/scripts/export.cjs --to=png --viewport=<canvas> --slides --out=tmp/design/<run>/renders/direction-a/ tmp/design/<run>/direction-a.html

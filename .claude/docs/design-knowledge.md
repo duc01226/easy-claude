@@ -28,7 +28,7 @@
 - **Journey-first gate runs BEFORE both.** `UX-1`–`UX-11` (`SYNC:ux-journey-gate`; read `.claude/docs/ux-journey-process.md` when generating or reviewing any user-facing surface): report the main user journeys, read the project's design authority, only then apply this catalog.
 - **Precedence, in order:** the brief's stated visual direction WINS OUTRIGHT (a pin (explicit tokens or hex values, named fonts, a stated "must use") or the owner's pick among the options (`VO-1`, `VO-7` of `SYNC:visual-option-discovery`); adjectives and moods alone are a target feel to explore, not a stated direction) → the project's design-system / SCSS / frontend-pattern docs + accepted ADRs → this catalog. Surface genuine conflicts to the user; NEVER resolve silently.
 - **Every §4 tell is a CONDITIONAL judgment, never a defect.** Report "spent a free axis on a default" and name the axis — NEVER "uses a warm cream background".
-- **The sections, in order:** §1 design laws → §2 ground it in the subject → §3 where defaults hide → §4 the tell catalog (T1–T5 clusters, typographic tells, structural/motion tells) → §5 typography → §6 color / structure / hero / composition → §7 motion → §8 words as design content → §9 the two-pass process (plan → **BLOCKING generic test** → build → critique) → §10 the design-plan contract → §11 critique → §12 implementation hygiene → §13 the 13-item judgment checklist → §14 single-sourcing map.
+- **The sections, in order:** §1 design laws → §2 ground it in the subject → §3 where defaults hide → §4 the tell catalog (T1–T5 clusters, typographic tells, structural/motion tells) → §5 typography → §6 color / structure / hero / composition → §7 motion → §8 words as design content → §9 the two-pass process (plan → **BLOCKING generic test** → build → critique) → §10 the design-plan contract → §11 critique → §12 implementation hygiene → §13 the 14-item judgment checklist → §14 single-sourcing map.
 - **NEVER skip Pass 1b.** The plan is reviewed against the brief and the generic test is run BEFORE any code exists — a plan that would survive a similar prompt unchanged is a default, not a decision.
 
 ---
@@ -160,6 +160,7 @@ For web designs, the hero is the first thing viewers see. **Open with the most c
 - **Rhythm over monotone.** Great interfaces breathe unevenly — dense areas give way to open ones, heavy elements balance light ones. Same card size, same gap, same density everywhere is the sound of no one deciding.
 - **Proportions speak.** A 280px sidebar beside full-width content says "navigation serves content"; 360px says "these are peers". If you cannot articulate what your proportions say, they are not saying anything.
 - **One focal point.** Every screen has one thing the user came to do; it should dominate through size, position, contrast, or the space around it (`UI-1.1`).
+- **Actions are composition too.** One filled text button marks the view's focal action; every other action is quieter — an icon, a link, the row itself — chosen by the `AD-1` table (`SYNC:ui-action-density-gate`). A row of label-width boxed buttons is the action-level form of everything competing equally.
 - **Declare alignment intent** — left, centered, or justified — as a decision, in the design plan (§10).
 
 ---
@@ -186,6 +187,7 @@ Words appear in a design for one reason: **to make it easier to understand and u
 | **Failure and emptiness give direction, not mood** | Explain what went wrong and how to fix it, in the interface's voice rather than a person's. **Errors do not apologize, and are never vague about what happened.** An empty screen is an invitation to act |
 | **Conversational tone**                            | Plain verbs, sentence case, no filler, tone matched to brand and audience                                                                                                                                 |
 | **One job per element**                            | Let each written element do exactly one thing                                                                                                                                                             |
+| **Copy budget** | A row or card earns a title and at most one short meta line; a description beside every action is noise, not help. Detail moves behind disclosure (`AD-4`) |
 | **Real content, not lorem**                        | Copy can make a design feel as templated as the design itself. When the brief has no real content, write plausible copy for the actual subject (§2)                                                       |
 
 **Content coherence check:** read every visible string as a user would — not for typos, for truth. Could a real person at a real company be looking at exactly this data right now? Or does the page title belong to one product, the body to another, and the sidebar metrics to a third? A beautifully designed interface with nonsensical content is a movie set with no script.
@@ -285,6 +287,7 @@ Run before presenting any design, mockup, or implemented UI surface.
 11. **Critique run on the built page?** Composition, craft, content, structure, distinctiveness — with screenshots where the environment allows — §11.
 12. **Quality floor met without being announced?** Responsive, focus-visible, reduced-motion, measured contrast, tokens not literals — §12.
 13. **Precedence respected?** Project design-system docs outrank this catalog; the brief's stated direction outranks §4; genuine conflicts surfaced to the user, never resolved silently — header.
+14. **Actions and attention measured?** One filled primary per view, lighter forms for the rest, uniform groups, named and tooltipped icons, one meta line per row — counted, not eyeballed (`AD-1`–`AD-6`; checklist `B16`, `C14`–`C20`).
 
 ---
 
@@ -296,6 +299,7 @@ Run before presenting any design, mockup, or implemented UI surface.
 | Distinctiveness laws, tell catalog, design plan, critique | **this file** + `SYNC:design-distinctiveness-gate`                                         | any skill body (carry the SYNC block instead)                |
 | Words-as-design-content                                   | §8 + `SYNC:ui-copywriting`                                                                 | —                                                            |
 | 40 usability clauses `UI-1.1`–`UI-9.4`                    | `SYNC:ui-ux-design-principles`                                                             | this file (referenced only)                                  |
+| Action hierarchy, icon discipline, copy budget `AD-1`–`AD-6` | `SYNC:ui-action-density-gate` + checklist `B16`, `C14`–`C20` | this file (referenced only) |
 | Tech-agnostic spec interaction layer                      | `SYNC:ui-intent-layer`                                                                     | design artifacts (they own fidelity, the spec owns behavior) |
 | Existing-UI inventory before designing                    | `SYNC:existing-ui-research`                                                                | —                                                            |
 | Project tokens, components, icons, BEM                    | `design-system/` + `configured styling reference`, both in the project-reference docs root | this file (this file NEVER names project-specific values)    |

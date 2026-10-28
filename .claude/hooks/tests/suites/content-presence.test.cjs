@@ -1991,6 +1991,93 @@ module.exports = {
             },
         },
         {
+            name: '[content-presence] TC-CP-018 UI actions take their lightest form and a copy budget is measured',
+            // Business Intent / Invariant Guarded: a generated or reviewed interface gives each view ONE filled
+            // primary action, every other action a lighter form (icon, link, row target), uniform button
+            // groups and a measured copy budget. Each phrase below is the only carrier of one obligation;
+            // removing it re-opens the "a boxed button for every action, a sentence beside each" failure.
+            fn: () => {
+                const DOCS_DIR = path.resolve(PROJECT_DIR, '.claude', 'docs');
+                const SKILLS_DIR = path.resolve(PROJECT_DIR, '.claude', 'skills');
+                const read = (...parts) => readFile(path.join(...parts));
+                const expectations = [
+                    ['docs/design-review-checklist.md', read(DOCS_DIR, 'design-review-checklist.md'), [
+                        '| B16 | **Copy budget**', '| C14 | **One primary commit per view**', '| C15 | **Uniform action groups**',
+                        '| C16 | **List-row actions**', '| C17 | **Icon-only controls**',
+                        '| C18 | **Regular grids**', '| C19 | **Alignment and width**', '| C20 | **Placeholder variety**',
+                    ]],
+                    ['docs/design-review-calibration.md', read(DOCS_DIR, 'design-review-calibration.md'), ['## C7 — The ragged action column']],
+                    ['docs/ux-journey-process.md', read(DOCS_DIR, 'ux-journey-process.md'), ['| AD-1–AD-6 actions & attention |']],
+                    ['ui-design/references/mode-review.md', read(SKILLS_DIR, 'ui-design', 'references', 'mode-review.md'), ['## Phase 3D: Action & Density Pass']],
+                    ['work-item/references/mode-mockup.md', read(SKILLS_DIR, 'work-item', 'references', 'mode-mockup.md'), [
+                        '#### Action & Attention Build Constraints', '| Primary action ',
+                    ]],
+                    ['work-item/references/mockup-interactive-demo.md', read(SKILLS_DIR, 'work-item', 'references', 'mockup-interactive-demo.md'), [
+                        '**Actions & attention (`AD-1`–`AD-6`)**',
+                    ]],
+                    ['design-spec/SKILL.md', readSkill('design-spec'), ['**Action forms (`AD-1`–`AD-2`):**']],
+                    // The guards that keep the gate from over-reaching: heuristic cap, house pattern, other surfaces, decks.
+                    ['shared/protocols/ui-action-density-gate.md', read(SKILLS_DIR, 'shared', 'protocols', 'ui-action-density-gate.md'), [
+                        'a finding that rests only on an undeclared default ranks no higher than P3',
+                        'A documented house pattern is not a defect',
+                        'record a clause with no equivalent as N/A with the reason',
+                        'Slide decks are out of scope',
+                        'a dashboard of different widgets, a bento layout, or a feed, thread, chat or board whose items vary in height is not a collection grid',
+                    ]],
+                ];
+                const missing = [];
+                for (const [label, body, phrases] of expectations) {
+                    for (const phrase of phrases) if (!body.includes(phrase)) missing.push(`${label} → ${phrase}`);
+                }
+                // And the mock-up template no longer maps every action to a primary/secondary button variant
+                const mockup = read(SKILLS_DIR, 'work-item', 'references', 'mode-mockup.md');
+                if (/\| Button +\| `<button>` with primary\/secondary variants/.test(mockup)) missing.push('mode-mockup.md still maps every action to a <button> variant');
+                assertTrue(missing.length === 0,
+                    `UI action & attention obligations lost:\n  ${missing.join('\n  ')}`);
+            },
+        },
+        {
+            name: '[content-presence] TC-CP-019 every prototype ships a design-system page and shared controls are built once',
+            // Business Intent / Invariant Guarded: a generated mock-up or prototype comes with a design-system
+            // page (tokens + a catalog of reusable controls, each with its owner), the prototype defines each
+            // control once, brownfield entries are found from repository evidence, and the plan builds the
+            // shared components before the pages. Each phrase is the only carrier of one obligation; removing
+            // it re-opens the "every page re-implements its own buttons and tables" failure.
+            fn: () => {
+                const DOCS_DIR = path.resolve(PROJECT_DIR, '.claude', 'docs');
+                const SKILLS_DIR = path.resolve(PROJECT_DIR, '.claude', 'skills');
+                const read = (...parts) => readFile(path.join(...parts));
+                const mockup = read(SKILLS_DIR, 'work-item', 'references', 'mode-mockup.md');
+                const expectations = [
+                    ['work-item/references/mode-mockup.md', mockup, [
+                        '| Design-system page (`PD-1`) |', '### Step 5b: [BLOCKING] Generate the Design-System Page',
+                        '**Define each control once (`PD-3`):**', '- Design-system page (PD-1):', '13. **Design-system page (`PD-1`–`PD-6`)**', 'Items 0-7 and 13 stay blocking here', '5b. **[BLOCKING] Design-System Page (`PD-1`–`PD-6`)**',
+                        'Find the project\'s shared component library from evidence (`PD-4`)',
+                    ]],
+                    ['docs/design-review-checklist.md', read(DOCS_DIR, 'design-review-checklist.md'), ['| M10 | New or changed work implements no control twice']],
+                    // The guards that keep the rule universal: evidence over assumed frameworks, purpose over counts, no invented tokens.
+                    ['shared/protocols/prototype-design-system.md', read(SKILLS_DIR, 'shared', 'protocols', 'prototype-design-system.md'), [
+                        'Never assume a framework or a folder name',
+                        'a look-alike with a different purpose stays separate',
+                        'a token system is adopted only when the plan decides to',
+                        'a legacy duplicate outside the change is `M8`',
+                    ]],
+                    ['plan/SKILL.md', readSkill('plan'), ['- `prototype-design-system` —', '<!-- SYNC:prototype-design-system:reminder -->']],
+                    ['workflow-spec-to-mockup/SKILL.md', readSkill('workflow-spec-to-mockup'), ['| **Design-system page** (`PD-1`–`PD-6`) |']],
+                    ['plan/references/mode-execute.md', read(SKILLS_DIR, 'plan', 'references', 'mode-execute.md'), ['UI phases build or confirm the shared components']],
+                    ['ui-design/SKILL.md', readSkill('ui-design'), ['## Design-System Page Contract (prototype-producing modes)']],
+                ];
+                const missing = [];
+                for (const [label, body, phrases] of expectations) {
+                    for (const phrase of phrases) if (!body.includes(phrase)) missing.push(`${label} → ${phrase}`);
+                }
+                // And brownfield discovery no longer assumes one framework's file names
+                if (mockup.includes('Glob("**/libs/*common*/**/*.component.ts")')) missing.push('mode-mockup.md still discovers components with a framework-specific glob');
+                assertTrue(missing.length === 0,
+                    `Prototype design-system obligations lost:\n  ${missing.join('\n  ')}`);
+            },
+        },
+        {
             // Guards BR-ADS-05: with the trailer switch off (the default) the commit guidance asks for no line
             // that nothing reads, and no text promises an automated check of it. Skill text ships with the
             // bundle, so this asserts unguarded (like TC-CP-004).

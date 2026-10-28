@@ -33,6 +33,7 @@ Candidate sweep (consider every one):
 - Backward compatibility and public contracts
 - Cross-module and cross-service consumers (producers, consumers, shared contracts)
 - UI/UX and accessibility (when a user-facing surface changes)
+- Shared UI components (when a mock-up or prototype exists: each entry of its design-system page maps to a shared component, reused or built once, in a phase before the screens — `PD-5`)
 - AI-feature gates (when a model call, prompt, agent, tool, retrieval or eval changes)
 - Observability and operability
 - Portability (Windows, macOS, Linux; no hardcoded paths or shell assumptions)

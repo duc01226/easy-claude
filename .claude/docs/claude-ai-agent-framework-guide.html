@@ -458,14 +458,16 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
 
     <section id="design" aria-labelledby="design-h">
       <h2 id="design-h">Design and UX gates</h2>
-      <p class="lead">Any task that creates or reshapes a screen runs three rule sets in order, then a review procedure.</p>
+      <p class="lead">Any task that creates or reshapes a screen runs four rule sets in order, then a review procedure.</p>
       <ol class="flow">
         <li><span class="node gate">UX-1–UX-11<small>journeys first</small></span></li>
         <li><span class="node gate">UI-1.1–UI-9.4<small>usability floor</small></span></li>
+        <li><span class="node gate">AD-1–AD-6<small>actions &amp; attention</small></span></li>
         <li><span class="node gate">DD-1–DD-8<small>product identity</small></span></li>
         <li><span class="node">CL-1–CL-6<small>review procedure</small></span></li>
       </ol>
       <div class="grid">
+        <div class="card"><h4>Design-system page</h4><p>Every mock-up ships a page beside it with the tokens and a live catalog of reusable controls, each built once. Existing projects extract it from their own components; plans build those components before the pages (PD-1–PD-6).</p></div>
         <div class="card"><h4>Journey report first</h4><p>Who uses the screen, their job, the ranked main journeys and each journey's steps — before any mockup or UI code. It ends with a pass/fail gate report.</p></div>
         <div class="card"><h4>Explore mode</h4><p>Asks for 3, 2, 1 drafts or skip; opens drafts in the browser; recommends one with evidence; builds only the chosen direction.</p></div>
         <div class="card"><h4>Precedence</h4><p>Your brief → the project's design system and ADRs → these clauses. Genuine conflicts go to you.</p></div>

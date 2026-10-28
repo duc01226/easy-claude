@@ -474,6 +474,13 @@ AGENT_QUALITY_BLOCKS = {
         # agent proposes look and layout directions, so it shows real options as pictures and the
         # owner picks or mixes among options that each pair a different style with a different layout.
         "visual-option-discovery",
+        # Action hierarchy and copy budget (twin: ui-design / design-spec / work-item --mode=mockup): the
+        # authoring and implementing roles decide the form of every action.
+        "ui-action-density-gate",
+        # Prototype design-system page (twin: work-item --mode=mockup / plan --mode=execute): the role that
+        # generates a prototype ships its catalog of reusable controls; the roles that implement one build
+        # each shared control once, before the pages.
+        "prototype-design-system",
     ],
     "code-simplifier": [
         "core-engineering-principles",
@@ -530,6 +537,13 @@ AGENT_QUALITY_BLOCKS = {
         # borrowed card kit, a per-section entrance animation. DD-* binds it to the plan it
         # was handed; ui-copywriting binds the strings it types into templates.
         "design-distinctiveness-gate", "ui-copywriting", "design-review-checklist",
+        # Action hierarchy and copy budget (twin: ui-design / design-spec / work-item --mode=mockup): the
+        # authoring and implementing roles decide the form of every action.
+        "ui-action-density-gate",
+        # Prototype design-system page (twin: work-item --mode=mockup / plan --mode=execute): the role that
+        # generates a prototype ships its catalog of reusable controls; the roles that implement one build
+        # each shared control once, before the pages.
+        "prototype-design-system",
         # /why-review F-M3 -- see the family note above.
         "test-failure-fault-adjudication", "logic-and-intention-review",
     ],
@@ -545,6 +559,13 @@ AGENT_QUALITY_BLOCKS = {
         # "skip when there is no user-facing surface" clause, so a backend-only phase costs
         # one stated line rather than a wrong gate.
         "design-distinctiveness-gate", "ui-copywriting", "design-review-checklist",
+        # Action hierarchy and copy budget (twin: ui-design / design-spec / work-item --mode=mockup): the
+        # authoring and implementing roles decide the form of every action.
+        "ui-action-density-gate",
+        # Prototype design-system page (twin: work-item --mode=mockup / plan --mode=execute): the role that
+        # generates a prototype ships its catalog of reusable controls; the roles that implement one build
+        # each shared control once, before the pages.
+        "prototype-design-system",
         # /why-review F-M3 -- see the family note above. This is the agent the
         # report's concrete error path routed through.
         "test-failure-fault-adjudication", "logic-and-intention-review",

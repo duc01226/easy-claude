@@ -499,6 +499,16 @@
           "summary": "Judge the system under concrete failure and load scenarios",
           "when": "evaluating resilience or production readiness"
         },
+        "ui-action-density-gate": {
+          "summary": "Action and attention gate AD-1 to AD-6: one primary text button, lighter forms for other actions, uniform groups, named icons, a copy budget, regular aligned grids",
+          "when": "designing, mocking up, building or reviewing a user-facing surface with actions or text",
+          "trigger": "ui"
+        },
+        "prototype-design-system": {
+          "summary": "Prototype design-system page PD-1 to PD-6: tokens and a live catalog of reusable controls beside every mock-up, each control built once and planned before the pages",
+          "when": "generating a mock-up or prototype, or planning or building one",
+          "trigger": "ui"
+        },
         "ui-copywriting": {
           "summary": "User-visible strings are design content",
           "when": "writing or reviewing UI text",
@@ -648,6 +658,8 @@
         "ui-copywriting",
         "design-review-checklist",
         "ux-journey-gate",
+        "ui-action-density-gate",
+        "prototype-design-system",
         "visual-option-discovery",
         "e2e-visual-design-contract",
         "graph-assisted-investigation"
@@ -661,6 +673,8 @@
         "ui-copywriting",
         "design-review-checklist",
         "ux-journey-gate",
+        "ui-action-density-gate",
+        "prototype-design-system",
         "e2e-visual-design-contract"
       ],
       "fullstack-developer": [
@@ -672,6 +686,8 @@
         "ui-copywriting",
         "design-review-checklist",
         "ux-journey-gate",
+        "ui-action-density-gate",
+        "prototype-design-system",
         "e2e-visual-design-contract"
       ],
       "debugger": [

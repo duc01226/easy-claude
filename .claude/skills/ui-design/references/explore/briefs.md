@@ -104,7 +104,8 @@ Axes: pinned (ADOPTED — source): <list>. Free: <list>. The target feel from th
 The other options (each a different style and a different layout): <letters, their style and layout>.
 Journey Report: <path>; Design Plan skeleton: <path>.
 
-Serve the same main journeys, key views and information-priority tiers as the other options; diverge only
+Serve the same main journeys, key views, information-priority tiers and action forms (not for a slide deck; `AD-1`: one filled
+primary commit per view) as the other options; diverge only
 on the free axes. Translate the style into this subject. If the draft would fit another product unchanged,
 revise it.
 Keep style and layout separable: put colour, type scale, spacing and radius in CSS custom properties, and

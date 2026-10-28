@@ -168,10 +168,10 @@ It is a run-scoped derived projection of configured owner/case/test carriers and
 
 - `docs/project-config.json` → `designSystem.canonicalDoc`, `tokenFiles`, `appMappings[]`
 - the resolved design-system doc, `frontend-patterns-reference.md`, `configured styling reference`
-- `.claude/docs/design-knowledge.md` (`DD-1`–`DD-8`) and `.claude/docs/design-review-checklist.md` (`CL-1`–`CL-6`, `P0`–`P4`)
+- `.claude/docs/design-knowledge.md` (`DD-1`–`DD-8`), `.claude/skills/shared/protocols/ui-action-density-gate.md` (`AD-1`–`AD-6`) and `.claude/docs/design-review-checklist.md` (`CL-1`–`CL-6`, `P0`–`P4`)
 - the governing brief, spec, or accepted `$ui-design` decision for the surface
 
-Record which authority files resolved and which were absent. **Precedence:** brief/accepted design contract → project design-system, SCSS, frontend docs and ADRs → shared `UI-*`/`DD-*`/`CL-*`. A repo-wide convention is an intentional identity, never a distinctiveness finding. A genuine conflict goes to the user with both sides — never resolved silently.
+Record which authority files resolved and which were absent. **Precedence:** brief/accepted design contract → project design-system, SCSS, frontend docs and ADRs → the target platform's guidelines → shared `UI-*`/`AD-*`/`DD-*`/`CL-*`. A repo-wide convention is an intentional identity, never a distinctiveness finding. A genuine conflict goes to the user with both sides — never resolved silently.
 
 ### 3.2 One capture at a time
 
@@ -208,6 +208,7 @@ One code per finding, so per-case records cluster in synthesis:
 | `UIX-A11Y` | Measurable floor only: contrast below the floor, missing/invisible focus ring, touch target under the floor, visibly unlabeled control | BLOCKING |
 | `UIX-CONVENTION` | Deviates from the project's own tokens, components, or documented pattern — **requires a citation of the authority clause it breaks** | BLOCKING when the authority states it as a rule; else ADVISORY |
 | `UIX-FLOW` | UX friction visible across the sequence: dead end, unexplained context loss, redundant step, destructive action without confirmation, no feedback between action and result | BLOCKING when it blocks the journey; else ADVISORY |
+| `UIX-ACTIONS` | Action hierarchy and density: more than one filled text button per view, boxed text buttons per row, ragged or mixed button groups, rows over the meta-line budget, irregular tiles or title baselines in a collection grid (checklist `C14`–`C16`, `C18`, `B16`; an unnamed icon is `UIX-A11Y`) | Severity from the checklist §0.3 map (P-level first, then BLOCKING or ADVISORY); a finding resting only on an undeclared default caps at P3 |
 | `UIX-POLISH` | Identity and taste (`DD-1`–`DD-8`): distinctiveness, palette/type character, a nicer alternative | ADVISORY |
 
 Map to the existing gate: `BLOCKING` findings enter the E2E round's failure set and must be fixed at the owning layer before a rerun. `ADVISORY` findings are recorded with location and rationale and **never** open a round — taste has no fixed point, and a loop that runs on it edits a surface that was already correct.

@@ -231,6 +231,7 @@ A standalone plan creation ends with one question through the host's question to
 - `plan-granularity` — Outcome phases name decisions, boundaries and bounded discovery without replaying implementation; breaking a plan into phases → .claude/skills/shared/protocols/plan-granularity.md
 - `plan-quality` — Plans decide direction, affected owners, risks and final proof without pre-writing implementation; writing or reviewing a plan → .claude/skills/shared/protocols/plan-quality.md
 - `preservation-inventory` — Table of behavior a bugfix plan must preserve, written before the implementation steps; writing a bugfix plan → .claude/skills/shared/protocols/preservation-inventory.md
+- `prototype-design-system` — Prototype design-system page PD-1 to PD-6: tokens and a live catalog of reusable controls beside every mock-up, each control built once and planned before the pages; generating a mock-up or prototype, or planning or building one → .claude/skills/shared/protocols/prototype-design-system.md
 - `review-decision-autonomy` — Choose supported review decisions and ask before extending the round budget; running any review or audit skill or mode → .claude/skills/shared/protocols/review-decision-autonomy.md
 - `review-policy` — Review-only or a three-round fix loop with explicit extension and fresh post-fix evidence; deciding round eligibility, blocking findings or review state → .claude/skills/shared/protocols/review-policy.md
 - `ui-system-context` — Resolve the project's UI conventions before a UI change; changing a user-interface surface → .claude/skills/shared/protocols/ui-system-context.md
@@ -250,6 +251,12 @@ A standalone plan creation ends with one question through the host's question to
 **MUST ATTENTION** Decide supported review choices and recommendations, record the rationale, and finish without routine user questions. Keep round-limit extension, indispensable facts and actual action authority; preserve source coverage, validation, tests, read-only boundaries and budgets. Review decisions do not accept open risks or make a failed gate pass.
 
 <!-- /SYNC:review-decision-autonomy:reminder -->
+
+<!-- SYNC:prototype-design-system:reminder -->
+
+- **MUST ATTENTION** every mock-up or prototype ships a self-contained design-system page beside it, in its medium (HTML mock-up: `<name>-design-system.html`), linking to the project's living component catalog when one exists (`PD-1`): the tokens plus a live catalog of every reusable control and component (buttons, inputs, tables, grids, lists, cards, icons, states), each with its variants, states, a plain contract, the views that use it and its owner, an existing source path or `new — build once` (`PD-2`) · the prototype defines each recurring control once and reuses it in every view (`PD-3`) · brownfield entries are extracted from the project's own design system and components, found from repository evidence (`PD-4`) · a plan builds the shared components in a phase before the screens, and a control implemented twice is a finding (`M10`, `PD-5`) · a one-component change lists only the touched entries; explore drafts and decks get none (`PD-6`). Skip ONLY when no user-facing prototype is generated or implemented, stated.
+
+<!-- /SYNC:prototype-design-system:reminder -->
 
 ## Closing Reminders
 

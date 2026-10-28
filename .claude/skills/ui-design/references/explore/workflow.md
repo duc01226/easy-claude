@@ -102,7 +102,7 @@ Fix the **deliverable type and its pixel canvas**. Every draft is built for this
 | Poster or print piece | The print size in CSS pixels at 96 per inch, for example A3 portrait `1123x1587` |
 | Animation or video | The output resolution, for example `1920x1080`; the draft is ONE key-frame still (its poster frame, per `references/lane-marketing/motion-storyboard.md`), not a full animation |
 
-Then write the `DD-3` Design Plan skeleton: subject · audience · job (`DD-1`, taken from the Journey Report), the main journeys and the information-priority tiers per view (`UX-3`/`UX-4`), the deliverable and canvas, the ADOPTED axes with their sources, and the FREE axes left open for the drafts. The skeleton is shared by all N drafts: they diverge on visual axes and layout skeleton, never on the journeys they serve or the priority tier of any content.
+Then write the `DD-3` Design Plan skeleton: subject · audience · job (`DD-1`, taken from the Journey Report), the main journeys and the information-priority tiers per view (`UX-3`/`UX-4`), the deliverable and canvas, the ADOPTED axes with their sources, and the FREE axes left open for the drafts. The skeleton is shared by all N drafts: they diverge on visual axes and layout skeleton, never on the journeys they serve or the priority tier of any content. Action hierarchy is not a free axis: every draft keeps the same primary commit per view and the `AD-1` action forms.
 
 ## Step 6 — Pick N divergence seeds (the first N of the table)
 
@@ -121,9 +121,9 @@ A seed is raw material. If a seed clashes with an ADOPTED axis, the adopted axis
 Spawn N `ui-ux-designer` sub-agents in ONE message. Each brief is self-contained (a sub-agent inherits nothing from this conversation) and carries:
 
 - the subject, audience, job and the Design Plan skeleton from step 5, including the deliverable, its canvas, and every ADOPTED axis with its source;
-- the `journey-report.md` path and the rule, verbatim: "Serve the same main journeys and information-priority tiers as the other drafts; diverge only on visual axes and layout skeleton.";
+- the `journey-report.md` path and the rule, verbatim: "Serve the same main journeys, information-priority tiers and action forms as the other drafts; diverge only on visual axes and layout skeleton.";
 - its ONE seed from step 6, plus the `brand-spec.md`, `product-facts.md` and `run-notes.md` paths when they exist, the shared imagery set from step 4, and any disliked reference to avoid;
-- the gates: `DD-1`–`DD-8`, `UI-1.1`–`UI-9.4`, `CL-1`–`CL-6`, with the paths `.claude/docs/design-knowledge.md` and `.claude/docs/design-review-checklist.md`, plus the resolved project design-system doc paths;
+- the gates: `DD-1`–`DD-8`, `UI-1.1`–`UI-9.4`, `AD-1`–`AD-6` (not for a slide deck), `CL-1`–`CL-6`, with the paths `.claude/docs/design-knowledge.md`, `.claude/skills/shared/protocols/ui-action-density-gate.md` and `.claude/docs/design-review-checklist.md`, plus the resolved project design-system doc paths;
 - **when layout is FREE:** a layout skeleton that is STRUCTURALLY different from the other drafts (for example: single focal column vs. asymmetric split vs. modular grid — a different reading order, not a recoloured copy); with option discovery, that is the draft's assigned layout archetype. **When layout is ADOPTED:** the pinned layout, unchanged, and the instruction to diverge on the free axes only;
 - **with option discovery:** its combination (style family and layout archetype, each with its research captures) and the separability rule: style in CSS custom properties and one style block, layout in each view's structure, and the note records the Design Plan tokens and the per-view layout skeleton as two sections, so a mix can take the style of one draft and the layout of another;
 - the grounding rule, verbatim: "Translate the seed into this subject. If the draft would fit another product unchanged, revise it.";

@@ -19,6 +19,14 @@ Add to system.md when:
 - Padding: 12px 16px
 - Radius: 6px
 - Font: 14px, 500 weight
+- Min-width: 96px (one width shared by every button in a group)
+
+### Icon Button
+
+- Size: 32px visual; hit target at the platform minimum (example: 44px on touch)
+- Icon: 20px, 1.5px stroke
+- Name: required (aria-label or platform equivalent)
+- Tooltip: on hover and focus
 ```
 
 ## Don't Document

@@ -218,13 +218,13 @@ Coach-mark: the spotlighted hotspot gets `.proto__hotspot--active` (pulse/outlin
 A persistent panel names the **current flow**, the **current step (`n / total`)**, and the step's `explain` text — turning a clickable screen into a *guided* journey a non-technical stakeholder can follow. A visible scope-guard banner makes the simulation explicit.
 
 ```html
-<aside class="proto__narration" aria-live="polite">
+<aside class="proto__narration" aria-live="polite" data-audit-ignore>
     <p class="proto__narration-flow">Create a goal</p>
     <p class="proto__narration-step">Step 2 / 3</p>
     <p class="proto__narration-text">User types a goal title and selects a target date; Save enables.</p>
 </aside>
 
-<div class="proto__banner" role="note">⚠ Simulated — illustrative data, no real actions are performed</div>
+<div class="proto__banner" role="note" data-audit-ignore>⚠ Simulated — illustrative data, no real actions are performed</div>
 
 <div class="proto__toast" role="status" aria-live="polite"></div>
 ```
@@ -250,10 +250,12 @@ function set(sel, text) {
 ## §5. Affordances + Accessibility
 
 - **Clickable hotspots are visibly highlighted** — `.proto__hotspot` gets a pulse/outline so a viewer knows where to click; the walkthrough spotlight (`--active`) intensifies it for the current step.
-- **Disabled controls show a tooltip** (`title=` / `aria-disabled="true"`) — never a dead control with no feedback.
+- **Disabled controls show a tooltip** (`aria-disabled="true"` plus a tooltip shown on hover and focus through `aria-describedby`; a `title=` alone never shows on focus, `AD-3`) — never a dead control with no feedback.
 - **Never trap the user** — every demo offers ↺ Reset and ⏏ Exit; Play can always be stopped.
 - **Respect `prefers-reduced-motion`** — suppress auto-advance and pulse animation; manual Next/Prev still drives the journey.
 - **Keyboard parity** — hotspots reachable and activatable via Tab + Enter/Space (§2); controls are real `<button>`s.
+- **Demo controls are icon buttons done right** — ▶ ⏭ ⏮ ↺ ⏏ each carry an accessible name and a tooltip on hover and focus (`AD-3`).
+- **Mark the demo chrome `data-audit-ignore`** — the control bar, narration panel and banner are not product UI; the action and attention counts (`AD-5`) skip them.
 
 ---
 
@@ -279,6 +281,7 @@ The checklist `references/mode-mockup.md` Step 8 (Demo-Quality Review Gate) enfo
 - [ ] **Every main-story flow clicks end-to-end** — each flow-spec's `steps[]` reach the `endState` via real hotspots; no path dead-ends.
 - [ ] **Journey walkthrough + traceability (`UX-8`)** — every Journey Report main journey walked on the prototype (knows the step is needed · sees the action · links it to the goal · sees progress); traceability matrix has no unserved step and no orphan element.
 - [ ] **No dead controls** — every button/hotspot advances the demo or is visibly disabled-with-tooltip.
+- [ ] **Actions & attention (`AD-1`–`AD-6`)** — per product view (demo chrome excluded): ≤ 1 filled text button, boxed text buttons within the budget, button groups one height/style/width, list rows one target with ≤ 1 inline icon action, one meta line per row, every icon-only control named and tooltipped (hover and focus) with a full-size target, one tile size and title baseline per collection-grid row, actions aligned to their content edge (`AD-6`); the counts recorded in the Step 6 report.
 - [ ] **Narration present + tech-agnostic** — every step shows its `explain`; copy is business-language (M1/M2), not class names.
 - [ ] **"⚠ Simulated" banner present** — illustrative-data scope guard visible on every flow.
 - [ ] **Opens offline standalone** — no external `<script src>`; Google Fonts CSS only.

@@ -286,7 +286,7 @@ const tests = [
             const bodyOf = (text, tag) => text.includes(`<!-- SYNC:${tag} -->`) && text.includes(`<!-- /SYNC:${tag} -->`);
             const reviewOnly = ['category-review-thinking', 'graph-assisted-investigation', 'severity-rubric', 'trade-off-interrogation-gate'];
             const validateOnly = ['sequential-thinking-protocol', 'task-tracking-external-report', 'understand-code-first'];
-            const executeOnly = ['design-distinctiveness-gate', 'design-review-checklist', 'end-to-start-debugger-trace', 'severity-rubric', 'source-test-drift-check', 'ui-copywriting', 'understand-code-first'];
+            const executeOnly = ['design-distinctiveness-gate', 'design-review-checklist', 'end-to-start-debugger-trace', 'severity-rubric', 'source-test-drift-check', 'ui-action-density-gate', 'ui-copywriting', 'understand-code-first'];
             // Each mode-only tag is an inline body in its reference and absent from the default skill
             for (const [label, text, tags] of [['mode-review', reviewText, reviewOnly], ['mode-validate', validateText, validateOnly], ['mode-execute', executeText, executeOnly]]) {
                 for (const tag of tags) {

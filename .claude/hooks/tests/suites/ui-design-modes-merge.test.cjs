@@ -123,7 +123,7 @@ const MODE_ONLY_TAGS = [
     'understand-code-first'
 ];
 // Protocols the design modes already carry in SKILL.md (guide line + reminder); the reference does not repeat them.
-const SHARED_TAGS = ['design-distinctiveness-gate', 'design-review-checklist', 'ui-copywriting', 'ui-ux-design-principles', 'ux-journey-gate'];
+const SHARED_TAGS = ['design-distinctiveness-gate', 'design-review-checklist', 'prototype-design-system', 'ui-action-density-gate', 'ui-copywriting', 'ui-ux-design-principles', 'ux-journey-gate'];
 
 const tests = [
     {
@@ -187,7 +187,7 @@ const tests = [
         fn: () => {
             const text = modeReview();
             // Phases and categories
-            for (const phase of ['0: Load UI Rules', '1: Determine Scope', '2: Blast Radius', '2B: Surface Composition', '2C: Surface UX Pass', '3: UI Category Review', '3B: UI/UX Design Principles Pass', '3C: Design Distinctiveness Pass', '4: Finalize', '5: Why-Review Findings Validation Gate', '6: Validated Fix + Full UI Re-Review Loop']) {
+            for (const phase of ['0: Load UI Rules', '1: Determine Scope', '2: Blast Radius', '2B: Surface Composition', '2C: Surface UX Pass', '3: UI Category Review', '3B: UI/UX Design Principles Pass', '3C: Design Distinctiveness Pass', '3D: Action & Density Pass', '4: Finalize', '5: Why-Review Findings Validation Gate', '6: Validated Fix + Full UI Re-Review Loop']) {
                 assert.ok(text.includes(`\n## Phase ${phase}`), `Phase ${phase} exists`);
             }
             for (const category of [1, 2, 3, 4, 5, 6]) assert.match(text, new RegExp(`\\n### Category ${category}: `), `Category ${category}`);

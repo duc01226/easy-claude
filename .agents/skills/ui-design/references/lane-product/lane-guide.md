@@ -196,6 +196,8 @@ Run these against your output before presenting:
 
   **A match is not a defect** — every one of these is right for some brief. It is a flag that you spent a FREE axis on a default. For each match, either name the reason this brief calls for it, or revise it and say what the domain suggested instead.
 
+- **The action test (`AD-1`–`AD-6`):** Count the filled buttons on each view — more than one means two things claim to be the point. Read every other action: is it the lightest form that keeps its meaning — an icon with a name and tooltip, icon + label, a link, the row itself? Line up each button group: same height, same style, one shared width. Read each row: a title and one short meta line, or a paragraph nobody needed? Scan each collection grid: one tile size, titles on one baseline, actions on the content edge?
+
 If any check fails, iterate before showing.
 
 ---
@@ -326,7 +328,7 @@ Native `<select>` and `<input type="date">` render OS-native elements that canno
 
 ## Iconography
 
-Icons clarify, not decorate — if removing an icon loses no meaning, remove it. Choose one icon set and stick with it. Give standalone icons presence with subtle background containers.
+Icons clarify, not decorate — if removing an icon loses no meaning, remove it. Choose one icon set and stick with it. Give standalone icons presence with subtle background containers. Every icon-only control carries an accessible name and a tooltip on hover and focus, and has a full-size hit target (`AD-3`).
 
 ## Animation
 

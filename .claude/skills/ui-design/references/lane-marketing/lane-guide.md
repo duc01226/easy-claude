@@ -224,6 +224,8 @@ When the deliverable is an animation or video, plan it with `motion-storyboard.m
 
 **Spend your boldness in one place.** Let one element be the memorable thing, keep everything around it quiet and disciplined, and **cut any decoration that does not serve the brief.**
 
+**Actions are part of the restraint.** One primary CTA per screenful, as a full text button with a shared min-width; a secondary action is a text link or a same-size quieter button — never a row of mixed filled and outlined buttons of label-driven widths. Support copy stays short: a headline plus one or two sentences per block; the rest goes behind a link (`AD-1`, `AD-2`, `AD-4`).
+
 **Critique your own work as you build, taking screenshots to review if your environment supports it — a picture is worth 1000 tokens.** Run the full critique protocol in `.claude/docs/design-knowledge.md` §11: composition (rhythm, proportion, focal point) · craft (density as a decision, surfaces that whisper hierarchy, live interactive states) · content (read every string for truth) · structure (find the CSS lies — negative margins undoing a parent's padding, `calc()` workarounds, absolute positioning to escape flow).
 
 **Then consider Chanel's advice: before leaving the house, take a look in the mirror and remove one accessory.**

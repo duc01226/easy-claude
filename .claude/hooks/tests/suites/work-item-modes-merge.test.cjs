@@ -58,7 +58,7 @@ const canonical = () => read(SKILLS, 'shared', 'sync-inline-versions.md');
 const MODES = ['refine', 'story', 'mockup', 'challenge', 'review', 'dor'];
 
 // UI protocol bodies owned by references/review-type-design.md; only a UI-bearing review loads them.
-const UI_REVIEW_TAGS = ['design-distinctiveness-gate', 'design-review-checklist', 'ui-intent-layer', 'ui-ux-design-principles', 'ux-journey-gate'];
+const UI_REVIEW_TAGS = ['design-distinctiveness-gate', 'design-review-checklist', 'ui-action-density-gate', 'ui-intent-layer', 'ui-ux-design-principles', 'ux-journey-gate'];
 
 // The removed skill names, assembled so this file never contains the literal tokens it guards against.
 const REMOVED = ['re' + 'fine', 'st' + 'ory', 'pbi-' + 'mockup', 'pbi-' + 'challenge', 'artifact-' + 'review', 'dor-' + 'gate'];
@@ -276,7 +276,7 @@ const tests = [
             const expected = {
                 'mode-refine.md': ['estimation-framework', 'sequential-thinking-protocol', 'ui-system-context', 'ui-wireframe'],
                 'mode-story.md': ['estimation-framework', 'sequential-thinking-protocol', 'ui-system-context', 'ui-wireframe'],
-                'mode-mockup.md': ['design-distinctiveness-gate', 'design-review-checklist', 'existing-ui-research', 'ui-copywriting', 'ui-ux-design-principles', 'ux-journey-gate', 'visual-option-discovery'],
+                'mode-mockup.md': ['design-distinctiveness-gate', 'design-review-checklist', 'existing-ui-research', 'prototype-design-system', 'ui-action-density-gate', 'ui-copywriting', 'ui-ux-design-principles', 'ux-journey-gate', 'visual-option-discovery'],
                 'mode-challenge.md': ['ba-team-decision-model', 'estimation-framework', 'refinement-dor-checklist', 'sequential-thinking-protocol', 'ui-system-context'],
                 'mode-review.md': ['core-engineering-principles', 'evidence-based-reasoning', 'goal-contract-satisfaction-loop', 'review-principle-awareness', 'review-protocol-injection', 'severity-rubric', 'task-tracking-external-report', 'trade-off-interrogation-gate', 'understand-code-first'],
                 // UI depth is conditional: review-type-design.md owns the UI bodies that UI-bearing reviews read at the review mode's UI gate

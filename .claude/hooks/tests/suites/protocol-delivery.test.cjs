@@ -889,6 +889,85 @@ const tests = [
         })
     },
     {
+        name: '[protocol-delivery] the action & attention gate reaches design, mock-up, build and review entrypoints only for UI work (BR-PDL-16)',
+        fn: () => withFixture(fx => {
+            // Given the shipped trigger data and the shipped SKILL.md of every skill that declares the gate
+            const frameworkRoot = path.resolve(__dirname, '..', '..', '..');
+            const shipped = JSON.parse(fs.readFileSync(path.join(frameworkRoot, 'skills', 'shared', 'protocol-groups.json'), 'utf8'));
+            const gate = 'ui-action-density-gate';
+            const entry = shipped.groups.design.tags[gate];
+            assert.ok(entry && entry.trigger === 'ui', 'the shipped data gates ui-action-density-gate on the ui trigger');
+            const carriers = ['ui-design', 'design-spec', 'web-design-guidelines', 'workflow-spec-to-mockup', 'workflow-planned-work', 'scaffold', 'feature-implement', 'fix'];
+            // The ui trigger's owner skills receive it on every load; the others only through the task's UI wording
+            const owners = new Set(shipped.deliveryTriggers.ui.skills);
+            const ungated = 'core-engineering-principles';
+            fx.projection([{ tag: gate, group: 'design' }, { tag: ungated, group: 'design' }], []);
+            fx.write('.claude/skills/shared/protocol-groups.json', JSON.stringify({
+                version: 1,
+                deliveryTriggers: { ui: shipped.deliveryTriggers.ui },
+                groups: { design: { tags: { [gate]: { summary: 's', when: 'w', trigger: 'ui' }, [ungated]: { summary: 's', when: 'w' } } } },
+                inlineSkills: []
+            }));
+            for (const name of carriers) {
+                const text = fs.readFileSync(path.join(frameworkRoot, 'skills', name, 'SKILL.md'), 'utf8');
+                fx.write(`.claude/skills/${name}/SKILL.md`, text);
+                fx.write(`.agents/skills/${name}/SKILL.md`, text);
+                assert.ok((delivery.declaredTags(text) || []).includes(gate), `${name} must declare the ${gate} guide line`);
+            }
+            const withPrompt = (name, prompts) => plan(fx, skillLoad(name), 'design', { triggerContext: () => ({ prompts, transcript: '' }) });
+            for (const name of carriers) {
+                const companions = (delivery.declaredTags(fs.readFileSync(fx.abs(`.claude/skills/${name}/SKILL.md`), 'utf8')) || []).filter(tag => tag === ungated);
+                // When the task is about a user-facing surface, the full text arrives exactly once
+                const ui = withPrompt(name, 'build the settings screen and its form layout');
+                assert.deepEqual([...ui.tags].sort(), [...companions, gate].sort(), `${name} with UI wording: tags`);
+                assert.equal(count(ui.text, marker(gate)), 1, `${name}: the gate's full text exactly once`);
+                if (owners.has(name)) continue;
+                // When the task has no UI wording, a non-owner skill neither receives nor names the gate
+                const none = withPrompt(name, 'plan a database migration');
+                assertTags(none, companions, `${name} without UI wording`);
+                assert.ok(!none.text.includes(gate), `${name}: the withheld gate was named for a non-UI task`);
+            }
+        })
+    },
+    {
+        name: '[protocol-delivery] the prototype design-system page rule reaches mock-up, planning and build entrypoints only for UI work (BR-PDL-16)',
+        fn: () => withFixture(fx => {
+            // Given the shipped trigger data and the shipped SKILL.md of every skill that declares the rule
+            const frameworkRoot = path.resolve(__dirname, '..', '..', '..');
+            const shipped = JSON.parse(fs.readFileSync(path.join(frameworkRoot, 'skills', 'shared', 'protocol-groups.json'), 'utf8'));
+            const gate = 'prototype-design-system';
+            const entry = shipped.groups.design.tags[gate];
+            assert.ok(entry && entry.trigger === 'ui', 'the shipped data gates prototype-design-system on the ui trigger');
+            const carriers = ['ui-design', 'design-spec', 'workflow-spec-to-mockup', 'scaffold', 'plan', 'feature-implement', 'fix'];
+            const owners = new Set(shipped.deliveryTriggers.ui.skills);
+            fx.projection([{ tag: gate, group: 'design' }], []);
+            fx.write('.claude/skills/shared/protocol-groups.json', JSON.stringify({
+                version: 1,
+                deliveryTriggers: { ui: shipped.deliveryTriggers.ui },
+                groups: { design: { tags: { [gate]: { summary: 's', when: 'w', trigger: 'ui' } } } },
+                inlineSkills: []
+            }));
+            for (const name of carriers) {
+                const text = fs.readFileSync(path.join(frameworkRoot, 'skills', name, 'SKILL.md'), 'utf8');
+                fx.write(`.claude/skills/${name}/SKILL.md`, text);
+                fx.write(`.agents/skills/${name}/SKILL.md`, text);
+                assert.ok((delivery.declaredTags(text) || []).includes(gate), `${name} must declare the ${gate} guide line`);
+            }
+            const withPrompt = (name, prompts) => plan(fx, skillLoad(name), 'design', { triggerContext: () => ({ prompts, transcript: '' }) });
+            for (const name of carriers) {
+                // When the task is about a user-facing surface, the full text arrives exactly once
+                const ui = withPrompt(name, 'build the mockup screens with a shared table and card component');
+                assert.deepEqual([...ui.tags], [gate], `${name} with UI wording: tags`);
+                assert.equal(count(ui.text, marker(gate)), 1, `${name}: the rule's full text exactly once`);
+                if (owners.has(name)) continue;
+                // When the task has no UI wording, a non-owner skill neither receives nor names the rule
+                const none = withPrompt(name, 'plan a database migration');
+                assertTags(none, [], `${name} without UI wording`);
+                assert.ok(!none.text.includes(gate), `${name}: the withheld rule was named for a non-UI task`);
+            }
+        })
+    },
+    {
         name: '[protocol-delivery] entity quality reaches planning, implementation, fixes and review only for relevant domain work (BR-PDL-16)',
         fn: () => withFixture(fx => {
             // Given the shipped conditional gate and real entrypoint declarations in isolated host trees.

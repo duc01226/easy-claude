@@ -138,7 +138,7 @@ Unprefixed filenames resolve inside the project-reference docs root — default 
 | `.claude/skills/shared/protocols/measured-capacity-engineering.md` | Read when designing, testing or reviewing capacity, hot paths, cache placement or scaling — shared decision contract |
 | `.claude/skills/performance-review/references/performance-knowledge.md` §6.1, §10.1 | Read when proving safe cache placement or designing a workload-defined capacity experiment |
 | [configuration/README.md](./configuration/README.md)         | Settings schema, permissions, hooks config                  |
-| [ux-journey-process.md](./ux-journey-process.md)             | Read FIRST when generating, planning or reviewing any user-facing surface — journey-first `UX-1`–`UX-11` (Journey Report, design-authority read), before [design-knowledge.md](./design-knowledge.md) (`DD-*`) and [design-review-checklist.md](./design-review-checklist.md) (`CL-*`) |
+| [ux-journey-process.md](./ux-journey-process.md)             | Read FIRST when generating, planning or reviewing any user-facing surface — journey-first `UX-1`–`UX-11` (Journey Report, design-authority read), before [design-knowledge.md](./design-knowledge.md) (`DD-*`) and [design-review-checklist.md](./design-review-checklist.md) (`CL-*`), with `AD-*` (`SYNC:ui-action-density-gate`) measured by checklist `B16`, `C14`–`C20` |
 
 ## Complete Guides (Large Reference Docs)
 

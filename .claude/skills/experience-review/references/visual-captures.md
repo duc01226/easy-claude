@@ -4,7 +4,7 @@ Read when reviewing a visual surface or an E2E capture set. For non-visual work 
 
 ## Authority and inventory
 
-Before the first image, reload the governing brief/accepted design decisions and applicable project design-system, token/component, frontend/styling and ADR sources. Read `.claude/docs/design-knowledge.md` and `.claude/docs/design-review-checklist.md` when applicable. Brief/accepted contract → project decisions → shared UI/DD/CL rules; surface genuine conflicts. Never infer source architecture or tokens from an image.
+Before the first image, reload the governing brief/accepted design decisions and applicable project design-system, token/component, frontend/styling and ADR sources. Read `.claude/docs/design-knowledge.md` and `.claude/docs/design-review-checklist.md` when applicable. Brief/accepted contract → project decisions and design system → the target platform's guidelines → shared UI/AD/DD/CL rules; surface genuine conflicts. Never infer source architecture or tokens from an image.
 
 Read `.claude/skills/shared/ui-state-capture-protocol.md` and resolve `uiStateCapture.mode` and the runner. Capture the required state × viewport matrix; capture transitions only when `every-action` is explicitly selected and an evidenced boundary supports them. `declared-only` records uncaptured state-changing actions; `off` retains the matrix and records transition coverage as `N/A — uiStateCapture off: <reason>`. Record sampled, deduplicated or capped evidence as gaps, never passes. Include full-page captures for scrolling surfaces where needed by the evidence contract.
 
@@ -31,14 +31,15 @@ Use the taxonomy that fits the observation:
 - `UIX-UNSTYLED`: missing styles, raw controls or persisted FOUC.
 - `UIX-OVERFLOW` / `UIX-OVERLAP` / `UIX-LAYOUT`: clipping, unintended scrolling, occlusion or broken reflow.
 - `UIX-STATE` / `UIX-FLOW`: missing expected feedback, stale data, dead ends or lost context.
+- `UIX-ACTIONS`: more than one filled button per view, boxed buttons per row, ragged or mixed button groups, rows over the meta-line budget, irregular tiles or title baselines in a collection grid (`C14`–`C16`, `C18`, `B16`).
 - `UIX-A11Y`: measurable accessibility floor.
 - `UIX-CONVENTION`: cited project authority violation, not inferred token/source structure.
 - `UIX-POLISH`: identity or taste.
 
-Usability/accessibility-floor failures (`UI-*`, P0–P2 `CL-*`) are BLOCKING. Identity/polish (`DD-*`) is ADVISORY unless objectively required by the governing contract. Cite image and location; do not invent contrast, size, timing or other measurements. Mark unsupported claims `NOT-VERIFIABLE` and name the evidence needed.
+Usability/accessibility-floor failures (`UI-*`, P0–P2 `CL-*`) are BLOCKING. `UIX-ACTIONS` takes its severity from the checklist §0.3 map (the check's P-level first, then BLOCKING or ADVISORY), with a finding that rests only on an undeclared default capped at P3. Identity/polish (`DD-*`) is ADVISORY unless objectively required by the governing contract. Cite image and location; do not invent contrast, size, timing or other measurements. Mark unsupported claims `NOT-VERIFIABLE` and name the evidence needed.
 
 ## Reconcile and synthesize
 
 Reconcile inventory/manifest against records and report `reviewed/total`. Missing or unread records are `UNVERIFIED`. Cluster repeated defects by the actual owner established from project architecture, rather than assuming a component taxonomy. Route static styling, tokens, accessibility implementation and component ownership findings to `/ui-design --mode=review`.
 
-Add sequence-level findings: missing action feedback, layout shifts, inconsistent shared components, accumulating convention drift and unreachable required states. Report capture/transition gaps, design-authority resolution, applicable UI/DD/CL/UIX coverage and remaining human acceptance. Evidence generation, passing E2E and agent judgment never promote a baseline.
+Add sequence-level findings: missing action feedback, layout shifts, inconsistent shared components, accumulating convention drift and unreachable required states. Report capture/transition gaps, design-authority resolution, applicable UI/AD/DD/CL/UIX coverage and remaining human acceptance. Evidence generation, passing E2E and agent judgment never promote a baseline.
