@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Prototype — a dialog open inside a view</title>
+<style>
+  body { margin: 0; padding: 24px; font: 16px system-ui, sans-serif; background: #fff; color: #111; }
+  .btn { display: inline-block; padding: 10px 16px; border-radius: 6px; border: 0; font: inherit; min-width: 120px; }
+  .primary { background: #1d4ed8; color: #fff; }
+  .outline { background: #fff; border: 1px solid #888; color: #111; }
+  [data-state] { display: none; }
+  .proto__state--active { display: block; }
+  .modal { position: fixed; inset: 0; background: #0006; display: flex; align-items: center; justify-content: center; }
+  .modal > div { background: #fff; padding: 24px; border-radius: 8px; }
+</style>
+</head>
+<body>
+<section data-state="list"><h1>Items</h1><button class="btn primary">New item</button></section>
+<section data-state="confirm-delete"><h1>Items</h1><button class="btn primary">New item</button><div class="modal" role="dialog" aria-modal="true"><div><h2>Delete item?</h2><button class="btn outline">Cancel</button> <button class="btn primary">Delete</button></div></div></section>
+<script>
+  const states = [...document.querySelectorAll('[data-state]')];
+  function goTo(id) { states.forEach((state) => state.classList.toggle('proto__state--active', state.dataset.state === id)); }
+  window.__proto = { goTo };
+  goTo('list');
+</script>
+</body>
+</html>

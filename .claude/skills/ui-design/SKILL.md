@@ -105,7 +105,7 @@ Do NOT inline the lane bodies here — read the matching `lane-guide.md` when th
 1. **In-skill design-intelligence search/data** — Query `scripts/search.py` after the Journey Report (`UX-1`) and the design-authority/existing-UI read (`UX-2`); results are candidate input, not project authority.
 2. **In-skill lane references** — `references/lane-{product|marketing}/lane-guide.md` (+ their reference files) own implementation, screenshot/video analysis, and design replication for the selected lane.
 3. **In-skill explore references** — `references/explore/workflow.md` (+ `option-discovery.md`, `briefs.md`, `gate-files.md`, `brand-asset-protocol.md`) own the `--mode=explore` flow; read them only when that mode is selected. The option board shortlists from `data/style-families.csv` and `data/layout-archetypes.csv` (read the whole small family catalog; `search.py --domain family|layout` ranks rows that match the brief), assembles with `scripts/build-board.cjs`, and checks typefaces with `scripts/check-font-subsets.cjs`.
-4. **In-skill review reference** — `references/mode-review.md` owns `--mode=review`; read it only when that mode is selected.
+4. **In-skill review reference** — `references/mode-review.md` owns `--mode=review`; read it only when that mode is selected. `scripts/audit-actions.cjs` collects the action & attention evidence (`AD-5`) on a rendered local page: each count with the elements behind it and what was excluded and why, for the reviewer to confirm by eye; it never passes or fails a page. A tint is a low-emphasis near-neutral wash; saturated brand fills count as filled primaries.
 
 ## Shared First Step (ALL design modes)
 

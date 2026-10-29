@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Toolbar — tooltip inside a shadow root</title>
+<style>
+  body { margin: 0; padding: 24px; font: 16px system-ui, sans-serif; background: #fff; color: #111; }
+</style>
+</head>
+<body>
+<h1>Editor</h1>
+<div id="bar">
+  <x-icon-button label="Bold"></x-icon-button>
+  <x-icon-button label="Italic"></x-icon-button>
+</div>
+<script>
+  customElements.define('x-icon-button', class extends HTMLElement {
+    constructor() {
+      super();
+      const root = this.attachShadow({ mode: 'open' });
+      root.innerHTML = '<style>.t{display:none;position:absolute;top:44px;background:#000;color:#fff;padding:4px}button:focus+.t{display:block}button{width:44px;height:44px;border:0;background:#fff}:host{position:relative;display:inline-block}</style>'
+        + '<button aria-label="' + this.getAttribute('label') + '" aria-describedby="tip"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M2 2h16v16H2z" fill="none" stroke="#111" stroke-width="2"/></svg></button>'
+        + '<span class="t" role="tooltip" id="tip">' + this.getAttribute('label') + '</span>';
+    }
+  });
+</script>
+</body>
+</html>

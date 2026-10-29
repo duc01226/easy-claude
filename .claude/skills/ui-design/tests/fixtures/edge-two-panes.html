@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Two panes of one style, different widths, each with its own commit</title>
+<style>
+  body { margin: 0; font: 15px/1.5 system-ui, sans-serif; background: #fff; color: #1f2933; }
+  main { display: flex; gap: 24px; padding: 24px; }
+  .pane { border: 1px solid #e4e7eb; border-radius: 8px; padding: 16px; height: 240px; box-sizing: border-box; position: relative; }
+  .pane:nth-child(1) { width: 60%; }
+  .pane:nth-child(2) { width: 40%; }
+  .pane button { position: absolute; bottom: 16px; right: 16px; }
+  .p { font: inherit; min-width: 160px; padding: 8px 16px; border-radius: 6px; background: #1d4ed8; color: #fff; border: 1px solid #1d4ed8; }
+</style>
+</head>
+<body>
+  <main>
+    <section class="pane"><h2>Draft</h2><p>Body text of the post.</p><button class="p">Save draft</button></section>
+    <section class="pane"><h2>Settings</h2><p>Audience and schedule.</p><button class="p">Apply settings</button></section>
+  </main>
+</body>
+</html>

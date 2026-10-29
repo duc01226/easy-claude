@@ -255,7 +255,7 @@ function set(sel, text) {
 - **Respect `prefers-reduced-motion`** — suppress auto-advance and pulse animation; manual Next/Prev still drives the journey.
 - **Keyboard parity** — hotspots reachable and activatable via Tab + Enter/Space (§2); controls are real `<button>`s.
 - **Demo controls are icon buttons done right** — ▶ ⏭ ⏮ ↺ ⏏ each carry an accessible name and a tooltip on hover and focus (`AD-3`).
-- **Mark the demo chrome `data-audit-ignore`** — the control bar, narration panel and banner are not product UI; the action and attention counts (`AD-5`) skip them.
+- **Mark the demo chrome `data-audit-ignore`** — the control bar, narration panel and banner are not product UI; the action and attention counts (`AD-5`) and the evidence tool's default exclude skip them.
 
 ---
 
@@ -281,7 +281,7 @@ The checklist `references/mode-mockup.md` Step 8 (Demo-Quality Review Gate) enfo
 - [ ] **Every main-story flow clicks end-to-end** — each flow-spec's `steps[]` reach the `endState` via real hotspots; no path dead-ends.
 - [ ] **Journey walkthrough + traceability (`UX-8`)** — every Journey Report main journey walked on the prototype (knows the step is needed · sees the action · links it to the goal · sees progress); traceability matrix has no unserved step and no orphan element.
 - [ ] **No dead controls** — every button/hotspot advances the demo or is visibly disabled-with-tooltip.
-- [ ] **Actions & attention (`AD-1`–`AD-6`)** — per product view (demo chrome excluded): ≤ 1 filled text button, boxed text buttons within the budget, button groups one height/style/width, list rows one target with ≤ 1 inline icon action, one meta line per row, every icon-only control named and tooltipped (hover and focus) with a full-size target, one tile size and title baseline per collection-grid row, actions aligned to their content edge (`AD-6`); the counts recorded in the Step 6 report.
+- [ ] **Actions & attention (`AD-1`–`AD-6`)** — per product view (demo chrome excluded): ≤ 1 filled text button, boxed text buttons within the budget, button groups one height/style/width, list rows one target with ≤ 1 inline icon action, one meta line per row, every icon-only control named and tooltipped (hover and focus) with a full-size target, one tile size and title baseline per collection-grid row, actions aligned to their content edge (`AD-6`); the counts recorded in the Step 6 report, with `actions-report.json` when the evidence tool ran.
 - [ ] **Narration present + tech-agnostic** — every step shows its `explain`; copy is business-language (M1/M2), not class names.
 - [ ] **"⚠ Simulated" banner present** — illustrative-data scope guard visible on every flow.
 - [ ] **Opens offline standalone** — no external `<script src>`; Google Fonts CSS only.

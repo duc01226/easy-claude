@@ -1,0 +1,19 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Prototype with fade</title>
+<style>body{margin:0;font:15px/1.5 system-ui,sans-serif;background:#fff;color:#1f2933}
+[data-state]{display:none;padding:32px;opacity:0;transition:opacity .6s}
+[data-state].on{display:block}
+[data-state].in{opacity:1}
+.ib{width:44px;height:44px;padding:0;border:0;background:transparent;color:#52606d}
+.p{min-width:140px;height:40px;border-radius:8px;background:#1d4ed8;color:#fff;border:0;font:inherit}</style></head>
+<body>
+<section data-state="list"><h1>Inbox</h1><button class="ib" aria-label="Refresh" aria-describedby="tip1"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10a6 6 0 1 0 2-4.5M4 4v4h4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button><span id="tip1" role="tooltip" hidden>Refresh</span><button class="p">Compose</button></section>
+<section data-state="detail"><h1>Message</h1><button class="p">Reply</button></section>
+<script>
+window.__proto = { goTo(state) {
+  document.querySelectorAll('[data-state]').forEach((el) => { el.classList.remove('on', 'in'); });
+  const el = document.querySelector(`[data-state="${state}"]`);
+  el.classList.add('on');
+  requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('in')));
+} };
+window.__proto.goTo('list');
+</script></body></html>

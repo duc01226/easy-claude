@@ -1,0 +1,10 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Opacity tooltips</title>
+<style>body{margin:0;font:15px/1.5 system-ui,sans-serif;background:#fff;color:#1f2933}
+main{max-width:720px;margin:48px auto;padding:0 16px}
+.ib{position:relative;width:44px;height:44px;padding:0;border:0;background:transparent;color:#1f2933}
+[data-balloon-pos]::after{content:attr(aria-label);position:absolute;bottom:100%;left:50%;transform:translateX(-50%);white-space:nowrap;background:#1f2933;color:#fff;padding:2px 6px;border-radius:4px;opacity:0;pointer-events:none}
+[data-balloon-pos]:hover::after,[data-balloon-pos]:focus::after{opacity:1}</style></head>
+<body><main><h1>Editor</h1>
+<button class="ib" aria-label="Bold" data-balloon-pos="up"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M5 4h6a3 3 0 0 1 0 6H5zM5 10h7a3 3 0 0 1 0 6H5z" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button>
+<button class="ib" aria-label="Italic" data-balloon-pos="up"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M8 4h7M5 16h7M12 4l-4 12" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button>
+</main></body></html>

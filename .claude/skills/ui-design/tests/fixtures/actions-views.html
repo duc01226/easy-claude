@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Prototype views</title>
+<style>
+  body { margin: 0; font: 15px/1.5 system-ui, sans-serif; background: #ffffff; color: #1f2933; }
+  section { padding: 24px; }
+  section[hidden] { display: none; }
+  .primary { font: inherit; min-width: 160px; padding: 8px 16px; border-radius: 6px; background: #1d4ed8; color: #ffffff; border: 1px solid #1d4ed8; }
+</style>
+</head>
+<body>
+<section data-state="list"><h1>Records</h1><button class="primary">Create record</button></section>
+<aside class="later" hidden><button class="primary">Approve</button> <button class="primary">Reject</button></aside>
+<section data-state="detail" hidden><h1>Record</h1><button class="primary">Save</button> <button class="primary">Publish</button></section>
+<script>
+  window.__proto = {
+    goTo(state) {
+      document.querySelectorAll('[data-state]').forEach((view) => { view.hidden = view.dataset.state !== state; });
+    },
+  };
+</script>
+</body>
+</html>

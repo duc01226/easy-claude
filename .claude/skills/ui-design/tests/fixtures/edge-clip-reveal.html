@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Dashboard — menus revealed by clip-path</title>
+<style>
+  body { margin: 0; padding: 24px; font: 16px system-ui, sans-serif; background: #fff; color: #111; }
+  .btn { display: inline-block; padding: 10px 16px; border-radius: 6px; border: 0; font: inherit; min-width: 120px; }
+  .primary { background: #1d4ed8; color: #fff; }
+  .menu { position: absolute; top: 80px; left: 24px; background: #fff; border: 1px solid #ccc; padding: 12px; clip-path: inset(0 0 100% 0); }
+  .menu2 { position: absolute; top: 80px; left: 300px; clip-path: polygon(0 0, 0 0, 0 0); }
+</style>
+</head>
+<body>
+<h1>Dashboard</h1>
+<button class="btn primary">New report</button>
+<div class="menu"><button class="btn primary">Create project</button></div>
+<div class="menu2"><button class="btn primary">Invite team</button></div>
+</body>
+</html>

@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Settings — two forms, the same label</title>
+<style>
+  body { margin: 0; padding: 24px; font: 16px system-ui, sans-serif; background: #fff; color: #111; }
+  .btn { display: inline-block; padding: 10px 16px; border-radius: 6px; border: 0; font: inherit; min-width: 120px; }
+  .primary { background: #1d4ed8; color: #fff; }
+  .card { border: 1px solid #ddd; border-radius: 8px; padding: 16px; background: #fff; }
+  .cols { display: grid; grid-template-columns: 1fr 2fr; gap: 24px; }
+</style>
+</head>
+<body>
+<h1>Settings</h1>
+<div class="cols">
+  <section class="card"><h2>Profile</h2><label>Name <input></label><p><button class="btn primary">Save</button></p></section>
+  <section class="card"><h2>Billing address</h2><label>Street <input></label><p><button class="btn primary">Save</button></p></section>
+</div>
+</body>
+</html>
