@@ -4,9 +4,9 @@
  */
 'use strict';
 
-const path = require('path');
 const { send } = require('../lib/sender.cjs');
 const { EVENT_COPY } = require('../lib/event-copy.cjs');
+const { projectNameOf } = require('../lib/project-name.cjs');
 
 /**
  * Get title based on hook event type
@@ -100,7 +100,7 @@ function buildBlocks(input, hookType, projectName, sessionId) {
 function formatMessage(input) {
   const hookType = input.hook_event_name || 'unknown';
   const projectDir = input.cwd || '';
-  const projectName = path.basename(projectDir) || 'Unknown';
+  const projectName = projectNameOf(input, process.env) || 'Unknown';
   const sessionId = (input.session_id || '').slice(0, 8);
   const summary = getSummary(hookType);
 

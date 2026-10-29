@@ -11,6 +11,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const PROVIDER = path.resolve(__dirname, '../../notifications/providers/desktop.cjs');
 const EVENT_COPY_LIB = path.resolve(__dirname, '../../notifications/lib/event-copy.cjs');
+const PROJECT_NAME_LIB = path.resolve(__dirname, '../../notifications/lib/project-name.cjs');
 const WINDOWS_SCRIPT = path.resolve(__dirname, '../../lib/notify-windows.ps1');
 const SETTINGS = path.resolve(__dirname, '../../../settings.json');
 const SOURCE = fs.readFileSync(PROVIDER, 'utf8');
@@ -104,6 +105,7 @@ function loadProvider(platform, { errors = [], durations = [], env = {}, source 
         if (name === 'os') return { platform: () => platform };
         if (name === 'path') return path;
         if (name === '../lib/event-copy.cjs') return require(EVENT_COPY_LIB);
+        if (name === '../lib/project-name.cjs') return require(PROJECT_NAME_LIB);
         throw new Error(`Unmocked dependency: ${name}`);
     };
     vm.runInNewContext(source, context, { filename: PROVIDER });
@@ -290,6 +292,26 @@ tests.push({
                 // And no part of the reply reaches the notifier
                 assert.ok(calls[0].args.every(arg => !String(arg).includes(marker)),
                     `${platform} ${event.hook_event_name} desktop alert must never forward the assistant reply text`);
+            }
+        }
+    }
+}, {
+    name: '[TC-NT-078] desktop alerts name the project root for a worktree session',
+    fn: async () => {
+        const cwd = '/work/opencode/worktrees/proud-star';
+        const projectRoot = '/work/OrientOne';
+        const cases = [
+            [{ project_name: 'OrientOne', project_root: projectRoot }, 'OrientOne', {}],
+            [{ project_root: projectRoot }, 'OrientOne', {}],
+            [{}, 'OrientOne', { CLAUDE_PROJECT_DIR: projectRoot }]
+        ];
+        for (const platform of ['darwin', 'linux', 'win32']) {
+            for (const [identity, expectedName, env] of cases) {
+                const { provider, calls } = loadProvider(platform, { env });
+                const result = await provider.send({ hook_event_name: 'Stop', cwd, ...identity }, {});
+                assert.equal(result.success, true);
+                assert.equal(calls.length, 1);
+                assertCall(calls[0], platform, `[${expectedName}] ${TURN_COMPLETE_TITLE}`, TURN_COMPLETE_MESSAGE, true);
             }
         }
     }

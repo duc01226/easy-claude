@@ -4,9 +4,9 @@
  */
 'use strict';
 
-const path = require('path');
 const { send } = require('../lib/sender.cjs');
 const { EVENT_COPY } = require('../lib/event-copy.cjs');
+const { projectNameOf, projectRootOf } = require('../lib/project-name.cjs');
 
 // Leading icon for each event that uses the shared alert copy. An event added to
 // the shared copy without an icon here falls back to the generic bell rather than
@@ -33,9 +33,9 @@ function getTimestamp() {
  */
 function formatMessage(input) {
   const hookType = input.hook_event_name || 'unknown';
-  const projectDir = input.cwd || '';
+  const projectDir = projectRootOf(input) || input.cwd || '';
   const sessionId = input.session_id || '';
-  const projectName = projectDir ? path.basename(projectDir) : 'unknown';
+  const projectName = projectNameOf(input, process.env) || 'unknown';
   const timestamp = getTimestamp();
   const sessionDisplay = sessionId ? `${sessionId.slice(0, 8)}...` : 'N/A';
 

@@ -708,6 +708,24 @@ function findRoot(start) {
   }
 }
 
+// Project-root identity for alerts. A session may run in a git worktree; the
+// host reports the primary checkout as project.canonical, so alerts name the
+// project the developer opened rather than the worktree folder.
+function basenameOf(value) {
+  if (typeof value !== "string" || !value) return "";
+  const parts = value.split(/[\\/]+/).filter(Boolean);
+  return parts.length ? parts[parts.length - 1] : "";
+}
+
+function projectRootOf(project, seed) {
+  if (project && typeof project === "object") {
+    for (const candidate of [project.canonical, project.directory]) {
+      if (typeof candidate === "string" && candidate.trim()) return candidate;
+    }
+  }
+  return seed;
+}
+
 // Host bridge boundary: resolve only the validated native capability and apply
 // it to this hook child. The canonical verifier owns the startup-only detached
 // repair decision; this launcher never installs software and never mutates the
@@ -1027,8 +1045,11 @@ function nextPartId(baseId, parts) {
 // State shared by both host surfaces. opencode V1 returns one object of hooks from a
 // plugin function; V2 registers each hook on a domain in `setup(ctx)`. Both need the
 // same per-session caches, so they are built here once and driven by either surface.
-function createBridgeCore(seed) {
+function createBridgeCore(seed, project) {
   const root = findRoot(seed);
+  const projectRoot = projectRootOf(project, seed);
+  const projectName = basenameOf(projectRoot);
+  const notificationProject = { project_root: projectRoot, project_name: projectName };
   const startedSessions = new Set();
   const sessionStartContext = new Map();
   // Pre-tool callbacks can rewrite args, but have no model-context output. Hold
@@ -1094,6 +1115,7 @@ function createBridgeCore(seed) {
   return {
     root,
     seed,
+    notificationProject,
     startedSessions,
     sessionStartContext,
     pendingToolContext,
@@ -1140,9 +1162,10 @@ function toolResultText(result) {
 
 export const EasyClaudeHooks = async (input) => {
   const seed = input && (input.directory || input.worktree) ? input.directory || input.worktree : process.cwd();
-  const core = createBridgeCore(seed);
+  const core = createBridgeCore(seed, input && input.project);
   const {
     root,
+    notificationProject,
     startedSessions,
     sessionStartContext,
     pendingToolContext,
@@ -1201,7 +1224,7 @@ export const EasyClaudeHooks = async (input) => {
           // agent_id, the same marker Claude puts on a subagent event. Without SessionInfo the
           // kind is unknown, so mark it and let the notification router withhold the alert.
           const sessionInfo = props.info && typeof props.info === "object" ? props.info : null;
-          const payload = { hook_event_name: "SessionEnd", reason: "exit", session_id: sessionID, cwd: seed };
+          const payload = { hook_event_name: "SessionEnd", reason: "exit", session_id: sessionID, cwd: seed, ...notificationProject };
           if (!sessionInfo) payload.conversation_kind = "unknown";
           else if (sessionInfo.parentID) payload.agent_id = sessionID;
           const result = await runEventHooks(root, "SessionEnd", { payload });
@@ -1211,7 +1234,7 @@ export const EasyClaudeHooks = async (input) => {
         case "session.idle": {
           // A child session goes idle each time its delegated work finishes; mark it with agent_id
           // so the notification router keeps the turn-complete alert for the main session only.
-          const payload = { hook_event_name: "Stop", session_id: sessionID, cwd: seed };
+          const payload = { hook_event_name: "Stop", session_id: sessionID, cwd: seed, ...notificationProject };
           if (delegatedSessions.has(sessionKey(sessionID))) payload.agent_id = sessionID;
           const result = await runEventHooks(root, "Stop", { payload });
           warn("Stop", result);
@@ -1227,6 +1250,7 @@ export const EasyClaudeHooks = async (input) => {
               message: permission ? `opencode needs permission: ${permission}` : "opencode needs permission",
               session_id: sessionID,
               cwd: seed,
+              ...notificationProject,
             },
           });
           warn("permission.asked", result);
@@ -1235,7 +1259,7 @@ export const EasyClaudeHooks = async (input) => {
         case "question.asked": {
           const result = await runEventHooks(root, "Notification", {
             matcher: ["AskUserPrompt"],
-            payload: { hook_event_name: "AskUserPrompt", tool_name: "AskUserQuestion", session_id: sessionID, cwd: seed },
+            payload: { hook_event_name: "AskUserPrompt", tool_name: "AskUserQuestion", session_id: sessionID, cwd: seed, ...notificationProject },
           });
           warn("question.asked", result);
           break;
@@ -1410,9 +1434,10 @@ const V2_EVENT_TYPES = [
 
 export async function EasyClaudeHooksV2(ctx) {
   const seed = ctx && ctx.location && ctx.location.directory ? ctx.location.directory : process.cwd();
-  const core = createBridgeCore(seed);
+  const core = createBridgeCore(seed, ctx && ctx.location && ctx.location.project);
   const {
     root,
+    notificationProject,
     startedSessions,
     sessionStartContext,
     pendingToolContext,
@@ -1434,6 +1459,10 @@ export async function EasyClaudeHooksV2(ctx) {
   // UserPromptSubmit context is model-facing, not part of the saved user message. Hold
   // it until the first model request for the turn and push it into the system prompt.
   const pendingPromptContext = new Map();
+  // The server-wide stream reports sessions from every open project. A turn's end
+  // carries only its session id and no location, so attribute each session to the
+  // location it was created in; otherwise every project instance alerts for it.
+  const sessionDirectories = new Map();
 
   async function rememberSession(sessionID) {
     if (!sessionID || !ctx.session || typeof ctx.session.get !== "function") return null;
@@ -1478,21 +1507,67 @@ export async function EasyClaudeHooksV2(ctx) {
   }
 
   // The V2 event stream is server-wide. A plugin instance belongs to one location, so
-  // ignore events that name another project directory; otherwise a second open project
-  // would run this project's hooks (and raise its notifications) for its sessions.
-  function eventBelongsToLocation(event) {
-    const directory = event && event.location && typeof event.location.directory === "string" ? event.location.directory : "";
-    if (!directory) return true;
-    const normalize = (value) => path.resolve(value).replaceAll("\\", "/").replace(/\/+$/, "");
-    const a = normalize(directory);
-    const b = normalize(seed);
+  // ignore events that belong to another project directory; otherwise every other open
+  // project would run this project's hooks (and raise its notifications) for its sessions.
+  // Events do not always name that directory: session.execution.* carries only the
+  // session id, so resolve the session's own location and remember it for later events
+  // that arrive after the session row is gone (session.deleted).
+  //
+  // Ownership is fail-closed for every alerting event: when neither the event nor the
+  // session API can prove the event belongs here, running the hooks would make every
+  // open project raise the same alert. Only SessionEnd still runs cleanup, and it is
+  // marked `conversation_kind: unknown` so the notification router withholds its alert.
+  function eventDirectory(value) {
+    return value && typeof value.directory === "string" ? value.directory : "";
+  }
+
+  function eventSessionID(data) {
+    if (!data || typeof data !== "object") return "";
+    if (typeof data.sessionID === "string" && data.sessionID) return data.sessionID;
+    if (data.form && typeof data.form.sessionID === "string" && data.form.sessionID) return data.form.sessionID;
+    return "";
+  }
+
+  function normalizeDirectory(value) {
+    return path.resolve(value).replaceAll("\\", "/").replace(/\/+$/, "");
+  }
+
+  function sameDirectory(left, right) {
+    const a = normalizeDirectory(left);
+    const b = normalizeDirectory(right);
     return process.platform === "win32" ? a.toLowerCase() === b.toLowerCase() : a === b;
+  }
+
+  async function sessionDirectory(sessionID) {
+    const key = sessionKey(sessionID);
+    if (sessionDirectories.has(key)) return sessionDirectories.get(key);
+    if (!sessionID || !ctx.session || typeof ctx.session.get !== "function") return "";
+    try {
+      const info = await ctx.session.get({ sessionID });
+      const directory = eventDirectory(info && info.location);
+      if (directory) sessionDirectories.set(key, directory);
+      return directory;
+    } catch {
+      // A session deleted before this lookup is gone; only a remembered directory remains.
+      return "";
+    }
+  }
+
+  async function eventOwnership(event, data) {
+    const sessionID = eventSessionID(data);
+    const directory = eventDirectory(data && data.location) || eventDirectory(event && event.location);
+    const resolved = directory || (sessionID ? await sessionDirectory(sessionID) : "");
+    if (sessionID && resolved) sessionDirectories.set(sessionKey(sessionID), resolved);
+    if (!resolved) return { status: "unknown", sessionID };
+    return { status: sameDirectory(resolved, seed) ? "own" : "other", sessionID };
   }
 
   async function handleEvent(event) {
     if (!event || typeof event.type !== "string") return;
-    if (!eventBelongsToLocation(event)) return;
     const data = event.data && typeof event.data === "object" ? event.data : {};
+    const ownership = await eventOwnership(event, data);
+    if (ownership.status === "other") return;
+    if (ownership.status === "unknown" && event.type !== "session.deleted") return;
     switch (event.type) {
       case "session.created": {
         const sessionID = data.sessionID || "";
@@ -1511,12 +1586,13 @@ export async function EasyClaudeHooksV2(ctx) {
         completedSessions.delete(key);
         subagentStarts.delete(key);
         pendingPromptContext.delete(key);
-        const payload = { hook_event_name: "SessionEnd", reason: "exit", session_id: sessionID, cwd: seed };
+        const payload = { hook_event_name: "SessionEnd", reason: "exit", session_id: sessionID, cwd: seed, ...notificationProject };
         if (!knownSessions.has(key)) payload.conversation_kind = "unknown";
         else if (delegatedSessions.has(key)) payload.agent_id = sessionID;
         const result = await runEventHooks(root, "SessionEnd", { payload });
         delegatedSessions.delete(key);
         knownSessions.delete(key);
+        sessionDirectories.delete(key);
         warn("SessionEnd", result);
         break;
       }
@@ -1543,7 +1619,7 @@ export async function EasyClaudeHooksV2(ctx) {
         if (awaitingInput.has(key)) break;
         if (completedSessions.has(key)) break;
         completedSessions.add(key);
-        const payload = { hook_event_name: "Stop", session_id: sessionID, cwd: seed };
+        const payload = { hook_event_name: "Stop", session_id: sessionID, cwd: seed, ...notificationProject };
         if (delegatedSessions.has(key)) payload.agent_id = sessionID;
         const result = await runEventHooks(root, "Stop", { payload });
         warn("Stop", result);
@@ -1571,6 +1647,7 @@ export async function EasyClaudeHooksV2(ctx) {
           message,
           session_id: sessionID,
           cwd: seed,
+          ...notificationProject,
         });
         break;
       }
@@ -1592,6 +1669,7 @@ export async function EasyClaudeHooksV2(ctx) {
           message,
           session_id: sessionID,
           cwd: seed,
+          ...notificationProject,
         });
         break;
       }

@@ -15,6 +15,7 @@ const { execFile, spawn } = require('child_process');
 const os = require('os');
 const path = require('path');
 const { EVENT_COPY } = require('../lib/event-copy.cjs');
+const { projectNameOf } = require('../lib/project-name.cjs');
 
 // A toast (non-blocking alert) is the only desktop form on the SessionEnd path,
 // and SessionEnd runs under a 3-second host hook budget (Claude settings and the
@@ -84,18 +85,6 @@ const MESSAGES = {
 };
 
 /**
- * Get project name from cwd path
- * @param {string} cwd - Working directory path
- * @returns {string} Project name
- */
-function getProjectName(cwd) {
-    if (!cwd) return '';
-    // Handle both / and \ path separators
-    const parts = cwd.replace(/\\/g, '/').split('/').filter(Boolean);
-    return parts[parts.length - 1] || '';
-}
-
-/**
  * Get notification content based on event
  * @param {Object} input - Hook input
  * @returns {{title: string, message: string}}
@@ -103,7 +92,7 @@ function getProjectName(cwd) {
 function getNotificationContent(input) {
     // Check both hook_event_name and notification_type (idle_prompt uses notification_type)
     const eventType = input.notification_type || input.hook_event_name || 'default';
-    const projectName = getProjectName(input.cwd);
+    const projectName = projectNameOf(input, process.env);
 
     // Add project prefix to title
     const prefix = projectName ? `[${projectName}] ` : '';

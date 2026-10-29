@@ -25,6 +25,7 @@ const SLACK_PROVIDER = path.join(HOOKS_DIR, 'notifications', 'providers', 'slack
 const DESKTOP_PROVIDER = path.join(HOOKS_DIR, 'notifications', 'providers', 'desktop.cjs');
 const SENDER_LIB = path.join(HOOKS_DIR, 'notifications', 'lib', 'sender.cjs');
 const EVENT_COPY_LIB = path.join(HOOKS_DIR, 'notifications', 'lib', 'event-copy.cjs');
+const PROJECT_NAME_LIB = path.join(HOOKS_DIR, 'notifications', 'lib', 'project-name.cjs');
 const ENV_LOADER_LIB = path.join(HOOKS_DIR, 'notifications', 'lib', 'env-loader.cjs');
 
 // ============================================================================
@@ -306,10 +307,11 @@ function loadRouterContracts({ providers = {} } = {}) {
 // Load a remote provider with its HTTP sender replaced, capturing each outgoing payload (no network).
 function loadRemoteProvider(file, { eventCopy } = {}) {
     const sent = [];
-    const context = { module: { exports: {} }, __dirname: path.dirname(file) };
+    const context = { module: { exports: {} }, __dirname: path.dirname(file), process: { env: {} } };
     context.require = dependency => {
         if (dependency === 'path') return path;
         if (dependency === '../lib/event-copy.cjs') return eventCopy ? { EVENT_COPY: eventCopy } : require(EVENT_COPY_LIB);
+        if (dependency === '../lib/project-name.cjs') return require(PROJECT_NAME_LIB);
         if (dependency === '../lib/sender.cjs') {
             return { send: async (provider, url, body, options) => { sent.push({ provider, url, body, options }); return { success: true }; } };
         }

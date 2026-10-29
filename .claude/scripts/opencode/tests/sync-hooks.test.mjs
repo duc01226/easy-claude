@@ -187,7 +187,7 @@ async function importPlugin(pluginPath) {
 
 // A minimal opencode V2 plugin context: it records each domain hook registration and
 // exposes a push-driven event stream, so a test can drive the real generated setup().
-function createV2Host(root, sessions = {}) {
+function createV2Host(root, sessions = {}, project = { directory: root, canonical: root }) {
   const registrations = { tool: {}, session: {}, permission: {} };
   const queue = [];
   let wake = null;
@@ -222,7 +222,7 @@ function createV2Host(root, sessions = {}) {
     },
   };
   const ctx = {
-    location: { directory: root },
+    location: { directory: root, project },
     tool: {
       hook: async (name, callback) => {
         registrations.tool[name] = callback;
@@ -237,7 +237,9 @@ function createV2Host(root, sessions = {}) {
       get: async ({ sessionID }) => {
         const info = sessions[sessionID];
         if (info === null) throw new Error("session is gone");
-        return info ?? { id: sessionID };
+        // A real session row always names the location it runs in. Tests can
+        // override it explicitly; every other session therefore belongs here.
+        return { id: sessionID, location: { directory: root }, ...(info || {}) };
       },
     },
     permission: {
@@ -1005,6 +1007,162 @@ test("V2 setup ignores events that belong to another project location", async ()
       const [payload] = await recordedPayloadCount(root, 1);
       assert.equal(payload.session_id, "mine");
       assert.equal(await readRecordedPayloads(root).then((rows) => rows.length), 1, "the other project's event starts no hook");
+    } finally {
+      cleanup();
+    }
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
+test("V2 setup keeps a location-less turn-complete alert in the session's own project", async () => {
+  const settings = {
+    hooks: {
+      Stop: [{ hooks: [{ type: "command", command: hookCommand("record-all.cjs") }] }],
+    },
+  };
+  const root = await createProject(settings);
+  const other = path.join(root, "..", "other-project");
+  try {
+    const { pluginPath } = await materializeOpencodeHooks({ rootDir: root });
+    const module = await importPlugin(pluginPath);
+    const host = createV2Host(root);
+    const cleanup = await module.default.setup(host.ctx);
+    try {
+      // A turn end names only its session; the session's creation reported where it lives.
+      host.emit({ type: "session.created", data: { sessionID: "s-other", location: { directory: other } } });
+      host.emit({ type: "session.created", data: { sessionID: "s-own", location: { directory: root } } });
+      host.emit({ type: "session.execution.succeeded", data: { sessionID: "s-other" } });
+      host.emit({ type: "session.execution.succeeded", data: { sessionID: "s-own" } });
+
+      const [payload] = await recordedPayloadCount(root, 1);
+      assert.equal(payload.session_id, "s-own", "only the owning project may raise the turn-complete alert");
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      assert.equal(await readRecordedPayloads(root).then((rows) => rows.length), 1, "the other project's turn starts no Stop hook");
+    } finally {
+      cleanup();
+    }
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
+test("V2 setup resolves a location-less turn from the session API when creation was missed", async () => {
+  const settings = {
+    hooks: {
+      Stop: [{ hooks: [{ type: "command", command: hookCommand("record-all.cjs") }] }],
+    },
+  };
+  const root = await createProject(settings);
+  const other = path.join(root, "..", "other-project");
+  try {
+    const { pluginPath } = await materializeOpencodeHooks({ rootDir: root });
+    const module = await importPlugin(pluginPath);
+    const host = createV2Host(root, {
+      "s-other": { id: "s-other", location: { directory: other } },
+      "s-own": { id: "s-own", location: { directory: root } },
+    });
+    const cleanup = await module.default.setup(host.ctx);
+    try {
+      // The plugin loaded after these sessions existed: only the session API knows where they live.
+      host.emit({ type: "session.execution.succeeded", data: { sessionID: "s-other" } });
+      host.emit({ type: "session.execution.succeeded", data: { sessionID: "s-own" } });
+
+      const [payload] = await recordedPayloadCount(root, 1);
+      assert.equal(payload.session_id, "s-own", "the session's own location decides the alert");
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      assert.equal(await readRecordedPayloads(root).then((rows) => rows.length), 1, "the other project's turn starts no Stop hook");
+    } finally {
+      cleanup();
+    }
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
+test("V2 setup fails closed when a location-less turn cannot be attributed to any project", async () => {
+  const settings = {
+    hooks: {
+      Stop: [{ hooks: [{ type: "command", command: hookCommand("record-all.cjs") }] }],
+    },
+  };
+  const root = await createProject(settings);
+  try {
+    const { pluginPath } = await materializeOpencodeHooks({ rootDir: root });
+    const module = await importPlugin(pluginPath);
+    // The session row is gone, so neither the event nor the session API names a location.
+    const host = createV2Host(root, { "s-unknown": null });
+    const cleanup = await module.default.setup(host.ctx);
+    try {
+      host.emit({ type: "session.execution.succeeded", data: { sessionID: "s-unknown" } });
+      await new Promise((resolve) => setTimeout(resolve, 250));
+      const rows = await readRecordedPayloads(root).catch(() => []);
+      assert.equal(rows.length, 0, "an unprovable owner must raise no turn-complete alert in any project");
+    } finally {
+      cleanup();
+    }
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
+test("V2 setup raises exactly one turn-complete alert when two project instances share the event stream", async () => {
+  const settings = {
+    hooks: {
+      Stop: [{ hooks: [{ type: "command", command: hookCommand("record-all.cjs") }] }],
+    },
+  };
+  const owner = await createProject(settings);
+  const other = await createProject(settings);
+  try {
+    const ownerPlugin = await materializeOpencodeHooks({ rootDir: owner });
+    const otherPlugin = await materializeOpencodeHooks({ rootDir: other });
+    const ownerModule = await importPlugin(ownerPlugin.pluginPath);
+    const otherModule = await importPlugin(otherPlugin.pluginPath);
+    // Both instances see the same server-wide session; only the owner location matches.
+    const sessions = { "s-owner": { id: "s-owner", location: { directory: owner } } };
+    const ownerHost = createV2Host(owner, sessions);
+    const otherHost = createV2Host(other, sessions);
+    const ownerCleanup = await ownerModule.default.setup(ownerHost.ctx);
+    const otherCleanup = await otherModule.default.setup(otherHost.ctx);
+    try {
+      ownerHost.emit({ type: "session.execution.succeeded", data: { sessionID: "s-owner" } });
+      otherHost.emit({ type: "session.execution.succeeded", data: { sessionID: "s-owner" } });
+
+      const [payload] = await recordedPayloadCount(owner, 1);
+      assert.equal(payload.session_id, "s-owner");
+      await new Promise((resolve) => setTimeout(resolve, 250));
+      assert.equal(await readRecordedPayloads(other).then((rows) => rows.length).catch(() => 0), 0,
+        "the non-owning project instance must raise no alert");
+    } finally {
+      ownerCleanup();
+      otherCleanup();
+    }
+  } finally {
+    await fs.rm(owner, { recursive: true, force: true });
+    await fs.rm(other, { recursive: true, force: true });
+  }
+});
+
+test("V2 setup names the project root, not the worktree folder, on an alert", async () => {
+  const settings = {
+    hooks: {
+      Stop: [{ hooks: [{ type: "command", command: hookCommand("record-all.cjs") }] }],
+    },
+  };
+  const root = await createProject(settings);
+  const canonical = path.join(root, "..", "OrientOne");
+  try {
+    const { pluginPath } = await materializeOpencodeHooks({ rootDir: root });
+    const module = await importPlugin(pluginPath);
+    const host = createV2Host(root, {}, { directory: root, canonical });
+    const cleanup = await module.default.setup(host.ctx);
+    try {
+      host.emit({ type: "session.execution.succeeded", data: { sessionID: "s-worktree" } });
+
+      const [payload] = await recordedPayloadCount(root, 1);
+      assert.equal(payload.project_name, path.basename(canonical), "the alert names the project root folder");
+      assert.equal(payload.project_root, canonical, "the alert carries the project root path");
     } finally {
       cleanup();
     }

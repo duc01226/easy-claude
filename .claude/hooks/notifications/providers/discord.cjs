@@ -4,9 +4,9 @@
  */
 'use strict';
 
-const path = require('path');
 const { send } = require('../lib/sender.cjs');
 const { EVENT_COPY } = require('../lib/event-copy.cjs');
+const { projectNameOf } = require('../lib/project-name.cjs');
 
 // Discord embed colors
 const COLORS = {
@@ -17,16 +17,6 @@ const COLORS = {
   AskUserQuestion: 15844367, // Yellow
   default: 10070709,     // Gray
 };
-
-/**
- * Get project name from cwd path
- * @param {string} cwd - Working directory path
- * @returns {string} Project name
- */
-function getProjectName(cwd) {
-  if (!cwd) return 'Unknown';
-  return path.basename(cwd) || 'Unknown';
-}
 
 /**
  * Format timestamp for display
@@ -69,7 +59,7 @@ const EVENT_EMBEDS = {
 function buildEventEmbed(input, copy) {
   const cwd = input.cwd || '';
   const sessionId = input.session_id || '';
-  const projectName = getProjectName(cwd);
+  const projectName = projectNameOf(input, process.env) || 'Unknown';
 
   return {
     title: copy.title,
@@ -94,7 +84,7 @@ function buildSubagentStopEmbed(input) {
   const cwd = input.cwd || '';
   const sessionId = input.session_id || '';
   const agentType = input.agent_type || 'unknown';
-  const projectName = getProjectName(cwd);
+  const projectName = projectNameOf(input, process.env) || 'Unknown';
 
   return {
     title: 'Subagent Complete',
@@ -120,7 +110,7 @@ function buildDefaultEmbed(input) {
   const hookType = input.hook_event_name || 'unknown';
   const cwd = input.cwd || '';
   const sessionId = input.session_id || '';
-  const projectName = getProjectName(cwd);
+  const projectName = projectNameOf(input, process.env) || 'Unknown';
 
   return {
     title: 'AI Agent Event',

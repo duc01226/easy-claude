@@ -11,15 +11,15 @@ scope_mode: FRAMEWORK-LIBRARY
 
 ## Related Documentation
 
-| Type                      | Path                                                                                                                                                                        | Description                                                                                           |
-| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| Spec Index (derived)      | `docs/specs/Notifications/INDEX.md`                                                                                                                                         | Generated navigation catalog for this bucket; refresh through the spec index owner.                   |
-| Claude Code hook settings | `.claude/settings.json`                                                                                                                                                     | First supported assistant (gives direct question signals): session-end and direct question alerts.    |
+| Type                      | Path                                                                                                                                                                        | Description                                                                                                                                                                                      |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Spec Index (derived)      | `docs/specs/Notifications/INDEX.md`                                                                                                                                         | Generated navigation catalog for this bucket; refresh through the spec index owner.                                                                                                              |
+| Claude Code hook settings | `.claude/settings.json`                                                                                                                                                     | First supported assistant (gives direct question signals): session-end and direct question alerts.                                                                                               |
 | Codex hook configuration  | `.codex/hooks.json`                                                                                                                                                         | Second supported assistant (a direct question signal only through its planning-mode question tool; otherwise it asks in plain text): session-end, question, approval and turn-completion alerts. |
-| OpenCode hook bridge      | `.claude/scripts/opencode/templates/easy-claude-hooks.js.tmpl`                                                                                                              | Third supported assistant (gives direct question signals): session-end and question hook events.      |
-| Remote chat channel setup | `.claude/hooks/notifications/docs/discord-hook-setup.md`, `.claude/hooks/notifications/docs/slack-hook-setup.md`, `.claude/hooks/notifications/docs/telegram-hook-setup.md` | How a developer configures an optional remote chat channel.                                           |
-| Hook behavior guide       | `.claude/docs/hooks/README.md`                                                                                                                                              | Framework hook behavior and user-facing guidance.                                                     |
-| Hook test suites          | `.claude/hooks/tests/suites/notification.test.cjs`, `.claude/hooks/tests/suites/desktop-argv.test.cjs`, `.claude/scripts/opencode/tests/sync-hooks.test.mjs`                | Notification routing, desktop alerts, and the generated OpenCode bridge.                              |
+| OpenCode hook bridge      | `.claude/scripts/opencode/templates/easy-claude-hooks.js.tmpl`                                                                                                              | Third supported assistant (gives direct question signals): session-end and question hook events.                                                                                                 |
+| Remote chat channel setup | `.claude/hooks/notifications/docs/discord-hook-setup.md`, `.claude/hooks/notifications/docs/slack-hook-setup.md`, `.claude/hooks/notifications/docs/telegram-hook-setup.md` | How a developer configures an optional remote chat channel.                                                                                                                                      |
+| Hook behavior guide       | `.claude/docs/hooks/README.md`                                                                                                                                              | Framework hook behavior and user-facing guidance.                                                                                                                                                |
+| Hook test suites          | `.claude/hooks/tests/suites/notification.test.cjs`, `.claude/hooks/tests/suites/desktop-argv.test.cjs`, `.claude/scripts/opencode/tests/sync-hooks.test.mjs`                | Notification routing, desktop alerts, and the generated OpenCode bridge.                                                                                                                         |
 
 # Assistant Session Notifications — Feature Spec
 
@@ -55,14 +55,14 @@ Alerts tell developers when the main assistant conversation ends, when the assis
 | Attended conversation  | A conversation a developer drives from the assistant's own interface.                                                                        | A run another assistant, a script or an automation started, with no developer at its interface, is unattended and raises no alerts.                                |
 | Alert channel          | A place an alert is delivered: the developer's desktop, or a remote chat channel.                                                            | Desktop is on unless the developer turns it off; remote channels are opt-in.                                                                                       |
 | Remote chat channel    | A team or personal chat destination the developer has configured to receive alerts.                                                          | Receives the same alert kinds with the same meaning as the desktop.                                                                                                |
-| Workspace name         | The name of the project folder the conversation runs in.                                                                                     | Every alert names it so the developer knows which conversation to open.                                                                                            |
+| Workspace name         | The folder name of the project root the conversation belongs to, never a worktree folder.                                                    | Every alert names it so the developer knows which conversation to open.                                                                                            |
 | Session-ended alert    | An alert that says the main conversation has ended.                                                                                          | Distinct from an alert for a completed assistant turn.                                                                                                             |
 | Question alert         | An attention-seeking alert that says the assistant has a question and asks the developer to answer it.                                       | Names the workspace; the question itself is read in the conversation.                                                                                              |
 | Turn-complete alert    | The alert that says the assistant has finished its turn and the conversation is still open.                                                  | Never mentions a session ending or a question.                                                                                                                     |
 | Reply text             | What the assistant wrote in its response.                                                                                                    | Never included in any alert on any channel.                                                                                                                        |
-| Supported assistants   | Three assistants, listed first, second, and third in Related Documentation.                                                                  | The first and third give direct question signals; the second gives one only through its question tool, in its planning mode, and otherwise asks in plain text.                                                                                           |
-| Final question mark    | A question mark that is the last non-whitespace character of the assistant's completed response.                                             | Used only when an assistant asks in plain text, without a direct signal (the second assistant outside its planning mode).                                                                                       |
-| Direct question signal | The assistant's own indication that it is asking the developer a question.                                                                   | The first and third assistants give it; the second gives it only through its planning-mode question tool.                                                                                                               |
+| Supported assistants   | Three assistants, listed first, second, and third in Related Documentation.                                                                  | The first and third give direct question signals; the second gives one only through its question tool, in its planning mode, and otherwise asks in plain text.     |
+| Final question mark    | A question mark that is the last non-whitespace character of the assistant's completed response.                                             | Used only when an assistant asks in plain text, without a direct signal (the second assistant outside its planning mode).                                          |
+| Direct question signal | The assistant's own indication that it is asking the developer a question.                                                                   | The first and third assistants give it; the second gives it only through its planning-mode question tool.                                                          |
 | Conversation reset     | The developer clears the main conversation to start afresh in the same workspace.                                                            | Not treated as a finished session.                                                                                                                                 |
 | Work still in progress | Delegated work the main conversation handed off and that reports back when it ends, not yet finished, or a one-time resumption it scheduled. | Each one wakes the main conversation again when it finishes, so the job is not done yet. A background command or service that may run indefinitely does not count. |
 | Blocking alert         | An alert that stays until the developer acknowledges it.                                                                                     | A non-blocking alert appears and goes away on its own.                                                                                                             |
@@ -95,7 +95,7 @@ Alerts tell developers when the main assistant conversation ends, when the assis
 - **AC-NT-04** — **Given** the assistant directly asks the developer a question **When** the question is presented **Then** one question alert is shown that says the assistant has a question and names the workspace.
 - **AC-NT-05** — **Given** the second supported assistant asking in plain text, which gives no direct signal (its question tool, available in its planning mode, is a direct signal under AC-NT-04) **When** its completed response ends in a final question mark, ignoring trailing whitespace **Then** one non-blocking question alert is shown.
 - **AC-NT-06** — **Given** a completed response not classified as a question (neither a direct question signal nor a qualifying final question mark) **When** the turn finishes **Then** no question alert is shown, and the ordinary turn-complete alert remains available.
-- **AC-NT-10** — **Given** the main conversation has work still in progress, or a delegated conversation finishes its own turn **When** that turn finishes **Then** no turn-complete alert is shown; exactly one is shown when a main-conversation turn finishes with no work still in progress.
+- **AC-NT-10** — **Given** the main conversation has work still in progress, or a delegated conversation finishes its own turn **When** that turn finishes **Then** no turn-complete alert is shown; exactly one is shown when a main-conversation turn finishes with no work still in progress, and it names the project root that owns the conversation even when the conversation runs in a worktree.
 - **AC-NT-11** — **Given** a conversation that another assistant, a script or an automation started and that the assistant reports no developer attends **When** it finishes a turn, asks a question or ends **Then** no alert of any kind is shown; a conversation the developer attends, or one whose attendance the assistant does not report, keeps its alerts.
 - **AC-NT-12** — **Given** any supported assistant is about to ask the developer to approve an action **When** the approval is requested **Then** one permission alert is shown that asks the developer to check and answer; an assistant that already signals the request through its own waiting-for-approval notice does not get a second alert for the same request.
 
@@ -116,17 +116,17 @@ Alerts tell developers when the main assistant conversation ends, when the assis
 
 ### Rule Catalog
 
-| Rule ID  | Name                                      | Category             | Enforcement |
-| -------- | ----------------------------------------- | -------------------- | ----------- |
-| BR-NT-01 | Main-conversation ownership               | Alert scope          | [HARD]      |
-| BR-NT-02 | Direct question alerts                    | User response        | [HARD]      |
-| BR-NT-03 | Final question-mark fallback              | Question recognition | [HARD]      |
-| BR-NT-04 | Distinct turn-completion alerts           | Alert meaning        | [HARD]      |
-| BR-NT-05 | A conversation reset is not a session end | Alert scope          | [HARD]      |
-| BR-NT-06 | One alert per enabled channel             | Alert delivery       | [HARD]      |
-| BR-NT-07 | Alerts never carry reply text             | Alert content        | [HARD]      |
-| BR-NT-08 | Only attended conversations raise alerts  | Alert scope          | [HARD]      |
-| BR-NT-09 | Every assistant alerts on its question tool and on approval requests | User response | [HARD] |
+| Rule ID  | Name                                                                 | Category             | Enforcement |
+| -------- | -------------------------------------------------------------------- | -------------------- | ----------- |
+| BR-NT-01 | Main-conversation ownership                                          | Alert scope          | [HARD]      |
+| BR-NT-02 | Direct question alerts                                               | User response        | [HARD]      |
+| BR-NT-03 | Final question-mark fallback                                         | Question recognition | [HARD]      |
+| BR-NT-04 | Distinct turn-completion alerts                                      | Alert meaning        | [HARD]      |
+| BR-NT-05 | A conversation reset is not a session end                            | Alert scope          | [HARD]      |
+| BR-NT-06 | One alert per enabled channel                                        | Alert delivery       | [HARD]      |
+| BR-NT-07 | Alerts never carry reply text                                        | Alert content        | [HARD]      |
+| BR-NT-08 | Only attended conversations raise alerts                             | Alert scope          | [HARD]      |
+| BR-NT-09 | Every assistant alerts on its question tool and on approval requests | User response        | [HARD]      |
 
 ### BR-NT-01: Main-conversation ownership [HARD]
 
@@ -184,7 +184,7 @@ ELSE IF the main conversation ends for any other or an unreported reason
 
 ### BR-NT-06: One alert per enabled channel [HARD]
 
-**Statement:** The desktop alert channel is on unless the developer turns it off; each remote chat channel is on only when the developer has configured it. Every alert this capability raises is delivered once to each enabled channel, except a remote chat channel paused after a failure or left without time while the conversation ends (below), and every channel gives an alert kind the same title and meaning. "Exactly one alert" anywhere in this spec means exactly one per enabled channel. Turning the desktop channel off stops desktop alerts only; configured remote chat channels still receive theirs. A channel that fails or is slow never delays or prevents delivery on the other channels.
+**Statement:** The desktop alert channel is on unless the developer turns it off; each remote chat channel is on only when the developer has configured it. Every alert this capability raises is delivered once to each enabled channel, except a remote chat channel paused after a failure or left without time while the conversation ends (below), and every channel gives an alert kind the same title and meaning. An alert names the project root the developer opened — never a worktree folder or another open project — and when the owning project cannot be proven, no alert is raised rather than one per open project. "Exactly one alert" anywhere in this spec means exactly one per enabled channel. Turning the desktop channel off stops desktop alerts only; configured remote chat channels still receive theirs. A channel that fails or is slow never delays or prevents delivery on the other channels.
 
 A remote chat channel that does not answer within two seconds is abandoned for that one alert only: the alert may or may not have arrived, so the channel is not paused and the next alert still tries it. A remote chat channel that reports a failure — it rejects the alert, refuses the connection, or cannot be found — is paused for five minutes; alerts for that channel are dropped while it is paused, then it is tried again. While the main conversation is ending, the assistant allows only a short time to finish, so a session-ended alert on a remote chat channel gets only the part of that time still left; when none is left, that alert is skipped on that channel and the channel is not paused.
 
@@ -254,7 +254,7 @@ ELSE IF the assistant reports a developer attends it OR reports nothing about at
 | Alert kind | enum | Yes      | Session ended, question, permission, or turn complete     | Tells the developer what action or status needs attention. |
 | Channel    | enum | Yes      | Desktop or a configured remote chat channel               | Where the developer receives the alert.                    |
 | Message    | text | Yes      | Must make the alert kind clear; never contains reply text | Summarizes why the developer is being notified.            |
-| Workspace  | text | Yes      | The workspace name                                        | Tells the developer which conversation to open.            |
+| Workspace  | text | Yes      | The project root folder name                              | Tells the developer which conversation to open.            |
 
 ### Entity: Question
 
@@ -264,15 +264,15 @@ ELSE IF the assistant reports a developer attends it OR reports nothing about at
 
 ### Domain Events (business occurrences)
 
-| Occurrence                               | When it happens                                                         | Who/what reacts (business outcome)                                     |
-| ---------------------------------------- | ----------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| Main conversation ended                  | The developer's primary assistant conversation ends.                    | The developer receives one session-ended alert.                        |
-| Delegated conversation ended             | Delegated work finishes while the main conversation may continue.       | No main-session-ended alert is produced.                               |
-| Developer reset the conversation         | The developer clears the main conversation to start afresh.             | No session-ended alert is produced.                                    |
-| Assistant asked the developer a question | The assistant requests information or a decision.                       | The developer receives a question alert and can return to answer.      |
-| Assistant asked for approval             | The assistant is about to run an action that needs the developer's approval. | The developer receives one permission alert (BR-NT-09).          |
-| Assistant turn completed                 | The assistant finishes a response without ending the main conversation. | The turn-complete alert, once no work is still in progress (BR-NT-04). |
-| Unattended conversation finished         | A run no developer attends finishes a turn, asks or ends.               | No alert of any kind is produced (BR-NT-08).                           |
+| Occurrence                               | When it happens                                                              | Who/what reacts (business outcome)                                     |
+| ---------------------------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Main conversation ended                  | The developer's primary assistant conversation ends.                         | The developer receives one session-ended alert.                        |
+| Delegated conversation ended             | Delegated work finishes while the main conversation may continue.            | No main-session-ended alert is produced.                               |
+| Developer reset the conversation         | The developer clears the main conversation to start afresh.                  | No session-ended alert is produced.                                    |
+| Assistant asked the developer a question | The assistant requests information or a decision.                            | The developer receives a question alert and can return to answer.      |
+| Assistant asked for approval             | The assistant is about to run an action that needs the developer's approval. | The developer receives one permission alert (BR-NT-09).                |
+| Assistant turn completed                 | The assistant finishes a response without ending the main conversation.      | The turn-complete alert, once no work is still in progress (BR-NT-04). |
+| Unattended conversation finished         | A run no developer attends finishes a turn, asks or ends.                    | No alert of any kind is produced (BR-NT-08).                           |
 
 ---
 
@@ -358,15 +358,15 @@ A delegated conversation ending first causes no main-session-ended alert. A rese
 | Priority  |  Count | Automated | Manual |
 | --------- | -----: | --------: | -----: |
 | P0        |      0 |         0 |      0 |
-| P1        |     16 |        16 |      0 |
+| P1        |     17 |        17 |      0 |
 | P2        |      0 |         0 |      0 |
-| **Total** | **16** |    **16** |  **0** |
+| **Total** | **17** |    **17** |  **0** |
 
-| Category                              | TCs                                                   |
-| ------------------------------------- | ----------------------------------------------------- |
-| Main Conversation Outcomes            | TC-NT-001, TC-NT-002, TC-NT-003, TC-NT-004            |
-| Question and Turn-Completion Outcomes | TC-NT-011, TC-NT-012, TC-NT-013, TC-NT-014, TC-NT-015, TC-NT-076, TC-NT-077 |
-| Invariant / Property Tests            | TC-NT-071, TC-NT-072, TC-NT-073, TC-NT-074, TC-NT-075 |
+| Category                              | TCs                                                                                    |
+| ------------------------------------- | -------------------------------------------------------------------------------------- |
+| Main Conversation Outcomes            | TC-NT-001, TC-NT-002, TC-NT-003, TC-NT-004                                             |
+| Question and Turn-Completion Outcomes | TC-NT-011, TC-NT-012, TC-NT-013, TC-NT-014, TC-NT-015, TC-NT-076, TC-NT-077, TC-NT-078 |
+| Invariant / Property Tests            | TC-NT-071, TC-NT-072, TC-NT-073, TC-NT-074, TC-NT-075                                  |
 
 ### Main Conversation Outcomes
 
@@ -862,6 +862,76 @@ And a delegated conversation finishing its own turn never produces a turn-comple
 **CoveredBy:** `.claude/hooks/tests/suites/notification.test.cjs::[TC-NT-014] a turn-complete alert waits until the main session has no delegated work left`, `.claude/hooks/tests/suites/notification.test.cjs::[TC-NT-014] Stop while background agents still run is skipped by the router`, `.claude/scripts/opencode/tests/sync-hooks.test.mjs::[TC-NT-014] generated bridge marks a child session going idle so only the main session's turn end alerts`, `.claude/scripts/opencode/tests/sync-hooks.test.mjs::[TC-NT-014] generated bridge recognizes a child session announced by a flat session event`, `.claude/scripts/codex/tests/migrate-claude-to-codex.test.mjs::Codex config upsert removes only the retired framework notify command and keeps a project notify`  
 **Status:** Tested
 
+#### TC-NT-078: A shared assistant host alerts once, under the project root that owns the turn [P1]
+
+**Objective:** Verify that when several workspace conversations share one running assistant, a finished turn alerts once and names only the project root whose conversation finished — including when that conversation runs in a git worktree.
+
+**Business Intent / Invariant Guarded:** A developer keeping several workspaces open is not pulled away by another workspace's alerts, and the project name on an alert can be trusted to identify the conversation that finished and the project the developer actually opened.
+
+**Proves:** AC-NT-10 / BR-NT-06
+
+**Preconditions:**
+
+- The desktop alert channel is on.
+- Two or more workspaces are open in the same running assistant at once, each with its own attended conversation.
+- At least one conversation may run inside a git worktree of its project.
+
+**Real-World Reachability:** A developer keeps a client workspace and a framework workspace open in the same assistant, sometimes in a worktree, and lets work run in each; a turn finishing in one must alert for that one only and name the project root.
+
+**Demo Flow:** Open two workspaces in the same assistant, one of them a worktree of the first; let a turn finish in the worktree; observe one alert naming the project root, not the worktree folder; repeat in the other workspace.
+
+```gherkin
+Given two workspaces share one running assistant
+And the first workspace runs in a worktree of its project
+When the worktree conversation finishes its turn
+Then exactly one turn-complete alert appears
+And it names the first workspace's project root
+And it never names the worktree folder
+And no alert appears for the second workspace
+When a conversation in the second workspace finishes its turn
+Then exactly one turn-complete alert appears
+And it names the second workspace's project root
+And no alert appears for the first workspace
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                          |
+| ----------------------- | ---------------------------------------------------------------------------------------------------- |
+| **UI**                  | One turn-complete alert per finished turn, naming the project root whose conversation finished.      |
+| **System behavior**     | A turn is attributed to the workspace that owns its conversation, never to every open workspace.     |
+| **Business data state** | Not applicable — no business data are created or changed.                                            |
+| **Data shown on UI**    | The usual turn-complete title and message, prefixed with the owning project root's folder name only. |
+
+**Acceptance Criteria:**
+
+- ✅ Exactly one turn-complete alert per finished turn, and its name is the conversation's own project root.
+- ✅ A worktree conversation alerts under the project root, never under the worktree folder name.
+- ❌ The same turn raises an alert for a workspace that does not own the conversation, or raises more than one alert.
+
+**Test Data:**
+
+- Two attended workspaces open at once, one a worktree of the other project; one finished turn in each.
+
+**Edge Cases:**
+
+- A workspace opened after the assistant started → its turns still alert once, under its project root.
+- The assistant cannot prove which workspace owns a location-less turn → no turn-complete alert is raised; one alert per open workspace is never acceptable.
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+**Evidence:** `[Source: rule/hooks/main-session-only]`
+
+**Related Behaviors:**
+
+| Capability                  | Anchor                                            |
+| --------------------------- | ------------------------------------------------- |
+| Ordinary turn completion    | `operation/hooks/assistant-turn-completion-alert` |
+| Main conversation ownership | `rule/hooks/main-session-only`                    |
+
+**CoveredBy:** `.claude/scripts/opencode/tests/sync-hooks.test.mjs::V2 setup keeps a location-less turn-complete alert in the session's own project`, `.claude/scripts/opencode/tests/sync-hooks.test.mjs::V2 setup resolves a location-less turn from the session API when creation was missed`, `.claude/scripts/opencode/tests/sync-hooks.test.mjs::V2 setup ignores events that belong to another project location`, `.claude/scripts/opencode/tests/sync-hooks.test.mjs::V2 setup raises exactly one turn-complete alert when two project instances share the event stream`, `.claude/scripts/opencode/tests/sync-hooks.test.mjs::V2 setup fails closed when a location-less turn cannot be attributed to any project`, `.claude/scripts/opencode/tests/sync-hooks.test.mjs::V2 setup names the project root, not the worktree folder, on an alert`, `.claude/hooks/tests/suites/desktop-argv.test.cjs::[TC-NT-078] desktop alerts name the project root for a worktree session`
+**Status:** Tested
+
 #### TC-NT-015: A conversation nobody attends raises no alert [P1]
 
 **Objective:** Verify that a run another assistant, a script or an automation started, with no developer at the assistant's own interface, raises no alert of any kind, while the developer's own conversation keeps every alert.
@@ -950,12 +1020,12 @@ And a call to an ordinary tool raises no question alert
 
 **Expected Result:**
 
-| Dimension | Expectation |
-| --- | --- |
-| **UI** | One question alert naming the workspace |
-| **System behavior** | Each question tool name maps to the question alert |
-| **Business data state** | Not applicable — no data changes |
-| **Data shown on UI** | The question alert's title and message, never the question text |
+| Dimension               | Expectation                                                     |
+| ----------------------- | --------------------------------------------------------------- |
+| **UI**                  | One question alert naming the workspace                         |
+| **System behavior**     | Each question tool name maps to the question alert              |
+| **Business data state** | Not applicable — no data changes                                |
+| **Data shown on UI**    | The question alert's title and message, never the question text |
 
 **Acceptance Criteria:**
 
@@ -972,8 +1042,8 @@ And a call to an ordinary tool raises no question alert
 
 **Related Behaviors:**
 
-| Capability | Anchor |
-| --- | --- |
+| Capability             | Anchor                       |
+| ---------------------- | ---------------------------- |
 | Direct question alerts | `rule/hooks/question-alerts` |
 
 **CoveredBy:** `.claude/hooks/tests/suites/notification.test.cjs::[TC-NT-076] a Codex question tool raises the question alert, as Claude AskUserQuestion does`
@@ -1003,12 +1073,12 @@ And its approval-request event for its own question tool raises no second questi
 
 **Expected Result:**
 
-| Dimension | Expectation |
-| --- | --- |
-| **UI** | One permission alert per approval request |
-| **System behavior** | The second assistant's approval event maps to the permission alert; the first assistant's is left to its notice |
-| **Business data state** | Not applicable — no data changes |
-| **Data shown on UI** | The permission alert's title and message |
+| Dimension               | Expectation                                                                                                     |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | One permission alert per approval request                                                                       |
+| **System behavior**     | The second assistant's approval event maps to the permission alert; the first assistant's is left to its notice |
+| **Business data state** | Not applicable — no data changes                                                                                |
+| **Data shown on UI**    | The permission alert's title and message                                                                        |
 
 **Acceptance Criteria:**
 
@@ -1025,10 +1095,10 @@ And its approval-request event for its own question tool raises no second questi
 
 **Related Behaviors:**
 
-| Capability | Anchor |
-| --- | --- |
-| Approval alerts | `rule/hooks/permission-alerts` |
-| Direct question alerts | `rule/hooks/question-alerts` |
+| Capability             | Anchor                         |
+| ---------------------- | ------------------------------ |
+| Approval alerts        | `rule/hooks/permission-alerts` |
+| Direct question alerts | `rule/hooks/question-alerts`   |
 
 **CoveredBy:** `.claude/hooks/tests/suites/notification.test.cjs::[TC-NT-077] a Codex permission request raises the permission alert once; Claude's does not duplicate it`
 **Status:** Tested
