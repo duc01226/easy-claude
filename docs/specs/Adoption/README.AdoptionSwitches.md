@@ -36,19 +36,19 @@ roadmap_status: null
 
 ## Related Documentation
 
-| Type                   | Path                                                                                                                                             | Description                                                                                                      |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
-| Spec Index (derived)   | `docs/specs/Adoption/INDEX.md`                                                                                                                   | Generated navigation catalog for this bucket; refresh through the spec index owner.                              |
-| Continuation part      | `docs/specs/Adoption/README.AdoptionSwitches-Part2.md`                                                                                           | The release-D test cases (TC-ADS-016…033, TC-ADS-040…053) and the personal profile case TC-ADS-063, under their original IDs. |
-| Project settings       | `docs/project-config.json` (`hooks.codeGraph`, `hooks.tokenBudget`, `commit.fixOriginTrailer`, `portability.workflowActivation`, `skillProfile`, `frameworkRuntime`, `contextDelivery`) | The team switches this capability reads.                                                                         |
-| Personal settings layers | `~/.claude/.ck.json`, `.claude/.ck.local.json`, `.claude/settings.local.json`, `.claude/skill-profile.generated.local.json`, env `CK_FRAMEWORK_MODE`, `CK_QUIET_PROJECT_RULES` | Per-person skill profile, runtime mode and delivery profile layers (BR-ADS-12, BR-ADS-22, BR-ADS-23). |
-| Layer resolution | `.claude/scripts/sync-skill-profile.cjs` (`--personal`), `.claude/hooks/lib/framework-runtime.cjs`, `.claude/hooks/lib/ck-config-loader.cjs` | Owners of the personal profile, the runtime mode with its quiet switch, and the delivery profile layer order. |
-| Primary assistant host | `.claude/settings.json`, skill frontmatter `disable-model-invocation`                                                                            | Skill visibility and command-only marks.                                                                         |
-| Second assistant host  | `.codex/`, `.agents/skills/<name>/agents/openai.yaml`                                                                                            | Generated copy and per-skill implicit-selection policy.                                                          |
-| Third assistant host   | `opencode.json` `permission.skill`, `.opencode/commands/`, `.opencode/skill-permissions.generated.json`                                          | Permission entries, generated commands and the ownership record.                                                 |
-| Graph tooling          | `.claude/hooks/lib/graph-utils.cjs`, `.claude/scripts/code_graph/`, `.claude/skills/graph-code/references/mode-build.md`                          | Graph mode, lazy install and the graph command.                                                                  |
-| Workflow routing       | `docs/specs/ContextDelivery/README.WorkflowRouting.md`                                                                                           | Effective activation tiers used by the third-host parity rules.                                                  |
-| Compaction settings    | `.claude/settings.json` `env`, `.codex/config.toml` `model_auto_compact_token_limit`, root `opencode.json` `provider.<id>.models.<model>.limit`  | Where each host would pin an auto-compaction budget; the bundle pins none and retires only its own former value. |
+| Type                     | Path                                                                                                                                                                                    | Description                                                                                                                   |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Spec Index (derived)     | `docs/specs/Adoption/INDEX.md`                                                                                                                                                          | Generated navigation catalog for this bucket; refresh through the spec index owner.                                           |
+| Continuation part        | `docs/specs/Adoption/README.AdoptionSwitches-Part2.md`                                                                                                                                  | The release-D test cases (TC-ADS-016…033, TC-ADS-040…053) and the personal profile case TC-ADS-063, under their original IDs. |
+| Project settings         | `docs/project-config.json` (`hooks.codeGraph`, `hooks.tokenBudget`, `commit.fixOriginTrailer`, `portability.workflowActivation`, `skillProfile`, `frameworkRuntime`, `contextDelivery`) | The team switches this capability reads.                                                                                      |
+| Personal settings layers | `~/.claude/.ck.json`, `.claude/.ck.local.json`, `.claude/settings.local.json`, `.claude/skill-profile.generated.local.json`, env `CK_FRAMEWORK_MODE`, `CK_QUIET_PROJECT_RULES`          | Per-person skill profile, runtime mode and delivery profile layers (BR-ADS-12, BR-ADS-22, BR-ADS-23).                         |
+| Layer resolution         | `.claude/scripts/sync-skill-profile.cjs` (`--personal`), `.claude/hooks/lib/framework-runtime.cjs`, `.claude/hooks/lib/ck-config-loader.cjs`                                            | Owners of the personal profile, the runtime mode with its quiet switch, and the delivery profile layer order.                 |
+| Primary assistant host   | `.claude/settings.json`, skill frontmatter `disable-model-invocation`                                                                                                                   | Skill visibility and command-only marks.                                                                                      |
+| Second assistant host    | `.codex/`, `.agents/skills/<name>/agents/openai.yaml`                                                                                                                                   | Generated copy and per-skill implicit-selection policy.                                                                       |
+| Third assistant host     | `opencode.json` `permission.skill`, `.opencode/commands/`, `.opencode/skill-permissions.generated.json`                                                                                 | Permission entries, generated commands and the ownership record.                                                              |
+| Graph tooling            | `.claude/hooks/lib/graph-utils.cjs`, `.claude/scripts/code_graph/`, `.claude/skills/graph-code/references/mode-build.md`                                                                | Graph mode, lazy install and the graph command.                                                                               |
+| Workflow routing         | `docs/specs/ContextDelivery/README.WorkflowRouting.md`                                                                                                                                  | Effective activation tiers used by the third-host parity rules.                                                               |
+| Compaction settings      | `.claude/settings.json` `env`, `.codex/config.toml` `model_auto_compact_token_limit`, root `opencode.json` `provider.<id>.models.<model>.limit`                                         | Where each host would pin an auto-compaction budget; the bundle pins none and retires only its own former value.              |
 
 ## Sections
 
@@ -71,38 +71,38 @@ A project that adopts the framework gets a set of project-level switches that de
 
 ## 2. Glossary
 
-| Term                                    | Definition                                                                                                                               | Context                                                                     |
-| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| Adopting Project                        | A project that copies the framework to use it                                                                                            | The audience of every switch                                                |
-| Primary / Second / Third Assistant Host | The three assistant hosts the framework supports; each reads its own generated copy of the skills and settings                           | Mapping to products in Related Documentation                                |
-| Code Knowledge Graph                    | A project-local index of code relationships the assistant can query                                                                      | Built on explicit request                                                   |
-| Graph Mode                              | The switch deciding graph activity: auto (active only when a graph has been built), on, off                                              | Default auto                                                                |
-| Graph Tooling Environment               | The private set of helper tools the graph needs, installed once                                                                          | Installed on first build, never at session start unless the graph is active |
-| Graph-Not-Built Note                    | A one-line reminder that the graph is chosen but not yet built                                                                           | Only in mode on, once per session                                           |
-| Graph Command                           | The command-line entry the assistant and skills use to query or build the graph                                                          | Refuses every command in off mode                                           |
-| Fix-Origin Trailer                      | An optional commit-message line naming where a fixed defect came from                                                                    | Opt-in; new commits only                                                    |
-| Utility Skill                           | One of the command-only utility skills no workflow, agent or automatic step calls                                                                         | Command-only by default                                                     |
-| Command-Only Skill                      | A skill the assistant never selects by itself; a user runs it by explicit command                                                        | Keeps working on every host                                                 |
-| Called Skill                            | A skill named as a step of a workflow or preloaded by an agent                                                                           | Never hidden unless the project opts in                                     |
-| Effective Tier                          | A workflow's activation tier after project settings (see the Workflow Routing spec)                                                      | auto, confirm or manual                                                     |
-| Permission Entry                        | A third-host setting that hides a skill, asks before loading it, or allows it                                                            | Keyed by skill name                                                         |
-| Ownership Record                        | The list of permission entries the generator wrote, with the values it wrote                                                             | Only owned entries are ever changed or removed                              |
-| Conflict Line                           | A printed line naming a setting the generator wanted to change but left to the user                                                      | Never silent                                                                |
-| Generated Command                       | A third-host command file that loads a hidden skill and passes the user arguments                                                        | Carries a generated marker                                                  |
-| Check Mode                              | A run that changes nothing and fails when generated output is stale                                                                      | Used before release                                                         |
-| Token Checkpoint Interval               | How many tokens pass between two progress notes                                                                                          | Validated range 50,000 to 20,000,000                                        |
-| Auto-Compaction Budget                  | The conversation size at which an assistant host condenses the conversation to free room                                                 | Set by the host or the user, never by the framework                         |
-| Host Default                            | The compaction point a host applies when no budget is set, based on the model's own context size                                         | Applies on every host unless a user sets a budget                           |
-| Bundled Value                           | A setting value an earlier framework version wrote into a project's host configuration                                                   | Removed only while it still equals what the framework wrote                 |
-| Skill Profile                           | A per-project choice of which skills the assistant sees in full, by name only, or not at all (release D)                                 | Preset plus lists                                                           |
-| Name-Only Skill                         | A skill listed by name without its description; still callable (release D)                                                               | Shortens the skill list                                                     |
-| Entry Skill                             | One of the skills the minimal preset keeps fully listed: the workflow starter, the commit skill and the project setup skills (release D) | Every other skill becomes name-only under that preset                       |
-| Install Lock                            | A marker that stops two sessions from installing the shared graph tooling at once (release D)                                            | Stale locks are broken safely                                               |
-| Settings Layer | One source of a preference: the built-in default, a person's own settings for every project, the framework-shipped settings, the team project configuration, one working copy's (checkout's) settings, or an environment switch | Each preference states its own layer order |
-| Personal Skill Profile | A skill profile one person keeps for themselves, written only to that working copy's personal settings | Never changes what the team sees |
-| Runtime Mode | How much the framework does by itself: on (default), quiet (no context guidance) or off (nothing runs) | A per-person working preference; a team value is only a default |
-| Project Rules in Quiet | The opt-in that keeps a project's own skill overlays, per-file conventions and auto-trigger policy running in quiet | Default no |
-| Guidance Delivery Profile | How compactly the framework delivers its own guidance: compatible (default) or concise | A team decision a working copy may override |
+| Term                                    | Definition                                                                                                                                                                                                                      | Context                                                                     |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Adopting Project                        | A project that copies the framework to use it                                                                                                                                                                                   | The audience of every switch                                                |
+| Primary / Second / Third Assistant Host | The three assistant hosts the framework supports; each reads its own generated copy of the skills and settings                                                                                                                  | Mapping to products in Related Documentation                                |
+| Code Knowledge Graph                    | A project-local index of code relationships the assistant can query                                                                                                                                                             | Built on explicit request                                                   |
+| Graph Mode                              | The switch deciding graph activity: auto (active only when a graph has been built), on, off                                                                                                                                     | Default auto                                                                |
+| Graph Tooling Environment               | The private set of helper tools the graph needs, installed once                                                                                                                                                                 | Installed on first build, never at session start unless the graph is active |
+| Graph-Not-Built Note                    | A one-line reminder that the graph is chosen but not yet built                                                                                                                                                                  | Only in mode on, once per session                                           |
+| Graph Command                           | The command-line entry the assistant and skills use to query or build the graph                                                                                                                                                 | Refuses every command in off mode                                           |
+| Fix-Origin Trailer                      | An optional commit-message line naming where a fixed defect came from                                                                                                                                                           | Opt-in; new commits only                                                    |
+| Utility Skill                           | One of the command-only utility skills no workflow, agent or automatic step calls                                                                                                                                               | Command-only by default                                                     |
+| Command-Only Skill                      | A skill the assistant never selects by itself; a user runs it by explicit command                                                                                                                                               | Keeps working on every host                                                 |
+| Called Skill                            | A skill named as a step of a workflow or preloaded by an agent                                                                                                                                                                  | Never hidden unless the project opts in                                     |
+| Effective Tier                          | A workflow's activation tier after project settings (see the Workflow Routing spec)                                                                                                                                             | auto, confirm or manual                                                     |
+| Permission Entry                        | A third-host setting that hides a skill, asks before loading it, or allows it                                                                                                                                                   | Keyed by skill name                                                         |
+| Ownership Record                        | The list of permission entries the generator wrote, with the values it wrote                                                                                                                                                    | Only owned entries are ever changed or removed                              |
+| Conflict Line                           | A printed line naming a setting the generator wanted to change but left to the user                                                                                                                                             | Never silent                                                                |
+| Generated Command                       | A third-host command file that loads a skill and passes the user arguments                                                                                                                                                      | Carries a generated marker; one per skill                                   |
+| Check Mode                              | A run that changes nothing and fails when generated output is stale                                                                                                                                                             | Used before release                                                         |
+| Token Checkpoint Interval               | How many tokens pass between two progress notes                                                                                                                                                                                 | Validated range 50,000 to 20,000,000                                        |
+| Auto-Compaction Budget                  | The conversation size at which an assistant host condenses the conversation to free room                                                                                                                                        | Set by the host or the user, never by the framework                         |
+| Host Default                            | The compaction point a host applies when no budget is set, based on the model's own context size                                                                                                                                | Applies on every host unless a user sets a budget                           |
+| Bundled Value                           | A setting value an earlier framework version wrote into a project's host configuration                                                                                                                                          | Removed only while it still equals what the framework wrote                 |
+| Skill Profile                           | A per-project choice of which skills the assistant sees in full, by name only, or not at all (release D)                                                                                                                        | Preset plus lists                                                           |
+| Name-Only Skill                         | A skill listed by name without its description; still callable (release D)                                                                                                                                                      | Shortens the skill list                                                     |
+| Entry Skill                             | One of the skills the minimal preset keeps fully listed: the workflow starter, the commit skill and the project setup skills (release D)                                                                                        | Every other skill becomes name-only under that preset                       |
+| Install Lock                            | A marker that stops two sessions from installing the shared graph tooling at once (release D)                                                                                                                                   | Stale locks are broken safely                                               |
+| Settings Layer                          | One source of a preference: the built-in default, a person's own settings for every project, the framework-shipped settings, the team project configuration, one working copy's (checkout's) settings, or an environment switch | Each preference states its own layer order                                  |
+| Personal Skill Profile                  | A skill profile one person keeps for themselves, written only to that working copy's personal settings                                                                                                                          | Never changes what the team sees                                            |
+| Runtime Mode                            | How much the framework does by itself: on (default), quiet (no context guidance) or off (nothing runs)                                                                                                                          | A per-person working preference; a team value is only a default             |
+| Project Rules in Quiet                  | The opt-in that keeps a project's own skill overlays, per-file conventions and auto-trigger policy running in quiet                                                                                                             | Default no                                                                  |
+| Guidance Delivery Profile               | How compactly the framework delivers its own guidance: compatible (default) or concise                                                                                                                                          | A team decision a working copy may override                                 |
 
 ---
 
@@ -151,7 +151,7 @@ A project that adopts the framework gets a set of project-level switches that de
 **Acceptance Criteria:**
 
 - **AC-ADS-08** — **Given** command-only skills and workflows at their effective tiers **When** the third host is synced **Then** manual and command-only skills are hidden, confirm workflows ask, auto workflows get no entry, user entries are never adopted, overwritten or loosened, an ownership record copied from another project owns nothing, a deleted owned entry is restored, unrelated settings are preserved, and a second run changes nothing
-- **AC-ADS-09** — **Given** a hidden skill **When** the third host is synced **Then** a generated command loads it with the user arguments, its name comes from the validated skill folder, it is written only inside the commands folder, user commands are never touched, and the check mode catches drift
+- **AC-ADS-09** — **Given** any skill **When** the third host is synced **Then** a generated command loads it with the user arguments, whether the model may select it or a setting hides it, its name comes from the validated skill folder, it is written only inside the commands folder, user commands are never touched, and the check mode catches drift
 - **AC-ADS-10** — **Given** a called skill **When** any generator would hide it or make it command-only **Then** it stays loadable with a printed skip or refusal, unless the project opts in to hiding called skills (the opt-in arrives in release D)
 
 ### US-ADS-05: Safe settings values
@@ -238,7 +238,7 @@ A project that adopts the framework gets a set of project-level switches that de
 | BR-ADS-07 | Third-host entries follow the effective tier              | Visibility   | [HARD]      | A       |
 | BR-ADS-08 | The generator owns only what it wrote                     | Ownership    | [HARD]      | A       |
 | BR-ADS-09 | Called skills are never hidden without opt-in             | Visibility   | [HARD]      | A       |
-| BR-ADS-10 | Every hidden skill keeps a safe explicit command          | Visibility   | [HARD]      | A       |
+| BR-ADS-10 | Every skill keeps a safe explicit command                 | Visibility   | [HARD]      | A       |
 | BR-ADS-11 | Token checkpoint interval range                           | Validation   | [HARD]      | A       |
 | BR-ADS-12 | Skill profile on the primary host                         | Visibility   | [HARD]      | D       |
 | BR-ADS-13 | Settings writer never loses settings                      | Ownership    | [HARD]      | D       |
@@ -318,9 +318,9 @@ BR-ADS-09 overrides this table for called skills.
 
 **Statement:** A called skill is any skill named as a step of any workflow or in an agent's preload list, plus, from release D, the framework's called-by-others list and its entry-skill list (the workflow runner, commit and the setup skills that routing gates and hooks start). The entry-skill list protects those skills without making them name-only in any preset. No generator on any host hides a called skill or makes it command-only. The third-host generator leaves it without an entry and prints that it was skipped and which caller needs it; the profile generators refuse with a message naming the skill, the list it came from and its caller, write nothing, and fail the check mode. From release D, when the skill profile settings exist, a project may lift the rule by opting in to hiding called skills; each hidden called skill is then named in a warning line, never silently. Before then no opt-in exists and the rule always holds. Making a called skill name-only is allowed on the primary host because it stays callable.
 
-### BR-ADS-10: Every hidden skill keeps a safe explicit command [HARD]
+### BR-ADS-10: Every skill keeps a safe explicit command [HARD]
 
-**Statement:** A skill counts as hidden only when its own entry in the final settings is a hide — one the generator wrote or one the user set. A skill the policy would hide but whose kept user entry is not a hide, or for which no entry could be written, is not hidden and gets no command. For every skill the third host hides, the generator writes a command that loads the skill instructions and passes the user arguments, so the explicit command keeps working. The command name is the skill folder name, which must be lowercase letters, digits and hyphens starting with a letter or digit; any other folder is skipped with a warning, and the name declared inside the skill text is never used. Every command is written inside the commands folder only. The description is escaped so it reads back as the original text with whitespace collapsed. Only files carrying the generated marker are ever rewritten or deleted; a marked command whose skill is no longer hidden is removed. When a user command without the marker already uses a hidden skill's name, it is kept unchanged, no generated command replaces it, and one conflict line names it. The check mode fails on a missing, changed or stale command. Generated commands contain no shell execution; the guidance warns that typed arguments containing shell-execution syntax run as shell on that host.
+**Statement:** Every skill on the third host keeps its explicit command: the generator writes a command that loads the skill instructions and passes the user arguments for every skill, whether the model may select it or a setting hides it. A hidden skill keeps the command because the model can no longer load it; a model-selectable skill gets the same command so the user can always start it by name, the way the primary host's slash menu lists every skill. The command name is the skill folder name, which must be lowercase letters, digits and hyphens starting with a letter or digit; any other folder is skipped with a warning, and the name declared inside the skill text is never used. Every command is written inside the commands folder only. The description is escaped so it reads back as the original text with whitespace collapsed. Only files carrying the generated marker are ever rewritten or deleted; a marked command whose skill folder no longer exists is removed. When a user command without the marker already uses a skill's name, it is kept unchanged, no generated command replaces it, and one conflict line names it. The check mode fails on a missing, changed or stale command. Generated commands contain no shell execution; the guidance warns that typed arguments containing shell-execution syntax run as shell on that host.
 
 ### BR-ADS-11: Token checkpoint interval range [HARD]
 
@@ -386,14 +386,14 @@ A person may also keep a personal profile with the same preset and lists, read f
 
 The mode and the switch resolve through the same layers, lowest to highest: the built-in default, the team settings in the project configuration, the person's own settings for every project, the working copy's (checkout's) own settings, then an environment switch. The highest layer that sets a valid value wins; a value the framework does not recognize expresses no preference at that layer, and the configuration check accepts only a true or false value for the switch in a settings file. Both are per-person working preferences, so a team value is only a default that each person's own settings outrank. The guidance delivery profile orders the same layers differently (BR-ADS-23).
 
-| Layer (lowest first)        | Runtime mode and this switch | Guidance delivery profile (BR-ADS-23) |
-| --------------------------- | ---------------------------- | ------------------------------------- |
-| Built-in default            | on / no                      | compatible                            |
-| Person's own settings       | outranks the team            | below the framework-shipped settings  |
-| Framework-shipped settings  | not read                     | outranks the person                   |
-| Team project configuration  | lowest declared layer        | outranks the person and the shipped   |
-| Checkout settings           | outranks person and team     | highest                               |
-| Environment switch          | highest                      | none                                  |
+| Layer (lowest first)       | Runtime mode and this switch | Guidance delivery profile (BR-ADS-23) |
+| -------------------------- | ---------------------------- | ------------------------------------- |
+| Built-in default           | on / no                      | compatible                            |
+| Person's own settings      | outranks the team            | below the framework-shipped settings  |
+| Framework-shipped settings | not read                     | outranks the person                   |
+| Team project configuration | lowest declared layer        | outranks the person and the shipped   |
+| Checkout settings          | outranks person and team     | highest                               |
+| Environment switch         | highest                      | none                                  |
 
 ### BR-ADS-23: The team chooses the guidance delivery profile; a checkout may override it [HARD]
 
@@ -423,16 +423,16 @@ AdoptingProject   0──N CompactionBudget        (user-owned; at most one per 
 
 ### Entity: ProjectSwitches
 
-| Property                   | Type               | Required | Constraints           | Business Meaning                           |
-| -------------------------- | ------------------ | -------- | --------------------- | ------------------------------------------ |
-| Graph mode                 | enum CodeGraphMode | No       | Default auto          | Whether graph activity runs                |
-| Fix-origin trailer         | yes-no             | No       | Default no            | Whether commit guidance offers the trailer |
-| Token checkpoint interval  | number             | No       | 50,000 to 20,000,000  | Spacing of progress notes                  |
-| Skill profile              | SkillProfile       | No       | Release D             | Which skills the assistant sees            |
-| Allow hiding called skills | yes-no             | No       | Default no; release D | Lifts BR-ADS-09 with a warning             |
-| Runtime mode               | enum RuntimeMode   | No       | Default on; per-person layers win (BR-ADS-22) | How much the framework does by itself |
-| Project rules in quiet     | yes-no             | No       | Default no (BR-ADS-22) | Keeps the project's own rules in quiet |
-| Guidance delivery profile  | enum DeliveryProfile | No     | Default compatible; team outranks personal (BR-ADS-23) | How compactly guidance is delivered |
+| Property                   | Type                 | Required | Constraints                                            | Business Meaning                           |
+| -------------------------- | -------------------- | -------- | ------------------------------------------------------ | ------------------------------------------ |
+| Graph mode                 | enum CodeGraphMode   | No       | Default auto                                           | Whether graph activity runs                |
+| Fix-origin trailer         | yes-no               | No       | Default no                                             | Whether commit guidance offers the trailer |
+| Token checkpoint interval  | number               | No       | 50,000 to 20,000,000                                   | Spacing of progress notes                  |
+| Skill profile              | SkillProfile         | No       | Release D                                              | Which skills the assistant sees            |
+| Allow hiding called skills | yes-no               | No       | Default no; release D                                  | Lifts BR-ADS-09 with a warning             |
+| Runtime mode               | enum RuntimeMode     | No       | Default on; per-person layers win (BR-ADS-22)          | How much the framework does by itself      |
+| Project rules in quiet     | yes-no               | No       | Default no (BR-ADS-22)                                 | Keeps the project's own rules in quiet     |
+| Guidance delivery profile  | enum DeliveryProfile | No       | Default compatible; team outranks personal (BR-ADS-23) | How compactly guidance is delivered        |
 
 ### Entity: SkillVisibility
 
@@ -461,12 +461,12 @@ AdoptingProject   0──N CompactionBudget        (user-owned; at most one per 
 
 ### Entity: SkillProfile (release D)
 
-| Property          | Type                   | Required | Constraints        | Business Meaning               |
-| ----------------- | ---------------------- | -------- | ------------------ | ------------------------------ |
-| Preset            | enum standard, minimal | No       | —                  | A ready-made visibility set    |
-| Command-only list | list of text           | No       | Unknown names warn | Hidden from self-selection     |
-| Name-only list    | list of text           | No       | —                  | Listed by name only            |
-| Off list          | list of text           | No       | —                  | Not available to the assistant |
+| Property          | Type                   | Required | Constraints                                                | Business Meaning                    |
+| ----------------- | ---------------------- | -------- | ---------------------------------------------------------- | ----------------------------------- |
+| Preset            | enum standard, minimal | No       | —                                                          | A ready-made visibility set         |
+| Command-only list | list of text           | No       | Unknown names warn                                         | Hidden from self-selection          |
+| Name-only list    | list of text           | No       | —                                                          | Listed by name only                 |
+| Off list          | list of text           | No       | —                                                          | Not available to the assistant      |
 | Scope             | enum team, personal    | Yes      | Personal writes only that working copy's personal settings | Whose view of the skills it changes |
 
 ### Entity: GraphToolingEnvironment (release D)
@@ -504,18 +504,18 @@ AdoptingProject   0──N CompactionBudget        (user-owned; at most one per 
 
 ### Enum: RuntimeMode
 
-| Value | Meaning |
-| ----- | ------- |
-| on    | Every framework step runs (default) |
+| Value | Meaning                                                                                                                                    |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| on    | Every framework step runs (default)                                                                                                        |
 | quiet | No context guidance; commit review, documentation checks, formatting and notifications still run; project rules only on opt-in (BR-ADS-22) |
-| off   | No framework step runs |
+| off   | No framework step runs                                                                                                                     |
 
 ### Enum: DeliveryProfile
 
-| Value      | Meaning |
-| ---------- | ------- |
+| Value      | Meaning                                                                          |
+| ---------- | -------------------------------------------------------------------------------- |
 | compatible | The full guidance bundle (default; also the result of any malformed declaration) |
-| concise    | One essential core with pointers to deeper guidance (BR-ADS-23) |
+| concise    | One essential core with pointers to deeper guidance (BR-ADS-23)                  |
 
 ### Domain Events (business occurrences)
 
@@ -548,13 +548,13 @@ AdoptingProject   0──N CompactionBudget        (user-owned; at most one per 
 
 ### Flow: Sync the third host
 
-| Step | Actor      | Action                            | System Response                                                                                      | Next |
-| ---- | ---------- | --------------------------------- | ---------------------------------------------------------------------------------------------------- | ---- |
-| 1    | Maintainer | Runs the sync                     | Reads skills, workflows, agents and effective tiers                                                  | 2    |
-| 2    | System     | Computes the called set           | Called skills skipped with a line (BR-ADS-09)                                                        | 3    |
-| 3    | System     | Computes entries                  | Per BR-ADS-07                                                                                        | 4    |
-| 4    | System     | Merges into the settings          | Ownership rules and conflict lines; a record from another project is ignored with a line (BR-ADS-08) | 5    |
-| 5    | System     | Writes commands for hidden skills | Validated names, marked files only (BR-ADS-10)                                                       | end  |
+| Step | Actor      | Action                          | System Response                                                                                      | Next |
+| ---- | ---------- | ------------------------------- | ---------------------------------------------------------------------------------------------------- | ---- |
+| 1    | Maintainer | Runs the sync                   | Reads skills, workflows, agents and effective tiers                                                  | 2    |
+| 2    | System     | Computes the called set         | Called skills skipped with a line (BR-ADS-09)                                                        | 3    |
+| 3    | System     | Computes entries                | Per BR-ADS-07                                                                                        | 4    |
+| 4    | System     | Merges into the settings        | Ownership rules and conflict lines; a record from another project is ignored with a line (BR-ADS-08) | 5    |
+| 5    | System     | Writes commands for every skill | Validated names, marked files only (BR-ADS-10)                                                       | end  |
 
 ### Flow: Apply a skill profile (release D)
 
@@ -1455,27 +1455,27 @@ And the workflow asks before loading
 
 ---
 
-#### TC-ADS-012: A hidden skill gets a command that loads it [P1]
+#### TC-ADS-012: Every skill gets a command that loads it [P1]
 
-**Objective:** Prove that each hidden skill on the third host gets a generated command that loads the skill and passes the user arguments.
+**Objective:** Prove that every skill on the third host gets a generated command that loads the skill and passes the user arguments, whether the model may select it or a setting hides it.
 
-**Business Intent / Invariant Guarded:** Hiding a skill from the assistant never removes the user explicit command (BR-ADS-10).
+**Business Intent / Invariant Guarded:** Every skill stays manually callable on the third host, matching the primary host's slash menu (BR-ADS-10).
 
 **Traces:** AC-ADS-09 / BR-ADS-10
 
 **Preconditions:**
 
-- A skill is hidden on the third host
+- A synced third host with at least one hidden skill and one model-selectable skill
 
-**Real-World Reachability:** A user types the command of a hidden utility on the third host.
+**Real-World Reachability:** A user types a skill's command on the third host, including a skill the assistant can also select on its own.
 
-**Demo Flow:** Run the third-host sync and open the generated command for the hidden skill.
+**Demo Flow:** Run the third-host sync and open the generated commands for a hidden skill and a model-selectable skill.
 
 ```gherkin
-Given a hidden skill
+Given a hidden skill and a model-selectable skill
 When the third host is synced
-Then a command named after the skill exists
-And it loads the skill instructions and passes the user arguments
+Then a command named after each skill exists
+And each loads the skill instructions and passes the user arguments
 ```
 
 **Expected Result:**
@@ -1483,14 +1483,15 @@ And it loads the skill instructions and passes the user arguments
 | Dimension               | Expectation                                                                                                                                               |
 | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, command output and the generated settings files |
-| **System behavior**     | Writes one marked command per hidden skill                                                                                                                |
-| **Business data state** | Command file present in the commands folder                                                                                                               |
+| **System behavior**     | Writes one marked command per skill                                                                                                                       |
+| **Business data state** | Command file present in the commands folder for every skill                                                                                               |
 | **Data shown on UI**    | Command content: the skill include and the argument placeholder                                                                                           |
 
 **Acceptance Criteria:**
 
-- ✅ Command present and correct
-- ❌ Hidden skill without a command
+- ✅ Command present for a hidden skill
+- ✅ Command present for a model-selectable skill
+- ❌ Skill without a command
 
 **Test Data:**
 
@@ -1505,13 +1506,14 @@ And it loads the skill instructions and passes the user arguments
 **Edge Cases:**
 
 - A workflow hidden through its effective tier → also gets a command
-- A skill the policy would hide but whose kept user entry is not a hide, or a permission setting that is a single value → not hidden, so no command (BR-ADS-10)
+- A skill whose permission entry is allow, absent, or unrepresentable because the permission setting is a single value → still gets a command (BR-ADS-10)
+- An invalid skill folder name → skipped with a warning, so no command
 
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
 > **Evidence:** `[Source: operation/scripts/opencode-sync-skills]`
 > **Related Behaviors:** `operation/scripts/opencode-sync-skills` · `test/scripts/opencode-sync-skills`
-> **CoveredBy:** `.claude/scripts/opencode/tests/sync-skills.test.mjs::TC-ADS-012: every hidden skill gets a command that includes its SKILL.md and passes $ARGUMENTS`, `.claude/scripts/opencode/tests/sync-skills.test.mjs::TC-ADS-012 / BR-ADS-10: a skill the policy denies but whose final entry is not deny gets no command` · **Status:** Tested
+> **CoveredBy:** `.claude/scripts/opencode/tests/sync-skills.test.mjs::TC-ADS-012: every skill gets a command that includes its SKILL.md and passes $ARGUMENTS`, `.claude/scripts/opencode/tests/sync-skills.test.mjs::TC-ADS-012 / BR-ADS-10: a skill the policy denies but whose final entry is not deny keeps its command` · **Status:** Tested
 
 ---
 
@@ -1562,13 +1564,13 @@ Then that command is unchanged
 
 **Edge Cases:**
 
-- A user command with the same name as a hidden skill → kept; a conflict is reported
+- A user command with the same name as a skill → kept; a conflict is reported
 
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
 > **Evidence:** `[Source: operation/scripts/opencode-sync-skills]`
 > **Related Behaviors:** `operation/scripts/opencode-sync-skills` · `test/scripts/opencode-sync-skills`
-> **CoveredBy:** `.claude/scripts/opencode/tests/sync-skills.test.mjs::TC-ADS-013: a user command without the marker is never touched`, `.claude/scripts/opencode/tests/sync-skills.test.mjs::TC-ADS-013 / BR-ADS-10: a user command that already uses a hidden skill's name is kept with one conflict line` · **Status:** Tested
+> **CoveredBy:** `.claude/scripts/opencode/tests/sync-skills.test.mjs::TC-ADS-013: a user command without the marker is never touched`, `.claude/scripts/opencode/tests/sync-skills.test.mjs::TC-ADS-013 / BR-ADS-10: a user command that already uses a skill's name is kept with one conflict line` · **Status:** Tested
 
 ---
 
@@ -2667,9 +2669,9 @@ boundaryCounterCase: 'a settings file that is not valid → the sync refuses and
 
 #### TC-ADS-062: Generated commands are repeatable and the check catches drift [P1]
 
-**Objective:** Prove that a second sync leaves every generated command identical, and that an edited, deleted or no-longer-needed generated command fails the check and is restored or removed by the next sync.
+**Objective:** Prove that a second sync leaves every generated command identical, and that an edited, deleted or orphaned generated command fails the check and is restored or removed by the next sync.
 
-**Business Intent / Invariant Guarded:** Generated commands stay exactly in step with what is hidden (BR-ADS-10).
+**Business Intent / Invariant Guarded:** Generated commands stay exactly in step with the skill catalog (BR-ADS-10).
 
 **Traces:** AC-ADS-09 / BR-ADS-10
 
@@ -2679,13 +2681,13 @@ boundaryCounterCase: 'a settings file that is not valid → the sync refuses and
 
 **Real-World Reachability:** Teams rerun the sync after edits and framework updates.
 
-**Demo Flow:** Sync twice; then edit one command, delete another, un-hide a third skill; run the check, then sync.
+**Demo Flow:** Sync twice; then edit one command, delete another, remove a third skill folder; run the check, then sync.
 
 ```gherkin
 Given a synced project with generated commands
 When it is synced again
 Then every command is identical
-When a generated command is edited or deleted, or its skill is no longer hidden
+When a generated command is edited or deleted, or its skill folder is removed
 Then the check fails
 And the next sync restores the command or removes the stale one
 ```
@@ -2696,7 +2698,7 @@ And the next sync restores the command or removes the stale one
 | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, command output and the generated settings files |
 | **System behavior**     | Compares expected and actual commands                                                                                                                     |
-| **Business data state** | Commands match the hidden set after the sync                                                                                                              |
+| **Business data state** | Commands match the skill catalog after the sync                                                                                                           |
 | **Data shown on UI**    | Check failure listing the drifted commands                                                                                                                |
 
 **Acceptance Criteria:**
@@ -2704,32 +2706,34 @@ And the next sync restores the command or removes the stale one
 - ✅ Identical on rerun
 - ✅ Check fails on drift
 - ✅ Next sync repairs
+- ✅ Orphaned command removed
 - ❌ Drift undetected
 - ❌ Stale command kept
 
 **Test Data:**
 
 ```yaml
-inputDomain: 'any set of hidden skills and any prior state of marked command files'
-invariant: 'for ALL such inputs, after one sync the marked command files equal exactly the commands for the hidden set, and a second sync changes nothing'
+inputDomain: 'any set of skills and any prior state of marked command files'
+invariant: 'for ALL such inputs, after one sync the marked command files equal exactly one command per existing valid skill folder, and a second sync changes nothing'
 boundaryCounterCase: 'an unmarked file with a generated-looking name → never counted, changed or removed'
 ```
 
 ```json
 {
-    "mutations": ["edit", "delete", "unhide"]
+    "mutations": ["edit", "delete", "remove-skill"]
 }
 ```
 
 **Edge Cases:**
 
 - An unmarked user command → ignored by the check
+- A skill that becomes model-selectable again → keeps its command
 
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
 > **Evidence:** `[Source: operation/scripts/opencode-sync-skills]`
 > **Related Behaviors:** `operation/scripts/opencode-sync-skills` · `test/scripts/opencode-sync-skills`
-> **CoveredBy:** `.claude/scripts/opencode/tests/sync-skills.test.mjs::TC-ADS-062: commands are repeatable, --check catches edit/delete/unhide, and the next sync repairs`, `.claude/scripts/opencode/tests/sync-skills.test.mjs::TC-ADS-062: the --check CLI exits non-zero on a drifted command` · **Status:** Tested
+> **CoveredBy:** `.claude/scripts/opencode/tests/sync-skills.test.mjs::TC-ADS-062: commands are repeatable, --check catches edit/delete/removed-skill, and the next sync repairs`, `.claude/scripts/opencode/tests/sync-skills.test.mjs::TC-ADS-062: the --check CLI exits non-zero on a drifted command` · **Status:** Tested
 
 ---
 

@@ -1,7 +1,7 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-10-27'
+  last_updated: '2026-10-29'
   total_skills: 108
   total_by_status:
     active: 108
@@ -842,8 +842,8 @@ skills:
     - name: sync-opencode
       path: sync-opencode/SKILL.md
       description: '[opencode] Use when running the opencode sync and verify pipeline:
-        opencode.json reconcile, skill policy, hidden-skill commands, hooks bridge,
-        sub-agent mirror, drift check.'
+        opencode.json reconcile, skill policy, per-skill commands, hooks bridge, sub-agent
+        mirror, drift check.'
       category: other
       has_scripts: true
       has_references: false

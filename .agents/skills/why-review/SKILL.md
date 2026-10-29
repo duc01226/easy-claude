@@ -210,7 +210,7 @@ Resolve the target accurately: commit/PR/diff means code changes; “no active p
 
 <!-- SYNC:core-engineering-principles:reminder -->
 
-**MUST ATTENTION** Core Engineering Principles — every plan, implementation and review must be **Easy to change** (reuse first, one owner per rule, interfaces/adapters at volatile boundaries, no speculative abstraction) · **Easy to scale** (extend by addition, bounded growth, explicit boundaries, sized to the project's real profile) · **Easy to maintain** (intent-named tests that fail when the rule breaks across happy/error/edge paths; harness green locally and in CI). Before done: next change → how many edit sites? 10× → what breaks? which test goes red?
+**MUST ATTENTION** Core Engineering Principles — every plan, implementation and review must be **Easy to change** (purpose: one place per change — reuse first, one owner per rule, interface/DI at volatile boundaries, adapter/wrapper for libraries, factory/strategy for real variants, no speculative abstraction) · **Easy to scale** (extend by addition, bounded growth, explicit boundaries, sized to the project's real profile) · **Easy to maintain** (intent-named tests that fail when the rule breaks across happy/error/edge paths; harness green locally and in CI). Before done: next change → how many edit sites? 10× → what breaks? which test goes red? Full gate: `.claude/skills/shared/protocols/core-engineering-principles.md`.
 
 <!-- /SYNC:core-engineering-principles:reminder -->
 

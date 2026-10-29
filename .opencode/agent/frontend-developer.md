@@ -535,7 +535,7 @@ Pattern (when used): grep/read first → optional graph query → grep/read veri
 
 > **Core Engineering Principles — Easy to Change · Easy to Scale · Easy to Maintain** — The success metric of every plan, implementation and review is _future change cost_: the next change must be cheap, safe and provable. DRY, reuse, abstraction, interfaces, wrappers, patterns, layering, tests and the harness exist only to serve that goal. Apply this gate BEFORE any narrower design rule or checklist; when a narrower design rule would raise change cost, this principle wins — it never waives a required gate (tests, review, security, user confirmation). It is evidence-gated: judge fit against the project's config, accepted decisions and local patterns, and never impose a technique the project does not use.
 >
-> 1. **Easy to change.** Keep one owner per piece of knowledge — DRY the rule, not look-alike text. Reuse an existing helper, component or module before writing a new one (search 3+ siblings and cite them). Put purpose-named interfaces or ports at volatile boundaries: wrap a third-party SDK or infrastructure dependency in an adapter when it is volatile, likely to be swapped, or needs a test seam, so a swap touches one place — a stable dependency used directly is fine, and a pass-through wrapper that lowers no change cost is a defect. Keep units small and cohesive with explicit dependencies; no hidden state, boolean traps or leaked implementation detail. Extract an abstraction for a real second consumer or an evidenced change axis, never for speculation; prefer the reversible decision and defer an irreversible one until evidence forces it. Depth → `SYNC:design-patterns-quality`, `SYNC:complexity-prevention`.
+> 1. **Easy to change.** *Purpose: the next change, upgrade or swap touches one place — not the system.* Keep one owner per piece of knowledge — DRY the rule, not look-alike text. Reuse an existing helper, component or module before writing a new one (search 3+ siblings and cite them). Depend on purpose-named interfaces/ports, not concrete implementations: wrap a volatile third-party SDK or infrastructure dependency in an adapter, inject collaborators (DI) instead of constructing them, and select a variant through a factory/registry/strategy once a second variant is real — so an implementation swap, a library upgrade or a test double touches one seam. Keep units small and cohesive with explicit, injected dependencies; no hidden state, boolean traps, convenience singletons or leaked implementation detail. Extract an abstraction for a real second consumer or an evidenced change axis, never for speculation; a pass-through wrapper that lowers no change cost is a defect. Depth → `SYNC:design-patterns-quality`, `SYNC:complexity-prevention`.
 > 2. **Easy to scale.** Growth in features, modules, team, data or load must not multiply edit sites or cost. Add a variant by extension (a new handler, registration or config entry), not by editing every switch over the same discriminator. Keep module boundaries and dependency direction explicit. Bound every loop, query, result set, queue and concurrency on the paths that matter, so work grows with the request, not with total data. Scale only what the project's profile warrants — no speculative distribution or infrastructure. Depth → `SYNC:scale-technique-gate`, `SYNC:engineering-foundation-gate` (F5, F6).
 > 3. **Easy to maintain.** Protect every changed behavior with tests that name the business intent or invariant and FAIL when it breaks — happy, error, edge, boundary and regression paths, not only the changed line. Tests are repeatable and isolated. The mechanical harness (format, lint, types, build, test — the same command locally and in CI) runs and passes. Names and structure state intent, and docs or specs that embed the behavior stay in sync. Depth → `SYNC:engineering-foundation-gate` (F3, F4, F7), `SYNC:harness-setup`.
 >
@@ -609,6 +609,22 @@ Pattern (when used): grep/read first → optional graph query → grep/read veri
 
 <!-- /SYNC:prototype-design-system -->
 
+<!-- SYNC:review-decision-autonomy -->
+
+> **Review Decision Autonomy** — Applies to every review/audit skill, review mode and its orchestration, including report-only and terminal leaves. Complete the requested review with the best evidence-supported choices.
+>
+> **Decide and proceed.** Do not ask the user anything the reviewer can decide, infer from the task/repository, or recommend with supporting evidence. Choose the best option for the review goal, record the choice and its rationale, and continue. This includes scope defaults, applicable document sections, bounded slices, specialist applicability, verification strategy, recommended coverage/translation repairs, trade-offs and routine next steps. A recommendation is a decision to make, not a reason to ask the user to choose it.
+>
+> **Round-limit exception.** At three review rounds with MEDIUM/HIGH/CRITICAL findings, unresolved required evidence or failed gates, ask through the host question tool whether to extend by a stated number of rounds or stop with the unresolved report. Wait for the answer. Read-only leaves hand this decision to the coordinator; no autonomous extension.
+>
+> **Evidence and authority.** Investigate uncertain choices and prefer the supported, reversible option within the requested scope. Record material costs, assumptions and residual risk; a reviewer decision is not user acceptance of an open finding. Preserve required source coverage, validation, tests, read-only boundaries and round limits. Choose a supported fallback when a tool or intake strategy fails; never turn an unavailable required check into PASS. Ask only for an indispensable missing fact with no defensible default or recommendation, or actual operation authorization/native permission that the session does not provide. A review does not authorize staging, committing, publishing, destructive actions, external spending or unrelated implementation.
+>
+> **Leaves and closure.** A read-only leaf decides its review approach and returns evidenced findings, its recommended remedy and genuine blockers to the owner; it neither asks the user nor applies fixes. The fixing owner executes the supported remedy within existing authority. Do not manufacture a next-step, trade-off-confirmation or minimum-question prompt before returning a completed review; return the report/verdict or continue the already-authorized workflow. At a hard stop, report the unresolved state; a round-budget extension requires an explicit user answer under `SYNC:review-policy`.
+>
+> **Question-rule precedence.** Within review/audit invocations, this protocol governs review-generated clarification, choice, confirmation and next-step prompts, including older mandatory-question wording in shared gates or mode references. It changes who selects a supported review decision, never the evidence bar or authority for the resulting action. Non-review creation, interviews and implementation retain their own contracts.
+
+<!-- /SYNC:review-decision-autonomy -->
+
 <!-- SYNC:sequential-thinking-protocol:reminder -->
 
 **MUST ATTENTION** use structured reasoning for complex or ambiguous work, implicitly when visible markers would clutter. Verify hypotheses, revise assumptions, and close with confidence, assumptions, open questions and a concrete next action.
@@ -654,7 +670,7 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 
 <!-- SYNC:core-engineering-principles:reminder -->
 
-**MUST ATTENTION** Core Engineering Principles — every plan, implementation and review must be **Easy to change** (reuse first, one owner per rule, interfaces/adapters at volatile boundaries, no speculative abstraction) · **Easy to scale** (extend by addition, bounded growth, explicit boundaries, sized to the project's real profile) · **Easy to maintain** (intent-named tests that fail when the rule breaks across happy/error/edge paths; harness green locally and in CI). Before done: next change → how many edit sites? 10× → what breaks? which test goes red?
+**MUST ATTENTION** Core Engineering Principles — every plan, implementation and review must be **Easy to change** (purpose: one place per change — reuse first, one owner per rule, interface/DI at volatile boundaries, adapter/wrapper for libraries, factory/strategy for real variants, no speculative abstraction) · **Easy to scale** (extend by addition, bounded growth, explicit boundaries, sized to the project's real profile) · **Easy to maintain** (intent-named tests that fail when the rule breaks across happy/error/edge paths; harness green locally and in CI). Before done: next change → how many edit sites? 10× → what breaks? which test goes red? Full gate: `.claude/skills/shared/protocols/core-engineering-principles.md`.
 
 <!-- /SYNC:core-engineering-principles:reminder -->
 
@@ -705,6 +721,12 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 - **MUST ATTENTION** every mock-up or prototype ships a self-contained design-system page beside it, in its medium (HTML mock-up: `<name>-design-system.html`), linking to the project's living component catalog when one exists (`PD-1`): the tokens plus a live catalog of every reusable control and component (buttons, inputs, tables, grids, lists, cards, icons, states), each with its variants, states, a plain contract, the views that use it and its owner, an existing source path or `new — build once` (`PD-2`) · the prototype defines each recurring control once and reuses it in every view (`PD-3`) · brownfield entries are extracted from the project's own design system and components, found from repository evidence (`PD-4`) · a plan builds the shared components in a phase before the screens, and a control implemented twice is a finding (`M10`, `PD-5`) · a one-component change lists only the touched entries; explore drafts and decks get none (`PD-6`). Skip ONLY when no user-facing prototype is generated or implemented, stated.
 
 <!-- /SYNC:prototype-design-system:reminder -->
+
+<!-- SYNC:review-decision-autonomy:reminder -->
+
+**MUST ATTENTION** Decide supported review choices and recommendations, record the rationale, and finish without routine user questions. Keep round-limit extension, indispensable facts and actual action authority; preserve source coverage, validation, tests, read-only boundaries and budgets. Review decisions do not accept open risks or make a failed gate pass.
+
+<!-- /SYNC:review-decision-autonomy:reminder -->
 
 ## Closing Reminders
 

@@ -93,7 +93,7 @@ Read `docs/project-config.json` → `modules` when selecting a component; module
 | Skills         | <!-- COUNT:skills -->108<!-- /COUNT -->                                                       | `.claude/skills/*/SKILL.md`   | Markdown + YAML frontmatter                                                         |
 | Agents         | <!-- COUNT:agents -->25<!-- /COUNT -->                                                        | `.claude/agents/*.md`         | Markdown definitions                                                                |
 | Workflows      | <!-- COUNT:workflows -->17<!-- /COUNT -->                                                     | `.claude/workflows.json`      | JSON workflow definitions                                                           |
-| Hook Tests     | 129 suites + 9 `test-*` files                                                                  | `.claude/hooks/tests/`        | CJS/JS test files; top-level `test-*` files plus `run-all-tests.cjs` aggregate      |
+| Hook Tests     | 130 suites + 9 `test-*` files                                                                  | `.claude/hooks/tests/`        | CJS/JS test files; top-level `test-*` files plus `run-all-tests.cjs` aggregate      |
 | Codex Source Projection | <!-- COUNT:skills -->108<!-- /COUNT --> skills, <!-- COUNT:agents -->25<!-- /COUNT --> agents | `.agents/`, `.codex/`         | Source counts supplied to generated host projections; verify the projections through their owner                                                     |
 
 
@@ -110,7 +110,7 @@ Read `docs/project-config.json` → `modules` when selecting a component; module
 | CX   | Codex Tooling  | `.claude/scripts/codex/`       | ESM sync, migration, notification and verification tools                                                  |
 | CM   | Codex Source Projection | `.agents/`, `.codex/`          | Generated Codex-compatible skills, agents, hooks                                                                          |
 | NT   | Notifications  | `.claude/hooks/notifications/` | `notify.cjs` dispatcher + 4 channel providers in `providers/` (desktop, telegram, discord, slack)                         |
-| HT   | Hook Tests     | `.claude/hooks/tests/`         | 129 suite files + 9 top-level `test-*` files + `run-all-tests.cjs` aggregate                                               |
+| HT   | Hook Tests     | `.claude/hooks/tests/`         | 130 suite files + 9 top-level `test-*` files + `run-all-tests.cjs` aggregate                                               |
 
 
 ## Advisory Selection and Workflow Discovery

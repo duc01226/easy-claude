@@ -259,6 +259,18 @@ Reports go under `tmp/reports/` using the `{date}-{slug}` naming convention.
 
 <!-- /SYNC:sequential-thinking-protocol:reminder -->
 
+<!-- SYNC:web-research:reminder -->
+
+**IMPORTANT MUST ATTENTION** cite 2+ independent sources per claim. NEVER fabricate — "No evidence found" is valid output.
+
+<!-- /SYNC:web-research:reminder -->
+
+<!-- SYNC:output-quality-principles:reminder -->
+
+**IMPORTANT MUST ATTENTION** lead with useful guidance and readable priorities; preserve action-changing conditions/numbers and required structures. When writing, updating or auditing Markdown skill/doc content, verify top, heading-linked contents over 200 lines (stricter owner thresholds remain); refresh after edits and report gaps in read-only audits. Remove report bulk; judge semantic value rather than word counts.
+
+<!-- /SYNC:output-quality-principles:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Research software-development topics from multiple verified sources, triangulate every claim across MINIMUM 2 independent sources, and synthesize findings into an actionable `tmp/reports/` report with per-finding confidence — NEVER implement production code.

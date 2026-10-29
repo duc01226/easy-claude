@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pending records — ragged action column</title>
+<style>
+  body { margin: 0; font: 15px/1.5 system-ui, sans-serif; background: #ffffff; color: #1f2933; }
+  main { max-width: 720px; margin: 24px auto; padding: 0 16px; }
+  ul { list-style: none; margin: 0; padding: 0; }
+  li { display: flex; gap: 16px; align-items: flex-start; padding: 16px 0; border-bottom: 1px solid #e4e7eb; }
+  .text { flex: 1; }
+  .title { font-weight: 600; }
+  .actions { display: flex; gap: 8px; }
+  button { font: inherit; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
+  .filled { background: #1d4ed8; color: #ffffff; border: 1px solid #1d4ed8; }
+  .outlined { background: transparent; color: #1d4ed8; border: 1px solid #1d4ed8; }
+  .tools { display: flex; gap: 4px; margin-bottom: 8px; }
+  .icon { width: 44px; height: 44px; padding: 0; background: transparent; border: 0; color: #1f2933; }
+  .faint { color: #e5e7eb; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Pending records</h1>
+  <div class="tools">
+    <button class="icon"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><rect x="6" y="6" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button>
+    <button class="icon" title="Filter"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><rect x="6" y="6" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button>
+    <button class="icon faint" aria-label="Refresh" title="Refresh"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><rect x="6" y="6" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button>
+  </div>
+  <ul>
+    <li>
+      <div class="text">
+        <p class="title">Group A — three records waiting</p>
+        <p class="desc">These records arrived overnight and still need a reviewer; processing them moves each one to the next stage and notifies its owner.</p>
+      </div>
+      <div class="actions">
+        <button class="filled">Process 3 items</button>
+        <button class="outlined">View</button>
+        <button class="outlined">Open</button>
+        <ul class="tags"><li>urgent</li></ul>
+      </div>
+    </li>
+    <li>
+      <div class="text">
+        <p class="title">Group B — two records waiting</p>
+        <p class="desc">These records came from the weekly import and still need a reviewer; processing them moves each one to the next stage and notifies its owner.</p>
+      </div>
+      <div class="actions">
+        <button class="filled">Process 2 items</button>
+        <button class="outlined" style="background:#ffffff">View</button>
+        <button class="outlined">Open</button>
+      </div>
+    </li>
+  </ul>
+</main>
+</body>
+</html>

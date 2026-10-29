@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Shop — a closed sheet and an off-screen toast</title>
+<style>
+  body { margin: 0; padding: 24px; font: 16px system-ui, sans-serif; background: #fff; color: #111; }
+  .btn { display: inline-block; padding: 10px 16px; border-radius: 6px; border: 0; font: inherit; min-width: 120px; }
+  .primary { background: #1d4ed8; color: #fff; }
+  .outline { background: #fff; border: 1px solid #888; color: #111; }
+  .sheet { position: fixed; left: 0; right: 0; bottom: 0; background: #fff; box-shadow: 0 -2px 8px #0003; padding: 24px; transform: translateY(100%); }
+  .toast { position: fixed; left: 24px; top: 100vh; }
+</style>
+</head>
+<body>
+<h1>Product</h1>
+<p>Nice shoes</p>
+<button class="btn primary">Add to bag</button>
+<div class="sheet"><h2>Confirm</h2><button class="btn primary">Confirm order</button> <button class="btn outline">Cancel</button></div>
+<div class="toast"><button class="btn primary">Undo purchase</button></div>
+</body>
+</html>

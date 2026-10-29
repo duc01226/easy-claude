@@ -293,6 +293,18 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
+  description: '[Quality] Use when benchmarking framework skills, hooks, workflows
+    and project setup against raw implementation on matched greenfield or existing-project
+    tasks, with independent quality review and time/token/cost reports.'
+  has_references: true
+  has_scripts: true
+  name: framework-benchmark
+  path: framework-benchmark/SKILL.md
+  removal_after: null
+  status: active
+- category: other
+  deprecated_by: null
+  deprecated_since: null
   description: '[Utilities] Use when asking about or configuring the .claude/.codex/.agents/.opencode
     skills framework: command discovery/help, runtime modes, scoped settings, commit
     reviews, hooks, workflows or skill visibility. Explains options; changes only
@@ -873,7 +885,7 @@
   deprecated_by: null
   deprecated_since: null
   description: '[opencode] Use when running the opencode sync and verify pipeline:
-    opencode.json reconcile, skill policy, hidden-skill commands, hooks bridge, sub-agent
+    opencode.json reconcile, skill policy, per-skill commands, hooks bridge, sub-agent
     mirror, drift check.'
   has_references: false
   has_scripts: true

@@ -211,8 +211,10 @@ const cases = {
         const owns = group => group.hooks?.some(entry => entry.command === `.claude/hooks/${GROUP}.cjs`);
         assert.deepEqual(hooks.PreToolUse.filter(owns).map(group => group.matcher), ['Bash|exec_command']);
         assert.deepEqual(hooks.SessionStart.filter(owns).map(group => group.matcher), ['compact|clear']);
-        assert.equal(hooks.PostToolUseFailure, undefined);
-        assert.ok(report.skipped_events.some(row => row.event === 'PostToolUseFailure' && row.reason === 'unsupported-by-opencode'));
+        // The V2 bridge reproduces PostToolUseFailure from the tool-result status, so the reminder reaches
+        // a failed tool call instead of being reported as an unsupported event.
+        assert.deepEqual(hooks.PostToolUseFailure.filter(owns).map(group => group.matcher), ['*']);
+        assert.equal(report.skipped_events.some(row => row.event === 'PostToolUseFailure'), false, 'PostToolUseFailure is bridged, not skipped');
         await fixture(async fx => {
             // Exercise the generated consumer and actual hook, not just its table.
             const hookRoot = path.join(fx.root, '.claude/hooks');

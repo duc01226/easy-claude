@@ -1,7 +1,7 @@
 ---
 name: sync-opencode
 version: 1.1.0
-description: '[opencode] Use when running the opencode sync and verify pipeline: opencode.json reconcile, skill policy, hidden-skill commands, hooks bridge, sub-agent mirror, drift check.'
+description: '[opencode] Use when running the opencode sync and verify pipeline: opencode.json reconcile, skill policy, per-skill commands, hooks bridge, sub-agent mirror, drift check.'
 disable-model-invocation: true
 ---
 
@@ -25,7 +25,7 @@ disable-model-invocation: true
 
 - opencode has **no shell-command hook system** — hooks are JavaScript plugin callbacks. This skill compiles `.claude/settings.json` into a bridge plugin whose runtime drives the original Claude hooks from opencode's plugin events.
 - **Recommended opencode config is part of the framework.** `.opencode/opencode.recommended.json` is the single source of truth for the framework's opencode defaults; the `config` stage deep-merges it into the project-root `opencode.json` (recommended keys win, project-only keys survive).
-- Scope is **hooks + recommended config + skill permissions + the sub-agent mirror**. opencode already auto-discovers skills from `.claude/skills` and `.agents/skills`, so there is **no skill mirroring** here (unlike `/sync-codex`). opencode ignores `disable-model-invocation`, so the `skills` stage enforces the selection policy through `permission.skill` in the project-root `opencode.json` instead, and writes a `.opencode/commands/<name>.md` per hidden skill so its explicit `/name` keeps working — see [Skill permissions](#skill-permissions). Sub-agents are NOT auto-discovered, so `.claude/agents/*.md` IS mirrored into `.opencode/agent/*.md` by the `agents` stage — that is what lets the workflow protocols dispatch the same specialists (`architect`, `code-reviewer`, `security-auditor`, …) on opencode.
+- Scope is **hooks + recommended config + skill permissions + commands + the sub-agent mirror**. opencode already auto-discovers skills from `.claude/skills` and `.agents/skills`, so there is **no skill mirroring** here (unlike `/sync-codex`). opencode ignores `disable-model-invocation`, so the `skills` stage enforces the selection policy through `permission.skill` in the project-root `opencode.json`, and writes a `.opencode/commands/<name>.md` for **every** skill so its explicit `/name` keeps working — the same manual entry point Claude Code gives every skill — see [Skill permissions](#skill-permissions). Sub-agents are NOT auto-discovered, so `.claude/agents/*.md` IS mirrored into `.opencode/agent/*.md` by the `agents` stage — that is what lets the workflow protocols dispatch the same specialists (`architect`, `code-reviewer`, `security-auditor`, …) on opencode.
 - Keep `.claude` canonical: edit `.claude/settings.json` / `.claude/hooks/**` and re-run this pipeline; never hand-edit the generated `.opencode/plugins/easy-claude-hooks.js`.
 - To change a default opencode setting, edit `.opencode/opencode.recommended.json`, then re-run this pipeline to propagate it into the root config of every project the `.opencode/` folder is copied into.
 - The legacy hand-written `.opencode/plugins/notification.js` is superseded by the generated bridge; the runner backs it up under `tmp/opencode-legacy/` and removes it so notifications are not sent twice.
@@ -33,7 +33,7 @@ disable-model-invocation: true
 **Workflow:**
 
 1. **Config** — `node .claude/scripts/opencode/sync-config.mjs` deep-merges `.opencode/opencode.recommended.json` into the project-root `opencode.json`.
-2. **Sync** — `node .claude/skills/sync-opencode/scripts/run-opencode-sync.mjs` rewrites `permission.skill` in the project-root `opencode.json` together with its ownership ledger `.opencode/skill-permissions.generated.json`, writes a marked `.opencode/commands/<name>.md` per hidden skill, and regenerates the bridge plugin, the `.opencode/agent/*.md` mirror, and the sync report.
+2. **Sync** — `node .claude/skills/sync-opencode/scripts/run-opencode-sync.mjs` rewrites `permission.skill` in the project-root `opencode.json` together with its ownership ledger `.opencode/skill-permissions.generated.json`, writes a marked `.opencode/commands/<name>.md` for every skill (hidden or model-selectable), and regenerates the bridge plugin, the `.opencode/agent/*.md` mirror, and the sync report.
 3. **Test** — the runner executes the opencode tooling tests (config + writer + generated-plugin runtime).
 4. **Verify** — the runner re-merges/re-renders in memory with the REAL writers and byte-compares against the tracked files.
 5. **Inspect** — on failure, re-run the failing stage with `--only=<stage> --verbose`.
@@ -164,9 +164,9 @@ opencode lists every discovered skill to the model and ignores `disable-model-in
 - A skill folder whose name is not lowercase letters, digits and hyphens (`^[a-z0-9][a-z0-9-]*$`) is skipped with a warning.
 - `--check` fails when `permission.skill`, the ledger or a generated command differs from a fresh sync. A kept user value or user command is not drift.
 
-### Commands for hidden skills
+### Commands for every skill
 
-A hidden skill keeps its explicit `/name`: the same stage writes `.opencode/commands/<name>.md` for every skill whose final exact `permission.skill` entry is `deny` — the policy's own entries and a user deny alike (wildcard keys are not evaluated). A skill the policy denies but whose kept user value is not `deny`, or whose entry could not be written because `permission` / `permission.skill` is not a map, gets no command.
+Every skill gets an explicit `/name`: the same stage writes `.opencode/commands/<name>.md` for each valid skill folder, whether the model may select it or a `permission.skill` entry hides it. A hidden skill keeps its command because the model can no longer load it; a model-selectable skill gets the same command so the `/` palette matches Claude Code, where every skill is a slash command. The permission shape never affects commands — a `permission` / `permission.skill` that is not a map, or a kept user value that is not `deny`, still leaves every skill callable by name.
 
 ```markdown
 ---
@@ -182,22 +182,27 @@ Arguments: $ARGUMENTS
 ```
 
 - **Name.** The command name is the skill folder name, never the `name:` inside the skill; the write path must resolve inside `.opencode/commands/`.
-- **Marker ownership.** Only files carrying the `GENERATED OPENCODE COMMAND` marker are rewritten or deleted. A marked command whose skill is no longer hidden is removed.
-- **Same-name user command.** A command without the marker that already uses a hidden skill's name — in `.opencode/commands/` or opencode's singular `.opencode/command/` folder — is kept unchanged, no generated command replaces it, and the run prints `conflict: <path> is a user command without the generated marker; kept it, no command generated for skill <name>`.
+- **Marker ownership.** Only files carrying the `GENERATED OPENCODE COMMAND` marker are rewritten or deleted. A marked command is kept for every existing skill folder; it is removed when that skill folder no longer exists.
+- **Same-name user command.** A command without the marker that already uses a skill's name — in `.opencode/commands/` or opencode's singular `.opencode/command/` folder — is kept unchanged, no generated command replaces it, and the run prints `conflict: <path> is a user command without the generated marker; kept it, no command generated for skill <name>`.
 - **No shell in generated bodies.** Generated commands never contain `` !`…` ``. **Shell note:** opencode substitutes `$ARGUMENTS` before it runs `` !`cmd` `` injections, so typed arguments that themselves contain `` !`…` `` run as shell on that host. Do not paste untrusted text as command arguments.
 
 ## Hook mapping
 
-| Claude hook event | opencode plugin surface | Notes |
+| Claude hook event | opencode V2 plugin surface | Notes |
 | --- | --- | --- |
-| `PreToolUse` | `tool.execute.before` | throw blocks the tool; `updatedInput` rewrites `output.args` |
-| `PostToolUse` | `tool.execute.after` | `additionalContext` is appended to the tool output |
-| `UserPromptSubmit` | `chat.message` | `additionalContext` is injected as a synthetic text part |
-| `SessionStart` | `event:session.created` / `event:session.compacted` + `experimental.chat.system.transform` | `additionalContext` is injected into the system prompt |
+| `PreToolUse` | `ctx.tool.hook("execute.before")` | throw blocks the tool; `updatedInput` rewrites `event.input` |
+| `PostToolUse` | `ctx.tool.hook("execute.after")` | completed tools only; `additionalContext` is appended to the result |
+| `PostToolUseFailure` | `ctx.tool.hook("execute.after")` on a failed/interrupted status | `additionalContext` is appended to the failed result, or queued for the next system request |
+| `UserPromptSubmit` | `ctx.session.hook("prompt")` | `additionalContext` is injected into the next model request |
+| `UserPromptExpansion` | `ctx.session.hook("prompt")` when the text starts with `/name` | `command_name` is the leading `/name`, so command-routing hooks see the Claude identity |
+| `SessionStart` | `event:session.created` / `event:session.compaction.ended` + `ctx.session.hook("context")` | `additionalContext` is injected into the system prompt |
 | `SessionEnd` | `event:session.deleted` | |
-| `Stop` | `event:session.idle` | |
-| `Notification` | `event:question.asked` / `event:permission.asked` | matcher vocabulary `AskUserPrompt` / `permission_prompt` |
-| `PermissionRequest` | `permission.ask` | blocked → `status: "deny"` |
+| `Stop` | `event:session.execution.succeeded` / `session.execution.interrupted` | suppressed while a form or permission prompt is pending |
+| `SubagentStart` | `event:session.created` for a session with a `parentID` | `agent_id` is the child session, `agent_type` its agent, `session_id` the parent; context goes to that child |
+| `Notification` | `event:form.created` / `event:permission.asked` | matcher vocabulary `AskUserPrompt` / `permission_prompt` |
+| `PermissionRequest` | `ctx.permission.hook("evaluate")` | blocked → `effect: "deny"` |
+
+The generated file also keeps opencode V1 support: the same default object exposes `server()` (the V1 hook map), and the named `EasyClaudeHooks` export covers older V1 releases. V1-only surfaces are `tool.execute.before/after`, `chat.message`, `experimental.chat.system.transform`, `event:question.asked`, `event:session.idle`, `event:session.compacted`, and `permission.ask`.
 
 **Tool id aliases** (opencode → Claude matcher names the hooks are written against):
 
@@ -221,6 +226,8 @@ Arguments: $ARGUMENTS
 - **MCP argument visibility.** opencode registers MCP tools as `<server>_<tool>`, and Claude matchers like `mcp__github__*` are matched against that convention. However, opencode does **not** expose MCP tool arguments to `tool.execute.before`, so an MCP `PreToolUse` hook that inspects `tool_input` cannot see them on this host.
 - **`apply_patch` has no `file_path`.** The bridge reports it as `Edit`/`Write`/`MultiEdit` and passes `patchText` through as `patch`; hooks that require `file_path` (doc-sync-gate) allow/ignore it exactly as they do on other hosts.
 - **Session resume.** `SessionStart` runs on `session.created` and `session.compacted`; when opencode resumes a session without either event, the bridge runs `source: "startup"` once on the first `chat.message`.
+- **Typed command identity.** `UserPromptExpansion` is reproduced when the prompt text the host submits still starts with `/name`; if a future host expands the command before the prompt hook, the command name is unavailable and only `UserPromptSubmit` runs.
+- **V1 has no failure event.** The legacy `server()` bridge cannot see a failed tool, so `PostToolUseFailure` is V2-only. Every other mapped event is reproduced on both generations.
 - **Claude-only stdout fields** other than `updatedInput`, `additionalContext`, and `permissionDecision` are ignored by the bridge.
 
 ## Usage
@@ -269,7 +276,7 @@ node .claude/skills/sync-opencode/scripts/run-opencode-sync.mjs --skip=hooks
 | # | Stage | Script | Effect |
 | --- | --- | --- | --- |
 | 1 | config | `.claude/scripts/opencode/sync-config.mjs` | Deep-merge `.opencode/opencode.recommended.json` into the project-root `opencode.json` |
-| 2 | skills | `.claude/scripts/opencode/sync-skills.mjs` | Write `permission.skill` in the project-root `opencode.json`, the ownership ledger `.opencode/skill-permissions.generated.json`, and a marked `.opencode/commands/<name>.md` per hidden skill (see [Skill permissions](#skill-permissions)) |
+| 2 | skills | `.claude/scripts/opencode/sync-skills.mjs` | Write `permission.skill` in the project-root `opencode.json`, the ownership ledger `.opencode/skill-permissions.generated.json`, and a marked `.opencode/commands/<name>.md` for every skill (see [Skill permissions](#skill-permissions)) |
 | 3 | hooks | `.claude/scripts/opencode/sync-hooks.mjs` | Generate `.opencode/plugins/easy-claude-hooks.js` + `tmp/opencode-hooks.sync.report.json`; back up/remove legacy `notification.js` |
 | 4 | agents | `.claude/scripts/opencode/sync-agents.mjs` | Mirror `.claude/agents/*.md` into `.opencode/agent/*.md` (`mode: subagent` + the canonical body verbatim) |
 | 5 | tests | Runner discovers `.claude/scripts/opencode/tests/*.test.{mjs,cjs}` | Run opencode tooling tests; missing or empty discovery fails |
@@ -281,6 +288,7 @@ node .claude/skills/sync-opencode/scripts/run-opencode-sync.mjs --skip=hooks
 ## Closing Reminders
 
 **MUST ATTENTION** keep the `/sync-opencode` skill user-invoked-only; no unrelated skill, agent, or workflow may auto-run the mutating pipeline.
+**MUST ATTENTION** after the `hooks` stage rewrites `.opencode/plugins/easy-claude-hooks.js`, reload opencode (`opencode reload`) or restart it; the host caches an already-loaded plugin module, so a regenerated bridge does not take effect until the reload.
 **MUST ATTENTION** edit `.claude/settings.json` and `.claude/hooks/**` as the source, then regenerate; NEVER hand-edit `.opencode/plugins/easy-claude-hooks.js`
 **MUST ATTENTION** the framework's default opencode settings live in `.opencode/opencode.recommended.json` — edit THAT file to change defaults, then re-run this pipeline; never treat a project-root `opencode.json` as the source
 **MUST ATTENTION** the generated plugin must import only `node:` built-ins so `.claude`/`.opencode` stay portable into any project

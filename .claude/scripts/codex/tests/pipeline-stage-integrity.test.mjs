@@ -141,18 +141,18 @@ test('STAGE-001 hooks runner exits 1 on a zero-match --filter, and 0 on an empty
         'an empty suites dir must stay exit 0 even with a filter — nothing was requested AND nothing exists');
 });
 
-// ── STAGE-002 — `--filter=parity` must select BOTH parity suites, by name, explicitly ─────────────
+// ── STAGE-002 — `--filter=parity` must select EVERY parity suite, by name, explicitly ─────────────
 // The `hooks-parity` stage is the only selector whose value matches more than one suite, so it is the
 // only one where a partial regression is invisible: dropping one suite still leaves the stage green.
 // Asserting the exact selection (not just "> 0 suites") is what makes that halving detectable.
-test('STAGE-002 --filter=parity selects exactly protocol-text-parity and sync-carrier-parity', async () => {
+test('STAGE-002 --filter=parity selects every parity suite', async () => {
     const { code, stdout } = await run(process.execPath, [hooksRunnerAbs, '--list', '--filter=parity']);
     assert.equal(code, 0, '--list must exit 0');
 
     const selected = listedSuiteNames(stdout);
 
-    assert.deepEqual(selected, ['protocol-text-parity', 'sync-carrier-parity'],
-        `the hooks-parity stage must cover BOTH parity suites.\n  selected: ${selected.join(', ') || '(none)'}`);
+    assert.deepEqual(selected, ['agent-mirror-parity', 'protocol-text-parity', 'sync-carrier-parity'],
+        `the hooks-parity stage must cover EVERY parity suite.\n  selected: ${selected.join(', ') || '(none)'}`);
 });
 
 test('STAGE-002 parses the supported Windows and POSIX list bullets', () => {

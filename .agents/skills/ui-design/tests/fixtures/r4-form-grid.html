@@ -1,0 +1,14 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Billing form</title>
+<style>body{margin:0;font:14px/1.5 system-ui,sans-serif;background:#fff;color:#1f2933}
+main{max-width:720px;margin:32px auto;padding:0 16px}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+.field label{display:block;font-weight:500;margin-bottom:4px}
+.field input{display:block;width:100%;box-sizing:border-box;height:40px;border:1px solid #cbd2d9;border-radius:6px;padding:0 10px;font:inherit}
+.field small{display:block;color:#52606d;margin-top:4px}
+.p{min-width:140px;height:40px;border-radius:8px;background:#1d4ed8;color:#fff;border:0;font:inherit;margin-top:16px}</style></head>
+<body><main><h1>Billing details</h1><form onsubmit="return false"><div class="fields">
+<div class="field"><label for="a">First name</label><input id="a"></div>
+<div class="field"><label for="b">Last name</label><input id="b"></div>
+<div class="field"><label for="c">VAT number</label><input id="c"><small>Optional. Shown on every invoice we send you.</small></div>
+<div class="field"><label for="d">Country</label><input id="d"></div>
+</div><button class="p">Save details</button></form></main></body></html>

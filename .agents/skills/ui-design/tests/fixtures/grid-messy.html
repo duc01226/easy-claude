@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Video library — messy grid</title>
+<style>
+  body { margin: 0; font: 15px/1.5 system-ui, sans-serif; background: #ffffff; color: #1f2933; }
+  main { max-width: 1200px; margin: 24px auto; padding: 0 16px; }
+  header { display: flex; align-items: center; }
+  .primary { font: inherit; margin-left: 37%; padding: 8px 16px; border-radius: 6px; background: #1d4ed8; color: #ffffff; border: 1px solid #1d4ed8; }
+  .grid { display: grid; grid-template-columns: repeat(3, 200px); gap: 16px; align-items: start; }
+  .tile img { width: 100%; display: block; }
+  .tall img { height: 320px; object-fit: cover; }
+  .wide img { height: 112px; object-fit: cover; }
+  .tile p { margin: 4px 0 0; }
+</style>
+</head>
+<body>
+<main>
+  <header><h1>Videos</h1><button class="primary">Upload video</button></header>
+  <div class="grid">
+    <div class="tile tall"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='3'%3E%3Crect width='4' height='3' fill='%23cbd2d9'/%3E%3C/svg%3E" alt=""><p>Spring launch</p></div>
+    <div class="tile wide"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='3'%3E%3Crect width='4' height='3' fill='%23cbd2d9'/%3E%3C/svg%3E" alt=""><p>Studio tour</p></div>
+    <div class="tile tall"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='3'%3E%3Crect width='4' height='3' fill='%23cbd2d9'/%3E%3C/svg%3E" alt=""><p>Team intro</p></div>
+    <div class="tile wide"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='3'%3E%3Crect width='4' height='3' fill='%23cbd2d9'/%3E%3C/svg%3E" alt=""><p>Product demo</p></div>
+  </div>
+</main>
+</body>
+</html>

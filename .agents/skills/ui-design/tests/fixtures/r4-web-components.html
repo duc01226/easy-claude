@@ -1,0 +1,26 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Web components</title>
+<style>body{margin:0;font:15px/1.5 system-ui,sans-serif;background:#fff;color:#1f2933}main{max-width:720px;margin:32px auto;padding:0 16px}</style>
+<script>
+class DsButton extends HTMLElement {
+  constructor() {
+    super();
+  }
+  connectedCallback() {
+    if (this.shadowRoot) return;
+    const root = this.attachShadow({ mode: 'open' });
+    const filled = this.getAttribute('variant') === 'filled';
+    root.innerHTML = `<style>button{min-width:140px;height:40px;border-radius:8px;font:inherit;border:1px solid #1d4ed8;${filled ? 'background:#1d4ed8;color:#fff' : 'background:transparent;color:#1d4ed8'}}</style><button part="base"><slot></slot></button>`;
+  }
+}
+customElements.define('ds-button', DsButton);
+class DsIconButton extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' }).innerHTML = '<style>button{width:20px;height:20px;padding:0;border:0;background:transparent}</style><button><svg width="16" height="16" viewBox="0 0 16 16"><path d="M3 3l10 10M13 3L3 13" stroke="#ccc" stroke-width="1.5"/></svg></button>';
+  }
+}
+customElements.define('ds-icon-button', DsIconButton);
+</script></head>
+<body><main><h1>Publish post</h1><p>Ready when you are.</p>
+<ds-icon-button></ds-icon-button>
+<ds-button variant="filled">Save draft</ds-button> <ds-button variant="filled">Publish</ds-button></main></body></html>

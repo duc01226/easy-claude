@@ -5,9 +5,14 @@
 // opencode has no shell-command hook system; hooks are JavaScript plugin
 // callbacks. This bridge loads the project's Claude hooks (Node scripts that
 // read a JSON event on stdin and exit 0 = allow / 2 = block) and drives them
-// from opencode's plugin events, translating opencode tool ids + argument
+// from opencode's plugin surfaces, translating opencode tool ids + argument
 // shapes into the Claude hook payload contract and translating the hooks'
 // stdout/stderr/exit codes back into opencode's block/rewrite/context model.
+//
+// Two host generations are supported from one file. opencode V2 reads the
+// default export's `id` + `setup(ctx)` and registers hooks on the owning
+// domains plus the public event stream. opencode V1 calls the default object's
+// `server()` hook map; older V1 releases fall back to the named export.
 //
 // Portable: only node: built-ins are imported, the project root is discovered
 // from the nearest `.claude` ancestor, and hook paths are repo-relative.
@@ -370,8 +375,10 @@ function nextPartId(baseId, parts) {
   }
 }
 
-export const EasyClaudeHooks = async (input) => {
-  const seed = input && (input.directory || input.worktree) ? input.directory || input.worktree : process.cwd();
+// State shared by both host surfaces. opencode V1 returns one object of hooks from a
+// plugin function; V2 registers each hook on a domain in `setup(ctx)`. Both need the
+// same per-session caches, so they are built here once and driven by either surface.
+function createBridgeCore(seed) {
   const root = findRoot(seed);
   const startedSessions = new Set();
   const sessionStartContext = new Map();
@@ -400,16 +407,29 @@ export const EasyClaudeHooks = async (input) => {
     }
     if (pending.size > 0) pendingToolContext.set(key, pending);
   }
-  // Child (delegated) sessions, learned from the SessionInfo on created/updated events. session.idle
-  // carries only the session id, so this is how a child going idle is told apart from the main one.
+  // Child (delegated) sessions, learned from SessionInfo on created/updated events or
+  // from `ctx.session.get`. SessionEnd/Stop carry only the session id on V2, so this is
+  // how a child going idle is told apart from the main one.
   const delegatedSessions = new Set();
+  // Sessions whose parent state was actually observed. A session created before the
+  // plugin loaded has no trustworthy kind and must not raise a main-session alert.
+  const knownSessions = new Set();
+
+  function rememberSessionInfo(info) {
+    if (!info || typeof info !== "object") return;
+    const id = info.id || info.sessionID;
+    if (!id) return;
+    knownSessions.add(sessionKey(id));
+    if (info.parentID) delegatedSessions.add(sessionKey(id));
+    else delegatedSessions.delete(sessionKey(id));
+  }
 
   function rememberSessionKind(props) {
-    // The bus event nests the SessionInfo under `info`; the durable session event carries the same
-    // fields flat beside its sessionID. Read both so no child session is mistaken for the main one.
+    // The V1 bus event nests the SessionInfo under `info`; the durable session event
+    // carries the same fields flat beside its sessionID. Read both so no child session
+    // is mistaken for the main one.
     const info = props.info && typeof props.info === "object" ? props.info : props;
-    const id = info.id || props.sessionID;
-    if (id && info.parentID) delegatedSessions.add(sessionKey(id));
+    rememberSessionInfo({ id: info.id || props.sessionID, parentID: info.parentID });
   }
 
   async function ensureSessionStart(sessionID, source) {
@@ -423,15 +443,94 @@ export const EasyClaudeHooks = async (input) => {
   }
 
   return {
+    root,
+    seed,
+    startedSessions,
+    sessionStartContext,
+    pendingToolContext,
+    delegatedSessions,
+    knownSessions,
+    queueToolContext,
+    rememberSessionInfo,
+    rememberSessionKind,
+    ensureSessionStart,
+  };
+}
+
+// Append bridge-owned context to a V2 tool result. `content` is the model-facing text;
+// `output` is a structured result and stays untouched when content exists.
+function appendToolResultText(result, text) {
+  if (!result || typeof result !== "object") return false;
+  if (typeof result.content === "string") {
+    result.content += `\n\n${text}`;
+    return true;
+  }
+  if (Array.isArray(result.content)) {
+    result.content.push({ type: "text", text });
+    return true;
+  }
+  if (typeof result.output === "string") {
+    result.output += `\n\n${text}`;
+    return true;
+  }
+  result.content = text;
+  return true;
+}
+
+function toolResultText(result) {
+  if (!result || typeof result !== "object") return "";
+  if (typeof result.content === "string") return result.content;
+  if (Array.isArray(result.content)) {
+    return result.content
+      .filter((part) => part && part.type === "text" && typeof part.text === "string")
+      .map((part) => part.text)
+      .join("\n");
+  }
+  return typeof result.output === "string" ? result.output : "";
+}
+
+export const EasyClaudeHooks = async (input) => {
+  const seed = input && (input.directory || input.worktree) ? input.directory || input.worktree : process.cwd();
+  const core = createBridgeCore(seed);
+  const {
+    root,
+    startedSessions,
+    sessionStartContext,
+    pendingToolContext,
+    delegatedSessions,
+    queueToolContext,
+    rememberSessionKind,
+    ensureSessionStart,
+  } = core;
+
+  return {
     event: async ({ event }) => {
       if (!event || typeof event.type !== "string") return;
       const props = event.properties && typeof event.properties === "object" ? event.properties : {};
       const sessionID = props.sessionID || props.session_id || (props.info && props.info.id) || "";
       switch (event.type) {
-        case "session.created":
+        case "session.created": {
           rememberSessionKind(props);
           await ensureSessionStart(sessionID, "startup");
+          const info = props.info && typeof props.info === "object" ? props.info : null;
+          if (info && info.parentID) {
+            const result = await runEventHooks(root, "SubagentStart", {
+              payload: {
+                hook_event_name: "SubagentStart",
+                session_id: info.parentID,
+                agent_id: sessionID,
+                agent_type: typeof info.agent === "string" && info.agent ? info.agent : "subagent",
+                cwd: seed,
+              },
+            });
+            if (result.contexts.length > 0) {
+              const key = sessionKey(sessionID);
+              sessionStartContext.set(key, [...(sessionStartContext.get(key) || []), ...result.contexts]);
+            }
+            warn("SubagentStart", result);
+          }
           break;
+        }
         case "session.updated":
           rememberSessionKind(props);
           break;
@@ -570,10 +669,17 @@ export const EasyClaudeHooks = async (input) => {
       const result = await runEventHooks(root, "UserPromptSubmit", {
         payload: { hook_event_name: "UserPromptSubmit", prompt, session_id: sessionID, cwd: seed },
       });
-      if (result.contexts.length > 0) {
+      const command = /^\s*\/([a-z0-9][a-z0-9-]*)\b/i.exec(prompt);
+      const expansion = command
+        ? await runEventHooks(root, "UserPromptExpansion", {
+            payload: { hook_event_name: "UserPromptExpansion", command_name: `/${command[1]}`, prompt, session_id: sessionID, cwd: seed },
+          })
+        : null;
+      const contexts = [...(expansion ? expansion.contexts : []), ...result.contexts];
+      if (contexts.length > 0) {
         const identity = contextPartIdentity(hookInput, output, parts);
         if (identity) {
-          for (const text of result.contexts) {
+          for (const text of contexts) {
             const id = nextPartId(identity.baseId, parts);
             parts.push({ id, sessionID: identity.sessionID, messageID: identity.messageID, type: "text", text, synthetic: true });
           }
@@ -582,6 +688,7 @@ export const EasyClaudeHooks = async (input) => {
           process.stderr.write("[opencode-hooks] UserPromptSubmit: context dropped, the message has no part id, sessionID or messageID\n");
         }
       }
+      if (expansion) warn("UserPromptExpansion", expansion);
       warn("UserPromptSubmit", result);
     },
 
@@ -627,4 +734,402 @@ export const EasyClaudeHooks = async (input) => {
       warn("PermissionRequest", result);
     },
   };
+};
+
+// opencode V2 plugin surface. V2 does not run the V1 hook object at all: it calls the
+// default export's `setup(ctx)`, and each hook is registered on the domain that owns
+// the operation. These registrations reproduce the same Claude payloads and decisions
+// as the V1 object above. The event stream also differs in V2: forms replace
+// question.asked, execution events replace session.idle, and session.compaction.ended
+// replaces session.compacted.
+// Only the events the bridge acts on. V2's stream also carries token/tool deltas; a
+// full subscription would run this loop for every streamed chunk of every session.
+const V2_EVENT_TYPES = [
+  "session.created",
+  "session.deleted",
+  "session.compaction.ended",
+  "session.execution.started",
+  "session.execution.succeeded",
+  "session.execution.interrupted",
+  "session.execution.failed",
+  "form.created",
+  "form.replied",
+  "form.cancelled",
+  "permission.asked",
+  "permission.replied",
+];
+
+export async function EasyClaudeHooksV2(ctx) {
+  const seed = ctx && ctx.location && ctx.location.directory ? ctx.location.directory : process.cwd();
+  const core = createBridgeCore(seed);
+  const {
+    root,
+    startedSessions,
+    sessionStartContext,
+    pendingToolContext,
+    delegatedSessions,
+    knownSessions,
+    queueToolContext,
+    rememberSessionInfo,
+    ensureSessionStart,
+  } = core;
+  // A form or permission prompt means the turn paused for the developer. The input
+  // alert already told them to look, so the execution-complete alert is suppressed
+  // until the prompt is answered or a new execution starts.
+  const awaitingInput = new Set();
+  // V2 can report the same finished turn as both succeeded and interrupted. Alert once
+  // per execution: a new execution clears the mark.
+  const completedSessions = new Set();
+  // A child session is announced once; never replay SubagentStart for the same child.
+  const subagentStarts = new Set();
+  // UserPromptSubmit context is model-facing, not part of the saved user message. Hold
+  // it until the first model request for the turn and push it into the system prompt.
+  const pendingPromptContext = new Map();
+
+  async function rememberSession(sessionID) {
+    if (!sessionID || !ctx.session || typeof ctx.session.get !== "function") return null;
+    try {
+      const info = await ctx.session.get({ sessionID });
+      if (info) rememberSessionInfo({ id: info.id || sessionID, parentID: info.parentID });
+      return info || null;
+    } catch {
+      // A session deleted before this lookup stays unknown, which withholds the alert.
+      return null;
+    }
+  }
+
+  // Claude's SubagentStart fires when a delegated agent starts. V2 announces the child
+  // session on session.created; its parentID and agent id are the Claude payload fields.
+  // The hooks' additionalContext belongs to that child, so it joins the child's startup
+  // context and is pushed by the session context hook on its first model request.
+  async function runSubagentStart(sessionID, info) {
+    const key = sessionKey(sessionID);
+    if (subagentStarts.has(key)) return;
+    subagentStarts.add(key);
+    const parentID = typeof info.parentID === "string" ? info.parentID : "";
+    if (!parentID || info.fork) return;
+    const result = await runEventHooks(root, "SubagentStart", {
+      payload: {
+        hook_event_name: "SubagentStart",
+        session_id: parentID,
+        agent_id: sessionID,
+        agent_type: typeof info.agent === "string" && info.agent ? info.agent : "subagent",
+        cwd: seed,
+      },
+    });
+    if (result.contexts.length > 0) {
+      sessionStartContext.set(key, [...(sessionStartContext.get(key) || []), ...result.contexts]);
+    }
+    warn("SubagentStart", result);
+  }
+
+  async function notify(eventName, matcher, payload) {
+    const result = await runEventHooks(root, "Notification", { matcher: [matcher], payload });
+    warn(`Notification:${eventName}`, result);
+  }
+
+  // The V2 event stream is server-wide. A plugin instance belongs to one location, so
+  // ignore events that name another project directory; otherwise a second open project
+  // would run this project's hooks (and raise its notifications) for its sessions.
+  function eventBelongsToLocation(event) {
+    const directory = event && event.location && typeof event.location.directory === "string" ? event.location.directory : "";
+    if (!directory) return true;
+    const normalize = (value) => path.resolve(value).replaceAll("\\", "/").replace(/\/+$/, "");
+    const a = normalize(directory);
+    const b = normalize(seed);
+    return process.platform === "win32" ? a.toLowerCase() === b.toLowerCase() : a === b;
+  }
+
+  async function handleEvent(event) {
+    if (!event || typeof event.type !== "string") return;
+    if (!eventBelongsToLocation(event)) return;
+    const data = event.data && typeof event.data === "object" ? event.data : {};
+    switch (event.type) {
+      case "session.created": {
+        const sessionID = data.sessionID || "";
+        const info = await rememberSession(sessionID);
+        await ensureSessionStart(sessionID, "startup");
+        if (info && info.parentID) await runSubagentStart(sessionID, info);
+        break;
+      }
+      case "session.deleted": {
+        const sessionID = data.sessionID || "";
+        const key = sessionKey(sessionID);
+        pendingToolContext.delete(key);
+        startedSessions.delete(key);
+        sessionStartContext.delete(key);
+        awaitingInput.delete(key);
+        completedSessions.delete(key);
+        subagentStarts.delete(key);
+        pendingPromptContext.delete(key);
+        const payload = { hook_event_name: "SessionEnd", reason: "exit", session_id: sessionID, cwd: seed };
+        if (!knownSessions.has(key)) payload.conversation_kind = "unknown";
+        else if (delegatedSessions.has(key)) payload.agent_id = sessionID;
+        const result = await runEventHooks(root, "SessionEnd", { payload });
+        delegatedSessions.delete(key);
+        knownSessions.delete(key);
+        warn("SessionEnd", result);
+        break;
+      }
+      case "session.compaction.ended": {
+        const sessionID = data.sessionID || "";
+        recordProtocolCompaction(root, sessionID);
+        const key = sessionKey(sessionID);
+        pendingToolContext.delete(key);
+        sessionStartContext.delete(key);
+        startedSessions.delete(key);
+        await ensureSessionStart(sessionID, "compact");
+        break;
+      }
+      case "session.execution.started": {
+        const key = sessionKey(data.sessionID);
+        awaitingInput.delete(key);
+        completedSessions.delete(key);
+        break;
+      }
+      case "session.execution.succeeded":
+      case "session.execution.interrupted": {
+        const sessionID = data.sessionID || "";
+        const key = sessionKey(sessionID);
+        if (awaitingInput.has(key)) break;
+        if (completedSessions.has(key)) break;
+        completedSessions.add(key);
+        const payload = { hook_event_name: "Stop", session_id: sessionID, cwd: seed };
+        if (delegatedSessions.has(key)) payload.agent_id = sessionID;
+        const result = await runEventHooks(root, "Stop", { payload });
+        warn("Stop", result);
+        break;
+      }
+      case "session.execution.failed": {
+        const key = sessionKey(data.sessionID);
+        awaitingInput.delete(key);
+        completedSessions.delete(key);
+        break;
+      }
+      case "form.created": {
+        const form = data.form && typeof data.form === "object" ? data.form : {};
+        const sessionID = form.sessionID || data.sessionID || "";
+        const fields = Array.isArray(form.fields) ? form.fields : [];
+        const first = fields[0] && typeof fields[0] === "object" ? fields[0] : {};
+        // Prefer the first field's title: that is the question the user must answer.
+        const message = typeof first.title === "string" && first.title.trim()
+          ? first.title
+          : typeof form.title === "string" ? form.title : "";
+        awaitingInput.add(sessionKey(sessionID));
+        await notify("form.created", "AskUserPrompt", {
+          hook_event_name: "AskUserPrompt",
+          tool_name: "AskUserQuestion",
+          message,
+          session_id: sessionID,
+          cwd: seed,
+        });
+        break;
+      }
+      case "form.replied":
+      case "form.cancelled": {
+        awaitingInput.delete(sessionKey(data.sessionID));
+        break;
+      }
+      case "permission.asked": {
+        const sessionID = data.sessionID || "";
+        awaitingInput.add(sessionKey(sessionID));
+        const action = typeof data.action === "string" ? data.action : "";
+        const message = typeof data.message === "string" && data.message
+          ? data.message
+          : action ? `opencode needs permission: ${action}` : "opencode needs permission";
+        await notify("permission.asked", "permission_prompt", {
+          hook_event_name: "Notification",
+          notification_type: "permission_prompt",
+          message,
+          session_id: sessionID,
+          cwd: seed,
+        });
+        break;
+      }
+      case "permission.replied": {
+        awaitingInput.delete(sessionKey(data.sessionID));
+        break;
+      }
+      default:
+        break;
+    }
+  }
+
+  await ctx.tool.hook("execute.before", async (event) => {
+    const tool = event && event.tool;
+    const names = claudeToolNames(tool);
+    const result = await runEventHooks(root, "PreToolUse", {
+      matcher: names,
+      payload: {
+        hook_event_name: "PreToolUse",
+        tool_name: names[0] || tool,
+        tool_input: toClaudeToolInput(tool, event && event.input),
+        // The question tool now emits form.created once it is waiting for an answer.
+        // Defer its PreToolUse notification so the developer gets one alert.
+        notification_deferred: tool === "question",
+        session_id: event && event.sessionID,
+        cwd: seed,
+      },
+    });
+    queueToolContext(event && event.sessionID, result.contexts);
+    if (result.updatedInput && event && event.input && typeof event.input === "object") {
+      applyUpdatedInput(event.input, result.updatedInput);
+    }
+    if (result.blocked) {
+      throw new Error((result.denyReason || "Blocked by a .claude hook").trim());
+    }
+    warn(`PreToolUse:${tool}`, result);
+  });
+
+  await ctx.tool.hook("execute.after", async (event) => {
+    if (!event) return;
+    const tool = event.tool;
+    const names = claudeToolNames(tool);
+    if (event.status !== "completed") {
+      // Claude's PostToolUseFailure: the V2 callback also receives failed or
+      // interrupted tools. Its context is appended to the failed result when that
+      // result is object-shaped, otherwise it waits for the next system request.
+      const failure = event.error && typeof event.error === "object" && typeof event.error.message === "string"
+        ? event.error.message
+        : typeof event.error === "string" ? event.error : "";
+      const result = await runEventHooks(root, "PostToolUseFailure", {
+        matcher: names,
+        payload: {
+          hook_event_name: "PostToolUseFailure",
+          tool_name: names[0] || tool,
+          tool_input: toClaudeToolInput(tool, event.input),
+          error: failure,
+          is_interrupt: event.status === "interrupted",
+          session_id: event.sessionID,
+          cwd: seed,
+        },
+      });
+      if (result.contexts.length > 0 && !appendToolResultText(event.result, result.contexts.join("\n\n"))) {
+        queueToolContext(event.sessionID, result.contexts);
+      }
+      warn(`PostToolUseFailure:${tool}`, result);
+      return;
+    }
+    const text = toolResultText(event.result);
+    const result = await runEventHooks(root, "PostToolUse", {
+      matcher: names,
+      payload: {
+        hook_event_name: "PostToolUse",
+        tool_name: names[0] || tool,
+        tool_input: toClaudeToolInput(tool, event.input),
+        // Claude's contract field is an object. V2 exposes the completed result;
+        // keep `tool_result` for the repo's own stdin normalizer.
+        tool_response: { success: true, output: text },
+        tool_result: text,
+        session_id: event.sessionID,
+        cwd: seed,
+      },
+    });
+    const key = sessionKey(event.sessionID);
+    const contexts = [...(pendingToolContext.get(key) || []), ...result.contexts];
+    pendingToolContext.delete(key);
+    if (contexts.length > 0) appendToolResultText(event.result, contexts.join("\n\n"));
+    warn(`PostToolUse:${tool}`, result);
+  });
+
+  await ctx.session.hook("prompt", async (event) => {
+    const sessionID = event && event.sessionID;
+    await rememberSession(sessionID);
+    await ensureSessionStart(sessionID, "startup");
+    const key = sessionKey(sessionID);
+    pendingPromptContext.delete(key);
+    const prompt = event && event.prompt && typeof event.prompt.text === "string" ? event.prompt.text : "";
+    const command = /^\s*\/([a-z0-9][a-z0-9-]*)\b/i.exec(prompt);
+    const expansion = command
+      ? await runEventHooks(root, "UserPromptExpansion", {
+          payload: { hook_event_name: "UserPromptExpansion", command_name: `/${command[1]}`, prompt, session_id: sessionID, cwd: seed },
+        })
+      : null;
+    const result = await runEventHooks(root, "UserPromptSubmit", {
+      payload: { hook_event_name: "UserPromptSubmit", prompt, session_id: sessionID, cwd: seed },
+    });
+    const contexts = [...(expansion ? expansion.contexts : []), ...result.contexts];
+    if (contexts.length > 0) pendingPromptContext.set(key, contexts);
+    if (expansion) warn("UserPromptExpansion", expansion);
+    warn("UserPromptSubmit", result);
+  });
+
+  await ctx.session.hook("context", async (event) => {
+    if (!event || !Array.isArray(event.system)) return;
+    const key = sessionKey(event.sessionID);
+    // A developer can change skill selection between turns. Never replay the cached
+    // startup policy: it could outrank a newer prompt-level reset. The real hook
+    // reads effective configuration here for main AND delegated sessions.
+    const policyMarker = "<!-- CK:SKILL-ACTIVATION-POLICY -->";
+    const cached = (sessionStartContext.get(key) || []).filter((text) => !text.startsWith(policyMarker));
+    if (cached.length > 0) event.system.push(...cached.map((text) => ({ type: "text", text })));
+    const promptContext = pendingPromptContext.get(key);
+    if (promptContext) {
+      event.system.push(...promptContext.map((text) => ({ type: "text", text })));
+      pendingPromptContext.delete(key);
+    }
+    const livePolicy = await runEventHooks(root, "SessionStart", {
+      matcher: ["resume"],
+      hookPath: ".claude/hooks/skill-activation-inject.cjs",
+      payload: { hook_event_name: "SessionStart", source: "resume", session_id: event.sessionID, cwd: seed },
+    });
+    event.system.push(...livePolicy.contexts.map((text) => ({ type: "text", text })));
+    warn("SkillActivationPolicy", livePolicy);
+    // Fallback sink: pre-tool context that no tool output carried.
+    const pending = pendingToolContext.get(key);
+    if (pending) {
+      event.system.push(...pending.map((text) => ({ type: "text", text })));
+      pendingToolContext.delete(key);
+    }
+  });
+
+  await ctx.permission.hook("evaluate", async (event) => {
+    // Claude's PermissionRequest fires when a prompt is about to be shown, not for
+    // actions the configured rules already allow. V2 evaluates every decision, so
+    // skip allow here to keep the same contract (and avoid a hook spawn per action).
+    if (!event || event.effect === "allow") return;
+    const result = await runEventHooks(root, "PermissionRequest", {
+      payload: {
+        hook_event_name: "PermissionRequest",
+        tool_name: event.action,
+        tool_input: { resources: Array.isArray(event.resources) ? event.resources : [] },
+        session_id: event.sessionID,
+        cwd: seed,
+      },
+    });
+    if (result.blocked) {
+      event.effect = "deny";
+      event.message = result.denyReason || "Denied by .claude hook";
+    }
+    warn("PermissionRequest", result);
+  });
+
+  const controller = new AbortController();
+  void (async () => {
+    try {
+      for await (const event of ctx.event.subscribe({ types: V2_EVENT_TYPES, signal: controller.signal })) {
+        try {
+          await handleEvent(event);
+        } catch (error) {
+          process.stderr.write(`[opencode-hooks] event ${event && event.type}: ${error && error.message ? error.message : error}\n`);
+        }
+      }
+    } catch (error) {
+      if (!controller.signal.aborted) {
+        process.stderr.write(`[opencode-hooks] event subscription: ${error && error.message ? error.message : error}\n`);
+      }
+    }
+  })();
+
+  return () => controller.abort();
+}
+
+// V2 requires a default definition with an id and setup(). The same object also carries
+// the V1 `server()` function, so one generated file works on both host generations:
+// V2 reads id/setup, V1 calls server(). The named export stays for older V1 releases
+// that only understood the plugin function export.
+export default {
+  id: "easy-claude-hooks",
+  setup: EasyClaudeHooksV2,
+  server: EasyClaudeHooks,
 };

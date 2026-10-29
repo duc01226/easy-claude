@@ -87,7 +87,8 @@ test('user-question instructions use the ask user question tool', () => {
 
 test('shared question guidance is available to all harnesses', () => {
   const protocol = readCanonicalProtocol(bundleRoot, 'critical-thinking-mindset');
-  assert.match(protocol, /Use ask user question tool to ask user\./);
+  assert.match(protocol, /Ask the user with the host's native question tool/);
+  assert.match(protocol, /OpenCode `question`/);
 });
 
 // Intent: Codex names one tracking concept; a list label and a prose mention of the same tool read alike.

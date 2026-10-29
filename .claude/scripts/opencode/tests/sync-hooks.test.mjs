@@ -181,6 +181,97 @@ async function loadBridge(pluginPath) {
   return module.EasyClaudeHooks;
 }
 
+async function importPlugin(pluginPath) {
+  return await import(`${pathToFileURL(pluginPath).href}?t=${Date.now()}-${Math.random()}`);
+}
+
+// A minimal opencode V2 plugin context: it records each domain hook registration and
+// exposes a push-driven event stream, so a test can drive the real generated setup().
+function createV2Host(root, sessions = {}) {
+  const registrations = { tool: {}, session: {}, permission: {} };
+  const queue = [];
+  let wake = null;
+  let stopped = false;
+  const source = {
+    push(event) {
+      queue.push(event);
+      if (wake) {
+        const resume = wake;
+        wake = null;
+        resume();
+      }
+    },
+    async *subscribe({ signal } = {}) {
+      signal?.addEventListener("abort", () => {
+        stopped = true;
+        if (wake) {
+          const resume = wake;
+          wake = null;
+          resume();
+        }
+      }, { once: true });
+      while (!stopped) {
+        if (queue.length > 0) {
+          yield queue.shift();
+          continue;
+        }
+        await new Promise((resolve) => {
+          wake = resolve;
+        });
+      }
+    },
+  };
+  const ctx = {
+    location: { directory: root },
+    tool: {
+      hook: async (name, callback) => {
+        registrations.tool[name] = callback;
+        return { dispose() {} };
+      },
+    },
+    session: {
+      hook: async (name, callback) => {
+        registrations.session[name] = callback;
+        return { dispose() {} };
+      },
+      get: async ({ sessionID }) => {
+        const info = sessions[sessionID];
+        if (info === null) throw new Error("session is gone");
+        return info ?? { id: sessionID };
+      },
+    },
+    permission: {
+      hook: async (name, callback) => {
+        registrations.permission[name] = callback;
+        return { dispose() {} };
+      },
+    },
+    event: { subscribe: source.subscribe },
+  };
+  return { ctx, registrations, emit: source.push };
+}
+
+async function waitFor(check, message, timeout = 4000) {
+  const deadline = Date.now() + timeout;
+  for (;;) {
+    if (await check()) return;
+    if (Date.now() > deadline) throw new Error(`timed out waiting for ${message}`);
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+}
+
+async function recordedPayloadCount(root, count) {
+  await waitFor(async () => {
+    try {
+      const text = await fs.readFile(path.join(root, "tmp", "hook-payloads.jsonl"), "utf8");
+      return text.split("\n").filter(Boolean).length >= count;
+    } catch {
+      return false;
+    }
+  }, `${count} recorded hook payload(s)`);
+  return readRecordedPayloads(root);
+}
+
 // The chat.message output opencode hands the plugin: every user part is already saved
 // with its own id plus the message's sessionID and messageID.
 function userMessage(text, { sessionID = "ses_test", messageID = "msg_test", partID = "prt_test" } = {}) {
@@ -222,9 +313,9 @@ test("buildHooksConfig compiles supported events and reports the unsupported one
 });
 
 // TC-KNW-045 (third host) — spec KNW BR-KNW-20: the shipped settings give OpenCode the knowledge router on
-// prompts (including `$skill` markers), skill invocation, pack reads and compaction, and nothing on the
-// typed-command or helper-agent start events it does not have.
-test("TC-KNW-045: the third host registers the knowledge router for prompts, skill starts, pack reads and compaction only", async () => {
+// prompts (including `$skill` markers), typed commands, helper-agent starts, skill invocation, pack reads and
+// compaction, so every event the hook is registered on reaches the same payload on both hosts.
+test("TC-KNW-045: the third host registers the knowledge router for prompts, typed commands, helper-agent starts, skill starts, pack reads and compaction", async () => {
   const settingsFile = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "settings.json");
   const { hooks, report } = buildHooksConfig(JSON.parse(await fs.readFile(settingsFile, "utf8")));
   const registrations = Object.entries(hooks).flatMap(([event, groups]) => groups.flatMap(group => group.hooks
@@ -234,11 +325,14 @@ test("TC-KNW-045: the third host registers the knowledge router for prompts, ski
     "PostToolUse:Read if Read(**/knowledge-base/*.md)",
     "PostToolUse:Skill",
     "SessionStart:compact",
+    "SubagentStart:*",
+    "UserPromptExpansion:*",
     "UserPromptSubmit:*",
   ]);
   const unsupported = report.skipped_events.map(entry => entry.event);
-  assert.ok(unsupported.includes("SubagentStart"), "no helper-agent start event on the third host");
-  assert.ok(unsupported.includes("UserPromptExpansion"), "no typed-command event on the third host");
+  for (const event of ["SubagentStart", "UserPromptExpansion", "PostToolUseFailure"]) {
+    assert.equal(unsupported.includes(event), false, `${event} is bridged on the third host`);
+  }
 });
 
 test("renderPlugin substitutes the HOOKS placeholder and is deterministic", async () => {
@@ -839,6 +933,421 @@ test("[TC-NT-011] generated bridge forwards question requests to the notificatio
     assert.equal(payload.hook_event_name, "AskUserPrompt");
     assert.equal(payload.tool_name, "AskUserQuestion");
     assert.equal(payload.session_id, "s1");
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
+test("generated plugin exports the opencode V2 definition (id + setup) and keeps the V1 server entrypoint", async () => {
+  const root = await createProject();
+  try {
+    const { pluginPath } = await materializeOpencodeHooks({ rootDir: root });
+    const module = await importPlugin(pluginPath);
+    assert.equal(module.default.id, "easy-claude-hooks");
+    assert.equal(typeof module.default.setup, "function", "V2 requires a default definition with setup()");
+    assert.equal(typeof module.default.server, "function", "V1 reads server() from the default object");
+    assert.equal(module.default.server, module.EasyClaudeHooks, "both host generations drive the same bridge");
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
+test("[TC-NT-011] V2 setup raises one question alert from form.created and defers the question tool precursor", async () => {
+  const settings = {
+    hooks: {
+      Notification: [{ matcher: "AskUserPrompt|permission_prompt", hooks: [{ type: "command", command: hookCommand("record-all.cjs") }] }],
+      PreToolUse: [{ matcher: "AskUserQuestion", hooks: [{ type: "command", command: hookCommand("record-all.cjs") }] }],
+    },
+  };
+  const root = await createProject(settings);
+  try {
+    const { pluginPath } = await materializeOpencodeHooks({ rootDir: root });
+    const module = await importPlugin(pluginPath);
+    const host = createV2Host(root);
+    const cleanup = await module.default.setup(host.ctx);
+    try {
+      // When opencode runs its question tool, then publishes the form that waits for the answer
+      await host.registrations.tool["execute.before"]({ tool: "question", sessionID: "s-question", input: {} });
+      host.emit({ type: "form.created", data: { form: { id: "form_1", sessionID: "s-question", title: "Pick one", fields: [{ key: "q0", title: "Choose a plan", type: "string" }] } } });
+
+      const [precursor, alert] = await recordedPayloadCount(root, 2);
+      // Then the tool precursor is deferred and the form event is the one question alert
+      assert.equal(precursor.notification_deferred, true);
+      assert.equal(alert.hook_event_name, "AskUserPrompt");
+      assert.equal(alert.tool_name, "AskUserQuestion");
+      assert.equal(alert.session_id, "s-question");
+      assert.equal(alert.message, "Choose a plan", "the first form field title is the question the user must answer");
+      assert.match(routeThroughRealRouter(precursor, root), /Skipped: deferred question precursor/);
+      assert.doesNotMatch(routeThroughRealRouter(alert, root), /Skipped/, "the form event must reach the providers");
+    } finally {
+      cleanup();
+    }
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
+test("V2 setup ignores events that belong to another project location", async () => {
+  const settings = {
+    hooks: {
+      Notification: [{ matcher: "AskUserPrompt", hooks: [{ type: "command", command: hookCommand("record-all.cjs") }] }],
+    },
+  };
+  const root = await createProject(settings);
+  try {
+    const { pluginPath } = await materializeOpencodeHooks({ rootDir: root });
+    const module = await importPlugin(pluginPath);
+    const host = createV2Host(root);
+    const cleanup = await module.default.setup(host.ctx);
+    try {
+      host.emit({ type: "form.created", location: { directory: path.join(root, "..", "other-project") }, data: { form: { sessionID: "other", title: "Other" } } });
+      host.emit({ type: "form.created", location: { directory: root }, data: { form: { sessionID: "mine", title: "Mine" } } });
+      const [payload] = await recordedPayloadCount(root, 1);
+      assert.equal(payload.session_id, "mine");
+      assert.equal(await readRecordedPayloads(root).then((rows) => rows.length), 1, "the other project's event starts no hook");
+    } finally {
+      cleanup();
+    }
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
+test("[TC-NT-011] V2 setup forwards permission.asked to the permission_prompt notification hook", async () => {
+  const settings = {
+    hooks: {
+      Notification: [{ matcher: "AskUserPrompt|permission_prompt", hooks: [{ type: "command", command: hookCommand("record-all.cjs") }] }],
+    },
+  };
+  const root = await createProject(settings);
+  try {
+    const { pluginPath } = await materializeOpencodeHooks({ rootDir: root });
+    const module = await importPlugin(pluginPath);
+    const host = createV2Host(root);
+    const cleanup = await module.default.setup(host.ctx);
+    try {
+      host.emit({ type: "permission.asked", data: { sessionID: "s-permission", action: "bash", message: "run the deploy?" } });
+      const [payload] = await recordedPayloadCount(root, 1);
+      assert.equal(payload.hook_event_name, "Notification");
+      assert.equal(payload.notification_type, "permission_prompt");
+      assert.equal(payload.session_id, "s-permission");
+      assert.equal(payload.message, "run the deploy?");
+      assert.doesNotMatch(routeThroughRealRouter(payload, root), /Skipped/, "a permission prompt must reach the providers");
+    } finally {
+      cleanup();
+    }
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
+test("V2 setup forwards a failed tool to PostToolUseFailure and appends its context", async () => {
+  const settings = {
+    hooks: {
+      PostToolUseFailure: [{ hooks: [
+        { type: "command", command: hookCommand("record-all.cjs") },
+        { type: "command", command: hookCommand("context.cjs") },
+      ] }],
+    },
+  };
+  const root = await createProject(settings);
+  try {
+    const { pluginPath } = await materializeOpencodeHooks({ rootDir: root });
+    const module = await importPlugin(pluginPath);
+    const host = createV2Host(root);
+    const cleanup = await module.default.setup(host.ctx);
+    try {
+      // When opencode reports a failed tool, then the Claude failure hook sees the same payload
+      const failed = { content: "command failed" };
+      await host.registrations.tool["execute.after"]({
+        tool: "bash",
+        status: "failed",
+        input: { command: "false" },
+        error: { message: "exit 1" },
+        sessionID: "s-fail",
+        result: failed,
+      });
+      const [payload] = await recordedPayloadCount(root, 1);
+      assert.equal(payload.hook_event_name, "PostToolUseFailure");
+      assert.equal(payload.tool_name, "Bash");
+      assert.equal(payload.error, "exit 1");
+      assert.equal(payload.is_interrupt, false);
+      assert.equal(payload.session_id, "s-fail");
+      assert.match(failed.content, /HELLO_CONTEXT/, "the hook context is appended to the failed result");
+    } finally {
+      cleanup();
+    }
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
+test("V2 setup maps a child session.created to SubagentStart and delivers its context to the child", async () => {
+  const settings = {
+    hooks: {
+      SessionStart: [{ hooks: [{ type: "command", command: hookCommand("session.cjs") }] }],
+      SubagentStart: [{ hooks: [
+        { type: "command", command: hookCommand("record-all.cjs") },
+        { type: "command", command: hookCommand("context.cjs") },
+      ] }],
+    },
+  };
+  const root = await createProject(settings);
+  try {
+    const { pluginPath } = await materializeOpencodeHooks({ rootDir: root });
+    const module = await importPlugin(pluginPath);
+    const host = createV2Host(root, { ses_child: { id: "ses_child", parentID: "ses_parent", agent: "code-reviewer" } });
+    const cleanup = await module.default.setup(host.ctx);
+    try {
+      // When opencode creates a child session, then the Claude SubagentStart hooks see it
+      host.emit({ type: "session.created", data: { sessionID: "ses_child" } });
+      const [payload] = await recordedPayloadCount(root, 1);
+      assert.equal(payload.hook_event_name, "SubagentStart");
+      assert.equal(payload.session_id, "ses_parent");
+      assert.equal(payload.agent_id, "ses_child");
+      assert.equal(payload.agent_type, "code-reviewer");
+      await waitFor(async () => {
+        const context = { sessionID: "ses_child", system: [] };
+        await host.registrations.session["context"](context);
+        const texts = context.system.map((part) => part.text);
+        return texts.includes("SESSION_CTX") && texts.includes("HELLO_CONTEXT");
+      }, "the child receives both its SessionStart and SubagentStart context");
+    } finally {
+      cleanup();
+    }
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
+test("V2 setup maps a typed /command to UserPromptExpansion and delivers its context", async () => {
+  const settings = {
+    hooks: {
+      UserPromptExpansion: [{ hooks: [
+        { type: "command", command: hookCommand("record-all.cjs") },
+        { type: "command", command: hookCommand("context.cjs") },
+      ] }],
+    },
+  };
+  const root = await createProject(settings);
+  try {
+    const { pluginPath } = await materializeOpencodeHooks({ rootDir: root });
+    const module = await importPlugin(pluginPath);
+    const host = createV2Host(root);
+    const cleanup = await module.default.setup(host.ctx);
+    try {
+      // When the developer types a slash command, then the Claude expansion hooks see its name
+      await host.registrations.session["prompt"]({ sessionID: "s-prompt", prompt: { text: "/plan --scope=small" } });
+      const [payload] = await recordedPayloadCount(root, 1);
+      assert.equal(payload.hook_event_name, "UserPromptExpansion");
+      assert.equal(payload.command_name, "/plan");
+      assert.equal(payload.session_id, "s-prompt");
+      await waitFor(async () => {
+        const context = { sessionID: "s-prompt", system: [] };
+        await host.registrations.session["context"](context);
+        return context.system.some((part) => part.text === "HELLO_CONTEXT");
+      }, "the prompt receives the expansion context");
+    } finally {
+      cleanup();
+    }
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
+test("[TC-NT-014] V2 setup maps execution completion to Stop and suppresses the duplicate after an input prompt", async () => {
+  const settings = {
+    hooks: {
+      Stop: [{ hooks: [{ type: "command", command: hookCommand("record-all.cjs") }] }],
+      Notification: [{ matcher: "AskUserPrompt", hooks: [{ type: "command", command: hookCommand("record-all.cjs") }] }],
+    },
+  };
+  const root = await createProject(settings);
+  try {
+    const { pluginPath } = await materializeOpencodeHooks({ rootDir: root });
+    const module = await importPlugin(pluginPath);
+    const host = createV2Host(root, { "s-main": { id: "s-main" } });
+    const cleanup = await module.default.setup(host.ctx);
+    try {
+      // A completed turn alerts once.
+      host.emit({ type: "session.execution.succeeded", data: { sessionID: "s-main" } });
+      let payloads = await recordedPayloadCount(root, 1);
+      assert.equal(payloads[0].hook_event_name, "Stop");
+      assert.equal(awaitingCount(payloads, "Stop"), 1);
+
+      // A form pauses the turn and already alerted; the completion event adds no duplicate.
+      host.emit({ type: "form.created", data: { form: { id: "form_1", sessionID: "s-main", title: "Answer" } } });
+      payloads = await recordedPayloadCount(root, 2);
+      host.emit({ type: "session.execution.succeeded", data: { sessionID: "s-main" } });
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      payloads = await readRecordedPayloads(root);
+      assert.equal(awaitingCount(payloads, "Stop"), 1, "the completion event after an input prompt is suppressed");
+
+      // A new execution clears the pending-input state, so its completion alerts again.
+      host.emit({ type: "session.execution.started", data: { sessionID: "s-main" } });
+      host.emit({ type: "session.execution.succeeded", data: { sessionID: "s-main" } });
+      payloads = await recordedPayloadCount(root, 3);
+      assert.equal(awaitingCount(payloads, "Stop"), 2);
+      assert.doesNotMatch(routeThroughRealRouter(payloads.at(-1), root), /Skipped/);
+
+      // The same finished turn reported again as interrupted alerts once, not twice.
+      host.emit({ type: "session.execution.interrupted", data: { sessionID: "s-main" } });
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      payloads = await readRecordedPayloads(root);
+      assert.equal(awaitingCount(payloads, "Stop"), 2, "the same finished turn alerts once");
+    } finally {
+      cleanup();
+    }
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
+function awaitingCount(payloads, eventName) {
+  return payloads.filter((payload) => payload.hook_event_name === eventName).length;
+}
+
+test("[TC-NT-071] V2 setup forwards SessionEnd with delegated and unknown markers", async () => {
+  const settings = {
+    hooks: {
+      SessionEnd: [{ hooks: [{ type: "command", command: hookCommand("record-all.cjs") }] }],
+    },
+  };
+  const root = await createProject(settings);
+  try {
+    const { pluginPath } = await materializeOpencodeHooks({ rootDir: root });
+    const module = await importPlugin(pluginPath);
+    const host = createV2Host(root, {
+      "main-session": { id: "main-session" },
+      "child-session": { id: "child-session", parentID: "main-session" },
+      "unknown-session": null,
+    });
+    const cleanup = await module.default.setup(host.ctx);
+    try {
+      host.emit({ type: "session.created", data: { sessionID: "child-session" } });
+      host.emit({ type: "session.created", data: { sessionID: "main-session" } });
+      host.emit({ type: "session.deleted", data: { sessionID: "child-session" } });
+      host.emit({ type: "session.deleted", data: { sessionID: "main-session" } });
+      host.emit({ type: "session.deleted", data: { sessionID: "unknown-session" } });
+
+      const [delegated, main, unknown] = await recordedPayloadCount(root, 3);
+      assert.equal(delegated.agent_id, "child-session");
+      assert.equal(Object.hasOwn(main, "agent_id"), false);
+      assert.equal(unknown.conversation_kind, "unknown");
+      assert.match(routeThroughRealRouter(delegated, root), /Skipped: subagent SessionEnd/);
+      assert.doesNotMatch(routeThroughRealRouter(main, root), /Skipped/);
+      assert.match(routeThroughRealRouter(unknown, root), /Skipped: SessionEnd for a conversation of unknown kind/);
+    } finally {
+      cleanup();
+    }
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
+test("V2 setup delivers tool context and prompt/session context through the V2 hook surfaces", async () => {
+  const settings = {
+    hooks: {
+      PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: hookCommand("pre-context.cjs") }] }],
+      PostToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: hookCommand("context.cjs") }] }],
+      SessionStart: [{ matcher: "startup|resume|clear|compact", hooks: [{ type: "command", command: hookCommand("session.cjs") }] }],
+      UserPromptSubmit: [{ hooks: [{ type: "command", command: hookCommand("prompt.cjs") }] }],
+    },
+  };
+  const root = await createProject(settings);
+  try {
+    const { pluginPath } = await materializeOpencodeHooks({ rootDir: root });
+    const module = await importPlugin(pluginPath);
+    const host = createV2Host(root);
+    const cleanup = await module.default.setup(host.ctx);
+    try {
+      const before = { tool: "bash", sessionID: "s-tools", input: { command: "PRE_CONTEXT" } };
+      await host.registrations.tool["execute.before"](before);
+      const after = { tool: "bash", sessionID: "s-tools", status: "completed", input: { command: "PRE_CONTEXT" }, result: { content: "done" } };
+      await host.registrations.tool["execute.after"](after);
+      assert.equal(after.result.content, "done\n\nPRE_CONTEXT\n\nHELLO_CONTEXT");
+
+      await host.registrations.session.prompt({ sessionID: "s-prompt", prompt: { text: "hello" } });
+      const context = { sessionID: "s-prompt", system: [] };
+      await host.registrations.session.context(context);
+      assert.deepEqual(context.system.map((part) => part.text), ["SESSION_CTX", "PROMPT_CTX"], "session and prompt context reach the next model request");
+      assert.equal(context.system[0].type, "text");
+    } finally {
+      cleanup();
+    }
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
+test("V2 setup keeps Claude's PreToolUse block/rewrite and PermissionRequest decision contract", async () => {
+  const settings = {
+    hooks: {
+      PreToolUse: [
+        { matcher: "Bash", hooks: [{ type: "command", command: hookCommand("block.cjs") }] },
+        { matcher: "Edit|Write", hooks: [{ type: "command", command: hookCommand("rewrite.cjs") }] },
+      ],
+      PermissionRequest: [{ hooks: [{ type: "command", command: hookCommand("block.cjs") }] }],
+    },
+  };
+  const root = await createProject(settings);
+  try {
+    const { pluginPath } = await materializeOpencodeHooks({ rootDir: root });
+    const module = await importPlugin(pluginPath);
+    const host = createV2Host(root);
+    const cleanup = await module.default.setup(host.ctx);
+    try {
+      await assert.rejects(
+        host.registrations.tool["execute.before"]({ tool: "bash", sessionID: "s1", input: { command: "git commit -m x" } }),
+        /blocked: git commit forbidden/
+      );
+      const edit = { tool: "edit", sessionID: "s1", input: { filePath: "a.ts", oldString: "x", newString: "y" } };
+      await host.registrations.tool["execute.before"](edit);
+      assert.equal(edit.input.command, "echo safe", "updatedInput is applied in V2's input object");
+      assert.equal(edit.input.filePath, "a.ts");
+
+      const permission = { sessionID: "s1", action: "bash", resources: ["git commit -m x"], effect: "ask" };
+      await host.registrations.permission.evaluate(permission);
+      assert.equal(permission.effect, "deny");
+      assert.match(permission.message, /blocked: git commit forbidden/);
+
+      // An already-allowed action is not a permission prompt, so the hook does not run.
+      const allowed = { sessionID: "s1", action: "read", resources: ["a.ts"], effect: "allow" };
+      await host.registrations.permission.evaluate(allowed);
+      assert.equal(allowed.effect, "allow");
+      assert.equal(allowed.message, undefined);
+    } finally {
+      cleanup();
+    }
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
+test("V2 setup maps session.compaction.ended to the compact SessionStart hooks", async () => {
+  const settings = {
+    hooks: {
+      SessionStart: [{ matcher: "startup|resume|clear|compact", hooks: [{ type: "command", command: hookCommand("session.cjs") }] }],
+    },
+  };
+  const root = await createProject(settings);
+  try {
+    const { pluginPath } = await materializeOpencodeHooks({ rootDir: root });
+    const module = await importPlugin(pluginPath);
+    const host = createV2Host(root);
+    const cleanup = await module.default.setup(host.ctx);
+    try {
+      host.emit({ type: "session.compaction.ended", data: { sessionID: "s-compact" } });
+      const context = { sessionID: "s-compact", system: [] };
+      await waitFor(async () => {
+        context.system.length = 0;
+        await host.registrations.session.context(context);
+        return context.system.length > 0;
+      }, "compact SessionStart context");
+      assert.deepEqual(context.system.map((part) => part.text), ["SESSION_CTX"]);
+    } finally {
+      cleanup();
+    }
   } finally {
     await fs.rm(root, { recursive: true, force: true });
   }

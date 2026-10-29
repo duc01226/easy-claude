@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Slide — a dialog open inside the slide</title>
+<style>
+  body { margin: 0; padding: 24px; font: 16px system-ui, sans-serif; background: #fff; color: #111; }
+  .primary { background: #1d4ed8; color: #fff; border: 0; border-radius: 6px; padding: 10px 16px; font: inherit; }
+  .outline { background: #fff; border: 1px solid #888; border-radius: 6px; padding: 10px 16px; font: inherit; }
+  .modal { position: fixed; inset: 0; background: #0006; display: flex; align-items: center; justify-content: center; }
+  .modal > div { background: #fff; padding: 24px; border-radius: 8px; }
+</style>
+</head>
+<body>
+<div data-export-slide id="slide1">
+  <h1>Items</h1>
+  <button class="primary">New item</button>
+  <div class="modal" role="dialog" aria-modal="true"><div><h2>Delete item?</h2><button class="outline">Cancel</button> <button class="primary">Delete</button></div></div>
+</div>
+</body>
+</html>

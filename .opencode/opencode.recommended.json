@@ -1,15 +1,15 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "model": "opencode-go/deepseek-v4.1-flash",
   "compaction": {
     "auto": true
   },
+  "model": "opencode-go/deepseek-v4.1-flash",
   "provider": {
     "opencode-go": {
       "models": {
         "deepseek-v4.1-flash": {
           "options": {
-            "reasoningEffort": "high"
+            "reasoningEffort": "max"
           }
         }
       }

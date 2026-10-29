@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Video library — regular grid</title>
+<style>
+  body { margin: 0; font: 15px/1.5 system-ui, sans-serif; background: #ffffff; color: #1f2933; }
+  main { max-width: 1200px; margin: 24px auto; padding: 0 16px; }
+  header { display: flex; align-items: center; justify-content: space-between; }
+  .primary { font: inherit; min-width: 160px; padding: 8px 16px; border-radius: 6px; background: #1d4ed8; color: #ffffff; border: 1px solid #1d4ed8; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+  .tile { display: flex; flex-direction: column; padding: 8px; border-radius: 8px; background: #f8fafc; color: inherit; text-decoration: none; }
+  .frame { aspect-ratio: 16 / 9; background: #f5f7fa; display: flex; align-items: center; justify-content: center; }
+  .frame img { max-width: 100%; max-height: 100%; }
+  .tile p { margin: 4px 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+</style>
+</head>
+<body>
+<main>
+  <header><h1>Videos</h1><button class="primary">Upload video</button></header>
+  <div class="grid">
+    <a class="tile" href="#video"><div class="frame"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='3'%3E%3Crect width='4' height='3' fill='%23cbd2d9'/%3E%3C/svg%3E" alt=""></div><p>Spring launch</p></a>
+    <a class="tile" href="#video"><div class="frame"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='3'%3E%3Crect width='4' height='3' fill='%23d9e2ec'/%3E%3C/svg%3E" alt=""></div><p>Studio tour</p></a>
+    <a class="tile" href="#video"><div class="frame"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='3'%3E%3Crect width='4' height='3' fill='%23bcccdc'/%3E%3C/svg%3E" alt=""></div><p>Team intro</p></a>
+    <a class="tile" href="#video"><div class="frame"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='3'%3E%3Crect width='4' height='3' fill='%23e4e7eb'/%3E%3C/svg%3E" alt=""></div><p>Product demo</p></a>
+    <a class="tile" href="#video"><div class="frame"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='3'%3E%3Crect width='4' height='3' fill='%23cfd8e3'/%3E%3C/svg%3E" alt=""></div><p>Customer story</p></a>
+  </div>
+</main>
+</body>
+</html>

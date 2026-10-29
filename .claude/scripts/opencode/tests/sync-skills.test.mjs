@@ -490,7 +490,7 @@ test("--check exits non-zero when permission.skill or the ledger is stale", asyn
   assert.match(stale.stderr, /skill-permissions\.generated\.json is stale/);
 });
 
-// ---- P45: generated commands for hidden skills (BR-ADS-10) ----
+// ---- P45: generated commands for every skill (BR-ADS-10) ----
 
 const commandPath = (name) => path.join(COMMANDS_RELATIVE, `${name}.md`);
 
@@ -508,9 +508,9 @@ async function snapshotCommands(root) {
   return Object.fromEntries(await Promise.all(names.map(async (name) => [name, await readText(root, path.join(COMMANDS_RELATIVE, name))])));
 }
 
-test("TC-ADS-012: every hidden skill gets a command that includes its SKILL.md and passes $ARGUMENTS", async () => {
+test("TC-ADS-012: every skill gets a command that includes its SKILL.md and passes $ARGUMENTS", async () => {
   // Given a command-only skill, a manual wrapper, an ask wrapper, a plain skill, and a confirm wrapper
-  // the user hid themselves (it is hidden, so it needs a command too)
+  // the user hid themselves
   const root = await createProject({
     skills: {
       "pdf-convert": { commandOnly: true },
@@ -526,10 +526,11 @@ test("TC-ADS-012: every hidden skill gets a command that includes its SKILL.md a
   // When the third host is synced
   await materializeOpencodeSkills({ rootDir: root });
 
-  // Then exactly the hidden skills get a safe command that loads the skill and passes the arguments
-  assert.deepEqual(await listCommands(root), ["pdf-convert.md", "workflow-a.md", "workflow-user.md"],
-    "command-only, tier-hidden and user-hidden skills get commands; ask and plain skills do not");
-  for (const name of ["pdf-convert", "workflow-a", "workflow-user"]) {
+  // Then every skill gets a safe command that loads the skill and passes the arguments — hidden,
+  // ask and plain alike — so the `/` palette matches Claude Code
+  const expected = ["pdf-convert.md", "plan.md", "workflow-a.md", "workflow-feature.md", "workflow-user.md"];
+  assert.deepEqual(await listCommands(root), expected, "every skill folder gets an explicit command");
+  for (const name of ["pdf-convert", "plan", "workflow-a", "workflow-feature", "workflow-user"]) {
     const text = await readText(root, commandPath(name));
     assert.ok(text.includes(`@.claude/skills/${name}/SKILL.md`), `${name} includes its skill file`);
     assert.ok(text.includes("$ARGUMENTS"), `${name} passes the user arguments`);
@@ -538,7 +539,7 @@ test("TC-ADS-012: every hidden skill gets a command that includes its SKILL.md a
   }
 });
 
-test("TC-ADS-012 / BR-ADS-10: a skill the policy denies but whose final entry is not deny gets no command", async () => {
+test("TC-ADS-012 / BR-ADS-10: a skill the policy denies but whose final entry is not deny keeps its command", async () => {
   // Given two owned deny entries with generated commands, then the user changes one to allow
   const root = await createProject({ skills: { "pdf-convert": { commandOnly: true }, "docx-convert": { commandOnly: true } } });
   await materializeOpencodeSkills({ rootDir: root });
@@ -550,15 +551,16 @@ test("TC-ADS-012 / BR-ADS-10: a skill the policy denies but whose final entry is
   // When the sync runs again
   const result = await materializeOpencodeSkills({ rootDir: root });
 
-  // Then the kept allow means the skill is not hidden: its marked command is removed and no other is written
+  // Then the kept allow makes the skill model-selectable again, while its explicit command stays
   assert.deepEqual(result.conflicts, ["conflict: permission.skill.pdf-convert is allow, generator wants deny; kept the user value"]);
-  assert.deepEqual(await listCommands(root), ["docx-convert.md"], "only the skill whose final entry is deny keeps a command");
+  assert.deepEqual(await listCommands(root), ["docx-convert.md", "pdf-convert.md"], "every skill keeps its explicit command");
   assert.equal((await checkOpencodeSkills({ rootDir: root })).ok, true);
 
-  // Given permission.skill is a single value, so no entry is written, When the sync runs, Then no command is generated
+  // Given permission.skill is a single value, so no permission entry is written, When the sync runs,
+  // Then the skill still gets its explicit command
   const scalarRoot = await createProject({ skills: { "pdf-convert": { commandOnly: true } }, opencode: { permission: { skill: "allow" } } });
   await materializeOpencodeSkills({ rootDir: scalarRoot });
-  assert.deepEqual(await listCommands(scalarRoot), [], "no exact deny entry, so no command");
+  assert.deepEqual(await listCommands(scalarRoot), ["pdf-convert.md"], "commands do not depend on the permission shape");
 });
 
 test("TC-ADS-013: a user command without the marker is never touched", async () => {
@@ -577,7 +579,7 @@ test("TC-ADS-013: a user command without the marker is never touched", async () 
   assert.equal((await checkOpencodeSkills({ rootDir: root })).ok, true, "an unmarked user command is ignored by the check");
 });
 
-test("TC-ADS-013 / BR-ADS-10: a user command that already uses a hidden skill's name is kept with one conflict line", async () => {
+test("TC-ADS-013 / BR-ADS-10: a user command that already uses a skill's name is kept with one conflict line", async () => {
   // Given user commands that already use two hidden skills' names — one in `commands/`, one in the
   // singular `command/` folder opencode also loads
   const root = await createProject({ skills: { "pdf-convert": { commandOnly: true }, "docx-convert": { commandOnly: true } } });
@@ -644,8 +646,8 @@ test("TC-ADS-059: command names come from validated folder names and stay inside
   assert.equal(JSON.parse(line.slice("description: ".length)), 'say "hi" \\ then next');
 });
 
-test("TC-ADS-062: commands are repeatable, --check catches edit/delete/unhide, and the next sync repairs", async () => {
-  // Given three hidden skills, and an unmarked file with a generated-looking name (boundary: never
+test("TC-ADS-062: commands are repeatable, --check catches edit/delete/removed-skill, and the next sync repairs", async () => {
+  // Given four skills, and an unmarked file with a generated-looking name (boundary: never
   // counted, changed or removed)
   const root = await createProject({
     skills: { "pdf-convert": { commandOnly: true }, "docx-convert": { commandOnly: true }, "manual-export": { commandOnly: true }, "release-doc": {} },
@@ -662,10 +664,10 @@ test("TC-ADS-062: commands are repeatable, --check catches edit/delete/unhide, a
   assert.deepEqual(await snapshotCommands(root), first, "every command is byte-identical on rerun");
   assert.equal((await checkOpencodeSkills({ rootDir: root })).ok, true);
 
-  // When a command is edited, one is deleted and one skill is un-hidden
+  // When a command is edited, one is deleted and one skill folder is removed
   await fs.writeFile(path.join(root, commandPath("pdf-convert")), `${first["pdf-convert.md"]}edited\n`, "utf8");
   await fs.rm(path.join(root, commandPath("docx-convert")));
-  await fs.writeFile(path.join(root, ".claude", "skills", "manual-export", "SKILL.md"), skillDocument({ name: "manual-export" }), "utf8");
+  await fs.rm(path.join(root, ".claude", "skills", "manual-export"), { recursive: true });
 
   // Then the check names each drift and never the lookalike
   const drift = await checkOpencodeSkills({ rootDir: root });
@@ -682,6 +684,7 @@ test("TC-ADS-062: commands are repeatable, --check catches edit/delete/unhide, a
   // When the sync runs, Then it repairs every drift and leaves the lookalike alone
   await materializeOpencodeSkills({ rootDir: root });
   assert.deepEqual(await listCommands(root), ["docx-convert.md", "pdf-convert.md", "release-doc.md"]);
+  assert.equal(await exists(root, commandPath("manual-export")), false, "the removed skill's stale command is gone");
   assert.equal(await readText(root, commandPath("pdf-convert")), first["pdf-convert.md"], "the edited command is restored");
   assert.equal(await readText(root, commandPath("docx-convert")), first["docx-convert.md"], "the deleted command is restored");
   assert.equal(await readText(root, commandPath("release-doc")), lookalike, "the lookalike is untouched");
@@ -702,6 +705,7 @@ test("TC-GCM-008: retiring the export alias removes its owned OpenCode entry and
   await materializeOpencodeSkills({ rootDir: root });
   assert.equal((await readJson(root, "opencode.json")).permission.skill[retired], "deny", "the prior alias was governed");
   assert.ok(await exists(root, commandPath(retired)), "the prior explicit alias command exists");
+  assert.ok(await exists(root, commandPath("graph-code")), "the selectable mode owner gets its explicit command too");
   const otherCommand = await readText(root, commandPath("pdf-convert"));
 
   // When the alias source is removed and the existing host generator reconciles the upgrade
@@ -714,7 +718,7 @@ test("TC-GCM-008: retiring the export alias removes its owned OpenCode entry and
   assert.deepEqual(config.permission.skill, { "user-owned": "ask", "pdf-convert": "deny" });
   assert.deepEqual((await readJson(root, LEDGER_RELATIVE)).skill, { "pdf-convert": "deny" });
   assert.equal(await exists(root, commandPath(retired)), false, "the generated explicit alias command is gone");
-  assert.equal(await exists(root, commandPath("graph-code")), false, "the selectable mode owner needs no hidden-skill command");
+  assert.ok(await exists(root, commandPath("graph-code")), "the selectable mode owner keeps its explicit command");
   assert.ok(result.commandsDeleted.includes(path.join(root, commandPath(retired))), "the owner reports the stale command removal");
   assert.equal(config.theme, "light");
   assert.equal(await readText(root, commandPath("pdf-convert")), otherCommand);
@@ -751,16 +755,17 @@ test("TC-ADS-022: a nameOnly skill gets no permission.skill entry, and an entry 
   const root = await createProject({ skills: { x: {}, plan: {} }, projectConfig: profileConfig({ commandOnly: ["x"] }), files: { [PRESETS]: presetsText() } });
   await materializeOpencodeSkills({ rootDir: root });
   assert.equal((await readJson(root, "opencode.json")).permission.skill.x, "deny", "precondition: x hidden and owned");
-  assert.deepEqual(await listCommands(root), ["x.md"]);
+  assert.deepEqual(await listCommands(root), ["plan.md", "x.md"]);
 
   // When the profile moves x to nameOnly and the sync runs
   await writeFile(root, PROJECT_CONFIG, JSON.stringify(profileConfig({ nameOnly: ["x"] })));
   const result = await materializeOpencodeSkills({ rootDir: root });
 
-  // Then the owned entry, its ledger record and its generated command are removed, with no conflict line
+  // Then the owned entry and its ledger record are removed, with no conflict line, while x keeps its
+  // explicit command as a plain skill
   assert.equal(Object.hasOwn((await readJson(root, "opencode.json")).permission.skill, "x"), false, "x is loadable again");
   assert.deepEqual((await readJson(root, LEDGER_RELATIVE)).skill, {}, "the ledger no longer owns x");
-  assert.deepEqual(await listCommands(root), [], "the generated command for x is removed");
+  assert.deepEqual(await listCommands(root), ["plan.md", "x.md"], "x keeps only its explicit command as a plain skill");
   assert.deepEqual(result.conflicts, []);
   assert.equal((await checkOpencodeSkills({ rootDir: root })).ok, true);
 
@@ -792,7 +797,7 @@ test("TC-ADS-023: commandOnly and off skills get deny plus a generated command, 
   // Then both are denied, both are owned, and each keeps its explicit /name through a generated command
   assert.deepEqual((await readJson(root, "opencode.json")).permission.skill, { y: "deny", z: "deny" });
   assert.deepEqual((await readJson(root, LEDGER_RELATIVE)).skill, { y: "deny", z: "deny" });
-  assert.deepEqual(await listCommands(root), ["y.md", "z.md"]);
+  assert.deepEqual(await listCommands(root), ["plan.md", "y.md", "z.md"]);
   for (const name of ["y", "z"]) {
     const text = await readText(root, commandPath(name));
     assert.ok(text.includes(`@.claude/skills/${name}/SKILL.md`) && text.includes("$ARGUMENTS") && text.includes(COMMAND_MARKER), `${name} command loads its skill`);
@@ -825,7 +830,7 @@ test("TC-ADS-024: without a skill profile the permission entries, ledger and com
     const ledger = await readJson(root, LEDGER_RELATIVE);
     assert.equal(ledger.project, project, `${label}: ledger project`);
     assert.deepEqual(ledger.skill, { "pdf-convert": "deny", "workflow-a": "deny", "workflow-feature": "ask" }, `${label}: ledger`);
-    assert.deepEqual(await listCommands(root), ["pdf-convert.md", "workflow-a.md"], `${label}: commands`);
+    assert.deepEqual(await listCommands(root), ["pdf-convert.md", "plan.md", "workflow-a.md", "workflow-feature.md", "workflow-review.md"], `${label}: one command per skill`);
     assert.deepEqual(result.skipped.map(({ name, callers }) => `${name}: ${callers.join(", ")}`), ["workflow-review: workflow workflow-feature"], `${label}: skip line`);
     assert.equal(result.warnings.some((line) => line.includes("skill profile")), false, `${label}: no profile lines without a profile`);
   }
@@ -866,7 +871,7 @@ test("TC-ADS-046: hiding a called skill is refused before any write unless allow
 
   // Then deny and a command are written, and one warning line names the hidden skill
   assert.equal((await readJson(allowed, "opencode.json")).permission.skill["security-audit"], "deny");
-  assert.deepEqual(await listCommands(allowed), ["security-audit.md"]);
+  assert.deepEqual(await listCommands(allowed), ["security-audit.md", "workflow-review-changes.md"]);
   assert.deepEqual(result.warnings.filter((line) => line.includes("hiding called skill security-audit")).length, 1);
   assert.deepEqual(result.skipped, [], "a profile entry the project opted into is not reported as skipped");
 });
@@ -883,11 +888,11 @@ test("TC-ADS-048: a user permission the ledger does not own is kept over a comma
   // When the third host is synced
   const result = await materializeOpencodeSkills({ rootDir: root });
 
-  // Then y keeps allow, one conflict line names it, it is not owned, and no command hides it
+  // Then y keeps allow, one conflict line names it, it is not owned, and it still gets its explicit command
   assert.equal((await readJson(root, "opencode.json")).permission.skill.y, "allow", "the user value is never overwritten");
   assert.deepEqual(result.conflicts, ["conflict: permission.skill.y is allow, generator wants deny; kept the user value"]);
   assert.equal(await exists(root, LEDGER_RELATIVE), false, "y is not added to the ledger");
-  assert.deepEqual(await listCommands(root), []);
+  assert.deepEqual(await listCommands(root), ["y.md"], "the explicit command is not a permission entry");
   assert.equal((await checkOpencodeSkills({ rootDir: root })).ok, true, "a kept user value is not drift");
 });
 

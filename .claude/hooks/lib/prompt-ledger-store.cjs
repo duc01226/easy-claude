@@ -421,7 +421,7 @@ function buildPinNotice(ledger, ledgerMdDisplay) {
             ? `Session prompt ledger: P${first.seq} is the FIRST RECORDED prompt «${goalLine(first.goal, goalMax)}» — the record started mid-session, so the original request may be earlier in this conversation; keep that one as the goal. Full record ${ledgerMdDisplay}.`
             : `Session prompt ledger: P${first.seq} pinned as the original goal «${goalLine(first.goal, goalMax)}» — full record ${ledgerMdDisplay}.`;
         const tag = `[[${TAG_PREFIX}@${shortHash(body)}]]`;
-        return { text: `${body} Track every later prompt; verify the final result against all of them. ${tag}`, tag };
+        return { text: `${body} ${tag}`, tag };
     };
     const out = make(GOAL_LINE_MAX);
     return out.text.length <= PIN_MAX_CHARS ? out : capText(make(60), PIN_MAX_CHARS);

@@ -583,7 +583,7 @@ Pattern (when used): grep/read first → optional graph query → grep/read veri
 
 > **Core Engineering Principles — Easy to Change · Easy to Scale · Easy to Maintain** — The success metric of every plan, implementation and review is _future change cost_: the next change must be cheap, safe and provable. DRY, reuse, abstraction, interfaces, wrappers, patterns, layering, tests and the harness exist only to serve that goal. Apply this gate BEFORE any narrower design rule or checklist; when a narrower design rule would raise change cost, this principle wins — it never waives a required gate (tests, review, security, user confirmation). It is evidence-gated: judge fit against the project's config, accepted decisions and local patterns, and never impose a technique the project does not use.
 >
-> 1. **Easy to change.** Keep one owner per piece of knowledge — DRY the rule, not look-alike text. Reuse an existing helper, component or module before writing a new one (search 3+ siblings and cite them). Put purpose-named interfaces or ports at volatile boundaries: wrap a third-party SDK or infrastructure dependency in an adapter when it is volatile, likely to be swapped, or needs a test seam, so a swap touches one place — a stable dependency used directly is fine, and a pass-through wrapper that lowers no change cost is a defect. Keep units small and cohesive with explicit dependencies; no hidden state, boolean traps or leaked implementation detail. Extract an abstraction for a real second consumer or an evidenced change axis, never for speculation; prefer the reversible decision and defer an irreversible one until evidence forces it. Depth → `SYNC:design-patterns-quality`, `SYNC:complexity-prevention`.
+> 1. **Easy to change.** *Purpose: the next change, upgrade or swap touches one place — not the system.* Keep one owner per piece of knowledge — DRY the rule, not look-alike text. Reuse an existing helper, component or module before writing a new one (search 3+ siblings and cite them). Depend on purpose-named interfaces/ports, not concrete implementations: wrap a volatile third-party SDK or infrastructure dependency in an adapter, inject collaborators (DI) instead of constructing them, and select a variant through a factory/registry/strategy once a second variant is real — so an implementation swap, a library upgrade or a test double touches one seam. Keep units small and cohesive with explicit, injected dependencies; no hidden state, boolean traps, convenience singletons or leaked implementation detail. Extract an abstraction for a real second consumer or an evidenced change axis, never for speculation; a pass-through wrapper that lowers no change cost is a defect. Depth → `SYNC:design-patterns-quality`, `SYNC:complexity-prevention`.
 > 2. **Easy to scale.** Growth in features, modules, team, data or load must not multiply edit sites or cost. Add a variant by extension (a new handler, registration or config entry), not by editing every switch over the same discriminator. Keep module boundaries and dependency direction explicit. Bound every loop, query, result set, queue and concurrency on the paths that matter, so work grows with the request, not with total data. Scale only what the project's profile warrants — no speculative distribution or infrastructure. Depth → `SYNC:scale-technique-gate`, `SYNC:engineering-foundation-gate` (F5, F6).
 > 3. **Easy to maintain.** Protect every changed behavior with tests that name the business intent or invariant and FAIL when it breaks — happy, error, edge, boundary and regression paths, not only the changed line. Tests are repeatable and isolated. The mechanical harness (format, lint, types, build, test — the same command locally and in CI) runs and passes. Names and structure state intent, and docs or specs that embed the behavior stay in sync. Depth → `SYNC:engineering-foundation-gate` (F3, F4, F7), `SYNC:harness-setup`.
 >
@@ -794,7 +794,7 @@ Pattern (when used): grep/read first → optional graph query → grep/read veri
 
 <!-- SYNC:core-engineering-principles:reminder -->
 
-**MUST ATTENTION** Core Engineering Principles — every plan, implementation and review must be **Easy to change** (reuse first, one owner per rule, interfaces/adapters at volatile boundaries, no speculative abstraction) · **Easy to scale** (extend by addition, bounded growth, explicit boundaries, sized to the project's real profile) · **Easy to maintain** (intent-named tests that fail when the rule breaks across happy/error/edge paths; harness green locally and in CI). Before done: next change → how many edit sites? 10× → what breaks? which test goes red?
+**MUST ATTENTION** Core Engineering Principles — every plan, implementation and review must be **Easy to change** (purpose: one place per change — reuse first, one owner per rule, interface/DI at volatile boundaries, adapter/wrapper for libraries, factory/strategy for real variants, no speculative abstraction) · **Easy to scale** (extend by addition, bounded growth, explicit boundaries, sized to the project's real profile) · **Easy to maintain** (intent-named tests that fail when the rule breaks across happy/error/edge paths; harness green locally and in CI). Before done: next change → how many edit sites? 10× → what breaks? which test goes red? Full gate: `.claude/skills/shared/protocols/core-engineering-principles.md`.
 
 <!-- /SYNC:core-engineering-principles:reminder -->
 
@@ -809,6 +809,48 @@ Pattern (when used): grep/read first → optional graph query → grep/read veri
 **MUST ATTENTION** Decide supported review choices and recommendations, record the rationale, and finish without routine user questions. Keep round-limit extension, indispensable facts and actual action authority; preserve source coverage, validation, tests, read-only boundaries and budgets. Review decisions do not accept open risks or make a failed gate pass.
 
 <!-- /SYNC:review-decision-autonomy:reminder -->
+
+<!-- SYNC:estimation-framework:reminder -->
+
+- **MANDATORY MUST ATTENTION** estimation: bottom-up phase hours drive `man_days_traditional` (`Σh/6 × productivity_factor`); EP DERIVED. UI cost usually dominates — bump EP one bucket if NEW UI surface (page/complex form/dashboard). Frontmatter MUST include `effort_points`, `complexity`, `man_days_traditional`, `man_days_ai`, `estimate_scope_included`, `estimate_scope_excluded`, `estimate_reasoning` (UI vs backend cost driver). Cap EP 3 for additive-on-existing-model+existing-UI unless test scope >1.5d. EP 13 SHOULD split, EP 21 MUST split.
+
+<!-- /SYNC:estimation-framework:reminder -->
+
+<!-- SYNC:plan-granularity:reminder -->
+
+**IMPORTANT MUST ATTENTION** use outcome phases with owners, boundaries, bounded discovery and acceptance gates. Split only for real dependencies, independent outcomes or disjoint ownership; avoid microtasks and recursive sub-plans.
+
+<!-- /SYNC:plan-granularity:reminder -->
+
+<!-- SYNC:bug-detection:reminder -->
+
+**IMPORTANT MUST ATTENTION** check null safety, boundary conditions, error handling, resource management for every review.
+
+<!-- /SYNC:bug-detection:reminder -->
+
+<!-- SYNC:design-patterns-quality:reminder -->
+
+**IMPORTANT MUST ATTENTION** select patterns from project evidence and real needs; keep one owner per rule, justify abstractions by change cost, and grep affected scope for dangling references after extraction, move, or rename.
+
+<!-- /SYNC:design-patterns-quality:reminder -->
+
+<!-- SYNC:logic-and-intention-review:reminder -->
+
+**IMPORTANT MUST ATTENTION** verify WHAT the code does matches WHY it changed, and every changed file serves the stated purpose. Trace happy + error paths. Flag scope creep.
+
+<!-- /SYNC:logic-and-intention-review:reminder -->
+
+<!-- SYNC:rationalization-prevention:reminder -->
+
+**MUST ATTENTION** follow ALL steps regardless of perceived simplicity; "too simple to plan" is an evasion, not a reason. Plan anyway, test first, show grep evidence with `file:line`.
+
+<!-- /SYNC:rationalization-prevention:reminder -->
+
+<!-- SYNC:test-spec-verification:reminder -->
+
+**IMPORTANT MUST ATTENTION** map every changed function/endpoint/code path to a test case. Search for the project's test spec format near changed files. Flag untested paths and coverage gaps; recommend test creation.
+
+<!-- /SYNC:test-spec-verification:reminder -->
 
 ## Closing Reminders
 

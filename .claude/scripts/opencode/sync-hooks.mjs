@@ -47,28 +47,36 @@ export const HOOKS_PLACEHOLDER = "__EASY_CLAUDE_HOOKS__";
 // Claude hook event -> the opencode plugin surface that reproduces it. This map
 // is the spec for the bridge; the runtime template implements each surface.
 export const CLAUDE_TO_OPENCODE = {
-  PreToolUse: "tool.execute.before",
-  PostToolUse: "tool.execute.after",
-  UserPromptSubmit: "chat.message",
-  SessionStart: "event:session.created + experimental.chat.system.transform",
+  PreToolUse: "ctx.tool.hook(execute.before)",
+  PostToolUse: "ctx.tool.hook(execute.after)",
+  PostToolUseFailure: "ctx.tool.hook(execute.after) on a failed/interrupted status",
+  UserPromptSubmit: "ctx.session.hook(prompt)",
+  UserPromptExpansion: "ctx.session.hook(prompt) for a typed /command",
+  SessionStart: "event:session.created|session.compaction.ended + ctx.session.hook(context)",
   SessionEnd: "event:session.deleted",
-  Stop: "event:session.idle",
-  Notification: "event:permission.asked|question.asked",
-  PermissionRequest: "permission.ask",
+  Stop: "event:session.execution.succeeded|interrupted",
+  SubagentStart: "event:session.created for a child session",
+  Notification: "event:form.created|permission.asked",
+  PermissionRequest: "ctx.permission.hook(evaluate)",
 };
 
 export const SUPPORTED_CLAUDE_EVENTS = new Set(Object.keys(CLAUDE_TO_OPENCODE));
 
 const REPORT_NOTES = [
   "opencode has no shell-command hooks; this plugin is the bridge. It spawns the canonical .claude/hooks/*.cjs scripts and translates exit 0 = allow / 2 = block, stdout hookSpecificOutput.updatedInput = argument rewrite, and hookSpecificOutput.additionalContext = injected context.",
+  "The generated file serves both host generations: opencode V2 reads the default export's id + setup(ctx) and registers hooks on ctx.tool/session/permission plus ctx.event.subscribe, while opencode V1 calls the same default object's server() hook map (and the named EasyClaudeHooks export covers older V1 releases).",
   "Tool ids differ between hosts: opencode emits bash/edit/write/read/grep/glob/apply_patch/todowrite/webfetch/websearch/question/skill/lsp. The bridge maps each to the Claude matcher names the hook scripts are written against.",
   "opencode registers MCP tools as `<server>_<tool>`, so Claude matchers like `mcp__github__*` are matched against that convention. opencode does NOT expose MCP tool arguments to tool.execute.before, so MCP PreToolUse hooks that inspect tool_input cannot see arguments on this host.",
-  "Claude's SessionStart is reproduced from event:session.created (source=startup) and event:session.compacted (source=compact); its additionalContext is injected through experimental.chat.system.transform.",
-  "opencode hook events carry no conversation record, so the protocol-delivery ledger cannot see a compaction on its own: on event:session.compacted the bridge reports it through .claude/hooks/lib/protocol-delivery.cjs recordCompaction, and the next skill load delivers its protocols again. The same event runs the SessionStart `compact` hooks, which include the universal bins, so the bundle is re-delivered as system context right after the compaction even when no prompt follows; the next prompt then stays silent.",
-  "Claude's Notification matcher vocabulary (AskUserPrompt|permission_prompt) is reproduced from event:question.asked and event:permission.asked.",
+  "Claude's SessionStart is reproduced from event:session.created (source=startup) and event:session.compaction.ended (source=compact); its additionalContext is injected through ctx.session.hook(context).",
+  "opencode hook events carry no conversation record, so the protocol-delivery ledger cannot see a compaction on its own: on event:session.compaction.ended the bridge reports it through .claude/hooks/lib/protocol-delivery.cjs recordCompaction, and the next skill load delivers its protocols again. The same event runs the SessionStart `compact` hooks, which include the universal bins, so the bundle is re-delivered as system context right after the compaction even when no prompt follows; the next prompt then stays silent.",
+  "Claude's Notification matcher vocabulary (AskUserPrompt|permission_prompt) is reproduced from event:form.created (the V2 question/prompt form event) and event:permission.asked.",
+  "Claude's turn-complete Stop is reproduced from event:session.execution.succeeded and event:session.execution.interrupted; a form or permission prompt for the same session suppresses the duplicate completion alert.",
+  "Claude's PostToolUseFailure is reproduced from the V2 execute.after callback when the tool status is not completed; its additionalContext is appended to the failed result, or queued for the next system request when the result carries no text.",
+  "Claude's SubagentStart is reproduced from event:session.created when the new session has a parentID; its additionalContext is delivered to that child session's system prompt, and agent_type comes from the session's agent id.",
+  "Claude's UserPromptExpansion is reproduced from the prompt hook when the submitted text starts with a typed /command; command_name is that leading /name, so command-routing hooks see the same identity they see on Claude.",
   "Claude events opencode cannot reproduce are reported as skipped-events rather than silently dropped.",
   "A handler's `if` is copied into the HOOKS table. The bridge evaluates the `Read(<glob>)` form before it spawns the hook (a read of any other file starts no process); it runs a hook whose `if` has any other form, so an unsupported condition can cost a spawn but never drops a hook.",
-  "KNOWN HOST LIMITATION: opencode's `permission.ask` plugin hook is defined in the SDK but is NOT triggered by the host at the pinned version (upstream anomalyco/opencode issue #7006). The PermissionRequest -> permission.ask bridge is therefore present but inert until that is fixed; verify against the deployed opencode version before relying on PermissionRequest hooks.",
+  "opencode V2 exposes PermissionRequest through ctx.permission.hook(evaluate); V1 keeps the permission.ask bridge, which is defined in the SDK but was not triggered by some V1 hosts (upstream anomalyco/opencode issue #7006).",
 ];
 
 // Claude hook commands have the shape `node "$CLAUDE_PROJECT_DIR"/relative/hook.cjs`

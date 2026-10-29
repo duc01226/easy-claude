@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>An icon button named by its label</title>
+<style>
+  body { margin: 0; font: 15px/1.5 system-ui, sans-serif; background: #fff; color: #1f2933; }
+  main { padding: 24px; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .ib { width: 44px; height: 44px; padding: 0; border: 0; background: transparent; color: #1f2933; display: inline-flex; align-items: center; justify-content: center; }
+</style>
+</head>
+<body>
+  <main>
+    <h1>Orders</h1>
+    <label class="sr" for="find">Search orders</label>
+    <button class="ib" id="find" type="button"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16" y2="16"/></svg></button>
+  </main>
+</body>
+</html>

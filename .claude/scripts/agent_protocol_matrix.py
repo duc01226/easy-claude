@@ -100,6 +100,7 @@ from sync_blocks import AGENT_FOLDED_TAGS, has_root_pointer, universal_tags  # n
 _CLAUDE_DIR = Path(__file__).resolve().parent.parent  # .../.claude
 CANONICAL = _CLAUDE_DIR / "skills" / "shared" / "sync-inline-versions.md"
 AGENTS_DIR = _CLAUDE_DIR / "agents"
+SKILLS_DIR = _CLAUDE_DIR / "skills"
 
 # ---------------------------------------------------------------------------
 # Orchestration policy
@@ -178,6 +179,26 @@ REVIEW_CYCLE_AGENTS = {
     "ui-ux-designer",
 }
 
+# ---------------------------------------------------------------------------
+# Same-role parity: a sub-agent must carry the cross-cutting quality gates that
+# its connected skill declares. Scope is deliberately narrow -- only gates that
+# apply to any role that reviews or authors code/docs. A connected skill that
+# declares one means the agent twin must review to the same standard; a genuine
+# off-role gap needs an explicit PARITY_WAIVERS entry with a reason.
+# ---------------------------------------------------------------------------
+PARITY_GATES = {
+    "core-engineering-principles",
+    "design-patterns-quality",
+    "complexity-prevention",
+    "output-quality-principles",
+    "review-decision-autonomy",
+}
+PARITY_WAIVERS: dict[tuple[str, str], set[str]] = {}
+
+GUIDE_LINE_RE = re.compile(r"^-\s+`([a-z0-9-]+)`", re.M)
+SYNC_FENCE_RE = re.compile(r"<!-- SYNC:([a-z0-9-]+?)(?::reminder)? -->")
+PROTOCOL_GUIDES_RE = re.compile(r"<!-- PROTOCOL-GUIDES:START -->(.*?)<!-- PROTOCOL-GUIDES:END -->", re.S)
+
 # Code-investigation tags that may live ONLY on code-touching agents. A CORE_ONLY
 # agent (research/docs/product/governance role) carrying any of these is a tier
 # leak the framework rejects (TC-UAR-004). Kept in sync with
@@ -219,6 +240,7 @@ AGENT_QUALITY_BLOCKS = {
     # --- review family ---------------------------------------------------
     "code-reviewer": [
         "review-decision-autonomy",  # Applies only to review/audit decisions.
+        "output-quality-principles",  # Same review-output gate as its twin review skills.
         "measured-capacity-engineering",
         "core-engineering-principles",
         "whole-diff-correctness",
@@ -274,6 +296,7 @@ AGENT_QUALITY_BLOCKS = {
     ],
     "security-auditor": [
         "review-decision-autonomy",  # Applies only to review/audit decisions.
+        "core-engineering-principles",  # Same change-cost gate as its twin security-audit skill.
         "measured-capacity-engineering",
         "severity-rubric", "category-review-thinking",
         "graph-assisted-investigation", "incremental-persistence",
@@ -294,6 +317,7 @@ AGENT_QUALITY_BLOCKS = {
     ],
     "spec-compliance-reviewer": [
         "review-decision-autonomy",  # Applies only to review/audit decisions.
+        "core-engineering-principles",  # Same change-cost gate as its connected review skills.
         "severity-rubric",
         "behavioral-delta-matrix", "spec-drift-adjudication",
         "test-spec-verification",
@@ -323,6 +347,7 @@ AGENT_QUALITY_BLOCKS = {
     "knowledge-worker": [
         "web-research", "incremental-persistence", "output-quality-principles",
         "severity-rubric",
+        "core-engineering-principles", "review-decision-autonomy",  # parity with knowledge-review
         # wave 2 (twin: knowledge-review)
         "trade-off-interrogation-gate",
         "review-principle-awareness",
@@ -370,6 +395,7 @@ AGENT_QUALITY_BLOCKS = {
     "solution-architect": [
         "measured-capacity-engineering",
         "core-engineering-principles",
+        "review-decision-autonomy",  # parity with architecture --mode=review
         "design-patterns-quality", "scaffold-production-readiness",
         "estimation-framework", "module-detection",
         # wave 2 -- already carries the companion `scenario-stress-eval`; the base
@@ -432,6 +458,7 @@ AGENT_QUALITY_BLOCKS = {
     "e2e-runner": [
         "measured-capacity-engineering",
         "core-engineering-principles",
+        "output-quality-principles", "review-decision-autonomy",  # parity with e2e-test
         "source-test-drift-check", "repeatable-test-principle",
         # wave 2 (twin: e2e-test)
         "test-failure-fault-adjudication", "real-world-fidelity-testing",
@@ -445,6 +472,7 @@ AGENT_QUALITY_BLOCKS = {
     "database-admin": [
         "measured-capacity-engineering",
         "core-engineering-principles",
+        "review-decision-autonomy",  # parity with seed-test-data's review mode
         "graph-impact-analysis",
         # wave 2 (twin: db-migrate)
         "source-test-drift-check",
@@ -484,6 +512,7 @@ AGENT_QUALITY_BLOCKS = {
     ],
     "code-simplifier": [
         "core-engineering-principles",
+        "review-decision-autonomy",  # parity with its own review/fix contract
         "complexity-prevention", "design-patterns-quality", "severity-rubric",
         "shared-protocol-duplication-policy",
         # wave 2 (twin: code-simplifier)
@@ -491,6 +520,7 @@ AGENT_QUALITY_BLOCKS = {
     ],
     "docs-manager": [
         "incremental-persistence",
+        "output-quality-principles",  # parity with the docs-manager skill
     ],
     "framework-maintainer": [
         "review-decision-autonomy",  # Applies only to review/audit decisions.
@@ -528,6 +558,7 @@ AGENT_QUALITY_BLOCKS = {
     "frontend-developer": [
         "measured-capacity-engineering",
         "core-engineering-principles",
+        "review-decision-autonomy",  # parity with ui-design's review mode
         "design-patterns-quality", "complexity-prevention",
         # wave 2 (twin: plan --mode=execute / feature-implement)
         "source-test-drift-check", "graph-assisted-investigation", "ui-system-context",
@@ -576,7 +607,8 @@ AGENT_QUALITY_BLOCKS = {
     # SYNC block; keeping the row makes the all-agent matrix complete and
     # prevents silent tier drift when a new block is introduced.
     "git-manager": [],
-    "journal-writer": [],
+    # A report/journal role still owes the reader a clear, reviewable artifact.
+    "journal-writer": ["output-quality-principles"],
 }
 
 # ---------------------------------------------------------------------------
@@ -761,6 +793,19 @@ def skill_names() -> set[str]:
     }
 
 
+def skill_declared_tags(skill: str) -> set[str]:
+    """Every shared-protocol tag a skill declares: guide lines plus carried SYNC fences."""
+    path = SKILLS_DIR / skill / "SKILL.md"
+    if not path.exists():
+        return set()
+    text = path.read_text(encoding="utf-8")
+    tags = set(SYNC_FENCE_RE.findall(text))
+    guide = PROTOCOL_GUIDES_RE.search(text)
+    if guide:
+        tags |= set(GUIDE_LINE_RE.findall(guide.group(1)))
+    return tags
+
+
 def frontmatter_skills(agent: str) -> list[str]:
     """Read an optional native ``skills:`` list from one agent frontmatter."""
     f = AGENTS_DIR / f"{agent}.md"
@@ -908,6 +953,20 @@ def validate() -> tuple[list[str], list[str]]:
                 f"(connection) agent '{agent}' frontmatter skill(s) not in connection manifest: "
                 f"{native_unconnected}"
             )
+
+    # (k) same-role parity -- HARD FAIL. A connected skill that declares a
+    # cross-cutting quality gate means the agent twin must carry it too, or the
+    # same role reviews to a different standard depending on who runs it. A
+    # genuine off-role gap belongs in PARITY_WAIVERS with a reason.
+    for agent, connected in AGENT_SKILL_CONNECTIONS.items():
+        have = set(AGENT_QUALITY_BLOCKS.get(agent, []))
+        for skill in connected:
+            gap = (skill_declared_tags(skill) & PARITY_GATES) - have - PARITY_WAIVERS.get((agent, skill), set())
+            if gap:
+                errors.append(
+                    f"(parity) agent '{agent}' lacks {sorted(gap)} declared by connected skill "
+                    f"'{skill}'; add it to AGENT_QUALITY_BLOCKS or record a PARITY_WAIVERS entry"
+                )
 
     for skill in sorted(TEST_ARCHITECTURE_SKILLS):
         owners = sorted(agent for agent, links in AGENT_SKILL_CONNECTIONS.items() if skill in links)

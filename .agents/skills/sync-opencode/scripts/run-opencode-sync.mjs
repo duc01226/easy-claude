@@ -13,7 +13,7 @@
 //
 // Scope: opencode SURFACE = the generated hooks bridge, recommended root
 // `opencode.json` defaults, the skill-selection policy (`permission.skill` in the
-// root `opencode.json` plus a `.opencode/commands/<name>.md` per hidden skill),
+// root `opencode.json` plus a `.opencode/commands/<name>.md` for every skill),
 // and the generated sub-agent mirror. opencode auto-discovers skills from
 // `.claude/skills` and `.agents/skills`, so skill files themselves are not copied
 // here (unlike sync-codex).

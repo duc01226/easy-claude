@@ -1,0 +1,16 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Hidden content</title>
+<style>body{margin:0;font:15px/1.5 system-ui,sans-serif;background:#fff;color:#1f2933}main{max-width:720px;margin:32px auto;padding:0 16px}
+.p{min-width:140px;height:40px;border-radius:8px;background:#1d4ed8;color:#fff;border:0;font:inherit}
+.collapse{display:grid;grid-template-rows:0fr}.collapse>div{overflow:hidden}
+.drawer{position:fixed;top:0;right:0;width:320px;height:100%;background:#fff;transform:translateX(100%)}
+.cv{content-visibility:hidden}
+.clipped{clip-path:inset(100%)}
+.offscreen{position:absolute;left:-9999px}</style></head>
+<body><main><h1>Settings</h1><button class="p">Save settings</button>
+<details><summary>Advanced</summary><button class="p">Reset all</button></details>
+<div class="collapse"><div><button class="p">Delete workspace</button></div></div>
+<div class="drawer"><button class="p">Apply filters</button></div>
+<div class="cv"><button class="p">Hidden CV</button></div>
+<div class="clipped"><button class="p">Clip path hidden</button></div>
+<div class="offscreen"><button class="p">Offscreen</button></div>
+</main></body></html>

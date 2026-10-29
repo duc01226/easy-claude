@@ -55,13 +55,13 @@
 // before and after goes first, then `opencode.json`, then the final ledger, so an interruption never
 // leaves a generator key unrecorded (the order and union are shared with sync-skill-profile.cjs).
 //
-// Commands: a hidden skill keeps its explicit `/name` through `.opencode/commands/<name>.md`, whose
+// Commands: every skill keeps an explicit `/name` through `.opencode/commands/<name>.md`, whose
 // body includes the skill file (`@.claude/skills/<name>/SKILL.md`) and passes `$ARGUMENTS`. One is
-// written for every skill whose final exact `permission.skill` entry is "deny" — the policy's own
-// deny entries and a user deny alike; a kept user value that is not "deny" gets none. The command
+// written for every valid skill folder, whether the model may load it or a permission entry hides
+// it — the same `/name` entry point Claude Code gives every skill. The command
 // name is the validated skill FOLDER name, never frontmatter text; the
 // write path must resolve inside `.opencode/commands/`. Only files carrying COMMAND_MARKER are ever
-// rewritten or deleted: a marked command whose skill is no longer hidden is removed, and a user
+// rewritten or deleted: a marked command whose skill folder no longer exists is removed, and a user
 // command without the marker that already uses the name (in `commands/` or opencode's singular
 // `command/` alias) is kept, no generated command replaces it, and one conflict line names it.
 // Generated bodies contain no `!` shell injection.
@@ -397,7 +397,7 @@ export function collapseDescription(text, fallback) {
 }
 
 /**
- * Render one opencode command that loads a hidden skill. Pure: the same input gives the same bytes.
+ * Render one opencode command that loads a skill. Pure: the same input gives the same bytes.
  * `name` must already be a validated folder name (SKILL_NAME_PATTERN).
  */
 export function renderCommandDocument(name, description) {
@@ -461,12 +461,12 @@ async function readCommandEntries(dir) {
 const toPosix = (relative) => relative.split(path.sep).join("/");
 
 /**
- * Plan the command files for the hidden skills (BR-ADS-10). Reads the commands folders; writes nothing.
+ * Plan the command files for every skill (BR-ADS-10). Reads the commands folders; writes nothing.
  * @param {object} input
  * @param {string} input.rootDir
  * @param {string} input.commandsDir `.opencode/commands`
  * @param {string} input.aliasDir `.opencode/command`
- * @param {Array<{name: string, description: string}>} input.wanted one per hidden skill
+ * @param {Array<{name: string, description: string}>} input.wanted one per valid skill folder
  * @returns {Promise<{writes: Array<{name: string, filePath: string, text: string, current: string|null}>, deletes: string[], conflicts: string[], warnings: string[], expected: Map<string, string>}>}
  */
 export async function planCommandFiles({ rootDir, commandsDir, aliasDir, wanted }) {
@@ -555,13 +555,11 @@ export async function planOpencodeSkills(options = {}) {
   const merge = mergeSkillPermissions(config, ledger.owned, desired);
   const ledgerWanted = ledgerCurrent === null && Object.keys(merge.owned).length === 0 ? null : renderLedger(merge.owned, project);
 
-  // A skill is hidden only when its final exact entry is "deny" — the policy's or a user's. A policy deny
-  // that was not written (a kept user value, or a `permission`/`permission.skill` that is not a map) hides nothing.
-  const finalSkill = isPlainObject(merge.config.permission?.skill) ? merge.config.permission.skill : {};
-  const hidden = skills.filter((skill) => Object.hasOwn(finalSkill, skill.folder) && finalSkill[skill.folder] === "deny");
+  // Every valid skill folder gets an explicit `/name` command, hidden or not. Claude Code exposes
+  // every skill as a slash command; opencode lists only commands in its `/` palette, so a command
+  // per skill is what gives the user the same manual entry point on both hosts.
   for (const skill of skills) {
-    const governed = desired.has(skill.folder) || hidden.includes(skill);
-    if (governed && skill.declaredName && skill.declaredName !== skill.folder) {
+    if (skill.declaredName && skill.declaredName !== skill.folder) {
       warnings.push(`warning: skill folder ${skill.folder} declares name ${JSON.stringify(skill.declaredName)}; its permission entry and command use the folder name`);
     }
   }
@@ -569,7 +567,7 @@ export async function planOpencodeSkills(options = {}) {
     rootDir: paths.rootDir,
     commandsDir: paths.commandsDir,
     aliasDir: paths.commandAliasDir,
-    wanted: hidden.map((skill) => ({ name: skill.folder, description: skill.description })),
+    wanted: skills.map((skill) => ({ name: skill.folder, description: skill.description })),
   });
 
   return {

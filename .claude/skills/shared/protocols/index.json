@@ -85,12 +85,12 @@
       "group": "universal",
       "summary": "Failure modes to avoid on every task",
       "when": "delivered by the universal hook",
-      "chars": 5450,
+      "chars": 5347,
       "file": ".claude/skills/shared/protocols/ai-mistake-prevention.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/ai-mistake-prevention.md",
-          "chars": 5450
+          "chars": 5347
         }
       ]
     },
@@ -183,12 +183,12 @@
       "group": "universal",
       "summary": "Edit sources, never generated mirrors",
       "when": "delivered by the universal hook",
-      "chars": 901,
+      "chars": 923,
       "file": ".claude/skills/shared/protocols/canonical-ownership.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/canonical-ownership.md",
-          "chars": 901
+          "chars": 923
         }
       ]
     },
@@ -281,12 +281,12 @@
       "group": "design",
       "summary": "Core quality gate: easy to change, easy to scale, easy to maintain, judged by future change cost",
       "when": "planning, implementing or reviewing any change",
-      "chars": 3906,
+      "chars": 4036,
       "file": ".claude/skills/shared/protocols/core-engineering-principles.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/core-engineering-principles.md",
-          "chars": 3906
+          "chars": 4036
         }
       ]
     },
@@ -295,12 +295,12 @@
       "group": "universal",
       "summary": "Critical and sequential thinking with traced proof for every claim",
       "when": "delivered by the universal hook",
-      "chars": 2092,
+      "chars": 1912,
       "file": ".claude/skills/shared/protocols/critical-thinking-mindset.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/critical-thinking-mindset.md",
-          "chars": 2092
+          "chars": 1912
         }
       ]
     },
@@ -869,12 +869,12 @@
       "group": "universal",
       "summary": "Read the project config and the right reference docs just in time",
       "when": "delivered by the universal hook",
-      "chars": 4962,
+      "chars": 4925,
       "file": ".claude/skills/shared/protocols/project-reference-docs-guide.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/project-reference-docs-guide.md",
-          "chars": 4962
+          "chars": 4925
         }
       ]
     },
@@ -1531,12 +1531,12 @@
       "group": "universal",
       "summary": "Closing reminders that restate the universal rules",
       "when": "delivered by the universal hook",
-      "chars": 584,
+      "chars": 238,
       "file": ".claude/skills/shared/protocols/universal-closing-reminders.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/universal-closing-reminders.md",
-          "chars": 584
+          "chars": 238
         }
       ]
     },

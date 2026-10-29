@@ -13,8 +13,8 @@
  * reaches the steps (BR-PDL-08); the second host (Codex) maps delivery to its prompt, shell-read and
  * agent-start events without changing any existing step (BR-PDL-06) and starts delivery steps without
  * the version-control lookup (BR-PDL-09); the third host (OpenCode) bridges every group on its skill
- * tool and file read, carries the file-read condition into its table and reports the other load
- * paths as skipped (BR-PDL-15), and resolves a skill named in its own field (BR-PDL-10); the second-host skill copy carries full text only for protocols on the inline list,
+ * tool, file read, typed command and agent start, carries the file-read condition into its table
+ * (BR-PDL-15), and resolves a skill named in its own field (BR-PDL-10); the second-host skill copy carries full text only for protocols on the inline list,
  * which is decided empty, and a listed protocol is never also delivered there (BR-PDL-06). Each test
  * name starts with its TC id (spec join key).
  *
@@ -620,7 +620,7 @@ const tests = [
         }
     },
     {
-        name: 'TC-PDL-023 the third-host bridge lists every group and the overlay reminder on the skill tool and file read, conditions only the file read, and reports the rest as skipped',
+        name: 'TC-PDL-023 the third-host bridge lists every group and the overlay reminder on the skill tool and file read, conditions only the file read, and bridges typed commands and agent starts',
         fn: async () => {
             const fixture = makeHookTreeProject('pdl023');
             try {
@@ -646,10 +646,10 @@ const tests = [
                         assert.deepEqual(Object.keys(handler), ['type', 'command'], `${event}: ${handler.command} changed shape`);
                     }
                 }
-                // And typed-command expansion and agent start are reported as skipped, never dropped silently
+                // And typed-command expansion and agent start are bridged on the V2 surfaces, never dropped silently
                 for (const event of ['UserPromptExpansion', 'SubagentStart']) {
-                    assert.deepEqual(report.skipped_events.filter(entry => entry.event === event), [{ event, reason: 'unsupported-by-opencode' }]);
-                    assert.equal(hooks[event], undefined, `${event} has no bridge entry`);
+                    assert.deepEqual(report.skipped_events.filter(entry => entry.event === event), [], `${event} is bridged, not skipped`);
+                    assert.ok(Array.isArray(hooks[event]) && hooks[event].length > 0, `${event} has a bridge entry`);
                 }
                 // And every bridged entry resolves to a file of the copied tree
                 assert.deepEqual(report.missing_hook_files.filter(isProtocolCommand), [], 'a protocol entry file is missing');

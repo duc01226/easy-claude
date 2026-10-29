@@ -2,13 +2,13 @@
   "version": 5,
   "policyVersion": "9388513f2845e7e166b2e04569d75efb2dacfab48713958298e4d2facf3e1bf3",
   "sourceHashes": {
-    "universal-1": "766ee6f680ab736b0dc210931818280ad1fdef2163a2c6f99311adee5a8797f3",
-    "universal-2": "1338c56f7c77d68d3cc75236b6e549468ff1dcf05e8b0a8e3bb1efb19077676a",
-    "universal-3": "280b17a8816d03120f7a44da97e81081412a5aee842a2e9acbf51444dd0cc531",
-    "universal-4": "56d419e6efa428b1dc72633a9a94f4390290fed3e1674a393441bcff7b62af23",
+    "universal-1": "61a425b9de1e6b1afdb196eaab7b9c523a86bb6d47894b5c1d74a3319d9bbff0",
+    "universal-2": "1b1ef61575b9bc87aef230605b90397b3485567763a5c59f025030973fcc1531",
+    "universal-3": "e02ba4fe62b665e8c9e75aa1f83d7a10da1ca401c12b787d9449202a082eb496",
+    "universal-4": "38b2d7627459e58195161a2a351370a89a7cc2de7bcbd21d649584ffe5ecd926",
     "route": "46422fdacf61e11928a242baf5170b8d56abe1f5652d1cb524554b971ce3e994",
     "catalog": "654269324d307ae1327398df6e199a1a515d9e5aeb83f9c8a3f115251853d26f",
-    "core": "f129dc46a1bb06a26cc3c342b9a0e35fe4f7a5bc44cfb57f32f12e8cb99ba3b8"
+    "core": "d195161390a4a72ee782acd33c7a77a9609b7ff5e5b336f4d8a83f4d06cf5c2a"
   },
   "unit": "Every nonblank line of the seven frozen compatible payloads: `id` is `<payload>:<line>` and `sha256` hashes its text. `policyVersion` is the sha256 of the concise core and route texts the dispositions were reviewed against.",
   "dispositions": {
@@ -37,7 +37,7 @@
       "id": "universal-1:3",
       "source": "universal-1",
       "line": 3,
-      "sha256": "9bc9baf367ff12ff2718e54a13ee20b3585a8d4b4abe5dedea1c5013689a3b1c",
+      "sha256": "724df5549f9b6ae7788989bacaaef3402a863092f5a285558f271eb9c6bc4c37",
       "disposition": "merge-and-relax-method",
       "destination": ".claude/skills/shared/protocols/concise-agent-core.md",
       "fullSources": [
@@ -55,7 +55,7 @@
       "id": "universal-1:4",
       "source": "universal-1",
       "line": 4,
-      "sha256": "c461a0ea430419603d8759239c32701683d134f8ac8f2627ecb2d9f13039fe3a",
+      "sha256": "12e4db7bdc3ffbaa79005e7442762aad9dd86591fe302f96ea6c19a161edaae0",
       "disposition": "defer",
       "destination": ".claude/skills/shared/protocols/critical-thinking-mindset.md",
       "readWhen": "asking the user a question, or writing or restructuring a long prompt or protocol"
@@ -120,7 +120,7 @@
       "id": "universal-1:9",
       "source": "universal-1",
       "line": 9,
-      "sha256": "e70cd54c9e3490ed800aabca393b9ce3f21dd7efa0a08c3f2b44067a65cbefdb",
+      "sha256": "20ad2208ea1318e4e82b11284aa12ecfee9a3acfc0509ef31345acff27292d4e",
       "disposition": "merge",
       "destination": ".claude/skills/shared/protocols/concise-agent-core.md",
       "fullSources": [
@@ -137,7 +137,7 @@
       "id": "universal-1:10",
       "source": "universal-1",
       "line": 10,
-      "sha256": "9669f5c25a7e1a46029d29ddf755e0ad28f9263545dd3f2612b62f528857a121",
+      "sha256": "9b7a6d785c9d92c6456cd68b1f9788bbaec465e8b2ce5eb62823de94893ed0f2",
       "disposition": "merge-and-relax-method",
       "destination": ".claude/skills/shared/protocols/concise-agent-core.md",
       "fullSources": [
@@ -410,7 +410,7 @@
       "id": "universal-1:41",
       "source": "universal-1",
       "line": 41,
-      "sha256": "0dbc5347f4e5c740fe9bbc23152f11a662e13cebd5ce9646a4792e551746cae8",
+      "sha256": "a061482225790ee5e1520ebfb29ad4a24b198b9bbe0e3706a9634a24cd62d6aa",
       "disposition": "merge-and-relax-method",
       "destination": ".claude/skills/shared/protocols/concise-agent-core.md",
       "fullSources": [
@@ -519,21 +519,6 @@
       "id": "universal-2:7",
       "source": "universal-2",
       "line": 7,
-      "sha256": "ae6b561b5c9d1a3766eb0bbb2d787ccc21dec52f0167d2836439995b82ea78c5",
-      "disposition": "merge",
-      "destination": ".claude/skills/shared/protocols/concise-agent-core.md",
-      "fullSources": [
-        ".claude/skills/shared/protocols/ai-mistake-prevention.md"
-      ],
-      "anchors": [
-        "Do not weaken assertions, skip tests, inflate timeouts or alter product behavior merely to make a check pass",
-        "Project investigation/test references and the registered `investigate`, `fix` or relevant test skill"
-      ]
-    },
-    {
-      "id": "universal-2:8",
-      "source": "universal-2",
-      "line": 8,
       "sha256": "a6c0686fac1f50de79c08726751133c8954eb891af51c4760340292a9cd0f334",
       "disposition": "merge",
       "destination": ".claude/skills/shared/protocols/concise-agent-core.md",
@@ -546,9 +531,9 @@
       ]
     },
     {
-      "id": "universal-2:9",
+      "id": "universal-2:8",
       "source": "universal-2",
-      "line": 9,
+      "line": 8,
       "sha256": "9068c6cedec0e6910dae6e739c86f93df052d83ef7255d0dace49162b208d212",
       "disposition": "merge",
       "destination": ".claude/skills/shared/protocols/concise-agent-core.md",
@@ -560,10 +545,10 @@
       ]
     },
     {
-      "id": "universal-2:10",
+      "id": "universal-2:9",
       "source": "universal-2",
-      "line": 10,
-      "sha256": "4e86f01c1cdf24ce66ddfb01bee3206824bc7a3f3597128a49ad144882f7968e",
+      "line": 9,
+      "sha256": "635ec79a30ff3f540045eedf04c7cd64435efedd45979c8269aec4f54a361590",
       "disposition": "merge",
       "destination": ".claude/skills/shared/protocols/concise-agent-core.md",
       "fullSources": [
@@ -576,9 +561,9 @@
       ]
     },
     {
-      "id": "universal-2:11",
+      "id": "universal-2:10",
       "source": "universal-2",
-      "line": 11,
+      "line": 10,
       "sha256": "9a22327db38fcbff783a10d3481061b1ecd53da2b5320fb412710aa3e7ddc754",
       "disposition": "merge",
       "destination": ".claude/skills/shared/protocols/concise-agent-core.md",
@@ -590,9 +575,9 @@
       ]
     },
     {
-      "id": "universal-2:12",
+      "id": "universal-2:11",
       "source": "universal-2",
-      "line": 12,
+      "line": 11,
       "sha256": "3b9daec7bdbf6b11c23b6b2d2e0f22bad36b45d40e72d010ac280fce64d3cf3e",
       "disposition": "merge",
       "destination": ".claude/skills/shared/protocols/concise-agent-core.md",
@@ -604,9 +589,9 @@
       ]
     },
     {
-      "id": "universal-2:13",
+      "id": "universal-2:12",
       "source": "universal-2",
-      "line": 13,
+      "line": 12,
       "sha256": "1ab23bbd49a39fc732300e7fc9c1a0d0c9630c50bf5e87b0c08baeea816308a0",
       "disposition": "merge",
       "destination": ".claude/skills/shared/protocols/concise-agent-core.md",
@@ -619,9 +604,9 @@
       ]
     },
     {
-      "id": "universal-2:14",
+      "id": "universal-2:13",
       "source": "universal-2",
-      "line": 14,
+      "line": 13,
       "sha256": "6db602d9724f3cb69bbbf36f74d8fec7b88fa3c3620eb2d3e63f5242bfe2da73",
       "disposition": "defer",
       "destination": ".claude/skills/shared/protocols/ai-mistake-prevention.md",
@@ -629,9 +614,9 @@
       "note": "The concise text keeps fair testing of the premise and names why-review for formal rationale audits; the adversarial review method is read from the source."
     },
     {
-      "id": "universal-2:15",
+      "id": "universal-2:14",
       "source": "universal-2",
-      "line": 15,
+      "line": 14,
       "sha256": "3d52e60e676c601811e007456422fee6fe1820e8e08c0990c9838e49e79bc19b",
       "disposition": "merge",
       "destination": ".claude/skills/shared/protocols/concise-agent-core.md",
@@ -645,9 +630,9 @@
       ]
     },
     {
-      "id": "universal-2:16",
+      "id": "universal-2:15",
       "source": "universal-2",
-      "line": 16,
+      "line": 15,
       "sha256": "484d3713c915b5a1558b331b7b775b7ab3ac6b13896143cee458c32f45b6bab7",
       "disposition": "defer",
       "destination": ".claude/skills/shared/protocols/ai-mistake-prevention.md",
@@ -655,9 +640,9 @@
       "note": "The concise trigger row keeps the platform-behavior and security-boundary cue and names this file as the owner to load."
     },
     {
-      "id": "universal-2:17",
+      "id": "universal-2:16",
       "source": "universal-2",
-      "line": 17,
+      "line": 16,
       "sha256": "d7c1bb2d20fb8a74e32bb27012d3caccae46ed79dbc9ca5cfe1e1e0427b2ee65",
       "disposition": "merge",
       "destination": ".claude/skills/shared/protocols/concise-agent-core.md",
@@ -844,7 +829,7 @@
       "id": "universal-3:29",
       "source": "universal-3",
       "line": 29,
-      "sha256": "416d056530a8c3a97e74945259ddac267d70a98b3832df733e15f64f067bd9b0",
+      "sha256": "9946a5dcd69618053287deacb49e5868dd6707ab6a0211a4fcdea5d2ef33d53b",
       "disposition": "merge",
       "destination": ".claude/skills/shared/protocols/concise-agent-core.md",
       "fullSources": [
@@ -991,7 +976,7 @@
       "id": "universal-4:20",
       "source": "universal-4",
       "line": 20,
-      "sha256": "c5c875252740a8c318bb953563e55b80f46791a1d26faf82203c3f80a5b5e3be",
+      "sha256": "608b0f567bc5d3b84fe4fda4979c75dbc6c5c9c815524100f27a4613ac606d54",
       "disposition": "merge",
       "destination": ".claude/skills/shared/protocols/concise-agent-core.md",
       "fullSources": [
@@ -1711,7 +1696,7 @@
       "id": "core:4",
       "source": "core",
       "line": 4,
-      "sha256": "fbab2f84d6f63ca4fc6b0d9a3e65cdfc5e83297fca9f0cbfee9ddd3d74efdcb2",
+      "sha256": "9dbd78f76defb8db5ddf48da746fd9a534be942d7718d5a80e13caeb781b4a92",
       "disposition": "merge-and-relax-method",
       "destination": ".claude/skills/shared/protocols/concise-agent-core.md",
       "fullSources": [

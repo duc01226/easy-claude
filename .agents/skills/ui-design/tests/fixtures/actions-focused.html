@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pending records — one primary, row targets</title>
+<style>
+  body { margin: 0; font: 15px/1.5 system-ui, sans-serif; background: #ffffff; color: #1f2933; }
+  main { max-width: 720px; margin: 24px auto; padding: 0 16px; }
+  .toolbar { display: flex; justify-content: flex-end; margin-bottom: 8px; }
+  .primary { font: inherit; min-width: 160px; padding: 8px 16px; border-radius: 6px; background: #1d4ed8; color: #ffffff; border: 1px solid #1d4ed8; }
+  ul { list-style: none; margin: 0; padding: 0; }
+  li { display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #e4e7eb; position: relative; }
+  .row { flex: 1; display: flex; align-items: center; gap: 8px; padding: 12px 0; color: inherit; text-decoration: none; }
+  .row-text { flex: 1; }
+  .title { margin: 0; font-weight: 600; }
+  .meta { margin: 0; color: #52606d; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .icon-btn { width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; background: transparent; border: 0; color: #1f2933; cursor: pointer; }
+  .tip { position: absolute; right: 0; top: -28px; padding: 2px 8px; border-radius: 4px; background: #1f2933; color: #ffffff; font-size: 13px; visibility: hidden; }
+  .icon-btn:hover + .tip, .icon-btn:focus-visible + .tip, .icon-btn:focus + .tip { visibility: visible; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Pending records</h1>
+  <div role="tablist" class="tabs"><button role="tab" class="primary">Pending</button></div>
+  <div class="toolbar"><button class="primary">Process 5 selected</button></div>
+  <div data-state="open" class="collapsible"><p>Filters are applied.</p></div>
+  <ul>
+    <li>
+      <a class="row" href="#group-a">
+        <span class="row-text"><p class="title">Group A</p><p class="meta">3 records · arrived overnight</p></span>
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><polyline points="6 3 11 8 6 13" fill="none" stroke="#52606d" stroke-width="1.5"/></svg>
+      </a>
+      <button class="icon-btn" aria-label="Copy link to group A" aria-describedby="tip-a">
+        <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><rect x="6" y="6" width="10" height="10" fill="none" stroke="#1f2933" stroke-width="1.5"/></svg>
+      </button>
+      <span class="tip" role="tooltip" id="tip-a">Copy link</span>
+    </li>
+    <li>
+      <a class="row" href="#group-b">
+        <span class="row-text"><p class="title">Group B</p><p class="meta">2 records · weekly import</p></span>
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><polyline points="6 3 11 8 6 13" fill="none" stroke="#52606d" stroke-width="1.5"/></svg>
+      </a>
+      <button class="icon-btn" aria-label="Copy link to group B" aria-describedby="tip-b">
+        <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><rect x="6" y="6" width="10" height="10" fill="none" stroke="#1f2933" stroke-width="1.5"/></svg>
+      </button>
+      <span class="tip" role="tooltip" id="tip-b">Copy link</span>
+    </li>
+  </ul>
+  <div class="demo-bar" data-audit-ignore>
+    <button class="primary">Play demo</button>
+    <button class="primary">Next step</button>
+  </div>
+</main>
+</body>
+</html>
