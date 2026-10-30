@@ -384,11 +384,11 @@ Codex transforms `/skill` into `$skill`, `Agent` into `spawn_agent` and strips C
 | Runner                                  | Tests  | Covers                                                                 |
 | --------------------------------------- | ------ | ---------------------------------------------------------------------- |
 | `test-all-hooks.cjs` (primary gate)  | **133** | Hook behaviors, bridged suites and the count guard                     |
-| `run-all-tests.cjs` (full aggregate) | **2226** | 130 `tests/suites/*.test.cjs` files; primary gate runs separately |
+| `run-all-tests.cjs` (full aggregate) | **2227** | 130 `tests/suites/*.test.cjs` files; primary gate runs separately |
 | `node --test .claude/scripts/codex/tests` | —      | Mirror generators and verifiers                                        |
 | `run-codex-sync.mjs --verify-only`      | —      | Every read-only gate before a commit                                   |
 
-> Source-declared inventory: `test-all-hooks.cjs` = 133; `run-all-tests.cjs` = 2226 executors across 130 suite files. Both runners fail when these numbers drift from the docs. Counts do not establish runtime results; read the actual runner output for outcomes.
+> Source-declared inventory: `test-all-hooks.cjs` = 133; `run-all-tests.cjs` = 2227 executors across 130 suite files. Both runners fail when these numbers drift from the docs. Counts do not establish runtime results; read the actual runner output for outcomes.
 
 **Portable test contract** — shipped tests must pass in any project layout on Windows, macOS and Linux: build a temp fixture project instead of reading this repository's config or git state; blank inherited feature switches and provider keys; point `HOME`, `USERPROFILE`, `TMPDIR`, `TEMP` and `TMP` at the temp dir; name OS differences explicitly (paths, symlinks, `py -3` vs `python3`); run the full suite twice to prove repeatability.
 

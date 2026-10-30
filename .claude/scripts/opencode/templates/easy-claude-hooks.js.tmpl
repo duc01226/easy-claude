@@ -1156,7 +1156,7 @@ export async function EasyClaudeHooksV2(ctx) {
     // Fallback sink: pre-tool context that no tool output carried.
     const pending = pendingToolContext.get(key);
     if (pending) {
-      event.system.push(...pending.map((text) => ({ type: "text", text })));
+      event.system.push(...[...pending].map((text) => ({ type: "text", text })));
       pendingToolContext.delete(key);
     }
   });

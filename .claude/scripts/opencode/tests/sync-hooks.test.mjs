@@ -1438,6 +1438,43 @@ test("V2 setup delivers tool context and prompt/session context through the V2 h
   }
 });
 
+test("V2 setup delivers queued pre-tool and failed-tool context through the model context hook", async () => {
+  const settings = {
+    hooks: {
+      PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: hookCommand("pre-context.cjs") }] }],
+      PostToolUseFailure: [{ matcher: "*", hooks: [{ type: "command", command: hookCommand("context.cjs") }] }],
+    },
+  };
+  const root = await createProject(settings);
+  try {
+    const { pluginPath } = await materializeOpencodeHooks({ rootDir: root });
+    const module = await importPlugin(pluginPath);
+    const host = createV2Host(root);
+    const cleanup = await module.default.setup(host.ctx);
+    try {
+      const before = { tool: "bash", sessionID: "s-failed", input: { command: "PRE_CONTEXT" } };
+      await host.registrations.tool["execute.before"](before);
+      // The failed tool's result carries no text, so its context is queued for the
+      // next model request instead of reaching the tool output.
+      const after = { tool: "bash", sessionID: "s-failed", status: "error", input: { command: "PRE_CONTEXT" }, error: "fixture failure", result: undefined };
+      await host.registrations.tool["execute.after"](after);
+      const context = { sessionID: "s-failed", system: [] };
+      await host.registrations.session.context(context);
+      assert.deepEqual(context.system, [
+        { type: "text", text: "PRE_CONTEXT" },
+        { type: "text", text: "HELLO_CONTEXT" },
+      ], "queued pre-tool and failed-tool context reach the next model request");
+      const again = { sessionID: "s-failed", system: [] };
+      await host.registrations.session.context(again);
+      assert.deepEqual(again.system, [], "delivered pending context is consumed once");
+    } finally {
+      cleanup();
+    }
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
 test("V2 setup keeps Claude's PreToolUse block/rewrite and PermissionRequest decision contract", async () => {
   const settings = {
     hooks: {
