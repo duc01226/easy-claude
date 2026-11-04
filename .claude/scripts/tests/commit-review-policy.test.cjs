@@ -42,16 +42,26 @@ test('requested commits select a real lightweight review at every risk tier by d
     }
 });
 
-test('risk-based opt-in restores the tier policy while PR scope ignores the commit preference', t => {
+test('risk-based commits retain tier selection including the Low-risk skip', t => {
     const f = fixture(t);
     f.write(f.team, { commit: { reviewMode: 'risk-based' } });
     for (const [risk, skill] of [['low', null], ['medium', 'why-review'], ['high', 'changes-review']]) {
         assert.equal(policy.decideReview({ ...f, risk }).skill, skill);
-        f.write(f.local, { commit: { reviewMode: 'lightweight' } });
-        const pr = policy.decideReview({ ...f, risk, operation: 'pull-request' });
-        assert.equal(pr.skill, skill);
-        assert.equal(pr.source, 'pull-request');
-        fs.unlinkSync(f.local);
+    }
+});
+
+test('every PR risk tier requires a rationale or changes review regardless of commit preferences', t => {
+    const f = fixture(t);
+    for (const mode of policy.MODES) {
+        f.write(f.team, { commit: { reviewMode: mode } });
+        for (const [risk, skill] of [['low', 'why-review'], ['medium', 'why-review'], ['high', 'changes-review']]) {
+            const pr = policy.decideReview({ ...f, risk, operation: 'pull-request' });
+            assert.equal(pr.action, 'review');
+            assert.equal(pr.skill, skill);
+            assert.equal(pr.risk, risk, 'review depth must not rewrite the assessed branch risk');
+            assert.equal(pr.maxRounds, 3);
+            assert.equal(pr.source, 'pull-request');
+        }
     }
 });
 
@@ -114,6 +124,10 @@ test('the read-only CLI reports its selected review and refuses unknown argument
     const result = run(['--risk=high']);
     assert.equal(result.status, 0, result.stderr);
     assert.equal(JSON.parse(result.stdout).skill, 'changes-review');
+    const pr = run(['--operation=pull-request', '--risk=low']);
+    assert.equal(pr.status, 0, pr.stderr);
+    assert.equal(JSON.parse(pr.stdout).skill, 'why-review');
+    assert.equal(JSON.parse(pr.stdout).action, 'review');
     assert.deepEqual(fs.readFileSync(f.team), before);
     assert.equal(run(['--risk=high', '--risk=low']).status, 1);
     assert.equal(run(['--skip']).status, 1);

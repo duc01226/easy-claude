@@ -6,7 +6,7 @@ Read when a workflow delegates review duties or a review receives `--loop-owner=
 - `--fix-loop --loop-owner=caller` opts a child into the caller's review/fix/re-review cycle. The child reviews and validates its assigned pass read-only; the caller waits for all reports, fixes once, and requests fresh passes. It is never permission for parallel source mutation or a nested loop. The child's validation is the evidence bar applied inside that pass; the separate terminal `$why-review --validate-findings` call runs once, on the caller's merged report.
 - Default workflow review calls use that caller-owned mode. Standalone `--fix-loop` owns its authorized fixes; standalone review otherwise defaults to review-only.
 - When the caller is `workflow-review-changes`, all children share its default maximum of two coordinator-owned rounds. A child's generic three-round guidance does not grant another workflow round; hand remaining blockers to the coordinator at the workflow cap and wait for an explicit bounded extension decision.
-- `--defer=whole-target,specialists,tests,entities,simplify` may assign named duties to a caller. Use only applicable names; record each duty's owner and completion evidence. Deferral never skips a gate. General review retains correctness and inline risk checks while specialists add depth.
+- `--defer=specialists,tests,entities,simplify` may assign named duties to a caller. Use only applicable names; record each duty's owner and completion evidence. Deferral never skips a gate. General review retains correctness and inline risk checks while specialists add depth. `changes-review` always invokes whole-target `$why-review` itself; legacy `--defer=whole-target` cannot waive that call. A separate caller rationale occurrence may reuse its current evidence for unchanged work under the shared review policy.
 - `--tests=prove` runs required test proof for standalone review; `--tests=defer` retains static quality/coverage review and names the parent's later execution step. Remove `--prove-tests` in deferred integration review and propagate the setting through every round.
 - Terminal `--validate-findings` validates the supplied report once; it ignores fix-loop and never mutates source.
 
@@ -16,7 +16,8 @@ Preserve complete target coverage, required rules and report findings. At exhaus
 
 | Deferred duty | Caller must own |
 | --- | --- |
-| `whole-target` / `specialists` | Complete rationale and every applicable domain review, reconciled with general coverage. |
+| `whole-target` (legacy argument) | Cannot defer `changes-review`'s mandatory rationale skill call; retain any separate caller rationale occurrence and reconcile current evidence. |
+| `specialists` | Every applicable domain review, reconciled with general coverage and the mandatory rationale pass. |
 | `tests` | Final execution evidence through the configured verification step; static coverage review still runs. |
 | `entities` | Conditional domain-reference refresh after settled repairs. |
 | `review` from `code-simplifier --defer=review` | A full fresh `$why-review` of the settled target after simplification. |

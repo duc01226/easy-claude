@@ -28,22 +28,22 @@ Old evidence never covers new content: a run from before the last edit to the co
 
 ## Decide review
 
-Run `node .claude/scripts/lib/commit-review-policy.cjs --operation=pull-request --risk=<actual-tier>`. PR scope remains risk-based regardless of `commit.reviewMode`: Low → automatic skip; Medium → `/why-review --fix-loop`; High → `/changes-review --fix-loop`. Each review has at most three rounds. Reuse evidence only when the whole-branch scope and final candidate match; a commit-only review does not cover a PR.
+Run `node .claude/scripts/lib/commit-review-policy.cjs --operation=pull-request --risk=<actual-tier>`. PR scope remains risk-based regardless of `commit.reviewMode`: Low / Medium → `/why-review --fix-loop`; High → `/changes-review --fix-loop`. Every PR run invokes one of these skills; matching current whole-branch evidence may be reused inside the invocation, never instead of it. A requested `workflow-review-changes` run retains its `changes-review` call, which always invokes whole-target `why-review` alongside applicable specialists. Each review has at most three rounds. Reuse evidence only when the whole-branch scope and final candidate match; a commit-only review does not cover a PR.
 
 Pass the exact commit descriptor to the selected review if a commit is needed. Use staged mode for a plain commit, all mode for `-a`, literal-paths for explicit paths; add `"amend":true` only for an authorized amendment, which reviews against HEAD's parent. The review skill issues its receipt on convergence. Check that receipt with `node .claude/hooks/lib/review-receipt.cjs check --target=commit-descriptor --descriptor-json='<exact descriptor>'` before committing. `ERROR` is a blocker, never `CLEAN`.
 
-For a policy-eligible skip only, use the exact prepared descriptor:
+Only when the user explicitly requests a review skip, use the exact prepared descriptor:
 
 ```sh
 node .claude/hooks/lib/review-receipt.cjs snapshot --target=commit-descriptor --descriptor-json='<exact descriptor>'
-node .claude/hooks/lib/review-receipt.cjs issue --kind=skip --scope=full-changeset --snapshot-json='<returned snapshot JSON>' --reason='auto: low risk — <signal>'
+node .claude/hooks/lib/review-receipt.cjs issue --kind=skip --scope=full-changeset --snapshot-json='<returned snapshot JSON>' --reason='user-requested: <reason>'
 ```
 
-Under `reviewGate.mode: enforce` the pull request itself is gated too. The review snapshots the working tree with `--target=branch --base=<base-ref>` before the commit; the gate then checks the committed head, which matches once everything reviewed is committed. A skip recorded after the commit snapshots `--target=branch --base=<base-ref> --committed`. Only the review skill issues a review receipt.
+Under `reviewGate.mode: enforce` the pull request itself is gated too. The review snapshots the working tree with `--target=branch --base=<base-ref>` before the commit; the gate then checks the committed head, which matches once everything reviewed is committed. An explicitly user-requested skip recorded after the commit snapshots `--target=branch --base=<base-ref> --committed`. Only the review skill issues a review receipt.
 
-Under `reviewGate.status.enabled` the review snapshots the branch the same way, because `publish-status` posts the CI status only from a whole-branch review receipt or a committed review bypass. A skip receipt never publishes it: a Low-risk branch is reviewed instead, and only a user's explicit skip becomes a review bypass commit.
+Under `reviewGate.status.enabled` the review snapshots the branch the same way, because `publish-status` posts the CI status only from a whole-branch review receipt or a committed review bypass. A skip receipt never publishes it: only a user's explicit skip becomes a review bypass commit.
 
-A clean candidate needs no receipt. A changed candidate requires a matching review or eligible skip; re-check after issuing it. A skip records skipped work, never a passed review. Automatic skips are Low-risk only; an explicit user skip is recorded as such. Never skip after a failed/non-converged review or to evade a required project check.
+A clean candidate needs no receipt. A changed candidate requires a matching review or eligible skip; re-check after issuing it. A skip records skipped work, never a passed review. No risk tier permits an automatic skip; only an explicit user skip is recorded as such. Never skip after a failed/non-converged review or to evade a required project check.
 
 ## Stop and refresh boundaries
 

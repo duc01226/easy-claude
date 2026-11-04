@@ -17,7 +17,7 @@ description: '[Code Quality] Use when a workflow step or the user asks for a foc
 
 **Workflow:** Resolve scope → plan/tasks → review, with the whole-target `$why-review` rationale pass and a `$performance-review` pass when the change can affect performance → validate → review-only report or fix/re-review → final checks and recap.
 
-**Key Rules:** Review-only is the standalone default; `--fix-loop` enables the shared three-round loop. `--loop-owner=caller` returns a read-only pass to its fixing coordinator. Use the carried `review-policy` protocol for completion and user-approved extensions.
+**Key Rules:** Always invoke `$why-review` on the whole target alongside applicable specialist reviews, even when there are no findings. Review-only is the standalone default; `--fix-loop` enables the shared three-round loop. `--loop-owner=caller` returns a read-only pass to its fixing coordinator. Use the carried `review-policy` protocol for completion and user-approved extensions.
 
 > **Todo first:** create tasks for triage, review, validation, fixes, fresh re-review and final checks before execution; keep one task in progress and attach evidence when completed.
 
@@ -45,7 +45,7 @@ Check spec/test/code consistency, meaningful test assertions and documentation d
 
 **Performance review (conditional step):** when the diff touches data access (queries, loops over collections, paging, indexes), hot paths, caching, concurrency, batch/job throughput, or render-heavy UI, run `$performance-review` on the changed code as its own step — `--review-only` in review-only mode, `--fix-loop --loop-owner=caller` inside this skill's fixing loop — and validate its findings with this review's. Otherwise record the skip with its evidence: "No data-access, hot-path, caching, concurrency or render-heavy change is in the diff; record the triage evidence." Skip it only when `--defer=specialists` assigns it to a named caller (`workflow-review-changes` runs it as its own conditional step).
 
-**Whole-target rationale:** run `$why-review --target=whole-review-target` on the complete review target so the change's necessity, alternatives and trade-offs are judged, not only its correctness — read-only, as `--fix-loop --loop-owner=caller` inside this skill's fixing loop and `--review-only` otherwise. Skip it only when `--defer=whole-target` assigns it to a named caller (`workflow-review-changes` runs it as its own step).
+**Whole-target rationale (mandatory skill call):** always invoke `$why-review --target=whole-review-target` on the complete review target so the change's necessity, alternatives and trade-offs are judged alongside correctness and applicable specialist reviews — read-only, as `--fix-loop --loop-owner=caller` inside this skill's fixing loop and `--review-only` otherwise. Run it in every review/re-review pass, including caller-owned, documentation-only and zero-finding passes, before returning a completed verdict or issuing a receipt. Load and execute the skill through the active host; naming it, applying its mindset or running only `--validate-findings` does not satisfy this call. `--defer=whole-target` cannot defer or waive it; retain the caller's fixing owner and spent round budget. A later caller-owned rationale pass may reuse current evidence for unchanged work under the shared review policy.
 
 Route other specialist depth only where applicable: architecture, domain-analysis, integration-test review, security-audit, production-readiness-review, ui-design review and ai-engineering-review. For current AI surfaces run `node .claude/scripts/ai-signal-scan.cjs --json` (add `--base <base>` for branch/PR scope, or `--files <paths>` for named files). `clean` allows skipping; `unknown` requires source inspection and conservative coverage. Historical assessment inspects the selected historical sides directly; a live scan cannot prove them clean.
 
@@ -67,7 +67,7 @@ Report each finding with severity, reachable trigger, consequence, `file:line` a
 
 Review-only returns the validated report without source changes. Fix-loop follows `review-policy`: trace the owning cause, apply authorized fixes, then freshly review the whole updated target and affected interactions. Create an explicit re-review task even for a small fix. Update relevant specs/docs before the final pass so no terminal edit escapes review.
 
-`--defer=<duties>` may assign whole-target rationale, specialists, tests, entities or simplification to a named caller; read [references/caller mode](../workflow-review-changes/references/caller-mode.md) when using it. Every duty needs an owner and evidence. The workflow passes `--fix-loop --loop-owner=caller` so all readers join its loop without concurrent writers.
+`--defer=<duties>` may assign specialists, tests, entities or simplification to a named caller; read [references/caller mode](../workflow-review-changes/references/caller-mode.md) when using it. The mandatory whole-target `$why-review` call remains with this skill, including when a legacy caller passes `--defer=whole-target`. Every deferred duty needs an owner and evidence. The workflow passes `--fix-loop --loop-owner=caller` so all readers join its loop without concurrent writers.
 
 Read [references/fix-loop.md](references/fix-loop.md) when issuing a full-candidate review receipt. Receipt freshness never grants Git authority.
 
@@ -303,6 +303,6 @@ Read [references/fix-loop.md](references/fix-loop.md) when issuing a full-candid
 
 **Goal:** Find real diff defects and converge authorized fixes with complete coverage.
 
-**Main steps:** scope → triage/plan/tasks → connected review, plus domain entity quality when entities change and `$performance-review` when the diff can affect performance → findings validation → report or fix/fresh re-review → final checks.
+**Main steps:** scope → triage/plan/tasks → connected review and mandatory whole-target `$why-review`, plus domain entity quality when entities change and `$performance-review` when the diff can affect performance → findings validation → report or fix/fresh re-review → final checks.
 
 Preserve exact scope, evidence and applicable gates. Default review-only; fix-loop has three rounds, accepts deferred LOWs and asks about bounded extension for remaining MEDIUM+ or failed checks. Never accept stale pre-fix evidence.

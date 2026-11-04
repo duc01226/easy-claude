@@ -132,7 +132,9 @@ module.exports = {
                 assert.match(context, /never ask the human whether to run tests or review; classify the candidate, decide, act and record/);
                 assert.match(context, /resolve commit.reviewMode through .claude\/scripts\/lib\/commit-review-policy.cjs/);
                 assert.match(context, /default lightweight selects commit-review at every commit risk tier/);
-                assert.match(context, /Configured risk-based mode and PR whole-branch scope use Low skip \/ Medium why-review \/ High changes-review/);
+                assert.match(context, /Configured risk-based commits use Low skip \/ Medium why-review \/ High changes-review/);
+                assert.match(context, /PR whole-branch scope always invokes why-review at Low\/Medium risk or changes-review at High risk/);
+                assert.match(context, /changes-review always invokes whole-target why-review alongside applicable specialists/);
                 assert.match(context, /Each review has at most three rounds/);
                 assert.match(context, /Selected test\/review skills and their required nested calls remain eligible/);
                 assert.match(context, /explicitly requested workflow authorizes its required skill steps/);

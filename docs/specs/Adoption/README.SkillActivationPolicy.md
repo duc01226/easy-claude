@@ -5,7 +5,7 @@ feature_code: SAP
 entities: [SkillActivationPolicy, AuthorizationScope]
 status: implemented
 owner: Framework maintainers
-last_updated: '2026-10-26'
+last_updated: '2026-11-04'
 scope_mode: FRAMEWORK-LIBRARY
 ---
 
@@ -20,6 +20,17 @@ to run it or skip it and execute directly. The default preserves automatic selec
 for assistant behavior,
 not an access-control guarantee: the procedure catalog remains available and existing permissions
 remain authoritative.
+
+## Contents
+
+- [1. Overview](#1-overview)
+- [2. Glossary](#2-glossary)
+- [3. User Stories & Acceptance Criteria](#3-user-stories--acceptance-criteria)
+- [4. Business Rules](#4-business-rules)
+- [5. Domain Model](#5-domain-model)
+- [6. Process Flows & Interaction Surface](#6-process-flows--interaction-surface)
+- [7. Permissions & Roles](#7-permissions--roles)
+- [8. Test Specifications](#8-test-specifications)
 
 ## 2. Glossary
 
@@ -58,9 +69,12 @@ to run, so restricting automatic work does not bypass checks or create interrupt
 - **AC-SAP-05:** Commit and pull-request procedures decide tests and review from the candidate's risk
   without a human test/review question. Tests are skipped only when the affected tests already passed in
   the session for unchanged content or the change is really small; otherwise scoped tests run and failures
-  are fixed until all pass. Review is skipped only for a low-risk candidate; medium and high risk receive
-  the proportionate review for at most three review rounds. The selected review's required chain remains
-  eligible. An explicit human instruction about tests or review overrides the automatic choice. Selection
+  are fixed until all pass. Commit review follows the configured depth. Every pull request invokes
+  rationale review at low or medium risk, or change review at high risk; no risk tier skips it automatically.
+  Every change review invokes whole-target rationale review alongside applicable specialist reviews,
+  including caller-owned passes and passes with no findings. Each review retains its inherited cap of
+  at most three rounds. The selected review's required chain remains eligible. An explicit human instruction
+  about tests or review overrides the automatic choice. Selection
   preferences never substitute for current evidence or approve a skip.
 - **AC-SAP-06:** Optional unrelated procedures and attempts to obtain authorization by self-starting an agent
   remain outside the authorized scope. A skipped procedure is not replaced by another unrequested one;
@@ -100,9 +114,12 @@ For every ordinary task with a suitable restricted procedure match, ask one
 Commit and pull-request procedures own the risk-based test/review decision and never ask the human
   whether to run tests or review. Tests are skipped only when the affected tests already passed in the
   session for unchanged content or the change is really small; otherwise scoped tests run and failures are
-  fixed until all pass. Review follows the candidate's risk: low risk records an automatic skip with its
-  reason, medium risk runs the rationale review and high risk runs the change review, each for at most three
-  review rounds. Any higher-risk signal outranks size, and unclear risk takes the higher tier. Material
+  fixed until all pass. Commit review follows its configured depth; only risk-based low-risk commits
+  may skip automatically. Every pull request invokes rationale review at low or medium risk, or change
+  review at high risk, independently of commit preferences. Every change review invokes whole-target
+  rationale review alongside applicable specialists, even with no findings or a caller owning repairs;
+  transferring duties never waives that call. Each review retains its inherited cap of at most three rounds.
+  Any higher-risk signal outranks size, and unclear risk takes the higher tier. Material
   findings still open at that cap, a check that cannot pass and ambiguous intent stop the operation before
   the commit and are reported; a failed review never becomes a skip. An explicit human instruction about
   tests or review overrides the automatic choice for the scope it names. Preserve explicit human
@@ -143,7 +160,8 @@ The capability controls selection through assistant instructions. Deterministic 
    answer and scope for follow-ups, delegation and recovery without asking again for the same task.
 4. On a named request or required call, execute the real procedure and preserve its human-choice gates.
 5. A commit or pull request decides its tests and review from the candidate's risk, without a test/review
-   question, and runs the selected review's required chain under the same scope. Later changes refresh
+   question. A pull request always invokes rationale or change review, and change review also invokes
+   whole-target rationale review alongside applicable specialists under the same scope. Later changes refresh
    evidence under the same decision; a blocker stops the operation with a report.
 6. Deliver full guidance on every restricted prompt, delegated start and recovery; replace an earlier restriction
    when automatic selection is restored.
@@ -244,9 +262,11 @@ and same-task preservation boundaries; exempt entry triggers remain.
 
 ### TC-SAP-004: Commit review selection and its required chain remain eligible [P0]
 
-**Objective:** Keep commit quality gates reachable with automatic risk-based decisions.
+**Objective:** Keep publication quality gates and their required rationale review reachable with automatic decisions.
 **Business Intent / Invariant Guarded:** BR-SAP-02, BR-SAP-03 / AC-SAP-04, AC-SAP-05.
 **Preconditions:** Restricted mode and a human commit request.
+**Real-World Reachability:** A developer requests a commit while restricted procedure selection is active.
+**Demo Flow:** Request a commit → inspect the delivered publication policy and required review chain.
 
 ```gherkin
 Given automatic selection is restricted
@@ -254,10 +274,13 @@ When the human requests a commit
 Then the real commit route still instructs use of the commit procedure
 And the policy decides tests and review from the candidate's risk without a human test/review question
 And the selected review and its required nested reviewers remain authorized
+And guidance requires rationale or change review for every pull-request risk tier
+And every change review must invoke whole-target rationale review alongside applicable specialists
+And caller-owned or zero-finding passes cannot omit the rationale call
 And procedure selection grants neither skip approval nor publication authority
 ```
 
-**Expected Result:** Automatic risk-based decisions and fresh-evidence requirements are preserved; the required chain remains eligible.
+**Expected Result:** Guidance preserves automatic decisions and fresh evidence while requiring a real review call for every pull-request risk tier and whole-target rationale within change review. No application screen or business data changes.
 **Acceptance Criteria:** AC-SAP-04, AC-SAP-05.
 **Test Data:** Isolated project, personal preference layers and the requests shown above.
 **Related Behaviors:** Named operation authorization and preference resolution.
@@ -422,14 +445,17 @@ Given an active publication task
 When repeated commit or pull-request requests, recovery or delegated starts receive guidance
 Then tests and review are decided from the candidate's risk without a human test/review question
 And tests are skipped only when already passed in the session or the change is really small
-And review is skipped only for low risk and otherwise runs for at most three review rounds
+And only risk-based low-risk commits may skip review automatically
+And every pull request invokes rationale or change review regardless of risk
+And change review invokes whole-target rationale review alongside applicable specialists
+And every review retains the inherited limit of at most three rounds
 And findings still open at that cap or a check that cannot pass stop the operation with a report
 And pending questions and explicit human constraints remain binding
 And changed content requires current evidence rather than a transferred skip
 ```
 
 **Expected Result:** Every supported delivery path preserves the automatic risk-based decision guidance
-without restoring test/review questions or widening automatic skips beyond low risk.
+without restoring test/review questions, allowing automatic pull-request skips or omitting the change review's rationale call.
 **Acceptance Criteria:** AC-SAP-05, AC-SAP-08, AC-SAP-09.
 **Test Data:** Isolated restricted project; repeated publication requests, recovery and delegated starts.
 **Related Behaviors:** Commit review selection, operation authority and scoped evidence freshness.

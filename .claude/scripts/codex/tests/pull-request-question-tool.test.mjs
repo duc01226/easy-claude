@@ -31,8 +31,9 @@ test('PR test and review gates decide automatically and never display a test/rev
     assert.match(tests, /resolve every failure at its owning layer until all pass/);
     assert.match(tests, /that is a \*\*Blocker\*\*, not a skip/);
     const review = section(text, '### Step 4', '### Step 5');
-    assert.match(review, /\*\*Low\*\* → automatic skip; \*\*Medium\*\* → `[/$]why-review --fix-loop`; \*\*High\*\* → `[/$]changes-review --fix-loop`, each at most three review rounds over the whole scope/);
-    assert.match(review, /a skip is never minted for a Medium or High branch/);
+    assert.match(review, /\*\*Low \/ Medium\*\* → `[/$]why-review --fix-loop`; \*\*High\*\* → `[/$]changes-review --fix-loop`, each at most three review rounds over the whole scope/);
+    assert.match(review, /no risk tier permits an automatic skip/);
+    assert.match(review, /Invoke the selected skill on every PR run/);
     assert.match(review, /A failed review is not a skip: never mint one to get past it/);
     const contract = section(text, '## User Choice Contract', '## Related');
     assert.match(contract, /Test and review decisions are automatic under `references\/check-policy\.md` and raise no question/);
@@ -65,7 +66,7 @@ test('posting an asynchronous PR question never authorizes dependent work', () =
     assert.match(contract, /pause dependent steps, and wait for the human reply/);
     assert.match(contract, /Preselection, silence and elapsed time are not consent/);
     assert.match(contract, /retain a pending question across compaction\/resume without treating it as answered or posting duplicates/);
-    assert.match(contract, /Mint a skip receipt only for a Low-risk candidate or on the user's explicit request, never after a failed or non-converged review/);
+    assert.match(contract, /Mint a skip receipt only on the user's explicit request, never after a failed or non-converged review/);
     assert.match(contract, /an explicit request to skip, run or choose a specific check overrides the automatic choice/);
   }
 });
@@ -89,7 +90,7 @@ test('concise commit retains project inputs and configured review without boiler
 test('full-scope PR evidence is reused only for the exact candidate, and a skip never transfers', () => {
   for (const text of [source, codex]) {
     const review = section(text, '### Step 4', '### Step 5');
-    assert.match(review, /Reuse an existing full review under the shared decision policy only when the evidence matches this exact candidate and whole-branch scope/);
+    assert.match(review, /The invoked skill may reuse an existing full review under the shared decision policy only when the evidence matches this exact candidate and whole-branch scope/);
     assert.match(review, /A skip covers only the unchanged candidate and scope it was recorded for/);
     assert.match(review, /changed content is classified and gated again/);
     assert.doesNotMatch(review, /reused only after the user confirms it for this run and candidate/);

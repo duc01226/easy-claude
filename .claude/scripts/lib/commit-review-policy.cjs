@@ -124,11 +124,12 @@ function selectReview(risk, mode) {
 function decideReview(options = {}) {
     const operation = options.operation || 'commit';
     if (!['commit', 'pull-request'].includes(operation)) throw new Error('Expected operation: commit or pull-request');
-    // A local commit preference never downgrades the PR's whole-branch review.
+    // Every PR needs a real whole-branch review, independently of commit preferences.
     const settings = operation === 'pull-request'
         ? { mode: 'risk-based', source: 'pull-request', layers: [] }
         : resolveCommitReviewMode(options);
-    return { operation, risk: options.risk, ...settings, ...selectReview(options.risk, settings.mode) };
+    const reviewRisk = operation === 'pull-request' && options.risk === 'low' ? 'medium' : options.risk;
+    return { operation, risk: options.risk, ...settings, ...selectReview(reviewRisk, settings.mode) };
 }
 
 function main(argv = process.argv.slice(2)) {
