@@ -39,6 +39,7 @@ const {
   captureReviewTarget,
   matchReviewReceipt,
   matchSkipReceipt,
+  stagedBranchReviewBases,
   reviewGateMode,
   currentBranch,
   hasAnyReceipt
@@ -301,8 +302,9 @@ function blockMessage(repository, snapshot, descriptor, reason) {
     '(risk tier; higher on a tie) and resolve commit.reviewMode with .claude/scripts/lib/commit-review-policy.cjs. A fix-loop issues the receipt; then retry the commit:',
     '',
     '  1. /commit-review --fix-loop   # default lightweight: every commit tier',
-    '  2. /why-review --fix-loop      # risk-based mode or PR scope: medium risk',
-    '  3. /changes-review --fix-loop  # risk-based mode or PR scope: high risk; explicit review requests also apply',
+    '  2. /why-review --fix-loop      # risk-based commit mode: medium risk',
+    '  3. /changes-review --fix-loop  # risk-based commit mode: high risk; explicit review requests also apply',
+    'For a pull request, follow its whole-branch changes-review --fix-loop policy.',
     '',
     'Each fix-loop runs at most 3 review rounds. MEDIUM+ findings still open at the cap: stop and report, no commit, no skip.',
     '/workflow-review-changes --fix-loop also issues a valid receipt when the user asks for the full workflow.',
@@ -516,15 +518,14 @@ function prBlockMessage(repository, base, reason) {
     ...(base ? [`Base: ${base}`] : []),
     ...(reason ? [`Reason: ${reason}`] : []),
     '',
-    'Open pull requests through the `pull-request` skill: it reviews the whole branch by risk and records the receipt.',
-    'The review must snapshot the whole branch, then commit everything it reviewed:',
+    'Open pull requests through the `pull-request` skill. It runs /changes-review --fix-loop at every risk tier.',
+    'Review the staged branch candidate, then commit exactly what was reviewed:',
     '',
-    `  node .claude/hooks/lib/review-receipt.cjs snapshot --target=branch --base=${base ? shellQuote(base) : '<base-branch>'}`,
-    '  /why-review --fix-loop (Medium) or /changes-review --fix-loop (High), over that branch snapshot',
+    `  /changes-review --fix-loop --target=branch --base=${base ? shellQuote(base) : '<base-branch>'} --staged`,
     '',
-    'A Low-risk branch, or the user\'s explicit request, may record a skip over the committed head:',
+    'Only an explicit user request to skip review permits a skip over the committed head:',
     `  node .claude/hooks/lib/review-receipt.cjs snapshot --target=branch --base=${base ? shellQuote(base) : '<base-branch>'} --committed`,
-    '  node .claude/hooks/lib/review-receipt.cjs issue --kind=skip --scope=full-changeset --snapshot-json=\'<snapshot JSON>\' --reason="auto: low risk — <signal>"',
+    '  node .claude/hooks/lib/review-receipt.cjs issue --kind=skip --scope=full-changeset --snapshot-json=\'<snapshot JSON>\' --reason="user-requested: <reason>"',
     '',
     'A review receipt counts only when a review skill run was attested before its snapshot; it cannot be minted by hand.'
   ].join('\n');
@@ -624,17 +625,25 @@ function evaluatePullRequest(command, cwd, dependencies) {
 
 /**
  * A whole-branch review (the pull-request skill's) also authorizes the commit that records it: its
- * base is the merge-base, its candidate the reviewed working tree. When that tree is exactly this
+ * base is the merge-base and its candidate is the reviewed tree. When that tree is exactly this
  * commit's candidate, the commit adds nothing the review did not see. Any other branch state misses.
  */
 function branchReceiptCovers(repository, snapshot, capture) {
   try {
     if (snapshot.descriptor?.amend) return false; // an amend rewrites history the branch review measured
     if (!hasAnyReceipt(repository)) return false; // nothing stored: skip the full branch capture
-    const branch = capture({ repository, cwd: repository, target: 'branch', descriptor: { base: prBaseName(repository) } });
-    if (!branch || branch.status !== 'CHANGED' || branch.candidateTree !== snapshot.candidateTree) return false;
-    const receipt = { repository, snapshot: branch };
-    return Boolean(matchReviewReceipt(receipt) || matchSkipReceipt(receipt));
+    const staged = snapshot.descriptor?.mode === 'staged';
+    const configuredBase = prBaseName(repository);
+    const covers = (base, allowSkip) => {
+      const branch = capture({ repository, cwd: repository, target: 'branch', descriptor: { base, staged } });
+      if (branch?.status !== 'CHANGED' || branch.candidateTree !== snapshot.candidateTree) return false;
+      const receipt = { repository, snapshot: branch };
+      return Boolean(matchReviewReceipt(receipt) || (allowSkip && matchSkipReceipt(receipt)));
+    };
+    if (covers(configuredBase, true)) return true;
+    // An explicit PR base may differ from the configured default. Only an actual staged review
+    // supplies an alternate base; the normal capture and receipt validation still prove it.
+    return staged && stagedBranchReviewBases(snapshot).some(base => base !== configuredBase && covers(base, false));
   } catch (_) {
     return false;
   }

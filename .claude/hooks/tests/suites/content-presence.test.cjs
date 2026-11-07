@@ -1080,7 +1080,7 @@ module.exports = {
                     ['spec/references/tests.md', 'whose sequence runs both an independent `/work-item --mode=review --type=spec-tests` and `/spec [mode=clarify]` after this step'],
                     ['spec/references/tests.md', 'otherwise, inside a workflow, keep this question narrowed to the material decisions the cases encode; a standalone run keeps the full TC-list review'],
                     ['changes-review/SKILL.md', 'always invoke `/why-review --target=whole-review-target` on the complete review target'],
-                    ['changes-review/SKILL.md', 'Run it in every review/re-review pass, including caller-owned, documentation-only and zero-finding passes'],
+                    ['changes-review/SKILL.md', 'Run it once in every review/re-review pass, including caller-owned, documentation-only and zero-finding passes'],
                     ['changes-review/SKILL.md', '`--defer=whole-target` cannot defer or waive it'],
                     // A test verify run starts only after an environment check sized to the project, stack and OS
                     ['integration-test/references/mode-verify.md', '**Environment readiness (before any test command):** decide from this project, its stack and the OS what the run needs'],

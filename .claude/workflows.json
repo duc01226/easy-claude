@@ -3489,8 +3489,8 @@
       "intent": "Review complex current changes or a complex pull request, fix every validated blocking finding, and re-review until the severity bar is clear.",
       "name": "Review Current Changes",
       "preActions": {
-        "domainEntityReferenceRefresh": "Immediately before docs-manager --mode=update, run scan --target=domain-entities when the final diff changes entity/model, DTO/contract, persistence schema/migration, or documented entity-sync evidence; otherwise record a cited skip reason.",
-        "injectContext": "Triage all requested files and intent; write a short risk/coverage plan and create occurrence, validation, fix and fresh re-review todo tasks before reviewing. Choose inline work, related groups or specialists from risk, dependencies and context headroom, without fixed file/line/byte caps. Default --fix-loop covers every review child under one main-session fixing coordinator; children passed --loop-owner=caller stay read-only. Explicit --review-only/--report-only overrides the default and stops after validated reports. Independent specialist lenses (and the simplifier as a report-only lens) may run together, and every report returns before any fix; findings are validated once; fix at the evidenced owner, run the domain-entity refresh and docs update, then re-run all applicable review lenses on the settled target: any fix, simplification, spec/doc/test repair or validated blocking finding the fix step rejects needs that fresh review, and a narrower spot check never replaces it. One shared three-round budget by default, enforced by the coordinator through the review-policy eligibility helper. Child lenses, repair re-reviews and resumed or nested invocations retain the same spent budget. Current clean proof ends early; LOW-only at cap is accepted with disclosure. At round 3, MEDIUM/HIGH/CRITICAL, unresolved required evidence or failed required checks ask the user whether to extend by a stated bounded number of rounds or stop with the unresolved report. Wait for an explicit answer before further fixes or review rounds; silence never extends the budget. Record approval and the extra-round limit, preserve inherited findings/scope and spent rounds, and ask again at each exhausted extension. An exhausted executable record requires an approved linked bounded run, never an automatic reset. Preserve required tests, spec/test/code consistency, docs and parity; no staging/commit/push authority.\nMULTILINGUAL UI SYNC CHECK: When UI changes affect a multilingual project, verify its translation updates and retain missing coverage as a finding for authorized repair or caller handoff. State/lifecycle changes need persisted-state assertions and invalid-transition rejection coverage.",
+        "domainEntityReferenceRefresh": "Use the registered domain-refresh occurrence once, immediately before documentation-update, when its condition applies. Otherwise record the cited skip reason.",
+        "injectContext": "Triage all requested files and intent; write a short risk/coverage plan and create occurrence, validation, fix and fresh re-review todo tasks before reviewing. Choose inline work, related groups or specialists from risk, dependencies and context headroom, without fixed file/line/byte caps. Default --fix-loop covers every review child under one main-session fixing coordinator; children passed --loop-owner=caller stay read-only. Explicit --review-only/--report-only overrides the default and stops after validated reports. Run the first applicable specialist passes once and wait for every report before repair. changes-review owns the sole whole-target why-review call on each pass. The investigate, fix, domain-refresh and documentation-update occurrences run at most once; do the refresh and docs update after the initial repair batch (or initial review if no repair). Only changes-review and conditional why-review findings validation repeat; subsequent repairs stay with the coordinator. Any fix, simplification, spec/doc/test repair or validated blocking finding the fix step rejects needs that fresh review of the whole settled target; a narrower spot check never replaces it. Reconcile changed specialist coverage against current evidence and keep missing required proof blocking. In fix-loop mode, run test proof once after static convergence, or hand it to the named later verifier under --tests=defer. One shared three-round budget by default, enforced by the coordinator through the review-policy eligibility helper. Child lenses, repair re-reviews and resumed or nested invocations retain the same spent budget. Current clean proof ends early; LOW-only at cap is accepted with disclosure. At round 3, MEDIUM/HIGH/CRITICAL, unresolved required evidence or failed required checks ask the user whether to extend by a stated bounded number of rounds or stop with the unresolved report. Wait for an explicit answer before further fixes or review rounds; silence never extends the budget. Record approval and the extra-round limit, preserve inherited findings/scope and spent rounds, and ask again at each exhausted extension. An exhausted executable record requires an approved linked bounded run, never an automatic reset. Preserve required tests, spec/test/code consistency, docs and parity; no staging/commit/push authority.\nMULTILINGUAL UI SYNC CHECK: When UI changes affect a multilingual project, verify its translation updates and retain missing coverage as a finding for authorized repair or caller handoff. State/lifecycle changes need persisted-state assertions and invalid-transition rejection coverage.",
         "readFiles": [
           ".claude/skills/workflow-review-changes/SKILL.md"
         ]
@@ -3499,14 +3499,8 @@
         {
           "id": "initial-changes-review",
           "skill": "changes-review",
-          "args": "--defer=whole-target,specialists,tests,entities --fix-loop --loop-owner=caller",
+          "args": "--defer=specialists,tests,entities --fix-loop --loop-owner=caller",
           "role": "gate"
-        },
-        {
-          "id": "whole-target-why-review",
-          "skill": "why-review",
-          "args": "--target=whole-review-target --fix-loop --loop-owner=caller",
-          "role": "core"
         },
         {
           "id": "architecture-compliance-review",
@@ -3541,7 +3535,7 @@
         {
           "id": "integration-tests-review",
           "skill": "integration-test",
-          "args": "--mode=review --prove-tests --fix-loop --loop-owner=caller",
+          "args": "--mode=review --fix-loop --loop-owner=caller",
           "role": "gate"
         },
         {
@@ -3651,12 +3645,22 @@
           "role": "core"
         },
         {
+          "id": "verify-settled-tests",
+          "skill": "integration-test",
+          "args": "--mode=verify",
+          "role": "optional",
+          "applicability": {
+            "when": "Static review has converged on the settled target, required test execution is applicable, and this workflow owns execution (--tests=prove).",
+            "skipReason": "Test proof is inapplicable, the static review is blocked, or --tests=defer names the parent verifier; record the applicable reason and keep outstanding proof explicit."
+          }
+        },
+        {
           "id": "review-changes-end",
           "skill": "workflow-end",
           "role": "optional",
           "applicability": {
             "when": "This workflow is the TOP-LEVEL invocation \u2014 the user ran /start-workflow workflow-review-changes, or /changes-review routed here directly \u2014 and this run is neither an inner round of its own --fix-loop nor invoked by another skill (e.g. /pull-request, /commit).",
-            "skipReason": "Nested inside a parent workflow (workflow-feature, workflow-bugfix, workflow-refactor, workflow-big-feature, workflow-greenfield-init, workflow-implement-spec, workflow-spec-sync, workflow-code-to-spec [update]), running as an inner round of --fix-loop, or invoked by another skill (e.g. /pull-request, /commit); the caller owns /workflow-end and the terminal wrap-up. Return control after docs-manager --mode=update instead of announcing workflow completion."
+            "skipReason": "Nested inside a parent workflow (workflow-feature, workflow-bugfix, workflow-refactor, workflow-big-feature, workflow-greenfield-init, workflow-implement-spec, workflow-spec-sync, workflow-code-to-spec [update]), running as an inner round of --fix-loop, or invoked by another skill (e.g. /pull-request, /commit); the caller owns /workflow-end and the terminal wrap-up. Return the current review and proof status to the caller instead of announcing workflow completion."
           }
         },
         {
@@ -3665,7 +3669,7 @@
           "role": "optional",
           "applicability": {
             "when": "This workflow is the TOP-LEVEL invocation \u2014 the user ran /start-workflow workflow-review-changes, or /changes-review routed here directly \u2014 and this run is neither an inner round of its own --fix-loop nor invoked by another skill (e.g. /pull-request, /commit).",
-            "skipReason": "Nested inside a parent workflow (workflow-feature, workflow-bugfix, workflow-refactor, workflow-big-feature, workflow-greenfield-init, workflow-implement-spec, workflow-spec-sync, workflow-code-to-spec [update]), running as an inner round of --fix-loop, or invoked by another skill (e.g. /pull-request, /commit); the caller owns /workflow-end and the terminal wrap-up. Return control after docs-manager --mode=update instead of announcing workflow completion."
+            "skipReason": "Nested inside a parent workflow (workflow-feature, workflow-bugfix, workflow-refactor, workflow-big-feature, workflow-greenfield-init, workflow-implement-spec, workflow-spec-sync, workflow-code-to-spec [update]), running as an inner round of --fix-loop, or invoked by another skill (e.g. /pull-request, /commit); the caller owns /workflow-end and the terminal wrap-up. Return the current review and proof status to the caller instead of announcing workflow completion."
           }
         }
       ],
@@ -3694,14 +3698,8 @@
             {
               "id": "initial-changes-review",
               "skill": "changes-review",
-              "args": "--defer=whole-target,specialists,tests,entities --review-only",
+              "args": "--defer=specialists,tests,entities --review-only",
               "role": "gate"
-            },
-            {
-              "id": "whole-target-why-review",
-              "skill": "why-review",
-              "args": "--target=whole-review-target --review-only",
-              "role": "core"
             },
             {
               "id": "architecture-compliance-review",
@@ -3805,7 +3803,7 @@
               "role": "optional",
               "applicability": {
                 "when": "This workflow is the TOP-LEVEL invocation \u2014 the user ran /start-workflow workflow-review-changes, or /changes-review routed here directly \u2014 and this run is neither an inner round of its own --fix-loop nor invoked by another skill (e.g. /pull-request, /commit).",
-                "skipReason": "Nested inside a parent workflow (workflow-feature, workflow-bugfix, workflow-refactor, workflow-big-feature, workflow-greenfield-init, workflow-implement-spec, workflow-spec-sync, workflow-code-to-spec [update]), running as an inner round of --fix-loop, or invoked by another skill (e.g. /pull-request, /commit); the caller owns /workflow-end and the terminal wrap-up. Return control after docs-manager --mode=update instead of announcing workflow completion."
+                "skipReason": "Nested inside a parent workflow (workflow-feature, workflow-bugfix, workflow-refactor, workflow-big-feature, workflow-greenfield-init, workflow-implement-spec, workflow-spec-sync, workflow-code-to-spec [update]), running as an inner round of --fix-loop, or invoked by another skill (e.g. /pull-request, /commit); the caller owns /workflow-end and the terminal wrap-up. Return the current review and proof status to the caller instead of announcing workflow completion."
               }
             },
             {
@@ -3814,7 +3812,7 @@
               "role": "optional",
               "applicability": {
                 "when": "This workflow is the TOP-LEVEL invocation \u2014 the user ran /start-workflow workflow-review-changes, or /changes-review routed here directly \u2014 and this run is neither an inner round of its own --fix-loop nor invoked by another skill (e.g. /pull-request, /commit).",
-                "skipReason": "Nested inside a parent workflow (workflow-feature, workflow-bugfix, workflow-refactor, workflow-big-feature, workflow-greenfield-init, workflow-implement-spec, workflow-spec-sync, workflow-code-to-spec [update]), running as an inner round of --fix-loop, or invoked by another skill (e.g. /pull-request, /commit); the caller owns /workflow-end and the terminal wrap-up. Return control after docs-manager --mode=update instead of announcing workflow completion."
+                "skipReason": "Nested inside a parent workflow (workflow-feature, workflow-bugfix, workflow-refactor, workflow-big-feature, workflow-greenfield-init, workflow-implement-spec, workflow-spec-sync, workflow-code-to-spec [update]), running as an inner round of --fix-loop, or invoked by another skill (e.g. /pull-request, /commit); the caller owns /workflow-end and the terminal wrap-up. Return the current review and proof status to the caller instead of announcing workflow completion."
               }
             }
           ],
@@ -3823,7 +3821,6 @@
               "id": "review",
               "steps": [
                 "initial-changes-review",
-                "whole-target-why-review",
                 "architecture-compliance-review",
                 "domain-entities-design-review",
                 "performance-review",
@@ -3850,6 +3847,15 @@
                 "run-closed"
               ]
             }
+          ],
+          "outcomeGates": [
+            {
+              "id": "tests-pass",
+              "satisfiedBy": [
+                "integration-test --mode=review --prove-tests"
+              ],
+              "when": "Test execution is applicable and owned by this run (--tests=prove); --tests=defer names the later verifier that must prove it."
+            }
           ]
         },
         "fix-loop": {
@@ -3857,14 +3863,8 @@
             {
               "id": "initial-changes-review",
               "skill": "changes-review",
-              "args": "--defer=whole-target,specialists,tests,entities --fix-loop --loop-owner=caller",
+              "args": "--defer=specialists,tests,entities --fix-loop --loop-owner=caller",
               "role": "gate"
-            },
-            {
-              "id": "whole-target-why-review",
-              "skill": "why-review",
-              "args": "--target=whole-review-target --fix-loop --loop-owner=caller",
-              "role": "core"
             },
             {
               "id": "architecture-compliance-review",
@@ -3899,7 +3899,7 @@
             {
               "id": "integration-tests-review",
               "skill": "integration-test",
-              "args": "--mode=review --prove-tests --fix-loop --loop-owner=caller",
+              "args": "--mode=review --fix-loop --loop-owner=caller",
               "role": "gate"
             },
             {
@@ -4009,12 +4009,22 @@
               "role": "core"
             },
             {
+              "id": "verify-settled-tests",
+              "skill": "integration-test",
+              "args": "--mode=verify",
+              "role": "optional",
+              "applicability": {
+                "when": "Static review has converged on the settled target, required test execution is applicable, and this workflow owns execution (--tests=prove).",
+                "skipReason": "Test proof is inapplicable, the static review is blocked, or --tests=defer names the parent verifier; record the applicable reason and keep outstanding proof explicit."
+              }
+            },
+            {
               "id": "review-changes-end",
               "skill": "workflow-end",
               "role": "optional",
               "applicability": {
                 "when": "This workflow is the TOP-LEVEL invocation \u2014 the user ran /start-workflow workflow-review-changes, or /changes-review routed here directly \u2014 and this run is neither an inner round of its own --fix-loop nor invoked by another skill (e.g. /pull-request, /commit).",
-                "skipReason": "Nested inside a parent workflow (workflow-feature, workflow-bugfix, workflow-refactor, workflow-big-feature, workflow-greenfield-init, workflow-implement-spec, workflow-spec-sync, workflow-code-to-spec [update]), running as an inner round of --fix-loop, or invoked by another skill (e.g. /pull-request, /commit); the caller owns /workflow-end and the terminal wrap-up. Return control after docs-manager --mode=update instead of announcing workflow completion."
+                "skipReason": "Nested inside a parent workflow (workflow-feature, workflow-bugfix, workflow-refactor, workflow-big-feature, workflow-greenfield-init, workflow-implement-spec, workflow-spec-sync, workflow-code-to-spec [update]), running as an inner round of --fix-loop, or invoked by another skill (e.g. /pull-request, /commit); the caller owns /workflow-end and the terminal wrap-up. Return the current review and proof status to the caller instead of announcing workflow completion."
               }
             },
             {
@@ -4023,11 +4033,18 @@
               "role": "optional",
               "applicability": {
                 "when": "This workflow is the TOP-LEVEL invocation \u2014 the user ran /start-workflow workflow-review-changes, or /changes-review routed here directly \u2014 and this run is neither an inner round of its own --fix-loop nor invoked by another skill (e.g. /pull-request, /commit).",
-                "skipReason": "Nested inside a parent workflow (workflow-feature, workflow-bugfix, workflow-refactor, workflow-big-feature, workflow-greenfield-init, workflow-implement-spec, workflow-spec-sync, workflow-code-to-spec [update]), running as an inner round of --fix-loop, or invoked by another skill (e.g. /pull-request, /commit); the caller owns /workflow-end and the terminal wrap-up. Return control after docs-manager --mode=update instead of announcing workflow completion."
+                "skipReason": "Nested inside a parent workflow (workflow-feature, workflow-bugfix, workflow-refactor, workflow-big-feature, workflow-greenfield-init, workflow-implement-spec, workflow-spec-sync, workflow-code-to-spec [update]), running as an inner round of --fix-loop, or invoked by another skill (e.g. /pull-request, /commit); the caller owns /workflow-end and the terminal wrap-up. Return the current review and proof status to the caller instead of announcing workflow completion."
               }
             }
           ],
           "outcomeGates": [
+            {
+              "id": "tests-pass",
+              "satisfiedBy": [
+                "integration-test --mode=verify"
+              ],
+              "when": "Test execution is applicable and owned by this run (--tests=prove); --tests=defer names the later verifier that must prove it."
+            },
             {
               "id": "root-cause-traced",
               "satisfiedBy": [
@@ -4058,7 +4075,6 @@
               "id": "review",
               "steps": [
                 "initial-changes-review",
-                "whole-target-why-review",
                 "architecture-compliance-review",
                 "domain-entities-design-review",
                 "performance-review",
@@ -4077,8 +4093,16 @@
               ],
               "exit": [
                 "review-converged",
-                "tests-pass",
                 "root-cause-traced"
+              ]
+            },
+            {
+              "id": "verify",
+              "steps": [
+                "verify-settled-tests"
+              ],
+              "exit": [
+                "tests-pass"
               ]
             },
             {
@@ -4099,12 +4123,6 @@
           "id": "review-converged",
           "satisfiedBy": [
             "changes-review"
-          ]
-        },
-        {
-          "id": "tests-pass",
-          "satisfiedBy": [
-            "integration-test --mode=review"
           ]
         },
         {

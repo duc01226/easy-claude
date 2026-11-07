@@ -247,7 +247,7 @@ const tests = [
             assert.match(capture, /\| `e2e-test --mode=verify --fix-loop` \| Runs the round, reconciles manifest vs records/);
             // changes-review Phase 3.9 invokes the default pass report-only, never the loop
             const reviewer = read(SKILLS, 'changes-review', 'SKILL.md');
-            assert.match(reviewer, /Invoke `\/e2e-test --mode=verify` report-only/);
+            assert.match(reviewer, /When this skill owns execution, invoke `\/e2e-test --mode=verify` report-only/);
             assert.doesNotMatch(reviewer, /\/e2e-test --mode=verify --fix-loop/);
             // The shared convergence contract names the loop mode once for both tiers
             assert.match(read(SKILLS, 'shared', 'verify-convergence-loop.md'), /`e2e-test --mode=verify --fix-loop`/);

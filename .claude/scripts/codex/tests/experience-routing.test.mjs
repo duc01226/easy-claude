@@ -26,7 +26,7 @@ test("TC-EA-ROUTE-004: removing the E2E predecessor fails the ordering oracle", 
   assert.throws(() => indexOfSkill(sequence, "e2e-test"), /required workflow skill is absent: e2e-test/);
 });
 
-test("TC-EA-ROUTE-001: changes review routes the conditional experience gate after final holistic review", () => {
+test("TC-EA-ROUTE-001: experience review follows the first whole-target pass and feeds findings validation", () => {
   const workflow = workflows["workflow-review-changes"];
   const experience = occurrence(workflow.sequence, "experience-review");
 
@@ -35,7 +35,11 @@ test("TC-EA-ROUTE-001: changes review routes the conditional experience gate aft
   assert.match(experience.applicability.when, /configured|likely.*observable/i);
   assert.match(experience.applicability.skipReason, /NOT-APPLICABLE/i);
   assert.match(experience.applicability.skipReason, /evidence/i);
-  assert.ok(indexOfSkill(workflow.sequence, "why-review") < workflow.sequence.indexOf(experience));
+  const changeReviewIndex = indexOfSkill(workflow.sequence, "changes-review");
+  const validation = occurrence(workflow.sequence, "validate-findings");
+  assert.equal(validation?.args, "--validate-findings");
+  assert.ok(changeReviewIndex < workflow.sequence.indexOf(experience));
+  assert.ok(workflow.sequence.indexOf(experience) < workflow.sequence.indexOf(validation));
   assert.ok(workflow.sequence.indexOf(experience) < workflow.sequence.indexOf(occurrence(workflow.sequence, "domain-refresh")));
   assert.match(experience.args, /--fix-loop --loop-owner=caller/, "experience review joins the coordinator loop read-only");
   assert.ok(occurrence(workflow.sequence, "domain-refresh"), "the domain refresh remains present");

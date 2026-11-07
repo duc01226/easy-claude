@@ -144,17 +144,16 @@ const tests = [
                 for (const step of steps) if (reviews.includes(step.skill) && step.id !== 'validate-findings') assert.match(step.args, /--review-only/);
                 for (const skill of ['workflow-end', 'watzup']) assert.ok(steps.some(step => step.skill === skill && step.role === 'optional'), `${mode} retains optional ${skill} closing`);
             }
-            for (const step of workflow.sequence) if (reviews.includes(step.skill) && step.id !== 'validate-findings') {
+            for (const step of workflow.sequence) if (reviews.includes(step.skill) &&
+                step.id !== 'validate-findings' && step.id !== 'verify-settled-tests') {
                 assert.match(step.args, /--fix-loop --loop-owner=caller/);
             }
             const initial = workflow.sequence.find(step => step.id === 'initial-changes-review');
-            assert.match(initial.args, /--defer=whole-target,specialists,tests,entities/);
+            assert.match(initial.args, /--defer=specialists,tests,entities/);
             // The simplifier is a report-only lens: the fix step applies validated simplifications and the fresh
-            // re-review of the settled target (a rerun of the whole-target why-review row) covers them, so no separate
-            // post-fix why-review step exists.
+            // changes-review rerun covers them with its whole-target rationale pass.
             assert.equal(workflow.sequence.find(step => step.id === 'code-simplifier').args, '--report-only');
-            assert.ok(!workflow.sequence.some(step => step.id === 'why-review'), 'the post-fix review is the rerun of the whole-target why-review row');
-            assert.match(skillText('workflow-review-changes', 'SKILL.md'), /re-invokes those same occurrences as `rerun N`, with no separate post-fix rationale step/);
+            assert.match(skillText('workflow-review-changes', 'SKILL.md'), /Re-invoke `initial-changes-review` as `rerun N` on the whole settled target/);
             const caller = skillText('workflow-review-changes','references','caller-mode.md');
             assert.match(caller, /full fresh `\/why-review` of the settled target after simplification/i);
             assert.match(caller, /omit its deferral so the duty stays with the skill/);

@@ -210,6 +210,9 @@ const ENFORCE_TESTS = [
                 const blocked = prGate(fx.repoA, 'gh pr create --base main --title "t" --body "b"');
                 assert.equal(blocked.code, 2, 'no receipt: refused');
                 assert.match(blocked.stderr, /--target=branch --base='main'/);
+                assert.match(blocked.stderr, /\/changes-review --fix-loop at every risk tier/);
+                assert.match(blocked.stderr, /Only an explicit user request to skip review permits a skip/);
+                assert.doesNotMatch(blocked.stderr, /\/why-review --fix-loop|auto: low risk/);
                 assert.equal(prGate(fx.repoA, 'gh pr ready').code, 2, 'ready is gated too');
                 assert.equal(prGate(fx.repoA, 'gh pr ready --undo'), undefined, 'back to draft publishes nothing');
                 assert.equal(prGate(fx.repoA, 'gh pr create --draft --title t --body b'), undefined, 'a draft asks for no merge; ready is gated');
@@ -268,24 +271,63 @@ const ENFORCE_TESTS = [
         })
     },
     {
-        name: 'TC-RGE-007 a whole-branch review covers the commit of exactly what it reviewed, and nothing more',
+        name: 'TC-RGE-007 a staged whole-branch review covers the exact commit and a resolved target merge',
         skip: !GIT,
         fn: async () => fixture(fx => {
             makeBranchRepo(fx.repoA, 'enforce');
             const api = receipt();
+            // The selected PR base is release, while the commit gate defaults to main.
+            git(fx.repoA, ['switch', '-q', '-c', 'release']);
+            fs.writeFileSync(path.join(fx.repoA, 'release.txt'), 'release-only change\n');
+            git(fx.repoA, ['add', 'release.txt']);
+            git(fx.repoA, [C_ARG, '-q', '-m', 'release base']);
+            git(fx.repoA, ['switch', '-q', '-c', 'release-feature']);
             fs.writeFileSync(path.join(fx.repoA, 'one.txt'), 'first change\n');
             git(fx.repoA, ['add', 'one.txt']);
             git(fx.repoA, [C_ARG, '-q', '-m', 'one']);
             fs.writeFileSync(path.join(fx.repoA, 'two.txt'), 'second change\n');
+            git(fx.repoA, ['add', 'two.txt']);
+            fs.writeFileSync(path.join(fx.repoA, '.env.local'), 'EXCLUDED_FIXTURE=true\n');
             withStore(fx.store, () => {
-                const reviewed = snapshot(api, fx.repoA, 'branch', { base: 'main' });
-                api.recordAttestation({ repository: fx.repoA, kind: 'why-review', now: reviewed.capturedAt - 1 });
-                issueCandidate(api, fx.store, reviewed, 'why-review');
-                git(fx.repoA, ['add', 'two.txt']);
+                const descriptor = { base: 'release', staged: true };
+                const reviewed = snapshot(api, fx.repoA, 'branch', descriptor);
+                const staged = snapshot(api, fx.repoA, 'staged');
+                assert.equal(reviewed.status, 'CHANGED');
+                assert.equal(reviewed.candidateTree, staged.candidateTree, 'the reviewed candidate excludes unstaged local work');
+                assert.notEqual(reviewed.baseTree, staged.baseTree, 'the scope includes the previous feature commit');
+                assert.notEqual(reviewed.baseTree, snapshot(api, fx.repoA, 'branch', { ...descriptor, base: 'main' }).baseTree,
+                    'the selected PR base is distinct from the default');
+                api.recordAttestation({ repository: fx.repoA, kind: 'changes-review', now: reviewed.capturedAt - 1 });
+                issueCandidate(api, fx.store, reviewed, 'changes-review');
                 assert.equal(prGate(fx.repoA, `git ${C_WORD} -m two`), undefined, 'the reviewed content commits without a second review');
                 fs.writeFileSync(path.join(fx.repoA, 'three.txt'), 'unreviewed\n');
                 git(fx.repoA, ['add', 'three.txt']);
                 assert.equal(prGate(fx.repoA, `git ${C_WORD} -m two`).code, 2, 'content the review never saw re-arms the gate');
+                git(fx.repoA, ['restore', '--staged', '--', 'three.txt']);
+                git(fx.repoA, ['branch', '-f', 'release', 'HEAD']);
+                assert.equal(prGate(fx.repoA, `git ${C_WORD} -m two`).code, 2, 'a changed merge-base re-arms the gate');
+
+                makeBranchRepo(fx.repoB, 'enforce');
+                fs.writeFileSync(path.join(fx.repoB, 'feature.txt'), 'feature\n');
+                git(fx.repoB, ['add', 'feature.txt']);
+                git(fx.repoB, [C_ARG, '-q', '-m', 'feature']);
+                git(fx.repoB, ['switch', '-q', 'main']);
+                fs.writeFileSync(path.join(fx.repoB, 'base-only.txt'), 'target change\n');
+                git(fx.repoB, ['add', 'base-only.txt']);
+                git(fx.repoB, [C_ARG, '-q', '-m', 'target']);
+                git(fx.repoB, ['switch', '-q', 'feature']);
+                git(fx.repoB, ['merge', '--no-ff', '--no-commit', 'main']);
+                const mergeDescriptor = { base: 'main', staged: true };
+                const merge = snapshot(api, fx.repoB, 'branch', mergeDescriptor);
+                assert.equal(merge.baseTree, git(fx.repoB, ['rev-parse', 'main^{tree}']).trim(),
+                    'the staged review excludes the incoming target contribution');
+                api.recordAttestation({ repository: fx.repoB, kind: 'changes-review', now: merge.capturedAt - 1 });
+                issueCandidate(api, fx.store, merge, 'changes-review');
+                assert.equal(prGate(fx.repoB, `git ${C_WORD} -m merge`), undefined, 'the resolved merge is covered');
+                git(fx.repoB, [C_ARG, '-q', '-m', 'merge']);
+                assert.equal(prGate(fx.repoB, 'gh pr create --base main --title t --body b'), undefined,
+                    'the completed merge publishes with the same branch receipt');
+                assert.equal(snapshot(api, fx.repoB, 'branch', { ...mergeDescriptor, committed: true }).errorCode, 'INVALID_DESCRIPTOR');
             });
         })
     },
@@ -679,8 +721,9 @@ const tests = [
             assert.doesNotMatch(message, /option 1 is recommended|below in order/i, 'the hook must not rank the options');
             assert.doesNotMatch(message, /Ask the user to choose|ASK them first/i, 'the hook must not restore the test/review question');
             assert.match(message, /\/commit-review --fix-loop\s+# default lightweight: every commit tier/);
-            assert.match(message, /\/why-review --fix-loop\s+# risk-based mode or PR scope: medium risk/);
-            assert.match(message, /\/changes-review --fix-loop\s+# risk-based mode or PR scope: high risk/);
+            assert.match(message, /\/why-review --fix-loop\s+# risk-based commit mode: medium risk/);
+            assert.match(message, /\/changes-review --fix-loop\s+# risk-based commit mode: high risk/);
+            assert.match(message, /For a pull request, follow its whole-branch changes-review --fix-loop policy/);
             assert.match(message, /resolve commit.reviewMode with .claude\/scripts\/lib\/commit-review-policy.cjs/);
             assert.match(message, /Lightweight mode never selects an automatic skip/);
             assert.match(message, /Do not ask the user: classify the actual candidate risk[\s\S]{0,40}higher on a tie/,

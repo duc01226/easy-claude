@@ -9,7 +9,7 @@
  * when an edit lets the review scope shrink again.
  * Invariants guarded:
  *   - pull-request/SKILL.md: Step 4 states the total-branch-diff invariant (three-dot from the merge-base,
- *     every branch commit ∪ uncommitted), forbids latest-commit and working-tree-only scope, and a CI fix
+ *     every branch commit plus pending staged work), forbids latest-commit and working-tree-only scope, and a CI fix
  *     is re-reviewed over the whole branch diff, not the fix alone;
  *   - changes-review and both fix-loop references preserve the current PR/branch whole-diff base;
  *     explicit historical assessments remain immutable and report-only, never live fix-loop targets.
@@ -31,22 +31,18 @@ const tests = [
         fn: () => {
             // Given the pull-request skill
             const text = read('pull-request/SKILL.md');
-            // Then Step 4 states the invariant: three-dot base ref, every branch commit, plus uncommitted changes
-            assert.match(text, /\*\*Review scope invariant\.\*\* A pull-request review covers the TOTAL net change of the branch against the target/);
-            assert.match(text, /`git diff <base-ref>\.\.\.HEAD` \(three-dot, from the merge-base, every branch commit\) ∪ uncommitted changes/);
-            // And the shrunken scopes are explicitly forbidden
-            assert.match(text, /NEVER only the latest commit \(`HEAD~1\.\.HEAD`, `git show`\), never only the current working-tree changes/);
-            // And reviewing an existing PR uses the same scope from the PR base, with a recorded scope proof
-            assert.match(text, /Reviewing an existing PR \(no local edits\) uses the same scope from the PR's base/);
-            assert.match(text, /Record the scope proof in the report: base ref, merge-base SHA/);
-            // And a CI fix is re-reviewed over the whole branch diff, not the fix alone
+            const stage = text.slice(text.indexOf('### Step 3 —'), text.indexOf('### Step 3.3'));
+            const review = text.slice(text.indexOf('### Step 4'), text.indexOf('### Step 5'));
+            assert.match(review, /all branch commits plus pending staged changes/);
+            assert.match(review, /Pass `--target=branch --base=<base-ref> --staged` on every live PR review, including an existing PR with no pending edits/);
+            assert.match(review, /snapshot's merge-base with `git diff --cached <merge-base>`/);
+            assert.match(review, /Exclude intentionally unstaged work/);
+            assert.doesNotMatch(stage, /--target=staged|default `worktree` target/);
+            assert.match(review, /Record the base ref, merge-base SHA/);
+            assert.match(review, /pending merge parents included in the merge-base calculation/);
             const ci = text.slice(text.indexOf('### Step 8'), text.indexOf('### Step 9'));
-            assert.match(ci, /select\/run Step 4 over the WHOLE branch \(`<base-ref>\.\.\.HEAD ∪ uncommitted`\)/);
-            assert.doesNotMatch(text, /scope = current uncommitted changes; the branch is already reviewed/);
-            assert.doesNotMatch(text, /CI-fix rounds narrow to the new diff/);
+            assert.match(ci, /run Step 4 over the whole staged branch candidate/);
             assert.match(text, /CI-fix rounds re-review the whole branch too/);
-            // And the rule is repeated in the must-rules and the closing reminders
-            assert.match(text, /MUST ATTENTION review the WHOLE branch: scope is always `<base-ref>\.\.\.HEAD` ∪ uncommitted/);
             assert.match(text, /REVIEW THE TOTAL BRANCH DIFF:/);
         }
     },
@@ -65,6 +61,10 @@ const tests = [
                 const receipt = read(rel);
                 assert.match(receipt, /historical targets are not eligible for a live fix-loop receipt/);
                 assert.match(receipt, /original pre-review snapshot/);
+                if (!rel.startsWith('why-review/')) {
+                    assert.match(receipt, /--target=branch --base=<base-ref> --staged/);
+                    assert.match(receipt, /Preserve that scope for nested reviewers/);
+                }
             }
             // A merged/squashed PR needs an explicit commit or verified range, not inferred current branch membership
             assert.match(read('changes-review/SKILL.md'), /merged or squashed PR[^\n]*explicit commit or verified range/i);

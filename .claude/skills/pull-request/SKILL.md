@@ -1,7 +1,7 @@
 ---
 name: pull-request
 version: 2.2.0
-description: '[Git] Use when asked to create, open, finish, update or mark ready a pull request. Runs in the main session with risk-based test/review choices and automatic checks for routine CI repairs: branch, commit, open PR, CI to green.'
+description: '[Git] Use when asked to create, open, finish, update or mark ready a pull request. Runs in the main session with mandatory changes review and automatic test and CI checks: branch, commit, open PR, CI to green.'
 ---
 
 ## Requested Git operations
@@ -10,15 +10,15 @@ An explicit request to commit or push authorizes that operation once its require
 
 ## Quick Summary
 
-**Goal:** Drive authorized work to a ready-to-merge PR with a whole-branch review and current local test evidence, both chosen automatically by risk, and green CI; never ask the user whether to run tests or review, and stop with a report on a real blocker.
+**Goal:** Drive authorized work to a ready-to-merge PR with whole-branch changes review, current local test evidence and green CI; never ask the user whether to run tests or review, and stop with a report on a real blocker.
 
 [Step 3.3](#step-33--work-tracking) keeps the project's tracked work current with the pull request, as the project's own work-tracking instruction says; it never gates the PR.
 
 **Summary:**
 
 - **Purpose:** one invocation creates a new PR, finishes the current PR, or flips a draft to ready. Invocation IS explicit authority for add/commit/push/PR operations on the selected branch — nothing more.
-- **Main session, automatic risk-based decisions:** read [Test and review decision policy](references/check-policy.md) before both gates and apply it to the whole branch. Never ask about tests or review: classify, decide, act and record; refresh checks automatically after CI repairs.
-- **Review before commit:** the whole-branch review its risk tier selects plus an exact commit-candidate receipt; every risk tier invokes `why-review` or `changes-review`. New content invalidates evidence and is gated again.
+- **Main session, automatic checks:** read [Test and review decision policy](references/check-policy.md) before both gates and apply it to the whole branch. Never ask about tests or review: classify, decide, act and record; refresh checks automatically after CI repairs.
+- **Review before commit:** every risk tier invokes `changes-review --fix-loop` over the whole branch and requires an exact commit-candidate receipt. New content invalidates evidence and is gated again.
 - **Main steps:** (1) target → (2) fresh branch at the latest target → (3) stage + guard + test decision → (4) whole-branch review decision → (5) verify final evidence → (6) `commit` skill → (7) push + create/ready PR → (8) CI loop until green → (9) mergeable check + report.
 
 **Workflow:**
@@ -37,8 +37,8 @@ An explicit request to commit or push authorizes that operation once its require
 
 - MUST ATTENTION run inline in the main session; NEVER hand the whole task to a sub-agent — why: the review fix-loop owns its convergence loop only in the main session.
 - MUST ATTENTION apply the shared decision policy and never ask the user whether to run tests or review: classify the whole branch, decide, act and record. Never fabricate a user answer or a passed result.
-- MUST ATTENTION commit only a candidate covered by a review receipt or a skip receipt. Always invoke `why-review` or `changes-review` for the whole branch; mint a review skip only on an explicit user instruction, never after a failed or non-converged review, and report skipped gates truthfully.
-- MUST ATTENTION review the WHOLE branch: scope is always `<base-ref>...HEAD` ∪ uncommitted (the total diff that will merge into the target), never the latest commit or the current changes alone — why: a defect introduced in an earlier commit of the branch ships in the PR exactly like one in the last commit.
+- MUST ATTENTION commit only a candidate covered by a review receipt or a skip receipt. Require `changes-review --fix-loop` for the whole staged branch; mint a review skip only on an explicit user instruction, never after a failed or non-converged review, and report skipped gates truthfully.
+- MUST ATTENTION review the WHOLE branch: scope is always the staged branch candidate against its merge-base (the total diff that will merge into the target), never the latest commit or the current changes alone — why: a defect introduced in an earlier commit of the branch ships in the PR exactly like one in the last commit.
 - NEVER merge the PR, enable auto-merge, push to the target branch, use a plain force-push (`--force`, `-f`, `+<refspec>`), amend a pushed commit, or run a destructive git command. Rebase a pushed commit only under `pullRequest.pushedBranchUpdate: "rebase"` with every **Pushed-branch update** condition met (Step 2), pushing with the explicit lease; otherwise rebase only commits no remote ref contains (Step 2's never-pushed test) and resolve drift on a pushed branch with `git merge --no-commit` + `/git-conflict-resolve`, then review and commit through the `commit` skill.
 - Work tracking (Step 3.3): keep the project's tracked work current in the PR, as the project's own instruction says. It is never a gate, and the instruction, not this skill, owns its rules.
 - An automatic test skip or an explicit user-requested skip waives only that local gate for the named candidate. Review never skips automatically. NEVER weaken/delete tests or checks, bypass required CI, or describe skipped work as passed.
@@ -51,7 +51,7 @@ An explicit request to commit or push authorizes that operation once its require
 - [Quick Summary](#quick-summary)
 - [Pull Request Skill](#pull-request-skill)
 - [Authority](#authority)
-- [Execution — main session, risk-based test and review decisions](#execution--main-session-risk-based-test-and-review-decisions)
+- [Execution — main session, automatic tests and required changes review](#execution--main-session-automatic-tests-and-required-changes-review)
 - [Procedure](#procedure)
 - [User Choice Contract](#user-choice-contract)
 - [Related](#related)
@@ -63,7 +63,7 @@ An explicit request to commit or push authorizes that operation once its require
 
 Invocation IS the user's explicit request for every Git/GitHub operation below, scoped to the current repository and the PR branch it selects or creates: `add`, `commit`, `push` of that branch, branch creation and `switch`, `stash push | pop`, `rebase` of that branch's own unpushed commits (Step 2), `gh pr create | edit | ready`. With `pullRequest.pushedBranchUpdate: "rebase"` it also covers `rebase` of that branch's pushed commits onto the target and `git push --force-with-lease=<branch>:<sha>` of that branch, only when every **Pushed-branch update** condition holds. NEVER authorizes merging the PR, enabling auto-merge, pushing to the target branch, a plain force-push (`--force`, `-f`, `+<refspec>`), rewriting pushed history outside that mode, or `reset --hard` / `clean -f` / `checkout -- <path>` / `restore <path>` / `stash drop`.
 
-## Execution — main session, risk-based test and review decisions
+## Execution — main session, automatic tests and required changes review
 
 - Run every step in the main session. The selected review fix-loop, `commit` and `fix` run inline via the `Skill` tool, or, when the host refuses that call for a user-only skill, by reading the skill's SKILL.md in full and following it; their own reviewer sub-agents still fan out per their skills. — why: a review fix-loop owns its convergence loop there, and `workflow-review-changes` MUST run inline in the main session, never as a sub-agent; this session owns the whole task end to end.
 - Read `references/check-policy.md` before Steps 3.5/4 and each CI repair; it owns the PR risk tiers, test and review decisions and their limits. Tests and review raise no user question; the [User Choice Contract](#user-choice-contract) serves genuine choices that remain. Pass the recorded decisions to `commit`.
@@ -125,7 +125,7 @@ A PR branch starts at the latest `<target>` (`R` from Step 1.4). Name for a new 
 
 1. `git status`, then `git add -A` — the user asked for all staged + unstaged work to be committed. Leave out secret-like files (`.env*`, keys, credential files) via `git restore --staged -- <path>`; list them in the report.
 2. `node .claude/hooks/lib/doc-stamp-guard.cjs --staged`. Exit `3` → `git restore --staged -- <paths>` for the stamp-only files; leave them in the working tree. NEVER revert the working tree.
-3. **Review candidate target.** Nothing left unstaged → review uses the default `worktree` target (working tree = index). Anything left unstaged → pass `--target=staged` to the fix-loop snapshot; each round `git add`s the paths it fixed before the next snapshot. — why: the receipt binds the exact candidate tree; reviewed content MUST equal committed content.
+3. **Review candidate.** The staged tree defines what the PR will publish, including all prior branch commits. Keep excluded paths unstaged. Stage only authorized review repairs and rerun the guards before the next snapshot.
 
 ### Step 3.3 — Work tracking
 
@@ -141,19 +141,19 @@ Missing commands or a blocked required lane are unavailable, never passed: that 
 
 ### Step 4 — Resolve review of the whole branch
 
-**Review scope invariant.** A pull-request review covers the TOTAL net change of the branch against the target: `git diff <base-ref>...HEAD` (three-dot, from the merge-base, every branch commit) ∪ uncommitted changes. NEVER only the latest commit (`HEAD~1..HEAD`, `git show`), never only the current working-tree changes, and never just the fix made since the last round — a later CI fix or merge is reviewed as part of the whole branch diff. Reviewing an existing PR (no local edits) uses the same scope from the PR's base (`baseRefName`) after `git fetch origin`. Record the scope proof in the report: base ref, merge-base SHA, `git rev-list --count <base-ref>..HEAD` and the changed-file count of `git diff --stat <base-ref>...HEAD`.
+**Review scope invariant.** Review the total branch contribution: all branch commits plus pending staged changes, measured from the merge-base with the PR target. Pass `--target=branch --base=<base-ref> --staged` on every live PR review, including an existing PR with no pending edits. Fetch and resolve its actual PR base first. Use the snapshot's merge-base with `git diff --cached <merge-base>` to review the exact candidate, including file modes and deletions. Record the base ref, merge-base SHA, branch commit count and staged branch diff summary. Exclude intentionally unstaged work.
 
-Apply the shared decision policy to the whole scope and act without asking the user. Run `node .claude/scripts/lib/commit-review-policy.cjs --operation=pull-request --risk=<actual-tier>` from the requested checkout root; PR scope remains risk-based regardless of `commit.reviewMode`. Reuse existing evidence only when both scope and candidate match. Otherwise classify the branch and follow `references/check-policy.md` with whole-branch signals: **Low / Medium** → `/why-review --fix-loop`; **High** → `/changes-review --fix-loop`, each at most three review rounds over the whole scope. Invoke the selected skill on every PR run; matching current evidence may be reused inside that invocation, but a previous receipt, a risk classification or a bare summary never replaces the call. A PR request is not a review, and a commit-only receipt does not prove the whole branch was reviewed.
+Apply [the decision policy](references/check-policy.md) and act without asking the user. Run `node .claude/scripts/lib/commit-review-policy.cjs --operation=pull-request --risk=<actual-tier>` from the requested checkout. Every PR risk tier runs `/changes-review --fix-loop`, with at most three review rounds over the whole scope. Invoke the selected skill on every PR run. Matching current evidence may be reused inside that invocation when scope and candidate match.
 
-Run the selected fix-loop inline via the `Skill` tool (or, if the host refuses it, by reading its SKILL.md in full and following it) over `<base-ref>...HEAD ∪ current uncommitted changes` — the three-dot base is the fixed merge-base, so the review covers every branch commit + pending work, a Step 2 rebase included. When the user asks for the full workflow, run `/workflow-review-changes --fix-loop` inline the same way and follow that workflow's `references/fix-loop.md` as written: each round re-runs the whole default workflow over the recomputed scope (parallel reviewers, validated fixes at the owning layer, `/docs-manager --mode=update`); converges on a zero-fix round; keeps round cap + severity floor; mints the `workflow-review-changes` receipt.
+**Choose one review coordinator.** By default run `/changes-review --fix-loop` directly. When the user requests the full workflow, run `/workflow-review-changes --fix-loop` as the coordinator. Its registered `changes-review --fix-loop --loop-owner=caller` child satisfies the required call. The workflow follows its [one-time steps and rerun rules](../workflow-review-changes/SKILL.md#fix-and-fresh-review), owns the documentation update and issues its own receipt. Pass the same branch snapshot arguments to the chosen coordinator and execute it inline using the active host's skill mechanism.
 
-**Review gate (`reviewGate.mode: enforce`).** The hook refuses a non-draft `gh pr create` and `gh pr ready` unless the committed head has a whole-branch receipt, so the review snapshots the branch: pass `--target=branch --base=<base-ref>` to the selected fix-loop, and commit everything it reviewed (the gate compares the receipt with the committed head; a later commit needs a fresh review). A review receipt counts only when its review skill actually ran; never mint one by hand. An explicit user-requested skip records `--kind=skip` over the same branch snapshot. Under `off` (the default) nothing here changes.
+**Review gate (`reviewGate.mode: enforce`).** The hook refuses a non-draft `gh pr create` and `gh pr ready` unless the committed head has a whole-branch receipt, so use the staged branch receipt from Step 4 and commit everything it reviewed (the gate compares the receipt with the committed head; a later commit needs a fresh review). A review receipt counts only when its review skill actually ran; never mint one by hand. An explicit user-requested skip records `--kind=skip` over the same branch snapshot.
 
-**Review status (`reviewGate.status.enabled`).** CI requires a commit status that only a whole-branch review receipt or a committed review bypass can publish (Step 7, item 5), so the review snapshots the branch with `--target=branch --base=<base-ref>` here too, whatever `reviewGate.mode` says. A `skip` receipt does not satisfy the status; every risk tier already requires an actual review skill call. Commit a review bypass only when the user asked to skip the review: an empty commit, last on the branch, whose final message paragraph holds the trailers `Review-Bypass: true`, `Review-Bypass-Reason: <the user's reason, 10-500 characters>`, `Review-Bypass-PR: <n>` and `Review-Bypass-Parent: <full parent SHA>` (`.claude/docs/configuration/README.md` → Review status). It needs the PR number, so open the PR first.
+**Review status (`reviewGate.status.enabled`).** CI requires a commit status that only a whole-branch review receipt or a committed review bypass can publish (Step 7, item 5), so use the staged branch receipt from Step 4 regardless of `reviewGate.mode`. A `skip` receipt does not satisfy the status; every risk tier already requires an actual review skill call. Commit a review bypass only when the user asked to skip the review: an empty commit, last on the branch, whose final message paragraph holds the trailers `Review-Bypass: true`, `Review-Bypass-Reason: <the user's reason, 10-500 characters>`, `Review-Bypass-PR: <n>` and `Review-Bypass-Parent: <full parent SHA>` (`.claude/docs/configuration/README.md` → Review status). It needs the PR number, so open the PR first.
 
 - **Only when the user explicitly asks to skip:** record the whole-branch scope proof and `Review: skipped by user`; this is not a successful review. If a commit is needed, follow `references/check-policy.md` → `snapshot` + `issue --kind=skip` using the exact prepared commit descriptor. Never mint a review receipt for skipped work. With no pending commit, record the branch-scope skip in the PR report; no commit receipt is needed.
 - A partial review NEVER satisfies this gate, and no risk tier permits an automatic skip. The invoked skill may reuse an existing full review under the shared decision policy only when the evidence matches this exact candidate and whole-branch scope. A skip covers only the unchanged candidate and scope it was recorded for; changed content is classified and gated again.
-- **Integration-merge scope** (uncommitted merge from Step 7.1 or Step 9): review the PR's net change — `git diff <base-ref>` over the working tree, after `git fetch origin <target>` — with conflict-resolved hunks called out. Incoming target-branch commits are NOT review targets: they were reviewed on the target branch. The receipt still binds the whole merge candidate. — why: during an uncommitted merge `HEAD` is the pre-merge commit, so the default `...HEAD ∪ uncommitted` scope would pull every incoming target commit into the review.
+- **Integration-merge scope** (uncommitted merge from Step 7.1 or Step 9): use the staged branch snapshot with the pending merge parents included in the merge-base calculation. Resolve conflicts and stage the result before taking the snapshot. Review the diff against that snapshot's merge-base and call out conflict resolutions. This scopes the review to the contribution the completed merge will publish.
 - Fix-loop escalates (three-round cap spent with MEDIUM+ open, blockers not shrinking, blockers increasing, ambiguous intent) → **Blocker**. No commit proceeds without a qualifying receipt. A failed review is not a skip: never mint one to get past it. Hand back per the Blocker rule in the [User Choice Contract](#user-choice-contract), listing the open findings.
 
 ### Step 5 — Verify final evidence and decisions
@@ -183,7 +183,7 @@ Invoke `commit` over the staged candidate with the recorded risk tier, test deci
    1. Read the evidence. GitHub Actions → `gh run view <run-id> --log-failed` (run id in the check `link`). Other providers → the check's link or description.
    2. Test the environment hypothesis before blaming code. Log names an infrastructure cause (runner lost, registry/network timeout, quota) → **one** rerun: `gh run rerun <run-id> --failed`. Second infrastructure failure → Blocker. NEVER rerun to fish for green.
    3. Otherwise `/fix --target=ci`: trace the root cause backward from the failing log, fix at the owning layer — a stale test included, only once adjudicated TEST-WRONG. NEVER skip, delete, or weaken a check or test to get green.
-   4. **Gate the repair without a question.** Apply `references/check-policy.md` to the repair and the whole branch. Automatically run affected local checks (Step 3.5), select/run Step 4 over the WHOLE branch (`<base-ref>...HEAD ∪ uncommitted`), refresh the exact-candidate receipt, then Step 5 → `commit` (Step 6) → push → publish the review status (Step 7, item 5). A repair that adds a High signal (security, data, contract or deployment risk) raises the tier and its review, never a question. A previous Skip does not authorize skipping repair checks.
+   4. **Gate the repair without a question.** Apply `references/check-policy.md` to the repair and the whole branch. Stage and guard authorized repair paths as in Step 3, preserving existing exclusions. Automatically run affected local checks (Step 3.5), then run Step 4 over the whole staged branch candidate and refresh the exact-candidate receipt. Continue with Step 5 → `commit` (Step 6) → push → publish the review status (Step 7, item 5). A repair that adds a High signal (security, data, contract or deployment risk) raises the risk tier for test planning. The same required review runs again. A previous Skip does not authorize skipping repair checks.
 5. Loop to step 1. No attempt cap while each attempt removes a failure or changes its cause. **Blocker** when the same failure signature survives 3 attempts addressing different causes, or the fix needs something outside the repository (secret, permission, runner/service setup, product decision).
 
 ### Step 9 — Ready to merge
@@ -219,7 +219,7 @@ Test and review decisions are automatic under `references/check-policy.md` and r
 This PR skill uses `references/check-policy.md`, independently of `portability.skillAutoTrigger` and workflow routing mode. General autonomy does not authorize additional Git operations.
 
 - **Tests:** skipped only when the affected tests already passed in this session for unchanged content, or the change is really small or has no applicable lane; otherwise scoped tests run and failures are fixed until all pass. Record the decision and its evidence truthfully.
-- **Review:** Low / Medium → `/why-review --fix-loop`; High → `/changes-review --fix-loop`; three review rounds at most, over the whole branch. `/workflow-review-changes --fix-loop` runs when the user asks for it and must retain its `changes-review` call. Specialist reviews supplement the required rationale/changes review; they never replace it.
+- **Review:** every PR runs `/changes-review --fix-loop`, with three review rounds at most over the whole branch. `/workflow-review-changes --fix-loop` owns the loop when requested and fulfills this through its `changes-review` child. Specialist reviews supplement the required rationale/changes review; they never replace it.
 - **Receipt:** an exact-candidate review or skip receipt remains mandatory for changed commits. Mint a skip receipt only on the user's explicit request, never after a failed or non-converged review.
 - **Later changes:** classify again, then refresh evidence/receipts. Preserve the recorded decisions, scope and pending questions across compaction/resume and delegated briefs.
 - **User instructions:** an explicit request to skip, run or choose a specific check overrides the automatic choice for the scope it names and is recorded as the user's decision.
@@ -231,7 +231,7 @@ A **Blocker** ends the run. Pending user choices pause only dependent steps. If 
 ## Related
 
 - `commit` — the only commit path; it routes pull-request requests here.
-- `why-review` / `changes-review` — the `--fix-loop` review the risk tier selects, run over the whole branch; `workflow-review-changes` on the user's request.
+- `changes-review` — the required `--fix-loop` review over the whole branch, including its `why-review` pass; `workflow-review-changes` on the user's request.
 - `fix` — `--target=ci` diagnoses and fixes CI failures.
 - `git-conflict-resolve` — resolves merge conflicts with the target branch.
 
@@ -256,12 +256,12 @@ A **Blocker** ends the run. Pending user choices pause only dependent steps. If 
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Drive authorized work to a ready-to-merge PR with a whole-branch review and current local test evidence, both chosen automatically by risk, and green CI; never ask the user whether to run tests or review, and stop with a report on a real blocker.
+**IMPORTANT MUST ATTENTION Goal:** Drive authorized work to a ready-to-merge PR with whole-branch changes review, current local test evidence and green CI; never ask the user whether to run tests or review, and stop with a report on a real blocker.
 
 - **MUST ATTENTION — MAIN STEPS IN ORDER:** (1) target: request → open PR base → `pullRequest.targetBranch` → `main` · (2) branch: merged → new branch at latest target; unpushed + behind → rebase (stash, `/git-conflict-resolve`); pushed → updated only at Step 9 or on request: merged, or rebased with the explicit lease under `pullRequest.pushedBranchUpdate: "rebase"` · (3) stage + guard · (3.5) test decision · (4) whole-branch review decision · (5) verify final evidence · (6) `commit` skill · (7) push + create/ready PR · (8) CI loop until green · (9) mergeable check + report.
-- **MUST ATTENTION — DECIDE, NEVER ASK:** use `references/check-policy.md` over the whole branch. Tests: skip only when already passed this session or really small, otherwise run scoped and fix to green. Review: Low / Medium → `/why-review --fix-loop`, High → `/changes-review --fix-loop`, three review rounds at most. Honor explicit user instructions; stop and report on a blocker.
+- **MUST ATTENTION — DECIDE, NEVER ASK:** use `references/check-policy.md` over the whole branch. Tests: skip only when already passed this session or really small, otherwise run scoped and fix to green. Review: every PR runs `/changes-review --fix-loop`, three review rounds at most. Honor explicit user instructions; stop and report on a blocker.
 - **MUST ATTENTION — REVIEW BEFORE COMMIT:** fresh evidence and exact-candidate receipts remain required after edits. Old verified evidence and an old skip cannot cover new content. No automatic review skip at any risk tier; never convert a failed review into a skip.
-- **MUST ATTENTION — REVIEW THE TOTAL BRANCH DIFF:** every review round in a PR run covers `<base-ref>...HEAD ∪ uncommitted` (all branch commits against the merge-base), never only the latest commit or the working tree.
+- **MUST ATTENTION — REVIEW THE TOTAL BRANCH DIFF:** review every round against the merge-base in the staged branch snapshot, including all branch commits and the pending staged edits.
 - **MUST ATTENTION — WORK TRACKING (Step 3.3):** update the project's tracked work inside this PR, as its own instruction says; no instruction → silent skip; never block the PR on it.
 - **MUST ATTENTION — CI FIXES:** root cause first, environment hypothesis included; one rerun only for a named infrastructure cause. NEVER weaken, skip or delete a test or check.
 - **NEVER** merge, enable auto-merge, push to the target branch, use a plain force-push, rewrite pushed history outside `pullRequest.pushedBranchUpdate: "rebase"` and its conditions, or run a destructive git command — stop at ready to merge.
@@ -275,7 +275,7 @@ A **Blocker** ends the run. Pending user choices pause only dependent steps. If 
 | "Hand the whole task to a sub-agent"                   | The procedure runs in the main session. The review fix-loop must run inline there, and a sub-agent cannot own its loop.     |
 | "The user will want to confirm the branch name"        | Derive the branch name and report it; test and review decisions follow the shared decision policy, with no question.                                                     |
 | "Rebase the pushed branch too, then force-push"        | Only under `pullRequest.pushedBranchUpdate: "rebase"` with every **Pushed-branch update** condition met, and only with the explicit lease. Otherwise merge `origin/<branch>` (Step 7.1) or `R` (Step 9) in instead. |
-| "Only the new changes need review"                     | The first review covers `<target>...HEAD` ∪ uncommitted: the whole branch. CI-fix rounds re-review the whole branch too — the fix is part of it.       |
+| "Only the new changes need review"                     | Review the whole staged branch against the merge-base. CI-fix rounds re-review the whole branch too, including the staged repair.       |
 | "CI is red because of a flaky test, rerun until green" | One rerun, and only for a named infrastructure cause. Anything else is investigated and fixed at its root.                        |
 | "Mark the failing test skipped so the PR goes green"   | That forces green. Adjudicate the test, then fix the source or the stale test.                                                    |
 | "The diff clearly finishes that item, mark it done"    | Mark it done only as the project's instruction says — in the PR that ships it, with that PR — never from a guess about which item the diff finishes. |

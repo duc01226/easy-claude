@@ -106,7 +106,7 @@ test("TC-E2EFL-003: without the flag the default pass stays report-only", () => 
   assert.match(defaults, /`--fix-loop` rounds are execution\/fix\/retest attempts, not review rounds/);
   assert.doesNotMatch(defaults, /`\/fix`|`\/investigate --mode=debug`|`\/changes-review`|Goal Contract/, "repair routing lives only inside the mode");
   const reviewer = read(".claude/skills/changes-review/SKILL.md");
-  assert.match(reviewer, /Invoke `\/e2e-test --mode=verify` report-only/);
+  assert.match(reviewer, /When this skill owns execution, invoke `\/e2e-test --mode=verify` report-only/);
   assert.doesNotMatch(reviewer, /e2e-test --mode=verify --fix-loop/, "report-only caller never passes the flag");
 });
 

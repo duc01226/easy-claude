@@ -23,9 +23,9 @@
  * skill's Low-risk decision or the user's explicit request, named in `reason`.
  *
  * Target `branch` measures a whole pull-request branch: base = the tree of the merge-base of HEAD
- * and the named base ref, candidate = the working tree (a review before the commit) or, with
- * `committed: true`, HEAD's tree (the head a pull request publishes). Matching compares trees, so a
- * review of the working tree matches the committed head exactly when everything reviewed was committed.
+ * and the named base ref, candidate = the working tree, the index with `staged: true`, or HEAD's
+ * tree with `committed: true`. The staged candidate includes pending merge parents in its base
+ * calculation, so a resolved merge can be reviewed before the commit and match the published head.
  *
  * Under `reviewGate.mode: enforce` (project config) a review receipt needs an ATTESTATION: a record
  * that a review skill of that kind started (written by the review protocol hook) before the reviewed
@@ -323,10 +323,32 @@ function branchDescriptor(descriptor) {
     if (!descriptor || typeof descriptor !== 'object' || Array.isArray(descriptor) || typeof descriptor.base !== 'string' || !BASE_REF_PATTERN.test(descriptor.base)) {
         throw Object.assign(new Error('A branch review needs a base ref name (for example origin/main)'), { code: 'INVALID_BRANCH_BASE' });
     }
-    if (descriptor.committed !== undefined && typeof descriptor.committed !== 'boolean') {
-        throw Object.assign(new Error('committed must be a boolean'), { code: 'INVALID_DESCRIPTOR' });
+    for (const option of ['committed', 'staged']) {
+        if (descriptor[option] !== undefined && typeof descriptor[option] !== 'boolean') {
+            throw Object.assign(new Error(`${option} must be a boolean`), { code: 'INVALID_DESCRIPTOR' });
+        }
     }
-    return { base: descriptor.base, ...(descriptor.committed ? { committed: true } : {}) };
+    if (descriptor.committed && descriptor.staged) {
+        throw Object.assign(new Error('Select either the staged branch candidate or the committed head'), { code: 'INVALID_DESCRIPTOR' });
+    }
+    return { base: descriptor.base, ...(descriptor.committed ? { committed: true } : {}),
+        ...(descriptor.staged ? { staged: true } : {}) };
+}
+
+function pendingMergeParents(run, repository) {
+    const mergeHeadPath = gitPath(repository, run(['rev-parse', '--git-path', 'MERGE_HEAD']).trim());
+    let content;
+    try {
+        content = fs.readFileSync(mergeHeadPath, 'utf8');
+    } catch (error) {
+        if (error.code === 'ENOENT') return [];
+        throw error;
+    }
+    const parents = content.trim().split(/\s+/);
+    if (parents.some(parent => !/^[a-f0-9]{40,64}$/.test(parent))) {
+        throw Object.assign(new Error('Invalid pending merge parents'), { code: 'INVALID_MERGE_HEAD' });
+    }
+    return parents;
 }
 
 /** The remote-tracking ref first (what a pull request merges into), then a local branch, then the name as given. */
@@ -426,9 +448,12 @@ function captureReviewTarget(options = {}) {
         if (target === 'branch') {
             if (!headCommit) throw Object.assign(new Error('A branch review needs a commit on HEAD'), { code: 'BRANCH_WITHOUT_HEAD' });
             const baseCommit = resolveBaseCommit(run, descriptor.base);
+            const parents = descriptor.staged ? pendingMergeParents(run, repository) : [];
             let mergeBase = '';
             try {
-                mergeBase = run(['merge-base', headCommit, baseCommit]).trim();
+                // With extra parents, Git treats the commits after the first as a hypothetical merge.
+                const args = parents.length ? [baseCommit, headCommit, ...parents] : [headCommit, baseCommit];
+                mergeBase = run(['merge-base', ...args]).trim();
             } catch (_) { /* exit 1: no common ancestor, reported below */ }
             if (!/^[a-f0-9]{40,64}$/.test(mergeBase)) throw Object.assign(new Error(`No merge-base between HEAD and ${descriptor.base}`), { code: 'NO_MERGE_BASE' });
             baseTree = treeId(run(['rev-parse', `${mergeBase}^{tree}`]), 'branch baseTree');
@@ -460,8 +485,11 @@ function captureReviewTarget(options = {}) {
             GIT_ALTERNATE_OBJECT_DIRECTORIES: objectsPath
         };
         const candidateRun = (args, extra = {}) => runGit(exec, repository, args, candidateEnv, extra);
-        const mode = target === 'commit-descriptor' ? descriptor.mode
-            : target === 'branch' ? (descriptor.committed ? 'committed' : 'worktree') : target;
+        let mode = target;
+        if (target === 'commit-descriptor') mode = descriptor.mode;
+        if (target === 'branch') {
+            mode = descriptor.committed ? 'committed' : descriptor.staged ? 'staged' : 'worktree';
+        }
         if (mode === 'committed') {
             candidateRun(['read-tree', headCommit]);
         } else if (mode === 'staged' || mode === 'all') {
@@ -734,6 +762,30 @@ function matchSkipReceipt(options) {
     return checkReceipt({ ...options, kind: SKIP_KIND }) ? SKIP_KIND : null;
 }
 
+/** Discover possible non-default bases for this exact staged tree. The gate recaptures each base. */
+function stagedBranchReviewBases(snapshot) {
+    try {
+        const ctx = context(snapshot);
+        const bases = new Set();
+        for (const name of fs.readdirSync(ctx.directory)) {
+            const kind = name.split('.')[0];
+            if (!REVIEW_KINDS.includes(kind)) continue;
+            const record = readRecord(path.join(ctx.directory, name));
+            if (record?.target !== 'branch' || record.descriptor?.staged !== true ||
+                record.candidateTree !== ctx.candidateTree ||
+                typeof record.baseTree !== 'string' || !TREE_PATTERN.test(record.baseTree) ||
+                typeof record.descriptor.base !== 'string' || !BASE_REF_PATTERN.test(record.descriptor.base)) continue;
+            const identity = { ...ctx, baseTree: record.baseTree };
+            identity.fingerprint = candidateFingerprint(identity);
+            if (name === path.basename(receiptPath(identity, kind, identity.fingerprint)) &&
+                validRecord(record, identity, kind)) bases.add(record.descriptor.base);
+        }
+        return [...bases];
+    } catch (_) {
+        return [];
+    }
+}
+
 /** True when the store holds any receipt for the repository: a cheap check before an expensive capture. */
 function hasAnyReceipt(repository, options = {}) {
     try {
@@ -978,13 +1030,18 @@ function runCli(argv) {
         throw new Error('Use snapshot|issue|skip|check|clear|publish-status with explicit options');
     }
     const flags = parseArgs(argv.slice(1));
+    if (flags.staged !== undefined && (flags.staged !== true || flags.target !== 'branch' || flags['descriptor-json'] !== undefined)) {
+        throw new Error('Use --staged only with --target=branch and without --descriptor-json');
+    }
     const storeDir = process.env.CK_REVIEW_RECEIPT_STORE || undefined;
     const repository = resolveRepository(process.cwd());
     if (!repository) throw new Error('Not inside a resolvable Git repository');
     const base = { repository, ...(storeDir ? { storeDir } : {}) };
     let descriptor = flags['descriptor-json'] === undefined ? undefined : JSON.parse(flags['descriptor-json']);
     if (flags.target === 'branch' && descriptor === undefined) {
-        descriptor = { base: typeof flags.base === 'string' ? flags.base : '', ...(flags.committed === true ? { committed: true } : {}) };
+        descriptor = { base: typeof flags.base === 'string' ? flags.base : '',
+            ...(flags.committed === true ? { committed: true } : {}),
+            ...(flags.staged === true ? { staged: true } : {}) };
     }
     if (command === 'snapshot') {
         return captureReviewTarget({ repository, cwd: process.cwd(), target: flags.target || 'worktree', ...(descriptor ? { descriptor } : {}) });
@@ -1034,6 +1091,7 @@ module.exports = {
     checkReceipt,
     matchReviewReceipt,
     matchSkipReceipt,
+    stagedBranchReviewBases,
     clearReceipts,
     hasAnyReceipt,
     recordAttestation,

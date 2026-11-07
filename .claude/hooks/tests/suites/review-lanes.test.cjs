@@ -120,7 +120,7 @@ const tests = [
             assert.match(planning, /Group connected behavior with its callers, tests and rules/);
             assert.match(planning, /every file is reviewed or accounted for by relevant evidence/, 'complete file coverage');
             const workflow = read('.claude', 'skills', 'workflow-review-changes', 'SKILL.md');
-            assert.match(workflow, /General changes review and independent rationale review cover the complete target/);
+            assert.match(workflow, /`changes-review` covers the complete target and invokes whole-target `why-review` once per pass/);
             assert.match(workflow, /Wait for every report before fixing/, 'complete reader barrier');
             assert.match(workflow, /reconcile cross-file interactions and coverage/);
             const qualityReview = read('.claude', 'skills', 'code-quality-review', 'SKILL.md');

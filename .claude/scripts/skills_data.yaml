@@ -700,8 +700,8 @@
   deprecated_by: null
   deprecated_since: null
   description: '[Git] Use when asked to create, open, finish, update or mark ready
-    a pull request. Runs in the main session with risk-based test/review choices and
-    automatic checks for routine CI repairs: branch, commit, open PR, CI to green.'
+    a pull request. Runs in the main session with mandatory changes review and automatic
+    test and CI checks: branch, commit, open PR, CI to green.'
   has_references: true
   has_scripts: false
   name: pull-request

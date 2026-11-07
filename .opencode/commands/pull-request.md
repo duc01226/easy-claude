@@ -1,5 +1,5 @@
 ---
-description: "[Git] Use when asked to create, open, finish, update or mark ready a pull request. Runs in the main session with risk-based test/review choices and automatic checks for routine CI repairs: branch, commit, open PR, CI to green."
+description: "[Git] Use when asked to create, open, finish, update or mark ready a pull request. Runs in the main session with mandatory changes review and automatic test and CI checks: branch, commit, open PR, CI to green."
 ---
 
 <!-- GENERATED OPENCODE COMMAND (sync-skills.mjs) for .claude/skills/pull-request/SKILL.md — do not hand-edit; re-run:

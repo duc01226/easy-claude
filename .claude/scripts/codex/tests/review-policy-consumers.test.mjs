@@ -245,7 +245,17 @@ test('TC-HARNESS-006: workflow owns fixes and fresh review after all reports', (
     const workflow = readSkillContract('.claude/skills/workflow-review-changes/SKILL.md');
     assert.match(workflow, /Wait for every report before fixing/);
     assert.match(workflow, /--loop-owner=caller/);
-    assert.match(workflow, /Re-run general, whole-target rationale and every applicable specialist lens/);
+    assert.match(workflow, /Only changes-review and why-review may repeat/);
+    assert.match(workflow, /All other occurrences run at most once per workflow invocation/);
+    assert.match(workflow, /Run the conditional domain refresh and docs-manager once/);
+    assert.match(workflow, /A previously run specialist stays closed/);
+    assert.match(workflow, /required conclusion cannot be verified from current evidence, keep the gate blocked/);
+});
+
+test('workflow caller guidance shares the canonical review budget without declaring a local round limit', async () => {
+    const caller = await read('.claude/skills/workflow-review-changes/references/caller-mode.md');
+    assert.match(caller, /share the coordinator's round budget under the \[shared review policy\]\(\.\.\/\.\.\/shared\/protocols\/review-policy\.md\)/);
+    assert.doesNotMatch(caller, /\b(?:\d+|one|two|three|four|five) (?:coordinator-owned |review )?rounds?\b/i);
 });
 
 test('TC-HARNESS-006: concise changes review preserves validation before fix and fresh review', () => {
@@ -253,6 +263,23 @@ test('TC-HARNESS-006: concise changes review preserves validation before fix and
     assert.match(changes, /validate-findings/);
     assert.match(changes, /fresh.*review/i);
     assert.match(changes, /LOW/);
+});
+
+test('changes-review updates affected docs once before standalone re-review and leaves workflow docs to its caller', async () => {
+    const entry = await read('.claude/skills/changes-review/SKILL.md');
+    const loop = await read('.claude/skills/changes-review/references/fix-loop.md');
+    const workflow = JSON.parse(await read('.claude/workflows.json')).workflows['workflow-review-changes'];
+    assert.match(entry, /Read \[references\/fix-loop\.md\]\(references\/fix-loop\.md\) before running a standalone `--fix-loop`/);
+    assert.equal((loop.match(/\/docs-manager --mode=update/g) || []).length, 1);
+    assert.match(loop, /owns the `--fix-loop` and the reviewed diff or repairs leave affected docs out of date, invoke .*once per invocation/);
+    assert.match(loop, /after the applicable fixes and before the fresh whole-target review/);
+    assert.match(loop, /carry them through later rounds and recovery/);
+    assert.match(loop, /Review-only and `--loop-owner=caller` passes report doc drift to their caller/);
+    assert.match(loop, /Inside `workflow-review-changes`, the workflow owns the one-time documentation update/);
+    const nestedSteps = workflow.variants['fix-loop'].sequence;
+    assert.match(nestedSteps.find(step => step.skill === 'changes-review').args, /--loop-owner=caller/);
+    assert.equal(nestedSteps.filter(step => step.skill === 'docs-manager' && step.args === '--mode=update').length, 1);
+    assert.ok(workflow.variants['review-only'].sequence.every(step => step.skill !== 'docs-manager'));
 });
 
 test('TC-HARNESS-006: fix preserves explicit LOW requests while honoring the loop floor', async () => {
@@ -519,10 +546,12 @@ test('TC-FIT-012: review and commit prompts preserve the configured semantic pro
     assert.match(commit, /matching review receipt or policy-eligible skip/);
     assert.match(commit, /refresh evidence after changes/);
     const prPolicy = await fs.readFile(path.join(root, '.claude/skills/pull-request/references/check-policy.md'), 'utf8');
-    assert.match(prPolicy, /check --target=commit-descriptor --descriptor-json=/);
+    assert.match(prPolicy, /captures `--target=branch --base=<base-ref> --staged` before the full review/);
+    assert.match(prPolicy, /use `review-receipt\.cjs check` with the same branch arguments/);
+    assert.match(prPolicy, /compare the receipt's candidate tree with the exact commit-descriptor snapshot/);
     assert.match(prPolicy, /snapshot --target=commit-descriptor --descriptor-json=/);
     assert.match(prPolicy, /issue --kind=skip --scope=full-changeset --snapshot-json=/);
-    assert.match(prPolicy, /`ERROR` is a blocker, never `CLEAN`/);
+    assert.match(prPolicy, /An error is a blocker/);
     assert.match(prPolicy, /Neither review evidence nor a skip waives CI, spec\/test reconciliation/);
     assert.doesNotMatch(commit + prPolicy, /review-receipt\.cjs skip --reason=/);
 

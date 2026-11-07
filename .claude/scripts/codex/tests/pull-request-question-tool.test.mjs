@@ -31,8 +31,12 @@ test('PR test and review gates decide automatically and never display a test/rev
     assert.match(tests, /resolve every failure at its owning layer until all pass/);
     assert.match(tests, /that is a \*\*Blocker\*\*, not a skip/);
     const review = section(text, '### Step 4', '### Step 5');
-    assert.match(review, /\*\*Low \/ Medium\*\* → `[/$]why-review --fix-loop`; \*\*High\*\* → `[/$]changes-review --fix-loop`, each at most three review rounds over the whole scope/);
+    assert.match(review, /Every PR risk tier runs `[/$]changes-review --fix-loop`, with at most three review rounds over the whole scope/);
     assert.match(review, /no risk tier permits an automatic skip/);
+    const dispatch = review.slice(review.indexOf('**Choose one review coordinator.**'));
+    assert.match(dispatch, /By default run `[/$]changes-review --fix-loop` directly/);
+    assert.match(dispatch, /When the user requests the full workflow, run `[/$]workflow-review-changes --fix-loop` as the coordinator/);
+    assert.match(dispatch, /Its registered `changes-review --fix-loop --loop-owner=caller` child satisfies the required call/);
     assert.match(review, /Invoke the selected skill on every PR run/);
     assert.match(review, /A failed review is not a skip: never mint one to get past it/);
     const contract = section(text, '## User Choice Contract', '## Related');
@@ -101,9 +105,9 @@ test('CI repairs run fresh gates automatically and hand the recorded decision to
   for (const text of [source, codex]) {
     const ci = section(text, '### Step 8', '### Step 9');
     assert.match(ci, /Gate the repair without a question[^\n]*Automatically run affected local checks/);
-    assert.match(ci, /WHOLE branch/);
+    assert.match(ci, /run Step 4 over the whole staged branch candidate/);
     assert.match(ci, /refresh the exact-candidate receipt/);
-    assert.match(ci, /raises the tier and its review, never a question/);
+    assert.match(ci, /raises the risk tier for test planning\. The same required review runs again/);
     assert.match(ci, /A previous Skip does not authorize skipping repair checks/);
     const handoff = section(text, '### Step 6', '### Step 7');
     assert.match(handoff, /recorded risk tier, test decision and evidence, whole-branch review proof and matching exact-candidate receipt/);

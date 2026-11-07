@@ -264,7 +264,12 @@ const tests = [
             }
             const gateOf = (workflowId, gateId) => document.workflows[workflowId].outcomeGates.find(gate => gate.id === gateId);
             assert.ok(gateOf('workflow-bugfix', 'tests-pass').satisfiedBy.includes('integration-test --mode=verify'));
-            assert.ok(gateOf('workflow-review-changes', 'tests-pass').satisfiedBy.includes('integration-test --mode=review'));
+            for (const manifest of resolveAllWorkflowManifests(document, 'workflow-review-changes', { rootDir: REPO_ROOT })) {
+                const gate = manifest.outcomeGates.find(gate => gate.id === 'tests-pass');
+                assert.deepEqual(gate?.satisfiedBy, [manifest.mode === 'fix-loop'
+                    ? 'integration-test --mode=verify'
+                    : 'integration-test --mode=review --prove-tests']);
+            }
             const integrationTestWorkflow = document.workflows['workflow-integration-test'];
             assert.ok(integrationTestWorkflow.variants.write.outcomeGates.find(gate => gate.id === 'review-converged').satisfiedBy.includes('integration-test --mode=review'));
             assert.ok(gateOf('workflow-integration-test', 'tests-pass').satisfiedBy.includes('integration-test --mode=verify'));
@@ -357,25 +362,37 @@ const tests = [
         }
     },
     {
-        name: 'TC-ITM-011 the review workflow test-prover step and the why-review recursion guard name the review mode',
+        name: 'TC-ITM-011 the workflow reviews tests once and verifies the settled repair separately',
         skip: SKIP,
         fn: () => {
             const document = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, '.claude', 'workflows.json'), 'utf8'));
             const review = document.workflows['workflow-review-changes'];
-            // The specialist wave runs the review mode as a read-only prover, dispatched with the other specialists
-            const prover = review.sequence.find(step => step && step.id === 'integration-tests-review');
-            assert.ok(prover, 'the integration-test review specialist step exists');
-            assert.equal(prover.skill, 'integration-test');
+            const testReview = review.sequence.find(step => step.id === 'integration-tests-review');
+            assert.ok(testReview, 'the integration-test review specialist step exists');
+            assert.equal(testReview.skill, 'integration-test');
             assert.equal(review.defaultMode, 'fix-loop');
-            assert.equal(prover.args, '--mode=review --prove-tests --fix-loop --loop-owner=caller');
-            assert.equal(prover.role, 'gate');
+            assert.equal(testReview.args, '--mode=review --fix-loop --loop-owner=caller');
+            assert.equal(testReview.role, 'gate');
             for (const manifest of resolveAllWorkflowManifests(document, 'workflow-review-changes', { rootDir: REPO_ROOT })) {
-                const leaf = manifest.occurrences.find(step => step.id === prover.id);
-                assert.ok(leaf && leaf.skill === 'integration-test', 'prover gate survives every variant');
+                const leaf = manifest.occurrences.find(step => step.id === testReview.id);
+                assert.ok(leaf && leaf.skill === 'integration-test', 'static review gate survives every variant');
                 assert.equal(leaf.args, manifest.mode === 'fix-loop'
-                    ? '--mode=review --prove-tests --fix-loop --loop-owner=caller'
+                    ? '--mode=review --fix-loop --loop-owner=caller'
                     : '--mode=review --prove-tests --review-only');
                 assert.equal(leaf.role, 'gate');
+                const proofSteps = manifest.occurrences.filter(step => step.skill === 'integration-test' &&
+                    /(?:--mode=verify|--prove-tests)/.test(step.args));
+                assert.equal(proofSteps.length, 1, 'each mode has one test execution owner');
+                if (manifest.mode === 'fix-loop') {
+                    assert.equal(proofSteps[0].id, 'verify-settled-tests');
+                    const phases = manifest.phases.map(phase => phase.id);
+                    assert.deepEqual(phases, ['review', 'verify', 'close']);
+                    assert.ok(manifest.phases[0].steps.includes('documentation-update'));
+                    assert.deepEqual(manifest.phases[1].steps, ['verify-settled-tests']);
+                    assert.deepEqual(manifest.phases[1].exit, ['tests-pass']);
+                } else {
+                    assert.equal(proofSteps[0].id, testReview.id);
+                }
             }
             // why-review: the linkage reads the review mode's gates and keeps its recursion-guard rows
             const linkage = read(SKILLS, 'why-review', 'references', 'code-change-path.md');

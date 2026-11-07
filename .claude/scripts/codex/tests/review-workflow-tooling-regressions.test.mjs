@@ -148,13 +148,25 @@ test('TC-WFPROTO-008: review workflow batch prompt uses canonical skill ids and 
 test('TC-WFADV-022: adaptive orchestration keeps full-target and post-fix review obligations', async () => {
     const w = JSON.parse(await fs.readFile(path.join(repoRoot,'.claude/workflows.json'),'utf8')).workflows['workflow-review-changes'];
     const source = normalizeEol(await readSkillContract('workflow-review-changes'));
+    const changes = normalizeEol(await readSkillContract('changes-review'));
     assert.equal(w.defaultMode,'fix-loop');
-    assert.equal(w.sequence[0].id,'initial-changes-review');
-    assert.equal(w.sequence[1].id,'whole-target-why-review');
+    for (const { sequence } of [w, ...Object.values(w.variants)]) {
+        assert.equal(sequence[0].id, 'initial-changes-review');
+        assert.equal(sequence[0].role, 'gate');
+        assert.equal(sequence.filter(step => step.skill === 'changes-review').length, 1);
+        assert.doesNotMatch(sequence[0].args, /--defer=[^\s]*whole-target/);
+        assert.deepEqual(sequence.filter(step => step.skill === 'why-review').map(step => step.args),
+            ['--validate-findings'], 'the only scheduled why-review occurrence validates findings');
+    }
+    assert.match(changes, /always invoke `\/why-review --target=whole-review-target` on the complete review target/);
+    assert.match(changes, /Run it once in every review\/re-review pass, including caller-owned, documentation-only and zero-finding passes/);
     assert.equal(w.stepMeta['initial-changes-review'].executionMode,'inline');
     assert.ok(!w.parallelGroups, 'agent chooses grouping; there is no forced topology');
     assert.match(source,/Wait for every report before fixing/);
-    assert.match(source,/Re-run general, whole-target rationale and every applicable specialist lens/);
+    assert.match(source, /Re-invoke `initial-changes-review` as `rerun N` on the whole settled target/);
+    const bootstrap = normalizeEol(await readSkillContract('start-workflow'));
+    assert.match(bootstrap, /Review reruns reuse their occurrence row/);
+    assert.doesNotMatch(bootstrap, /workflow-review-changes — Recursive re-review/);
     assert.match(source,/no fixed file\/line\/byte caps/);
     assert.match(source,/Always create the phase todos, one row per occurrence, before running a skill/);
 });

@@ -161,7 +161,7 @@ A workflow is an **intent** plus **outcome gates** plus an ordered list of **ste
 | `workflow-implement-spec`         | auto    | 13    | Behavior already written in a canonical spec; a greenfield first slice |
 | `workflow-bugfix`                 | auto    | 15    | A bug, crash, regression or stale output                          |
 | `workflow-refactor`               | auto    | 14    | Restructure without changing behavior                             |
-| `workflow-review-changes`         | auto    | 14–19 | Review uncommitted changes before commit                          |
+| `workflow-review-changes`         | auto    | 13–19 | Review uncommitted changes before commit                          |
 | `workflow-spec-to-mockup`         | auto    | 6     | Clickable mockup of a UI spec, 1–3 design directions              |
 | `workflow-feature-spec`           | auto    | 10    | Create or update a canonical feature spec                         |
 | `workflow-code-to-spec`           | auto    | 5–9   | Spec prose from existing code: first spec, rewrite, staleness audit |

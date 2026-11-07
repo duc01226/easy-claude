@@ -5,7 +5,7 @@ Read when preparing a PR or gating a CI repair. Decide checks automatically; rec
 ## Classify the whole branch
 
 
-Inspect the **actual candidate**: its file list, `--stat` and the diff itself — for an amend the whole amended commit, for a pull request the whole branch (`<base-ref>...HEAD` ∪ uncommitted). Judge purpose, behavior, affected areas, reversibility, coverage and downstream impact. File/line counts are supporting evidence, not a safety threshold; discount generated churn only after checking its source. A series of tiny commits cannot reset risk or conceal a large change: judge earlier commits of the same task that passed on a Low-tier skip together with this candidate.
+Inspect the **actual candidate**: its file list, `--stat` and the diff itself — for an amend the whole amended commit, for a pull request the whole staged branch against its resolved merge-base. Judge purpose, behavior, affected areas, reversibility, coverage and downstream impact. File/line counts are supporting evidence, not a safety threshold; discount generated churn only after checking its source. A series of tiny commits cannot reset risk or conceal a large change: judge earlier commits of the same task that passed on a Low-tier skip together with this candidate.
 
 | Risk | Signals |
 | --- | --- |
@@ -28,9 +28,9 @@ Old evidence never covers new content: a run from before the last edit to the co
 
 ## Decide review
 
-Run `node .claude/scripts/lib/commit-review-policy.cjs --operation=pull-request --risk=<actual-tier>`. PR scope remains risk-based regardless of `commit.reviewMode`: Low / Medium → `/why-review --fix-loop`; High → `/changes-review --fix-loop`. Every PR run invokes one of these skills; matching current whole-branch evidence may be reused inside the invocation, never instead of it. A requested `workflow-review-changes` run retains its `changes-review` call, which always invokes whole-target `why-review` alongside applicable specialists. Each review has at most three rounds. Reuse evidence only when the whole-branch scope and final candidate match; a commit-only review does not cover a PR.
+Run `node .claude/scripts/lib/commit-review-policy.cjs --operation=pull-request --risk=<actual-tier>`. Every PR risk tier requires `/changes-review --fix-loop`, regardless of `commit.reviewMode`. Invoke it on every PR run, with matching current whole-branch evidence reusable inside the invocation. A requested `workflow-review-changes` run retains its `changes-review` call, which invokes whole-target `why-review` alongside applicable specialists. Each review has at most three rounds. Reuse evidence only when the whole-branch scope and final candidate match; a commit-only review covers its commit scope.
 
-Pass the exact commit descriptor to the selected review if a commit is needed. Use staged mode for a plain commit, all mode for `-a`, literal-paths for explicit paths; add `"amend":true` only for an authorized amendment, which reviews against HEAD's parent. The review skill issues its receipt on convergence. Check that receipt with `node .claude/hooks/lib/review-receipt.cjs check --target=commit-descriptor --descriptor-json='<exact descriptor>'` before committing. `ERROR` is a blocker, never `CLEAN`.
+The PR coordinator captures `--target=branch --base=<base-ref> --staged` before the full review. Stage only intended work and review the entire candidate against the merge-base in that snapshot. After convergence, use `review-receipt.cjs check` with the same branch arguments to confirm the current receipt. When a commit is needed, compare the receipt's candidate tree with the exact commit-descriptor snapshot. An error is a blocker. The commit gate can accept the branch receipt when the base and candidate match its checks.
 
 Only when the user explicitly requests a review skip, use the exact prepared descriptor:
 
@@ -39,7 +39,7 @@ node .claude/hooks/lib/review-receipt.cjs snapshot --target=commit-descriptor --
 node .claude/hooks/lib/review-receipt.cjs issue --kind=skip --scope=full-changeset --snapshot-json='<returned snapshot JSON>' --reason='user-requested: <reason>'
 ```
 
-Under `reviewGate.mode: enforce` the pull request itself is gated too. The review snapshots the working tree with `--target=branch --base=<base-ref>` before the commit; the gate then checks the committed head, which matches once everything reviewed is committed. An explicitly user-requested skip recorded after the commit snapshots `--target=branch --base=<base-ref> --committed`. Only the review skill issues a review receipt.
+Under `reviewGate.mode: enforce` the pull request itself is gated too. The review snapshots the staged branch with `--target=branch --base=<base-ref> --staged` before the commit; the gate then checks the committed head, which matches once everything reviewed is committed. An explicitly user-requested skip recorded after the commit snapshots `--target=branch --base=<base-ref> --committed`. Only the review skill issues a review receipt.
 
 Under `reviewGate.status.enabled` the review snapshots the branch the same way, because `publish-status` posts the CI status only from a whole-branch review receipt or a committed review bypass. A skip receipt never publishes it: only a user's explicit skip becomes a review bypass commit.
 

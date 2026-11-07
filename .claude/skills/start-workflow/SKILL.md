@@ -176,7 +176,7 @@ TaskCreate: subject="[Workflow] [Phase {n}/{total}: {Phase}] {brief description}
 - **1:1 mapping** — each selected occurrence = exactly one row in exactly one phase task, even when the skill repeats with different args. No consolidation, no invented rows. A merge or skip later changes a row's status, never the rows.
 - **Role per row** — every row shows its occurrence `role` (`gate`, `core` or `optional`) so the unskippable steps stay visible inside their phase task.
 - **Conditional steps still get tasks** — add the exact canonical run condition and evidence-backed skip transition to the description; a skip then follows the Step Execution Protocol. Never use a generic skip label.
-- **Recursive self-calls get rows** — e.g., a `/workflow-review-changes — Recursive re-review (conditional)` row in its phase task
+- **Review reruns reuse their occurrence row** — e.g., inside `workflow-review-changes`, annotate `initial-changes-review` with `rerun N: <reason>` and keep the same coordinator.
 - **Count verification** — after creation: `task count == len(manifest.phases)` (or `len(manifest.occurrences)` when it declares none) and the ordered row occurrence IDs across the tasks exactly equal the manifest IDs. Fix mismatch before proceeding.
 
 ### Resume and mode-integrity contract
@@ -262,7 +262,7 @@ Some workflow steps ARE themselves full workflows. The DEFAULT for a step that a
 
 | Step                       | Workflow activated        | Execution mode                  | Why                                                                                          |
 | -------------------------- | ------------------------- | ------------------------------- | -------------------------------------------------------------------------------------------- |
-| `/workflow-review-changes` | `workflow-review-changes` | **INLINE — main session agent** | It owns the fix → fresh re-review loop over its reviewers' merged reports, and only the main session can ask the user to extend the round budget (`SYNC:review-decision-autonomy`); a sub-agent can do neither, so delegating it silently breaks the review→fix→re-review loop. Context stays bounded because its OWN step 2 and steps 3–9 reviewers are sub-agents writing to `tmp/reports/`. |
+| `/workflow-review-changes` | `workflow-review-changes` | **INLINE — main session agent** | It owns the fix → fresh re-review loop over its reviewers' merged reports, and only the main session can ask the user to extend the round budget (`SYNC:review-decision-autonomy`). Applicable reviewers can return persisted evidence from `tmp/reports/`. |
 
 When `/workflow-review-changes` appears in any workflow sequence (e.g. `workflow-feature`, `workflow-bugfix`, `workflow-refactor`), execute its skill protocol INLINE through the active host — do NOT spawn it as an `Agent` sub-agent.
 

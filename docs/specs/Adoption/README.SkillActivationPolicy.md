@@ -66,13 +66,13 @@ to run, so restricting automatic work does not bypass checks or create interrupt
 - **AC-SAP-04:** Named requests and required calls remain eligible without changing procedure access
   or asking an additional procedure-choice question. A confirmed candidate and its scoped required
   dependencies become eligible without requiring the user to repeat its name.
-- **AC-SAP-05:** Commit and pull-request procedures decide tests and review from the candidate's risk
-  without a human test/review question. Tests are skipped only when the affected tests already passed in
+- **AC-SAP-05:** Commit and pull-request procedures decide publication checks without a human test/review question. Tests are skipped only when the affected tests already passed in
   the session for unchanged content or the change is really small; otherwise scoped tests run and failures
   are fixed until all pass. Commit review follows the configured depth. Every pull request invokes
-  rationale review at low or medium risk, or change review at high risk; no risk tier skips it automatically.
-  Every change review invokes whole-target rationale review alongside applicable specialist reviews,
-  including caller-owned passes and passes with no findings. Each review retains its inherited cap of
+  change review in its fix-loop mode at every risk tier.
+  Every change review invokes whole-target rationale review once per pass, including caller-owned
+  passes and passes with no findings. The review workflow uses that result alongside applicable
+  specialist reviews. Each review retains its inherited cap of
   at most three rounds. The selected review's required chain remains eligible. An explicit human instruction
   about tests or review overrides the automatic choice. Selection
   preferences never substitute for current evidence or approve a skip.
@@ -109,14 +109,13 @@ For every ordinary task with a suitable restricted procedure match, ask one
   and selected applicable steps within an authorized workflow’s declared scope, including planned steps
   executed later or after recovery. Ordinary task wording, generic discovery guidance,
   optional suggestions and merely reading a procedure do not create authorization.
-### BR-SAP-03: Publication checks are decided automatically by risk [HARD]
+### BR-SAP-03: Publication checks are decided automatically [HARD]
 
-Commit and pull-request procedures own the risk-based test/review decision and never ask the human
+Commit and pull-request procedures own the test/review decision and never ask the human
   whether to run tests or review. Tests are skipped only when the affected tests already passed in the
   session for unchanged content or the change is really small; otherwise scoped tests run and failures are
   fixed until all pass. Commit review follows its configured depth; only risk-based low-risk commits
-  may skip automatically. Every pull request invokes rationale review at low or medium risk, or change
-  review at high risk, independently of commit preferences. Every change review invokes whole-target
+  may skip automatically. Every pull request invokes change review in its fix-loop mode at every risk tier, independently of commit preferences. Every change review invokes whole-target
   rationale review alongside applicable specialists, even with no findings or a caller owning repairs;
   transferring duties never waives that call. Each review retains its inherited cap of at most three rounds.
   Any higher-risk signal outranks size, and unclear risk takes the higher tier. Material
@@ -159,8 +158,7 @@ The capability controls selection through assistant instructions. Deterministic 
    authorization to that procedure; Skip preserves direct execution and required checks. Preserve the
    answer and scope for follow-ups, delegation and recovery without asking again for the same task.
 4. On a named request or required call, execute the real procedure and preserve its human-choice gates.
-5. A commit or pull request decides its tests and review from the candidate's risk, without a test/review
-   question. A pull request always invokes rationale or change review, and change review also invokes
+5. A commit or pull request decides its publication checks without a test/review question. A pull request always invokes change review in its fix-loop mode, and change review also invokes
    whole-target rationale review alongside applicable specialists under the same scope. Later changes refresh
    evidence under the same decision; a blocker stops the operation with a report.
 6. Deliver full guidance on every restricted prompt, delegated start and recovery; replace an earlier restriction
@@ -274,8 +272,8 @@ When the human requests a commit
 Then the real commit route still instructs use of the commit procedure
 And the policy decides tests and review from the candidate's risk without a human test/review question
 And the selected review and its required nested reviewers remain authorized
-And guidance requires rationale or change review for every pull-request risk tier
-And every change review must invoke whole-target rationale review alongside applicable specialists
+And guidance requires change review in its fix-loop mode for every pull-request risk tier
+And every change review must invoke whole-target rationale review exactly once per pass
 And caller-owned or zero-finding passes cannot omit the rationale call
 And procedure selection grants neither skip approval nor publication authority
 ```
@@ -446,8 +444,8 @@ When repeated commit or pull-request requests, recovery or delegated starts rece
 Then tests and review are decided from the candidate's risk without a human test/review question
 And tests are skipped only when already passed in the session or the change is really small
 And only risk-based low-risk commits may skip review automatically
-And every pull request invokes rationale or change review regardless of risk
-And change review invokes whole-target rationale review alongside applicable specialists
+And every pull request invokes change review in its fix-loop mode regardless of risk
+And change review invokes whole-target rationale review exactly once per pass
 And every review retains the inherited limit of at most three rounds
 And findings still open at that cap or a check that cannot pass stop the operation with a report
 And pending questions and explicit human constraints remain binding

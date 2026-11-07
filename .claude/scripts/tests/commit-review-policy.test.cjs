@@ -50,14 +50,14 @@ test('risk-based commits retain tier selection including the Low-risk skip', t =
     }
 });
 
-test('every PR risk tier requires a rationale or changes review regardless of commit preferences', t => {
+test('every PR risk tier requires changes-review regardless of commit preferences', t => {
     const f = fixture(t);
     for (const mode of policy.MODES) {
         f.write(f.team, { commit: { reviewMode: mode } });
-        for (const [risk, skill] of [['low', 'why-review'], ['medium', 'why-review'], ['high', 'changes-review']]) {
+        for (const risk of policy.RISKS) {
             const pr = policy.decideReview({ ...f, risk, operation: 'pull-request' });
             assert.equal(pr.action, 'review');
-            assert.equal(pr.skill, skill);
+            assert.equal(pr.skill, 'changes-review');
             assert.equal(pr.risk, risk, 'review depth must not rewrite the assessed branch risk');
             assert.equal(pr.maxRounds, 3);
             assert.equal(pr.source, 'pull-request');
@@ -100,6 +100,7 @@ test('malformed declared preferences and unknown decisions cannot silently weake
     fs.unlinkSync(f.local);
     assert.throws(() => policy.resolveCommitReviewMode({ ...f, env: { CK_COMMIT_REVIEW_MODE: 'off' } }));
     assert.throws(() => policy.decideReview({ ...f, risk: 'unknown' }));
+    assert.throws(() => policy.decideReview({ ...f, risk: 'unknown', operation: 'pull-request' }));
     assert.throws(() => policy.decideReview({ ...f, risk: 'high', operation: 'push' }));
     assert.throws(() => policy.selectReview('high', 'skip'));
 });
@@ -126,10 +127,11 @@ test('the read-only CLI reports its selected review and refuses unknown argument
     assert.equal(JSON.parse(result.stdout).skill, 'changes-review');
     const pr = run(['--operation=pull-request', '--risk=low']);
     assert.equal(pr.status, 0, pr.stderr);
-    assert.equal(JSON.parse(pr.stdout).skill, 'why-review');
+    assert.equal(JSON.parse(pr.stdout).skill, 'changes-review');
     assert.equal(JSON.parse(pr.stdout).action, 'review');
     assert.deepEqual(fs.readFileSync(f.team), before);
     assert.equal(run(['--risk=high', '--risk=low']).status, 1);
+    assert.equal(run(['--operation=pull-request', '--risk=unknown']).status, 1);
     assert.equal(run(['--skip']).status, 1);
 });
 

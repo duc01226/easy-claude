@@ -791,8 +791,13 @@ const annotatedRegistryTests = [
             // And dropping a floor gate is detected, including tests-pass on a code-changing workflow with no test step
             const mutated = cloneConfig(config);
             const drop = (id, gateId) => {
-                withoutPhases(mutated.workflows[id]);
-                mutated.workflows[id].outcomeGates = mutated.workflows[id].outcomeGates.filter(gate => gate.id !== gateId);
+                const entry = mutated.workflows[id];
+                withoutPhases(entry);
+                for (const mode of [entry, ...Object.values(entry.variants ?? {})]) {
+                    if (!mode.outcomeGates) continue;
+                    mode.outcomeGates = mode.outcomeGates.filter(gate => gate.id !== gateId);
+                    if (mode.outcomeGates.length === 0) delete mode.outcomeGates;
+                }
             };
             drop('workflow-feature', 'tests-pass');
             drop('workflow-review-changes', 'tests-pass');
@@ -1525,9 +1530,11 @@ const verifyLastTests = [
             assertContains(text, 'without `--prove-tests`');
             // And the registry still keeps the review's own test prover for the standalone default
             const config = loadWorkflowConfig();
-            const prover = config.workflows['workflow-review-changes'].sequence.find(step => step.id === 'integration-tests-review');
+            const prover = config.workflows['workflow-review-changes'].sequence.find(step => step.id === 'verify-settled-tests');
             assertEqual(prover.skill, 'integration-test');
-            assertEqual(prover.args, '--mode=review --prove-tests --fix-loop --loop-owner=caller');
+            assertEqual(prover.args, '--mode=verify');
+            assertContains(prover.applicability.when, '--tests=prove');
+            assertContains(prover.applicability.skipReason, '--tests=defer');
         }
     }
 ];
