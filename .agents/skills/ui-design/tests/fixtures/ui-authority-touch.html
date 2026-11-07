@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Record actions with compact project controls</title>
+<style>
+  :root { --record-action-size: 32px; --record-text: #20252b; }
+  body { margin: 24px; background: #fff; color: var(--record-text); font: 15px/1.4 system-ui, sans-serif; }
+  .actions { display: flex; align-items: center; gap: 12px; }
+  .actions button {
+    display: grid; place-items: center; width: var(--record-action-size); height: var(--record-action-size);
+    padding: 0; border: 0; background: #fff; color: var(--record-text);
+  }
+  .pair { display: flex; gap: 0; }
+  .pair button { width: 24px; height: 24px; }
+  .pair .broken { width: 20px; height: 20px; color: #ccc; }
+  button:focus-visible { outline: 2px solid #1646ad; }
+  .tool { position: relative; }
+  .tip {
+    position: absolute; top: 100%; left: 0; z-index: 1; white-space: nowrap;
+    padding: 4px 6px; background: var(--record-text); color: #fff; visibility: hidden;
+  }
+  button:is(:hover, :focus) + .tip { visibility: visible; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Record actions</h1>
+  <div class="actions">
+    <div class="tool">
+      <button id="compact" type="button" aria-labelledby="find-label">
+        <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
+          <circle cx="6" cy="6" r="4" fill="none" stroke="currentColor" stroke-width="2"/>
+        </svg>
+      </button>
+      <span id="find-label" class="tip" role="tooltip">Find a record</span>
+    </div>
+    <div class="pair">
+      <button id="broken" class="broken" type="button">
+        <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
+          <path d="M2 7h10" fill="none" stroke="currentColor" stroke-width="2"/>
+        </svg>
+      </button>
+      <div class="tool">
+        <button id="neighbor" type="button" aria-labelledby="next-label">
+          <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
+            <path d="m5 2 5 5-5 5" fill="none" stroke="currentColor" stroke-width="2"/>
+          </svg>
+        </button>
+        <span id="next-label" class="tip" role="tooltip">Next record</span>
+      </div>
+    </div>
+  </div>
+</main>
+</body>
+</html>

@@ -7,7 +7,7 @@ const assert = require('node:assert/strict');
 const { spawnSync } = require('node:child_process');
 
 const toPng = require('../scripts/lib/to-png.cjs');
-const { splitOfflineErrors } = require('../scripts/lib/browser.cjs');
+const { openPage, splitOfflineErrors } = require('../scripts/lib/browser.cjs');
 const { safeBasename, fileStem } = require('../scripts/lib/paths.cjs');
 const {
   SKILL_ROOT, makeTestEnv, copySkillScripts, withBrowserEnv: withIsolatedBrowser,
@@ -868,6 +868,74 @@ test('TC-HTMLX-219 --slides records each item\'s data-state name in files[], kee
       ['states@800x600-s03.png', 'c'],
     ]);
   });
+});
+
+async function rehearseInboxAssignment(file, viewport, { mobile = false, retry = false } = {}) {
+  const { page, close } = await openPage({ file, viewport, mobile, offline: true });
+  try {
+    const inbox = page.getByRole('heading', { name: 'Support inbox' });
+    const assign = page.getByRole('button', { name: 'Assign to Maya' });
+    const result = page.getByRole('heading', { name: 'Conversation assigned to Maya' });
+    await inbox.waitFor({ state: 'visible' });
+    assert.equal(await result.isVisible(), false, 'the rehearsal starts before assignment');
+
+    if (retry) await page.getByRole('checkbox', { name: 'Simulate a temporary failure' }).check();
+    await assign.click();
+    if (retry) {
+      const error = page.getByRole('alert');
+      assert.equal(await inbox.isVisible(), true, 'failure keeps the inbox visible');
+      assert.equal(await page.getByText('Unassigned', { exact: true }).isVisible(), true);
+      assert.equal(await error.isVisible(), true, 'failure gives the user a visible retry path');
+      assert.equal(await error.textContent(), 'Could not assign the conversation. Try again.');
+      assert.equal(await result.isVisible(), false, 'failed assignment does not show success');
+      assert.equal(await assign.evaluate((button) => button === document.activeElement), true, 'focus stays on the retry control');
+      await page.keyboard.press('Enter');
+    }
+
+    // The fixture updates synchronously in the native button's click handler.
+    assert.equal(await result.isVisible(), true, 'Assign to Maya did not show the assignment result');
+    assert.equal(await inbox.isVisible(), false, 'assignment moves the user out of the inbox view');
+    assert.equal(await result.evaluate((heading) => heading === document.activeElement), true, 'focus follows the assignment result');
+    await page.getByRole('button', { name: 'Back to inbox' }).click();
+    assert.equal(await page.getByText('Assigned to Maya', { exact: true }).isVisible(), true);
+    assert.equal(await page.getByRole('alert').isVisible(), false, 'returning after success clears the failure message');
+  } finally {
+    await close();
+  }
+}
+
+test('inbox rehearsal rejects an inert Assign to Maya button even when all four PNGs export', async (t) => {
+  await withIsolatedBrowser(t, async (testEnv) => {
+    const fixture = path.join(__dirname, 'fixtures', 'inbox-rehearsal.html');
+    await rehearseInboxAssignment(fixture, '1440x900');
+    t.diagnostic('1440x900 click: assigned to Maya and returned to the inbox');
+    await rehearseInboxAssignment(fixture, '390x844', { mobile: true, retry: true });
+    t.diagnostic('390x844 simulated failure: visible retry message, then Enter assigned to Maya');
+
+    // Break only the user action. The states and exporter navigation are identical.
+    const html = fs.readFileSync(fixture, 'utf8');
+    const binding = "assignButton.addEventListener('click', assign);";
+    assert.ok(html.includes(binding), 'the mutation must remove the real assignment handler');
+    const broken = writeFile(testEnv.root, 'inbox-unwired.html', html.replace(binding, ''));
+    const out = path.join(testEnv.root, 'inbox-captures');
+    const run = runExport(testEnv, [broken, '--slides=[data-state]', '--mobile', '--out', out]);
+    assert.equal(run.status, 0, describeRun(run));
+    const report = readReport(out);
+    assert.deepEqual(report.files.map(({ viewport, state }) => [viewport, state]), [
+      ['1440x900', 'inbox'], ['1440x900', 'assigned'],
+      ['390x844', 'inbox'], ['390x844', 'assigned'],
+    ]);
+    report.files.forEach((file) => assertPng(file.path));
+    assert.deepEqual(report.errors, []);
+    assert.deepEqual(report.blank, []);
+    await assert.rejects(rehearseInboxAssignment(broken, '390x844', { mobile: true }), {
+      code: 'ERR_ASSERTION',
+      message: /^Assign to Maya did not show the assignment result(?:\r?\n|$)/,
+      actual: false,
+      expected: true,
+    });
+    t.diagnostic('unwired 390x844 click: assignment assertion failed after four clean PNGs exported');
+  }, { prefix: 'html-export-inbox-' });
 });
 
 test('TC-HTMLX-220 --mobile renders only viewports narrower than 768 px as a phone at scale 2', async (t) => {

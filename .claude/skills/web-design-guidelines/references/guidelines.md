@@ -1,6 +1,6 @@
 # Web Interface Design Guidelines Reference
 
-Read this reference before scanning UI code; apply the categories relevant to the selected surface.
+Read this reference before scanning UI code. Apply the shared UI/UX principles for the target platform, supported inputs, and project conventions. Numeric design examples are heuristics. Use WCAG 2.2 AA for web and meet any stricter applicable accessibility requirement.
 
 ## Contents
 
@@ -41,9 +41,9 @@ Read this reference before scanning UI code; apply the categories relevant to th
 > "No ARIA is better than bad ARIA" -- Sites with ARIA average 41% more errors than those without.
 
 - Only use ARIA when no native HTML equivalent exists (custom widgets like tabs, trees, comboboxes)
-- Icon-only buttons MUST ATTENTION have `aria-label`: `<button aria-label="Close">`
+- Icon-only buttons require an accessible name. Use the existing component's naming mechanism, such as `aria-labelledby` or `aria-label`.
 - Decorative icons MUST ATTENTION have `aria-hidden="true"`
-- Async updates (toasts, validation) MUST ATTENTION use `aria-live="polite"` (reserve `assertive` for critical errors)
+- Make status messages programmatically determinable so assistive technology can announce them without moving focus. Use the native or project mechanism that provides this behavior, such as `role="status"`. Reserve assertive announcements for urgent messages. [WCAG 2.2 SC 4.1.3](https://www.w3.org/TR/WCAG22/#status-messages)
 - Collapsed sections need `aria-expanded="false"`, expanded need `aria-expanded="true"`
 - Hidden elements need `aria-hidden="true"` to exclude from screen readers
 - Invalid form fields need `aria-invalid="true"`
@@ -61,9 +61,8 @@ Read this reference before scanning UI code; apply the categories relevant to th
 
 ### 1.4 Color & Contrast
 
-- **Normal text**: minimum 4.5:1 contrast ratio
-- **Large text** (18px+ or 14px+ bold): minimum 3:1 contrast ratio
-- **UI components** (buttons, inputs, icons): minimum 3:1 contrast ratio
+- For text, identify the applicable threshold and exceptions and measure the rendered foreground/background pair. Normal and large text have different thresholds. [WCAG 2.2 SC 1.4.3](https://www.w3.org/TR/WCAG22/#contrast-minimum)
+- For controls and graphical objects, measure the visual information needed to identify the control, state, or content against adjacent colours. Apply the criterion's exceptions. [WCAG 2.2 SC 1.4.11](https://www.w3.org/TR/WCAG22/#non-text-contrast)
 - NEVER rely solely on color to convey meaning (add icons, text, or patterns)
 - Test with colorblind simulation tools
 - Error states: don't just use red -- add icons or text
@@ -77,13 +76,13 @@ Read this reference before scanning UI code; apply the categories relevant to th
 - Interactive elements MUST ATTENTION have visible focus indicator
 - NEVER use `outline: none` or `outline-none` without replacement
 - Use `:focus-visible` over `:focus` (avoids focus ring on click)
-- Focus indicator minimum: 2px thick, 3:1 contrast against adjacent colors
+- Verify that keyboard focus is visible and the focused component is not entirely obscured. Apply stricter focus appearance criteria when the selected standard requires them. [WCAG 2.2 SC 2.4.7](https://www.w3.org/TR/WCAG22/#focus-visible), [SC 2.4.11](https://www.w3.org/TR/WCAG22/#focus-not-obscured-minimum)
 - Use `focus-visible:ring-*` (Tailwind) or custom focus styles
 - Group related controls with `:focus-within`
 
 ### 2.2 Keyboard Accessibility
 
-- ALL interactive elements must be reachable via Tab/Shift+Tab
+- Verify keyboard operation and navigation with the relevant keys, including arrow navigation inside composite widgets.
 - Logical tab order matching visual layout
 - Custom widgets need keyboard handlers: `onKeyDown`/`onKeyUp`
 - Modals/dialogs: trap focus inside, return focus on close
@@ -110,8 +109,7 @@ Read this reference before scanning UI code; apply the categories relevant to th
 - Use correct `type`: `email`, `tel`, `url`, `number`, `password`, `search`, `date`
 - Use `inputmode` for mobile keyboards: `numeric`, `tel`, `email`, `url`, `decimal`
 - Use meaningful `name` attributes
-- Use `autocomplete` for common fields: `name`, `email`, `tel`, `street-address`, `postal-code`, `cc-number`
-- Use `autocomplete="off"` on non-auth fields to avoid password manager triggers
+- Identify the purpose of applicable fields collecting the user's information, for example with `autocomplete="email"` or `autocomplete="postal-code"` (`UI-7.4`). [WCAG 2.2 SC 1.3.5](https://www.w3.org/TR/WCAG22/#identify-input-purpose)
 - Disable `spellCheck` on emails, codes, usernames: `spellCheck={false}`
 
 ### 3.3 Validation & Error Handling
@@ -120,14 +118,14 @@ Read this reference before scanning UI code; apply the categories relevant to th
 - Show inline errors next to the field, not just at form top
 - Focus first error on submit
 - Use `aria-invalid="true"` and `aria-describedby` for error messages
-- Submit button stays enabled until request starts; show spinner during request
+- Apply `UI-9.1`–`UI-9.4` to submit feedback and recovery. Prevent duplicate effects where repeat submission could cause them.
 - Warn before navigation with unsaved changes
 
 ### 3.4 Placeholders
 
 - Placeholders should show example format, not instructions
 - End with ellipsis: `"Search..."`, `"e.g., john@example.com"`
-- Placeholder contrast: minimum 4.5:1
+- Measure placeholder text using the applicable text contrast criterion.
 
 ---
 
@@ -158,10 +156,7 @@ Read this reference before scanning UI code; apply the categories relevant to th
 
 ### 4.3 Timing Guidelines
 
-- Micro-interactions (buttons, hovers): 100-200ms
-- Small UI changes (tooltips, dropdowns): 200-300ms
-- Medium transitions (modals, panels): 300-500ms
-- Large movements (page transitions): 500-800ms
+- Use project/platform timing and easing. Assess whether the motion clarifies the state change and preserves responsive interaction.
 - Animations should be interruptible
 
 ---
@@ -170,16 +165,13 @@ Read this reference before scanning UI code; apply the categories relevant to th
 
 ### 5.1 Font Sizes
 
-- Body text: minimum 16px (1rem)
+- Use the project's type scale when defined and assess rendered readability for the content and locale.
 - Use relative units: `rem`, `em`, `%` (not `px` on root)
 - Allow text to scale to 200% without loss of content
 
 ### 5.2 Line Height & Length
 
-- Body text: `line-height: 1.5` minimum (WCAG AA)
-- Headings: `line-height: 1.2-1.35`
-- Optimal line length: 50-75 characters (66 is sweet spot)
-- Use `max-width: 65ch` for text containers
+- Choose line spacing and length to suit the typography and content. Test that user-applied spacing causes no loss of content or functionality. [WCAG 2.2 SC 1.4.12](https://www.w3.org/TR/WCAG22/#text-spacing)
 
 ### 5.3 Typography Characters
 
@@ -243,7 +235,7 @@ Read this reference before scanning UI code; apply the categories relevant to th
 
 ## 9. Navigation & State
 
-- Filters, tabs, pagination, sort order -> URL query params
+- Preserve expected history, return and deep-link behavior for filters, tabs, pagination and sort order where the platform and product provide it (`UI-6.4`). Use the project’s routing convention.
 - Links (`<a>`) for navigation, buttons for actions
 - Destructive actions need confirmation or undo
 
@@ -251,7 +243,7 @@ Read this reference before scanning UI code; apply the categories relevant to th
 
 ## 10. Touch & Mobile
 
-- Minimum touch target: 44x44px (Apple HIG) or 48x48dp (Material)
+- Measure the hit area against the selected target-size criterion, including applicable spacing and other exceptions. Treat larger platform recommendations as advisory unless the project or governing requirements make them binding. [WCAG 2.2 SC 2.5.8](https://www.w3.org/TR/WCAG22/#target-size-minimum)
 - Use `touch-action: manipulation` (prevents double-tap zoom delay)
 - Use `overscroll-behavior: contain` in modals/drawers
 - Avoid `autoFocus` on mobile (may cause viewport jump)
@@ -264,7 +256,7 @@ Read this reference before scanning UI code; apply the categories relevant to th
 - Mobile-first approach: start with mobile styles
 - Use fluid typography: `clamp()` for font sizes
 - Use container queries for component-level responsiveness
-- Test at: 320px, 375px, 768px, 1024px, 1440px
+- Test supported viewport sizes and the conditions required by the applicable reflow criterion. [WCAG 2.2 SC 1.4.10](https://www.w3.org/TR/WCAG22/#reflow)
 
 ---
 
@@ -273,7 +265,7 @@ Read this reference before scanning UI code; apply the categories relevant to th
 - Use `color-scheme: dark` on `<html>` for dark themes
 - Match `<meta name="theme-color">` to page background
 - Honor `prefers-color-scheme` media query
-- Provide manual toggle that persists preference
+- Verify a manual toggle and preference persistence where the project's theme contract supports them.
 
 ---
 
@@ -296,8 +288,8 @@ Read this reference before scanning UI code; apply the categories relevant to th
 
 ## 15. Interactive States
 
-- Buttons and links MUST ATTENTION have hover state
-- Disabled: `disabled` attribute + reduced opacity + `cursor: not-allowed`
+- Verify the interaction states supported by the control and input modes. Include hover where it applies.
+- Disabled controls communicate their state and prevent activation. Use native `disabled` where supported.
 - Consider `aria-disabled="true"` if element should remain focusable
 
 ---
@@ -314,7 +306,7 @@ Read this reference before scanning UI code; apply the categories relevant to th
 | `<img>` without `width`/`height`        | Causes layout shift (CLS)                 |
 | `<img>` without `alt`                   | Missing alt text                          |
 | Form inputs without `<label>`           | Missing label                             |
-| Icon buttons without `aria-label`       | Screen reader cannot identify action      |
+| Icon buttons without an accessible name | Screen reader cannot identify action      |
 | `tabindex` > 0                          | Disrupts natural tab order                |
 | Color-only indicators                   | Fails colorblind users                    |
 | Placeholder as label                    | Label disappears on input                 |

@@ -37,7 +37,7 @@
 - Fidelity is the whole point — the mock-up must LOOK like the existing app: load the canonical + matched per-app design-system docs (NEW→canonical, REFACTOR→per-app), read real shared/module components for layout patterns, and populate with real domain entity fields and realistic sample data, never Lorem ipsum.
 - **Releasable full-flow gate:** the prototype must start at the real entry/context, let a stakeholder navigate through the primary action and applicable validation/recovery states, reach the visible/persisted business result, and leave via the next/exit path. “Many pages” means all pages required by this journey, not an arbitrary page count.
 - **Large-idea slice fidelity:** evaluate the shared `isLargeIdea` rule from the owning initiative/spec/task. When any signal is true, read the complete `large_idea_decomposition` block, preserve the task's owning slice ID, and ensure the mock-up demonstrates only that slice's outcome, dependencies, non-goals, risks/evidence, and deferred-work boundary. Do not create or update the product roadmap (default `docs/product-roadmap.md`; a `docsRoots.productRoadmap.path` entry in `docs/project-config.json` overrides the path); flag a missing/conflicting block back to `/work-item --mode=refine` or the owning spec.
-- Render every defined component state (default/loading/empty/error) as toggleable, keep any accompanying prose/captions tech-agnostic (business terms, not framework/CSS class names) per the M1/M2 mandates, even though the rendered HTML may use real class names internally.
+- Make every applicable component state in the Step 2b inventory reachable, keep any accompanying prose/captions tech-agnostic (business terms, not framework/CSS class names) per the M1/M2 mandates, even though the rendered HTML may use real class names internally.
 
 **Workflow:**
 
@@ -45,7 +45,7 @@
 1. **Locate Source Artifact** — `--source=<path>` (task, story, spec or requirement report) or auto-detect the most recent task + story files in `tasks/` under the team-artifacts root (default `team-artifacts`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path); read fully
 2. **Extract UI Specs** — parse UI Layout/Wireframe, Components, States, Interaction Flow, Acceptance Criteria + priority/rank (spec source: its UI intent layer — view inventory, navigation map, observable states, per-story action flows)
 2a. **[BLOCKING] Analyze & Report Main User Journeys (`UX-1`)** — Journey Report (frame · actors + job statements · ranked main journeys with step tables · derived design requirements · assumptions) from the stories, acceptance criteria and business logic, BEFORE any design output
-2b. **[BLOCKING] Plan the Mock-App Surface** — derive every required page/view (= journey steps), navigation edge, common/domain/page component, applicable state, and per-view information priority (`UX-4`) from the Journey Report; `TaskCreate` one todo for surface coverage
+2b. **[BLOCKING] Plan the Mock-App Surface** — derive every required page/view (= journey steps), navigation edge, required component, applicable state, and per-view information priority (`UX-4`) from the Journey Report; `TaskCreate` one todo for surface coverage
 2c. **[BLOCKING] Plan the Demo Flows** — one flow-spec per main journey (plus any main story it misses), `TaskCreate` one todo per flow BEFORE generating
 2d. **[BLOCKING] Verify decomposition boundary** — when `isLargeIdea=true`, validate the complete five-field `large_idea_decomposition` block and owning slice ID; record `N/A — ordinary isolated scope` when all signals are false
 3. **Load Design System (`UX-2`)** — baseline + matched per-app design tokens, colors, typography (NEW→canonical, REFACTOR→per-app)
@@ -64,18 +64,18 @@
 - Ask AI to generate an **interactive HTML mock-up** for UI tasks; do not stop at an ASCII-only or static mockup — every main-story flow is a scripted clickable prototype with guided narration.
 - One HTML mock-up per task (plus its design-system page, Step 5b), containing a navigable mock app with all required pages/views; all stories may be shown as sections/tabs, but tabs do not replace missing flow pages
 - The generated surface MUST cover the complete releasable outcome: entry/context, action/input, validation/decision, success/result, resulting visible/persisted truth, exit/next action, and applicable recovery/access states
-- Include a page/view inventory, navigation map, component inventory (common/domain/page), and state inventory in the generation report; a single static screen or disconnected screen set FAILS the gate
+- Include a page/view inventory, navigation map, component inventory, and state inventory in the generation report; a single static screen or disconnected screen set FAILS the gate
 - Report the main user journeys (Step 2a, `UX-1`) and read the design authority (Steps 3 + 3b, `UX-2`) BEFORE any design output; derive views (Step 2b) and demo flows (Step 2c) from the journeys BEFORE generating; sign off with the Demo-Quality + journey-walkthrough gate (Step 8, `UX-8`) AFTER
-- Actions follow `AD-1`–`AD-6`: one filled primary per view, every other action in its lightest form (icon-only named and tooltipped, icon + label, link, row target), uniform groups, one short meta line per row, one tile size and title baseline per collection-grid row, actions aligned to their content edge (`AD-6`).
+- Apply the shared `AD-1`–`AD-6` rules in Step 4 and verify the rendered result in Step 8.
 - `--explore` → Step 0 scope gate, then N direction drafts, user picks, then build (Step 3d); never pick for the user while they can be asked
 - Interactivity is **scripted/simulated only** (canned transitions, illustrative data, "⚠ Simulated" banner) — NEVER real `fetch`/auth/persistence/backend; self-contained so it runs inside the deck's `<iframe srcdoc>`
 - Self-contained: inline CSS/JS, no external dependencies except Google Fonts
 - Ship the design-system page beside the mock-up (Step 5b, `PD-1`–`PD-6`): the tokens plus a live catalog of every reusable control and component, each defined once and reused in every view, with its owner (existing source path or `new — build once`)
 - **Must resemble the project's current UI** — read existing component templates and page layouts
-- Design must be based on project reference design docs: `docs/project-reference/design-system/README.md`, `docs/project-reference/design-system/design-system-canonical.md`, and the matched per-app design-system doc from `docs/project-config.json`
-- Match project design system: colors, typography, spacing, BEM naming
+- Use the design authority resolved from project config and existing UI in Steps 3 and 3b.
+- Match the project’s colors, typography, spacing and established styling conventions.
 - Use **real domain entity fields and realistic sample data** — not Lorem ipsum
-- Include component states (default, loading, empty, error)
+- Include the applicable states from the Step 2b inventory.
 - Responsive layout with mobile/desktop preview
 - Save in same directory as the task artifact
 - **Tech-agnostic descriptive prose (M1/M2):** See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M7)" for BLOCKING criteria. Any narrative, captions, annotations, generation notes, or component/state descriptions accompanying the mock-up describe components and states by business/observable terms (e.g., "status indicator", "record list", "loading placeholder"), NOT by framework component names or CSS class names. The rendered HTML itself may use real class names internally (that is implementation, not prose), but the human-readable descriptions stay tech-agnostic per `spec-principles.md` §3 in the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path).
@@ -201,9 +201,9 @@ The report's J-IDs (`J1` = the top-ranked main journey) are the keys Steps 2b, 2
 
 1. **Build the page/view inventory from the journey steps** — group the Journey Report's steps into views by task cohesion; name each view's role, the steps it hosts, its primary task and its container (full view · dialog only for short focused tasks · side panel · stepped flow). Cover entering the feature, inspecting or providing required context, performing the primary action, validation/error/recovery, confirming the result, and leaving or continuing. Include supporting list/detail/manage/history/access views when a journey needs them. A spec source's View Inventory is the starting list — reuse its view names verbatim.
 2. **Build the navigation map** — from each journey's entry, step order and exit: name each entry point, transition trigger, destination, back/exit path, and the state carried across the transition. A tab or section is acceptable only when it represents a real view in the journey; it must not hide a missing page.
-3. **Rank information priority per view (`UX-4`, catalog §6)** — inventory each view's information and actions from the steps it hosts, score need-at-the-decision × frequency × cost-of-missing, and tier them: **Primary** (one focal point, ONE primary action = the journey's next step; name each other action's `AD-1` form (icon-only · icon + label · link · row target · overflow)) · **Secondary** · **On demand** (progressive disclosure) · **Not here** (owning view named). Order within a tier by the journey's step order. Step 4's visual hierarchy implements this ranking and never reshuffles it.
+3. **Rank information priority per view (`UX-4`, catalog §6)** — inventory each view's information and actions from the steps it hosts, score need-at-the-decision × frequency × cost-of-missing, and tier them: **Primary** (give the journey’s next step the emphasis it needs; use `UI-1.1` and `AD-1` to scope focal points and primary commits, including independent expert regions. Name the form of each other action using `AD-1`) · **Secondary** · **On demand** (progressive disclosure) · **Not here** (owning view named). Order within a tier by the journey's step order. Step 4's visual hierarchy implements this ranking and never reshuffles it.
 4. **Map business rules to interaction (`UX-5`, catalog §7)** — for every rule on a journey step, pick the lightest treatment that PREVENTS the error before one that reports it (constraints, defaults, conditional visibility, permission-aware actions, state-driven transitions, undo over confirm, confirm only the irreversible, async feedback), and name each step's failure → recovery path.
-5. **Build the component inventory** — classify every needed component as common/reusable, domain-shared, or page-level; every common or domain-shared entry, and any page-level control that recurs with the same purpose, becomes a catalog entry of the Step 5b design-system page; fill in each owner (an existing source path, or `new — build once`) once Step 3b has inventoried the existing UI (`PD-2`). Include the components that make the flow usable: navigation, forms, validation, status, confirmation, empty/loading/error, dialogs, lists/details, and recovery controls where applicable.
+5. **Build the component inventory** — list each component the journey needs. Use the project’s documented or demonstrated tiers where they exist. For each reusable control or component, add a Step 5b catalog entry and record its owner (an existing source path, or `new — build once`) after Step 3b (`PD-2`). Include the components that make the flow usable: navigation, forms, validation, status, confirmation, empty/loading/error, dialogs, lists/details, and recovery controls where applicable.
 6. **Build the state inventory** — connect default, loading, empty, error, success, permission-denied, duplicate-submit, refresh, and recovery states to the views/components where they apply. Do not invent states that the source does not need; record `N/A` with a reason.
 7. **Create one `TaskCreate` todo for surface coverage** — keep it open until every inventory item is rendered and connected in the prototype; add the Step 8 full-flow gate as the final todo.
 
@@ -230,12 +230,11 @@ Evaluate the shared `isLargeIdea` rule from the owning initiative, spec or task.
 > **[BLOCKING] Steps 3 and 3b together are the `UX-2` design-authority read, and BOTH must complete before Step 3d or Step 4 generates anything.** Read the project's design principles/guidelines, design system (tokens, components, patterns), styling conventions, accepted design ADRs and the existing related UI; adopt house patterns and never invent a token or component the project already defines.
 
 1. Read the source's `module` field from frontmatter (spec source: its module/service ownership)
-2. Load design system docs dynamically (project-config.json + glob fallback). The HTML mock-up design must be based on these project reference design docs:
-    - **Mandatory baseline:** Read `design-system/README.md` and `design-system/design-system-canonical.md`, both inside the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path)
-    - **Primary:** Read top-level `designSystem` in `docs/project-config.json`: use `designSystem.docsPath` + `designSystem.canonicalDoc`, then match the task/app context against `designSystem.appMappings[]` to select the per-app doc. Do NOT look for `designSystem` on module entries.
+2. Resolve design-system docs and token sources from project config and existing UI. Follow [UI System Context](../../shared/protocols/ui-system-context.md).
+    - **Primary:** Read top-level `designSystem` in `docs/project-config.json`: use the configured `docsPath`, `canonicalDoc`, and `tokenFiles` when present, then match the task/app context against `appMappings[]` to select the per-app doc.
     - **Fallback:** glob `design-system/*.md` inside the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path) → match module name against discovered file names (case-insensitive substring match)
-    - **Default:** If no match found, use `design-system/README.md` in that same reference-docs root (default `docs/project-reference`; overridden by `docsRoots.projectReference.path` in `docs/project-config.json`)
-    - **Triage rule (NEW vs REFACTOR):** For NEW pages/components → load `designSystem.canonicalDoc` from top-level `project-config.json` (single source of truth for new code). For REFACTOR of existing screens → load the matched per-app doc via top-level `designSystem.appMappings` (current-state inventory).
+    - **Fallback authority:** Read the design-system index in that same reference-docs root when it exists and inspect the existing UI. If no design authority is configured or observed, record the paths checked and use the brief and applicable shared guidance.
+    - **Triage rule (NEW vs REFACTOR):** Use the configured canonical doc for new pages and components. For existing screens, also read the matched per-app doc when available.
 
 3. Extract from design system docs (read enough of the canonical and matched per-app docs to apply the rules):
     - **Colors:** Primary, secondary, accent, background, text colors
@@ -253,7 +252,7 @@ Evaluate the shared `isLargeIdea` rule from the owning initiative, spec or task.
 
 The mockup should resemble the project's actual UI, not generic HTML. Discover existing components AND map the flows that connect to this screen:
 
-1. Read `frontend-patterns-reference.md` from the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path) (first 200 lines) — extract base component classes, common UI patterns, form patterns, table/grid patterns, dialog/modal patterns
+1. Read applicable frontend patterns selected by project config. Use documented component tiers and base abstractions where they exist. Otherwise record the actual roles and owners from the source.
 2. Find the project's shared component library from evidence (`PD-4`), never from an assumed framework or folder name:
     - configured sources first: `componentSystem` and `designSystem` in `docs/project-config.json`, the design-system reference doc (produced by `/scan --target=design-system`), the frontend-patterns doc;
     - then trace imports: open 2-3 existing pages of the module and follow what they import for buttons, inputs, tables, grids, lists, cards, icons, dialogs, filters and status badges, to the files that define them (in any stack: a component, partial, template, widget or view file);
@@ -302,7 +301,7 @@ Use real domain entities and relationships for realistic mockup data:
 
 ### Step 4: Generate HTML Mockup
 
-> **Precondition (BLOCKING):** the Step 2a Journey Report exists, the Step 2b/2c plans are derived from it, the `Design authority read:` record exists (Steps 3 + 3b), and under `--explore` the direction pick is recorded in `direction-approved.md` (or the exemption is logged). Build every view with its Step 2b information-priority tiers — one focal point and ONE primary action per view — every other action in its Step 2b `AD-1` form — and its rule → interaction treatments (`UX-4`, `UX-5`), in the user's vocabulary (`UX-6`). Under `--explore`, the approved direction's visual axes and layout skeleton are fixed inputs for EVERY view and flow, not only the key views drafted.
+> **Precondition (BLOCKING):** the Step 2a Journey Report exists, the Step 2b/2c plans are derived from it, the `Design authority read:` record exists (Steps 3 + 3b), and under `--explore` the direction pick is recorded in `direction-approved.md` (or the exemption is logged). Build every view with its Step 2b information-priority tiers, Step 2b `AD-1` action forms and its rule → interaction treatments (`UX-4`, `UX-5`), in the user's vocabulary (`UX-6`). Under `--explore`, the approved direction's visual axes and layout skeleton are fixed inputs for EVERY view and flow, not only the key views drafted.
 
 **Define each control once (`PD-3`):** write every catalog entry (Step 2b item 5) as one class family, one markup pattern and, where it behaves, one script helper in a shared section of the file, and compose every view from those entries. A control that recurs with the same purpose becomes one catalog entry (a look-alike with a different purpose stays separate); never re-style a catalog control inside one view.
 
@@ -319,7 +318,7 @@ Generate a **single self-contained HTML file** with the following structure:
         <link href="https://fonts.googleapis.com/css2?family={Family}:wght@400;600;700&display=swap" rel="stylesheet" />
         <style>
             /* Design system tokens as CSS variables */
-            /* Component styles matching project BEM conventions */
+            /* Component styles matching the project’s established conventions */
             /* Responsive breakpoints */
             /* Dark/light theme support */
         </style>
@@ -329,8 +328,8 @@ Generate a **single self-contained HTML file** with the following structure:
         <!-- Mock-app navigation: every planned page/view and its entry/exit transitions -->
         <!-- Story sections with mockup UI; tabs may group real views but never replace them -->
         <!-- Page/view panels covering the complete releasable outcome -->
-        <!-- Common, domain, and page-level components from the component inventory -->
-        <!-- Component state toggles (default/loading/empty/error) -->
+        <!-- Required components from the Step 2b inventory -->
+        <!-- State controls for applicable states from the Step 2b inventory -->
         <!-- Interactive prototype: screens/states + hotspots + demo control bar + explanation panel + "⚠ Simulated" banner -->
         <script>
             /* Tab navigation */
@@ -357,27 +356,21 @@ The mock-up is a **scripted clickable prototype** of each planned flow (Step 2c)
 
 #### Design-Principles Build Constraints (real markup, not advice)
 
-The 40 UI/UX Design Principles (`UI-1.1`–`UI-9.4`, the `SYNC:ui-ux-design-principles` block below) are BUILD CONSTRAINTS on the emitted HTML/CSS — the mock-up must actually DO these, not merely describe them. Project design-system tokens outrank the clause defaults; a genuine conflict goes to the user, NEVER resolved silently.
+Apply `SYNC:ui-system-context` and the **applicable** clauses of `SYNC:ui-ux-design-principles` to the emitted HTML/CSS. Use the project's documented conventions and the target platform and input modes. Numeric examples are heuristics unless a governing standard, project contract, or accepted decision makes them binding. Resolve the accessibility standard before building. Web mockups use WCAG 2.2 AA and any stricter applicable requirements. Documented design choices do not waive that floor.
 
-1. **Build the empty, loading and error views FIRST (`UI-1.5`)** — author those three state panels BEFORE the populated one and wire each into the state toggle (Default | Loading | Empty | Error) so a stakeholder can click into them. A story panel rendering only the populated view is incomplete.
-2. **Real focus rings (`UI-5.5`)** — every focusable control keeps a VISIBLE `:focus-visible` outline in the emitted CSS. `outline: none` with no replacement ring is a build defect; tab through each flow before the Step 8 gate.
-3. **All 5 interaction states as real CSS (`UI-5.2`)** — `:hover`, `:focus-visible`, `:active`, `[disabled]` and the default rule exist for every button, link, input, tab and hotspot; disabled controls are visibly muted AND non-interactive, not merely unbound.
-4. **Real 44×44pt touch targets (`UI-8.1`, `UI-8.2`)** — every tappable element carries a `min-width`/`min-height` of at least 44px (the hit area may exceed the visible icon) with ≥8px separation, in the responsive/mobile preview as well as desktop; primary actions sit in the bottom third of the mobile viewport.
-5. **Reserved space for anything that loads (`UI-9.3`, `UI-9.1`)** — images, avatars, charts and skeletons carry explicit width/height or aspect-ratio so switching Default ↔ Loading NEVER shifts the layout; skeletons for known layouts, spinners only for unknown waits.
-6. **Declared scales emitted as CSS variables (`UI-2.5`, `UI-4.1`)** — the type scale as 6 named custom properties and the spacing scale from ONE 4px or 8px base; every `font-size`, `padding`, `margin` and `gap` references a variable. Hard-coded one-off px values are a build defect.
-7. **Measured contrast (`UI-3.1`, `UI-3.2`, `UI-3.3`)** — text ≥4.5:1 and UI edges/borders ≥3:1 against their ACTUAL backgrounds in BOTH themes, one accent with one job, and status chips / validation states pair colour with an icon or text label so colour never carries the meaning alone.
-8. **Body type and measure (`UI-2.2`, `UI-2.3`)** — body text 16px (17px in the mobile preview) and never below 14px for readable content; prose columns constrained to a 45–75 character measure.
-9. **Motion budget (`UI-5.4`)** — transitions 150–250ms ease-out, and the guided walkthrough honours `prefers-reduced-motion` (already required by the prototype a11y rule above).
-10. **Forms (`UI-7.2`, `UI-7.3`, `UI-7.5`)** — visible labels on every input (placeholders are hints, NEVER labels); the error state shows the message beside its field with a fix instruction; simulated navigation between demo steps preserves entered values.
+1. **Required empty, loading and error states (`UI-1.5`)** — build these before the populated state where the journey can reach them. Make each required state reachable in the mockup so stakeholders can inspect the outcome and recovery.
+2. **Visible keyboard focus (`UI-5.5`)** — keep a perceivable focus indicator using the native or project style. Tab through the flow before Step 8. A keyboard-operable control with no visible focus indicator fails the applicable accessibility check.
+3. **Supported interaction states (`UI-5.2`)** — implement the states relevant to each control and its supported inputs. Disabled controls must communicate unavailability and prevent activation.
+4. **Reachable, adequately sized targets (`UI-8.1`, `UI-8.2`)** — verify the actual hit area and spacing against the selected standard, including its applicable exceptions, and apply project/platform guidance for reachable placement.
+5. **Stable loading layout (`UI-9.3`, `UI-9.1`)** — reserve space for loading content and use feedback appropriate to the work and what is known.
+6. **Type and spacing (`UI-2.2`, `UI-2.3`, `UI-2.5`, `UI-4.1`)** — use the project's type scale and spacing tokens when defined. Otherwise choose readable, consistent values appropriate to the content and viewport, and record candidate tokens in the catalog.
+7. **Measured contrast (`UI-3.1`, `UI-3.2`, `UI-3.3`)** — measure against the rendered backgrounds in each supported theme and apply the criterion for the content or control under test. Insufficient contrast under that criterion fails. Keep status and validation meaning available without colour.
+8. **Motion that explains the change (`UI-5.4`)** — follow project/platform timing and easing, and honor `prefers-reduced-motion` in the guided walkthrough.
+9. **Forms (`UI-7.2`, `UI-7.3`, `UI-7.5`)** — keep visible labels, show errors beside their fields with recovery instructions, and preserve entered values between demo steps.
 
 #### Action & Attention Build Constraints (`AD-1`–`AD-6`, real markup)
 
-1. **At most one filled primary per view** — at most one filled `<button>`, the commit of the view's main task when it has one, with a `min-width` token so it never shrinks to its label (`C14`).
-2. **Every other action in its `AD-1` form** — icon-only `<button aria-label>` with a tooltip shown on `:hover` AND `:focus-visible`; icon + short label; a text link; or the whole row as the target with a trailing chevron. NEVER a filled button repeated per row (`C16`).
-3. **Uniform groups** — buttons in one toolbar, row, column or footer share height, style and one `min-width`; a footer or action bar holds the primary plus same-size quieter buttons (secondary or dismiss) within the budget, or the platform's dialog button set (`C15`).
-4. **One icon family** inlined as SVG `<symbol>`s, one stroke and size; each icon-only control has the platform-minimum hit area (touch 44×44) and ≥ 3:1 contrast; a destructive icon gets a word or a confirm/undo step (`C17`).
-5. **Copy budget** — each row or card is a title plus one short meta line; longer text sits in an expander or the detail view (`B16`).
-6. **Regular grids** — tiles in one grid share one size and aspect ratio (media of another orientation letterboxed inside the tile), titles sit on one baseline, the grid fills its width with `repeat(auto-fill, minmax(<min>, 1fr))`, the page action aligns to the content edge it acts on, and placeholder art differs by content type (`C18`–`C20`).
+Apply `SYNC:ui-action-density-gate` to the rendered views. Scope primary commits and lighter actions with `AD-1`. Use `AD-2` for groups and repeated rows, `AD-3` for icon-only controls and supported inputs, `AD-4` for preview copy and locale, and `AD-6` for collection grids and alignment. Record the `AD-5` measures in Step 8.
 
 #### HTML Structure Requirements
 
@@ -397,7 +390,7 @@ The 40 UI/UX Design Principles (`UI-1.1`–`UI-9.4`, the `SYNC:ui-ux-design-prin
     - Story title and description ("As a... I want... So that...")
     - Visual mockup of every page/view required by the story's full flow, not only its first screen
     - Component placeholders with realistic sample data
-    - State toggle buttons (Default | Loading | Empty | Error)
+    - Controls that expose applicable states from the Step 2b inventory
 
 4. **Footer:**
     - "Generated from task {ID}" attribution
@@ -408,10 +401,10 @@ The 40 UI/UX Design Principles (`UI-1.1`–`UI-9.4`, the `SYNC:ui-ux-design-prin
 
 - Base every visual decision on the loaded project reference design docs; cite the docs used in the generation notes when reporting the mock-up.
 - Use CSS custom properties (variables) from design system tokens
-- Follow BEM naming: `mockup__header`, `mockup__nav`, `mockup__panel`
+- Follow the project’s documented or demonstrated CSS naming convention. Use BEM where the project uses it (`SYNC:ui-system-context`).
 - Match the project's color palette, typography, and spacing
-- Include both light and dark theme (toggle button in header)
-- Responsive: mobile (< 768px) and desktop layout — mobile must stay usable: reflow where possible (stack rows, collapse grids to one column); where a block genuinely can't reflow (tables, wide grids) give it `overflow: auto` scroll rather than letting it clip; nothing broken or cut off
+- Render the supported themes and provide a toggle when the mockup demonstrates a theme switch.
+- Keep the layout usable at supported viewport sizes and required reflow/zoom conditions. Reflow where possible and keep all content and controls reachable. A genuinely two-dimensional region can scroll when the applicable reflow criterion permits it.
 - Use realistic placeholder data (names, dates, numbers) — not "Lorem ipsum"
 
 #### Component Rendering
@@ -422,9 +415,9 @@ Map wireframe components to HTML elements AND to their scripted demo interaction
 | ------------------- | ------------------------------------------ | -------------------------------------------------------------- |
 | Table/Grid          | `<table>` with design system styles        | Row click → `goTo` detail screen/state                         |
 | Form                | `<form>` with labeled inputs               | Submit → simulated success toast + in-memory row insert        |
-| Primary action      | At most one filled `<button>` per view, with a fixed min-width | Hotspot → commits the step (`goTo` the result state) |
-| Secondary action    | Icon-only `<button aria-label>` + tooltip, icon + label, or a text link (`AD-1` table) | Hotspot or non-advancing control (disabled-with-tooltip when not demoed) |
-| List row            | The whole row as the target + trailing chevron; at most one inline icon action | Row click → `goTo` detail |
+| Primary action      | Project primary action style in the scope defined by `AD-1` | Hotspot → commits the step (`goTo` the result state) |
+| Secondary action    | Named icon button + applicable tooltip, icon + label, or a text link (`AD-1` table) | Hotspot or non-advancing control (disabled-with-tooltip when not demoed) |
+| List row            | Project row navigation pattern and applicable `AD-2` inline-action budget | Row click → `goTo` detail |
 | Card                | `<div class="card">` with shadow           | Card click → `goTo` the card's detail screen/state             |
 | List                | `<ul>` or data list                        | Item click → `goTo` selected-item screen/state                 |
 | Modal/Dialog        | Overlay `<div>` (toggleable)               | Trigger → open dialog state; confirm/cancel → `goTo` next      |
@@ -452,9 +445,9 @@ Map wireframe components to HTML elements AND to their scripted demo interaction
 1. **Path:** `{mockup path without .html}-design-system.html`, beside the mock-up; same offline and iframe-safe rules (inline CSS/JS, Google Fonts CSS only). Link it from the mock-up's header chrome ("Design system") and record it in the Step 6 report.
 2. **Existing catalog:** when the project keeps a living component catalog, link each entry to its catalog item and list new entries as proposals for that catalog.
 3. **Share the definitions:** copy the mock-up's token block and catalog section (Step 4 "Define each control once") verbatim, so the page and the mock-up render the same controls from the same code.
-4. **Tokens:** every token the mock-up uses — colour (with light and dark values), type scale and families, spacing, radius, elevation, motion — shown as a swatch or specimen with its name and value; brownfield tokens name their source file. A project without tokens: show the observed values and where they repeat as candidate tokens, never an invented token system.
-5. **Catalog, one section per entry** (common controls first, then domain components): a live render of each variant and each applicable state (default, hover, focus, disabled, loading, error, empty); its contract in plain words (purpose, inputs, variants, states, accessibility notes, `AD-*` form where it is an action); the views that use it; its owner — the existing source path (`PD-4`) or `new — build once`.
-6. **Navigation:** a sticky index of sections; light/dark toggle; usable at phone width.
+4. **Tokens:** every token the mock-up uses — colour (for supported themes), type scale and families, spacing, radius, elevation, motion — shown as a swatch or specimen with its name and value; brownfield tokens name their source file. A project without tokens: show the observed values and where they repeat as candidate tokens, never an invented token system.
+5. **Catalog, one section per entry** (follow the project’s catalog organization when it exists): a live render of each variant and each applicable state (default, hover, focus, disabled, loading, error, empty); its contract in plain words (purpose, inputs, variants, states, accessibility notes, `AD-*` form where it is an action); the views that use it; its owner — the existing source path (`PD-4`) or `new — build once`.
+6. **Navigation:** a sticky index of sections, a theme toggle when applicable, and a layout usable at supported widths.
 7. **Scope (`PD-6`):** a change that touches one or two components lists only those entries and links the full page when one exists. A requirement-report source saves the page beside `tmp/design/<run>/mockup.html`. Explore drafts get none.
 
 
@@ -474,9 +467,9 @@ Mockup generated: {path}
 - Releasable outcome: {actor + observable outcome}
 - Pages/views rendered: {count + inventory — every required view, not an arbitrary page count}
 - Navigation map: {entry → transitions → result → exit}
-- Components rendered: {common + domain + page inventory}
+- Components rendered: {required components and their owners}
 - Design-system page (PD-1): {path · tokens n · catalog entries n (existing n · new n) | touched entries only — reason | SKIPPED — reason}
-- States included: {default, loading, empty, error}
+- States included: {applicable states from Step 2b}
 - Full-flow coverage: PASS | FAIL
 - Fidelity vs existing UI: PASS | FAIL
 - Render evidence (Step 7): {per-view PNGs named by report.json files[] | NOT VERIFIABLE — exit code + reason | optional, not run}
@@ -484,10 +477,10 @@ Mockup generated: {path}
 - Demo quality: PASS | FAIL
 - Journey walkthrough + traceability (UX-8): PASS | FAIL — {unserved steps / orphan elements, or none}
 - Interaction cost + wayfinding (UX-9, UX-10): PASS | FAIL — {per-journey counts vs baseline; dead ends, or none}
-- Actions & attention (AD-1–AD-6): PASS | FAIL — {filled/view · text buttons/view · max group spread · inline actions/row · meta lines per row · icon-only named+tooltip n/n · tile-height/baseline spread per grid row · action-edge offset}
+- Actions & attention (AD-1–AD-6): PASS | FAIL — {filled actions by applicable scope · text buttons/view · max group spread · inline actions/row · meta lines per row · icon-only named+tooltip n/n · tile-height/baseline spread per grid row · action-edge offset}
 - UI/UX Gate Report (UX-11): {table — UX / UI / AD / DD / CL / copy rows with PASS | FAIL → fixed | N/A + evidence}
 
-Open in browser to preview. Click highlighted hotspots or press ▶ Play to walk a flow. Use theme toggle for dark/light mode.
+Open in browser to preview. Click highlighted hotspots or press ▶ Play to walk a flow. Use the theme toggle when present.
 ```
 
 ---
@@ -502,7 +495,7 @@ Validate the produced mockup against the inventoried existing UI and record an e
 2. **Component patterns** — tables, forms, dialogs, status chips, and navigation reuse the existing component patterns (Step 3b), not generic HTML.
 3. **Layout/structure** — the screen layout matches the existing pages of the related feature (sidebar / toolbar / card-grid conventions).
 4. **Connected flows** — entry/exit navigation matches the connected feature flows mapped in Step 3b.
-5. **Information priority (`UX-4`)** — each view's rendered hierarchy implements its Step 2b tiers: the Primary-tier item is the single focal point, ONE primary action matches the journey's next step, On-demand items sit behind progressive disclosure, and no high cost-of-missing item is hidden. A visual hierarchy that reshuffles the ranking FAILS.
+5. **Information priority (`UX-4`)** — each view's rendered hierarchy implements its Step 2b tiers: the Primary tier and its actions match the journey and applicable `UI-1.1` and `AD-1` scope, On-demand items sit behind progressive disclosure, and no high cost-of-missing item is hidden. A visual hierarchy that reshuffles the ranking FAILS.
 6. **Approved direction (`--explore` only)** — colour, type and layout skeleton match `direction-approved.md` across EVERY view, not only the drafted key views; when this run updated a companion design spec from the pick, its §0, §3 and §4 match the mock app too.
 
 **Required in a review-gated workflow:** when this mode runs as a step of `workflow-spec-to-mockup`, or of any workflow whose next step is `ui-design --mode=review`, the render evidence below is mandatory: run it over the final mockup, record the per-view PNGs in the Step 6 report and pass them to that review. The exit rule below still decides what the run proves; `NOT VERIFIABLE` is recorded as such, never as a pass.
@@ -526,7 +519,7 @@ If **FAIL**, revise the mockup to match the existing UI and re-validate before h
 **First, confirm the result SATISFIES the source's intent** (not merely that it renders): every Journey Report main journey and every main user story in the source's `## Acceptance Criteria` / `### Interaction Flow` (or the spec's per-story action flows) is represented by a flow-spec demo (coverage — no main journey or story missing), the page/view inventory is fully rendered and navigable, AND each prototype faithfully demonstrates that story's intended behavior end-to-end. Then audit the produced prototype against every planned flow-spec and record an explicit pass/fail:
 
 0. **Satisfies the task intent** — every main-story/MVP flow from the acceptance criteria is present and its demo conveys the intended behavior; if a story has no demo or the demo misrepresents it, this gate FAILS regardless of the items below.
-1. **Releasable full-flow coverage** — every planned page/view is present, every required navigation edge is wired, required common/domain/page components are rendered, and applicable states are reachable. One isolated screen or disconnected screen set FAILS.
+1. **Releasable full-flow coverage** — every planned page/view is present, every required navigation edge is wired, required components are rendered, and applicable states are reachable. One isolated screen or disconnected screen set FAILS.
 2. **Outcome journey clicks end-to-end** — each flow's `steps[]` reaches the named business `endState` via real hotspots and shows the visible/persisted truth plus exit/next path; no path dead-ends.
 3. **No dead controls** — every button/hotspot advances the demo or is visibly disabled-with-tooltip.
 4. **Narration present + tech-agnostic** — every step shows its plain-language `explain`; copy is business-language (M1/M2), not class names; the "⚠ Simulated — illustrative data, no real actions are performed" banner is visible on every flow.
@@ -538,7 +531,7 @@ If **FAIL**, revise the mockup to match the existing UI and re-validate before h
 9. **Traceability matrix (`UX-8`)** — one row per journey step: `Journey · step | View | Element(s) serving it | Information shown (tier) | Rule enforced | States covered | Walkthrough result`. An **unserved step** (no view/element) or an **orphan element** (traces to no step, need or rule — delete or justify it) FAILS the gate. Include the matrix in the Step 6 report.
 10. **Interaction cost + wayfinding (`UX-9`, `UX-10`, catalog §12)** — per main journey record steps · clicks · view changes · fields · decisions on the prototype against the existing flow or the source flow, and cut what does not advance the job; every view marks where the user is, labels destinations in user words, and offers a back/exit path that keeps entered data — no dead-end or orphan view. The primary tier renders in the first viewport.
 11. **UI/UX Gate Report (`UX-11`, catalog §13)** — one row per gate (`UX-*`, applicable `UI-*`, `AD-*`, `DD-*`, `CL-*` with at least the `CL-5` triage, UI copy), each `PASS` / `FAIL → fixed` / `N/A` with evidence. A gate missing from the report counts as not checked; an unresolved `FAIL` blocks hand-off.
-12. **Actions & attention (`AD-1`–`AD-6`, checklist `C14`–`C20`, `B16`)** — per view count filled text buttons (≤ 1), boxed text buttons against the budget, width spread per button group, inline actions per row, meta lines per row, and tile-height and title-baseline spread per grid row; every icon-only control has a name and a tooltip on hover and focus. Check that actions align to their content edge and that placeholder art differs by content type (`C19`, `C20`). Count on the rendered views, excluding the demo chrome (`data-audit-ignore`, §5 of `mockup-interactive-demo.md`): `node .claude/skills/ui-design/scripts/audit-actions.cjs <mockup.html>` collects the counts with the elements behind them (attach `actions-report.json`); confirm each by eye, since it never passes or fails the mock-up.
+12. **Actions & attention (`AD-1`–`AD-6`, checklist `C14`–`C20`, `B16`)** — record the `AD-5` measures for each view and assess them against the applicable `AD-1`–`AD-6` rules. Verify the accessible name, contrast, target size and tooltip behavior of icon-only controls for supported inputs (`AD-3`). Check that actions align to their content edge and that placeholder art differs by content type (`C19`, `C20`). Count on the rendered views, excluding the demo chrome (`data-audit-ignore`, §5 of `mockup-interactive-demo.md`): `node .claude/skills/ui-design/scripts/audit-actions.cjs <mockup.html>` collects the counts with the elements behind them (attach `actions-report.json`); confirm each by eye, since it never passes or fails the mock-up.
 
 13. **Design-system page (`PD-1`–`PD-6`)** — the Step 5b page opens offline, shows every token the mock-up uses and every reusable control and component with its variants, states, contract, views and owner; no control is defined twice in the mock-up (`M10`); brownfield entries name their existing source. A missing page, or a control the mock-up styles twice, FAILS this item.
 
@@ -563,17 +556,17 @@ Before completing:
 - [ ] Releasable outcome is named and demonstrated from entry/context to visible/persisted result and exit/next action
 - [ ] Every required page/view is rendered and navigable; page count reflects the actual flow, not an arbitrary target
 - [ ] Navigation map is wired, including entry/back/next/exit/recovery paths
-- [ ] Common, domain, and page-level components required by the flow are rendered with applicable states
+- [ ] Components required by the flow are rendered with applicable states from the Step 2b inventory
 - [ ] Journey Report (Step 2a, `UX-1`) presented before any design output; inferred primary actor/job/outcome confirmed, or recorded `INFERRED — unconfirmed (no question tool)`
 - [ ] `Design authority read:` recorded (Steps 3 + 3b, `UX-2`) before Step 3d/Step 4 generation
 - [ ] Every main journey's flow (Step 2c) is rendered as a scripted clickable prototype with guided narration
-- [ ] Every view renders its Step 2b information-priority tiers — one focal point, ONE primary action = the journey's next step (`UX-4`); business rules shown as prevention, states and recovery (`UX-5`)
+- [ ] Every view renders its Step 2b information-priority tiers and applicable primary actions (`UX-4`, `UI-1.1`, `AD-1`); business rules shown as prevention, states and recovery (`UX-5`)
 - [ ] `UX-8` journey walkthrough + traceability matrix recorded (Step 8) — no unserved step, no orphan element
 - [ ] Interaction cost per main journey and wayfinding per view recorded (`UX-9`, `UX-10`)
 - [ ] UI/UX Gate Report covers every gate — `UX-*`, `UI-*`, `AD-*`, `DD-*`, `VO-*` (when option discovery ran), `CL-*`, UI copy — with no open `FAIL` (`UX-11`)
-- [ ] Actions follow `AD-1`–`AD-6` — one filled primary per view, lighter forms for the rest, uniform groups, one meta line per row, every icon-only control named and tooltipped, one tile size and title baseline per collection-grid row, actions aligned to their content edge (`AD-6`); counts recorded (Step 8 item 12)
+- [ ] Actions follow the applicable `AD-1`–`AD-6` rules. Record measurements and the verdict in Step 8 item 12.
 - [ ] `--explore` only: Step 0 scope answer recorded; N rendered directions presented and opened, the user's verbatim pick, the `Selection: USER — 1 option` / `Selection: AUTO-SELECTED — <reason>` line, or the exemption recorded in `direction-approved.md` (or `Mockup: SKIPPED by user`), full app built in that direction
-- [ ] Design is based on `design-system-canonical.md` plus the matched per-app design-system doc when available
+- [ ] Design follows the authority resolved in Steps 3 and 3b. When none exists, the checked paths and selected fallback are recorded.
 - [ ] Design system colors and typography match the project
 - [ ] Component states are toggleable (where defined in artifact)
 - [ ] Responsive layout works for mobile and desktop — usable on small screens with nothing clipped/cut-off/unreachable (reflow preferred; `overflow: auto` scroll acceptable where a block can't reflow)
@@ -584,7 +577,7 @@ Before completing:
 - [ ] Design-system page saved beside the mock-up and linked from it (Step 5b, `PD-1`–`PD-6`) — tokens plus every reusable control and component, each defined once, with variants, states, contract, views and owner; brownfield entries name their existing source
 - [ ] Fidelity validation (Step 7) recorded PASS — mockup matches existing UI tokens, components, layout, connected flows and each view's information priority (and the approved direction under `--explore`)
 - [ ] Releasable full-flow + Demo-Quality gate (Step 8) recorded PASS — all required views/navigation/components/states are connected, every flow reaches the business result and exit, no dead controls, narration + "⚠ Simulated" banner present, offline, iframe-safe
-- [ ] Design-Principles build constraints hold — `UI-1.5` empty/loading/error panels BUILT and toggleable, `UI-5.5` visible focus ring on every focusable control, `UI-5.2` all 5 interaction states in real CSS, `UI-8.1`/`UI-8.2` real ≥44×44px touch targets 8px apart with bottom-third primaries in the mobile preview, `UI-9.3` reserved space so state switches never shift layout, `UI-2.5`/`UI-4.1` 6-step type scale + ONE 4/8px spacing unit emitted as CSS variables, `UI-3.1`/`UI-3.3` contrast measured 4.5:1 text / 3:1 edges in both themes and colour never the sole carrier of meaning
+- [ ] Step 4's applicable build constraints are verified on the mockup under the project's conventions and selected accessibility standard. Missing rendered evidence is recorded as `NOT VERIFIABLE`.
 
 ---
 
@@ -612,7 +605,7 @@ Before completing:
 | Production-quality CSS framework                   | Simple inline CSS matching design tokens                                                          |
 | External dependencies (CDN libs)                   | Self-contained except Google Fonts                                                                |
 | Pixel-perfect implementation                       | Approximate visual representation                                                                 |
-| A boxed text button for every action, each sized by its label | One filled primary per view; others icon-only (named, tooltipped), icon + label, link or row target; groups share one width (`AD-1`, `AD-2`) |
+| A boxed text button for every action, each sized by its label | Use the primary-action scope and lighter action forms from `AD-1`, and apply the group and row rules from `AD-2` |
 | Real backend/business logic (auth, live API, persistence) | Scripted/simulated prototype interactivity only — clickable nav, simulated transitions, guided demo; NO real business logic or data writes |
 | Dead / non-wired buttons                           | Every control either advances the demo or is visibly disabled-with-tooltip                        |
 | Lorem ipsum placeholder text                       | Realistic domain-specific sample data                                                            |
@@ -974,7 +967,7 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 | "Lorem ipsum is faster"                          | Fake data hides real overflow/state gaps. Use real entity field names + realistic values.  |
 | "Generic clean HTML is good enough"              | Fidelity is the point — read design-system docs + 2-3 real components, mimic the actual UI. |
 | "Class names in the notes are fine"              | Prose stays tech-agnostic (M1/M2). Real class names live in the rendered HTML, not captions.|
-| "Only need the default state"                    | Render every defined state (default/loading/empty/error) as toggleable.                     |
+| "Only need the default state"                    | Make every applicable state in the Step 2b inventory reachable.                     |
 | "Already know the entity fields"                 | Show `file:line` from the domain-entities reference. No proof = no read.                     |
 | "The stories already describe the journeys"     | Stories list wants; the Journey Report (Step 2a) ranks journeys, names each step's decision, information need, rule and recovery — the views and priority tiers come from it. Present it first. |
 | "Pick the strongest direction to save a turn"    | `--explore` ASKS for the user's pick — recommend with evidence, never pick for them while they can be asked, and "continue" is not a pick. |

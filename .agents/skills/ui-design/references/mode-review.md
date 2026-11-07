@@ -374,9 +374,9 @@ Apply fixes per the resolved project styling rules doc.
 - A user-initiated operation that fails silently or offers no recovery path where one is sensible → **BLOCKED**
 - A raw error shown to the user (stack trace, raw JSON, unmapped exception) → WARN
 - A list or collection surface with no meaningful empty state → WARN (BLOCKED when the collection is the screen's primary content)
-- A submit handler that does NOT disable its trigger while in-flight (double-submit risk) → WARN (BLOCKED for payment / create / irreversible actions)
+- Repeat submission can cause harmful duplicate effects → WARN (BLOCKED for payment / create / irreversible actions). Verify the effect of repeated activation, including any in-flight or downstream guard. An evidenced guard can keep the trigger enabled.
 
-> **Check for centralized handling BEFORE flagging BLOCKED (avoid false positives):** the app or platform may provide a shared progress/status owner, request handler, error boundary, or reusable UI component. If evidence shows it covers this surface, the local control may not need another indicator — verify its behavior and downgrade or drop the finding. Flag BLOCKED only when no applicable layer gives the user the required feedback.
+> **Check centralized feedback before flagging a missing-feedback blocker.** Verify whether a shared progress or status owner, request handler, error boundary, or reusable UI component already gives the user the required feedback. Accept shared feedback when it covers the operation. Assess duplicate effects independently of feedback.
 
 **Project fix guidance** (cite real reuse targets from applicable frontend, platform, and design-system docs):
 

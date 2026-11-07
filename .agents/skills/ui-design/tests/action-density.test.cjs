@@ -252,6 +252,20 @@ test('the render layer counts what a reviewer would see', { timeout: 600_000 }, 
     const phone = await audit(root, 'actions-focused', ['--viewport=390x844']);
     assert.deepEqual([phone.report.viewports[0].touch, isOver(phone.report, 'C17.targetTouch')], [true, false]);
 
+    // The project's compact target and aria-labelledby name satisfy the accessibility checks.
+    // Only the tight, unnamed, low-contrast control breaks the standard in this fixture.
+    const authority = await audit(root, 'ui-authority-touch', ['--viewport=390x844']);
+    assert.equal(authority.status, 0, authority.stderr);
+    assert.equal(authority.report.viewports[0].touch, true);
+    const authorityMeasures = measuresOf(authority.report);
+    for (const id of ['C17.targetMinimum', 'C17.name', 'C17.contrast']) {
+      assert.equal(authorityMeasures[id].overLimit, true, id);
+      assert.deepEqual(authorityMeasures[id].elements.map(({ selector }) => selector), ['button#broken'], id);
+    }
+    assert.deepEqual(authorityMeasures['C17.tooltip'].elements.map(({ selector }) => selector), ['button#broken']);
+    assert.equal(authorityMeasures['C17.targetTouch'].rule, 'default');
+    assert.ok(authorityMeasures['C17.targetTouch'].elements.some(({ selector }) => selector === 'button#compact'));
+
     // The ragged action column: every defect is over its limit and names its elements.
     const ragged = await audit(root, 'actions-ragged');
     assert.equal(ragged.status, 0, 'evidence never fails the run');

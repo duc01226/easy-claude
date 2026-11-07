@@ -25,6 +25,7 @@ argument-hint: <file-or-pattern>
 - Review-only and caller-owned passes report without edits; standalone fix-loop follows the shared repair/re-review policy.
 - Check categories in priority order (accessibility first)
 - Resolve the project's configured styling reference when applicable; do not assume SCSS or BEM.
+- Apply [UI System Context](../shared/protocols/ui-system-context.md) before reviewing project conventions.
 
 **Evidence:** Cite traced proof and confidence percentages for every claim; >80% confidence to act.
 
@@ -73,16 +74,16 @@ argument-hint: <file-or-pattern>
 2. **Scan files** using Read and Grep tools
 
 3. **Check against categories** (in priority order):
-    - **Accessibility** -- semantic HTML, ARIA, labels, alt text, color contrast, focus indicators
-    - **Keyboard navigation** -- tab order, focus trap in modals, escape key handling
+    - **Accessibility** — resolve the applicable standard, then check semantics, accessible names, alternatives, contrast, and visible focus.
+    - **Keyboard navigation** — check keyboard operation, logical focus order, and dialog focus management where applicable.
     - **Forms** -- labels, validation, error display, autocomplete, paste not blocked
-    - **Async states & feedback** -- every fetch/submit/mutation renders a **loading** indicator (spinner/skeleton, never a frozen blank), a user-visible **error** with a retry/recovery path (never a silent failure or raw stack trace), an **empty** state for zero-item collections, and an in-flight **disabled** state on submit controls to prevent double-submit (canonical vocabulary: Default / Loading / Disabled / Error / Empty / Success)
-    - **Actions & attention** -- one filled text button per view/dialog; other actions icon-only (accessible name + tooltip on hover and focus, the platform-minimum target, 3:1 icon contrast), icon + label, link or row target; button groups share height/style/width; list rows: whole-row target + ≤ 1 inline icon action, never a filled button per row; destructive icons need a label or confirm/undo; rows carry a title + one short meta line; one tile size and title baseline per collection-grid row, actions aligned to their content edge (`AD-1`–`AD-6`, checklist `C14`–`C20`, `B16`)
-    - **Component architecture / reuse** *(when source code is in scope)* -- classify components as Common, Domain-Shared, or Page; use the project base component/primitive; reuse or compose existing components before creating new ones; flag duplicated markup, selectors, styling, lifecycle, or lower-tier test cases
+    - **Async states & feedback** — apply `UI-1.5` and `UI-9.1`–`UI-9.4`. Verify perceivable feedback appropriate to the work, safe reconciliation of optimistic updates, recovery from failures, and a useful empty state where a collection can be empty. For submits that could create duplicates, check that repeat activation cannot produce duplicate effects.
+    - **Actions & attention** — apply `AD-1`–`AD-6` (`C14`–`C20`, `B16`) to the actual view, roles, and inputs. Distinguish configured budgets, heuristic defaults, and binding accessibility criteria.
+    - **Component architecture / reuse** *(when source code is in scope)* — follow documented tiers and base abstractions where they exist. Otherwise trace actual owners and reuse boundaries. Report duplicated behavior when an evidenced shared owner fits.
     - **Animation** -- `prefers-reduced-motion` respected, no `transition: all`, GPU-safe properties only
     - **Performance** -- image dimensions set, lazy loading, no layout thrashing, virtualization for large lists
-    - **Touch/Mobile** -- touch targets >= 44px, `touch-action: manipulation`, safe areas
-    - **Responsive layout** -- usable on small devices (owns all reflow/breakpoint concerns). Minimum bar: **preferred** reflow (rows `flex-wrap` or `row → column`, grids collapse to one column, fluid min/max/`%`/`rem` over large fixed px); **acceptable fallback** when a layout genuinely can't reflow (tables, canvases, wide grids) — a fixed `min-width`/`min-height` + `overflow: auto` scroll (scrolling is OK, not a defect); **hard fail** only when content is broken on small screens — clipped, cut off, or a control unreachable with no scroll path. Big responsive refactor needed → flag it and confirm scope with the user, don't silently rewrite. Breakpoints tested at 320 / 768 / 1024px
+    - **Touch/Mobile** — measure actual hit areas and spacing against the applicable criterion and its exceptions. Distinguish platform recommendations and check safe areas and reachability on supported devices.
+    - **Responsive layout** — verify supported viewport sizes and any additional reflow/zoom conditions required by the accessibility standard. Prefer reflow. Use a scrollable region for genuinely two-dimensional content where the applicable criterion permits it. Flag inaccessible controls and lost content.
     - **Content** -- long-text/overflow handling (`text-overflow`, wrapping, line clamp), readable line length _(empty-collection states → **Async states & feedback**; breakpoints/reflow → **Responsive layout**)_
     - **Dark mode / i18n** -- `color-scheme`, logical CSS properties, `Intl.*` formatters
 
@@ -90,9 +91,9 @@ argument-hint: <file-or-pattern>
 
 ## UI/UX Design Principles Pass (9 dimensions)
 
-The 40 clauses of `SYNC:ui-ux-design-principles` bind this review in the **REVIEW** role: each clause is a fail-condition. Their full text is hook-delivered, with the Protocol guides below providing the fallback. They deepen the step-3 categories. Run **nine focused passes, one dimension at a time**; answer each `Think:` prompt before checking the violation it predicts.
+Apply the applicable clauses of `SYNC:ui-ux-design-principles` in the **REVIEW** role. Use the project's documented conventions and target platform/input modes. A numeric heuristic alone cannot establish a failure. Report a verified violation of a governing requirement, including applicable accessibility criteria. Use WCAG 2.2 AA for web and meet any stricter applicable requirement. Record missing rendered evidence as `NOT VERIFIABLE`. Run the nine focused passes below and record N/A where a check does not apply.
 
-**Findings:** Use `path:line - finding`, grouped by file, with the clause ID in the text, e.g. `{ui-source-root}/components/Button:42 - UI-3.1 measured contrast 3.1:1 on the disabled label (needs 4.5:1)`. Keep accessibility-first ordering and Summary counts; this pass adds no severity tiers.
+**Findings** use `path:line - finding`, grouped by file, with the applicable clause and evidence. For example, `{ui-source-root}/components/Button:42 - UI-3.1 active button label at 3.1:1 fails WCAG 2.2 SC 1.4.3 for normal text`. Keep accessibility-first ordering and Summary counts.
 
 **One rule, one finding.** When a clause repeats a category rule (touch targets, reduced motion, async states, image dimensions or readable line length), cite both the category and clause ID in one finding.
 
@@ -100,17 +101,17 @@ The 40 clauses of `SYNC:ui-ux-design-principles` bind this review in the **REVIE
 
 | #   | Dimension                 | Clauses            | Deepens category                                | `Think:`                                                                                                                                                                                             |
 | --- | ------------------------- | ------------------ | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | Visual Hierarchy & Layout | `UI-1.1`-`UI-1.5` | Content · Async states & feedback               | Which element wins first read on this screen, and is it the one the page exists for? Is grouping done with whitespace or with borders? Are the empty, loading and error states designed at all?      |
-| 2   | Typography                | `UI-2.1`-`UI-2.5` | Content                                         | How many families/weights ship on this page? What size does body text render at (16px web, 17px mobile, never below 14px), what measure does it reach (45-75 characters), what leading (1.5 body, 1.1-1.2 display)? Are sizes from a fixed 6-step scale or one-offs? |
-| 3   | Colour & Contrast         | `UI-3.1`-`UI-3.4` | Accessibility · Dark mode / i18n                | What is the COMPUTED ratio for each rendered foreground/background pair (4.5:1 text, 3:1 UI edges)? Does any state carry meaning through colour alone? Is dark mode a designed surface or an inversion? |
-| 4   | Spacing & Grid            | `UI-4.1`-`UI-4.4` | Responsive layout                               | Is every gap a multiple of one 4px/8px base unit? Does spacing live on the container (`gap`) or on scattered child margins? Is inner padding smaller than the gap to the next group? Do breakpoints break where the layout fails, or where a device is named? |
-| 5   | Interaction & Feedback    | `UI-5.1`-`UI-5.5` | Keyboard navigation · Animation · Async states  | What changes within 100ms of a press? Which of the five states is unstyled? Is the focus ring still visible after restyling? Could undo replace this confirmation? Is motion 150-250ms ease-out and reduced-motion aware? |
-| 6   | Navigation & IA           | `UI-6.1`-`UI-6.4` | Accessibility (landmarks, skip links) · Content | Cold-landing on this view: where am I, what's here, where next? How many top-level destinations? Are labels the user's words or internal vocabulary? Does the state have a URL or a back path?       |
+| 1   | Visual Hierarchy & Layout | `UI-1.1`-`UI-1.5` | Content · Async states & feedback               | Which element wins first read on this screen, and is it the one the page exists for? Is grouping done with whitespace or with borders? Are applicable empty, loading and error states usable?      |
+| 2   | Typography                | `UI-2.1`-`UI-2.5` | Content                                         | Is the rendered type readable for the content and locale? Does it follow the project scale when defined and remain usable when resized? |
+| 3   | Colour & Contrast         | `UI-3.1`-`UI-3.4` | Accessibility · Dark mode / i18n                | Does each rendered foreground/background pair meet its applicable criterion in the supported themes? Is meaning also available without colour? |
+| 4   | Spacing & Grid            | `UI-4.1`-`UI-4.4` | Responsive layout                               | Does spacing follow the project's scale when defined? Do grouping and reflow hold at content and viewport boundaries? |
+| 5   | Interaction & Feedback    | `UI-5.1`-`UI-5.5` | Keyboard navigation · Animation · Async states  | Is feedback perceivable and timely for the task? Are applicable states and keyboard focus visible? Does motion clarify the change and respect reduced motion? |
+| 6   | Navigation & IA           | `UI-6.1`-`UI-6.4` | Accessibility (landmarks, skip links) · Content | Cold-landing on this view: where am I, what's here, where next? How many top-level destinations? Are labels the user's words or internal vocabulary? Are expected return, history and deep-link paths preserved?       |
 | 7   | Forms & Input             | `UI-7.1`-`UI-7.5` | Forms                                           | Per field: why does it exist today? Is the label visible once filled? When does validation fire, and does the message say how to fix it? Does the keyboard/autocomplete match the type? Does typed data survive an error, navigation, and refresh? |
-| 8   | Mobile & Touch            | `UI-8.1`-`UI-8.4` | Touch/Mobile                                    | Measure the HIT BOX, not the icon: >=44x44pt with 8px separation? Where do primary actions sit relative to the thumb? Is anything gesture-only? Are notch, home indicator and keyboard accounted for? _(No touch surface in scope → skip with the reason stated.)_ |
-| 9   | Speed & Perceived Speed   | `UI-9.1`-`UI-9.4` | Performance · Async states & feedback           | What occupies the space of each loading element, and does the layout shift when it lands? Skeleton or spinner — chosen deliberately? Is an optimistic update rolled back visibly? Are offline, timeout and retry designed states? |
+| 8   | Mobile & Touch            | `UI-8.1`-`UI-8.4` | Touch/Mobile                                    | Do measured hit areas and spacing meet the applicable criterion? Are actions reachable on supported devices and inputs, including required gesture alternatives? Record N/A with evidence when no touch surface applies. |
+| 9   | Speed & Perceived Speed   | `UI-9.1`-`UI-9.4` | Performance · Async states & feedback           | What occupies the space of each loading element, and does the layout shift when it lands? Does feedback fit the operation? Are optimistic updates reconciled visibly and applicable offline, timeout and retry states usable? |
 
-**Precedence:** the styling guide selected by project config and any configured design-system doc OUTRANK these clauses; a genuine conflict is surfaced to the user with both sides.
+**Precedence** follows the shared protocols. Adopt applicable project conventions for design choices. They do not waive the selected accessibility standard. Surface conflicting authorities with evidence.
 
 ## Output Format
 
@@ -119,7 +120,7 @@ Group by file. Use `file:line` format. Terse findings. No preamble.
 ```text
 ## {ui-source-root}/components/Button
 
-{ui-source-root}/components/Button:42 - icon button missing aria-label
+{ui-source-root}/components/Button:42 - AD-3 icon button has no accessible name
 {ui-source-root}/components/Button:55 - animation missing prefers-reduced-motion check
 {ui-source-root}/components/Button:67 - transition: all -> list specific properties
 {ui-source-root}/components/Button:89 - div with onClick -> use <button>
@@ -225,7 +226,7 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 **IMPORTANT MUST ATTENTION Main steps:** identify target → load prerequisites → triage and plan tasks → scan files → check priority categories and nine focused UI/UX dimensions → report deduplicated findings and Summary counts.
 
 - Report without edits in review-only and caller-owned passes; standalone fix-loop validates, repairs and freshly re-reviews. Use accessibility-first priority and the existing `file:line` output format.
-- Cite traced evidence and confidence (>80% to act). Run all 40 clauses (`UI-1.1`–`UI-9.4`) one dimension at a time; include the applicable clause ID. Project styling/design-system docs outrank the clauses; surface genuine conflicts with both sides.
+- Cite traced evidence and confidence (>80% to act). Check applicable clauses (`UI-1.1`–`UI-9.4`) one dimension at a time and include the clause ID. Apply project conventions and preserve the applicable accessibility requirements.
 - Break work into small tasks before starting and include a final quality-review task.
 
 | Evasion | Required action |

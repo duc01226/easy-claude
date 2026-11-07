@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Support inbox rehearsal</title>
+</head>
+<body>
+  <p>⚠ Simulated — no real assignment is made.</p>
+  <main>
+    <section data-state="inbox">
+      <h1>Support inbox</h1>
+      <p>A customer needs help updating their account.</p>
+      <p id="assignee">Unassigned</p>
+      <label><input id="fail-next" type="checkbox"> Simulate a temporary failure</label>
+      <button id="assign" type="button">Assign to Maya</button>
+      <p id="assignment-error" role="alert" hidden>Could not assign the conversation. Try again.</p>
+    </section>
+    <section data-state="assigned" hidden>
+      <h1 id="assignment-result" tabindex="-1">Conversation assigned to Maya</h1>
+      <p>Maya can now follow up with the customer.</p>
+      <button id="back" type="button">Back to inbox</button>
+    </section>
+  </main>
+  <script>
+    const views = document.querySelectorAll('[data-state]');
+    const assignButton = document.querySelector('#assign');
+    const failNext = document.querySelector('#fail-next');
+    const assignmentError = document.querySelector('#assignment-error');
+    const assignee = document.querySelector('#assignee');
+
+    function goTo(state) {
+      for (const view of views) view.hidden = view.dataset.state !== state;
+    }
+
+    function assign() {
+      if (failNext.checked) {
+        failNext.checked = false;
+        assignmentError.hidden = false;
+        return;
+      }
+      assignmentError.hidden = true;
+      assignee.textContent = 'Assigned to Maya';
+      goTo('assigned');
+      document.querySelector('#assignment-result').focus();
+    }
+
+    assignButton.addEventListener('click', assign);
+    document.querySelector('#back').addEventListener('click', () => {
+      goTo('inbox');
+      assignButton.focus();
+    });
+    window.__proto = { goTo };
+  </script>
+</body>
+</html>

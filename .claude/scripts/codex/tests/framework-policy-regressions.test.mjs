@@ -82,6 +82,59 @@ test("shared-protocol maintenance documents both skill tiers without fixed inven
   assert.doesNotMatch(skill, /all 163 skills|all 29 agents|183 updated/);
 });
 
+test("UI build and review guidance preserves project conventions without waiving accessibility", async () => {
+  const [mockup, demo, uiReview, webReview, guidelines] = await Promise.all([
+    read(".claude/skills/work-item/references/mode-mockup.md"),
+    read(".claude/skills/work-item/references/mockup-interactive-demo.md"),
+    read(".claude/skills/ui-design/references/mode-review.md"),
+    read(".claude/skills/web-design-guidelines/SKILL.md"),
+    read(".claude/skills/web-design-guidelines/references/guidelines.md"),
+  ]);
+  // Generated protocol bodies can contain numeric examples. Check the authored instructions that
+  // previously overrode them, including the mockup's completion checklist.
+  const mockupInstructions = mockup.split("<!-- SYNC:design-distinctiveness-gate -->")[0];
+  const reviewInstructions = webReview.split("<!-- PROTOCOL-GUIDES:START -->")[0];
+  for (const instructions of [mockupInstructions, reviewInstructions]) {
+    assert.match(instructions, /UI System Context/);
+    assert.match(instructions, /documented (?:component )?tiers and base abstractions/);
+    assert.match(instructions, /WCAG 2\.2 AA/);
+    assert.match(instructions, /NOT VERIFIABLE/);
+  }
+  // Reject blanket prescriptions while allowing the same values as platform examples.
+  assert.doesNotMatch(mockupInstructions, /real\s+(?:≥\s*)?44\s*[×x]\s*44|transitions 150[–-]250ms ease-out/i);
+  assert.doesNotMatch(mockupInstructions, /six-step|6-step|six named|6 named/i);
+  assert.doesNotMatch(mockupInstructions, /follow BEM naming|spacing, BEM naming|classify every needed component as common\/reusable/i);
+  assert.doesNotMatch(mockupInstructions, /one filled primary per view|ONE primary action per view|filled text buttons \(≤ 1\)|each row or card is a title plus one short meta line/i);
+  assert.match(mockupInstructions, /documented or demonstrated CSS naming convention/);
+  assert.match(mockupInstructions, /scope focal points and primary commits, including independent expert regions/);
+  assert.match(mockupInstructions, /AD-4` for preview copy and locale/);
+  assert.match(mockupInstructions, /Make every applicable component state in the Step 2b inventory reachable/);
+  assert.match(mockupInstructions, /selected standard, including its applicable exceptions/);
+  assert.match(mockupInstructions, /no visible focus indicator fails/);
+  const demoActions = demo.split("\n").find((line) => line.startsWith("- [ ] **Actions & attention"));
+  assert.ok(demoActions, "the demo checklist reviews actions and attention");
+  assert.match(demoActions, /applicable scope, exceptions and supported inputs/);
+  assert.match(demoActions, /record the measurements and verdict/);
+  assert.doesNotMatch(demoActions, /≤\s*1 filled text button|one meta line per row|full-size target/i);
+  const asyncReview = uiReview.split("### Category 6:")[1].split("## Phase 3B:")[0];
+  assert.match(asyncReview, /Repeat submission can cause harmful duplicate effects/);
+  assert.match(asyncReview, /An evidenced guard can keep the trigger enabled/);
+  assert.doesNotMatch(asyncReview, /does NOT disable its trigger while in-flight/i);
+  assert.match(asyncReview, /Assess duplicate effects independently of feedback/);
+  assert.doesNotMatch(asyncReview, /Flag BLOCKED only when no applicable layer gives the user the required feedback/i);
+  assert.doesNotMatch(reviewInstructions, /each clause is a fail-condition|classify components as Common, Domain-Shared, or Page|touch targets >= 44px/i);
+  assert.doesNotMatch(reviewInstructions, /every fetch\/submit\/mutation renders|icon button missing aria-label/i);
+  assert.match(reviewInstructions, /safe reconciliation of optimistic updates/);
+  assert.match(reviewInstructions, /active button label at 3\.1:1 fails WCAG 2\.2 SC 1\.4\.3/);
+  assert.match(reviewInstructions, /icon button has no accessible name/);
+  assert.doesNotMatch(guidelines, /minimum touch target: 44\s*[×x]\s*44|show spinner during request/i);
+  assert.doesNotMatch(guidelines, /autocomplete="off"` on non-auth fields/i);
+  assert.match(guidelines, /Icon-only buttons require an accessible name\.[^\n]*aria-labelledby/);
+  assert.match(guidelines, /#identify-input-purpose/);
+  assert.match(guidelines, /Preserve expected history, return and deep-link behavior[^\n]*UI-6\.4/);
+  assert.match(guidelines, /#target-size-minimum/);
+});
+
 test("plan and plan --mode=review keep decision-boundary altitude and verify-last order (CR-092, CR-093)", async () => {
   const [plan, review] = await Promise.all([
     read(".claude/skills/plan/SKILL.md"),

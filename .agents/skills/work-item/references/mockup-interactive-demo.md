@@ -281,7 +281,7 @@ The checklist `references/mode-mockup.md` Step 8 (Demo-Quality Review Gate) enfo
 - [ ] **Every main-story flow clicks end-to-end** — each flow-spec's `steps[]` reach the `endState` via real hotspots; no path dead-ends.
 - [ ] **Journey walkthrough + traceability (`UX-8`)** — every Journey Report main journey walked on the prototype (knows the step is needed · sees the action · links it to the goal · sees progress); traceability matrix has no unserved step and no orphan element.
 - [ ] **No dead controls** — every button/hotspot advances the demo or is visibly disabled-with-tooltip.
-- [ ] **Actions & attention (`AD-1`–`AD-6`)** — per product view (demo chrome excluded): ≤ 1 filled text button, boxed text buttons within the budget, button groups one height/style/width, list rows one target with ≤ 1 inline icon action, one meta line per row, every icon-only control named and tooltipped (hover and focus) with a full-size target, one tile size and title baseline per collection-grid row, actions aligned to their content edge (`AD-6`); the counts recorded in the Step 6 report, with `actions-report.json` when the evidence tool ran.
+- [ ] **Actions & attention (`AD-1`–`AD-6`)** — apply the shared rules to each product view, including the applicable scope, exceptions and supported inputs. Exclude demo chrome. Follow Step 8 item 12 and record the measurements and verdict in the Step 6 report, with `actions-report.json` when the evidence tool ran.
 - [ ] **Narration present + tech-agnostic** — every step shows its `explain`; copy is business-language (M1/M2), not class names.
 - [ ] **"⚠ Simulated" banner present** — illustrative-data scope guard visible on every flow.
 - [ ] **Opens offline standalone** — no external `<script src>`; Google Fonts CSS only.
@@ -289,3 +289,7 @@ The checklist `references/mode-mockup.md` Step 8 (Demo-Quality Review Gate) enfo
 - [ ] **Real domain data** — screens/rows use real entity field names + realistic values, never Lorem ipsum.
 - [ ] **iframe-safe** — works self-contained inside `<iframe srcdoc>` (no parent-document or network dependency) so the deck can embed it.
 - [ ] **Reduced-motion + keyboard** — auto-advance suppressed under `prefers-reduced-motion`; hotspots reachable by keyboard; never traps the user.
+
+**Inbox rehearsal pilot.** Read the [inbox fixture](../../html-export/tests/fixtures/inbox-rehearsal.html) when you need an example of checking a Step 8 journey. Start at the inbox and use the real **Assign to Maya** control. The flow-spec result is a visible assignment to Maya. On a simulated failure, the inbox stays open, explains how to retry, and accepts keyboard activation. Check the result after the action and record the action, expected result, observed result and viewport in the Step 6 walkthrough evidence for `ui-design --mode=review`. The Step 7 PNGs cover rendered states. If the browser action cannot be exercised, record its evidence as `NOT VERIFIABLE`.
+
+Run the pilot from the repository root with `node --test --test-name-pattern="inbox rehearsal" .claude/skills/html-export/tests/to-png.test.cjs`. Its negative case removes the button handler, verifies four successful PNGs, and requires the action check to reject the broken flow.
