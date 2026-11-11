@@ -40,6 +40,7 @@ Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs
 - **MUST** trace the root cause end-to-start before any fix, classify Code Bug vs Spec Bug before any regression test, and prove the regression test catches the bug (RED with the fix reverted) and passes with it (GREEN) in the single verify.
 - **MUST** fix at the layer that owns the violated invariant; converge the change review; sync the spec when a canonical spec or specified behavior changed.
 - **NEVER** encode the buggy behavior into a spec or test, and NEVER weaken a test to turn it green.
+- **MUST** run the post-fix lesson check (`../fix/references/post-fix-lesson-check.md`) after `/workflow-review-changes` converges and before `/integration-test --mode=verify`: name the bug class and offer a generic, likely-recurring lesson to `/learn` only after the user confirms.
 
 ## Contents
 
@@ -139,6 +140,7 @@ Recommended: XS/S work inline without sub-agents; independent read-only investig
 - **Goal Contract:** resolve the active goal at start per `SYNC:goal-contract-satisfaction-loop` (active plan `goal.md` → `goals/{YYMMDD-HHmm}-{slug}/goal.md` under the plans root, default `plans/`, relocated by `docsRoots.plans.path` in `docs/project-config.json` → create from the bug report); pass the same goal file to every child step; emit the Goal Satisfaction matrix before `/workflow-end`.
 - **Spec context:** when the business spec root (default `docs/specs/`; `specRoots.business.path` in `docs/project-config.json` overrides) holds a spec for the affected module, read its rules and contracts before investigating.
 - **Fix path:** validate a finding (evidence-backed, reproducible) before fixing it; fix at the owning layer; re-run the reviewer or test that raised it, plus a holistic pass when fixes were non-trivial. When the bug touches a `[HARD]` rule or invariant, regression TCs add invariant/property cases whose bar is a killed mutant, not line coverage, and each behavior-changing finding updates BOTH spec and tests.
+- **Post-fix lesson check:** after `/workflow-review-changes` converges and before `/integration-test --mode=verify`, read `../fix/references/post-fix-lesson-check.md` and run it once for the run, so a lesson saved through `/learn` lands before the single verify and its green run covers it; write its `Lesson:` line into the workflow report so `/workflow-end` carries it into the recap.
 - **Loop bounds:** round 1 exits on zero open validated findings (LOW deferral); from round 2 only CRITICAL/HIGH/MEDIUM block and LOW-only findings are deferred; cap 3 review rounds; failed checks block and at the three-round cap require explicit user-approved bounded extension; no progress → escalate via `ask user question tool`. Single-occurrence review steps converge inside their own skill loop.
 
 ## Activation
@@ -214,4 +216,5 @@ Recommended default order (roles in the table above):
 - **MUST ATTENTION** triage size, kind and risk FIRST; run only the recommended skills the triage shows do real work, and log every deviation with evidence.
 - **MUST ATTENTION** root cause before fix: `/investigate --mode=debug` (gate) produces the trace, feeder paths, hypothesis matrix, owning fix layer and forward convergence proof; classify Code Bug vs Spec Bug before any regression test.
 - **MUST ATTENTION** regression guard: the `/integration-test` step (gate) writes the regression test before `/fix` without running it, and `/fix` adjusts it when the fix changes its seams; the one `/integration-test --mode=verify` (gate, after the static review) proves it FAILS with the fix reverted by hand-edit (never `git checkout`/`restore`/`stash`) and PASSES with it in this run; NEVER encode buggy behavior or weaken a test to go green.
+- **MUST ATTENTION** after `/workflow-review-changes` converges and before `/integration-test --mode=verify`, run the post-fix lesson check (`../fix/references/post-fix-lesson-check.md`); a generic, likely-recurring lesson goes to `/learn` only after the user confirms.
 - **MUST ATTENTION** `/workflow-review-changes` runs INLINE in the main session and converges the whole package; sync the spec when a canonical spec or specified behavior changed; emit the Goal Satisfaction matrix and close with `/workflow-end`.

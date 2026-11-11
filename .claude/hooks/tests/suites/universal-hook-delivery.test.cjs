@@ -246,6 +246,35 @@ const tests = [
         })
     },
     {
+        name: 'TC-PDL-123 every session and every agent receives the full test coverage goal with each of its requirements',
+        fn: () => withFixture(async fx => {
+            // Intent: every task is told to aim for full coverage of its change at each applicable test layer and to test
+            // every spec user story and acceptance criterion, without padding coverage or turning a percentage into a gate.
+            const requirements = [
+                ['the 100% aim for every change', /aims for 100% test coverage of the behavior it adds, changes or restructures/],
+                ['the unit layer', /\*\*Unit\*\*/],
+                ['the integration layer', /\*\*Integration\*\*/],
+                ['the E2E layer', /\*\*E2E\*\*/],
+                ['layer applicability with evidence', /at every test layer the project applies \(`APPLICABLE` or `N\/A — <evidence>`/],
+                ['a test for every user story and acceptance criterion', /every user story and every acceptance criterion of the governing spec .*maps to at least one test case and an executing test/],
+                ['the change covering what it adds or touches without widening', /The change covers the stories and criteria it adds or touches; name any other uncovered one of that spec with an owner, so the spec still reaches 100%, instead of widening the change/],
+                ['a regression test for every bug fix', /A bug fix adds a regression test that fails without the fix/],
+                ['no padded coverage', /never pad coverage with assertion-free or duplicate tests/],
+                ['coverage percentages stay diagnostics', /stay diagnostics, never pass\/fail gates/],
+                ['every remaining gap named', /Name every gap left below 100% with its reason and owner/],
+            ];
+            for (const [label, input] of [['first prompt', prompt(fx)], ['agent start', agentStart(fx, 'general-purpose')]]) {
+                // Given a session or a new agent that has not received the bundle
+                // When every bin entry runs
+                const results = await runAllBins(fx, input);
+                assertAllDelivered(results, label);
+                // Then the delivered bundle states each requirement of the coverage goal
+                const delivered = results.map(result => result.context).join('\n\n');
+                for (const [requirement, pattern] of requirements) assert.match(delivered, pattern, `${label}: the bundle states ${requirement}`);
+            }
+        })
+    },
+    {
         name: 'TC-PDL-087 a second prompt inside the window delivers nothing',
         fn: () => withFixture(async fx => {
             // Given the bundle delivered on the first prompt

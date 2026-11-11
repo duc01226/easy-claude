@@ -581,6 +581,7 @@
           "project-protocol-overlay",
           "lesson-extraction-gate",
           "quality-skill-routing",
+          "test-coverage-goal",
           "universal-closing-reminders"
         ]
       ],
@@ -635,6 +636,10 @@
         },
         "quality-skill-routing": {
           "summary": "Route review, test and failure work to the project's registered skills first",
+          "when": "delivered by the universal hook"
+        },
+        "test-coverage-goal": {
+          "summary": "Aim for full unit, integration and E2E coverage of every change and test every spec story and acceptance criterion",
           "when": "delivered by the universal hook"
         },
         "universal-closing-reminders": {
