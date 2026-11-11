@@ -8,6 +8,8 @@
  * - on a prompt, a branch with no claim gets a short rule once per session, and a claimed branch one status line;
  * - after the first edit of a tracked file on an unclaimed branch, one nudge;
  * - after compaction or clear the notice re-arms (hosts without a transcript re-arm through SessionStart).
+ * `main` and `master` are where work starts, so they get the rule too; a claim or decline recorded on them is ignored,
+ * because a decline there would silence every later session on the shared trunk.
  * A declined branch, `mode: off`, a detached head and a directory outside Git stay silent. The hooks read local Git
  * state only (no network) and never block a tool. The claim record lives in the branch's Git configuration:
  * `branch.<name>.workClaim`, `.workClaimPr` and `.workClaimDeclined` — the keys a project's claim command writes.
@@ -40,6 +42,7 @@ const GROUP = 'work-claim';
 const NUDGE_STATE = 'work-claim-nudge';
 const GENERATION_STATE = 'work-claim-generation';
 const EDIT_TOOLS = new Set(['Edit', 'Write', 'MultiEdit', 'NotebookEdit', 'apply_patch']);
+const TRUNKS = Object.freeze(['main', 'master']);
 
 const nonBlank = value => typeof value === 'string' && value.trim() !== '';
 
@@ -146,25 +149,34 @@ function branchState(root, git = runGit) {
 
 const command = (settings, key, fallback) => (nonBlank(settings[key]) ? `\`${settings[key]}\`` : fallback);
 
+/** Work starts on a trunk and is claimed on its own branch: a trunk's claim or decline record is ignored. */
+const effectiveState = state => (state && TRUNKS.includes(state.branch) ? { ...state, claim: null, pr: null, declined: null } : state);
+
+/** How to decline: on a trunk, the record belongs on the work's own branch (a decline on the trunk is ignored). */
+const declineHow = (settings, state, what = 'that') =>
+    `record ${what} with ${command(settings, 'declineCommand', "the project's decline command")}${TRUNKS.includes(state.branch) ? ` on the work's own branch (a decline on \`${state.branch}\` is ignored)` : ''}`;
+
 /** The prompt notice for a branch state, or null (silent). */
-function promptNotice(settings, state) {
-    if (settings.mode !== 'remind' || !state || state.declined || state.branch === 'main' || state.branch === 'master') return null;
+function promptNotice(settings, raw) {
+    const state = effectiveState(raw);
+    if (settings.mode !== 'remind' || !state || state.declined) return null;
     if (state.claim && state.pr) {
         return `${MARKER}\nWork claim: \`${state.branch}\` tracks ${state.claim} in pull request #${state.pr}. Keep this request's changes on that pull request; before Ready, finish the task as the project's claim rule says. A clearly unrelated new task gets its own claim.${nonBlank(settings.statusCommand) ? ` Check the claim with \`${settings.statusCommand}\`.` : ''}`;
     }
     if (state.claim) {
         return `${MARKER}\nWork claim: \`${state.branch}\` claims ${state.claim}, but its push or pull request is pending. Run ${command(settings, 'claimCommand', "the project's claim command")} again to finish it.`;
     }
-    return `${MARKER}\nWork claim: \`${state.branch}\` has no claimed work. When this request will change tracked files (implement, fix, refactor, enhance, write a spec or plan into the repository), claim it before the first edit with ${command(settings, 'claimCommand', "the project's claim command")}. When it is unclear whether new change work is starting, ask the user once; if they say not to track it, record that with ${command(settings, 'declineCommand', "the project's decline command")}. Never claim or ask for questions, explanations, read-only reviews, investigations, brainstorms, reports, running commands, or follow-ups inside work already claimed.`;
+    return `${MARKER}\nWork claim: \`${state.branch}\` has no claimed work. When this request will change tracked files (implement, fix, refactor, enhance, write a spec or plan into the repository), claim it before the first edit with ${command(settings, 'claimCommand', "the project's claim command")}. When it is unclear whether new change work is starting, ask the user once; if they say not to track it, ${declineHow(settings, state)}. Never claim or ask for questions, explanations, read-only reviews, investigations, brainstorms, reports, running commands, or follow-ups inside work already claimed.`;
 }
 
 /** The first-edit nudge for edited paths, or null: only an unclaimed, undeclined branch editing a non-tracker file. */
-function editNudge(settings, state, paths) {
-    if (settings.mode !== 'remind' || !state || state.claim || state.declined || state.branch === 'main' || state.branch === 'master') return null;
+function editNudge(settings, raw, paths) {
+    const state = effectiveState(raw);
+    if (settings.mode !== 'remind' || !state || state.claim || state.declined) return null;
     const isTracker = pathMatcher(settings.trackerPaths);
     const edited = paths.filter(file => !isTracker(file));
     if (!edited.length) return null;
-    return `${MARKER}\nWork claim: \`${edited[0]}\` changed on \`${state.branch}\`, which has no claimed work. Claim it now with ${command(settings, 'claimCommand', "the project's claim command")}, or, if the user does not want this tracked, record why with ${command(settings, 'declineCommand', "the project's decline command")}.`;
+    return `${MARKER}\nWork claim: \`${edited[0]}\` changed on \`${state.branch}\`, which has no claimed work. Claim it now with ${command(settings, 'claimCommand', "the project's claim command")}, or, if the user does not want this tracked, ${declineHow(settings, state, 'why')}.`;
 }
 
 function store(root) {
