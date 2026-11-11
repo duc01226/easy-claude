@@ -315,6 +315,16 @@
         ]
       },
       {
+        "matcher": "compact|clear",
+        "hooks": [
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/task-tracking-route.cjs",
+            "timeout": 3,
+            "type": "command"
+          }
+        ]
+      },
+      {
         "hooks": [
           {
             "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/verify-install.cjs",

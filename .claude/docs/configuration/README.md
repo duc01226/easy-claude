@@ -996,6 +996,30 @@ opencode has no absolute compaction threshold — it compacts relative to the mo
 
 ---
 
+
+### Work-claim reminders (`workTracking`)
+
+Read this section when a project claims its work before changing anything and wants the assistant reminded to do it. Off by default. It is separate from [Team work tracking](#team-work-tracking) (`taskTracking`), which records work in the portable tracker; `workTracking` only reminds and exempts the project's own claim commit.
+
+```jsonc
+{
+  "workTracking": {
+    "mode": "remind",                       // off (default) | remind
+    "claimCommand": "<the project's claim command>",
+    "statusCommand": "<the project's status command>",
+    "declineCommand": "<the project's decline command>",
+    "trackerPaths": ["trackers/**/*.md"],   // required for remind (no default): what a claim commit may change; never nudged
+    "claimCommitPrefix": "chore(trackers): start ",
+    "staleDraftDays": 5,
+    "autoMerge": "ask"                      // ask | when-green, usually personal
+  }
+}
+```
+
+The project config (team) owns every key. A personal layer — `~/.claude/.ck.json`, `.claude/.ck.local.json`, `CK_WORK_TRACKING_MODE`, `CK_WORK_TRACKING_AUTO_MERGE` — may set only `mode` and `autoMerge`, later wins; `node .claude/scripts/framework-features.cjs --json` shows the effective values and their layers. The claim command writes the branch's record in local Git configuration (`branch.<name>.workClaim`, `.workClaimPr`, `.workClaimDeclined`), which is all the hooks read. What the reminders say and when: [hooks README](../hooks/README.md) (work-claim reminders). The commit-gate exemption for a tracker-only claim commit follows the team's `mode` only; a personal `remind` never relaxes a team's review gate.
+
+---
+
 ## Quick Configuration Guide
 
 ### Enable/Disable Features
@@ -1094,6 +1118,8 @@ Set a personal switch as an `env` entry in the git-ignored `.claude/settings.loc
 | `CK_PROMPT_LEDGER`                      | `0` / `false` / `off` / `no`: turns the session prompt ledger off, like `promptLedger.enabled: false` in `.ck.json`                  |
 | `CK_PROMPT_LEDGER_DIR`                  | Directory for prompt-ledger records instead of `<project>/tmp/prompt-ledger`                                                         |
 | `CK_COMMIT_SKILL_ROUTE`                 | `0`: stops the reminder to commit through the `commit` skill, like `commitSkillRoute.enabled: false`                                 |
+| `CK_WORK_TRACKING_MODE`                 | `off` or `remind`: your own work-claim reminders, like a personal `workTracking.mode` (the team's mode alone decides the commit-gate claim exemption) |
+| `CK_WORK_TRACKING_AUTO_MERGE`           | `ask` or `when-green`: your merge behaviour, like a personal `workTracking.autoMerge` |
 | `CK_JUDGEMENT_INTEGRITY_ROUTE`          | `0`: stops the judgement-integrity reminder, like `judgementIntegrityRoute.enabled: false`                                           |
 | `CK_DECISION_SUPPORT_MODE`              | `ask`, `suggest`, `auto` or `off`: the decision-support mode for this shell or host, like `portability.decisionSupportMode` (see [Decision support](#decision-support-runtime-per-developer)) |
 | `CK_AI_FEATURE_ROUTE`                   | `0`: stops the AI-feature (AI-engineering gate) reminder, like `aiFeatureRoute.enabled: false`                                       |

@@ -48,6 +48,10 @@ const codexSessionStartMirrors = new Map([
     "rotates the failure reminder's private generation on compact/clear; transcriptless pre-shell consumers cannot infer resets from static instructions",
   ],
   [
+    ".claude/hooks/task-tracking-route.cjs",
+    "rotates the work-claim notice's private generation on compact/clear, so the branch's claim status line returns after a reset; the claim is per-branch Git state that no static carrier can hold",
+  ],
+  [
     ".claude/hooks/ui-reuse-remind.cjs",
     "re-delivers the UI reminder right after a compaction and rotates its private reset generation on compact/clear; blind prompt/pre-tool consumers cannot infer context resets from static instructions",
   ],
