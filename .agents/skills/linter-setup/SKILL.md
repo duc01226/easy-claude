@@ -194,7 +194,7 @@ Generate a CI job/step that:
 3. Runs linter (fail on any error)
 4. Runs type checker (fail on any error)
 5. Runs static analyzer (fail on configurable complexity/duplication threshold)
-6. Runs dependency vulnerability scanner (fail on HIGH/CRITICAL CVEs)
+6. Runs dependency vulnerability scanner (fail on HIGH/CRITICAL CVEs). Name who responds when it fails and by when — an alert owner and a deadline per severity, recorded in `docs/project-config.json` → `dependencySecurity` when the project keeps one — and recommend a scheduled full scan of the default branch beside this per-change check, because advisories published after a merge never fail a per-change check. Remediation of its findings is `$package-upgrade --mode=remediate`.
 7. Reports line coverage as DIAGNOSTIC only — NEVER fail on a coverage %. Low coverage signals untested areas; high coverage does not prove quality. If a test-strength sensor is warranted, choose assertion-intent, contract, property or mutation evidence by profile, risk, tooling and budget under the shared Harness Engineering owner; ask before installing an optional tool. A mutation-score threshold applies only when justified and selected; report line coverage but do not gate on it. Keep behavior/change-coverage meaningful: each behavior-changing file tests the changed outcome.
 
 **MANDATORY:** CI gate must match pre-commit hooks. If a check runs locally, it runs in CI. No divergence.
@@ -209,6 +209,7 @@ After all config files generated, verify MUST ATTENTION each item:
 - `.editorconfig` created at project root
 - Pre-commit verification runs in an isolated temporary fixture repository using the selected hook configuration and tooling, never the working repository. Snapshot the working repository HEAD and index bytes before the probe and verify both unchanged afterward. In the fixture, stage a synthetic lint violation, attempt the fixture commit, and require nonzero status plus the selected linter’s diagnostic for that exact file/rule; an unrelated authority hook rejection is not proof. Also test an absent/broken-hook fixture: a successful fixture commit must be reported as a failed hook-verification result. Include a clean valid fixture that succeeds to discriminate unrelated failures; remove fixture artifacts in finally. Setup authorization grants no real-project commit authority.
 - CI step defined and references the correct config files
+- The dependency scanner has a named responder and deadline (or the user declined to name one, recorded)
 - Team setup documented in `README.md` — new devs know to run `{hook install command}` after clone
 - `.gitignore` updated with tool cache directories
 

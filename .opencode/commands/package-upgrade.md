@@ -1,5 +1,5 @@
 ---
-description: "[Code Quality] Use when analyzing npm package upgrades, outdated dependencies or breaking changes and preparing a phased upgrade plan."
+description: "[Code Quality] Use when planning dependency upgrades or researching breaking changes in any package ecosystem. --mode=remediate fixes a red dependency scan, alert or vulnerable-package issue at the owning package."
 ---
 
 <!-- GENERATED OPENCODE COMMAND (sync-skills.mjs) for .claude/skills/package-upgrade/SKILL.md — do not hand-edit; re-run:

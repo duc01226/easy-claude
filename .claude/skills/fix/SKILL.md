@@ -184,6 +184,7 @@ Read `references/target-ci.md` in full FIRST (BLOCKING) — it holds this branch
 
 - Link the fix back to the issue for traceability.
 - Verify the fix addresses the specific reproduction steps from the issue.
+- **Vulnerable-dependency issue handoff:** an issue or alert whose subject is vulnerable package versions (a failed dependency scan, a security advisory against a locked package) goes to `/package-upgrade --mode=remediate` with the issue link; stop this branch there.
 
 **Workflow:**
 

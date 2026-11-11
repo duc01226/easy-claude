@@ -36,7 +36,7 @@ Connected contracts:
 3. **OWASP A01–A10** — Systematic pass (checklist below)
 4. **Microservices Boundary** — JWT propagation, message-bus validation, service-to-service trust
 5. **Auth & AuthZ Deep Dive** — Trace identity source → JWT → permission provider → resource gate
-6. **Dependency CVE Scan** — Run the ecosystem scanner for each detected package manager
+6. **Dependency CVE Scan** — Read the project's existing scan result first, else run the scanner for each detected package manager (commands: `.claude/skills/package-upgrade/references/ecosystems.md`). Reachability lowers priority only; fixes go to `$package-upgrade --mode=remediate`
 7. **Secrets & Config** — Hardcoded secrets, config exposure, key rotation
 8. **Report** — Structured findings to `tmp/reports/` with severity, evidence, CVSS estimate, remediation
 
@@ -309,11 +309,11 @@ grep -rn "Exception\\.Message\\|StackTrace\\|\\.InnerException" --include="*.cs"
 - Container base images with CVEs
 
 ```bash
-dotnet list package --vulnerable
 dotnet list package --outdated
-npm audit --audit-level=moderate
 npm outdated
 ```
+
+Vulnerable-package listings per package manager: `.claude/skills/package-upgrade/references/ecosystems.md`, the one owner of those facts. Report findings; remediation is `$package-upgrade --mode=remediate`.
 
 ---
 

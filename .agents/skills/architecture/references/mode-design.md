@@ -751,7 +751,7 @@ For each recommended library/package, evaluate maintenance and obsolescence risk
 
 1. **Automated scanning:** {tool} (Dependabot/Renovate/Snyk) — weekly PR for updates
 2. **Lock file strategy:** Commit lock files, pin major versions, allow patch auto-update
-3. **Audit schedule:** Monthly `npm audit` / `dotnet list package --vulnerable`
+3. **Audit schedule:** {scanner} on a schedule plus a per-change check (per-ecosystem commands: `.claude/skills/package-upgrade/references/ecosystems.md`); name who responds when it fails and by when
 4. **Vendor policy:** Max {N} dependencies per concern, prefer well-maintained alternatives
 5. **Exit strategy:** For each High-risk dependency, document migration path to alternative
 ```

@@ -60,6 +60,12 @@
       "pattern": "\\b(?:bugs?|bugfix|fix(?:es|ing)?|debug(?:ger|ging)?|regressions?|fail(?:ed|ure|ures|ing)?|errors?|crash(?:es|ing)?|root[- ]cause|behavio[u]?r[- ]chang(?:e|es|ing)|unclear (?:code )?flow|unexpected (?:output|behavior)|upstream[- ]first)\\b",
       "skills": []
     },
+    "dependency-work": {
+      "pattern": "\\b(?:vulnerab\\w*|(?:security|vulnerability) advisor(?:y|ies)|cves?|ghsa|osv(?:-scanner)?|trivy|dependabot|renovate|lock ?files?|(?:npm|pnpm|yarn) audit|pip-audit|govulncheck|cargo[- ]audit|outdated dependenc\\w*|dependency (?:upgrades?|updates?|scans?|scanning)|package upgrades?|transitive dependenc\\w*)\\b",
+      "skills": [
+        "package-upgrade"
+      ]
+    },
     "service-boundary": {
       "pattern": "\\b(?:microservices?|cross[- ]service|event[- ]driven|message[- ]bus|brokers?|sagas?|grpc|webhooks?|distributed|service[- ]to[- ]service|downstream consumers?)\\b",
       "pathPattern": "\\.proto\\b|[\\\\/](?:consumers|sagas)[\\\\/]",
@@ -164,6 +170,11 @@
           "summary": "Scan producers, consumers, sagas and shared contracts for cross-service impact",
           "when": "concluding an investigation, plan or spec in a service-based system",
           "trigger": "service-boundary"
+        },
+        "dependency-fix-at-owner": {
+          "summary": "Fix a vulnerable dependency at the package that decides its version, research every moved version and prove it with a re-scan",
+          "when": "fixing, upgrading or accepting a vulnerable or outdated dependency",
+          "trigger": "dependency-work"
         },
         "end-to-start-debugger-trace": {
           "summary": "Walk backward from the observed end state through every feeder path before fixing",
