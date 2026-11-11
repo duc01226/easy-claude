@@ -260,7 +260,7 @@ Many skills follow the same shared protocols — evidence rules, review rules, t
 
 - **AC-PDL-32** — **Given** an agent of any type starts **When** its start is reported **Then** it receives the core engineering principles and the UI reuse guidance once for that spawn, plus the verdict and AI-feature directives when the session's latest recorded user prompt asks for one; workflow routing, commit and tracking guidance, setup offers and the prompt record stay with the main conversation (BR-PDL-21)
 - **AC-PDL-33** — **Given** the host reports a compaction **When** no prompt follows **Then** the core principles, the UI reuse guidance, the workflow route and catalog, and those two directives (judged on the latest recorded prompt) arrive at once, and the prompt that follows the host's own compaction boundary stays silent (BR-PDL-21)
-- **AC-PDL-34** — **Given** a long run that produces tool results **When** a scope's first tool result arrives, or about 150,000 tokens of growth, a compaction or a changed digest occurred since the last delivery **Then** a short digest routes reviews (a rationale or claim, a focused change or simple pull request, a complex pull request), tests and failure diagnosis to the project's registered skills; otherwise nothing arrives (BR-PDL-22)
+- **AC-PDL-34** — **Given** a long run that produces tool results **When** a scope's first tool result arrives, or about 150,000 tokens of growth, a compaction or a changed digest occurred since the last delivery **Then** a short digest routes reviews (a rationale or claim, a focused change or simple pull request, a complex pull request), tests, failure diagnosis and fixes to the project's registered skills; otherwise nothing arrives (BR-PDL-22)
 - **AC-PDL-35** — **Given** a project that opted into agent guides (off by default) and an agent definition converted by them (a trigger-gated protocol it neither keeps inline nor needs as a code-tier rule is carried as one guide line plus its reminder) **When** the agent starts **Then** the group hooks deliver that protocol's full text when its trigger applies or the trigger context cannot be read, deliver nothing for it otherwise, never repeat a protocol the agent still carries in full, and the guide line's published path stays the fallback; a second conversion run changes no byte, and disabling the policy (or keeping a tag inline) restores the full body verbatim (BR-PDL-08, BR-PDL-14)
 
 ## 4. Business Rules
@@ -312,7 +312,7 @@ Protocols belong to exactly one of six fixed groups: review, evidence and trace,
 
 ### BR-PDL-04: Universal rules are carried by no file and delivered by the bundle hook [HARD]
 
-The universal group holds the framework rules every task follows, among them critical thinking, AI mistake prevention, the project reference docs gate, the project protocol overlay, task planning, workflow step advancement, evidence, code responsibility, artifact storage, lesson extraction and the closing reminders. No file carries them: not the root instruction files, not a converted or inline skill, not an agent definition. A skill load delivers none of them (the five group steps drop the universal group whatever a skill declares), and a host that runs no hooks is not supported. The bundle is delivered by BR-PDL-18.
+The universal group holds the framework rules every task follows, among them critical thinking, AI mistake prevention, the project reference docs gate, the project protocol overlay, task planning, workflow step advancement, evidence, code responsibility, artifact storage, lesson extraction, the test coverage goal and the closing reminders. The test coverage goal tells every task to aim for full coverage of the behavior a change adds, changes or restructures at each test layer the project uses (unit, integration and end-to-end, each applicable or not applicable with evidence), to cover every user story and acceptance criterion of the governing specification with an executing test (a change covers the ones it adds or touches and names any other uncovered one with an owner instead of widening the change), and to add a regression test to every bug fix; a test counts only when it fails once the protected intent breaks, a coverage percentage is never a pass/fail gate, and every gap left is named with its reason and owner. No file carries them: not the root instruction files, not a converted or inline skill, not an agent definition. A skill load delivers none of them (the five group steps drop the universal group whatever a skill declares), and a host that runs no hooks is not supported. The bundle is delivered by BR-PDL-18.
 
 `[Source: rule/hooks/protocol-root-carried]`
 
@@ -468,7 +468,7 @@ An agent start and a compaction report carry no user prompt, yet both begin work
 
 ### BR-PDL-22: Quality-skill routes refresh after tool results [HARD]
 
-The universal bundle carries the quality-skill routing protocol: review, test and failure work use the project's registered skills first — judging a rationale, decision, claim or statement; reviewing a focused code change or a simple pull request; reviewing a pull request or change set that is complex, risky or cross-module; running or writing tests; diagnosing the root cause of a failure or error before any fix — and a generic equivalent only when none fits. IF a tool result arrives in a scope (the main conversation or one agent) THEN a short digest of those routes is delivered once; afterwards it is delivered again only after about 150,000 tokens of conversation growth, a compaction recorded in that scope's own conversation (an agent's included) or a changed digest. Elapsed time alone never re-delivers it, and a host that exposes no conversation record receives one delivery until a compaction. A tool result without a session identity receives nothing. The project may switch the digest off; the universal protocol still binds.
+The universal bundle carries the quality-skill routing protocol: review, test and failure work use the project's registered skills first — judging a rationale, decision, claim or statement; reviewing a focused code change or a simple pull request; reviewing a pull request or change set that is complex, risky or cross-module; running or writing tests; diagnosing the root cause of a failure or error before any fix, then fixing every issue, failure or bug through the registered fix skill, or the bug-fix workflow for a non-trivial bug, never by an ad hoc patch — and a generic equivalent only when none fits. IF a tool result arrives in a scope (the main conversation or one agent) THEN a short digest of those routes is delivered once; afterwards it is delivered again only after about 150,000 tokens of conversation growth, a compaction recorded in that scope's own conversation (an agent's included) or a changed digest. Elapsed time alone never re-delivers it, and a host that exposes no conversation record receives one delivery until a compaction. A tool result without a session identity receives nothing. The project may switch the digest off; the universal protocol still binds.
 
 `[Source: rule/hooks/quality-skill-reminder]`
 
@@ -689,7 +689,7 @@ SecondHostInlineList    1──N Protocol           (decided: none)
 | Mode Section Tests             | TC-PDL-043, TC-PDL-044, TC-PDL-045, TC-PDL-046, TC-PDL-064                                                                                                                         |
 | Compression Tests              | TC-PDL-047, TC-PDL-048, TC-PDL-049, TC-PDL-062                                                                                                                                     |
 | Conditional Pruning Tests      | TC-PDL-050, TC-PDL-051, TC-PDL-052                                                                                                                                                 |
-| Universal Bundle Tests         | TC-PDL-085, TC-PDL-086, TC-PDL-087, TC-PDL-088, TC-PDL-089, TC-PDL-090, TC-PDL-091, TC-PDL-092, TC-PDL-093, TC-PDL-094, TC-PDL-095, TC-PDL-096, TC-PDL-097, TC-PDL-098, TC-PDL-099, TC-PDL-110, TC-PDL-111, TC-PDL-112, TC-PDL-113, TC-PDL-114 |
+| Universal Bundle Tests         | TC-PDL-085, TC-PDL-086, TC-PDL-087, TC-PDL-088, TC-PDL-089, TC-PDL-090, TC-PDL-091, TC-PDL-092, TC-PDL-093, TC-PDL-094, TC-PDL-095, TC-PDL-096, TC-PDL-097, TC-PDL-098, TC-PDL-099, TC-PDL-110, TC-PDL-111, TC-PDL-112, TC-PDL-113, TC-PDL-114, TC-PDL-123 |
 | UI Reuse Reminder Tests | TC-PDL-115, TC-PDL-116, TC-PDL-117 |
 | Prompt-Time Guidance Tests | TC-PDL-118, TC-PDL-119 |
 | Quality-Skill Reminder Tests | TC-PDL-120 |
@@ -706,7 +706,7 @@ SecondHostInlineList    1──N Protocol           (decided: none)
 | `.claude/hooks/tests/suites/protocol-host-mapping.test.cjs`                                                     | TC-PDL-021, TC-PDL-022, TC-PDL-023, TC-PDL-024, TC-PDL-025, TC-PDL-027, TC-PDL-042, TC-PDL-058, TC-PDL-059, TC-PDL-060, TC-PDL-070                                                 |
 | `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --verify-only`                                       | TC-PDL-026                                                                                                                                                                         |
 | `.claude/hooks/tests/suites/content-presence.test.cjs`                                                          | TC-PDL-028, TC-PDL-084                                                                                                                                                             |
-| `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs`                                                   | TC-PDL-085, TC-PDL-086, TC-PDL-087, TC-PDL-088, TC-PDL-089, TC-PDL-090, TC-PDL-091, TC-PDL-092, TC-PDL-093, TC-PDL-094, TC-PDL-095, TC-PDL-096, TC-PDL-097, TC-PDL-098, TC-PDL-099, TC-PDL-110, TC-PDL-111, TC-PDL-112, TC-PDL-113, TC-PDL-114 |
+| `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs`                                                   | TC-PDL-085, TC-PDL-086, TC-PDL-087, TC-PDL-088, TC-PDL-089, TC-PDL-090, TC-PDL-091, TC-PDL-092, TC-PDL-093, TC-PDL-094, TC-PDL-095, TC-PDL-096, TC-PDL-097, TC-PDL-098, TC-PDL-099, TC-PDL-110, TC-PDL-111, TC-PDL-112, TC-PDL-113, TC-PDL-114, TC-PDL-123 |
 | `.claude/hooks/tests/suites/skill-overlay-remind.test.cjs`                                                      | TC-PDL-100, TC-PDL-101, TC-PDL-102, TC-PDL-103, TC-PDL-104, TC-PDL-105, TC-PDL-106, TC-PDL-107, TC-PDL-108, TC-PDL-109                                                             |
 | `.claude/hooks/tests/suites/ui-reuse-remind.test.cjs` | TC-PDL-115, TC-PDL-116, TC-PDL-117, TC-PDL-118, TC-PDL-119 |
 | `.claude/hooks/tests/suites/core-principles-inject.test.cjs` | TC-PDL-118, TC-PDL-119 |
@@ -740,7 +740,7 @@ SecondHostInlineList    1──N Protocol           (decided: none)
 | BR-PDL-01 | TC-PDL-019, TC-PDL-029, TC-PDL-030, TC-PDL-031, TC-PDL-032, TC-PDL-033, TC-PDL-034, TC-PDL-036, TC-PDL-040                                                                                                 |
 | BR-PDL-02 | TC-PDL-009, TC-PDL-014, TC-PDL-015, TC-PDL-020, TC-PDL-041, TC-PDL-053                                                                                                                                     |
 | BR-PDL-03 | TC-PDL-002, TC-PDL-016, TC-PDL-047                                                                                                                                                                         |
-| BR-PDL-04 | TC-PDL-012, TC-PDL-017, TC-PDL-035, TC-PDL-036, TC-PDL-037, TC-PDL-097                                                                                                                                     |
+| BR-PDL-04 | TC-PDL-012, TC-PDL-017, TC-PDL-035, TC-PDL-036, TC-PDL-037, TC-PDL-097, TC-PDL-123                                                                                                                         |
 | BR-PDL-05 | TC-PDL-016, TC-PDL-054, TC-PDL-063                                                                                                                                                                         |
 | BR-PDL-06 | TC-PDL-013, TC-PDL-022, TC-PDL-024, TC-PDL-025, TC-PDL-042                                                                                                                                                 |
 | BR-PDL-07 | TC-PDL-043, TC-PDL-044, TC-PDL-045, TC-PDL-046, TC-PDL-064                                                                                                                                                 |
@@ -6314,6 +6314,66 @@ boundaryCounterCase: 'a known size under the distance → the delivery stays pre
 > **CoveredBy:** `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs::TC-PDL-114` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs` "TC-PDL-114 a delivery recorded while the conversation record did not exist yet still re-delivers after 150,000 tokens of growth"
 
 ---
+#### TC-PDL-123: Every session and every agent receives the full test coverage goal [P1]
+
+**Objective:** Prove that the universal bundle tells every task to aim for full test coverage of its change at each applicable test layer and to test every user story and acceptance criterion.
+
+**Business Intent / Invariant Guarded:** A task that is never told the coverage goal ships untested behavior, stories and acceptance criteria silently (BR-PDL-04, BR-PDL-18).
+
+**Traces:** AC-PDL-09, AC-PDL-10 / BR-PDL-04
+
+**Preconditions:**
+
+- A fixture project with its own temporary state and the published universal bundle
+
+**Real-World Reachability:** A user starts a session with a feature or bug-fix request, or the session starts a delegated agent for the same work.
+
+**Demo Flow:** Send the first prompt of a session; start an agent of any type.
+
+```gherkin
+Given a session or a new agent that has not received the universal bundle
+When its first prompt is processed or the agent starts
+Then the delivered bundle states the full test coverage goal with each of its requirements
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                                           |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the generated host files, command output and check messages |
+| **System behavior**     | Hook steps run through their real entry files and exit normally                                                                                                       |
+| **Business data state** | Every bin is delivered and recorded once for the scope                                                                                                                |
+| **Data shown on UI**    | The bundle carries the coverage goal for both the session and the agent                                                                                               |
+
+**Acceptance Criteria:**
+
+- ✅ The aim of 100% coverage of the behavior a change adds, changes or restructures
+- ✅ The unit, integration and end-to-end layers, each applicable or not applicable with evidence
+- ✅ An executing test for every user story and acceptance criterion of the governing specification
+- ✅ A change covers the stories and criteria it adds or touches and names any other uncovered one with an owner instead of widening the change
+- ✅ A regression test for every bug fix
+- ✅ No padded coverage; a coverage percentage stays a diagnostic, never a pass/fail gate; every gap left is named with its reason and owner
+- ❌ A session or agent whose bundle omits any of these requirements
+
+**Test Data:**
+
+```yaml
+inputDomain: 'the first prompt of a session and the start of an agent of any type'
+invariant: 'for ALL deliveries of the bundle the coverage goal states every requirement listed above'
+boundaryCounterCase: 'a bundle without the coverage goal protocol → the check fails naming the missing requirement'
+```
+
+**Edge Cases:**
+
+- A project that uses no end-to-end layer still receives the goal; the layer is recorded as not applicable with evidence
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/hooks/protocol-root-carried]`
+> **Related Behaviors:** `operation/hooks/universal-delivery`
+> **CoveredBy:** `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs::TC-PDL-123` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs` "TC-PDL-123 every session and every agent receives the full test coverage goal with each of its requirements"
+
+---
 ### Skill Overlay Reminder Tests
 
 > The reminder given when a skill starts (BR-PDL-19, US-PDL-04).
@@ -7050,7 +7110,7 @@ boundaryCounterCase: 'a bare safe name → its body path'
 
 **Demo Flow / GWT:** Given the preconditions, when tool results arrive below and at the 150,000-token boundary, after a compaction in the main conversation or in an agent's own conversation, after a changed digest and after days with no growth, then the expected result holds.
 
-**Expected Result:** The first tool result of each scope delivers the digest as advisory context naming the rationale, focused-change and complex-pull-request review routes, the test skills and root-cause diagnosis; it is delivered again only at the growth boundary, after that scope's compaction or after a changed digest. Elapsed time, other events, a missing session identity and a switched-off project deliver nothing.
+**Expected Result:** The first tool result of each scope delivers the digest as advisory context naming the rationale, focused-change and complex-pull-request review routes, the test skills, root-cause diagnosis and the fix routes (the fix skill, or the bug-fix workflow for a non-trivial bug); it is delivered again only at the growth boundary, after that scope's compaction or after a changed digest. Elapsed time, other events, a missing session identity and a switched-off project deliver nothing.
 
 **Acceptance Criteria:** AC-PDL-34.
 

@@ -33,7 +33,7 @@ const IS_FRAMEWORK_REPO = isFrameworkRepo(REPO_ROOT);
 const SESSION = 'session-q';
 const CANONICAL_REL = ['.claude', 'skills', 'shared', 'sync-inline-versions.md'];
 const FIXTURE_BODY = '**Quality skills first:** fixture digest — why-review, changes-review, investigate --mode=debug.';
-const ROUTES = ['`why-review`', '`changes-review`', '`workflow-review-changes`', '`test`', '`investigate --mode=debug`'];
+const ROUTES = ['`why-review`', '`changes-review`', '`workflow-review-changes`', '`test`', '`investigate --mode=debug`', '`fix`', '`workflow-bugfix`'];
 
 async function withFixture(fn) {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'quality-skill-remind-'));
@@ -205,7 +205,10 @@ const tests = [
                 assert.match(text, /`changes-review`[^;]*simple pull request/, `${label}: a simple pull request routes to changes-review`);
                 assert.match(text, /`workflow-review-changes`[^;]*complex/, `${label}: the review workflow is tied to complex changes`);
                 assert.doesNotMatch(text, /`workflow-review-changes`[^;]*whole pull request or/, `${label}: a whole pull request alone never selects the workflow`);
+                // An issue, failure or bug is fixed through the fix skill or the bug-fix workflow, never patched ad hoc.
+                assert.match(text, /`fix`[^.]*`workflow-bugfix`[^.]*never (by )?an ad hoc patch|never (by )?an ad hoc patch[^]*`fix`[^.]*`workflow-bugfix`/, `${label}: fixes go through fix or workflow-bugfix`);
             }
+            assert.match(full, /post-fix lesson check[^.]*`\/learn` once the user confirms/, 'the full protocol names the post-fix lesson check');
             const description = name => /^description: '(.*)'$/m.exec(fs.readFileSync(path.join(REPO_ROOT, '.claude', 'skills', name, 'SKILL.md'), 'utf8'))[1];
             assert.match(description('changes-review'), /simple pull request/, 'changes-review description owns simple pull requests');
             assert.match(description('workflow-review-changes'), /complex, risky or cross-module/, 'the workflow description is conditioned on complexity');
