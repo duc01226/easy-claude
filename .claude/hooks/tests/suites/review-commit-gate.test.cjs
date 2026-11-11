@@ -1741,6 +1741,98 @@ const STATUS_TESTS = [
     }
 ];
 
-tests.push(...ENFORCE_TESTS, ...STATUS_TESTS);
+// ---- workTracking: a tracker-only claim commit needs no receipt (hooks/lib/work-claim.cjs) ----------------
+
+/** A repo whose project config switches work tracking on (or not), with a tracker file and a code file. */
+function makeClaimRepo(dir, workTracking) {
+    makeRepo(dir);
+    fs.mkdirSync(path.join(dir, 'docs'), { recursive: true });
+    fs.writeFileSync(path.join(dir, 'docs', 'project-config.json'), JSON.stringify(workTracking ? { workTracking } : {}));
+    fs.mkdirSync(path.join(dir, 'trackers'), { recursive: true });
+    fs.writeFileSync(path.join(dir, 'trackers', 'sample.md'), 'base\n');
+    git(dir, ['add', '.']);
+    git(dir, [C_ARG, '-q', '-m', 'tracker']);
+    fs.writeFileSync(path.join(dir, 'trackers', 'sample.md'), 'claimed\n');
+}
+const commitGate = (repo, command) => gate().evaluate({ tool_name: 'Bash', tool_input: { command, cwd: repo } });
+const CLAIM = 'chore(trackers): start SMP-261111-1 Claimed work';
+const REMIND = { mode: 'remind', trackerPaths: ['trackers/**/*.md'] };
+
+const CLAIM_TESTS = [
+    {
+        name: 'TC-RGE-031 with team workTracking remind, a tracker-only claim commit passes without a receipt, by -m or by -F file',
+        skip: !GIT,
+        fn: async () => fixture(fx => withStore(fx.store, () => {
+            makeClaimRepo(fx.repoA, REMIND);
+            git(fx.repoA, ['add', 'trackers/sample.md']);
+            assert.equal(commitGate(fx.repoA, `git ${C_WORD} -m "${CLAIM}"`), undefined, 'staged tracker-only claim with -m');
+            fs.writeFileSync(path.join(fx.repoA, 'msg.txt'), `${CLAIM}\n\nTracks SMP-261111-1.\n`);
+            assert.equal(commitGate(fx.repoA, `git ${C_WORD} -F msg.txt`), undefined, 'the same claim with -F');
+            assert.equal(commitGate(fx.repoA, `git ${C_WORD} -m "${CLAIM}" -- trackers/sample.md`), undefined, 'literal tracker path');
+        }))
+    },
+    {
+        name: 'TC-RGE-032 a mixed, unprefixed, amended or standard-input claim still needs a receipt',
+        skip: !GIT,
+        fn: async () => fixture(fx => withStore(fx.store, () => {
+            makeClaimRepo(fx.repoA, REMIND);
+            git(fx.repoA, ['add', 'trackers/sample.md']);
+            assert.equal(commitGate(fx.repoA, `git ${C_WORD} -m "feat: not a claim"`)?.code, 2, 'no claim prefix');
+            assert.equal(commitGate(fx.repoA, `git ${C_WORD} --amend -m "${CLAIM}"`)?.code, 2, 'an amend is never exempt');
+            assert.equal(commitGate(fx.repoA, `git ${C_WORD} -F -`)?.code, 2, 'a message from standard input is never read');
+            fs.writeFileSync(path.join(fx.repoA, 'file.txt'), 'code change\n');
+            git(fx.repoA, ['add', 'file.txt']);
+            assert.equal(commitGate(fx.repoA, `git ${C_WORD} -m "${CLAIM}"`)?.code, 2, 'a claim message on a mixed commit');
+            assert.equal(commitGate(fx.repoA, `git ${C_WORD} -a -m "${CLAIM}"`)?.code, 2, 'all tracked changes include code');
+        }))
+    },
+    {
+        name: 'TC-RGE-034 an unstaged code change under -a, a literal code path, a rename, a symlink or a shaped message is never a claim',
+        skip: !GIT,
+        fn: async () => fixture(fx => withStore(fx.store, () => {
+            makeClaimRepo(fx.repoA, REMIND);
+            fs.writeFileSync(path.join(fx.repoA, 'code.txt'), 'v1\n');
+            git(fx.repoA, ['add', 'code.txt']);
+            git(fx.repoA, [C_ARG, '-q', '-m', 'code']);
+            git(fx.repoA, ['add', 'trackers/sample.md']);
+            fs.writeFileSync(path.join(fx.repoA, 'code.txt'), 'v2, unstaged\n');
+            assert.equal(commitGate(fx.repoA, `git ${C_WORD} -a -m "${CLAIM}"`)?.code, 2, 'an unstaged code change rides along with -a');
+            assert.equal(commitGate(fx.repoA, `git ${C_WORD} -m "${CLAIM}" -- code.txt`)?.code, 2, 'a literal path outside the trackers');
+            assert.equal(commitGate(fx.repoA, `git ${C_WORD} --fixup=HEAD -m "${CLAIM}"`)?.code, 2, 'a fixup message is not the claim message');
+            fs.writeFileSync(path.join(fx.repoA, 'code.txt'), 'v1\n');
+            git(fx.repoA, ['mv', 'code.txt', 'trackers/code.md']);
+            assert.equal(commitGate(fx.repoA, `git ${C_WORD} -m "${CLAIM}"`)?.code, 2, 'a rename into the trackers deletes code');
+            git(fx.repoA, ['reset', '-q']);
+            fs.rmSync(path.join(fx.repoA, 'trackers', 'code.md'));
+            fs.writeFileSync(path.join(fx.repoA, 'code.txt'), 'v1\n');
+            if (process.platform !== 'win32') {
+                fs.symlinkSync('../code.txt', path.join(fx.repoA, 'trackers', 'link.md'));
+                git(fx.repoA, ['add', 'trackers/sample.md', 'trackers/link.md']);
+                assert.equal(commitGate(fx.repoA, `git ${C_WORD} -m "${CLAIM}"`)?.code, 2, 'a symlink at a tracker path');
+            }
+        }))
+    },
+    {
+        name: 'TC-RGE-033 a personal remind never relaxes a team that left work tracking off',
+        skip: !GIT,
+        fn: async () => fixture(fx => withStore(fx.store, () => {
+            makeClaimRepo(fx.repoA, null);
+            fs.mkdirSync(path.join(fx.repoA, '.claude'), { recursive: true });
+            fs.writeFileSync(path.join(fx.repoA, '.claude', '.ck.local.json'), JSON.stringify({ workTracking: { mode: 'remind' } }));
+            git(fx.repoA, ['add', 'trackers/sample.md']);
+            assert.equal(commitGate(fx.repoA, `git ${C_WORD} -m "${CLAIM}"`)?.code, 2);
+            const saved = process.env.CK_WORK_TRACKING_MODE;
+            process.env.CK_WORK_TRACKING_MODE = 'remind';
+            try {
+                assert.equal(commitGate(fx.repoA, `git ${C_WORD} -m "${CLAIM}"`)?.code, 2, 'the environment layer is personal too');
+            } finally {
+                if (saved === undefined) delete process.env.CK_WORK_TRACKING_MODE;
+                else process.env.CK_WORK_TRACKING_MODE = saved;
+            }
+        }))
+    }
+];
+
+tests.push(...ENFORCE_TESTS, ...STATUS_TESTS, ...CLAIM_TESTS);
 
 module.exports = { name: 'review-commit-gate', tests };

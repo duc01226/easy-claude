@@ -440,6 +440,8 @@ const EXPECTED_RENDERED_GROUPS = [
     //   protocol-inject-universal-1..4 — the universal bundle after a compaction or clear (compact|clear)
     // Failure reminder's private compact/clear reset precedes the existing startup producers.
     ['SessionStart', 'compact|clear', 1],
+    // Work-claim notice re-arm (2026-11-11): task-tracking-route resets its prompt-notice generation on compact|clear.
+    ['SessionStart', 'compact|clear', 1],
     ['SessionStart', 'startup|resume|clear|compact', 1],
     ['SessionStart', 'startup', 1],
     ['SessionStart', 'compact|clear', 1],

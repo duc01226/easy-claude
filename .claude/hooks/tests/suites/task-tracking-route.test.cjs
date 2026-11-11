@@ -405,8 +405,12 @@ module.exports = {
             assert.equal(registrations[0].type, 'command');
             assert.equal(registrations[0].timeout, 3);
             assert.ok(registrations[0].command.includes('$CLAUDE_PROJECT_DIR'));
+            // The one other registration: SessionStart compact|clear re-arms the work-claim notice (workTracking) for
+            // hosts without a transcript; it delivers nothing itself.
+            const rearm = settings.hooks.SessionStart.filter(group => group.hooks.some(hook => hook.command.includes(name)));
+            assert.deepEqual(rearm.map(group => [group.matcher, group.hooks.length]), [['compact|clear', 1]]);
             for (const [eventName, groups] of Object.entries(settings.hooks)) {
-                if (eventName !== 'UserPromptSubmit') assert.equal(groups.flatMap(group => group.hooks).filter(hook => hook.command.includes(name)).length, 0);
+                if (eventName !== 'UserPromptSubmit' && eventName !== 'SessionStart') assert.equal(groups.flatMap(group => group.hooks).filter(hook => hook.command.includes(name)).length, 0);
             }
             const adopter = write(f.root, '.claude/settings.json', JSON.stringify({ permissions: { deny: ['Skill(task-track)'] }, hooks: {}, unmanaged: 'preserve' }));
             const before = fs.readFileSync(adopter);

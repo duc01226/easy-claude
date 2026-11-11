@@ -1105,6 +1105,22 @@ const SCHEMA = {
             }
         }
     },
+    // Optional claim-first work tracking (hooks/lib/work-claim.cjs). Off by default.
+    workTracking: {
+        type: 'object',
+        required: false,
+        describe: 'Optional claim-first work tracking: remind an agent to claim work (a tracker-only claim commit and a draft pull request, made by the project\'s claim command) before changing tracked files, and let that claim commit through the commit review gate. Omitted = off. Personal layers may set mode and autoMerge.',
+        properties: {
+            mode: { type: 'string', required: false, enumValues: ['off', 'remind'], describe: 'Default off. remind = prompt and first-edit reminders while the branch has no claim, one status line once it has, and the claim-commit exemption in the commit gate. Later overrides (personal): ~/.claude/.ck.json, .claude/.ck.local.json, CK_WORK_TRACKING_MODE.' },
+            claimCommand: { type: 'string', required: false, describe: 'The command that claims work, named in reminders (for example a package script). It records the claim in the branch\'s Git configuration: workClaim, workClaimPr, workClaimDeclined.' },
+            statusCommand: { type: 'string', required: false, describe: 'The command that reports the branch\'s claim and work in flight.' },
+            declineCommand: { type: 'string', required: false, describe: 'The command that records why a branch is not tracked, so reminders stay quiet for it.' },
+            trackerPaths: { type: 'array', required: false, describe: 'Globs of the tracker files a claim commit may change (no default; required for remind); edits to them never trigger the first-edit reminder.' },
+            claimCommitPrefix: { type: 'string', required: false, describe: 'The message prefix of a claim commit (default "chore(trackers): start ").' },
+            staleDraftDays: { type: 'number', required: false, describe: 'Days without an update after which a claimed draft pull request reads as stale (default 5).' },
+            autoMerge: { type: 'string', required: false, enumValues: ['ask', 'when-green'], describe: 'Default ask: list the Ready checklist and wait for a yes before merging. when-green (usually a personal setting): merge once the required statuses pass for the current head. Later overrides: ~/.claude/.ck.json, .claude/.ck.local.json, CK_WORK_TRACKING_AUTO_MERGE.' }
+        }
+    },
     // Optional pull-request-skill policy. Every property is optional; omitted keeps the default.
     pullRequest: {
         type: 'object',
@@ -2096,6 +2112,25 @@ function validateDocSyncGate(gate, label = 'workflowPatterns.docSyncGate') {
     return errors;
 }
 
+/** `workTracking` value checks beyond the schema's types: positive whole days and non-empty path globs. */
+function validateWorkTracking(config, errors) {
+    const section = config.workTracking;
+    // Types are checked by the generic schema; these are the rules it cannot express, so no defect is reported twice.
+    if (!section || typeof section !== 'object' || Array.isArray(section)) return;
+    if (typeof section.staleDraftDays === 'number' && (!Number.isInteger(section.staleDraftDays) || section.staleDraftDays < 1)) {
+        errors.push('workTracking.staleDraftDays: expected a whole number of days, 1 or more');
+    }
+    if (Array.isArray(section.trackerPaths) && (!section.trackerPaths.length || section.trackerPaths.some(item => typeof item !== 'string' || !item.trim()))) {
+        errors.push('workTracking.trackerPaths: expected a non-empty list of path globs');
+    }
+    if (section.mode === 'remind' && section.trackerPaths === undefined) {
+        errors.push('workTracking.trackerPaths: required when mode is "remind" (where the tracker files live; no default)');
+    }
+    for (const key of ['claimCommand', 'statusCommand', 'declineCommand', 'claimCommitPrefix']) {
+        if (typeof section[key] === 'string' && !section[key].trim()) errors.push(`workTracking.${key}: expected a non-empty string`);
+    }
+}
+
 function validateConfig(config) {
     const errors = [];
     const warnings = [];
@@ -2144,6 +2179,7 @@ function validateConfig(config) {
     validatePortabilitySemantics(config, errors, warnings);
     validateSkillProfileSemantics(config, errors, warnings);
     validateTaskTracking(config, errors);
+    validateWorkTracking(config, errors);
     for (const error of validateDocSyncGate(config.workflowPatterns?.docSyncGate)) {
         if (!errors.includes(error)) errors.push(error);
     }

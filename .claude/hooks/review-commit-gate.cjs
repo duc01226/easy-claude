@@ -65,6 +65,8 @@ const SAFE_COMMIT_FLAGS = new Set([
   '--gpg-sign', '-S', '--no-gpg-sign', '--no-edit'
 ]);
 const NO_COMMIT_FLAGS = new Set(['--dry-run', '--help', '-h']);
+// Options that make the commit message something other than the literal -m/-F text (work-claim exemption only).
+const MESSAGE_SHAPING_FLAGS = new Set(['--fixup', '--squash', '--template', '-t', '--reuse-message', '-C', '--reedit-message', '-c']);
 const SAFE_SHORT_FLAGS = new Set(['-s', '-q', '-v', '-n']);
 const CONTEXT_GIT_ASSIGNMENT = /^GIT_(?:INDEX_FILE|DIR|WORK_TREE|COMMON_DIR|CONFIG(?:_|$)|OBJECT_DIRECTORY|ALTERNATE_OBJECT_DIRECTORIES|REPLACE_REF_BASE|NO_REPLACE_OBJECTS|PREFIX|CEILING_DIRECTORIES|DISCOVERY_ACROSS_FILESYSTEM|NAMESPACE|ATTR_NOSYSTEM|ATTR_SOURCE|SHALLOW_FILE|INDEX_VERSION|LITERAL_PATHSPECS|GLOB_PATHSPECS|NOGLOB_PATHSPECS|ICASE_PATHSPECS)/i;
 
@@ -138,6 +140,13 @@ function parseCommitDescriptor(classification) {
   let sawAmend = false;
   let literalPaths = [];
   let afterTerminator = false;
+  // The message, for the work-claim exemption only (claimCommitExempt): literal -m values and -F files.
+  const message = { inline: [], files: [], shaped: false };
+  const noteMessage = (flag, value) => {
+    if (flag === '-m' || flag === '--message') message.inline.push(value);
+    else if (flag === '-F' || flag === '--file') message.files.push(value);
+    else if (MESSAGE_SHAPING_FLAGS.has(flag)) message.shaped = true;
+  };
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
     if (afterTerminator) { literalPaths.push(arg); continue; }
@@ -162,7 +171,8 @@ function parseCommitDescriptor(classification) {
           if (position === cluster.length - 1) {
             if (i + 1 >= args.length || args[i + 1] === '--') return { error: `Commit option ${shortFlag} requires a value` };
             i++;
-          }
+            noteMessage(shortFlag, args[i]);
+          } else noteMessage(shortFlag, cluster.slice(position + 1));
           break;
         }
         if (shortFlag === '-S') break;
@@ -177,12 +187,14 @@ function parseCommitDescriptor(classification) {
       if (!arg.includes('=')) {
         if (arg.length > 2 && arg.startsWith('-') && !arg.startsWith('--')) {
           // Compact short forms such as -mmessage and -Fmessage consume their suffix.
+          if (flag === '-C' || flag === '-c') message.shaped = true;
           if (flag === '-m' || flag === '-F' || flag === '-C' || flag === '-c') continue;
           return { error: `Compact commit option ${arg} is unsupported` };
         }
         if (i + 1 >= args.length || args[i + 1] === '--') return { error: `Commit option ${flag} requires a value` };
         i++;
-      }
+        noteMessage(flag, args[i]);
+      } else noteMessage(flag, arg.slice(arg.indexOf('=') + 1));
       continue;
     }
     if (!SAFE_COMMIT_FLAGS.has(flag)) return { error: `Unrecognized commit option ${flag} is unsupported for receipt matching` };
@@ -200,7 +212,7 @@ function parseCommitDescriptor(classification) {
     ...(sawAmend ? { amend: true } : {})
   };
   if (!descriptor.repository || !descriptor.cwd) return { error: 'Repository or effective cwd could not be canonicalized' };
-  return { descriptor };
+  return { descriptor, message };
 }
 
 function isLiteralCatHeredoc(inspected) {
@@ -227,6 +239,7 @@ function resolveCommitDescriptors(command, cwd) {
     return { known: false, reason: 'command could not be inspected' };
   }
   const descriptors = [];
+  const messages = [];
   const statementRepos = new Set();
   for (let index = 0; index < inspected.statements.length; index++) {
     const statement = inspected.statements[index];
@@ -259,11 +272,64 @@ function resolveCommitDescriptors(command, cwd) {
     }
     statementRepos.add(descriptor.repository);
     descriptors.push(descriptor);
+    messages.push(parsed.message);
   }
   if (inspected.status !== 'KNOWN' && isPotentialCommit(command, inspected.statements)) {
     return { known: false, reason: 'Git commit command contains unsupported or ambiguous shell syntax' };
   }
-  return { known: true, descriptors };
+  return { known: true, descriptors, messages };
+}
+
+/**
+ * A work claim's commit needs no review receipt (`workTracking`, team setting `mode: remind`): it is not an amend,
+ * its message starts with the claim prefix, and every path it commits matches `trackerPaths`. Anything unreadable,
+ * a message from standard input or a heredoc, a mixed commit, or a team that has not switched work tracking on
+ * keeps the normal gate.
+ */
+function claimCommitExempt(descriptor, message) {
+  try {
+    if (!message || message.shaped || descriptor.amend) return false;
+    const workClaim = require('./lib/work-claim.cjs');
+    const { team, settings } = workClaim.resolveWorkTracking({ rootDir: descriptor.repository });
+    if (team.mode !== 'remind') return false;
+    let text = message.inline.join('\n\n');
+    if (!message.inline.length) {
+      if (message.files.length !== 1 || message.files[0] === '-') return false;
+      const file = require('node:path').resolve(descriptor.cwd, message.files[0]);
+      const stat = require('node:fs').statSync(file);
+      if (!stat.isFile() || stat.size > 8192) return false;
+      text = require('node:fs').readFileSync(file, 'utf8');
+    }
+    if (!text.startsWith(settings.claimCommitPrefix)) return false;
+    const path = require('node:path');
+    const git = args => require('node:child_process').execFileSync('git', args, { cwd: descriptor.repository, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], windowsHide: true });
+    // Every entry the commit would carry, with its file modes. No rename detection and no hidden submodules: a
+    // rename into a tracker path is a deletion elsewhere, and a gitlink or symlink is not tracker text.
+    const RAW = ['--raw', '-z', '--no-renames', '--ignore-submodules=none', '--no-ext-diff'];
+    const entries = output => {
+      const parts = output.split('\0');
+      const list = [];
+      for (let i = 0; i + 1 < parts.length; i += 2) {
+        const [srcMode, dstMode] = parts[i].replace(/^:/, '').split(' ');
+        list.push({ srcMode, dstMode, path: parts[i + 1] });
+      }
+      return list;
+    };
+    let changes;
+    if (descriptor.mode === 'staged') changes = entries(git(['diff', '--cached', ...RAW]));
+    else if (descriptor.mode === 'all') changes = [...entries(git(['diff', '--cached', ...RAW])), ...entries(git(['diff', ...RAW]))];
+    else if (descriptor.mode === 'literal-paths') {
+      const literal = descriptor.literalPaths.map(item => path.relative(descriptor.repository, path.resolve(descriptor.cwd, item)).replace(/\\/g, '/'));
+      changes = entries(git(['diff', 'HEAD', ...RAW, '--', ...literal]));
+      if (literal.some(file => !changes.some(change => change.path === file))) return false;
+    } else return false;
+    const isTracker = workClaim.pathMatcher(settings.trackerPaths);
+    const regular = mode => mode === '000000' || mode === '100644' || mode === '100755';
+    return changes.length > 0 && changes.every(change =>
+      isTracker(change.path) && regular(change.srcMode) && regular(change.dstMode) && change.dstMode !== '000000');
+  } catch (_) {
+    return false;
+  }
 }
 
 function blockMessage(repository, snapshot, descriptor, reason) {
@@ -668,7 +734,7 @@ function evaluate(input, dependencies = {}) {
   if (resolved.descriptors.length === 0) return undefined;
 
   const capture = dependencies.captureReviewTarget || captureReviewTarget;
-  for (const descriptor of resolved.descriptors) {
+  for (const [index, descriptor] of resolved.descriptors.entries()) {
     const repository = descriptor.repository;
     let snapshot;
     try {
@@ -681,6 +747,7 @@ function evaluate(input, dependencies = {}) {
       return { code: 2, stderr: `${blockMessage(repository, snapshot, descriptor, snapshot?.errorMessage || 'candidate could not be computed safely')}\n`, decision: 'block' };
     }
     if (snapshot.status === 'CLEAN') continue;
+    if (claimCommitExempt(descriptor, resolved.messages?.[index])) continue;
 
     const receipt = { repository, snapshot };
     if (matchReviewReceipt(receipt)) continue;

@@ -309,6 +309,15 @@ const HOOKS = {
       "hooks": [
         {
           "type": "command",
+          "command": ".claude/hooks/task-tracking-route.cjs"
+        }
+      ],
+      "matcher": "compact|clear"
+    },
+    {
+      "hooks": [
+        {
+          "type": "command",
           "command": ".claude/hooks/verify-install.cjs"
         }
       ],

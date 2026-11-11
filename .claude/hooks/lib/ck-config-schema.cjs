@@ -43,6 +43,15 @@ const CK_SCHEMA = {
       reviewMode: { type: "string", required: false, enum: ["lightweight", "risk-based"], describe: "Default lightweight runs commit-review --fix-loop at every commit risk tier; risk-based restores Low skip / Medium why-review / High changes-review. PR whole-branch review always requires changes-review --fix-loop. Later wins: project config, ~/.claude/.ck.json, .claude/.ck.local.json, CK_COMMIT_REVIEW_MODE." }
     }
   },
+  workTracking: {
+    type: "object",
+    required: false,
+    describe: "Personal work-claim preferences (hooks/lib/work-claim.cjs). The team's project config owns the commands, tracker paths and the commit-gate exemption; a person may only switch reminders and choose the merge behaviour.",
+    properties: {
+      mode: { type: "string", required: false, enum: ["off", "remind"], describe: "off silences the work-claim reminders for you; remind turns them on. Never changes the team's commit-gate exemption. Later wins: project config, ~/.claude/.ck.json, .claude/.ck.local.json, CK_WORK_TRACKING_MODE." },
+      autoMerge: { type: "string", required: false, enum: ["ask", "when-green"], describe: "ask (default) waits for your yes before merging; when-green merges once the required statuses pass for the current head. Later wins: project config, ~/.claude/.ck.json, .claude/.ck.local.json, CK_WORK_TRACKING_AUTO_MERGE." },
+    },
+  },
   frameworkRuntime: {
     type: "object",
     required: false,

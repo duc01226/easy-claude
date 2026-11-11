@@ -5,6 +5,7 @@ if ((require.main === module || !require.main) && require('./lib/framework-runti
 
 const { isHookEntryPoint } = require('./lib/hook-runner.cjs');
 const { deliverAdvisory } = require('./lib/task-tracking-advisory.cjs');
+const { deliverPromptNotice } = require('./lib/work-claim.cjs');
 const MAX_INPUT_BYTES = 131072;
 
 function readInput() {
@@ -22,13 +23,19 @@ function readInput() {
     return text ? parseJsonInput(text) : null;
 }
 
-module.exports = { MAX_INPUT_BYTES, run: deliverAdvisory };
+/** The work-claim notice first (`workTracking`, also re-armed on SessionStart compact|clear), then the task-tracking advisory. */
+async function run(input) {
+    await deliverPromptNotice(input);
+    return deliverAdvisory(input);
+}
+
+module.exports = { MAX_INPUT_BYTES, run, runAdvisory: deliverAdvisory };
 
 if (isHookEntryPoint(module)) {
     process.exitCode = 0;
     try {
         const input = readInput();
-        if (input) deliverAdvisory(input).then(() => { process.exitCode = 0; }, () => { process.exitCode = 0; });
+        if (input) run(input).then(() => { process.exitCode = 0; }, () => { process.exitCode = 0; });
     } catch {
         process.exitCode = 0;
     }
