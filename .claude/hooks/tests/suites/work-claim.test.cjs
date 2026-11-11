@@ -102,7 +102,7 @@ const tests = [
         })
     },
     {
-        name: 'TC-WCL-003 the notice follows the branch state; declined, main, detached and mode off are silent',
+        name: 'TC-WCL-003 the notice follows the branch state; declined, detached and mode off are silent; main gets the rule and its records are ignored',
         fn: () => {
             const settings = { ...workClaim.DEFAULTS, ...REMIND };
             const unclaimed = workClaim.promptNotice(settings, { branch: 'feature/x', claim: null, pr: null, declined: null });
@@ -113,7 +113,12 @@ const tests = [
             assert.match(workClaim.promptNotice(settings, { branch: 'feature/x', claim: 'SMP-1-1', pr: 7, declined: null }), /tracks SMP-1-1 in pull request #7/);
             assert.match(workClaim.promptNotice(settings, { branch: 'feature/x', claim: 'SMP-1-1', pr: null, declined: null }), /pending\. Run `run claim` again/);
             assert.equal(workClaim.promptNotice(settings, { branch: 'feature/x', claim: null, pr: null, declined: 'typo' }), null);
-            assert.equal(workClaim.promptNotice(settings, { branch: 'main', claim: null, pr: null, declined: null }), null);
+            const trunk = workClaim.promptNotice(settings, { branch: 'main', claim: null, pr: null, declined: null });
+            assert.match(trunk, /`main` has no claimed work/, 'work starts on main, so main gets the rule');
+            assert.match(trunk, /`run decline` on the work's own branch \(a decline on `main` is ignored\)/);
+            assert.doesNotMatch(unclaimed, /is ignored/, 'a work branch declines in place');
+            assert.equal(workClaim.promptNotice(settings, { branch: 'master', claim: null, pr: null, declined: 'typo' }), trunk.replaceAll('`main`', '`master`'), 'a decline on a trunk would silence every later session, so it is ignored');
+            assert.equal(workClaim.promptNotice(settings, { branch: 'main', claim: 'SMP-1-1', pr: 7, declined: null }), trunk, 'a trunk is never claimed');
             assert.equal(workClaim.promptNotice(settings, null), null);
             assert.equal(workClaim.promptNotice({ ...settings, mode: 'off' }, { branch: 'feature/x', claim: null, pr: null, declined: null }), null);
         }
@@ -127,6 +132,9 @@ const tests = [
             assert.match(workClaim.editNudge(settings, free, ['trackers/hr.md', 'src/list.ts']), /`src\/list.ts` changed on `feature\/x`/);
             assert.equal(workClaim.editNudge(settings, { ...free, claim: 'SMP-1-1' }, ['src/list.ts']), null);
             assert.equal(workClaim.editNudge(settings, { ...free, declined: 'typo' }, ['src/list.ts']), null);
+            const onMain = workClaim.editNudge(settings, { ...free, branch: 'main', declined: 'typo' }, ['src/list.ts']);
+            assert.match(onMain, /`src\/list.ts` changed on `main`/, 'an edit on main is nudged, whatever its records say');
+            assert.match(onMain, /record why with `run decline` on the work's own branch/);
             assert.equal(workClaim.pathMatcher(['trackers/**/*.md'])('trackers\\hr.md'), true, 'Windows separators read as POSIX');
         }
     },
