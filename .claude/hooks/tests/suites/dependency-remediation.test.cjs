@@ -215,6 +215,8 @@ const tests = [
             // A caller with its own verify step owns the tests, so the full lane still runs once (PR review F2)
             assert.match(text, /A caller with its own verify step \(such as `workflow-bugfix`\) owns step 8: this mode runs steps 1–7/);
             assert.doesNotMatch(text, /this mode still runs steps 1–8/);
+            // The caller's verify fills the report's test item, so a caller-owned run still records its results (AC-DPR-12)
+            assert.match(text, /so the full lane still runs once; the caller adds that run's results to the report's test item\./);
             // Standalone fix ends in one verify, so it owns the full lane too; its inherited review gates are not dropped
             assert.match(text, /A standalone `fix` handoff is such a caller: its contract ends in one verify\./);
             assert.doesNotMatch(text, /from a standalone `fix` handoff, this mode runs steps 1–8/);
