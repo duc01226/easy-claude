@@ -90,8 +90,8 @@ const CLASS_REINJECT_TOKENS_RANGE = Object.freeze([20000, 2000000]);
 // nested/overlapping repetition shapes, plus a cap on loop-free optional elements, whose compilation V8
 // cannot interrupt; other slow patterns can pass it); (2) THE TIME BUDGET: every source that is not
 // byte-identical to a framework built-in runs inside `vm` with a timeout (see `contentSignalOf`), which
-// interrupts matching (backtracking); a timeout is "no match", and a source that timed out is skipped for
-// the rest of the process; (3) the built-in sources run directly and are vetted by the perf and lint tests. A config-supplied regex also sees a smaller sample (`maxConfigBytes`) than the
+// interrupts matching (backtracking); a timeout is "no match", and a source that timed out with the whole
+// budget of its file and class is skipped for the rest of the process; (3) the built-in sources run directly and are vetted by the perf and lint tests. A config-supplied regex also sees a smaller sample (`maxConfigBytes`) than the
 // built-ins (`maxBytes`). The validator (project-config-schema.cjs, dependency-free) mirrors the caps and
 // the lint by value; the ai-feature-gate suite fails on any drift, so a value the validator accepts is
 // never dropped here.
@@ -111,7 +111,8 @@ const CONTENT_REGEX_BUDGET_MS = 100;
 // sources are audited and stay on the direct fast path; configuration sources run in the interruptible
 // VM so one accepted-but-pathological expression cannot stall a hook or a whole change-set scan.
 const PATH_REGEX_BUDGET_MS = 100;
-// Sources that ran out of budget stay skipped for the process; the set is capped so it cannot grow without bound.
+// A source that timed out with the whole budget of its file and class stays skipped for the process
+// (`rememberSlowSource`); each guard's set is capped so it cannot grow without bound.
 const MAX_TIMED_OUT_SOURCES = 1024;
 
 /**
@@ -730,10 +731,9 @@ const contentGuard = {
     pathTimeouts: 0,
     pathSkipped: 0
 };
-const timedOutSources = new Set();
-const timedOutPathSources = new Set();
-let isContentGuardSaturated = false;
-let isPathGuardSaturated = false;
+// Sources each guard proved slow, skipped for the rest of the process (`rememberSlowSource`).
+const slowContent = { sources: new Set(), isSaturated: false };
+const slowPath = { sources: new Set(), isSaturated: false };
 let guardScript = null;
 let guardContext = null;
 
@@ -741,19 +741,19 @@ let guardContext = null;
 function contentGuardStats() {
     return {
         ...contentGuard,
-        timedOutSources: timedOutSources.size,
-        timedOutPathSources: timedOutPathSources.size,
-        isContentGuardSaturated,
-        isPathGuardSaturated
+        timedOutSources: slowContent.sources.size,
+        timedOutPathSources: slowPath.sources.size,
+        isContentGuardSaturated: slowContent.isSaturated,
+        isPathGuardSaturated: slowPath.isSaturated
     };
 }
 
 /** Forget every timed-out source and zero the counters (test seam; a fresh process starts clean anyway). */
 function resetContentGuard() {
-    timedOutSources.clear();
-    timedOutPathSources.clear();
-    isContentGuardSaturated = false;
-    isPathGuardSaturated = false;
+    for (const slow of [slowContent, slowPath]) {
+        slow.sources.clear();
+        slow.isSaturated = false;
+    }
     for (const key of Object.keys(contentGuard)) contentGuard[key] = 0;
 }
 
@@ -773,7 +773,25 @@ function chargeGuardBudget(budget, started, now, isTimedOut) {
     budget.remainingMs = isTimedOut ? 0 : budget.remainingMs - Math.max(0, now() - started);
 }
 
-/** Execute a path/name/exclusion regex with one shared per-file/class budget (`deps` is a test seam). */
+/**
+ * Remember a source the vm interrupted, for the rest of the process, only when it had the whole budget of its
+ * file and class to itself (`allowed >= budgetMs`). A timeout on what earlier sources of that file left proves
+ * nothing about this source: it counts as no match on that file and runs again on the next one. At
+ * MAX_TIMED_OUT_SOURCES the guard saturates (every untrusted source of its kind is skipped) instead of
+ * forgetting a slow source. One rule for both guards (BR-PFCI-22, BR-PFCI-28).
+ */
+function rememberSlowSource(slow, source, allowed, budgetMs) {
+    if (allowed < budgetMs) return;
+    if (slow.sources.size >= MAX_TIMED_OUT_SOURCES) slow.isSaturated = true;
+    else slow.sources.add(source);
+}
+
+/**
+ * Whether a project path, file-name or exclusion regex matches `subject`, under the budget (`{ remainingMs }`)
+ * shared by those regexes of one file and class. A byte-identical framework source runs directly. A timeout
+ * counts as no match, marks the verdict incomplete and spends the rest of the budget; only a source that timed
+ * out with the whole budget is skipped from then on (`rememberSlowSource`). `deps` is a test seam (`execute`, `now`).
+ */
 function guardedPathRegexTest(source, subject, budget, deps = {}) {
     const re = safeRegExp(source);
     if (!re) return { matched: false, incomplete: false };
@@ -781,7 +799,7 @@ function guardedPathRegexTest(source, subject, budget, deps = {}) {
         contentGuard.pathDirectRuns += 1;
         return { matched: re.test(subject), incomplete: false };
     }
-    if (isPathGuardSaturated || timedOutPathSources.has(source) || budget.remainingMs <= 0) {
+    if (slowPath.isSaturated || slowPath.sources.has(source) || budget.remainingMs <= 0) {
         contentGuard.pathSkipped += 1;
         return { matched: false, incomplete: true };
     }
@@ -797,8 +815,7 @@ function guardedPathRegexTest(source, subject, budget, deps = {}) {
         isTimedOut = isVmTimeout(err);
         if (isTimedOut) {
             contentGuard.pathTimeouts += 1;
-            if (timedOutPathSources.size >= MAX_TIMED_OUT_SOURCES) isPathGuardSaturated = true;
-            else timedOutPathSources.add(source);
+            rememberSlowSource(slowPath, source, allowed, PATH_REGEX_BUDGET_MS);
         }
         return { matched: false, incomplete: true };
     } finally {
@@ -910,8 +927,9 @@ function execWithTimeout(re, text, timeoutMs) {
  * name) runs directly. Any other source is config-supplied and runs under a hard time budget: `budget`
  * (`{ remainingMs }`, shared by the sources of one file and class) is spent as the vm runs take time, a
  * timeout counts as no match and spends the rest of the budget (`chargeGuardBudget`), and a source that
- * timed out with the full budget is skipped from then on in this process, so a scan that walks many files
- * stalls at most once per hostile source. `deps` is a test seam, as in `guardedPathRegexTest`.
+ * timed out with the full budget is skipped from then on in this process (`rememberSlowSource`), so a scan
+ * that walks many files stalls at most once per hostile source that gets the whole budget. `deps` is a test
+ * seam, as in `guardedPathRegexTest`.
  */
 function contentSignalOf(source, text, budget = { remainingMs: CONTENT_REGEX_BUDGET_MS }, deps = {}) {
     const re = safeRegExp(source);
@@ -921,7 +939,7 @@ function contentSignalOf(source, text, budget = { remainingMs: CONTENT_REGEX_BUD
         contentGuard.directRuns += 1;
         const match = re.exec(text);
         matched = match ? match[0] : null;
-    } else if (isContentGuardSaturated || timedOutSources.has(source) || budget.remainingMs <= 0) {
+    } else if (slowContent.isSaturated || slowContent.sources.has(source) || budget.remainingMs <= 0) {
         contentGuard.skipped += 1;
     } else {
         const execute = typeof deps.execute === 'function' ? deps.execute : execWithTimeout;
@@ -937,10 +955,7 @@ function contentSignalOf(source, text, budget = { remainingMs: CONTENT_REGEX_BUD
             isTimedOut = isVmTimeout(err);
             if (isTimedOut) {
                 contentGuard.timeouts += 1;
-                if (allowed >= CONTENT_REGEX_BUDGET_MS) {
-                    if (timedOutSources.size >= MAX_TIMED_OUT_SOURCES) isContentGuardSaturated = true;
-                    else timedOutSources.add(source);
-                }
+                rememberSlowSource(slowContent, source, allowed, CONTENT_REGEX_BUDGET_MS);
             }
         }
         chargeGuardBudget(budget, started, now, isTimedOut);
