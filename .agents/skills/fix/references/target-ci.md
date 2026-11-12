@@ -11,7 +11,7 @@
 - **Infrastructure context:** read `docs/project-config.json` → `infrastructure.cicd.tool` to identify the CI provider/tooling (e.g. `azure-devops`, `github-actions`, `gitlab-ci`); target that provider's pipeline config files.
 - Focus on CI-specific issues (env vars, Docker, dependencies, build order).
 - Verify the fix does not break local development.
-- **Dependency vulnerability scan handoff:** when the failing job is a dependency vulnerability scan (it reports advisories against locked package versions), hand the run to `$package-upgrade --mode=remediate` with the run link and stop this branch. That mode owns the owner chain, the fix route, the moved-package research and the re-scan; a scanner that fails to run, rather than reporting advisories, stays here.
+- **Dependency vulnerability scan handoff:** when the failing job is a dependency vulnerability scan (it reports advisories against locked package versions), hand the run to `$package-upgrade --mode=remediate` with the run link, in place of this branch's workflow below. That mode owns the owner chain, the fix route, the moved-package research and the re-scan; the inherited gates and the single verify then follow as `SKILL.md` → Vulnerable-dependency issue handoff says. A scanner that fails to run, rather than reporting advisories, stays here.
 
 **Workflow:**
 

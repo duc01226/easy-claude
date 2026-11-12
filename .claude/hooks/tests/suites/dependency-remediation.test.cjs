@@ -14,7 +14,7 @@
  *   TC-DPR-005 — every moved package (from the lock difference) is researched; a planned upgrade keeps its target.
  *   TC-DPR-006 — done means a clean re-scan; no runnable scanner means blocked.
  *   TC-DPR-007 — edits wait for approval; each external action needs its own authority; Git stays elsewhere.
- *   TC-DPR-008 — targeted tests first, the full lane once, no all-pass claim from targeted runs.
+ *   TC-DPR-008 — targeted tests first, the full lane once (in the caller's verify when it has one, standalone fix included), no all-pass claim from targeted runs.
  *   TC-DPR-009 — one cited ecosystem table; no second per-manager scanner command block in guidance.
  *   TC-DPR-010 — evidence carries identifiers only.
  *   TC-DPR-011 — the remediation contract is complete when called directly.
@@ -196,6 +196,8 @@ const tests = [
             // Nothing in the working tree changes before approval: research resolves in a throwaway copy (PR review F1)
             assert.match(text, /Produce the candidate lock in a throwaway copy, never in the working tree before approval/);
             assert.doesNotMatch(text, /resolve in the working tree/);
+            // A decline at the second approval, after edits began, restores the files saved before the first edit
+            assert.match(text, /Before the first edit, copy every manifest, lock and suppression file this step will change to a folder under `tmp\/`\. If the user declines at the second approval below, restore those files from that copy/);
             // Dismissing a remote alert needs its own authority
             assert.match(text, /- dismissing a remote alert \(for example a Dependabot alert\) as an accepted entry;/);
             // Boundary: plan mode never edits
@@ -213,6 +215,18 @@ const tests = [
             // A caller with its own verify step owns the tests, so the full lane still runs once (PR review F2)
             assert.match(text, /A caller with its own verify step \(such as `workflow-bugfix`\) owns step 8: this mode runs steps 1–7/);
             assert.doesNotMatch(text, /this mode still runs steps 1–8/);
+            // The caller's verify fills the report's test item, so a caller-owned run still records its results (AC-DPR-12)
+            assert.match(text, /so the full lane still runs once; the caller adds that run's results to the report's test item\./);
+            // Standalone fix ends in one verify, so it owns the full lane too; its inherited review gates are not dropped
+            assert.match(text, /A standalone `fix` handoff is such a caller: its contract ends in one verify\./);
+            assert.doesNotMatch(text, /from a standalone `fix` handoff, this mode runs steps 1–8/);
+            const fixSkill = read(SKILLS, 'fix', 'SKILL.md');
+            const fixCi = read(SKILLS, 'fix', 'references', 'target-ci.md');
+            assert.match(fixSkill, /\*\*Vulnerable-dependency issue handoff:\*\* [^\n]*runs its steps 1–7[^\n]*this branch's inherited gates still follow, and its single verify runs that selection first and then the full lane once/);
+            assert.match(fixCi, /\*\*Dependency vulnerability scan handoff:\*\* [^\n]*the inherited gates and the single verify then follow/);
+            for (const [label, body] of [['fix SKILL.md', fixSkill], ['fix target-ci.md', fixCi]]) {
+                assert.doesNotMatch(body, /stop this branch/, `${label} hands off without dropping the inherited gates`);
+            }
         }
     },
     {
@@ -225,6 +239,12 @@ const tests = [
             const dataRows = rows.filter(line => !/^\|\s*(?:Package manager|Scanner|Manager)\s*\|/i.test(line));
             assert.ok(dataRows.length >= 8, 'the table covers several package managers and scanners');
             for (const row of dataRows) assert.match(row, /https?:\/\//, `every row cites a source: ${row.slice(0, 60)}`);
+            // The throwaway-copy research resolves lock-only for the JavaScript managers, so it installs nothing
+            assert.match(text, /\*\*Lock-only resolution\*\*/);
+            for (const command of ['npm install --package-lock-only', 'pnpm install --lockfile-only', 'yarn install --mode=update-lockfile']) {
+                assert.ok(text.includes(`\`${command}\``), `the table names ${command}`);
+            }
+            assert.match(remediate(), /lock-only where the manager supports it \(ecosystem table, "Lock-only resolution"\), so the research installs nothing/);
             // Boundary: no other guidance holds a fenced block listing two or more scanner commands
             const scanners = /\b(?:npm audit|pnpm audit|yarn npm audit|pip-audit|dotnet list package --vulnerable|govulncheck|cargo audit|osv-scanner)\b/g;
             const second = guidanceMarkdown().filter(([rel]) => !rel.endsWith('package-upgrade/references/ecosystems.md')).filter(([, body]) => {

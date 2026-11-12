@@ -56,7 +56,7 @@ For each advisory:
 
 ### 4. Research every moved package
 
-1. Produce the candidate lock in a throwaway copy, never in the working tree before approval: copy the manifests, locks and package-manager configuration to a folder under `tmp/` and resolve there, lock-only where the manager supports it (ecosystem table). When a copy cannot resolve faithfully (for example a multi-module build that needs the whole tree), or the user asked for no installs or no commands yet, predict the moved packages from registry metadata instead, label the list a prediction, and confirm it against the real lock difference at step 6.
+1. Produce the candidate lock in a throwaway copy, never in the working tree before approval: copy the manifests, locks and package-manager configuration to a folder under `tmp/` and resolve there, lock-only where the manager supports it (ecosystem table, "Lock-only resolution"), so the research installs nothing. When a copy cannot resolve faithfully (for example a multi-module build that needs the whole tree), or the user asked for no installs or no commands yet, predict the moved packages from registry metadata instead, label the list a prediction, and confirm it against the real lock difference at step 6.
 2. Diff the lock before and after. **Every** package whose resolved version moved is listed, declared or not.
 3. For each moved package, read its release notes, changelog or migration guide from the official source for the versions crossed. Record the source link and a verdict: `no impact` (cite why), `code change needed`, or `test needed`.
 4. Search the code for every API, option, output shape and default each breaking change touches; cite `file:line`.
@@ -71,6 +71,7 @@ Skip this question only when the user already asked for the fix to be made; then
 
 ### 6. Apply
 
+- Before the first edit, copy every manifest, lock and suppression file this step will change to a folder under `tmp/`. If the user declines at the second approval below, restore those files from that copy, so the working tree is back to its state before this step, and stop.
 - Apply the routes in the working tree. Compare the real lock difference with the one researched in step 4. Research any package that moved and was not on that list, and, unless the user already asked for the fix, show those packages with their verdicts and wait for approval again before editing code for them.
 - Remove every temporary force the lock no longer needs, and confirm the lock still holds the fixed version.
 - Fix each breaking change at the code that owns it, and add or update a test that fails without the fix (follow the project's test conventions; write the test with the fix).
@@ -132,7 +133,7 @@ The report holds:
 - `workflow-bugfix` triage kind "dependency advisory" runs this mode as its fix step. Its RED proof is the scanner: the advisory is reported on the old lock and not on the new one, plus a test that fails without the fix for each breaking change found.
 - `security-audit` dimension D3 reports findings; when the user asks for the fix, it hands them here.
 
-The caller keeps its own review and verification steps. A caller with its own verify step (such as `workflow-bugfix`) owns step 8: this mode runs steps 1–7, the re-scan included, records the test selection from step 8.1 in its report and hands it to that verify step, so the full lane still runs once. Run alone or from a standalone `fix` handoff, this mode runs steps 1–8. Its evidence contract applies either way.
+The caller keeps its own review and verification steps. A caller with its own verify step (such as `workflow-bugfix`) owns step 8: this mode runs steps 1–7, the re-scan included, records the test selection from step 8.1 in its report and hands it to that verify step, so the full lane still runs once; the caller adds that run's results to the report's test item. A standalone `fix` handoff is such a caller: its contract ends in one verify. Run alone, or from a caller without a verify step, this mode runs steps 1–8. Its evidence contract applies either way.
 
 ## Closing Reminders
 

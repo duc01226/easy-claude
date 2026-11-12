@@ -667,10 +667,12 @@ logSection('describeSchema');
     // measured 647 -> 649), then to 710 for the team layer of the five router switches,
     // `portability.generateClaudeMd` and the opt-in runtime policies (`quietSkills`,
     // `quietNative`, `autoApplyNative`, `offMode`), measured 658 -> 684, then to 740 for the four
-    // `uiReview.complexityBudget` action-density keys (one line each, measured 707 -> 711). This remains a
-    // runaway-bloat guard, not a suppression of schema output.
+    // `uiReview.complexityBudget` action-density keys (one line each, measured 707 -> 711), then to 790
+    // for the optional `dependencySecurity` section (scanner item shape, accepted-entry, per-severity
+    // deadline, alert-owner and scheduled-scan fields, each with its required one-line note: 33 lines,
+    // measured 730 -> 763). This remains a runaway-bloat guard, not a suppression of schema output.
     const lineCount = output.split('\n').length;
-    logResult('output under 740 lines', lineCount < 740, `${lineCount} lines`);
+    logResult('output under 790 lines', lineCount < 790, `${lineCount} lines`);
 }
 
 // ════════════════════════════════════════════════════════════════════════════

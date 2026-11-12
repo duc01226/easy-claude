@@ -228,11 +228,11 @@ IF a second copy of the fix-at-owner rule exists in guidance
 
 ### BR-DPR-07: Edits wait for approval; external actions need authority [HARD]
 
-**Statement:** Dependency declarations, lock and suppression files change only after approval or an explicit request to fix; research before approval resolves a throwaway copy, so the project's files stay unchanged. Re-running a remote scan, commenting on, closing or dismissing an alert or issue, and changing a repository setting each need explicit authority. Committing, pushing and pull requests stay with their own capabilities.
+**Statement:** Dependency declarations, lock and suppression files change only after approval or an explicit request to fix; research before approval resolves a throwaway copy, so the project's files stay unchanged. A decline after the edits began returns the project's files to their state before the first edit. Re-running a remote scan, commenting on, closing or dismissing an alert or issue, and changing a repository setting each need explicit authority. Committing, pushing and pull requests stay with their own capabilities.
 
 ### BR-DPR-08: Targeted tests never stand in for the full lane [HARD]
 
-**Statement:** The tests that exercise moved packages run first. The full lane runs once; when a calling workflow owns verification, it runs there, still once. A report claims "all tests pass" only after the full lane passed.
+**Statement:** The tests that exercise moved packages run first. The full lane runs once; when the caller has its own verification step (the bug-fixing workflow, or a standalone repair that ends in one verification), it runs there, still once, and the caller's own review steps still run. A report claims "all tests pass" only after the full lane passed.
 
 ### BR-DPR-09: One cited table owns the ecosystem facts [HARD]
 
@@ -696,6 +696,7 @@ When the assistant is about to edit dependency files
 Then it asks for approval unless the developer already asked for the fix
 And each remote re-scan, alert or issue action and settings change waits for explicit authority
 And committing, pushing and pull requests are left to their own capabilities
+And a decline after the edits began returns the project's files to their state before the first edit
 ```
 
 **Expected Result:**
@@ -742,6 +743,7 @@ Given a change to the resolved tree
 When the assistant verifies it
 Then it runs tests that exercise moved packages first and the full lane once
 And it claims all tests pass only after the full lane passed
+And when the caller has its own verification step, the full lane runs there, once, after the caller's own reviews
 ```
 
 **Expected Result:**
