@@ -757,6 +757,22 @@ function resetContentGuard() {
     for (const key of Object.keys(contentGuard)) contentGuard[key] = 0;
 }
 
+/** True when `err` is the vm watchdog interrupting a run that reached its timeout. */
+function isVmTimeout(err) {
+    return Boolean(err && err.code === 'ERR_SCRIPT_EXECUTION_TIMEOUT');
+}
+
+/**
+ * Charge one guarded run to the budget of its file and class (`{ remainingMs }`). A run the vm interrupted
+ * has used up what was left: the watchdog keeps time in whole milliseconds and can fire up to 1 ms before
+ * `allowed` by a precise clock, so the elapsed time measured afterwards can read `allowed - 1`. Charging
+ * that reading would leave a phantom millisecond in which the next source runs, and times out, too. Any
+ * other outcome is charged its measured wall time.
+ */
+function chargeGuardBudget(budget, started, now, isTimedOut) {
+    budget.remainingMs = isTimedOut ? 0 : budget.remainingMs - Math.max(0, now() - started);
+}
+
 /** Execute a path/name/exclusion regex with one shared per-file/class budget (`deps` is a test seam). */
 function guardedPathRegexTest(source, subject, budget, deps = {}) {
     const re = safeRegExp(source);
@@ -773,18 +789,20 @@ function guardedPathRegexTest(source, subject, budget, deps = {}) {
     const now = typeof deps.now === 'function' ? deps.now : Date.now;
     const allowed = budget.remainingMs;
     const started = now();
+    let isTimedOut = false;
     contentGuard.pathVmRuns += 1;
     try {
         return { matched: execute(re, subject, allowed) !== null, incomplete: false };
     } catch (err) {
-        if (err && err.code === 'ERR_SCRIPT_EXECUTION_TIMEOUT') {
+        isTimedOut = isVmTimeout(err);
+        if (isTimedOut) {
             contentGuard.pathTimeouts += 1;
             if (timedOutPathSources.size >= MAX_TIMED_OUT_SOURCES) isPathGuardSaturated = true;
             else timedOutPathSources.add(source);
         }
         return { matched: false, incomplete: true };
     } finally {
-        budget.remainingMs -= Math.max(0, now() - started);
+        chargeGuardBudget(budget, started, now, isTimedOut);
     }
 }
 
@@ -891,10 +909,11 @@ function execWithTimeout(re, text, timeoutMs) {
  * A framework built-in source (byte-identical to a shipped signal; trust is by source text, never by class
  * name) runs directly. Any other source is config-supplied and runs under a hard time budget: `budget`
  * (`{ remainingMs }`, shared by the sources of one file and class) is spent as the vm runs take time, a
- * timeout counts as no match, and a source that timed out with the full budget is skipped from then on in
- * this process, so a scan that walks many files stalls at most once per hostile source.
+ * timeout counts as no match and spends the rest of the budget (`chargeGuardBudget`), and a source that
+ * timed out with the full budget is skipped from then on in this process, so a scan that walks many files
+ * stalls at most once per hostile source. `deps` is a test seam, as in `guardedPathRegexTest`.
  */
-function contentSignalOf(source, text, budget = { remainingMs: CONTENT_REGEX_BUDGET_MS }) {
+function contentSignalOf(source, text, budget = { remainingMs: CONTENT_REGEX_BUDGET_MS }, deps = {}) {
     const re = safeRegExp(source);
     if (!re) return null;
     let matched = null;
@@ -905,14 +924,18 @@ function contentSignalOf(source, text, budget = { remainingMs: CONTENT_REGEX_BUD
     } else if (isContentGuardSaturated || timedOutSources.has(source) || budget.remainingMs <= 0) {
         contentGuard.skipped += 1;
     } else {
+        const execute = typeof deps.execute === 'function' ? deps.execute : execWithTimeout;
+        const now = typeof deps.now === 'function' ? deps.now : Date.now;
         const allowed = budget.remainingMs;
-        const started = Date.now();
+        const started = now();
+        let isTimedOut = false;
         contentGuard.vmRuns += 1;
         try {
-            matched = execWithTimeout(re, text, allowed);
+            matched = execute(re, text, allowed);
         } catch (err) {
             matched = null; // fail-open: a timeout (or any guard failure) is no content signal
-            if (err && err.code === 'ERR_SCRIPT_EXECUTION_TIMEOUT') {
+            isTimedOut = isVmTimeout(err);
+            if (isTimedOut) {
                 contentGuard.timeouts += 1;
                 if (allowed >= CONTENT_REGEX_BUDGET_MS) {
                     if (timedOutSources.size >= MAX_TIMED_OUT_SOURCES) isContentGuardSaturated = true;
@@ -920,7 +943,7 @@ function contentSignalOf(source, text, budget = { remainingMs: CONTENT_REGEX_BUD
                 }
             }
         }
-        budget.remainingMs -= Math.max(0, Date.now() - started);
+        chargeGuardBudget(budget, started, now, isTimedOut);
     }
     return typeof matched === 'string' ? matched.replace(/\s+/g, ' ').trim().slice(0, 60) : null;
 }

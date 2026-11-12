@@ -1090,6 +1090,84 @@ const tests = [
                 conventions.resetContentGuard();
             }
         }
+    },
+    {
+        // INTENT: a run the guard interrupted has used up its file's budget whatever the clock reads afterwards, so no later source of that file runs on a clock residue.
+        // Given content and location classes with several project sources, an executor that times out the hostile ones, and a clock that reads 0..107 ms across the timed-out run
+        // When one file is classified by each guard with its shared budget
+        // Then only the first source reaches the vm, the budget is spent, the rest are skipped and never made sticky, and a run that finishes is still charged its measured time
+        name: 'TC-AIG-025 a timed-out source spends the rest of its file budget whatever the clock reads; no later source runs on a residue',
+        fn: () => {
+            // The vm watchdog keeps time in whole milliseconds and can fire before `allowed`, so the guard's clock can read
+            // `allowed - 1` (or less after a wall-clock step) across a run that timed out. Each reading must leave no budget.
+            const readings = [0, 1, 50, 98, 99, 100, 107];
+            const fakeVm = (hostileSources, readMs, workMs = 0) => {
+                let clock = 1000;
+                const calls = [];
+                const execute = (re, subject, allowed) => {
+                    const source = re.source.replace(/\\\//g, '/'); // RegExp#source escapes '/'; compare the configured text
+                    calls.push({ source, allowed });
+                    if (hostileSources.includes(source)) {
+                        clock += readMs(allowed);
+                        const error = new Error('synthetic timeout');
+                        error.code = 'ERR_SCRIPT_EXECUTION_TIMEOUT';
+                        throw error;
+                    }
+                    clock += workMs;
+                    return null;
+                };
+                return { calls, deps: { execute, now: () => clock } };
+            };
+
+            try {
+                const content = ['a*b*a*c', '(a{1,50}){1,50}b', 'zz-none'];
+                for (const reading of readings) {
+                    conventions.resetContentGuard();
+                    const fake = fakeVm(content.slice(0, 2), () => reading);
+                    const budget = { remainingMs: conventions.CONTENT_REGEX_BUDGET_MS };
+                    for (const source of content) assert.equal(conventions.contentSignalOf(source, 'aaaa!', budget, fake.deps), null);
+                    const stats = conventions.contentGuardStats();
+                    assert.deepEqual(fake.calls.map(call => call.source), [content[0]], `content, clock read ${reading} ms: only the first source reached the vm`);
+                    assert.equal(budget.remainingMs, 0, `content, clock read ${reading} ms: the timed-out run spent the budget`);
+                    assert.equal(stats.timeouts, 1);
+                    assert.equal(stats.skipped, 2, 'the rest of that file\'s sources are skipped, not run');
+                    assert.equal(stats.timedOutSources, 1, 'only the source that had the whole budget is made sticky');
+                }
+
+                const location = ['^/custom/(a+)+$', '^/other/(b+)+$'];
+                for (const reading of readings) {
+                    conventions.resetContentGuard();
+                    const fake = fakeVm(location, () => reading);
+                    const budget = { remainingMs: conventions.PATH_REGEX_BUDGET_MS };
+                    const verdicts = location.map(source => conventions.guardedPathRegexTest(source, `/custom/${'a'.repeat(40)}!`, budget, fake.deps));
+                    assert.deepEqual(verdicts, [{ matched: false, incomplete: true }, { matched: false, incomplete: true }]);
+                    assert.deepEqual(fake.calls.map(call => call.source), [location[0]], `location, clock read ${reading} ms: only the first source reached the vm`);
+                    assert.equal(budget.remainingMs, 0, `location, clock read ${reading} ms: the timed-out run spent the budget`);
+                    const stats = conventions.contentGuardStats();
+                    assert.equal(stats.pathTimeouts, 1);
+                    assert.equal(stats.pathSkipped, 1);
+                    assert.equal(stats.timedOutPathSources, 1, 'a source skipped for want of budget is not condemned for the process');
+                    // A later file starts with a fresh budget: the skipped source still runs there.
+                    conventions.guardedPathRegexTest(location[1], '/other/bbbb!', { remainingMs: conventions.PATH_REGEX_BUDGET_MS }, fake.deps);
+                    assert.deepEqual(fake.calls.map(call => call.source), location, 'the next file runs the source the first file skipped');
+                }
+
+                // Preserved: a run that finishes is charged its measured time; a later timeout on the part-spent budget still spends the rest and, without the whole budget, is not sticky.
+                conventions.resetContentGuard();
+                const partial = fakeVm(['a*b*a*c'], allowed => allowed - 1, 30);
+                const budget = { remainingMs: conventions.CONTENT_REGEX_BUDGET_MS };
+                for (const source of ['zz-none', 'a*b*a*c']) conventions.contentSignalOf(source, 'aaaa!', budget, partial.deps);
+                assert.deepEqual(partial.calls, [
+                    { source: 'zz-none', allowed: conventions.CONTENT_REGEX_BUDGET_MS },
+                    { source: 'a*b*a*c', allowed: conventions.CONTENT_REGEX_BUDGET_MS - 30 }
+                ], 'the finished run was charged 30 ms, the next source got the remainder');
+                assert.equal(budget.remainingMs, 0);
+                assert.equal(conventions.contentGuardStats().timedOutSources, 0, 'a timeout on a part-spent budget does not condemn the source');
+            } finally {
+                // The guard is process-global: never leak a timed-out source into the next test of the same runner process.
+                conventions.resetContentGuard();
+            }
+        }
     }
 ];
 
