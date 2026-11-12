@@ -56,7 +56,7 @@ For each advisory:
 
 ### 4. Research every moved package
 
-1. Produce the candidate lock without committing to it: take a copy of the manifests and locks under `tmp/`, then resolve in the working tree (restore from the copy if the user declines at step 5). Resolving runs the package manager: when the user asked for no installs or no commands yet, predict the moved packages from registry metadata instead, label the list a prediction, and confirm it against the real lock difference after approval.
+1. Produce the candidate lock in a throwaway copy, never in the working tree before approval: copy the manifests, locks and package-manager configuration to a folder under `tmp/` and resolve there, lock-only where the manager supports it (ecosystem table). When a copy cannot resolve faithfully (for example a multi-module build that needs the whole tree), or the user asked for no installs or no commands yet, predict the moved packages from registry metadata instead, label the list a prediction, and confirm it against the real lock difference at step 6.
 2. Diff the lock before and after. **Every** package whose resolved version moved is listed, declared or not.
 3. For each moved package, read its release notes, changelog or migration guide from the official source for the versions crossed. Record the source link and a verdict: `no impact` (cite why), `code change needed`, or `test needed`.
 4. Search the code for every API, option, output shape and default each breaking change touches; cite `file:line`.
@@ -66,13 +66,14 @@ For each advisory:
 
 Show the advisory table, routes (with the reason earlier routes failed), moved-package table with verdicts, planned code and test changes, the accepted entries with reason, owner and expiry, and the planned tests. Wait for explicit approval.
 
-Skip this question only when the user already asked for the fix to be made; then state that the request is the approval and continue. Restore the copies taken in step 4 if the user declines.
+Skip this question only when the user already asked for the fix to be made; then state that the request is the approval and continue. If the user declines, the working tree is unchanged: delete the throwaway copy and stop.
 
 ### 6. Apply
 
-- Apply the routes. Remove every temporary force the lock no longer needs, and confirm the lock still holds the fixed version.
+- Apply the routes in the working tree. Compare the real lock difference with the one researched in step 4. Research any package that moved and was not on that list, and, unless the user already asked for the fix, show those packages with their verdicts and wait for approval again before editing code for them.
+- Remove every temporary force the lock no longer needs, and confirm the lock still holds the fixed version.
 - Fix each breaking change at the code that owns it, and add or update a test that fails without the fix (follow the project's test conventions; write the test with the fix).
-- Add accepted entries to the scanner's own suppression file with reason, owner and expiry, in the scanner's native fields (ecosystem table, scanner rows). Where the scanner has no expiry or reason field, write them beside the entry (a comment in the same file, or the project's own record), and where it cannot suppress at all, keep the entry only in that record.
+- Add accepted entries to the scanner's own suppression file with reason, owner and expiry, in the scanner's native fields (ecosystem table, scanner rows). Where the scanner has no expiry or reason field, write them beside the entry (a comment in the same file, or the project's own record), and where it cannot suppress at all, keep the entry only in that record. Dismissing a remote alert is not an edit: it is a step 9 action.
 - Do not change unrelated code, and do not edit generated files by hand.
 
 ### 7. Re-scan
@@ -80,6 +81,7 @@ Skip this question only when the user already asked for the fix to be made; then
 - Run the project's scanner with the command and configuration recorded in step 1, against every lock it scans.
 - Only accepted entries may remain. Any other advisory returns to step 3 for that advisory. A new advisory introduced by the change is fixed the same way.
 - When several scanners are declared, each must pass.
+- An alert service that reads only the default branch (Dependabot alerts) cannot re-scan an unmerged change. Re-scan the lock with a lock-file scanner (OSV-Scanner or the manager's own audit, ecosystem table), and record that the alert closes after the fix merges.
 
 ### 8. Tests
 
@@ -95,6 +97,7 @@ Each of these needs the user's explicit authority, asked once per action:
 
 - re-running the project's scheduled scan remotely (`dependencySecurity.scheduledScan` when declared) and linking the green run;
 - commenting on or closing the alert or issue with the evidence;
+- dismissing a remote alert (for example a Dependabot alert) as an accepted entry;
 - changing a repository setting (for example turning on automated security updates).
 
 Committing, pushing and opening a pull request go through the `commit` and `pull-request` skills, on the user's request.
@@ -128,7 +131,7 @@ The report holds:
 - `workflow-bugfix` triage kind "dependency advisory" runs this mode as its fix step. Its RED proof is the scanner: the advisory is reported on the old lock and not on the new one, plus a test that fails without the fix for each breaking change found.
 - `security-audit` dimension D3 reports findings; when the user asks for the fix, it hands them here.
 
-The caller keeps its own review and verification steps; this mode still runs steps 1–8 and its evidence contract.
+The caller keeps its own review and verification steps. A caller with its own verify step (such as `workflow-bugfix`) owns step 8: this mode runs steps 1–7, the re-scan included, records the test selection from step 8.1 in its report and hands it to that verify step, so the full lane still runs once. Run alone or from a standalone `fix` handoff, this mode runs steps 1–8. Its evidence contract applies either way.
 
 ## Closing Reminders
 

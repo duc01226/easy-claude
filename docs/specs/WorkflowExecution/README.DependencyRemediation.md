@@ -220,19 +220,19 @@ IF a second copy of the fix-at-owner rule exists in guidance
 
 ### BR-DPR-05: Every moved package is researched [HARD]
 
-**Statement:** The moved-package list comes from the difference between the lock before and after the change. Each moved package carries a cited release note or changelog and a verdict before approval.
+**Statement:** The moved-package list comes from the difference between the lock before and after the change. Each moved package carries a cited release note or changelog and a verdict before approval; a package the real change moves that the research missed is researched and shown for approval again.
 
 ### BR-DPR-06: Done means a clean re-scan [HARD]
 
-**Statement:** A run is done only when the project's scanner, run on the changed resolved tree, reports nothing but accepted entries.
+**Statement:** A run is done only when the project's scanner, run on the changed resolved tree, reports nothing but accepted entries. An alert service that sees only merged code is an input, never the re-scan of an unmerged change.
 
 ### BR-DPR-07: Edits wait for approval; external actions need authority [HARD]
 
-**Statement:** Dependency declarations, lock and suppression files change only after approval or an explicit request to fix. Re-running a remote scan, commenting on or closing an alert or issue, and changing a repository setting each need explicit authority. Committing, pushing and pull requests stay with their own capabilities.
+**Statement:** Dependency declarations, lock and suppression files change only after approval or an explicit request to fix; research before approval resolves a throwaway copy, so the project's files stay unchanged. Re-running a remote scan, commenting on, closing or dismissing an alert or issue, and changing a repository setting each need explicit authority. Committing, pushing and pull requests stay with their own capabilities.
 
 ### BR-DPR-08: Targeted tests never stand in for the full lane [HARD]
 
-**Statement:** The tests that exercise moved packages run first. The full lane runs once. A report claims "all tests pass" only after the full lane passed.
+**Statement:** The tests that exercise moved packages run first. The full lane runs once; when a calling workflow owns verification, it runs there, still once. A report claims "all tests pass" only after the full lane passed.
 
 ### BR-DPR-09: One cited table owns the ecosystem facts [HARD]
 

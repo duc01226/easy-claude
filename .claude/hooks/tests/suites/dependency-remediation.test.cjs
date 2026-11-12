@@ -156,6 +156,8 @@ const tests = [
             assert.match(text, /Diff the lock before and after\. \*\*Every\*\* package whose resolved version moved is listed, declared or not\./);
             assert.match(text, /Record the source link and a verdict/);
             assert.match(text, /Moved packages outside the advisory's owner chain are still researched/);
+            // A mover the research missed is researched and shown before approval again (PR review F6)
+            assert.match(text, /Research any package that moved and was not on that list, and, unless the user already asked for the fix, show those packages with their verdicts and wait for approval again/);
             // A breaking change gets a code fix and a test that fails without it
             assert.match(text, /add or update a test that fails without the fix/);
             // Planning keeps its target and adds the movers (BR-DPR-11)
@@ -174,6 +176,8 @@ const tests = [
             assert.match(text, /Only accepted entries may remain\. Any other advisory returns to step 3 for that advisory\./);
             assert.match(text, /A scanner that cannot run makes the run \*\*blocked\*\*, never done/);
             assert.match(canonical(TAG), /No runnable scanner means blocked, never done\./);
+            // A default-branch alert service cannot prove an unmerged change clean (PR review F3)
+            assert.match(text, /An alert service that reads only the default branch \(Dependabot alerts\) cannot re-scan an unmerged change\./);
         }
     },
     {
@@ -185,6 +189,11 @@ const tests = [
             assert.match(text, /Skip this question only when the user already asked for the fix to be made/);
             assert.match(text, /Each of these needs the user's explicit authority, asked once per action:/);
             assert.match(text, /Committing, pushing and opening a pull request go through the `commit` and `pull-request` skills/);
+            // Nothing in the working tree changes before approval: research resolves in a throwaway copy (PR review F1)
+            assert.match(text, /Produce the candidate lock in a throwaway copy, never in the working tree before approval/);
+            assert.doesNotMatch(text, /resolve in the working tree/);
+            // Dismissing a remote alert needs its own authority
+            assert.match(text, /- dismissing a remote alert \(for example a Dependabot alert\) as an accepted entry;/);
             // Boundary: plan mode never edits
             assert.match(skill(), /Plan mode never edits project files; it writes only its own notes and report under `tmp\/`\./);
         }
@@ -197,6 +206,9 @@ const tests = [
             assert.match(text, /Run the tests that exercise moved packages first/);
             assert.match(text, /Then run the project's full test lane once\./);
             assert.match(text, /Claim "all tests pass" only after the full lane passed; an unavailable full lane is reported as not run\./);
+            // A caller with its own verify step owns the tests, so the full lane still runs once (PR review F2)
+            assert.match(text, /A caller with its own verify step \(such as `workflow-bugfix`\) owns step 8: this mode runs steps 1–7/);
+            assert.doesNotMatch(text, /this mode still runs steps 1–8/);
         }
     },
     {

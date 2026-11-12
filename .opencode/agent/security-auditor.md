@@ -116,7 +116,7 @@ For each detected component, synthesize known high-impact attack classes. Use tr
 | **Database**                  | MongoDB, Postgres, MySQL, SQL Server                                    | Operator/SQL injection, excessive service-account privilege, no field-level PII encryption, weak/disabled cluster auth               |
 | **Cache / KV**                | Redis, Memcached                                                        | Unauthenticated access, command/eval injection, persistence/config rewrite attacks                                                   |
 | **Container / orchestration** | Docker, Kubernetes, ECS                                                 | Privileged containers, exposed daemon socket, default SA token auto-mount, RBAC overpermission, secrets in ENV vs mounted            |
-| **Package ecosystem**         | npm, NuGet, Maven, PyPI, RubyGems, Go modules                           | Run ecosystem CVE scanner (`npm audit`, `dotnet list package --vulnerable`, `pip-audit`, `bundle audit`, `govulncheck`, etc.)        |
+| **Package ecosystem**         | npm, NuGet, Maven, PyPI, RubyGems, Go modules                           | Run the ecosystem's vulnerable-package scanner (commands per package manager: `.claude/skills/package-upgrade/references/ecosystems.md`) |
 
 > If WebSearch available: `site:nvd.nist.gov {technology} {version} CVE` + `{technology} security advisory {current_year}` per major component.
 
