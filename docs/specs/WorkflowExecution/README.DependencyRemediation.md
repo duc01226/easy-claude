@@ -220,7 +220,7 @@ IF a second copy of the fix-at-owner rule exists in guidance
 
 ### BR-DPR-05: Every moved package is researched [HARD]
 
-**Statement:** The moved-package list comes from the difference between the lock before and after the change. Each moved package carries a cited release note or changelog and a verdict before approval; a package the real change moves that the research missed is researched and shown for approval again.
+**Statement:** The moved-package list comes from the difference between the lock before and after the change. Each moved package carries a cited release note or changelog and a verdict before approval; a package the real change moves that the research missed is researched and shown for approval again. The research also searches the project for each moved package's old exact version, because a pinned or compared version breaks on a move its release notes call harmless.
 
 ### BR-DPR-06: Done means a clean re-scan [HARD]
 
@@ -596,6 +596,7 @@ Given a change that moves resolved versions
 When the assistant prepares approval
 Then it lists every moved package from the lock difference with a cited source and a verdict
 And a breaking change that reaches the project gets a code fix and a failing-then-passing test
+And the project is searched for each moved package's old exact version, and each hit is shown for approval
 And a planned upgrade still studies its latest or named target version
 ```
 
@@ -605,19 +606,20 @@ And a planned upgrade still studies its latest or named target version
 | --- | --- |
 | **UI** | Not applicable |
 | **System behavior** | Mover list from the lock difference, researched before approval |
-| **Business data state** | Each mover has a source and verdict |
+| **Business data state** | Each mover has a source, a verdict and the result of the old-version search |
 | **Data shown on UI** | The mover table |
 
 **Acceptance Criteria:**
 
 - ✅ Both the remediation and the planning guidance derive movers from the lock difference and keep the planning target version.
-- ❌ Guidance that researches only declared packages, or drops the planning target version, fails the case.
+- ✅ Both search the project for each moved package's old exact version.
+- ❌ Guidance that researches only declared packages, skips the old-version search, or drops the planning target version, fails the case.
 
 **Test Data:** The remediation guidance and the planning guidance.
 
 ```yaml
 inputDomain: 'any change to the resolved tree: remediation or planned upgrade, direct or indirect movers'
-invariant: 'for ALL such changes every moved package is researched before approval, and a planned upgrade keeps its target version'
+invariant: 'for ALL such changes every moved package is researched and its old exact version searched for in the project before approval, and a planned upgrade keeps its target version'
 boundaryCounterCase: 'a refresh that moves only indirect packages and no declared one → every indirect mover is still listed'
 ```
 

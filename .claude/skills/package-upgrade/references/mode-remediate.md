@@ -60,7 +60,8 @@ For each advisory:
 2. Diff the lock before and after. **Every** package whose resolved version moved is listed, declared or not.
 3. For each moved package, read its release notes, changelog or migration guide from the official source for the versions crossed. Record the source link and a verdict: `no impact` (cite why), `code change needed`, or `test needed`.
 4. Search the code for every API, option, output shape and default each breaking change touches; cite `file:line`.
-5. Moved packages outside the advisory's owner chain are still researched: a refresh pulls in unrelated minor versions too.
+5. Search the repository, lock files excluded, for each moved package's old exact version: the package name near the old version, and the bare version where code compares versions. Exact pins, version checks in code or tests, snapshots, image tags and generated files fail on a move that the release notes call harmless. Record each hit with `file:line` and mark the package `code change needed` (or `test needed`), so the approval shows it and step 6 applies it.
+6. Moved packages outside the advisory's owner chain are still researched: a refresh pulls in unrelated minor versions too.
 
 ### 5. Approval gate
 
