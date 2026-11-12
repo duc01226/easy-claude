@@ -58,6 +58,12 @@ Accessed: 2026-11-12. Each row cites its official source. Tool behaviour moves b
   - `dotnet package update --vulnerable` picks the lowest non-vulnerable version.
 
   A fixer that writes an override has created a temporary force: record it and remove it once the lock holds the fixed version without it.
+- **Lock-only resolution** (the throwaway copy of remediation step 4, so the research installs nothing):
+  - npm: `npm install --package-lock-only` uses only `package-lock.json` and ignores `node_modules`;
+  - pnpm: `pnpm install --lockfile-only` updates only `pnpm-lock.yaml` and `package.json`, and writes nothing to `node_modules`;
+  - Yarn Berry: `yarn install --mode=update-lockfile` skips the link step and only fetches packages missing from the lock.
+
+  None of these pages says whether lifecycle scripts run, so also pass npm's `--ignore-scripts`. Sources: https://docs.npmjs.com/cli/v11/commands/npm-install · https://pnpm.io/cli/install · https://yarnpkg.com/cli/install
 - **pnpm 11 ignores the `pnpm` field of `package.json`.** Overrides and patched dependencies left there stop applying after the upgrade. Check `pnpm-workspace.yaml` before concluding that a force exists.
 - **Yarn Berry's audit sees only direct dependencies** unless run with `-A -R`. A clean default run proves nothing about indirect packages.
 - **Suppression without expiry:**
