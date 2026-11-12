@@ -3111,6 +3111,37 @@ module.exports = {
             },
         },
         {
+            // Guards the post-fix lesson check: every verified fix names its bug class, and a generic,
+            // likely-recurring lesson reaches /learn only after the user confirms, never silently.
+            name: '[content-presence] fix and workflow-bugfix run the post-fix lesson check after the review and before the single verify; it saves a generic recurring lesson through /learn only after the user confirms',
+            fn: () => {
+                // Given the check's one owner and both skills that run it
+                const check = readFile(path.join(SKILLS_DIR, 'fix', 'references', 'post-fix-lesson-check.md'));
+                const fix = readSkill('fix');
+                const bugfix = readSkill('workflow-bugfix');
+                // When their text is read
+                const gaps = [
+                    ...(/`\/why-review` → post-fix lesson check \(`references\/post-fix-lesson-check\.md`\) → verify once/.test(fix) ? [] : ['fix: the standalone order does not run the check between the review and the verify']),
+                    ...(/post-fix lesson check \(`\.\.\/fix\/references\/post-fix-lesson-check\.md`\) after `\/workflow-review-changes` converges and before `\/integration-test --mode=verify`/.test(bugfix) ? [] : ['workflow-bugfix: the check does not run between the converged review and the verify']),
+                    ...(/under any other caller[^\n]*records the bug class and any lesson candidate[^\n]*hands them back/.test(fix) ? [] : ['fix: a nested step under another caller no longer hands its lesson candidate back']),
+                    ...(/§5 `\/why-review` gates and the §5a post-fix lesson check/.test(fix) ? [] : ['fix: the standalone --target branches no longer inherit the check']),
+                    ...(/^> 6\. \*\*Verify once\*\*[^\n]*the final todo/m.test(fix) ? [] : ['fix: the verify is no longer the final todo']),
+                    ...[
+                        ['classifies the bug class', /\*\*Classify the bug class\*\*/],
+                        ['keeps business rules out of lessons', /\*\*Generic\*\* — it names no business rule/],
+                        ['keeps only likely-recurring lessons', /\*\*Likely to recur\*\*/],
+                        ['skips a lesson a check or doc already covers', /\*\*Not already covered\*\*/],
+                        ['asks the user before saving', /ask through the host question tool whether to save it/],
+                        ['saves through /learn', /invoke `\/learn` with the generalized lesson/],
+                        ['records the outcome', /`Lesson: none — <reason>`/],
+                        ['never saves without an answer', /never save without the user's answer/],
+                    ].filter(([, pattern]) => !pattern.test(check)).map(([label]) => `post-fix-lesson-check.md no longer ${label}`),
+                ];
+                // Then both skills run it at the right point and it keeps every guard
+                assertTrue(gaps.length === 0, `post-fix lesson check gaps:\n  ${gaps.join('\n  ')}`);
+            },
+        },
+        {
             // Guards lessons.md "a tripwire per guard": every CJS suite that gates a self-check on
             // tests/lib/framework-repo-guard.cjs (content-presence, project-config-refactor-keys,
             // workflow-routing-switch) must resolve exactly like the ESM helper, which PORT-011 locks

@@ -103,6 +103,7 @@
 | `canonical-ownership` | [Rule](#synccanonical-ownership) | — |
 | `lesson-extraction-gate` | [Rule](#synclesson-extraction-gate) | — |
 | `quality-skill-routing` | [Rule](#syncquality-skill-routing) | [Reminder](#syncquality-skill-routingreminder) |
+| `test-coverage-goal` | [Rule](#synctest-coverage-goal) | — |
 | `universal-closing-reminders` | [Rule](#syncuniversal-closing-reminders) | — |
 | `agent-bootstrap` | [Rule](#syncagent-bootstrap) | — |
 | `agent-code-standards` | [Rule](#syncagent-code-standards) | — |
@@ -2397,13 +2398,28 @@ Add `Analyze AI mistakes & lessons learned` to non-trivial tasks. Extract the ro
 
 - **Review:** `why-review` judges a rationale, decision, plan, claim or statement: necessity, alternatives, trade-offs, or the validity of review findings. `changes-review` reviews a focused code change: staged, unstaged, one branch diff or a simple pull request. `workflow-review-changes` reviews a pull request or change set that is complex, risky or cross-module, with specialist reviewers and a fix loop; for a whole pull request, choose between the two by how complex its changes are, not by file count alone.
 - **Tests:** `test` runs the suites and summarizes the results; `integration-test` and `e2e-test` write, fix or verify their suites.
-- **Failures and errors:** `investigate --mode=debug` establishes the root cause of a failed command, test or unexpected error before any fix; `fix` then repairs it at that cause.
+- **Failures, errors and bugs:** fix every issue, failure or bug through these skills, never by an ad hoc patch. `investigate --mode=debug` establishes the root cause of a failed command, test or unexpected error before any fix; `fix` then repairs it at that cause, or `workflow-bugfix` runs the whole route when the route picks the full workflow for a non-trivial bug (cause unknown or wide reach). Both run a post-fix lesson check that offers a generic, likely-recurring lesson to `/learn` once the user confirms.
 
 ---
 
 ## SYNC:quality-skill-routing:reminder
 
-**Quality skills first:** review → `why-review` (rationale, decision, claim or statement), `changes-review` (focused diff or simple pull request), `workflow-review-changes` (complex, risky or cross-module pull request or changes); tests → `test`, `integration-test`, `e2e-test`; a failure or error → `investigate --mode=debug` before any fix. Use a generic host or plugin equivalent only when none fits.
+**Quality skills first:** review → `why-review` (rationale, decision, claim or statement), `changes-review` (focused diff or simple pull request), `workflow-review-changes` (complex, risky or cross-module pull request or changes); tests → `test`, `integration-test`, `e2e-test`; a failure, error or bug → `investigate --mode=debug` before any fix, then `fix` (or `workflow-bugfix` for a non-trivial bug), never an ad hoc patch. Use a generic host or plugin equivalent only when none fits.
+
+---
+
+## SYNC:test-coverage-goal
+
+## Full Test Coverage Goal
+
+Every feature, bug fix, refactor or other code change aims for 100% test coverage of the behavior it adds, changes or restructures, at every test layer the project applies (`APPLICABLE` or `N/A — <evidence>`, `SYNC:test-architecture-execution-contract`):
+
+- **Unit** — every changed unit of logic: each branch, error path, edge and boundary case.
+- **Integration** — every changed boundary, contract, use case and data-state outcome, through the project's integration harness.
+- **E2E** — every changed user journey, through the project's E2E runner.
+- **Specs** — every user story and every acceptance criterion of the governing spec (or of the task when no spec governs it) maps to at least one test case and an executing test that asserts its outcome; one without is a TEST-GAP. The change covers the stories and criteria it adds or touches; name any other uncovered one of that spec with an owner, so the spec still reaches 100%, instead of widening the change. A bug fix adds a regression test that fails without the fix.
+
+Plan the tests per layer and per story and criterion before building; report coverage the same way with the work evidence. A test counts only when it asserts an owned outcome and fails when the protected intent breaks; never pad coverage with assertion-free or duplicate tests. Line and branch reports find untested code but stay diagnostics, never pass/fail gates. Name every gap left below 100% with its reason and owner; never accept one silently.
 
 ---
 

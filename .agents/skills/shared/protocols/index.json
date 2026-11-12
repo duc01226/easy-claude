@@ -925,12 +925,12 @@
       "group": "universal",
       "summary": "Route review, test and failure work to the project's registered skills first",
       "when": "delivered by the universal hook",
-      "chars": 1020,
+      "chars": 1356,
       "file": ".claude/skills/shared/protocols/quality-skill-routing.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/quality-skill-routing.md",
-          "chars": 1020
+          "chars": 1356
         }
       ]
     },
@@ -1355,6 +1355,20 @@
         {
           "file": ".claude/skills/shared/protocols/test-architecture-execution-contract.md",
           "chars": 6126
+        }
+      ]
+    },
+    {
+      "tag": "test-coverage-goal",
+      "group": "universal",
+      "summary": "Aim for full unit, integration and E2E coverage of every change and test every spec story and acceptance criterion",
+      "when": "delivered by the universal hook",
+      "chars": 1506,
+      "file": ".claude/skills/shared/protocols/test-coverage-goal.md",
+      "parts": [
+        {
+          "file": ".claude/skills/shared/protocols/test-coverage-goal.md",
+          "chars": 1506
         }
       ]
     },
