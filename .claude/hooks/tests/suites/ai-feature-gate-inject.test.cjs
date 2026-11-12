@@ -17,6 +17,8 @@
  *   - static parity: the generated table and the lookup CLI agree with the hook, and classes without content
  *     signals keep their content version;
  *   - the config validator bounds content signals and stays in step with the runtime caps;
+ *   - project regexes (content and location) share one time budget per file and class, and only a source that
+ *     timed out with the whole budget is skipped for the rest of the process;
  *   - setup detection proposes the class only from dependency manifests that name an AI SDK;
  *   - the no-config fallback carries both gates.
  * Fixtures live in unique temp dirs removed in `finally`; the delivery store is always a fixture dir.
@@ -1163,6 +1165,84 @@ const tests = [
                 ], 'the finished run was charged 30 ms, the next source got the remainder');
                 assert.equal(budget.remainingMs, 0);
                 assert.equal(conventions.contentGuardStats().timedOutSources, 0, 'a timeout on a part-spent budget does not condemn the source');
+            } finally {
+                // The guard is process-global: never leak a timed-out source into the next test of the same runner process.
+                conventions.resetContentGuard();
+            }
+        }
+    },
+    {
+        // INTENT: a project location pattern is skipped for the process only after it timed out with the whole budget of its file and class; one that ran out on what earlier patterns of that file left is retried on the next file, under the same rule as content patterns.
+        // Given a location class whose first project pattern finishes slowly and whose second, harmless one cannot finish on the few ms left, and a fake clock that leaves a timed-out source every budget from 1 ms to the whole budget of its guard
+        // When one file is classified, then a second file the harmless pattern matches, and each guard meets each residue
+        // Then the harmless pattern is not condemned and matches the second file, and both guards make a timed-out source sticky only when it had the whole budget
+        name: 'TC-AIG-026 a location pattern that times out on a part-spent budget is retried on the next file; only a full-budget timeout is sticky',
+        fn: () => {
+            // A fake vm and clock: `slow` finishes after `slowMs`; a `hostile` source always times out; any other source
+            // times out when given less than `minMs` (it cannot start and finish in a residue that small) and otherwise matches normally.
+            const fakeVm = ({ slow, slowMs = 0, hostile = [], minMs = 0 }) => {
+                let clock = 1000;
+                const calls = [];
+                const execute = (re, subject, allowed) => {
+                    const source = re.source.replace(/\\\//g, '/'); // RegExp#source escapes '/'; compare the configured text
+                    calls.push({ source, allowed });
+                    if (source === slow) {
+                        clock += slowMs;
+                        return null;
+                    }
+                    if (hostile.includes(source) || allowed < minMs) {
+                        clock += allowed;
+                        const error = new Error('synthetic timeout');
+                        error.code = 'ERR_SCRIPT_EXECUTION_TIMEOUT';
+                        throw error;
+                    }
+                    const match = re.exec(subject);
+                    return match ? match[0] : null;
+                };
+                return { calls, deps: { execute, now: () => clock } };
+            };
+            const BUDGET = conventions.PATH_REGEX_BUDGET_MS;
+
+            try {
+                const slow = '^/slow/(x|y)*z$';
+                const harmless = '^/prompts/';
+                conventions.resetContentGuard();
+                const fake = fakeVm({ slow, slowMs: BUDGET - 3, minMs: 5 });
+                const file1 = { remainingMs: BUDGET };
+                const verdicts = [slow, harmless].map(source => conventions.guardedPathRegexTest(source, '/slow/xyxy', file1, fake.deps));
+                assert.deepEqual(verdicts, [{ matched: false, incomplete: false }, { matched: false, incomplete: true }], 'file 1: the harmless pattern ran out on the 3 ms the slow one left');
+                assert.equal(file1.remainingMs, 0);
+                assert.equal(conventions.contentGuardStats().pathTimeouts, 1);
+                assert.equal(conventions.contentGuardStats().timedOutPathSources, 0, 'a timeout on a part-spent budget does not condemn the pattern');
+                const file2 = conventions.guardedPathRegexTest(harmless, '/prompts/system.txt', { remainingMs: BUDGET }, fake.deps);
+                assert.deepEqual(file2, { matched: true, incomplete: false }, 'file 2: the pattern runs again with a fresh budget and matches');
+                assert.deepEqual(fake.calls, [
+                    { source: slow, allowed: BUDGET },
+                    { source: harmless, allowed: 3 },
+                    { source: harmless, allowed: BUDGET }
+                ]);
+
+                // For every budget a timed-out source can be left, from 1 ms to the whole budget of its guard: sticky exactly when it had the whole budget, in both guards.
+                const hostilePath = '^/custom/(a+)+$';
+                for (let left = 1; left <= BUDGET; left++) {
+                    conventions.resetContentGuard();
+                    const location = fakeVm({ slow, slowMs: BUDGET - left, hostile: [hostilePath] });
+                    const locationBudget = { remainingMs: BUDGET };
+                    conventions.guardedPathRegexTest(slow, '/slow/xyxy', locationBudget, location.deps);
+                    assert.deepEqual(conventions.guardedPathRegexTest(hostilePath, `/custom/${'a'.repeat(40)}!`, locationBudget, location.deps), { matched: false, incomplete: true });
+                    assert.deepEqual(location.calls.map(call => call.allowed), [BUDGET, left], `location: the hostile pattern was left ${left} ms`);
+                    assert.equal(conventions.contentGuardStats().timedOutPathSources, left === BUDGET ? 1 : 0, `location: ${left} ms left`);
+                }
+                const CONTENT_BUDGET = conventions.CONTENT_REGEX_BUDGET_MS;
+                const hostileContent = 'a*b*a*c';
+                for (let left = 1; left <= CONTENT_BUDGET; left++) {
+                    conventions.resetContentGuard();
+                    const content = fakeVm({ slow: 'zz-slow', slowMs: CONTENT_BUDGET - left, hostile: [hostileContent] });
+                    const contentBudget = { remainingMs: CONTENT_BUDGET };
+                    for (const source of ['zz-slow', hostileContent]) assert.equal(conventions.contentSignalOf(source, 'aaaa!', contentBudget, content.deps), null);
+                    assert.deepEqual(content.calls.map(call => call.allowed), [CONTENT_BUDGET, left], `content: the hostile pattern was left ${left} ms`);
+                    assert.equal(conventions.contentGuardStats().timedOutSources, left === CONTENT_BUDGET ? 1 : 0, `content: ${left} ms left`);
+                }
             } finally {
                 // The guard is process-global: never leak a timed-out source into the next test of the same runner process.
                 conventions.resetContentGuard();
