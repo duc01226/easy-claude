@@ -71,7 +71,7 @@ Research in batches of 10 packages.
 
 - **Target version:** the latest stable release from the ecosystem's official registry page, or the version the user named. Record release date.
 - **Breaking changes:** migration guides, changelogs and release notes from the official source (registry page, repository releases, `CHANGELOG`). Record each breaking change with its migration step, deprecations and peer or compatibility changes.
-- **Moved packages:** when the planned change touches a lock, resolve it in a throwaway copy of the manifests and lock, list every package whose resolved version moves, declared or not, and research each one the same way. When the user has not allowed running the package manager, predict the moved list from registry metadata and label it a prediction. Plan mode leaves the project's own files unchanged. Version numbers are a promise, not proof: a minor or patch move still gets its release notes read.
+- **Moved packages:** when the planned change touches a lock, resolve it in a throwaway copy of the manifests and lock, list every package whose resolved version moves, declared or not, and research each one the same way. When the user has not allowed running the package manager, predict the moved list from registry metadata and label it a prediction. Plan mode leaves the project's own files unchanged. Version numbers are a promise, not proof: a minor or patch move still gets its release notes read, and the repository is searched for its old exact version (`dependency-fix-at-owner` step 5).
 - Document current vs target version, the gap (major, minor, patch), breaking changes, deprecations and peer changes.
 
 ### Phase 3: Risk and order
@@ -126,7 +126,7 @@ State overall confidence (High 90–100%, Medium 70–89%, Low below 70%) with e
 
 <!-- SYNC:dependency-fix-at-owner:reminder -->
 
-**IMPORTANT MUST ATTENTION** fix at the owning parent (refresh within range → parent upgrade → temporary force → accepted entry with reason, owner and expiry), research every package the lock difference moves, and call it done only when the project's scanner re-scan shows accepted entries only.
+**IMPORTANT MUST ATTENTION** fix at the owning parent (refresh within range → parent upgrade → temporary force → accepted entry with reason, owner and expiry), research every package the lock difference moves and search the repository for its old exact version, and call it done only when the project's scanner re-scan shows accepted entries only.
 
 <!-- /SYNC:dependency-fix-at-owner:reminder -->
 

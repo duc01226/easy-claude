@@ -365,12 +365,12 @@
       "group": "evidence-trace",
       "summary": "Fix a vulnerable dependency at the package that decides its version, research every moved version and prove it with a re-scan",
       "when": "fixing, upgrading or accepting a vulnerable or outdated dependency",
-      "chars": 2724,
+      "chars": 2991,
       "file": ".claude/skills/shared/protocols/dependency-fix-at-owner.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/dependency-fix-at-owner.md",
-          "chars": 2724
+          "chars": 2991
         }
       ]
     },

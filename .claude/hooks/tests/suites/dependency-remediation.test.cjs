@@ -156,6 +156,10 @@ const tests = [
             assert.match(text, /Diff the lock before and after\. \*\*Every\*\* package whose resolved version moved is listed, declared or not\./);
             assert.match(text, /Record the source link and a verdict/);
             assert.match(text, /Moved packages outside the advisory's owner chain are still researched/);
+            // A pinned or compared old version breaks on a harmless move: the repository is searched for it
+            assert.match(text, /Search the repository, lock files excluded, for each moved package's old exact version/);
+            assert.match(canonical(TAG), /search the repository, lock files excluded, for each moved package's old exact version/);
+            assert.match(skill(), /the repository is searched for its old exact version/);
             // A mover the research missed is researched and shown before approval again (PR review F6)
             assert.match(text, /Research any package that moved and was not on that list, and, unless the user already asked for the fix, show those packages with their verdicts and wait for approval again/);
             // A breaking change gets a code fix and a test that fails without it
