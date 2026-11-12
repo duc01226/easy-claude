@@ -26,7 +26,7 @@ Explicit step-skill calls by mode (registry order; roles and conditions remain o
 
 - Mode `default`: [`$investigate --mode=debug`](../investigate/SKILL.md) (gate) → [`$spec [mode=amend]`](../spec/SKILL.md) (optional; conditional) → [`$work-item --mode=mockup --explore`](../work-item/SKILL.md) (optional; conditional) → [`$plan`](../plan/SKILL.md) (optional; conditional) → [`$spec [mode=tests]`](../spec/SKILL.md) (optional; conditional) → [`$work-item --mode=review --type=spec-tests`](../work-item/SKILL.md) (optional; conditional) → [`$integration-test`](../integration-test/SKILL.md) (gate) → [`$fix`](../fix/SKILL.md) (core) → [`$spec [mode=sync]`](../spec/SKILL.md) (optional; conditional) → [`$workflow-review-changes --tests=defer`](../workflow-review-changes/SKILL.md) (gate) → [`$integration-test --mode=verify`](../integration-test/SKILL.md) (gate) → [`$workflow-e2e --source=context`](../workflow-e2e/SKILL.md) (optional; conditional) → [`$demo-guide`](../demo-guide/SKILL.md) (optional; conditional) → [`$workflow-end`](../workflow-end/SKILL.md) (gate) → [`$watzup`](../watzup/SKILL.md) (optional; conditional)
   Phase todos: Discover (1; exit root-cause-traced) → Specify (2) → Plan (3) → Build (3; exit spec-synced) → Review (1; exit review-converged) → Verify (3; exit tests-pass) → Close (2; exit run-closed)
-<!-- workflow-mode:default fingerprint:c0255178243fbec644a71cf847ffa868784a8b5434476293c88623515c4378ae -->
+<!-- workflow-mode:default fingerprint:08fefce9b5bb01777e3ff5deb88e0702ce543edd4d2a8a0f9edf59906bd0d92f -->
 
 Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs --write` after registry edits; [`$sync-codex`](../sync-codex/SKILL.md) refreshes it before mirroring.
 <!-- WORKFLOW-CALLS:END -->
@@ -64,7 +64,7 @@ Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs
 Classify the defect before choosing steps and record the result in the workflow report:
 
 - **Size** (guidance, not a law): **XS** 1–3 files / ≤100 changed lines · **S** ≤15 files · **M** ≤60 · **L** ≤300 · **XL** >300.
-- **Kind** (all that apply): behavior bug · public contract/API · data/schema/migration · security-sensitive (auth, secrets, money, PII) · performance · UI surface · test-only · tooling/config · cross-module/cross-service.
+- **Kind** (all that apply): behavior bug · public contract/API · data/schema/migration · security-sensitive (auth, secrets, money, PII) · performance · UI surface · test-only · tooling/config · cross-module/cross-service · dependency advisory (a vulnerable package version reported by a dependency scan, alert or issue).
 - **Risk:** irreversible, data, security, cross-module. Escalate depth on risk and ambiguity, not on file count alone.
 
 | Triage result | Typical route through the recommended skills |
@@ -72,6 +72,7 @@ Classify the defect before choosing steps and record the result in the workflow 
 | XS/S, one owning layer, Code Bug, no contract/data/security | investigate → regression test + fix → review → verify (mutation check = RED proof) → close; `$fix` plans inline; spec steps only when a canonical spec covers the area |
 | M, or a Spec Bug, or several TCs | add `$plan`; add the spec-tests review when the TC change is more than one regression case |
 | L/XL, cross-module, contract/data/security, or ambiguous cause | full sequence; make `$plan` capture the decisions, owners, risks and final gates; partition verification and review per module |
+| Dependency advisory | investigate reads the scan run, alert or issue → `$package-upgrade --mode=remediate` is the fix step (owner chain, fix route, moved-package research, re-scan) → review → verify; RED proof = the project's scanner reports the advisory on the old lock and not on the new one, plus a test that fails without the fix for each breaking change found |
 
 ## Required Quality Gates
 
@@ -79,7 +80,7 @@ Non-negotiable — `$workflow-end` checks each against its evidence before the r
 
 1. **Root cause traced** (`$investigate --mode=debug`, gate) — end-to-start trace from the observed final state through reader → storage/projection → writer → consumer/job → producer, every feeder path, a hypothesis matrix with the environment weighed as a competing cause, the owning fix layer and a forward convergence proof, all with `file:line`.
 2. **Code Bug vs Spec Bug classified** before any regression TC or test (gate below), with a preservation note: `current behavior → expected behavior → unchanged behavior to preserve → regression evidence`.
-3. **Regression guard RED → GREEN** — the `$integration-test` step (gate) writes a test that reproduces the bug before `$fix`, without running it; `$fix` adjusts that test when the fix changes its seams; the verify step's mutation check reverts `$fix` and the test FAILS (RED), with the fix it PASSES (GREEN). A test that passes without the fix does not catch the bug. Each regression test names its `Business Intent / Invariant Guarded`; lifecycle/state logic asserts state before/after and invalid-transition rejection. A reproducing test that cannot run here is `ENVIRONMENT-BLOCKED` and escalated, never assumed green.
+3. **Regression guard RED → GREEN** — the `$integration-test` step (gate) writes a test that reproduces the bug before `$fix`, without running it; `$fix` adjusts that test when the fix changes its seams; the verify step's mutation check reverts `$fix` and the test FAILS (RED), with the fix it PASSES (GREEN). A test that passes without the fix does not catch the bug. Each regression test names its `Business Intent / Invariant Guarded`; lifecycle/state logic asserts state before/after and invalid-transition rejection. For a dependency advisory the scanner is the regression check: with the old lock it reports the advisory (RED), with the new lock it does not (GREEN); each breaking change the upgrade brings still gets its own failing-then-passing test. A reproducing test that cannot run here is `ENVIRONMENT-BLOCKED` and escalated, never assumed green.
 4. **Tests pass** (`$integration-test --mode=verify`, gate) — every behavior the fix changed is covered by tests that ran green in THIS run.
 5. **Spec synced** — when a canonical spec or test-case artifact governs the affected area and behavior or a public contract changed, or that spec lacked the case the bug exposed. No canonical spec governs the area → the gate is N/A: record that fact with the searched paths and offer `$spec` as a follow-up.
 6. **Review converged** (`$workflow-review-changes`, gate, INLINE in the main session) — validated blocking findings fixed and the fixed state re-reviewed over the whole package (spec + tests + fix).

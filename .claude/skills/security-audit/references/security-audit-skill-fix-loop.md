@@ -7,7 +7,7 @@
 **Protocol:**
 
 1. Create a fresh fix-cycle task list before editing. Do not reuse the review tasks.
-2. Fix only findings that survived `/why-review --validate-findings`; if this skill is running inside a workflow, hand the validated report to the caller's fix step (standalone: `/fix --target=review`).
+2. Fix only findings that survived `/why-review --validate-findings`; if this skill is running inside a workflow, hand the validated report to the caller's fix step (standalone: `/fix --target=review`). Validated D3 dependency advisories (vulnerable package versions) go to `/package-upgrade --mode=remediate` instead, which fixes each at the package that owns it; its re-scan is part of this loop's re-review evidence.
 3. Run targeted verification for the changed security-sensitive paths.
 4. Restart the full `/security-audit` from Scope over the complete current target, not only the fixed files.
 5. The restarted pass MUST create brand-new review tasks, reload local security context, rerun caller traces (grep/read, plus any optional graph hint) where applicable, and analyze the full target from the beginning.

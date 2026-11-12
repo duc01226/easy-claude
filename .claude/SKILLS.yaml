@@ -1,7 +1,7 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-11-07'
+  last_updated: '2026-11-12'
   total_skills: 108
   total_by_status:
     active: 108
@@ -499,11 +499,12 @@ skills:
       removal_after: null
     - name: package-upgrade
       path: package-upgrade/SKILL.md
-      description: '[Code Quality] Use when analyzing npm package upgrades, outdated
-        dependencies or breaking changes and preparing a phased upgrade plan.'
+      description: '[Code Quality] Use when planning dependency upgrades or researching
+        breaking changes in any package ecosystem. --mode=remediate fixes a red dependency
+        scan, alert or vulnerable-package issue at the owning package.'
       category: other
       has_scripts: false
-      has_references: false
+      has_references: true
       status: active
       deprecated_by: null
       deprecated_since: null

@@ -209,9 +209,9 @@ Read `.claude/skills/shared/workflow-first-gate.md` when selecting discovery dep
 
 ## Web/Frameworks
 
-| Skill             | Triggers              | Description     |
-| ----------------- | --------------------- | --------------- |
-| `package-upgrade` | upgrade, dependencies | Package updates |
+| Skill             | Triggers                                   | Description                                                                                          |
+| ----------------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| `package-upgrade` | upgrade, dependencies, vulnerable packages | Plan upgrades in any ecosystem; `--mode=remediate` fixes a red dependency scan at the owning package |
 
 ---
 

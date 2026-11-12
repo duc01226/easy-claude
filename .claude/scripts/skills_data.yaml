@@ -512,9 +512,10 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Code Quality] Use when analyzing npm package upgrades, outdated dependencies
-    or breaking changes and preparing a phased upgrade plan.'
-  has_references: false
+  description: '[Code Quality] Use when planning dependency upgrades or researching
+    breaking changes in any package ecosystem. --mode=remediate fixes a red dependency
+    scan, alert or vulnerable-package issue at the owning package.'
+  has_references: true
   has_scripts: false
   name: package-upgrade
   path: package-upgrade/SKILL.md

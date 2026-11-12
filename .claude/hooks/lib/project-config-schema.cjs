@@ -520,6 +520,60 @@ const SCHEMA = {
             integrationRules: { type: 'array', required: false, itemType: 'string' }
         }
     },
+    // Optional dependency-vulnerability remediation policy (spec WorkflowExecution DPR). Closed:
+    // a mistyped key would otherwise silently drop part of the project's policy.
+    dependencySecurity: {
+        type: 'object',
+        required: false,
+        closed: true,
+        describe: 'Optional dependency-vulnerability remediation policy, read by package-upgrade --mode=remediate and security-audit dimension D3. Omitted = the scanners, lock files and suppression files are derived from the repository.',
+        properties: {
+            scanners: {
+                type: 'arrayOf',
+                required: false,
+                closed: true,
+                describe: 'Scanners whose clean re-scan decides that a remediation is done. Every listed scanner must pass.',
+                itemSchema: {
+                    name: { type: 'string', required: true, describe: 'Display name of the scanner, used in remediation reports.' },
+                    command: { type: 'string', required: true, describe: 'Command that runs the scan from the project root and exits non-zero on findings.' },
+                    lockfiles: { type: 'array', required: false, itemType: 'string', describe: 'Repository-relative lock files this scanner reads; omitted = the scanner decides.' },
+                    configFile: { type: 'string', required: false, describe: 'Repository-relative scanner configuration file that holds its accepted (suppressed) advisories.' }
+                }
+            },
+            acceptedEntries: {
+                type: 'object',
+                required: false,
+                closed: true,
+                describe: 'Policy for advisories the project accepts for now. Every accepted entry always needs a reason, an owner and an expiry.',
+                properties: {
+                    maxDays: { type: 'number', required: false, describe: 'Longest allowed time, in days from the day it is written, until an accepted entry expires.' }
+                }
+            },
+            deadlinesDays: {
+                type: 'object',
+                required: false,
+                closed: true,
+                describe: 'Days allowed from disclosure to fix, per advisory severity. Shown in remediation reports beside each advisory.',
+                properties: {
+                    critical: { type: 'number', required: false, describe: 'Days allowed to fix a critical advisory.' },
+                    high: { type: 'number', required: false, describe: 'Days allowed to fix a high advisory.' },
+                    medium: { type: 'number', required: false, describe: 'Days allowed to fix a medium advisory.' },
+                    low: { type: 'number', required: false, describe: 'Days allowed to fix a low advisory.' }
+                }
+            },
+            alertOwner: { type: 'string', required: false, describe: 'Person or team who responds when a dependency scan fails; named in every remediation health report.' },
+            scheduledScan: {
+                type: 'object',
+                required: false,
+                closed: true,
+                describe: 'The scheduled full scan of the default branch, re-run at remediation close-out only with the user\'s authority.',
+                properties: {
+                    workflow: { type: 'string', required: false, describe: 'CI workflow name or file that runs the scheduled scan.' },
+                    issueLabel: { type: 'string', required: false, describe: 'Label of the issue a failed scheduled scan opens, if any.' }
+                }
+            }
+        }
+    },
     e2eTesting: {
         type: 'object',
         required: false,

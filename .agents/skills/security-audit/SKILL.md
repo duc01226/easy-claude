@@ -216,7 +216,7 @@ rg -n "(sk_live_|ghp_|github_pat_|AKIA[0-9A-Z]{16}|xox[baprs]-|-----BEGIN (RSA |
 - [ ] Connection strings/API keys in client-side bundles or source maps (frontend leaks server secrets)
 - [ ] If a secret-scanning tool exists (gitleaks, trufflehog), run it; otherwise state grep coverage explicitly
 
-### D3 — Dependency & Supply-Chain Security (npm / NuGet / pip)
+### D3 — Dependency & Supply-Chain Security (all package ecosystems)
 
 **[BLOCKING]** Read [references/security-audit-skill-supply-chain.md](references/security-audit-skill-supply-chain.md) when D3 is in scope (`deps`, `vet`, `full`, or `changes` with a manifest/lockfile change), in full before auditing this domain; it holds the install-time execution audit (lifecycle scripts, new-plus-script red flag, non-script vectors, hardening), lockfile and version integrity, and the vulnerability, typosquatting, compromise-signal and reachability checks with their commands.
 
