@@ -15,7 +15,7 @@ Read this index when locating the authoritative document for a project question 
 - Resolve configured roots; regenerate category globs into a normalized unique-path union.
 - Compare broad `docs/**/*.md` results with the category union and expose every remainder.
 - Verify relationships and lookup paths; keep every path real, unique, and traceable to the current tree.
-- Index <!-- COUNT:markdown:authored -->592<!-- /COUNT --> unique authored Markdown files across 13 categories; `docs/` contains <!-- COUNT:markdown:docs -->66<!-- /COUNT --> files with 0 uncategorized. Design System is a one-file Project Reference subset counted once.
+- Index <!-- COUNT:markdown:authored -->593<!-- /COUNT --> unique authored Markdown files across 13 categories; `docs/` contains <!-- COUNT:markdown:docs -->67<!-- /COUNT --> files with 0 uncategorized. Design System is a one-file Project Reference subset counted once.
 
 ## Contents
 
@@ -45,7 +45,7 @@ Read this index when locating the authoritative document for a project question 
 
 ## Documentation System
 
-<!-- COUNT:markdown:authored -->592<!-- /COUNT --> unique authored markdown files across 13 indexed categories. Last scanned: 2026-10-22. Benchmark inventory/navigation impact verified: 2026-10-27.
+<!-- COUNT:markdown:authored -->593<!-- /COUNT --> unique authored markdown files across 13 indexed categories. Last scanned: 2026-10-22. Benchmark inventory/navigation impact verified: 2026-10-27.
 
 **Relocatable roots.** Resolve these configurable roots before running their category globs:
 
@@ -68,7 +68,7 @@ The **Reproducible scope** column states each glob relative to its category's ro
 | Templates              |              1 | `**/*.md` under the templates root                                                    |
 | Release Notes          |              3 | `docs/release/**/*.md` + `docs/release-notes/**/*.md`                                 |
 | Knowledge Reports      |              2 | `docs/knowledge/**/*.md`                                                             |
-| Knowledge Packs        | <!-- COUNT:markdown:knowledge-packs -->2<!-- /COUNT --> | `*.md` in the packs directory named by `knowledge-base-reference.md` (default `docs/knowledge-base/`) |
+| Knowledge Packs        | <!-- COUNT:markdown:knowledge-packs -->3<!-- /COUNT --> | `*.md` in the packs directory named by `knowledge-base-reference.md` (default `docs/knowledge-base/`) |
 | Framework Docs         |             43 | `.claude/docs/**/*.md`                                                                |
 | Skill Markdown         | <!-- COUNT:markdown:skills -->480<!-- /COUNT --> | `rg --files .claude/skills -g '*.md'`                                                 |
 
@@ -83,7 +83,7 @@ easy-claude/
 ├── AGENTS.md                                      # Codex/agent instructions
 ├── CLAUDE.md                                      # Claude project instructions
 ├── README.md                                      # Project overview and adoption entry point
-├── docs/                                          # <!-- COUNT:markdown:docs -->66<!-- /COUNT --> markdown files
+├── docs/                                          # <!-- COUNT:markdown:docs -->67<!-- /COUNT --> markdown files
 │   ├── adr/                                       # 8 architecture decisions
 │   │   ├── 0001-skill-lifecycle.md
 │   │   ├── 0002-canonical-count-metrics.md

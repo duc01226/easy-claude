@@ -29,6 +29,7 @@ Framework packs are always listed in `.claude/knowledge-base/README.md`, even be
 
 | Pack | Plane | Title | Use when | Labels | Read |
 | --- | --- | --- | --- | --- | --- |
+| `direct-to-object-storage-uploads` | project | Direct-to-object-storage file uploads | Use when designing or reviewing large file uploads, presigned upload URLs, or an API that proxies file bytes to object storage | unreviewed | `docs/knowledge-base/direct-to-object-storage-uploads.md` |
 | `incremental-scaling` | project | Scaling a system step by step — fix the measured bottleneck | Use when planning how a system grows under load — vertical vs horizontal scaling, stateless tiers, replicas, caching, queues, splitting services or scaling database writes | unreviewed | `docs/knowledge-base/incremental-scaling.md` |
 | `single-server-capacity` | project | Single-server capacity — memory and GC cap concurrency before CPU | Use when sizing how many concurrent users one server holds, load or capacity testing it, or diagnosing throughput that stops growing with more cores | unreviewed | `docs/knowledge-base/single-server-capacity.md` |
 | `ai-engineering` | framework | AI-engineering best practice and detection signals | Use when building, planning or reviewing a feature that calls a model — prompts, agents, retrieval, tools, evals, guardrails | unreviewed | `.claude/knowledge-base/ai-engineering.md` |

@@ -3,6 +3,54 @@
   "plane": "project",
   "packs": [
     {
+      "id": "direct-to-object-storage-uploads",
+      "title": "Direct-to-object-storage file uploads",
+      "description": "Use when designing or reviewing large file uploads, presigned upload URLs, or an API that proxies file bytes to object storage",
+      "kind": "practice",
+      "review": "unreviewed",
+      "reviewed": "2026-11-13",
+      "labels": [
+        "unreviewed"
+      ],
+      "sourceKinds": [
+        "file",
+        "web-address"
+      ],
+      "file": "docs/knowledge-base/direct-to-object-storage-uploads.md",
+      "body": null,
+      "triggers": {
+        "prompt": [
+          "file upload",
+          "direct upload",
+          "upload proxy",
+          "signed upload URL",
+          "presigned upload URL"
+        ],
+        "intent": [],
+        "skills": [],
+        "agents": []
+      },
+      "clauses": [
+        {
+          "id": "KB-UPLOAD-1",
+          "heading": "KB-UPLOAD-1 Direct upload (case A)"
+        },
+        {
+          "id": "KB-UPLOAD-2",
+          "heading": "KB-UPLOAD-2 Signed URL scope"
+        },
+        {
+          "id": "KB-UPLOAD-3",
+          "heading": "KB-UPLOAD-3 Readiness"
+        },
+        {
+          "id": "KB-UPLOAD-4",
+          "heading": "KB-UPLOAD-4 API-proxied upload (case B)"
+        }
+      ],
+      "hash": "a189e3936fc223ca"
+    },
+    {
       "id": "incremental-scaling",
       "title": "Scaling a system step by step — fix the measured bottleneck",
       "description": "Use when planning how a system grows under load — vertical vs horizontal scaling, stateless tiers, replicas, caching, queues, splitting services or scaling database writes",
