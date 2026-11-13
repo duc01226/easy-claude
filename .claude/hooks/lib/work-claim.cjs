@@ -10,7 +10,8 @@
  * - after compaction or clear the notice re-arms (hosts without a transcript re-arm through SessionStart).
  * `main` and `master` are where work starts, so they get the rule too; a claim or decline recorded on them is ignored,
  * because a decline there would silence every later session on the shared trunk.
- * A declined branch, `mode: off`, a detached head and a directory outside Git stay silent. The hooks read local Git
+ * A detached checkout gets the same unclaimed rule and nudge as a new branch. A declined branch, `mode: off`
+ * and a directory outside Git stay silent. The hooks read local Git
  * state only (no network) and never block a tool. The claim record lives in the branch's Git configuration:
  * `branch.<name>.workClaim`, `.workClaimPr` and `.workClaimDeclined` — the keys a project's claim command writes.
  */
@@ -123,19 +124,50 @@ function pathMatcher(globs) {
     return file => patterns.some(pattern => pattern.test(String(file).replace(/\\/g, '/').replace(/^\.\//, '')));
 }
 
-/** One local Git call, bounded so a hook with a 3 s budget never loses its other output to a slow Git. */
+/** Run a local Git probe with an individual timeout. */
 const runGit = (root, args, input) => {
     const result = spawnSync('git', args, { cwd: root, encoding: 'utf8', windowsHide: true, timeout: 800, ...(input === undefined ? {} : { input }) });
     return result.status === 0 ? result.stdout : null;
 };
 
+/** Claude can launch the hook from the original project after entering a linked worktree. */
+function claimRoot(input, projectRoot, git = runGit) {
+    const cwd = input?.cwd;
+    if (typeof cwd !== 'string' || !path.isAbsolute(cwd) || path.resolve(cwd) === projectRoot) return projectRoot;
+    const [checkout, storage, extra] = (git(cwd, ['rev-parse', '--show-toplevel', '--git-common-dir']) || '').replace(/\r?\n$/, '').split(/\r?\n/);
+    if (!checkout || !storage || extra !== undefined) return projectRoot;
+    try {
+        const canonical = fs.realpathSync.native;
+        const root = canonical(projectRoot);
+        const active = canonical(checkout);
+        if (path.relative(root, active) !== '') {
+            const [selectedCheckout, common] = (git(root, ['rev-parse', '--show-toplevel', '--git-common-dir']) || '').replace(/\r?\n$/, '').split(/\r?\n/);
+            // A project inside a larger checkout owns its configuration and paths.
+            if (!selectedCheckout || !common || path.relative(root, canonical(selectedCheckout)) !== '') return projectRoot;
+            const selectedStorage = canonical(path.resolve(root, common));
+            const activeStorage = canonical(path.resolve(cwd, storage));
+            if (path.relative(selectedStorage, activeStorage) !== '') return projectRoot;
+        }
+        // Keep the host's path spelling for absolute edit targets, including macOS path aliases.
+        const visible = path.resolve(cwd, path.relative(canonical(cwd), active));
+        return path.relative(canonical(visible), active) === '' ? visible : active;
+    } catch { /* Keep the selected project when a checkout or its storage cannot be verified. */ }
+    return projectRoot;
+}
+
 /**
- * The checked-out branch and its claim record, from two local Git calls; null on a detached head or outside Git.
- * Git stores configuration variable names in lower case, so the keys are read case-insensitively.
+ * The checked-out branch and its claim record, from at most two local Git calls.
+ * A detached worktree has no branch to read; outside a worktree, there is no detached state to report.
  */
 function branchState(root, git = runGit) {
-    const branch = (git(root, ['symbolic-ref', '--quiet', '--short', 'HEAD']) || '').trim();
-    if (!branch) return null;
+    const current = git(root, ['branch', '--show-current']);
+    if (current === null) return null;
+    const branch = current.trim();
+    if (!branch) {
+        return git(root, ['rev-parse', '--is-inside-work-tree'])?.trim() === 'true'
+            ? { branch: null, claim: null, pr: null, declined: null }
+            : null;
+    }
     const escaped = branch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const lines = (git(root, ['config', '--get-regexp', `^branch\\.${escaped}\\.workclaim`]) || '').split('\n');
     const value = key => {
@@ -153,8 +185,18 @@ const command = (settings, key, fallback) => (nonBlank(settings[key]) ? `\`${set
 const effectiveState = state => (state && TRUNKS.includes(state.branch) ? { ...state, claim: null, pr: null, declined: null } : state);
 
 /** How to decline: on a trunk, the record belongs on the work's own branch (a decline on the trunk is ignored). */
-const declineHow = (settings, state, what = 'that') =>
-    `record ${what} with ${command(settings, 'declineCommand', "the project's decline command")}${TRUNKS.includes(state.branch) ? ` on the work's own branch (a decline on \`${state.branch}\` is ignored)` : ''}`;
+const declineHow = (settings, state, what = 'that') => {
+    const record = `record ${what} with ${command(settings, 'declineCommand', "the project's decline command")}`;
+    if (state.branch === null) return `switch to the work's own branch, then ${record}`;
+    if (TRUNKS.includes(state.branch)) return `${record} on the work's own branch (a decline on \`${state.branch}\` is ignored)`;
+    return record;
+};
+
+const detachedRecovery = state => state.branch === null
+    ? ' If the claim command requires a branch, create one at the current commit and retry.'
+    : '';
+
+const checkoutLabel = state => state.branch === null ? 'detached HEAD' : `\`${state.branch}\``;
 
 /** The prompt notice for a branch state, or null (silent). */
 function promptNotice(settings, raw) {
@@ -166,7 +208,7 @@ function promptNotice(settings, raw) {
     if (state.claim) {
         return `${MARKER}\nWork claim: \`${state.branch}\` claims ${state.claim}, but its push or pull request is pending. Run ${command(settings, 'claimCommand', "the project's claim command")} again to finish it.`;
     }
-    return `${MARKER}\nWork claim: \`${state.branch}\` has no claimed work. When this request will change tracked files (implement, fix, refactor, enhance, write a spec or plan into the repository), claim it before the first edit with ${command(settings, 'claimCommand', "the project's claim command")}. When it is unclear whether new change work is starting, ask the user once; if they say not to track it, ${declineHow(settings, state)}. Never claim or ask for questions, explanations, read-only reviews, investigations, brainstorms, reports, running commands, or follow-ups inside work already claimed.`;
+    return `${MARKER}\nWork claim: ${checkoutLabel(state)} has no claimed work. When this request will change tracked files (implement, fix, refactor, enhance, write a spec or plan into the repository), claim it before the first edit with ${command(settings, 'claimCommand', "the project's claim command")}.${detachedRecovery(state)} Check the result for the draft pull request or a pending publication step. When it is unclear whether new change work is starting, ask the user once; if they say not to track it, ${declineHow(settings, state)}. Never claim or ask for questions, explanations, read-only reviews, investigations, brainstorms, reports, running commands, or follow-ups inside work already claimed.`;
 }
 
 /** The first-edit nudge for edited paths, or null: only an unclaimed, undeclined branch editing a non-tracker file. */
@@ -176,7 +218,7 @@ function editNudge(settings, raw, paths) {
     const isTracker = pathMatcher(settings.trackerPaths);
     const edited = paths.filter(file => !isTracker(file));
     if (!edited.length) return null;
-    return `${MARKER}\nWork claim: \`${edited[0]}\` changed on \`${state.branch}\`, which has no claimed work. Claim it now with ${command(settings, 'claimCommand', "the project's claim command")}, or, if the user does not want this tracked, ${declineHow(settings, state, 'why')}.`;
+    return `${MARKER}\nWork claim: \`${edited[0]}\` changed on ${checkoutLabel(state)}, which has no claimed work. Claim it now with ${command(settings, 'claimCommand', "the project's claim command")}, or, if the user does not want this tracked, ${declineHow(settings, state, 'why')}.${detachedRecovery(state)}`;
 }
 
 function store(root) {
@@ -189,8 +231,9 @@ const usableSession = input => input && typeof input.session_id === 'string' && 
 async function deliverPromptNotice(input, deps = {}) {
     try {
         if (!usableSession(input)) return '';
-        const root = deps.root || require('./protocol-delivery.cjs').resolveRoot(input, deps);
-        if (!root) return '';
+        const projectRoot = deps.root || require('./protocol-delivery.cjs').resolveRoot(input, deps);
+        if (!projectRoot) return '';
+        const root = deps.root || claimRoot(input, projectRoot, deps.git || runGit);
         const ledger = require('./convention-ledger.cjs');
         const records = store(root);
         if (input.hook_event_name === 'SessionStart') {
@@ -251,5 +294,5 @@ function observeEdit(event, root, paths, deps = {}) {
 
 module.exports = {
     MODES, AUTO_MERGE, CLAIM_CONFIG, DEFAULTS, PERSONAL_KEYS, MARKER,
-    resolveWorkTracking, pathMatcher, branchState, promptNotice, editNudge, deliverPromptNotice, observeEdit
+    resolveWorkTracking, pathMatcher, claimRoot, branchState, promptNotice, editNudge, deliverPromptNotice, observeEdit
 };

@@ -1018,6 +1018,8 @@ Read this section when a project claims its work before changing anything and wa
 
 The project config (team) owns every key. A personal layer — `~/.claude/.ck.json`, `.claude/.ck.local.json`, `CK_WORK_TRACKING_MODE`, `CK_WORK_TRACKING_AUTO_MERGE` — may set only `mode` and `autoMerge`, later wins; `node .claude/scripts/framework-features.cjs --json` shows the effective values and their layers. The claim command writes the branch's record in local Git configuration (`branch.<name>.workClaim`, `.workClaimPr`, `.workClaimDeclined`), which is all the hooks read. What the reminders say and when: [hooks README](../hooks/README.md) (work-claim reminders). The commit-gate exemption for a tracker-only claim commit follows the team's `mode` only; a personal `remind` never relaxes a team's review gate.
 
+The reminder also applies to detached `HEAD` in a regular checkout or linked worktree. The project command still owns the claim and draft pull request. If it requires a named branch, create one at the current commit and retry the command before editing.
+
 ---
 
 ## Quick Configuration Guide
