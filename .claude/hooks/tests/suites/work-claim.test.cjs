@@ -2,13 +2,13 @@
 
 // TC-WCL: work-claim reminders (`workTracking`, hooks/lib/work-claim.cjs). Off by default; with mode remind a branch
 // with no claim gets one rule per session, a claimed branch one status line, the first non-tracker edit one nudge,
-// and compaction re-arms the notice. Declined, detached and non-Git checkouts stay silent; no hook reaches the network.
+// and compaction re-arms the notice. Detached worktrees get the unclaimed rule; declined and non-Git checkouts stay silent.
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { spawnSync, execFileSync } = require('node:child_process');
-const { makeHookTreeProject, removeTempDir, childEnv } = require('../lib/hook-runner.cjs');
+const { makeHookTreeProject, removeTempDir, childEnv, runCodexLauncher } = require('../lib/hook-runner.cjs');
 const workClaim = require('../../lib/work-claim.cjs');
 
 const posix = process.platform !== 'win32';
@@ -102,7 +102,7 @@ const tests = [
         })
     },
     {
-        name: 'TC-WCL-003 the notice follows the branch state; declined, detached and mode off are silent; main gets the rule and its records are ignored',
+        name: 'TC-WCL-003 the notice follows the branch state; declined and mode off are silent; main and detached HEAD get the rule',
         fn: () => {
             const settings = { ...workClaim.DEFAULTS, ...REMIND };
             const unclaimed = workClaim.promptNotice(settings, { branch: 'feature/x', claim: null, pr: null, declined: null });
@@ -119,6 +119,10 @@ const tests = [
             assert.doesNotMatch(unclaimed, /is ignored/, 'a work branch declines in place');
             assert.equal(workClaim.promptNotice(settings, { branch: 'master', claim: null, pr: null, declined: 'typo' }), trunk.replaceAll('`main`', '`master`'), 'a decline on a trunk would silence every later session, so it is ignored');
             assert.equal(workClaim.promptNotice(settings, { branch: 'main', claim: 'SMP-1-1', pr: 7, declined: null }), trunk, 'a trunk is never claimed');
+            const detached = workClaim.promptNotice(settings, { branch: null, claim: null, pr: null, declined: null });
+            assert.match(detached, /detached HEAD has no claimed work.*before the first edit with `run claim`/);
+            assert.match(detached, /If the claim command requires a branch, create one at the current commit and retry/);
+            assert.match(detached, /switch to the work's own branch, then record that with `run decline`/);
             assert.equal(workClaim.promptNotice(settings, null), null);
             assert.equal(workClaim.promptNotice({ ...settings, mode: 'off' }, { branch: 'feature/x', claim: null, pr: null, declined: null }), null);
         }
@@ -139,7 +143,7 @@ const tests = [
         }
     },
     {
-        name: 'TC-WCL-005 branch state comes from two local Git calls, reads the keys whatever their case, and is null when detached',
+        name: 'TC-WCL-005 branch state uses at most two local Git calls and distinguishes detached HEAD from a directory outside Git',
         fn: () => project(null, ({ root }) => {
             let calls = 0;
             const counting = (cwd, args) => {
@@ -154,11 +158,71 @@ const tests = [
             assert.deepEqual(workClaim.branchState(root, counting), { branch: 'feature/x', claim: 'SMP-261111-1', pr: 42, declined: null });
             assert.ok(calls <= 2, `at most two Git calls, saw ${calls}`);
             git(root, ['switch', '-q', '--detach']);
-            assert.equal(workClaim.branchState(root, counting), null);
+            calls = 0;
+            assert.deepEqual(workClaim.branchState(root, counting), { branch: null, claim: null, pr: null, declined: null });
+            assert.ok(calls <= 2, `at most two Git calls, saw ${calls}`);
             const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'work-claim-outside-'));
             try { assert.equal(workClaim.branchState(outside), null); } finally { removeTempDir(outside); }
+            const nestedProject = path.join(root, 'project');
+            fs.mkdirSync(path.join(nestedProject, 'src'), { recursive: true });
+            assert.equal(workClaim.claimRoot({ cwd: path.join(nestedProject, 'src') }, nestedProject), nestedProject,
+                'a subproject keeps its configuration and paths when a hook runs from a subdirectory');
         })
     },
+    ...['regular checkout', 'linked worktree'].map(layout => ({
+        name: `TC-WCL-010 Claude and Codex get the claim rule before an edit in a detached ${layout}`,
+        skip: !posix, // runCodexLauncher uses the POSIX command from the generated mirror.
+        fn: () => project(REMIND, ({ root, home }) => {
+            const checkout = layout === 'linked worktree' ? path.join(home, 'linked') : root;
+            if (checkout === root) {
+                git(root, ['switch', '-q', '--detach']);
+            } else {
+                git(root, ['add', '.claude', 'docs/project-config.json']);
+                git(root, ['commit', '-qm', 'install hook fixture']);
+                git(root, ['worktree', 'add', '-q', '--detach', checkout, 'HEAD']);
+            }
+            const env = Object.fromEntries(Object.keys(process.env).filter(key => /^CK_/.test(key)).map(key => [key, undefined]));
+            Object.assign(env, { HOME: home, USERPROFILE: home, NODE_OPTIONS: undefined });
+            const route = 'task-tracking-route.cjs';
+            const observer = 'task-tracking-observer.cjs';
+            const patch = '*** Begin Patch\n*** Update File: src/list.ts\n@@\n-a\n+b\n*** End Patch\n';
+            const codex = (hook, payload) => {
+                const result = runCodexLauncher(hook, JSON.stringify(payload), { cwd: checkout, env });
+                assert.equal(result.code, 0, result.stderr);
+                return result.stdout;
+            };
+            if (checkout !== root) {
+                git(root, ['config', 'branch.feature/x.workClaim', 'SMP-261111-9']);
+                git(root, ['config', 'branch.feature/x.workClaimPr', '99']);
+            }
+            const claudePrompt = prompt(checkout, { session_id: 'claude-detached' });
+            assert.match(launch(root, home, route, claudePrompt), /detached HEAD has no claimed work.*before the first edit/);
+            assert.equal(launch(root, home, route, claudePrompt), '');
+            assert.match(codex(route, prompt(checkout)), /detached HEAD has no claimed work.*before the first edit/);
+            assert.equal(codex(route, prompt(checkout)), '');
+            const claudeEdit = { ...edit(checkout, { file_path: path.join(checkout, 'src/list.ts') }), session_id: 'claude-detached' };
+            assert.match(JSON.parse(launch(root, home, observer, claudeEdit)).hookSpecificOutput.additionalContext, /changed on detached HEAD/);
+            const codexEdit = edit(checkout, { command: patch }, 'apply_patch');
+            const codexNudge = JSON.parse(codex(observer, codexEdit)).hookSpecificOutput.additionalContext;
+            assert.match(codexNudge, /changed on detached HEAD/);
+            assert.match(codexNudge, /If the claim command requires a branch, create one at the current commit and retry/);
+            assert.equal(codex(observer, codexEdit), '');
+            git(checkout, ['switch', '-q', '-c', 'fix/claimed']);
+            git(checkout, ['config', 'branch.fix/claimed.workClaim', 'SMP-261111-1']);
+            git(checkout, ['config', 'branch.fix/claimed.workClaimPr', '42']);
+            assert.match(launch(root, home, route, claudePrompt), /tracks SMP-261111-1 in pull request #42/);
+            assert.equal(launch(root, home, observer, claudeEdit), '');
+            assert.match(codex(route, prompt(checkout)), /tracks SMP-261111-1 in pull request #42/);
+            assert.equal(codex(observer, codexEdit), '');
+            if (checkout !== root) {
+                assert.equal(git(root, ['branch', '--show-current']).trim(), 'feature/x');
+                const unrelated = path.join(home, 'unrelated');
+                fs.mkdirSync(unrelated);
+                git(unrelated, ['init', '-q', '-b', 'main']);
+                assert.equal(workClaim.claimRoot({ cwd: unrelated }, root), root);
+            }
+        })
+    })),
     {
         name: 'TC-WCL-006 prompt hook: one rule per session, a status line once claimed, re-armed after compaction; silent when off or declined',
         skip: !posix,
