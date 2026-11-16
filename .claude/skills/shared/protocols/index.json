@@ -85,12 +85,12 @@
       "group": "universal",
       "summary": "Failure modes to avoid on every task",
       "when": "delivered by the universal hook",
-      "chars": 5347,
+      "chars": 5467,
       "file": ".claude/skills/shared/protocols/ai-mistake-prevention.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/ai-mistake-prevention.md",
-          "chars": 5347
+          "chars": 5467
         }
       ]
     },
@@ -925,12 +925,12 @@
       "group": "universal",
       "summary": "Route review, test and failure work to the project's registered skills first",
       "when": "delivered by the universal hook",
-      "chars": 1356,
+      "chars": 1596,
       "file": ".claude/skills/shared/protocols/quality-skill-routing.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/quality-skill-routing.md",
-          "chars": 1356
+          "chars": 1596
         }
       ]
     },

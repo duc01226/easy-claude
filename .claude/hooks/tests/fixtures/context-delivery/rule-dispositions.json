@@ -3,9 +3,9 @@
   "policyVersion": "9388513f2845e7e166b2e04569d75efb2dacfab48713958298e4d2facf3e1bf3",
   "sourceHashes": {
     "universal-1": "61a425b9de1e6b1afdb196eaab7b9c523a86bb6d47894b5c1d74a3319d9bbff0",
-    "universal-2": "1b1ef61575b9bc87aef230605b90397b3485567763a5c59f025030973fcc1531",
+    "universal-2": "881ab76ad3c1ec72b7c43b2022e6ed2486cd9f87f4c19894d3a9164f85a361b0",
     "universal-3": "e02ba4fe62b665e8c9e75aa1f83d7a10da1ca401c12b787d9449202a082eb496",
-    "universal-4": "7e79ec3925f26ecd6cfbc8426e7ec7dfdbc6a1abccfd3135a0fe323119162d48",
+    "universal-4": "24f361a70d5e2be3f7f531eea9152b06ce99d7082189eda5df56129014ed545d",
     "route": "46422fdacf61e11928a242baf5170b8d56abe1f5652d1cb524554b971ce3e994",
     "catalog": "f5a2f492f69185b0bb8f1e9a10f30865c6a6ea1cfda3586a4be72446f82403dd",
     "core": "d195161390a4a72ee782acd33c7a77a9609b7ff5e5b336f4d8a83f4d06cf5c2a"
@@ -548,7 +548,7 @@
       "id": "universal-2:9",
       "source": "universal-2",
       "line": 9,
-      "sha256": "635ec79a30ff3f540045eedf04c7cd64435efedd45979c8269aec4f54a361590",
+      "sha256": "e81cfe2383096f92073f70a96e0f2fe4e31c2531396799d452e91e072efefbe0",
       "disposition": "merge",
       "destination": ".claude/skills/shared/protocols/concise-agent-core.md",
       "fullSources": [
@@ -966,7 +966,7 @@
       "id": "universal-4:18",
       "source": "universal-4",
       "line": 18,
-      "sha256": "6af54664e95a23f0fcf8f8245adcc9368f0f93554aa91a5e173c72d22e50ef75",
+      "sha256": "c4e28aa064c94e2091c72887ea72c7992f7320a8eac134a286e2b8e8aca9d27e",
       "disposition": "defer",
       "destination": ".claude/skills/shared/protocols/quality-skill-routing.md",
       "readWhen": "choosing a skill for review, test or failure work",

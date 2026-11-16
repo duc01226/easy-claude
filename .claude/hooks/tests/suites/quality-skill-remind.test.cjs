@@ -207,6 +207,8 @@ const tests = [
                 assert.doesNotMatch(text, /`workflow-review-changes`[^;]*whole pull request or/, `${label}: a whole pull request alone never selects the workflow`);
                 // An issue, failure or bug is fixed through the fix skill or the bug-fix workflow, never patched ad hoc.
                 assert.match(text, /`fix`[^.]*`workflow-bugfix`[^.]*never (by )?an ad hoc patch|never (by )?an ad hoc patch[^]*`fix`[^.]*`workflow-bugfix`/, `${label}: fixes go through fix or workflow-bugfix`);
+                // A fix repairs the cause; a workaround that hides it is not a fix.
+                assert.match(text, /an ad hoc patch or (a )?workaround/, `${label}: workarounds are ruled out with ad hoc patches`);
             }
             assert.match(full, /post-fix lesson check[^.]*`\/learn` once the user confirms/, 'the full protocol names the post-fix lesson check');
             const description = name => /^description: '(.*)'$/m.exec(fs.readFileSync(path.join(REPO_ROOT, '.claude', 'skills', name, 'SKILL.md'), 'utf8'))[1];
