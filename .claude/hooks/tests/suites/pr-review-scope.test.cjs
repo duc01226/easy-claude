@@ -13,6 +13,9 @@
  *     is re-reviewed over the whole branch diff, not the fix alone;
  *   - changes-review and both fix-loop references preserve the current PR/branch whole-diff base;
  *     explicit historical assessments remain immutable and report-only, never live fix-loop targets.
+ *   - the reviewer sees what was exercised (TC-PCI-084/085): the PR body carries runtime evidence as text or
+ *     states why none exists, media is attached only after a per-PR yes, pr-review flags missing or stale
+ *     evidence, and experience-review records the tree it exercised and keeps run commands only on a yes.
  *
  * Portability: reads only skill files that ship inside `.claude/`, resolved from this file's location;
  * no process, environment, home-dir, project config or git state.
@@ -76,6 +79,56 @@ const tests = [
             assert.match(recipe, /Historical commits compare their first parent \(empty tree for a root\)/);
             assert.match(recipe, /ranges compare the named endpoints/);
             assert.match(recipe, /Do not infer[^\n]*PR membership/);
+        }
+    },
+    {
+        // US-PCI-04: a human reviewer sees runtime evidence as text, and media leaves the machine only after a yes.
+        name: 'TC-PCI-084 PR bodies carry runtime evidence as text, state its absence, attach media only on a per-PR yes, and pr-review flags missing or stale evidence',
+        fn: () => {
+            // Given the pull-request skill's PR body step
+            const text = read('pull-request/SKILL.md');
+            const body = text.slice(text.indexOf('4. **PR body**'), text.indexOf('5. **Review status**'));
+            assert.match(body, /the runtime evidence below/);
+            assert.match(body, /experience-verification\.cjs pr-evidence/);
+            assert.match(body, /`candidateTree` is the Step 4 snapshot's `candidateTree`/);
+            assert.match(body, /No runtime evidence: <reason>/);
+            assert.match(body, /`records` is the `evidence-records\.json` array beside this branch's latest `experience-review` report/);
+            assert.match(
+                body,
+                /untracked or intentionally unstaged files give it a different tree than the staged candidate; its evidence then counts as stale/
+            );
+            assert.match(body, /An observable change never omits the section, and the body never links `tmp\/` or a capture path/);
+            assert.match(body, /a change with no observable surface gets no section/);
+            assert.match(body, /\*\*Media needs a per-PR yes\.\*\*/);
+            assert.match(body, /only read and redacted screenshots or video/);
+            assert.match(body, /gh pr edit <n> --attach '<path>#<alt text>'/);
+            assert.match(body, /leaves the captures local-only, and the body says so\. No setting replaces the question/);
+            // And the final branch review treats missing or stale evidence as a finding
+            const review = read('pr-review/SKILL.md');
+            assert.match(
+                review,
+                /A behavior change on an observable surface whose PR carries no runtime or test evidence, or whose evidence predates the reviewed tree[^\n]*is a finding\./
+            );
+        }
+    },
+    {
+        // US-PCI-03, BR-PCI-09: run commands persist only with consent; records name the tree they exercised.
+        name: 'TC-PCI-085 runtime review keeps derived run commands only on a yes, reads the feature map and records the tree it exercised',
+        fn: () => {
+            // Given the experience-review skill
+            const text = read('experience-review/SKILL.md');
+            assert.match(text, /\*\*Keep derived commands:\*\*[^\n]*through `\/project-config` \(consent: yes\)/);
+            assert.match(text, /never a secret value\. A decline is recorded in the report/);
+            assert.match(text, /When `feature-map-reference\.md` is selected, read the entries for the impacted stories or features/);
+            assert.match(text, /Each record carries `candidateTree`/);
+            assert.match(text, /a record without `candidateTree` never counts as current/);
+            assert.match(text, /Save the records as one JSON array in `evidence-records\.json` in the report's own folder/);
+            // And the debug and docs-upkeep routes use the map without guessing
+            assert.match(read('investigate/references/mode-debug.md'), /read `feature-map-reference\.md` under the reference-docs root when it is selected/);
+            assert.match(
+                read('docs-manager/references/mode-update.md'),
+                /run `node \.claude\/scripts\/lib\/feature-map\.cjs audit`[^\n]*never re-link an entry by guess/
+            );
         }
     }
 ];

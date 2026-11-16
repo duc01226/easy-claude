@@ -85,6 +85,8 @@ Repository path claims must resolve. Workspace package subpaths require an exist
 | `RESCAN REQUIRED` | Why a surgical patch cannot restore truth, exact owner route and whether completed or queued |
 | `UNVERIFIED` | Missing check/evidence and next action; unchecked content is never `FRESH` |
 
+When `feature-map-reference.md` is selected and the scope touches the business spec root or a route or command source, run `node .claude/scripts/lib/feature-map.cjs audit`. Each `stale-spec-id` (an entry whose story is gone) and `missing-entry` (a UI story with no entry) is a `RESCAN REQUIRED` verdict routed to `/scan --target=feature-map`; never re-link an entry by guess.
+
 Enhance changed hand-owned reference guidance with `/prompt-enhance`; record a skip for stamp/count-only edits or an owner scan that already enhanced its output. Keep useful conditions and discoverable owner references. Route added/renamed/retired docs through the docs-index owner; route changed `referenceDocs` selection through `/project-config` and generated root context through `/ai-context-refresh`.
 
 ## Stamp discipline
