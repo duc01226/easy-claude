@@ -416,6 +416,30 @@ function errorSnapshot(target, error, repository = null, cwd = null) {
 }
 
 /**
+ * Worktree captures only: replace one file's entry in the throwaway index before the tree is written,
+ * so the result is the tree the working tree WOULD have with that file holding `content` (null = the
+ * file absent). The verify runner uses it to prove that a write it made changed nothing else. The blob
+ * goes through the same clean filters as `git add` (`--path`), so line-ending settings agree.
+ */
+function replaceIndexEntry(candidateRun, target, entry) {
+    if (target !== 'worktree') throw Object.assign(new Error('replaceEntry is supported for worktree captures only'), { code: 'INVALID_REPLACE_ENTRY' });
+    const file = entry?.path;
+    if (typeof file !== 'string' || !/^[A-Za-z0-9._-][A-Za-z0-9._/-]{0,199}$/.test(file) || file.split('/').includes('..')) {
+        throw Object.assign(new Error('replaceEntry needs a plain repository-relative file path'), { code: 'INVALID_REPLACE_ENTRY' });
+    }
+    if (entry.content === null) {
+        candidateRun(['--literal-pathspecs', 'rm', '--cached', '-q', '--ignore-unmatch', '--', file]);
+        return;
+    }
+    if (typeof entry.content !== 'string' && !Buffer.isBuffer(entry.content)) {
+        throw Object.assign(new Error('replaceEntry content must be text, bytes or null'), { code: 'INVALID_REPLACE_ENTRY' });
+    }
+    const blob = candidateRun(['hash-object', '-w', '--stdin', `--path=${file}`], { input: entry.content }).trim();
+    if (!/^[a-f0-9]{40,64}$/.test(blob)) throw Object.assign(new Error('Git returned no blob id'), { code: 'INVALID_REPLACE_ENTRY' });
+    candidateRun(['update-index', '--add', '--cacheinfo', `100644,${blob},${file}`]);
+}
+
+/**
  * Capture the exact content a review or supported commit invocation targets.
  * Every Git write runs against a throwaway index and object directory under the
  * repository's `tmp/`; the user's index and object database remain read-only.
@@ -555,6 +579,7 @@ function captureReviewTarget(options = {}) {
         } else if (mode === 'literal-paths') {
             candidateRun(['--literal-pathspecs', 'add', '-A', '--', ...descriptor.literalPaths], { cwd });
         }
+        if (options.replaceEntry !== undefined) replaceIndexEntry(candidateRun, target, options.replaceEntry);
         const candidateTree = treeId(candidateRun(['write-tree']), 'candidateTree');
         const fingerprint = candidateFingerprint({ repository, storageIdentity, baseTree, candidateTree });
         result = {
@@ -891,14 +916,24 @@ function stagedBranchReviewBases(snapshot) {
     }
 }
 
-/** True when the store holds any receipt for the repository: a cheap check before an expensive capture. */
+/** The store directory one repository's receipts live in; verify receipts (`verify-receipt.cjs`) share it. */
+function receiptStoreDirectory(repository, options = {}) {
+    return storeDirectory(options, sha256(canonicalDirectory(repository)));
+}
+
+// Verify receipts (`verify-receipt.cjs`) and their result records share the store but never satisfy the review gate.
+const VERIFY_RECEIPT_PREFIX = 'verify.';
+const VERIFY_RESULTS_PREFIX = 'verify-results.';
+const VERIFY_RECORD_PREFIXES = Object.freeze([VERIFY_RECEIPT_PREFIX, VERIFY_RESULTS_PREFIX]);
+
+/** True when the store holds any review or skip receipt for the repository: a cheap check before an expensive capture. */
 function hasAnyReceipt(repository, options = {}) {
     try {
         const directory = storeDirectory(options, sha256(canonicalDirectory(repository)));
         const now = clock(options);
         // Unexpired only: the store keeps expired receipts until `clear`, and they cannot match.
         return fs.readdirSync(directory).some(name => {
-            if (!name.endsWith('.json') || name.startsWith(ATTESTATION_PREFIX)) return false;
+            if (!name.endsWith('.json') || name.startsWith(ATTESTATION_PREFIX) || VERIFY_RECORD_PREFIXES.some(prefix => name.startsWith(prefix))) return false;
             try {
                 return now - fs.statSync(path.join(directory, name)).mtimeMs <= MAX_LIFETIME_MS;
             } catch (_) {
@@ -1248,7 +1283,13 @@ module.exports = {
     KINDS,
     DEFAULT_LIFETIME_MS,
     MAX_LIFETIME_MS,
+    MAX_RECORD_BYTES,
+    VERIFY_RECEIPT_PREFIX,
+    VERIFY_RESULTS_PREFIX,
     canonicalDirectory,
+    receiptStoreDirectory,
+    gitEnvironmentError,
+    gitEnvironmentWithoutContext,
     captureReviewTarget,
     candidateFingerprint,
     computeChangeFingerprint,

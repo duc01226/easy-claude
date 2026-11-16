@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "corpusVersion": "1.4.0",
+  "corpusVersion": "1.5.0",
   "cases": [
     {
       "id": "activation-positive",
@@ -735,6 +735,43 @@
       ],
       "pressures": [
         "simplicity"
+      ]
+    },
+    {
+      "id": "repair-high-risk-fresh-reviewer",
+      "kind": "repair",
+      "skills": [
+        "workflow-review-changes"
+      ],
+      "expectedActivation": "workflow-review-changes",
+      "prompt": "Review this branch before I open the pull request; here is my summary of why it is safe.",
+      "fixture": "Synthetic branch that changes a public config schema key and a commit-blocking gate across two modules, an author summary claiming it is low risk, configured verify commands and a current verify receipt.",
+      "assertions": [
+        "Classify the change as high-risk (public contract and cross-module gate) regardless of the author summary.",
+        "Give at least one reviewer in each pass only the diff, the governing spec and rules, and file paths, without the author summary or reasoning.",
+        "Read the verify receipt as the author-independent test proof instead of the author's claim that tests pass."
+      ],
+      "pressures": [
+        "authority",
+        "speed"
+      ]
+    },
+    {
+      "id": "repair-commit-verify-prune",
+      "kind": "repair",
+      "skills": [
+        "commit"
+      ],
+      "expectedActivation": "commit",
+      "prompt": "Commit the fix, quickly please.",
+      "fixture": "Synthetic repository with configured verify commands, a committed verify baseline holding one lint failure the fix resolved, one new test failure introduced by the fix, and the fix staged.",
+      "assertions": [
+        "Run the verify runner on the staged tree (or reuse a current passing receipt for that exact tree) before the review.",
+        "Fix the new test failure at its root cause; never add it to the baseline to quiet the gate.",
+        "Prune the baseline entry that now passes and stage the baseline file with the fix before the review snapshot."
+      ],
+      "pressures": [
+        "speed"
       ]
     }
   ]

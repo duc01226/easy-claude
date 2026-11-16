@@ -24,6 +24,11 @@ if ((require.main === module || !require.main) && require('./lib/framework-runti
  * against the merge-base with the pull request's base. See `lib/review-receipt.cjs` for the branch
  * target and for attested review receipts.
  *
+ * After the review check allows a candidate, the verify check reads `reviewGate.verify` (default
+ * warn): a candidate with no passing verify receipt over its exact tree (`lib/verify-receipt.cjs`)
+ * gets a warning that names the new failures and the fix, or is refused under enforce. Off skips it.
+ * Warn mode stays silent while no verify command is configured; readiness setup owns that nudge.
+ *
  * Composes AFTER `doc-sync-gate.cjs`.
  *
  * @hook PreToolUse
@@ -880,6 +885,33 @@ function branchReceiptCovers(repository, snapshot, capture) {
     }
 }
 
+/** `reviewGate.verify` when the verify check itself failed: unreadable settings read as enforce; no policy module reads as off. */
+function verifyModeAfterFault(repository) {
+    let policy;
+    try {
+        policy = require('../scripts/lib/commit-review-policy.cjs');
+    } catch {
+        return 'off';
+    }
+    try {
+        return typeof policy.resolveVerifyGate === 'function' ? policy.resolveVerifyGate({ rootDir: repository }).mode : 'off';
+    } catch {
+        return 'enforce';
+    }
+}
+
+function verifyFaultMessage(repository, error) {
+    return [
+        '[BLOCKED] Commit refused: reviewGate.verify is enforce and the verify check could not run.',
+        '',
+        `Repository: ${repository}`,
+        `Fault: ${String(error?.message || error).slice(0, 300)}`,
+        '',
+        'Why it matters: enforce means a commit needs proof that the configured checks passed; a check that cannot run proves nothing.',
+        'Fix: restore the framework files (.claude/hooks/lib/verify-receipt.cjs and its libraries, for example with /framework-update), run node .claude/hooks/lib/verify-receipt.cjs check to confirm it works, then retry the commit.'
+    ].join('\n');
+}
+
 function evaluate(input, dependencies = {}) {
     if (input?.tool_name !== 'Bash') return undefined;
     const command = input?.tool_input?.command;
@@ -899,6 +931,9 @@ function evaluate(input, dependencies = {}) {
     if (resolved.descriptors.length === 0) return undefined;
 
     const capture = dependencies.captureReviewTarget || captureReviewTarget;
+    // Loaded only for a commit the review gate allows: most Bash calls never reach it.
+    const verifyCheck = dependencies.verifyGateFinding || (options => require('./lib/verify-receipt.cjs').verifyGateFinding(options));
+    const warnings = [];
     for (const [index, descriptor] of resolved.descriptors.entries()) {
         const repository = descriptor.repository;
         let snapshot;
@@ -919,14 +954,35 @@ function evaluate(input, dependencies = {}) {
         if (claimCommitExempt(descriptor, resolved.messages?.[index])) continue;
 
         const receipt = { repository, snapshot };
-        if (matchReviewReceipt(receipt)) continue;
-        if (matchSkipReceipt(receipt)) continue;
-        if (branchReceiptCovers(repository, snapshot, capture)) continue;
+        const reviewed = matchReviewReceipt(receipt) || matchSkipReceipt(receipt) || branchReceiptCovers(repository, snapshot, capture);
+        if (!reviewed) {
+            return {
+                code: 2,
+                stderr: `${blockMessage(repository, snapshot, descriptor)}\n`,
+                decision: 'block'
+            };
+        }
 
+        let finding = null;
+        try {
+            finding = verifyCheck({ repository, snapshot, descriptor });
+        } catch (error) {
+            // A fault in the check (a partial framework copy, a corrupt record) never relaxes an opted-in
+            // enforce: like every other evaluation fault of this gate, it refuses. Warn mode loses only the advisory.
+            reportHookInternalError('review-commit-gate', 'verify check failed', error);
+            if (verifyModeAfterFault(repository) === 'enforce') {
+                return { code: 2, stderr: `${verifyFaultMessage(repository, error)}\n`, decision: 'block' };
+            }
+        }
+        if (finding?.level === 'block') return { code: 2, stderr: `${finding.message}\n`, decision: 'block' };
+        if (finding) warnings.push(finding.message);
+    }
+    if (warnings.length) {
+        const text = [...new Set(warnings)].join('\n\n');
         return {
-            code: 2,
-            stderr: `${blockMessage(repository, snapshot, descriptor)}\n`,
-            decision: 'block'
+            code: 0,
+            stdout: `${JSON.stringify({ hookSpecificOutput: { hookEventName: 'PreToolUse', additionalContext: text } })}\n`,
+            decision: 'warn'
         };
     }
     return undefined;

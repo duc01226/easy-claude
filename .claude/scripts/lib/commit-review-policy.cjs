@@ -118,6 +118,61 @@ function resolveReviewStatus(options = {}) {
     return { enabled: status.enabled === true, context, requireAttestation: status.requireAttestation === true, source: 'project-config' };
 }
 
+/**
+ * `reviewGate.verify` and the verify command fields, a team policy read from the project config only.
+ * Default `warn` (it never blocks). A config file that cannot be read or parsed reads as the default
+ * with no commands: a missing command is reported unavailable, never passed. A readable but invalid
+ * `reviewGate.verify`, `verifyBuild` or `verifyTimeouts` throws; callers that gate read that as
+ * enforce, so a team that opted in with a typo keeps the gate. Command values are returned raw: the
+ * runner classifies a non-string or empty value as invalid instead of failing the whole read.
+ */
+function resolveVerifyGate(options = {}) {
+    // The verify keys, modes and budget bound have one owner: the project-config schema module. It loads
+    // here, not with this module, so a schema that cannot load fails this read (callers that gate read
+    // that as enforce) without taking the review-gate readers above down with it.
+    const { VERIFY_MODES, VERIFY_SLOTS, VERIFY_COMMAND_KEYS, MAX_VERIFY_TIMEOUT_SECONDS } = require('../../hooks/lib/project-config-schema.cjs');
+    const rootDir = options.rootDir || process.cwd();
+    const file = routing.resolveProjectConfigPath(rootDir);
+    const result = (mode, source, extra = {}) => ({ mode, source, build: false, timeouts: {}, commands: {}, ...extra });
+    let config;
+    try {
+        config = JSON.parse(routing.decodeConfigText(fs.readFileSync(file)));
+    } catch (error) {
+        return result('warn', error.code === 'ENOENT' ? 'default' : 'unreadable-project-config');
+    }
+    if (!config || typeof config !== 'object' || Array.isArray(config)) return result('warn', 'unreadable-project-config');
+    const commands = {};
+    const declared = config.testing?.commands;
+    if (declared && typeof declared === 'object' && !Array.isArray(declared)) {
+        for (const key of VERIFY_COMMAND_KEYS) if (Object.hasOwn(declared, key)) commands[key] = declared[key];
+    }
+    const gate = config.reviewGate;
+    if (gate === undefined) return result('warn', 'default', { commands });
+    if (!gate || typeof gate !== 'object' || Array.isArray(gate)) throw new Error(`Invalid reviewGate in ${file}; expected an object`);
+    if (gate.verify !== undefined && !VERIFY_MODES.includes(gate.verify)) {
+        throw new Error(`Invalid reviewGate.verify in ${file}; expected ${VERIFY_MODES.join(', ')}`);
+    }
+    if (gate.verifyBuild !== undefined && typeof gate.verifyBuild !== 'boolean') {
+        throw new Error(`Invalid reviewGate.verifyBuild in ${file}; expected true or false`);
+    }
+    const timeouts = {};
+    if (gate.verifyTimeouts !== undefined) {
+        const declaredTimeouts = gate.verifyTimeouts;
+        if (!declaredTimeouts || typeof declaredTimeouts !== 'object' || Array.isArray(declaredTimeouts)) {
+            throw new Error(`Invalid reviewGate.verifyTimeouts in ${file}; expected an object of seconds per command key`);
+        }
+        for (const [key, seconds] of Object.entries(declaredTimeouts)) {
+            if (!VERIFY_SLOTS.includes(key) || !Number.isInteger(seconds) || seconds < 1 || seconds > MAX_VERIFY_TIMEOUT_SECONDS) {
+                throw new Error(
+                    `Invalid reviewGate.verifyTimeouts.${key} in ${file}; expected one of ${VERIFY_SLOTS.join(', ')} with whole seconds 1-${MAX_VERIFY_TIMEOUT_SECONDS}`
+                );
+            }
+            timeouts[key] = seconds;
+        }
+    }
+    return result(gate.verify || 'warn', gate.verify ? 'project-config' : 'default', { build: gate.verifyBuild === true, timeouts, commands });
+}
+
 function selectReview(risk, mode) {
     if (!RISKS.includes(risk)) throw new Error(`Expected risk: ${RISKS.join(', ')}`);
     if (!MODES.includes(mode)) throw new Error(`Expected review mode: ${MODES.join(', ')}`);
@@ -163,6 +218,7 @@ module.exports = {
     resolveCommitReviewMode,
     resolveReviewGateMode,
     resolveReviewStatus,
+    resolveVerifyGate,
     selectReview,
     decideReview,
     main
