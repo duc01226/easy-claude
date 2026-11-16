@@ -1,5 +1,5 @@
 ---
-description: "[Implementation] Use when a workflow step or the user asks for root-cause fixes with regression coverage. --target={ci|issue|logs|review|test|types|ui} scopes the issue."
+description: "[Implementation] Use when a workflow step or the user asks for root-cause fixes with regression coverage. --target={ci|issue|logs|review|test|types|ui} scopes the issue; --mode=prevent guards the bug class after a fix."
 ---
 
 <!-- GENERATED OPENCODE COMMAND (sync-skills.mjs) for .claude/skills/fix/SKILL.md — do not hand-edit; re-run:
