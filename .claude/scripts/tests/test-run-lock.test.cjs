@@ -1,8 +1,9 @@
 'use strict';
 
 // Business intent: the hook suite and the Codex/scripts tests share the live tree, so two full runs at
-// once fail with false ENOENT errors. One full run per checkout holds the test-run lock; a second one
-// stops at once and says to run the families one after another. A dead holder never blocks forever.
+// once fail with false ENOENT errors. One full run per checkout holds the test-run lock; a single
+// acquire attempt by a second one is refused with a teaching message (the runners wait through
+// admitTestRun, covered in test-run-slots.test.cjs). A dead holder never blocks forever.
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -96,11 +97,16 @@ test('a lock file still being written (no readable holder yet) counts as held', 
     assert.equal(lock.nested, false);
 });
 
-test('both runners take the lock before running tests', () => {
+test('every runner is admitted (checkout lock, then machine slot) before running tests', () => {
     // The hook runner: full runs only (a --filter run is a nested or targeted selection; --list runs nothing).
     const hooks = fs.readFileSync(path.join(repoRoot, '.claude', 'hooks', 'tests', 'run-all-tests.cjs'), 'utf8');
-    assert.match(hooks, /flags\.filter \|\| flags\.list \? null : loadTestRunLock\([\s\S]{0,600}acquireTestRunLock\(/);
+    assert.match(hooks, /flags\.filter \|\| flags\.list \? null : loadTestRunLock\([\s\S]{0,600}await admitTestRun\(/);
     // The sync runner: whenever a selected stage runs tests and the lock library is present.
     const sync = fs.readFileSync(path.join(repoRoot, '.claude', 'skills', 'sync-codex', 'scripts', 'run-codex-sync.mjs'), 'utf8');
-    assert.match(sync, /if \(active\.some\(stage => stage\.test\) && require\("node:fs"\)\.existsSync\(lockFile\)\) \{[\s\S]{0,400}acquireTestRunLock\(/);
+    assert.match(sync, /if \(active\.some\(stage => stage\.test\) && lockLib\) \{[\s\S]{0,200}await lockLib\.admitTestRun\(/);
+    // Its Codex test stage sizes its workers from the live machine budget.
+    assert.match(sync, /id: "tests",[^\n]*codexTestConcurrencyArgs\(\)/);
+    // framework-ci: once for all its lanes, before the first lane starts.
+    const ci = fs.readFileSync(path.join(repoRoot, '.claude', 'scripts', 'framework-ci.cjs'), 'utf8');
+    assert.match(ci, /async function runLanes\([\s\S]{0,400}await lockLib\.admitTestRun\([\s\S]{0,400}const results = \[\];/);
 });
