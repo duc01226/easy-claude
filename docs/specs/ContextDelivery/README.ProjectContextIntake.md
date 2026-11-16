@@ -81,6 +81,7 @@ As a pull-request reviewer, I want the description to show what a runtime review
 
 - **AC-PCI-13:** Given a change to an observable surface and a runtime review of the same version, when the pull request is described, then the description lists the surfaces, statuses, judgments, blocking count, acceptance status and feature-map entries as text, without any link to the developer's local files. **BR-PCI-07**.
 - **AC-PCI-14:** Given a change to an observable surface and no runtime review of that version, when the pull request is described, then the description says there is no runtime evidence and why; a change with no observable surface gets no such section; a final branch review reports missing or older evidence as a finding. **BR-PCI-07**.
+- **AC-PCI-16:** Given a change to an observable surface and the developer explicitly asks to skip runtime evidence for that pull request, when the description is written, then it records the skip and the reason instead of evidence, offers no capture, and the final branch review does not report the recorded skip as a finding. **BR-PCI-07**.
 - **AC-PCI-15:** Given captures that were inspected and redacted, when the pull request is described, then they are attached only after the developer says yes for that pull request; otherwise they stay local and the description says so. **BR-PCI-08**.
 
 ## 4. Business Rules
@@ -144,7 +145,7 @@ For ALL recorded settings whose optional work-tracking vocabulary is a safe whol
 
 ### BR-PCI-07: Runtime evidence reaches the reviewer as text, or its absence is stated [HARD]
 
-A pull request whose change touches an observable surface carries a runtime-evidence section copied as text from a runtime review of the exact version it publishes. Evidence from another version, evidence that names no version and invalid records do not count: the section then states that there is no runtime evidence and why. The text never links the developer's local evidence files and never repeats a credential-shaped value. A change with no observable surface gets no section. A final branch review reports a behavior change on an observable surface with no runtime or test evidence, or with evidence older than the reviewed version, as a finding. Statuses are observations and judgments; acceptance stays pending until a person has accepted every exercised surface, and a section whose surfaces were all not applicable never reads as accepted. A review that ran with files the pull request does not publish (untracked or deliberately left out) covers a different version, so its evidence counts as older.
+A pull request whose change touches an observable surface carries a runtime-evidence section copied as text from a runtime review of the exact version it publishes. Evidence from another version, evidence that names no version and invalid records do not count: the section then states that there is no runtime evidence and why. The text never links the developer's local evidence files and never repeats a credential-shaped value. A change with no observable surface gets no section. A final branch review reports a behavior change on an observable surface with no runtime or test evidence, or with evidence older than the reviewed version, as a finding. Only an explicit request from the developer to skip runtime evidence for that pull request replaces the section's evidence; the section then records the skip and its reason, and the final review accepts that recorded skip. The assistant never skips on its own. Statuses are observations and judgments; acceptance stays pending until a person has accepted every exercised surface, and a section whose surfaces were all not applicable never reads as accepted. A review that ran with files the pull request does not publish (untracked or deliberately left out) covers a different version, so its evidence counts as older.
 
 [Source: rule/framework.contextdelivery/RuntimeEvidenceForReviewers]
 
@@ -238,7 +239,7 @@ No graphical view or navigation surface is owned here; outcomes appear in the as
 
 ## 8. Test Specifications
 
-Test summary: 23 cases — 1 core preservation, 1 repair-access preservation, 4 validation/notice, 2 refresh workflow, 1 rejection boundary, 2 properties, 6 feature map, 6 runtime evidence. Property domains cover state-transition eligibility; arithmetic, conservation, inverse and commutativity classes are inapplicable to this read-only intake choice.
+Test summary: 24 cases — 1 core preservation, 1 repair-access preservation, 4 validation/notice, 2 refresh workflow, 1 rejection boundary, 2 properties, 6 feature map, 7 runtime evidence. Property domains cover state-transition eligibility; arithmetic, conservation, inverse and commutativity classes are inapplicable to this read-only intake choice.
 
 ### Core preservation
 
@@ -818,4 +819,28 @@ And each evidence record names the version it exercised
 **Evidence:** `[Source: rule/framework.contextdelivery/RunCommandPersistence]`
 **Related Behaviors:** `operation/framework.contextdelivery/ProjectContextIntake`, `test/framework.contextdelivery/ProjectContextIntake`
 **CoveredBy:** `.claude/hooks/tests/suites/pr-review-scope.test.cjs::TC-PCI-085 runtime review keeps derived run commands only on a yes, reads the feature map and records the tree it exercised`
+**Status:** Tested
+
+#### TC-PCI-086: An explicit skip is recorded instead of runtime evidence [P1]
+
+**Objective:** Protect BR-PCI-07's explicit-skip boundary.
+**Business Intent / Invariant Guarded:** Runtime evidence is skipped only on the developer's explicit request for that pull request, and the skip stays visible with its reason.
+**Preconditions:** A change to an observable surface; the developer asked to skip runtime evidence.
+**Real-World Reachability:** A developer ships an urgent fix and asks to skip the runtime review for that pull request.
+**Demo Flow:** Describe the pull request with the developer's skip reason, then with an empty reason.
+
+```gherkin
+Given a change to an observable surface and the developer's explicit request to skip runtime evidence
+When the pull request description is written
+Then it records that runtime evidence was skipped at the developer's request, with the reason
+And it offers no capture for attachment, and an empty reason is refused
+```
+
+**Expected Result:** The description shows the recorded skip and reason; local paths in the reason are hidden; no capture is offered.
+**Acceptance Criteria:** Success is the stated outcome; failure is any contrary outcome.
+**Test Data:** One matching runtime review that the skip overrides; a blank reason.
+**Edge Cases:** A change with no observable surface still gets no section.
+**Evidence:** `[Source: rule/framework.contextdelivery/RuntimeEvidenceForReviewers]`
+**Related Behaviors:** `operation/framework.contextdelivery/ProjectContextIntake`, `test/framework.contextdelivery/ProjectContextIntake`
+**CoveredBy:** `.claude/scripts/tests/experience-verification.test.cjs::TC-PCI-086`, `.claude/hooks/tests/suites/pr-review-scope.test.cjs::TC-PCI-084 PR bodies carry runtime evidence as text, state its absence, attach media only on a per-PR yes, and pr-review flags missing or stale evidence`
 **Status:** Tested
