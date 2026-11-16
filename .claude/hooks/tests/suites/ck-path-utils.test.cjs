@@ -20,7 +20,7 @@ const { assertEqual, assertTrue } = require('../lib/assertions.cjs');
 
 const REPO = path.resolve(__dirname, '..', '..', '..', '..');
 const pathUtils = require(path.join(REPO, '.claude', 'hooks', 'lib', 'ck-path-utils.cjs'));
-const { isAbsolutePathWithin, escapesRepoRoot } = pathUtils;
+const { isAbsolutePathWithin, escapesRepoRoot, sameFileIdentity } = pathUtils;
 
 function expectCases(label, pathApi, cases) {
     for (const [root, candidate, expected] of cases) {
@@ -126,6 +126,90 @@ const tests = [
                 ['docs/specs', false]
             ]) {
                 assertEqual(escapesRepoRoot(value), expected, `escapesRepoRoot(${JSON.stringify(value)})`);
+            }
+        }
+    },
+    {
+        name: '[ck-path-utils] TC-CKPU-006 sameFileIdentity compares exact 64-bit IDs and fails closed on Number stats',
+        fn: () => {
+            // Given: NTFS-sized file IDs, where a Number cannot tell an ID from the next one.
+            const id = 2n ** 60n + 2n;
+            assertTrue(Number(id) === Number(id + 1n), 'premise: the two IDs collide as Numbers');
+            const stat = (dev, ino) => ({ dev, ino });
+            // When / Then: bigint IDs compare exactly — equal only on the same device and the same ID.
+            assertTrue(sameFileIdentity(stat(7n, id), stat(7n, id)), 'same device and ID is the same file');
+            assertTrue(!sameFileIdentity(stat(7n, id), stat(7n, id + 1n)), 'IDs one apart above 2^53 are different files');
+            assertTrue(!sameFileIdentity(stat(7n, id), stat(8n, id)), 'the same ID on another device is a different file');
+            // Then: a Number-mode stat never proves identity, even when the Numbers are equal.
+            assertTrue(!sameFileIdentity(stat(7, Number(id)), stat(7, Number(id))), 'Number stats fail closed');
+            assertTrue(!sameFileIdentity(stat(7n, id), stat(7, Number(id))), 'a mixed pair fails closed');
+            for (const missing of [null, undefined, {}]) assertTrue(!sameFileIdentity(missing, stat(7n, id)), `${JSON.stringify(missing)} is not a file`);
+            // Then: real bigint stats of one file match, and of two files do not.
+            fs.mkdirSync(path.join(REPO, 'tmp'), { recursive: true });
+            const dir = fs.mkdtempSync(path.join(REPO, 'tmp', 'ckpu-identity-'));
+            try {
+                fs.writeFileSync(path.join(dir, 'a'), 'a');
+                fs.writeFileSync(path.join(dir, 'b'), 'b');
+                const a = fs.statSync(path.join(dir, 'a'), { bigint: true });
+                const fd = fs.openSync(path.join(dir, 'a'), 'r');
+                try {
+                    assertTrue(sameFileIdentity(a, fs.fstatSync(fd, { bigint: true })), 'path and descriptor of one file match');
+                } finally {
+                    fs.closeSync(fd);
+                }
+                assertTrue(!sameFileIdentity(a, fs.statSync(path.join(dir, 'b'), { bigint: true })), 'two files differ');
+            } finally {
+                fs.rmSync(dir, { recursive: true, force: true });
+            }
+        }
+    },
+    {
+        name: '[ck-path-utils] TC-CKPU-007 file-identity guards bind sameFileIdentity and no source compares stat IDs itself',
+        fn: () => {
+            // Given: every shipped source under the hook, script and skill trees, tests excluded.
+            const roots = ['.claude/hooks', '.claude/scripts', '.claude/skills'];
+            const owner = path.join(REPO, '.claude', 'hooks', 'lib', 'ck-path-utils.cjs');
+            // A `dev`/`ino` read (member, renamed field or destructured name) compared with another.
+            const comparesStatIds = /(?:\.|\b)(?:ino|dev)\w*\s*[!=]==?\s*(?:[\w.]*\.(?:ino|dev)\w*|(?:ino|dev)\w*)\b/;
+            for (const shape of [
+                'opened.ino !== before.ino',
+                'stat.ino !== session.inode',
+                'stat.dev !== session.device',
+                'ino !== other.ino',
+                'a.dev===b.dev'
+            ]) {
+                assertTrue(comparesStatIds.test(shape), `the scan recognizes ${shape}`);
+            }
+            for (const shape of ['after.size !== before.size', 'a.ino !== 0n', 'sameFileIdentity(a, b)', "device === 'mobile'"]) {
+                assertTrue(!comparesStatIds.test(shape), `the scan ignores ${shape}`);
+            }
+            const offenders = [];
+            const visit = dir => {
+                for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+                    const full = path.join(dir, entry.name);
+                    if (entry.isDirectory()) {
+                        if (!['node_modules', 'tests', '__tests__'].includes(entry.name)) visit(full);
+                    } else if (/\.(c|m)?js$/.test(entry.name) && full !== owner) {
+                        // When: a source compares `.ino` or `.dev` of one stat with another's.
+                        const text = fs.readFileSync(full, 'utf8');
+                        if (comparesStatIds.test(text)) offenders.push(path.relative(REPO, full));
+                    }
+                }
+            };
+            for (const root of roots) visit(path.join(REPO, ...root.split('/')));
+            // Then: none does — Number-mode IDs collide above 2^53, so the shared bigint check is the only owner.
+            assertEqual(offenders.join(', '), '', 'sources comparing stat IDs outside sameFileIdentity');
+            for (const adopter of [
+                '.claude/hooks/lib/convention-ledger.cjs',
+                '.claude/hooks/lib/task-tracking-files.cjs',
+                '.claude/hooks/lib/task-tracking-migration.cjs',
+                '.claude/scripts/lib/context-evaluation-world.cjs',
+                '.claude/scripts/lib/workflow-baseline.cjs',
+                '.claude/skills/framework-benchmark/lib/worktrees.cjs'
+            ]) {
+                const source = fs.readFileSync(path.join(REPO, ...adopter.split('/')), 'utf8');
+                assertTrue(/sameFileIdentity\b[^\n]*require\([^)]*ck-path-utils\.cjs/.test(source), `${adopter} must bind ck-path-utils' sameFileIdentity`);
+                assertTrue(source.includes('{ bigint: true }'), `${adopter} must take bigint stats`);
             }
         }
     }
