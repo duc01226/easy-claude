@@ -24,6 +24,7 @@ disable-model-invocation: false
 - Keep always-on context separate from exact task-specific reference selection; add optional capabilities only from evidence.
 - Run scan, spec, surface, host, and graph work only when selected; preserve native spec formats or use strict defaults, then verify, review, and report outcomes and skips.
 - Selected review setup delegates classifier/rule proposals and protected accepted merge to `$project-config`; initialization performs no review-tool acquisition.
+- Report a read-only harness inventory (which checks the project has, with evidence, and whether the app can be run) and offer setup for the missing ones; setup runs only on the user's yes.
 
 **Workflow:**
 
@@ -32,6 +33,7 @@ disable-model-invocation: false
 3. **Bootstrap** - Require the configured config file with non-empty `project.name`; derive optional properties only from evidence.
 4. **Select Context Work** - Ensure always-on `lessons.md` and `docs-index-reference.md` independently of task-specific `referenceDocs`; run only applicable selected/evidenced scans.
 5. **Spec Work** - For selected spec work, preserve a valid native `specArtifacts` profile or use the strict TC/Section-8 default when absent. Select the spec workflow only when canonical specs exist or accepted capability scope is available.
+6. **Harness Inventory** - Detect the project's checks read-only, report them, and offer `$linter-setup --mode=brownfield` or `$harness-setup` for missing ones.
 8. **Graph Refresh** - Run `$graph-code --mode=build` in a background sub-agent only when graph tooling is available and the project/task needs graph coverage; otherwise record an evidence-backed skip.
 9. **Report** - List completed actions, evidence-backed skips, blockers, and remaining manual steps.
 
@@ -85,6 +87,7 @@ disable-model-invocation: false
 | Optional capability sections | repository evidence, not the project name | An invented section makes skills demand a lane the project does not have |
 | Always-on vs task-specific reference docs | `lessons.md` + `docs-index-reference.md` are always-on; `referenceDocs[]` is task-specific selection | Selecting a built-in doc with no owning scan target leaves a permanently stale file |
 | Spec profile | `specArtifacts` (valid native profile) else strict TC/Section-8 defaults | An invalid declared profile BLOCKS spec setup; it never falls back silently |
+| Harness setup offer | read-only sensor detection (`harness-setup/references/harness-inventory.md`) | Offering nothing leaves a novice with no checks; installing without a yes changes a project the user did not ask to change |
 | Host mirrors | `$ai-context-refresh` completion handoff | Hand-edited `.agents/**` is overwritten on the next sync |
 
 ### 2. The option surface it configures
@@ -156,13 +159,14 @@ Minimum required task rows:
 8. Run `$ai-context-refresh` when root instructions are missing or stale; otherwise record the verified state.
 9. Resolve Codex mirrors through the completed `$ai-context-refresh` handoff only when Codex context is present or requested.
 10. Configure or review `experienceVerification` only for evidenced observable surfaces; do not invent surface commands or baselines.
-11. Call `$changes-review --defer=whole-target` after selected setup/scan/spec work.
-12. Call `$why-review` after `$changes-review --defer=whole-target`.
-13. Run focused verification for changed config, selected docs, and generated outputs; run broader harness gates only when the change plan calls for them.
-14. Spawn `Spawn background $graph-code --mode=build sub-agent` only when graph tooling is available and graph work is relevant; otherwise record the evidence-backed skip.
-15. Record the graph sub-agent outcome or skip reason.
-16. Report the configured identity, changed optional properties, applicable scan/spec outcomes, always-on context, reviews, verification, graph outcome/skip, and remaining actions.
-17. Analyze AI mistakes and reusable lessons.
+11. Run the harness inventory (read-only), report it, and offer setup for missing sensors; record each answer.
+12. Call `$changes-review --defer=whole-target` after selected setup/scan/spec work.
+13. Call `$why-review` after `$changes-review --defer=whole-target`.
+14. Run focused verification for changed config, selected docs, and generated outputs; run broader harness gates only when the change plan calls for them.
+15. Spawn `Spawn background $graph-code --mode=build sub-agent` only when graph tooling is available and graph work is relevant; otherwise record the evidence-backed skip.
+16. Record the graph sub-agent outcome or skip reason.
+17. Report the configured identity, changed optional properties, applicable scan/spec outcomes, always-on context, harness inventory and setup answers, reviews, verification, graph outcome/skip, and remaining actions.
+18. Analyze AI mistakes and reusable lessons.
 
 Keep exactly one row `in_progress`. Mark each row `completed` immediately after its evidence is recorded.
 
@@ -215,6 +219,7 @@ If `specArtifacts` is present, require it to validate before spec work. Preserve
 | `specArtifacts` is absent | When a spec workflow is selected, apply strict business-spec and Section-8 TC defaults. Do not create a profile just to avoid those defaults. |
 | `specArtifacts` is declared but malformed/unsupported | Stop spec-related setup, retain the declared profile for diagnosis, and route to `$project-config` to repair it. Never drop the declaration and continue with TC defaults. |
 | Graph tool and code relationship scope are available | Run `$graph-code --mode=build` in a background sub-agent after setup/review/verification; otherwise record an evidence-backed skip. |
+| Harness sensors missing or unproven | Report the inventory and offer setup (Phase 2, **Harness inventory and setup offer**); never install or write a check without the user's yes. |
 | Everything present and valid | Report verified idempotent state. Do not schedule scans, spec creation, or graph work without a selected/evidenced capability. |
 
 ## Phase 2: Execute Order
@@ -229,11 +234,12 @@ Run required setup in order. Only scan/spec work selected from project evidence 
 6. **Experience/E2E** — configure or review the `experienceVerification`/`e2eTesting` matrix only for evidence-backed observable surfaces. Use `$experience-review` or E2E workflows when the surface can actually run and be inspected; missing prerequisites are `ENVIRONMENT-BLOCKED`, not PASS/N/A. Never create an expected baseline from current output.
 7. **Convention classes** — run the detector only when stable `contextGroups` or convention injection is selected. Apply a write only when the configured preference or explicit request authorizes it; do not turn on injection merely because the detector found candidates. Verify a representative file with `file-conventions.cjs --lookup` when enabled.
 
-8. **Root instructions** — run `$ai-context-refresh --mode init|update` when `CLAUDE.md` or equivalent root context is missing/stale, preserving user-authored content.
-9. **Codex mirror** — consume the `$ai-context-refresh` completion handoff when Codex files/host are present or requested; otherwise record the Codex-only step as not applicable.
-10. **Enhance** — use `$prompt-enhance` for newly created or materially updated project guidance when prompt quality warrants it.
-11. **Verification** — validate config, selected references, root files, and mirrors that apply; run focused checks for changed behavior.
-12. **Graph refresh** — after verification and reviews, run `$graph-code --mode=build` in a background sub-agent only when graph tooling is available and relevant; otherwise record the evidence-backed skip.
+8. **Harness inventory and setup offer** — read `.claude/skills/harness-setup/references/harness-inventory.md` and detect each sensor read-only: no tool runs, no file is written. Report the Summary rows with evidence, including the runtime row. For each computational sensor that is `missing`, or `configured` but not yet proven, offer setup with `ask user question tool` in plain words, recommended option first: `$linter-setup --mode=brownfield` (recommended on an existing project: it adds only the missing checks, each with a frozen baseline, so nothing already there turns red), `$harness-setup` for the full harness, or not now. Run the chosen skill only on a yes; record a no as `declined` with the user's reason, and do not offer a `declined` sensor again unprompted. Save the inventory to its committed path only on the user's yes.
+9. **Root instructions** — run `$ai-context-refresh --mode init|update` when `CLAUDE.md` or equivalent root context is missing/stale, preserving user-authored content.
+10. **Codex mirror** — consume the `$ai-context-refresh` completion handoff when Codex files/host are present or requested; otherwise record the Codex-only step as not applicable.
+11. **Enhance** — use `$prompt-enhance` for newly created or materially updated project guidance when prompt quality warrants it.
+12. **Verification** — validate config, selected references, root files, and mirrors that apply; run focused checks for changed behavior.
+13. **Graph refresh** — after verification and reviews, run `$graph-code --mode=build` in a background sub-agent only when graph tooling is available and relevant; otherwise record the evidence-backed skip.
 
 ## Phase 2.5: Conditional Spec Workflow
 
@@ -310,6 +316,7 @@ Report:
 - Selected reference scans and spec work: outcome plus evidence, or an explicit applicability-based skip/deferral for each.
 - Always-on `lessons.md` and `docs-index-reference.md`: configured paths and health, independently of task-specific `referenceDocs`.
 - Experience applicability matrix: each configured or observed surface, intended outcome, exercise/inspection capability, evidence status, acceptance state, and limitation/`NOT-APPLICABLE`/`ENVIRONMENT-BLOCKED` reason.
+- Harness inventory: each sensor's status with evidence, the runtime row, the setup offered and the user's answer.
 - Final review skill calls: `$changes-review`, `$why-review`, each with outcome and evidence.
 - Graph refresh: `$graph-code --mode=build` sub-agent outcome when selected, or evidence-backed skip.
 - Spec workflow: invoked mode (`init-full`, `audit`, `update`), profile validation result, or evidence-backed deferral reason and next trigger.
@@ -355,6 +362,7 @@ Report:
 **IMPORTANT MUST ATTENTION** run `$changes-review --defer=whole-target` and then `$why-review` after setup and selected work; report no-change explicitly.
 **IMPORTANT MUST ATTENTION** record explicit blocker for any unavailable required skill/tool; silent skip is not completion.
 **IMPORTANT MUST ATTENTION** preserve user-authored root instruction files; do not overwrite project-only content.
+**IMPORTANT MUST ATTENTION** report the harness inventory read-only and offer `$linter-setup --mode=brownfield` for missing sensors, recommended option first; install or write nothing without the user's yes.
 **IMPORTANT MUST ATTENTION** rerun Phase 0 after every setup phase because the next route depends on current evidence.
 **IMPORTANT MUST ATTENTION** keep reusable setup logic project-neutral; project-specific facts belong in config/reference docs.
 

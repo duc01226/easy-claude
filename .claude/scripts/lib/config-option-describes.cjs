@@ -391,6 +391,12 @@ const PROJECT_CONFIG_DESCRIBES = {
     'architectureRules.layerBoundaries[].cannotImportFrom':
         'Required. Layer names this layer must not import from; an import path containing one of them is a violation.',
     'architectureRules.excludePatterns': 'Optional patterns for files the boundary check skips, such as framework or generated code.',
+    'architectureRules.enforcedBy':
+        'Optional. The boundary tool that enforces layerBoundaries in lint or CI, written by /linter-setup when it generates that tool config. When declared, reviewers read the tool result instead of grepping imports. Omitted = reviewers grep changed imports against layerBoundaries.',
+    'architectureRules.enforcedBy.tool': 'Required. Name of the boundary tool, for example the lint plugin or dependency checker the project chose.',
+    'architectureRules.enforcedBy.config': 'Required. Repository-relative path of the tool config generated from layerBoundaries; edit layerBoundaries first, then regenerate it.',
+    'architectureRules.enforcedBy.command':
+        'Optional. Command that runs only the boundary check from the project root and exits non-zero on a violation. Omitted = the check runs inside testing.commands.lint.',
     codebaseHealth:
         'Optional scan scope for /scan-codebase-health (doc count drift, stale config references, unused exports, orphan files). Omitted = the skill discovers source roots from config and manifests.',
     'codebaseHealth.sourcePaths':

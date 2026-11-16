@@ -1201,7 +1201,19 @@ const SCHEMA = {
                     cannotImportFrom: { type: 'array', required: true }
                 }
             },
-            excludePatterns: { type: 'array', required: false }
+            excludePatterns: { type: 'array', required: false },
+            // The tool that enforces layerBoundaries mechanically. Closed: a mistyped key would
+            // otherwise leave reviewers grepping imports while a real tool already checks them.
+            enforcedBy: {
+                type: 'object',
+                required: false,
+                closed: true,
+                properties: {
+                    tool: { type: 'string', required: true },
+                    config: { type: 'string', required: true },
+                    command: { type: 'string', required: false }
+                }
+            }
         }
     },
     codebaseHealth: {

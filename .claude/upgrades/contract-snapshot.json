@@ -92,212 +92,20 @@
     "skills": "d114576c93f9"
   },
   "surfaces": {
-    "config:contextDelivery": {
-      "hash": "16a9bb7d277a",
+    "config:DECISION_SUPPORT_MODES": {
+      "hash": "d30f0df05a37",
       "by": "baseline"
     },
-    "config:knowledgeRoute": {
-      "hash": "28a3243c553e",
+    "config:SKILL_PROFILE_LISTS": {
+      "hash": "cb389e1f13f8",
       "by": "baseline"
     },
-    "config:commitSkillRoute": {
-      "hash": "0bbbeef8227b",
+    "config:SKILL_PROFILE_PRESETS": {
+      "hash": "e91c1b06072d",
       "by": "baseline"
     },
-    "config:judgementIntegrityRoute": {
-      "hash": "0bbbeef8227b",
-      "by": "baseline"
-    },
-    "config:aiFeatureRoute": {
-      "hash": "0bbbeef8227b",
-      "by": "baseline"
-    },
-    "config:qualitySkillReminder": {
-      "hash": "0bbbeef8227b",
-      "by": "baseline"
-    },
-    "config:corePrinciplesInject": {
-      "hash": "58bbdc4f2f50",
-      "by": "baseline"
-    },
-    "config:frameworkRuntime": {
-      "hash": "185f06a503a7",
-      "by": "baseline"
-    },
-    "config:taskTracking": {
-      "hash": "475bf8473520",
-      "by": "baseline"
-    },
-    "config:schemaVersion": {
-      "hash": "6bf30c5de888",
-      "by": "baseline"
-    },
-    "config:project": {
-      "hash": "361cf612ad47",
-      "by": "baseline"
-    },
-    "config:backendServices": {
-      "hash": "5d786e27ebdb",
-      "by": "baseline"
-    },
-    "config:frontendApps": {
-      "hash": "4a79f8e3f343",
-      "by": "baseline"
-    },
-    "config:designSystem": {
-      "hash": "ae5434f33bb2",
-      "by": "baseline"
-    },
-    "config:uiReview": {
-      "hash": "435b68da4381",
-      "by": "baseline"
-    },
-    "config:specArtifacts": {
-      "hash": "a3ff0976998c",
-      "by": "baseline"
-    },
-    "config:specRoots": {
-      "hash": "428519ccf02e",
-      "by": "baseline"
-    },
-    "config:docsRoots": {
-      "hash": "ca30437211ba",
-      "by": "baseline"
-    },
-    "config:techSpecScan": {
-      "hash": "45806283552a",
-      "by": "baseline"
-    },
-    "config:scss": {
-      "hash": "8bf5701599bf",
-      "by": "baseline"
-    },
-    "config:componentFinder": {
-      "hash": "f1972774dd99",
-      "by": "baseline"
-    },
-    "config:sharedNamespace": {
-      "hash": "730ea74e9288",
-      "by": "baseline"
-    },
-    "config:modules": {
-      "hash": "affe100dc5e4",
-      "by": "baseline"
-    },
-    "config:contextGroups": {
-      "hash": "4ffec011c943",
-      "by": "baseline"
-    },
-    "config:conventionInjection": {
-      "hash": "4e41062208b7",
-      "by": "baseline"
-    },
-    "config:styling": {
-      "hash": "258b02929595",
-      "by": "baseline"
-    },
-    "config:componentSystem": {
-      "hash": "47d99b4b053f",
-      "by": "baseline"
-    },
-    "config:formatting": {
-      "hash": "85301b0c337f",
-      "by": "baseline"
-    },
-    "config:framework": {
-      "hash": "eae4380689d3",
-      "by": "baseline"
-    },
-    "config:testing": {
-      "hash": "36449300354a",
-      "by": "baseline"
-    },
-    "config:dependencySecurity": {
-      "hash": "1c1f4399021a",
-      "by": "baseline"
-    },
-    "config:e2eTesting": {
-      "hash": "f903c3ba554e",
-      "by": "baseline"
-    },
-    "config:experienceVerification": {
-      "hash": "f0e437ec898d",
-      "by": "baseline"
-    },
-    "config:databases": {
-      "hash": "a3ff0976998c",
-      "by": "baseline"
-    },
-    "config:messaging": {
-      "hash": "12674034ea8b",
-      "by": "baseline"
-    },
-    "config:api": {
-      "hash": "b8857a06f306",
-      "by": "baseline"
-    },
-    "config:infrastructure": {
-      "hash": "89869daccd21",
-      "by": "baseline"
-    },
-    "config:referenceDocs": {
-      "hash": "fcbfa8ba87a8",
-      "by": "baseline"
-    },
-    "config:graphConnectors": {
-      "hash": "abbcfb74a7dc",
-      "by": "baseline"
-    },
-    "config:architectureRules": {
-      "hash": "44fe59e504ed",
-      "by": "baseline"
-    },
-    "config:codebaseHealth": {
-      "hash": "449c2b251148",
-      "by": "baseline"
-    },
-    "config:integrationTestVerify": {
-      "hash": "416bb5fa5530",
-      "by": "baseline"
-    },
-    "config:workflowPatterns": {
-      "hash": "188c53e3561d",
-      "by": "baseline"
-    },
-    "config:localization": {
-      "hash": "30c11e91354e",
-      "by": "baseline"
-    },
-    "config:portability": {
-      "hash": "7914a26fdab9",
-      "by": "baseline"
-    },
-    "config:skillConventions": {
-      "hash": "9614ee863e6e",
-      "by": "baseline"
-    },
-    "config:hooks": {
-      "hash": "75f92b09f169",
-      "by": "baseline"
-    },
-    "config:commit": {
-      "hash": "557ac9d62fbd",
-      "by": "baseline"
-    },
-    "config:workTracking": {
-      "hash": "4a3c98e81da1",
-      "by": "baseline"
-    },
-    "config:pullRequest": {
-      "hash": "8ba7680c2ef2",
-      "by": "baseline"
-    },
-    "config:reviewGate": {
-      "hash": "67f7a27074d2",
-      "by": "baseline"
-    },
-    "config:skillProfile": {
-      "hash": "12097fefe426",
+    "config:TOKEN_BUDGET_CHECKPOINT_RANGE": {
+      "hash": "235501c0d383",
       "by": "baseline"
     },
     "config:WORKFLOW_ACTIVATION_TIERS": {
@@ -308,88 +116,212 @@
       "hash": "984a9622e732",
       "by": "baseline"
     },
-    "config:DECISION_SUPPORT_MODES": {
-      "hash": "d30f0df05a37",
+    "config:aiFeatureRoute": {
+      "hash": "0bbbeef8227b",
       "by": "baseline"
     },
-    "config:TOKEN_BUDGET_CHECKPOINT_RANGE": {
-      "hash": "235501c0d383",
+    "config:api": {
+      "hash": "b8857a06f306",
       "by": "baseline"
     },
-    "config:SKILL_PROFILE_PRESETS": {
-      "hash": "e91c1b06072d",
+    "config:architectureRules": {
+      "hash": "54ceae80652d",
+      "by": "fill-architecture-rules"
+    },
+    "config:backendServices": {
+      "hash": "5d786e27ebdb",
       "by": "baseline"
     },
-    "config:SKILL_PROFILE_LISTS": {
-      "hash": "cb389e1f13f8",
+    "config:codebaseHealth": {
+      "hash": "449c2b251148",
       "by": "baseline"
     },
-    "workflow:workflow-big-feature": {
-      "hash": "ba9249761f74",
+    "config:commit": {
+      "hash": "557ac9d62fbd",
       "by": "baseline"
     },
-    "workflow:workflow-bugfix": {
-      "hash": "80e2d51268fc",
+    "config:commitSkillRoute": {
+      "hash": "0bbbeef8227b",
       "by": "baseline"
     },
-    "workflow:workflow-e2e": {
-      "hash": "7ef6f5557274",
+    "config:componentFinder": {
+      "hash": "f1972774dd99",
       "by": "baseline"
     },
-    "workflow:workflow-feature": {
-      "hash": "bab4bd2ee815",
+    "config:componentSystem": {
+      "hash": "47d99b4b053f",
       "by": "baseline"
     },
-    "workflow:workflow-implement-spec": {
-      "hash": "a2a24082ed6b",
+    "config:contextDelivery": {
+      "hash": "16a9bb7d277a",
       "by": "baseline"
     },
-    "workflow:workflow-feature-spec": {
-      "hash": "21bd5744fa81",
+    "config:contextGroups": {
+      "hash": "4ffec011c943",
       "by": "baseline"
     },
-    "workflow:workflow-greenfield-init": {
-      "hash": "c1313ae30b92",
+    "config:conventionInjection": {
+      "hash": "4e41062208b7",
       "by": "baseline"
     },
-    "workflow:workflow-planned-work": {
-      "hash": "99410771e96b",
+    "config:corePrinciplesInject": {
+      "hash": "58bbdc4f2f50",
       "by": "baseline"
     },
-    "workflow:workflow-refactor": {
-      "hash": "f93e2a554aea",
+    "config:databases": {
+      "hash": "a3ff0976998c",
       "by": "baseline"
     },
-    "workflow:workflow-research": {
-      "hash": "57f11ffa5773",
+    "config:dependencySecurity": {
+      "hash": "1c1f4399021a",
       "by": "baseline"
     },
-    "workflow:workflow-review-changes": {
-      "hash": "74aef8a00138",
+    "config:designSystem": {
+      "hash": "ae5434f33bb2",
       "by": "baseline"
     },
-    "workflow:workflow-architecture-audit": {
-      "hash": "a2da7ba0b037",
+    "config:docsRoots": {
+      "hash": "ca30437211ba",
       "by": "baseline"
     },
-    "workflow:workflow-code-to-spec": {
-      "hash": "40fe9f929301",
+    "config:e2eTesting": {
+      "hash": "f903c3ba554e",
       "by": "baseline"
     },
-    "workflow:workflow-spec-to-mockup": {
-      "hash": "a052c92ef3a1",
+    "config:experienceVerification": {
+      "hash": "f0e437ec898d",
       "by": "baseline"
     },
-    "workflow:workflow-spec-sync": {
-      "hash": "6144b65bf2ce",
+    "config:formatting": {
+      "hash": "85301b0c337f",
       "by": "baseline"
     },
-    "workflow:workflow-seed-test-data": {
-      "hash": "e36f05f1dfbe",
+    "config:framework": {
+      "hash": "eae4380689d3",
       "by": "baseline"
     },
-    "workflow:workflow-integration-test": {
-      "hash": "005aa656bfa9",
+    "config:frameworkRuntime": {
+      "hash": "185f06a503a7",
+      "by": "baseline"
+    },
+    "config:frontendApps": {
+      "hash": "4a79f8e3f343",
+      "by": "baseline"
+    },
+    "config:graphConnectors": {
+      "hash": "abbcfb74a7dc",
+      "by": "baseline"
+    },
+    "config:hooks": {
+      "hash": "75f92b09f169",
+      "by": "baseline"
+    },
+    "config:infrastructure": {
+      "hash": "89869daccd21",
+      "by": "baseline"
+    },
+    "config:integrationTestVerify": {
+      "hash": "416bb5fa5530",
+      "by": "baseline"
+    },
+    "config:judgementIntegrityRoute": {
+      "hash": "0bbbeef8227b",
+      "by": "baseline"
+    },
+    "config:knowledgeRoute": {
+      "hash": "28a3243c553e",
+      "by": "baseline"
+    },
+    "config:localization": {
+      "hash": "30c11e91354e",
+      "by": "baseline"
+    },
+    "config:messaging": {
+      "hash": "12674034ea8b",
+      "by": "baseline"
+    },
+    "config:modules": {
+      "hash": "affe100dc5e4",
+      "by": "baseline"
+    },
+    "config:portability": {
+      "hash": "7914a26fdab9",
+      "by": "baseline"
+    },
+    "config:project": {
+      "hash": "361cf612ad47",
+      "by": "baseline"
+    },
+    "config:pullRequest": {
+      "hash": "8ba7680c2ef2",
+      "by": "baseline"
+    },
+    "config:qualitySkillReminder": {
+      "hash": "0bbbeef8227b",
+      "by": "baseline"
+    },
+    "config:referenceDocs": {
+      "hash": "fcbfa8ba87a8",
+      "by": "baseline"
+    },
+    "config:reviewGate": {
+      "hash": "67f7a27074d2",
+      "by": "baseline"
+    },
+    "config:schemaVersion": {
+      "hash": "6bf30c5de888",
+      "by": "baseline"
+    },
+    "config:scss": {
+      "hash": "8bf5701599bf",
+      "by": "baseline"
+    },
+    "config:sharedNamespace": {
+      "hash": "730ea74e9288",
+      "by": "baseline"
+    },
+    "config:skillConventions": {
+      "hash": "9614ee863e6e",
+      "by": "baseline"
+    },
+    "config:skillProfile": {
+      "hash": "12097fefe426",
+      "by": "baseline"
+    },
+    "config:specArtifacts": {
+      "hash": "a3ff0976998c",
+      "by": "baseline"
+    },
+    "config:specRoots": {
+      "hash": "428519ccf02e",
+      "by": "baseline"
+    },
+    "config:styling": {
+      "hash": "258b02929595",
+      "by": "baseline"
+    },
+    "config:taskTracking": {
+      "hash": "475bf8473520",
+      "by": "baseline"
+    },
+    "config:techSpecScan": {
+      "hash": "45806283552a",
+      "by": "baseline"
+    },
+    "config:testing": {
+      "hash": "36449300354a",
+      "by": "baseline"
+    },
+    "config:uiReview": {
+      "hash": "435b68da4381",
+      "by": "baseline"
+    },
+    "config:workTracking": {
+      "hash": "4a3c98e81da1",
+      "by": "baseline"
+    },
+    "config:workflowPatterns": {
+      "hash": "188c53e3561d",
       "by": "baseline"
     },
     "hooks:Notification": {
@@ -442,6 +374,74 @@
     },
     "skills": {
       "hash": "d114576c93f9",
+      "by": "baseline"
+    },
+    "workflow:workflow-architecture-audit": {
+      "hash": "a2da7ba0b037",
+      "by": "baseline"
+    },
+    "workflow:workflow-big-feature": {
+      "hash": "ba9249761f74",
+      "by": "baseline"
+    },
+    "workflow:workflow-bugfix": {
+      "hash": "80e2d51268fc",
+      "by": "baseline"
+    },
+    "workflow:workflow-code-to-spec": {
+      "hash": "40fe9f929301",
+      "by": "baseline"
+    },
+    "workflow:workflow-e2e": {
+      "hash": "7ef6f5557274",
+      "by": "baseline"
+    },
+    "workflow:workflow-feature": {
+      "hash": "bab4bd2ee815",
+      "by": "baseline"
+    },
+    "workflow:workflow-feature-spec": {
+      "hash": "21bd5744fa81",
+      "by": "baseline"
+    },
+    "workflow:workflow-greenfield-init": {
+      "hash": "c1313ae30b92",
+      "by": "baseline"
+    },
+    "workflow:workflow-implement-spec": {
+      "hash": "a2a24082ed6b",
+      "by": "baseline"
+    },
+    "workflow:workflow-integration-test": {
+      "hash": "005aa656bfa9",
+      "by": "baseline"
+    },
+    "workflow:workflow-planned-work": {
+      "hash": "99410771e96b",
+      "by": "baseline"
+    },
+    "workflow:workflow-refactor": {
+      "hash": "f93e2a554aea",
+      "by": "baseline"
+    },
+    "workflow:workflow-research": {
+      "hash": "57f11ffa5773",
+      "by": "baseline"
+    },
+    "workflow:workflow-review-changes": {
+      "hash": "74aef8a00138",
+      "by": "baseline"
+    },
+    "workflow:workflow-seed-test-data": {
+      "hash": "e36f05f1dfbe",
+      "by": "baseline"
+    },
+    "workflow:workflow-spec-sync": {
+      "hash": "6144b65bf2ce",
+      "by": "baseline"
+    },
+    "workflow:workflow-spec-to-mockup": {
+      "hash": "a052c92ef3a1",
       "by": "baseline"
     }
   },

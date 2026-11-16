@@ -1,6 +1,6 @@
 ---
 name: harness-setup
-version: 1.2.1
+version: 1.3.0
 description: '[Quality] Use when a workflow step or the user asks for an agent quality harness with project guidance and automated/review feedback.'
 ---
 
@@ -21,6 +21,7 @@ description: '[Quality] Use when a workflow step or the user asks for an agent q
 - **Purpose:** complete the outer harness—feedforward guidance plus computational and inferential feedback—so later agents self-correct before human review.
 - **Testability contract:** resolve Unit/Integration/System/E2E and warranted Performance/Scale applicability from runner/config evidence; record owner/root/data, copy-ready full/focused commands, zero-match behavior, CI/simple Windows/macOS/Linux entry, unique run/data identity, and repeat proof. Block unresolved applicable fields; record evidence-backed `N/A` for non-applicable tiers.
 - **Ordered path:** 1 Guards → 2 Phase A Stack Detection → 3 Phase B Feedforward Guides → 4 Phase C Computational Sensors → 5 Phase D Inferential Sensors → 6 Phase E Behaviour Harness → 7 Phase F Inventory Report → 8 Next Steps. Each phase blocks the next; feedforward and sensor choices require `ask user question tool`.
+- **Existing projects:** stack and sensor facts come from the repository (manifests, tool configs, CI, the project config) instead of plan or architecture reports; missing computational sensors route to `/linter-setup --mode=brownfield`, whose baselines keep the existing tree green.
 - **Quality boundary:** `/linter-setup` supplies computational sensors; this skill never installs them. Require intent-protecting evidence selected by profile, risk, tooling and budget; mutation/property sensors are optional, line coverage diagnostic; append inventory after every phase and keep it living.
 
 **Main steps (run in order — each BLOCKS the next):**
@@ -31,7 +32,7 @@ description: '[Quality] Use when a workflow step or the user asks for an agent q
 4. **Phase C — Computational Sensors** — confirm `/linter-setup` outputs and list config paths; invoke it if any are missing.
 5. **Phase D — Inferential Sensors** — wire review skills to lifecycle gates (`/why-review` pre-impl · `/code-quality-review` pre-commit · `/domain-analysis --mode=review` post-impl · `/production-readiness-review` + `/security-audit` pre-release · `/scan-codebase-health` recurring · `/integration-test --mode=review` feature-area TC audit BOTH pre-release AND recurring, catching orphaned Section-8 TCs and uncovered behavior); record under `## Review Gates`.
 6. **Phase E — Behaviour Harness** — choose spec format, profile-fit test tiers, fixtures and intent-protecting evidence, and `test-strategy.md`; NEVER gate on line `%`.
-7. **Phase F — Inventory Report** — append `harness-inventory.md` with all sensors and gaps; present it via `ask user question tool`.
+7. **Phase F — Inventory Report** — write the committed harness inventory (`references/harness-inventory.md`: path, detection, runtime row, format) with all sensors and gaps; present it via `ask user question tool`.
 8. **Next Steps** — use `ask user question tool` to choose `/feature-implement` (recommended), `/why-review`, or skip.
 
 **Produces:**
@@ -39,9 +40,9 @@ description: '[Quality] Use when a workflow step or the user asks for an agent q
 - Feedforward guides: CLAUDE.md/AGENTS.md conventions, architecture docs, pattern catalogs, skill-activation rules
 - Computational feedback sensors: `/linter-setup` linters, formatters, pre-commit hooks, and CI gates
 - Inferential feedback sensors: AI review skills wired to lifecycle stages
-- Harness inventory: `tmp/harness/harness-inventory.md`
+- Harness inventory: `harness-inventory.md` under the project-reference root (path and format: `references/harness-inventory.md`)
 
-**When invoked:** After `/scaffold` + `/linter-setup` in greenfield workflow; scaffolding must be complete.
+**When invoked:** After `/scaffold` + `/linter-setup` in greenfield workflow; scaffolding must be complete. On an existing project, directly or from `/project-init`'s harness offer: the existing code is the scaffold.
 
 **Does NOT do:** Install linters or configure formatters; `/linter-setup` owns that work.
 
@@ -63,15 +64,15 @@ description: '[Quality] Use when a workflow step or the user asks for an agent q
 
 ## Activation Guards
 
-**Check 1 — `/linter-setup` prerequisite (BLOCK if missing):** Before phases, verify it completed by checking for a root linter config (e.g., `.eslintrc`, `pyproject.toml`, `.editorconfig`), pre-commit hook config (e.g., `.husky/`, `.pre-commit-config.yaml`), and CI quality gate definition. If any is missing → `ask user question tool`: "/linter-setup appears incomplete. Computational feedback sensors must be in place before harness setup. Run /linter-setup first, then return here?" **BLOCK** Phases A–E until verification passes.
+**Check 1 — `/linter-setup` prerequisite (BLOCK if missing):** Before phases, verify it completed by checking for a root linter config (e.g., `.eslintrc`, `pyproject.toml`, `.editorconfig`), pre-commit hook config (e.g., `.husky/`, `.pre-commit-config.yaml`), and CI quality gate definition. If any is missing → `ask user question tool`: "/linter-setup appears incomplete. Computational feedback sensors must be in place before harness setup. Run /linter-setup first, then return here?" **BLOCK** Phases A–E until verification passes. On an existing project, ask in plain words with the recommended option first: run `/linter-setup --mode=brownfield` now (recommended: it adds only the missing checks, each with a baseline, so nothing already there turns red), or continue without them. A recorded no lets the phases run with those sensors listed as `declined` gaps in the inventory.
 
-**Check 2 — Existing harness inventory:** Check `tmp/harness/harness-inventory.md`. If found → `ask user question tool`: "Harness inventory already exists — re-run to enhance existing harness, or skip?" Existing `CLAUDE.md`/`AGENTS.md` are feedforward guides to enhance, NEVER skip signals.
+**Check 2 — Existing harness inventory:** Check the committed inventory named in `references/harness-inventory.md`, and the legacy `tmp/harness/harness-inventory.md`, which is merged into it once. If found → `ask user question tool`: "Harness inventory already exists — re-run to enhance existing harness, or skip?" Existing `CLAUDE.md`/`AGENTS.md` are feedforward guides to enhance, NEVER skip signals.
 
 ---
 
 ## Phase A — Stack Detection
 
-Read, in order: `plan.md` frontmatter → `architecture --mode=design` report → tech-stack-comparison report. Extract:
+Read, in order: `plan.md` frontmatter → `architecture --mode=design` report → tech-stack-comparison report → repository evidence (manifests, lockfiles, tool configs, CI files, the project config), which is the primary source on an existing project. Extract:
 
 - Primary language(s) and framework(s)
 - Test framework and test runner
@@ -158,65 +159,7 @@ Document the agreed strategy in `docs/architecture/test-strategy.md`.
 
 ## Phase F — Harness Inventory Report
 
-Write `tmp/harness/harness-inventory.md`:
-
-```markdown
-# Harness Inventory
-
-Generated: {date}
-Stack: {detected stack from Phase A}
-
-## Testability & Verification Contract
-
-Copy the resolved `test-strategy.md` matrix into this inventory and keep the status current:
-
-**Status:** `PASS | PARTIAL | BLOCKED`
-
-| Tier | Applicability + evidence | Owner | Runner/config/root | Full | Focused/partial | Zero-match behavior | CI / simple Windows/macOS/Linux entry point | Identity/data/isolation/fidelity policy | Repeat proof |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Unit | `APPLICABLE` / `N/A — {evidence}` | {owner} | {runner/config/root} | `{command}` | `{filter}` | `{non-zero behavior}` | {gate / command} | {policy reference} | {result/status} |
-| Integration/System | `APPLICABLE` / `N/A — {evidence}` | {owner} | {runner/config/root} | `{command}` | `{filter}` | `{non-zero behavior}` | {gate / command} | {policy reference} | `{two no-reset runs}` |
-| E2E | `APPLICABLE` / `N/A — {evidence}` | {owner} | {runner/config/root} | `{command}` | `{filter}` | `{non-zero behavior}` | {gate / command} | {policy reference} | `{result or evidence-backed N/A}` |
-
-Missing/placeholder evidence is an open gap, not a PASS. The inventory must preserve the strategy's unique identity, additive-data, isolation, realistic-fidelity, and two-run proof fields; E2E N/A remains evidence-backed.
-
-## Feedforward Guides
-
-| Type          | File/Skill                           | Purpose                         |
-| ------------- | ------------------------------------ | ------------------------------- |
-| Inferential   | CLAUDE.md §Architecture Patterns     | Shapes AI architectural choices |
-| Inferential   | CLAUDE.md §Anti-Patterns             | Prevents known bad patterns     |
-| Inferential   | docs/architecture/pattern-catalog.md | DO/DON'T examples per pattern   |
-| Computational | .editorconfig                        | Cross-IDE consistency           |
-
-## Feedback Sensors — Computational
-
-| Stage      | Tool/Hook          | What it catches                                |
-| ---------- | ------------------ | ---------------------------------------------- |
-| Pre-commit | {linter}           | Style violations, common errors                |
-| Pre-commit | {formatter}        | Code formatting drift                          |
-| CI         | {type-checker}     | Type errors                                    |
-| CI         | {static-analyzer}  | Security, complexity, dead code                |
-| CI         | {selected strength sensor, or N/A with alternate evidence} | Protected intent; threshold only if justified |
-| CI         | {coverage-tool}    | Untested areas (DIAGNOSTIC only — never gated) |
-
-## Feedback Sensors — Inferential
-
-| Stage               | Skill/Agent             | What it catches                |
-| ------------------- | ----------------------- | ------------------------------ |
-| Pre-implementation  | /why-review             | Design rationale gaps          |
-| Pre-commit          | /code-quality-review            | Convention drift, logic errors |
-| Post-implementation | /domain-analysis --mode=review | Domain model quality           |
-| Pre-release         | /production-readiness-review             | Operational readiness          |
-| Pre-release         | /security-audit               | Security vulnerabilities       |
-| Pre-release + Recurring | /integration-test --mode=review (feature-area TC audit) | Orphaned Section-8 TCs, uncovered changed behavior |
-
-## Open Gaps
-
-| Area                     | Reason   | Risk           |
-| ------------------------ | -------- | -------------- |
-| {area not yet harnessed} | {reason} | {LOW/MED/HIGH} |
-```
+Read `references/harness-inventory.md` and write or update the committed inventory it names: the Summary (each sensor with status, evidence, command and baseline, plus the runtime row), the testability contract copied from `test-strategy.md`, the feedforward guides, both sensor tables and the open gaps. Missing or placeholder evidence stays an open gap, never a PASS.
 
 Present inventory to user for review via `ask user question tool`.
 
@@ -290,9 +233,9 @@ Present inventory to user for review via `ask user question tool`.
 
 **IMPORTANT MUST ATTENTION Main steps (in order — each BLOCKS the next):** Guards (verify `/linter-setup`) → A Stack Detection (`stack-profile.md`) → B Feedforward Guides (CLAUDE.md patterns/anti-patterns/naming/boundaries + skill-activation rules + pattern catalog) → C Computational Sensors (confirm linter/hook/CI) → D Inferential Sensors (wire `/why-review`, `/code-quality-review`, `/domain-analysis --mode=review`, `/production-readiness-review`, `/security-audit`, `/scan-codebase-health`, `/integration-test --mode=review` missing-test/spec-coverage gate to gates) → E Behaviour Harness (spec format + profile-fit test tiers + intent evidence + `test-strategy.md`) → F Inventory Report (`harness-inventory.md`) → Next Steps. NEVER skip or reorder — why: each phase consumes the prior phase's verified output.
 
-**IMPORTANT MUST ATTENTION** BLOCK on the `/linter-setup` prerequisite first — ALWAYS verify computational sensors (linter config, pre-commit hook, CI gate) exist before any phase runs — why: keep quality left; cheapest gates must precede inferential ones, and this skill never installs them itself
+**IMPORTANT MUST ATTENTION** BLOCK on the `/linter-setup` prerequisite first — ALWAYS verify computational sensors (linter config, pre-commit hook, CI gate) exist before any phase runs; on an existing project only the user's recorded no lets the phases continue, with those sensors listed as `declined` gaps — why: keep quality left; cheapest gates must precede inferential ones, and this skill never installs them itself
 **IMPORTANT MUST ATTENTION** NEVER auto-decide feedforward-guide or sensor content — present the draft and confirm via `ask user question tool` — why: harness conventions bind every future agent; silent choices propagate to all later sessions
-**IMPORTANT MUST ATTENTION** write `tmp/harness/harness-inventory.md` incrementally (append after each phase) — NEVER hold findings in memory — why: long context drifts and silently drops findings
+**IMPORTANT MUST ATTENTION** write the committed harness inventory (`references/harness-inventory.md`) incrementally (append after each phase) — NEVER hold findings in memory — why: long context drifts and silently drops findings, and later sessions read the committed file
 **IMPORTANT MUST ATTENTION** walk phases A→F as a hard barrier sequence — NEVER skip or reorder; each phase BLOCKS the next until its guard passes — why: a later phase consumes the prior phase's verified output
 **IMPORTANT MUST ATTENTION** require profile-fit intent-protecting evidence for the behaviour harness — NEVER fail a build on a line-coverage % — why: lines execute without asserting intent, so coverage % is a diagnostic only, never a quality gate
 **IMPORTANT MUST ATTENTION** wire `/integration-test --mode=review`'s feature-area-wide TC audit as a Phase D sensor BOTH pre-release AND on the SAME recurring cadence as `/scan-codebase-health` — never pre-release only — why: a diff-scoped-only run cannot see a §8 TC whose covering test regressed outside the current change set; only a periodic feature-area sweep catches it
