@@ -53,8 +53,8 @@ function preparePythonYaml(python, { scriptsDir, probe = spawnSync, cwd, env = p
         env,
         encoding: 'utf8',
         windowsHide: true,
-        // Readiness includes the owner's two 30s install attempts. Assertion budgets stay unchanged.
-        timeout: 75000
+        // Readiness includes the owner's three 30s install attempts. Assertion budgets stay unchanged.
+        timeout: 105000
     });
     if (result.error || result.status !== 0) {
         throw new Error(

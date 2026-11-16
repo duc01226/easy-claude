@@ -6,12 +6,15 @@ Centralized utility scripts for Claude Code skills.
 
 `scan_skills.py` and `generate_catalogs.py` recover missing PyYAML on use through
 `lib/python_dependencies.py`. They reuse an existing local target first, then try
-one interpreter-wide install and one local target under project-root
-`tmp/claude-temp/python-packages`. Each attempt has a 30-second deadline, uses
-literal argv and noninteractive wheel-only pip, and verifies the actual import.
-Managed Python or denied/offline installs fall back without overriding system
-protection. If both attempts fail, the required tool exits 3 with its existing
-installation recipe; it never reports a skipped check as passing.
+one interpreter-wide wheel install and one wheel install into the local target
+under project-root `tmp/claude-temp/python-packages`. If that also fails, typically
+because the interpreter is newer than PyYAML's published wheels (for example CPython
+3.15 with PyYAML 6.0.3), a third attempt builds only PyYAML from source into that
+target; its build dependencies stay wheel-only. Each attempt has a 30-second deadline, uses literal argv and
+noninteractive pip, and verifies the actual import. Managed Python or denied/offline
+installs fall back without overriding system protection. If every attempt fails,
+the helper prints pip's last error line and the required tool exits 3 with its
+existing installation recipe; it never reports a skipped check as passing.
 
 Set `CK_AUTO_INSTALL_DEPENDENCIES=0` to disable automatic attempts. Python `-S`
 probes intentionally disable recovery too. Broken transitive imports still surface.
@@ -303,6 +306,7 @@ Run every command from the project root; each works the same on Windows, macOS a
 | `skill-activation-eval.mjs` | `node .claude/scripts/skill-activation-eval.mjs --cases <file.json> [--host=claude\|codex] [--runs=3] [--min-hit-rate=<0-1>] [--max-false-rate=<0-1>] [--timeout-ms=<ms>] [--json]` | Measures whether each prompt starts the skill it should (and only that one) over fresh headless, read-only host runs (Claude: only `--tools Skill,Read,Glob,Grep`, mutating tools also disallowed); the host gets an allowlisted environment plus the named framework switches (`FRAMEWORK_SWITCHES`: mode, quiet rules, route, decision-support and auto-trigger preferences, commit review mode, prompt ledger switch, router kill switches — never other `CK_` names). Reports hit and false-trigger rates and the `framework` state: effective mode, skill auto-trigger policy and route mode with the layer that decided each, and each passed switch with its normalized value (never a path or other `CK_` value), and exits 2 when any run is unmeasured (errored or timed out). Guide: `.claude/docs/configuration/native-session-smoke.md#activation-evals` |
 | `session-usage-report.cjs` | `node .claude/scripts/session-usage-report.cjs --transcript <path> [--compare <path>] [--run <runId>] [--json]` | Offline token usage of one Claude session (main + sub-agents, each response once; non-cached total apart from cache reads), an A/B comparison, and a run's deviation log (step id and kind only, never evidence text) |
 | `open-report.cjs` | `node .claude/scripts/open-report.cjs <path>` | Opens a generated report under the project `tmp/` or `temp/` in the default viewer with a literal argv — only report file types (`.html`, `.htm`, `.md`, `.txt`, `.pdf`, `.png`, `.jpg`, `.jpeg`, `.svg`, `.json`, checked case-insensitively on the resolved file); opens nothing under `CI` or `CK_NO_AUTO_OPEN=1`, or on Linux without a display, and always prints the path |
+| `framework-ci.cjs` | `node .claude/scripts/framework-ci.cjs [--scope=changed\|full] [--base=<rev>] [--head=<rev>] [--plan] [--json]` | Runs the framework's own test lanes (Codex sync verify, `test-all-hooks.cjs`, hook suites) for the whole tree or only for what a change affects; owns the lane commands that `.github/workflows/ci.yml` runs. Changed scope (default) compares the merge-base with `origin/main` against the working tree, or `--base`..`--head` (one commit: `--base=<sha>~1`); harness files, manifests, the CI workflow, an unreferenced hook or a selection over half the suites escalate to full. Changed scope is advisory; only `--scope=full` is merge evidence. `--plan --github-output=<file>` is the CI gate step; `--lane=<id> [--suites=<all\|a,b>]` runs one planned lane. Exit 0 pass, 1 a lane failed, 2 usage or git error |
 | `line_endings.py` | imported by the block injectors | `read_text`/`write_text` keep a file's own line-ending style (any CRLF → CRLF, else LF; new files LF), so an injector never flips a file's newlines on Windows |
 
-Tests: `node --test .claude/scripts/tests/build-protocol-projection.test.cjs` · `sync-skill-profile.test.cjs` · `skill-activation-eval.test.mjs` · `context-evaluation-adapter.test.mjs` · `open-report.test.cjs` · `injectors-respect-guides.test.cjs` (same folder); `node .claude/hooks/tests/run-all-tests.cjs --filter=session-usage`
+Tests: `node --test .claude/scripts/tests/build-protocol-projection.test.cjs` · `sync-skill-profile.test.cjs` · `skill-activation-eval.test.mjs` · `context-evaluation-adapter.test.mjs` · `open-report.test.cjs` · `injectors-respect-guides.test.cjs` · `framework-ci.test.cjs` (same folder); `node .claude/hooks/tests/run-all-tests.cjs --filter=session-usage`
