@@ -1210,7 +1210,7 @@ async function testLessonExtractionGate() {
         /skip rare AI-agent quirks, one-off incidents and details of the current task/.test(body)
     );
     logResult(
-        'Recurrence and auto-fix gates come before the /learn request',
+        'Recurrence and structure-first routing come before the /learn request',
         body.indexOf('Skip nonrecurring lessons') >= 0 && body.indexOf('Skip nonrecurring lessons') < body.indexOf('ask the user to run')
     );
     logResult('Never self-edits instruction files', body.includes('never silently self-edit instructions'));
