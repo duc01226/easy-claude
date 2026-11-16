@@ -1,9 +1,8 @@
 'use strict';
 
-const fs = require('node:fs');
 const childProcess = require('node:child_process');
 const { LIMITS, CUSTOM_MEMBER_ID, isEmailId } = require('./task-tracking-config.cjs');
-const { fail } = require('./task-tracking-files.cjs');
+const { fail, sameDirectory } = require('./task-tracking-files.cjs');
 
 const fold = value => value.toLowerCase();
 const validName = value => typeof value === 'string' && value.trim().length > 0 && value.length <= 254
@@ -26,9 +25,9 @@ function readGitAuthor(context, { spawnSync = childProcess.spawnSync, now = Date
         return result.status === 1 ? '' : transportValue(result.stdout);
     };
     const top = read(['rev-parse', '--show-toplevel']);
-    let selected;
-    try { selected = fs.realpathSync(top); } catch { fail('IDENTITY_UNAVAILABLE', 'Selected checkout author identity unavailable'); }
-    if (selected !== context.root) fail('WRONG_ROOT', 'Select the exact Git checkout root; another checkout cannot supply the actor');
+    let isSelectedRoot;
+    try { isSelectedRoot = sameDirectory(top, context.root); } catch { fail('IDENTITY_UNAVAILABLE', 'Selected checkout author identity unavailable'); }
+    if (!isSelectedRoot) fail('WRONG_ROOT', 'Select the exact Git checkout root; another checkout cannot supply the actor');
     const address = read(['config', '--get', 'user.email'], true);
     if (!isEmailId(address)) fail('INVALID_MEMBER', 'Local author email is missing or invalid; use one printable address of at most 254 characters, or select a custom member');
     const name = read(['config', '--get', 'user.name'], true);
