@@ -19,9 +19,9 @@ Mode selection and registry loading prepare tracking; any 'first action' below m
 
 Explicit step-skill calls by mode (registry order; roles and conditions remain owned by the registry):
 
-- Mode `default`: [`/investigate --mode=debug`](../investigate/SKILL.md) (gate) → [`/spec [mode=amend]`](../spec/SKILL.md) (optional; conditional) → [`/work-item --mode=mockup --explore`](../work-item/SKILL.md) (optional; conditional) → [`/plan`](../plan/SKILL.md) (optional; conditional) → [`/spec [mode=tests]`](../spec/SKILL.md) (optional; conditional) → [`/work-item --mode=review --type=spec-tests`](../work-item/SKILL.md) (optional; conditional) → [`/integration-test`](../integration-test/SKILL.md) (gate) → [`/fix`](../fix/SKILL.md) (core) → [`/spec [mode=sync]`](../spec/SKILL.md) (optional; conditional) → [`/workflow-review-changes --tests=defer`](../workflow-review-changes/SKILL.md) (gate) → [`/integration-test --mode=verify`](../integration-test/SKILL.md) (gate) → [`/workflow-e2e --source=context`](../workflow-e2e/SKILL.md) (optional; conditional) → [`/demo-guide`](../demo-guide/SKILL.md) (optional; conditional) → [`/workflow-end`](../workflow-end/SKILL.md) (gate) → [`/watzup`](../watzup/SKILL.md) (optional; conditional)
-  Phase todos: Discover (1; exit root-cause-traced) → Specify (2) → Plan (3) → Build (3; exit spec-synced) → Review (1; exit review-converged) → Verify (3; exit tests-pass) → Close (2; exit run-closed)
-<!-- workflow-mode:default fingerprint:08fefce9b5bb01777e3ff5deb88e0702ce543edd4d2a8a0f9edf59906bd0d92f -->
+- Mode `default`: [`/harness-setup --mode=readiness`](../harness-setup/SKILL.md) (optional; conditional) → [`/investigate --mode=debug`](../investigate/SKILL.md) (gate) → [`/spec [mode=amend]`](../spec/SKILL.md) (optional; conditional) → [`/work-item --mode=mockup --explore`](../work-item/SKILL.md) (optional; conditional) → [`/plan`](../plan/SKILL.md) (optional; conditional) → [`/spec [mode=tests]`](../spec/SKILL.md) (optional; conditional) → [`/work-item --mode=review --type=spec-tests`](../work-item/SKILL.md) (optional; conditional) → [`/integration-test`](../integration-test/SKILL.md) (gate) → [`/fix`](../fix/SKILL.md) (core) → [`/spec [mode=sync]`](../spec/SKILL.md) (optional; conditional) → [`/workflow-review-changes --tests=defer`](../workflow-review-changes/SKILL.md) (gate) → [`/integration-test --mode=verify`](../integration-test/SKILL.md) (gate) → [`/workflow-e2e --source=context`](../workflow-e2e/SKILL.md) (optional; conditional) → [`/demo-guide`](../demo-guide/SKILL.md) (optional; conditional) → [`/workflow-end`](../workflow-end/SKILL.md) (gate) → [`/watzup`](../watzup/SKILL.md) (optional; conditional)
+  Phase todos: Discover (2; exit root-cause-traced) → Specify (2) → Plan (3) → Build (3; exit spec-synced) → Review (1; exit review-converged) → Verify (3; exit tests-pass) → Close (2; exit run-closed)
+<!-- workflow-mode:default fingerprint:ceecbecc5a998b4898077e26c6ad077efaeea93f920c959b5e12679a2818fa88 -->
 
 Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs --write` after registry edits; [`/sync-codex`](../sync-codex/SKILL.md) refreshes it before mirroring.
 <!-- WORKFLOW-CALLS:END -->
@@ -95,6 +95,7 @@ Non-negotiable — `/workflow-end` checks each against its evidence before the r
 
 | Step | Role | Proves · note |
 | --- | --- | --- |
+| `/harness-setup --mode=readiness` | optional | harness readiness — a project with every check proven skips it at triage for one sub-second `harness-readiness.cjs` call; otherwise one plain-language offer ends proven, proposed (team-owned repository) or declined, then the task continues; a missing test runner is offered here, so the regression test step has a runner |
 | `/investigate --mode=debug` | gate | root cause traced — owns discovery and root cause |
 | `/spec [mode=amend]` | optional | spec states intent |
 | `/work-item --mode=mockup --explore` | optional | selected mockup before planning — see below |
@@ -150,7 +151,7 @@ Activate the `workflow-bugfix` workflow: run `/start-workflow workflow-bugfix` w
 
 Recommended default order (roles in the table above):
 
-**IMPORTANT MANDATORY Steps:** /investigate --mode=debug -> /spec [mode=amend] -> /work-item --mode=mockup --explore -> /plan -> /spec [mode=tests] -> /work-item --mode=review --type=spec-tests -> /integration-test -> /fix -> /spec [mode=sync] -> /workflow-review-changes --tests=defer -> /integration-test --mode=verify -> /workflow-e2e --source=context -> /demo-guide -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /harness-setup --mode=readiness -> /investigate --mode=debug -> /spec [mode=amend] -> /work-item --mode=mockup --explore -> /plan -> /spec [mode=tests] -> /work-item --mode=review --type=spec-tests -> /integration-test -> /fix -> /spec [mode=sync] -> /workflow-review-changes --tests=defer -> /integration-test --mode=verify -> /workflow-e2e --source=context -> /demo-guide -> /workflow-end -> /watzup
 
 <!-- PROTOCOL-GUIDES:START -->
 

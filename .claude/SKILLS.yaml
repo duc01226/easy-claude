@@ -372,7 +372,8 @@ skills:
     - name: harness-setup
       path: harness-setup/SKILL.md
       description: '[Quality] Use when a workflow step or the user asks for an agent
-        quality harness with project guidance and automated/review feedback.'
+        quality harness with project guidance and automated/review feedback. --mode=readiness
+        checks it at task start.'
       category: other
       has_scripts: false
       has_references: true

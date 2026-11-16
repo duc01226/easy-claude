@@ -2,11 +2,11 @@
 module: 'workflows'
 service: 'framework.WorkflowExecution'
 feature_code: 'GWF'
-entities: ['Workflow', 'Step', 'OutcomeGate', 'WorkflowRun', 'DeviationLogEntry', 'SpecBaseline', 'UsageTotal', 'SpendCheckpoint', 'UsageReport']
+entities: ['Workflow', 'Step', 'OutcomeGate', 'WorkflowRun', 'DeviationLogEntry', 'SpecBaseline', 'UsageTotal', 'SpendCheckpoint', 'UsageReport', 'ReadinessCheck', 'ReadinessDecision']
 status: draft
 provisional: true
 owner: 'Framework maintainers'
-last_updated: '2026-09-25'
+last_updated: '2026-11-17'
 scope_mode: FRAMEWORK-LIBRARY
 large_idea_decomposition: null
 roadmap: null
@@ -35,8 +35,9 @@ roadmap_status: null
 | Lean route            | `.claude/skills/workflow-implement-spec/SKILL.md`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | Route for work whose behavior is already written in a canonical spec.               |
 | Scope anchor          | `.claude/skills/workflow-implement-spec/SKILL.md`, `.claude/skills/plan/SKILL.md`, `.claude/skills/plan/references/mode-review.md`                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Workflow records the baseline identity before plan; plan and one-pass review enforce scope. |
 | Usage reading         | `.claude/hooks/lib/session-usage.cjs`, `.claude/scripts/session-usage-report.cjs`, `.claude/hooks/token-budget-checkpoint.cjs`                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Usage totals, the usage report and the spend checkpoint.                            |
+| Readiness check       | `.claude/scripts/harness-readiness.cjs`, `.claude/skills/harness-setup/references/readiness-mode.md`, `.claude/skills/integration-test/SKILL.md` | The task-start readiness check, the setup it offers, and the regression-test route without a test project (BR-GWF-21, BR-GWF-22). |
 | Session report opener | `.claude/scripts/open-report.cjs`, `.claude/skills/watzup/SKILL.md`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Opens the session report safely (BR-GWF-18).                                        |
-| Test suites (planned) | `.claude/hooks/tests/suites/workflow.test.cjs`, `.claude/hooks/tests/suites/content-presence.test.cjs`, `.claude/hooks/tests/suites/scope-guard.test.cjs`, `.claude/hooks/tests/suites/session-usage.test.cjs`, `.claude/hooks/tests/suites/session-usage-report.test.cjs`, `.claude/hooks/tests/suites/token-budget-checkpoint.test.cjs`, `.claude/hooks/tests/suites/workflow-routing-switch.test.cjs`, `.claude/scripts/codex/tests/workflow-skills-catalog.test.mjs`, `.claude/scripts/tests/open-report.test.cjs`, `.claude/hooks/tests/suites/watzup-session-summary.test.cjs` | Executors for Section 8.                                                            |
+| Test suites (planned) | `.claude/hooks/tests/suites/workflow.test.cjs`, `.claude/hooks/tests/suites/content-presence.test.cjs`, `.claude/hooks/tests/suites/scope-guard.test.cjs`, `.claude/hooks/tests/suites/session-usage.test.cjs`, `.claude/hooks/tests/suites/session-usage-report.test.cjs`, `.claude/hooks/tests/suites/token-budget-checkpoint.test.cjs`, `.claude/hooks/tests/suites/workflow-routing-switch.test.cjs`, `.claude/scripts/codex/tests/workflow-skills-catalog.test.mjs`, `.claude/scripts/tests/open-report.test.cjs`, `.claude/hooks/tests/suites/watzup-session-summary.test.cjs`, `.claude/scripts/tests/harness-readiness.test.cjs` | Executors for Section 8.                                                            |
 
 ## Sections
 
@@ -53,7 +54,7 @@ roadmap_status: null
 
 ## 1. Overview
 
-Every workflow states the goal it must reach and the quality results a finished run must prove, and the assistant runs it intent first: the listed steps are recommendations it may skip, merge, simplify or reorder, with a logged reason for each change, as long as every step still follows the steps whose output it needs. Gate steps — tests green for changed behavior, a converged review, a synced spec when behavior changed, a root-cause trace for a bug, and the close — are never flexed, and a run closes only when evidence exists for every quality result. The capability also offers a lean route for work whose behavior is already written in a spec, keeps a plan anchored to the spec as it was supplied, and shows developers what a run costs through an advisory spend checkpoint and a usage report.
+Every workflow states the goal it must reach and the quality results a finished run must prove, and the assistant runs it intent first: the listed steps are recommendations it may skip, merge, simplify or reorder, with a logged reason for each change, as long as every step still follows the steps whose output it needs. Gate steps — tests green for changed behavior, a converged review, a synced spec when behavior changed, a root-cause trace for a bug, and the close — are never flexed, and a run closes only when evidence exists for every quality result. The capability also offers a lean route for work whose behavior is already written in a spec, keeps a plan anchored to the spec as it was supplied, and shows developers what a run costs through an advisory spend checkpoint and a usage report. Feature, bug-fix and spec-supplied runs first check that the project's own checks (formatter, linter, type check, tests) exist and have been shown to work, and offer once to set up what is missing, so a user who only describes what they want still builds on checks that catch mistakes.
 
 ---
 
@@ -93,6 +94,12 @@ Every workflow states the goal it must reach and the quality results a finished 
 | Spend Checkpoint   | An advisory note shown when the usage total crosses the next threshold                                                                                  | On by default, every 500,000 tokens; can be turned off                                        |
 | Usage Report       | A printed summary of a run's usage per agent, tool and skill, optionally compared with a second run                                                     | Developer-facing                                                                              |
 | Effective Steps    | The number of skill loads in a run, counted across the main session and every sub-agent                                                                 | The measure of how many steps a run really executed                                           |
+| Check              | One of the project's own automatic checks a change needs: a formatter, a linter, a type check or a test runner                                     | Each has a status: proven, configured, missing, declined or not applicable                     |
+| Proven             | A check that ran and passed, or failed only on recorded known problems, with the run written in the harness inventory or the verify baseline       | The durable proof the readiness check reads; a configuration alone is not proof                |
+| Harness Inventory  | The committed record of the project's checks, each with its status and evidence                                                                     | Kept by the setup skills; `declined` there is the team's own decision                          |
+| Readiness Check    | The local check at the start of a feature, bug-fix or spec-supplied run that reports which checks are missing or not yet proven                     | Reads only config, the inventory and manifests; under a second; writes nothing                 |
+| Team-Owned Repository | A repository with a code-owners file, a CI pipeline or the team's own shared lint or format config                                                          | Setup is proposed in writing, never applied                                                    |
+| Readiness Answer   | The user's recorded "not now", or the record that a proposal was made, with the gaps it covers                                                       | Kept on the user's machine for seven days; a new gap or expiry brings the offer back           |
 | Rule Owner         | The single place where the step-flex rules are written: the workflow starter's instructions, plus the intent and outcome gates in the workflow registry | Every other surface carries at most a one-line pointer                                        |
 
 ---
@@ -202,6 +209,22 @@ Every workflow states the goal it must reach and the quality results a finished 
 - **AC-GWF-25** — **Given** continuous integration, auto-open turned off, or a Linux machine without a display **When** the session report is ready **Then** nothing opens and the path is printed; **Given** the viewer cannot start **Then** the run continues and the path is printed
 - **AC-GWF-26** — **Given** a run whose session report step does not run **When** it closes **Then** the close step gives the recap, or a short handoff naming the artifacts, gate verdicts and next owner when nothing was built
 
+### US-GWF-09: Checks are ready before the first change
+
+**As a** developer who only describes what they want built or fixed
+**I want** a feature, bug-fix or spec-supplied run to check first that the project's formatter, linter, type check and test runner exist and have been shown to work, and to offer once to set up what is missing
+**So that** my first change is built on checks that catch mistakes, without my knowing what a quality harness is
+
+**Acceptance Criteria:**
+
+- **AC-GWF-32** — **Given** a feature, bug-fix or spec-supplied run starting in a project where a check is missing or has never been shown to pass **When** the run starts **Then** its first, optional step offers setup once, in plain words; a yes sets up each check (the user still chooses each tool) and records it as proven
+- **AC-GWF-33** — **Given** every check proven, declined or not applicable in the committed harness inventory **When** the run starts **Then** the step is skipped at triage after one local check that reads only the project config, the inventory and the manifests, runs no tool, uses no network and finishes in under a second; running it again gives the same answer and changes nothing
+- **AC-GWF-34** — **Given** a team-owned repository **When** checks are missing **Then** the setup is proposed in writing and nothing in the repository is written
+- **AC-GWF-35** — **Given** the user said "not now", or a proposal was made **When** later runs start **Then** no offer appears while that answer covers every gap, for seven days on that machine; a new gap or an expired answer brings the offer back
+- **AC-GWF-36** — **Given** any gap **When** it is reported **Then** it names the check, why the project is worse without it and the step that fixes it; whether the app can be started is reported for information and never causes an offer; a monorepo is read through its workspace packages up to a fixed bound, and a stack the check does not recognise is never reported ready
+- **AC-GWF-37** — **Given** a bug fix in a project with no test project **When** the regression-test step runs **Then** it offers to set up a test runner, or writes the regression test with a runner the project can already execute and records who owns creating a test project; it never stops at "create one yourself"
+- **AC-GWF-38** — **Given** a direct answer, a single skill, a custom-simple route or a follow-up inside a running session **When** work starts **Then** no readiness offer appears (a documented gap), and the first-prompt rule for projects without a config is unchanged
+
 ---
 
 ## 4. Business Rules
@@ -230,6 +253,8 @@ Every workflow states the goal it must reach and the quality results a finished 
 | BR-GWF-18 | The session report opens only a report file from the work area          | Safety       | [HARD]      |
 | BR-GWF-19 | A run keeps one task per phase; every step is a row in it                | Execution    | [HARD]      |
 | BR-GWF-20 | Splitting or merging workflows keeps every step and gate                 | Quality      | [HARD]      |
+| BR-GWF-21 | Readiness is checked at the start of three catalog workflows             | Quality      | [HARD]      |
+| BR-GWF-22 | The regression-test step never dead-ends without a test project          | Quality      | [HARD]      |
 
 ### BR-GWF-01: Gate steps are fixed [HARD]
 
@@ -380,6 +405,30 @@ IF an outcome gate is no phase's exit, or its phase and the phases before it hol
 
 **Statement:** When workflows merge into one, each former workflow becomes a mode whose steps, arguments and roles equal the workflow it replaced, and the former identifiers are removed rather than left as aliases. When a workflow splits, every gate it held stays with one of the parts: the new-product workflow keeps plan approval, the foundation review, a change review of the foundation that must converge (its review-converged gate, as before the split) and a final test run, and hands its first slice to the spec-supplied route in its first-slice mode. In that mode the near-end end-to-end step is a gate, seed data runs when the product persists state, and the plan step is skipped only while the approved plan the new-product workflow handed off still covers the slice and its spec. An optional step may replace a gate only through an approved trade-off recorded in the owning plan, as the independent task challenge was (optional when no second reviewer is available and the task is small and low-risk).
 
+### BR-GWF-21: Readiness is checked at the start of three catalog workflows [HARD]
+
+**Statement:** The feature, bug-fix and spec-supplied workflows open with an optional readiness step. Its run condition is the readiness check's answer: the step runs only when a formatter, linter, type check or test check is missing or not yet proven and no recorded answer still covers it. The check reads only the project config, the committed harness inventory and the manifests (workspace packages up to a fixed bound), never the whole tree; it runs no tool, uses no network, writes nothing and finishes in under a second, so a ready project pays for one check and nothing else. Two committed records are the durable proof: the harness inventory, where proven, declined and not applicable settle a check, and the verify baseline, where a check's declared command is proven while the baseline records that exact command. A command declared as not applicable settles its check too. A run that takes the step ends in exactly one of three outcomes: **proven** (set up after one plain-language yes, each tool still chosen by the user), **proposed** (a team-owned repository: the proposal is written in the conversation and nothing in the repository is written) or **declined** (the answer is recorded on the user's machine for seven days and covers only the gaps it named). Every gap says why it matters and how to fix it; whether the app can be started is reported for information only. The step never gates a prompt: a direct answer, a single skill, a custom-simple route and a follow-up inside a running session get no offer — a documented gap, revisited when routing measurements show most first tasks bypass the catalog workflows — and the first-prompt rule for projects without a config (BR-PCI-01) is unchanged. The first-slice mode of the spec-supplied workflow carries no readiness step, because the new-product workflow that hands it off has just set up the harness.
+
+| Readiness check reports | Team-owned | A recorded answer covers every gap and has not expired | Outcome |
+| --- | --- | --- | --- |
+| Ready | any | any | Step skipped: condition false |
+| Gaps | No | No | One offer → proven (yes) or declined (no) |
+| Gaps | Yes | No | Proposal, nothing written → proposed |
+| Gaps | any | Yes | Step skipped: condition false |
+
+```
+IF the readiness check reports gaps AND no unexpired answer covers every gap
+  → run the readiness step: team-owned → propose; otherwise ask once
+IF a gap appears that the recorded answer does not name, OR the answer has expired
+  → offer again
+IF the route starts no catalog workflow
+  → no readiness offer (documented gap)
+```
+
+### BR-GWF-22: The regression-test step never dead-ends without a test project [HARD]
+
+**Statement:** When the bug-fix workflow's regression-test step finds no test project, it offers the readiness setup for a test runner. After a no, or in a team-owned repository, it writes the regression test with a runner the project can already execute — the language's built-in runner when nothing else exists — beside the code it guards, and records that no test project exists and who owns creating one. The regression gate is never skipped and never reported done without a test that fails before the fix.
+
 ## 5. Domain Model
 
 ### Relationships (overview)
@@ -394,6 +443,8 @@ WorkflowRun    1──N WorkflowRun       (nested runs share the parent's identi
 WorkflowRun    1──0..1 SpecBaseline   (when a spec was supplied to the plan)
 WorkflowRun    1──1 UsageTotal        (main session plus sub-agents)
 WorkflowRun    1──N SpendCheckpoint   (at most one per threshold)
+WorkflowRun    1──0..1 ReadinessCheck (feature, bug-fix and spec-supplied runs)
+ReadinessCheck N──0..1 ReadinessDecision (the recorded answer that covers its gaps)
 ```
 
 ### Entity: Workflow
@@ -465,6 +516,34 @@ WorkflowRun    1──N SpendCheckpoint   (at most one per threshold)
 | Last noted      | number | Yes      | Only increases          | The highest threshold already noted |
 | Completed steps | number | Yes      | From task statuses only | Progress shown in the note          |
 
+### Entity: ReadinessCheck
+
+| Property   | Type             | Required | Constraints                                         | Business Meaning                                           |
+| ---------- | ---------------- | -------- | --------------------------------------------------- | ---------------------------------------------------------- |
+| Verdict    | ReadinessVerdict | Yes      | One value                                           | Whether setup is offered                                   |
+| Checks     | list             | Yes      | Formatter, linter, type check, tests                | Each with its status and evidence                          |
+| Gaps       | list             | Yes      | One per check not proven, declined or not applicable | The check, its status, why it matters and how to fix it    |
+| Team-owned | yes-no           | Yes      | From code owners, CI or a shared config             | Propose instead of setting up                              |
+| Runtime    | text             | Yes      | Configured, derivable, none or not applicable       | Whether the app can be started; informational only         |
+
+### Entity: ReadinessDecision
+
+| Property     | Type | Required | Constraints                         | Business Meaning                                  |
+| ------------ | ---- | -------- | ----------------------------------- | ------------------------------------------------- |
+| Outcome      | text | Yes      | Declined or proposed                | The answer to the offer                           |
+| Gaps covered | list | Yes      | The gaps open when it was recorded  | A gap outside this list brings the offer back     |
+| Expires      | date | Yes      | Seven days after it was recorded    | After this the offer comes back                   |
+| Reason       | text | No       | One line, at most 300 characters    | The user's words, for whoever reopens the offer  |
+
+### Enum: ReadinessVerdict
+
+| Value    | Meaning                                                                      |
+| -------- | ---------------------------------------------------------------------------- |
+| ready    | Every check is proven, declined in the inventory or not applicable           |
+| gaps     | A check is missing or not yet proven and no recorded answer covers it        |
+| declined | A recorded "not now" still covers every gap                                  |
+| proposed | A proposal to a team-owned repository was recorded and still covers every gap |
+
 ### Enum: StepRole
 
 | Value    | Meaning                                                                |
@@ -504,6 +583,7 @@ WorkflowRun    1──N SpendCheckpoint   (at most one per threshold)
 | Close refused         | Evidence is missing for an outcome gate             | The assistant is told which gates lack evidence |
 | Scope question raised | A plan finds a requirement the baseline lacks       | The user is asked to approve or decline it      |
 | Threshold crossed     | The usage total passes the next threshold           | One advisory note appears                       |
+| Readiness offered     | The readiness check reports a gap no answer covers  | The user is asked once, or the team gets a proposal |
 
 ---
 
@@ -547,6 +627,17 @@ WorkflowRun    1──N SpendCheckpoint   (at most one per threshold)
 | 2    | System    | Total crosses the next threshold | One advisory note with counts only (BR-GWF-06, BR-GWF-17)              | 3    |
 | 3    | Developer | Asks for the usage report        | Totals per agent, tools, skill loads and the deviation log (BR-GWF-07) | end  |
 
+### Flow: Readiness at task start
+
+| Step | Actor     | Action                                               | System Response                                                 | Next     |
+| ---- | --------- | ---------------------------------------------------- | --------------------------------------------------------------- | -------- |
+| 1    | Assistant | Starts a feature, bug-fix or spec-supplied run       | The readiness check runs at triage (BR-GWF-21)                  | 2 or 5   |
+| 2    | System    | Reports gaps, each with why and how to fix           | Team-owned repository → 3; otherwise → 4                        | 3 or 4   |
+| 3    | Assistant | Writes the proposal in the conversation; records it | Nothing in the repository is written; outcome proposed          | 6        |
+| 4    | Assistant | Asks once; the user answers                          | Yes → set up and recorded as proven; no → answer recorded       | 6        |
+| 5    | System    | Reports ready, or an answer that still covers the gaps | The step is skipped with its declared reason                  | 6        |
+| 6    | Assistant | Continues the task                                   | —                                                               | end      |
+
 ---
 
 ## 7. Permissions & Roles
@@ -560,6 +651,7 @@ WorkflowRun    1──N SpendCheckpoint   (at most one per threshold)
 | Developer            | yes  |   no   |  no  |   no   | Reads the deviation log, the checkpoint notes and the usage report |
 | AI assistant         | yes  |  yes   |  no  |   no   | Adds deviation log lines; flexes only core and optional steps      |
 | Product owner        | yes  |   no   |  no  |   no   | Answers proposed additions and escalation questions                |
+| Code owners (team)   | yes  |   no   | yes  |   no   | Adopt or reject a readiness proposal; record a check as declined   |
 
 ---
 
@@ -567,7 +659,7 @@ WorkflowRun    1──N SpendCheckpoint   (at most one per threshold)
 
 > Business-readable acceptance scenarios. The "user" of this capability is a developer, a framework maintainer or the AI assistant; the observable surface is the text the assistant receives, the run's deviation log, registry validation messages and command output (no screen exists, so the UI dimension is stated as not applicable).
 
-> Numbering note: the IDs were pre-allocated by the release plan so implementation phases could reference them in parallel; categories below group them by behavior rather than by decade. TC-GWF-057…062 were added for intent-first flexible execution, TC-GWF-063…067 for the session report opener (BR-GWF-18), TC-GWF-068 for the order of a clean-up rewrite (BR-GWF-14), and TC-GWF-071…073 for workflow-step mode, the triage batch close and the optional session report.
+> Numbering note: the IDs were pre-allocated by the release plan so implementation phases could reference them in parallel; categories below group them by behavior rather than by decade. TC-GWF-057…062 were added for intent-first flexible execution, TC-GWF-063…067 for the session report opener (BR-GWF-18), TC-GWF-068 for the order of a clean-up rewrite (BR-GWF-14), TC-GWF-071…073 for workflow-step mode, the triage batch close and the optional session report, and TC-GWF-078…088 for readiness at task start (BR-GWF-21, BR-GWF-22).
 
 > Size note: this spec holds more than forty cases. It stays one document because every case guards one capability — how a workflow run executes and what it costs — and the pre-allocated IDs are referenced by the implementation plan; a split into a continuation part is a follow-up for the spec owner.
 
@@ -577,10 +669,10 @@ WorkflowRun    1──N SpendCheckpoint   (at most one per threshold)
 
 | Priority  | Count  | Automated | Manual |
 | --------- | ------ | --------- | ------ |
-| P0        | 18     | 16        | 2      |
-| P1        | 45     | 44        | 1      |
+| P0        | 21     | 19        | 2      |
+| P1        | 57     | 55        | 2      |
 | P2        | 8      | 8         | 0      |
-| **Total** | **71** | **68**    | **3**  |
+| **Total** | **86** | **82**    | **4**  |
 
 | Category                  | TCs                                                                                                                                                        |
 | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -593,6 +685,7 @@ WorkflowRun    1──N SpendCheckpoint   (at most one per threshold)
 | Usage Report Tests        | TC-GWF-031, TC-GWF-032, TC-GWF-033, TC-GWF-054                                                                                                             |
 | Spend Checkpoint Tests    | TC-GWF-034, TC-GWF-035, TC-GWF-036, TC-GWF-037, TC-GWF-038, TC-GWF-039, TC-GWF-040, TC-GWF-050, TC-GWF-053, TC-GWF-055                                     |
 | Session Report Tests      | TC-GWF-063, TC-GWF-064, TC-GWF-065, TC-GWF-066, TC-GWF-067, TC-GWF-073                                                                                     |
+| Harness Readiness Tests   | TC-GWF-078, TC-GWF-079, TC-GWF-080, TC-GWF-081, TC-GWF-082, TC-GWF-083, TC-GWF-084, TC-GWF-085, TC-GWF-086, TC-GWF-087, TC-GWF-088 |
 
 ### Planned Executors
 
@@ -600,7 +693,8 @@ WorkflowRun    1──N SpendCheckpoint   (at most one per threshold)
 | -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `.claude/hooks/tests/suites/workflow.test.cjs`                 | TC-GWF-001, TC-GWF-002, TC-GWF-003, TC-GWF-004, TC-GWF-005, TC-GWF-011, TC-GWF-012, TC-GWF-013, TC-GWF-014, TC-GWF-015, TC-GWF-017, TC-GWF-018, TC-GWF-022, TC-GWF-043, TC-GWF-044, TC-GWF-052, TC-GWF-057, TC-GWF-061, TC-GWF-062, TC-GWF-068, TC-GWF-073, TC-GWF-074, TC-GWF-075, TC-GWF-076, TC-GWF-077 |
 | `.claude/hooks/tests/suites/content-presence.test.cjs`         | TC-GWF-006, TC-GWF-007, TC-GWF-010, TC-GWF-019, TC-GWF-020, TC-GWF-041, TC-GWF-042, TC-GWF-044, TC-GWF-058, TC-GWF-059, TC-GWF-060, TC-GWF-071, TC-GWF-072                                                                         |
-| Manual-QC (dry run or live replay)                             | TC-GWF-008, TC-GWF-009, TC-GWF-041, TC-GWF-051, TC-GWF-058                                                                                                                                                                         |
+| Manual-QC (dry run or live replay)                             | TC-GWF-008, TC-GWF-009, TC-GWF-041, TC-GWF-051, TC-GWF-058, TC-GWF-088                                                                                                                                                             |
+| `.claude/scripts/tests/harness-readiness.test.cjs`             | TC-GWF-078, TC-GWF-079, TC-GWF-080, TC-GWF-081, TC-GWF-082, TC-GWF-083, TC-GWF-084, TC-GWF-085, TC-GWF-086, TC-GWF-087 |
 | `.claude/hooks/tests/suites/review-commit-gate.test.cjs`       | TC-GWF-042                                                                                                                                                                                                                         |
 | `.claude/scripts/codex/tests/workflow-skills-catalog.test.mjs` | TC-GWF-016                                                                                                                                                                                                                         |
 | `.claude/hooks/tests/suites/workflow-routing-switch.test.cjs`  | TC-GWF-021                                                                                                                                                                                                                         |
@@ -635,6 +729,8 @@ WorkflowRun    1──N SpendCheckpoint   (at most one per threshold)
 | BR-GWF-18 | TC-GWF-063, TC-GWF-064, TC-GWF-065, TC-GWF-066, TC-GWF-067, TC-GWF-073                         |
 | BR-GWF-19 | TC-GWF-074                                                                                     |
 | BR-GWF-20 | TC-GWF-075, TC-GWF-076, TC-GWF-077                                                             |
+| BR-GWF-21 | TC-GWF-078, TC-GWF-079, TC-GWF-080, TC-GWF-081, TC-GWF-082, TC-GWF-083, TC-GWF-084, TC-GWF-085, TC-GWF-087, TC-GWF-088 |
+| BR-GWF-22 | TC-GWF-086                                                                                     |
 
 ### Step Role and Gate Tests
 
@@ -2504,13 +2600,653 @@ boundaryCounterCase: 'the readiness check made optional → detected'
 
 ---
 
+### Harness Readiness Tests
+
+> Readiness at task start and the regression-test route without a test project (US-GWF-09).
+
+#### TC-GWF-078: The three catalog workflows open with the optional readiness step, and no other workflow carries it [P1]
+
+**Objective:** Prove that the feature, bug-fix and spec-supplied workflows start with an optional readiness step decided by the readiness check, in their first phase, and that every other workflow and mode carries none.
+
+**Business Intent / Invariant Guarded:** A first task in an unchecked project meets the readiness offer on the catalog routes, and only there (BR-GWF-21).
+
+**Traces:** AC-GWF-32 / AC-GWF-38 / BR-GWF-02 / BR-GWF-21
+
+**Preconditions:**
+
+- The framework registry and the workflow resolver
+
+**Real-World Reachability:** Every feature, bug-fix and spec-supplied run.
+
+**Demo Flow:** Resolve every workflow mode and read each one's first step.
+
+```gherkin
+Given every workflow mode in the registry
+When each mode is resolved
+Then the feature, bug-fix and spec-supplied default modes start with the optional readiness step in their first phase
+And its run condition is the readiness check reporting an offer, and its skip reason names a ready result or a covering answer
+And no other workflow or mode carries the readiness step
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation |
+| ----------------------- | ----------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the run's deviation log, registry validation messages and command output |
+| **System behavior**     | Validates |
+| **Business data state** | No change |
+| **Data shown on UI**    | The workflow and mode whose first step differs |
+
+**Acceptance Criteria:**
+
+- ✅ Readiness first, optional, on exactly three workflows
+- ❌ Readiness made a gate
+- ❌ Readiness added to another route
+
+**Test Data:**
+
+```yaml
+inputDomain: 'every workflow mode in the registry'
+invariant: 'readiness is the optional first step of exactly three default modes'
+boundaryCounterCase: 'the spec-supplied first-slice mode → no readiness step'
+```
+
+**Edge Cases:**
+
+- The first-slice mode inherits the harness its foundation workflow set up
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/workflows/harness-readiness-step]`
+> **Related Behaviors:** `rule/workflows/harness-readiness-step`
+> **CoveredBy:** `.claude/scripts/tests/harness-readiness.test.cjs::TC-GWF-078` · **Status:** Implemented — evidence: `.claude/scripts/tests/harness-readiness.test.cjs` (written with the change; passed at the change's targeted verify)
+
+---
+
+#### TC-GWF-079: A project whose checks are proven in the committed inventory gets no offer [P0]
+
+**Objective:** Prove that checks recorded as proven, declined or not applicable in the harness inventory settle the readiness check, also when the inventory lives in a relocated reference folder; that a declared command whose exact form the verify baseline records is proven while a changed command is not; and that a re-run changes nothing.
+
+**Business Intent / Invariant Guarded:** A ready project pays only for one check and is never asked again (BR-GWF-21).
+
+**Traces:** AC-GWF-33 / BR-GWF-21
+
+**Preconditions:**
+
+- A project whose harness inventory records each check as proven or not applicable
+
+**Real-World Reachability:** Every run in a project after its first setup.
+
+**Demo Flow:** Run the readiness check twice.
+
+```gherkin
+Given a project whose inventory proves its formatter, linter and tests and records the type check as not applicable
+When the readiness check runs
+Then the verdict is ready and nothing is offered
+And each check cites the inventory as its proof
+And a second run gives the same verdict and writes nothing
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation |
+| ----------------------- | ----------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the run's deviation log, registry validation messages and command output |
+| **System behavior**     | Reports ready |
+| **Business data state** | No change |
+| **Data shown on UI**    | The verdict and each check with its inventory evidence |
+
+**Acceptance Criteria:**
+
+- ✅ Ready, no offer, nothing written
+- ❌ An offer for a proven project
+
+**Test Data:**
+
+```yaml
+inputDomain: 'an inventory in the default and in a relocated reference folder'
+invariant: 'proven, declined and not applicable settle a check'
+boundaryCounterCase: 'a row outside the inventory summary is never read'
+```
+
+**Edge Cases:**
+
+- A relocated reference folder is honoured
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: operation/scripts/harness-readiness]`
+> **Related Behaviors:** `operation/scripts/harness-readiness`
+> **CoveredBy:** `.claude/scripts/tests/harness-readiness.test.cjs::TC-GWF-079` · **Status:** Implemented — evidence: `.claude/scripts/tests/harness-readiness.test.cjs` (written with the change; passed at the change's targeted verify)
+
+---
+
+#### TC-GWF-080: Missing or unproven checks are found for two common stacks and an empty repository [P1]
+
+**Objective:** Prove that the readiness check reads each stack's manifests and tool configs, tells configured-but-unproven apart from missing, never counts a placeholder test script or a look-alike dependency, and never reports an unrecognised stack as ready.
+
+**Business Intent / Invariant Guarded:** The offer appears exactly when a check is missing or unproven (BR-GWF-21).
+
+**Traces:** AC-GWF-32 / AC-GWF-36 / BR-GWF-21
+
+**Preconditions:**
+
+- Fixture projects: one stack with every check configured, the same stack with nothing, a second stack with some checks, a project naming its tools only in a dependency list, and an empty repository
+
+**Real-World Reachability:** A first task in a project of any common stack.
+
+**Demo Flow:** Run the readiness check in each fixture.
+
+```gherkin
+Given a configured project, a bare project of the same stack, a project of a second stack and an empty repository
+When the readiness check runs in each
+Then configured checks are reported configured with their evidence and absent ones missing
+And the empty repository reports every check missing with a note that the stack must be researched first
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation |
+| ----------------------- | ----------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the run's deviation log, registry validation messages and command output |
+| **System behavior**     | Reports gaps per stack |
+| **Business data state** | No change |
+| **Data shown on UI**    | Each check with its status and evidence |
+
+**Acceptance Criteria:**
+
+- ✅ Statuses as found
+- ❌ A placeholder test script counted
+- ❌ An empty repository reported ready
+
+**Test Data:**
+
+```yaml
+inputDomain: 'two stacks, a dependency-list-only project and an empty repository'
+invariant: 'unknown is a gap, never a pass'
+boundaryCounterCase: 'the package manager default placeholder test script → tests missing'
+```
+
+**Edge Cases:**
+
+- A tool named only in a dependency list counts by its exact name; a look-alike package name does not
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: operation/scripts/harness-readiness]`
+> **Related Behaviors:** `operation/scripts/harness-readiness`
+> **CoveredBy:** `.claude/scripts/tests/harness-readiness.test.cjs::TC-GWF-080` · **Status:** Implemented — evidence: `.claude/scripts/tests/harness-readiness.test.cjs` (written with the change; passed at the change's targeted verify)
+
+---
+
+#### TC-GWF-081: A monorepo is read through its workspace packages, bounded, with a placement rule [P1]
+
+**Objective:** Prove that workspace packages count as evidence, that only folders with a manifest are packages, that an unrecognised repository shape gets a propose-first placement, and that the read stops at a fixed bound.
+
+**Business Intent / Invariant Guarded:** A monorepo never gets a root config that shadows its packages, and the check never grows with the repository (BR-GWF-21).
+
+**Traces:** AC-GWF-36 / BR-GWF-21
+
+**Preconditions:**
+
+- Workspace fixtures of two kinds, one with a prefix pattern and a pattern it cannot expand, a build-graph repository, and one with more packages than the bound
+
+**Real-World Reachability:** A first task in a monorepo.
+
+**Demo Flow:** Run the readiness check in each fixture.
+
+```gherkin
+Given a monorepo whose package keeps its own lint config
+When the readiness check runs
+Then the package config counts and its kept placement is reported
+And a workspace pattern the check cannot expand is named instead of silently dropped
+And a build-graph repository gets a placement that is proposed, not applied
+And a monorepo with more packages than the bound is read up to the bound and says so
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation |
+| ----------------------- | ----------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the run's deviation log, registry validation messages and command output |
+| **System behavior**     | Reports workspace shape, package count and placement |
+| **Business data state** | No change |
+| **Data shown on UI**    | Workspace shape, package count, placement and evidence paths |
+
+**Acceptance Criteria:**
+
+- ✅ Package evidence and placement
+- ❌ More packages read than the bound
+
+**Test Data:**
+
+```yaml
+inputDomain: 'two workspace kinds, a build-graph tool, an oversized workspace'
+invariant: 'reads at most the bound of packages'
+boundaryCounterCase: 'bound plus five packages → bound read, truncated'
+```
+
+**Edge Cases:**
+
+- A folder without a manifest inside the workspace pattern is not a package
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: operation/scripts/harness-readiness]`
+> **Related Behaviors:** `operation/scripts/harness-readiness`
+> **CoveredBy:** `.claude/scripts/tests/harness-readiness.test.cjs::TC-GWF-081` · **Status:** Implemented — evidence: `.claude/scripts/tests/harness-readiness.test.cjs` (written with the change; passed at the change's targeted verify)
+
+---
+
+#### TC-GWF-082: A team-owned repository gets a proposal and nothing is written [P0]
+
+**Objective:** Prove that a code-owners file, a CI pipeline or the team's own shared lint config marks the repository team-owned while public presets and tool packages do not, that every fix then proposes instead of applying, that the check leaves the tree byte-for-byte unchanged, and that recording the proposal adds only the local answer file.
+
+**Business Intent / Invariant Guarded:** One person's yes never changes checks the team owns (BR-GWF-21).
+
+**Traces:** AC-GWF-34 / BR-GWF-21
+
+**Preconditions:**
+
+- A fixture with a code-owners file, a CI pipeline and a shared lint config package
+
+**Real-World Reachability:** A first task in a team repository.
+
+**Demo Flow:** Run the readiness check, then record the proposal.
+
+```gherkin
+Given a team-owned repository with no proven checks
+When the readiness check runs
+Then the action is to propose, each ownership signal is named and each fix says nothing is written
+And the repository is unchanged
+And recording the proposal adds only the local answer file
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation |
+| ----------------------- | ----------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the run's deviation log, registry validation messages and command output |
+| **System behavior**     | Proposes; writes nothing in the repository |
+| **Business data state** | Only the local, untracked answer file is added when the proposal is recorded |
+| **Data shown on UI**    | Ownership signals and the proposal summary |
+
+**Acceptance Criteria:**
+
+- ✅ Proposal, nothing written
+- ❌ Any project file changed
+
+**Test Data:**
+
+```yaml
+inputDomain: 'code owners, CI and a shared config package'
+invariant: 'a team-owned repository is never written'
+boundaryCounterCase: 'a solo project using public lint presets → set up, not propose'
+```
+
+**Edge Cases:**
+
+- Any one signal is enough to mark the repository team-owned
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: operation/scripts/harness-readiness]`
+> **Related Behaviors:** `operation/scripts/harness-readiness`
+> **CoveredBy:** `.claude/scripts/tests/harness-readiness.test.cjs::TC-GWF-082` · **Status:** Implemented — evidence: `.claude/scripts/tests/harness-readiness.test.cjs` (written with the change; passed at the change's targeted verify)
+
+---
+
+#### TC-GWF-083: A recorded "not now" stops the offer only while it covers the gaps and has not expired [P1]
+
+**Objective:** Prove that a recorded answer covers exactly the gaps open when it was recorded, for seven days; that a new gap or expiry brings the offer back with the reason; that a ready project stores no answer; and that a corrupt answer is ignored.
+
+**Business Intent / Invariant Guarded:** A no is respected without silencing new problems forever (BR-GWF-21).
+
+**Traces:** AC-GWF-35 / BR-GWF-21
+
+**Preconditions:**
+
+- A project with two open gaps
+
+**Real-World Reachability:** A user who answers "not now".
+
+**Demo Flow:** Record a no, then widen the gaps, then expire the answer.
+
+```gherkin
+Given a project with two open gaps and a recorded "not now"
+When the next run starts
+Then no offer appears and the covering answer is named
+When a third gap appears or the answer expires
+Then the offer comes back with the reason
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation |
+| ----------------------- | ----------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the run's deviation log, registry validation messages and command output |
+| **System behavior**     | Honours, then releases, the recorded answer |
+| **Business data state** | One local answer file with outcome, gaps, expiry and a one-line reason |
+| **Data shown on UI**    | The verdict, the covering answer and why it no longer covers |
+
+**Acceptance Criteria:**
+
+- ✅ Covered gaps silent for seven days
+- ❌ A new gap silenced by an old answer
+
+**Test Data:**
+
+```yaml
+inputDomain: 'answers covering, not covering and expired'
+invariant: 'an answer covers only the gaps it named, until it expires'
+boundaryCounterCase: 'expiry one second ago → offer again'
+```
+
+**Edge Cases:**
+
+- A multi-line reason is stored as one line
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: operation/scripts/harness-readiness]`
+> **Related Behaviors:** `operation/scripts/harness-readiness`
+> **CoveredBy:** `.claude/scripts/tests/harness-readiness.test.cjs::TC-GWF-083` · **Status:** Implemented — evidence: `.claude/scripts/tests/harness-readiness.test.cjs` (written with the change; passed at the change's targeted verify)
+
+---
+
+#### TC-GWF-084: Every gap says why it matters and how to fix it; the runtime row informs and never offers [P1]
+
+**Objective:** Prove that each gap names its check, the harm of its absence and the step that fixes it, that an unproven check says how it becomes proven, that the runtime row takes each of its four values, and that two projects differing only in the runtime row get the same verdict.
+
+**Business Intent / Invariant Guarded:** A novice learns why a check matters, and runtime readiness never adds an offer (BR-GWF-21).
+
+**Traces:** AC-GWF-36 / BR-GWF-21
+
+**Preconditions:**
+
+- Fixtures for each runtime value and for missing and unproven checks
+
+**Real-World Reachability:** Every readiness offer.
+
+**Demo Flow:** Read the gaps and the runtime row of each fixture.
+
+```gherkin
+Given a project with every check missing
+When the readiness check reports
+Then each gap says why it matters and names the fixing step
+And the runtime row is configured, derivable, none or not applicable by its evidence
+And the runtime row never changes the verdict
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation |
+| ----------------------- | ----------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the run's deviation log, registry validation messages and command output |
+| **System behavior**     | Explains each gap |
+| **Business data state** | No change |
+| **Data shown on UI**    | Why and fix per gap; the runtime row |
+
+**Acceptance Criteria:**
+
+- ✅ Why and fix on every gap
+- ❌ A runtime change alters the offer
+
+**Test Data:**
+
+```yaml
+inputDomain: 'missing, unproven and four runtime cases'
+invariant: 'runtime is informational'
+boundaryCounterCase: 'same project with and without a start script → same verdict'
+```
+
+**Edge Cases:**
+
+- A library with no entry point is not applicable, not none
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: operation/scripts/harness-readiness]`
+> **Related Behaviors:** `operation/scripts/harness-readiness`
+> **CoveredBy:** `.claude/scripts/tests/harness-readiness.test.cjs::TC-GWF-084` · **Status:** Implemented — evidence: `.claude/scripts/tests/harness-readiness.test.cjs` (written with the change; passed at the change's targeted verify)
+
+---
+
+#### TC-GWF-085: The check runs on its own, in under a second, with clear usage errors on every supported operating system [P1]
+
+**Objective:** Prove that the readiness check runs as a plain command and as machine-readable output, reports its own time under one second, rejects unknown or misplaced options and a missing folder with the reason, and ignores an invalid project config instead of trusting it.
+
+**Business Intent / Invariant Guarded:** Any route or person can run the check directly and get the same answer on every supported operating system (BR-GWF-21).
+
+**Traces:** AC-GWF-33 / BR-GWF-21
+
+**Preconditions:**
+
+- A fixture project whose folder name holds a space
+
+**Real-World Reachability:** A developer or agent asking whether the project is ready.
+
+**Demo Flow:** Run the check plainly, as machine-readable output and with bad options.
+
+```gherkin
+Given a fixture project
+When the check runs plainly and as machine-readable output
+Then both name each check and the verdict, and the run takes under one second
+When it runs with an unknown option, a bad answer or a missing folder
+Then it exits with a usage error that states the reason
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation |
+| ----------------------- | ----------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the run's deviation log, registry validation messages and command output |
+| **System behavior**     | Runs directly; reports usage errors |
+| **Business data state** | No change |
+| **Data shown on UI**    | The report, the elapsed time and the usage errors |
+
+**Acceptance Criteria:**
+
+- ✅ Same answer both ways, under a second
+- ❌ A usage error without its reason
+
+**Test Data:**
+
+```yaml
+inputDomain: 'plain, machine-readable and invalid invocations'
+invariant: 'under one second, no tool run, no network'
+boundaryCounterCase: 'an invalid project config → reported and ignored'
+```
+
+**Edge Cases:**
+
+- Evidence paths use forward slashes on every OS
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: operation/scripts/harness-readiness]`
+> **Related Behaviors:** `operation/scripts/harness-readiness`
+> **CoveredBy:** `.claude/scripts/tests/harness-readiness.test.cjs::TC-GWF-085` · **Status:** Implemented — evidence: `.claude/scripts/tests/harness-readiness.test.cjs` (written with the change; passed at the change's targeted verify)
+
+---
+
+#### TC-GWF-086: A bug fix with no test project gets a set-up offer or a runnable regression test, never a dead end [P0]
+
+**Objective:** Prove that the regression-test step no longer stops at "create one yourself": it offers the readiness setup for a test runner, or writes the regression test with a runner the project can already execute and records the owner, and never skips the gate.
+
+**Business Intent / Invariant Guarded:** Every bug fix gets a regression test that fails before the fix (BR-GWF-22).
+
+**Traces:** AC-GWF-37 / BR-GWF-22
+
+**Preconditions:**
+
+- The regression-test step and the readiness setup instructions
+
+**Real-World Reachability:** A bug fix in a project without a test project.
+
+**Demo Flow:** Read the no-test-project route of the regression-test step.
+
+```gherkin
+Given a bug fix in a project with no test project
+When the regression-test step runs
+Then it offers to set up a test runner, or writes the test with a runner the project can already execute
+And it never stops at "create one yourself" and never reports the gate done without a failing-first test
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation |
+| ----------------------- | ----------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the run's deviation log, registry validation messages and command output |
+| **System behavior**     | Routes to setup or a runnable test |
+| **Business data state** | No change |
+| **Data shown on UI**    | The route the step takes |
+
+**Acceptance Criteria:**
+
+- ✅ Setup offer or runnable test
+- ❌ The old stop returns
+
+**Test Data:**
+
+```yaml
+inputDomain: 'the regression-test step instructions'
+invariant: 'the regression gate stays satisfiable'
+boundaryCounterCase: 'the old create-one-yourself sentence → detected'
+```
+
+**Edge Cases:**
+
+- A team-owned repository gets the runnable test, not a setup
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/skills/integration-test-no-project]`
+> **Related Behaviors:** `rule/skills/integration-test-no-project`
+> **CoveredBy:** `.claude/scripts/tests/harness-readiness.test.cjs::TC-GWF-086` · **Status:** Implemented — evidence: `.claude/scripts/tests/harness-readiness.test.cjs` (written with the change; passed at the change's targeted verify)
+
+---
+
+#### TC-GWF-087: Readiness never gates a prompt; the first-prompt rule for projects without a config is unchanged [P1]
+
+**Objective:** Prove that no prompt hook and no hook registration runs the readiness check, so readiness happens only as a workflow step or on request.
+
+**Business Intent / Invariant Guarded:** The first-prompt rule for projects without a config (BR-PCI-01) keeps its one notice, then quiet (BR-GWF-21).
+
+**Traces:** AC-GWF-38 / BR-GWF-21
+
+**Preconditions:**
+
+- The prompt hook and the hook registrations
+
+**Real-World Reachability:** Every prompt in a project without a config.
+
+**Demo Flow:** Read the prompt hook and the registrations.
+
+```gherkin
+Given the prompt hook and the hook registrations
+When they are read
+Then neither runs or names the readiness check
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation |
+| ----------------------- | ----------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the run's deviation log, registry validation messages and command output |
+| **System behavior**     | Validates |
+| **Business data state** | No change |
+| **Data shown on UI**    | Any prompt-level readiness gate found |
+
+**Acceptance Criteria:**
+
+- ✅ No prompt-level readiness gate
+- ❌ A prompt hook that offers setup
+
+**Test Data:**
+
+```yaml
+inputDomain: 'the prompt hook and hook registrations'
+invariant: 'readiness is a workflow step, never a prompt gate'
+boundaryCounterCase: 'a readiness call added to the prompt hook → detected'
+```
+
+**Edge Cases:**
+
+- The no-config rule keeps its own tests unchanged
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/hooks/no-prompt-readiness-gate]`
+> **Related Behaviors:** `rule/hooks/no-prompt-readiness-gate`
+> **CoveredBy:** `.claude/scripts/tests/harness-readiness.test.cjs::TC-GWF-087` · **Status:** Implemented — evidence: `.claude/scripts/tests/harness-readiness.test.cjs` (written with the change; passed at the change's targeted verify)
+
+---
+
+#### TC-GWF-088: Live: a novice's first feature or bug fix ends proven, proposed or declined [P1]
+
+**Objective:** Prove end to end, in a throwaway project with no checks, that a novice prompt routed to the feature or bug-fix workflow ends in one of the three readiness outcomes and then continues the task.
+
+**Business Intent / Invariant Guarded:** The goal: a user who only describes what they want still ends up with proven checks, a proposal or a recorded no (BR-GWF-21).
+
+**Traces:** AC-GWF-32 / AC-GWF-34 / AC-GWF-35 / BR-GWF-21
+
+**Preconditions:**
+
+- A throwaway project with no checks; a second one with a code-owners file
+
+**Real-World Reachability:** A novice's first prompt, such as "add a login page" or "the button is broken".
+
+**Demo Flow:** Run the novice prompt per route and observe the transcript.
+
+```gherkin
+Given a throwaway project with no checks
+When a novice prompt starts the feature or bug-fix workflow
+Then the readiness offer appears once and the run ends proven or declined, then continues
+And in the team-owned project it ends proposed with nothing written
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation |
+| ----------------------- | ----------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the run's deviation log, registry validation messages and command output |
+| **System behavior**     | Live journey |
+| **Business data state** | The outcome recorded per run |
+| **Data shown on UI**    | The transcript summary per route |
+
+**Acceptance Criteria:**
+
+- ✅ One of three outcomes per run
+- ❌ A run that builds silently on an unchecked project
+
+**Test Data:**
+
+```yaml
+inputDomain: 'novice prompts on the feature and bug-fix routes'
+invariant: 'every run ends proven, proposed or declined'
+boundaryCounterCase: 'a team-owned project → proposed'
+```
+
+**Edge Cases:**
+
+- A direct or custom-simple route gets no offer (documented gap)
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: operation/journey/novice-readiness]`
+> **Related Behaviors:** `operation/journey/novice-readiness`
+> **CoveredBy:** Manual-QC (live replay) · **Status:** Planned — the live journey runs with the plan's final verify; the deterministic outcomes are proven by TC-GWF-079, TC-GWF-082 and TC-GWF-083
+
+---
+
 ### Lean Route Tests
 
 > Route shape, escalation and routing predicate (US-GWF-03).
 
-#### TC-GWF-017: The lean route has eleven steps plus close and every gate [P1]
+#### TC-GWF-017: The lean route has twelve steps plus close and every gate [P1]
 
-**Objective:** Prove the lean route's shape: investigate, gap review, plan, build, optional seed data, integration tests and spec sync, review, the integration check, the optional near-end end-to-end step, tests, close.
+**Objective:** Prove the lean route's shape: the optional readiness check, investigate, gap review, plan, build, optional seed data, integration tests and spec sync, review, the integration check, the optional near-end end-to-end step, tests, close.
 
 **Business Intent / Invariant Guarded:** The lean route is shorter only where the spec already exists; it keeps every gate (BR-GWF-01, BR-GWF-09).
 
@@ -2527,7 +3263,7 @@ boundaryCounterCase: 'the readiness check made optional → detected'
 ```gherkin
 Given the lean route
 When the registry is validated
-Then it has eleven steps plus close in the stated order
+Then it has twelve steps plus close in the stated order
 And it declares "tests pass", "review converged" and "spec synced"
 And its test check, review, test and close steps are gates
 ```

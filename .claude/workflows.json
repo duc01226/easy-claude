@@ -484,6 +484,16 @@
       },
       "sequence": [
         {
+          "id": "bugfix-harness-readiness",
+          "skill": "harness-setup",
+          "args": "--mode=readiness",
+          "role": "optional",
+          "applicability": {
+            "when": "Run `node .claude/scripts/harness-readiness.cjs --json` at triage: the step runs when it reports offer true, that is a formatter, linter, type check or test check is missing or not yet proven and no recorded decline or team proposal still covers it. In a team-owned repository the step proposes the setup in writing and changes nothing.",
+            "skipReason": "The readiness check reports ready (every check proven, declined in the harness inventory or not applicable) or a recorded decline or team proposal still covers every gap; the check reads only the config, the harness inventory and manifests, so the skip costs one sub-second call and no skill load."
+          }
+        },
+        {
           "id": "bugfix-investigate",
           "skill": "investigate",
           "args": "--mode=debug",
@@ -608,6 +618,7 @@
         {
           "id": "discover",
           "steps": [
+            "bugfix-harness-readiness",
             "bugfix-investigate"
           ],
           "exit": [
@@ -829,6 +840,16 @@
       },
       "sequence": [
         {
+          "id": "feature-harness-readiness",
+          "skill": "harness-setup",
+          "args": "--mode=readiness",
+          "role": "optional",
+          "applicability": {
+            "when": "Run `node .claude/scripts/harness-readiness.cjs --json` at triage: the step runs when it reports offer true, that is a formatter, linter, type check or test check is missing or not yet proven and no recorded decline or team proposal still covers it. In a team-owned repository the step proposes the setup in writing and changes nothing.",
+            "skipReason": "The readiness check reports ready (every check proven, declined in the harness inventory or not applicable) or a recorded decline or team proposal still covers every gap; the check reads only the config, the harness inventory and manifests, so the skip costs one sub-second call and no skill load."
+          }
+        },
+        {
           "id": "feature-investigate",
           "skill": "investigate"
         },
@@ -992,6 +1013,7 @@
         {
           "id": "discover",
           "steps": [
+            "feature-harness-readiness",
             "feature-investigate",
             "feature-spec-landscape",
             "feature-domain-analysis",
@@ -1104,6 +1126,16 @@
         "default": {
           "sequence": [
             {
+              "id": "implement-spec-harness-readiness",
+              "skill": "harness-setup",
+              "args": "--mode=readiness",
+              "role": "optional",
+              "applicability": {
+                "when": "Run `node .claude/scripts/harness-readiness.cjs --json` at triage: the step runs when it reports offer true, that is a formatter, linter, type check or test check is missing or not yet proven and no recorded decline or team proposal still covers it. In a team-owned repository the step proposes the setup in writing and changes nothing.",
+                "skipReason": "The readiness check reports ready (every check proven, declined in the harness inventory or not applicable) or a recorded decline or team proposal still covers every gap; the check reads only the config, the harness inventory and manifests, so the skip costs one sub-second call and no skill load."
+              }
+            },
+            {
               "id": "implement-spec-investigate",
               "skill": "investigate"
             },
@@ -1196,6 +1228,7 @@
             {
               "id": "discover",
               "steps": [
+                "implement-spec-harness-readiness",
                 "implement-spec-investigate"
               ]
             },
@@ -1412,6 +1445,16 @@
         }
       },
       "sequence": [
+        {
+          "id": "implement-spec-harness-readiness",
+          "skill": "harness-setup",
+          "args": "--mode=readiness",
+          "role": "optional",
+          "applicability": {
+            "when": "Run `node .claude/scripts/harness-readiness.cjs --json` at triage: the step runs when it reports offer true, that is a formatter, linter, type check or test check is missing or not yet proven and no recorded decline or team proposal still covers it. In a team-owned repository the step proposes the setup in writing and changes nothing.",
+            "skipReason": "The readiness check reports ready (every check proven, declined in the harness inventory or not applicable) or a recorded decline or team proposal still covers every gap; the check reads only the config, the harness inventory and manifests, so the skip costs one sub-second call and no skill load."
+          }
+        },
         {
           "id": "implement-spec-investigate",
           "skill": "investigate"

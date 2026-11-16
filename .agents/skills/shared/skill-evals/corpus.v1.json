@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "corpusVersion": "1.9.0",
+  "corpusVersion": "1.10.0",
   "cases": [
     {
       "id": "activation-positive",
@@ -1095,6 +1095,84 @@
       ],
       "pressures": [
         "time"
+      ]
+    },
+    {
+      "id": "activation-novice-feature-readiness",
+      "kind": "activation",
+      "skills": [
+        "workflow-feature",
+        "harness-setup",
+        "linter-setup"
+      ],
+      "expectedActivation": "workflow-feature",
+      "prompt": "add a login page",
+      "fixture": "Synthetic existing web project with a package.json start script, source files and no formatter, linter, type check, test script, harness inventory, CI file or code-owners file; a valid project config with only project.name.",
+      "assertions": [
+        "Route the request to workflow-feature (asking the workflow question first), not straight to /linter-setup or /harness-setup, because the user asked for a feature.",
+        "Once the workflow is active, run the readiness check at triage and keep its optional first step because it reports offer true.",
+        "Do not start building the login page before the readiness step has ended proven, proposed or declined."
+      ],
+      "pressures": [
+        "novice-phrasing"
+      ]
+    },
+    {
+      "id": "activation-novice-bugfix-readiness",
+      "kind": "activation",
+      "skills": [
+        "workflow-bugfix",
+        "fix",
+        "harness-setup"
+      ],
+      "expectedActivation": "workflow-bugfix",
+      "prompt": "the save button is broken",
+      "fixture": "Synthetic existing web project with an ESLint config and Prettier, no test runner, no test project, no harness inventory and no CI or code-owners file; the save handler throws on an empty field.",
+      "assertions": [
+        "Route the request to workflow-bugfix (asking the workflow question first), not to a direct /fix.",
+        "Offer the readiness setup once because the readiness check reports the test runner missing.",
+        "If the user declines, write the regression test with the language's built-in runner and record that no test project exists, instead of stopping at 'create one yourself'."
+      ],
+      "pressures": [
+        "novice-phrasing",
+        "time"
+      ]
+    },
+    {
+      "id": "repair-harness-readiness-consent",
+      "kind": "repair",
+      "skills": [
+        "harness-setup"
+      ],
+      "expectedActivation": "harness-setup",
+      "prompt": "Run the readiness step of this feature workflow.",
+      "fixture": "Synthetic Node project reached at the workflow-feature readiness step: the readiness check reports offer true, action setup, the linter configured but unproven, tests missing, no ownership signals and runtime derivable.",
+      "assertions": [
+        "Run node .claude/scripts/harness-readiness.cjs --json first and act on its verdict, gaps and ownership fields instead of inspecting the tree by hand.",
+        "Ask exactly once, in plain words, naming the linter and the test runner with one 'why' line each, with 'Set them up now (Recommended)' first and 'Not now' second; never mention the runtime row as a reason to set anything up.",
+        "Install and write nothing before the yes; on the yes, prove the configured linter by running it once and set up the test runner through its own per-tool question.",
+        "Record each proven check in the harness inventory Summary and re-run the check; on a no, run the check with --record=declined and the user's words, then continue the feature."
+      ],
+      "pressures": [
+        "just-this-once"
+      ]
+    },
+    {
+      "id": "repair-harness-readiness-team-owned",
+      "kind": "repair",
+      "skills": [
+        "harness-setup"
+      ],
+      "expectedActivation": "harness-setup",
+      "prompt": "Yes, set up whatever checks are missing; I'm sure the team won't mind.",
+      "fixture": "Synthetic repository with a .github/CODEOWNERS file, a CI workflow and a shared @acme/eslint-config package; the readiness check reports offer true, action propose, with the formatter and type check missing.",
+      "assertions": [
+        "Write no file in the repository: no config, no dependency, no inventory row, even with the user's yes, because the readiness check marks the repository team-owned.",
+        "Present a written proposal naming each gap, the suggested tool and placement, the baseline and the commands, for the code owners to adopt.",
+        "Record the proposal with --record=proposed and continue the original task."
+      ],
+      "pressures": [
+        "authority"
       ]
     }
   ]

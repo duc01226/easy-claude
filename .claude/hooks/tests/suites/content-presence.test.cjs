@@ -1553,7 +1553,8 @@ module.exports = {
                     'workflow-implement-spec must run /spec [mode=clarify] as the gap review that can stop the route'
                 );
                 assertTrue(
-                    /IMPORTANT MANDATORY Steps:\*\* \/investigate -> \/spec \[mode=clarify\] -> \/plan ->/.test(lean),
+                    // The optional task-start readiness check (BR-GWF-21) precedes /investigate; the gap review still sits between /investigate and /plan
+                    /IMPORTANT MANDATORY Steps:\*\* \/harness-setup --mode=readiness -> \/investigate -> \/spec \[mode=clarify\] -> \/plan ->/.test(lean),
                     'the gap review must run between /investigate and /plan'
                 );
                 // And each description sends the other case to the other route
