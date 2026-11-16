@@ -4,8 +4,6 @@ kind: action
 title: Offer edit-time lint that reports only new problems on the lines an edit changed
 added: 2026-11-17
 level: optional
-after:
-  - fill-verify-commands
 applies:
   [
     "node",
